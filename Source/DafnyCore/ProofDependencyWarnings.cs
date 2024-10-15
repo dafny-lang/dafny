@@ -45,8 +45,8 @@ public class ProofDependencyWarnings {
     if (results.Any(r => r.Outcome != SolverOutcome.Valid)) {
       return;
     }
-    var distilled = results.Select(r => (r.CoveredElements, DafnyConsolePrinter.DistillVCResult(r))).ToList();
-    var asserts = distilled.Select(tp => (tp.CoveredElements, new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>(tp.Item2.Asserts))).ToList();
+    var distilled = results.Select(r => (r.CoveredElements, DafnyConsolePrinter.DistillVCResult(r)));
+    var asserts = distilled.Select(tp => (tp.CoveredElements, new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>(tp.Item2.Asserts)));
     var unusedFunctions = UnusedFunctions(dafnyOptions, depManager, name, distilled.SelectMany(r => r.CoveredElements), distilled.SelectMany(r => r.Item2.AvailableAxioms));
     WarnAboutSuspiciousDependencies(dafnyOptions, reporter, depManager, name, asserts, unusedFunctions);
   }
@@ -135,7 +135,7 @@ public class ProofDependencyWarnings {
   }
 
   private static void WarnAboutSuspiciousDependencies(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager,
-    string scopeName, List<(IEnumerable<TrackedNodeComponent> CoveredElements, HashSet<DafnyConsolePrinter.AssertCmdPartialCopy> Asserts)> assertCoverage, List<Function> unusedFunctions) {
+    string scopeName, IEnumerable<(IEnumerable<TrackedNodeComponent> CoveredElements, HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>)> assertCoverage, List<Function> unusedFunctions) {
     var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(scopeName);
     var coveredElements = assertCoverage.SelectMany(tp => tp.CoveredElements);
     var usedDependencies =
@@ -185,7 +185,7 @@ public class ProofDependencyWarnings {
 
     if (dafnyOptions.Get(CommonOptionBag.SuggestProofRefactoring) && depManager.idsByMemberName[scopeName].Decl is Method m) {
       SuggestFunctionHiding(reporter, unusedFunctions, m);
-      SuggestByProofRefactoring(reporter, depManager, scopeName, assertCoverage);
+      SuggestByProofRefactoring(reporter, depManager, scopeName, assertCoverage.ToList());
     }
   }
 

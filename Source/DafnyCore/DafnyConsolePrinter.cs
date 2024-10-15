@@ -53,7 +53,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     string GetId(ICarriesAttributes construct) {
       var values = construct.FindAllAttributes("id");
       if (!values.Any()) {
-        throw new ArgumentException($"No dependency ID in assertion");
+        return "";
       }
       return (string)values.Last().Params.First();
     }
