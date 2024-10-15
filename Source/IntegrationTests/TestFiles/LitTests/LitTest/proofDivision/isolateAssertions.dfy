@@ -3,8 +3,9 @@
 // CHECK:Verified 1/3 of Assertion: assertion at line 18, could not prove all assertions
 // CHECK:Verified 2/3 of Assertion: assertion at line 26, verified successfully
 // CHECK:Verified 3/3 of Assertion: remaining body, verified successfully
-// CHECK:Verified 1/2 of Return: return at line 43, could not prove all assertions
-// CHECK:Verified 2/2 of Return: body, could not prove all assertions
+// CHECK:Verified 1/3 of Return: return at line 48, could not prove all assertions
+// CHECK:Verified 2/3 of Return: return at line 43, could not prove all assertions
+// CHECK:Verified 3/3 of Return: remaining body, could not prove all assertions
 
 method Assertion(x: int, y: int) returns (r: int) {
   r := 0;
@@ -43,5 +44,27 @@ method Return(x: int, y: int) returns (r: int)
     return {:isolate};
   }
 
+  var i := x;
+  while(i > 0) {
+    return {:isolate} 1;
+    i := i - 1;
+  }
+
   return 1;
+}
+
+method Continue() {
+  var i := 3;
+  var r := 0;
+  while(i > 0)
+    invariant r < 3 - i + 1
+  {
+    i := i - 1;
+    if (i == 2) {
+      r := r + 2;
+      continue {:isolate};
+    } else {
+      r := r + 1;
+    }
+  }
 }
