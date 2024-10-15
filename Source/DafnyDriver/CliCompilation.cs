@@ -217,7 +217,7 @@ public class CliCompilation {
     VerifiedAssertions = line != null;
 
     int done = 0;
-    
+
     var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
     var canVerifiesPerModule = orderedCanVerifies.GroupBy(c => c.ContainingModule).ToList();
     foreach (var canVerifiesForModule in canVerifiesPerModule) {
@@ -233,7 +233,7 @@ public class CliCompilation {
           orderedCanVerifies.Remove(canVerify);
         }
       }
-      
+
       foreach (var canVerify in canVerifiesForModule) {
         var results = canVerifyResults[canVerify];
         try {
