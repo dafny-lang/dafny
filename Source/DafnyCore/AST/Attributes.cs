@@ -273,7 +273,7 @@ public class Attributes : TokenNode, ICanFormat {
   }
   private static string TupleItem0Name => "0";
   // Helper to create a built-in @-attribute
-  static BuiltInAtAttributeSyntax B(string name) {
+  static BuiltInAtAttributeSyntax BuiltIn(string name) {
     return new BuiltInAtAttributeSyntax(
       name, new List<BuiltInAtAttributeArgSyntax>());
   }
@@ -293,7 +293,7 @@ public class Attributes : TokenNode, ICanFormat {
   }
 
   // Given a user-supplied @-attribute, expand it if recognized as builtin to an old-style attribute
-  // or mark i as not built-in for later resolution
+  // or mark it as not built-in for later resolution
   public static Attributes ExpandAtAttribute(Program program, UserSuppliedAtAttribute atAttribute) {
     var toMatch = atAttribute.Arg;
     var name = atAttribute.UserSuppliedName;
@@ -311,7 +311,7 @@ public class Attributes : TokenNode, ICanFormat {
 
     if (name != "Induction" && name != "Trigger") {
       var formals = builtinSyntax.Args.Select(arg => arg.ToFormal()).ToArray();
-      ResolveLikeDatatypeConstructor(program, formals, name, toMatch.tok, bindings);
+      ResolveLikeDatatypeConstructor(program, formals, name, atAttribute, bindings);
     } // For @Induction and @Trigger, resolution is done in the generated version of the attributes
 
     atAttribute.Builtin = true;
@@ -355,14 +355,14 @@ public class Attributes : TokenNode, ICanFormat {
   // This list could be obtained from parsing and resolving a .Dfy file
   // but for now it's good enough.
   public static readonly List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = new() {
-    B("Compile").WithArg(TupleItem0Name, Type.Bool, DefaultBool(true)),
-    B("Fuel")
+    BuiltIn("Compile").WithArg(TupleItem0Name, Type.Bool, DefaultBool(true)),
+    BuiltIn("Fuel")
       .WithArg("low", Type.Int, DefaultInt(1))
       .WithArg("high", Type.Int, DefaultInt(2))
       .WithArg("functionName", Type.ResolvedString(), DefaultString("")),
-    B("Induction"), // Resolution is different
-    B("IsolateAssertions"),
-    B("Options").WithArg(TupleItem0Name, Type.ResolvedString()),
+    BuiltIn("Induction"), // Resolution is different
+    BuiltIn("IsolateAssertions"),
+    BuiltIn("Options").WithArg(TupleItem0Name, Type.ResolvedString()),
   };
 
   ////// Helpers to create default values for the @-attribute definitions above //////
@@ -399,16 +399,15 @@ public class Attributes : TokenNode, ICanFormat {
   // obtained from built-in @-attribute definitions
   private static void ResolveLikeDatatypeConstructor(
     Program program, Formal[] formals, string attrName,
-    IToken attrsTok, ActualBindings bindings) {
+    UserSuppliedAtAttribute attrs, ActualBindings bindings) {
     var datatypeName = new Name(RangeToken.NoToken, attrName);
-    var datatypeCtor = new DatatypeCtor(RangeToken.NoToken, datatypeName, false, formals.ToList(), null);
     var resolutionContext = new ResolutionContext(new NoContext(program.DefaultModuleDef), false); ;
     var typeMap = new Dictionary<TypeParameter, Type>();
     var resolver = new ModuleResolver(new ProgramResolver(program), program.Options);
     resolver.reporter = program.Reporter;
     resolver.moduleInfo = resolver.ProgramResolver.SystemModuleManager.systemNameInfo;
-    resolver.ResolveActualParameters(bindings, formals.ToList(), attrsTok,
-      datatypeCtor, resolutionContext, typeMap, null);
+    resolver.ResolveActualParameters(bindings, formals.ToList(), attrs.tok,
+      attrs, resolutionContext, typeMap, null);
     resolver.FillInDefaultValueExpressions();
     resolver.SolveAllTypeConstraints();
   }

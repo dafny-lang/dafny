@@ -1,4 +1,5 @@
 # 11. Attributes {#sec-attributes}
+
 Dafny allows many of its entities to be annotated with _Attributes_.
 Attributes are declared between `{:` and `}` like this:
 <!-- %no-check -->
@@ -31,6 +32,19 @@ overrides those further away.
 
 For attributes with a single boolean expression argument, the attribute
 with no argument is interpreted as if it were true.
+
+** Migration notes: ** There is a new syntax for typed attributes that is being added: `@Attribute(...)`, and these attributes are going to be prefix attributes. For now, the new syntax works only as top-level declarations. When all previous attributes will be migrated, this section will be rewritten.
+
+Dafny rewrites `@`-attributes to old-style equivalent attribute, after type-checking them. The definition of these attributes would look something like this currently+:
+
+```
+datatype Attribute =
+    Fuel(low: int, high: int := low + 1, functionName: string := "")
+  | Options(string)
+  | Compile(bool)
+  | IsolateAssertions
+  | Induction(...) // Anything here
+```
 
 ## 11.1. Attributes on top-level declarations
 
@@ -276,6 +290,7 @@ although it is free to read and write newly allocated objects.
 See [`{:extern <name>}`](#sec-extern).
 
 ### 11.2.8. `{:fuel X}` {#sec-fuel}
+
 The fuel attribute is used to specify how much "fuel" a function should have,
 i.e., how many times the verifier is permitted to unfold its definition.  The
 `{:fuel}` annotation can be added to the function itself, in which

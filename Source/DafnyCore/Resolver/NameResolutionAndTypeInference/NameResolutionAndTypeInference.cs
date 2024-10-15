@@ -3210,7 +3210,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);
       Contract.Requires(callTok != null);
-      Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType);
+      Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType || context is UserSuppliedAtAttribute);
       Contract.Requires(typeMap != null);
       Contract.Requires(!bindings.WasResolved);
 
@@ -3225,6 +3225,9 @@ namespace Microsoft.Dafny {
       } else if (context is DatatypeCtor cCtor) {
         whatKind = "datatype constructor";
         name = $"{whatKind} '{cCtor.Name}'";
+      } else if (context is UserSuppliedAtAttribute usaa) {
+        whatKind = "attribute";
+        name = $"{whatKind} '{usaa.UserSuppliedName}'";
       } else {
         var cArrowType = (ArrowType)context;
         whatKind = "function application";
