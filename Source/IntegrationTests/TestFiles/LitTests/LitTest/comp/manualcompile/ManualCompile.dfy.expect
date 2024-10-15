@@ -100,7 +100,7 @@ hello, Dafny
 Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to ManualCompile-py/__main__.py
 Additional output written to ManualCompile-py/ManualCompile-py.dtr
-Additional output written to ManualCompile-py/System_.py
-Additional output written to ManualCompile-py/_dafny.py
+Additional output written to ManualCompile-py/System_/__init__.py
+Additional output written to ManualCompile-py/_dafny/__init__.py
 Additional output written to ManualCompile-py/module_.py
 hello, Dafny
