@@ -218,10 +218,11 @@ public class CliCompilation {
 
     int done = 0;
 
-    var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
-    var canVerifiesPerModule = orderedCanVerifies.GroupBy(c => c.ContainingModule).ToList();
-    foreach (var canVerifiesForModule in canVerifiesPerModule) {
-      foreach (var canVerify in canVerifiesForModule) {
+    var canVerifiesPerModule = canVerifies.ToList().GroupBy(c => c.ContainingModule).ToList();
+    foreach (var canVerifiesForModule in canVerifiesPerModule.
+               OrderBy(v => v.Key.Tok.pos)) {
+      var orderedCanVerifies = canVerifiesForModule.OrderBy(v => v.Tok.pos).ToList();
+      foreach (var canVerify in orderedCanVerifies) {
         var results = new CliCanVerifyState();
         canVerifyResults[canVerify] = results;
         if (line != null) {
@@ -230,16 +231,16 @@ public class CliCompilation {
 
         var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
         if (!shouldVerify) {
-          orderedCanVerifies.Remove(canVerify);
+          canVerifies.ToList().Remove(canVerify);
         }
       }
 
-      foreach (var canVerify in canVerifiesForModule) {
+      foreach (var canVerify in orderedCanVerifies) {
         var results = canVerifyResults[canVerify];
         try {
           if (Options.Get(CommonOptionBag.ProgressOption) > CommonOptionBag.ProgressLevel.None) {
             await Options.OutputWriter.WriteLineAsync(
-              $"Verified {done}/{orderedCanVerifies.Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
+              $"Verified {done}/{canVerifies.ToList().Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
           }
 
           await results.Finished.Task;

@@ -1,4 +1,4 @@
-// RUN: ! %verify --isolate-assertions --cores=1 --progress "%s" &> "%t"
+// RUN: ! %verify --isolate-assertions --cores=1 --progress SymbolParts "%s" &> "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%S/Inputs/outOfResourceAndIsolateAssertions.check"
 
 
