@@ -1752,14 +1752,14 @@ namespace Microsoft.Dafny {
 
           // free ensures more ==> $_YieldRequiresOldHeap_Global == $Heap
           AddEnsures(ens, Ensures(m.tok, true, null,
-            BplImp(new Bpl.IdentifierExpr(m.tok, outParams[0]), Bpl.Expr.Eq(yrOldHeapG, etran.HeapExpr))
+            BplImp(new Bpl.IdentifierExpr(m.tok, outParams.Values.AsEnumerable().First()), Bpl.Expr.Eq(yrOldHeapG, etran.HeapExpr))
           , null, null, "coroutines: identifies $_YieldRequiresOldHeap_Global for caller"));
 
           // free ensures !more ==> Ensures[old($Heap) |-> $_EnsuresOldHeap_Global]
           ExpressionTranslator ensEtran = new(this, predef, etran.HeapExpr, ensuresOldHeapG, m);
           foreach (var p in iter.Ensures) {
             AddEnsures(ens, Ensures(m.tok, true, null, BplImp(
-              Bpl.Expr.Not(new Bpl.IdentifierExpr(m.tok, outParams[0])),
+              Bpl.Expr.Not(new Bpl.IdentifierExpr(m.tok, outParams.Values.AsEnumerable().First())),
               ensEtran.TrExpr(p.E)
             ), null, null, "coroutines: ensures clause where old($Heap) == $_EnsuresOldHeap_Global"));
           }

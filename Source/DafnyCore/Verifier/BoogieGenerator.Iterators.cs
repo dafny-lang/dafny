@@ -262,7 +262,7 @@ namespace Microsoft.Dafny {
 
       // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
       var rds = new MemberSelectExpr(iter.tok, th, iter.Member_Reads);
-      builder.Add(Call(iter.tok, "$IterHavoc0",
+      builder.Add(Call(builder.Context, iter.tok, "$IterHavoc0",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod) },
         new List<Bpl.IdentifierExpr>()));
 
