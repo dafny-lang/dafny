@@ -264,7 +264,7 @@ module M3 refines M2 {
       }
     }
 
-    lemma {:autocontracts false} ReachUnaffectedByChangeFromRoot'(d: nat, e: Element, r: Element, C: CMap, td: nat, r0: Element, r1: Element, C': CMap)
+    lemma {:autocontracts false} {:induction d, e, r, C} {:nowarn} ReachUnaffectedByChangeFromRoot'(d: nat, e: Element, r: Element, C: CMap, td: nat, r0: Element, r1: Element, C': CMap)
       requires GoodCMap(C)
       requires e in C && Reaches(d, e, r, C)
       requires r0 in C && r1 in C && C[r0].Root? && C[r1].Root? && C[r0].depth == C[r1].depth && r0 != r1
