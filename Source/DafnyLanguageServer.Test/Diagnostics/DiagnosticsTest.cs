@@ -76,7 +76,7 @@ method ContradictoryAssumeMethod(n: int)
         );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
-        diagnostic.Range == new Range(13, 11, 13, 17) &&
+        diagnostic.Range == new Range(13, 4, 13, 18) &&
         diagnostic.Message == "proved using contradictory assumptions: assertion always holds. (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
       );
       Assert.Contains(diagnostics, diagnostic =>
@@ -1025,7 +1025,7 @@ method test(i: int, j: int) {
       Assert.Single(diagnostics);
       Assert.Equal(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((1, 9), (1, 23)), diagnostics[0].Range);
+      Assert.Equal(new Range((1, 2), (1, 24)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 

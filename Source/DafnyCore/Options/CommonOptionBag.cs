@@ -288,7 +288,7 @@ May slow down verification slightly, or make it more brittle.
 May produce spurious warnings.") {
     IsHidden = true
   };
-  public static readonly Option<bool> SuggestProofRefactoring = new("--suggest-proof-refactoring",  @"
+  public static readonly Option<bool> SuggestProofRefactoring = new("--suggest-proof-refactoring", @"
 (experimental) Emits suggestions for moving assertions into by-proofs and hiding unused function definitions.
 May produce spurious suggestions. Use with --show-hints on the CLI.") {
     IsHidden = true
@@ -635,7 +635,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(WarnContradictoryAssumptions, OptionScope.Module);
     OptionRegistry.RegisterOption(WarnRedundantAssumptions, OptionScope.Module);
     OptionRegistry.RegisterOption(SuggestProofRefactoring, OptionScope.Module);
-    OptionRegistry.RegisterOption(AnalyseProofs, OptionScope.Module);    
+    OptionRegistry.RegisterOption(AnalyseProofs, OptionScope.Module);
     OptionRegistry.RegisterOption(VerificationCoverageReport, OptionScope.Cli);
     OptionRegistry.RegisterOption(NoTimeStampForCoverageReport, OptionScope.Cli);
     OptionRegistry.RegisterOption(DefaultFunctionOpacity, OptionScope.Module);

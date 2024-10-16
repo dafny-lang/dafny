@@ -69,7 +69,7 @@ public class ProofDependencyWarnings {
       .Select(dep => dep.function).Deduplicate((a, b) => a.Equals(b));
 
     unusedFunctions = VisibleFunctions().Except(usedFunctions).ToList();
-    
+
     return unusedFunctions;
 
     HashSet<Function> VisibleFunctions() {
@@ -219,8 +219,7 @@ public class ProofDependencyWarnings {
   }
 
   private static Dictionary<ProofDependency, HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>>
-    ComputeAssertionsUsedByFact(string scopeName, IReadOnlyList<DafnyConsolePrinter.VerificationRunResultPartialCopy> vcResults)
-  {
+    ComputeAssertionsUsedByFact(string scopeName, IReadOnlyList<DafnyConsolePrinter.VerificationRunResultPartialCopy> vcResults) {
     var assertionsUsedByFact = manager.GetPotentialDependenciesForDefinition(scopeName)
       .Where(dep => dep is not EnsuresDependency)
       .ToDictionary(dep => dep, _ => new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy> { });
@@ -236,7 +235,7 @@ public class ProofDependencyWarnings {
         assertionsUsedByFact.TryAdd(factDependency, new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>());
 
         bool NotSelfReferential(DafnyConsolePrinter.AssertCmdPartialCopy assert) =>
-           !manager.ProofDependenciesById.TryGetValue(assert.Id, out var assertDependency) 
+           !manager.ProofDependenciesById.TryGetValue(assert.Id, out var assertDependency)
                  || !(factDependency == assertDependency || factDependency is CallRequiresDependency req && req.call == assertDependency);
 
         assertionsUsedByFact[factDependency].UnionWith(asserts.Where(NotSelfReferential));
