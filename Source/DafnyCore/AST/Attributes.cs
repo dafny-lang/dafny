@@ -400,7 +400,6 @@ public class Attributes : TokenNode, ICanFormat {
   private static void ResolveLikeDatatypeConstructor(
     Program program, Formal[] formals, string attrName,
     UserSuppliedAtAttribute attrs, ActualBindings bindings) {
-    var datatypeName = new Name(RangeToken.NoToken, attrName);
     var resolutionContext = new ResolutionContext(new NoContext(program.DefaultModuleDef), false); ;
     var typeMap = new Dictionary<TypeParameter, Type>();
     var resolver = new ModuleResolver(new ProgramResolver(program), program.Options);
@@ -410,6 +409,12 @@ public class Attributes : TokenNode, ICanFormat {
       attrs, resolutionContext, typeMap, null);
     resolver.FillInDefaultValueExpressions();
     resolver.SolveAllTypeConstraints();
+    // Verify that arguments are given literally
+    foreach (var binding in bindings.ArgumentBindings) {
+      if (binding.Actual is not LiteralExpr) {
+        program.Reporter.Error(MessageSource.Resolver, binding.Actual.RangeToken, $"Argument to attribute {attrName} must be a literal");
+      }
+    } 
   }
 
   // Recovers a built-in @-Attribute if it exists

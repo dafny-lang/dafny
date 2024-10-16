@@ -11,6 +11,7 @@ function f(x:int) : bool
 @compile("true") // Should be Compile
 @Compile("true") // Should be boolean
 @Compile(true, false) // Should have one argument
+@Compile(true && false)
 @fuel(low := 1, 2) // Should be Fuel
 @Fuel(2, low := 1) // Wrong position of arguments
 function g(y:int, b:bool) : bool

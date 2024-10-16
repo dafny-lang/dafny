@@ -1,8 +1,9 @@
-at-attributes-typos.dfy(15,9): Error: the parameter named 'low' is already given positionally
+at-attributes-typos.dfy(16,9): Error: the parameter named 'low' is already given positionally
+at-attributes-typos.dfy(14,9): Error: Argument to attribute Compile must be a literal
 at-attributes-typos.dfy(13,20): Error: wrong number of arguments (got 2, but attribute 'Compile' expects at most 1: (0: bool))
 at-attributes-typos.dfy(12,15): Error: incorrect argument type for attribute parameter '0' (expected bool, found string)
-at-attributes-typos.dfy(22,31): Error: wrong number of arguments (got 1, but attribute 'IsolateAssertions' expects 0)
-at-attributes-typos.dfy(14,1): Error: unresolved identifier: fuel
+at-attributes-typos.dfy(23,31): Error: wrong number of arguments (got 1, but attribute 'IsolateAssertions' expects 0)
+at-attributes-typos.dfy(15,1): Error: unresolved identifier: fuel
 at-attributes-typos.dfy(11,1): Error: unresolved identifier: compile
-at-attributes-typos.dfy(21,1): Error: unresolved identifier: isolate_assertions
-7 resolution/type errors detected in at-attributes-typos.dfy
+at-attributes-typos.dfy(22,1): Error: unresolved identifier: isolate_assertions
+8 resolution/type errors detected in at-attributes-typos.dfy

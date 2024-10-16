@@ -1694,7 +1694,6 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      List<AttributedExpression> ens = new List<AttributedExpression>();
      List<FrameExpression> reads = new List<FrameExpression>();
      List<Expression> decreases;
-     Attributes attrs = null;
      Attributes decAttrs = null;
      Attributes readsAttrs = null;
      Expression body = null;
