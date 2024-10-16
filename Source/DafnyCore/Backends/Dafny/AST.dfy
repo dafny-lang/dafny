@@ -300,7 +300,7 @@ module {:extern "DAST"} DAST {
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
     MapItems(expr: Expression) |
-    Select(expr: Expression, field: VarName, isConstant: bool, onDatatype: bool, fieldType: Type) |
+    Select(expr: Expression, field: VarName, fieldMutability: FieldMutability, fieldType: Type) |
     SelectFn(expr: Expression, field: VarName, onDatatype: bool, isStatic: bool, isConstant: bool, arguments: seq<Type>) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |
@@ -323,6 +323,7 @@ module {:extern "DAST"} DAST {
     UnboundedIntRange(start: Expression, up: bool) |
     Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression)
 
+  datatype FieldMutability = ConstantField | MutableField | InternalConstantField
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
   datatype Literal =

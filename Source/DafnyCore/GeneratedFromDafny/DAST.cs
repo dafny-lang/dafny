@@ -6013,10 +6013,11 @@ namespace DAST {
     BigInteger dtor_dim { get; }
     bool dtor_native { get; }
     Dafny.ISequence<Dafny.Rune> dtor_field { get; }
-    bool dtor_isConstant { get; }
+    DAST._IFieldMutability dtor_fieldMutability { get; }
     bool dtor_onDatatype { get; }
     DAST._IType dtor_fieldType { get; }
     bool dtor_isStatic { get; }
+    bool dtor_isConstant { get; }
     Dafny.ISequence<DAST._IType> dtor_arguments { get; }
     DAST._ICollKind dtor_collKind { get; }
     Dafny.ISequence<DAST._IExpression> dtor_indices { get; }
@@ -6144,8 +6145,8 @@ namespace DAST {
     public static _IExpression create_MapItems(DAST._IExpression expr) {
       return new Expression_MapItems(expr);
     }
-    public static _IExpression create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool isConstant, bool onDatatype, DAST._IType fieldType) {
-      return new Expression_Select(expr, field, isConstant, onDatatype, fieldType);
+    public static _IExpression create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, DAST._IFieldMutability fieldMutability, bool onDatatype, DAST._IType fieldType) {
+      return new Expression_Select(expr, field, fieldMutability, onDatatype, fieldType);
     }
     public static _IExpression create_SelectFn(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool onDatatype, bool isStatic, bool isConstant, Dafny.ISequence<DAST._IType> arguments) {
       return new Expression_SelectFn(expr, field, onDatatype, isStatic, isConstant, arguments);
@@ -6531,11 +6532,10 @@ namespace DAST {
         return ((Expression_SelectFn)d)._field;
       }
     }
-    public bool dtor_isConstant {
+    public DAST._IFieldMutability dtor_fieldMutability {
       get {
         var d = this;
-        if (d is Expression_Select) { return ((Expression_Select)d)._isConstant; }
-        return ((Expression_SelectFn)d)._isConstant;
+        return ((Expression_Select)d)._fieldMutability;
       }
     }
     public bool dtor_onDatatype {
@@ -6556,6 +6556,12 @@ namespace DAST {
       get {
         var d = this;
         return ((Expression_SelectFn)d)._isStatic;
+      }
+    }
+    public bool dtor_isConstant {
+      get {
+        var d = this;
+        return ((Expression_SelectFn)d)._isConstant;
       }
     }
     public Dafny.ISequence<DAST._IType> dtor_arguments {
@@ -7650,30 +7656,30 @@ namespace DAST {
   public class Expression_Select : Expression {
     public readonly DAST._IExpression _expr;
     public readonly Dafny.ISequence<Dafny.Rune> _field;
-    public readonly bool _isConstant;
+    public readonly DAST._IFieldMutability _fieldMutability;
     public readonly bool _onDatatype;
     public readonly DAST._IType _fieldType;
-    public Expression_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool isConstant, bool onDatatype, DAST._IType fieldType) : base() {
+    public Expression_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, DAST._IFieldMutability fieldMutability, bool onDatatype, DAST._IType fieldType) : base() {
       this._expr = expr;
       this._field = field;
-      this._isConstant = isConstant;
+      this._fieldMutability = fieldMutability;
       this._onDatatype = onDatatype;
       this._fieldType = fieldType;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_Select(_expr, _field, _isConstant, _onDatatype, _fieldType);
+      return new Expression_Select(_expr, _field, _fieldMutability, _onDatatype, _fieldType);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_Select;
-      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._field, oth._field) && this._isConstant == oth._isConstant && this._onDatatype == oth._onDatatype && object.Equals(this._fieldType, oth._fieldType);
+      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._field, oth._field) && object.Equals(this._fieldMutability, oth._fieldMutability) && this._onDatatype == oth._onDatatype && object.Equals(this._fieldType, oth._fieldType);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 29;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._field));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isConstant));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fieldMutability));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._onDatatype));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fieldType));
       return (int) hash;
@@ -7685,7 +7691,7 @@ namespace DAST {
       s += ", ";
       s += Dafny.Helpers.ToString(this._field);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._isConstant);
+      s += Dafny.Helpers.ToString(this._fieldMutability);
       s += ", ";
       s += Dafny.Helpers.ToString(this._onDatatype);
       s += ", ";
@@ -8432,6 +8438,108 @@ namespace DAST {
       s += ", ";
       s += Dafny.Helpers.ToString(this._lambda);
       s += ")";
+      return s;
+    }
+  }
+
+  public interface _IFieldMutability {
+    bool is_ConstantField { get; }
+    bool is_MutableField { get; }
+    bool is_InternalConstantField { get; }
+    _IFieldMutability DowncastClone();
+  }
+  public abstract class FieldMutability : _IFieldMutability {
+    public FieldMutability() {
+    }
+    private static readonly DAST._IFieldMutability theDefault = create_ConstantField();
+    public static DAST._IFieldMutability Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._IFieldMutability> _TYPE = new Dafny.TypeDescriptor<DAST._IFieldMutability>(DAST.FieldMutability.Default());
+    public static Dafny.TypeDescriptor<DAST._IFieldMutability> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IFieldMutability create_ConstantField() {
+      return new FieldMutability_ConstantField();
+    }
+    public static _IFieldMutability create_MutableField() {
+      return new FieldMutability_MutableField();
+    }
+    public static _IFieldMutability create_InternalConstantField() {
+      return new FieldMutability_InternalConstantField();
+    }
+    public bool is_ConstantField { get { return this is FieldMutability_ConstantField; } }
+    public bool is_MutableField { get { return this is FieldMutability_MutableField; } }
+    public bool is_InternalConstantField { get { return this is FieldMutability_InternalConstantField; } }
+    public static System.Collections.Generic.IEnumerable<_IFieldMutability> AllSingletonConstructors {
+      get {
+        yield return FieldMutability.create_ConstantField();
+        yield return FieldMutability.create_MutableField();
+        yield return FieldMutability.create_InternalConstantField();
+      }
+    }
+    public abstract _IFieldMutability DowncastClone();
+  }
+  public class FieldMutability_ConstantField : FieldMutability {
+    public FieldMutability_ConstantField() : base() {
+    }
+    public override _IFieldMutability DowncastClone() {
+      if (this is _IFieldMutability dt) { return dt; }
+      return new FieldMutability_ConstantField();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.FieldMutability_ConstantField;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.FieldMutability.ConstantField";
+      return s;
+    }
+  }
+  public class FieldMutability_MutableField : FieldMutability {
+    public FieldMutability_MutableField() : base() {
+    }
+    public override _IFieldMutability DowncastClone() {
+      if (this is _IFieldMutability dt) { return dt; }
+      return new FieldMutability_MutableField();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.FieldMutability_MutableField;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 1;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.FieldMutability.MutableField";
+      return s;
+    }
+  }
+  public class FieldMutability_InternalConstantField : FieldMutability {
+    public FieldMutability_InternalConstantField() : base() {
+    }
+    public override _IFieldMutability DowncastClone() {
+      if (this is _IFieldMutability dt) { return dt; }
+      return new FieldMutability_InternalConstantField();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.FieldMutability_InternalConstantField;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 2;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.FieldMutability.InternalConstantField";
       return s;
     }
   }

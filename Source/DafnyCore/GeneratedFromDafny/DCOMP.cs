@@ -2007,7 +2007,7 @@ namespace DCOMP {
                   generated = (((RAST.__default.dafny__runtime).MSel(_10_update__field__uninit)).AsExpr()).Apply(Dafny.Sequence<RAST._IExpr>.FromElements((this).thisInConstructor, RAST.Expr.create_Identifier(_5_fieldName), RAST.Expr.create_Identifier(_9_isAssignedVar), rhs));
                   newEnv = (newEnv).RemoveAssigned(_9_isAssignedVar);
                 } else {
-                  generated = ((this).modify__field__macro).Apply(Dafny.Sequence<RAST._IExpr>.FromElements((((this).read__macro).Apply1((this).thisInConstructor)).Sel(_5_fieldName), rhs));
+                  generated = ((this).modify__mutable__field__macro).Apply(Dafny.Sequence<RAST._IExpr>.FromElements((((this).read__macro).Apply1((this).thisInConstructor)).Sel(_5_fieldName), rhs));
                 }
                 goto after_match1;
               }
@@ -2016,7 +2016,7 @@ namespace DCOMP {
               if (!object.Equals(_6_onExpr, RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self")))) {
                 _6_onExpr = ((this).read__macro).Apply1(_6_onExpr);
               }
-              generated = ((this).modify__field__macro).Apply(Dafny.Sequence<RAST._IExpr>.FromElements((_6_onExpr).Sel(_5_fieldName), rhs));
+              generated = ((this).modify__mutable__field__macro).Apply(Dafny.Sequence<RAST._IExpr>.FromElements((_6_onExpr).Sel(_5_fieldName), rhs));
             }
           after_match1: ;
             readIdents = _8_recIdents;
@@ -5485,7 +5485,7 @@ namespace DCOMP {
         if (_source0.is_Select) {
           DAST._IExpression _218_on = _source0.dtor_expr;
           Dafny.ISequence<Dafny.Rune> _219_field = _source0.dtor_field;
-          bool _220_isConstant = _source0.dtor_isConstant;
+          DAST._IFieldMutability _220_fieldMutability = _source0.dtor_fieldMutability;
           bool _221_isDatatype = _source0.dtor_onDatatype;
           DAST._IType _222_fieldType = _source0.dtor_fieldType;
           {
@@ -5568,11 +5568,13 @@ namespace DCOMP {
                 r = ((this).read__macro).Apply1(r);
               }
               r = (r).Sel(Defs.__default.escapeVar(_219_field));
-              if (_220_isConstant) {
+              if ((_220_fieldMutability).is_ConstantField) {
                 r = (r).Apply0();
                 r = (r).Clone();
+              } else if ((_220_fieldMutability).is_InternalConstantField) {
+                r = (r).Clone();
               } else {
-                r = ((this).read__field__macro).Apply1(r);
+                r = ((this).read__mutable__field__macro).Apply1(r);
               }
               RAST._IExpr _out200;
               Defs._IOwnership _out201;
@@ -6848,10 +6850,10 @@ namespace DCOMP {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("cast_object!");
       }
     } }
-    public RAST._IExpr read__field__macro { get {
+    public RAST._IExpr read__mutable__field__macro { get {
       return ((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("read_field!"))).AsExpr();
     } }
-    public RAST._IExpr modify__field__macro { get {
+    public RAST._IExpr modify__mutable__field__macro { get {
       return ((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("modify_field!"))).AsExpr();
     } }
   }
