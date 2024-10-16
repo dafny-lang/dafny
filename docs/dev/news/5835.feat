@@ -1,0 +1,5 @@
+Fill in matching patterns for the quantifiers introduced by automatic induction to represent the induction hypothesis. Suppress the generation of the induction hypothesis if no such matching patterns are found. Enhance tooltips accordingly. This feature is added to make stabilize verification, but by sometimes not generating induction hypotheses, some automatic proofs may no longer go through.
+
+Improve the selection of induction variables.
+
+Allow codatatype equality in matching patterns and as a focal predicate for extreme predicates.
