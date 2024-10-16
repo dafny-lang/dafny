@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       if (Options?.CoverageLegendFile != null) {
         //TODO: What's the module name for this?
-        Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
+        ImportsNotFromDafnyModules.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
       }
     }
 
@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private readonly Dictionary<ModuleDefinition, Import> ModuleImports = new();
-    private readonly List<Import> Imports = new(StandardImports);
+    private readonly List<Import> ImportsNotFromDafnyModules = new(StandardImports);
     private string ModuleName;
     private ModuleDefinition CurrentModule;
     private ConcreteSyntaxTree RootImportWriter;
@@ -96,7 +96,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         path = GoModuleMode ? DafnyRuntimeGoModule : "";
       }
-      Imports.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
+      ImportsNotFromDafnyModules.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
 
       if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
         EmitRuntimeSource("DafnyStandardLibraries_go", wr);
@@ -135,7 +135,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine(")");
       importDummyWriter = wr.Fork();
       if (ModuleName != "dafny") {
-        foreach (var import in Imports) {
+        foreach (var import in ImportsNotFromDafnyModules.Concat(ModuleImports.Values)) {
           EmitImport(import, importWriter, importDummyWriter);
         }
       }
@@ -282,7 +282,6 @@ namespace Microsoft.Dafny.Compilers {
       // Import in root module
       EmitImport(import, RootImportWriter, RootImportDummyWriter);
       // Import in all subsequent modules
-      Imports.Add(import);
       ModuleImports[module] = import;
       var implemented = module.GetImplementedModule();
       while (implemented != null) {
