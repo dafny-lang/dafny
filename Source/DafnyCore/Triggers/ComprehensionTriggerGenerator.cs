@@ -231,15 +231,18 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    public List<List<Expression>> GetTriggers() {
+    public List<List<Expression>> GetTriggers(bool includeTriggersThatRequireNamedExpressions) {
       var triggers = new List<List<Expression>>();
       foreach (var triggerWriter in partWriters) {
-        foreach (var triggerTerms in triggerWriter.Candidates) {
-          var trigger = new List<Expression>();
-          foreach (var triggerTerm in triggerTerms.Terms) {
-            trigger.Add(triggerTerm.Expr);
+        if (includeTriggersThatRequireNamedExpressions || triggerWriter.NamedExpressions.Count == 0) {
+          foreach (var triggerTerms in triggerWriter.Candidates) {
+            var trigger = new List<Expression>();
+            foreach (var triggerTerm in triggerTerms.Terms) {
+              trigger.Add(triggerTerm.Expr);
+            }
+
+            triggers.Add(trigger);
           }
-          triggers.Add(trigger);
         }
       }
       return triggers;
