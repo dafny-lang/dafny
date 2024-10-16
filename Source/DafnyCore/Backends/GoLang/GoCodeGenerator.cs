@@ -27,8 +27,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override bool RequiresAllVariablesToBeUsed => true;
-    //TODO: This is tentative, update this to point to public module once available.
-    private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/";
+    private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/v4/";
 
     private bool GoModuleMode;
     private string GoModuleName;
@@ -1390,7 +1389,7 @@ namespace Microsoft.Dafny.Compilers {
             }
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = p.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-            if (!instantiatedType.Equals(p.Type)) {
+            if (!p.IsGhost && !instantiatedType.Equals(p.Type)) {
               // var p instantiatedType = p.(instantiatedType)
               var pName = IdName(inParams[i]);
               DeclareLocalVar(pName, instantiatedType, p.tok, true, null, w);
