@@ -143,9 +143,10 @@ greatest lemma OhOnesTail_Correct()
 {
 }
 
-greatest lemma OhOnes_Correct()
+lemma OhOnes_Correct()
   ensures OhOnes() == Cons(0, ones())
 {
+  OhOnesTail_Correct();
 }
 
 lemma OhOnes_Correct'(n: nat)

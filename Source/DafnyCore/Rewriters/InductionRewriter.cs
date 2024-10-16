@@ -165,8 +165,23 @@ public class InductionRewriter : IRewriter {
         return;
       }
 
-      // The argument list was legal, so let's use it for the _induction attribute
+      // The argument list was legal, so let's use it for the _induction attribute.
+      // Next, look for matching patterns for the induction hypothesis.
+      if (lemma != null) {
+        var triggers = ComputeAndReportInductionTriggers(lemma, ref attributes, goodArguments, body);
+        if (triggers.Count == 0) {
+          var suppressWarnings = Attributes.Contains(attributes, "nowarn");
+          var warningLevel = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
+
+          Reporter.Message(MessageSource.Rewriter, warningLevel, null, tok,
+            $"Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. " +
+            $"Change or remove the {{:induction}} attribute to generate a different induction hypothesis, or add {{:nowarn}} to silence this warning. " +
+            $"For more information, see the section quantifier instantiation rules in the reference manual.");
+        }
+      }
+
       attributes = new Attributes("_induction", goodArguments, attributes);
+
       return;
     }
 
@@ -186,8 +201,9 @@ public class InductionRewriter : IRewriter {
     }
 
     if (inductionVariables.Count != 0) {
+      List<List<Expression>> triggers = null;
       if (lemma != null) {
-        var triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition);
+        triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition);
         if (triggers.Count == 0) {
           var msg = "omitting automatic induction because of lack of triggers";
           if (args != null) {
@@ -196,10 +212,6 @@ public class InductionRewriter : IRewriter {
             Reporter.Info(MessageSource.Rewriter, tok, msg);
           }
           return;
-        }
-
-        foreach (var trigger in triggers) {
-          attributes = new Attributes("_inductionPattern", trigger, attributes);
         }
       }
 
@@ -210,8 +222,32 @@ public class InductionRewriter : IRewriter {
       if (lemma is PrefixLemma) {
         s = lemma.Name + " " + s;
       }
-
       Reporter.Info(MessageSource.Rewriter, tok, s);
+
+      if (triggers != null) {
+        ReportInductionTriggers(lemma, ref attributes, triggers);
+      }
+    }
+  }
+
+  List<List<Expression>> ComputeAndReportInductionTriggers(Method lemma, ref Attributes attributes, List<Expression> inductionVariables,
+    Expression body) {
+    var triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition);
+    ReportInductionTriggers(lemma, ref attributes, triggers);
+    return triggers;
+  }
+
+  private void ReportInductionTriggers(Method lemma, ref Attributes attributes, List<List<Expression>> triggers) {
+    foreach (var trigger in triggers) {
+      attributes = new Attributes("_inductionPattern", trigger, attributes);
+#if DEBUG
+      var ss = Printer.OneAttributeToString(Reporter.Options, attributes, "inductionPattern");
+      if (lemma is PrefixLemma) {
+        ss = lemma.Name + " " + ss;
+      }
+
+      Reporter.Info(MessageSource.Rewriter, lemma.tok, ss);
+#endif
     }
   }
 
@@ -253,7 +289,10 @@ public class InductionRewriter : IRewriter {
     var triggersCollector = new Triggers.TriggersCollector(finder.exprsInOldContext, Reporter.Options, moduleDefinition);
     var quantifierCollection = new Triggers.ComprehensionTriggerGenerator(quantifier, Enumerable.Repeat(quantifier, 1), Reporter);
     quantifierCollection.ComputeTriggers(triggersCollector);
-    var triggers = quantifierCollection.GetTriggers();
+    // Get the computed triggers, but only ask for those that do not require additional bound variables. (An alternative to this
+    // design would be to add {:matchinglooprewrite false} to "quantifier" above. However, that would cause certain matching loops
+    // to be ignored, so it is safer to not include triggers that require additional bound variables.)
+    var triggers = quantifierCollection.GetTriggers(false);
     var reverseSubstituter = new Substituter(null, reverseSubstMap, new Dictionary<TypeParameter, Type>());
     return triggers.ConvertAll(trigger => trigger.ConvertAll(reverseSubstituter.Substitute));
   }
