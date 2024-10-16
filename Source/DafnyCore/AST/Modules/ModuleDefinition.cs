@@ -210,13 +210,18 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   string compileName;
 
+  public ModuleDefinition GetImplementedModule() {
+    return Implements is { Kind: ImplementationKind.Replacement } ? Implements.Target.Def : null;
+  }
+
   public string GetCompileName(DafnyOptions options) {
     if (compileName != null) {
       return compileName;
     }
 
-    if (Implements is { Kind: ImplementationKind.Replacement }) {
-      return Implements.Target.Def.GetCompileName(options);
+    var implemented = GetImplementedModule();
+    if (implemented != null) {
+      return implemented.GetCompileName(options);
     }
 
     var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
