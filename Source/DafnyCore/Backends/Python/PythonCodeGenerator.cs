@@ -98,7 +98,8 @@ namespace Microsoft.Dafny.Compilers {
       return mw.NewBlockPy($"def StaticMain({argsParameterName}):");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
+      ModuleDefinition externModule,
       string libraryName, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       var pythonModuleName = PythonModuleMode ? PythonModuleName + "." : "";
 
