@@ -9,6 +9,17 @@ using VC;
 
 namespace Microsoft.Dafny;
 
+public record AssertCmdPartialCopy(Boogie.IToken Tok, string Description, string Id);
+public record VerificationRunResultPartialCopy(
+  int VCNum,
+  DateTime StartTime,
+  TimeSpan RunTime,
+  SolverOutcome Outcome,
+  List<AssertCmdPartialCopy> Asserts,
+  IEnumerable<TrackedNodeComponent> CoveredElements,
+  IEnumerable<Axiom> AvailableAxioms,
+  int ResourceCount);
+
 public class DafnyConsolePrinter : ConsolePrinter {
   public new DafnyOptions Options {
     get => options;
@@ -21,16 +32,6 @@ public class DafnyConsolePrinter : ConsolePrinter {
   private DafnyOptions options;
 
   public record ImplementationLogEntry(string Name, Boogie.IToken Tok);
-  public record AssertCmdPartialCopy(Boogie.IToken Tok, string Description, string Id);
-  public record VerificationRunResultPartialCopy(
-    int VCNum,
-    DateTime StartTime,
-    TimeSpan RunTime,
-    SolverOutcome Outcome,
-    List<AssertCmdPartialCopy> Asserts,
-    IEnumerable<TrackedNodeComponent> CoveredElements,
-    IEnumerable<Axiom> AvailableAxioms,
-    int ResourceCount);
   public record VerificationResultLogEntry(
     VcOutcome Outcome,
     TimeSpan RunTime,

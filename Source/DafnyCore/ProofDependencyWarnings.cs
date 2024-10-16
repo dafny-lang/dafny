@@ -40,7 +40,7 @@ public class ProofDependencyWarnings {
       if (result.Outcome != VcOutcome.Correct) {
         continue;
       }
-      var unusedFunctions = UnusedFunctions(implementation.Name, result.VCResults.SelectMany(r => r.CoveredElements), result.VCResults.SelectMany(r => r.AvailableAxioms));
+      var unusedFunctions = GetUnusedFunctions(implementation.Name, result.VCResults.SelectMany(r => r.CoveredElements), result.VCResults.SelectMany(r => r.AvailableAxioms));
       WarnAboutSuspiciousDependencies(implementation.Name, result.VCResults, unusedFunctions);
     }
   }
@@ -50,36 +50,27 @@ public class ProofDependencyWarnings {
     if (results.Any(r => r.Outcome != SolverOutcome.Valid)) {
       return;
     }
-    var unusedFunctions = UnusedFunctions(name, results.SelectMany(r => r.CoveredElements), results.Select(DafnyConsolePrinter.DistillVCResult).SelectMany(r => r.AvailableAxioms));
+    var unusedFunctions = GetUnusedFunctions(name, results.SelectMany(r => r.CoveredElements), results.SelectMany(r => r.DeclarationsAfterPruning.OfType<Axiom>()));
     WarnAboutSuspiciousDependencies(name, results.Select(DafnyConsolePrinter.DistillVCResult).ToList(), unusedFunctions);
   }
 
-  private static List<Function> UnusedFunctions(string implementationName, IEnumerable<TrackedNodeComponent> coveredElements,
+  private static IEnumerable<Function> GetUnusedFunctions(string implementationName, IEnumerable<TrackedNodeComponent> coveredElements,
     IEnumerable<Axiom> axioms) {
     if (!((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyseProofs)) && manager.idsByMemberName[implementationName].Decl is Method)) {
       return new List<Function>();
     }
 
-    var unusedFunctions = new List<Function>();
-    if (manager.idsByMemberName[implementationName].Decl is not Method method) {
-      return unusedFunctions;
+    if (manager.idsByMemberName[implementationName].Decl is not Method) {
+      return new List<Function>();
     }
 
     var usedFunctions = coveredElements.Select(manager.GetFullIdDependency).OfType<FunctionDefinitionDependency>()
-      .Select(dep => dep.function).Deduplicate((a, b) => a.Equals(b));
+      .Select(dep => dep.function).Distinct();
 
-    unusedFunctions = VisibleFunctions().Except(usedFunctions).ToList();
+    return GetVisibleFunctions().Except(usedFunctions);
 
-    return unusedFunctions;
-
-    HashSet<Function> VisibleFunctions() {
-      var functions = new HashSet<Function>();
-
-      foreach (var visibleFunction in axioms.Select(GetFunctionFromAttributed).Where(f => f != null)) {
-        functions.Add(visibleFunction);
-      }
-
-      return functions;
+    HashSet<Function> GetVisibleFunctions() {
+      return axioms.Select(GetFunctionFromAttributed).Where(f => f != null).ToHashSet();
 
       Function GetFunctionFromAttributed(ICarriesAttributes construct) {
         var values = construct.FindAllAttributes("id");
@@ -96,7 +87,7 @@ public class ProofDependencyWarnings {
   }
 
   private static void WarnAboutSuspiciousDependencies(string scopeName,
-    IReadOnlyList<DafnyConsolePrinter.VerificationRunResultPartialCopy> assertCoverage, List<Function> unusedFunctions) {
+    IReadOnlyList<VerificationRunResultPartialCopy> assertCoverage, IEnumerable<Function> unusedFunctions) {
     var potentialDependencies = manager.GetPotentialDependenciesForDefinition(scopeName);
     var coveredElements = assertCoverage.SelectMany(tp => tp.CoveredElements);
     var usedDependencies =
@@ -144,28 +135,28 @@ public class ProofDependencyWarnings {
       }
     }
 
-    if ((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyseProofs)) && manager.idsByMemberName[scopeName].Decl is Method m) {
-      SuggestFunctionHiding(unusedFunctions, m);
+    if ((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyseProofs)) && manager.idsByMemberName[scopeName].Decl is Method method) {
+      SuggestFunctionHiding(unusedFunctions, method);
       SuggestByProofRefactoring(scopeName, assertCoverage.ToList());
     }
   }
 
-  private static void SuggestFunctionHiding(List<Function> unusedFunctions, Method m) {
+  private static void SuggestFunctionHiding(IEnumerable<Function> unusedFunctions, Method method) {
     if (unusedFunctions.Any()) {
-      reporter.Info(MessageSource.Verifier, m.Body.StartToken,
-        $"Consider hiding {(unusedFunctions.Count > 1 ? "these functions, which are" : "this function, which is")} unused by the proof: {unusedFunctions.Comma()}");
+      reporter.Info(MessageSource.Verifier, method.Body.StartToken,
+        $"Consider hiding {(unusedFunctions.Count() > 1 ? "these functions, which are" : "this function, which is")} unused by the proof: {unusedFunctions.Comma()}");
     }
   }
 
   private static void SuggestByProofRefactoring(string scopeName,
-    IReadOnlyList<DafnyConsolePrinter.VerificationRunResultPartialCopy> verificationRunResults) {
-    foreach (var (dep, lAsserts) in ComputeAssertionsUsedByFact(scopeName, verificationRunResults)) {
+    IReadOnlyList<VerificationRunResultPartialCopy> verificationRunResults) {
+    foreach (var (dep, lAsserts) in ComputeAssertionsProvenUsingFact(scopeName, verificationRunResults)) {
       var factIsOnlyUsedByOneAssertion = lAsserts.Count == 1;
       if (!factIsOnlyUsedByOneAssertion) {
         continue;
       }
 
-      DafnyConsolePrinter.AssertCmdPartialCopy cmd = null;
+      AssertCmdPartialCopy cmd = null;
       foreach (var assert in lAsserts) {
         cmd = assert;
       }
@@ -201,7 +192,7 @@ public class ProofDependencyWarnings {
 
       switch (consumer) {
         case CallDependency call: {
-            factConsumer = $"precondtion{(call.call.Method.Req.Count > 1 ? "s" : "")} of the method call {call.RangeString()}";
+            factConsumer = $"precondtion{(call.call.Method.Req.Count > 1 ? "s" : "")} of the method call {call.Range.Next.TokenToString(options)}";
             break;
           }
         case ProofObligationDependency { ProofObligation: AssertStatementDescription }: {
@@ -218,31 +209,32 @@ public class ProofDependencyWarnings {
     }
   }
 
-  private static Dictionary<ProofDependency, HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>>
-    ComputeAssertionsUsedByFact(string scopeName, IReadOnlyList<DafnyConsolePrinter.VerificationRunResultPartialCopy> vcResults) {
-    var assertionsUsedByFact = manager.GetPotentialDependenciesForDefinition(scopeName)
+  private static Dictionary<ProofDependency, HashSet<AssertCmdPartialCopy>>
+    ComputeAssertionsProvenUsingFact(string scopeName, IReadOnlyList<VerificationRunResultPartialCopy> verificationRunResults) {
+    var assertionsProvenUsingFact = manager.GetPotentialDependenciesForDefinition(scopeName)
+      // Filter out noise
       .Where(dep => dep is not EnsuresDependency)
-      .ToDictionary(dep => dep, _ => new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy> { });
+      .ToDictionary(dep => dep, _ => new HashSet<AssertCmdPartialCopy> { });
 
-    foreach (var (usedFacts, asserts) in vcResults.Select(r => (r.CoveredElements, r.Asserts))) {
-      foreach (var factReference in usedFacts) {
+    foreach (var verificationRun in verificationRunResults) {
+      foreach (var factReference in verificationRun.CoveredElements) {
         var factDependency = manager.GetFullIdDependency(factReference);
         var excludedDependencies = factDependency is EnsuresDependency;
         if (excludedDependencies) {
           continue;
         }
 
-        assertionsUsedByFact.TryAdd(factDependency, new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>());
+        assertionsProvenUsingFact.TryAdd(factDependency, new HashSet<AssertCmdPartialCopy>());
 
-        bool NotSelfReferential(DafnyConsolePrinter.AssertCmdPartialCopy assert) =>
+        bool IsNotSelfReferential(AssertCmdPartialCopy assert) =>
            !manager.ProofDependenciesById.TryGetValue(assert.Id, out var assertDependency)
                  || !(factDependency == assertDependency || factDependency is CallRequiresDependency req && req.call == assertDependency);
 
-        assertionsUsedByFact[factDependency].UnionWith(asserts.Where(NotSelfReferential));
+        assertionsProvenUsingFact[factDependency].UnionWith(verificationRun.Asserts.Where(IsNotSelfReferential));
       }
     }
 
-    return assertionsUsedByFact;
+    return assertionsProvenUsingFact;
   }
 
   /// <summary>

@@ -35,12 +35,12 @@ public class LegacyJsonVerificationLogger {
   }
 
 
-  private JsonNode SerializeVcResult(IEnumerable<ProofDependency> potentialDependencies, DafnyConsolePrinter.VerificationRunResultPartialCopy verificationRunResult) {
+  private JsonNode SerializeVcResult(IEnumerable<ProofDependency> potentialDependencies, VerificationRunResultPartialCopy verificationRunResult) {
     var runResult = VCResultLogEntryToPartialVerificationRunResult(verificationRunResult);
     return JsonVerificationLogger.SerializeVcResult(depManager, potentialDependencies?.ToList(), runResult);
   }
 
-  public static VerificationTaskResult VCResultLogEntryToPartialVerificationRunResult(DafnyConsolePrinter.VerificationRunResultPartialCopy verificationRunResult) {
+  public static VerificationTaskResult VCResultLogEntryToPartialVerificationRunResult(VerificationRunResultPartialCopy verificationRunResult) {
     var mockNumber = 42;
     var mockAsserts = verificationRunResult.Asserts.Select(t => new AssertCmd(t.Tok, null, new DummyProofObligationDescription(t.Description)));
     var runResult = new VerificationRunResult(verificationRunResult.VCNum, mockNumber, verificationRunResult.StartTime, verificationRunResult.Outcome, verificationRunResult.RunTime, mockNumber, null!,
