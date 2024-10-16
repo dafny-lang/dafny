@@ -42,6 +42,7 @@ public static class DafnyCommands {
     CommonOptionBag.WarnContradictoryAssumptions,
     CommonOptionBag.WarnRedundantAssumptions,
     CommonOptionBag.SuggestProofRefactoring,
+    CommonOptionBag.AnalyseProofs,
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
     CommonOptionBag.ExtractCounterexample,

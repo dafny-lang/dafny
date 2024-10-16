@@ -56,7 +56,7 @@ public class ProofDependencyWarnings {
 
   private static List<Function> UnusedFunctions(string implementationName, IEnumerable<TrackedNodeComponent> coveredElements,
     IEnumerable<Axiom> axioms) {
-    if (!(options.Get(CommonOptionBag.SuggestProofRefactoring) && manager.idsByMemberName[implementationName].Decl is Method)) {
+    if (!((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyseProofs)) && manager.idsByMemberName[implementationName].Decl is Method)) {
       return new List<Function>();
     }
 
@@ -65,23 +65,21 @@ public class ProofDependencyWarnings {
       return unusedFunctions;
     }
 
-    var referencedFunctions = GetReferencedFunctions(method);
-    var hiddenFunctions = HiddenFunctions(referencedFunctions);
     var usedFunctions = coveredElements.Select(manager.GetFullIdDependency).OfType<FunctionDefinitionDependency>()
       .Select(dep => dep.function).Deduplicate((a, b) => a.Equals(b));
 
-    unusedFunctions = referencedFunctions.Except(hiddenFunctions).Except(usedFunctions).ToList();
+    unusedFunctions = VisibleFunctions().Except(usedFunctions).ToList();
     
     return unusedFunctions;
 
-    HashSet<Function> HiddenFunctions(HashSet<Function> functions) {
-      var hiddenFunctions = new HashSet<Function>(functions);
+    HashSet<Function> VisibleFunctions() {
+      var functions = new HashSet<Function>();
 
       foreach (var visibleFunction in axioms.Select(GetFunctionFromAttributed).Where(f => f != null)) {
-        hiddenFunctions.Remove(visibleFunction);
+        functions.Add(visibleFunction);
       }
 
-      return hiddenFunctions;
+      return functions;
 
       Function GetFunctionFromAttributed(ICarriesAttributes construct) {
         var values = construct.FindAllAttributes("id");
@@ -96,47 +94,6 @@ public class ProofDependencyWarnings {
       }
     }
   }
-
-  private static HashSet<Function> GetReferencedFunctions(Method method) {
-    var functionCallsInMethod = method.Body != null ? method.Body.AllSubExpressions(false, false).OfType<FunctionCallExpr>() : new List<FunctionCallExpr>();
-    var functionDependants = new Dictionary<Function, IEnumerable<Function>>();
-
-    foreach (var fce in functionCallsInMethod) {
-      var fun = fce.Function;
-      if (!functionDependants.ContainsKey(fun)) {
-        functionDependants[fun] = Dependents(fun);
-      }
-
-      continue;
-
-      IEnumerable<Function> Dependents(Function fn) {
-        var queue = new Queue<Function>(new[] { fn });
-        var visited = new HashSet<Function>();
-        while (queue.Any()) {
-          var f = queue.Dequeue();
-          visited.Add(f);
-
-          f.SubExpressions.SelectMany(AllSubFunctions).Where(fn => !visited.Contains(fn)).ForEach(queue.Enqueue);
-          continue;
-
-          IEnumerable<Function> AllSubFunctions(Expression e) {
-            return e.SubExpressions.OfType<FunctionCallExpr>().Select(fce => fce.Function)
-              .Concat(e.SubExpressions.SelectMany(AllSubFunctions));
-          }
-        }
-        return visited.ToList();
-      }
-    }
-
-    var hashSet = new HashSet<Function>();
-    foreach (var (f, deps) in functionDependants) {
-      hashSet.Add(f);
-      hashSet.UnionWith(deps);
-    }
-
-    return hashSet;
-  }
-
 
   private static void WarnAboutSuspiciousDependencies(string scopeName,
     IReadOnlyList<DafnyConsolePrinter.VerificationRunResultPartialCopy> assertCoverage, List<Function> unusedFunctions) {
@@ -154,7 +111,7 @@ public class ProofDependencyWarnings {
         .ThenBy(dep => dep.Description).ToList();
 
     foreach (var unusedDependency in unusedDependencies) {
-      if (options.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
+      if (options.Get(CommonOptionBag.WarnContradictoryAssumptions) || options.Get(CommonOptionBag.AnalyseProofs)) {
         if (unusedDependency is ProofObligationDependency obligation) {
           if (ShouldWarnVacuous(scopeName, obligation)) {
             var message = $"proved using contradictory assumptions: {obligation.Description}";
@@ -173,7 +130,7 @@ public class ProofDependencyWarnings {
         }
       }
 
-      if (options.Get(CommonOptionBag.WarnRedundantAssumptions)) {
+      if (options.Get(CommonOptionBag.WarnRedundantAssumptions) || options.Get(CommonOptionBag.AnalyseProofs)) {
         if (unusedDependency is RequiresDependency requires) {
           reporter.Warning(MessageSource.Verifier, "", requires.Range, $"unnecessary requires clause");
         }
@@ -187,7 +144,7 @@ public class ProofDependencyWarnings {
       }
     }
 
-    if (options.Get(CommonOptionBag.SuggestProofRefactoring) && manager.idsByMemberName[scopeName].Decl is Method m) {
+    if ((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyseProofs)) && manager.idsByMemberName[scopeName].Decl is Method m) {
       SuggestFunctionHiding(unusedFunctions, m);
       SuggestByProofRefactoring(scopeName, assertCoverage.ToList());
     }
