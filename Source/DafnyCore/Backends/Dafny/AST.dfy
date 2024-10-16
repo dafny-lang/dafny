@@ -300,7 +300,7 @@ module {:extern "DAST"} DAST {
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
     MapItems(expr: Expression) |
-    Select(expr: Expression, field: VarName, fieldMutability: FieldMutability, fieldType: Type) |
+    Select(expr: Expression, field: VarName, fieldMutability: FieldMutability, isDatatype: bool, fieldType: Type) |
     SelectFn(expr: Expression, field: VarName, onDatatype: bool, isStatic: bool, isConstant: bool, arguments: seq<Type>) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |

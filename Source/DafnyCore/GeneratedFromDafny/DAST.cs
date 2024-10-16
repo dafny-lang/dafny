@@ -6014,8 +6014,9 @@ namespace DAST {
     bool dtor_native { get; }
     Dafny.ISequence<Dafny.Rune> dtor_field { get; }
     DAST._IFieldMutability dtor_fieldMutability { get; }
-    bool dtor_onDatatype { get; }
+    bool dtor_isDatatype { get; }
     DAST._IType dtor_fieldType { get; }
+    bool dtor_onDatatype { get; }
     bool dtor_isStatic { get; }
     bool dtor_isConstant { get; }
     Dafny.ISequence<DAST._IType> dtor_arguments { get; }
@@ -6145,8 +6146,8 @@ namespace DAST {
     public static _IExpression create_MapItems(DAST._IExpression expr) {
       return new Expression_MapItems(expr);
     }
-    public static _IExpression create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, DAST._IFieldMutability fieldMutability, bool onDatatype, DAST._IType fieldType) {
-      return new Expression_Select(expr, field, fieldMutability, onDatatype, fieldType);
+    public static _IExpression create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, DAST._IFieldMutability fieldMutability, bool isDatatype, DAST._IType fieldType) {
+      return new Expression_Select(expr, field, fieldMutability, isDatatype, fieldType);
     }
     public static _IExpression create_SelectFn(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool onDatatype, bool isStatic, bool isConstant, Dafny.ISequence<DAST._IType> arguments) {
       return new Expression_SelectFn(expr, field, onDatatype, isStatic, isConstant, arguments);
@@ -6538,11 +6539,10 @@ namespace DAST {
         return ((Expression_Select)d)._fieldMutability;
       }
     }
-    public bool dtor_onDatatype {
+    public bool dtor_isDatatype {
       get {
         var d = this;
-        if (d is Expression_Select) { return ((Expression_Select)d)._onDatatype; }
-        return ((Expression_SelectFn)d)._onDatatype;
+        return ((Expression_Select)d)._isDatatype;
       }
     }
     public DAST._IType dtor_fieldType {
@@ -6550,6 +6550,12 @@ namespace DAST {
         var d = this;
         if (d is Expression_Select) { return ((Expression_Select)d)._fieldType; }
         return ((Expression_TupleSelect)d)._fieldType;
+      }
+    }
+    public bool dtor_onDatatype {
+      get {
+        var d = this;
+        return ((Expression_SelectFn)d)._onDatatype;
       }
     }
     public bool dtor_isStatic {
@@ -7657,22 +7663,22 @@ namespace DAST {
     public readonly DAST._IExpression _expr;
     public readonly Dafny.ISequence<Dafny.Rune> _field;
     public readonly DAST._IFieldMutability _fieldMutability;
-    public readonly bool _onDatatype;
+    public readonly bool _isDatatype;
     public readonly DAST._IType _fieldType;
-    public Expression_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, DAST._IFieldMutability fieldMutability, bool onDatatype, DAST._IType fieldType) : base() {
+    public Expression_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, DAST._IFieldMutability fieldMutability, bool isDatatype, DAST._IType fieldType) : base() {
       this._expr = expr;
       this._field = field;
       this._fieldMutability = fieldMutability;
-      this._onDatatype = onDatatype;
+      this._isDatatype = isDatatype;
       this._fieldType = fieldType;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_Select(_expr, _field, _fieldMutability, _onDatatype, _fieldType);
+      return new Expression_Select(_expr, _field, _fieldMutability, _isDatatype, _fieldType);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_Select;
-      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._field, oth._field) && object.Equals(this._fieldMutability, oth._fieldMutability) && this._onDatatype == oth._onDatatype && object.Equals(this._fieldType, oth._fieldType);
+      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._field, oth._field) && object.Equals(this._fieldMutability, oth._fieldMutability) && this._isDatatype == oth._isDatatype && object.Equals(this._fieldType, oth._fieldType);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -7680,7 +7686,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._field));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fieldMutability));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._onDatatype));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isDatatype));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fieldType));
       return (int) hash;
     }
@@ -7693,7 +7699,7 @@ namespace DAST {
       s += ", ";
       s += Dafny.Helpers.ToString(this._fieldMutability);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._onDatatype);
+      s += Dafny.Helpers.ToString(this._isDatatype);
       s += ", ";
       s += Dafny.Helpers.ToString(this._fieldType);
       s += ")";

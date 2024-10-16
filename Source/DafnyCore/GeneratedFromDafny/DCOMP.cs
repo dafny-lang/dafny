@@ -5486,7 +5486,7 @@ namespace DCOMP {
           DAST._IExpression _218_on = _source0.dtor_expr;
           Dafny.ISequence<Dafny.Rune> _219_field = _source0.dtor_field;
           DAST._IFieldMutability _220_fieldMutability = _source0.dtor_fieldMutability;
-          bool _221_isDatatype = _source0.dtor_onDatatype;
+          bool _221_isDatatype = _source0.dtor_isDatatype;
           DAST._IType _222_fieldType = _source0.dtor_fieldType;
           {
             if (((_218_on).is_Companion) || ((_218_on).is_ExternCompanion)) {

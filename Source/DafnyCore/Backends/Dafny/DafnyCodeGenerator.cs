@@ -1929,7 +1929,7 @@ namespace Microsoft.Dafny.Compilers {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(compileName),
-            member is ConstantField ? new FieldMutability_InternalConstantField() : new FieldMutability_MutableField(),
+            member is ConstantField ? new FieldMutability_ConstantField() : new FieldMutability_MutableField(),
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
@@ -2019,7 +2019,7 @@ namespace Microsoft.Dafny.Compilers {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
-            member is ConstantField ? new FieldMutability_InternalConstantField() : new FieldMutability_MutableField(),
+            member is ConstantField ? new FieldMutability_ConstantField() : new FieldMutability_MutableField(),
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
