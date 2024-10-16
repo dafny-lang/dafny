@@ -44,7 +44,7 @@ public class LegacyJsonVerificationLogger {
     var mockNumber = 42;
     var mockAsserts = vcResult.Asserts.Select(t => new AssertCmd(t.Tok, null, new DummyProofObligationDescription(t.Description)));
     var runResult = new VerificationRunResult(vcResult.VCNum, mockNumber, vcResult.StartTime, vcResult.Outcome, vcResult.RunTime, mockNumber, null!,
-      mockAsserts.ToList(), vcResult.CoveredElements, vcResult.ResourceCount, null, null /* fix when declarationsAfterPruning is used */);
+      mockAsserts.ToList(), vcResult.CoveredElements, vcResult.ResourceCount, null, null);
     return new VerificationTaskResult(null, runResult);
   }
 
