@@ -288,7 +288,7 @@ May slow down verification slightly, or make it more brittle.
 May produce spurious warnings.") {
     IsHidden = true
   };
-  public static readonly Option<bool> SuggestProofRefactoring = new("--suggest-proof-refactoring", () => Options.get, @"
+  public static readonly Option<bool> SuggestProofRefactoring = new("--suggest-proof-refactoring",  @"
 (experimental) Emits suggestions for moving assertions into by-proofs and hiding unused function definitions.
 May produce spurious suggestions. Use with --show-hints on the CLI.") {
     IsHidden = true
