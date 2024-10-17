@@ -62,4 +62,8 @@ public class LazyConcurrentDictionary<TKey, TValue> : IEnumerable<KeyValuePair<T
   }
 
   public TValue this[TKey key] => underlyingDictionary[key].Value;
+
+  public bool Remove(TKey key) {
+    return underlyingDictionary.TryRemove(key, out _);
+  }
 }

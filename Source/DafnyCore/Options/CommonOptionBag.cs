@@ -14,10 +14,9 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
-  public static readonly Option<bool> ProgressOption =
-    new("--progress", "While verifying, output information that helps track progress") {
-      IsHidden = true
-    };
+  public enum ProgressLevel { None, Symbol, SymbolParts }
+  public static readonly Option<ProgressLevel> ProgressOption =
+    new("--progress", "While verifying, output information that helps track progress");
 
   public static readonly Option<string> LogLocation =
     new("--log-location", "Sets the directory where to store log files") {

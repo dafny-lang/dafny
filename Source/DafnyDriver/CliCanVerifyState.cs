@@ -10,5 +10,5 @@ public record CliCanVerifyState {
   public Func<IVerificationTask, bool> TaskFilter = _ => true;
   public readonly TaskCompletionSource Finished = new();
   public readonly ConcurrentQueue<(IVerificationTask Task, Completed Result)> CompletedParts = new();
-  public readonly ConcurrentBag<IVerificationTask> Tasks = new();
+  public int TaskCount;
 }
