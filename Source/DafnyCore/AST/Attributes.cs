@@ -309,10 +309,8 @@ public class Attributes : TokenNode, ICanFormat {
       return null;
     }
 
-    if (name != "Induction" && name != "Trigger") {
-      var formals = builtinSyntax.Args.Select(arg => arg.ToFormal()).ToArray();
-      ResolveLikeDatatypeConstructor(program, formals, name, atAttribute, bindings);
-    } // For @Induction and @Trigger, resolution is done in the generated version of the attributes
+    var formals = builtinSyntax.Args.Select(arg => arg.ToFormal()).ToArray();
+    ResolveLikeDatatypeConstructor(program, formals, name, atAttribute, bindings);
 
     atAttribute.Builtin = true;
     atAttribute.Arg.Type = Type.Int; // Dummy type to avoid crashes
@@ -336,9 +334,6 @@ public class Attributes : TokenNode, ICanFormat {
 
           return A("fuel");
         }
-      case "Induction": {
-          return A("induction", bindings.ArgumentBindings.Select(binding => binding.Actual).ToArray());
-        }
       case "IsolateAssertions": {
           return A("isolate_assertions");
         }
@@ -360,7 +355,6 @@ public class Attributes : TokenNode, ICanFormat {
       .WithArg("low", Type.Int, DefaultInt(1))
       .WithArg("high", Type.Int, DefaultInt(2))
       .WithArg("functionName", Type.ResolvedString(), DefaultString("")),
-    BuiltIn("Induction"), // Resolution is different
     BuiltIn("IsolateAssertions"),
     BuiltIn("Options").WithArg(TupleItem0Name, Type.ResolvedString()),
   };
@@ -414,7 +408,7 @@ public class Attributes : TokenNode, ICanFormat {
       if (binding.Actual is not LiteralExpr) {
         program.Reporter.Error(MessageSource.Resolver, binding.Actual.RangeToken, $"Argument to attribute {attrName} must be a literal");
       }
-    } 
+    }
   }
 
   // Recovers a built-in @-Attribute if it exists

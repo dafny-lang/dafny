@@ -43,7 +43,6 @@ datatype Attribute =
   | Options(string)
   | Compile(bool)
   | IsolateAssertions
-  | Induction(...) // Anything here
 ```
 
 ## 11.1. Attributes on top-level declarations

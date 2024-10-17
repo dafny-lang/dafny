@@ -26,20 +26,3 @@ method Test(a: int, b: int, c: int)
   assert a < c; 
   assert c > a;
 }
-
-datatype Unary = Zero | Succ(Unary)
-
-function UnaryToNat(n: Unary): nat {
-  match n
-  case Zero => 0
-  case Succ(p) => 1 + UnaryToNat(p)
-}
-
-function NatToUnary(n: nat): Unary {
-  if n == 0 then Zero else Succ(NatToUnary(n - 1))
-}
-
-@Induction(n)
-lemma ByInduction(n: int){
-
-}
