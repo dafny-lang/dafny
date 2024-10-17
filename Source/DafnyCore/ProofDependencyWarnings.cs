@@ -56,7 +56,7 @@ public class ProofDependencyWarnings {
 
   private static IEnumerable<Function> GetUnusedFunctions(string implementationName, IEnumerable<TrackedNodeComponent> coveredElements,
     IEnumerable<Axiom> axioms) {
-    if (!((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyseProofs)) && manager.idsByMemberName[implementationName].Decl is Method)) {
+    if (!((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyzeProofs)) && manager.idsByMemberName[implementationName].Decl is Method)) {
       return new List<Function>();
     }
 
@@ -102,7 +102,7 @@ public class ProofDependencyWarnings {
         .ThenBy(dep => dep.Description).ToList();
 
     foreach (var unusedDependency in unusedDependencies) {
-      if (options.Get(CommonOptionBag.WarnContradictoryAssumptions) || options.Get(CommonOptionBag.AnalyseProofs)) {
+      if (options.Get(CommonOptionBag.WarnContradictoryAssumptions) || options.Get(CommonOptionBag.AnalyzeProofs)) {
         if (unusedDependency is ProofObligationDependency obligation) {
           if (ShouldWarnVacuous(scopeName, obligation)) {
             var message = $"proved using contradictory assumptions: {obligation.Description}";
@@ -121,7 +121,7 @@ public class ProofDependencyWarnings {
         }
       }
 
-      if (options.Get(CommonOptionBag.WarnRedundantAssumptions) || options.Get(CommonOptionBag.AnalyseProofs)) {
+      if (options.Get(CommonOptionBag.WarnRedundantAssumptions) || options.Get(CommonOptionBag.AnalyzeProofs)) {
         if (unusedDependency is RequiresDependency requires) {
           reporter.Warning(MessageSource.Verifier, "", requires.Range, $"unnecessary requires clause");
         }
@@ -135,7 +135,7 @@ public class ProofDependencyWarnings {
       }
     }
 
-    if ((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyseProofs)) && manager.idsByMemberName[scopeName].Decl is Method method) {
+    if ((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyzeProofs)) && manager.idsByMemberName[scopeName].Decl is Method method) {
       SuggestFunctionHiding(unusedFunctions, method);
       SuggestByProofRefactoring(scopeName, assertCoverage.ToList());
     }
@@ -150,20 +150,18 @@ public class ProofDependencyWarnings {
 
   private static void SuggestByProofRefactoring(string scopeName,
     IReadOnlyList<VerificationRunResultPartialCopy> verificationRunResults) {
-    foreach (var (dep, lAsserts) in ComputeAssertionsProvenUsingFact(scopeName, verificationRunResults)) {
-      var factIsOnlyUsedByOneAssertion = lAsserts.Count == 1;
+    foreach (var (fact, asserts) in ComputeAssertionsProvenUsingFact(scopeName, verificationRunResults)) {
+      var factIsOnlyUsedByOneAssertion = asserts.Count == 1;
       if (!factIsOnlyUsedByOneAssertion) {
         continue;
       }
 
-      AssertCmdPartialCopy cmd = null;
-      foreach (var assert in lAsserts) {
-        cmd = assert;
-      }
+      AssertCmdPartialCopy partialAssert = asserts.Single();
 
-      manager.ProofDependenciesById.TryGetValue(cmd.Id, out var consumer);
+      manager.ProofDependenciesById.TryGetValue(partialAssert!.Id, out var assertDepProvenByFact);
 
-      if (consumer != null && (dep == consumer || consumer.Range.Intersects(dep.Range))) {
+      var factAlreadyInByBlock = assertDepProvenByFact != null && (fact == assertDepProvenByFact || assertDepProvenByFact.Range.Intersects(fact.Range));
+      if (factAlreadyInByBlock) {
         continue;
       }
 
@@ -173,16 +171,16 @@ public class ProofDependencyWarnings {
       var recommendation = "";
       var completeInformation = true;
 
-      switch (dep) {
+      switch (fact) {
         case AssumedProofObligationDependency:
         case AssumptionDependency: {
-            range = dep.Range;
+            range = fact.Range;
             factProvider = "fact";
             recommendation = "moving it into";
             break;
           }
         case RequiresDependency: {
-            range = dep.Range;
+            range = fact.Range;
             factProvider = "requires clause";
             recommendation = "labelling it and revealing it in";
             break;
@@ -190,13 +188,13 @@ public class ProofDependencyWarnings {
         default: completeInformation = false; break;
       }
 
-      switch (consumer) {
+      switch (assertDepProvenByFact) {
         case CallDependency call: {
             factConsumer = $"precondtion{(call.call.Method.Req.Count > 1 ? "s" : "")} of the method call {call.Range.Next.TokenToString(options)}";
             break;
           }
         case ProofObligationDependency { ProofObligation: AssertStatementDescription }: {
-            factConsumer = $"assertion {consumer.RangeString()}";
+            factConsumer = $"assertion {assertDepProvenByFact.RangeString()}";
             break;
           }
         default: completeInformation = false; break;
