@@ -16,4 +16,5 @@ public record AttributedToken(IToken Token, Attributes Attrs) : IAttributeBearin
     get => Attrs;
     set => throw new System.NotImplementedException();
   }
+  string IAttributeBearingDeclaration.WhatKind => "token";
 }

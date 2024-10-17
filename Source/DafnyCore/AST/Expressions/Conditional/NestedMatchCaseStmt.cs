@@ -8,6 +8,7 @@ namespace Microsoft.Dafny;
 public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration, ICloneable<NestedMatchCaseStmt> {
   public readonly List<Statement> Body;
   public Attributes Attributes { get; set; }
+  string IAttributeBearingDeclaration.WhatKind => "match statement case";
   public NestedMatchCaseStmt(RangeToken rangeToken, ExtendedPattern pat, List<Statement> body) : base(rangeToken.StartToken, pat) {
     RangeToken = rangeToken;
     Contract.Requires(body != null);

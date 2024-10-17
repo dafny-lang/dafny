@@ -13,6 +13,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     get => Attributes;
     set => Attributes = value;
   }
+  string IAttributeBearingDeclaration.WhatKind => "local variable";
 
   public bool IsGhost;
   [ContractInvariantMethod]

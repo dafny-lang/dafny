@@ -32,11 +32,16 @@ public record BuiltInAtAttributeArgSyntax(
 // To create such an attribute, use the Attributes.B() helper
 public record BuiltInAtAttributeSyntax(
   string Name,
-  List<BuiltInAtAttributeArgSyntax> Args) {
+  List<BuiltInAtAttributeArgSyntax> Args,
+  Func<IAttributeBearingDeclaration, bool> CanBeApplied) {
   public BuiltInAtAttributeSyntax WithArg(String argName, Type argType, Expression defaultValue = null) {
     var c = new List<BuiltInAtAttributeArgSyntax>(Args) {
       new(argName, argType, defaultValue) };
     return this with { Args = c };
+  }
+
+  public BuiltInAtAttributeSyntax Filter(Func<IAttributeBearingDeclaration, bool> canBeApplied) {
+    return this with { CanBeApplied = canBeApplied };
   }
 }
 
@@ -275,7 +280,7 @@ public class Attributes : TokenNode, ICanFormat {
   // Helper to create a built-in @-attribute
   static BuiltInAtAttributeSyntax BuiltIn(string name) {
     return new BuiltInAtAttributeSyntax(
-      name, new List<BuiltInAtAttributeArgSyntax>());
+      name, new List<BuiltInAtAttributeArgSyntax>(), _ => true);
   }
 
   // Helper to create an old-style attribute
@@ -294,19 +299,23 @@ public class Attributes : TokenNode, ICanFormat {
 
   // Given a user-supplied @-attribute, expand it if recognized as builtin to an old-style attribute
   // or mark it as not built-in for later resolution
-  public static Attributes ExpandAtAttribute(Program program, UserSuppliedAtAttribute atAttribute) {
+  public static Attributes ExpandAtAttribute(Program program, UserSuppliedAtAttribute atAttribute, IAttributeBearingDeclaration attributeHost) {
     var toMatch = atAttribute.Arg;
     var name = atAttribute.UserSuppliedName;
     var bindings = atAttribute.UserSuppliedPreResolveBindings;
 
     if (name == null) {
-      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, "@-Attribute not recognized: " + atAttribute.ToString());
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, "Attribute not recognized: " + atAttribute.ToString());
       return null;
     }
 
     if (!TryGetBuiltinAtAttribute(name, out var builtinSyntax) || builtinSyntax == null) {
       atAttribute.Builtin = false; // Will be resolved after
       return null;
+    }
+
+    if (!builtinSyntax.CanBeApplied(attributeHost)) {
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, UserSuppliedAtAttribute.AtName + atAttribute.UserSuppliedName + " attribute cannot be applied to " + attributeHost.WhatKind);
     }
 
     var formals = builtinSyntax.Args.Select(arg => arg.ToFormal()).ToArray();
@@ -350,13 +359,19 @@ public class Attributes : TokenNode, ICanFormat {
   // This list could be obtained from parsing and resolving a .Dfy file
   // but for now it's good enough.
   public static readonly List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = new() {
-    BuiltIn("Compile").WithArg(TupleItem0Name, Type.Bool, DefaultBool(true)),
+    BuiltIn("Compile")
+      .WithArg(TupleItem0Name, Type.Bool, DefaultBool(true))
+      .Filter(attributeHost =>
+          attributeHost is TopLevelDecl and not TypeParameter or MemberDecl or ModuleDefinition),
     BuiltIn("Fuel")
       .WithArg("low", Type.Int, DefaultInt(1))
       .WithArg("high", Type.Int, DefaultInt(2))
-      .WithArg("functionName", Type.ResolvedString(), DefaultString("")),
-    BuiltIn("IsolateAssertions"),
-    BuiltIn("Options").WithArg(TupleItem0Name, Type.ResolvedString()),
+      .WithArg("functionName", Type.ResolvedString(), DefaultString(""))
+      .Filter(attributeHost => attributeHost is Function),
+    BuiltIn("IsolateAssertions")
+      .Filter(attributeHost => attributeHost is MemberDecl),
+    BuiltIn("Options").WithArg(TupleItem0Name, Type.ResolvedString())
+      .Filter(attributeHost => attributeHost is ModuleDecl),
   };
 
   ////// Helpers to create default values for the @-attribute definitions above //////
@@ -555,6 +570,8 @@ public class UserSuppliedAtAttribute : Attributes {
   public static IEnumerable<Expression> GetUserSuppliedArguments(Attributes a) {
     return a is UserSuppliedAtAttribute { UserSuppliedPreResolveArguments: var arguments } ? arguments : a.Args;
   }
+
+  public override string ToString() => Prev + (Prev == null ? "" : " ") + "@" + Arg;
 }
 
 /// <summary>
@@ -562,6 +579,7 @@ public class UserSuppliedAtAttribute : Attributes {
 /// </summary>
 public interface IAttributeBearingDeclaration {
   Attributes Attributes { get; internal set; }
+  string WhatKind { get; }
 }
 
 public static class AttributeBearingDeclarationExtensions {

@@ -21,6 +21,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
       attributes = value;
     }
   }
+  string IAttributeBearingDeclaration.WhatKind => "statement";
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

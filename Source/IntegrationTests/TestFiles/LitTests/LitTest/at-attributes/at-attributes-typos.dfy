@@ -19,6 +19,25 @@ function g(y:int, b:bool) : bool
   if b then f(y + 2) else f(2*y)
 }
 
+@Fuel(1, 2)  // Fuel not supported on datatype
+datatype Useless = Useless
+
+@Fuel(1, 2)  // Fuel not supported on codatatype
+codatatype UselessCodatatype = UselessCodatatype
+
+@Fuel(1, 2) // Fuel not supported on method
+method g_method() {
+}
+
+@Fuel(1, 2) // Fuel not supported on type synonyms
+type NewInt = int
+
+@Fuel(1, 2) // Fuel not supported on subset types
+type NewInt2 = x: int | x >= 0 witness *
+
+@Fuel(1, 2) // Fuel not supported on subset types
+newtype NewInt3 = int
+
 @isolate_assertions // Should be IsolateAssertions 
 @IsolateAssertions("noargument") // Should have no argument.
 // Above is not treated as a @call with label "IsolateAssertion"

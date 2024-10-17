@@ -9,6 +9,7 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
   public readonly Expression Guard;
   public readonly List<Statement> Body;
   public Attributes Attributes { get; set; }
+  string IAttributeBearingDeclaration.WhatKind => "alternative-based case";
   public override IEnumerable<INode> Children => Attributes.AsEnumerable().
     Concat<Node>(new List<Node>() { Guard }).Concat<Node>(Body);
   public override IEnumerable<INode> PreResolveChildren => Children;

@@ -30,7 +30,7 @@ public class ExpandAtAttributes : IRewriter {
           continue;
         }
 
-        var newAttributes = Attributes.ExpandAtAttribute(program, userSuppliedAtAttribute);
+        var newAttributes = Attributes.ExpandAtAttribute(program, userSuppliedAtAttribute, attributeHost);
         Attributes.MergeInto(ref newAttributes, ref extraAttrs);
       }
 

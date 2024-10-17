@@ -9,6 +9,8 @@ namespace Microsoft.Dafny;
 public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration {
   public Expression Body;
   public Attributes Attributes { get; set; }
+  
+  string IAttributeBearingDeclaration.WhatKind => "match expression case";
 
   public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body, Attributes attrs) : base(tok, pat) {
     Contract.Requires(body != null);

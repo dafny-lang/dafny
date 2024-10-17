@@ -128,6 +128,12 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     get => Attributes;
     set => Attributes = value;
   }
+  string IAttributeBearingDeclaration.WhatKind =>
+    this is TopLevelDecl topLevelDecl
+      ? topLevelDecl.WhatKind
+      : this is MemberDecl memberDecl
+      ? memberDecl.WhatKind
+      : "declaration";
 
   [Pure]
   public override string ToString() {

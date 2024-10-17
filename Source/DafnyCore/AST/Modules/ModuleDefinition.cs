@@ -72,6 +72,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
                                           // nested module declaration is outside its enclosing module
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public Attributes Attributes { get; set; }
+  public string WhatKind => "module definition";
   public readonly Implements Implements; // null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public readonly ModuleKindEnum ModuleKind;
