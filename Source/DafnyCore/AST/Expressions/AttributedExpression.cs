@@ -23,6 +23,8 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
     }
   }
 
+  string IAttributeBearingDeclaration.WhatKind => "expression";
+
   public override RangeToken RangeToken => E.RangeToken;
 
   public bool HasAttributes() {
@@ -53,7 +55,7 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
   }
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node>() { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().Concat<Node>(
       new List<Node>() { E });
 
   public override IEnumerable<INode> PreResolveChildren => Children;

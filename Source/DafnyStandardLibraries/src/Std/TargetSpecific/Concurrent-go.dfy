@@ -1,7 +1,7 @@
 module
   {:compile false}
-{:dummyImportMember "Dummy__", true}
-Std.GoConcurrent replaces Concurrent {
+  {:dummyImportMember "Dummy__", true}
+  Std.GoConcurrent replaces Concurrent {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 

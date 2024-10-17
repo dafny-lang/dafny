@@ -10,6 +10,8 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
   public Expression Body;
   public Attributes Attributes { get; set; }
 
+  string IAttributeBearingDeclaration.WhatKind => "match expression case";
+
   public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body, Attributes attrs) : base(tok, pat) {
     Contract.Requires(body != null);
     this.Body = body;
@@ -17,7 +19,8 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
   }
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new Node[] { Attributes } : Enumerable.Empty<Node>()).Concat(new Node[] { Body, Pat });
+    Attributes.AsEnumerable().
+      Concat<Node>(new Node[] { Body, Pat });
 
   public override IEnumerable<INode> PreResolveChildren => Children;
 

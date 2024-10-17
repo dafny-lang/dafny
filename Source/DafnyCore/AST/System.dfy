@@ -1,7 +1,10 @@
 
 // Interface with the System namespace
-module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System {
-  class {:extern "Text.StringBuilder"} {:compile false} CsStringBuilder {
+@Options("-functionSyntax:4")
+@Compile(false)
+module {:extern "System"} System {
+  @Compile(false)
+  class {:extern "Text.StringBuilder"} CsStringBuilder {
     ghost var built: CsString
     constructor {:extern} ()
     method {:axiom} {:extern "Append"} Append(s: CsString)
@@ -28,7 +31,8 @@ module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System
       s1.ContainsTransitive(s2, s3);
     }
   }
-  class {:extern "String"} {:compile false} String {
+  @Compile(false)
+  class {:extern "String"} String {
     static function {:axiom} {:extern} Concat(s1: CsString, s2: CsString): (r: CsString)
       ensures r.Contains(s1)
       ensures r.Contains(s2)

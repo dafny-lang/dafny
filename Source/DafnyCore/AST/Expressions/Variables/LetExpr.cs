@@ -10,6 +10,7 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   public readonly Expression Body;
   public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
   public Attributes Attributes { get; set; }
+  string IAttributeBearingDeclaration.WhatKind => "let expression";
   [FilledInDuringResolution] public List<BoundedPool> Constraint_Bounds;  // null for Exact=true and for when expression is in a ghost context
   // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
   private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
@@ -122,8 +123,8 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>())
-    .Concat(LHSs)
+    Attributes.AsEnumerable().
+      Concat<Node>(LHSs)
     .Concat(base.Children);
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

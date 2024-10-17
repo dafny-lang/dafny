@@ -40,7 +40,10 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
   }
 
   public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+  Attributes IAttributeBearingDeclaration.Attributes {
+    get => Attributes;
+    set => Attributes = value;
+  }
 
   [FilledInDuringResolution] public List<BoundedPool> Bounds;
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
@@ -78,12 +81,12 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     }
   }
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).
-    Concat(BoundVars).Concat(SubExpressions);
+    Attributes.AsEnumerable().
+    Concat<Node>(BoundVars).Concat(SubExpressions);
 
   public override IEnumerable<INode> PreResolveChildren =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>())
-    .Concat<Node>(Range != null && Range.tok.line > 0 ? new List<Node>() { Range } : new List<Node>())
+    Attributes.AsEnumerable()
+      .Concat<Node>(Range != null && Range.tok.line > 0 ? new List<Node>() { Range } : new List<Node>())
     .Concat(Term != null && Term.tok.line > 0 ? new List<Node> { Term } : new List<Node>());
 
   public override IEnumerable<Expression> SubExpressions {

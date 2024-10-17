@@ -82,6 +82,9 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
       }
     }
 
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
+    Attributes.SetIndents(ModuleDef.Attributes, indentBefore, formatter);
+
     foreach (var decl2 in ModuleDef.TopLevelDecls) {
       formatter.SetDeclIndentation(decl2, innerIndent);
     }

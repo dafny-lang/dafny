@@ -32,6 +32,9 @@ namespace XUnitExtensions.Lit {
 
     public static string? Run(string expectedOutputFile, string actualOutput) {
       if (UpdateExpectFile) {
+        if (Path.GetExtension(expectedOutputFile) == ".tmp") {
+          return "With DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE=true, first argument of %diff cannot be a *.tmp file, it should be an *.expect file";
+        }
         var path = Path.GetFullPath(expectedOutputFile).Replace("bin" + Path.DirectorySeparatorChar + "Debug" + Path.DirectorySeparatorChar + "net6.0" + Path.DirectorySeparatorChar, "");
         File.WriteAllText(path, actualOutput);
         return null;

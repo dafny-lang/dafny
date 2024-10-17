@@ -390,8 +390,19 @@ public abstract class Expression : TokenNode {
     if (n == 0) {
       return e;
     }
-    var nn = CreateIntLiteral(e.tok, n, ty);
+    var nn = CreateIntLiteralNonnegative(e.tok, n, ty);
     return CreateSubtract(e, nn);
+  }
+
+  /// <summary>
+  /// Create a resolved expression of the form "n" when n is nonnegative
+  /// </summary>
+  public static LiteralExpr CreateIntLiteralNonnegative(IToken tok, int n, Type ty = null) {
+    Contract.Requires(tok != null);
+    Contract.Requires(0 <= n);
+    var nn = new LiteralExpr(tok, n);
+    nn.Type = ty ?? Type.Int;
+    return nn;
   }
 
   /// <summary>
@@ -401,11 +412,9 @@ public abstract class Expression : TokenNode {
     Contract.Requires(tok != null);
     Contract.Requires(n != int.MinValue);
     if (0 <= n) {
-      var nn = new LiteralExpr(tok, n);
-      nn.Type = ty ?? Type.Int;
-      return nn;
+      return CreateIntLiteralNonnegative(tok, n, ty);
     } else {
-      return CreateDecrement(CreateIntLiteral(tok, 0, ty), -n, ty);
+      return CreateDecrement(CreateIntLiteralNonnegative(tok, 0, ty), -n, ty);
     }
   }
 

@@ -1,10 +1,13 @@
 include "System.dfy"
 
 // Interface with existing Dafny code (IToken)
-module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4"} MicrosoftDafny {
+@Compile(false)
+@Options("-functionSyntax:4")
+module {:extern "Microsoft.Dafny"} MicrosoftDafny {
   import opened System
 
-  trait {:extern "IToken"} {:compile false} IToken {
+  @Compile(false)
+  trait {:extern "IToken"} IToken {
     var val: CsString
     var LeadingTrivia: CsString
     var TrailingTrivia: CsString
@@ -57,7 +60,8 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
       }
     }
   }
-  class {:extern "TriviaFormatterHelper"} {:compile false} TriviaFormatterHelper {
+  @Compile(false)
+  class {:extern "TriviaFormatterHelper"} TriviaFormatterHelper {
     static predicate EndsWithNewline(input: CsString)
   }
 }

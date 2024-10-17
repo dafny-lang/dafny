@@ -24,6 +24,7 @@ public class Specification<T> : TokenNode, IAttributeBearingDeclaration
   }
 
   public Attributes Attributes { get; set; }
+  string IAttributeBearingDeclaration.WhatKind => "specification clause";
 
   public bool HasAttributes() {
     return Attributes != null;

@@ -12,7 +12,7 @@ public static class RewriterCollection {
     if (reporter.Options.AuditProgram) {
       result.Add(new Auditor.Auditor(reporter));
     }
-
+    result.Add(new ExpandAtAttributes(program, reporter));
     result.Add(new AutoContractsRewriter(program, reporter));
     result.Add(new OpaqueMemberRewriter(reporter));
     result.Add(new AutoReqFunctionRewriter(program, reporter));

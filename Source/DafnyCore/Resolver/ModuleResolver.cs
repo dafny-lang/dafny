@@ -3512,7 +3512,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This method is called at the tail end of Pass1 of the Resolver.
     /// </summary>
-    void FillInDefaultValueExpressions() {
+    internal void FillInDefaultValueExpressions() {
       var visited = new Dictionary<DefaultValueExpression, DefaultValueExpression.WorkProgress>();
       foreach (var e in allDefaultValueExpressions) {
         e.FillIn(this, visited);

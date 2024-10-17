@@ -186,7 +186,7 @@ namespace Microsoft.Dafny.Compilers {
       return triggers;
     }
 
-    private QKeyValue? GetKeyValues(IToken tok, Attributes attributes) {
+    private QKeyValue? GetKeyValues(IToken tok, Attributes? attributes) {
       QKeyValue? kv = null;
       var extractAttributes = Attributes.FindAllExpressions(attributes, AttributeAttribute);
       if (extractAttributes == null) {

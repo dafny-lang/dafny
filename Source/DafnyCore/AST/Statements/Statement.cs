@@ -21,6 +21,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
       attributes = value;
     }
   }
+  string IAttributeBearingDeclaration.WhatKind => "statement";
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -186,11 +187,13 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   }
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       SubStatements.Concat<Node>(SubExpressions));
 
   public override IEnumerable<INode> PreResolveChildren =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
 
   public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => Enumerable.Empty<IdentifierExpr>();

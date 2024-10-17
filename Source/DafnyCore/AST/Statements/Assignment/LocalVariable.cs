@@ -9,7 +9,12 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   readonly string name;
   public string DafnyName => Name;
   public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+  Attributes IAttributeBearingDeclaration.Attributes {
+    get => Attributes;
+    set => Attributes = value;
+  }
+  string IAttributeBearingDeclaration.WhatKind => "local variable";
+
   public bool IsGhost;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -129,11 +134,13 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   public IToken NavigationToken => RangeToken.StartToken;
   public bool IsTypeExplicit { get; }
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
 
   public override IEnumerable<INode> PreResolveChildren =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       IsTypeExplicit ? new List<Node>() { SyntacticType ?? type } : Enumerable.Empty<Node>());
 
   public SymbolKind? Kind => SymbolKind.Variable;
