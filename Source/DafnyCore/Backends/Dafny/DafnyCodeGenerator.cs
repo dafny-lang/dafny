@@ -124,7 +124,8 @@ namespace Microsoft.Dafny.Compilers {
              memberDecl is Function { Body: null } or Method { Body: null };
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
+      ModuleDefinition externModule,
       string libraryName, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       if (currentBuilder is ModuleContainer moduleBuilder) {
         var attributes = (Sequence<DAST.Attribute>)ParseAttributes(moduleAttributes);
