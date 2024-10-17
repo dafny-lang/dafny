@@ -73,7 +73,7 @@ lemma distr_mult(f: Index -> int, x: int)
 
 /** Σ_k (Σ_l f(k,l))  ==  Σ_l (Σ_k f(k,l)) */
 /** proof by induction */
-lemma sum_assoc_n(m: Matrix, n1: nat, n2: nat)
+lemma {:induction m, n1, n2} {:nowarn} sum_assoc_n(m: Matrix, n1: nat, n2: nat)
   requires n1 <= N && n2 <= N
   ensures Sum_n((k: Index) => Sum_n((l: Index) => m(k)(l), n1), n2)
           ==

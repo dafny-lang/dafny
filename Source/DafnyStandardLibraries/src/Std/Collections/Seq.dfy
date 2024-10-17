@@ -781,10 +781,10 @@ module Std.Collections.Seq {
   /* Filtering a sequence is distributive over concatenation. That is, concatenating two sequences
      and then using "Filter" is the same as using "Filter" on each sequence separately, and then
      concatenating the two resulting sequences. */
-  lemma {:isolate_assertions}
-  LemmaFilterDistributesOverConcat<T(!new)>(f: (T ~> bool), xs: seq<T>, ys: seq<T>)
-    requires forall i {:trigger xs[i]}:: 0 <= i < |xs| ==> f.requires(xs[i])
-    requires forall j {:trigger ys[j]}:: 0 <= j < |ys| ==> f.requires(ys[j])
+  lemma {:isolate_assertions} {:induction false}
+  LemmaFilterDistributesOverConcat<T(!new)>(f: T ~> bool, xs: seq<T>, ys: seq<T>)
+    requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
+    requires forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Filter(f, xs + ys) == Filter(f, xs) + Filter(f, ys)
   {
     reveal Filter();
@@ -793,10 +793,11 @@ module Std.Collections.Seq {
     } else {
       calc {
         Filter(f, xs + ys);
-        { assert {:split_here} (xs + ys)[0] == xs[0]; assert (xs + ys)[1..] == xs[1..] + ys; }
+        { assert (xs + ys)[0] == xs[0]; assert (xs + ys)[1..] == xs[1..] + ys; }
         Filter(f, [xs[0]]) + Filter(f, xs[1..] + ys);
+        { LemmaFilterDistributesOverConcat(f, xs[1..], ys); }
         Filter(f, [xs[0]]) + (Filter(f, xs[1..]) + Filter(f, ys));
-        { assert {:split_here} [(xs + ys)[0]] + (xs[1..] + ys) == xs + ys; }
+        { assert [(xs + ys)[0]] + (xs[1..] + ys) == xs + ys; }
         Filter(f, xs) + Filter(f, ys);
       }
     }

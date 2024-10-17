@@ -127,11 +127,11 @@ method Theorem0(n: int)
   }
 }
 
-ghost method Theorem1(n: int)
+lemma Theorem1(n: int)
   requires 1 <= n;
   ensures 1 <= Fib(n);
 {
-  // in a ghost method, the induction tactic takes care of it
+  // in a lemma, the induction tactic takes care of it
 }
 
 ghost function Theorem2(n: int): int

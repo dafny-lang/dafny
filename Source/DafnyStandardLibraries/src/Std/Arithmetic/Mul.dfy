@@ -41,8 +41,21 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
     requires x >= 0
     ensures x * y == MulPos(x, y)
   {
-    reveal MulPos();
-    LemmaMulInductionAuto(x, u => u >= 0 ==> u * y == MulPos(u, y));
+    if x == 0 {
+      assert MulPos(x, y) == 0 by {
+        reveal MulPos();
+      }
+    } else {
+      calc {
+        MulPos(x, y);
+        { reveal MulPos(x, y); }
+        y + MulPos(x - 1, y);
+        { LemmaMulIsMulPos(x - 1, y); }
+        y + (x - 1) * y;
+        { LemmaMulDistributes(); }
+        x * y;
+      }
+    }
   }
 
   /* ensures that the basic properties of multiplication, including the identity and zero properties */

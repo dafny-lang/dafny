@@ -101,6 +101,7 @@ internal class TriggersCollector {
         expr is DisplayExpression ||
         expr is MapDisplayExpr ||
         expr is DatatypeValue ||
+        expr is TernaryExpr ||
         TranslateToFunctionCall(expr)) {
       return true;
     } else if (expr is BinaryExpr) {

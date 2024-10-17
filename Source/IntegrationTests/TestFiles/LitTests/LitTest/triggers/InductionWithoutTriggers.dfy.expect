@@ -1,0 +1,4 @@
+InductionWithoutTriggers.dfy(17,21): Warning: Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. For more information, see the section quantifier instantiation rules in the reference manual.
+InductionWithoutTriggers.dfy(11,9): Error: assertion might not hold
+
+Dafny program verifier finished with 2 verified, 1 error

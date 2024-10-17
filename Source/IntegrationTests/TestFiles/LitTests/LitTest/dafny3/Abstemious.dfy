@@ -143,9 +143,10 @@ greatest lemma OhOnesTail_Correct()
 {
 }
 
-greatest lemma OhOnes_Correct()
+lemma OhOnes_Correct()
   ensures OhOnes() == Cons(0, ones())
 {
+  OhOnesTail_Correct();
 }
 
 lemma OhOnes_Correct'(n: nat)
@@ -204,4 +205,26 @@ lemma Fib_Correct(n: nat)
       nfib(n);
     }
   }
+}
+
+// --------------- ternary expression is a trigger ---------------
+
+lemma OrdinalLemma(k: ORDINAL)
+  ensures OhOnes().tail ==#[k] ones()
+{
+  // automatic induction on k
+}
+
+lemma NaturalLemma(k: nat)
+  ensures OhOnes().tail ==#[k] ones()
+{
+  // automatic induction on k
+}
+
+lemma Quantifier()
+  // the following quantifiers use the entire body as a trigger (previously, ternary expressions
+  // had not been considered as trigger candidates)
+  requires forall k: nat :: OhOnes().tail ==#[k] ones()
+  requires forall k: ORDINAL :: OhOnes().tail ==#[k] ones()
+{
 }

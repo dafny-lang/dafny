@@ -248,13 +248,13 @@ module OneModule {
       data < 20
     }
 
-    lemma /*{:_induction this}*/ L()
+    lemma L()
       requires Valid()
       ensures data < 100
     {
     }
 
-    twostate lemma /*{:_induction this}*/ TL()
+    twostate lemma TL()
       requires old(Valid())
       ensures old(data) <= data
     {
