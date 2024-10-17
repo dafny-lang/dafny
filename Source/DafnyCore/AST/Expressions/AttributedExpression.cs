@@ -22,7 +22,7 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
       attributes = value;
     }
   }
-  
+
   string IAttributeBearingDeclaration.WhatKind => "expression";
 
   public override RangeToken RangeToken => E.RangeToken;

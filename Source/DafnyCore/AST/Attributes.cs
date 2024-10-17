@@ -371,7 +371,7 @@ public class Attributes : TokenNode, ICanFormat {
     BuiltIn("IsolateAssertions")
       .Filter(attributeHost => attributeHost is MemberDecl),
     BuiltIn("Options").WithArg(TupleItem0Name, Type.ResolvedString())
-      .Filter(attributeHost => attributeHost is ModuleDecl),
+      .Filter(attributeHost => attributeHost is ModuleDecl or ModuleDefinition),
   };
 
   ////// Helpers to create default values for the @-attribute definitions above //////
