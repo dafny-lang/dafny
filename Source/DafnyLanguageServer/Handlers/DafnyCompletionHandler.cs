@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return new CompletionRegistrationOptions {
         DocumentSelector = DocumentSelector.ForLanguage("dafny"),
         ResolveProvider = false,
-        TriggerCharacters = new Container<string>(".")
+        TriggerCharacters = new Container<string>(".", "@")
       };
     }
 
@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();
       }
-      return new CompletionProcessor(symbolGuesser, logger, document, request, cancellationToken, options).Process();
+      return new CompletionProcessor(symbolGuesser, logger, document, request, cancellationToken, options, await projects.GetProjectManager(request.TextDocument.Uri)).Process();
     }
 
     private class CompletionProcessor {
@@ -59,20 +59,27 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       private readonly IdeState state;
       private readonly CompletionParams request;
       private readonly CancellationToken cancellationToken;
+      private readonly ProjectManager? projectManager;
 
       public CompletionProcessor(ISymbolGuesser symbolGuesser, ILogger<DafnyCompletionHandler> logger, IdeState state,
-        CompletionParams request, CancellationToken cancellationToken, DafnyOptions options) {
+        CompletionParams request, CancellationToken cancellationToken, DafnyOptions options,
+        ProjectManager? projectManager) {
         this.symbolGuesser = symbolGuesser;
         this.state = state;
         this.request = request;
         this.cancellationToken = cancellationToken;
         this.options = options;
         this.logger = logger;
+        this.projectManager = projectManager;
       }
 
       public CompletionList Process() {
         if (IsDotExpression()) {
           return CreateDotCompletionList();
+        }
+
+        if (IsAtAttribute()) {
+          return CreateAtAttributeCompletionList();
         }
 
         if (logger.IsEnabled(LogLevel.Trace)) {
@@ -86,9 +93,67 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new CompletionList();
       }
 
+      private static string GetLastTwoCharactersBeforePositionIncluded(TextReader fileContent, DafnyPosition position) {
+        // To track the last two characters
+        char? prevChar = null;
+        char? currentChar = null;
+
+        // Read line by line
+        for (int lineNum = 0; lineNum <= position.Line; lineNum++) {
+          string? line = fileContent.ReadLine();
+          if (line == null) {
+            throw new InvalidOperationException("Reached end of file before finding the specified line.");
+          }
+
+          // If we are on the line of the specified position, handle the partial line case
+          if (lineNum == position.Line) {
+            int columnIndex = position.Column - 1; // Convert 1-based to 0-based index
+            for (int i = 0; i <= columnIndex; i++) {
+              prevChar = currentChar;
+              currentChar = line[i];
+            }
+            break;
+          } else {
+            // Otherwise, track the last two characters of this full line (including newline)
+            foreach (char c in line + '\n')  // Include '\n' for line end tracking
+            {
+              prevChar = currentChar;
+              currentChar = c;
+            }
+          }
+        }
+
+        // Handle case where fewer than 2 characters are available
+        if (prevChar == null) {
+          return currentChar?.ToString() ?? "";
+        }
+        return $"{prevChar}{currentChar}";
+      }
+
       private bool IsDotExpression() {
         var node = state.Program.FindNode<INode>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
         return node?.RangeToken.EndToken.val == ".";
+      }
+
+      private bool IsAtAttribute() {
+        var position = request.Position.ToDafnyPosition();
+        if (projectManager == null) {
+          return false;
+        }
+        var fileContent = projectManager.ReadFile(request.TextDocument.Uri.ToUri());
+        var lastTwoChars = GetLastTwoCharactersBeforePositionIncluded(fileContent, position);
+        var isAtAttribute =
+          lastTwoChars == "@" ||
+          lastTwoChars.Length >= 2 && lastTwoChars[1] == '@' && char.IsWhiteSpace(lastTwoChars[0]);
+        return isAtAttribute;
+      }
+
+      private CompletionList CreateAtAttributeCompletionList() {
+        var completionItems =
+          Attributes.BuiltinAtAttributes.Select(b =>
+            CreateCompletionItem(b.Name)
+          ).ToList();
+        return new CompletionList(completionItems);
       }
 
       private CompletionList CreateDotCompletionList() {
@@ -120,6 +185,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private static bool IsConstructor(ILegacySymbol symbol) {
         return symbol is MethodSymbol method && method.Name == "_ctor";
+      }
+
+      private CompletionItem CreateCompletionItem(string attributeName) {
+        return new CompletionItem {
+          Label = attributeName,
+          Kind = CompletionItemKind.Constructor,
+          InsertText = attributeName, // TODO: Parentheses
+          Detail = "" // TODO: Details of attribute name
+        };
       }
 
       private CompletionItem CreateCompletionItem(ILegacySymbol symbol) {
