@@ -3,7 +3,7 @@
 // CHECK: Results for M.RedundantAssumeMethod \(correctness\)
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencies.dfy\(177,12\)-\(177,16\): assume statement
-// CHECK:       ProofDependencies.dfy\(178,12\)-\(178,16\): assertion always holds
+// CHECK:       ProofDependencies.dfy\(178,5\)-\(178,17\): assertion always holds
 //
 // CHECK: Results for M.ContradictoryAssumeMethod \(correctness\)
 // CHECK:     Proof dependencies:

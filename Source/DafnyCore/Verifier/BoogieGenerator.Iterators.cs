@@ -65,7 +65,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
 
-      proofDependencies.SetCurrentDefinition(MethodVerboseName(iter.FullDafnyName, kind));
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(iter.FullDafnyName, kind), iter);
       currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
@@ -138,7 +138,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
 
-      proofDependencies.SetCurrentDefinition(proc.VerboseName);
+      proofDependencies.SetCurrentDefinition(proc.VerboseName, iter);
       currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
@@ -271,7 +271,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
       Contract.Ensures(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
 
-      proofDependencies.SetCurrentDefinition(proc.VerboseName);
+      proofDependencies.SetCurrentDefinition(proc.VerboseName, iter);
       currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 

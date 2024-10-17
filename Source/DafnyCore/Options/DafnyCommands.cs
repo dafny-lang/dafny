@@ -41,6 +41,8 @@ public static class DafnyCommands {
     CommonOptionBag.DefaultFunctionOpacity,
     CommonOptionBag.WarnContradictoryAssumptions,
     CommonOptionBag.WarnRedundantAssumptions,
+    CommonOptionBag.SuggestProofRefactoring,
+    CommonOptionBag.AnalyzeProofs,
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
     CommonOptionBag.ExtractCounterexample,

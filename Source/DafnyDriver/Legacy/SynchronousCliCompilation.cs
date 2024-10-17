@@ -291,7 +291,7 @@ namespace Microsoft.Dafny {
           await BoogieAsync(dafnyProgram.Reporter, options, baseName, boogiePrograms, programId);
 
         if (options.TrackVerificationCoverage) {
-          ProofDependencyWarnings.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
+          ProofDependencyWarnings.WarnAboutSuspiciousDependenciesUsingStoredPartialResults(options, dafnyProgram.Reporter, depManager);
           var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
           if (coverageReportDir != null) {
             await new CoverageReporter(options).SerializeVerificationCoverageReport(

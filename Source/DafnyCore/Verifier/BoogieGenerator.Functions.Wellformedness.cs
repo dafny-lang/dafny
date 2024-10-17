@@ -22,7 +22,7 @@ public partial class BoogieGenerator {
       Contract.Assert(generator.InVerificationScope(f));
 
       generator.proofDependencies.SetCurrentDefinition(MethodVerboseName(f.FullDafnyName,
-        MethodTranslationKind.SpecWellformedness));
+        MethodTranslationKind.SpecWellformedness), f);
       generator.currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       generator.codeContext = f;
 
