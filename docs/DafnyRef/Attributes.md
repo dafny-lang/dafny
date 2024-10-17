@@ -37,7 +37,8 @@ with no argument is interpreted as if it were true.
 
 Dafny rewrites `@`-attributes to old-style equivalent attribute, after type-checking them. The definition of these attributes would look something like this currently+:
 
-```
+<!-- %no-check -->
+```dafny
 datatype Attribute =
     Fuel(low: int, high: int := low + 1, functionName: string := "")
   | Options(string)
