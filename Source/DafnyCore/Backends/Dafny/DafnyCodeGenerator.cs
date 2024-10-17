@@ -1929,7 +1929,7 @@ namespace Microsoft.Dafny.Compilers {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(compileName),
-            member is ConstantField ? new FieldMutability_ConstantField() : new FieldMutability_MutableField(),
+            FieldMutabilityOf(member),
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
@@ -1974,7 +1974,7 @@ namespace Microsoft.Dafny.Compilers {
         return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
           objExpr,
           Sequence<Rune>.UnicodeFromString(compiledName),
-          member is ConstantField ? new FieldMutability_ConstantField() : new FieldMutability_MutableField(),
+          FieldMutabilityOf(member),
           member.EnclosingClass is DatatypeDecl, GenType(expectedType)
         ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
           objExpr,
@@ -2007,8 +2007,7 @@ namespace Microsoft.Dafny.Compilers {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
-            member is ConstantField ? new FieldMutability_InternalConstantField() :
-              new FieldMutability_MutableField(),
+            FieldMutabilityOf(member, isInternal: true),
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
@@ -2019,7 +2018,7 @@ namespace Microsoft.Dafny.Compilers {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
-            member is ConstantField ? new FieldMutability_ConstantField() : new FieldMutability_MutableField(),
+            FieldMutabilityOf(member),
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
@@ -2028,6 +2027,14 @@ namespace Microsoft.Dafny.Compilers {
           ), this);
         }
       }
+    }
+
+    private static _IFieldMutability FieldMutabilityOf(MemberDecl member, bool isInternal = false) {
+      return member is ConstantField
+          ? isInternal
+            ? new FieldMutability_InternalClassConstantField()
+            : new FieldMutability_ConstantField()
+          : new FieldMutability_ClassMutableField();
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {

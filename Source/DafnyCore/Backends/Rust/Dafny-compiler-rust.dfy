@@ -3298,14 +3298,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               r := read_macro.Apply1(r);
             }
             r := r.Sel(escapeVar(field));
-            if fieldMutability.ConstantField? {
-              r := r.Apply0();
-              r := r.Clone(); // self could be &mut, so to avoid any borrow checker problem, we clone the value.
-            } else if fieldMutability.InternalConstantField? {
-              r := r.Clone();
-            } else {
-              assert fieldMutability.MutableField?;
-              r := read_mutable_field_macro.Apply1(r); // Already contains a clone.
+            match fieldMutability {
+              case ConstantField() =>
+                r := r.Apply0();
+                r := r.Clone();
+              case InternalClassConstantField() =>
+                r := r.Clone();
+              case ClassMutableField() =>
+                r := read_mutable_field_macro.Apply1(r); // Already contains a clone.
             }
             r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;
