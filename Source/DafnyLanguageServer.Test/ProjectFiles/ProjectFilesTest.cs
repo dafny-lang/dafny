@@ -92,7 +92,7 @@ module Consumer {
     const int cacheExpiry = 1000;
     await SetUp(options => {
       options.WarnShadowing = false;
-      options.Set(ProjectManagerDatabase.ProjectFileCacheExpiry, cacheExpiry);
+      options.Set(CachingProjectFileOpener.ProjectFileCacheExpiry, cacheExpiry);
     });
     var tempDirectory = GetFreshTempPath();
     Directory.CreateDirectory(tempDirectory);

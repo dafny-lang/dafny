@@ -199,6 +199,7 @@ TOKENS
   notIn = "!in" CONTEXT (nonidchar).
   ellipsis = "...".
   reveal = "reveal".
+  hide = "hide".
   expect = "expect".
   sarrow = "->".
   qarrow = "~>".
@@ -770,10 +771,12 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      CheckDeclModifiers(ref dmod, "newtype", AllowedDeclModifiers.None);
      List<Type> parentTraits = new List<Type>();
      var members = new List<MemberDecl>();
+     var typeParameters = new List<TypeParameter>();
   .)
   "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
   NewtypeName<out name>
+  [ GenericParameters<typeParameters, true> ]
   [ ExtendsClause<parentTraits, out _, "newtype"> ]
   (
   "="
@@ -785,29 +788,25 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     [ ":" Type<out baseType> ]
     "|"
     Expression<out constraint, false, true>
-    (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
-    [ IF(IsWitness())
-      ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
-        Expression<out witness, false, true>
-      | "witness"
-        ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
-        | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
-        )
-      )
-    ]
+    WitnessClause<out var witnessKind, out witness>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, 
-         new BoundVar(bvId, bvId.val, baseType), 
+    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module,
+         new BoundVar(bvId, bvId.val, baseType),
          constraint, witnessKind, witness, parentTraits, members, attrs, isRefining: false);
     .)
   | Type<out baseType>
+    WitnessClause<out var witnessKind, out witness>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, parentTraits, members, attrs, isRefining: false); .)
+    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module,
+         baseType, witnessKind, witness, parentTraits, members, attrs, isRefining: false);
+    .)
   )
   | ellipsis
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
-       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, parentTraits, members, attrs, isRefining: true);
+       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module, baseType,
+         SubsetTypeDecl.WKind.CompiledZero, null,
+         parentTraits, members, attrs, isRefining: true);
     .)
   )  (. if (td != null) {
           td.TokenWithTrailingDocString = t; 
@@ -843,16 +842,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
       [ ":" Type<out ty> ]
       "|"
       Expression<out constraint, false, true>
-      (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
-      [ IF(IsWitness())
-        ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
-          Expression<out witness, false, true>
-        | "witness"
-          ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
-          | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
-          )
-        )
-      ]
+      WitnessClause<out var witnessKind, out witness>
       (. td = new SubsetTypeDecl(new RangeToken(dmod.FirstToken, t), name, characteristics, typeArgs, module, 
             new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
          kind = "subset type";
@@ -879,6 +869,21 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      td.TokenWithTrailingDocString = t;
   .)
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
+  .
+
+WitnessClause<out SubsetTypeDecl.WKind witnessKind, out Expression witness>
+= (. witnessKind = SubsetTypeDecl.WKind.CompiledZero;
+     witness = null;
+  .)
+  [ IF(IsWitness())
+    ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
+      Expression<out witness, false, true>
+    | "witness"
+      ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
+      | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
+      )
+    )
+  ]
   .
 
 /*------------------------------------------------------------------------*/
@@ -1066,40 +1071,41 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
 /*------------------------------------------------------------------------*/
 TypeVariableName<out Name name> = Name<out name> .
 
-GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
-= (. Contract.Requires(cce.NonNullElements(typeArgs));
-     TypeParameter.TypeParameterCharacteristics characteristics;
-     TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // assignment is to please compiler
-     characteristics = new TypeParameter.TypeParameterCharacteristics(false);
-     
-     Name name;
-  .)
+GenericParameters<.List<TypeParameter> typeParameters, bool allowVariance.>
+= (. Contract.Requires(cce.NonNullElements(typeParameters)); .)
   // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
   // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
   // Fortunately that is not currently the case.
   // (Only because we parse the new "<-" symbol as separate "<" "-" tokens precisely to avoid this issue :)
-  "<"   (. IToken startToken = t.Next; .)
-  [ Variance<out variance>  (.
-            if (!allowVariance) { SemErr(ErrorId.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); }  
-          .)
+  "<"
+  OneTypeParameter<typeParameters, allowVariance>
+  { ","
+    OneTypeParameter<typeParameters, allowVariance>
+  }
+  ">"
+  .
+
+OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
+= (. var variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict; // assignment is to please compiler
+     var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+     Name name;
+     Type typeBound;
+     var typeBounds = new List<Type>();
+     var startToken = t.Next;
+  .)
+  [ Variance<out variance>
+    (. if (!allowVariance) {
+         SemErr(ErrorId.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context");
+       }
+    .)
   ]
   TypeVariableName<out name>
   { TypeParameterCharacteristics<ref characteristics> }
-  (. typeArgs.Add(new TypeParameter(new RangeToken(startToken, t), name, variance, characteristics)); .)
-  { ","
-    (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;
-       characteristics = new TypeParameter.TypeParameterCharacteristics(false);
-       startToken = t.Next; 
-    .)
-    [ Variance<out variance>  (. 
-            if (!allowVariance) { SemErr(ErrorId.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); } 
-        .)
-    ]
-    TypeVariableName<out name>
-    { TypeParameterCharacteristics<ref characteristics> }
-    (. typeArgs.Add(new TypeParameter(new RangeToken(startToken, t), name, variance, characteristics)); .)
+  { "extends"
+    Type<out typeBound>
+    (. typeBounds.Add(typeBound); .)
   }
-  ">"
+  (. typeParameters.Add(new TypeParameter(new RangeToken(startToken, t), name, variance, characteristics, typeBounds)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1253,7 +1259,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   (. var range = new RangeToken(dmod.FirstToken, t);
      if (isConstructor) {
        m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken.ToRange(), "_ctor"), dmod.IsGhost, typeArgs, ins,
-                           req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
+                           req, new Specification<FrameExpression>(reads, readsAttrs), 
+                           new Specification<FrameExpression>(mod, modAttrs), ens, 
+                           new Specification<Expression>(dec, decAttrs), 
+                           (DividedBlockStmt)body, attrs, signatureEllipsis);
      } else if (isLeastLemma) {
        m = new LeastLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
                           req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
@@ -1269,7 +1278,9 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                              ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else {
        m = new Method(range, name, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
-                      req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                      req, new Specification<FrameExpression>(reads, readsAttrs), 
+                      new Specification<FrameExpression>(mod, modAttrs), ens, 
+                      new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      }
      m.BodyStartTok = bodyStart;
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
@@ -1976,15 +1987,18 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStatePredicate(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result,
-                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
+                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
+                                 new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStateFunction(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result, returnType,
-                                reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
+                                reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
+                                new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
        f = new Predicate(range, name, dmod.IsStatic, isGhost, dmod.IsOpaque, typeArgs, formals, result,
-                         reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
+                         reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
+                         new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
@@ -2128,6 +2142,7 @@ FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, ou
   ]
   .
 
+
 /*------------------------------------------------------------------------*/
 BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out block) != null);
@@ -2138,6 +2153,27 @@ BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
   "}"                                  (. bodyEnd = t;
                                           block = new BlockStmt(new RangeToken(bodyStart, bodyEnd), body);
                                           .)
+  .
+
+OpaqueBlock<out Statement s>
+= (.
+    List<Statement/*!*/> body = new List<Statement/*!*/>();
+    List<AttributedExpression> ensures = new();
+    List<FrameExpression/*!*/> modifies = new List<FrameExpression/*!*/>();
+    Attributes modifiesAttributes = null;
+    IToken start;
+  .)
+  "opaque" (. start = t; .)
+  { ModifiesClause<ref modifies, ref modifiesAttributes, false, false>
+  | EnsuresClause<ensures, false>
+  }
+  "{"
+  { Stmt<body> }
+  "}"
+  (. 
+    s = new OpaqueBlock(new RangeToken(start, t), body, ensures, 
+      new Specification<FrameExpression>(modifies, modifiesAttributes));
+  .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2173,7 +2209,9 @@ OneStmt<out Statement/*!*/ s>
   .)
   SYNC
   ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
-  | UpdateStmt<out s>     // includes UpdateFailure
+  | OpaqueBlock<out s>
+  | IF(IsReveal(scanner.Peek())) RevealStmt<out s>
+  | AssignStatement<out s>     // includes UpdateFailure
   | VarDeclStatement<out s>
   | ReturnStmt<out s>
   | IfStmt<out s>
@@ -2189,7 +2227,6 @@ OneStmt<out Statement/*!*/ s>
   | MatchStmt<out s>
   | ModifyStmt<out s>
   | PrintStmt<out s>
-  | RevealStmt<out s>
   | SkeletonStmt<out s>
   | YieldStmt<out s>
   )
@@ -2282,11 +2319,12 @@ YieldStmt<out Statement/*!*/ s>
   .
 
 /*------------------------------------------------------------------------*/
-UpdateStmt<out Statement/*!*/ s>
+AssignStatement<out Statement/*!*/ s>
 = (. List<Expression> lhss = new List<Expression>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      Expression e;
      AssignmentRhs r;
+     BlockStmt proof = null;
      IToken x = Token.NoToken;
      IToken endTok = Token.NoToken;
      IToken startToken = Token.NoToken;
@@ -2324,10 +2362,16 @@ UpdateStmt<out Statement/*!*/ s>
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
     )
-    ";"                            (. endTok = t; .)
+    (
+      "by" BlockStmt<out proof, out _, out _>
+    | ";"
+    )
   | ":"                            (. SemErr(ErrorId.p_invalid_colon, new RangeToken(startToken, t), "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
-    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)   
+    (
+      "by" BlockStmt<out proof, out _, out _>
+    | ";"
+    )                              (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
                                    (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) });
                                       SemErr(ErrorId.p_missing_semicolon, new RangeToken(startToken, t), "missing semicolon at end of statement");
@@ -2342,18 +2386,27 @@ UpdateStmt<out Statement/*!*/ s>
    { Attribute<ref attrs> }        (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
    { "," Rhs<out r>                (. rhss.Add(r); .)
    }
-   ";"                             (. endTok = t; .)
+   (
+     "by" BlockStmt<out proof, out _, out _>
+   | ";"                           (. endTok = t; .)
+   )                           
 )
   (. var rangeToken = new RangeToken(startToken, t);
      if (suchThat != null) {
        s = new AssignSuchThatStmt(rangeToken, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionRhs != null) {
        s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss);
+       if (proof != null) {
+         s = new BlockByProofStmt(rangeToken, proof, s);
+       }
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
        } else {
-         s = new UpdateStmt(rangeToken, lhss, rhss);
+         s = new AssignStatement(rangeToken, lhss, rhss);
+         if (proof != null) {
+           s = new BlockByProofStmt(rangeToken, proof, s);
+         }
        }
      }
   .)
@@ -2453,6 +2506,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      ExprRhs exceptionRhs = null;
      Attributes attrs = null;
      Attributes tokenAttrs = null;
+     BlockStmt proof = null;
      IToken endTok;
      IToken startToken = null;
      s = dummyStmt;
@@ -2489,8 +2543,11 @@ VarDeclStatement<.out Statement/*!*/ s.>
       { "," Rhs<out r>               (. rhss.Add(r); .)
       }
     ]
-    SYNC ";"                         (. endTok = t; .)
-    (. ConcreteUpdateStatement update;
+    SYNC ( "by"
+      BlockStmt<out proof, out _, out _>
+    | ";"                            (. endTok = t; .)
+    )
+    (. ConcreteAssignStatement assignment;
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
          foreach (var lhs in lhss) {
@@ -2504,15 +2561,18 @@ VarDeclStatement<.out Statement/*!*/ s.>
        var rangeToken = new RangeToken(startToken, t);
        var updateRangeToken = new RangeToken(assignTok, t);
        if (suchThat != null) {
-         update = new AssignSuchThatStmt(updateRangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
+         assignment = new AssignSuchThatStmt(updateRangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionRhs != null) {
-         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
+         assignment = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
        } else if (rhss.Count == 0) {
-         update = null;
+         assignment = null;
        } else {
-         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss);
+         assignment = new AssignStatement(updateRangeToken, lhsExprs, rhss);
        }
-       s = new VarDeclStmt(rangeToken, lhss, update);
+       s = new VarDeclStmt(rangeToken, lhss, assignment);
+       if (proof != null) {
+         s = new BlockByProofStmt(s.RangeToken, proof, s);
+       }
     .)
   | (. CasePattern<LocalVariable> pat;
        Expression e = dummyExpr;
@@ -2929,10 +2989,13 @@ AssertStmt<out Statement/*!*/ s>
     ";"
   )
   (. if (dotdotdot != null) {
-       s = new AssertStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), null, null, attrs);
+       s = new AssertStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), null, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssertStmt(new RangeToken(startToken, t), e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+       s = new AssertStmt(new RangeToken(startToken, t), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+       if (proof != null) {
+         s = new BlockByProofStmt(s.RangeToken, proof, s);
+       }
      }
   .)
   .
@@ -3007,14 +3070,18 @@ RevealStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x; Expression e; var es = new List<Expression>();
      IToken startToken = null;
+     HideRevealCmd.Modes mode = HideRevealCmd.Modes.Reveal;
+     s = null;
   .)
-  "reveal"                                      (. x = t; startToken = t; .)
-  Expression<out e, false, true>                (. es.Add(e); .)
-  { "," Expression<out e, false, true>          (. es.Add(e); .)
-  }
-  ";"                                           (.
-    s = new RevealStmt(new RangeToken(startToken, t), es);
-    .)
+  ( "reveal"                                    (. x = t; startToken = t; mode = HideRevealCmd.Modes.Reveal; .)
+  | "hide"                                      (. x = t; startToken = t; mode = HideRevealCmd.Modes.Hide; .)
+  )
+  ( Expression<out e, false, true>                (. es.Add(e); .)
+    { "," Expression<out e, false, true>          (. es.Add(e); .)
+    }                                           (. s = new HideRevealStmt(new RangeToken(startToken, t), es, mode); .)
+  | "*"                                         (. s = new HideRevealStmt(new RangeToken(startToken, t), mode); .)
+  )
+  ";"                                           
   .
 
 /*------------------------------------------------------------------------*/
@@ -3271,7 +3338,7 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
     Expression<out e0, allowLemma, allowLambda>
     (. var startToken = e.StartToken;
        e = new StmtExpr(e0.Tok,
-             new UpdateStmt(e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
+             new AssignStatement(e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
              e0);
        e.RangeToken = new RangeToken(startToken, e0.EndToken);
     .)
@@ -4454,7 +4521,7 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
   { IF( la.kind == _lbracecolon) Attribute<ref attrs> } // Ambiguity -- if the next optional block is not present, 
                                                         // this {Attribute} ends a QuantifierVariableDecl so it can end a SetComprehensionExpr
                                                         // so it can end an Expression
-                                                        // But an Expression can be followed by {Attribute} as in VarDeclStatement, Rhs, UpdateStmt
+                                                        // But an Expression can be followed by {Attribute} as in VarDeclStatement, Rhs, AssignStatement
   [ // Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement. 
     // That can happen because the grammar allows a QuantifierDecl to end a QuantifierDomain, which can end
     // a SetComprehensionExpr, and a Expression can be followed by a bitvector '|'. 
@@ -4535,6 +4602,9 @@ Ident<out IToken/*!*/ x>
   | "older"      (. t.kind = _ident; .) // convert it to an ident
   | "opaque"     (. t.kind = _ident; .) // convert it to an ident
                  (. errors.Deprecated(ErrorId.p_deprecated_opaque_as_identifier, t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name."); .)
+  | "hide"       (. t.kind = _ident; .) // convert it to an ident
+  | "reveal"     (. t.kind = _ident; .) // convert it to an ident
+                 
   )
   (. x = t; .)
   .

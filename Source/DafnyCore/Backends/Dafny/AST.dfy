@@ -29,24 +29,51 @@ module {:extern "DAST.Format"} DAST.Format
 
 module {:extern "DAST"} DAST {
   import opened Std.Wrappers
+  import Std
 
   // Prevents Dafny names to being direclty integrated into Rust without explicit conversion
   // Make it a newtype once newtypes are compatible with standard library
   // See issue https://github.com/dafny-lang/dafny/issues/5345
   datatype Name = Name(dafny_name: string)
 
-  datatype Module = Module(name: Name, attributes: seq<Attribute>, body: Option<seq<ModuleItem>>)
+  // A special Dafny name wrapper for variable names.
+  // For example, the identifier 'None' needs to be escaped in Rust, but not as a constructor.
+  datatype VarName = VarName(dafny_name: string)
+
+  datatype Module = Module(name: Name, attributes: seq<Attribute>, requiresExterns: bool, body: Option<seq<ModuleItem>>)
 
   datatype ModuleItem =
     | Module(Module)
     | Class(Class)
     | Trait(Trait)
     | Newtype(Newtype)
+    | SynonymType(SynonymType)
     | Datatype(Datatype)
+  {
+    function name(): Name {
+      match this {
+        case Module(m) => m.name
+        case Class(m) => m.name
+        case Trait(m) => m.name
+        case Newtype(m) => m.name
+        case SynonymType(m) => m.name
+        case Datatype(m) => m.name
+      }
+    }
+    function attributes(): seq<Attribute> {
+      match this {
+        case Module(m) => m.attributes
+        case Class(m) => m.attributes
+        case Trait(m) => m.attributes
+        case Newtype(m) => m.attributes
+        case SynonymType(m) => m.attributes
+        case Datatype(m) => m.attributes
+      }
+    }
+  }
 
   datatype Type =
-    Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) |
-    Nullable(Type) |
+    UserDefined(resolved: ResolvedType) |
     Tuple(seq<Type>) |
     Array(element: Type, dims: nat) |
     Seq(element: Type) |
@@ -57,34 +84,101 @@ module {:extern "DAST"} DAST {
     MapBuilder(key: Type, value: Type) |
     Arrow(args: seq<Type>, result: Type) |
     Primitive(Primitive) | Passthrough(string) |
-    TypeArg(Ident)
+    TypeArg(Ident) | Object()
+  {
+    function Replace(mapping: map<Type, Type>): Type {
+      if this in mapping then mapping[this] else
+      match this {
+        case UserDefined(resolved: ResolvedType) =>
+          Type.UserDefined(resolved.Replace(mapping))
+        case Tuple(arguments) =>
+          Type.Tuple(Std.Collections.Seq.Map(
+                       t requires t in arguments => t.Replace(mapping), arguments))
+        case Array(element, dims) =>
+          Type.Array(element.Replace(mapping), dims)
+        case Seq(element) =>
+          Type.Seq(element.Replace(mapping))
+        case Set(element) =>
+          Type.Set(element.Replace(mapping))
+        case Multiset(element) =>
+          Type.Multiset(element.Replace(mapping))
+        case Map(key, value) =>
+          Type.Map(key.Replace(mapping), value.Replace(mapping))
+        case SetBuilder(element) =>
+          Type.SetBuilder(element.Replace(mapping))
+        case MapBuilder(key, value) =>
+          Type.MapBuilder(key.Replace(mapping), value.Replace(mapping))
+        case Arrow(args: seq<Type>, result: Type) =>
+          Type.Arrow(Std.Collections.Seq.Map(
+                       t requires t in args => t.Replace(mapping), args), result.Replace(mapping))
+        case Primitive(_) | Passthrough(_) | Object() | TypeArg(_) =>
+          this
+      }
+    }
+  }
 
-  datatype TypeArgDecl = TypeArgDecl(name: Ident, bounds: seq<TypeArgBound>)
+  datatype Variance =
+    | Nonvariant
+    | Covariant
+    | Contravariant
+
+  datatype TypeArgDecl = TypeArgDecl(name: Ident, bounds: seq<TypeArgBound>, variance: Variance)
 
   datatype TypeArgBound =
     | SupportsEquality
     | SupportsDefault
 
-  datatype Primitive = Int | Real | String | Bool | Char
+  datatype Primitive = Int | Real | String | Bool | Char | Native
 
+  // USIZE is for whatever target considers that native arrays can be indexed with
   datatype NewtypeRange =
-    | U8 | I8 | U16 | I16 | U32 | I32 | U64 | I64 | U128 | I128 | BigInt
+    | U8 | I8 | U16 | I16 | U32 | I32 | U64 | I64 | U128 | I128 | USIZE | BigInt
     | NoRange
 
   datatype Attribute = Attribute(name: string, args: seq<string>)
 
-  datatype DatatypeType = DatatypeType(path: seq<Ident>, attributes: seq<Attribute>)
+  datatype DatatypeType = DatatypeType()
 
-  datatype ResolvedType =
-    | Datatype(datatypeType: DatatypeType)
-    | Trait(path: seq<Ident>, attributes: seq<Attribute>)
-    | Newtype(baseType: Type, range: NewtypeRange, erase: bool, attributes: seq<Attribute>)
+  datatype TraitType = TraitType()
+
+  datatype NewtypeType = NewtypeType(baseType: Type, range: NewtypeRange, erase: bool)
+
+  datatype ResolvedTypeBase =
+    | Class()
+    | Datatype(variances: seq<Variance>)
+    | Trait()
+    | Newtype(baseType: Type, range: NewtypeRange, erase: bool)
+
+  datatype ResolvedType = ResolvedType(
+    path: seq<Ident>,
+    typeArgs: seq<Type>,
+    kind: ResolvedTypeBase,
+    attributes: seq<Attribute>,
+    properMethods: seq<Name>,
+    extendedTypes: seq<Type>) {
+    function Replace(mapping: map<Type, Type>): ResolvedType {
+      ResolvedType(
+        path,
+        Std.Collections.Seq.Map(
+          t requires t in typeArgs => t.Replace(mapping), typeArgs),
+        match kind {
+          case Newtype(baseType, range, erase) =>
+            ResolvedTypeBase.Newtype(baseType.Replace(mapping), range, erase)
+          case _ => kind
+        },
+        attributes,
+        properMethods,
+        Std.Collections.Seq.Map(
+          t requires t in extendedTypes => t.Replace(mapping), extendedTypes)
+      )
+    }
+  }
 
   datatype Ident = Ident(id: Name)
 
   datatype Class = Class(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, superClasses: seq<Type>, fields: seq<Field>, body: seq<ClassItem>, attributes: seq<Attribute>)
 
-  datatype Trait = Trait(name: Name, typeParams: seq<TypeArgDecl>, body: seq<ClassItem>, attributes: seq<Attribute>)
+  datatype Trait = Trait(name: Name, typeParams: seq<TypeArgDecl>, parents: seq<Type>, body: seq<ClassItem>, attributes: seq<Attribute>)
 
   datatype Datatype = Datatype(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, ctors: seq<DatatypeCtor>, body: seq<ClassItem>, isCo: bool, attributes: seq<Attribute>)
 
@@ -92,56 +186,72 @@ module {:extern "DAST"} DAST {
 
   datatype DatatypeCtor = DatatypeCtor(name: Name, args: seq<DatatypeDtor>, hasAnyArgs: bool /* includes ghost */)
 
-  datatype Newtype = Newtype(name: Name, typeParams: seq<TypeArgDecl>, base: Type, range: NewtypeRange, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>)
+  datatype Newtype =
+    Newtype(
+      name: Name, typeParams: seq<TypeArgDecl>, base: Type,
+      range: NewtypeRange, constraint: Option<NewtypeConstraint>,
+      witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>)
+
+  datatype NewtypeConstraint = NewtypeConstraint(variable: Formal, constraintStmts: seq<Statement>)
+
+  // At this point, constraints have been entirely removed,
+  // but synonym types might have different witnesses to use for by the compiler
+  datatype SynonymType = SynonymType(name: Name, typeParams: seq<TypeArgDecl>, base: Type, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>)
 
   datatype ClassItem = Method(Method)
 
-  datatype Field = Field(formal: Formal, defaultValue: Option<Expression>)
+  datatype Field = Field(formal: Formal, isConstant: bool, defaultValue: Option<Expression>)
 
-  datatype Formal = Formal(name: Name, typ: Type, attributes: seq<Attribute>)
+  datatype Formal = Formal(name: VarName, typ: Type, attributes: seq<Attribute>)
 
   datatype Method = Method(
+    attributes: seq<Attribute>,
     isStatic: bool,
     hasBody: bool,
+    outVarsAreUninitFieldsToAssign: bool, // For constructors
+    wasFunction: bool, // To choose between "&self" and "&mut self"
     overridingPath: Option<seq<Ident>>,
     name: Name,
     typeParams: seq<TypeArgDecl>,
     params: seq<Formal>,
     body: seq<Statement>,
     outTypes: seq<Type>,
-    outVars: Option<seq<Ident>>)
+    outVars: Option<seq<VarName>>)
 
   datatype CallSignature = CallSignature(parameters: seq<Formal>)
 
   datatype CallName =
-    CallName(name: Name, onType: Option<Type>, signature: CallSignature) |
+    CallName(name: Name, onType: Option<Type>, receiverArg: Option<Formal>, receiverAsArgument: bool, signature: CallSignature) |
     MapBuilderAdd | MapBuilderBuild | SetBuilderAdd | SetBuilderBuild
 
   datatype Statement =
-    DeclareVar(name: Name, typ: Type, maybeValue: Option<Expression>) |
+    DeclareVar(name: VarName, typ: Type, maybeValue: Option<Expression>) |
     Assign(lhs: AssignLhs, value: Expression) |
     If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
     Labeled(lbl: string, body: seq<Statement>) |
     While(cond: Expression, body: seq<Statement>) |
-    Foreach(boundName: Name, boundType: Type, over: Expression, body: seq<Statement>) |
-    Call(on: Expression, callName: CallName, typeArgs: seq<Type>, args: seq<Expression>, outs: Option<seq<Ident>>) |
+    Foreach(boundName: VarName, boundType: Type, over: Expression, body: seq<Statement>) |
+    Call(on: Expression, callName: CallName, typeArgs: seq<Type>, args: seq<Expression>, outs: Option<seq<VarName>>) |
     Return(expr: Expression) |
     EarlyReturn() |
     Break(toLabel: Option<string>) |
     TailRecursive(body: seq<Statement>) |
     JumpTailCallStart() |
     Halt() |
-    Print(Expression)
+    Print(Expression) |
+    ConstructorNewSeparator(fields: seq<Field>)
+  {
+  }
 
   datatype AssignLhs =
-    Ident(ident: Ident) |
-    Select(expr: Expression, field: Name) |
+    Ident(ident: VarName) |
+    Select(expr: Expression, field: VarName, isConstant: bool) |
     Index(expr: Expression, indices: seq<Expression>)
 
   datatype CollKind = Seq | Array | Map
 
   datatype BinOp =
-    Eq(referential: bool, nullable: bool) |
+    Eq(referential: bool) |
     Div() | EuclidianDiv() |
     Mod() | EuclidianMod() |
     Lt() | // a <= b is !(b < a)
@@ -162,12 +272,15 @@ module {:extern "DAST"} DAST {
 
   datatype Expression =
     Literal(Literal) |
-    Ident(Name) |
-    Companion(seq<Ident>) |
+    Ident(name: VarName) |
+    Companion(seq<Ident>, typeArgs: seq<Type>) |
+    ExternCompanion(seq<Ident>) |
     Tuple(seq<Expression>) |
     New(path: seq<Ident>, typeArgs: seq<Type>, args: seq<Expression>) |
-    NewArray(dims: seq<Expression>, typ: Type) |
-    DatatypeValue(datatypeType: DatatypeType, typeArgs: seq<Type>, variant: Name, isCo: bool, contents: seq<(string, Expression)>) |
+    NewUninitArray(dims: seq<Expression>, typ: Type) |
+    ArrayIndexToInt(value: Expression) |
+    FinalizeNewArray(value: Expression, typ: Type) |
+    DatatypeValue(datatypeType: ResolvedType, typeArgs: seq<Type>, variant: Name, isCo: bool, contents: seq<(VarName, Expression)>) |
     Convert(value: Expression, from: Type, typ: Type) |
     SeqConstruct(length: Expression, elem: Expression) |
     SeqValue(elements: seq<Expression>, typ: Type) |
@@ -183,25 +296,32 @@ module {:extern "DAST"} DAST {
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression, format1: Format.UnaryOpFormat) |
     BinOp(op: BinOp, left: Expression, right: Expression, format2: Format.BinaryOpFormat) |
-    ArrayLen(expr: Expression, dim: nat) |
+    ArrayLen(expr: Expression, exprType: Type, dim: nat, native: bool) |
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
-    Select(expr: Expression, field: Name, isConstant: bool, onDatatype: bool, fieldType: Type) |
-    SelectFn(expr: Expression, field: Name, onDatatype: bool, isStatic: bool, arity: nat) |
+    MapItems(expr: Expression) |
+    Select(expr: Expression, field: VarName, isConstant: bool, onDatatype: bool, fieldType: Type) |
+    SelectFn(expr: Expression, field: VarName, onDatatype: bool, isStatic: bool, isConstant: bool, arguments: seq<Type>) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |
     TupleSelect(expr: Expression, index: nat, fieldType: Type) |
     Call(on: Expression, callName: CallName, typeArgs: seq<Type>, args: seq<Expression>) |
     Lambda(params: seq<Formal>, retType: Type, body: seq<Statement>) |
     BetaRedex(values: seq<(Formal, Expression)>, retType: Type, expr: Expression) |
-    IIFE(name: Ident, typ: Type, value: Expression, iifeBody: Expression) |
+    IIFE(ident: VarName, typ: Type, value: Expression, iifeBody: Expression) |
     Apply(expr: Expression, args: seq<Expression>) |
     TypeTest(on: Expression, dType: seq<Ident>, variant: Name) |
+    Is(expr: Expression, fromType: Type, toType: Type) |
     InitializationValue(typ: Type) |
     BoolBoundedPool() |
     SetBoundedPool(of: Expression) |
+    MapBoundedPool(of: Expression) |
     SeqBoundedPool(of: Expression, includeDuplicates: bool) |
-    IntRange(lo: Expression, hi: Expression)
+    MultisetBoundedPool(of: Expression, includeDuplicates: bool) |
+    ExactBoundedPool(of: Expression) |
+    IntRange(elemType: Type, lo: Expression, hi: Expression, up: bool) |
+    UnboundedIntRange(start: Expression, up: bool) |
+    Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression)
 
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 

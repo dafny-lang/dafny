@@ -2,7 +2,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Invocation;
@@ -11,11 +10,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.AccessControl;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore;
-using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Compilers;
@@ -49,10 +45,9 @@ public static class DafnyNewCli {
     AddCommand(AuditCommand.Create());
     AddCommand(CoverageReportCommand.Create());
     AddCommand(DocumentationCommand.Create());
+    AddCommand(ExtractCommand.Create());
 
-    // Check that the .doo file format is aware of all options,
-    // and therefore which have to be saved to safely support separate verification/compilation.
-    DooFile.CheckOptions(AllOptions);
+    OptionRegistry.CheckOptionsAreKnown(AllOptions);
 
     // This SHOULD find the same method but returns null for some reason:
     // typeof(ParseResult).GetMethod("GetValueForOption", 1, new[] { typeof(Option<>) });
@@ -108,12 +103,23 @@ public static class DafnyNewCli {
           }
         }
       }
+
+      ProcessOption(context, DafnyProject.FindProjectOption, dafnyOptions);
+      var firstFile = dafnyOptions.CliRootSourceUris.FirstOrDefault();
+      if (dafnyOptions.DafnyProject == null && dafnyOptions.Get(DafnyProject.FindProjectOption) && firstFile != null) {
+        var opener = new ProjectFileOpener(OnDiskFileSystem.Instance, Token.Cli);
+        var project = await opener.TryFindProject(firstFile);
+        project?.Validate(dafnyOptions.OutputWriter, AllOptions);
+        dafnyOptions.DafnyProject = project;
+      }
+
       foreach (var option in command.Options) {
-        if (option == CommonOptionBag.UseBaseFileName) {
+        if (option == CommonOptionBag.UseBaseFileName || option == DafnyProject.FindProjectOption) {
           continue;
         }
         ProcessOption(context, option, dafnyOptions);
       }
+
       foreach (var option in command.Options) {
         try {
           dafnyOptions.ApplyBinding(option);
@@ -166,12 +172,7 @@ public static class DafnyNewCli {
   }
 
   public static Task<int> Execute(IConsole console, IReadOnlyList<string> arguments) {
-    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
     foreach (var symbol in AllSymbols) {
-      if (!allowHidden) {
-        symbol.IsHidden = false;
-      }
-
       if (symbol is Option option) {
         if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
           option.AllowMultipleArgumentsPerToken = true;
@@ -219,7 +220,7 @@ public static class DafnyNewCli {
       await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {dafnyOptions.GetPrintPath(file.LocalPath)} not found");
       return false;
     }
-    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, file, Token.Cli);
+    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, file, Token.Cli);
 
     projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
     dafnyOptions.DafnyProject = projectFile;
@@ -251,8 +252,16 @@ public static class DafnyNewCli {
     var languageDeveloperHelp = new Option<bool>(ToolchainDebuggingHelpName,
       "Show help and usage information, including options designed for developing the Dafny language and toolchain.");
     rootCommand.AddGlobalOption(languageDeveloperHelp);
+    bool helpShown = false;
+    builder = builder.UseHelp(_ => helpShown = true);
+
     builder = builder.AddMiddleware(async (context, next) => {
-      if (context.ParseResult.FindResultFor(languageDeveloperHelp) is { }) {
+      if ((context.ParseResult.CommandResult.Command.IsHidden && helpShown) || context.ParseResult.FindResultFor(languageDeveloperHelp) is { }) {
+
+        foreach (var symbol in AllSymbols) {
+          symbol.IsHidden = false;
+        }
+
         context.InvocationResult = new HelpResult();
       } else {
         await next(context);
@@ -271,14 +280,14 @@ public static class DafnyNewCli {
       yield break;
     }
 
-    var dependencyProject = await DafnyProject.Open(fileSystem, options, uri, uriOrigin);
+    var dependencyProject = await DafnyProject.Open(fileSystem, uri, uriOrigin);
     var dependencyOptions =
       DooFile.CheckAndGetLibraryOptions(reporter, uri, options, uriOrigin, dependencyProject.Options);
     if (dependencyOptions == null) {
       yield break;
     }
 
-    if (options.Get(DafnyFile.UnsafeDependencies) || !options.Verify) {
+    if (options.Get(DafnyFile.DoNotVerifyDependencies) || !options.Verify) {
       foreach (var libraryRootSetFile in dependencyProject.GetRootSourceUris(fileSystem)) {
         var file = DafnyFile.HandleDafnyFile(fileSystem, reporter, dependencyOptions, libraryRootSetFile,
           dependencyProject.StartingToken, true, false);
@@ -301,7 +310,7 @@ public static class DafnyNewCli {
       dependencyOptions.Compile = true;
       dependencyOptions.RunAfterCompile = false;
       var exitCode = await SynchronousCliCompilation.Run(dependencyOptions);
-      if (exitCode == 0) {
+      if (exitCode == 0 && libraryBackend.DooPath != null) {
         var dooUri = new Uri(libraryBackend.DooPath);
         await foreach (var dooResult in DafnyFile.HandleDooFile(fileSystem, reporter, options, dooUri, uriOrigin, true)) {
           yield return dooResult;

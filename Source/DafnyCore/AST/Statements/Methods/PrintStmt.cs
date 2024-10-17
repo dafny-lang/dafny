@@ -17,10 +17,7 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
       options.EnforcePrintEffects = value;
     });
 
-    DooFile.RegisterLibraryChecks(
-      checks: new Dictionary<Option, OptionCompatibility.OptionCheck> {
-        { TrackPrintEffectsOption, OptionCompatibility.CheckOptionLocalImpliesLibrary }
-      });
+    OptionRegistry.RegisterGlobalOption(TrackPrintEffectsOption, OptionCompatibility.CheckOptionLocalImpliesLibrary);
   }
 
   [ContractInvariantMethod]

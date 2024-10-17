@@ -9,6 +9,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public override IToken Tok => PostLabelToken ?? StartToken;
   public IToken PostLabelToken { get; set; }
 
+  public int ScopeDepth { get; set; }
   public LList<Label> Labels;  // mutable during resolution
 
   private Attributes attributes;
@@ -74,6 +75,23 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// </summary>
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }
+  }
+
+  public IEnumerable<Statement> DescendantsAndSelf {
+    get {
+      Stack<Statement> todo = new();
+      List<Statement> result = new();
+      todo.Push(this);
+      while (todo.Any()) {
+        var current = todo.Pop();
+        result.Add(current);
+        foreach (var child in current.SubStatements) {
+          todo.Push(child);
+        }
+      }
+
+      return result;
+    }
   }
 
   /// <summary>
@@ -147,9 +165,9 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     var variable = new LocalVariable(rangeToken, name, value.Type, false);
     variable.type = value.Type;
     Expression variableExpr = new IdentifierExpr(tok, variable);
-    var variableUpdateStmt = new UpdateStmt(rangeToken, Util.Singleton(variableExpr),
+    var variableUpdateStmt = new AssignStatement(rangeToken, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
-    var variableAssignStmt = new AssignStmt(rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
+    var variableAssignStmt = new SingleAssignStmt(rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
     variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
     return new VarDeclStmt(rangeToken, Util.Singleton(variable), variableUpdateStmt);
   }
@@ -174,4 +192,6 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public override IEnumerable<INode> PreResolveChildren =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
+
+  public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => Enumerable.Empty<IdentifierExpr>();
 }

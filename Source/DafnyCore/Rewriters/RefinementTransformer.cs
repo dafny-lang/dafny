@@ -367,7 +367,7 @@ namespace Microsoft.Dafny {
               "a {0} ({1}) cannot declare members, so it cannot refine an abstract type with members",
               nw.WhatKind, nw.Name);
           } else {
-            CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type", false);
+            CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type");
           }
         }
       } else if (nw is AbstractTypeDecl) {
@@ -828,7 +828,7 @@ namespace Microsoft.Dafny {
 
       return nw;
     }
-    void CheckAgreement_TypeParameters(IToken tok, List<TypeParameter> old, List<TypeParameter> nw, string name, string thing, bool checkNames = true) {
+    void CheckAgreement_TypeParameters(IToken tok, List<TypeParameter> old, List<TypeParameter> nw, string name, string thing) {
       Contract.Requires(tok != null);
       Contract.Requires(old != null);
       Contract.Requires(nw != null);
@@ -840,7 +840,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
-          if (o.Name != n.Name && checkNames) { // if checkNames is false, then just treat the parameters positionally.
+          if (o.Name != n.Name) {
             Error(ErrorId.ref_mismatched_type_parameter_name, n.tok, "type parameters are not allowed to be renamed from the names given in the {0} in the module being refined (expected '{1}', found '{2}')", thing, o.Name, n.Name);
           } else {
             // This explains what we want to do and why:
@@ -876,7 +876,27 @@ namespace Microsoft.Dafny {
               var nv = n.Variance == TypeParameter.TPVariance.Co ? "+" : n.Variance == TypeParameter.TPVariance.Contra ? "-" : "=";
               Error(ErrorId.ref_mismatched_type_parameter_variance, n.tok, "type parameter '{0}' is not allowed to change variance (here, from '{1}' to '{2}')", n.Name, ov, nv);
             }
+
+            CheckAgreement_TypeBounds(n.tok, o, n, name, thing);
           }
+        }
+      }
+    }
+
+    void CheckAgreement_TypeBounds(IToken tok, TypeParameter old, TypeParameter nw, string name, string thing) {
+      if (old.TypeBounds.Count != nw.TypeBounds.Count) {
+        Error(ErrorId.ref_mismatched_type_bounds_count, tok,
+          $"type parameter '{nw.Name}' of {thing} '{name}' is declared with a different number of type bounds than in the corresponding {thing}" +
+          $" in the module it refines (expected {old.TypeBounds.Count}, found {nw.TypeBounds.Count})");
+        return;
+      }
+      for (var i = 0; i < old.TypeBounds.Count; i++) {
+        var oldBound = old.TypeBounds[i];
+        var newBound = nw.TypeBounds[i];
+        if (!TypesAreSyntacticallyEqual(oldBound, newBound)) {
+          Error(ErrorId.ref_mismatched_type_parameter_bound, tok,
+            $"type bound for type parameter '{nw.Name}' of {thing} '{name}' is different from the corresponding type bound of the " +
+            $"corresponding type parameter of the corresponding {thing} in the module it refines (expected '{oldBound}', found '{newBound}')");
         }
       }
     }
@@ -1051,7 +1071,7 @@ namespace Microsoft.Dafny {
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
                 body.Add(new AssertStmt(new RangeToken(new BoogieGenerator.ForceCheckToken(skel.RangeToken.StartToken), skel.RangeToken.EndToken),
-                  e, skel.Proof, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
+                  e, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
@@ -1171,16 +1191,16 @@ namespace Microsoft.Dafny {
             if (oldS is VarDeclStmt) {
               var cOld = (VarDeclStmt)oldS;
               if (LocalVarsAgree(cOld.Locals, cNew.Locals)) {
-                var update = cNew.Update as UpdateStmt;
+                var update = cNew.Assign as AssignStatement;
                 if (update != null && update.Rhss.TrueForAll(rhs => !rhs.CanAffectPreviouslyKnownExpressions)) {
                   // Note, we allow switching between ghost and non-ghost, since that seems unproblematic.
-                  if (cOld.Update == null) {
+                  if (cOld.Assign == null) {
                     doMerge = true;
-                  } else if (cOld.Update is AssignSuchThatStmt) {
+                  } else if (cOld.Assign is AssignSuchThatStmt) {
                     doMerge = true;
-                    addedAssert = refinementCloner.CloneExpr(((AssignSuchThatStmt)cOld.Update).Expr);
+                    addedAssert = refinementCloner.CloneExpr(((AssignSuchThatStmt)cOld.Assign).Expr);
                   } else {
-                    var updateOld = (UpdateStmt)cOld.Update;  // if cast fails, there are more ConcreteUpdateStatement subclasses than expected
+                    var updateOld = (AssignStatement)cOld.Assign;  // if cast fails, there are more ConcreteUpdateStatement subclasses than expected
                     doMerge = true;
                     foreach (var rhs in updateOld.Rhss) {
                       if (!(rhs is HavocRhs)) {
@@ -1197,20 +1217,20 @@ namespace Microsoft.Dafny {
               i++; j++;
               if (addedAssert != null) {
                 var tok = new BoogieGenerator.ForceCheckToken(addedAssert.RangeToken.StartToken);
-                body.Add(new AssertStmt(new RangeToken(tok, addedAssert.RangeToken.EndToken), addedAssert, null, null, null));
+                body.Add(new AssertStmt(new RangeToken(tok, addedAssert.RangeToken.EndToken), addedAssert, null, null));
               }
             } else {
               MergeAddStatement(cur, body);
               i++;
             }
 
-          } else if (cur is AssignStmt) {
-            var cNew = (AssignStmt)cur;
-            var cOld = oldS as AssignStmt;
-            if (cOld == null && oldS is UpdateStmt) {
-              var us = (UpdateStmt)oldS;
+          } else if (cur is SingleAssignStmt) {
+            var cNew = (SingleAssignStmt)cur;
+            var cOld = oldS as SingleAssignStmt;
+            if (cOld == null && oldS is AssignStatement) {
+              var us = (AssignStatement)oldS;
               if (us.ResolvedStatements.Count == 1) {
-                cOld = us.ResolvedStatements[0] as AssignStmt;
+                cOld = us.ResolvedStatements[0] as SingleAssignStmt;
               }
             }
             bool doMerge = false;
@@ -1232,12 +1252,12 @@ namespace Microsoft.Dafny {
               i++;
             }
 
-          } else if (cur is UpdateStmt) {
-            var nw = (UpdateStmt)cur;
+          } else if (cur is AssignStatement) {
+            var nw = (AssignStatement)cur;
             List<Statement> stmtGenerated = new List<Statement>();
             bool doMerge = false;
-            if (oldS is UpdateStmt) {
-              var s = (UpdateStmt)oldS;
+            if (oldS is AssignStatement) {
+              var s = (AssignStatement)oldS;
               if (LeftHandSidesAgree(s.Lhss, nw.Lhss)) {
                 doMerge = true;
                 stmtGenerated.Add(nw);
@@ -1254,7 +1274,7 @@ namespace Microsoft.Dafny {
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
                 var tok = new RangeToken(addedAssert.RangeToken.StartToken, addedAssert.RangeToken.EndToken);
-                stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null, null));
+                stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null));
               }
             }
             if (doMerge) {
@@ -1399,8 +1419,8 @@ namespace Microsoft.Dafny {
         } else if (other is BlockStmt && ((BlockStmt)other).Labels == null) {
           return true; // both are unlabeled
         }
-      } else if (nxt is UpdateStmt) {
-        var up = (UpdateStmt)nxt;
+      } else if (nxt is AssignStatement) {
+        var up = (AssignStatement)nxt;
         if (other is AssignSuchThatStmt) {
           var oth = other as AssignSuchThatStmt;
           return oth != null && LeftHandSidesAgree(oth.Lhss, up.Lhss);
@@ -1508,15 +1528,15 @@ namespace Microsoft.Dafny {
         if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel.val) : loopLevels < b.BreakAndContinueCount) {
           Error(ErrorId.ref_invalid_break_in_skeleton, s, $"{b.Kind} statement in skeleton is not allowed to break outside the skeleton fragment");
         }
-      } else if (s is AssignStmt) {
+      } else if (s is SingleAssignStmt) {
         // TODO: To be a refinement automatically (that is, without any further verification), only variables and fields defined
         // in this module are allowed.  This needs to be checked.  If the LHS refers to an l-value that was not declared within
         // this module, then either an error should be reported or the Translator needs to know to translate new proof obligations.
-        var a = (AssignStmt)s;
+        var a = (SingleAssignStmt)s;
         Error(ErrorId.ref_misplaced_assignment, a.Tok, "cannot have assignment statement");
-      } else if (s is ConcreteUpdateStatement) {
+      } else if (s is ConcreteAssignStatement) {
         postTasks.Enqueue(() => {
-          CheckIsOkayUpdateStmt((ConcreteUpdateStatement)s, moduleUnderConstruction);
+          CheckIsOkayUpdateStmt((ConcreteAssignStatement)s, moduleUnderConstruction);
         });
       } else if (s is CallStmt) {
         Error(ErrorId.ref_misplaced_call, s.Tok, "cannot have call statement");
@@ -1535,7 +1555,7 @@ namespace Microsoft.Dafny {
     }
 
     // Checks that statement stmt, defined in the constructed module m, is a refinement of skip in the parent module
-    void CheckIsOkayUpdateStmt(ConcreteUpdateStatement stmt, ModuleDefinition m) {
+    void CheckIsOkayUpdateStmt(ConcreteAssignStatement stmt, ModuleDefinition m) {
       foreach (var lhs in stmt.Lhss) {
         var l = lhs.Resolved;
         if (l is IdentifierExpr) {
@@ -1555,8 +1575,8 @@ namespace Microsoft.Dafny {
           Error(ErrorId.ref_invalid_new_assignments, l.tok, "new assignments in a refinement method can only assign to state that the module defines (which never includes array elements)");
         }
       }
-      if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
+      if (stmt is AssignStatement) {
+        var s = (AssignStatement)stmt;
         foreach (var rhs in s.Rhss) {
           if (rhs.CanAffectPreviouslyKnownExpressions) {
             Error(ErrorId.ref_invalid_assignment_rhs, rhs.Tok, "assignment RHS in refinement method is not allowed to affect previously defined state");

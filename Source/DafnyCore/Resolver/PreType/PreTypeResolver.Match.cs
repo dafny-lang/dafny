@@ -23,9 +23,9 @@ namespace Microsoft.Dafny {
         scope.PushMarker();
         ResolveExtendedPattern(stmt.Source.tok, mc.Pat, stmt.Source.PreType, false, resolutionContext);
 
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         mc.Body.ForEach(ss => ResolveStatementWithLabels(ss, resolutionContext));
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
 
         scope.PopMarker();
       }

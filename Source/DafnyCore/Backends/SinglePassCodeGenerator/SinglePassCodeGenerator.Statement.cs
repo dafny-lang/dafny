@@ -18,6 +18,22 @@ using static Microsoft.Dafny.GeneratorErrors;
 
 namespace Microsoft.Dafny.Compilers {
   public abstract partial class SinglePassCodeGenerator {
+    private VarDeclStmt enclosingVarDecl = null;
+    private int innerExtractIndex = -1;
+
+    private bool IsExtractStatement(Statement stmt, string expectedLeftName) {
+      return stmt is AssignStatement updateStmt
+             && updateStmt.Rhss.Count() == 1
+             && updateStmt.Lhss.Count() == 1
+             && updateStmt.Lhss[0] is IdentifierExpr { Name: var leftName }
+             && leftName == expectedLeftName
+             && updateStmt.Rhss[0] is ExprRhs { Expr: ApplySuffix { Lhs: ExprDotName { SuffixName: "Extract" } } };
+    }
+
+    private int FindExtractStatement(List<Statement> stmts, string expectedLeftName) {
+      return stmts.FindIndex((stmt) => IsExtractStatement(stmt, expectedLeftName));
+    }
+
     protected void TrStmt(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
@@ -53,7 +69,7 @@ namespace Microsoft.Dafny.Compilers {
             if (s.HiddenUpdate != null) {
               TrStmt(s.HiddenUpdate, wr);
               var ss = s.HiddenUpdate.ResolvedStatements;
-              if (ss.Count == 1 && ss[0] is AssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
+              if (ss.Count == 1 && ss[0] is SingleAssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
                 isTailRecursiveResult = true;
               }
             }
@@ -65,13 +81,13 @@ namespace Microsoft.Dafny.Compilers {
 
             break;
           }
-        case UpdateStmt updateStmt: {
+        case AssignStatement updateStmt: {
             var s = updateStmt;
             var resolved = s.ResolvedStatements;
             if (resolved.Count == 1) {
               TrStmt(resolved[0], wr);
             } else {
-              var assignStmts = resolved.Cast<AssignStmt>().Where(assignStmt => !assignStmt.IsGhost).ToList();
+              var assignStmts = resolved.Cast<SingleAssignStmt>().Where(assignStmt => !assignStmt.IsGhost).ToList();
               var lhss = new List<Expression>();
               var rhss = new List<AssignmentRhs>();
 
@@ -82,11 +98,7 @@ namespace Microsoft.Dafny.Compilers {
               var rhsTypes = new List<Type>();
               foreach (var assignStmt in assignStmts) {
                 var rhs = assignStmt.Rhs;
-                if (rhs is HavocRhs) {
-                  if (Options.ForbidNondeterminism) {
-                    Error(ErrorId.c_nondeterminism_forbidden, rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
-                  }
-                } else {
+                if (rhs is not HavocRhs) {
                   var lhs = assignStmt.Lhs;
                   rhss.Add(rhs);
                   lhss.Add(lhs);
@@ -109,29 +121,35 @@ namespace Microsoft.Dafny.Compilers {
 
             break;
           }
-        case AssignStmt assignStmt: {
+        case SingleAssignStmt assignStmt: {
             var s = assignStmt;
             Contract.Assert(s.Lhs is not SeqSelectExpr expr || expr.SelectOne);  // multi-element array assignments are not allowed
             if (s.Rhs is HavocRhs) {
-              if (Options.ForbidNondeterminism) {
-                Error(ErrorId.c_nondeterminism_forbidden, s.Rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
-              }
-            } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
-              TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
-            } else {
+            } else if (s.Rhs is TypeRhs typeRhs) {
               var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
               wStmts = wr.Fork();
-              var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr, assignStmt.Tok);
-              TrRhs(s.Rhs, wRhs, wStmts);
+              var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(typeRhs), wr, assignStmt.Tok);
+              TrRhs(typeRhs, wRhs, wStmts);
+            } else {
+              var eRhs = (ExprRhs)s.Rhs;
+              if (eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
+                TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, wr);
+              } else {
+                var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
+                var doAssignment = (Expression e, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wrAssignment) => {
+                  var wStmtsBeforeAssignment = wrAssignment.Fork();
+                  var wRhs = EmitAssignment(lvalue, resultType, e.Type, wrAssignment, assignStmt.Tok);
+                  EmitExpr(e, false, wRhs, wStmtsBeforeAssignment);
+                };
+                var continuation = new OptimizedExpressionContinuation(doAssignment, true);
+                TrExprOpt(eRhs.Expr, TypeOfLhs(s.Lhs), wr, wStmts, false, null, continuation);
+              }
             }
 
             break;
           }
         case AssignSuchThatStmt thatStmt: {
             var s = thatStmt;
-            if (Options.ForbidNondeterminism) {
-              Error(ErrorId.c_assign_such_that_forbidden, s.Tok, "assign-such-that statement forbidden by the --enforce-determinism option", wr);
-            }
             var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
             var missingBounds = BoundedPool.MissingBounds(lhss, s.Bounds, BoundedPool.PoolVirtues.Enumerable);
             if (missingBounds.Count != 0) {
@@ -140,27 +158,89 @@ namespace Microsoft.Dafny.Compilers {
               }
             } else {
               Contract.Assert(s.Bounds != null);
-              TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
+              TrAssignSuchThat(lhss, s.Expr, s.Bounds, wr, false);
             }
 
             break;
           }
-        case AssignOrReturnStmt returnStmt: {
-            var s = returnStmt;
-            // TODO there's potential here to use target-language specific features such as exceptions
-            // to make it more target-language idiomatic and improve performance
-            TrStmtList(s.ResolvedStatements, wr);
+        case AssignOrReturnStmt assignOrReturnStmt: {
+            var s = assignOrReturnStmt;
+            var stmts = s.ResolvedStatements.ToList();
+            if (innerExtractIndex != -1 &&
+                enclosingVarDecl is { Assign: var stmtUpdate, Locals: { Count: > 0 } locals }
+                && stmtUpdate == assignOrReturnStmt) {
+              // Wrap this UpdateStmt with a VarDecl containing this Local that we haven't emitted yet.
+              stmts[innerExtractIndex] =
+                new VarDeclStmt(enclosingVarDecl.RangeToken,
+                  new List<LocalVariable>() { locals[0] },
+                  (AssignStatement)stmts[innerExtractIndex]);
+            }
+            TrStmtList(stmts, wr);
+
             break;
           }
         case ExpectStmt expectStmt: {
-            var s = expectStmt;
             // TODO there's potential here to use target-language specific features such as exceptions
             // to make it more target-language idiomatic and improve performance
-            ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
-            var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
-            negated.Type = Type.Bool;
-            EmitExpr(negated, false, guardWriter, wStmts);
-            EmitHalt(s.Tok, s.Message, bodyWriter);
+            // For now, this code prints nicely only in the Rust code generator until we make it work for every code generator
+            var specialExpectEqualHandling = Options.Backend.TargetId == "rs";
+            if (
+              specialExpectEqualHandling &&
+              expectStmt.Expr is BinaryExpr { Op: BinaryExpr.Opcode.Eq, ResolvedOp: var resolvedOp, E0: var e0, E1: var e1 }) {
+              // If it finds "expect a == b", it will rewrite the code to
+              // var _e0 = a;
+              // var _e1 = b;
+              // if _e0 != _e1 {
+              //   print "\nLeft:\n"
+              //   print _e0;
+              //   print "\nRight:\n"
+              //   print _e1;
+              //   <Halt statement>
+              // }
+              var e0Name = ProtectedFreshId("_e0");
+              var e1Name = ProtectedFreshId("_e1");
+              var e0Var = new LocalVariable(new RangeToken(Token.NoToken, Token.NoToken), e0Name, e0.Type, false);
+              var e1Var = new LocalVariable(new RangeToken(Token.NoToken, Token.NoToken), e1Name, e0.Type, false);
+              DeclareLocalVar(IdName(e0Var), null, e0.Tok, e0, false, wr);
+              DeclareLocalVar(IdName(e1Var), null, e1.tok, e1, false, wr);
+              var e0Ident = new IdentifierExpr(e0.tok, e0Name) {
+                Type = e0.Type,
+                Var = e0Var
+              };
+              var e1Ident = new IdentifierExpr(e1.tok, e0Name) {
+                Type = e1.Type,
+                Var = e1Var
+              };
+
+              ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
+              var negated = new UnaryOpExpr(expectStmt.Tok, UnaryOpExpr.Opcode.Not,
+                new BinaryExpr(expectStmt.Expr.tok, BinaryExpr.Opcode.Eq,
+                  e0Ident,
+                  e1Ident) {
+                  ResolvedOp = resolvedOp,
+                  Type = Type.Bool
+                }) {
+                Type = Type.Bool
+              };
+              EmitExpr(negated, false, guardWriter, wStmts);
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e0.tok, @"\nLeft:\n", false) {
+                Type = new SeqType(new CharType())
+              });
+              EmitPrintStmt(bodyWriter, e0Ident);
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e1.tok, @"\nRight:\n", false) {
+                Type = new SeqType(new CharType())
+              });
+              EmitPrintStmt(bodyWriter, e1Ident);
+
+              EmitHalt(expectStmt.Tok, expectStmt.Message, bodyWriter);
+            } else {
+              ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
+              var negated = new UnaryOpExpr(expectStmt.Tok, UnaryOpExpr.Opcode.Not, expectStmt.Expr) { Type = Type.Bool };
+              EmitExpr(negated, false, guardWriter, wStmts);
+
+              EmitHalt(expectStmt.Tok, expectStmt.Message, bodyWriter);
+            }
+
             break;
           }
         case CallStmt callStmt: {
@@ -179,9 +259,6 @@ namespace Microsoft.Dafny.Compilers {
         case IfStmt ifStmt: {
             IfStmt s = ifStmt;
             if (s.Guard == null) {
-              if (Options.ForbidNondeterminism) {
-                Error(ErrorId.c_nondeterministic_if_forbidden, s.Tok, "nondeterministic if statement forbidden by the --enforce-determinism option", wr);
-              }
               // we can compile the branch of our choice
               ConcreteSyntaxTree guardWriter;
               if (s.Els == null) {
@@ -204,10 +281,6 @@ namespace Microsoft.Dafny.Compilers {
                 Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
               }
             } else {
-              if (s.IsBindingGuard && Options.ForbidNondeterminism) {
-                Error(ErrorId.c_binding_if_forbidden, s.Tok, "binding if statement forbidden by the --enforce-determinism option", wr);
-              }
-
               var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
               var thenWriter = EmitIf(out var guardWriter, s.Els != null || coverageForElse, wr);
               EmitExpr(s.IsBindingGuard ? ((ExistsExpr)s.Guard).AlphaRename("eg_d") : s.Guard, false, guardWriter, wStmts);
@@ -235,9 +308,6 @@ namespace Microsoft.Dafny.Compilers {
           }
         case AlternativeStmt alternativeStmt: {
             var s = alternativeStmt;
-            if (Options.ForbidNondeterminism && 2 <= s.Alternatives.Count) {
-              Error(ErrorId.c_case_based_if_forbidden, s.Tok, "case-based if statement forbidden by the --enforce-determinism option", wr);
-            }
             foreach (var alternative in s.Alternatives) {
               var thn = EmitIf(out var guardWriter, true, wr);
               EmitExpr(alternative.IsBindingGuard ? ((ExistsExpr)alternative.Guard).AlphaRename("eg_d") : alternative.Guard, false, guardWriter, wStmts);
@@ -257,9 +327,6 @@ namespace Microsoft.Dafny.Compilers {
               return;
             }
             if (s.Guard == null) {
-              if (Options.ForbidNondeterminism) {
-                Error(ErrorId.c_non_deterministic_loop_forbidden, s.Tok, "nondeterministic loop forbidden by the --enforce-determinism option", wr);
-              }
               // This loop is allowed to stop iterating at any time. We choose to never iterate, but we still
               // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
               // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
@@ -275,9 +342,6 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case AlternativeLoopStmt loopStmt: {
-            if (Options.ForbidNondeterminism) {
-              Error(ErrorId.c_case_based_loop_forbidden, loopStmt.Tok, "case-based loop forbidden by the --enforce-determinism option", wr);
-            }
             if (loopStmt.Alternatives.Count != 0) {
               var w = CreateWhileLoop(out var whileGuardWriter, wr);
               EmitExpr(Expression.CreateBoolLiteral(loopStmt.tok, true), false, whileGuardWriter, wStmts);
@@ -322,11 +386,8 @@ namespace Microsoft.Dafny.Compilers {
               TrStmt(s.Body, wr);
               return;
             }
-            var s0 = (AssignStmt)s.S0;
+            var s0 = (SingleAssignStmt)s.S0;
             if (s0.Rhs is HavocRhs) {
-              if (Options.ForbidNondeterminism) {
-                Error(ErrorId.c_nondeterminism_forbidden, s0.Rhs.Tok, "nondeterministic assignment forbidden by --enforce-determinism", wr);
-              }
               // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
               // into doing nothing.
               return;
@@ -441,21 +502,40 @@ namespace Microsoft.Dafny.Compilers {
         case VarDeclStmt declStmt: {
             var s = declStmt;
             var i = 0;
+            // Optimization (especially useful for Rust) so that if we have
+            // var o :- B;
+            // We won't declare o until we assign it with o := tmp.Extract();
+            var indexExtract = -1;
+            if (s.Assign is AssignOrReturnStmt { ResolvedStatements: var stmts }
+                && s.Locals.Count > 0) {
+              indexExtract = FindExtractStatement(stmts, s.Locals[0].Name);
+            }
+
             foreach (var local in s.Locals) {
-              bool hasRhs = s.Update is AssignSuchThatStmt || s.Update is AssignOrReturnStmt;
-              if (!hasRhs && s.Update is UpdateStmt u) {
+              bool hasRhs = s.Assign is AssignSuchThatStmt || s.Assign is AssignOrReturnStmt;
+              if (!hasRhs && s.Assign is AssignStatement u) {
                 if (i < u.Rhss.Count && u.Rhss[i] is HavocRhs) {
                   // there's no specific initial value
                 } else {
                   hasRhs = true;
                 }
               }
-              TrLocalVar(local, !hasRhs, wr);
+
+              // The head variable of an elephant assignment will be declared by its desugaring
+              if (i != 0 || indexExtract == -1) {
+                TrLocalVar(local, !hasRhs, wr);
+              }
+
               i++;
             }
-            if (s.Update != null) {
-              TrStmt(s.Update, wr);
+
+            enclosingVarDecl = s;
+            innerExtractIndex = indexExtract;
+            if (s.Assign != null) {
+              TrStmt(s.Assign, wr);
             }
+            enclosingVarDecl = null;
+            innerExtractIndex = -1;
 
             break;
           }
@@ -471,8 +551,6 @@ namespace Microsoft.Dafny.Compilers {
             var s = modifyStmt;
             if (s.Body != null) {
               TrStmt(s.Body, wr);
-            } else if (Options.ForbidNondeterminism) {
-              Error(ErrorId.c_bodyless_modify_statement_forbidden, s.Tok, "modify statement without a body forbidden by the --enforce-determinism option", wr);
             }
 
             break;
@@ -511,78 +589,91 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected virtual void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
-      EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
+      EmitNestedMatchGeneric(match, true, (caseIndex, caseBody) => {
         TrStmtList(match.Cases[caseIndex].Body, caseBody);
-      }, writer, false);
+      }, false, writer);
     }
 
     /// <summary>
-    ///
-    /// match a
+    /// Given
+    /// 
+    ///   match a
     ///   case X(Y(b),Z(W(c)) => body1
     ///   case r => body2
-    ///
-    /// var unmatched = true;
-    /// if (unmatched && a is X) {
-    ///   var x1 = ((X)a).1;
-    ///   if (x1 is Y) {
-    ///     var b = ((Y)x1).1;
     /// 
-    ///     var x2 = ((X)a).2; 
-    ///     if (x2 is Z) {
-    ///       var x4 = ((Z)x2).1;
-    ///       if (x4 is W) {
-    ///         var c = ((W)x4).1;
-    ///         body1;
+    /// If there are no cases, then emit:
+    ///
+    ///   throw ABSURD;
+    ///
+    /// Else, emit:
+    /// 
+    ///   BLOCK {
+    ///     {  // this defines the scope for any new local variables in the case
+    ///       if (a is X) {
+    ///         var x0 = ((X)a).0;
+    ///         if (x0 is Y) {
+    ///           var b = ((Y)x0).0;
+    /// 
+    ///           var x1 = ((X)a).1; 
+    ///           if (x1 is Z) {
+    ///             var xz0 = ((Z)x1).0;
+    ///             if (xz0 is W) {
+    ///               var c = ((W)xz0).0;
+    /// 
+    ///               body1;
+    ///               break BLOCK;
+    ///           }
+    ///         }
     ///       }
-    ///     } 
+    ///     }
+    /// 
+    ///     {
+    ///       var r = a;
+    ///       body2;
+    ///     }
     ///   }
-    /// }
-    /// if (unmatched) {
-    ///   var r = a;
-    ///   body2;
-    /// }
     /// 
     /// </summary>
-    private void EmitNestedMatchGeneric(INestedMatch match, Action<int, ConcreteSyntaxTree> emitBody,
-      ConcreteSyntaxTree output, bool bodyExpected) {
+    private void EmitNestedMatchGeneric(INestedMatch match, bool preventCaseFallThrough, Action<int, ConcreteSyntaxTree> emitBody,
+      bool inLetExprBody, ConcreteSyntaxTree output) {
       if (match.Cases.Count == 0) {
-        if (bodyExpected) {
-          // the verifier would have proved we never get here; still, we need some code that will compile
-          EmitAbsurd(null, output);
-        }
+        // the verifier would have proved we never get here; still, we need some code that will compile
+        EmitAbsurd(null, output);
       } else {
         string sourceName = ProtectedFreshId("_source");
-        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, false, output);
+        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, inLetExprBody, output);
 
-        string unmatched = ProtectedFreshId("unmatched");
-        DeclareLocalVar(unmatched, Type.Bool, match.Source.Tok, Expression.CreateBoolLiteral(match.Source.Tok, true), false, output);
+        var label = preventCaseFallThrough ? ProtectedFreshId("match") : null;
+        if (label != null) {
+          output = CreateLabeledCode(label, false, output);
+        }
 
         var sourceType = match.Source.Type.NormalizeExpand();
         for (var index = 0; index < match.Cases.Count; index++) {
           var myCase = match.Cases[index];
           var lastCase = index == match.Cases.Count - 1;
-          var result = EmitIf(out var guardWriter, false, output);
-          guardWriter.Write(unmatched);
-          var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, result, lastCase);
+
+          var caseBlock = EmitBlock(output);
+          var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, caseBlock, lastCase);
           Coverage.Instrument(myCase.Tok, "case body", innerWriter);
-          EmitAssignment(unmatched, Type.Bool, False, Type.Bool, innerWriter);
 
           emitBody(index, innerWriter);
-        }
-
-        if (bodyExpected) {
-          EmitAbsurd(null, output);
+          if (label != null && !lastCase) {
+            EmitBreak(label, innerWriter);
+          }
         }
       }
     }
 
-    private ConcreteSyntaxTree EmitNestedMatchCaseConditions(string sourceName,
-      Type sourceType,
+    private ConcreteSyntaxTree EmitNestedMatchCaseConditions(string sourceName, Type sourceType,
       ExtendedPattern pattern, ConcreteSyntaxTree writer, bool lastCase) {
 
       var litExpression = MatchFlattener.GetLiteralExpressionFromPattern(pattern);
       if (litExpression != null) {
+        if (lastCase) {
+          return writer;
+        }
+
         var thenWriter = EmitIf(out var guardWriter, false, writer);
         CompileBinOp(BinaryExpr.ResolvedOpcode.EqCommon, sourceType, litExpression.Type, pattern.Tok, Type.Bool,
           out var opString, out var preOpString, out var postOpString, out var callString, out var staticCallString,
@@ -591,18 +682,25 @@ namespace Microsoft.Dafny.Compilers {
         var right = new ConcreteSyntaxTree();
         EmitExpr(litExpression, false, right, writer);
         EmitBinaryExprUsingConcreteSyntax(guardWriter, Type.Bool, preOpString, opString, new LineSegment(sourceName), right, callString, staticCallString, postOpString);
-        writer = thenWriter;
+        return thenWriter;
+
       } else if (pattern is IdPattern idPattern) {
-        if (idPattern.BoundVar != null) {
-          var boundVar = idPattern.BoundVar;
-          var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);
-          valueWriter.Write(sourceName);
-          return writer;
-        } else {
-          writer = EmitNestedMatchStmtCaseConstructor(sourceName, sourceType, idPattern, writer, lastCase);
+        if (idPattern.BoundVar == null) {
+          return EmitNestedMatchStmtCaseConstructor(sourceName, sourceType, idPattern, writer, lastCase);
         }
 
+        var boundVar = idPattern.BoundVar;
+        if (!boundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
+          var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);
+          valueWriter.Write(sourceName);
+        }
+        return writer;
+
       } else if (pattern is DisjunctivePattern disjunctivePattern) {
+        if (lastCase) {
+          return writer;
+        }
+
         string disjunctiveMatch = ProtectedFreshId("disjunctiveMatch");
         DeclareLocalVar(disjunctiveMatch, Type.Bool, disjunctivePattern.Tok, Expression.CreateBoolLiteral(disjunctivePattern.Tok, false), false, writer);
         foreach (var alternative in disjunctivePattern.Alternatives) {
@@ -611,11 +709,11 @@ namespace Microsoft.Dafny.Compilers {
         }
         writer = EmitIf(out var guardWriter, false, writer);
         guardWriter.Write(disjunctiveMatch);
+        return writer;
+
       } else {
         throw new Exception();
       }
-
-      return writer;
     }
 
     private ConcreteSyntaxTree EmitNestedMatchStmtCaseConstructor(string sourceName, Type sourceType,
@@ -651,11 +749,13 @@ namespace Microsoft.Dafny.Compilers {
           var childPattern = idPattern.Arguments[index];
           if (childPattern is IdPattern { BoundVar: not null } childIdPattern) {
             var boundVar = childIdPattern.BoundVar;
-            newSourceName = IdName(boundVar);
-            var valueWriter = DeclareLocalVar(newSourceName, boundVar.Type, idPattern.Tok, result);
-            valueWriter.Append(destructor);
+            if (!childIdPattern.BoundVar.Name.StartsWith(IdPattern.WildcardString)) {
+              newSourceName = IdName(boundVar);
+              var valueWriter = DeclareLocalVar(newSourceName, boundVar.Type, idPattern.Tok, result);
+              valueWriter.Append(destructor);
+            }
           } else {
-            newSourceName = ProtectedFreshId(arg.CompileName);
+            newSourceName = ProtectedFreshId(arg.GetOrCreateCompileName(currentIdGenerator));
             var valueWriter = DeclareLocalVar(newSourceName, type, idPattern.Tok, result);
             valueWriter.Append(destructor);
             result = EmitNestedMatchCaseConditions(newSourceName, type, childPattern, result, lastCase);

@@ -24,8 +24,8 @@ class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int> {
     //     stmt.SubStatements.Iter(Visit);     (**)
     //     VisitOneStmt(stmt);                 (***)
     // We may do less for (*), we always use CheckInit instead of Visit in (**), and we do (***) the same.
-    if (stmt is AssignStmt) {
-      var s = stmt as AssignStmt;
+    if (stmt is SingleAssignStmt) {
+      var s = stmt as SingleAssignStmt;
       // The usual visitation of s.SubExpressions.Iter(Visit) would do the following:
       //   Attributes.SubExpressions(s.Attributes).Iter(Visit);  (+)
       //   Visit(s.Lhs);                                         (++)

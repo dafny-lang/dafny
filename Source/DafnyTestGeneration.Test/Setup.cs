@@ -42,6 +42,7 @@ namespace DafnyTestGeneration.Test {
       options.TestGenOptions.SeqLengthLimit = 3;
       options.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
       options.TestGenOptions.WarnDeadCode = false;
+      options.TestGenOptions.IgnoreWarnings = false;
       options.TimeLimit = 10;
       foreach (var optionSetting in optionSettings) {
         optionSetting(options);

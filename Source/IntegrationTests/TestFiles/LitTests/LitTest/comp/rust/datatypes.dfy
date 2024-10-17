@@ -1,10 +1,12 @@
 // NONUNIFORM: Demonstration of the use of the external Rust Option<> type
 // RUN: %baredafny run --target=rs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+// RUN: %baredafny run --target=rs --raw-pointers "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
-module {:compile false} {:extern "std"} RustStd {
+module {:compile false} {:extern "::std::option"} RustStdOption {
   // Define the Rust option type
-  datatype {:extern "option::Option"} {:compile false} {:rust_rc false} Option<T> =
+  datatype {:extern "Option"} {:compile false} {:rust_rc false} Option<T> =
     Some({:extern "0"} {:extern_extract "unwrap"} value: T) | None {
   }
 }
@@ -17,7 +19,7 @@ module RustStdCompare {
 }
 
 module DatatypeTests {
-  import opened RustStd
+  import opened RustStdOption
   import RustStdCompare
 
   newtype u8 = x: int | 0 <= x < 255

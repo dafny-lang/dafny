@@ -135,13 +135,12 @@ public class MultiBackendTest {
       $"--print:{tmpDPrint}",
       options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
       $"--bprint:{tmpPrint}"
-    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).
-      Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).ToArray();
 
     var resolutionOptions = new List<ResolutionSetting>() {
       new ResolutionSetting(
         "legacy",
-        new string[] { },
+        new string[] { "--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false" },
         new string[] { ".verifier.expect" },
         0)
     };
@@ -158,7 +157,11 @@ public class MultiBackendTest {
     foreach (var resolutionOption in resolutionOptions) {
       await output.WriteLineAsync($"Using {resolutionOption.ReadableName} resolver and verifying...");
 
-      var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
+      var arguments = dafnyArgs
+        .Concat(resolutionOption.AdditionalOptions)
+        .Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand))
+        .ToArray();
+      var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, arguments);
 
       // If there is a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes, then we expect the output to match the contents of that file. Otherwise, we expect the output to be empty.
@@ -278,19 +281,25 @@ public class MultiBackendTest {
       $"--print:{tmpDPrint}",
       options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
       $"--bprint:{tmpPrint}"
-    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).ToArray();
 
     var resolutionOptions = new List<ResolutionSetting>() {
-      new("legacy", new string[] { }, new string[] { ".expect" },
+      new("legacy", new string[] { "--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false" },
+        new string[] { ".expect" },
         options.ExpectExitCode ?? 0),
-      new("refresh", new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
+      new("refresh", new string[] { "--type-system-refresh" },
+        new string[] { ".refresh.expect", ".expect" },
         options.RefreshExitCode ?? options.ExpectExitCode ?? 0)
     };
 
     foreach (var resolutionOption in resolutionOptions) {
       await output.WriteLineAsync($"Using {resolutionOption.ReadableName} resolver and verifying...");
 
-      var (exitCode, actualOutput, error) = await RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
+      var arguments = dafnyArgs
+        .Concat(resolutionOption.AdditionalOptions)
+        .Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand))
+        .ToArray();
+      var (exitCode, actualOutput, error) = await RunDafny(options.DafnyCliPath, arguments);
 
       // The expected output is indicated by a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes.
@@ -351,9 +360,10 @@ public class MultiBackendTest {
     // The path will be something like "<user temp directory>/<random name>/<random name>"
     // to ensure that all artifacts are put in a dedicated directory,
     // which just "<user temp directory>/<random name>" would not.
-    var randomName = Path.ChangeExtension(Path.GetRandomFileName(), null);
+    var randomDirectory = Path.ChangeExtension(Path.GetRandomFileName(), null);
+    var randomFilename = Path.ChangeExtension(Path.GetRandomFileName(), null);
     // Attempts at making this path longer will likely crash javac on Windows with issues like "path too long"
-    var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
+    var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomDirectory);
     Directory.CreateDirectory(tempOutputDirectory);
 
     IEnumerable<string> dafnyArgs = new List<string> {
@@ -361,7 +371,7 @@ public class MultiBackendTest {
       "--no-verify",
       "--emit-uncompilable-code",
       $"--target:{backend.TargetId}",
-      $"--build:{tempOutputDirectory}",
+      $"--build:{Path.Combine(tempOutputDirectory, randomFilename)}",
       options.TestFile!,
     }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs);
     if (!includeRuntime) {
@@ -423,6 +433,12 @@ public class MultiBackendTest {
       }
 
       await output.WriteLineAsync(diffMessage);
+      if (backend.IsInternal) {
+        await output.WriteLineAsync(
+          $"(non-blocking) The {backend.TargetName} code generator is internal. Not having a '*.{backend.TargetId}.check' file is acceptable for now.");
+        return 0;
+      }
+
       return 1;
     }
 
@@ -456,9 +472,25 @@ public class MultiBackendTest {
         }
       }
 
+      if (backend.IsInternal && checkResult != 0) {
+        await output.WriteLineAsync(
+          $"(non-blocking) The {backend.TargetName} code generator is internal. An unmatched '*.{backend.TargetId}.check' file is acceptable for now.");
+        return 0;
+      }
+
       return checkResult;
     }
 
+
+    if (backend.IsInternal) {
+      await output.WriteLineAsync($"(non-blocking) Execution failed for the internal {backend.TargetName} code generator, for reasons other than known unsupported features. Output:");
+      await output.WriteLineAsync(outputString);
+      await output.WriteLineAsync("Error:");
+      await output.WriteLineAsync(error);
+      await output.WriteLineAsync(
+        $"The {backend.TargetName} code generator is internal. An unmatched '*.{backend.TargetId}.check' file is acceptable for now.");
+      return 0;
+    }
     await output.WriteLineAsync("Execution failed, for reasons other than known unsupported features. Output:");
     await output.WriteLineAsync(outputString);
     await output.WriteLineAsync("Error:");

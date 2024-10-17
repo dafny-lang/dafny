@@ -1283,8 +1283,8 @@ namespace Dafny {
   internal class ConcatSequence<T> : Sequence<T> {
     // INVARIANT: Either left != null, right != null, and elmts's underlying array == null or
     // left == null, right == null, and elmts's underlying array != null
-    private volatile ISequence<T> left, right;
-    private ImmutableArray<T> elmts;
+    internal volatile ISequence<T> left, right;
+    internal ImmutableArray<T> elmts;
     private readonly int count;
 
     internal ConcatSequence(ISequence<T> left, ISequence<T> right) {
@@ -1314,7 +1314,7 @@ namespace Dafny {
       }
     }
 
-    private ImmutableArray<T> ComputeElements() {
+    internal ImmutableArray<T> ComputeElements() {
       // Traverse the tree formed by all descendants which are ConcatSequences
       var ansBuilder = ImmutableArray.CreateBuilder<T>(count);
       var toVisit = new Stack<ISequence<T>>();

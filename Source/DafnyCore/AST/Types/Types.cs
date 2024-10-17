@@ -338,11 +338,10 @@ public abstract class Type : TokenNode {
       } else if (t.IsRealType) {
         return p == NumericPersuasion.Real;
       }
-      var d = t.AsNewtype;
-      if (d == null) {
+      if (t.AsNewtype is not { } newtypeDecl) {
         return false;
       }
-      t = d.BaseType;
+      t = newtypeDecl.RhsWithArgument(t.TypeArgs);
     }
   }
 
@@ -1665,7 +1664,7 @@ public abstract class Type : TokenNode {
     }
   }
 
-  public virtual List<Type> ParentTypes() {
+  public virtual List<Type> ParentTypes(bool includeTypeBounds) {
     return new List<Type>();
   }
 
@@ -1692,7 +1691,13 @@ public abstract class Type : TokenNode {
       return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
     }
 
-    return sub.ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
+    // There is a special case, namely when super is the non-null "object". Since "sub.ParentTypes()" only gives
+    // back the explicitly declared parent traits, the general case below may miss it.
+    if (super.IsObject) {
+      return sub.IsNonNullRefType;
+    }
+
+    return sub.ParentTypes(true).Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
   }
 
   public static bool CompatibleTypeArgs(Type super, Type sub) {

@@ -8,6 +8,9 @@
 using System;
 using System.Numerics;
 using System.Collections;
+#pragma warning disable CS0164 // This label has not been referenced
+#pragma warning disable CS0162 // Unreachable code detected
+#pragma warning disable CS1717 // Assignment made to same variable
 
 namespace DAST.Format {
 
@@ -17,12 +20,12 @@ namespace DAST.Format {
       if ((new BigInteger((s).Count)).Sign == 0) {
         return BigInteger.Zero;
       } else {
-        BigInteger _763_i = Dafny.Helpers.Id<Func<__T, BigInteger>>(f)((s).Select(BigInteger.Zero));
-        BigInteger _764_j = DAST.Format.__default.SeqToHeight<__T>((s).Drop(BigInteger.One), f);
-        if ((_763_i) < (_764_j)) {
-          return _764_j;
+        BigInteger _0_i = Dafny.Helpers.Id<Func<__T, BigInteger>>(f)((s).Select(BigInteger.Zero));
+        BigInteger _1_j = DAST.Format.__default.SeqToHeight<__T>((s).Drop(BigInteger.One), f);
+        if ((_0_i) < (_1_j)) {
+          return _1_j;
         } else {
-          return _763_i;
+          return _0_i;
         }
       }
     }

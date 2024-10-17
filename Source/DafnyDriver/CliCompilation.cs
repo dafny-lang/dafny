@@ -36,7 +36,7 @@ public class CliCompilation {
     if (options.DafnyProject == null) {
       var firstFile = options.CliRootSourceUris.FirstOrDefault();
       var uri = firstFile ?? new Uri(Directory.GetCurrentDirectory());
-      options.DafnyProject = new DafnyProject(uri, null, new HashSet<string>(), new HashSet<string>(),
+      options.DafnyProject = new DafnyProject(uri, null, new HashSet<string>() { uri.LocalPath }, new HashSet<string>(),
         new Dictionary<string, object>()) {
         ImplicitFromCli = true
       };
@@ -189,7 +189,7 @@ public class CliCompilation {
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
           Options.OutputWriter.WriteLine(
-            $"Verification part {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
+            $"Verified part #{boogieUpdate.VerificationTask.Split.SplitIndex}, {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
             $", on line {token.line}, " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
             $" (time: {timeString}, resource count: {runResult.ResourceCount})");
@@ -271,7 +271,12 @@ public class CliCompilation {
   private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {
     var symbolFilter = Options.Get(VerifyCommand.FilterSymbol);
     if (symbolFilter != null) {
-      canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter)).ToList();
+      if (symbolFilter.EndsWith(".")) {
+        var withoutDot = new string(symbolFilter.SkipLast(1).ToArray());
+        canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.EndsWith(withoutDot)).ToList();
+      } else {
+        canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter)).ToList();
+      }
     }
 
     var filterPosition = Options.Get(VerifyCommand.FilterPosition);
@@ -315,4 +320,6 @@ record VerificationStatistics {
   public int OutOfResourceCount;
   public int OutOfMemoryCount;
   public int SolverExceptionCount;
+  public int TotalResourcesUsed;
+  public int MaxVcResourcesUsed;
 }

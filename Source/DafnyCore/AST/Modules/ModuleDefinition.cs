@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using DafnyCore;
+using DafnyCore.Options;
 using Microsoft.Dafny.Auditor;
+using Microsoft.Dafny.Compilers;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
@@ -24,11 +28,24 @@ public enum ImplementationKind {
 public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
+
+  public static readonly Option<bool> LegacyModuleNames = new("--legacy-module-names",
+    @"
+Generate module names in the older A_mB_mC style instead of the current A.B.C scheme".TrimStart()) {
+    IsHidden = true
+  };
+
+  static ModuleDefinition() {
+    DafnyOptions.RegisterLegacyUi(LegacyModuleNames, DafnyOptions.ParseBoolean, "Compilation options", legacyName: "legacyModuleNames", defaultValue: false);
+    OptionRegistry.RegisterOption(LegacyModuleNames, OptionScope.Translation);
+  }
+
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
   public Name NameNode; // (Last segment of the) module name
 
+  public override bool SingleFileToken => !ResolvedPrefixNamedModules.Any();
   public override IToken Tok => NameNode.StartToken;
 
   public string Name => NameNode.Value;
@@ -130,11 +147,12 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     // For cloning modules into their compiled variants, we don't want to copy resolved fields, but we do need to copy this.
     // We're hoping to remove the copying of modules into compiled variants altogether,
     // and then this can be moved to inside the `if (cloner.CloneResolvedFields)` block
-    foreach (var tup in original.ResolvedPrefixNamedModules) {
-      ResolvedPrefixNamedModules.Add(cloner.CloneDeclaration(tup, this));
-    }
 
     if (cloner.CloneResolvedFields) {
+      foreach (var tup in original.ResolvedPrefixNamedModules) {
+        ResolvedPrefixNamedModules.Add(cloner.CloneDeclaration(tup, this));
+      }
+
       Height = original.Height;
     }
   }
@@ -192,13 +210,18 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   string compileName;
 
+  public ModuleDefinition GetImplementedModule() {
+    return Implements is { Kind: ImplementationKind.Replacement } ? Implements.Target.Def : null;
+  }
+
   public string GetCompileName(DafnyOptions options) {
     if (compileName != null) {
       return compileName;
     }
 
-    if (Implements is { Kind: ImplementationKind.Replacement }) {
-      return Implements.Target.Def.GetCompileName(options);
+    var implemented = GetImplementedModule();
+    if (implemented != null) {
+      return implemented.GetCompileName(options);
     }
 
     var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
@@ -212,11 +235,15 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
       if (IsBuiltinName) {
         compileName = Name;
       } else if (EnclosingModule is { TryToAvoidName: false }) {
-        // Include all names in the module tree path, to disambiguate when compiling
-        // a flat list of modules.
-        // Use an "underscore-escaped" character as a module name separator, since
-        // underscores are already used as escape characters in SanitizeName()
-        compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
+        if (options.Get(LegacyModuleNames)) {
+          compileName = SanitizedName;
+        } else {
+          // Include all names in the module tree path, to disambiguate when compiling
+          // a flat list of modules.
+          // Use an "underscore-escaped" character as a module name separator, since
+          // underscores are already used as escape characters in SanitizeName()
+          compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
+        }
       } else {
         compileName = NonglobalVariable.SanitizeName(Name);
       }

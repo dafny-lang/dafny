@@ -159,8 +159,9 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"int main(DafnySequence<DafnySequence<char>> {argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
-      string libraryName /*?*/, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
+      ModuleDefinition externModule,
+      string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       var s = $"namespace {IdProtect(moduleName)} ";
       string footer = "// end of " + s + " declarations";
       this.modDeclWr = this.modDeclsWr.NewBlock(s, footer);
@@ -558,12 +559,12 @@ namespace Microsoft.Dafny.Compilers {
                   for (int i = 0; i < n - 1; i++) {
                     var ctor_i = dtor.EnclosingCtors[i];
                     var ctor_name = DatatypeSubStructName(ctor_i);
-                    Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                    Contract.Assert(arg.GetOrCreateCompileName(currentIdGenerator) == dtor.CorrespondingFormals[i].GetOrCreateCompileName(currentIdGenerator));
                     wDtor.WriteLine("if (is_{0}()) {{ return std::get<{0}{1}>(v).{2}; }}",
                       ctor_name, InstantiateTemplate(dt.TypeArgs), IdName(arg));
                   }
 
-                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
+                  Contract.Assert(arg.GetOrCreateCompileName(currentIdGenerator) == dtor.CorrespondingFormals[n - 1].GetOrCreateCompileName(currentIdGenerator));
                   var final_ctor_name = DatatypeSubStructName(dtor.EnclosingCtors[n - 1], true);
                   wDtor.WriteLine("return std::get<{0}>(v).{1}; ",
                     final_ctor_name, IdName(arg));
@@ -923,7 +924,7 @@ namespace Microsoft.Dafny.Compilers {
         return "bool";
       } else if (xType is CharType) {
         return "char";
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         UnsupportedFeatureError(tok, Feature.UnboundedIntegers);
         return "BigNumber";
       } else if (xType is RealType) {
@@ -933,11 +934,11 @@ namespace Microsoft.Dafny.Compilers {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigNumber";
       } else if (xType.AsNewtype != null) {
-        NativeType nativeType = xType.AsNewtype.NativeType;
-        if (nativeType != null) {
+        var newtypeDecl = xType.AsNewtype;
+        if (newtypeDecl.NativeType is { } nativeType) {
           return GetNativeTypeName(nativeType);
         }
-        return TypeName(xType.AsNewtype.BaseType, wr, tok);
+        return TypeName(newtypeDecl.ConcreteBaseType(xType.TypeArgs), wr, tok, member);
       } else if (xType.IsObjectQ) {
         return "object";
       } else if (xType.IsArrayType) {
@@ -1046,7 +1047,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (td.NativeType != null) {
           return "0";
         } else {
-          return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.ConcreteBaseType(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;

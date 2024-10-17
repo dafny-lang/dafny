@@ -316,11 +316,11 @@ namespace Microsoft.Dafny {
         var e = (MemberSelectExpr)expr;
         if (e.Member is Function || e.Member is Method) {
           var i = 0;
-          foreach (var p in Util.Concat(e.PreTypeApplication_AtEnclosingClass, e.PreTypeApplication_JustMember)) {
+          foreach (var p in Util.Concat(e.PreTypeApplicationAtEnclosingClass, e.PreTypeApplicationJustMember)) {
             var tp =
-              i < e.PreTypeApplication_AtEnclosingClass.Count
+              i < e.PreTypeApplicationAtEnclosingClass.Count
                 ? e.Member.EnclosingClass.TypeArgs[i]
-                : ((ICallable)e.Member).TypeArgs[i - e.PreTypeApplication_AtEnclosingClass.Count];
+                : ((ICallable)e.Member).TypeArgs[i - e.PreTypeApplicationAtEnclosingClass.Count];
             if (!IsDetermined(p)) {
               cus.ReportError(e.tok, $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
             } else {
@@ -339,7 +339,7 @@ namespace Microsoft.Dafny {
               ? e.Function.EnclosingClass.TypeArgs[i]
               : e.Function.TypeArgs[i - e.PreTypeApplication_AtEnclosingClass.Count];
           if (!IsDetermined(p)) {
-            var hint = e.Name.StartsWith(RevealStmt.RevealLemmaPrefix) ? ". If you are making an opaque function, make sure that the function can be called." : "";
+            var hint = e.Name.StartsWith(HideRevealStmt.RevealLemmaPrefix) ? ". If you are making an opaque function, make sure that the function can be called." : "";
             cus.ReportError(e.tok, $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
           } else {
             CheckContainsNoOrdinal(e.tok, p, $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");
@@ -426,7 +426,7 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Disjoint:
           return operandFamilyName == PreType.TypeNameMultiset ? BinaryExpr.ResolvedOpcode.MultiSetDisjoint : BinaryExpr.ResolvedOpcode.Disjoint;
         case BinaryExpr.Opcode.Lt: {
-            if (operandPreType is DPreType dp && PreTypeResolver.AncestorDecl(dp.Decl) is IndDatatypeDecl) {
+            if (operandPreType is DPreType dp && PreTypeResolver.AncestorPreType(dp)?.Decl is IndDatatypeDecl) {
               return BinaryExpr.ResolvedOpcode.RankLt;
             }
             return operandFamilyName switch {
@@ -475,7 +475,7 @@ namespace Microsoft.Dafny {
             _ => BinaryExpr.ResolvedOpcode.Mul
           };
         case BinaryExpr.Opcode.Gt: {
-            if (operandPreType is DPreType dp && PreTypeResolver.AncestorDecl(dp.Decl) is IndDatatypeDecl) {
+            if (operandPreType is DPreType dp && PreTypeResolver.AncestorPreType(dp)?.Decl is IndDatatypeDecl) {
               return BinaryExpr.ResolvedOpcode.RankGt;
             }
             return operandFamilyName switch {

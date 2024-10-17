@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.Compilers {
               wr.Write(preStr);
 
               if (sf.IsStatic && !SupportsStaticsInGenericClasses && sf.EnclosingClass.TypeArgs.Count != 0) {
-                var typeArgs = e.TypeApplication_AtEnclosingClass;
+                var typeArgs = e.TypeApplicationAtEnclosingClass;
                 Contract.Assert(typeArgs.Count == sf.EnclosingClass.TypeArgs.Count);
                 wr.Write("{0}.", TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
                 EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.tok, null, false, wr);
@@ -100,8 +100,8 @@ namespace Microsoft.Dafny.Compilers {
                   TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
                 }
 
-                var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass,
-                  e.TypeApplication_JustMember);
+                var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass,
+                  e.TypeApplicationJustMember);
                 EmitMemberSelect(writeObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
                   selectExpr.Type).EmitRead(wr);
               }
@@ -109,7 +109,7 @@ namespace Microsoft.Dafny.Compilers {
               wr.Write(postStr);
             } else {
               var typeArgs =
-                CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
+                CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass, e.TypeApplicationJustMember);
               var typeMap = e.TypeArgumentSubstitutionsWithParents();
               var customReceiver = NeedsCustomReceiverNotTrait(e.Member);
               if (!customReceiver && !e.Member.IsStatic) {
@@ -290,10 +290,15 @@ namespace Microsoft.Dafny.Compilers {
             var fromType = e.E.Type.GetRuntimeType();
             var toType = e.ToType.GetRuntimeType();
             Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
-                            toType.IsRefType == fromType.IsRefType);
+                            toType.IsRefType == fromType.IsRefType ||
+                            (fromType.IsTypeParameter && toType.IsTraitType));
             if (toType.IsRefType || toType.IsTraitType || fromType.IsTraitType) {
               var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
               w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
+              EmitExpr(e.E, inLetExprBody, w, wStmts);
+            } else if (e.E.Type.IsSubtypeOf(e.ToType, false, false)) {
+              // conversion is a no-op -- almost, because it may need a cast to deal with bounded type parameters
+              var w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, wr);
               EmitExpr(e.E, inLetExprBody, w, wStmts);
             } else {
               EmitConversionExpr(e.E, fromType, toType, inLetExprBody, wr, wStmts);
@@ -365,7 +370,7 @@ namespace Microsoft.Dafny.Compilers {
                 }
 
                 TrAssignSuchThat(new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0],
-                  e.Constraint_Bounds, e.tok.line, w, inLetExprBody);
+                  e.Constraint_Bounds, w, inLetExprBody);
                 EmitReturnExpr(e.Body, e.Body.Type, true, w);
               }
             }
@@ -699,7 +704,8 @@ namespace Microsoft.Dafny.Compilers {
         var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
         foreach (MatchCaseExpr mc in e.Cases) {
           var wCase = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, e.Cases.Count, w);
-          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, inLetExprBody: true, accumulatorVar: null);
+          var continuation = new OptimizedExpressionContinuation(EmitReturnExpr, false);
+          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, inLetExprBody: true, accumulatorVar: null, continuation);
           i++;
         }
       }
@@ -710,18 +716,19 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts) {
       var lambdaBody = EmitAppliedLambda(output, wStmts, match.Tok, match.Type);
-      TrOptNestedMatchExpr(match, match.Type, lambdaBody, wStmts, inLetExprBody, null);
+      var continuation = new OptimizedExpressionContinuation(EmitReturnExpr, false);
+      TrOptNestedMatchExpr(match, match.Type, lambdaBody, wStmts, inLetExprBody, null, continuation);
     }
 
     protected virtual void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar) {
+      ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar, OptimizedExpressionContinuation continuation) {
 
       wStmts = wr.Fork();
 
-      EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
+      EmitNestedMatchGeneric(match, continuation.PreventCaseFallThrough, (caseIndex, caseBody) => {
         var myCase = match.Cases[caseIndex];
-        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody: true, accumulatorVar: null);
-      }, wr, true);
+        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody, accumulatorVar: null, continuation);
+      }, inLetExprBody, wr);
     }
 
     private ConcreteSyntaxTree EmitAppliedLambda(ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts,

@@ -5,7 +5,6 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
-  public readonly BlockStmt Proof;
   public readonly AssertLabel Label;
 
   public AssertStmt Clone(Cloner cloner) {
@@ -13,7 +12,6 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   public AssertStmt(Cloner cloner, AssertStmt original) : base(cloner, original) {
-    Proof = cloner.CloneBlockStmt(original.Proof);
     Label = original.Label == null ? null : new AssertLabel(cloner.Tok(original.Label.Tok), original.Label.Name);
   }
 
@@ -22,26 +20,18 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     errorMessage.Type = new SeqType(Type.Char);
     var attr = new Attributes("error", new List<Expression> { errorMessage }, null);
     guard ??= Expression.CreateBoolLiteral(node.Tok, false);
-    var assertFalse = new AssertStmt(node.RangeToken, guard, null, null, attr);
+    var assertFalse = new AssertStmt(node.RangeToken, guard, null, attr);
     assertFalse.IsGhost = true;
     return assertFalse;
   }
 
-  public AssertStmt(RangeToken rangeToken, Expression expr, BlockStmt/*?*/ proof, AssertLabel/*?*/ label, Attributes attrs)
+  public AssertStmt(RangeToken rangeToken, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
     : base(rangeToken, expr, attrs) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);
-    Proof = proof;
     Label = label;
   }
 
-  public override IEnumerable<Statement> SubStatements {
-    get {
-      if (Proof != null) {
-        yield return Proof;
-      }
-    }
-  }
   public void AddCustomizedErrorMessage(IToken tok, string s) {
     var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
     IToken openBrace = tok;
@@ -88,17 +78,6 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     }
 
     base.GenResolve(resolver, context);
-
-    if (Proof != null) {
-      // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave a the proof body
-      var prevLblStmts = resolver.EnclosingStatementLabels;
-      var prevLoopStack = resolver.LoopStack;
-      resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-      resolver.LoopStack = new List<Statement>();
-      resolver.ResolveStatement(Proof, context);
-      resolver.EnclosingStatementLabels = prevLblStmts;
-      resolver.LoopStack = prevLoopStack;
-    }
   }
 
   public bool HasAssertOnlyAttribute(out AssertOnlyKind assertOnlyKind) {

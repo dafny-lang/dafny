@@ -1,4 +1,4 @@
-// NONUNIFORM: Temporary development of the Rust compiler
+// NONUNIFORM: Rust-specific tests
 // RUN: %baredafny run --target=rs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 ghost const TWO_TO_THE_8:   int := 0x100
@@ -249,7 +249,8 @@ method {:resource_limit "1e6"}  Main() {
   
   expect m3.Keys == {2, 3};
   expect m3.Values == {4, 6};
-  print ".Keys and .Values\n";
+  expect m3.Items == {(2, 4), (3, 6)};
+  print ".Keys .Values .Items\n";
 
   var st := {1};
   expect 1 in st;

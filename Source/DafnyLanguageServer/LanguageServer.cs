@@ -27,9 +27,10 @@ namespace Microsoft.Dafny.LanguageServer {
         VerifySnapshots,
         DafnyLangSymbolResolver.UseCaching,
         ProjectManager.UpdateThrottling,
-        ProjectManagerDatabase.ProjectFileCacheExpiry,
+        CachingProjectFileOpener.ProjectFileCacheExpiry,
+        DeveloperOptionBag.SplitPrint,
+        DeveloperOptionBag.PassivePrint,
         DeveloperOptionBag.BoogiePrint,
-        CommonOptionBag.EnforceDeterminism,
         InternalDocstringRewritersPluginConfiguration.UseJavadocLikeDocstringRewriterOption,
         LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable
       }.Concat(DafnyCommands.VerificationOptions).

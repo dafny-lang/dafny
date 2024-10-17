@@ -8,22 +8,25 @@
 using System;
 using System.Numerics;
 using System.Collections;
+#pragma warning disable CS0164 // This label has not been referenced
+#pragma warning disable CS0162 // Unreachable code detected
+#pragma warning disable CS1717 // Assignment made to same variable
 
 namespace Std.Arithmetic.Logarithm {
 
   public partial class __default {
     public static BigInteger Log(BigInteger @base, BigInteger pow)
     {
-      BigInteger _138___accumulator = BigInteger.Zero;
+      BigInteger _0___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((pow) < (@base)) {
-        return (BigInteger.Zero) + (_138___accumulator);
+        return (BigInteger.Zero) + (_0___accumulator);
       } else {
-        _138___accumulator = (_138___accumulator) + (BigInteger.One);
-        BigInteger _in44 = @base;
-        BigInteger _in45 = Dafny.Helpers.EuclideanDivision(pow, @base);
-        @base = _in44;
-        pow = _in45;
+        _0___accumulator = (_0___accumulator) + (BigInteger.One);
+        BigInteger _in0 = @base;
+        BigInteger _in1 = Dafny.Helpers.EuclideanDivision(pow, @base);
+        @base = _in0;
+        pow = _in1;
         goto TAIL_CALL_START;
       }
     }

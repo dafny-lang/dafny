@@ -49,10 +49,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macos-11]
+        os: [ubuntu-20.04, windows-2019, macos-13]
         iteration: ${{ fromJson(needs.populate-matrix-dimensions.outputs.iterations) }}
         include:
-          - os: macos-11
+          - os: macos-13
             suffix: osx
             chmod: true
           - os: windows-2019
@@ -63,7 +63,7 @@ jobs:
             chmod: true
     env:
       solutionPath: Source/Dafny.sln
-      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02
+      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10
       Logging__LogLevel__Microsoft: Debug
     steps:
     - uses: actions/checkout@v4

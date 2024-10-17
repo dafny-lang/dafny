@@ -11,7 +11,7 @@ namespace Microsoft.Dafny;
 public class RunAllTestsMainMethod : IRewriter {
 
   static RunAllTestsMainMethod() {
-    DooFile.RegisterNoChecksNeeded(IncludeTestRunner, false);
+    OptionRegistry.RegisterOption(IncludeTestRunner, OptionScope.Cli);
   }
 
   public static Option<bool> IncludeTestRunner = new("--include-test-runner",
@@ -93,9 +93,9 @@ public class RunAllTestsMainMethod : IRewriter {
   /// }
   /// </summary>
   internal override void PostResolve(Program program) {
-    var tok = program.GetStartOfFirstFileToken();
+    var tok = program.GetStartOfFirstFileToken() ?? Token.NoToken;
     List<Statement> mainMethodStatements = new();
-    var idGenerator = new FreshIdGenerator();
+    var idGenerator = new CodeGenIdGenerator();
 
     // var success := true;
     var successVarStmt = Statement.CreateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));
@@ -140,8 +140,8 @@ public class RunAllTestsMainMethod : IRewriter {
           var receiverExpr = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)method.EnclosingClass, true);
           var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.Name) {
             Member = method,
-            TypeApplication_JustMember = new List<Type>(),
-            TypeApplication_AtEnclosingClass = new List<Type>()
+            TypeApplicationJustMember = new List<Type>(),
+            TypeApplicationAtEnclosingClass = new List<Type>()
           };
 
           if (method.Ins.Count != 0) {
@@ -246,7 +246,7 @@ public class RunAllTestsMainMethod : IRewriter {
       failureValueExpr,
       Expression.CreateStringLiteral(tok, "\n"));
     var failSuiteStmt =
-      new AssignStmt(tok.ToRange(), successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(tok, false)));
+      new SingleAssignStmt(tok.ToRange(), successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(tok, false)));
     return new BlockStmt(tok.ToRange(), Util.List<Statement>(failedPrintStmt, failSuiteStmt));
   }
 }

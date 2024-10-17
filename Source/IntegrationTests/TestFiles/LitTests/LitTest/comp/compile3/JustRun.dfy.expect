@@ -108,8 +108,8 @@ hello, Dafny
 Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to JustRun-py/__main__.py
 Additional output written to JustRun-py/JustRun-py.dtr
-Additional output written to JustRun-py/System_.py
-Additional output written to JustRun-py/_dafny.py
+Additional output written to JustRun-py/System_/__init__.py
+Additional output written to JustRun-py/_dafny/__init__.py
 Additional output written to JustRun-py/module_.py
 Running...
 
