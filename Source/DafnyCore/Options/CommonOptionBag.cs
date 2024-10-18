@@ -294,7 +294,7 @@ May produce spurious suggestions. Use with --show-hints on the CLI.") {
     IsHidden = true
   };
   public static readonly Option<bool> AnalyzeProofs = new("--analyze-proofs", @"
-Uses data from to verifier to suggest ways to refine the proof:
+Uses data from the verifier to suggest ways to refine the proof:
 Warning if any assertions are proved based on contradictory assumptions (vacuously).
 Warning if any `requires` clause or `assume` statement was not needed to complete verification.
 Suggestions for moving assertions into by-proofs and hiding unused function definitions.
