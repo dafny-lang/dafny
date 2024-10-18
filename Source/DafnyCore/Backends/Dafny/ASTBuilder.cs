@@ -344,7 +344,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
-      parent.AddUnsupported("const for datatypes - " +  item.dtor_name);
+      parent.AddUnsupported("const for datatypes - " + item.dtor_name);
     }
 
     public object Finish() {
