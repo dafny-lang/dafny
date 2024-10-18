@@ -33,3 +33,16 @@ class C extends T {
   method MyMethod(x: int) requires Valid(x) {
   }
 }
+
+// The following two types make sure that the override axiom is produced with the correct
+// parameters to the CanCall function.
+
+trait TT {
+  opaque predicate Valid<Y>(x: int, y: Y)
+}
+
+class CC extends TT {
+  opaque predicate Valid<Z>(x: int, z: Z) {
+    if 0 < x then Valid(x - 1, z) else true
+  }
+}
