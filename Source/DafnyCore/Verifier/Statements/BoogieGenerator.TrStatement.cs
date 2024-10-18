@@ -787,9 +787,9 @@ public partial class BoogieGenerator {
     // assume $IsHeapAnchor($Heap);
     builder.Add(new Bpl.AssumeCmd(tok, FunctionCall(tok, BuiltinFunction.IsHeapAnchor, null, etran.HeapExpr)));
   }
-  
-public void IntroduceAndAssignExistentialVars(ExistsExpr exists, BoogieStmtListBuilder builder, 
-  BoogieStmtListBuilder builderOutsideIfConstruct, Variables locals, ExpressionTranslator etran, bool isGhost) {
+
+  public void IntroduceAndAssignExistentialVars(ExistsExpr exists, BoogieStmtListBuilder builder,
+    BoogieStmtListBuilder builderOutsideIfConstruct, Variables locals, ExpressionTranslator etran, bool isGhost) {
     Contract.Requires(exists != null);
     Contract.Requires(exists.Range == null);
     Contract.Requires(builder != null);

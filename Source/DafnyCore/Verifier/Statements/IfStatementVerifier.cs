@@ -8,8 +8,8 @@ using ExistsExpr = Microsoft.Dafny.ExistsExpr;
 namespace DafnyCore.Verifier.Statements;
 
 public class IfStatementVerifier {
-  
-  public static void EmitBoogie(BoogieGenerator generator, IfStmt stmt, BoogieStmtListBuilder builder, 
+
+  public static void EmitBoogie(BoogieGenerator generator, IfStmt stmt, BoogieStmtListBuilder builder,
     Variables locals, BoogieGenerator.ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(builder != null);
@@ -37,7 +37,7 @@ public class IfStatementVerifier {
     StmtList elseList;
     IfCmd elseIf = null;
     var elseBuilder = new BoogieStmtListBuilder(generator, generator.Options, builder.Context);
-    if (stmt.IsBindingGuard) {  
+    if (stmt.IsBindingGuard) {
       elseBuilder.Add(generator.TrAssumeCmdWithDependenciesAndExtend(etran, guard.tok, guard, Expr.Not, "if statement binding guard"));
     }
     if (stmt.Els == null) {
@@ -54,8 +54,8 @@ public class IfStatementVerifier {
         }
       }
     }
-    builder.Add(new IfCmd(stmt.Tok, 
-      guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard), 
+    builder.Add(new IfCmd(stmt.Tok,
+      guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard),
       thenList, elseIf, elseList /*, BlockRewriter.AllowSplitQ */));
   }
 }

@@ -54,7 +54,7 @@ public class MatchStmtVerifier {
       // havoc all bound variables
       b = new BoogieStmtListBuilder(generator, generator.Options, builder.Context);
       var newLocals = new Variables();
-      Expr r = CtorInvocation(generator, mc, stmt.Source.Type, etran, newLocals, b, 
+      Expr r = CtorInvocation(generator, mc, stmt.Source.Type, etran, newLocals, b,
         stmt.IsGhost ? BoogieGenerator.NOALLOC : BoogieGenerator.ISALLOC);
       locals.AddRange(newLocals.Values);
 
@@ -119,13 +119,13 @@ public class MatchStmtVerifier {
       Contract.Assert(memberNamesUsed.Count + match.MissingCases.Count == dtd.Ctors.Count);
     }
   }
-  
+
   /// <summary>
   /// If "declareLocals" is "false", then the locals are added only if they are new, that is, if
   /// they don't already exist in "locals".
   /// </summary>
-  private static Expr CtorInvocation(BoogieGenerator generator, MatchCase mc, Type sourceType, 
-    BoogieGenerator.ExpressionTranslator etran, Variables locals, BoogieStmtListBuilder localTypeAssumptions, 
+  private static Expr CtorInvocation(BoogieGenerator generator, MatchCase mc, Type sourceType,
+    BoogieGenerator.ExpressionTranslator etran, Variables locals, BoogieStmtListBuilder localTypeAssumptions,
     IsAllocType isAlloc, bool declareLocals = true) {
     Contract.Requires(mc != null);
     Contract.Requires(sourceType != null);
@@ -158,7 +158,7 @@ public class MatchStmtVerifier {
       if (wh != null) {
         localTypeAssumptions.Add(BoogieGenerator.TrAssumeCmd(p.tok, wh));
       }
-      generator.CheckSubrange(p.tok, new IdentifierExpr(p.tok, local), pFormalType, p.Type, 
+      generator.CheckSubrange(p.tok, new IdentifierExpr(p.tok, local), pFormalType, p.Type,
         new Microsoft.Dafny.IdentifierExpr(p.Tok, p), localTypeAssumptions);
       args.Add(generator.CondApplyBox(mc.tok, new IdentifierExpr(p.tok, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
     }
@@ -193,7 +193,7 @@ public class MatchStmtVerifier {
       }
 
       String missingStr = me.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
-      b.Add(boogieGenerator.Assert(boogieGenerator.GetToken(me), Expr.False, 
+      b.Add(boogieGenerator.Assert(boogieGenerator.GetToken(me), Expr.False,
         new MatchIsComplete("expression", missingStr), builder.Context));
 
       Expr guard = Expr.Eq(src, r);

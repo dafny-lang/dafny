@@ -2372,7 +2372,7 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    public Bpl.Expr CtorInvocation(IToken tok, DatatypeCtor ctor, ExpressionTranslator etran, 
+    public Bpl.Expr CtorInvocation(IToken tok, DatatypeCtor ctor, ExpressionTranslator etran,
       Variables locals, BoogieStmtListBuilder localTypeAssumptions) {
       Contract.Requires(tok != null);
       Contract.Requires(ctor != null);
@@ -4041,7 +4041,7 @@ namespace Microsoft.Dafny {
       return cre;
     }
 
-    public void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, 
+    public void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType,
       Expression source, BoogieStmtListBuilder builder, string errorMsgPrefix = "") {
       Contract.Requires(tok != null);
       Contract.Requires(bSource != null);
@@ -4870,7 +4870,7 @@ namespace Microsoft.Dafny {
       this.CreateRevealableConstant(f);
       return this.functionReveals[f];
     }
-  
+
     public static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
     public static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
   }
