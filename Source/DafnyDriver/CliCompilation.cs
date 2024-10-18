@@ -184,7 +184,7 @@ public class CliCompilation {
         var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
 
-        if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.SymbolParts) {
+        if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.VerificationJobs) {
           var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
