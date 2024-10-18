@@ -144,7 +144,7 @@ public class MatchStmtVerifier {
     List<Expr> args = new List<Expr>();
     for (int i = 0; i < mc.Arguments.Count; i++) {
       BoundVar p = mc.Arguments[i];
-      var nm = p.AssignUniqueName(generator.currentDeclaration.IdGenerator);
+      var nm = p.AssignUniqueName(generator.CurrentDeclaration.IdGenerator);
       Variable local = declareLocals ? null : locals.GetValueOrDefault(nm);  // find previous local
       if (local == null) {
         local = new Microsoft.Boogie.LocalVariable(p.tok, new TypedIdent(p.tok, nm, generator.TrType(p.Type)));
@@ -162,7 +162,7 @@ public class MatchStmtVerifier {
         new Microsoft.Dafny.IdentifierExpr(p.Tok, p), localTypeAssumptions);
       args.Add(generator.CondApplyBox(mc.tok, new IdentifierExpr(p.tok, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
     }
-    IdentifierExpr id = new IdentifierExpr(mc.tok, mc.Ctor.FullName, generator.predef.DatatypeType);
+    IdentifierExpr id = new IdentifierExpr(mc.tok, mc.Ctor.FullName, generator.Predef.DatatypeType);
     return new NAryExpr(mc.tok, new FunctionCall(id), args);
   }
 
