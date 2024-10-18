@@ -1,4 +1,4 @@
-// RUN: %verify --progress --cores=1 %s &> %t
+// RUN: %verify --progress VerificationJobs --cores=1 %s &> %t
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK:Verified part #0, 1/2 of Foo, on line 9, verified successfully \(time: .*, resource count: .*\)
 // CHECK:Verified part #1, 2/2 of Foo, on line 10, verified successfully \(time: .*, resource count: .*\)

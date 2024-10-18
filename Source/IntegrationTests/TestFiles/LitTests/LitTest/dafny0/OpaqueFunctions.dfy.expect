@@ -1,3 +1,5 @@
+OpaqueFunctions.dfy(214,15): Error: assertion might not hold
+OpaqueFunctions.dfy(229,19): Error: assertion might not hold
 OpaqueFunctions.dfy(38,15): Error: assertion might not hold
 OpaqueFunctions.dfy(69,7): Error: a precondition for this call could not be proved
 OpaqueFunctions.dfy(35,15): Related location: this is the precondition that could not be proved
@@ -20,8 +22,6 @@ OpaqueFunctions.dfy(157,20): Error: assertion might not hold
 OpaqueFunctions.dfy(160,20): Error: assertion might not hold
 OpaqueFunctions.dfy(165,31): Error: assertion might not hold
 OpaqueFunctions.dfy(181,12): Error: assertion might not hold
-OpaqueFunctions.dfy(214,15): Error: assertion might not hold
-OpaqueFunctions.dfy(229,19): Error: assertion might not hold
 OpaqueFunctions.dfy(246,11): Error: assertion might not hold
 OpaqueFunctions.dfy(261,11): Error: assertion might not hold
 OpaqueFunctions.dfy(326,16): Error: assertion might not hold

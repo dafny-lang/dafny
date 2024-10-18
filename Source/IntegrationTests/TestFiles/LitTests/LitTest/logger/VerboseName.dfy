@@ -1,4 +1,4 @@
-// RUN: %verify --progress --cores 1 "%s" > "%t"
+// RUN: %verify --progress Symbol --cores 1 "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK-L:Verified 0/5 symbols. Waiting for smallPrime to verify.
 // CHECK-L:Verified 2/5 symbols. Waiting for posIdMeth to verify.

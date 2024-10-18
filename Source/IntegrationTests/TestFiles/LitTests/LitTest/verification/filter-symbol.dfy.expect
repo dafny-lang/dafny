@@ -1,19 +1,19 @@
 
 Dafny program verifier finished with 0 verified, 0 errors
-filter-symbol.dfy(12,29): Error: a postcondition could not be proved on this return path
-filter-symbol.dfy(12,23): Related location: this is the postcondition that could not be proved
 filter-symbol.dfy(14,27): Error: a postcondition could not be proved on this return path
 filter-symbol.dfy(14,21): Related location: this is the postcondition that could not be proved
+filter-symbol.dfy(12,29): Error: a postcondition could not be proved on this return path
+filter-symbol.dfy(12,23): Related location: this is the postcondition that could not be proved
 filter-symbol.dfy(19,29): Error: a postcondition could not be proved on this return path
 filter-symbol.dfy(19,23): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 0 verified, 3 errors
 filter-symbol.dfy(12,29): Error: a postcondition could not be proved on this return path
 filter-symbol.dfy(12,23): Related location: this is the postcondition that could not be proved
-filter-symbol.dfy(19,29): Error: a postcondition could not be proved on this return path
-filter-symbol.dfy(19,23): Related location: this is the postcondition that could not be proved
 filter-symbol.dfy(21,27): Error: a postcondition could not be proved on this return path
 filter-symbol.dfy(21,21): Related location: this is the postcondition that could not be proved
+filter-symbol.dfy(19,29): Error: a postcondition could not be proved on this return path
+filter-symbol.dfy(19,23): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 0 verified, 3 errors
 filter-symbol.dfy(12,29): Error: a postcondition could not be proved on this return path
