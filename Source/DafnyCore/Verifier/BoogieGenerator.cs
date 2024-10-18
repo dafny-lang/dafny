@@ -138,7 +138,7 @@ namespace Microsoft.Dafny {
     }
 
     FuelContext fuelContext = null;
-    IsAllocContext isAllocContext = null;
+    internal IsAllocContext isAllocContext = null;
     Program program;
 
     [ContractInvariantMethod]
@@ -209,7 +209,7 @@ namespace Microsoft.Dafny {
     private VisibilityScope verificationScope;
     private Dictionary<Declaration, Bpl.Function> declarationMapping = new();
 
-    readonly PredefinedDecls predef;
+    public readonly PredefinedDecls predef;
 
     private TranslatorFlags flags;
     private bool InsertChecksums { get { return flags.InsertChecksums; } }
@@ -2296,72 +2296,6 @@ namespace Microsoft.Dafny {
     }
 
 
-    /// <summary>
-    /// If "declareLocals" is "false", then the locals are added only if they are new, that is, if
-    /// they don't already exist in "locals".
-    /// </summary>
-    Bpl.Expr CtorInvocation(MatchCase mc, Type sourceType, ExpressionTranslator etran, Variables locals, BoogieStmtListBuilder localTypeAssumptions, IsAllocType isAlloc, bool declareLocals = true) {
-      Contract.Requires(mc != null);
-      Contract.Requires(sourceType != null);
-      Contract.Requires(etran != null);
-      Contract.Requires(locals != null);
-      Contract.Requires(localTypeAssumptions != null);
-      Contract.Requires(predef != null);
-      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-      sourceType = sourceType.NormalizeExpand();
-      Contract.Assert(sourceType.TypeArgs.Count == mc.Ctor.EnclosingDatatype.TypeArgs.Count);
-      var subst = new Dictionary<TypeParameter, Type>();
-      for (var i = 0; i < mc.Ctor.EnclosingDatatype.TypeArgs.Count; i++) {
-        subst.Add(mc.Ctor.EnclosingDatatype.TypeArgs[i], sourceType.TypeArgs[i]);
-      }
-
-      List<Bpl.Expr> args = new List<Bpl.Expr>();
-      for (int i = 0; i < mc.Arguments.Count; i++) {
-        BoundVar p = mc.Arguments[i];
-        var nm = p.AssignUniqueName(currentDeclaration.IdGenerator);
-        var local = declareLocals ? null : locals.GetValueOrDefault(nm);  // find previous local
-        if (local == null) {
-          local = locals.GetOrAdd(new Bpl.LocalVariable(p.tok, new Bpl.TypedIdent(p.tok, nm, TrType(p.Type))));
-        } else {
-          Contract.Assert(Bpl.Type.Equals(local.TypedIdent.Type, TrType(p.Type)));
-        }
-        var pFormalType = mc.Ctor.Formals[i].Type.Subst(subst);
-        var pIsAlloc = (isAlloc == ISALLOC) ? isAllocContext.Var(p) : NOALLOC;
-        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, local), pFormalType, etran, pIsAlloc);
-        if (wh != null) {
-          localTypeAssumptions.Add(TrAssumeCmd(p.tok, wh));
-        }
-        CheckSubrange(p.tok, new Bpl.IdentifierExpr(p.tok, local), pFormalType, p.Type, new IdentifierExpr(p.Tok, p), localTypeAssumptions);
-        args.Add(CondApplyBox(mc.tok, new Bpl.IdentifierExpr(p.tok, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
-      }
-      Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(mc.tok, mc.Ctor.FullName, predef.DatatypeType);
-      return new Bpl.NAryExpr(mc.tok, new Bpl.FunctionCall(id), args);
-    }
-
-    Bpl.Expr CtorInvocation(IToken tok, DatatypeCtor ctor, ExpressionTranslator etran, Variables locals, BoogieStmtListBuilder localTypeAssumptions) {
-      Contract.Requires(tok != null);
-      Contract.Requires(ctor != null);
-      Contract.Requires(etran != null);
-      Contract.Requires(locals != null);
-      Contract.Requires(localTypeAssumptions != null);
-      Contract.Requires(predef != null);
-      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-      // create local variables for the formals
-      var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("a#");
-      var args = new List<Bpl.Expr>();
-      foreach (Formal arg in ctor.Formals) {
-        Contract.Assert(arg != null);
-        var nm = varNameGen.FreshId(string.Format("#{0}#", args.Count));
-        var bv = locals.GetOrAdd(new Bpl.LocalVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type))));
-        args.Add(new Bpl.IdentifierExpr(arg.tok, bv));
-      }
-
-      Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(tok, ctor.FullName, predef.DatatypeType);
-      return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(id), args);
-    }
-
     void AddCasePatternVarSubstitutions(CasePattern<BoundVar> pat, Bpl.Expr rhs, Dictionary<IVariable, Expression> substMap) {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
@@ -3132,7 +3066,7 @@ namespace Microsoft.Dafny {
     // Translates a type into the representation Boogie type,
     // c.f. TypeToTy which translates a type to its Boogie expression
     // to be used in $Is and $IsAlloc.
-    Bpl.Type TrType(Type type) {
+    public Bpl.Type TrType(Type type) {
       Contract.Requires(type != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Type>() != null);
@@ -3429,7 +3363,7 @@ namespace Microsoft.Dafny {
       return req;
     }
 
-    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder,
+    public Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder,
       Statement block, Variables locals, ExpressionTranslator etran, bool introduceScope = false) {
       Contract.Requires(builder != null);
       Contract.Requires(block != null);
@@ -3621,7 +3555,7 @@ namespace Microsoft.Dafny {
     }
 
 
-    void AddComment(BoogieStmtListBuilder builder, Statement stmt, string comment) {
+    public void AddComment(BoogieStmtListBuilder builder, Statement stmt, string comment) {
       Contract.Requires(builder != null);
       Contract.Requires(stmt != null);
       Contract.Requires(comment != null);
@@ -3796,7 +3730,7 @@ namespace Microsoft.Dafny {
     /// To do this in Dafny, Dafny would have to compute loop targets, which is better done in Boogie (which
     /// already has to do it).
     /// </summary>
-    Bpl.Expr GetWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran, IsAllocType alloc,
+    public Bpl.Expr GetWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran, IsAllocType alloc,
       bool allocatednessOnly = false, bool alwaysUseSymbolicName = false) {
       Contract.Requires(tok != null);
       Contract.Requires(x != null);
@@ -4004,7 +3938,7 @@ namespace Microsoft.Dafny {
       return cre;
     }
 
-    void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, Expression source, BoogieStmtListBuilder builder, string errorMsgPrefix = "") {
+    public void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, Expression source, BoogieStmtListBuilder builder, string errorMsgPrefix = "") {
       Contract.Requires(tok != null);
       Contract.Requires(bSource != null);
       Contract.Requires(sourceType != null);
@@ -4063,7 +3997,7 @@ namespace Microsoft.Dafny {
     }
 
     int projectionFunctionCount = 0;
-    private Declaration currentDeclaration;
+    public Declaration currentDeclaration;
 
     // ----- Expression ---------------------------------------------------------------------------
 
@@ -4441,10 +4375,8 @@ namespace Microsoft.Dafny {
       }
 
     }
-
-    internal enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
-    static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
-    static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
+    public static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
+    public static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
     private bool DisableNonLinearArithmetic => DetermineDisableNonLinearArithmetic(forModule, options);
     private int ArithmeticSolver {
       get {
@@ -4870,3 +4802,4 @@ namespace Microsoft.Dafny {
   public enum AssertMode { Keep, Assume, Check }
 }
 
+public enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc

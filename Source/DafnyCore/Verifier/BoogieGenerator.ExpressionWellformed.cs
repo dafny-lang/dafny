@@ -265,7 +265,7 @@ namespace Microsoft.Dafny {
     /// assume the equivalent of "result == expr".
     /// See class WFOptions for descriptions of the specified options.
     /// </summary>
-    void CheckWellformedWithResult(Expression expr, WFOptions wfOptions,
+    public void CheckWellformedWithResult(Expression expr, WFOptions wfOptions,
       Variables locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
       AddResultCommands addResultCommands) {
       var origOptions = wfOptions;
@@ -1313,7 +1313,7 @@ namespace Microsoft.Dafny {
             break;
           }
         case MatchExpr matchExpr:
-          TrMatchExpr(matchExpr, wfOptions, locals, builder, etran, addResultCommands);
+          MatchStatementVerifier.TrMatchExpr(this, matchExpr, wfOptions, locals, builder, etran, addResultCommands);
           addResultCommands = null;
           break;
         case DatatypeUpdateExpr updateExpr: {
@@ -1378,55 +1378,6 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
       builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
       builder.Add(TrAssumeCmd(expr.tok, MkIs(selfCall, resultType)));
-    }
-
-    private void TrMatchExpr(MatchExpr me, WFOptions wfOptions, Variables locals,
-      BoogieStmtListBuilder builder, ExpressionTranslator etran, AddResultCommands addResultCommands) {
-      FillMissingCases(me);
-
-      CheckWellformed(me.Source, wfOptions, locals, builder, etran);
-      Bpl.Expr src = etran.TrExpr(me.Source);
-      Bpl.IfCmd ifCmd = null;
-      BoogieStmtListBuilder elsBldr = new BoogieStmtListBuilder(this, options, builder.Context);
-      elsBldr.Add(TrAssumeCmd(me.tok, Bpl.Expr.False));
-      StmtList els = elsBldr.Collect(me.tok);
-      foreach (var missingCtor in me.MissingCases) {
-        // havoc all bound variables
-        var b = new BoogieStmtListBuilder(this, options, builder.Context);
-        Variables newLocals = new();
-        Bpl.Expr r = CtorInvocation(me.tok, missingCtor, etran, newLocals, b);
-        locals.AddRange(newLocals.Values);
-
-        if (newLocals.Count != 0) {
-          List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
-          foreach (Variable local in newLocals.Values) {
-            havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
-          }
-
-          builder.Add(new Bpl.HavocCmd(me.tok, havocIds));
-        }
-
-        String missingStr = me.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
-        b.Add(Assert(GetToken(me), Bpl.Expr.False,
-          new MatchIsComplete("expression", missingStr), builder.Context));
-
-        Bpl.Expr guard = Bpl.Expr.Eq(src, r);
-        ifCmd = new Bpl.IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
-        els = null;
-      }
-
-      for (int i = me.Cases.Count; 0 <= --i;) {
-        MatchCaseExpr mc = me.Cases[i];
-        var b = new BoogieStmtListBuilder(this, options, builder.Context);
-        Bpl.Expr ct = CtorInvocation(mc, me.Source.Type, etran, locals, b, NOALLOC, false);
-        // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
-
-        CheckWellformedWithResult(mc.Body, wfOptions, locals, b, etran, addResultCommands);
-        ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
-        els = null;
-      }
-
-      builder.Add(ifCmd);
     }
 
     private void CheckWellformedStmtExpr(StmtExpr stmtExpr, WFOptions wfOptions, Variables locals,
@@ -1527,7 +1478,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    delegate void AddResultCommands(BoogieStmtListBuilder builder, Expression result);
+    public delegate void AddResultCommands(BoogieStmtListBuilder builder, Expression result);
 
     void CheckWellformedLetExprWithResult(LetExpr e, WFOptions wfOptions, Variables locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran, bool checkRhs, AddResultCommands addResultCommands) {

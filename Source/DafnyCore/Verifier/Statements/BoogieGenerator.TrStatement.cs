@@ -297,7 +297,7 @@ public partial class BoogieGenerator {
       TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.RangeToken);
       DefiniteAssignmentTrackers = previousTrackers;
     } else if (stmt is IfStmt ifStmt) {
-      TrIfStmt(ifStmt, builder, locals, etran);
+      IfStatementVerifier.EmitBoogie(this, ifStmt, builder, locals, etran);
 
     } else if (stmt is AlternativeStmt) {
       AddComment(builder, stmt, "alternative statement");
@@ -355,7 +355,7 @@ public partial class BoogieGenerator {
     } else if (stmt is NestedMatchStmt nestedMatchStmt) {
       TrStmt(nestedMatchStmt.Flattened, builder, locals, etran);
     } else if (stmt is MatchStmt matchStmt) {
-      TrMatchStmt(matchStmt, builder, locals, etran);
+      MatchStatementVerifier.TrMatchStmt(this, matchStmt, builder, locals, etran);
     } else if (stmt is VarDeclStmt) {
       var s = (VarDeclStmt)stmt;
       TrVarDeclStmt(s, builder, locals, etran);
@@ -619,114 +619,6 @@ public partial class BoogieGenerator {
     this.fuelContext = FuelSetting.PopFuelContext();
   }
 
-  private void TrMatchStmt(MatchStmt stmt, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
-    Contract.Requires(stmt != null);
-    Contract.Requires(builder != null);
-    Contract.Requires(locals != null);
-    Contract.Requires(etran != null);
-
-    FillMissingCases(stmt);
-
-    TrStmt_CheckWellformed(stmt.Source, builder, locals, etran, true);
-    Bpl.Expr source = etran.TrExpr(stmt.Source);
-    var b = new BoogieStmtListBuilder(this, options, builder.Context);
-    b.Add(TrAssumeCmd(stmt.Tok, Bpl.Expr.False));
-    Bpl.StmtList els = b.Collect(stmt.Tok);
-    Bpl.IfCmd ifCmd = null;
-    foreach (var missingCtor in stmt.MissingCases) {
-      // havoc all bound variables
-      b = new BoogieStmtListBuilder(this, options, builder.Context);
-      var newLocals = new Variables();
-      Bpl.Expr r = CtorInvocation(stmt.Tok, missingCtor, etran, newLocals, b);
-      locals.AddRange(newLocals.Values);
-
-      if (newLocals.Count != 0) {
-        List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
-        foreach (Variable local in newLocals.Values) {
-          havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
-        }
-        builder.Add(new Bpl.HavocCmd(stmt.Tok, havocIds));
-      }
-      String missingStr = stmt.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles()
-        .ToString();
-      var desc = new MatchIsComplete("statement", missingStr);
-      b.Add(Assert(stmt.Tok, Bpl.Expr.False, desc, builder.Context));
-
-      Bpl.Expr guard = Bpl.Expr.Eq(source, r);
-      ifCmd = new Bpl.IfCmd(stmt.Tok, guard, b.Collect(stmt.Tok), ifCmd, els);
-      els = null;
-    }
-    for (int i = stmt.Cases.Count; 0 <= --i;) {
-      var mc = (MatchCaseStmt)stmt.Cases[i];
-      CurrentIdGenerator.Push();
-      // havoc all bound variables
-      b = new BoogieStmtListBuilder(this, options, builder.Context);
-      var newLocals = new Variables();
-      Bpl.Expr r = CtorInvocation(mc, stmt.Source.Type, etran, newLocals, b, stmt.IsGhost ? NOALLOC : ISALLOC);
-      locals.AddRange(newLocals.Values);
-
-      if (newLocals.Count != 0) {
-        List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
-        foreach (Variable local in newLocals.Values) {
-          havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
-        }
-        builder.Add(new Bpl.HavocCmd(mc.tok, havocIds));
-      }
-
-      // translate the body into b
-      var prevDefiniteAssignmentTrackers = DefiniteAssignmentTrackers;
-      TrStmtList(mc.Body, b, locals, etran);
-      DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
-
-      Bpl.Expr guard = Bpl.Expr.Eq(source, r);
-      ifCmd = new Bpl.IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els);
-      els = null;
-      CurrentIdGenerator.Pop();
-    }
-    if (ifCmd != null) {
-      builder.Add(ifCmd);
-    }
-  }
-
-  void FillMissingCases(IMatch match) {
-    Contract.Requires(match != null);
-    if (match.MissingCases.Any()) {
-      return;
-    }
-
-    var dtd = match.Source.Type.AsDatatype;
-    var constructors = dtd?.ConstructorsByName;
-
-    ISet<string> memberNamesUsed = new HashSet<string>();
-
-    foreach (var matchCase in match.Cases) {
-      if (constructors != null) {
-        Contract.Assert(dtd != null);
-        var ctorId = matchCase.Ctor.Name;
-        if (match.Source.Type.AsDatatype is TupleTypeDecl) {
-          var tuple = (TupleTypeDecl)match.Source.Type.AsDatatype;
-          ctorId = SystemModuleManager.TupleTypeCtorName(tuple.Dims);
-        }
-
-        if (constructors.ContainsKey(ctorId)) {
-          memberNamesUsed.Add(ctorId); // add mc.Id to the set of names used
-        }
-      }
-    }
-    if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-      // We could complain about the syntactic omission of constructors:
-      //   Reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
-      // but instead we let the verifier do a semantic check.
-      // So, for now, record the missing constructors:
-      foreach (var ctr in dtd.Ctors) {
-        if (!memberNamesUsed.Contains(ctr.Name)) {
-          match.MissingCases.Add(ctr);
-        }
-      }
-      Contract.Assert(memberNamesUsed.Count + match.MissingCases.Count == dtd.Ctors.Count);
-    }
-  }
-
   private static SubrangeCheckContext MakeNumericBoundsSubrangeCheckContext(BoundVar bvar, Expression lo, Expression hi) {
     var source = new IdentifierExpr(Token.NoToken, bvar);
     var loBound = lo == null ? null : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Le, lo, source);
@@ -746,53 +638,6 @@ public partial class BoogieGenerator {
     );
 
     return CheckContext;
-  }
-
-  private void TrIfStmt(IfStmt stmt, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
-    Contract.Requires(stmt != null);
-    Contract.Requires(builder != null);
-    Contract.Requires(locals != null);
-    Contract.Requires(etran != null);
-
-    AddComment(builder, stmt, "if statement");
-    Expression guard;
-    if (stmt.Guard == null) {
-      guard = null;
-    } else {
-      guard = stmt.IsBindingGuard ? ((ExistsExpr)stmt.Guard).AlphaRename("eg$") : stmt.Guard;
-      TrStmt_CheckWellformed(guard, builder, locals, etran, true);
-    }
-    BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options, builder.Context);
-    if (stmt.IsBindingGuard) {
-      CurrentIdGenerator.Push();
-      var exists = (ExistsExpr)stmt.Guard; // the original (that is, not alpha-renamed) guard
-      IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
-      CurrentIdGenerator.Pop();
-    }
-    CurrentIdGenerator.Push();
-    Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran, stmt.Thn is not BlockStmt);
-    CurrentIdGenerator.Pop();
-    Bpl.StmtList els;
-    Bpl.IfCmd elsIf = null;
-    b = new BoogieStmtListBuilder(this, options, builder.Context);
-    if (stmt.IsBindingGuard) {
-      b.Add(TrAssumeCmdWithDependenciesAndExtend(etran, guard.tok, guard, Expr.Not, "if statement binding guard"));
-    }
-    if (stmt.Els == null) {
-      els = b.Collect(stmt.Tok);
-    } else {
-      CurrentIdGenerator.Push();
-      els = TrStmt2StmtList(b, stmt.Els, locals, etran, stmt.Els is not BlockStmt);
-      CurrentIdGenerator.Pop();
-      if (els.BigBlocks.Count == 1) {
-        Bpl.BigBlock bb = els.BigBlocks[0];
-        if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is Bpl.IfCmd) {
-          elsIf = (Bpl.IfCmd)bb.ec;
-          els = null;
-        }
-      }
-    }
-    builder.Add(new Bpl.IfCmd(stmt.Tok, guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard), thn, elsIf, els));
   }
 
 
@@ -944,7 +789,7 @@ public partial class BoogieGenerator {
   }
 
 
-  private void IntroduceAndAssignExistentialVars(ExistsExpr exists, BoogieStmtListBuilder builder, BoogieStmtListBuilder builderOutsideIfConstruct, Variables locals, ExpressionTranslator etran, bool isGhost) {
+  public void IntroduceAndAssignExistentialVars(ExistsExpr exists, BoogieStmtListBuilder builder, BoogieStmtListBuilder builderOutsideIfConstruct, Variables locals, ExpressionTranslator etran, bool isGhost) {
     Contract.Requires(exists != null);
     Contract.Requires(exists.Range == null);
     Contract.Requires(builder != null);
@@ -1020,7 +865,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  void TrStmt_CheckWellformed(Expression expr, BoogieStmtListBuilder builder, Variables locals,
+  public void TrStmt_CheckWellformed(Expression expr, BoogieStmtListBuilder builder, Variables locals,
     ExpressionTranslator etran, bool subsumption, bool lValueContext = false, AddResultCommands addResultCommands = null) {
     Contract.Requires(expr != null);
     Contract.Requires(builder != null);
