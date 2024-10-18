@@ -2219,7 +2219,7 @@ OneStmt<out Statement/*!*/ s>
   | ForLoopStmt<out s>
   | AssertStmt<out s>
   | AssumeStmt<out s>
-  | BreakOrContinueStmt<out s>
+  | BreakStmt<out s>
   | CalcStmt<out s>
   | ExpectStmt<out s>
   | ForallStmt<out s>
@@ -2257,7 +2257,7 @@ SkeletonStmt<out Statement s>
   .
 
 /*------------------------------------------------------------------------*/
-BreakOrContinueStmt<out Statement/*!*/ s>
+BreakStmt<out Statement/*!*/ s>
 = (. var isContinue = false;
      IToken start = Token.NoToken;
      IToken label = null;
@@ -2277,8 +2277,8 @@ BreakOrContinueStmt<out Statement/*!*/ s>
   ";"
   (. Contract.Assert(label == null || breakAndContinueCount == 1);
      s = label != null ?
-       new BreakOrContinueStmt(new RangeToken(start, t), label, isContinue) :
-       new BreakOrContinueStmt(new RangeToken(start, t), breakAndContinueCount, isContinue);
+       new BreakStmt(new RangeToken(start, t), label, isContinue) :
+       new BreakStmt(new RangeToken(start, t), breakAndContinueCount, isContinue);
   .)
   .
 

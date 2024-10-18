@@ -80,8 +80,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is HideRevealStmt revealStmt) {
         PrintHideReveal(revealStmt);
-      } else if (stmt is BreakOrContinueStmt) {
-        var s = (BreakOrContinueStmt)stmt;
+      } else if (stmt is BreakStmt) {
+        var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
           wr.Write($"{s.Kind} {s.TargetLabel.val};");
         } else {

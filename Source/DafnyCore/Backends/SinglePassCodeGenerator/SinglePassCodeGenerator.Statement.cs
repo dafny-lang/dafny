@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.Compilers {
 
             break;
           }
-        case BreakOrContinueStmt breakStmt: {
+        case BreakStmt breakStmt: {
             var s = breakStmt;
             var label = s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator);
             if (s.IsContinue) {
