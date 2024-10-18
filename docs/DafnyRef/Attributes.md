@@ -1024,7 +1024,7 @@ method {:isolate_assertions} Test() {
 ```
 
 
-Dafny rewrites `@`-attributes to old-style equivalent attribute. The definition of these attributes is similar to the following+:
+Dafny rewrites `@`-attributes to old-style equivalent attributes. The definition of these attributes is similar to the following:
 
 <!-- %no-check -->
 ```dafny
