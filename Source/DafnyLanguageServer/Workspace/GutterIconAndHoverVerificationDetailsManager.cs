@@ -80,9 +80,8 @@ Send notifications about the verification status of each line in the program.
               continue;
             }
 
-            if (member is ConstantField) {
-              var constantHasNoBody = member.RangeToken.EndToken.line == 0;
-              if (constantHasNoBody) {
+            if (member is ConstantField constantField) {
+              if (constantField.Rhs == null) {
                 continue; // Nothing to verify
               }
 
