@@ -11,7 +11,7 @@ namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
 
-  private void TrAlternativeLoopStmt(AlternativeLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals,
+  private void TrAlternativeLoopStmt(AlternativeLoopStmt stmt, BoogieStmtListBuilder builder, Variables locals,
     ExpressionTranslator etran) {
     AddComment(builder, stmt, "alternative loop statement");
     var tru = Expression.CreateBoolLiteral(stmt.Tok, true);
@@ -30,7 +30,7 @@ public partial class BoogieGenerator {
       builder, locals, etran);
   }
 
-  private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+  private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
@@ -41,8 +41,7 @@ public partial class BoogieGenerator {
     var indexVar = stmt.LoopIndex;
     var indexVarName = indexVar.AssignUniqueName(currentDeclaration.IdGenerator);
     var dIndex = new IdentifierExpr(indexVar.tok, indexVar);
-    var bIndexVar = new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type)));
-    locals.Add(bIndexVar);
+    locals.GetOrCreate(indexVarName, () => new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type))));
     var bIndex = new Bpl.IdentifierExpr(indexVar.tok, indexVarName);
 
     var lo = stmt.GoingUp ? stmt.Start : stmt.End;
@@ -53,8 +52,7 @@ public partial class BoogieGenerator {
     Bpl.IdentifierExpr bHi = null;
     if (lo != null) {
       var name = indexVarName + "#lo";
-      var bLoVar = new Bpl.LocalVariable(lo.tok, new Bpl.TypedIdent(lo.tok, name, Bpl.Type.Int));
-      locals.Add(bLoVar);
+      locals.GetOrCreate(name, () => new Bpl.LocalVariable(lo.tok, new Bpl.TypedIdent(lo.tok, name, Bpl.Type.Int)));
       bLo = new Bpl.IdentifierExpr(lo.tok, name);
       CheckWellformed(lo, new WFOptions(null, false), locals, builder, etran);
       builder.Add(Bpl.Cmd.SimpleAssign(lo.tok, bLo, etran.TrExpr(lo)));
@@ -62,8 +60,7 @@ public partial class BoogieGenerator {
     }
     if (hi != null) {
       var name = indexVarName + "#hi";
-      var bHiVar = new Bpl.LocalVariable(hi.tok, new Bpl.TypedIdent(hi.tok, name, Bpl.Type.Int));
-      locals.Add(bHiVar);
+      locals.GetOrCreate(name, () => new Bpl.LocalVariable(hi.tok, new Bpl.TypedIdent(hi.tok, name, Bpl.Type.Int)));
       bHi = new Bpl.IdentifierExpr(hi.tok, name);
       CheckWellformed(hi, new WFOptions(null, false), locals, builder, etran);
       builder.Add(Bpl.Cmd.SimpleAssign(hi.tok, bHi, etran.TrExpr(hi)));
@@ -72,7 +69,7 @@ public partial class BoogieGenerator {
 
     // check lo <= hi
     if (lo != null && hi != null) {
-      builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new PODesc.ForRangeBoundsValid(lo, hi)));
+      builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new ForRangeBoundsValid(lo, hi), builder.Context));
     }
     // check forall x :: lo <= x <= hi ==> Is(x, typ)
     {
@@ -83,7 +80,6 @@ public partial class BoogieGenerator {
       //   assert Is(x, typ);
       var tok = indexVar.tok;
       var name = indexVarName + "#x";
-      var xVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int));
       var x = new Bpl.IdentifierExpr(tok, name);
 
       var sourceBoundVar = new BoundVar(Token.NoToken, "x", Type.Int);
@@ -94,7 +90,7 @@ public partial class BoogieGenerator {
         checkContext, out var desc);
 
       if (cre != null) {
-        locals.Add(xVar);
+        locals.GetOrCreate(name, () => new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int)));
         builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
         builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
         List<Expression> dafnyRangeBounds = new();
@@ -110,7 +106,7 @@ public partial class BoogieGenerator {
           : new BinaryExpr(stmt.tok, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
         var dafnyAssertion = new ForallExpr(stmt.tok, stmt.RangeToken, new List<BoundVar> { indexVar },
           dafnyRange, new TypeTestExpr(indexVar.tok, dIndex, indexVar.Type), null);
-        builder.Add(Assert(tok, cre, new PODesc.ForRangeAssignable(desc, dafnyAssertion)));
+        builder.Add(Assert(tok, cre, new ForRangeAssignable(desc, dafnyAssertion), builder.Context));
       }
     }
 
@@ -147,7 +143,7 @@ public partial class BoogieGenerator {
     TrLoop(stmt, guard, bodyTr, builder, locals, etran, freeInvariant, stmt.Decreases.Expressions.Count != 0);
   }
 
-  private void TrWhileStmt(WhileStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+  private void TrWhileStmt(WhileStmt stmt, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
@@ -169,47 +165,55 @@ public partial class BoogieGenerator {
     this.fuelContext = FuelSetting.PopFuelContext();
   }
 
-  void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
-    BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+  void TrLoop(LoopStmt loop, Expression Guard, BodyTranslator/*?*/ bodyTr,
+    BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     Bpl.Expr freeInvariant = null, bool includeTerminationCheck = true) {
-    Contract.Requires(s != null);
+    Contract.Requires(loop != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
     Contract.Requires(etran != null);
 
-    s.ScopeDepth = builder.Context.ScopeDepth;
+    loop.ScopeDepth = builder.Context.ScopeDepth;
 
     var suffix = CurrentIdGenerator.FreshId("loop#");
 
-    var theDecreases = s.Decreases.Expressions;
+    var theDecreases = loop.Decreases.Expressions;
 
-    Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreLoopHeap$" + suffix, predef.HeapType));
-    locals.Add(preLoopHeapVar);
-    Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(s.Tok, preLoopHeapVar);
+    var preloopheap = "$PreLoopHeap$" + suffix;
+    var preLoopHeapVar = locals.GetOrCreate(preloopheap, () => new Bpl.LocalVariable(loop.Tok, new Bpl.TypedIdent(loop.Tok, preloopheap, predef.HeapType)));
+    Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(loop.Tok, preLoopHeapVar);
     ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap, etran.scope);
     ExpressionTranslator updatedFrameEtran;
     string loopFrameName = FrameVariablePrefix + suffix;
-    if (s.Mod.Expressions != null) {
+    if (loop.Mod.Expressions != null) {
       updatedFrameEtran = etran.WithModifiesFrame(loopFrameName);
     } else {
       updatedFrameEtran = etran;
     }
 
-    if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
-      CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
-      var desc = new PODesc.ModifyFrameSubset("loop modifies clause", s.Mod.Expressions, GetContextModifiesFrames());
-      CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, desc, null);
-      DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, loopFrameName);
+    if (loop.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
+      CheckFrameWellFormed(new WFOptions(), loop.Mod.Expressions, locals, builder, etran);
+      var desc = new ModifyFrameSubset("loop modifies clause", loop.Mod.Expressions, GetContextModifiesFrames());
+      CheckFrameSubset(loop.Tok, loop.Mod.Expressions, null, null, etran, etran.ModifiesFrame(loop.Tok), builder, desc, null);
+      DefineFrame(loop.Tok, etran.ModifiesFrame(loop.Tok), loop.Mod.Expressions, builder, locals, loopFrameName);
     }
-    builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
+    builder.Add(Bpl.Cmd.SimpleAssign(loop.Tok, preLoopHeap, etran.HeapExpr));
+
+    var assignedVariables = loop.DescendantsAndSelf.
+      SelectMany(s => s.GetAssignedLocals()).Select(ie => ie.Var)
+      .ToHashSet();
 
     var daTrackersMonotonicity = new List<Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>>();
-    foreach (var dat in DefiniteAssignmentTrackers.Values) {  // TODO: the order is non-deterministic and may change between invocations of Dafny
-      var preLoopDat = new Bpl.LocalVariable(dat.tok, new Bpl.TypedIdent(dat.tok, "preLoop$" + suffix + "$" + dat.Name, dat.Type));
-      locals.Add(preLoopDat);
-      var ie = new Bpl.IdentifierExpr(s.Tok, preLoopDat);
+    foreach (var local in assignedVariables) {
+      if (local.UniqueName == null || !DefiniteAssignmentTrackers.TryGetValue(local.UniqueName, out var dat)) {
+        continue;
+      }
+
+      var name = "preLoop$" + suffix + "$" + dat.Name;
+      var preLoopDat = locals.GetOrCreate(name, () => new Bpl.LocalVariable(dat.tok, new Bpl.TypedIdent(dat.tok, name, dat.Type)));
+      var ie = new Bpl.IdentifierExpr(loop.Tok, preLoopDat);
       daTrackersMonotonicity.Add(new Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>(ie, dat));
-      builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, ie, dat));
+      builder.Add(Cmd.SimpleAssign(loop.Tok, ie, dat));
     }
 
     List<Bpl.Expr> initDecr = null;
@@ -219,18 +223,17 @@ public partial class BoogieGenerator {
 
     // The variable w is used to coordinate the definedness checking of the loop invariant.
     // It is also used for body-less loops to turn off invariant checking after the generated body.
-    Bpl.LocalVariable wVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$w$" + suffix, Bpl.Type.Bool));
-    Bpl.IdentifierExpr w = new Bpl.IdentifierExpr(s.Tok, wVar);
-    locals.Add(wVar);
+    var wVar = locals.GetOrAdd(new Bpl.LocalVariable(loop.Tok, new Bpl.TypedIdent(loop.Tok, "$w$" + suffix, Bpl.Type.Bool)));
+    Bpl.IdentifierExpr w = new Bpl.IdentifierExpr(loop.Tok, wVar);
     // havoc w;
-    builder.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { w }));
+    builder.Add(new Bpl.HavocCmd(loop.Tok, new List<Bpl.IdentifierExpr> { w }));
 
     List<Bpl.PredicateCmd> invariants = new List<Bpl.PredicateCmd>();
     if (freeInvariant != null) {
       invariants.Add(new Bpl.AssumeCmd(freeInvariant.tok, freeInvariant));
     }
     BoogieStmtListBuilder invDefinednessBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
-    foreach (AttributedExpression loopInv in s.Invariants) {
+    foreach (AttributedExpression loopInv in loop.Invariants) {
       var (errorMessage, successMessage) = CustomErrorMessage(loopInv.Attributes);
       TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
       invDefinednessBuilder.Add(TrAssumeCmdWithDependencies(etran, loopInv.E.tok, loopInv.E, "loop invariant"));
@@ -239,12 +242,12 @@ public partial class BoogieGenerator {
       var ss = TrSplitExpr(builder.Context, loopInv.E, etran, false, out var splitHappened);
       if (!splitHappened) {
         var wInv = BplImp(w, etran.TrExpr(loopInv.E));
-        invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(loopInv.E, errorMessage, successMessage)));
+        invariants.Add(Assert(loopInv.E.tok, wInv, new LoopInvariant(loopInv.E, errorMessage, successMessage), builder.Context));
       } else {
         foreach (var split in ss) {
           var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
           if (split.IsChecked) {
-            invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(loopInv.E, errorMessage, successMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
+            invariants.Add(Assert(split.Tok, wInv, new LoopInvariant(loopInv.E, errorMessage, successMessage), builder.Context));  // TODO: it would be fine to have this use {:subsumption 0}
           } else {
             var cmd = TrAssumeCmd(split.E.tok, wInv);
             proofDependencies?.AddProofDependencyId(cmd, loopInv.E.tok, new InvariantDependency(loopInv.E));
@@ -263,34 +266,34 @@ public partial class BoogieGenerator {
         // add "this" to the explicit modifies clause
         var explicitModifies = modifiesClause;
         modifiesClause = new List<FrameExpression>();
-        modifiesClause.Add(new FrameExpression(s.Tok, new ThisExpr((IteratorDecl)codeContext), null));
+        modifiesClause.Add(new FrameExpression(loop.Tok, new ThisExpr((IteratorDecl)codeContext), null));
         modifiesClause.AddRange(explicitModifies);
       }
       // include boilerplate invariants
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, modifiesClause, s.IsGhost, codeContext.AllowsAllocation, etranPreLoop, etran, etran.Old)) {
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(loop.Tok, modifiesClause, loop.IsGhost, codeContext.AllowsAllocation, etranPreLoop, etran, etran.Old)) {
         if (tri.IsFree) {
-          invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
+          invariants.Add(TrAssumeCmd(loop.Tok, tri.Expr));
         } else {
           Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-          invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage, tri.SuccessMessage, tri.Comment)));
+          invariants.Add(Assert(loop.Tok, tri.Expr, new Microsoft.Dafny.BoilerplateTriple(tri.ErrorMessage, tri.SuccessMessage, tri.Comment), builder.Context));
         }
       }
       // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
-      invariants.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ModifiesFrame(s.Tok))));
+      invariants.Add(TrAssumeCmd(loop.Tok, FrameConditionUsingDefinedFrame(loop.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ModifiesFrame(loop.Tok))));
       // for iterators, add "fresh(_new)" as an invariant
       if (codeContext is IteratorDecl iter) {
         var th = new ThisExpr(iter);
-        var thisDotNew = new MemberSelectExpr(s.Tok, th, iter.Member_New);
-        var fr = new FreshExpr(s.Tok, thisDotNew);
+        var thisDotNew = new MemberSelectExpr(loop.Tok, th, iter.Member_New);
+        var fr = new FreshExpr(loop.Tok, thisDotNew);
         fr.Type = Type.Bool;
-        invariants.Add(TrAssertCmd(s.Tok, etran.TrExpr(fr)));
+        invariants.Add(TrAssertCmd(loop.Tok, etran.TrExpr(fr)));
       }
     }
 
     // include a free invariant that says that all definite-assignment trackers have only become more "true"
     foreach (var pair in daTrackersMonotonicity) {
       Bpl.Expr monotonic = BplImp(pair.Item1, pair.Item2);
-      invariants.Add(TrAssumeCmd(s.Tok, monotonic));
+      invariants.Add(TrAssumeCmd(loop.Tok, monotonic));
     }
 
     // include a free invariant that says that all completed iterations so far have only decreased the termination metric
@@ -304,21 +307,21 @@ public partial class BoogieGenerator {
         toks.Add(e.tok);
         decrsDafny.Add(e);
         decrs.Add(etran.TrExpr(e));
-        var (prevVars, eInit) = TranslateToLoopEntry(s, e, "LoopEntry");
+        var (prevVars, eInit) = TranslateToLoopEntry(loop, e, "LoopEntry");
         prevGhostLocals.AddRange(prevVars);
         initDecrsDafny.Add(eInit);
       }
       Bpl.Expr decrCheck = DecreasesCheck(toks, prevGhostLocals, decrsDafny, initDecrsDafny, decrs, initDecr,
         null, null, true, false);
-      invariants.Add(TrAssumeCmd(s.Tok, decrCheck));
+      invariants.Add(TrAssumeCmd(loop.Tok, decrCheck));
     }
 
     var loopBodyBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
-    loopBodyBuilder.AddCaptureState(s.Tok, true, CaptureStateExtensions.AfterLoopIterationsStateMarker);
+    loopBodyBuilder.AddCaptureState(loop.Tok, true, CaptureStateExtensions.AfterLoopIterationsStateMarker);
 
     // As the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
-    invDefinednessBuilder.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
-    loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(s.Tok), null, null));
+    invDefinednessBuilder.Add(TrAssumeCmd(loop.Tok, Bpl.Expr.False));
+    loopBodyBuilder.Add(new Bpl.IfCmd(loop.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(loop.Tok), null, null));
 
     // Generate:  CheckWellformed(guard); if (!guard) { break; }
     // but if this is a body-less loop, put all of that inside:  if (*) { ... }
@@ -326,7 +329,7 @@ public partial class BoogieGenerator {
     // on entry to the loop, and then Boogie wouldn't consider this a loop at all. (See also comment
     // in methods GuardAlwaysHoldsOnEntry_BodyLessLoop and GuardAlwaysHoldsOnEntry_LoopWithBody in
     // Test/dafny0/DirtyLoops.dfy.)
-    var isBodyLessLoop = s is OneBodyLoopStmt { BodySurrogate: { } };
+    var isBodyLessLoop = loop is OneBodyLoopStmt { BodySurrogate: { } };
     var whereToBuildLoopGuard = isBodyLessLoop ? new BoogieStmtListBuilder(this, options, builder.Context) : loopBodyBuilder;
     Bpl.Expr guard = null;
     if (Guard != null) {
@@ -334,10 +337,10 @@ public partial class BoogieGenerator {
       guard = Bpl.Expr.Not(etran.TrExpr(Guard));
     }
     var guardBreak = new BoogieStmtListBuilder(this, options, builder.Context);
-    guardBreak.Add(new Bpl.BreakCmd(s.Tok, null));
-    whereToBuildLoopGuard.Add(new Bpl.IfCmd(s.Tok, guard, guardBreak.Collect(s.Tok), null, null));
+    guardBreak.Add(new Bpl.BreakCmd(loop.Tok, null));
+    whereToBuildLoopGuard.Add(new Bpl.IfCmd(loop.Tok, guard, guardBreak.Collect(loop.Tok), null, null));
     if (isBodyLessLoop) {
-      loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, null, whereToBuildLoopGuard.Collect(s.Tok), null, null));
+      loopBodyBuilder.Add(new Bpl.IfCmd(loop.Tok, null, whereToBuildLoopGuard.Collect(loop.Tok), null, null));
     }
 
     if (bodyTr != null) {
@@ -360,42 +363,42 @@ public partial class BoogieGenerator {
           // Note: the label "LoopEntry" doesn't exist in the program, and is
           // useful only for explanatory purposes.
           decrsDafny.Add(e);
-          var (prevVars, eInit) = TranslateToLoopEntry(s, e, "LoopEntry");
+          var (prevVars, eInit) = TranslateToLoopEntry(loop, e, "LoopEntry");
           prevGhostLocals.AddRange(prevVars);
           initDecrsDafny.Add(eInit);
           decrs.Add(etran.TrExpr(e));
         }
         if (includeTerminationCheck) {
-          AddComment(loopBodyBuilder, s, "loop termination check");
+          AddComment(loopBodyBuilder, loop, "loop termination check");
           Bpl.Expr decrCheck = DecreasesCheck(toks, prevGhostLocals, decrsDafny, initDecrsDafny, decrs, oldBfs,
             loopBodyBuilder, " at end of loop iteration", false, false);
           var description = new
-            PODesc.Terminates(s.InferredDecreases, prevGhostLocals, null, initDecrsDafny, theDecreases, false);
-          loopBodyBuilder.Add(Assert(s.Tok, decrCheck, description));
+            Terminates(loop.InferredDecreases, prevGhostLocals, null, initDecrsDafny, theDecreases, false);
+          loopBodyBuilder.Add(Assert(loop.Tok, decrCheck, description, builder.Context));
         }
       }
     } else if (isBodyLessLoop) {
-      var bodySurrogate = ((OneBodyLoopStmt)s).BodySurrogate;
+      var bodySurrogate = ((OneBodyLoopStmt)loop).BodySurrogate;
       // This is a body-less loop. Havoc the targets and then set w to false, to make the loop-invariant
       // maintenance check vaccuous.
-      var bplTargets = bodySurrogate.LocalLoopTargets.ConvertAll(v => TrVar(s.Tok, v));
+      var bplTargets = bodySurrogate.LocalLoopTargets.ConvertAll(v => TrVar(loop.Tok, v));
       if (bodySurrogate.UsesHeap) {
         bplTargets.Add(etran.HeapCastToIdentifierExpr);
       }
-      loopBodyBuilder.Add(new Bpl.HavocCmd(s.Tok, bplTargets));
-      loopBodyBuilder.Add(Bpl.Cmd.SimpleAssign(s.Tok, w, Bpl.Expr.False));
+      loopBodyBuilder.Add(new Bpl.HavocCmd(loop.Tok, bplTargets));
+      loopBodyBuilder.Add(Bpl.Cmd.SimpleAssign(loop.Tok, w, Bpl.Expr.False));
     }
     // Finally, assume the well-formedness of the invariant (which has been checked once and for all above), so that the check
     // of invariant-maintenance can use the appropriate canCall predicates. Note, it is important (see Test/git-issues/git-issue-1812.dfy)
     // that each CanCall assumption uses the preceding invariants as antecedents--this is achieved by treating all "invariant"
     // declarations as one big conjunction, because then CanCallAssumption will add the needed antecedents.
-    if (s.Invariants.Any()) {
-      var allInvariants = s.Invariants.Select(inv => inv.E).Aggregate((a, b) => Expression.CreateAnd(a, b));
-      loopBodyBuilder.Add(TrAssumeCmd(s.Tok, etran.CanCallAssumption(allInvariants)));
+    if (loop.Invariants.Any()) {
+      var allInvariants = loop.Invariants.Select(inv => inv.E).Aggregate((a, b) => Expression.CreateAnd(a, b));
+      loopBodyBuilder.Add(TrAssumeCmd(loop.Tok, etran.CanCallAssumption(allInvariants)));
     }
 
-    Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
-    builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, new List<CallCmd>(), body));
+    Bpl.StmtList body = loopBodyBuilder.Collect(loop.Tok);
+    builder.Add(new Bpl.WhileCmd(loop.Tok, Bpl.Expr.True, invariants, new List<CallCmd>(), body));
   }
 
   // Return the version of e that holds at the beginnging of the loop,

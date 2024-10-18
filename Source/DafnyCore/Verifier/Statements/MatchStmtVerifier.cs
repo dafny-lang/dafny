@@ -4,7 +4,6 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
-using Microsoft.Dafny.ProofObligationDescription;
 using VCGeneration.Splits;
 using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
 using Type = Microsoft.Dafny.Type;
@@ -12,7 +11,7 @@ using Type = Microsoft.Dafny.Type;
 namespace DafnyCore.Verifier.Statements;
 
 public class MatchStmtVerifier {
-  public static void TrMatchStmt(BoogieGenerator generator, MatchStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, BoogieGenerator.ExpressionTranslator etran) {
+  public static void TrMatchStmt(BoogieGenerator generator, MatchStmt stmt, BoogieStmtListBuilder builder, Variables locals, BoogieGenerator.ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
@@ -29,13 +28,13 @@ public class MatchStmtVerifier {
     foreach (var missingCtor in stmt.MissingCases) {
       // havoc all bound variables
       b = new BoogieStmtListBuilder(generator, generator.Options, builder.Context);
-      List<Variable> newLocals = new List<Variable>();
+      var newLocals = new Variables();
       Expr r = generator.CtorInvocation(stmt.Tok, missingCtor, etran, newLocals, b);
-      locals.AddRange(newLocals);
+      locals.AddRange(newLocals.Values);
 
       if (newLocals.Count != 0) {
         List<IdentifierExpr> havocIds = new List<IdentifierExpr>();
-        foreach (Variable local in newLocals) {
+        foreach (Variable local in newLocals.Values) {
           havocIds.Add(new IdentifierExpr(local.tok, local));
         }
         builder.Add(new HavocCmd(stmt.Tok, havocIds));
@@ -43,7 +42,7 @@ public class MatchStmtVerifier {
       String missingStr = stmt.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles()
         .ToString();
       var desc = new MatchIsComplete("statement", missingStr);
-      b.Add(generator.Assert(stmt.Tok, Expr.False, desc));
+      b.Add(generator.Assert(stmt.Tok, Expr.False, desc, builder.Context));
 
       Expr guard = Expr.Eq(source, r);
       ifCmd = new IfCmd(stmt.Tok, guard, b.Collect(stmt.Tok), ifCmd, els);
@@ -54,23 +53,23 @@ public class MatchStmtVerifier {
       generator.CurrentIdGenerator.Push();
       // havoc all bound variables
       b = new BoogieStmtListBuilder(generator, generator.Options, builder.Context);
-      List<Variable> newLocals = new List<Variable>();
+      var newLocals = new Variables();
       Expr r = CtorInvocation(generator, mc, stmt.Source.Type, etran, newLocals, b, 
         stmt.IsGhost ? BoogieGenerator.NOALLOC : BoogieGenerator.ISALLOC);
-      locals.AddRange(newLocals);
+      locals.AddRange(newLocals.Values);
 
       if (newLocals.Count != 0) {
         List<IdentifierExpr> havocIds = new List<IdentifierExpr>();
-        foreach (Variable local in newLocals) {
+        foreach (Variable local in newLocals.Values) {
           havocIds.Add(new IdentifierExpr(local.tok, local));
         }
         builder.Add(new HavocCmd(mc.tok, havocIds));
       }
 
       // translate the body into b
-      var prevDefiniteAssignmentTrackerCount = generator.DefiniteAssignmentTrackers.Count;
+      var prevDefiniteAssignmentTrackers = generator.DefiniteAssignmentTrackers;
       generator.TrStmtList(mc.Body, b, locals, etran);
-      generator.RemoveDefiniteAssignmentTrackers(mc.Body, prevDefiniteAssignmentTrackerCount);
+      generator.DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
 
       Expr guard = Expr.Eq(source, r);
       ifCmd = new IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els);
@@ -126,7 +125,7 @@ public class MatchStmtVerifier {
   /// they don't already exist in "locals".
   /// </summary>
   private static Expr CtorInvocation(BoogieGenerator generator, MatchCase mc, Type sourceType, 
-    BoogieGenerator.ExpressionTranslator etran, List<Variable> locals, BoogieStmtListBuilder localTypeAssumptions, 
+    BoogieGenerator.ExpressionTranslator etran, Variables locals, BoogieStmtListBuilder localTypeAssumptions, 
     IsAllocType isAlloc, bool declareLocals = true) {
     Contract.Requires(mc != null);
     Contract.Requires(sourceType != null);
@@ -146,7 +145,7 @@ public class MatchStmtVerifier {
     for (int i = 0; i < mc.Arguments.Count; i++) {
       BoundVar p = mc.Arguments[i];
       var nm = p.AssignUniqueName(generator.currentDeclaration.IdGenerator);
-      Variable local = declareLocals ? null : locals.FirstOrDefault(v => v.Name == nm);  // find previous local
+      Variable local = declareLocals ? null : locals.GetValueOrDefault(nm);  // find previous local
       if (local == null) {
         local = new Microsoft.Boogie.LocalVariable(p.tok, new TypedIdent(p.tok, nm, generator.TrType(p.Type)));
         locals.Add(local);
@@ -167,7 +166,7 @@ public class MatchStmtVerifier {
     return new NAryExpr(mc.tok, new FunctionCall(id), args);
   }
 
-  public static void TrMatchExpr(BoogieGenerator boogieGenerator, MatchExpr me, WFOptions wfOptions, List<Variable> locals,
+  public static void TrMatchExpr(BoogieGenerator boogieGenerator, MatchExpr me, WFOptions wfOptions, Variables locals,
     BoogieStmtListBuilder builder, BoogieGenerator.ExpressionTranslator etran, BoogieGenerator.AddResultCommands addResultCommands) {
     FillMissingCases(me);
 
@@ -180,13 +179,13 @@ public class MatchStmtVerifier {
     foreach (var missingCtor in me.MissingCases) {
       // havoc all bound variables
       var b = new BoogieStmtListBuilder(boogieGenerator, boogieGenerator.Options, builder.Context);
-      List<Variable> newLocals = new List<Variable>();
+      var newLocals = new Variables();
       Expr r = boogieGenerator.CtorInvocation(me.tok, missingCtor, etran, newLocals, b);
-      locals.AddRange(newLocals);
+      locals.AddRange(newLocals.Values);
 
       if (newLocals.Count != 0) {
         List<IdentifierExpr> havocIds = new List<IdentifierExpr>();
-        foreach (Variable local in newLocals) {
+        foreach (Variable local in newLocals.Values) {
           havocIds.Add(new IdentifierExpr(local.tok, local));
         }
 
@@ -194,7 +193,8 @@ public class MatchStmtVerifier {
       }
 
       String missingStr = me.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
-      b.Add(boogieGenerator.Assert(boogieGenerator.GetToken(me), Expr.False, new MatchIsComplete("expression", missingStr)));
+      b.Add(boogieGenerator.Assert(boogieGenerator.GetToken(me), Expr.False, 
+        new MatchIsComplete("expression", missingStr), builder.Context));
 
       Expr guard = Expr.Eq(src, r);
       ifCmd = new IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els /*, BlockRewriter.AllowSplitQ */);

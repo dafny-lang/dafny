@@ -12,6 +12,7 @@ using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
 using DafnyCore;
+using DafnyCore.Options;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.GeneratorErrors;
@@ -182,7 +183,13 @@ namespace Microsoft.Dafny.Compilers {
     /// call to the instance Main method in the enclosing class.
     /// </summary>
     protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName);
-    protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+
+    protected virtual bool ShouldCompileModule(Program program, ModuleDefinition module) {
+      return module.ShouldCompile(program.Compilation);
+    }
+
+    protected abstract ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
+      ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr);
     /// <summary>
     /// Indicates the current program depends on the given module without creating it.
@@ -1578,14 +1585,14 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      if (!module.ShouldCompile(program.Compilation)) {
+      if (!ShouldCompileModule(program, module)) {
         DependOnModule(program, module, externModule, libraryName);
         return;
       }
 
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
-      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, module.Attributes, programNode);
+      var wr = CreateModule(module, module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, module.Attributes, programNode);
       var v = new CheckHasNoAssumes_Visitor(this, wr);
       foreach (TopLevelDecl d in module.TopLevelDecls) {
         if (!ProgramResolver.ShouldCompile(d)) {

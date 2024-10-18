@@ -159,7 +159,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"int main(DafnySequence<DafnySequence<char>> {argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
+      ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       var s = $"namespace {IdProtect(moduleName)} ";
       string footer = "// end of " + s + " declarations";

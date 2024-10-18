@@ -155,7 +155,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && IsAllocContext == null && fuelContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && IsAllocContext == null && fuelContext == null);
 
-      proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.FullDafnyName, MethodTranslationKind.SpecWellformedness));
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.FullDafnyName, MethodTranslationKind.SpecWellformedness), null);
       if (!InVerificationScope(decl)) {
         // Checked in other file
         return;
@@ -205,9 +205,9 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
-      var locals = new List<Variable>();
+      var locals = new Variables();
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
-      builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
+      builder.Add(new CommentCmd($"AddWellformednessCheck for {decl.WhatKind} {decl}"));
       builder.AddCaptureState(decl.tok, false, "initial state");
       IsAllocContext = new IsAllocContext(options, true);
 

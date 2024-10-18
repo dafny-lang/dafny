@@ -1112,7 +1112,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     internal void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
       Contract.Requires(decs != null);
-      if (printMode == PrintModes.NoGhostOrIncludes) { return; }
+      if (printMode == PrintModes.NoGhostOrIncludes) {
+        return;
+      }
       if (decs.Expressions != null && decs.Expressions.Count != 0) {
         wr.WriteLine();
         Indent(indent);

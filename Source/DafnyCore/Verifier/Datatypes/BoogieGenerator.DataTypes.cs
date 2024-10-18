@@ -786,10 +786,10 @@ namespace Microsoft.Dafny {
     private Axiom CreateConstructorIdentifierAxiom(DatatypeCtor ctor, Expr c) {
       // Add:  axiom (forall params :: DatatypeCtorId(#dt.ctor(params)) == ##dt.ctor);
       CreateBoundVariables(ctor.Formals, out var bvs, out var args);
-      var constructor_call = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-      var lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, constructor_call);
+      var constructorCall = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+      var lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, constructorCall);
       Bpl.Expr q = Bpl.Expr.Eq(lhs, c);
-      var trigger = BplTrigger(constructor_call);
+      var trigger = BplTrigger(constructorCall);
       var axiom = new Bpl.Axiom(ctor.tok, BplForall(bvs, trigger, q), "Constructor identifier");
       return axiom;
     }

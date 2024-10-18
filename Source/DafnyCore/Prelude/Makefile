@@ -15,6 +15,6 @@ DafnyPrelude.bpl: PreludeCore.bpl Sequences.bpl
 	sed -e "s|PRIME|'|g" -i "" PreludeCore.bpl Sequences.bpl DafnyPrelude.bpl
 
 Sequences.bpl: Lists.dfy Boxes.dfy Sequences.dfy
-	$(DAFNY) verify Lists.dfy Boxes.dfy Sequences.dfy --extract:Sequences.bpl
+	$(DAFNY) extract Sequences.bpl Lists.dfy Boxes.dfy Sequences.dfy
 	# Remove trailing spaces that the Boogie pretty printer emits
 	sed -e "s| *$$||" -i "" Sequences.bpl

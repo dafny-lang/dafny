@@ -113,7 +113,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static Microsoft.Boogie.Program DeepCloneResolvedProgram(Microsoft.Boogie.Program program, DafnyOptions options) {
       program = DeepCloneProgram(options, program);
-      program.Resolve(options);
+      var resolutionErrors = program.Resolve(options);
       program.Typecheck(options);
       return program;
     }

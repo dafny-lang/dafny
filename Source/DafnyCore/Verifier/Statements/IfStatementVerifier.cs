@@ -10,7 +10,7 @@ namespace DafnyCore.Verifier.Statements;
 public class IfStatementVerifier {
   
   public static void EmitBoogie(BoogieGenerator generator, IfStmt stmt, BoogieStmtListBuilder builder, 
-    List<Variable> locals, BoogieGenerator.ExpressionTranslator etran) {
+    Variables locals, BoogieGenerator.ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
