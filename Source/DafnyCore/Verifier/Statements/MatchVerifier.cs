@@ -7,7 +7,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public static class MatchStatementVerifier {
-  public static void TrMatchStmt(BoogieGenerator generator, MatchStmt stmt, BoogieStmtListBuilder builder, 
+  public static void TrMatchStmt(BoogieGenerator generator, MatchStmt stmt, BoogieStmtListBuilder builder,
     Variables locals, BoogieGenerator.ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(builder != null);
@@ -169,8 +169,8 @@ public static class MatchStatementVerifier {
   /// If "declareLocals" is "false", then the locals are added only if they are new, that is, if
   /// they don't already exist in "locals".
   /// </summary>
-  private static Boogie.Expr CtorInvocation(BoogieGenerator boogieGenerator, MatchCase mc, Type sourceType, 
-    BoogieGenerator.ExpressionTranslator etran, Variables locals, BoogieStmtListBuilder localTypeAssumptions, 
+  private static Boogie.Expr CtorInvocation(BoogieGenerator boogieGenerator, MatchCase mc, Type sourceType,
+    BoogieGenerator.ExpressionTranslator etran, Variables locals, BoogieStmtListBuilder localTypeAssumptions,
     IsAllocType isAlloc, bool declareLocals = true) {
     Contract.Requires(mc != null);
     Contract.Requires(sourceType != null);
@@ -211,8 +211,8 @@ public static class MatchStatementVerifier {
     return new Boogie.NAryExpr(mc.tok, new Boogie.FunctionCall(id), args);
   }
 
-  private static Boogie.Expr CtorInvocation(BoogieGenerator generator, IToken tok, DatatypeCtor ctor, 
-    BoogieGenerator.ExpressionTranslator etran, Variables locals, 
+  private static Boogie.Expr CtorInvocation(BoogieGenerator generator, IToken tok, DatatypeCtor ctor,
+    BoogieGenerator.ExpressionTranslator etran, Variables locals,
     BoogieStmtListBuilder localTypeAssumptions) {
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
