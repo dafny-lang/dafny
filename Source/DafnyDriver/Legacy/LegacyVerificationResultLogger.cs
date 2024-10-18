@@ -72,7 +72,7 @@ namespace Microsoft.Dafny {
       ));
     }
 
-    private static IEnumerable<TestResult> VerificationToTestResults(IEnumerable<(DafnyConsolePrinter.ImplementationLogEntry, List<DafnyConsolePrinter.VCResultLogEntry>)> verificationResults) {
+    private static IEnumerable<TestResult> VerificationToTestResults(IEnumerable<(DafnyConsolePrinter.ImplementationLogEntry, List<VerificationRunResultPartialCopy>)> verificationResults) {
       var testResults = new List<TestResult>();
 
       foreach (var ((verbName, currentFile), vcResults) in verificationResults) {
