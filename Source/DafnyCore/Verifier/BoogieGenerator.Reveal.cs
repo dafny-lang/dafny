@@ -27,7 +27,7 @@ public partial class BoogieGenerator {
             if (fuelConstant != null) {
               Bpl.Expr startFuel = fuelConstant.startFuel;
               Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
-              Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
+              Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, Predef, f.IdGenerator);
               Bpl.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
               Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
 

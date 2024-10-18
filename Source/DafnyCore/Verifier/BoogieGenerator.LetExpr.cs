@@ -115,7 +115,7 @@ namespace Microsoft.Dafny {
         rhss = new List<Boogie.Expr>();
         foreach (var v in let.BoundVars) {
           var rhs = substMap[v];  // this should succeed (that is, "v" is in "substMap"), because the AddCasePatternVarSubstitutions calls above should have added a mapping for each bound variable in let.BoundVars
-          var bv = BplBoundVar(v.AssignUniqueName(BoogieGenerator.currentDeclaration.IdGenerator), BoogieGenerator.TrType(v.Type), out var bvIde);
+          var bv = BplBoundVar(v.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(v.Type), out var bvIde);
           lhss.Add(bv);
           rhss.Add(TrExpr(rhs));
         }
@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
 
               ComputeFreeTypeVariables(e.RHSs[0], FTVs);
               info = new LetSuchThatExprInfo(e.tok, BoogieGenerator.letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap,
-                usesOldHeap, FVsHeapAt, usesThis, BoogieGenerator.currentDeclaration);
+                usesOldHeap, FVsHeapAt, usesThis, BoogieGenerator.CurrentDeclaration);
               BoogieGenerator.letSuchThatExprInfo.Add(e, info);
             }
 
@@ -376,7 +376,7 @@ namespace Microsoft.Dafny {
         foreach (var heapAtLabel in UsesHeapAt) {
           Bpl.Expr ve;
           var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(boogieGenerator.CurrentIdGenerator),
-            boogieGenerator.predef.HeapType, out ve);
+            boogieGenerator.Predef.HeapType, out ve);
           gExprs.Add(ve);
         }
 
@@ -398,7 +398,7 @@ namespace Microsoft.Dafny {
 
       public Bpl.Expr HeapExpr(BoogieGenerator boogieGenerator, bool old) {
         Contract.Requires(boogieGenerator != null);
-        return new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", boogieGenerator.predef.HeapType);
+        return new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", boogieGenerator.Predef.HeapType);
       }
 
       /// <summary>
@@ -413,10 +413,10 @@ namespace Microsoft.Dafny {
         Contract.Requires(boogieGenerator != null);
         var vv = new List<Variable>();
         // first, add the type variables
-        vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), boogieGenerator.predef.Ty, wantFormals)));
+        vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), boogieGenerator.Predef.Ty, wantFormals)));
         typeAntecedents = Bpl.Expr.True;
         if (UsesHeap) {
-          var nv = NewVar("$heap", boogieGenerator.predef.HeapType, wantFormals);
+          var nv = NewVar("$heap", boogieGenerator.Predef.HeapType, wantFormals);
           vv.Add(nv);
           if (etran != null) {
             var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null,
@@ -426,7 +426,7 @@ namespace Microsoft.Dafny {
         }
 
         if (UsesOldHeap) {
-          var nv = NewVar("$heap$old", boogieGenerator.predef.HeapType, wantFormals);
+          var nv = NewVar("$heap$old", boogieGenerator.Predef.HeapType, wantFormals);
           vv.Add(nv);
           if (etran != null) {
             var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null,
@@ -437,7 +437,7 @@ namespace Microsoft.Dafny {
 
         foreach (var heapAtLabel in UsesHeapAt) {
           var nv = NewVar("$Heap_at_" + heapAtLabel.AssignUniqueId(boogieGenerator.CurrentIdGenerator),
-            boogieGenerator.predef.HeapType, wantFormals);
+            boogieGenerator.Predef.HeapType, wantFormals);
           vv.Add(nv);
           if (etran != null) {
             // TODO: It's not clear to me that $IsGoodHeap predicates are needed for these axioms. (Same comment applies above for $heap$old.)
