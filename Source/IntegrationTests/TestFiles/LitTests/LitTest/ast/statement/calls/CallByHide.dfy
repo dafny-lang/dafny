@@ -1,4 +1,4 @@
-// RUN: ! %verify --type-system-refresh %s > %t
+// RUN: ! %verify --type-system-refresh --isolate-assertions %s > %t
 // RUN: %diff "%s.expect" "%t"
 
 predicate P() { true }

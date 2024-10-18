@@ -22,7 +22,7 @@ public partial class BoogieGenerator {
       Contract.Assert(generator.InVerificationScope(f));
 
       generator.proofDependencies.SetCurrentDefinition(MethodVerboseName(f.FullDafnyName,
-        MethodTranslationKind.SpecWellformedness));
+        MethodTranslationKind.SpecWellformedness), f);
       generator.currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       generator.codeContext = f;
 
@@ -46,7 +46,7 @@ public partial class BoogieGenerator {
       foreach (AttributedExpression ensures in ConjunctsOf(f.Ens)) {
         var functionHeight = generator.currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
         var splits = new List<SplitExprInfo>();
-        bool splitHappened /*we actually don't care*/ = generator.TrSplitExpr(context, ensures.E, splits, true, functionHeight, true, true, etran);
+        bool splitHappened /*we actually don't care*/ = generator.TrSplitExpr(context, ensures.E, splits, true, functionHeight, true, etran);
         var (errorMessage, successMessage) = generator.CustomErrorMessage(ensures.Attributes);
         var canCalls = etran.CanCallAssumption(ensures.E, new CanCallOptions(true, f));
         generator.AddEnsures(ens, generator.FreeEnsures(ensures.E.tok, canCalls, null, true));
@@ -62,7 +62,7 @@ public partial class BoogieGenerator {
       var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, procedureParameters);
       if (olderParameterCount != 0) {
         generator.AddEnsures(ens, new Ensures(f.tok, false, olderCondition, null) {
-          Description = new PODesc.IsOlderProofObligation(olderParameterCount, f.Ins.Count + (f.IsStatic ? 0 : 1))
+          Description = new IsOlderProofObligation(olderParameterCount, f.Ins.Count + (f.IsStatic ? 0 : 1))
         });
       }
 
@@ -80,7 +80,7 @@ public partial class BoogieGenerator {
       Contract.Assert(proc.InParams.Count == typeInParams.Count + heapParameters.Count + procedureParameters.Count);
       // Changed the next line to strip from inParams instead of proc.InParams
       // They should be the same, but hence the added contract
-      var locals = new List<Variable>();
+      var locals = new Variables();
       var builder = new BoogieStmtListBuilder(generator, generator.options, context);
       var builderInitializationArea = new BoogieStmtListBuilder(generator, generator.options, context);
       if (f is TwoStateFunction) {
@@ -109,8 +109,8 @@ public partial class BoogieGenerator {
           if (formal.IsOld) {
             Expr wh = generator.GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
-              var desc = new PODesc.IsAllocated("default value", "in the two-state function's previous state", e);
-              builder.Add(generator.Assert(generator.GetToken(e), wh, desc));
+              var desc = new IsAllocated("default value", "in the two-state function's previous state", e);
+              builder.Add(generator.Assert(generator.GetToken(e), wh, desc, builder.Context));
             }
           }
         }
@@ -175,12 +175,12 @@ public partial class BoogieGenerator {
     private void ConcurrentAttributeCheck(Function f, ExpressionTranslator etran, BoogieStmtListBuilder builder) {
       // If the function is marked as {:concurrent}, check that the reads clause is empty.
       if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName)) {
-        var desc = new PODesc.ConcurrentFrameEmpty(f, "reads");
+        var desc = new ConcurrentFrameEmpty(f, "reads");
         generator.CheckFrameEmpty(f.tok, etran, etran.ReadsFrame(f.tok), builder, desc, null);
       }
     }
 
-    private void CheckBodyAndEnsuresClauseWellformedness(Function f, ExpressionTranslator etran, List<Variable> locals, List<Variable> inParams,
+    private void CheckBodyAndEnsuresClauseWellformedness(Function f, ExpressionTranslator etran, Variables locals, List<Variable> inParams,
       BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder) {
       builder.Add(new CommentCmd("Check body and ensures clauses"));
       // Generate:
@@ -203,7 +203,7 @@ public partial class BoogieGenerator {
 
     private BoogieStmtListBuilder GetBodyCheckBuilder(Function f, ExpressionTranslator etran,
       List<Variable> parameters,
-      List<Variable> locals, BoogieStmtListBuilder builderInitializationArea) {
+      Variables locals, BoogieStmtListBuilder builderInitializationArea) {
       var selfCall = GetSelfCall(f, etran, parameters);
       var context = new BodyTranslationContext(f.ContainsHide);
       var bodyCheckBuilder = new BoogieStmtListBuilder(generator, generator.options, context);
@@ -232,7 +232,7 @@ public partial class BoogieGenerator {
         generator.CheckWellformedWithResult(f.Body, wfo, locals, bodyCheckBuilder, etran, CheckPostcondition);
 
         // var b$reads_guards#0 : bool  ...
-        locals.AddRange(wfo.Locals);
+        locals.AddRange(wfo.Locals.Values);
         // b$reads_guards#0 := true   ...
         foreach (var cmd in wfo.AssignLocals) {
           builderInitializationArea.Add(cmd);
@@ -274,7 +274,7 @@ public partial class BoogieGenerator {
       return funcAppl;
     }
 
-    private BoogieStmtListBuilder GetPostCheckBuilder(Function f, ExpressionTranslator etran, List<Variable> locals) {
+    private BoogieStmtListBuilder GetPostCheckBuilder(Function f, ExpressionTranslator etran, Variables locals) {
       var context = new BodyTranslationContext(f.ContainsHide);
       var postCheckBuilder = new BoogieStmtListBuilder(generator, generator.options, context);
       postCheckBuilder.Add(new CommentCmd("Check well-formedness of postcondition and assume false"));

@@ -28,6 +28,7 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
     this.Source = cloner.CloneExpr(original.Source);
     this.Cases = original.Cases.Select(cloner.CloneNestedMatchCaseExpr).ToList();
     this.UsesOptionalBraces = original.UsesOptionalBraces;
+
     if (cloner.CloneResolvedFields) {
       Flattened = cloner.CloneExpr(original.Flattened);
     }

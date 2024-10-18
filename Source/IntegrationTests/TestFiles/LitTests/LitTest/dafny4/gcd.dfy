@@ -205,7 +205,7 @@ method EuclidGcd(X: pos, Y: pos) returns (gcd: pos)
 // ------------------------------------------------------------------------------------------------------
 // The alternative definitions that follow allow the two cases in the GCD algorithm to look more similar.
 
-lemma GcdSubtractAlt(x: pos, y: pos)
+lemma {:isolate_assertions} GcdSubtractAlt(x: pos, y: pos)
   requires x < y
   ensures Gcd(y, x) == Gcd(x, y - x) // this says Gcd(y, x) instead of Gcd(x, y) as in GcdSubtract above
 {

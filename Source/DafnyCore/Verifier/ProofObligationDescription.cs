@@ -8,7 +8,7 @@ using System.Text;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny.ProofObligationDescription;
+namespace Microsoft.Dafny;
 
 public abstract class ProofObligationDescription : Boogie.ProofObligationDescription {
   public virtual bool IsImplicit => true;

@@ -19,6 +19,10 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
+  interface ICanPrint {
+    void Render(TextWriter wr, Printer printer, int indent);
+  }
+
   public partial class Printer {
 
     /// <summary>
@@ -26,7 +30,7 @@ namespace Microsoft.Dafny {
     /// If the statement requires several lines, subsequent lines are indented at "indent".
     /// No newline is printed after the statement.
     /// </summary>
-    public void PrintStatement(Statement stmt, int indent) {
+    public void PrintStatement(Statement stmt, int indent, bool includeSemicolon = true) {
       Contract.Requires(stmt != null);
 
       if (stmt.IsGhost && printMode == PrintModes.NoGhostOrIncludes) {
@@ -40,38 +44,13 @@ namespace Microsoft.Dafny {
         }
       }
 
+      if (stmt is ICanPrint canPrint) {
+        canPrint.Render(wr, this, indent);
+        return;
+      }
+
       if (stmt is PredicateStmt) {
-        if (printMode == PrintModes.NoGhostOrIncludes) {
-          return;
-        }
-
-        Expression expr = ((PredicateStmt)stmt).Expr;
-        var assertStmt = stmt as AssertStmt;
-        var expectStmt = stmt as ExpectStmt;
-        wr.Write(assertStmt != null ? "assert" :
-          expectStmt != null ? "expect" :
-          "assume");
-        if (stmt.Attributes != null) {
-          PrintAttributes(stmt.Attributes);
-        }
-
-        wr.Write(" ");
-        if (assertStmt != null && assertStmt.Label != null) {
-          wr.Write("{0}: ", assertStmt.Label.Name);
-        }
-
-        PrintExpression(expr, true);
-        if (assertStmt != null && assertStmt.Proof != null) {
-          wr.Write(" by ");
-          PrintStatement(assertStmt.Proof, indent);
-        } else if (expectStmt != null && expectStmt.Message != null) {
-          wr.Write(", ");
-          PrintExpression(expectStmt.Message, true);
-          wr.Write(";");
-        } else {
-          wr.Write(";");
-        }
-
+        PrintPredicateStmt(stmt, includeSemicolon);
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         wr.Write("print");
@@ -88,7 +67,6 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < s.BreakAndContinueCount - 1; i++) {
             wr.Write("break ");
           }
-
           wr.Write($"{s.Kind};");
         }
 
@@ -103,7 +81,6 @@ namespace Microsoft.Dafny {
             sep = ", ";
           }
         }
-
         wr.Write(";");
 
       } else if (stmt is SingleAssignStmt) {
@@ -122,7 +99,6 @@ namespace Microsoft.Dafny {
           PrintStatement(s, ind);
           wr.WriteLine();
         }
-
         if (sbs.BodyProper.Count != 0 || sbs.SeparatorTok != null) {
           Indent(indent + IndentAmount);
           wr.WriteLine("new;");
@@ -132,7 +108,6 @@ namespace Microsoft.Dafny {
             wr.WriteLine();
           }
         }
-
         Indent(indent);
         wr.Write("}");
 
@@ -149,7 +124,6 @@ namespace Microsoft.Dafny {
         if (s.UsesOptionalBraces) {
           wr.Write(" {");
         }
-
         PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
         if (s.UsesOptionalBraces) {
           wr.WriteLine();
@@ -176,10 +150,8 @@ namespace Microsoft.Dafny {
           } else {
             wr.Write(" ");
           }
-
           wr.Write("{");
         }
-
         Contract.Assert(s.Alternatives.Count != 0);
         PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
         if (s.UsesOptionalBraces) {
@@ -198,7 +170,6 @@ namespace Microsoft.Dafny {
           foreach (var expr in s.EffectiveEnsuresClauses) {
             PrintExpression(expr, false, new string(' ', indent + IndentAmount) + "ensures ");
           }
-
           if (s.Body != null) {
             wr.WriteLine();
             Indent(indent);
@@ -209,7 +180,6 @@ namespace Microsoft.Dafny {
             wr.Write(" ");
             PrintQuantifierDomain(s.BoundVars, s.Attributes, s.Range);
           }
-
           PrintSpec("ensures", s.Ens, indent + IndentAmount);
           if (s.Body != null) {
             if (s.Ens.Count == 0) {
@@ -220,7 +190,6 @@ namespace Microsoft.Dafny {
             }
           }
         }
-
         if (s.Body != null) {
           PrintStatement(s.Body, indent);
         }
@@ -231,10 +200,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is CalcStmt) {
         CalcStmt s = (CalcStmt)stmt;
-        if (printMode == PrintModes.NoGhostOrIncludes) {
-          return;
-        } // Calcs don't get a "ghost" attribute, but they are.
-
+        if (printMode == PrintModes.NoGhostOrIncludes) { return; }   // Calcs don't get a "ghost" attribute, but they are.
         wr.Write("calc");
         PrintAttributes(stmt.Attributes);
         wr.Write(" ");
@@ -245,11 +211,9 @@ namespace Microsoft.Dafny {
           PrintCalcOp(s.Op);
           wr.Write(" ");
         }
-
         wr.WriteLine("{");
         int lineInd = indent + IndentAmount;
-        int lineCount =
-          s.Lines.Count == 0 ? 0 : s.Lines.Count - 1; // if nonempty, .Lines always contains a duplicated last line
+        int lineCount = s.Lines.Count == 0 ? 0 : s.Lines.Count - 1;  // if nonempty, .Lines always contains a duplicated last line
         // The number of op/hints is commonly one less than the number of lines, but
         // it can also equal the number of lines for empty calc's and for calc's with
         // a dangling hint.
@@ -265,14 +229,12 @@ namespace Microsoft.Dafny {
           if (i == hintCount) {
             break;
           }
-
           // print the operator, if any
           if (op != null || (options.DafnyPrintResolvedFile != null && s.Op != null)) {
             Indent(indent); // this lines up with the "calc"
             PrintCalcOp(op ?? s.Op);
             wr.WriteLine();
           }
-
           // print the hints
           foreach (var st in h.Body) {
             Indent(lineInd);
@@ -280,7 +242,6 @@ namespace Microsoft.Dafny {
             wr.WriteLine();
           }
         }
-
         Indent(indent);
         wr.Write("}");
       } else if (stmt is NestedMatchStmt) {
@@ -290,22 +251,18 @@ namespace Microsoft.Dafny {
         if (s.Flattened != null && options.DafnyPrintResolvedFile != null) {
           wr.WriteLine();
           if (!printingDesugared) {
-            Indent(indent);
-            wr.WriteLine("/*---------- flattened ----------");
+            Indent(indent); wr.WriteLine("/*---------- flattened ----------");
           }
 
           var savedDesugarMode = printingDesugared;
           printingDesugared = true;
-          Indent(indent);
-          PrintStatement(s.Flattened, indent);
+          Indent(indent); PrintStatement(s.Flattened, indent);
           wr.WriteLine();
           printingDesugared = savedDesugarMode;
 
           if (!printingDesugared) {
-            Indent(indent);
-            wr.WriteLine("---------- end flattened ----------*/");
+            Indent(indent); wr.WriteLine("---------- end flattened ----------*/");
           }
-
           Indent(indent);
         }
 
@@ -317,7 +274,6 @@ namespace Microsoft.Dafny {
           if (s.UsesOptionalBraces) {
             wr.Write(" {");
           }
-
           int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
           foreach (NestedMatchCaseStmt mc in s.Cases) {
             wr.WriteLine();
@@ -333,7 +289,6 @@ namespace Microsoft.Dafny {
               PrintStatement(bs, caseInd + IndentAmount);
             }
           }
-
           if (s.UsesOptionalBraces) {
             wr.WriteLine();
             Indent(indent);
@@ -375,8 +330,9 @@ namespace Microsoft.Dafny {
           Indent(indent);
           wr.Write("}");
         }
+
       } else if (stmt is ConcreteAssignStatement concreteAssignStatement) {
-        PrintConcreteUpdateStatement(concreteAssignStatement, indent);
+        PrintConcreteUpdateStatement(concreteAssignStatement, indent, includeSemicolon);
       } else if (stmt is CallStmt) {
         // Most calls are printed from their concrete syntax given in the input. However, recursive calls to
         // prefix lemmas end up as CallStmt's by the end of resolution and they may need to be printed here.
@@ -386,16 +342,12 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        if (s.Locals.Exists(v => v.IsGhost) && printMode == PrintModes.NoGhostOrIncludes) {
-          return;
-        }
-
+        if (s.Locals.Exists(v => v.IsGhost) && printMode == PrintModes.NoGhostOrIncludes) { return; }
         if (s.Locals.TrueForAll((v => v.IsGhost))) {
           // Emit the "ghost" modifier if all of the variables are ghost. If some are ghost, but not others,
           // then some of these ghosts are auto-converted to ghost, so we should not emit the "ghost" keyword.
           wr.Write("ghost ");
         }
-
         wr.Write("var");
         string sep = "";
         foreach (var local in s.Locals) {
@@ -403,28 +355,26 @@ namespace Microsoft.Dafny {
           if (local.Attributes != null) {
             PrintAttributes(local.Attributes);
           }
-
           wr.Write(" {0}", local.DisplayName);
           PrintType(": ", local.SyntacticType);
           sep = ",";
         }
-
         if (s.Assign != null) {
           wr.Write(" ");
           PrintUpdateRHS(s.Assign, indent);
         }
 
-        PrintBy(s.Assign, indent);
+        if (includeSemicolon) {
+          wr.Write(";");
+        }
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
         if (s.tok is AutoGeneratedToken) {
           wr.Write("/* ");
         }
-
         if (s.HasGhostModifier) {
           wr.Write("ghost ");
         }
-
         wr.Write("var ");
         PrintCasePattern(s.LHS);
         wr.Write(" := ");
@@ -473,26 +423,11 @@ namespace Microsoft.Dafny {
         PrintStatement(haltRecoveryStatement.RecoverBody, ind);
         wr.Write("[[ } ]]");
       } else {
-        Contract.Assert(false);
-        throw new cce.UnreachableException(); // unexpected statement
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
 
-    void PrintBy(ConcreteAssignStatement statement, int indent) {
-      var proof = statement switch {
-        AssignStatement updateStmt => updateStmt.Proof,
-        AssignOrReturnStmt returnStmt => returnStmt.Proof,
-        _ => null
-      };
-      if (proof != null) {
-        wr.Write(" by ");
-        PrintStatement(proof, indent);
-      } else {
-        wr.Write(";");
-      }
-    }
-
-    public void PrintConcreteUpdateStatement(ConcreteAssignStatement stmt, int indent) {
+    public void PrintConcreteUpdateStatement(ConcreteAssignStatement stmt, int indent, bool includeSemicolon = true) {
       string sep = "";
       foreach (var lhs in stmt.Lhss) {
         wr.Write(sep);
@@ -503,7 +438,9 @@ namespace Microsoft.Dafny {
         wr.Write(" ");
       }
       PrintUpdateRHS(stmt, indent);
-      PrintBy(stmt, indent);
+      if (includeSemicolon) {
+        wr.Write(";");
+      }
     }
 
     public void PrintBlockStmt(BlockStmt stmt, int indent) {
@@ -773,8 +710,8 @@ namespace Microsoft.Dafny {
             PrintType(t.EType);
           }
           if (options.DafnyPrintResolvedFile == null &&
-              t.InitDisplay != null && t.ArrayDimensions.Count == 1 &&
-              AutoGeneratedToken.Is(t.ArrayDimensions[0].tok)) {
+            t.InitDisplay != null && t.ArrayDimensions.Count == 1 &&
+            AutoGeneratedToken.Is(t.ArrayDimensions[0].tok)) {
             // elide the size
             wr.Write("[]");
           } else {

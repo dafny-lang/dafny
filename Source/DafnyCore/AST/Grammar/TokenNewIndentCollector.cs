@@ -559,7 +559,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
       }
     }
 
-    if (stmt is AssertStmt { Proof: { StartToken: { } startToken } }) {
+    if (stmt is BlockByProofStmt { Proof: { StartToken: { } startToken } }) {
       SetOpeningIndentedRegion(startToken, indent);
     }
 

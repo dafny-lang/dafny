@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
+using Action = System.Action;
 
 namespace Microsoft.Dafny;
 
@@ -144,37 +145,44 @@ public abstract class Node : INode {
   public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {
     reportError ??= _ => { };
     beforeChildren ??= node => true;
-    afterChildren ??= node => { };
 
     var visited = new HashSet<INode>();
-    var toVisit = new LinkedList<INode>();
+    var toVisit = new LinkedList<object>();
     toVisit.AddFirst(this);
     while (toVisit.Any()) {
       var current = toVisit.First();
       toVisit.RemoveFirst();
-      if (!visited.Add(current)) {
-        continue;
-      }
-
-      if (!beforeChildren(current)) {
-        continue;
-      }
-
-      var nodeAfterChildren = toVisit.First;
-      foreach (var child in current.Children) {
-        if (child == null) {
-          reportError(new InvalidOperationException($"Object of type {current.GetType()} has null child"));
+      if (current is INode currentNode) {
+        if (!visited.Add(currentNode)) {
           continue;
         }
 
-        if (nodeAfterChildren == null) {
-          toVisit.AddLast(child);
-        } else {
-          toVisit.AddBefore(nodeAfterChildren, child);
+        if (!beforeChildren(currentNode)) {
+          continue;
         }
-      }
 
-      afterChildren(current);
+        if (afterChildren != null) {
+          void AfterNodeChildren() => afterChildren(currentNode);
+          toVisit.AddFirst((Action)AfterNodeChildren);
+        }
+        var nodeAfterChildren = toVisit.First;
+        foreach (var child in currentNode.Children) {
+          if (child == null) {
+            reportError(new InvalidOperationException($"Object of type {current.GetType()} has null child"));
+            continue;
+          }
+
+          if (nodeAfterChildren == null) {
+            toVisit.AddLast(child);
+          } else {
+            // Depth-first, but with children in unreversed order
+            toVisit.AddBefore(nodeAfterChildren, child);
+          }
+        }
+      } else {
+        var currentAction = (Action)current;
+        currentAction();
+      }
     }
 
     return visited;

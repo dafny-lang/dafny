@@ -625,9 +625,16 @@ public partial class BoogieGenerator {
     } else {
       comment += " (opaque)";
     }
-    return new Axiom(f.tok, BplImp(activate, ax), comment) {
+    var axe = new Axiom(f.tok, BplImp(activate, ax), comment) {
       CanHide = true
     };
+    if (proofDependencies == null) {
+      return axe;
+    }
+
+    proofDependencies.SetCurrentDefinition(f.FullSanitizedName, f);
+    proofDependencies.AddProofDependencyId(axe, f.tok, new FunctionDefinitionDependency(f));
+    return axe;
   }
 
 

@@ -300,7 +300,7 @@ module {:extern "DAST"} DAST {
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
     MapItems(expr: Expression) |
-    Select(expr: Expression, field: VarName, isConstant: bool, onDatatype: bool, fieldType: Type) |
+    Select(expr: Expression, field: VarName, fieldMutability: FieldMutability, isDatatype: bool, fieldType: Type) |
     SelectFn(expr: Expression, field: VarName, onDatatype: bool, isStatic: bool, isConstant: bool, arguments: seq<Type>) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |
@@ -323,6 +323,15 @@ module {:extern "DAST"} DAST {
     UnboundedIntRange(start: Expression, up: bool) |
     Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression)
 
+  // Since constant fields need to be set up in the constructor,
+  // accessing constant fields is done in two ways:
+  // - The internal field access (through the internal field that contains the value of the constant)
+  //   it's not initialized at the beginning of the constructor
+  // - The external field access (through a function), which when accessed
+  //   must always be initialized
+  // For Select expressions, it's important to know how the field is being accessed
+  // For mutable fields, there is no wrapping function so only one way to access the mutable field
+  datatype FieldMutability = ConstantField | InternalClassConstantField  | ClassMutableField
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
   datatype Literal =
