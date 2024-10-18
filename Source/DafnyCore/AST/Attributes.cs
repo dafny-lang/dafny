@@ -369,8 +369,9 @@ public class Attributes : TokenNode, ICanFormat {
       .WithArg("functionName", Type.ResolvedString(), DefaultString(""))
       .Filter(attributeHost => attributeHost is Function),
     BuiltIn("IsolateAssertions")
-      .Filter(attributeHost => attributeHost is MemberDecl),
-    BuiltIn("Options").WithArg(TupleItem0Name, Type.ResolvedString())
+      .Filter(attributeHost => attributeHost is MemberDecl or DatatypeDecl or RedirectingTypeDecl),
+    BuiltIn("Options")
+      .WithArg(TupleItem0Name, Type.ResolvedString())
       .Filter(attributeHost => attributeHost is ModuleDecl or ModuleDefinition),
   };
 
