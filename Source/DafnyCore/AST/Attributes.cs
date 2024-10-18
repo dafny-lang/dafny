@@ -367,9 +367,9 @@ public class Attributes : TokenNode, ICanFormat {
       .WithArg("low", Type.Int, DefaultInt(1))
       .WithArg("high", Type.Int, DefaultInt(2))
       .WithArg("functionName", Type.ResolvedString(), DefaultString(""))
-      .Filter(attributeHost => attributeHost is Function),
+      .Filter(attributeHost => attributeHost is Function or AssertStmt),
     BuiltIn("IsolateAssertions")
-      .Filter(attributeHost => attributeHost is MemberDecl or DatatypeDecl or RedirectingTypeDecl),
+      .Filter(attributeHost => attributeHost is ICanVerify),
     BuiltIn("Options")
       .WithArg(TupleItem0Name, Type.ResolvedString())
       .Filter(attributeHost => attributeHost is ModuleDecl or ModuleDefinition),
