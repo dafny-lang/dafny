@@ -800,7 +800,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
 
-      proofDependencies.SetCurrentDefinition(MethodVerboseName(ctor.FullName, MethodTranslationKind.SpecWellformedness));
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(ctor.FullName, MethodTranslationKind.SpecWellformedness), ctor.EnclosingDatatype);
 
       if (!InVerificationScope(ctor)) {
         // Checked in other file

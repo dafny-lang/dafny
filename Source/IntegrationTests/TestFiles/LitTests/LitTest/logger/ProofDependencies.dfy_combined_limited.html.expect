@@ -377,7 +377,7 @@ method {:testEntry} FalseAntecedentRequiresClauseMethod(x: int) returns (r: int)
 </span><span class="na" id="360:1">// False antecedent assert statement.
 method {:testEntry} FalseAntecedentAssertStatementMethod(x: int) {
   var y := x*x;
-  assert </span><span class="nc" id="363:10">y < 0 ==> x </span><span class="na" id="363:22"><</span><span class="nc" id="363:23"> 0</span><span class="na" id="363:25">;
+  assert y < 0 ==> x < 0;
 }
 
 // False antecedent ensures clause.
