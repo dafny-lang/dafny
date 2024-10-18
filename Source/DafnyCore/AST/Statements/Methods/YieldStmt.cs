@@ -11,7 +11,7 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt>, ICanFormat {
   }
 
   public YieldStmt(RangeToken rangeToken, List<AssignmentRhs> rhss)
-    : base(rangeToken, rhss) {
+    : base(rangeToken, rhss, null) {
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

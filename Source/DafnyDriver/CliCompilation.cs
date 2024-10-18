@@ -15,6 +15,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using VC;
+using VCGeneration;
 using Token = Microsoft.Dafny.Token;
 
 namespace DafnyDriver.Commands;
@@ -182,19 +183,31 @@ public class CliCompilation {
 
       if (ev is BoogieUpdate { BoogieStatus: Completed completed } boogieUpdate) {
         var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
+        var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
 
+        var hasParts = canVerifyResult.Tasks.Count > 2;
         if (Options.Get(CommonOptionBag.ProgressOption)) {
-          var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
+          var partOrigin = boogieUpdate.VerificationTask.Split.Token;
+
+          var wellFormedness = boogieUpdate.VerificationTask.Split.Implementation.Name.Contains("CheckWellFormed$");
+          var partDescription = partOrigin switch {
+            PathOrigin pathOrigin => $"assertion at line {pathOrigin.line}, " +
+                                     $"through [{string.Join(",", pathOrigin.Branches.Select(b => b.tok.line))}]",
+            IsolatedAssertionOrigin isolateOrigin => $"assertion at line {isolateOrigin.line}",
+            ReturnOrigin returnOrigin => $"return at line {returnOrigin.line}",
+            _ => wellFormedness ? "contract well-formedness" : (hasParts ? "remaining body" : "body")
+          };
+
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
           Options.OutputWriter.WriteLine(
-            $"Verified part #{boogieUpdate.VerificationTask.Split.SplitIndex}, {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
-            $", on line {token.line}, " +
+            $"Verified {completedPartsCount}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}: " +
+            $"{partDescription}, " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
             $" (time: {timeString}, resource count: {runResult.ResourceCount})");
         }
-        if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
+        if (completedPartsCount == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.TrySetResult();
         }
       }

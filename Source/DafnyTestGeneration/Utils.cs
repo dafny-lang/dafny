@@ -143,7 +143,7 @@ namespace DafnyTestGeneration {
     [ItemCanBeNull]
     public static List<string> AllBlockIds(Block block, DafnyOptions options) {
       string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
-      var state = block.cmds.OfType<AssumeCmd>()
+      var state = block.Cmds.OfType<AssumeCmd>()
         .Where(
           cmd => cmd.Attributes != null &&
                  cmd.Attributes.Key == "captureState" &&

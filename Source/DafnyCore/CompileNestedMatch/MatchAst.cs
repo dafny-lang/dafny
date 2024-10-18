@@ -107,7 +107,7 @@ public abstract class MatchCase : TokenNode, IHasReferences {
   }
 }
 
-interface IMatch {
+public interface IMatch {
   IEnumerable<MatchCase> Cases { get; }
   Expression Source { get; }
   List<DatatypeCtor> MissingCases { get; }

@@ -2289,14 +2289,16 @@ ReturnStmt<out Statement/*!*/ s>
          IToken returnTok = t;
          List<AssignmentRhs> rhss = null;
          AssignmentRhs r;
+         Attributes attributes = null;
        .)
+  [ Attribute<ref attributes> ]
   [ Rhs<out r>                       (. rhss = new List<AssignmentRhs>();
                                         rhss.Add(r);
                                      .)
     { "," Rhs<out r>                 (. rhss.Add(r); .)
     }
   ]
-  ";"                                (. s = new ReturnStmt(new RangeToken(returnTok, t), rhss);
+  ";"                                (. s = new ReturnStmt(new RangeToken(returnTok, t), rhss, attributes);
                                      .)
   .
 
