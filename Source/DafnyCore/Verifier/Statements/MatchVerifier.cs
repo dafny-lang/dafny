@@ -177,7 +177,7 @@ public static class MatchStatementVerifier {
     Contract.Requires(etran != null);
     Contract.Requires(locals != null);
     Contract.Requires(localTypeAssumptions != null);
-    Contract.Requires(boogieGenerator.predef != null);
+    Contract.Requires(boogieGenerator.Predef != null);
     Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
 
     sourceType = sourceType.NormalizeExpand();
@@ -190,7 +190,7 @@ public static class MatchStatementVerifier {
     List<Boogie.Expr> args = new List<Boogie.Expr>();
     for (int i = 0; i < mc.Arguments.Count; i++) {
       BoundVar p = mc.Arguments[i];
-      var nm = p.AssignUniqueName(boogieGenerator.currentDeclaration.IdGenerator);
+      var nm = p.AssignUniqueName(boogieGenerator.CurrentDeclaration.IdGenerator);
       var local = declareLocals ? null : locals.GetValueOrDefault(nm);  // find previous local
       if (local == null) {
         local = locals.GetOrAdd(new Boogie.LocalVariable(p.tok, new Boogie.TypedIdent(p.tok, nm, boogieGenerator.TrType(p.Type))));
@@ -207,7 +207,7 @@ public static class MatchStatementVerifier {
       boogieGenerator.CheckSubrange(p.tok, new Boogie.IdentifierExpr(p.tok, local), pFormalType, p.Type, new IdentifierExpr(p.Tok, p), localTypeAssumptions);
       args.Add(boogieGenerator.CondApplyBox(mc.tok, new Boogie.IdentifierExpr(p.tok, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
     }
-    Boogie.IdentifierExpr id = new Boogie.IdentifierExpr(mc.tok, mc.Ctor.FullName, boogieGenerator.predef.DatatypeType);
+    Boogie.IdentifierExpr id = new Boogie.IdentifierExpr(mc.tok, mc.Ctor.FullName, boogieGenerator.Predef.DatatypeType);
     return new Boogie.NAryExpr(mc.tok, new Boogie.FunctionCall(id), args);
   }
 
@@ -219,7 +219,7 @@ public static class MatchStatementVerifier {
     Contract.Requires(etran != null);
     Contract.Requires(locals != null);
     Contract.Requires(localTypeAssumptions != null);
-    Contract.Requires(generator.predef != null);
+    Contract.Requires(generator.Predef != null);
     Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
 
     // create local variables for the formals
@@ -232,7 +232,7 @@ public static class MatchStatementVerifier {
       args.Add(new Boogie.IdentifierExpr(arg.tok, bv));
     }
 
-    Boogie.IdentifierExpr id = new Boogie.IdentifierExpr(tok, ctor.FullName, generator.predef.DatatypeType);
+    Boogie.IdentifierExpr id = new Boogie.IdentifierExpr(tok, ctor.FullName, generator.Predef.DatatypeType);
     return new Boogie.NAryExpr(tok, new Boogie.FunctionCall(id), args);
   }
 }
