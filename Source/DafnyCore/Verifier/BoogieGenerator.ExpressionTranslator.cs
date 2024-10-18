@@ -390,7 +390,7 @@ namespace Microsoft.Dafny {
                 args.Add(Old.HeapExpr);
               }
               foreach (var heapAtLabel in e.HeapAtLabels) {
-                var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(BoogieGenerator.CurrentIdGenerator), BoogieGenerator.Predef.HeapType, out var ve);
+                var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(BoogieGenerator.CurrentIdGenerator), BoogieGenerator.predef.HeapType, out var ve);
                 args.Add(ve);
               }
               foreach (var arg in e.Args) {
@@ -2086,7 +2086,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
       public Expr CanCallAssumption(Expression expr) {
         Contract.Requires(expr != null);
         Contract.Requires(this != null);
-        Contract.Requires(BoogieGenerator.Predef != null);
+        Contract.Requires(BoogieGenerator.predef != null);
         Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
 
         if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
@@ -2251,7 +2251,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           var bvarsAndAntecedents = new List<Tuple<Boogie.Variable, Boogie.Expr>>();
           var varNameGen = BoogieGenerator.CurrentIdGenerator.NestedFreshIdGenerator("$l#");
 
-          Boogie.Expr heap; var hVar = BplBoundVar(varNameGen.FreshId("#heap#"), BoogieGenerator.Predef.HeapType, out heap);
+          Boogie.Expr heap; var hVar = BplBoundVar(varNameGen.FreshId("#heap#"), BoogieGenerator.predef.HeapType, out heap);
           var et = new ExpressionTranslator(this, heap);
 
           Dictionary<IVariable, Expression> subst = new Dictionary<IVariable, Expression>();

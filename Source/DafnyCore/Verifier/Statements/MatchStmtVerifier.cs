@@ -163,7 +163,7 @@ public class MatchStmtVerifier {
         new Microsoft.Dafny.IdentifierExpr(p.Tok, p), localTypeAssumptions);
       args.Add(generator.CondApplyBox(mc.tok, new IdentifierExpr(p.tok, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
     }
-    IdentifierExpr id = new IdentifierExpr(mc.tok, mc.Ctor.FullName, generator.Predef.DatatypeType);
+    IdentifierExpr id = new IdentifierExpr(mc.tok, mc.Ctor.FullName, generator.predef.DatatypeType);
     return new NAryExpr(mc.tok, new FunctionCall(id), args);
   }
 
@@ -197,7 +197,7 @@ public class MatchStmtVerifier {
       b.Add(boogieGenerator.Assert(boogieGenerator.GetToken(me), Expr.False, new MatchIsComplete("expression", missingStr)));
 
       Expr guard = Expr.Eq(src, r);
-      ifCmd = new IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els, BlockRewriter.AllowSplitQ);
+      ifCmd = new IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els /*, BlockRewriter.AllowSplitQ */);
       els = null;
     }
 

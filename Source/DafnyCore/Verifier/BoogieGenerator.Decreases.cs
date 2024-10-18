@@ -110,7 +110,7 @@ public partial class BoogieGenerator {
     Contract.Requires(cce.NonNullElements(dafny1));
     Contract.Requires(cce.NonNullElements(ee0));
     Contract.Requires(cce.NonNullElements(ee1));
-    Contract.Requires(Predef != null);
+    Contract.Requires(predef != null);
     Contract.Requires(dafny0.Count == dafny1.Count && dafny0.Count == ee0.Count && ee0.Count == ee1.Count);
     Contract.Requires(builder == null || suffixMsg != null);
     Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -246,7 +246,7 @@ public partial class BoogieGenerator {
     Contract.Requires(ty1 != null);
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);
-    Contract.Requires(Predef != null);
+    Contract.Requires(predef != null);
     Contract.Ensures(Contract.ValueAtReturn(out less) != null);
     Contract.Ensures(Contract.ValueAtReturn(out atmost) != null);
     Contract.Ensures(Contract.ValueAtReturn(out eq) != null);
@@ -314,8 +314,8 @@ public partial class BoogieGenerator {
         b1 = e1;
       } else {
         // for maps, compare their domains as sets
-        b0 = FunctionCall(tok, BuiltinFunction.MapDomain, Predef.MapType, e0);
-        b1 = FunctionCall(tok, BuiltinFunction.MapDomain, Predef.MapType, e1);
+        b0 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType, e0);
+        b1 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType, e1);
       }
       eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, b0, b1);
       less = ProperSubset(tok, b0, b1);
@@ -330,8 +330,8 @@ public partial class BoogieGenerator {
       } else {
         Contract.Assert(!((MapType)ty0).Finite);
         // for maps, compare their domains as sets
-        b0 = FunctionCall(tok, BuiltinFunction.IMapDomain, Predef.MapType, e0);
-        b1 = FunctionCall(tok, BuiltinFunction.IMapDomain, Predef.MapType, e1);
+        b0 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType, e0);
+        b1 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType, e1);
       }
       eq = FunctionCall(tok, BuiltinFunction.ISetEqual, null, b0, b1);
       less = Bpl.Expr.False;
@@ -366,8 +366,8 @@ public partial class BoogieGenerator {
     } else {
       // reference type
       Contract.Assert(ty0.IsRefType);  // otherwise, unexpected type
-      var b0 = Bpl.Expr.Neq(e0, Predef.Null);
-      var b1 = Bpl.Expr.Neq(e1, Predef.Null);
+      var b0 = Bpl.Expr.Neq(e0, predef.Null);
+      var b1 = Bpl.Expr.Neq(e1, predef.Null);
       eq = BplIff(b0, b1);
       less = BplAnd(Bpl.Expr.Not(b0), b1);
       atmost = BplImp(b0, b1);

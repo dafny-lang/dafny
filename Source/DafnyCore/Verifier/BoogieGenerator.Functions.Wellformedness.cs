@@ -26,7 +26,7 @@ public partial class BoogieGenerator {
       generator.currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       generator.codeContext = f;
 
-      ExpressionTranslator ordinaryEtran = new ExpressionTranslator(generator, generator.Predef, f.tok, f);
+      ExpressionTranslator ordinaryEtran = new ExpressionTranslator(generator, generator.predef, f.tok, f);
       var etran = GetExpressionTranslator(f, ordinaryEtran, out var additionalRequires, out var heapParameters);
 
       // parameters of the procedure
@@ -330,13 +330,13 @@ public partial class BoogieGenerator {
       additionalRequires = new();
       inParams_Heap = new List<Variable>();
       if (f is TwoStateFunction) {
-        var prevHeapVar = new Bpl.Formal(f.tok, new TypedIdent(f.tok, "previous$Heap", generator.Predef.HeapType), true);
-        var currHeapVar = new Bpl.Formal(f.tok, new TypedIdent(f.tok, "current$Heap", generator.Predef.HeapType), true);
+        var prevHeapVar = new Bpl.Formal(f.tok, new TypedIdent(f.tok, "previous$Heap", generator.predef.HeapType), true);
+        var currHeapVar = new Bpl.Formal(f.tok, new TypedIdent(f.tok, "current$Heap", generator.predef.HeapType), true);
         inParams_Heap.Add(prevHeapVar);
         inParams_Heap.Add(currHeapVar);
         Expr prevHeap = new Bpl.IdentifierExpr(f.tok, prevHeapVar);
         Expr currHeap = new Bpl.IdentifierExpr(f.tok, currHeapVar);
-        etran = new ExpressionTranslator(generator, generator.Predef, currHeap, prevHeap, f);
+        etran = new ExpressionTranslator(generator, generator.predef, currHeap, prevHeap, f);
 
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);

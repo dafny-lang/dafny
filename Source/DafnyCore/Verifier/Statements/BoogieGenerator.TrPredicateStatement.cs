@@ -103,7 +103,7 @@ namespace Microsoft.Dafny {
         if (assertStmt is { Label: not null }) {
           // make copies of the variables used in the assertion
           var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
-          var heapAt = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name, Predef.HeapType));
+          var heapAt = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name, predef.HeapType));
           locals.Add(heapAt);
           var heapReference = new Bpl.IdentifierExpr(stmt.Tok, heapAt);
           b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, heapReference, etran.HeapExpr));

@@ -25,7 +25,7 @@ public partial class BoogieGenerator {
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
     Contract.Requires(etran != null);
-    Contract.Requires(codeContext != null && Predef != null);
+    Contract.Requires(codeContext != null && predef != null);
     Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
 
     stmtContext = StmtType.NONE;
@@ -113,7 +113,7 @@ public partial class BoogieGenerator {
       // assume $IsGoodHeap($Heap);
       builder.Add(AssumeGoodHeap(s.Tok, etran));
       // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
-      var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", Predef.HeapType), iter);
+      var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", predef.HeapType), iter);
 
       var rhss = s.Rhss == null
         ? dafnyOutExprs
@@ -325,7 +325,7 @@ public partial class BoogieGenerator {
       // cause the change of the heap according to the given frame
       var suffix = CurrentIdGenerator.FreshId("modify#");
       string modifyFrameName = FrameVariablePrefix + suffix;
-      var preModifyHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap$" + suffix, Predef.HeapType));
+      var preModifyHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap$" + suffix, predef.HeapType));
       locals.Add(preModifyHeapVar);
       DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, modifyFrameName);
       if (s.Body == null) {
@@ -337,7 +337,7 @@ public partial class BoogieGenerator {
         // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
         builder.Add(TrAssumeCmd(s.Tok, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
         // assume nothing outside the frame was changed
-        var etranPreLoop = new ExpressionTranslator(this, Predef, preModifyHeap, this.CurrentDeclaration is IFrameScope fs ? fs : null);
+        var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap, this.CurrentDeclaration is IFrameScope fs ? fs : null);
         var updatedFrameEtran = etran.WithModifiesFrame(modifyFrameName);
         builder.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ModifiesFrame(s.Tok))));
       } else {
@@ -707,11 +707,11 @@ public partial class BoogieGenerator {
     Contract.Requires(locals != null);
     Contract.Requires(etran != null);
     // Add all newly allocated objects to the set this._new
-    var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), Predef.SetType));
+    var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), predef.SetType));
     locals.Add(updatedSet);
     var updatedSetIE = new Bpl.IdentifierExpr(iter.tok, updatedSet);
     // call $iter_newUpdate := $IterCollectNewObjects(initHeap, $Heap, this, _new);
-    var th = new Bpl.IdentifierExpr(iter.tok, etran.This, Predef.RefType);
+    var th = new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType);
     var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
     Bpl.Cmd cmd = new CallCmd(iter.tok, "$IterCollectNewObjects",
       new List<Bpl.Expr>() { initHeap, etran.HeapExpr, th, nwField },
@@ -762,7 +762,7 @@ public partial class BoogieGenerator {
       // havoc $nw;
       builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
       // assume $nw != null && $Is($nw, type);
-      var nwNotNull = Bpl.Expr.Neq(nw, Predef.Null);
+      var nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
       // drop the $Is conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
       var rightType = type.IsObjectQ ? Bpl.Expr.True : MkIs(nw, type);
       builder.Add(TrAssumeCmd(tok, BplAnd(nwNotNull, rightType)));
@@ -779,7 +779,7 @@ public partial class BoogieGenerator {
     Contract.Requires(etran != null);
 
     // $Heap[$nw, alloc] := true;
-    Bpl.Expr alloc = Predef.Alloc(tok);
+    Bpl.Expr alloc = predef.Alloc(tok);
     Bpl.IdentifierExpr heap = etran.HeapCastToIdentifierExpr;
     Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, heap, UpdateHeap(tok, heap, nw, alloc, Bpl.Expr.True));
     builder.Add(cmd);
@@ -855,7 +855,7 @@ public partial class BoogieGenerator {
       if (processLabels) {
         for (var l = ss.Labels; l != null; l = l.Next) {
           var heapAt = new Bpl.LocalVariable(ss.Tok,
-            new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), Predef.HeapType));
+            new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
           locals.Add(heapAt);
           builder.Add(Bpl.Cmd.SimpleAssign(ss.Tok, new Bpl.IdentifierExpr(ss.Tok, heapAt), etran.HeapExpr));
         }
@@ -878,7 +878,7 @@ public partial class BoogieGenerator {
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
     Contract.Requires(etran != null);
-    Contract.Requires(Predef != null);
+    Contract.Requires(predef != null);
 
     Bpl.QKeyValue kv;
     if (subsumption) {

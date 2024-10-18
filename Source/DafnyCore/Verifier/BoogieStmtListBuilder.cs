@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
 
     public void AddLabelCmd(IToken token, string label) {
       Commands.Add(label);
-      builder.AddLabelCmd(token, label);
+      builder.AddLabelCmd(/*token,*/ label);
     }
     public void AddLocalVariable(string name) { builder.AddLocalVariable(name); }
 

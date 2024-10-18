@@ -49,7 +49,7 @@ public partial class BoogieGenerator {
     Bpl.IdentifierExpr initHeap = null;
     if (codeContext is IteratorDecl) {
       // var initHeap := $Heap;
-      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, CurrentIdGenerator.FreshId("$initHeapCallStmt#"), Predef.HeapType));
+      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, CurrentIdGenerator.FreshId("$initHeapCallStmt#"), predef.HeapType));
       locals.Add(initHeapVar);
       initHeap = new Bpl.IdentifierExpr(s.Tok, initHeapVar);
       // initHeap := $Heap;
@@ -199,9 +199,9 @@ public partial class BoogieGenerator {
         var bplK = new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(k.Type));
         dActual = Expression.CreateSubtract(Expression.CreateIdentExpr(k), Expression.CreateNatLiteral(k.tok, 1, k.Type));
         if (k.Type.IsBigOrdinalType) {
-          bActual = FunctionCall(k.tok, "ORD#Minus", Predef.BigOrdinalType,
+          bActual = FunctionCall(k.tok, "ORD#Minus", predef.BigOrdinalType,
             bplK,
-            FunctionCall(k.tok, "ORD#FromNat", Predef.BigOrdinalType, Bpl.Expr.Literal(1)));
+            FunctionCall(k.tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(1)));
         } else {
           bActual = Bpl.Expr.Sub(bplK, Bpl.Expr.Literal(1));
         }
@@ -332,9 +332,9 @@ public partial class BoogieGenerator {
         var bLhs = Lhss[i];
         if (ModeledAsBoxType(callee.Outs[i].Type) && !ModeledAsBoxType(LhsTypes[i])) {
           // we need an Unbox
-          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, CurrentIdGenerator.FreshId("$tmp##"), Predef.BoxType));
+          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, CurrentIdGenerator.FreshId("$tmp##"), predef.BoxType));
           locals.Add(var);
-          Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(bLhs.tok, var.Name, Predef.BoxType);
+          Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(bLhs.tok, var.Name, predef.BoxType);
           tmpOuts.Add(varIdE);
           outs.Add(varIdE);
         } else {
