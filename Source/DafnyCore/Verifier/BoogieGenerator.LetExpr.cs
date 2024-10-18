@@ -115,7 +115,7 @@ namespace Microsoft.Dafny {
         rhss = new List<Boogie.Expr>();
         foreach (var v in let.BoundVars) {
           var rhs = substMap[v];  // this should succeed (that is, "v" is in "substMap"), because the AddCasePatternVarSubstitutions calls above should have added a mapping for each bound variable in let.BoundVars
-          var bv = BplBoundVar(v.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(v.Type), out var bvIde);
+          var bv = BplBoundVar(v.AssignUniqueName(BoogieGenerator.currentDeclaration.IdGenerator), BoogieGenerator.TrType(v.Type), out var bvIde);
           lhss.Add(bv);
           rhss.Add(TrExpr(rhs));
         }
@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
 
               ComputeFreeTypeVariables(e.RHSs[0], FTVs);
               info = new LetSuchThatExprInfo(e.tok, BoogieGenerator.letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap,
-                usesOldHeap, FVsHeapAt, usesThis, BoogieGenerator.CurrentDeclaration);
+                usesOldHeap, FVsHeapAt, usesThis, BoogieGenerator.currentDeclaration);
               BoogieGenerator.letSuchThatExprInfo.Add(e, info);
             }
 

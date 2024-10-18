@@ -192,7 +192,7 @@ public partial class BoogieGenerator {
       }
     }
     foreach (Formal p in f.Ins) {
-      var bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(p.Type)));
+      var bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(p.Type)));
       Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
       formals.Add(bv);
       olderInParams.Add(bv);
@@ -480,7 +480,7 @@ public partial class BoogieGenerator {
     foreach (Formal p in f.Ins) {
       var pType = p.Type.Subst(typeMap);
       bv = new Bpl.BoundVariable(p.tok,
-        new Bpl.TypedIdent(p.tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(pType)));
+        new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
       forallFormals.Add(bv);
       funcFormals.Add(bv);
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bv));

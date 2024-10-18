@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
 
       foreach (MemberDecl member in c.Members.FindAll(VisibleInScope)) {
         Contract.Assert(IsAllocContext == null);
-        CurrentDeclaration = member;
+        currentDeclaration = member;
         if (!filterOnlyMembers || member.HasUserAttribute("only", out _)) {
           SetAssertionOnlyFilter(member);
         } else {
@@ -1353,7 +1353,7 @@ namespace Microsoft.Dafny {
       var typeMap = GetTypeArgumentSubstitutionMap(f, overridingFunction);
       foreach (Formal p in f.Ins) {
         var pType = p.Type.Subst(typeMap);
-        var bv = new Boogie.BoundVariable(p.tok, new Boogie.TypedIdent(p.tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(pType)));
+        var bv = new Boogie.BoundVariable(p.tok, new Boogie.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
         forallFormals.Add(bv);
         var jfArg = new Boogie.IdentifierExpr(p.tok, bv);
         argsJF.Add(ModeledAsBoxType(p.Type) ? BoxIfNotNormallyBoxed(p.tok, jfArg, pType) : jfArg);

@@ -303,12 +303,12 @@ namespace Microsoft.Dafny {
                   BoundVar k = new BoundVar(n.tok, CurrentIdGenerator.FreshId(n.Name + "$ih#"), n.Type);
                   kvars.Add(k);
 
-                  IdentifierExpr ieK = new IdentifierExpr(k.tok, k.AssignUniqueName(CurrentDeclaration.IdGenerator));
+                  IdentifierExpr ieK = new IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator));
                   ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
                   kkDafny.Add(ieK);
                   kk.Add(etran.TrExpr(ieK));
 
-                  IdentifierExpr ieN = new IdentifierExpr(n.tok, n.AssignUniqueName(CurrentDeclaration.IdGenerator));
+                  IdentifierExpr ieN = new IdentifierExpr(n.tok, n.AssignUniqueName(currentDeclaration.IdGenerator));
                   ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
                   nnDafny.Add(ieN);
                   nn.Add(etran.TrExpr(ieN));

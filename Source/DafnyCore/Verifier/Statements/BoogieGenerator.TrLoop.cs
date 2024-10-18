@@ -39,7 +39,7 @@ public partial class BoogieGenerator {
     AddComment(builder, stmt, "for-loop statement");
 
     var indexVar = stmt.LoopIndex;
-    var indexVarName = indexVar.AssignUniqueName(CurrentDeclaration.IdGenerator);
+    var indexVarName = indexVar.AssignUniqueName(currentDeclaration.IdGenerator);
     var dIndex = new IdentifierExpr(indexVar.tok, indexVar);
     var bIndexVar = new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type)));
     locals.Add(bIndexVar);

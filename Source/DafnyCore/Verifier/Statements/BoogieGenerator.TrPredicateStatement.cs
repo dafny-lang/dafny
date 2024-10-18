@@ -114,12 +114,12 @@ namespace Microsoft.Dafny {
                 v.IsGhost);
               vcopy.type = vcopy.SyntacticType; // resolve local here
               IdentifierExpr ie = new IdentifierExpr(vcopy.Tok,
-                vcopy.AssignUniqueName(CurrentDeclaration.IdGenerator));
+                vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
               ie.Var = vcopy;
               ie.Type = ie.Var.Type; // resolve ie here
               substMap.Add(v, ie);
               locals.Add(new Bpl.LocalVariable(vcopy.Tok,
-                new Bpl.TypedIdent(vcopy.Tok, vcopy.AssignUniqueName(CurrentDeclaration.IdGenerator),
+                new Bpl.TypedIdent(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator),
                   TrType(vcopy.Type))));
               b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, TrVar(stmt.Tok, vcopy), TrVar(stmt.Tok, v)));
             }

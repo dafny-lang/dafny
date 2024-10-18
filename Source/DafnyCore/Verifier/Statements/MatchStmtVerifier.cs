@@ -145,7 +145,7 @@ public class MatchStmtVerifier {
     List<Expr> args = new List<Expr>();
     for (int i = 0; i < mc.Arguments.Count; i++) {
       BoundVar p = mc.Arguments[i];
-      var nm = p.AssignUniqueName(generator.CurrentDeclaration.IdGenerator);
+      var nm = p.AssignUniqueName(generator.currentDeclaration.IdGenerator);
       Variable local = declareLocals ? null : locals.FirstOrDefault(v => v.Name == nm);  // find previous local
       if (local == null) {
         local = new Microsoft.Boogie.LocalVariable(p.tok, new TypedIdent(p.tok, nm, generator.TrType(p.Type)));

@@ -337,7 +337,7 @@ public partial class BoogieGenerator {
         // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
         builder.Add(TrAssumeCmd(s.Tok, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
         // assume nothing outside the frame was changed
-        var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap, this.CurrentDeclaration is IFrameScope fs ? fs : null);
+        var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap, this.currentDeclaration is IFrameScope fs ? fs : null);
         var updatedFrameEtran = etran.WithModifiesFrame(modifyFrameName);
         builder.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ModifiesFrame(s.Tok))));
       } else {
@@ -363,7 +363,7 @@ public partial class BoogieGenerator {
     } else if (stmt is VarDeclPattern varDeclPattern) {
       foreach (var dafnyLocal in varDeclPattern.LocalVars) {
         var boogieLocal = new Bpl.LocalVariable(dafnyLocal.Tok,
-          new Bpl.TypedIdent(dafnyLocal.Tok, dafnyLocal.AssignUniqueName(CurrentDeclaration.IdGenerator),
+          new Bpl.TypedIdent(dafnyLocal.Tok, dafnyLocal.AssignUniqueName(currentDeclaration.IdGenerator),
             TrType(dafnyLocal.Type)));
         locals.Add(boogieLocal);
         var variableReference = new Bpl.IdentifierExpr(boogieLocal.tok, boogieLocal);
@@ -452,7 +452,7 @@ public partial class BoogieGenerator {
     foreach (var local in varDeclStmt.Locals) {
       Bpl.Type varType = TrType(local.Type);
       Bpl.Expr wh = GetWhereClause(local.Tok,
-        new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator), varType),
+        new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType),
         local.Type, etran, IsAllocContext.Var(varDeclStmt.IsGhost, local));
       // if needed, register definite-assignment tracking for this local
       var needDefiniteAssignmentTracking = varDeclStmt.Assign == null || varDeclStmt.Assign is AssignSuchThatStmt;
@@ -477,7 +477,7 @@ public partial class BoogieGenerator {
         }
       }
       // create the variable itself (now that "wh" may mention the definite-assignment tracker)
-      Bpl.LocalVariable var = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator), varType, wh));
+      Bpl.LocalVariable var = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh));
       var.Attributes = etran.TrAttributes(local.Attributes, null);
       newLocalIds.Add(new Bpl.IdentifierExpr(local.Tok, var));
       locals.Add(var);
@@ -491,7 +491,7 @@ public partial class BoogieGenerator {
     foreach (var local in varDeclStmt.Locals) {
       if (Attributes.Contains(local.Attributes, "assumption")) {
         Bpl.Type varType = TrType(local.Type);
-        builder.Add(new AssumeCmd(local.Tok, new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator), varType), new QKeyValue(local.Tok, "assumption_variable_initialization", new List<object>(), null)));
+        builder.Add(new AssumeCmd(local.Tok, new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType), new QKeyValue(local.Tok, "assumption_variable_initialization", new List<object>(), null)));
       }
     }
     if (varDeclStmt.Assign != null) {
@@ -806,9 +806,9 @@ public partial class BoogieGenerator {
     foreach (var bv in exists.BoundVars) {
       Bpl.Type varType = TrType(bv.Type);
       Bpl.Expr wh = GetWhereClause(bv.Tok,
-        new Bpl.IdentifierExpr(bv.Tok, bv.AssignUniqueName(CurrentDeclaration.IdGenerator), varType),
+        new Bpl.IdentifierExpr(bv.Tok, bv.AssignUniqueName(currentDeclaration.IdGenerator), varType),
         bv.Type, etran, IsAllocContext.Var(isGhost, bv));
-      Bpl.Variable local = new Bpl.LocalVariable(bv.Tok, new Bpl.TypedIdent(bv.Tok, bv.AssignUniqueName(CurrentDeclaration.IdGenerator), varType, wh));
+      Bpl.Variable local = new Bpl.LocalVariable(bv.Tok, new Bpl.TypedIdent(bv.Tok, bv.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh));
       locals.Add(local);
       iesForHavoc.Add(new Bpl.IdentifierExpr(local.tok, local));
     }

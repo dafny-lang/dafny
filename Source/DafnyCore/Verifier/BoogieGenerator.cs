@@ -689,7 +689,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(var != null);
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
-      return new Bpl.IdentifierExpr(tok, var.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(var.Type));
+      return new Bpl.IdentifierExpr(tok, var.AssignUniqueName(currentDeclaration.IdGenerator), TrType(var.Type));
     }
 
     public Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
@@ -741,7 +741,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (TopLevelDecl d in program.SystemModuleManager.SystemModule.TopLevelDecls) {
-        CurrentDeclaration = d;
+        currentDeclaration = d;
         if (d is AbstractTypeDecl abstractType) {
           GetOrCreateTypeConstructor(abstractType);
           AddClassMembers(abstractType, true, true);
@@ -792,7 +792,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (TopLevelDecl d in visibleTopLevelDecls) {
-        CurrentDeclaration = d;
+        currentDeclaration = d;
         if (d is AbstractTypeDecl abstractType) {
           AddClassMembers(abstractType, true, true);
         } else if (d is ModuleDecl) {
@@ -1465,7 +1465,7 @@ namespace Microsoft.Dafny {
 
         List<Expression> rArgs = new List<Expression>();
         foreach (BoundVar p in mc.Arguments) {
-          IdentifierExpr ie = new IdentifierExpr(p.tok, p.AssignUniqueName(boogieGenerator.CurrentDeclaration.IdGenerator));
+          IdentifierExpr ie = new IdentifierExpr(p.tok, p.AssignUniqueName(boogieGenerator.currentDeclaration.IdGenerator));
           ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
           rArgs.Add(ie);
         }
@@ -2932,9 +2932,9 @@ namespace Microsoft.Dafny {
           Contract.Assert(VisibleInScope(p.Type));
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetExtendedWhereClause(p.tok,
-            new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), varType),
+            new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType),
             p.Type, p.IsOld ? etran.Old : etran, IsAllocContext.Var(p));
-          inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), varType, wh), true));
+          inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh), true));
         }
       }
       if (includeOutParams) {
@@ -2944,7 +2944,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(!p.IsOld);  // out-parameters are never old (perhaps we want to relax this condition in the future)
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetWhereClause(p.tok,
-            new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), varType),
+            new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType),
             p.Type, etran, IsAllocContext.Var(p));
           if (kind == MethodTranslationKind.Implementation) {
             var tracker = AddDefiniteAssignmentTracker(p, outParams, true, m.IsGhost);
@@ -2952,7 +2952,7 @@ namespace Microsoft.Dafny {
               wh = BplImp(tracker, wh);
             }
           }
-          outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), varType, wh), false));
+          outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh), false));
         }
         // tear down definite-assignment trackers
         m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
@@ -3581,10 +3581,10 @@ namespace Microsoft.Dafny {
       foreach (BoundVar bv in boundVars) {
         LocalVariable local = new LocalVariable(bv.RangeToken, nameSuffix == null ? bv.Name : bv.Name + nameSuffix, bv.Type, bv.IsGhost);
         local.type = local.SyntacticType;  // resolve local here
-        IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator));
+        IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
         substMap.Add(bv, ie);
-        Bpl.LocalVariable bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(local.Type)));
+        Bpl.LocalVariable bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
         locals.Add(bvar);
         var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
         builder.Add(new Bpl.HavocCmd(bv.tok, new List<Bpl.IdentifierExpr> { bIe }));
@@ -3626,11 +3626,11 @@ namespace Microsoft.Dafny {
 
       var local = new LocalVariable(v.RangeToken, v.Name, v.Type, v.IsGhost);
       local.type = local.SyntacticType;  // resolve local here
-      var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator));
+      var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
       substMap.Add(v, ie);
 
-      var bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(local.Type)));
+      var bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
       locals.Add(bvar);
       var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
       builder.Add(new Bpl.HavocCmd(v.Tok, new List<Bpl.IdentifierExpr> { bIe }));
@@ -4103,7 +4103,7 @@ namespace Microsoft.Dafny {
     }
 
     int projectionFunctionCount = 0;
-    public Declaration CurrentDeclaration { get; set; }
+    public Declaration currentDeclaration { get; set; }
 
     // ----- Expression ---------------------------------------------------------------------------
 
