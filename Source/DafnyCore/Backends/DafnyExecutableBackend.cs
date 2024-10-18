@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using Dafny;
+using DafnyCore.Backends;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -48,6 +49,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   }
 
   public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
+    GhostEraser.EraseGhostCode(dafnyProgram);
     ProcessTranslationRecords(dafnyProgram, dafnyProgramName, output);
     CheckInstantiationReplaceableModules(dafnyProgram);
     ProcessOuterModules(dafnyProgram);

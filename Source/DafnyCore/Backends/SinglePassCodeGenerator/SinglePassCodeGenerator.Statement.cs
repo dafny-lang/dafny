@@ -40,9 +40,6 @@ namespace Microsoft.Dafny.Compilers {
 
       wStmts ??= wr.Fork();
 
-      if (stmt.IsGhost) {
-        return;
-      }
       switch (stmt) {
         case PrintStmt printStmt: {
             var s = printStmt;
@@ -87,7 +84,7 @@ namespace Microsoft.Dafny.Compilers {
             if (resolved.Count == 1) {
               TrStmt(resolved[0], wr);
             } else {
-              var assignStmts = resolved.Cast<SingleAssignStmt>().Where(assignStmt => !assignStmt.IsGhost).ToList();
+              var assignStmts = resolved.Cast<SingleAssignStmt>().ToList();
               var lhss = new List<Expression>();
               var rhss = new List<AssignmentRhs>();
 
@@ -733,10 +730,6 @@ namespace Microsoft.Dafny.Compilers {
       int nonGhostIndex = 0; // number of processed non-ghost arguments
       for (int index = 0; index < ctor.Formals.Count; index++) {
         var arg = ctor.Formals[index];
-
-        if (arg.IsGhost) {
-          continue;
-        }
 
         var type = arg.Type.Subst(typeSubstMap);
         // ((Dt_Ctor0)source._D).a0;

@@ -8,7 +8,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren {
-  public readonly List<MemberDecl> Members;
+  public List<MemberDecl> Members;
 
   // TODO remove this and instead clone the AST after parsing.
   public ImmutableList<MemberDecl> MembersBeforeResolution;

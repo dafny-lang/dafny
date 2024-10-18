@@ -259,14 +259,11 @@ namespace Microsoft.Dafny.Compilers {
             WriteTypeDescriptors(dtv.Ctor.EnclosingDatatype, dtv.InferredTypeArgs, wTypeDescriptorArguments, ref sep);
             sep = "";
             for (var i = 0; i < dtv.Arguments.Count; i++) {
-              var formal = dtv.Ctor.Formals[i];
-              if (!formal.IsGhost) {
-                wrArgumentList.Write(sep);
-                var w = EmitCoercionIfNecessary(from: dtv.Arguments[i].Type, to: dtv.Ctor.Formals[i].Type.Subst(typeSubst),
-                  toOrig: dtv.Ctor.Formals[i].Type, tok: dtv.tok, wr: wrArgumentList);
-                EmitExpr(dtv.Arguments[i], inLetExprBody, w, wStmts);
-                sep = ", ";
-              }
+              wrArgumentList.Write(sep);
+              var w = EmitCoercionIfNecessary(from: dtv.Arguments[i].Type, to: dtv.Ctor.Formals[i].Type.Subst(typeSubst),
+                toOrig: dtv.Ctor.Formals[i].Type, tok: dtv.tok, wr: wrArgumentList);
+              EmitExpr(dtv.Arguments[i], inLetExprBody, w, wStmts);
+              sep = ", ";
             }
 
             EmitDatatypeValue(dtv, wTypeDescriptorArguments.ToString(), wrArgumentList.ToString(), wr);
@@ -328,7 +325,7 @@ namespace Microsoft.Dafny.Compilers {
               var w = wr;
               for (int i = 0; i < e.LHSs.Count; i++) {
                 var lhs = e.LHSs[i];
-                if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
+                if (lhs.Vars.Any()) {
                   var rhsName = $"_pat_let{GetUniqueAstNumber(e)}_{i}";
                   w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type,
                     e.Body.tok, w, ref wStmts);
