@@ -33,19 +33,6 @@ overrides those further away.
 For attributes with a single boolean expression argument, the attribute
 with no argument is interpreted as if it were true.
 
-** Migration notes: ** There is a new syntax for typed attributes that is being added: `@Attribute(...)`, and these attributes are going to be prefix attributes. For now, the new syntax works only as top-level declarations. When all previous attributes will be migrated, this section will be rewritten.
-
-Dafny rewrites `@`-attributes to old-style equivalent attribute, after type-checking them. The definition of these attributes would look something like this currently+:
-
-<!-- %no-check -->
-```dafny
-datatype Attribute =
-    Fuel(low: int, high: int := low + 1, functionName: string := "")
-  | Options(string)
-  | Compile(bool)
-  | IsolateAssertions
-```
-
 ## 11.1. Attributes on top-level declarations
 
 ### 11.1.1. `{:autocontracts}` {#sec-attributes-autocontracts}
@@ -1016,4 +1003,42 @@ following attributes.
 * `{:weight}`
 * `{:yields}`
 
+## 11.9. New attribute syntax {#sec-at-attributes}
 
+There is a new syntax for typed prefix attributes that is being added: `@Attribute(...)`.
+For now, the new syntax works only as top-level declarations. When all previous attributes will be migrated, this section will be rewritten. For example, you can write
+
+<!-- %check-resolve -->
+```dafny
+@IsolateAssertions
+method Test() {
+}
+```
+
+instead of
+
+<!-- %check-resolve -->
+```dafny
+method {:isolate_assertions} Test() {
+}
+```
+
+
+Dafny rewrites `@`-attributes to old-style equivalent attribute. The definition of these attributes is similar to the following+:
+
+<!-- %no-check -->
+```dafny
+datatype Attribute =
+    Fuel(low: int, high: int := low + 1, functionName: string := "")
+  | Options(string)
+  | Compile(bool)
+  | IsolateAssertions
+```
+
+@-attributes have the same checks as regular resolved datatype values
+* The attribute should exist
+* Arguments should be compatible with the parameters, like for a datatype constructor call
+
+However, @-attributes have more checks:
+* The attribute should be applied to a place where it can be used by Dafny
+* Arguments should be literals
