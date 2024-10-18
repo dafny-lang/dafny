@@ -124,7 +124,8 @@ namespace Microsoft.Dafny.Compilers {
              memberDecl is Function { Body: null } or Method { Body: null };
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
+      ModuleDefinition externModule,
       string libraryName, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       if (currentBuilder is ModuleContainer moduleBuilder) {
         var attributes = (Sequence<DAST.Attribute>)ParseAttributes(moduleAttributes);
@@ -673,7 +674,7 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<Rune>.UnicodeFromString(name),
           compiler.GenType(type),
           compiler.ParseAttributes(field.Attributes)
-        ), isConst, rhsExpr);
+        ), isConst || field is ConstantField, rhsExpr);
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
@@ -1929,7 +1930,7 @@ namespace Microsoft.Dafny.Compilers {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(compileName),
-            member is ConstantField,
+            FieldMutabilityOf(member),
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
@@ -1974,7 +1975,7 @@ namespace Microsoft.Dafny.Compilers {
         return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
           objExpr,
           Sequence<Rune>.UnicodeFromString(compiledName),
-          member is ConstantField,
+          FieldMutabilityOf(member),
           member.EnclosingClass is DatatypeDecl, GenType(expectedType)
         ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
           objExpr,
@@ -2007,7 +2008,7 @@ namespace Microsoft.Dafny.Compilers {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
-            false,
+            FieldMutabilityOf(member, isInternal: true),
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
@@ -2018,7 +2019,7 @@ namespace Microsoft.Dafny.Compilers {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
-            member is ConstantField,
+            FieldMutabilityOf(member),
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
@@ -2027,6 +2028,14 @@ namespace Microsoft.Dafny.Compilers {
           ), this);
         }
       }
+    }
+
+    private static _IFieldMutability FieldMutabilityOf(MemberDecl member, bool isInternal = false) {
+      return member is ConstantField
+          ? isInternal
+            ? new FieldMutability_InternalClassConstantField()
+            : new FieldMutability_ConstantField()
+          : new FieldMutability_ClassMutableField();
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
@@ -2292,7 +2301,7 @@ namespace Microsoft.Dafny.Compilers {
             builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Select(
               sourceAST,
               Sequence<Rune>.UnicodeFromString(compileName),
-              false,
+              new FieldMutability_ConstantField(),
               true, GenType(dtor.Type)
             ));
           }
