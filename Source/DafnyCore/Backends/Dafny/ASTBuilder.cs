@@ -188,7 +188,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      parent.AddUnsupported("var/const for trait - " + item.dtor_name);
     }
 
     public object Finish() {
@@ -240,11 +240,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddMethod(DAST.Method item) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      parent.AddUnsupported("method for newtypes - " + item.dtor_name);
     }
 
     public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      parent.AddUnsupported("const for newtypes - " + item.dtor_name);
     }
 
     public object Finish() {
@@ -344,7 +344,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      parent.AddUnsupported("const for datatypes - " +  item.dtor_name);
     }
 
     public object Finish() {

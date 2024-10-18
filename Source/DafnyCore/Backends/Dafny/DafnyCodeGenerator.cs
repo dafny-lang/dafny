@@ -1577,12 +1577,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
-      throw new UnsupportedInvalidOperationException("<i>EmitStringLiteral</i>");
+      AddUnsupported("EmitStringLiteral");
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
       bool surroundByUnchecked, ConcreteSyntaxTree wr) {
-      throw new UnsupportedInvalidOperationException("<i>EmitBitvectorTruncation</i>");
+      AddUnsupported("EmitBitvectorTruncation");
+      return wr;
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
