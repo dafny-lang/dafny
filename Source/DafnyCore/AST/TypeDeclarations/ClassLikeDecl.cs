@@ -42,8 +42,10 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
 
     foreach (var token in OwnedTokens) {
       switch (token.val) {
+        case "trait":
         case "class": {
             classToken = token;
+            formatter.SetOpeningIndentedRegion(token, indentBefore);
             break;
           }
         case "extends": {
@@ -65,6 +67,8 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
           }
       }
     }
+
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
 
     foreach (var parent in ParentTraits) {
       formatter.SetTypeIndentation(parent);
