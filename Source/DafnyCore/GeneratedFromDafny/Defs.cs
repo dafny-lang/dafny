@@ -28,12 +28,12 @@ namespace Defs {
         return true;
       } else if (((i).Select(BigInteger.Zero)) == (new Dafny.Rune('_'))) {
         if ((new BigInteger(2)) <= (new BigInteger((i).Count))) {
-          if (((i).Select(BigInteger.One)) != (new Dafny.Rune('_'))) {
-            return true;
-          } else {
+          if (((i).Select(BigInteger.One)) == (new Dafny.Rune('_'))) {
             Dafny.ISequence<Dafny.Rune> _in0 = (i).Drop(new BigInteger(2));
             i = _in0;
             goto TAIL_CALL_START;
+          } else {
+            return true;
           }
         } else {
           return true;
@@ -85,7 +85,7 @@ namespace Defs {
       return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_T"), (i).Drop(new BigInteger(8)));
     }
     public static bool is__dafny__generated__id(Dafny.ISequence<Dafny.Rune> i) {
-      return ((((new BigInteger((i).Count)).Sign == 1) && (((i).Select(BigInteger.Zero)) == (new Dafny.Rune('_')))) && (!(Defs.__default.has__special((i).Drop(BigInteger.One))))) && (!((new BigInteger((i).Count)) >= (new BigInteger(2))) || (((i).Select(BigInteger.One)) != (new Dafny.Rune('T'))));
+      return (((((new BigInteger((i).Count)).Sign == 1) && (((i).Select(BigInteger.Zero)) == (new Dafny.Rune('_')))) && (!(Defs.__default.has__special((i).Drop(BigInteger.One))))) && ((!(i).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_self"))) && (!(i).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_Self"))))) && (!((new BigInteger((i).Count)) >= (new BigInteger(2))) || (((i).Select(BigInteger.One)) != (new Dafny.Rune('T'))));
     }
     public static bool is__idiomatic__rust__id(Dafny.ISequence<Dafny.Rune> i) {
       return ((((new BigInteger((i).Count)).Sign == 1) && (!(Defs.__default.has__special(i)))) && (!(Defs.__default.reserved__rust).Contains(i))) && (!(Defs.__default.reserved__rust__need__prefix).Contains(i));
@@ -99,7 +99,7 @@ namespace Defs {
       } else if (Defs.__default.is__tuple__builder(i)) {
         return Defs.__default.better__tuple__builder__name(i);
       } else if (((i).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"))) || ((i).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Self")))) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("r#_"), i);
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"), i);
       } else if ((Defs.__default.reserved__rust).Contains(i)) {
         return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("r#"), i);
       } else if (Defs.__default.is__idiomatic__rust__id(i)) {
@@ -108,7 +108,7 @@ namespace Defs {
         return i;
       } else {
         Dafny.ISequence<Dafny.Rune> _0_r = Defs.__default.replaceDots(i);
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("r#_"), _0_r);
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"), _0_r);
       }
     }
     public static Dafny.ISequence<Dafny.Rune> escapeVar(Dafny.ISequence<Dafny.Rune> f) {
