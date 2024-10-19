@@ -14,7 +14,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.MulInternals {
   import opened MulInternalsNonlinear
 
   /* performs multiplication for positive integers using recursive addition */
-  function {:opaque} MulPos(x: int, y: int) : int
+  function MulPos(x: int, y: int) : int
     requires x >= 0
   {
     if x == 0 then 0

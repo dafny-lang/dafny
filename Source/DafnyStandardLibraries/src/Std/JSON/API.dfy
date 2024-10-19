@@ -17,7 +17,7 @@ module Std.JSON.API {
   import opened Errors
 
   /* Serialization (JSON values to utf-8 bytes) */
-  opaque function Serialize(js: Values.JSON) : (bs: SerializationResult<seq<byte>>) {
+  function Serialize(js: Values.JSON) : (bs: SerializationResult<seq<byte>>) {
     var js :- Serializer.JSON(js);
     ZeroCopy.Serialize(js)
   }
@@ -35,7 +35,7 @@ module Std.JSON.API {
   }
 
   /* Deserialization (utf-8 bytes to JSON values) */
-  opaque function Deserialize(bs: seq<byte>) : (js: DeserializationResult<Values.JSON>) {
+  function Deserialize(bs: seq<byte>) : (js: DeserializationResult<Values.JSON>) {
     var js :- ZeroCopy.Deserialize(bs);
     Deserializer.JSON(js)
   }
