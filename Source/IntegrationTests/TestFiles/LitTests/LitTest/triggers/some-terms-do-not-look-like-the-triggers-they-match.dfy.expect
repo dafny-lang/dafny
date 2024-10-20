@@ -1,9 +1,9 @@
-some-terms-do-not-look-like-the-triggers-they-match.dfy(12,17): Info: Selected triggers: {s[_t#0], s[x]} where _t#0 := x + 1
+some-terms-do-not-look-like-the-triggers-they-match.dfy(12,17): Info: Selected triggers: {s[_t#0], s[x]}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section quantifier instantiation rules in the reference manual.
 some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Info: Part #0 is 'x in s ==> s[_t#0] > 0'
- Selected triggers: {s[_t#0], s[x]} where _t#0 := x + 1
+ Selected triggers: {s[_t#0], s[x]}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Info: Part #1 is 'x in s ==> _t#0 !in s'
- Selected triggers: {s[_t#0], s[x]} where _t#0 := x + 2
+ Selected triggers: {s[_t#0], s[x]}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(24,18): Info: Selected triggers: {x in s + t}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(25,18): Info: Selected triggers:
    {x in t}, {x in s}

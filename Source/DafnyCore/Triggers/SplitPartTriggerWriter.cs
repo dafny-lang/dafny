@@ -176,8 +176,7 @@ class SplitPartTriggerWriter {
       messages.Add($"Part #{splitPartIndex} is '{Comprehension.Term}'");
     }
     if (Candidates.Any()) {
-      var subst = Util.Comma("", NamedExpressions, pair => $" where {pair.Item2} := {pair.Item1}");
-      messages.Add($"Selected triggers:{InfoFirstLineEnd(Candidates.Count)}{string.Join(", ", Candidates)}{subst}");
+      messages.Add($"Selected triggers:{InfoFirstLineEnd(Candidates.Count)}{string.Join(", ", Candidates)}");
     }
     if (RejectedCandidates.Any()) {
       messages.Add($"Rejected triggers:{InfoFirstLineEnd(RejectedCandidates.Count)}{string.Join("\n  ", RejectedCandidates)}");
