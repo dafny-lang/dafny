@@ -168,16 +168,7 @@ public class InductionRewriter : IRewriter {
       // The argument list was legal, so let's use it for the _induction attribute.
       // Next, look for matching patterns for the induction hypothesis.
       if (lemma != null) {
-        var triggers = ComputeInductionTriggers(goodArguments, body, lemma.EnclosingClass.EnclosingModuleDefinition);
-        if (triggers.Count == 0) {
-          var suppressWarnings = Attributes.Contains(attributes, "nowarn");
-          var warningLevel = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
-
-          Reporter.Message(MessageSource.Rewriter, warningLevel, null, tok,
-            "Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. " +
-            $"Change or remove the {{:induction}} attribute to generate a different induction hypothesis, or add {{:nowarn}} to silence this warning. " +
-            "For more information, see the section quantifier instantiation rules in the reference manual.");
-        }
+        var triggers = ComputeInductionTriggers(goodArguments, body, lemma.EnclosingClass.EnclosingModuleDefinition, tok, attributes);
         ReportInductionTriggers(lemma, ref attributes, triggers);
       }
 
@@ -207,14 +198,12 @@ public class InductionRewriter : IRewriter {
         // Compute the induction triggers, but don't report their patterns into attributes yet. Instead,
         // call ReportInductionTriggers only after the "_induction" attribute has been added. This will cause the
         // tooltips to appear in a logical order (showing the induction variables first, followed by the matching patterns).
-        triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition);
-        if (triggers.Count == 0) {
-          var msg = "omitting automatic induction because of lack of triggers";
-          if (args != null) {
-            Reporter.Warning(MessageSource.Rewriter, GenericErrors.ErrorId.none, tok, msg);
-          } else {
-            Reporter.Info(MessageSource.Rewriter, tok, msg);
-          }
+        triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition,
+          args != null ? tok : null, attributes);
+        if (triggers.Count == 0 && args == null) {
+          // The user didn't ask for induction. But since there were candidate induction variables, report an informational message.
+          var candidates = $"candidate{Util.Plural(inductionVariables.Count)} {Printer.ExprListToString(Reporter.Options, inductionVariables)}";
+          Reporter.Info(MessageSource.Rewriter, tok, $"omitting automatic induction (for induction-variable {candidates}) because of lack of triggers");
           return;
         }
       }
@@ -254,9 +243,13 @@ public class InductionRewriter : IRewriter {
   /// <summary>
   /// Obtain and return matching patterns for
   ///     (forall inductionVariables :: body)
-  /// If there aren't any, then return null.
+  /// If there aren't any, then return an empty list.
+  ///
+  /// If "errorToken" is non-null and there are no matching patterns, then a warning/info message is emitted.
+  /// The selection between warning vs info is done by looking for a {:nowarn} attribute among "attributes".
   /// </summary>
-  List<List<Expression>> ComputeInductionTriggers(List<Expression> inductionVariables, Expression body, ModuleDefinition moduleDefinition) {
+  List<List<Expression>> ComputeInductionTriggers(List<Expression> inductionVariables, Expression body, ModuleDefinition moduleDefinition,
+    [CanBeNull] IToken errorToken, Attributes attributes) {
     Contract.Requires(inductionVariables.Count != 0);
 
     // Construct a quantifier, because that's what the trigger-generating machinery expects.
@@ -294,7 +287,21 @@ public class InductionRewriter : IRewriter {
     // to be ignored, so it is safer to not include triggers that require additional bound variables.)
     var triggers = quantifierCollection.GetTriggers(false);
     var reverseSubstituter = new Substituter(null, reverseSubstMap, new Dictionary<TypeParameter, Type>());
-    return triggers.ConvertAll(trigger => trigger.ConvertAll(reverseSubstituter.Substitute));
+    var result = triggers.ConvertAll(trigger => trigger.ConvertAll(reverseSubstituter.Substitute));
+
+    if (result.Count == 0 && errorToken != null) {
+      // The user explicitly asked for induction (with {:induction}, {:induction true}, or {:induction <variables>}).
+      // Respect this choice, but generate a warning that no triggers were found.
+      var suppressWarnings = Attributes.Contains(attributes, "nowarn");
+      var warningLevel = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
+
+      Reporter.Message(MessageSource.Rewriter, warningLevel, null, errorToken,
+        "Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. " +
+        $"Change or remove the {{:induction}} attribute to generate a different induction hypothesis, or add {{:nowarn}} to silence this warning. " +
+        "For more information, see the section quantifier instantiation rules in the reference manual.");
+    }
+
+    return result;
   }
 
   class InductionVisitor : BottomUpVisitor {

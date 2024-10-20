@@ -19,3 +19,107 @@ lemma {:induction n} ExchangeEtaWithInductionAttribute(n: nat, f: int -> int, g:
   ensures Sum(n, x => f(x)) == Sum(n, x => g(x))
 {
 }
+
+// -------------------------------------------
+
+type OpaqueType
+
+// Recursive predicates. Note that the heuristics for finding candidate induction variables pay attention
+// to whether or not the predicate is recursive.
+
+predicate P(n: nat) {
+  if n <= 0 then true else P(n - 1)
+}
+
+predicate Q(n: nat, b: bool) {
+  if n <= 0 then true else Q(n - 1, !b)
+}
+
+// --------------------
+
+lemma {:induction n, b} GivenListNoTrigger0(n: nat, o: OpaqueType, b: bool) // warning: no trigger
+  requires 0 <= n < 100
+  ensures P(if b then n else n)
+{
+}
+
+lemma {:induction n, b} GivenListNoTrigger1(n: nat, o: OpaqueType, b: bool) // warning: no trigger
+  requires 0 <= n < 100
+  ensures P(n)
+{
+}
+
+lemma {:induction n} GivenList(n: nat, o: OpaqueType, b: bool) // matching pattern for IH: P(n)
+  requires 0 <= n < 100
+  ensures P(n)
+{
+}
+
+// --------------------
+
+lemma {:induction} YesToIH(n: nat, o: OpaqueType, b: bool) // induction: n, b; warning: no trigger
+  requires 0 <= n < 100
+  ensures P(if b then n else n)
+{ // cannot prove postcondition
+}
+
+lemma {:induction} YesToIH1(n: nat, o: OpaqueType, b: bool) // induction: n, b; warning: no trigger
+  requires 0 <= n < 100
+  ensures P(n)
+{ // cannot prove postcondition
+}
+
+lemma {:induction} YesToIH2(n: nat, o: OpaqueType) // induction: n
+  requires 0 <= n < 100
+  ensures P(n)
+{
+}
+
+// --------------------
+
+lemma {:induction false} NoIH(n: nat, o: OpaqueType, b: bool)
+  requires 0 <= n < 100
+  ensures P(if b then n else n)
+{ // cannot prove postcondition
+}
+
+lemma {:induction false} NoIHButManualProof(n: nat, o: OpaqueType, b: bool)
+  requires 0 <= n < 100
+  ensures P(if b then n else n)
+{
+  if n != 0 {
+    NoIHButManualProof(n - 1, o, b);
+  }
+}
+
+// --------------------
+
+lemma AutomaticInduction(n: nat, o: OpaqueType, b: bool) // no induction, because no triggers (candidates: n)
+  requires 0 <= n < 100
+  ensures P(if b then n else n)
+{ // cannot prove postcondition
+}
+
+lemma AutomaticInduction1(n: nat, o: OpaqueType, b: bool) // induction: n; trigger: P(n)
+  requires 0 <= n < 100
+  ensures P(n)
+{
+}
+
+lemma AutomaticInduction2(n: nat, o: OpaqueType, b: bool) // induction: n, b; trigger: Q(n, b)
+  requires 0 <= n < 100
+  ensures Q(n, b)
+{
+}
+
+lemma AutomaticInduction3(n: nat, o: OpaqueType, b: bool) // induction: n; trigger: Q(n, true)
+  requires 0 <= n < 100
+  ensures Q(n, true)
+{
+}
+
+lemma AutomaticInduction4(n: nat, o: OpaqueType, b: bool) // no induction, because no triggers (candidates: n, b)
+  requires 0 <= n < 100
+  ensures P(n) && Q(n + 12, b)
+{ // cannot prove postcondition
+}
