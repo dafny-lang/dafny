@@ -123,7 +123,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     ensures ToNatRight(xs) == First(xs) + xs[1] * BASE()
   {
     var xs1 := DropFirst(xs);
-    assert DropFirst(xs1) == [];
     calc {
       ToNatRight(xs);
       { reveal ToNatRight(); }
