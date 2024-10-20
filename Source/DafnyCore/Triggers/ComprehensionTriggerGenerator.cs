@@ -235,8 +235,8 @@ namespace Microsoft.Dafny.Triggers {
       var triggers = new List<List<Expression>>();
       foreach (var triggerWriter in partWriters) {
         if (includeTriggersThatRequireNamedExpressions || triggerWriter.NamedExpressions.Count == 0) {
-          foreach (var triggerTerms in triggerWriter.Candidates) {
-            var trigger = triggerTerms.Terms.ConvertAll(t => t.Expr);
+          foreach (var triggerCandidate in triggerWriter.Candidates) {
+            var trigger = triggerCandidate.Terms.ConvertAll(t => t.Expr);
             triggers.Add(trigger);
           }
         }

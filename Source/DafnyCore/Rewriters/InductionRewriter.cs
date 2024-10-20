@@ -168,7 +168,7 @@ public class InductionRewriter : IRewriter {
       // The argument list was legal, so let's use it for the _induction attribute.
       // Next, look for matching patterns for the induction hypothesis.
       if (lemma != null) {
-        var triggers = ComputeAndReportInductionTriggers(lemma, ref attributes, goodArguments, body);
+        var triggers = ComputeInductionTriggers(goodArguments, body, lemma.EnclosingClass.EnclosingModuleDefinition);
         if (triggers.Count == 0) {
           var suppressWarnings = Attributes.Contains(attributes, "nowarn");
           var warningLevel = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
@@ -178,6 +178,7 @@ public class InductionRewriter : IRewriter {
             $"Change or remove the {{:induction}} attribute to generate a different induction hypothesis, or add {{:nowarn}} to silence this warning. " +
             "For more information, see the section quantifier instantiation rules in the reference manual.");
         }
+        ReportInductionTriggers(lemma, ref attributes, triggers);
       }
 
       attributes = new Attributes("_induction", goodArguments, attributes);
@@ -203,6 +204,9 @@ public class InductionRewriter : IRewriter {
     if (inductionVariables.Count != 0) {
       List<List<Expression>> triggers = null;
       if (lemma != null) {
+        // Compute the induction triggers, but don't report their patterns into attributes yet. Instead,
+        // call ReportInductionTriggers only after the "_induction" attribute has been added. This will cause the
+        // tooltips to appear in a logical order (showing the induction variables first, followed by the matching patterns).
         triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition);
         if (triggers.Count == 0) {
           var msg = "omitting automatic induction because of lack of triggers";
@@ -230,13 +234,9 @@ public class InductionRewriter : IRewriter {
     }
   }
 
-  List<List<Expression>> ComputeAndReportInductionTriggers(Method lemma, ref Attributes attributes, List<Expression> inductionVariables,
-    Expression body) {
-    var triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition);
-    ReportInductionTriggers(lemma, ref attributes, triggers);
-    return triggers;
-  }
-
+  /// <summary>
+  /// Report as tooltips the matching patterns selected for the induction hypothesis.
+  /// </summary>
   private void ReportInductionTriggers(Method lemma, ref Attributes attributes, List<List<Expression>> triggers) {
     foreach (var trigger in triggers) {
       attributes = new Attributes("_inductionPattern", trigger, attributes);
