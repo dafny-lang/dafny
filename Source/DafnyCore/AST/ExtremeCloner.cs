@@ -64,7 +64,7 @@ abstract class ExtremeCloner : Cloner {
     return fexp;
   }
 
-  protected Expression CloneEqualityAndAndK(BinaryExpr binaryExpr) {
+  protected Expression CloneEqualityAndAddK(BinaryExpr binaryExpr) {
     if (this.CloneResolvedFields) {
       throw new NotImplementedException();
     }
