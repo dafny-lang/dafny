@@ -38,8 +38,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if pointerType.Raw? then "construct" else "construct_object"
     const modify_macro := R.dafny_runtime.MSel(if pointerType.Raw? then "modify!" else "md!").AsExpr()
     const read_macro := R.dafny_runtime.MSel(if pointerType.Raw? then "read!" else "rd!").AsExpr()
-    const modify_field_macro := R.dafny_runtime.MSel("modify_field!").AsExpr()
-    const read_field_macro := R.dafny_runtime.MSel("read_field!").AsExpr()
+    const modify_mutable_field_macro := R.dafny_runtime.MSel("modify_field!").AsExpr()
+    const read_mutable_field_macro := R.dafny_runtime.MSel("read_field!").AsExpr()
 
     function Object(underlying: R.Type): R.Type {
       if pointerType.Raw? then R.PtrType(underlying) else R.ObjectType(underlying)
@@ -1613,13 +1613,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 newEnv := newEnv.RemoveAssigned(isAssignedVar);
               } else {
                 // Already assigned, safe to override
-                generated := modify_field_macro.Apply([read_macro.Apply1(thisInConstructor).Sel(fieldName), rhs]);
+                generated := modify_mutable_field_macro.Apply([read_macro.Apply1(thisInConstructor).Sel(fieldName), rhs]);
               }
             case _ =>
               if onExpr != R.Identifier("self") {
                 onExpr := read_macro.Apply1(onExpr);
               }
-              generated := modify_field_macro.Apply([onExpr.Sel(fieldName), rhs]);
+              generated := modify_mutable_field_macro.Apply([onExpr.Sel(fieldName), rhs]);
           }
           readIdents := recIdents;
           needsIIFE := false;
@@ -3265,7 +3265,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := recIdents;
           return;
         }
-        case Select(on, field, isConstant, isDatatype, fieldType) => {
+        case Select(on, field, fieldMutability, isDatatype, fieldType) => {
           if on.Companion? || on.ExternCompanion? {
             var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
 
@@ -3298,11 +3298,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               r := read_macro.Apply1(r);
             }
             r := r.Sel(escapeVar(field));
-            if isConstant {
-              r := r.Apply0();
-              r := r.Clone(); // self could be &mut, so to avoid any borrow checker problem, we clone the value.
-            } else {
-              r := read_field_macro.Apply1(r); // Already contains a clone.
+            match fieldMutability {
+              case ConstantField() =>
+                r := r.Apply0();
+                r := r.Clone();
+              case InternalClassConstantField() =>
+                r := r.Clone();
+              case ClassMutableField() =>
+                r := read_mutable_field_macro.Apply1(r); // Already contains a clone.
             }
             r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;

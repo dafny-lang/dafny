@@ -2,7 +2,8 @@ include "../Dafny/AST.dfy"
 
 /*This module does not contain any compiled code because it
   only proves properties about DCOMP. In a sense, it's a test file. */
-module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompilerProofs {
+@Compile(false)
+module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
   import opened DafnyToRustCompiler
   import opened DafnyToRustCompilerDefinitions
 
