@@ -478,7 +478,9 @@ mod tests {
         assert_eq!(rd!(c).constant_plus_x(), int!(42));
         md!(c).increment_x();
         assert_eq!(rd!(c).constant_plus_x(), int!(43));
-        modify_field!(rd!(c).x,int!(40));
+        if true {
+          modify_field!(rd!(c).x,int!(40))
+        }
         assert_eq!(rd!(c).constant_plus_x(), int!(82));
         modify_field!(rd!(c).t,54);
         assert_eq!(read_field!(rd!(c).t), 54);
@@ -829,6 +831,7 @@ mod tests {
 
         let objects: Set<Object<dyn ::std::any::Any>> = crate::set!{y.clone(), cast_any_object!(x.clone())};
         assert_eq!(objects.cardinality_usize(), 1);
+        test_dafny_type(a.clone());
     }
 
     pub struct NodeRawMut {
@@ -889,6 +892,9 @@ mod tests {
 
     // Tests that we can compose Dafny types, like a sequence of maps
     fn _test<X: DafnyTypeEq, Y: DafnyType>(_input: Sequence<Map<X, Y>>) {
+    }
+    // Tests that the input type is a DafnyType
+    fn test_dafny_type<X: DafnyType>(_input: X) {
     }
 
     #[derive(Clone)]
