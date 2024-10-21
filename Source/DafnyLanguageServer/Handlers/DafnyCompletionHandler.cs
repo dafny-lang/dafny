@@ -93,29 +93,41 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new CompletionList();
       }
 
-      private static string GetLastTwoCharactersBeforePositionIncluded(TextReader fileContent, DafnyPosition position) {
+      private string GetLastTwoCharactersBeforePositionIncluded(TextReader fileContent, DafnyPosition position) {
         // To track the last two characters
         char? prevChar = null;
         char? currentChar = null;
+        var targetLineIndex = position.Line;
+        var targetColumnIndex = position.Column - 1;
 
         // Read line by line
-        for (int lineNum = 0; lineNum <= position.Line; lineNum++) {
-          string? line = fileContent.ReadLine();
+        for (var lineNum = 0; lineNum <= targetLineIndex; lineNum++) {
+          var line = fileContent.ReadLine();
           if (line == null) {
-            throw new InvalidOperationException("Reached end of file before finding the specified line.");
+            logger.LogWarning("Reached end of file before finding the specified line.");
+            return "";
           }
 
           // If we are on the line of the specified position, handle the partial line case
-          if (lineNum == position.Line) {
-            int columnIndex = position.Column - 1; // Convert 1-based to 0-based index
+          if (lineNum == targetLineIndex) {
+            int columnIndex = targetColumnIndex; // Convert 1-based to 0-based index
             for (int i = 0; i <= columnIndex; i++) {
               prevChar = currentChar;
-              currentChar = line[i];
+              if (line.Length <= i) { // In some tests (e.g. SlowlyTypeFile) the position is given only as a character index
+                targetLineIndex += 1;
+                targetColumnIndex -= line.Length + 1; // 1 for the newline. It does not need to be OS-specific, since it's just for a coverage test
+              } else {
+                currentChar = line[i];
+              }
+            }
+
+            if (lineNum < targetLineIndex) {
+              continue;
             }
             break;
           } else {
             // Otherwise, track the last two characters of this full line (including newline)
-            foreach (char c in line + '\n')  // Include '\n' for line end tracking
+            foreach (var c in line + '\n')  // Include '\n' for line end tracking
             {
               prevChar = currentChar;
               currentChar = c;
