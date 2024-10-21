@@ -15,7 +15,7 @@ namespace Microsoft.Dafny {
 
     Bpl.Constant GetField(Field f) {
       Contract.Requires(f != null && f.IsMutable);
-      Contract.Requires(sink != null && predef != null);
+      Contract.Requires(sink != null && Predef != null);
       Contract.Ensures(Contract.Result<Bpl.Constant>() != null);
 
       Contract.Assert(VisibleInScope(f));
@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(fc != null);
       } else {
         // const f: Field ty;
-        Bpl.Type ty = predef.FieldName(f.tok);
+        Bpl.Type ty = Predef.FieldName(f.tok);
         fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullSanitizedName, ty), false);
         fields.Add(f, fc);
         // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f &&
@@ -46,7 +46,7 @@ namespace Microsoft.Dafny {
 
     Bpl.Function GetReadonlyField(Field f) {
       Contract.Requires(f != null && !f.IsMutable);
-      Contract.Requires(sink != null && predef != null);
+      Contract.Requires(sink != null && Predef != null);
       Contract.Ensures(Contract.Result<Bpl.Function>() != null);
 
       Contract.Assert(VisibleInScope(f));
@@ -57,33 +57,33 @@ namespace Microsoft.Dafny {
       } else {
         // Here are some built-in functions defined in "predef" (so there's no need to cache them in "fieldFunctions")
         if (f.EnclosingClass is ArrayClassDecl && f.Name == "Length") {
-          return predef.ArrayLength;
+          return Predef.ArrayLength;
         } else if (f.EnclosingClass is ValuetypeDecl { Name: "real" } && f.Name == "Floor") {
-          return predef.RealFloor;
+          return Predef.RealFloor;
         } else if (f is SpecialField && !(f is DatatypeDestructor || f.EnclosingClass is TopLevelDeclWithMembers and not ValuetypeDecl)) {
           if (f.Name is "Keys" or "Values" or "Items") {
             var fType = f.Type.NormalizeExpand();
             Contract.Assert(fType is SetType);
             var setType = (SetType)fType;
             return f.Name switch {
-              "Keys" => setType.Finite ? predef.MapDomain : predef.IMapDomain,
-              "Values" => setType.Finite ? predef.MapValues : predef.IMapValues,
-              _ => setType.Finite ? predef.MapItems : predef.IMapItems
+              "Keys" => setType.Finite ? Predef.MapDomain : Predef.IMapDomain,
+              "Values" => setType.Finite ? Predef.MapValues : Predef.IMapValues,
+              _ => setType.Finite ? Predef.MapItems : Predef.IMapItems
             };
           }
           if (f.Name == "IsLimit") {
-            return predef.ORDINAL_IsLimit;
+            return Predef.ORDINAL_IsLimit;
           } else if (f.Name == "IsSucc") {
-            return predef.ORDINAL_IsSucc;
+            return Predef.ORDINAL_IsSucc;
           } else if (f.Name == "Offset") {
-            return predef.ORDINAL_Offset;
+            return Predef.ORDINAL_Offset;
           } else if (f.Name == "IsNat") {
-            return predef.ORDINAL_IsNat;
+            return Predef.ORDINAL_IsNat;
           }
         } else if (f.FullSanitizedName == "_System.Tuple2._0") {
-          return predef.Tuple2Destructors0;
+          return Predef.Tuple2Destructors0;
         } else if (f.FullSanitizedName == "_System.Tuple2._1") {
-          return predef.Tuple2Destructors1;
+          return Predef.Tuple2Destructors1;
         }
 
         // Create a new function
@@ -117,7 +117,7 @@ namespace Microsoft.Dafny {
           // function QQ():int { 3 }
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
-            var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok), null);
+            var etran = new ExpressionTranslator(this, Predef, NewOneHeapExpr(f.tok), null);
             if (!IsOpaque(cf, options)) {
               var definitionAxiom = ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs));
               definitionAxiom.CanHide = true;
@@ -129,7 +129,7 @@ namespace Microsoft.Dafny {
         } else if (f.EnclosingClass is ArrayClassDecl) {
           // add non-negative-range axioms for array Length fields
           // axiom (forall o: Ref :: 0 <= array.Length(o));
-          Bpl.BoundVariable oVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "o", predef.RefType));
+          Bpl.BoundVariable oVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "o", Predef.RefType));
           Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(f.tok, oVar);
           var rhs = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(ff), new List<Bpl.Expr> { o });
           Bpl.Expr body = Bpl.Expr.Le(Bpl.Expr.Literal(0), rhs);
@@ -151,11 +151,11 @@ namespace Microsoft.Dafny {
 
     void AddWellformednessCheck(ConstantField decl) {
       Contract.Requires(decl != null);
-      Contract.Requires(sink != null && predef != null);
+      Contract.Requires(sink != null && Predef != null);
       Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
 
-      proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.FullDafnyName, MethodTranslationKind.SpecWellformedness));
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.FullDafnyName, MethodTranslationKind.SpecWellformedness), null);
       if (!InVerificationScope(decl)) {
         // Checked in other file
         return;
@@ -169,7 +169,7 @@ namespace Microsoft.Dafny {
       currentModule = decl.EnclosingModule;
       codeContext = decl;
       fuelContext = FuelSetting.NewFuelContext(decl);
-      var etran = new ExpressionTranslator(this, predef, decl.tok, null);
+      var etran = new ExpressionTranslator(this, Predef, decl.tok, null);
 
       // parameters of the procedure
       List<Variable> inParams = MkTyParamFormals(GetTypeParams(decl.EnclosingClass), true);

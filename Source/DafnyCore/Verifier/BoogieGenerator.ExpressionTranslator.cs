@@ -390,7 +390,7 @@ namespace Microsoft.Dafny {
                 args.Add(Old.HeapExpr);
               }
               foreach (var heapAtLabel in e.HeapAtLabels) {
-                var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(BoogieGenerator.CurrentIdGenerator), BoogieGenerator.predef.HeapType, out var ve);
+                var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(BoogieGenerator.CurrentIdGenerator), BoogieGenerator.Predef.HeapType, out var ve);
                 args.Add(ve);
               }
               foreach (var arg in e.Args) {
@@ -1642,7 +1642,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         Boogie.Expr typeAntecedent = Boogie.Expr.True;
         var i = 0;
         foreach (BoundVar bv in boundVars) {
-          var tid = new Boogie.TypedIdent(bv.tok, bv.AssignUniqueName(BoogieGenerator.currentDeclaration.IdGenerator), BoogieGenerator.TrType(bv.Type));
+          var tid = new Boogie.TypedIdent(bv.tok, bv.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(bv.Type));
           Boogie.Variable bvar;
           if (translateAsLocals) {
             bvar = new Boogie.LocalVariable(bv.tok, tid);
@@ -1666,7 +1666,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
 
         var varsAndAntecedents = new List<Tuple<Boogie.Variable, Boogie.Expr>>();
         foreach (BoundVar bv in boundVars) {
-          var tid = new Boogie.TypedIdent(bv.tok, bv.AssignUniqueName(BoogieGenerator.currentDeclaration.IdGenerator), BoogieGenerator.TrType(bv.Type));
+          var tid = new Boogie.TypedIdent(bv.tok, bv.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(bv.Type));
           var bvar = new Boogie.BoundVariable(bv.tok, tid);
           var wh = BoogieGenerator.GetWhereClause(bv.tok, new Boogie.IdentifierExpr(bv.tok, bvar), bv.Type, this, NOALLOC);
           varsAndAntecedents.Add(Tuple.Create<Boogie.Variable, Boogie.Expr>(bvar, wh));
@@ -1683,10 +1683,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         Boogie.Expr typeAntecedent = Boogie.Expr.True;
         foreach (BoundVar bv in boundVars) {
           var newBoundVar = new BoundVar(bv.tok, bv.Name, bv.Type);
-          IdentifierExpr ie = new IdentifierExpr(newBoundVar.tok, newBoundVar.AssignUniqueName(BoogieGenerator.currentDeclaration.IdGenerator));
+          IdentifierExpr ie = new IdentifierExpr(newBoundVar.tok, newBoundVar.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator));
           ie.Var = newBoundVar; ie.Type = ie.Var.Type;  // resolve ie here
           substMap.Add(bv, ie);
-          Boogie.Variable bvar = new Boogie.BoundVariable(newBoundVar.tok, new Boogie.TypedIdent(newBoundVar.tok, newBoundVar.AssignUniqueName(BoogieGenerator.currentDeclaration.IdGenerator), BoogieGenerator.TrType(newBoundVar.Type)));
+          Boogie.Variable bvar = new Boogie.BoundVariable(newBoundVar.tok, new Boogie.TypedIdent(newBoundVar.tok, newBoundVar.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(newBoundVar.Type)));
           bvars.Add(bvar);
           var bIe = new Boogie.IdentifierExpr(bvar.tok, bvar);
           Boogie.Expr wh = BoogieGenerator.GetWhereClause(bv.tok, bIe, newBoundVar.Type, this, NOALLOC);
@@ -2009,7 +2009,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               // omit the extern attribute when /noExterns option is specified.
               (name is "extern" && options.DisallowExterns) ||
               (name is "timeLimit" && hasNewTimeLimit) ||
-              (name is "rlimit" && hasNewRLimit)
+              (name is "rlimit" && hasNewRLimit) ||
+              (attr is UserSuppliedAtAttribute)
           ) {
             continue;
           }
@@ -2084,7 +2085,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
       public Expr CanCallAssumption(Expression expr) {
         Contract.Requires(expr != null);
         Contract.Requires(this != null);
-        Contract.Requires(BoogieGenerator.predef != null);
+        Contract.Requires(BoogieGenerator.Predef != null);
         Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
 
         if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
@@ -2249,7 +2250,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           var bvarsAndAntecedents = new List<Tuple<Boogie.Variable, Boogie.Expr>>();
           var varNameGen = BoogieGenerator.CurrentIdGenerator.NestedFreshIdGenerator("$l#");
 
-          Boogie.Expr heap; var hVar = BplBoundVar(varNameGen.FreshId("#heap#"), BoogieGenerator.predef.HeapType, out heap);
+          Boogie.Expr heap; var hVar = BplBoundVar(varNameGen.FreshId("#heap#"), BoogieGenerator.Predef.HeapType, out heap);
           var et = new ExpressionTranslator(this, heap);
 
           Dictionary<IVariable, Expression> subst = new Dictionary<IVariable, Expression>();

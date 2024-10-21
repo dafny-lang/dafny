@@ -1,0 +1,15 @@
+at-attributes-typos.dfy(16,9): Error: the parameter named 'low' is already given positionally
+at-attributes-typos.dfy(14,9): Error: Argument to attribute Compile must be a literal
+at-attributes-typos.dfy(13,20): Error: wrong number of arguments (got 2, but attribute 'Compile' expects at most 1: (0: bool))
+at-attributes-typos.dfy(12,15): Error: incorrect argument type for attribute parameter '0' (expected bool, found string)
+at-attributes-typos.dfy(28,0): Error: @Fuel attribute cannot be applied to method
+at-attributes-typos.dfy(42,31): Error: wrong number of arguments (got 1, but attribute 'IsolateAssertions' expects 0)
+at-attributes-typos.dfy(22,0): Error: @Fuel attribute cannot be applied to datatype
+at-attributes-typos.dfy(25,0): Error: @Fuel attribute cannot be applied to codatatype
+at-attributes-typos.dfy(32,0): Error: @Fuel attribute cannot be applied to type synonym
+at-attributes-typos.dfy(35,0): Error: @Fuel attribute cannot be applied to subset type
+at-attributes-typos.dfy(38,0): Error: @Fuel attribute cannot be applied to newtype
+at-attributes-typos.dfy(15,1): Error: unresolved identifier: fuel
+at-attributes-typos.dfy(11,1): Error: unresolved identifier: compile
+at-attributes-typos.dfy(41,1): Error: unresolved identifier: isolate_assertions
+14 resolution/type errors detected in at-attributes-typos.dfy

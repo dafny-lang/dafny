@@ -179,7 +179,7 @@ namespace Microsoft.Dafny {
               Bpl.Expr kHasSuccessor, kMinusOne;
               if (e.E0.Type.IsBigOrdinalType) {
                 kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), FunctionCall(k.tok, "ORD#Offset", Bpl.Type.Int, k));
-                kMinusOne = FunctionCall(k.tok, "ORD#Minus", predef.BigOrdinalType, k, FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, Bpl.Expr.Literal(1)));
+                kMinusOne = FunctionCall(k.tok, "ORD#Minus", Predef.BigOrdinalType, k, FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, Bpl.Expr.Literal(1)));
               } else {
                 kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
                 kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
@@ -200,7 +200,7 @@ namespace Microsoft.Dafny {
               }
               if (e.E0.Type.IsBigOrdinalType) {
                 var kIsNonZeroLimit = BplAnd(
-                  Bpl.Expr.Neq(k, FunctionCall(k.tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(0))),
+                  Bpl.Expr.Neq(k, FunctionCall(k.tok, "ORD#FromNat", Predef.BigOrdinalType, Bpl.Expr.Literal(0))),
                   FunctionCall(k.tok, "ORD#IsLimit", Bpl.Type.Bool, k));
                 var eq = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, null, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B);
                 var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Or, prefixEqK, BplOr(BplImp(kHasSuccessor, eqComponents), BplImp(kIsNonZeroLimit, eq)));
@@ -301,12 +301,12 @@ namespace Microsoft.Dafny {
                   BoundVar k = new BoundVar(n.tok, CurrentIdGenerator.FreshId(n.Name + "$ih#"), n.Type);
                   kvars.Add(k);
 
-                  IdentifierExpr ieK = new IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator));
+                  IdentifierExpr ieK = new IdentifierExpr(k.tok, k.AssignUniqueName(CurrentDeclaration.IdGenerator));
                   ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
                   kkDafny.Add(ieK);
                   kk.Add(etran.TrExpr(ieK));
 
-                  IdentifierExpr ieN = new IdentifierExpr(n.tok, n.AssignUniqueName(currentDeclaration.IdGenerator));
+                  IdentifierExpr ieN = new IdentifierExpr(n.tok, n.AssignUniqueName(CurrentDeclaration.IdGenerator));
                   ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
                   nnDafny.Add(ieN);
                   nn.Add(etran.TrExpr(ieN));
@@ -451,7 +451,7 @@ namespace Microsoft.Dafny {
           List<Variable> bvs;
           List<Bpl.Expr> args;
           CreateBoundVariables(ctor.Formals, out bvs, out args);
-          Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+          Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, Predef.DatatypeType, args);
           // (exists args :: args-have-the-expected-types && ct(args) == expr)
           Bpl.Expr q = Bpl.Expr.Binary(ctor.tok, BinaryOperator.Opcode.Eq, ct, expr);
           if (bvs.Count != 0) {

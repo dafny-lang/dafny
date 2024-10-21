@@ -50,10 +50,10 @@ public partial class BoogieGenerator {
   /// </summary>
   void AddPrefixPredicateAxioms(PrefixPredicate pp) {
     Contract.Requires(pp != null);
-    Contract.Requires(predef != null);
+    Contract.Requires(Predef != null);
     var co = pp.ExtremePred;
     var tok = pp.tok;
-    var etran = new ExpressionTranslator(this, predef, tok, pp);
+    var etran = new ExpressionTranslator(this, Predef, tok, pp);
 
     var tyvars = MkTyParamBinders(GetTypeParams(pp), out var tyexprs);
 
@@ -63,7 +63,7 @@ public partial class BoogieGenerator {
     var prefixArgsLimited = new List<Bpl.Expr>(tyexprs);
     var prefixArgsLimitedM = new List<Bpl.Expr>(tyexprs);
     if (pp.IsFuelAware()) {
-      var sV = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$ly", predef.LayerType));
+      var sV = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$ly", Predef.LayerType));
       var s = new Bpl.IdentifierExpr(tok, sV);
       var succS = FunctionCall(tok, BuiltinFunction.LayerSucc, null, s);
       bvs.Add(sV);
@@ -75,7 +75,7 @@ public partial class BoogieGenerator {
 
     Bpl.Expr h;
     if (pp.ReadsHeap) {
-      var heapIdent = new Bpl.TypedIdent(tok, predef.HeapVarName, predef.HeapType);
+      var heapIdent = new Bpl.TypedIdent(tok, Predef.HeapVarName, Predef.HeapType);
       var bv = new Bpl.BoundVariable(tok, heapIdent);
       h = new Bpl.IdentifierExpr(tok, bv);
       bvs.Add(bv);
@@ -180,7 +180,7 @@ public partial class BoogieGenerator {
     moreBvs.Add(k);
     var z = Bpl.Expr.Eq(kId,
       pp.Ins[0].Type.IsBigOrdinalType
-        ? (Bpl.Expr)FunctionCall(tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(0))
+        ? (Bpl.Expr)FunctionCall(tok, "ORD#FromNat", Predef.BigOrdinalType, Bpl.Expr.Literal(0))
         : Bpl.Expr.Literal(0));
     funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
     Bpl.Expr prefixLimitedBody = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
