@@ -89,6 +89,14 @@ public class LanguageServerFilesystem : IFileSystem {
     }
   }
 
+  public TextBuffer GetBuffer(Uri uri) {
+    if (openFiles.TryGetValue(uri, out var entry)) {
+      return entry.Buffer;
+    }
+
+    return new TextBuffer(OnDiskFileSystem.Instance.ReadFile(uri).ReadToEnd());
+  }
+
   public TextReader ReadFile(Uri uri) {
     if (openFiles.TryGetValue(uri, out var entry)) {
       return new StringReader(entry.Buffer.Text);

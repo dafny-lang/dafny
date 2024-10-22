@@ -127,10 +127,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   private const int MaxRememberedChanges = 100;
 
-  public TextReader ReadFile(Uri fileToRead) {
-    return fileSystem.ReadFile(fileToRead);
-  }
-
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     StartNewCompilation(documentChange.TextDocument.Uri.ToUri(), documentChange);
   }

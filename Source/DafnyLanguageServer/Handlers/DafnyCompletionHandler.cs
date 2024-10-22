@@ -12,20 +12,23 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyCompletionHandler : CompletionHandlerBase {
     private readonly ILogger<DafnyCompletionHandler> logger;
     private readonly IProjectDatabase projects;
+    private readonly LanguageServerFilesystem filesystem;
     private readonly ISymbolGuesser symbolGuesser;
     private DafnyOptions options;
 
     public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IProjectDatabase projects,
-      ISymbolGuesser symbolGuesser, DafnyOptions options) {
+      ISymbolGuesser symbolGuesser, DafnyOptions options, LanguageServerFilesystem filesystem) {
       this.logger = logger;
       this.projects = projects;
       this.symbolGuesser = symbolGuesser;
       this.options = options;
+      this.filesystem = filesystem;
     }
 
     protected override CompletionRegistrationOptions CreateRegistrationOptions(CompletionCapability capability, ClientCapabilities clientCapabilities) {
@@ -49,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();
       }
-      return new CompletionProcessor(symbolGuesser, logger, document, request, cancellationToken, options, await projects.GetProjectManager(request.TextDocument.Uri)).Process();
+      return new CompletionProcessor(symbolGuesser, logger, document, request, cancellationToken, options, filesystem).Process();
     }
 
     private class CompletionProcessor {
@@ -59,18 +62,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       private readonly IdeState state;
       private readonly CompletionParams request;
       private readonly CancellationToken cancellationToken;
-      private readonly ProjectManager? projectManager;
+      private readonly LanguageServerFilesystem filesystem;
 
       public CompletionProcessor(ISymbolGuesser symbolGuesser, ILogger<DafnyCompletionHandler> logger, IdeState state,
         CompletionParams request, CancellationToken cancellationToken, DafnyOptions options,
-        ProjectManager? projectManager) {
+        LanguageServerFilesystem filesystem) {
         this.symbolGuesser = symbolGuesser;
         this.state = state;
         this.request = request;
         this.cancellationToken = cancellationToken;
         this.options = options;
         this.logger = logger;
-        this.projectManager = projectManager;
+        this.filesystem = filesystem;
       }
 
       public CompletionList Process() {
@@ -93,53 +96,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new CompletionList();
       }
 
-      private string GetLastTwoCharactersBeforePositionIncluded(TextReader fileContent, DafnyPosition position) {
-        // To track the last two characters
-        char? prevChar = null;
-        char? currentChar = null;
-        var targetLineIndex = position.Line;
-        var targetColumnIndex = position.Column - 1;
-
-        // Read line by line
-        for (var lineNum = 0; lineNum <= targetLineIndex; lineNum++) {
-          var line = fileContent.ReadLine();
-          if (line == null) {
-            logger.LogWarning("Reached end of file before finding the specified line.");
-            return "";
-          }
-
-          // If we are on the line of the specified position, handle the partial line case
-          if (lineNum == targetLineIndex) {
-            int columnIndex = targetColumnIndex; // Convert 1-based to 0-based index
-            for (int i = 0; i <= columnIndex; i++) {
-              prevChar = currentChar;
-              if (line.Length <= i) { // In some tests (e.g. SlowlyTypeFile) the position is given only as a character index
-                targetLineIndex += 1;
-                targetColumnIndex -= line.Length + 1; // 1 for the newline. It does not need to be OS-specific, since it's just for a coverage test
-              } else {
-                currentChar = line[i];
-              }
-            }
-
-            if (lineNum < targetLineIndex) {
-              continue;
-            }
-            break;
-          } else {
-            // Otherwise, track the last two characters of this full line (including newline)
-            foreach (var c in line + '\n')  // Include '\n' for line end tracking
-            {
-              prevChar = currentChar;
-              currentChar = c;
-            }
-          }
-        }
-
-        // Handle case where fewer than 2 characters are available
-        if (prevChar == null) {
-          return currentChar?.ToString() ?? "";
-        }
-        return $"{prevChar}{currentChar}";
+      private string GetLastTwoCharactersBeforePositionIncluded(TextBuffer text, DafnyPosition position) {
+        var index = text.ToIndex(position.GetLspPosition());
+        var beforePosition = text.FromIndex(Math.Max(0, index - 2));
+        return text.Extract(new Range(beforePosition, position.GetLspPosition()));
       }
 
       private bool IsDotExpression() {
@@ -149,10 +109,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private bool IsAtAttribute() {
         var position = request.Position.ToDafnyPosition();
-        if (projectManager == null) {
-          return false;
-        }
-        var fileContent = projectManager.ReadFile(request.TextDocument.Uri.ToUri());
+        var fileContent = filesystem.GetBuffer(request.TextDocument.Uri.ToUri());
         var lastTwoChars = GetLastTwoCharactersBeforePositionIncluded(fileContent, position);
         var isAtAttribute =
           lastTwoChars == "@" ||
