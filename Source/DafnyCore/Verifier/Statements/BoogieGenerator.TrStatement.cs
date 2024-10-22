@@ -43,14 +43,8 @@ public partial class BoogieGenerator {
 
     } else if (stmt is HideRevealStmt revealStmt) {
       TranslateRevealStmt(builder, locals, etran, revealStmt);
-    } else if (stmt is BreakStmt) {
-      var s = (BreakStmt)stmt;
-      AddComment(builder, stmt, $"{s.Kind} statement");
-      foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - s.TargetStmt.ScopeDepth)) {
-        builder.Add(new ChangeScope(s.Tok, ChangeScope.Modes.Pop));
-      }
-      var lbl = (s.IsContinue ? "continue_" : "after_") + s.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
-      builder.Add(new GotoCmd(s.Tok, new List<string> { lbl }));
+    } else if (stmt is BreakStmt breakStmt) {
+      TrBreakStmt(builder, etran, breakStmt);
     } else if (stmt is ReturnStmt returnStmt) {
       AddComment(builder, returnStmt, "return statement");
       if (returnStmt.ReverifyPost) {
@@ -408,6 +402,18 @@ public partial class BoogieGenerator {
     } else {
       Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
     }
+  }
+
+  private void TrBreakStmt(BoogieStmtListBuilder builder, ExpressionTranslator etran, BreakStmt breakStmt)
+  {
+    AddComment(builder, breakStmt, $"{breakStmt.Kind} statement");
+    foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - breakStmt.TargetStmt.ScopeDepth)) {
+      builder.Add(new ChangeScope(breakStmt.Tok, ChangeScope.Modes.Pop));
+    }
+    var lbl = (breakStmt.IsContinue ? "continue_" : "after_") + breakStmt.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
+    builder.Add(new GotoCmd(breakStmt.Tok, new List<string> { lbl }) {
+      Attributes = etran.TrAttributes(breakStmt.Attributes)
+    });
   }
 
   private void TrUpdateStmt(BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran, AssignStatement statement) {

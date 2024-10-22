@@ -1,12 +1,12 @@
-// RUN: ! %verify --progress --cores=1 %s &> %t
+// RUN: ! %verify --progress VerificationJobs --cores=1 %s &> %t
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK:Verified 1/2 of Assertion: assertion at line 19, could not prove all assertions
 // CHECK:Verified 2/2 of Assertion: assertion at line 27, verified successfully
-// CHECK:Verified 1/3 of Return: remaining body, could not prove all assertions
+// CHECK:Verified 1/3 of Return: body, could not prove all assertions
 // CHECK:Verified 2/3 of Return: return at line 49, could not prove all assertions
 // CHECK:Verified 3/3 of Return: return at line 44, could not prove all assertions
-
-
+// CHECK:Verified 1/2 of Continue: body, verified successfully
+// CHECK:Verified 2/2 of Continue: continue at line 65, could not prove all assertions
 method Assertion(x: int, y: int) returns (r: int) {
   r := 0;
   if x > 0 
@@ -62,7 +62,7 @@ method Continue() {
     i := i - 1;
     if (i == 2) {
       r := r + 2;
-      continue /*{:isolate}*/;
+      continue {:isolate};
     } else {
       r := r + 1;
     }

@@ -195,7 +195,7 @@ public class CliCompilation {
             PathOrigin pathOrigin => $"{pathOrigin.Inner.KindName} at line {pathOrigin.line}, " +
                                      $"through [{string.Join(",", pathOrigin.Branches.Select(b => b.tok.line))}]",
             IsolatedAssertionOrigin isolateOrigin => $"assertion at line {isolateOrigin.line}",
-            ReturnOrigin returnOrigin => $"return at line {returnOrigin.line}",
+            JumpOrigin returnOrigin => $"{JumpOriginKind(returnOrigin)} at line {returnOrigin.line}",
             _ => wellFormedness ? "contract well-formedness" : (hasParts ? "remaining body" : "body")
           };
 
@@ -277,6 +277,11 @@ public class CliCompilation {
       }
       Compilation.ClearModuleCache(canVerifiesForModule.Key);
     }
+  }
+
+  private static string JumpOriginKind(JumpOrigin returnOrigin)
+  {
+    return returnOrigin.IsolatedReturn is GotoCmd ? "continue" : "return";
   }
 
   public static string DescribeOutcome(VcOutcome outcome) {
