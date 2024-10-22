@@ -404,8 +404,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void TrBreakStmt(BoogieStmtListBuilder builder, ExpressionTranslator etran, BreakStmt breakStmt)
-  {
+  private void TrBreakStmt(BoogieStmtListBuilder builder, ExpressionTranslator etran, BreakStmt breakStmt) {
     AddComment(builder, breakStmt, $"{breakStmt.Kind} statement");
     foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - breakStmt.TargetStmt.ScopeDepth)) {
       builder.Add(new ChangeScope(breakStmt.Tok, ChangeScope.Modes.Pop));

@@ -279,8 +279,7 @@ public class CliCompilation {
     }
   }
 
-  private static string JumpOriginKind(JumpOrigin returnOrigin)
-  {
+  private static string JumpOriginKind(JumpOrigin returnOrigin) {
     return returnOrigin.IsolatedReturn is GotoCmd ? "continue" : "return";
   }
 
