@@ -186,7 +186,7 @@ public class CliCompilation {
         var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
 
-        var hasParts = canVerifyResult.Tasks.Count > 2;
+        var hasParts = canVerifyResult.CompletedCount > 2;
         if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.VerificationJobs) {
           var partOrigin = boogieUpdate.VerificationTask.Split.Token;
 
@@ -202,12 +202,12 @@ public class CliCompilation {
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
           Options.OutputWriter.WriteLine(
-            $"Verified {completedPartsCount}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}: " +
+            $"Verified {completedPartsCount}/{canVerifyResult.CompletedCount} of {boogieUpdate.CanVerify.FullDafnyName}: " +
             $"{partDescription}, " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
             $" (time: {timeString}, resource count: {runResult.ResourceCount})");
         }
-        if (completedPartsCount == canVerifyResult.Tasks.Count) {
+        if (completedPartsCount == canVerifyResult.CompletedCount) {
           canVerifyResult.Finished.TrySetResult();
         }
       }
