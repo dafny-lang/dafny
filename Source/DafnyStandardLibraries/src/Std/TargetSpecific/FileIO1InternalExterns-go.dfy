@@ -12,9 +12,9 @@ module
   // across multiple Go files under the same path.
   // But it makes debugging the translated output a little clearer.
   {:compile false}
-{:extern}
-{:dummyImportMember "Dummy__", true}
-Std.GoFileIOInternalExterns replaces FileIOInternalExterns {
+  {:extern}
+  {:dummyImportMember "Dummy__", true}
+  Std.GoFileIOInternalExterns replaces FileIOInternalExterns {
   method
     {:extern}
   INTERNAL_ReadBytesFromFile(path: string)

@@ -46,7 +46,7 @@ public class CliCompilation {
     options.RunningBoogieFromCommandLine = true;
 
     var input = new CompilationInput(options, 0, options.DafnyProject);
-    var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
+    var executionEngine = new ExecutionEngine(options, new EmptyVerificationResultCache(), DafnyMain.LargeThreadScheduler);
     Compilation = createCompilation(executionEngine, input);
   }
 
@@ -163,10 +163,10 @@ public class CliCompilation {
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
         var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify];
         foreach (var part in canVerifyPartsIdentified.Parts.Where(canVerifyResult.TaskFilter)) {
-          canVerifyResult.Tasks.Add(part);
+          Interlocked.Increment(ref canVerifyResult.TaskCount);
         }
 
-        if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
+        if (canVerifyResult.CompletedParts.Count == canVerifyResult.TaskCount) {
           canVerifyResult.Finished.SetResult();
         }
       }
@@ -187,7 +187,7 @@ public class CliCompilation {
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
 
         var hasParts = canVerifyResult.Tasks.Count > 2;
-        if (Options.Get(CommonOptionBag.ProgressOption)) {
+        if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.VerificationJobs) {
           var partOrigin = boogieUpdate.VerificationTask.Split.Token;
 
           var wellFormedness = boogieUpdate.VerificationTask.Split.Implementation.Name.Contains("CheckWellFormed$");
@@ -229,42 +229,53 @@ public class CliCompilation {
     canVerifies = FilterCanVerifies(canVerifies, out var line);
     VerifiedAssertions = line != null;
 
-    var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
-    foreach (var canVerify in orderedCanVerifies) {
-      var results = new CliCanVerifyState();
-      canVerifyResults[canVerify] = results;
-      if (line != null) {
-        results.TaskFilter = t => KeepVerificationTask(t, line.Value);
-      }
-
-      var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
-      if (!shouldVerify) {
-        orderedCanVerifies.Remove(canVerify);
-      }
-    }
-
     int done = 0;
-    foreach (var canVerify in orderedCanVerifies) {
-      var results = canVerifyResults[canVerify];
-      try {
-        if (Options.Get(CommonOptionBag.ProgressOption)) {
-          await Options.OutputWriter.WriteLineAsync($"Verified {done}/{orderedCanVerifies.Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
+
+    var canVerifiesPerModule = canVerifies.ToList().GroupBy(c => c.ContainingModule).ToList();
+    foreach (var canVerifiesForModule in canVerifiesPerModule.
+               OrderBy(v => v.Key.Tok.pos)) {
+      var orderedCanVerifies = canVerifiesForModule.OrderBy(v => v.Tok.pos).ToList();
+      foreach (var canVerify in orderedCanVerifies) {
+        var results = new CliCanVerifyState();
+        canVerifyResults[canVerify] = results;
+        if (line != null) {
+          results.TaskFilter = t => KeepVerificationTask(t, line.Value);
         }
-        await results.Finished.Task;
-        done++;
-      } catch (ProverException e) {
-        Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
-        yield break;
-      } catch (OperationCanceledException) {
 
-      } catch (Exception e) {
-        Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
-          $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
-        throw;
+        var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
+        if (!shouldVerify) {
+          canVerifies.ToList().Remove(canVerify);
+        }
       }
-      yield return new CanVerifyResult(canVerify, results.CompletedParts.Select(c => new VerificationTaskResult(c.Task, c.Result.Result)).ToList());
 
-      canVerifyResults.Remove(canVerify); // Free memory
+      foreach (var canVerify in orderedCanVerifies) {
+        var results = canVerifyResults[canVerify];
+        try {
+          if (Options.Get(CommonOptionBag.ProgressOption) > CommonOptionBag.ProgressLevel.None) {
+            await Options.OutputWriter.WriteLineAsync(
+              $"Verified {done}/{canVerifies.ToList().Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
+          }
+
+          await results.Finished.Task;
+          done++;
+        } catch (ProverException e) {
+          Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
+          yield break;
+        } catch (OperationCanceledException) {
+
+        } catch (Exception e) {
+          Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
+            $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
+          throw;
+        }
+
+        yield return new CanVerifyResult(canVerify,
+          results.CompletedParts.Select(c => new VerificationTaskResult(c.Task, c.Result.Result)).ToList());
+
+        canVerifyResults.Remove(canVerify); // Free memory
+        Compilation.ClearCanVerifyCache(canVerify);
+      }
+      Compilation.ClearModuleCache(canVerifiesForModule.Key);
     }
   }
 

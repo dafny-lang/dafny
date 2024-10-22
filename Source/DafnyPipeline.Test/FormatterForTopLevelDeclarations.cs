@@ -35,10 +35,32 @@ include ""git-issue48-include.dfyi""
   [Fact]
   public async Task FormatterWorksForMultipleModules() {
     await FormatterWorksFor(@"
+/* Comment about module */
+@Compile(
+  false
+)
+@Options(
+  ""-functionSyntax:4""
+)
 module Outer.A {
   import B
   import C
   const a := B.b + C.c
+  @Compile(false)
+  module Inner {
+  }
+  @Compile(false)
+  class Test {
+  }
+  @Compile(false)
+  trait TestTrait {
+  }
+
+  @Compile(false)
+  datatype TestDatatype = TestDatatype
+
+  @Compile(false)
+  type T = TestDatatype
 }");
   }
 
@@ -107,6 +129,9 @@ newtype Y
   [Fact]
   public async Task FormatWorksForModules() {
     await FormatterWorksFor(@"
+include ""test.dfy""
+
+@Compile(true)
 module AM { class A {}
             class B {} }
 
