@@ -202,12 +202,12 @@ public class CliCompilation {
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
           Options.OutputWriter.WriteLine(
-            $"Verified {completedPartsCount}/{canVerifyResult.CompletedCount} of {boogieUpdate.CanVerify.FullDafnyName}: " +
+            $"Verified {completedPartsCount}/{canVerifyResult.TaskCount} of {boogieUpdate.CanVerify.FullDafnyName}: " +
             $"{partDescription}, " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
             $" (time: {timeString}, resource count: {runResult.ResourceCount})");
         }
-        if (completedPartsCount == canVerifyResult.CompletedCount) {
+        if (completedPartsCount == canVerifyResult.TaskCount) {
           canVerifyResult.Finished.TrySetResult();
         }
       }
