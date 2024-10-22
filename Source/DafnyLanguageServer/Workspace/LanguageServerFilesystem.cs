@@ -89,12 +89,12 @@ public class LanguageServerFilesystem : IFileSystem {
     }
   }
 
-  public TextBuffer GetBuffer(Uri uri) {
+  public TextBuffer? GetBuffer(Uri uri) {
     if (openFiles.TryGetValue(uri, out var entry)) {
       return entry.Buffer;
     }
 
-    return new TextBuffer(OnDiskFileSystem.Instance.ReadFile(uri).ReadToEnd());
+    return null;
   }
 
   public TextReader ReadFile(Uri uri) {

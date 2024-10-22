@@ -110,6 +110,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       private bool IsAtAttribute() {
         var position = request.Position.ToDafnyPosition();
         var fileContent = filesystem.GetBuffer(request.TextDocument.Uri.ToUri());
+        if (fileContent == null) {
+          // Impossible case because this only happens if the is not opened.
+          return false;
+        }
         var lastTwoChars = GetLastTwoCharactersBeforePositionIncluded(fileContent, position);
         var isAtAttribute =
           lastTwoChars == "@" ||
