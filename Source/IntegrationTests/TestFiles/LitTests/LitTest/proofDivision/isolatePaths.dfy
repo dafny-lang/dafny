@@ -1,13 +1,13 @@
 // RUN: ! %verify --progress --cores=1 %s &> %t
 // RUN: %OutputCheck --file-to-check "%t" "%s"
-// CHECK:Verified 1/5 of Assertion: assertion at line 28, through \[15,23\], could not prove all assertions
-// CHECK:Verified 2/5 of Assertion: assertion at line 28, through \[18,23\], verified successfully
-// CHECK:Verified 3/5 of Assertion: assertion at line 28, through \[15,25\], verified successfully
-// CHECK:Verified 4/5 of Assertion: assertion at line 28, through \[18,25\], verified successfully
-// CHECK:Verified 5/5 of Assertion: remaining body, verified successfully
-// CHECK:Verified 1/3 of Return: assertion at line 45, through \[37\], could not prove all assertions
-// CHECK:Verified 2/3 of Return: assertion at line 45, through \[40\], verified successfully
-// CHECK:Verified 3/3 of Return: remaining body, could not prove all assertions
+// CHECK:Verified 1/4 of Assertion: assertion at line 28, through \[15,23\], could not prove all assertions
+// CHECK:Verified 2/4 of Assertion: assertion at line 28, through \[15,25\], verified successfully
+// CHECK:Verified 3/4 of Assertion: assertion at line 28, through \[18,23\], verified successfully
+// CHECK:Verified 4/4 of Assertion: assertion at line 28, through \[18,25\], verified successfully
+// CHECK:Verified 1/3 of Return: remaining body, could not prove all assertions
+// CHECK:Verified 2/3 of Return: return at line 45, through \[37\], could not prove all assertions
+// CHECK:Verified 3/3 of Return: return at line 45, through \[40\], verified successfully
+
 
 method Assertion(x: int, y: int) returns (r: int) {
   r := 0;

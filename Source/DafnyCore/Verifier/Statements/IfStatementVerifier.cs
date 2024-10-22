@@ -56,6 +56,6 @@ public class IfStatementVerifier {
     }
     builder.Add(new IfCmd(stmt.Tok,
       guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard),
-      thenList, elseIf, elseList /*, BlockRewriter.AllowSplitQ */));
+      thenList, elseIf, elseList, BlockRewriter.AllowSplitQ));
   }
 }

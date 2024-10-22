@@ -72,7 +72,7 @@ public class MatchStmtVerifier {
       generator.DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
 
       Expr guard = Expr.Eq(source, r);
-      ifCmd = new IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els);
+      ifCmd = new IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els, BlockRewriter.AllowSplitQ);
       els = null;
       generator.CurrentIdGenerator.Pop();
     }
@@ -197,7 +197,7 @@ public class MatchStmtVerifier {
         new MatchIsComplete("expression", missingStr), builder.Context));
 
       Expr guard = Expr.Eq(src, r);
-      ifCmd = new IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els /*, BlockRewriter.AllowSplitQ */);
+      ifCmd = new IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els, BlockRewriter.AllowSplitQ);
       els = null;
     }
 

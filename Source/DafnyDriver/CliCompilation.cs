@@ -192,7 +192,7 @@ public class CliCompilation {
 
           var wellFormedness = boogieUpdate.VerificationTask.Split.Implementation.Name.Contains("CheckWellFormed$");
           var partDescription = partOrigin switch {
-            PathOrigin pathOrigin => $"assertion at line {pathOrigin.line}, " +
+            PathOrigin pathOrigin => $"{pathOrigin.Inner.KindName} at line {pathOrigin.line}, " +
                                      $"through [{string.Join(",", pathOrigin.Branches.Select(b => b.tok.line))}]",
             IsolatedAssertionOrigin isolateOrigin => $"assertion at line {isolateOrigin.line}",
             ReturnOrigin returnOrigin => $"return at line {returnOrigin.line}",
