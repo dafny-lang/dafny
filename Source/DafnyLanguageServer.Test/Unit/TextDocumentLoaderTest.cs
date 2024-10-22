@@ -44,15 +44,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       };
     }
 
-    private static DocumentTextBuffer CreateTestDocument() {
-      return new DocumentTextBuffer(new TextDocumentItem() {
-        Uri = DocumentUri.Parse("untitled:untitled1"),
-        LanguageId = "dafny",
-        Version = 1,
-        Text = ""
-      });
-    }
-
     [Fact]
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       var source = new CancellationTokenSource();
