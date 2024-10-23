@@ -323,13 +323,11 @@ The two contexts are:
 
 The form of the `{:induction}` attribute is one of the following:
 
-* `{:induction}` -- apply induction to all bound variables
+* `{:induction}` or `{:induction true}` -- apply induction to all bound variables
 * `{:induction false}` -- suppress induction, that is, don't apply it to any bound variable
-* `{:induction L}` where `L` is a list consisting entirely of bound variables
+* `{:induction L}` where `L` is a sublist of the bound variables
 -- apply induction to the specified bound variables
-* `{:induction X}` where `X` is anything else -- treat the same as
-`{:induction}`, that is, apply induction to all bound variables. For this
-usage conventionally `X` is `true`.
+* `{:induction X}` where `X` is anything else -- raise an error.
 
 Here is an example of using it on a quantifier expression:
 <!-- %check-verify -->
