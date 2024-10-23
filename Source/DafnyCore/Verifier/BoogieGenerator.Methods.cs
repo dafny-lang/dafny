@@ -782,7 +782,7 @@ namespace Microsoft.Dafny {
             null, null, false, true);
         };
 
-        var triggers = Attributes.FindAllExpressions(m.Attributes, "_inductionPattern");
+        var triggers = Attributes.FindAllExpressions(m.Attributes, "inductionTrigger");
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
         var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
         var exporter = new BoogieStmtListBuilder(this, options, builder.Context);
