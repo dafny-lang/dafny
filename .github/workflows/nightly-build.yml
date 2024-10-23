@@ -31,3 +31,12 @@ jobs:
       publish-prerelease: true
     secrets:
       nuget_api_key: ${{ secrets.NUGET_API_KEY }}
+
+  nightly-build-for-4-9:
+    if: github.repository_owner == 'dafny-lang'
+    uses: ./.github/workflows/nightly-build-reusable.yml
+    with:
+      ref: 4.9
+      publish-prerelease: true
+    secrets:
+      nuget_api_key: ${{ secrets.NUGET_API_KEY }}
