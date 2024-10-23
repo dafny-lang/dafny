@@ -793,5 +793,82 @@ namespace Microsoft.Dafny {
       var axiom = new Bpl.Axiom(ctor.tok, BplForall(bvs, trigger, q), "Constructor identifier");
       return axiom;
     }
+    
+    void AddWellformednessCheck(DatatypeCtor ctor) {
+      Contract.Requires(ctor != null);
+      Contract.Requires(sink != null && Predef != null);
+      Contract.Requires(currentModule == null && codeContext == null && IsAllocContext == null && fuelContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null && IsAllocContext == null && fuelContext == null);
+
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(ctor.FullName, MethodTranslationKind.SpecWellformedness), ctor.EnclosingDatatype);
+
+      if (!InVerificationScope(ctor)) {
+        // Checked in other file
+        return;
+      }
+
+      // If there are no parameters with default values, there's nothing to do
+      if (ctor.Formals.TrueForAll(f => f.DefaultValue == null)) {
+        return;
+      }
+
+      currentModule = ctor.EnclosingDatatype.EnclosingModuleDefinition;
+      codeContext = ctor.EnclosingDatatype;
+      fuelContext = FuelSetting.NewFuelContext(ctor.EnclosingDatatype);
+      var etran = new ExpressionTranslator(this, Predef, ctor.tok, null);
+
+      // parameters of the procedure
+      List<Variable> inParams = MkTyParamFormals(GetTypeParams(ctor.EnclosingDatatype), true);
+      foreach (var p in ctor.Formals) {
+        Bpl.Type varType = TrType(p.Type);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(ctor.IdGenerator), varType), p.Type, etran, NOALLOC);
+        inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(ctor.IdGenerator), varType, wh), true));
+      }
+
+      // the procedure itself
+      var req = new List<Bpl.Requires>();
+      // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
+      req.Add(Requires(ctor.tok, true, null, etran.HeightContext(ctor.EnclosingDatatype), null, null, null));
+      var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
+      var varlist = new List<Bpl.IdentifierExpr> { heapVar };
+      var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
+        inParams, new List<Variable>(),
+        false, req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
+      AddVerboseNameAttribute(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
+      sink.AddTopLevelDeclaration(proc);
+
+      var implInParams = Bpl.Formal.StripWhereClauses(inParams);
+      var locals = new Variables();
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
+      builder.Add(new CommentCmd($"AddWellformednessCheck for datatype constructor {ctor}"));
+      builder.AddCaptureState(ctor.tok, false, "initial state");
+      IsAllocContext = new IsAllocContext(options, true);
+
+      DefineFrame(ctor.tok, etran.ReadsFrame(ctor.tok), new List<FrameExpression>(), builder, locals, null);
+
+      // check well-formedness of each default-value expression
+      foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
+        var e = formal.DefaultValue;
+        CheckWellformedWithResult(e, new WFOptions(null, true,
+            false, true), locals, builder, etran, (returnBuilder, result) => {
+              builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
+              CheckSubrange(result.tok, etran.TrExpr(result), e.Type, formal.Type, e, returnBuilder);
+            });
+      }
+
+      if (EmitImplementation(ctor.Attributes)) {
+        // emit the impl only when there are proof obligations.
+        QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
+        var implBody = builder.Collect(ctor.tok);
+        AddImplementationWithAttributes(GetToken(ctor), proc, implInParams,
+          new List<Variable>(), locals, implBody, kv);
+      }
+
+      Contract.Assert(currentModule == ctor.EnclosingDatatype.EnclosingModuleDefinition);
+      Contract.Assert(codeContext == ctor.EnclosingDatatype);
+      IsAllocContext = null;
+      fuelContext = null;
+      Reset();
+    }
   }
 }
