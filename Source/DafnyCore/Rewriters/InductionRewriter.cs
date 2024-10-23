@@ -250,6 +250,12 @@ public class InductionRewriter : IRewriter {
     [CanBeNull] IToken errorToken, ref Attributes attributes) {
     Contract.Requires(inductionVariables.Count != 0);
 
+    if (Attributes.Contains(attributes, "inductionTrigger")) {
+        // Empty triggers are not valid at the Boogie level, but they indicate that we don't want automatic selection
+        Triggers.SplitPartTriggerWriter.DisableEmptyTriggers(attributes, "inductionTrigger");
+        return Attributes.FindAllExpressions(attributes, "inductionTrigger") ?? new List<List<Expression>>(); // Never null
+    }
+
     // Construct a quantifier, because that's what the trigger-generating machinery expects.
     // We start by creating a new BoundVar for each ThisExpr-or-IdentifierExpr in "inductionVariables".
     var boundVars = new List<BoundVar>();

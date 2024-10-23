@@ -152,13 +152,7 @@ class SplitPartTriggerWriter {
     }
 
     if (!NeedsAutoTriggers()) {
-      var triggerAttribute = Attributes.Find(Comprehension.Attributes, "trigger");
-      if (triggerAttribute != null && triggerAttribute.Args.Count == 0) {
-        // Remove an empty trigger attribute, so it does not crash Boogie,
-        // and effectively becomes a way to silence a Dafny warning
-        triggerAttribute.Name = "deleted-trigger";
-      }
-      return;
+      DisableEmptyTriggers(Comprehension.Attributes, "trigger");
     }
 
     AddTriggerAttribute(systemModuleManager);
@@ -196,6 +190,16 @@ class SplitPartTriggerWriter {
         "Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
         "For more information, see the section quantifier instantiation rules in the reference manual.");
+    }
+  }
+
+  public static void DisableEmptyTriggers(Attributes attribs, String attrName) {
+    foreach (var attr in attribs.AsEnumerable()) {
+      if (attr.Name == attrName && attr.Args.Count == 0) {
+        // Remove an empty trigger attribute, so it does not crash Boogie,
+        // and effectively becomes a way to silence a Dafny warning
+        attr.Name = $"deleted-{attrName}";
+      }
     }
   }
 
