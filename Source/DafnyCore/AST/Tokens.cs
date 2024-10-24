@@ -1,10 +1,8 @@
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 

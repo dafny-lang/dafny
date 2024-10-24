@@ -10,4 +10,4 @@ git-issue-4939a.dfy(105,27): Error: cannot prove termination; try supplying a de
 git-issue-4939a.dfy(105,27): Error: decreases expression must be bounded below by 0
 git-issue-4939a.dfy(104,23): Related location: this proposition could not be proved
 
-Dafny program verifier finished with 11 verified, 5 errors
+Dafny program verifier finished with 12 verified, 5 errors
