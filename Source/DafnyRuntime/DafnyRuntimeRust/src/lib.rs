@@ -2556,7 +2556,24 @@ macro_rules! ARRAY_GETTER_LENGTH {
 #[macro_export]
 macro_rules! array {
     ($($x:expr), *) => {
-        $crate::array::from_native(::std::boxed::Box::new([$($x), *]))
+        $crate::array::from_native(
+            // SAFETY: This is a newtype wrapper so it has the same alignment
+            unsafe {
+                ::std::mem::transmute::<_, _>(
+                ::std::boxed::Box::new([$($crate::new_field($x)), *]) as Box<[crate::Field<_>]>)
+            })
+    }
+}
+
+#[macro_export]
+macro_rules! array_object {
+    ($($x:expr), *) => {
+        $crate::array::from_native_object(
+            // SAFETY: This is a newtype wrapper so it has the same alignment
+            unsafe {
+                ::std::mem::transmute::<_, _>(
+                ::std::rc::Rc::new([$($crate::new_field($x)), *]) as Rc<[crate::Field<_>]>)
+                })
     }
 }
 
@@ -2943,13 +2960,25 @@ ARRAY_DEF!{Array16,
     (length15, length15_usize)
 }
 
-pub type ArrayClass<T> = [crate::Field<T>];
+// It's a newtype because when it's deallocated, we need to drop all the fields one by onen
+// whether it's a pointer or a reference-counted object
+// MaybeUninit is not automatically dropped so the default code would leak memory
+pub struct ArrayClass<T>([crate::Field<T>]);
+impl <T> Drop for ArrayClass<T> {
+    fn drop(&mut self) {
+        for field in self.0.iter() {
+            crate::drop_field!(field);
+        }
+    }
+}
 
 impl <T: 'static> UpcastObject<dyn Any> for Object<ArrayClass<T>> {
     fn upcast(self: &Rc<Self>) -> Object<dyn Any> {
         if let Some(rc) = &self.0 {
-            let zero_slice_ptr = Rc::<[crate::Field<T>]>::into_raw(rc.clone()) as *const [crate::Field<T>; 0];
-            let zero_slice_rc  = unsafe { Rc::from_raw(zero_slice_ptr) };
+            let zero_slice_ptr = Rc::<ArrayClass<T>>::into_raw(rc.clone()) as *const [crate::Field<T>; 0];
+            let zero_slice_rc  =
+              // SAFETY: The reference was obtained from an Rc::into_raw
+              unsafe { Rc::from_raw(zero_slice_ptr) };
             Object::from_rc(zero_slice_rc as Rc<dyn Any>)
         } else {
             Object::<dyn Any>::null()
@@ -2975,21 +3004,28 @@ pub mod array {
     use std::mem::MaybeUninit;
     use std::{boxed::Box, rc::Rc, vec::Vec};
     use super::Ptr;
+    use crate::ArrayClass;
 
     #[inline]
-    pub fn from_native<T>(v: Box<[T]>) -> Ptr<[crate::Field<T>]> {
-        // SAFETY: We own the data so it's acceptable to transmute it to an unsafe cell of MaybeUninit
-        Ptr::from_box(unsafe { ::std::mem::transmute::<_, Box<[crate::Field<T>]>>(v)})
+    pub fn from_native<T>(v: Box<ArrayClass<T>>) -> Ptr<ArrayClass<T>> {
+        Ptr::from_box(v)
     }
     #[inline]
-    pub fn from_vec<T>(v: Vec<T>) -> Ptr<[crate::Field<T>]> {
-        from_native(v.into_boxed_slice())
+    pub fn from_native_object<T>(v: Rc<ArrayClass<T>>) -> crate::Object<ArrayClass<T>> {
+        // SAFETY: We own the data so it's acceptable to transmute it to an unsafe cell of MaybeUninit
+        crate::Object::from_rc(v)
     }
-    pub fn to_vec<T>(v: Ptr<[crate::Field<T>]>) -> Vec<T> {
-        // SAFETY: The caller should ensure unique ownership of the array
-        unsafe { ::std::mem::transmute::<_, _>(Box::<[crate::Field<T>]>::from_raw(v.into_raw()).into_vec()) }
+    #[inline]
+    pub fn from_vec<T>(v: Vec<T>) -> Ptr<ArrayClass<T>> {
+        from_native(
+            // SAFETY: Types are aligned
+            unsafe { ::std::mem::transmute(v.into_boxed_slice()) })
     }
-    pub fn initialize_usize<T>(n: usize, initializer: Rc<dyn Fn(usize) -> T>) -> Ptr<[crate::Field<T>]> {
+    // SAFETY: The caller should ensure unique ownership of the array
+    pub unsafe fn to_vec<T>(v: Ptr<ArrayClass<T>>) -> Vec<T> {
+        ::std::mem::transmute::<_, Box::<[T]>>(Box::<ArrayClass<T>>::from_raw(v.into_raw())).into_vec()
+    }
+    pub fn initialize_usize<T>(n: usize, initializer: Rc<dyn Fn(usize) -> T>) -> Ptr<ArrayClass<T>> {
         let mut v = Vec::with_capacity(n);
         for i in 0..n {
             v.push(initializer(i));
@@ -3026,13 +3062,17 @@ pub mod array {
             .collect()
     }
 
-    pub fn initialize<T>(n: &DafnyInt, initializer: Rc<dyn Fn(&DafnyInt) -> T>) -> Ptr<[T]> {
-        super::Ptr::from_box(initialize_box(n, initializer))
+    pub fn initialize<T>(n: &DafnyInt, initializer: Rc<dyn Fn(&DafnyInt) -> T>) -> Ptr<ArrayClass<T>> {
+        // SAFETY: Transmutation is possible because the types have the same mapping and we own them
+        unsafe {
+          ::std::mem::transmute(super::Ptr::from_box(initialize_box(n, initializer)))
+        }
     }
 
     pub fn initialize_box<T>(n: &DafnyInt, initializer: Rc<dyn Fn(&DafnyInt) -> T>) -> Box<[T]> {
         initialize_box_usize(n.to_usize().unwrap(), initializer)
     }
+    // initialize_box_usize is used to allocate arrays that will contain other arrays, that's why they are boxed
     pub fn initialize_box_usize<T>(
         n_usize: usize,
         initializer: Rc<dyn Fn(&DafnyInt) -> T>,
@@ -3046,35 +3086,35 @@ pub mod array {
 
     #[inline]
     #[cfg(test)]
-    pub(crate) fn length_usize<T>(this: Ptr<crate::ArrayClass<T>>) -> usize {
+    pub(crate) fn length_usize<T>(this: &ArrayClass<T>) -> usize {
         // safety: Dafny won't call this function unless it can guarantee the array is still allocated
-        super::read!(this).len()
+        this.0.len()
     }
     #[inline]
     #[cfg(test)]
-    pub(crate) fn length<T>(this: Ptr<crate::ArrayClass<T>>) -> DafnyInt {
+    pub(crate) fn length<T>(this: &ArrayClass<T>) -> DafnyInt {
         int!(length_usize(this))
     }
     #[inline]
     #[cfg(test)]
-    pub(crate) fn get_usize<T: Clone>(this: Ptr<crate::ArrayClass<T>>, i: usize) -> T {
+    pub(crate) fn get_usize<T: Clone>(this: &ArrayClass<T>, i: usize) -> T {
         // safety: Dafny won't call this function unless it can guarantee the array is still allocated
-        unsafe {&*(this.as_ref()[i].get() as *const T)}.clone()
+        unsafe {&*(this.0[i].get() as *const T)}.clone()
     }
     #[inline]
     #[cfg(test)]
-    pub(crate) fn get<T: Clone>(this: Ptr<crate::ArrayClass<T>>, i: &DafnyInt) -> T {
+    pub(crate) fn get<T: Clone>(this: &ArrayClass<T>, i: &DafnyInt) -> T {
         get_usize(this, i.to_usize().unwrap())
     }
     #[inline]
     #[cfg(test)]
-    pub(crate) fn update_usize<T>(this: Ptr<crate::ArrayClass<T>>, i: usize, val: T) {
+    pub(crate) fn update_usize<T>(this: &ArrayClass<T>, i: usize, val: T) {
         // safety: Dafny won't call this function unless it can guarantee the array is still allocated
-        crate::modify_element!(crate::read!(this)[i], val);
+        crate::modify_element!(this.0[i], val);
     }
     #[inline]
     #[cfg(test)]
-    pub(crate) fn update<T>(this: Ptr<crate::ArrayClass<T>>, i: &DafnyInt, val: T) {
+    pub(crate) fn update<T>(this: &ArrayClass<T>, i: &DafnyInt, val: T) {
         update_usize(this, i.to_usize().unwrap(), val);
     }
 }
@@ -3096,15 +3136,12 @@ pub unsafe fn allocate<T>() -> Ptr<T> {
     let this_ptr = Box::into_raw(Box::new(MaybeUninit::uninit())) as *mut MaybeUninit<T> as *mut T;
     Ptr::from_raw_nonnull(this_ptr)
 }
-// Generic function to safely deallocate a raw pointer
+// SAFETY: Caller needs to guarantee that this function is not called on deallocated pointers
 #[inline]
-pub fn deallocate<T: ?Sized>(pointer: Ptr<T>) {
-    // safety: Dafny won't call this function unless it can guarantee the object is still allocated
-    unsafe {
-        // Takes ownership of the reference,
-        // so that it's deallocated at the end of the method
-        let _ = Box::from_raw(pointer.into_raw());
-    }
+pub unsafe fn deallocate<T: ?Sized>(pointer: Ptr<T>) {
+    // Takes ownership of the reference,
+    // so that it's deallocated at the end of the method
+    let _ = Box::from_raw(pointer.into_raw());
 }
 
 pub struct ExactPool<T: Clone> {

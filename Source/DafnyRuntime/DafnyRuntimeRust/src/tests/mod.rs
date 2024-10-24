@@ -275,18 +275,36 @@ mod tests {
     #[test]
     fn test_dafny_array() {
         let a = array![1, 2, 3];
-        assert_eq!(crate::array::length_usize(a), 3);
-        assert_eq!(crate::array::length(a), int!(3));
-        assert_eq!(array::get_usize(a, 0), 1);
-        assert_eq!(array::get_usize(a, 1), 2);
-        assert_eq!(array::get_usize(a, 2), 3);
-        array::update_usize(a, 0, 4);
-        array::update_usize(a, 1, 5);
-        array::update_usize(a, 2, 6);
-        assert_eq!(array::get_usize(a, 0), 4);
-        assert_eq!(array::get_usize(a, 1), 5);
-        assert_eq!(array::get_usize(a, 2), 6);
-        deallocate(a);
+        assert_eq!(crate::array::length_usize(read!(a)), 3);
+        assert_eq!(crate::array::length(read!(a)), int!(3));
+        assert_eq!(array::get_usize(read!(a), 0), 1);
+        assert_eq!(array::get_usize(read!(a), 1), 2);
+        assert_eq!(array::get_usize(read!(a), 2), 3);
+        array::update_usize(read!(a), 0, 4);
+        array::update_usize(read!(a), 1, 5);
+        array::update_usize(read!(a), 2, 6);
+        assert_eq!(array::get_usize(read!(a), 0), 4);
+        assert_eq!(array::get_usize(read!(a), 1), 5);
+        assert_eq!(array::get_usize(read!(a), 2), 6);
+        // SAFETY: a is still allocated and no longer used afterwards
+        unsafe { deallocate(a); }
+    }
+
+    #[test]
+    fn test_dafny_array_object() {
+        let a = array_object![1, 2, 3];
+        assert_eq!(crate::array::length_usize(rd!(a)), 3);
+        assert_eq!(crate::array::length(rd!(a)), int!(3));
+        assert_eq!(array::get_usize(rd!(a), 0), 1);
+        assert_eq!(array::get_usize(rd!(a), 1), 2);
+        assert_eq!(array::get_usize(rd!(a), 2), 3);
+        array::update_usize(rd!(a), 0, 4);
+        array::update_usize(rd!(a), 1, 5);
+        array::update_usize(rd!(a), 2, 6);
+        assert_eq!(array::get_usize(rd!(a), 0), 4);
+        assert_eq!(array::get_usize(rd!(a), 1), 5);
+        assert_eq!(array::get_usize(rd!(a), 2), 6);
+        // Deallocation of object is automatic
     }
 
     #[test]
@@ -297,29 +315,32 @@ mod tests {
         v.push(2);
         v.push(3);
         let a = array::from_vec(v);
-        assert_eq!(array::length_usize(a), 3);
-        assert_eq!(array::get_usize(a, 0), 1);
+        assert_eq!(array::length_usize(read!(a)), 3);
+        assert_eq!(array::get_usize(read!(a), 0), 1);
         let v2 = array::initialize_usize(3, Rc::new(|i| i + 1));
-        assert_eq!(array::length_usize(v2), 3);
-        assert_eq!(array::get_usize(v2, 0), 1);
-        assert_eq!(array::get_usize(v2, 1), 2);
-        assert_eq!(array::get_usize(v2, 2), 3);
-        array::update_usize(v2, 1, 10);
-        assert_eq!(array::get_usize(v2, 1), 10);
+        assert_eq!(array::length_usize(read!(v2)), 3);
+        assert_eq!(array::get_usize(read!(v2), 0), 1);
+        assert_eq!(array::get_usize(read!(v2), 1), 2);
+        assert_eq!(array::get_usize(read!(v2), 2), 3);
+        array::update_usize(read!(v2), 1, 10);
+        assert_eq!(array::get_usize(read!(v2), 1), 10);
 
 
         let v3 = array::initialize(
-            &int!(3), Rc::new(|i| crate::new_field(i.clone() + int!(1))));
-        assert_eq!(array::length_usize(v3), 3);
-        assert_eq!(array::get(v3, &int!(0)), int!(1));
-        assert_eq!(array::get_usize(v3, 1), int!(2));
-        assert_eq!(array::get_usize(v3, 2), int!(3));
-        array::update(v3, &int!(1), int!(10));
-        assert_eq!(array::get_usize(v3, 1), int!(10));
+            &int!(3), Rc::new(|i| i.clone() + int!(1)));
+        assert_eq!(array::length_usize(read!(v3)), 3);
+        assert_eq!(array::get(read!(v3), &int!(0)), int!(1));
+        assert_eq!(array::get_usize(read!(v3), 1), int!(2));
+        assert_eq!(array::get_usize(read!(v3), 2), int!(3));
+        array::update(read!(v3), &int!(1), int!(10));
+        assert_eq!(array::get_usize(read!(v3), 1), int!(10));
 
-        deallocate(a);
-        deallocate(v2);
-        deallocate(v3);
+        // SAFETY: a is fresh and has not been aliased
+        unsafe { deallocate(a); }
+        // SAFETY: v2 is fresh and was created after a
+        unsafe { deallocate(v2); }
+        // SAFETY: v3 is fresh and was created after v2
+        unsafe { deallocate(v3); }
     }
 
     #[test]
@@ -339,12 +360,14 @@ mod tests {
               vec![int!(1), int!(2), int!(3), int!(4)],
               vec![int!(2), int!(3), int!(4), int!(5)]]);
 
-        deallocate(p);
+        // SAFETY: p is fresh
+        unsafe { deallocate(p); }
         // Allocate an array whose first dimension is zero
         let p = Array2::<DafnyInt>::placebos(&int!(0), &int!(4));
         assert_eq!(read!(p).length0_usize(), 0);
         assert_eq!(read!(p).length1_usize(), 4);
-        deallocate(p);
+        // SAFETY: p is fresh
+        unsafe { deallocate(p); }
     }
 
     #[test]
@@ -370,13 +393,15 @@ mod tests {
                 }
             }
         }
-        deallocate(a);
+        // SAFETY: a is no longer used afterwards
+        unsafe { deallocate(a); }
         // Even if the first two dimensions are zero, the third dimension should not be zero
         let a = Array3::<DafnyInt>::placebos(&int!(0), &int!(0), &int!(4));
         assert_eq!(read!(a).length0(), int!(0));
         assert_eq!(read!(a).length1(), int!(0));
         assert_eq!(read!(a).length2(), int!(4));
-        deallocate(a);
+        // SAFETY: a was overwritten with a new value
+        unsafe { deallocate(a); }
     }
 
     struct ClassWrapper<T> {
@@ -496,7 +521,8 @@ mod tests {
         assert_eq!(read_field!(read!(c).t), 54);
         let x_copy = read_field!(read!(c).x);
         assert_eq!(Rc::strong_count(&x_copy.data), 2);
-        deallocate(c);
+        // SAFETY: c is allocated
+        unsafe { deallocate(c); }
         assert_eq!(Rc::strong_count(&x_copy.data), 1);
     }
 
