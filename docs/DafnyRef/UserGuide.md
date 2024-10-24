@@ -1484,7 +1484,7 @@ When Dafny verifies a symbol, such as a method, a function or a constant with a 
 
 Firstly, you can instruct Dafny to verify individual assertions in separate batches. You can place the `{:isolate}` attribute on a single assertion to place it in a separate batch, or you can place `{:isolate_assertions}` on a symbol, such as a function or method declaration, to place all assertions in it into separate batches. The CLI option `--isolate-assertions` will place all assertions into separate batches for all symbols. `{:isolate}` can be used on `assert`, `return` and `continue` statements. When placed on a `return` statement, it will verify the postconditions for all paths leading to that `return` in a separate batch. When placed on a `continue`, it will verify the loop invariants for all paths leading to that `continue` in a separate batch. 
 
-Given an assertion that is placed into a separate batch, you can then further simplify the verification of this assertion by placing each control flow patch that leads to this assertion into a separate batch. You can do this using the attribute `{:isolate "paths"}`.
+Given an assertion that is placed into a separate batch, you can then further simplify the verification of this assertion by placing each control flow path that leads to this assertion into a separate batch. You can do this using the attribute `{:isolate "paths"}`.
 
 ### 13.7.4. Command-line options and other attributes to control verification {#sec-command-line-options-and-attributes-for-verification}
 
