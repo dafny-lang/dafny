@@ -3508,7 +3508,8 @@ impl <T: ?Sized> AsRef<T> for Object<T> {
 fn increment_strong_count<T: ?Sized>(data: *const T) {
     // SAFETY: This method is called only on values that were constructed from an Rc
     unsafe {
-       Rc::increment_strong_count(data);
+        // Black box avoids the compiler wrongly inferring that increment strong count does nothing since the data it was applied to can be traced to be borrowed
+       ::std::hint::black_box(Rc::increment_strong_count(data));
     }
 }
 
