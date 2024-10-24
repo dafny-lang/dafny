@@ -422,11 +422,37 @@ mod tests {
             update_field_if_uninit!(read!(this), next, next_assigned, this);
             assert_eq!(next_assigned, true);
         }
-
+    }
+    struct ClassWrapperObject<T> {
+        t: Field<T>, // var
+        x: Field<crate::DafnyInt>, // var
+        next: Field<Object<ClassWrapperObject<T>>>, // const
+        constant: Field<crate::DafnyInt>, // const
+    }
+    impl <T> Drop for ClassWrapperObject<T> {
+        // Free all the memory, since fields won't
+        fn drop(&mut self) {
+           drop_field!(self.t);
+           drop_field!(self.x);
+           drop_field!(self.next);
+           drop_field!(self.constant);
+        }
+    }
+    impl<T: Clone> ClassWrapperObject<T> {
+        fn constant_plus_x(&self) -> crate::DafnyInt {
+            read_field!(self.constant).clone() + read_field!(self.x)
+        }
+        fn increment_x(&self) {
+            modify_field!(self, x, read_field!(self.x) + int!(1));
+        }
+    }
+    impl<T: Clone + Display> ClassWrapperObject<T> {
         // SAFETY: THe object needs to have all its fields uninitialized, constant and nonconstant
-        unsafe fn constructor_object(this: &Object<ClassWrapper<T>>, t: T) {
+        // You can obtain such an object by using allocate::<ClassWrapper<T>>()
+        // SAFETY: THe object needs to have all its fields uninitialized, constant and nonconstant
+        unsafe fn constructor_object(this: &Object<ClassWrapperObject<T>>, t: T) {
             update_field_nodrop_object!(this, t, t);
-            update_field_nodrop_object!(this, next, Ptr::null());
+            update_field_nodrop_object!(this, next, this.clone());
             // If x is assigned twice, we need to keep track of whether it's assigned
             // like in methods.
             let mut x_assigned = false;
@@ -438,7 +464,7 @@ mod tests {
             update_field_if_uninit_object!(this, x, x_assigned, int!(0));
             assert_eq!(x_assigned, true);
             let mut next_assigned = true;
-            update_field_if_uninit_object!(this, next, next_assigned, Ptr::null());
+            update_field_if_uninit_object!(this, next, next_assigned, this.clone());
             assert_eq!(next_assigned, true);
         }
     }
@@ -456,6 +482,7 @@ mod tests {
         let c: Ptr<ClassWrapper<i32>> = unsafe { allocate::<ClassWrapper<i32>>() };
         // SAFETY: Constructor satisfies all requirements of allocates and initializes all fields
         unsafe { ClassWrapper::constructor(c, 53); }
+        assert_eq!(read_field!(read!(c).constant), int!(42));
         assert_eq!(read_field!(read!(c).constant), int!(42));
         assert_eq!(read_field!(read!(c).t), 53);
         assert_eq!(read_field!(read!(c).x), int!(0));
@@ -476,10 +503,11 @@ mod tests {
     #[test]
     #[allow(unused_unsafe)]
     fn test_class_wrapper_object() {
-        let c: Object<ClassWrapper<i32>> =  // SAFETY: Followed by constructor that enforces all the requirements
-          unsafe { allocate_object::<ClassWrapper<i32>>() };
+        let c: Object<ClassWrapperObject<i32>> = 
+          // SAFETY: Followed by constructor that enforces all the requirements
+          unsafe { allocate_object::<ClassWrapperObject<i32>>() };
         // SAFETY: The object is fully uninitialized and it fully initializes all its fields
-        unsafe { ClassWrapper::constructor_object(&c, 53) };
+        unsafe { ClassWrapperObject::constructor_object(&c, 53) };
         assert_eq!(read_field!(rd!(c).constant), int!(42));
         assert_eq!(read_field!(rd!(c).t), 53);
         assert_eq!(read_field!(rd!(c).x), int!(0));
@@ -493,6 +521,8 @@ mod tests {
         assert_eq!(rd!(c).constant_plus_x(), int!(82));
         modify_field!(rd!(c), t, 54);
         assert_eq!(read_field!(rd!(c).t), 54);
+        // This should be in a deconstructor, so that we ensure the object has no self-dependency
+        modify_field!(rd!(c), next, Object::null());
     }
 
     // Requires test1 || test2

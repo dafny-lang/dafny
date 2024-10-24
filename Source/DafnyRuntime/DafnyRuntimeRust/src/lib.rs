@@ -3681,12 +3681,14 @@ macro_rules! modify_element {
 // To use when reading a mutable field that is wrapped with Field
 #[macro_export]
 macro_rules! read_field {
-    ($pointer:expr) => {
-      {
+    ($pointer:expr) => {{
         let lhs = $pointer.get();
-        unsafe {(*lhs).assume_init_read().clone()}
-      }
-    };
+        let obtained = unsafe { (*lhs).assume_init_read() }; // Should not be freed, we are going to clone it
+        let result = obtained.clone();
+        #[allow(forgetting_copy_types)]
+        ::std::mem::forget(obtained);
+        result
+      }};
 }
 
 pub type Field<T> = UnsafeCell<MaybeUninit<T>>;
