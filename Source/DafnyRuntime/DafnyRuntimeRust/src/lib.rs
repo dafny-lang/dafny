@@ -82,8 +82,8 @@ pub mod dafny_runtime_conversions {
         pub fn dafny_class_to_boxed_struct<T: Clone>(ptr: DafnyClass<T>) -> Box<T> {
             Box::new(dafny_class_to_struct(ptr))
         }
-        pub unsafe fn dafny_class_to_rc_struct<T: Clone + ?Sized>(ptr: DafnyClass<T>) -> ::std::rc::Rc<T> {
-            crate::rcmut::to_rc(ptr.0.unwrap())
+        pub fn dafny_class_to_rc_struct<T: Clone + ?Sized>(ptr: DafnyClass<T>) -> ::std::rc::Rc<T> {
+            ptr.as_rc().clone()
         }
         pub fn struct_to_dafny_class<T>(t: T) -> DafnyClass<T> {
             crate::Object::new(t)
@@ -99,10 +99,7 @@ pub mod dafny_runtime_conversions {
             ptr.as_ref().to_vec()
         }
         pub fn vec_to_dafny_array<T: Clone>(array: Vec<T>) -> DafnyArray<T> {
-            // SAFETY: We own the array
-            unsafe {
-              crate::Object::from_rc(::std::rc::Rc::from(array.into_boxed_slice()))
-            }
+            crate::Object::from_rc(::std::rc::Rc::from(array.into_boxed_slice()))
         }
         pub unsafe fn dafny_array2_to_vec<T: Clone>(ptr: DafnyArray2<T>) -> Vec<Vec<T>> {
             crate::rd!(ptr).to_vec()
@@ -2581,7 +2578,7 @@ macro_rules! ARRAY_INIT_INNER {
 // Box<[Box<[Box<[T]>]>]>
 macro_rules! ARRAY_DATA_TYPE {
     ($length:ident) => {
-        ::std::boxed::Box<[T]>
+        ::std::boxed::Box<[$crate::Field<T>]>
     };
     ($length:ident, $($rest_length:ident),+) => {
         ::std::boxed::Box<[ARRAY_DATA_TYPE!($($rest_length),+)]>
@@ -2608,7 +2605,7 @@ macro_rules! ARRAY_METHODS {
         pub fn placebos_box_usize(
             $length0: usize,
             $($length: usize),+
-        ) -> ::std::boxed::Box<$ArrayType<$crate::MaybeUninit<T>>> {
+        ) -> ::std::boxed::Box<$ArrayType<T>> {
             ::std::boxed::Box::new($ArrayType {
                 $($length: $length),+,
                 data: INIT_ARRAY_DATA!($ArrayType, $length0, $($length),+),
@@ -2618,7 +2615,7 @@ macro_rules! ARRAY_METHODS {
         pub fn placebos_usize(
             $length0: usize,
             $($length: usize),+
-        ) -> $crate::Ptr<$ArrayType<$crate::MaybeUninit<T>>> {
+        ) -> $crate::Ptr<$ArrayType<T>> {
             $crate::Ptr::from_box(Self::placebos_box_usize(
                 $length0,
                 $($length),+
@@ -2628,7 +2625,7 @@ macro_rules! ARRAY_METHODS {
         pub fn placebos_usize_object(
             $length0: usize,
             $($length: usize),+
-        ) -> $crate::Object<$ArrayType<$crate::MaybeUninit<T>>> {
+        ) -> $crate::Object<$ArrayType<T>> {
             // SAFETY: We know the object is owned and never referred to by anything else
             $crate::Object::new($ArrayType {
                 $($length: $length),+,
@@ -2639,20 +2636,11 @@ macro_rules! ARRAY_METHODS {
         pub fn placebos(
             $length0: &$crate::DafnyInt,
             $($length: &$crate::DafnyInt),+
-        ) -> $crate::Ptr<$ArrayType<$crate::MaybeUninit<T>>> {
+        ) -> $crate::Ptr<$ArrayType<T>> {
             Self::placebos_usize(
                 $length0.as_usize(),
                 $($length.as_usize()),+
             )
-        }
-
-        // Once all the elements have been initialized, transform the signature of the pointer
-        pub fn construct(p: $crate::Ptr<$ArrayType<$crate::MaybeUninit<T>>>) -> $crate::Ptr<$ArrayType<T>> {
-            unsafe { std::mem::transmute(p) }
-        }
-        // Once all the elements have been initialized, transform the signature of the pointer
-        pub fn construct_object(p: $crate::Object<$ArrayType<$crate::MaybeUninit<T>>>) -> $crate::Object<$ArrayType<T>> {
-            unsafe { std::mem::transmute(p) }
         }
     };
 }
@@ -2669,7 +2657,7 @@ macro_rules! ARRAY_STRUCT {
 
 macro_rules! ARRAY_TO_VEC_LOOP {
     (@inner $self: ident, $tmp: ident, $data: expr) => {
-        $tmp.push($data.clone());
+        $tmp.push(unsafe {(&*$data.get()).assume_init_read().clone()});
     };
     (@for $self: ident, $tmp: ident, $data: expr, $length_usize: ident $(, $rest_length_usize: ident)*) => {
         for i in 0..$self.$length_usize() {
@@ -2761,7 +2749,19 @@ macro_rules! ARRAY_DEF {
     }
 }
 
-// Array2 to Array16
+ARRAY_STRUCT_WRAPPER!(Array2bis,(length0,length0_usize),(length1,length1_usize));
+impl <T>Array2bis<T>{
+    ARRAY_GETTER_LENGTH0!();
+    ARRAY_GETTER_LENGTH!(length1,length1_usize);
+    ARRAY_METHODS_WRAPPER!{
+        Array2bis,(length0,length0_usize),(length1,length1_usize)
+    }
+}
+impl <T: ::std::clone::Clone>Array2bis<T>{
+    ARRAY_TO_VEC_WRAPPER!{
+        (length0,length0_usize),(length1,length1_usize)
+    }
+}
 
 ARRAY_DEF!{Array2,
     (length0, length0_usize),
@@ -2943,25 +2943,53 @@ ARRAY_DEF!{Array16,
     (length15, length15_usize)
 }
 
+pub type ArrayClass<T> = [crate::Field<T>];
+
+impl <T: 'static> UpcastObject<dyn Any> for Object<ArrayClass<T>> {
+    fn upcast(self: &Rc<Self>) -> Object<dyn Any> {
+        if let Some(rc) = &self.0 {
+            let zero_slice_ptr = Rc::<[crate::Field<T>]>::into_raw(rc.clone()) as *const [crate::Field<T>; 0];
+            let zero_slice_rc  = unsafe { Rc::from_raw(zero_slice_ptr) };
+            Object::from_rc(zero_slice_rc as Rc<dyn Any>)
+        } else {
+            Object::<dyn Any>::null()
+        }
+    }
+}
+impl <T: 'static> Upcast<dyn Any> for Ptr<ArrayClass<T>> {
+    fn upcast(&self) -> Ptr<dyn Any> {
+        if self.is_null() {
+            return Ptr::<dyn Any>::null();
+        }
+        // SAFETY: We checked that the pointer is not null
+        let noelems: *mut [crate::Field<T>; 0] = unsafe { self.into_raw_unchecked() as *mut [crate::Field<T>; 0] };
+        let dyn_any = noelems as *mut dyn Any; // Fattening the pointer
+        Ptr::from_raw_nonnull(dyn_any)
+    }
+}
+
 pub mod array {
     use super::DafnyInt;
     use num::ToPrimitive;
+    use std::cell::UnsafeCell;
     use std::mem::MaybeUninit;
     use std::{boxed::Box, rc::Rc, vec::Vec};
     use super::Ptr;
 
     #[inline]
-    pub fn from_native<T>(v: Box<[T]>) -> Ptr<[T]> {
-        Ptr::from_box(v)
+    pub fn from_native<T>(v: Box<[T]>) -> Ptr<[crate::Field<T>]> {
+        // SAFETY: We own the data so it's acceptable to transmute it to an unsafe cell of MaybeUninit
+        Ptr::from_box(unsafe { ::std::mem::transmute::<_, Box<[crate::Field<T>]>>(v)})
     }
     #[inline]
-    pub fn from_vec<T>(v: Vec<T>) -> Ptr<[T]> {
+    pub fn from_vec<T>(v: Vec<T>) -> Ptr<[crate::Field<T>]> {
         from_native(v.into_boxed_slice())
     }
-    pub fn to_vec<T>(v: Ptr<[T]>) -> Vec<T> {
-        unsafe { Box::<[T]>::from_raw(v.into_raw()) }.into_vec()
+    pub fn to_vec<T>(v: Ptr<[crate::Field<T>]>) -> Vec<T> {
+        // SAFETY: The caller should ensure unique ownership of the array
+        unsafe { ::std::mem::transmute::<_, _>(Box::<[crate::Field<T>]>::from_raw(v.into_raw()).into_vec()) }
     }
-    pub fn initialize_usize<T>(n: usize, initializer: Rc<dyn Fn(usize) -> T>) -> Ptr<[T]> {
+    pub fn initialize_usize<T>(n: usize, initializer: Rc<dyn Fn(usize) -> T>) -> Ptr<[crate::Field<T>]> {
         let mut v = Vec::with_capacity(n);
         for i in 0..n {
             v.push(initializer(i));
@@ -2969,30 +2997,31 @@ pub mod array {
         from_vec(v)
     }
 
-    pub fn placebos<T>(n: &DafnyInt) -> Ptr<[MaybeUninit<T>]> {
+    pub fn placebos<T>(n: &DafnyInt) -> Ptr<[crate::Field<T>]> {
         placebos_usize(n.as_usize())
     }
-    pub fn placebos_usize<T>(n: usize) -> Ptr<[MaybeUninit<T>]> {
+    pub fn placebos_usize<T>(n: usize) -> Ptr<[crate::Field<T>]> {
         Ptr::from_box(placebos_box_usize(n))
     }
-    pub fn placebos_usize_object<T>(n: usize) -> super::Object<[MaybeUninit<T>]> {
-        super::rcmut::array_object_from_box(placebos_box_usize(n))
+    pub fn placebos_usize_object<T>(n: usize) -> super::Object<[crate::Field<T>]> {
+        crate::Object(Some(placebos_box_usize(n).into()))
     }
     // Once all the elements have been initialized, transform the signature of the pointer
-    pub fn construct<T>(p: Ptr<[MaybeUninit<T>]>) -> Ptr<[T]> {
+    pub fn construct<T>(p: Ptr<[crate::Field<T>]>) -> Ptr<[crate::Field<T>]> {
         unsafe { std::mem::transmute(p) }
     }
-    pub fn construct_object<T>(p: super::Object<[MaybeUninit<T>]>) -> super::Object<[T]> {
+    pub fn construct_object<T>(p: super::Object<[crate::Field<T>]>) -> super::Object<[crate::Field<T>]> {
         unsafe { std::mem::transmute(p) }
     }
 
-    pub fn placebos_box<T>(n: &DafnyInt) -> Box<[MaybeUninit<T>]> {
+    pub fn placebos_box<T>(n: &DafnyInt) -> Box<[crate::Field<T>]> {
         placebos_box_usize(n.to_usize().unwrap())
     }
-    pub fn placebos_box_usize<T>(n_usize: usize) -> Box<[MaybeUninit<T>]> {
+    pub fn placebos_box_usize<T>(n_usize: usize) -> Box<[crate::Field<T>]> {
         // This code is optimized to take a constant time. See:
         // https://users.rust-lang.org/t/allocate-a-boxed-array-of-maybeuninit/110169/7
         std::iter::repeat_with(MaybeUninit::uninit)
+            .map(|v| UnsafeCell::new(v))
             .take(n_usize)
             .collect()
     }
@@ -3016,30 +3045,36 @@ pub mod array {
     }
 
     #[inline]
-    pub fn length_usize<T>(this: Ptr<[T]>) -> usize {
+    #[cfg(test)]
+    pub(crate) fn length_usize<T>(this: Ptr<crate::ArrayClass<T>>) -> usize {
         // safety: Dafny won't call this function unless it can guarantee the array is still allocated
         super::read!(this).len()
     }
     #[inline]
-    pub fn length<T>(this: Ptr<[T]>) -> DafnyInt {
+    #[cfg(test)]
+    pub(crate) fn length<T>(this: Ptr<crate::ArrayClass<T>>) -> DafnyInt {
         int!(length_usize(this))
     }
     #[inline]
-    pub fn get_usize<T: Clone>(this: Ptr<[T]>, i: usize) -> T {
+    #[cfg(test)]
+    pub(crate) fn get_usize<T: Clone>(this: Ptr<crate::ArrayClass<T>>, i: usize) -> T {
         // safety: Dafny won't call this function unless it can guarantee the array is still allocated
-        this.as_ref()[i].clone()
+        unsafe {&*(this.as_ref()[i].get() as *const T)}.clone()
     }
     #[inline]
-    pub fn get<T: Clone>(this: Ptr<[T]>, i: &DafnyInt) -> T {
+    #[cfg(test)]
+    pub(crate) fn get<T: Clone>(this: Ptr<crate::ArrayClass<T>>, i: &DafnyInt) -> T {
         get_usize(this, i.to_usize().unwrap())
     }
     #[inline]
-    pub fn update_usize<T>(this: Ptr<[T]>, i: usize, val: T) {
+    #[cfg(test)]
+    pub(crate) fn update_usize<T>(this: Ptr<crate::ArrayClass<T>>, i: usize, val: T) {
         // safety: Dafny won't call this function unless it can guarantee the array is still allocated
-        crate::modify!(this)[i] = val;
+        crate::modify_element!(crate::read!(this)[i], val);
     }
     #[inline]
-    pub fn update<T>(this: Ptr<[T]>, i: &DafnyInt, val: T) {
+    #[cfg(test)]
+    pub(crate) fn update<T>(this: Ptr<crate::ArrayClass<T>>, i: &DafnyInt, val: T) {
         update_usize(this, i.to_usize().unwrap(), val);
     }
 }
@@ -3047,7 +3082,17 @@ pub mod array {
 ///////////////////
 // Class helpers //
 ///////////////////
-pub fn allocate<T>() -> Ptr<T> {
+
+// Returns an pointer to a struct whose fields are yet initialized.
+// SAFETY: Caller should ensure they only read fields that they have written to so far
+// SAFETY: Caller should ensure they only use one of the following macros to write to fields the first time
+//   update_field_nodrop!      the first time they write to what is a constant (i.e. not wrapped in Field<>)
+//   update_field_mut_nodrop!  the first time they write to what is a mutable field (i.e. wrapped in Field<>)
+// The following macros can conditionally call update_field_nodrop if a given boolean marking the field as assigned is false,
+// and otherwise simply overwrite the field.
+//   update_field_uninit
+// SAFETY: Caller should ensure every field is being written to at least once before the pointer is deallocated
+pub unsafe fn allocate<T>() -> Ptr<T> {
     let this_ptr = Box::into_raw(Box::new(MaybeUninit::uninit())) as *mut MaybeUninit<T> as *mut T;
     Ptr::from_raw_nonnull(this_ptr)
 }
@@ -3093,8 +3138,8 @@ pub fn exact_range<T: Clone>(value: T) -> ExactPool<T> {
 #[macro_export]
 macro_rules! is {
     ($raw:expr, $id:ty) => {
-        $crate::modify!($crate::cast_any!($raw))
-            .downcast_mut::<$id>()
+        $crate::read!($crate::cast_any!($raw))
+            .downcast_ref::<$id>()
             .is_some()
     };
 }
@@ -3102,8 +3147,8 @@ macro_rules! is {
 #[macro_export]
 macro_rules! is_object {
     ($raw:expr, $id:ty) => {
-        $crate::md!($crate::cast_any_object!($raw))
-            .downcast_mut::<$id>()
+        $crate::rd!($crate::cast_any_object!($raw))
+            .downcast_ref::<$id>()
             .is_some()
     };
 }
@@ -3121,7 +3166,7 @@ macro_rules! cast_any {
 #[macro_export]
 macro_rules! cast_any_object {
     ($obj:expr) => {
-        $crate::UpcastObject::<dyn ::std::any::Any>::upcast($crate::md!($obj))
+        $crate::UpcastObject::<dyn ::std::any::Any>::upcast($obj)
     };
 }
 
@@ -3129,22 +3174,41 @@ macro_rules! cast_any_object {
 // When initializing an uninitialized field for the first time,
 // we ensure we don't drop the previous content
 // This is problematic if the same field is overwritten multiple times
-/// In that case, prefer to use update_uninit
+// In that case, prefer to use update_field_uninit
+// $ptr should be either be a Ptr or an Object
+// To work with &self, please use the macro update_ref_field_nodrop
 #[macro_export]
 macro_rules! update_field_nodrop {
-    ($ptr:expr, $field:ident, $value:expr) => {
-        $crate::update_nodrop!($crate::modify!($ptr).$field, $value)
-    };
+    ($ptr:expr, $field:ident, $value:expr) => {{
+        let lhs = $ptr.clone();
+        $crate::update_nodrop!((*lhs.into_raw()).$field, $crate::new_field($value))
+    }};
 }
 
-// Same as update_field_nodrop but for mutable fields
+// Same as update_field_nodrop, but when $ptr is already a &self
 #[macro_export]
-macro_rules! update_field_mut_nodrop {
-    ($ptr:expr, $field:ident, $value:expr) => {
-        let lhs = $ptr;
-        let value = $value;
-        unsafe { $crate::read!(lhs).$field.get().write(value) }
-    };
+macro_rules! update_ref_field_nodrop {
+    ($ptr:expr, $field:ident, $value:expr) => {{
+        let lhs = $ptr.clone();
+        $crate::update_nodrop!(*lhs.$field.get(), $crate::MaybeUninit::new($value))
+    }};
+}
+
+// Same as update_field_nodrop, but for elements 
+#[macro_export]
+macro_rules! update_element_nodrop {
+    ($ptr:expr, $value:expr) => {{
+        update_nodrop!(*$ptr.get(), MaybeUninit::new($value));
+    }}
+}
+
+// Given a &UnsafeCell and a value, assigns the value to the inner content of the unsafe cell
+// SAFETY: Should be emitted by the compiler only
+#[macro_export]
+macro_rules! update_mut_nodrop {
+    ($lhs:expr, $value:expr) => {{
+        unsafe { $lhs.get().write($value) }
+    }};
 }
 
 // When initializing an uninitialized field for the first time,
@@ -3158,79 +3222,42 @@ macro_rules! update_nodrop {
     }
 }
 
-// Given a class or array pointer, transforms it to a mutable reference
-#[macro_export]
-macro_rules! modify {
-    ($ptr:expr) => {
-        {
-            #[allow(unused_unsafe)]
-            let tmp = unsafe {&mut *(::std::cell::UnsafeCell::raw_get($ptr.0.unwrap_unchecked().as_ptr()))};
-            tmp
-        }
-    }
-}
-
 // Given a class or array pointer, transforms it to a read-only reference
 #[macro_export]
 macro_rules! read {
     ($ptr:expr) => {
         {
             #[allow(unused_unsafe)]
-            let tmp = unsafe {&*(::std::cell::UnsafeCell::raw_get($ptr.0.unwrap_unchecked().as_ptr()))};
+            let tmp = unsafe {&*($ptr.0.unwrap_unchecked().as_ptr())};
             tmp
         }
     }
 }
 
 // If the field is guaranteed to be assigned only once, update_field_nodrop is sufficient
+// t should be an &T already
 #[macro_export]
 macro_rules! update_field_uninit {
     ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
         let computed_value = $value;
         #[allow(unused_assignments)]
         if $field_assigned {
-            $crate::modify!($t).$field = computed_value;
+            $crate::modify_field!($t, $field, computed_value);
         } else {
-            $crate::update_field_nodrop!($t, $field, computed_value);
-            $field_assigned = true;
-        }
-    }};
-}
-
-// Same as update_field_uninit but for mutable fields
-#[macro_export]
-macro_rules! update_field_mut_uninit {
-    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
-        let computed_value = $value;
-        #[allow(unused_assignments)]
-        if $field_assigned {
-            $crate::modify_field!($crate::read!($t).$field, computed_value);
-        } else {
-            $crate::update_field_mut_nodrop!($t, $field, computed_value);
+            $crate::update_ref_field_nodrop!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
 }
 
 // Macro to call at the end of the first new; constructor when not every field is guaranteed to be assigned.
+// Requires a &self
 #[macro_export]
 macro_rules! update_field_if_uninit {
     ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
         let computed_value = $value;
         if !$field_assigned {
-            $crate::update_field_nodrop!($t, $field, computed_value);
-            $field_assigned = true;
-        }
-    }};
-}
-
-// Same as update_field_if_uninit but for mutable fields
-#[macro_export]
-macro_rules! update_field_mut_if_uninit {
-    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
-        let computed_value = $value;
-        if !$field_assigned {
-            $crate::update_field_mut_nodrop!($t, $field, computed_value);
+            $crate::update_ref_field_nodrop!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
@@ -3240,8 +3267,8 @@ macro_rules! update_field_mut_if_uninit {
 // Raw pointers (require wrapping because of equality)
 /////////////////
 
-// This Ptr has the same run-time space as *mut
-pub struct Ptr<T: ?Sized>(pub Option<NonNull<UnsafeCell<T>>>);
+// This Ptr has the same run-time space as *const
+pub struct Ptr<T: ?Sized>(pub Option<NonNull<T>>);
 
 impl <T: ?Sized> Ptr<T> {
     pub fn null() -> Self {
@@ -3252,17 +3279,25 @@ impl <T: ?Sized> Ptr<T> {
     }
     #[inline]
     pub fn from_raw_nonnull(t: *mut T) -> Ptr<T> {
-        unsafe { Ptr(Some(::std::mem::transmute::<NonNull<T>, NonNull<UnsafeCell<T>>>(NonNull::new_unchecked(t)))) }
+        unsafe { Ptr(Some(NonNull::new_unchecked(t))) }
     }
     pub fn from_box(t: Box<T>) -> Ptr<T> {
         Self::from_raw_nonnull(Box::into_raw(t))
     }
+    // SAFETY: Caller needs to ensure that the pointer is not null
+    pub unsafe fn into_raw_unchecked(self) -> *mut T {
+        let nonnull: NonNull<T> = self.0.unwrap_unchecked();
+        nonnull.as_ptr()
+    }
     pub fn into_raw(self) -> *mut T {
         if self.is_null() {
-            panic!("Cannot turn a null pointer into a raw pointer");
+            panic!("Cannot turn a null pointer into a raw pointer, as there is no fat");
+        } else {
+            // SAFETY: We verified that the pointer is not null
+            unsafe {
+                Self::into_raw_unchecked(self)
+            }
         }
-        let nonnull = unsafe { self.0.unwrap_unchecked() };
-        unsafe { ::std::mem::transmute::<_, *mut T>(nonnull.as_ptr()) }
     }
 }
 
@@ -3350,11 +3385,6 @@ impl <T: ?Sized> std::hash::Hash for Ptr<T> {
     }
 }
 
-impl <T: ?Sized> AsMut<T> for Ptr<T> {
-    fn as_mut(&mut self) -> &mut T {
-        modify!(self.clone())
-    }
-}
 impl <T: ?Sized> AsRef<T> for Ptr<T> {
     fn as_ref(&self) -> &T {
         read!(self.clone())
@@ -3364,7 +3394,7 @@ impl <T: ?Sized> AsRef<T> for Ptr<T> {
 impl <T: ?Sized> Ptr<T> {
     // Never use on local values, only on &self types previously called on Ptr types.
     pub fn from_ref(r: &T) -> Ptr<T> {
-        Ptr(unsafe {::std::mem::transmute::<_, Option<NonNull<UnsafeCell<T>>>>(r as *const T)})
+        Ptr(unsafe {::std::mem::transmute::<_, Option<NonNull<T>>>(r as *const T)})
     }
 }
 // cast is meant to be used on references only, to downcast a trait reference to a class reference
@@ -3393,13 +3423,22 @@ macro_rules! cast {
 /////////////////
 // Reference-counted classes mode
 /////////////////
+/*
+Note that classes are represented as structs which are always borrowed, never mutably
+borrowed as Dafny accepts aliasing and &mut does not.
+Therefore, fields of these classes must 
 
-pub struct Object<T: ?Sized>(pub Option<rcmut::RcMut<T>>);
+*/
+
+pub struct Object<T: ?Sized>(pub Option<Rc<T>>);
 
 impl <T: ?Sized> Object<T> {
     // For safety, it requires the Rc to have been created with Rc::new()
-    pub unsafe fn from_rc(rc: Rc<T>) -> Object<T> {
-        Object(Some(rcmut::from_rc(rc)))
+    pub fn from_rc(rc: Rc<T>) -> Object<T> {
+        Object(Some(rc))
+    }
+    pub fn as_rc(&self) -> &Rc<T> {
+        (&self.0).as_ref().unwrap()
     }
     pub fn null() -> Object<T> {
         Object(None)
@@ -3407,18 +3446,35 @@ impl <T: ?Sized> Object<T> {
     pub fn is_null(&self) -> bool {
         self.0.is_none()
     }
+    pub fn downcast<U: 'static>(_self: crate::Object<dyn Any>) -> crate::Object<U> {
+        if let Some(rc) = _self.0 {
+            crate::Object(Some(Rc::downcast::<U>(rc).ok().unwrap()))
+        } else {
+            Object::<U>::null()
+        }        
+    }
+    pub fn as_mut_ref(&self) -> *mut T {
+        Rc::as_ptr(self.as_rc()) as *mut T
+    }
 }
-impl <T: ?Sized + 'static + UpcastObject<dyn Any>> Object<T> {
-    pub fn is_instance_of<U: 'static>(self) -> bool {
-    // safety: Dafny won't call this function unless it can guarantee the object is still allocated
-        rd!(UpcastObject::<dyn Any>::upcast(rd!(self)))
-            .downcast_ref::<U>()
-            .is_some()
+impl Object<dyn Any> {
+    #[inline]
+    pub fn is<U: 'static + ::std::any::Any>(self) -> bool {
+        is_object!(self.as_rc(), U)
     }
 }
 impl <T> Object<T> {
     pub fn new(val: T) -> Object<T> {
-        Object(Some(rcmut::new(val)))
+        Object(Some(Rc::new(val)))
+    }
+}
+
+impl <T: ?Sized + 'static + UpcastObject<dyn Any>> Object<T> {
+    pub fn is_instance_of<U: 'static>(self) -> bool {
+    // safety: Dafny won't call this function unless it can guarantee the object is still allocated
+        rd!(UpcastObject::<dyn Any>::upcast(self.as_rc()))
+            .downcast_ref::<U>()
+            .is_some()
     }
 }
 impl<T: ?Sized> Eq for Object<T> {}
@@ -3442,7 +3498,7 @@ impl<T: ?Sized + UpcastObject<dyn Any>> Debug for Object<T> {
 }
 impl <T: ?Sized + UpcastObject<dyn Any>> DafnyPrint for Object<T> {
     fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-        let obj_any = UpcastObject::<dyn Any>::upcast(self.as_ref());
+        let obj_any = UpcastObject::<dyn Any>::upcast(self.as_rc());
         let option_string = obj_any.as_ref().downcast_ref::<String>();
         match option_string {
             Some(s) => write!(f, "{}", s),
@@ -3458,9 +3514,8 @@ impl <T: DafnyType> DafnyPrint for Object<[T]> {
 }
 
 impl UpcastObject<dyn Any> for String {
-    fn upcast(&self) -> Object<dyn Any> {
-        // SAFETY: RC was just created
-        unsafe { Object::from_rc(Rc::new(self.clone()) as Rc<dyn Any>) }
+    fn upcast(self: &Rc<Self>) -> Object<dyn Any> {
+        Object::from_rc(Rc::new(self.clone()) as Rc<dyn Any>)
     }
 }
 
@@ -3470,7 +3525,7 @@ impl <T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
             if let Some(q) = &other.0 {
                 // To compare addresses, we need to ensure we only compare thin pointers
                 // https://users.rust-lang.org/t/comparing-addresses-between-fat-and-thin-pointers/89008
-                ::std::ptr::eq(p.as_ref().get() as *const (), q.as_ref().get() as *const ())
+                ::std::ptr::eq(p.as_ref() as *const _ as *const (), q.as_ref() as *const _ as *const ())
             } else {
                 false
             }
@@ -3485,39 +3540,16 @@ impl <T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
 impl <T: ?Sized> std::hash::Hash for Object<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         if let Some(p) = &self.0 {
-            (p.as_ref().get() as *const ()).hash(state);
+            (p.as_ref() as *const _ as *const ()).hash(state);
         } else {
             0.hash(state);
         }
     }
 }
 
-impl <T: ?Sized> AsMut<T> for Object<T> {
-    fn as_mut(&mut self) -> &mut T {
-        unsafe { &mut *(&self.0).as_ref().unwrap_unchecked().as_ref().get() }
-    }
-}
 impl <T: ?Sized> AsRef<T> for Object<T> {
     fn as_ref(&self) -> &T {
-        unsafe { &*(&self.0).as_ref().unwrap_unchecked().as_ref().get() }
-    }
-}
-
-// Never inline because, when compiling with cargo --release, sometimes it gets rid of this statement
-#[inline(never)]
-fn increment_strong_count<T: ?Sized>(data: *const T) {
-    // SAFETY: This method is called only on values that were constructed from an Rc
-    unsafe {
-       Rc::increment_strong_count(data);
-    }
-}
-
-impl <T: ?Sized> Object<T> {
-    pub fn from_ref(r: &T) -> Object<T> {
-        let pt = r as *const T as *const UnsafeCell<T>;
-        crate::increment_strong_count(pt);
-        let rebuilt = unsafe { Rc::from_raw(pt) };
-        Object(Some(rebuilt))
+        (&self.0).as_ref().unwrap().as_ref()
     }
 }
 
@@ -3527,24 +3559,33 @@ macro_rules! cast_object {
         unsafe {
             let res: $crate::Object<$id> = 
             $crate::Object(Some(::std::rc::Rc::from_raw(
-                ::std::rc::Rc::into_raw($raw.0.unwrap()) as _)));
+                ::std::rc::Rc::into_raw($raw.as_rc()) as _)));
             res
         }
     };
 }
 
-// Returns an object whose fields are yet initialized. Only use update_field_uninit_object  and update_field_if_uninit_object to initialize fields.
-pub fn allocate_object<T>() -> Object<T> {
-    unsafe { mem::transmute(object::new::<MaybeUninit<T>>(MaybeUninit::uninit())) }
+// Returns an object whose fields are yet initialized.
+// SAFETY: Caller should ensure they only read fields that they have written to so far
+// SAFETY: Caller should ensure they only use one of the following macros to write to fields the first time
+//   update_field_nodrop!      the first time they write to what is a constant (i.e. not wrapped in Field<>)
+//   update_field_mut_nodrop!  the first time they write to what is a mutable field (i.e. wrapped in Field<>)
+// The following macros can conditionally call update_field_nodrop if a given boolean marking the field as assigned is false,
+// and otherwise simply overwrite the field.
+//   update_field_uninit
+// SAFETY: Caller should ensure every field is being written to at least once before the pointer is deallocated
+pub unsafe fn allocate_object<T>() -> Object<T> {
+    ::std::mem::transmute::<Object<MaybeUninit<T>>, Object<T>>(Object::<MaybeUninit<T>>::new(MaybeUninit::uninit()))
 }
 
 pub struct AllocationTracker {
     allocations: Vec<Weak<dyn Any>>
 }
 
-pub fn allocate_object_track<T: 'static>(allocation_tracker: &mut AllocationTracker) -> Object<T> {
+// SAFETY: Same rules as allocate_object
+pub unsafe fn allocate_object_track<T: 'static>(allocation_tracker: &mut AllocationTracker) -> Object<T> {
     let res = allocate_object::<T>();
-    allocation_tracker.allocations.push(Rc::<UnsafeCell<T>>::downgrade(&res.0.clone().unwrap()));
+    allocation_tracker.allocations.push(Rc::<T>::downgrade(&res.0.clone().unwrap()));
     res
 }
 
@@ -3552,23 +3593,7 @@ pub fn allocate_object_track<T: 'static>(allocation_tracker: &mut AllocationTrac
 #[macro_export]
 macro_rules! update_field_nodrop_object {
     ($ptr:expr, $field: ident, $value:expr) => {
-        $crate::update_nodrop_object!(($crate::rcmut::borrow_mut(&mut $ptr.0.clone().unwrap())).$field, $value)
-    };
-}
-
-// Same but for mutable fields
-#[macro_export]
-macro_rules! update_field_mut_nodrop_object {
-    ($ptr:expr, $field: ident, $value:expr) => {
-        unsafe { ($crate::rcmut::borrow_mut(&mut $ptr.0.clone().unwrap())).$field.get().write($value) }
-    };
-}
-
-// Equivalent of update_nodrop but for rcmut
-#[macro_export]
-macro_rules! update_nodrop_object {
-    ($ptr:expr, $value:expr) => {
-        unsafe { ::std::ptr::addr_of_mut!($ptr).write($value) }
+        $crate::update_nodrop!((*$ptr.as_mut_ref()).$field, $crate::new_field($value))
     };
 }
 
@@ -3585,19 +3610,6 @@ macro_rules! update_field_if_uninit_object {
     }};
 }
 
-// Same for mutable fields
-#[macro_export]
-macro_rules! update_field_mut_if_uninit_object {
-    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
-        #[allow(unused_assignments)]
-        if !$field_assigned {
-            let computed_value = $value;
-            $crate::update_field_mut_nodrop_object!($t, $field, computed_value);
-            $field_assigned = true;
-        }
-    }};
-}
-
 // Equivalent of update_field_uninit but for rcmut
 #[macro_export]
 macro_rules! update_field_uninit_object {
@@ -3605,36 +3617,12 @@ macro_rules! update_field_uninit_object {
         let computed_value = $value;
         #[allow(unused_assignments)]
         if $field_assigned {
-            $crate::md!($t).$field = computed_value;
+            $crate::modify_field!($crate::rd!($t), $field, computed_value);
         } else {
             $crate::update_field_nodrop_object!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
-}
-
-// Same but for mutable fields
-#[macro_export]
-macro_rules! update_field_mut_uninit_object {
-    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
-        let computed_value = $value;
-        #[allow(unused_assignments)]
-        if $field_assigned {
-            $crate::modify_field!($crate::rd!($t).$field, computed_value);
-        } else {
-            $crate::update_field_mut_nodrop_object!($t, $field, computed_value);
-            $field_assigned = true;
-        }
-    }};
-}
-
-
-// Equivalent of modify but for rcmut
-#[macro_export]
-macro_rules! md {
-    ($x:expr) => {
-        $x.clone().as_mut()
-    };
 }
 
 // Equivalent of read but for rcmut
@@ -3646,174 +3634,72 @@ macro_rules! rd {
 }
 
 // To use when modifying a mutable field that is wrapped with UnsafeCell
+// Expects the pointer to already be &T
 #[macro_export]
 macro_rules! modify_field {
+    ($pointer:expr, $field:ident, $rhs:expr) => {{
+        let lhs = $pointer.$field.get(); // *mut MaybeUninit<T>
+        let rhs = $rhs;
+        drop_field_maybeuninit!(&*lhs);
+        update_nodrop!(*lhs, $crate::MaybeUninit::new(rhs));
+    }};
+}
+
+// Assumes pointer to be a &MaybeUninit<T>
+#[macro_export]
+macro_rules! drop_field_maybeuninit {
+    ($pointer:expr) => {{
+        let _ = unsafe { $pointer.assume_init_read() };
+    }};
+}
+
+// Assumes pointer to be a &Field<T>
+#[macro_export]
+macro_rules! drop_field {
+    ($pointer:expr) => {{
+        $crate::drop_field_maybeuninit!(&*$pointer.get());
+    }};
+}
+
+
+// To use when modifying a mutable array element that is wrapped with Field
+// $pointer should be a &Field<T>
+#[macro_export]
+macro_rules! modify_element {
     ($pointer:expr, $rhs:expr) => {
         {
             let lhs = $pointer.get();
             let rhs = $rhs;
-            unsafe {*lhs = rhs}
+            // We drop the previous value manually since we know it was initialized
+            $crate::drop_field_maybeuninit!(&*lhs);
+            $crate::update_nodrop!(*lhs, $crate::MaybeUninit::new(rhs));
         }
     };
 }
 
-// To use when reading a mutable field that is wrapped with UnsafeCell
+
+// To use when reading a mutable field that is wrapped with Field
 #[macro_export]
 macro_rules! read_field {
     ($pointer:expr) => {
       {
         let lhs = $pointer.get();
-        unsafe {(*lhs).clone()}
+        unsafe {(*lhs).assume_init_read().clone()}
       }
     };
 }
 
-pub type Field<T> = UnsafeCell<T>;
+pub type Field<T> = UnsafeCell<MaybeUninit<T>>;
 pub fn new_field<T>(t: T) -> Field<T> {
-    UnsafeCell::new(t)
+    UnsafeCell::new(MaybeUninit::new(t))
 }
 
 // Count the number of references to the given object
 #[macro_export]
 macro_rules! refcount {
     ($x:expr) => {
-        ::std::rc::Rc::strong_count(unsafe { $crate::rcmut::as_rc($x.0.as_ref().unwrap()) })
+        ::std::rc::Rc::strong_count($x.0.as_ref().unwrap())
     };
-}
-
-pub mod object {
-    use std::any::Any;
-
-    pub fn new<T>(val: T) -> crate::Object<T> {
-        crate::Object(Some(crate::rcmut::new(val)))
-    }
-    pub fn downcast<T: 'static>(_self: crate::Object<dyn Any>) -> crate::Object<T> {
-        unsafe {
-          crate::Object(Some(crate::rcmut::downcast::<T>(_self.0.unwrap()).unwrap())) // Use unwrap_unchecked?
-        }
-    }
-    #[inline]
-    pub fn is<T: 'static + ::std::any::Any>(_self: crate::Object<dyn Any>) -> bool {
-        is_object!(_self, T)
-    }
-}
-
-// Inspired from https://crates.io/crates/rcmut
-pub mod rcmut {
-    use std::cell::UnsafeCell;
-    use std::mem::{self, MaybeUninit};
-    use std::rc::Rc;
-    use std::sync::Arc;
-
-    pub fn array_object_from_rc<T>(data: Rc<[T]>) -> crate::Object<[T]> {
-        crate::Object(Some(unsafe { crate::rcmut::from_rc(data) }))
-    }
-    pub fn array_object_from_box<T>(data: Box<[T]>) -> crate::Object<[T]> {
-        let data: Rc<[T]> = data.into();
-        crate::Object(Some(unsafe { crate::rcmut::from_rc(data) }))
-    }
-    pub struct Array<T> {
-        pub data: Box<[T]>,
-    }
-    impl<T> Array<T> {
-        pub fn new(data: Box<[T]>) -> crate::Object<Array<T>> {
-            crate::Object(Some(crate::rcmut::new(Array { data })))
-        }
-
-        pub fn placebos_usize_object(length: usize) -> crate::Object<Array<MaybeUninit<T>>> {
-            let x = crate::array::placebos_box_usize::<T>(length);
-            crate::rcmut::Array::<MaybeUninit<T>>::new(x)
-        }
-    }
-    /// A reference counted smart pointer with unrestricted mutability.
-    pub type RcMut<T> = Rc<UnsafeCell<T>>;
-
-    /// Create a new RcMut for a value.
-    pub fn new<T>(val: T) -> RcMut<T> {
-        Rc::new(UnsafeCell::new(val))
-    }
-    /// Retrieve the inner Rc as a reference.
-    pub unsafe fn from<T>(value: Box<T>) -> RcMut<T> {
-        mem::transmute(Rc::new(*value))
-    }
-
-    pub unsafe fn from_rc<T: ?Sized>(value: Rc<T>) -> RcMut<T> {
-        mem::transmute(value)
-    }
-
-    pub unsafe fn as_rc<T: ?Sized>(this: &RcMut<T>) -> &Rc<T> {
-        mem::transmute(this)
-    }
-    pub unsafe fn to_rc<T: ?Sized>(this: RcMut<T>) -> Rc<T> {
-        mem::transmute(this)
-    }
-
-    /// Retrieve the inner Rc as a mutable reference.
-    pub unsafe fn as_rc_mut<T: ?Sized>(this: &mut RcMut<T>) -> &mut Rc<T> {
-        mem::transmute(this)
-    }
-
-    /// Get a reference to the value.
-    #[inline]
-    pub unsafe fn borrow<T: ?Sized>(this: &RcMut<T>) -> &T {
-        mem::transmute(this.get())
-    }
-
-    /// Get a mutable reference to the value.
-    #[inline]
-    pub unsafe fn borrow_mut<T: ?Sized>(this: &mut RcMut<T>) -> &mut T {
-        mem::transmute(this.get())
-    }
-
-    pub unsafe fn downcast<T: 'static>(this: RcMut<dyn ::std::any::Any>) -> Option<RcMut<T>> {
-        let t: Rc<dyn ::std::any::Any> = to_rc(this);
-        let t: Rc<T> = Rc::downcast::<T>(t).ok()?;
-        mem::transmute(t)
-    }
-
-    /// A reference counted smart pointer with unrestricted mutability.
-    pub struct ArcMut<T: ?Sized> {
-        inner: Arc<UnsafeCell<T>>,
-    }
-
-    impl<T: ?Sized> Clone for ArcMut<T> {
-        fn clone(&self) -> ArcMut<T> {
-            ArcMut {
-                inner: self.inner.clone(),
-            }
-        }
-    }
-
-    impl<T> ArcMut<T> {
-        /// Create a new ArcMut for a value.
-        pub fn new(val: T) -> ArcMut<T> {
-            ArcMut {
-                inner: Arc::new(UnsafeCell::new(val)),
-            }
-        }
-    }
-
-    impl<T: ?Sized> ArcMut<T> {
-        /// Retrieve the inner Rc as a reference.
-        pub unsafe fn as_arc(&self) -> &Arc<T> {
-            mem::transmute(&self.inner)
-        }
-
-        /// Retrieve the inner Rc as a mutable reference.
-        pub unsafe fn as_arc_mut(&mut self) -> &mut Arc<T> {
-            mem::transmute(&mut self.inner)
-        }
-
-        /// Get a reference to the value.
-        pub unsafe fn borrow(&self) -> &T {
-            mem::transmute(self.inner.get())
-        }
-
-        /// Get a mutable reference to the value.
-        pub unsafe fn borrow_mut(&mut self) -> &mut T {
-            mem::transmute(self.inner.get())
-        }
-    }
 }
 
 /////////////////
@@ -3828,9 +3714,9 @@ pub mod rcmut {
 pub struct MaybePlacebo<T>(Option<T>);
 impl<T: Clone> MaybePlacebo<T> {
     #[inline]
-    pub fn read(&self) -> T {
-        // safety: Dafny will guarantee we will never read a placebo value
-        unsafe { self.0.clone().unwrap_unchecked() }
+    // SAFETY: Need to guarantee that underlying value has been assigned
+    pub unsafe fn read(&self) -> T {
+        self.0.clone().unwrap_unchecked()
     }
 }
 
@@ -3875,7 +3761,7 @@ macro_rules! maybe_placebos_from {
 pub fn upcast_object<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Object<A>) -> Object<B>>
   where A : UpcastObject<B>
 {
-    Rc::new(|x: Object<A>| x.as_ref().upcast())
+    Rc::new(|x: Object<A>| UpcastObject::<B>::upcast(x.as_rc()))
 }
 
 pub fn upcast<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Ptr<A>) -> Ptr<B>>
@@ -3912,7 +3798,7 @@ pub trait Upcast<T: ?Sized> {
     fn upcast(&self) -> Ptr<T>;
 }
 pub trait UpcastObject<T: ?Sized> {
-    fn upcast(&self) -> Object<T>;
+    fn upcast(self: &Rc<Self>) -> Object<T>;
 }
 
 impl <T: ?Sized> Upcast<T> for T {
@@ -3921,8 +3807,8 @@ impl <T: ?Sized> Upcast<T> for T {
     }
 }
 impl <T: ?Sized> UpcastObject<T> for T {
-    fn upcast(&self) -> Object<T> {
-        Object::from_ref(self)
+    fn upcast(self: &Rc<Self>) -> Object<T> {
+        Object::from_rc(self.clone())
     }
 }
 
@@ -3945,8 +3831,8 @@ macro_rules! UpcastFn {
 #[macro_export]
 macro_rules! UpcastObjectFn {
     ($B:ty) => {
-        fn upcast(&self) -> $crate::Object<$B> {
-            $crate::Object::from_ref(self as &$B)
+        fn upcast(self: &Rc<Self>) -> $crate::Object<$B> {
+            $crate::Object::from_rc(self.clone() as ::std::rc::Rc<$B>)
         }
     };
 }

@@ -182,3 +182,10 @@ fn main() {
 
 * Methods with the `{:test}` attribute will produce an equivalent `#[test]` method that can be run via `cargo test` on the code produced by `dafny build`.
 * Modules with the `{:rust_cfg_test}` attribute will have the attribute `#[cfg(test)]` when translated to Rust.
+
+# Memory leaks
+
+* Immutable data structures and Dafny collections don't have memory leaks, as they are not self referential.
+* With `--raw-pointers`, user is be responsible for deallocating all allocated class instances.
+* Without `--raw-pointers`, user is responsible for clearing self-referential references to ensure that when an object is out of scope,
+it is properly deallocated. This means that if the object might point to itself through a "const", there is no way to 
