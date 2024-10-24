@@ -39,10 +39,10 @@ method Foo() { label start: previous@(x); }".TrimStart();
         Assert.Equal(CompletionItemKind.Constructor, completionList[1].Kind);
       }
     }
-    
+
     [Fact]
     public async Task CompleteAtAttributeAtBeginningOfFile() {
-      var source = @"@";
+      var source = "@";
       var documentItem = CreateTestDocument(source, "CompleteAt.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var completionList = await RequestCompletionAsync(documentItem, (0, 1));
