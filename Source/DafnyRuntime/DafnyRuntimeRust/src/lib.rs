@@ -2973,7 +2973,7 @@ impl <T> Drop for ArrayClass<T> {
 }
 
 impl <T: 'static> UpcastObject<dyn Any> for Object<ArrayClass<T>> {
-    fn upcast(self: &Rc<Self>) -> Object<dyn Any> {
+    fn upcast(&self, this: Object<dyn Any>) -> Object<dyn Any> {
         if let Some(rc) = &self.0 {
             let zero_slice_ptr = Rc::<ArrayClass<T>>::into_raw(rc.clone()) as *const [crate::Field<T>; 0];
             let zero_slice_rc  =
@@ -3837,7 +3837,10 @@ pub trait Upcast<T: ?Sized> {
     fn upcast(&self) -> Ptr<T>;
 }
 pub trait UpcastObject<T: ?Sized> {
-    fn upcast(self: &Rc<Self>) -> Object<T>;
+    // Until self: &Rc<Self> is a smart pointer, we need "this" as the second argument
+    // Recovering a Rc from &self is unsound an has caused several crashes because the compiler
+    // gets rid of the manual Rc::increment_strong_count
+    fn upcast(&self, this: &Object<dyn Any>) -> Object<T>;
 }
 
 impl <T: ?Sized> Upcast<T> for T {
@@ -3845,9 +3848,11 @@ impl <T: ?Sized> Upcast<T> for T {
         Ptr::from_raw_nonnull(self as *const T as *mut T)
     }
 }
-impl <T: ?Sized> UpcastObject<T> for T {
-    fn upcast(self: &Rc<Self>) -> Object<T> {
-        Object::from_rc(self.clone())
+impl <T: 'static> UpcastObject<T> for T {
+    fn upcast(&self, this: &Rc<dyn Any>) -> Object<T> {
+        let rc_any = this.0.as_ref().unwrap().clone();
+        let rc_t = rc_any.downcast::<T>().ok().unwrap();
+        Object::from_rc(rc_t)
     }
 }
 

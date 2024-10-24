@@ -592,9 +592,6 @@ mod tests {
     }
 
 
-/*
-
-
     #[test]
     fn test_placebo() {
         override_placebo::<Rc<BigInt>>(Rc::new(BigInt::from(1)), false);
@@ -610,15 +607,26 @@ mod tests {
     fn test_maybe_placebos_from() {
         let x = (1, 2, 3, 4);
         let (a, b, c, d) = maybe_placebos_from!(x, 0, 1, 2, 3);
-        assert_eq!(a.read(), 1);
-        assert_eq!(b.read(), 2);
-        assert_eq!(c.read(), 3);
-        assert_eq!(d.read(), 4);
+        assert_eq!(
+            // SAFETY: a is initialized
+            unsafe { a.read() }, 1);
+        assert_eq!(
+            // SAFETY: b is initialized
+            unsafe { b.read() }, 2);
+        assert_eq!(
+            // SAFETY: c is initialized
+            unsafe { c.read() }, 3);
+        assert_eq!(
+            // SAFETY: d is initialized
+            unsafe { d.read() }, 4);
     }
 
     #[test]
     fn test_coercion_immutable() {
-        let o = ClassWrapper::<i32>::constructor(1);
+        // SAFETY: Followed by constructor that enforces all the requirements
+        let o: Ptr<ClassWrapper<i32>> = unsafe { allocate::<ClassWrapper<i32>>() };
+        // SAFETY: Constructor satisfies all requirements of allocates and initializes all fields
+        unsafe { ClassWrapper::constructor(o, 53); }
         let a: Ptr<dyn Any> = Upcast::<dyn Any>::upcast(read!(o));
         assert_eq!(cast!(a, ClassWrapper<i32>), o);
         let seq_o = seq![o];
@@ -633,7 +641,8 @@ mod tests {
         let map_o = map![1 => o, 2 => o];
         let map_a = Map::<i32, Ptr<ClassWrapper<i32>>>::coerce(upcast::<ClassWrapper<i32>, dyn Any>())(map_o);
         assert_eq!(cast!(map_a.get(&1), ClassWrapper<i32>), o);
-        deallocate(o);
+        // SAFETY: o is still allocated
+        unsafe { deallocate(o); }
     }
 
     #[test]
@@ -817,13 +826,11 @@ mod tests {
         }
         assert_eq!(sum, 55);
     }
-
-    trait SuperTrait: Upcast<dyn Any> + UpcastObject<dyn Any> {
+    pub trait SuperTrait: UpcastObject<dyn Any> {
     }
-
-    trait NodeRcMutTrait: SuperTrait + Upcast<dyn SuperTrait> + UpcastObject<dyn SuperTrait>{
+    pub trait NodeRcMutTrait: SuperTrait + UpcastObject<dyn SuperTrait>{
     }
-
+/*
     pub struct NodeRcMut {
         val: DafnyInt,
         next: Object<NodeRcMut>,
