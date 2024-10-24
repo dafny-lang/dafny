@@ -39,12 +39,21 @@ method Foo() { label start: previous@(x); }".TrimStart();
         Assert.Equal(CompletionItemKind.Constructor, completionList[1].Kind);
       }
     }
+    
+    [Fact]
+    public async Task CompleteAtAttributeAtBeginningOfFile() {
+      var source = @"@";
+      var documentItem = CreateTestDocument(source, "CompleteAt.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var completionList = await RequestCompletionAsync(documentItem, (0, 1));
+      AssertEqualToAllCompletions(completionList);
+    }
 
     [Fact]
     public async Task CompleteAtAttributeBeforeMethod() {
       var source = @"
 /* Does what is expected */ @ method Foo() { }".TrimStart();
-      var documentItem = CreateTestDocument(source, "CompleteOnThisReturnsClassMembers.dfy");
+      var documentItem = CreateTestDocument(source, "CompleteAtBeforeMethod.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var completionList = await RequestCompletionAsync(documentItem, (0, 29));
       AssertEqualToAllCompletions(completionList);
