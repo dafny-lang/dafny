@@ -36,9 +36,8 @@ ghost function SumBad(a: List): int
 }
 
 ghost function FibWithExtraPost(n: int): int
-  ensures 2 <= n ==> 0 <= FibWithExtraPost(n-1) // This is fine, because the definition of the function is discovered via canCall
-  ensures 1 <= n ==> 0 <= FibWithExtraPost(n-1) // Error: In the current implementation of Dafny, one needs to actually call the
-                                                 // function in order to benefit from canCall.  This may be improved in the future.
+  ensures 2 <= n ==> 0 <= FibWithExtraPost(n-1) // This tests that Dafny generates the appropriate CanCall
+  ensures 1 <= n ==> 0 <= FibWithExtraPost(n-1) // Same here. (Before CanCalls everywhere, this postcondition was not verified.)
   ensures 0 <= FibWithExtraPost(n)
 {
   if n < 0 then 0 else
@@ -46,12 +45,13 @@ ghost function FibWithExtraPost(n: int): int
   FibWithExtraPost(n-2) + FibWithExtraPost(n-1)
 }
 
+
 ghost function GoodPost(n: int): int
   requires 0 <= n
   ensures 1 <= n ==> GoodPost(n-1) == GoodPost(n-1)
   ensures GoodPost(2*n - n) == GoodPost(2*(n+5) - 10 - n)  // these are legal ways to denote the result value of the function
 {
-  assert 2*n - n == 2*(n+5) - 10 - n;
+  assert n == 2*n - n == 2*(n+5) - 10 - n;
   if n < 2 then n else
   GoodPost(n-2) + GoodPost(n-1)
 }
@@ -91,13 +91,13 @@ ghost method M() {
 
 ghost function IncB(i: nat): nat
 {
-  var n :| n>i; n
+  var n :| n > i; n
 }
 
 ghost function IncC(i: nat): int
   ensures IncC(i)>=0
 {
-  var n :| n>i; n
+  var n :| n > i; n
 }
 
 

@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
     /// <param name="moduleDefinition">A module definition after it
     ///   is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
     /// <param name="errorReporter"></param>
-    internal virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition, ErrorReporter errorReporter) {
+    internal virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition) {
       Contract.Requires(moduleDefinition != null);
     }
 

@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation
+// RUN: %testDafnyForEachResolver "%s"
 
 
 class BreadthFirstSearch<Vertex(==)>
@@ -32,18 +32,18 @@ class BreadthFirstSearch<Vertex(==)>
   BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
          returns (d: int, ghost path: List<Vertex>)
     // source and dest are among AllVertices
-    requires source in AllVertices && dest in AllVertices;
+    requires source in AllVertices && dest in AllVertices
     // AllVertices is closed under Succ
-    requires IsClosed(AllVertices);
+    requires IsClosed(AllVertices)
     // This method has two basic outcomes, as indicated by the sign of "d".
     // More precisely, "d" is non-negative iff "source" can reach "dest".
     // The following postcondition says that under the "0 <= d" outcome,
     // "path" denotes a path of length "d" from "source" to "dest":
-    ensures 0 <= d ==> IsPath(source, dest, path) && length(path) == d;
+    ensures 0 <= d ==> IsPath(source, dest, path) && length(path) == d
     // Moreover, that path is as short as any path from "source" to "dest":
-    ensures 0 <= d ==> forall p :: IsPath(source, dest, p) ==> length(path) <= length(p);
+    ensures 0 <= d ==> forall p :: IsPath(source, dest, p) ==> length(path) <= length(p)
     // Finally, under the outcome "d < 0", there is no path from "source" to "dest":
-    ensures d < 0 ==> !exists p :: IsPath(source, dest, p);
+    ensures d < 0 ==> !exists p :: IsPath(source, dest, p)
   {
     path := Nil; // avoid indefinite assignment errors
     var V, C, N := {source}, {source}, {};
@@ -63,30 +63,30 @@ class BreadthFirstSearch<Vertex(==)>
     assert {:split_here} true;
     while C != {}
       // V, Processed, C, N are all subsets of AllVertices:
-      invariant V <= AllVertices && Processed <= AllVertices && C <= AllVertices && N <= AllVertices;
+      invariant V <= AllVertices && Processed <= AllVertices && C <= AllVertices && N <= AllVertices
       // source is encountered:
-      invariant source in V;
+      invariant source in V
       // V is the disjoint union of Processed, C, and N:
-      invariant V == Processed + C + N;
-      invariant Processed !! C !! N;  // Processed, C, and N are mutually disjoint
+      invariant V == Processed + C + N
+      invariant Processed !! C !! N  // Processed, C, and N are mutually disjoint
       // "paths" records a path for every encountered vertex
-      invariant ValidMap(source, paths);
-      invariant V == paths.Keys;
+      invariant ValidMap(source, paths)
+      invariant V == paths.Keys
       // shortest paths for vertices in C have length d, and for vertices in N
       // have length d+1
-      invariant forall x :: x in C ==> length(Find(source, x, paths)) == d;
-      invariant forall x :: x in N ==> length(Find(source, x, paths)) == d + 1;
+      invariant forall x :: x in C ==> length(Find(source, x, paths)) == d
+      invariant forall x :: x in N ==> length(Find(source, x, paths)) == d + 1
       // "dest" is not reachable for any smaller value of "d":
-      invariant dest in R(source, d, AllVertices) ==> dest in C;
-      invariant d != 0 ==> dest !in R(source, d-1, AllVertices);
+      invariant dest in R(source, d, AllVertices) ==> dest in C
+      invariant d != 0 ==> dest !in R(source, d-1, AllVertices)
       // together, Processed and C are all the vertices reachable in at most d steps:
-      invariant Processed + C == R(source, d, AllVertices);
+      invariant Processed + C == R(source, d, AllVertices)
       // N are the successors of Processed that are not reachable within d steps:
-      invariant N == Successors(Processed, AllVertices) - R(source, d, AllVertices);
+      invariant N == Successors(Processed, AllVertices) - R(source, d, AllVertices)
       // if we have exhausted C, then we have also exhausted N:
-      invariant C == {} ==> N == {};
+      invariant C == {} ==> N == {}
       // variant:
-      decreases AllVertices - Processed;
+      decreases AllVertices - Processed
     {
       // remove a vertex "v" from "C"
       var v :| v in C;
@@ -97,7 +97,7 @@ class BreadthFirstSearch<Vertex(==)>
 
       if v == dest {
         forall p | IsPath(source, dest, p)
-          ensures length(pathToV) <= length(p);
+          ensures length(pathToV) <= length(p)
         {
           reveal R();
           Lemma_IsPath_R(source, dest, p, AllVertices);
@@ -134,7 +134,7 @@ class BreadthFirstSearch<Vertex(==)>
     // show that "dest" in not in any reachability set, no matter
     // how many successors one follows
     forall n: nat
-      ensures dest !in R(source, n, AllVertices);
+      ensures dest !in R(source, n, AllVertices)
     {
       reveal R();
       if n < d {
@@ -149,7 +149,7 @@ class BreadthFirstSearch<Vertex(==)>
     forall p | IsPath(source, dest, p)
       // this and the previous two lines will establish the
       // absurdity of a "p" satisfying IsPath(source, dest, p)
-      ensures false;
+      ensures false
     {
       reveal R();
       Lemma_IsPath_R(source, dest, p, AllVertices);
@@ -165,8 +165,8 @@ class BreadthFirstSearch<Vertex(==)>
 
   lemma Lemma_IsPath_Closure(source: Vertex, dest: Vertex,
                              p: List<Vertex>, AllVertices: set<Vertex>)
-    requires IsPath(source, dest, p) && source in AllVertices && IsClosed(AllVertices);
-    ensures dest in AllVertices && forall v :: v in elements(p) ==> v in AllVertices;
+    requires IsPath(source, dest, p) && source in AllVertices && IsClosed(AllVertices)
+    ensures dest in AllVertices && forall v :: v in elements(p) ==> v in AllVertices
   {
     match p {
       case Nil =>
@@ -189,9 +189,9 @@ class BreadthFirstSearch<Vertex(==)>
   }
 
   lemma RMonotonicity(source: Vertex, m: nat, n: nat, AllVertices: set<Vertex>)
-    requires m <= n;
-    ensures R(source, m, AllVertices) <= R(source, n, AllVertices);
-    decreases n - m;
+    requires m <= n
+    ensures R(source, m, AllVertices) <= R(source, n, AllVertices)
+    decreases n - m
   {
     reveal R();
     if m < n {
@@ -200,10 +200,10 @@ class BreadthFirstSearch<Vertex(==)>
   }
 
   lemma {:isolate_assertions} IsReachFixpoint(source: Vertex, m: nat, n: nat, AllVertices: set<Vertex>)
-    requires R(source, m, AllVertices) == R(source, m+1, AllVertices);
-    requires m <= n;
-    ensures R(source, m, AllVertices) == R(source, n, AllVertices);
-    decreases n - m;
+    requires R(source, m, AllVertices) == R(source, m+1, AllVertices)
+    requires m <= n
+    ensures R(source, m, AllVertices) == R(source, n, AllVertices)
+    decreases n - m
   {
     reveal R();
     if m < n {
@@ -212,8 +212,8 @@ class BreadthFirstSearch<Vertex(==)>
   }
 
   lemma Lemma_IsPath_R(source: Vertex, x: Vertex, p: List<Vertex>, AllVertices: set<Vertex>)
-    requires IsPath(source, x, p) && source in AllVertices && IsClosed(AllVertices);
-    ensures x in R(source, length(p), AllVertices);
+    requires IsPath(source, x, p) && source in AllVertices && IsClosed(AllVertices)
+    ensures x in R(source, length(p), AllVertices)
   {
     reveal R();
     match p {
@@ -232,8 +232,8 @@ class BreadthFirstSearch<Vertex(==)>
   }
 
   ghost function Find(source: Vertex, x: Vertex, m: map<Vertex, List<Vertex>>): List<Vertex>
-    requires ValidMap(source, m) && x in m;
-    ensures IsPath(source, x, Find(source, x, m));
+    requires ValidMap(source, m) && x in m
+    ensures IsPath(source, x, Find(source, x, m))
   {
     m[x]
   }
@@ -241,13 +241,13 @@ class BreadthFirstSearch<Vertex(==)>
   ghost method UpdatePaths(vSuccs: set<Vertex>, source: Vertex,
                            paths: map<Vertex, List<Vertex>>, v: Vertex, pathToV: List<Vertex>)
                returns (newPaths: map<Vertex, List<Vertex>>)
-    requires ValidMap(source, paths);
-    requires vSuccs !! paths.Keys;
-    requires forall succ :: succ in vSuccs ==> IsPath(source, succ, Cons(v, pathToV));
-    ensures ValidMap(source, newPaths) && newPaths.Keys == paths.Keys + vSuccs;
+    requires ValidMap(source, paths)
+    requires vSuccs !! paths.Keys
+    requires forall succ :: succ in vSuccs ==> IsPath(source, succ, Cons(v, pathToV))
+    ensures ValidMap(source, newPaths) && newPaths.Keys == paths.Keys + vSuccs
     ensures forall x :: x in paths ==>
-                        Find(source, x, paths) == Find(source, x, newPaths);
-    ensures forall x :: x in vSuccs ==> Find(source, x, newPaths) == Cons(v, pathToV);
+                        Find(source, x, paths) == Find(source, x, newPaths)
+    ensures forall x :: x in vSuccs ==> Find(source, x, newPaths) == Cons(v, pathToV)
   {
     if vSuccs == {} {
       newPaths := paths;

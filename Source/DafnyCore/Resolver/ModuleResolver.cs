@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var rewriter in rewriters) {
-        rewriter.PostCyclicityResolve(module, Reporter);
+        rewriter.PostCyclicityResolve(module);
       }
     }
 
