@@ -793,7 +793,7 @@ namespace Microsoft.Dafny {
       var axiom = new Bpl.Axiom(ctor.tok, BplForall(bvs, trigger, q), "Constructor identifier");
       return axiom;
     }
-    
+
     void AddWellformednessCheck(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
       Contract.Requires(sink != null && Predef != null);

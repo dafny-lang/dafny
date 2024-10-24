@@ -1,7 +1,0 @@
-// CHECK:Verified 1/2 of Foo: assertion at line 8, verified successfully \(time: .*, resource count: .*\)
-// CHECK:Verified 2/2 of Foo: assertion at line 9, verified successfully \(time: .*, resource count: .*\)
-// CHECK:Verified 1/1 of Faz: assertion at line 12, verified successfully \(time: .*, resource count: .*\)
-// CHECK:Verified 1/1 of Fopple: assertion at line 14, verified successfully \(time: .*, resource count: .*\)
-// CHECK:Verified 1/2 of Burp: assertion at line 18, verified successfully \(time: .*, resource count: .*\)
-// CHECK:Verified 2/2 of Burp: assertion at line 19, verified successfully \(time: .*, resource count: .*\)
-// CHECK:Verified 1/1 of Blanc: assertion at line 22, verified successfully \(time: .*, resource count: .*\)

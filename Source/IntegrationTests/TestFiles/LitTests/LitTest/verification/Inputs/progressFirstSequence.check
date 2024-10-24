@@ -1,5 +1,0 @@
-// CHECK-L:Verified 0/5 symbols. Waiting for Foo to verify.
-// CHECK-L:Verified 1/5 symbols. Waiting for Faz to verify.
-// CHECK-L:Verified 2/5 symbols. Waiting for Fopple to verify.
-// CHECK-L:Verified 3/5 symbols. Waiting for Burp to verify.
-// CHECK-L:Verified 4/5 symbols. Waiting for Blanc to verify.

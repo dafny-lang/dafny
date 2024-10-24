@@ -186,24 +186,39 @@ public class CliCompilation {
         var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
 
-        var hasParts = canVerifyResult.CompletedCount > 2;
+        var hasParts = canVerifyResult.TaskCount > 2;
         if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.VerificationJobs) {
           var partOrigin = boogieUpdate.VerificationTask.Split.Token;
 
           var wellFormedness = boogieUpdate.VerificationTask.Split.Implementation.Name.Contains("CheckWellFormed$");
-          var partDescription = partOrigin switch {
-            PathOrigin pathOrigin => $"{pathOrigin.Inner.KindName} at line {pathOrigin.line}, " +
-                                     $"through [{string.Join(",", pathOrigin.Branches.Select(b => b.tok.line))}]",
-            IsolatedAssertionOrigin isolateOrigin => $"assertion at line {isolateOrigin.line}",
-            JumpOrigin returnOrigin => $"{JumpOriginKind(returnOrigin)} at line {returnOrigin.line}",
-            _ => wellFormedness ? "contract well-formedness" : (hasParts ? "remaining body" : "body")
-          };
+
+          string OriginDescription(IImplementationPartOrigin origin, bool outer) {
+            if (outer && origin is ImplementationRootOrigin) {
+              return (wellFormedness ? "contract consistency" : "entire body");
+            }
+            var result = origin switch {
+              PathOrigin pathOrigin => $"{OriginDescription(pathOrigin.Inner, false)}" +
+                                       $"after executing lines {string.Join(", ", pathOrigin.BranchTokens.Select(b => b.line))}",
+              RemainingAssertionsOrigin remainingAssertions => $"{OriginDescription(remainingAssertions.Origin, false)}remaining assertions",
+              IsolatedAssertionOrigin isolateOrigin => $"{OriginDescription(isolateOrigin.Origin, false)}assertion at line {isolateOrigin.line}",
+              JumpOrigin returnOrigin => $"{OriginDescription(returnOrigin.Origin, false)}{JumpOriginKind(returnOrigin)} at line {returnOrigin.line}",
+              AfterSplitOrigin splitOrigin => $"{OriginDescription(splitOrigin.Inner, false)}assertions after split_here at line {splitOrigin.line}",
+              FocusOrigin focusOrigin => $"{OriginDescription(focusOrigin.Inner, false)}with focus {string.Join(", ", focusOrigin.FocusToggles.Select(b => (b.Item2 ? "+" : "-") + b.Item1.line))}",
+              UntilFirstSplitOrigin untilFirstSplit => $"{OriginDescription(untilFirstSplit.Inner, false)}assertions until first split",
+              ImplementationRootOrigin => "",
+              _ => throw new ArgumentOutOfRangeException(nameof(origin), origin, null)
+            };
+            if (!outer && !string.IsNullOrEmpty(result)) {
+              result += ", ";
+            }
+            return result;
+          }
 
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
           Options.OutputWriter.WriteLine(
             $"Verified {completedPartsCount}/{canVerifyResult.TaskCount} of {boogieUpdate.CanVerify.FullDafnyName}: " +
-            $"{partDescription}, " +
+            $"{OriginDescription(partOrigin, true)} - " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
             $" (time: {timeString}, resource count: {runResult.ResourceCount})");
         }
@@ -286,7 +301,7 @@ public class CliCompilation {
   public static string DescribeOutcome(VcOutcome outcome) {
     return outcome switch {
       VcOutcome.Correct => "verified successfully",
-      VcOutcome.Errors => "could not prove all assertions",
+      VcOutcome.Errors => "could not be verified",
       VcOutcome.Inconclusive => "was inconclusive",
       VcOutcome.TimedOut => "timed out",
       VcOutcome.OutOfResource => "ran out of resources",

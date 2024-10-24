@@ -1,12 +1,7 @@
-// RUN: ! %verify --progress VerificationJobs --cores=1 %s &> %t
-// RUN: %OutputCheck --file-to-check "%t" "%s"
-// CHECK:Verified 1/2 of Assertion: assertion at line 19, could not prove all assertions
-// CHECK:Verified 2/2 of Assertion: assertion at line 27, verified successfully
-// CHECK:Verified 1/3 of Return: body, could not prove all assertions
-// CHECK:Verified 2/3 of Return: return at line 49, could not prove all assertions
-// CHECK:Verified 3/3 of Return: return at line 44, could not prove all assertions
-// CHECK:Verified 1/2 of Continue: body, verified successfully
-// CHECK:Verified 2/2 of Continue: continue at line 65, could not prove all assertions
+// RUN: ! %verify --progress VerificationJobs --cores=1 %s &> %t.raw
+// RUN: %sed 's#\(time.*\)#<redacted>#g' %t.raw > %t
+// RUN: %diff "%s.expect" "%t"
+
 method Assertion(x: int, y: int) returns (r: int) {
   r := 0;
   if x > 0 
