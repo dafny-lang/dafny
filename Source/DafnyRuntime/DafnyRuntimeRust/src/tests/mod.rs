@@ -327,7 +327,7 @@ mod tests {
         let p = Array2::<DafnyInt>::placebos(&int!(3), &int!(4));
         for i in 0..3 {
             for j in 0..4 {
-                update_element_nodrop!(read!(p).data[i][j], int!(0));
+                update_element_nodrop!(read!(p).data[i][j], int!(i + j));
             }
         }
         assert_eq!(read!(p).length0_usize(), 3);
