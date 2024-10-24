@@ -37,7 +37,7 @@ namespace Microsoft.Dafny {
 
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(iter);
-      isAllocContext = new IsAllocContext(options, false);
+      IsAllocContext = new IsAllocContext(options, false);
 
       // wellformedness check for method specification
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
@@ -53,7 +53,7 @@ namespace Microsoft.Dafny {
         AddIteratorImpl(iter, proc);
       }
       this.fuelContext = oldFuelContext;
-      isAllocContext = null;
+      IsAllocContext = null;
     }
 
 

@@ -1,5 +1,5 @@
 // RUN: %exits-with 4 %baredafny measure-complexity --show-snippets false --use-basename-for-filename --isolate-assertions --worst-amount 100 "%s" > %t.raw
-// RUN: %sed 's#\): \d+#): <redacted>#g' %t.raw > %t.raw2
+// RUN: %sed 's#\(\d+,\d+\): \d+#<redacted>#g' %t.raw > %t.raw2
 // RUN: %sed 's#are \d+#are <redacted>#g' %t.raw2 > %t
 // RUN: %diff "%s.expect" "%t"
 method Foo() {

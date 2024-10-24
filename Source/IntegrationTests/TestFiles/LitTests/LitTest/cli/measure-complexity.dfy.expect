@@ -2,29 +2,29 @@ Starting verification of iteration 1/1 with seed 0
 measure-complexity.dfy(6,18): Error: assertion might not hold
 The total consumed resources are <redacted>
 The most demanding 100 verification tasks consumed these resources:
-measure-complexity.dfy(9,18): <redacted>
-measure-complexity.dfy(8,18): <redacted>
-measure-complexity.dfy(9,15): <redacted>
-measure-complexity.dfy(7,18): <redacted>
-measure-complexity.dfy(19,4): <redacted>
-measure-complexity.dfy(6,18): <redacted>
-measure-complexity.dfy(7,15): <redacted>
-measure-complexity.dfy(7,13): <redacted>
-measure-complexity.dfy(19,15): <redacted>
-measure-complexity.dfy(17,4): <redacted>
-measure-complexity.dfy(19,24): <redacted>
-measure-complexity.dfy(17,15): <redacted>
-measure-complexity.dfy(17,10): <redacted>
-measure-complexity.dfy(19,10): <redacted>
-measure-complexity.dfy(15,6): <redacted>
-measure-complexity.dfy(19,4): <redacted>
-measure-complexity.dfy(19,4): <redacted>
-measure-complexity.dfy(9,13): <redacted>
-measure-complexity.dfy(17,4): <redacted>
-measure-complexity.dfy(8,15): <redacted>
-measure-complexity.dfy(19,15): <redacted>
-measure-complexity.dfy(6,13): <redacted>
-measure-complexity.dfy(8,13): <redacted>
-measure-complexity.dfy(17,4): <redacted>
-measure-complexity.dfy(6,15): <redacted>
-measure-complexity.dfy(19,15): <redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>

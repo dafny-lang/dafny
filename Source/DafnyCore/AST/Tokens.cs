@@ -1,6 +1,5 @@
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text;
@@ -160,6 +159,7 @@ public abstract class TokenWrapper : IToken {
   public bool IsValid {
     get { return WrappedToken.IsValid; }
   }
+
   public int kind {
     get { return WrappedToken.kind; }
     set { WrappedToken.kind = value; }

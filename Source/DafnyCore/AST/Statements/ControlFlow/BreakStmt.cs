@@ -31,8 +31,8 @@ public class BreakStmt : Statement, IHasReferences, ICloneable<BreakStmt> {
     }
   }
 
-  public BreakStmt(RangeToken rangeToken, IToken targetLabel, bool isContinue)
-    : base(rangeToken) {
+  public BreakStmt(RangeToken rangeToken, IToken targetLabel, bool isContinue, Attributes attributes = null)
+    : base(rangeToken, attributes) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(targetLabel != null);
     this.TargetLabel = targetLabel;
@@ -43,8 +43,8 @@ public class BreakStmt : Statement, IHasReferences, ICloneable<BreakStmt> {
   /// For "isContinue == false", represents the statement "break ^breakAndContinueCount ;".
   /// For "isContinue == true", represents the statement "break ^(breakAndContinueCount - 1) continue;".
   /// </summary>
-  public BreakStmt(RangeToken rangeToken, int breakAndContinueCount, bool isContinue)
-    : base(rangeToken) {
+  public BreakStmt(RangeToken rangeToken, int breakAndContinueCount, bool isContinue, Attributes attributes = null)
+    : base(rangeToken, attributes) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(1 <= breakAndContinueCount);
     this.BreakAndContinueCount = breakAndContinueCount;

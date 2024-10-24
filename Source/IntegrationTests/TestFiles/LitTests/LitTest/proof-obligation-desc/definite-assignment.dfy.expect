@@ -1,7 +1,7 @@
-definite-assignment.dfy(16,4): Error: field 'x', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
- Asserted expression: assigned(x)
 definite-assignment.dfy(16,4): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
  Asserted expression: assigned(y)
+definite-assignment.dfy(16,4): Error: field 'x', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+ Asserted expression: assigned(x)
 definite-assignment.dfy(33,9): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
  Asserted expression: assigned(y)
 definite-assignment.dfy(36,0): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point

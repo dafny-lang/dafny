@@ -1,16 +1,22 @@
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
+using Microsoft.Dafny;
+using VCGeneration.Splits;
+using ExistsExpr = Microsoft.Dafny.ExistsExpr;
 
-namespace Microsoft.Dafny;
+namespace DafnyCore.Verifier.Statements;
 
 public class IfStatementVerifier {
-  public static void EmitBoogie(BoogieGenerator generator, IfStmt stmt, BoogieStmtListBuilder builder, Variables locals, BoogieGenerator.ExpressionTranslator etran) {
+
+  public static void EmitBoogie(BoogieGenerator generator, IfStmt stmt, BoogieStmtListBuilder builder,
+    Variables locals, BoogieGenerator.ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
     Contract.Requires(etran != null);
 
-    generator.AddComment(builder, stmt, "if statement");
+    BoogieGenerator.AddComment(builder, stmt, "if statement");
     Expression guard;
     if (stmt.Guard == null) {
       guard = null;
@@ -18,37 +24,38 @@ public class IfStatementVerifier {
       guard = stmt.IsBindingGuard ? ((ExistsExpr)stmt.Guard).AlphaRename("eg$") : stmt.Guard;
       generator.TrStmt_CheckWellformed(guard, builder, locals, etran, true);
     }
-    BoogieStmtListBuilder b = new BoogieStmtListBuilder(generator, generator.Options, builder.Context);
+    var thenBuilder = new BoogieStmtListBuilder(generator, generator.Options, builder.Context);
     if (stmt.IsBindingGuard) {
       generator.CurrentIdGenerator.Push();
       var exists = (ExistsExpr)stmt.Guard; // the original (that is, not alpha-renamed) guard
-      generator.IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
+      generator.IntroduceAndAssignExistentialVars(exists, thenBuilder, builder, locals, etran, stmt.IsGhost);
       generator.CurrentIdGenerator.Pop();
     }
-
     generator.CurrentIdGenerator.Push();
-    Boogie.StmtList thn = generator.TrStmt2StmtList(b, stmt.Thn, locals, etran, stmt.Thn is not BlockStmt);
+    StmtList thenList = generator.TrStmt2StmtList(thenBuilder, stmt.Thn, locals, etran, stmt.Thn is not BlockStmt);
     generator.CurrentIdGenerator.Pop();
-    Boogie.StmtList els;
-    Boogie.IfCmd elsIf = null;
-    b = new BoogieStmtListBuilder(generator, generator.Options, builder.Context);
+    StmtList elseList;
+    IfCmd elseIf = null;
+    var elseBuilder = new BoogieStmtListBuilder(generator, generator.Options, builder.Context);
     if (stmt.IsBindingGuard) {
-      b.Add(generator.TrAssumeCmdWithDependenciesAndExtend(etran, guard.tok, guard, Expr.Not, "if statement binding guard"));
+      elseBuilder.Add(generator.TrAssumeCmdWithDependenciesAndExtend(etran, guard.tok, guard, Expr.Not, "if statement binding guard"));
     }
     if (stmt.Els == null) {
-      els = b.Collect(stmt.Tok);
+      elseList = elseBuilder.Collect(stmt.Tok);
     } else {
       generator.CurrentIdGenerator.Push();
-      els = generator.TrStmt2StmtList(b, stmt.Els, locals, etran, stmt.Els is not BlockStmt);
+      elseList = generator.TrStmt2StmtList(elseBuilder, stmt.Els, locals, etran, stmt.Els is not BlockStmt);
       generator.CurrentIdGenerator.Pop();
-      if (els.BigBlocks.Count == 1) {
-        Boogie.BigBlock bb = els.BigBlocks[0];
-        if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is Boogie.IfCmd) {
-          elsIf = (Boogie.IfCmd)bb.ec;
-          els = null;
+      if (elseList.BigBlocks.Count == 1) {
+        BigBlock bb = elseList.BigBlocks[0];
+        if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is IfCmd ec) {
+          elseIf = ec;
+          elseList = null;
         }
       }
     }
-    builder.Add(new Boogie.IfCmd(stmt.Tok, guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard), thn, elsIf, els));
+    builder.Add(new IfCmd(stmt.Tok,
+      guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard),
+      thenList, elseIf, elseList, BlockRewriter.AllowSplitQ));
   }
 }
