@@ -3514,10 +3514,23 @@ fn increment_strong_count<T: ?Sized>(data: *const T) {
 }
 
 impl <T: ?Sized> Object<T> {
+    // SAFETY: This function needs to be called from a reference obtained by calling read!(o) on an object
     pub fn from_ref(r: &T) -> Object<T> {
         let pt = r as *const T as *const UnsafeCell<T>;
-        crate::increment_strong_count(pt);
+        // SAFETY: Not guaranteed unfortunately. But looking at the sources of from_raw as of today 10/24/2024
+        // it will will correctly rebuilt the Rc
         let rebuilt = unsafe { Rc::from_raw(pt) };
+        let previous_strong_count = Rc::strong_count(&rebuilt);
+        let rebuilt_pt = Rc::into_raw(rebuilt);
+        // If applied on pt directly, without inline(never) and opaque, we have found that
+        // this sentence used to be skipped by the compiler.
+        // All this code is there to ensure this line is not skipped, and if it is, we simply panic
+        // instead of returning invalid code
+        crate::increment_strong_count(rebuilt_pt);
+        // SAFETY: rebuilt_pt was obtained from Rc::into_raw
+        let rebuilt = unsafe { Rc::from_raw(rebuilt_pt) };
+        let new_strong_count = Rc::strong_count(&rebuilt);
+        assert!(new_strong_count == previous_strong_count + 1); // Will panic if not
         Object(Some(rebuilt))
     }
 }
