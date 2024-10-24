@@ -3450,6 +3450,13 @@ impl <T: ?Sized + UpcastObject<dyn Any>> DafnyPrint for Object<T> {
         }
     }
 }
+
+impl <T: DafnyType> DafnyPrint for Object<[T]> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        write!(f, "<object>")
+    }
+}
+
 impl UpcastObject<dyn Any> for String {
     fn upcast(&self) -> Object<dyn Any> {
         // SAFETY: RC was just created
@@ -3642,9 +3649,11 @@ macro_rules! rd {
 #[macro_export]
 macro_rules! modify_field {
     ($pointer:expr, $rhs:expr) => {
-        let lhs = $pointer.get();
-        let rhs = $rhs;
-        unsafe {*lhs = rhs}
+        {
+            let lhs = $pointer.get();
+            let rhs = $rhs;
+            unsafe {*lhs = rhs}
+        }
     };
 }
 
