@@ -6,9 +6,6 @@ using System.Threading.Tasks;
 using Bpl = Microsoft.Boogie;
 using Xunit;
 using Microsoft.Dafny;
-using Microsoft.Dafny.ProofObligationDescription;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DafnyPipeline.Test;
 

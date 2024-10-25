@@ -116,13 +116,13 @@ namespace DafnyTestGeneration {
           yield return new Path(impl, currPathVariables.ToList(), new() { block },
             currPath.Append(block).ToList());
         } else {
-          if (currPath.Count != 0 && ((GotoCmd)currPath.Last().TransferCmd).labelTargets.Count != 1) {
+          if (currPath.Count != 0 && ((GotoCmd)currPath.Last().TransferCmd).LabelTargets.Count != 1) {
             currPathVariables.Add(blockToVariable[block]); // only constrain the path if there is more than one goto
           }
           currPath.Add(block);
           otherGotos.Add(new List<Block>());
           var gotoCmd = block.TransferCmd as GotoCmd;
-          foreach (var nextBlock in gotoCmd?.labelTargets ?? new List<Block>()) {
+          foreach (var nextBlock in gotoCmd?.LabelTargets ?? new List<Block>()) {
             if (currPathVariables.Contains(blockToVariable[nextBlock])) { // this prevents cycles
               continue;
             }

@@ -1071,7 +1071,7 @@ namespace Microsoft.Dafny {
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
                 body.Add(new AssertStmt(new RangeToken(new BoogieGenerator.ForceCheckToken(skel.RangeToken.StartToken), skel.RangeToken.EndToken),
-                  e, skel.Proof, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
+                  e, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
@@ -1217,7 +1217,7 @@ namespace Microsoft.Dafny {
               i++; j++;
               if (addedAssert != null) {
                 var tok = new BoogieGenerator.ForceCheckToken(addedAssert.RangeToken.StartToken);
-                body.Add(new AssertStmt(new RangeToken(tok, addedAssert.RangeToken.EndToken), addedAssert, null, null, null));
+                body.Add(new AssertStmt(new RangeToken(tok, addedAssert.RangeToken.EndToken), addedAssert, null, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1274,7 +1274,7 @@ namespace Microsoft.Dafny {
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
                 var tok = new RangeToken(addedAssert.RangeToken.StartToken, addedAssert.RangeToken.EndToken);
-                stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null, null));
+                stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null));
               }
             }
             if (doMerge) {
