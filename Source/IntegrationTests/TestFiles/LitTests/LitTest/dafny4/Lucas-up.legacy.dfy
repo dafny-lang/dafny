@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /arith:2 "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Proof of the Lucas theorem, following the structure of a HOL-Light
@@ -9,6 +9,7 @@
 //
 // Rustan Leino
 // 7 March 2018
+// Updated 25 Oct 2024 to write the proofs manually
 
 // This file defines the ingredients of the Lucas theorem, proves some
 // properties of these, and then states and proves the Lucas theorem
@@ -48,14 +49,20 @@ lemma BitSize(i: nat, n: nat)
 
 // An easy-to-read name for the expression that checks if a number
 // is even.
-ghost predicate EVEN(n: nat)
+opaque ghost predicate EVEN(n: nat)
 {
   n % 2 == 0
 }
 
+lemma EvenPlus(a: nat, b: nat)
+  ensures EVEN(a + b) <==> EVEN(a) == EVEN(b)
+{
+  reveal EVEN();
+}
+
 // The binomial function is defined like in the Pascal triangle.
 // "binom(a, b)" is also known as "a choose b".
-ghost function binom(a: nat, b: nat): nat
+opaque ghost function binom(a: nat, b: nat): nat
 {
   if b == 0 then 1
   else if a == 0 then 0
@@ -66,35 +73,157 @@ ghost function binom(a: nat, b: nat): nat
 // div-2 is applied to both arguments, except in the case where
 // the first argument to "binom" is even and the second argument
 // is odd, in which case "binom" is always even.
-lemma {:resource_limit "8e6"} Lucas_Binary(a: nat, b: nat)
+lemma {:induction false} Lucas_Binary(a: nat, b: nat)
   ensures EVEN(binom(2*a, 2*b + 1))
   ensures EVEN(binom(2*a, 2*b)) <==> EVEN(binom(a, b))
   ensures EVEN(binom(2*a + 1, 2*b + 1)) <==> EVEN(binom(a, b))
   ensures EVEN(binom(2*a + 1, 2*b)) <==> EVEN(binom(a, b))
 {
-  if a == 0 {
+  Lucas_Binary01(a, b);
+  Lucas_Binary00(a, b);
+  Lucas_Binary11(a, b);
+  Lucas_Binary10(a, b);
+}
+
+lemma {:induction false} Lucas_Binary01(a: nat, b: nat)
+  ensures EVEN(binom(2*a, 2*b + 1))
+  decreases a, b, 0
+{
+  var aa, bb := 2*a, 2*b + 1;
+  var r := binom(aa, bb);
+
+  assert bb != 0;
+  if aa == 0 {
+    assert r == 0 && EVEN(r) by {
+      reveal binom(), EVEN();
+    }
   } else {
     var a', b' := a - 1, b - 1;
-    assert binom(2*a, 2*b + 1) == binom(2*a' + 1, 2*b + 1) + binom(2*a' + 1, 2*b);
-    assert b != 0 ==> binom(2*a, 2*b) == binom(2*a' + 1, 2*b) + binom(2*a' + 1, 2*b' + 1);
-    assert EVEN(binom(2*a' + 1, 2*b + 1)) == EVEN(binom(a', b));
-    assert EVEN(binom(2*a' + 1, 2*b)) == EVEN(binom(a', b));
+    calc {
+      EVEN(r);
+      { reveal binom(); }
+      EVEN(binom(aa - 1, bb) + binom(aa - 1, bb - 1));
+      { assert aa - 1 == 2*a' + 1; assert bb == 2*b + 1; }
+      EVEN(binom(2*a' + 1, 2*b + 1) + binom(2*a' + 1, 2*b));
+      { EvenPlus(binom(2*a' + 1, 2*b + 1), binom(2*a' + 1, 2*b)); }
+      EVEN(binom(2*a' + 1, 2*b + 1)) <==> EVEN(binom(2*a' + 1, 2*b));
+      { Lucas_Binary11(a', b); }
+      EVEN(binom(a', b)) <==> EVEN(binom(2*a' + 1, 2*b));
+      { Lucas_Binary10(a', b); }
+      EVEN(binom(a', b)) <==> EVEN(binom(a', b));
+      true;
+    }
+  }
+}
+
+lemma {:induction false} Lucas_Binary00(a: nat, b: nat)
+  ensures EVEN(binom(2*a, 2*b)) <==> EVEN(binom(a, b))
+  decreases a, b, 0
+{
+  var aa, bb := 2*a, 2*b;
+  var r := binom(aa, bb);
+
+  if bb == 0 {
+    assert b == 0;
+    assert r == binom(a, b) by {
+      reveal binom();
+    }
+  } else if aa == 0 {
+    assert a == 0;
+    assert r == binom(a, b) by {
+      reveal binom();
+    }
+  } else {
+    var a', b' := a - 1, b - 1;
+    calc {
+      EVEN(r);
+      { reveal binom(); }
+      EVEN(binom(aa - 1, bb) + binom(aa - 1, bb - 1));
+      { assert aa - 1 == 2*a' + 1; assert bb - 1 == 2*b' + 1; }
+      EVEN(binom(2*a' + 1, 2*b) + binom(2*a' + 1, 2*b' + 1));
+      { EvenPlus(binom(2*a' + 1, 2*b), binom(2*a' + 1, 2*b' + 1)); }
+      EVEN(binom(2*a' + 1, 2*b)) <==> EVEN(binom(2*a' + 1, 2*b' + 1));
+      { Lucas_Binary11(a', b'); }
+      EVEN(binom(2*a' + 1, 2*b)) <==> EVEN(binom(2*a' + 1, 2*b' + 1));
+      { assert binom(2*a' + 1, 2*b) == binom(2*a', 2*b) + binom(2*a', 2*b - 1) by { reveal binom(); } }
+      EVEN(binom(2*a', 2*b) + binom(2*a', 2*b - 1)) <==> EVEN(binom(2*a' + 1, 2*b' + 1));
+      { EvenPlus(binom(2*a', 2*b), binom(2*a', 2*b - 1)); }
+      EVEN(binom(2*a', 2*b)) <==> EVEN(binom(2*a', 2*b - 1)) <==> EVEN(binom(2*a' + 1, 2*b' + 1));
+      { Lucas_Binary00(a', b); }
+      EVEN(binom(a', b)) <==> EVEN(binom(2*a', 2*b - 1)) <==> EVEN(binom(2*a' + 1, 2*b' + 1));
+      { Lucas_Binary11(a', b'); }
+      EVEN(binom(a', b)) <==> EVEN(binom(2*a', 2*b - 1)) <==> EVEN(binom(a', b'));
+      { assert 2*b - 1 == 2*b' + 1; }
+      EVEN(binom(a', b)) <==> EVEN(binom(2*a', 2*b' + 1)) <==> EVEN(binom(a', b'));
+      { Lucas_Binary01(a', b'); }
+      EVEN(binom(a', b)) <==> EVEN(binom(a', b'));
+      { EvenPlus(binom(a', b), binom(a', b')); }
+      EVEN(binom(a', b) + binom(a', b'));
+      { reveal binom(); }
+      EVEN(binom(a, b));
+    }
+  }
+}
+
+lemma {:induction false} Lucas_Binary11(a: nat, b: nat)
+  ensures EVEN(binom(2*a + 1, 2*b + 1)) <==> EVEN(binom(a, b))
+{
+  var aa, bb := 2*a + 1, 2*b + 1;
+  var r := binom(aa, bb);
+
+  assert bb != 0;
+  assert aa != 0;
+  var a', b' := a - 1, b - 1;
+  calc {
+    EVEN(r);
+    { reveal binom(); }
+    EVEN(binom(2*a, 2*b + 1) + binom(2*a, 2*b));
+    { EvenPlus(binom(2*a, 2*b + 1), binom(2*a, 2*b)); }
+    EVEN(binom(2*a, 2*b + 1)) <==> EVEN(binom(2*a, 2*b));
+    { Lucas_Binary01(a, b); }
+    EVEN(binom(2*a, 2*b));
+    { Lucas_Binary00(a, b); }
+    EVEN(binom(a, b));
+  }
+}
+
+lemma {:induction false} Lucas_Binary10(a: nat, b: nat)
+  ensures EVEN(binom(2*a + 1, 2*b)) <==> EVEN(binom(a, b))
+{
+  var aa, bb := 2*a + 1, 2*b;
+  var r := binom(aa, bb);
+
+  assert aa != 0;
+  if bb == 0 {
+    assert b == 0;
+    assert r == binom(a, b) by {
+      reveal binom();
+    }
+  } else {
+    var a', b' := a - 1, b - 1;
+    calc {
+      EVEN(r);
+      { reveal binom(); }
+      EVEN(binom(2*a, 2*b) + binom(2*a, 2*b' + 1));
+      { EvenPlus(binom(2*a, 2*b), binom(2*a, 2*b' + 1)); }
+      EVEN(binom(2*a, 2*b)) <==> EVEN(binom(2*a, 2*b' + 1));
+      { Lucas_Binary00(a, b); }
+      EVEN(binom(a, b)) <==> EVEN(binom(2*a, 2*b' + 1));
+      { Lucas_Binary01(a, b'); }
+      EVEN(binom(a, b));
+    }
   }
 }
 
 // Here is an alternative way to phrase the previous lemma.
-lemma {:resource_limit "200e6"} Lucas_Binary'(a: nat, b: nat)
+lemma {:induction false} Lucas_Binary'(a: nat, b: nat)
   ensures binom(2*a, 2*b) % 2 == binom(a, b) % 2
   ensures binom(2*a, 2*b + 1) % 2 == 0
   ensures binom(2*a + 1, 2*b) % 2 == binom(a, b) % 2
   ensures binom(2*a + 1, 2*b + 1) % 2 == binom(a, b) % 2
 {
-  if a != 0 {
-    var a', b' := a - 1, b - 1;
-    assert b != 0 ==> binom(2*a, 2*b) == binom(2*a' + 1, 2*b) + binom(2*a' + 1, 2*b' + 1);
-    assert binom(2*a' + 1, 2*b) % 2 == binom(a', b) % 2;
-    assert binom(2*a' + 1, 2*b + 1) % 2 == binom(a', b) % 2;
-  }
+  Lucas_Binary(a, b);
+  reveal EVEN();
 }
 
 // "Suc(S)" returns the set constructed by incrementing
@@ -187,6 +316,9 @@ lemma Lucas_Theorem(m: nat, n: nat)
   ensures BitSet(m) <= BitSet(n) <==> !EVEN(binom(n, m))
 {
   if m == 0 && n == 0 {
+    assert binom(n, m) == 1 && !EVEN(1) by {
+      reveal binom(), EVEN();
+    }
   } else {
     var m', n' := m/2, n/2;
     if {
