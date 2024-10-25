@@ -203,7 +203,9 @@ public class CliCompilation {
               IsolatedAssertionOrigin isolateOrigin => $"{OriginDescription(isolateOrigin.Origin, false)}assertion at line {isolateOrigin.line}",
               JumpOrigin returnOrigin => $"{OriginDescription(returnOrigin.Origin, false)}{JumpOriginKind(returnOrigin)} at line {returnOrigin.line}",
               AfterSplitOrigin splitOrigin => $"{OriginDescription(splitOrigin.Inner, false)}assertions after split_here at line {splitOrigin.line}",
-              FocusOrigin focusOrigin => $"{OriginDescription(focusOrigin.Inner, false)}with focus {string.Join(", ", focusOrigin.FocusToggles.Select(b => (b.Item2 ? "+" : "-") + b.Item1.line))}",
+              FocusOrigin focusOrigin => 
+                $"{OriginDescription(focusOrigin.Inner, false)}with focus " +
+                $"{string.Join(", ", focusOrigin.FocusChoices.Select(b => (b.DidFocus ? "+" : "-") + b.Token.line))}",
               UntilFirstSplitOrigin untilFirstSplit => $"{OriginDescription(untilFirstSplit.Inner, false)}assertions until first split",
               ImplementationRootOrigin => "",
               _ => throw new ArgumentOutOfRangeException(nameof(origin), origin, null)
