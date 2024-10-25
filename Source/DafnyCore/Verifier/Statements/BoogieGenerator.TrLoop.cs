@@ -432,7 +432,7 @@ public partial class BoogieGenerator {
     Contract.Requires(loop != null);
     Contract.Requires(builder != null);
     if (loop.Labels != null) {
-      builder.AddLabelCmd("continue_" + loop.Labels.Data.AssignUniqueId(CurrentIdGenerator));
+      builder.AddLabelCmd(loop.Tok, "continue_" + loop.Labels.Data.AssignUniqueId(CurrentIdGenerator));
     }
   }
 }
