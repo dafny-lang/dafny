@@ -57,7 +57,11 @@ public class TextBuffer {
   }
 
   private BufferLine IndexToLine(int index) {
-    return indexToLineTree.Query(index).Single();
+    try {
+      return indexToLineTree.Query(index).Single();
+    } catch (InvalidOperationException) {
+      throw new ArgumentException($"index {index} is outside of the text buffer");
+    }
   }
 
   public int ToIndex(Position position) {
