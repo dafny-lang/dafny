@@ -183,10 +183,9 @@ public class CliCompilation {
 
       if (ev is BoogieUpdate { BoogieStatus: Completed completed } boogieUpdate) {
         var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
-        var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
+        var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
 
-        var hasParts = canVerifyResult.TaskCount > 2;
         if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.VerificationJobs) {
           var partOrigin = boogieUpdate.VerificationTask.Split.Token;
 
