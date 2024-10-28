@@ -797,8 +797,8 @@ namespace Microsoft.Dafny {
     void AddWellformednessCheck(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
       Contract.Requires(sink != null && Predef != null);
-      Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
-      Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
+      Contract.Requires(currentModule == null && codeContext == null && IsAllocContext == null && fuelContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null && IsAllocContext == null && fuelContext == null);
 
       proofDependencies.SetCurrentDefinition(MethodVerboseName(ctor.FullName, MethodTranslationKind.SpecWellformedness), ctor.EnclosingDatatype);
 
@@ -842,7 +842,7 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       builder.Add(new CommentCmd($"AddWellformednessCheck for datatype constructor {ctor}"));
       builder.AddCaptureState(ctor.tok, false, "initial state");
-      isAllocContext = new IsAllocContext(options, true);
+      IsAllocContext = new IsAllocContext(options, true);
 
       DefineFrame(ctor.tok, etran.ReadsFrame(ctor.tok), new List<FrameExpression>(), builder, locals, null);
 
@@ -866,7 +866,7 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(currentModule == ctor.EnclosingDatatype.EnclosingModuleDefinition);
       Contract.Assert(codeContext == ctor.EnclosingDatatype);
-      isAllocContext = null;
+      IsAllocContext = null;
       fuelContext = null;
       Reset();
     }
