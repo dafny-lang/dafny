@@ -576,7 +576,7 @@ public partial class BoogieGenerator {
       funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
     }
 
-    Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl, readsHeap ? etran.HeapExpr : null);
+    Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl, f.ReadsHeap ? etran.HeapExpr : null);
     Bpl.Expr tastyVegetarianOption; // a.k.a. the "meat" of the operation :)
     if (!RevealedInScope(f)) {
       tastyVegetarianOption = Bpl.Expr.True;

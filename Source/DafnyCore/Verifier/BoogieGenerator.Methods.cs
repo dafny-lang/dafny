@@ -795,7 +795,7 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));
 #else
         TrForallStmtCall(m.tok, parBoundVars, parBounds, parRange, decrCheck, null, triggers, recursiveCall, null,
-          builder, localVariables, etran);
+          builder, localVariables, etran, includeCanCalls: false);
 #endif
       }
       // translate the body of the method
