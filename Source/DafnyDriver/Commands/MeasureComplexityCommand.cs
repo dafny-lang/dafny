@@ -141,7 +141,7 @@ static class MeasureComplexityCommand {
 
   private static JsonObject SerializeToken(Boogie.IToken tok) {
     return new JsonObject {
-      ["uri"] = ((IToken)tok).Uri.AbsoluteUri,
+      ["uri"] = BoogieGenerator.ToDafnyToken(false, tok).Uri.AbsoluteUri,
       ["range"] = DiagnosticMessageData.SerializeRange(tok)
     };
   }
@@ -152,8 +152,10 @@ static class MeasureComplexityCommand {
     var random = new Random(iterationSeed);
     var iterations = (int)options.Get(Iterations);
     foreach (var iteration in Enumerable.Range(0, iterations)) {
-      await options.OutputWriter.WriteLineAsync(
-        $"Starting verification of iteration {iteration + 1}/{iterations} with seed {iterationSeed}");
+      if (options.Get(CommonOptionBag.ProgressOption) != CommonOptionBag.ProgressLevel.None) {
+        await options.OutputWriter.WriteLineAsync(
+          $"Starting verification of iteration {iteration + 1}/{iterations} with seed {iterationSeed}");
+      }
       try {
         await foreach (var result in compilation.VerifyAllLazily(iterationSeed)) {
           verificationResultsObserver.OnNext(result);

@@ -35,7 +35,7 @@ public record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boog
   public static JsonObject SerializeToken(Boogie.IToken tok) {
     return new JsonObject {
       ["filename"] = tok.filename,
-      ["uri"] = ((IToken)tok).Uri.AbsoluteUri,
+      ["uri"] = (BoogieGenerator.ToDafnyToken(false, tok)).Uri.AbsoluteUri,
       ["range"] = SerializeRange(tok)
     };
   }
