@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.Dynamic;
 using System.Linq;
 using System.Reactive.Subjects;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
@@ -16,6 +19,7 @@ static class MeasureComplexityCommand {
   public static IEnumerable<Option> Options => new Option[] {
     Iterations,
     RandomSeed,
+    Format,
     TopX,
     VerifyCommand.FilterSymbol,
     VerifyCommand.FilterPosition,
@@ -29,9 +33,14 @@ static class MeasureComplexityCommand {
 
     OptionRegistry.RegisterOption(Iterations, OptionScope.Cli);
     OptionRegistry.RegisterOption(RandomSeed, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Format, OptionScope.Cli);
     OptionRegistry.RegisterOption(TopX, OptionScope.Cli);
   }
 
+  enum ComplexityFormat { Text, Json }
+  private static readonly Option<ComplexityFormat> Format = new("--format", 
+    $"Specify the format in which the complexity data is presented");
+  
   private static readonly Option<uint> TopX = new("--worst-amount", () => 10U,
     $"Configures the amount of worst performing verification tasks that are reported.");
 
@@ -109,14 +118,34 @@ static class MeasureComplexityCommand {
       decreasingWorst.Push(worstPerformers.Dequeue());
     }
 
-    await output.WriteLineAsync($"The total consumed resources are {totalResources}");
-    await output.WriteLineAsync($"The most demanding {worstAmount} verification tasks consumed these resources:");
-    foreach (var performer in decreasingWorst) {
-      var location = BoogieGenerator.ToDafnyToken(false, performer.Task.Token).TokenToString(cliCompilation.Options);
-      await output.WriteLineAsync($"{location}: {performer.Result.ResourceCount}");
+    if (cliCompilation.Options.Get(Format) == ComplexityFormat.Text)
+    {
+      await output.WriteLineAsync($"The total consumed resources are {totalResources}");
+      await output.WriteLineAsync($"The most demanding {worstAmount} verification tasks consumed these resources:");
+      foreach (var performer in decreasingWorst) {
+        var location = BoogieGenerator.ToDafnyToken(false, performer.Task.Token).TokenToString(cliCompilation.Options);
+        await output.WriteLineAsync($"{location}: {performer.Result.ResourceCount}");
+      }
+    } else if (cliCompilation.Options.Get(Format) == ComplexityFormat.Json) {
+      var json = new JsonObject {
+        ["totalResources"] = totalResources,
+        ["worstPerforming"] = new JsonArray(decreasingWorst.Select(task => new JsonObject {
+          ["location"] = SerializeToken(task.Task.Token),
+          ["resourceCount"] = task.Result.ResourceCount
+        }).ToArray<JsonNode>())
+      };
+      var outputString = json.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
+      await output.WriteLineAsync(outputString);
     }
   }
 
+  private static JsonObject SerializeToken(Boogie.IToken tok) {
+    return new JsonObject {
+      ["uri"] = ((IToken)tok).Uri.AbsoluteUri,
+      ["range"] = DiagnosticMessageData.SerializeRange(tok)
+    };
+  }
+  
   private static async Task RunVerificationIterations(DafnyOptions options, CliCompilation compilation,
     IObserver<CanVerifyResult> verificationResultsObserver) {
     int iterationSeed = (int)options.Get(RandomSeed);

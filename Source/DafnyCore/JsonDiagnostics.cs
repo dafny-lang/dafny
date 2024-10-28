@@ -11,7 +11,7 @@ using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny;
 
-record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.IToken tok, string? category, string message, List<ErrorInformation.AuxErrorInfo>? related) {
+public record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.IToken tok, string? category, string message, List<ErrorInformation.AuxErrorInfo>? related) {
   private static JsonObject SerializePosition(Boogie.IToken tok) {
     return new JsonObject {
       ["pos"] = tok.pos,
@@ -20,7 +20,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
     };
   }
 
-  private static JsonObject SerializeRange(Boogie.IToken tok) {
+  public static JsonObject SerializeRange(Boogie.IToken tok) {
     var range = new JsonObject {
       ["start"] = SerializePosition(tok),
     };
@@ -32,7 +32,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
     return range;
   }
 
-  private static JsonObject SerializeToken(Boogie.IToken tok) {
+  public static JsonObject SerializeToken(Boogie.IToken tok) {
     return new JsonObject {
       ["filename"] = tok.filename,
       ["uri"] = ((IToken)tok).Uri.AbsoluteUri,
