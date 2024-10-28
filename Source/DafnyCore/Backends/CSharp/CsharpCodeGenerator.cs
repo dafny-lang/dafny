@@ -186,6 +186,7 @@ namespace Microsoft.Dafny.Compilers {
     // They aren't in any namespace to make them universally accessible.
     private void EmitFuncExtensions(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
       var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
+      wr.WriteLine("// end of class FuncExtensions");
       foreach (var kv in systemModuleManager.ArrowTypeDecls) {
         int arity = kv.Key;
 
