@@ -18,7 +18,7 @@ static class AttributeBearingDeclaration {
 // Syntax of a formal of a built-in @-attribute
 // To create one, prefer using the chaining BuiltInAtAttributeSyntax.WithArg()
 public record BuiltInAtAttributeArgSyntax(
-  String ArgName,
+  string ArgName,
   Type ArgType, // If null, it means it's not resolved (@Induction and @Trigger)
   Expression DefaultValue) {
   public Formal ToFormal() {
@@ -276,7 +276,7 @@ public class Attributes : TokenNode, ICanFormat {
       }
     }
   }
-  private static string TupleItem0Name => "0";
+  public static string TupleItem0Name => "0";
   // Helper to create a built-in @-attribute
   static BuiltInAtAttributeSyntax BuiltIn(string name) {
     return new BuiltInAtAttributeSyntax(
@@ -325,9 +325,30 @@ public class Attributes : TokenNode, ICanFormat {
     atAttribute.Arg.Type = Type.Int; // Dummy type to avoid crashes
 
     switch (name) {
+      case "AutoContracts": {
+        return A("autocontracts");
+      }
+      case "AutoRequires": {
+        return A("autoReq");
+      }
+      case "AutoRevealDependenciesAll": {
+        return A1("autoRevealDependencies", bindings);
+      }
+      case "AutoRevealDependencies": {
+        return A1("autoRevealDependencies", bindings);
+      }
+      case "Axiom": {
+        return A(AxiomAttributeName);
+      }
       case "Compile": {
           return A1("compile", bindings);
         }
+      case "Concurrent": {
+        return A(ConcurrentAttributeName);
+      }
+      case "DisableNonlinearArithmetic": {
+        return A1("disable-nonlinear-arithmetic", bindings);
+      }
       case "Fuel": {
           if (Get(bindings, 0, out var lowFuel) && lowFuel != null) {
             if (Get(bindings, 1, out var highFuel) && highFuel != null) {
@@ -346,9 +367,99 @@ public class Attributes : TokenNode, ICanFormat {
       case "IsolateAssertions": {
           return A("isolate_assertions");
         }
+      case "NativeUInt8": {
+        return A("nativeType", DefaultString("byte"));
+      }
+      case "NativeInt8": {
+        return A("nativeType", DefaultString("sbyte"));
+      }
+      case "NativeUInt16": {
+        return A("nativeType", DefaultString("ushort"));
+      }
+      case "NativeInt16": {
+        return A("nativeType", DefaultString("short"));
+      }
+      case "NativeUInt32": {
+        return A("nativeType", DefaultString("uint"));
+      }
+      case "NativeInt32": {
+        return A("nativeType", DefaultString("int"));
+      }
+      case "NativeInt53": {
+        return A("nativeType", DefaultString("number"));
+      }
+      case "NativeUInt64": {
+        return A("nativeType", DefaultString("ulong"));
+      }
+      case "NativeInt64": {
+        return A("nativeType", DefaultString("long"));
+      }
+      case "NativeUInt128": {
+        return A("nativeType", DefaultString("udoublelong"));
+      }
+      case "NativeInt128": {
+        return A("nativeType", DefaultString("doublelong"));
+      }
+      case "NativeInt": {
+        return A("nativeType", DefaultBool(true));
+      }
+      case "NativeNone": {
+        return A("nativeType", DefaultBool(false));
+      }
+      case "NativeIntOrReal": {
+        return A("nativeType");
+      }
       case "Options": {
           return A1("options", bindings);
         }
+      case "Print": {
+        return A("print");
+      }
+      case "Priority": {
+        return A1("priority", bindings);
+      }
+      case "ResourceLimit": {
+        return A1("resource_limit", bindings);
+      }
+      case "Synthesize": {
+        return A("synthesize");
+      }
+      case "TimeLimit": {
+        return A1("timeLimit", bindings);
+      }
+      case "TimeLimitMultiplier": {
+        return A1("timeLimitMultiplier", bindings);
+      }
+      case "TailRecursion": {
+        return A("tailrecursion");
+      }
+      case "Test": {
+        return A("test");
+      }
+      case "TestEntry": {
+        return A("TestEntry");
+      }
+      case "TestInline": {
+        return A1("testInline", bindings);
+      }
+      case "Transparent": {
+        return A("transparent");
+      }
+      case "VcsMaxCost": {
+        return A1("vcs_max_cost", bindings);
+      }
+      case "VcsMaxKeepGoingSplits": {
+        return A1("vcs_max_keep_going_splits", bindings);
+      }
+      case "VcsMaxSplits": {
+        return A1("vcs_max_splits", bindings);
+      }
+      case "Verify": {
+        return A1(VerifyAttributeName, bindings);
+      }
+      case "VerifyOnly": {
+        return A("only");
+      }
       default: {
           throw new Exception("@-Attribute added to Attributes.BuiltinAtAttributes needs to be handled here");
         }
@@ -359,10 +470,17 @@ public class Attributes : TokenNode, ICanFormat {
   // This list could be obtained from parsing and resolving a .Dfy file
   // but for now it's good enough.
   public static readonly List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = new() {
+    BuiltIn("AutoContracts"),
+    BuiltIn("AutoRequires"),
+    BuiltIn("AutoRevealDependenciesAll").WithArg(TupleItem0Name, Type.Bool, DefaultBool(true)),
+    BuiltIn("AutoRevealDependencies").WithArg("level", Type.Int),
+    BuiltIn("Axiom"),
     BuiltIn("Compile")
       .WithArg(TupleItem0Name, Type.Bool, DefaultBool(true))
       .Filter(attributeHost =>
-          attributeHost is TopLevelDecl and not TypeParameter or MemberDecl or ModuleDefinition),
+        attributeHost is TopLevelDecl and not TypeParameter or MemberDecl or ModuleDefinition),
+    BuiltIn("Concurrent"),
+    BuiltIn("DisableNonlinearArithmetic"),
     BuiltIn("Fuel")
       .WithArg("low", Type.Int, DefaultInt(1))
       .WithArg("high", Type.Int, DefaultInt(2))
@@ -370,9 +488,39 @@ public class Attributes : TokenNode, ICanFormat {
       .Filter(attributeHost => attributeHost is Function or AssertStmt),
     BuiltIn("IsolateAssertions")
       .Filter(attributeHost => attributeHost is ICanVerify),
+    BuiltIn("NativeUInt8"),
+    BuiltIn("NativeInt8"),
+    BuiltIn("NativeUInt16"),
+    BuiltIn("NativeInt16"),
+    BuiltIn("NativeUInt32"),
+    BuiltIn("NativeInt32"),
+    BuiltIn("NativeInt53"),
+    BuiltIn("NativeUInt64"),
+    BuiltIn("NativeInt64"),
+    BuiltIn("NativeUInt128"),
+    BuiltIn("NativeInt128"),
+    BuiltIn("NativeInt"),
+    BuiltIn("NativeNone"),
+    BuiltIn("NativeIntOrReal"),
     BuiltIn("Options")
       .WithArg(TupleItem0Name, Type.ResolvedString())
       .Filter(attributeHost => attributeHost is ModuleDecl or ModuleDefinition),
+    BuiltIn("Print"),
+    BuiltIn("Priority").WithArg(TupleItem0Name, Type.Int),
+    BuiltIn("ResourceLimit").WithArg(TupleItem0Name, Type.Int),
+    BuiltIn("Synthesize"),
+    BuiltIn("TimeLimit").WithArg(TupleItem0Name, Type.Int),
+    BuiltIn("TimeLimitMultiplier").WithArg(TupleItem0Name, Type.Int),
+    BuiltIn("TailRecursion"),
+    BuiltIn("Test"),
+    BuiltIn("TestEntry"),
+    BuiltIn("TestInline").WithArg("level", Type.Int, DefaultInt(1)),
+    BuiltIn("Transparent"),
+    BuiltIn("VcsMaxCost").WithArg(TupleItem0Name, Type.Int),
+    BuiltIn("VcsMaxKeepGoingSplits").WithArg(TupleItem0Name, Type.Int),
+    BuiltIn("VcsMaxSplits").WithArg(TupleItem0Name, Type.Int),
+    BuiltIn("Verify"),
+    BuiltIn("VerifyOnly"),
   };
 
   ////// Helpers to create default values for the @-attribute definitions above //////
@@ -412,14 +560,15 @@ public class Attributes : TokenNode, ICanFormat {
     UserSuppliedAtAttribute attrs, ActualBindings bindings) {
     var resolutionContext = new ResolutionContext(new NoContext(program.DefaultModuleDef), false); ;
     var typeMap = new Dictionary<TypeParameter, Type>();
-    var resolver = new ModuleResolver(new ProgramResolver(program), program.Options);
-    resolver.reporter = program.Reporter;
+    var resolver = new ModuleResolver(new ProgramResolver(program), program.Options) {
+      reporter = program.Reporter
+    };
     resolver.moduleInfo = resolver.ProgramResolver.SystemModuleManager.systemNameInfo;
     resolver.ResolveActualParameters(bindings, formals.ToList(), attrs.tok,
       attrs, resolutionContext, typeMap, null);
     resolver.FillInDefaultValueExpressions();
     resolver.SolveAllTypeConstraints();
-    // Verify that arguments are given literally
+    // Verify that provided arguments are given literally
     foreach (var binding in bindings.ArgumentBindings) {
       if (binding.Actual is not LiteralExpr) {
         program.Reporter.Error(MessageSource.Resolver, binding.Actual.RangeToken, $"Argument to attribute {attrName} must be a literal");
