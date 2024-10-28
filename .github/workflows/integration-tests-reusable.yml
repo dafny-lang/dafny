@@ -128,6 +128,8 @@ jobs:
 #    - name: Clean up libraries for testing
 #      run: |
 #        rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
+    - name: Use the default Rust linker
+      run: rustup default stable-x86_64-pc-windows-gnu
     - name: Create release
       if: inputs.all_platforms
       run: |
