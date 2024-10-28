@@ -164,8 +164,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new CompletionItem {
           Label = attributeName,
           Kind = CompletionItemKind.Constructor,
-          InsertText = attributeName, // TODO: Parentheses
-          Detail = "" // TODO: Details of attribute name
+          InsertText = attributeName,
+          Detail = ""
         };
       }
 
