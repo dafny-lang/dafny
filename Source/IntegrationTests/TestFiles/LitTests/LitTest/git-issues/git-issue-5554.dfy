@@ -1,10 +1,13 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN:  %dafny -compile:4 -compileTarget:cs "%s"
 
-const TWO_TO_THE_8: int := 0x100
-newtype uint8 = x: int | 0 <= x < TWO_TO_THE_8
+datatype MultisetContainer = EmptySet | BooleanMultiset(containerSet: multiset<bool>)
 
 method Main() {
-  var i: uint8 := 10;
-  var s: seq<uint8> := seq(i, _ => 0);
-  print s;
+    var initialMultiset := multiset{false};
+    
+    for iteration := 0 to 98 {
+        var multisetInstance := BooleanMultiset(initialMultiset); 
+        initialMultiset := initialMultiset + multisetInstance.containerSet;  
+    }
+    print initialMultiset > initialMultiset;
 }
