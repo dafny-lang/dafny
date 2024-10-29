@@ -15,6 +15,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using VC;
+using VCGeneration;
 using Token = Microsoft.Dafny.Token;
 
 namespace DafnyDriver.Commands;
@@ -183,18 +184,46 @@ public class CliCompilation {
       if (ev is BoogieUpdate { BoogieStatus: Completed completed } boogieUpdate) {
         var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
+        var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
 
         if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.VerificationJobs) {
-          var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
+          var partOrigin = boogieUpdate.VerificationTask.Split.Token;
+
+          var wellFormedness = boogieUpdate.VerificationTask.Split.Implementation.Name.Contains("CheckWellFormed$");
+
+          string OriginDescription(IImplementationPartOrigin origin, bool outer) {
+            if (outer && origin is ImplementationRootOrigin) {
+              return (wellFormedness ? "contract consistency" : "entire body");
+            }
+            var result = origin switch {
+              PathOrigin pathOrigin => $"{OriginDescription(pathOrigin.Inner, false)}" +
+                                       $"after executing lines {string.Join(", ", pathOrigin.BranchTokens.Select(b => b.line))}",
+              RemainingAssertionsOrigin remainingAssertions => $"{OriginDescription(remainingAssertions.Origin, false)}remaining assertions",
+              IsolatedAssertionOrigin isolateOrigin => $"{OriginDescription(isolateOrigin.Origin, false)}assertion at line {isolateOrigin.line}",
+              JumpOrigin returnOrigin => $"{OriginDescription(returnOrigin.Origin, false)}{JumpOriginKind(returnOrigin)} at line {returnOrigin.line}",
+              AfterSplitOrigin splitOrigin => $"{OriginDescription(splitOrigin.Inner, false)}assertions after split_here at line {splitOrigin.line}",
+              FocusOrigin focusOrigin =>
+                $"{OriginDescription(focusOrigin.Inner, false)}with focus " +
+                $"{string.Join(", ", focusOrigin.FocusChoices.Select(b => (b.DidFocus ? "+" : "-") + b.Token.line))}",
+              UntilFirstSplitOrigin untilFirstSplit => $"{OriginDescription(untilFirstSplit.Inner, false)}assertions until first split",
+              ImplementationRootOrigin => "",
+              _ => throw new ArgumentOutOfRangeException(nameof(origin), origin, null)
+            };
+            if (!outer && !string.IsNullOrEmpty(result)) {
+              result += ", ";
+            }
+            return result;
+          }
+
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
           Options.OutputWriter.WriteLine(
-            $"Verified part #{boogieUpdate.VerificationTask.Split.SplitIndex}, {canVerifyResult.CompletedParts.Count}/{canVerifyResult.TaskCount} of {boogieUpdate.CanVerify.FullDafnyName}" +
-            $", on line {token.line}, " +
+            $"Verified {completedPartsCount}/{canVerifyResult.TaskCount} of {boogieUpdate.CanVerify.FullDafnyName}: " +
+            $"{OriginDescription(partOrigin, true)} - " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
             $" (time: {timeString}, resource count: {runResult.ResourceCount})");
         }
-        if (canVerifyResult.CompletedParts.Count == canVerifyResult.TaskCount) {
+        if (completedPartsCount == canVerifyResult.TaskCount) {
           canVerifyResult.Finished.TrySetResult();
         }
       }
@@ -266,10 +295,14 @@ public class CliCompilation {
     }
   }
 
+  private static string JumpOriginKind(JumpOrigin returnOrigin) {
+    return returnOrigin.IsolatedReturn is GotoCmd ? "continue" : "return";
+  }
+
   public static string DescribeOutcome(VcOutcome outcome) {
     return outcome switch {
       VcOutcome.Correct => "verified successfully",
-      VcOutcome.Errors => "could not prove all assertions",
+      VcOutcome.Errors => "could not be verified",
       VcOutcome.Inconclusive => "was inconclusive",
       VcOutcome.TimedOut => "timed out",
       VcOutcome.OutOfResource => "ran out of resources",

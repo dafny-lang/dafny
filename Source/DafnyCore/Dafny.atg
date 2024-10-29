@@ -2264,8 +2264,10 @@ BreakStmt<out Statement/*!*/ s>
      IToken start = Token.NoToken;
      IToken label = null;
      int breakAndContinueCount = 1;
+     Attributes attributes = null;
   .)
   ( "continue"              (. start = t; isContinue = true; .)
+    [ Attribute<ref attributes> ]
     [ LabelName<out label> ]
   | "break"                 (. start = t; .)
     ( LabelName<out label>
@@ -2280,7 +2282,7 @@ BreakStmt<out Statement/*!*/ s>
   (. Contract.Assert(label == null || breakAndContinueCount == 1);
      s = label != null ?
        new BreakStmt(new RangeToken(start, t), label, isContinue) :
-       new BreakStmt(new RangeToken(start, t), breakAndContinueCount, isContinue);
+       new BreakStmt(new RangeToken(start, t), breakAndContinueCount, isContinue, attributes);
   .)
   .
 
@@ -2291,14 +2293,16 @@ ReturnStmt<out Statement/*!*/ s>
          IToken returnTok = t;
          List<AssignmentRhs> rhss = null;
          AssignmentRhs r;
+         Attributes attributes = null;
        .)
+  [ Attribute<ref attributes> ]
   [ Rhs<out r>                       (. rhss = new List<AssignmentRhs>();
                                         rhss.Add(r);
                                      .)
     { "," Rhs<out r>                 (. rhss.Add(r); .)
     }
   ]
-  ";"                                (. s = new ReturnStmt(new RangeToken(returnTok, t), rhss);
+  ";"                                (. s = new ReturnStmt(new RangeToken(returnTok, t), rhss, attributes);
                                      .)
   .
 
