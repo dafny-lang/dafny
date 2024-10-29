@@ -29,7 +29,10 @@ module.exports = async ({github, context, core, workflow_id, sha, ...config}) =>
       const extraMessage = workflow_runs_in_progress.length > 0 ?
         `\nA run of ${runFilterDesc} is currently ${workflow_runs_in_progress[0].status}:`+
         ` ${workflow_runs_in_progress[0].html_url}, just re-run this test once it is finished.` :
-        `\nPlease fix the issue by creating a PR with the label [run-deep-tests], have it reviewed and merged, ` +
+        `\nAt the time of checking, no fix was underway.\n`+
+        `- Please first check https://github.com/dafny-lang/dafny/actions/workflows/nightly-build.yml. `+
+        `If you see any queued or in progress run on ${runFilterDesc}, just re-run this test once it is finished.`+
+        `- If not, and you are a Dafny developer, please fix the issue by creating a PR with the label [run-deep-tests], have it reviewed and merged, ` +
         `and then trigger the workflow on ${runFilterDesc} with the URL https://github.com/dafny-lang/dafny/actions/workflows/nightly-build.yml.\n`+
         `With such a label, you can merge a PR even if tests are not successful, but make sure the deeps one are!\n`+
         `If you do not have any clue on how to fix it, `+
