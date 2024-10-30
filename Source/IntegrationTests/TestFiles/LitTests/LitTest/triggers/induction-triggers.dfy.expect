@@ -1,112 +1,24 @@
 induction-triggers.dfy(3,10): Info: tail recursive
-  |
-3 | predicate f(n: nat) { if n == 0 then true else f(n-1) }
-  |           ^
-
 induction-triggers.dfy(19,2): Info: Selected triggers: {f(ih_n)}
-   |
-19 |   forall ih_n: nat | (n decreases to ih_n) {
-   |   ^^^^^^
-
 induction-triggers.dfy(3,10): Info: decreases n
-  |
-3 | predicate f(n: nat) { if n == 0 then true else f(n-1) }
-  |           ^
-
 induction-triggers.dfy(16,25): Info: decreases n
-   |
-16 | lemma {:induction false} ManualInduction(n: nat)
-   |                          ^^^^^^^^^^^^^^^
-
 induction-triggers.dfy(7,6): Info: {:induction n}
-  |
-7 | lemma Default(n: nat) ensures f(n) {}
-  |       ^^^^^^^
-
 induction-triggers.dfy(7,6): Info: {:inductionTrigger f(n)}
-  |
-7 | lemma Default(n: nat) ensures f(n) {}
-  |       ^^^^^^^
-
 induction-triggers.dfy(10,21): Info: {:inductionTrigger f(n)}
-   |
-10 | lemma {:induction n} ListOfVars(n: nat) ensures f(n) {}
-   |                      ^^^^^^^^^^
-
 induction-triggers.dfy(25,6): Info: omitting automatic induction (for induction-variable candidate n) because of lack of triggers
-   |
-25 | lemma NoTriggers(n: nat) ensures f(n + 0) {}
-   |       ^^^^^^^^^^
-
 induction-triggers.dfy(28,19): Warning: Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. For more information, see the section quantifier instantiation rules in the reference manual.
-   |
-28 | lemma {:induction} InductionWarning(n: nat) ensures f(n + 0) {}
-   |                    ^^^^^^^^^^^^^^^^
-
 induction-triggers.dfy(28,19): Info: {:induction n}
-   |
-28 | lemma {:induction} InductionWarning(n: nat) ensures f(n + 0) {}
-   |                    ^^^^^^^^^^^^^^^^
-
 induction-triggers.dfy(31,44): Info: {:induction n}
-   |
-31 | lemma {:induction} {:inductionTrigger f(n)} NoWarning2(n: nat) ensures f(n + 0) {}
-   |                                             ^^^^^^^^^^
-
 induction-triggers.dfy(31,44): Info: {:inductionTrigger f(n)}
-   |
-31 | lemma {:induction} {:inductionTrigger f(n)} NoWarning2(n: nat) ensures f(n + 0) {}
-   |                                             ^^^^^^^^^^
-
 induction-triggers.dfy(34,26): Info: {:induction n}
-   |
-34 | lemma {:inductionTrigger} Legacy(n: nat) ensures f(n) {}
-   |                           ^^^^^^
-
 induction-triggers.dfy(35,26): Info: {:induction n}
-   |
-35 | lemma {:inductionTrigger} Legacy1(n: nat) ensures f(n + 0) {}
-   |                           ^^^^^^^
-
 induction-triggers.dfy(36,39): Info: {:induction n}
-   |
-36 | lemma {:induction} {:inductionTrigger} Legacy2(n: nat) ensures f(n + 0) {}
-   |                                        ^^^^^^^
-
 induction-triggers.dfy(19,2): Info: ensures f(ih_n)
-   |
-19 |   forall ih_n: nat | (n decreases to ih_n) {
-   |   ^^^^^^
-
 induction-triggers.dfy(13,58): Error: a postcondition could not be proved on this return path
-   |
-13 | lemma {:induction false} NoInduction(n: nat) ensures f(n) {}
-   |                                                           ^
-
 induction-triggers.dfy(13,53): Related location: this is the postcondition that could not be proved
-   |
-13 | lemma {:induction false} NoInduction(n: nat) ensures f(n) {}
-   |                                                      ^^^^
-
 induction-triggers.dfy(3,47): Related location: this proposition could not be proved
-  |
-3 | predicate f(n: nat) { if n == 0 then true else f(n-1) }
-  |                                                ^^^^^^
-
 induction-triggers.dfy(25,42): Error: a postcondition could not be proved on this return path
-   |
-25 | lemma NoTriggers(n: nat) ensures f(n + 0) {}
-   |                                           ^
-
 induction-triggers.dfy(25,33): Related location: this is the postcondition that could not be proved
-   |
-25 | lemma NoTriggers(n: nat) ensures f(n + 0) {}
-   |                                  ^^^^^^^^
-
 induction-triggers.dfy(3,47): Related location: this proposition could not be proved
-  |
-3 | predicate f(n: nat) { if n == 0 then true else f(n-1) }
-  |                                                ^^^^^^
-
 
 Dafny program verifier finished with 14 verified, 2 errors

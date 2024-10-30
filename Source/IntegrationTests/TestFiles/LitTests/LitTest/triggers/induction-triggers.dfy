@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" --expect-exit-code=4
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --show-hints
 
 predicate f(n: nat) { if n == 0 then true else f(n-1) }
 predicate g(n: nat) { false }
@@ -10,7 +10,7 @@ lemma Default(n: nat) ensures f(n) {}
 lemma {:induction n} ListOfVars(n: nat) ensures f(n) {}
 
 // No induction ⇒ Proof fails.
-lemma {:induction false} NoInduction(n: nat) ensures f(n) {}
+lemma {:induction false} NoInduction(n: nat) ensures f(n) {} // error
 
 // No induction, with manual proof ⇒ Proof passes.
 lemma {:induction false} ManualInduction(n: nat)
@@ -22,7 +22,7 @@ lemma {:induction false} ManualInduction(n: nat)
 }
 
 // No triggers, so no auto induction ⇒ Proof fails.
-lemma NoTriggers(n: nat) ensures f(n + 0) {}
+lemma NoTriggers(n: nat) ensures f(n + 0) {} // error
 
 // No triggers but forced induction, so warning ⇒ Proof passes.
 lemma {:induction} InductionWarning(n: nat) ensures f(n + 0) {}
