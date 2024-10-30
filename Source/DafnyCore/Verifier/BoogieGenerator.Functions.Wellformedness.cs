@@ -356,10 +356,8 @@ public partial class BoogieGenerator {
         Formal p = f.Result;
         Contract.Assert(!p.IsOld);
         Bpl.Type varType = generator.TrType(p.Type);
-        Expr wh = generator.GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType),
-          p.Type, etran, NOALLOC);
-        outParams.Add(new Bpl.Formal(p.tok, new TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh),
-          true));
+        // Note, this variable should NOT have a "where" clause, because it gets assumed already at the beginning of the CheckWellformed procedure
+        outParams.Add(new Bpl.Formal(p.tok, new TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType), true));
       }
 
       return outParams;
