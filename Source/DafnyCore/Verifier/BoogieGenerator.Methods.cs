@@ -650,7 +650,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(p, wfOptions, localVariables, builder, etran);
       }
 
-      if (!(m is TwoStateLemma)) {
+      if (m is not TwoStateLemma) {
         var modifies = m.Mod;
         var allowsAllocation = m.AllowsAllocation;
 
@@ -674,7 +674,7 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(m.tok, wh));
         }
       }
-      // mark the end of the modifles/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
+      // mark the end of the modifies/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
       // omit the CaptureState if there's no ensures clause)
       if (m.Ens.Count != 0) {
         builder.AddCaptureState(m.Ens[0].E.tok, false, "post-state");

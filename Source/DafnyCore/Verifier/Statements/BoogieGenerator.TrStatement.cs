@@ -754,11 +754,10 @@ public partial class BoogieGenerator {
     Contract.Requires(type != null);
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
-    var udt = type as UserDefinedType;
-    if (udt != null && udt.ResolvedClass is NonNullTypeDecl) {
-      var nnt = (NonNullTypeDecl)udt.ResolvedClass;
+    if (type is UserDefinedType { ResolvedClass: NonNullTypeDecl nnt }) {
       type = nnt.RhsWithArgument(type.TypeArgs);
     }
+
     if (includeHavoc) {
       // havoc $nw;
       builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
