@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Dynamic;
@@ -37,7 +38,7 @@ static class MeasureComplexityCommand {
     OptionRegistry.RegisterOption(TopX, OptionScope.Cli);
   }
 
-  enum ComplexityFormat { Text, Json }
+  enum ComplexityFormat { Text, Json, LineBased }
   private static readonly Option<ComplexityFormat> Format = new("--format", 
     $"Specify the format in which the complexity data is presented");
   
@@ -93,13 +94,23 @@ static class MeasureComplexityCommand {
     return await compilation.GetAndReportExitCode();
   }
 
+  record TaskIterationStatistics {
+    public ConcurrentBag<int> ResourceCounts = new();
+    public ConcurrentBag<double> VerificationTimes = new();
+    public int Timeouts;
+    public int ResourceOuts;
+    public int Failures;
+    public int Measurements;
+  }
+  
   public static async Task ReportResourceSummary(
     CliCompilation cliCompilation,
     IObservable<CanVerifyResult> verificationResults) {
 
+    var allStatistics = new ConcurrentDictionary<string, TaskIterationStatistics>();
     PriorityQueue<VerificationTaskResult, int> worstPerformers = new();
 
-    var totalResources = 0;
+    var totalResources = 0L;
     var worstAmount = cliCompilation.Options.Get(TopX);
     verificationResults.Subscribe(result => {
       foreach (var taskResult in result.Results) {
@@ -109,6 +120,27 @@ static class MeasureComplexityCommand {
         if (worstPerformers.Count > worstAmount) {
           worstPerformers.Dequeue();
         }
+
+        var key = taskResult.Task.Split.Implementation.Name + taskResult.Task.Split.Token.ShortName;
+        var statistics = allStatistics.GetOrAdd(key, _ => new TaskIterationStatistics());
+        var failed = false;
+        if (runResult.Outcome == SolverOutcome.Valid) {
+          statistics.ResourceCounts.Add(runResult.ResourceCount);
+          statistics.VerificationTimes.Add(runResult.RunTime.TotalSeconds);
+        } else if (runResult.Outcome == SolverOutcome.TimeOut) {
+          Interlocked.Increment(ref statistics.Timeouts);
+          failed = true;
+        } else if (runResult.Outcome == SolverOutcome.OutOfResource) {
+          Interlocked.Increment(ref statistics.ResourceOuts);
+          failed = true;
+        } else if (runResult.Outcome == SolverOutcome.Invalid) {
+          failed = true;
+        }
+
+        if (failed) {
+          Interlocked.Increment(ref statistics.Failures);
+        }
+        Interlocked.Increment(ref statistics.Measurements);
       }
     });
     await verificationResults.WaitForComplete();
@@ -117,8 +149,14 @@ static class MeasureComplexityCommand {
     while (worstPerformers.Count > 0) {
       decreasingWorst.Push(worstPerformers.Dequeue());
     }
-
-    if (cliCompilation.Options.Get(Format) == ComplexityFormat.Text)
+    if (cliCompilation.Options.Get(Format) == ComplexityFormat.LineBased) {
+      var lines = decreasingWorst.GroupBy(t => t.Task.Token.line).
+        OrderBy(g => g.Key).
+        Select(g => g.Key + ", " + Math.Floor(g.Average(i => i.Result.ResourceCount)));
+      
+      await output.WriteLineAsync($"Average resource for each line:\n" + string.Join("\n", lines));
+    } 
+    else if (cliCompilation.Options.Get(Format) == ComplexityFormat.Text)
     {
       await output.WriteLineAsync($"The total consumed resources are {totalResources}");
       await output.WriteLineAsync($"The most demanding {worstAmount} verification tasks consumed these resources:");
@@ -132,6 +170,25 @@ static class MeasureComplexityCommand {
         ["worstPerforming"] = new JsonArray(decreasingWorst.Select(task => new JsonObject {
           ["location"] = SerializeToken(task.Task.Token),
           ["resourceCount"] = task.Result.ResourceCount
+        }).ToArray<JsonNode>()),
+        ["statistics"] = new JsonArray(allStatistics.Select(entry => {
+          var (stdDevRc, averageRc) = entry.Value.ResourceCounts.ToList().CalculateStdDev();
+          var (stdDevVt, averageVt) = entry.Value.VerificationTimes.ToList().CalculateStdDev();
+          var failuresAndHighVariations = entry.Value.Failures + entry.Value.ResourceCounts.Count(rc => rc > averageRc * 2);
+          return new JsonObject {
+            ["averageRc"] = averageRc,
+            ["standardDeviationRc"] = stdDevRc,
+            ["relativeStandardDeviationRc"] = stdDevRc / averageRc,
+            ["averageVt"] = averageVt,
+            ["standardDeviationVt"] = stdDevVt,
+            ["relativeStandardDeviationVt"] = stdDevVt / averageVt,
+            ["timeouts"] = entry.Value.Timeouts,
+            ["resourceOuts"] = entry.Value.ResourceOuts,
+            ["failures"] = entry.Value.Failures,
+            ["relFailures"] = (double)entry.Value.Failures / entry.Value.Measurements,
+            ["failuresAndHighVariations"] = failuresAndHighVariations,
+            ["relFailuresAndHighVariations"] = (double)failuresAndHighVariations / entry.Value.Measurements,
+          };
         }).ToArray<JsonNode>())
       };
       var outputString = json.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
@@ -152,9 +209,9 @@ static class MeasureComplexityCommand {
     var random = new Random(iterationSeed);
     var iterations = (int)options.Get(Iterations);
     foreach (var iteration in Enumerable.Range(0, iterations)) {
-      if (options.Get(CommonOptionBag.ProgressOption) != CommonOptionBag.ProgressLevel.None) {
+      if (options.Get(CommonOptionBag.ProgressOption) >= CommonOptionBag.ProgressLevel.Iteration) {
         await options.OutputWriter.WriteLineAsync(
-          $"Starting verification of iteration {iteration + 1}/{iterations} with seed {iterationSeed}");
+          $"{DateTime.Now.ToLocalTime()}: Starting verification of iteration {iteration + 1}/{iterations} with seed {iterationSeed}");
       }
       try {
         await foreach (var result in compilation.VerifyAllLazily(iterationSeed)) {
@@ -166,5 +223,47 @@ static class MeasureComplexityCommand {
       iterationSeed = random.Next();
     }
     verificationResultsObserver.OnCompleted();
+  }
+}
+public static class ExtensionsClass
+{
+  public static (double StdDev, double Average) CalculateStdDev(this IReadOnlyList<double> values)
+  {
+    if (values.Count == 0) {
+      return (-1, -1);
+    }
+    
+    if (values.Count > 1)
+    {
+      // Compute the Average
+      double avg = values.Average();
+
+      // Perform the Sum of (value-avg)^2
+      double sum = values.Sum(d => (d - avg) * (d - avg));
+
+      return (Math.Sqrt(sum / values.Count), avg);
+    }
+
+    return (0, values[0]);
+  }
+  
+  public static (double StdDev, double Average) CalculateStdDev(this IReadOnlyList<int> values)
+  {
+    if (values.Count == 0) {
+      return (-1, -1);
+    }
+    
+    if (values.Count > 1)
+    {
+      // Compute the Average
+      double avg = values.Average();
+
+      // Perform the Sum of (value-avg)^2
+      double sum = values.Sum(d => (d - avg) * (d - avg));
+
+      return (Math.Sqrt(sum / values.Count), avg);
+    }
+
+    return (0, values[0]);
   }
 }

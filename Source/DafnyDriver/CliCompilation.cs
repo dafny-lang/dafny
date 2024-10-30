@@ -267,7 +267,7 @@ public class CliCompilation {
       foreach (var canVerify in orderedCanVerifies) {
         var results = canVerifyResults[canVerify];
         try {
-          if (Options.Get(CommonOptionBag.ProgressOption) > CommonOptionBag.ProgressLevel.None) {
+          if (Options.Get(CommonOptionBag.ProgressOption) >= CommonOptionBag.ProgressLevel.Symbol) {
             await Options.OutputWriter.WriteLineAsync(
               $"Verified {done}/{canVerifies.ToList().Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
           }

@@ -583,6 +583,7 @@ module Std.Base64 {
   {
   }
 
+  // 4884420 ~~ 4.9e6
   lemma {:resource_limit 0} Encode1PaddingIs1Padding(b: seq<bv8>)
     requires |b| == 2
     ensures Is1Padding(Encode1Padding(b))
@@ -592,17 +593,15 @@ module Std.Base64 {
     var s := Encode1Padding(b);
     var e := EncodeBlock([b[0], b[1], 0]);
 
-    reveal Encode1Padding; // TODO make by penetrate
     assert s == [IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '='] by {
+      reveal Encode1Padding;
     }
     IndexToCharIsBase64(e[0]);
     IndexToCharIsBase64(e[1]);
     IndexToCharIsBase64(e[2]);
 
-    // TODO make by penetrate
-    // TODO provide a way to reveal deeply.
-    reveal Encode1Padding, EncodeBlock, IndexToChar, CharToIndex, BV24ToIndexSeq, SeqToBV24;
-    assert CharToIndex(s[2]) & 0x3 == 0 by {
+    assert CharToIndex(s[2]) & 0x3 == 0 by { // 4531046
+      reveal Encode1Padding, EncodeBlock, IndexToChar, CharToIndex, BV24ToIndexSeq, SeqToBV24;
     }
 
     assert Is1Padding(s) by {

@@ -14,7 +14,7 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
-  public enum ProgressLevel { None, Symbol, VerificationJobs }
+  public enum ProgressLevel { None, Iteration, Symbol, VerificationJobs }
   public static readonly Option<ProgressLevel> ProgressOption =
     new("--progress", $"While verifying, output information that helps track progress. " +
                       $"Use '{ProgressLevel.Symbol}' to show progress across symbols such as methods and functions. " +
