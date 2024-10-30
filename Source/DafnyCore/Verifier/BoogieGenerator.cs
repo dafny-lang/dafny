@@ -2828,10 +2828,9 @@ namespace Microsoft.Dafny {
 
         Bpl.Expr wh;
         var receiver = new Bpl.IdentifierExpr(tok, "this", TrType(receiverType));
-        if (m is Constructor && kind == MethodTranslationKind.Implementation) {
-          wh = BplAnd(
-            ReceiverNotNull(receiver),
-            GetWhereClause(tok, receiver, receiverType, etran, IsAllocType.NEVERALLOC));
+        if (m is Constructor && kind is MethodTranslationKind.Implementation or MethodTranslationKind.SpecWellformedness) {
+          // For constructors, the typical "where" condition is added in an assumption in the body, rather than in the parameter declaration itself
+          wh = null;
         } else {
           wh = BplAnd(
             ReceiverNotNull(receiver),
