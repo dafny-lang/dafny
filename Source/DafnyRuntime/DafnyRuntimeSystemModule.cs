@@ -503,7 +503,7 @@ namespace Dafny {
     }
   }
 } // end of namespace Dafny
-public static class FuncExtensions {
+internal static class FuncExtensions {
   public static Func<U, UResult> DowncastClone<T, TResult, U, UResult>(this Func<T, TResult> F, Func<U, T> ArgConv, Func<TResult, UResult> ResConv) {
     return arg => ResConv(F(ArgConv(arg)));
   }
@@ -556,6 +556,7 @@ public static class FuncExtensions {
     return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11), ArgConv12(arg12), ArgConv13(arg13), ArgConv14(arg14), ArgConv15(arg15), ArgConv16(arg16)));
   }
 }
+// end of class FuncExtensions
 #endif
 namespace _System {
 
