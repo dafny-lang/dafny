@@ -762,12 +762,14 @@ public partial class BoogieGenerator {
     if (includeHavoc) {
       // havoc $nw;
       builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
-      // assume $nw != null && $Is($nw, type);
-      var nwNotNull = Bpl.Expr.Neq(nw, Predef.Null);
-      // drop the $Is conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
-      var rightType = type.IsObjectQ ? Bpl.Expr.True : MkIs(nw, type);
-      builder.Add(TrAssumeCmd(tok, BplAnd(nwNotNull, rightType)));
     }
+
+    // assume $nw != null && $Is($nw, type);
+    var nwNotNull = Bpl.Expr.Neq(nw, Predef.Null);
+    // drop the $Is conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
+    var rightType = type.IsObjectQ ? Bpl.Expr.True : MkIs(nw, type);
+    builder.Add(TrAssumeCmd(tok, BplAnd(nwNotNull, rightType)));
+
     // assume !$Heap[$nw, alloc];
     var notAlloc = Bpl.Expr.Not(etran.IsAlloced(tok, nw));
     builder.Add(TrAssumeCmd(tok, notAlloc));

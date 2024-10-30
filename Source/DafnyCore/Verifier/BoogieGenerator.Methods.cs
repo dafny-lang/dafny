@@ -665,6 +665,14 @@ namespace Microsoft.Dafny {
           outH.Add(new Boogie.IdentifierExpr(b.tok, b));
         }
         builder.Add(new Boogie.HavocCmd(m.tok, outH));
+        if (m is Constructor) {
+          var receiverType = ModuleResolver.GetReceiverType(m.tok, m);
+          var receiver = new Bpl.IdentifierExpr(m.tok, "this", TrType(receiverType));
+          var wh = BplAnd(
+            ReceiverNotNull(receiver),
+            GetWhereClause(m.tok, receiver, receiverType, etran, IsAllocType.ISALLOC));
+          builder.Add(TrAssumeCmd(m.tok, wh));
+        }
       }
       // mark the end of the modifles/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
       // omit the CaptureState if there's no ensures clause)
