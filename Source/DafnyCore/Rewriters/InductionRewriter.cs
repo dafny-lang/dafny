@@ -169,7 +169,7 @@ public class InductionRewriter : IRewriter {
       // Next, look for matching patterns for the induction hypothesis.
       if (lemma != null) {
         var triggers = ComputeInductionTriggers(goodArguments, body, lemma.EnclosingClass.EnclosingModuleDefinition, tok, ref attributes);
-        ReportInductionTriggers(lemma, attributes);
+        ReportInductionTriggers(lemma.tok, lemma, attributes);
       }
 
       attributes = new Attributes("_induction", goodArguments, attributes);
@@ -216,24 +216,21 @@ public class InductionRewriter : IRewriter {
       }
       Reporter.Info(MessageSource.Rewriter, tok, s);
 
-      ReportInductionTriggers(lemma, attributes);
+      ReportInductionTriggers(tok, lemma, attributes);
     }
   }
 
   /// <summary>
   /// Report as tooltips the matching patterns selected for the induction hypothesis.
   /// </summary>
-  private void ReportInductionTriggers([CanBeNull] Method lemma, Attributes attributes) {
-#if DEBUG
+  private void ReportInductionTriggers(IToken tok, [CanBeNull] Method lemma, Attributes attributes) {
     foreach (var trigger in attributes.AsEnumerable().Where(attr => attr.Name == "inductionTrigger")) {
       var ss = Printer.OneAttributeToString(Reporter.Options, trigger);
       if (lemma is PrefixLemma) {
         ss = lemma.Name + " " + ss;
       }
-
-      Reporter.Info(MessageSource.Rewriter, lemma.tok, ss);
+      Reporter.Info(MessageSource.Rewriter, tok, ss);
     }
-#endif
   }
 
   /// <summary>
@@ -251,9 +248,9 @@ public class InductionRewriter : IRewriter {
     Contract.Requires(inductionVariables.Count != 0);
 
     if (Attributes.Contains(attributes, "inductionTrigger")) {
-        // Empty triggers are not valid at the Boogie level, but they indicate that we don't want automatic selection
-        Triggers.SplitPartTriggerWriter.DisableEmptyTriggers(attributes, "inductionTrigger");
-        return Attributes.FindAllExpressions(attributes, "inductionTrigger") ?? new List<List<Expression>>(); // Never null
+      // Empty triggers are not valid at the Boogie level, but they indicate that we don't want automatic selection
+      Triggers.SplitPartTriggerWriter.DisableEmptyTriggers(attributes, "inductionTrigger");
+      return Attributes.FindAllExpressions(attributes, "inductionTrigger") ?? new List<List<Expression>>(); // Never null
     }
 
     // Construct a quantifier, because that's what the trigger-generating machinery expects.
