@@ -1000,17 +1000,17 @@ namespace Microsoft.Dafny {
       var ens = new List<Boogie.Ensures>();
 
       var name = MethodName(f, MethodTranslationKind.OverrideCheck);
+      var implicitParameters = Util.Concat(typeInParams, inParams_Heap);
       var proc = new Boogie.Procedure(f.tok, name, new List<Boogie.TypeVariable>(),
-        Util.Concat(Util.Concat(typeInParams, inParams_Heap), inParams), outParams,
+        Util.Concat(implicitParameters, inParams), outParams,
         false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
+      var implImplicitParams = Boogie.Formal.StripWhereClauses(implicitParameters);
       var implInParams = Boogie.Formal.StripWhereClauses(inParams);
       var implOutParams = Boogie.Formal.StripWhereClauses(outParams);
 
       #endregion
-
-      //List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
       BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       var localVariables = new Variables();
@@ -1062,7 +1062,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
         AddImplementationWithAttributes(GetToken(f), proc,
-            Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
+            Util.Concat(implImplicitParams, implInParams),
             implOutParams, localVariables, stmts, kv);
       }
 
