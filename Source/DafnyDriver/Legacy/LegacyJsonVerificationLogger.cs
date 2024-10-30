@@ -35,16 +35,16 @@ public class LegacyJsonVerificationLogger {
   }
 
 
-  private JsonNode SerializeVcResult(IEnumerable<ProofDependency> potentialDependencies, DafnyConsolePrinter.VCResultLogEntry vcResult) {
-    var runResult = VCResultLogEntryToPartialVerificationRunResult(vcResult);
+  private JsonNode SerializeVcResult(IEnumerable<ProofDependency> potentialDependencies, VerificationRunResultPartialCopy verificationRunResult) {
+    var runResult = VCResultLogEntryToPartialVerificationRunResult(verificationRunResult);
     return JsonVerificationLogger.SerializeVcResult(depManager, potentialDependencies?.ToList(), runResult);
   }
 
-  public static VerificationTaskResult VCResultLogEntryToPartialVerificationRunResult(DafnyConsolePrinter.VCResultLogEntry vcResult) {
+  public static VerificationTaskResult VCResultLogEntryToPartialVerificationRunResult(VerificationRunResultPartialCopy verificationRunResult) {
     var mockNumber = 42;
-    var mockAsserts = vcResult.Asserts.Select(t => new AssertCmd(t.Tok, null, new DummyProofObligationDescription(t.Description)));
-    var runResult = new VerificationRunResult(vcResult.VCNum, mockNumber, vcResult.StartTime, vcResult.Outcome, vcResult.RunTime, mockNumber, null!,
-      mockAsserts.ToList(), vcResult.CoveredElements, vcResult.ResourceCount, null);
+    var mockAsserts = verificationRunResult.Asserts.Select(t => new AssertCmd(t.Tok, null, new DummyProofObligationDescription(t.Description)));
+    var runResult = new VerificationRunResult(verificationRunResult.VCNum, mockNumber, verificationRunResult.StartTime, verificationRunResult.Outcome, verificationRunResult.RunTime, mockNumber, null!,
+      mockAsserts.ToList(), verificationRunResult.CoveredElements, verificationRunResult.ResourceCount, null, new List<Boogie.Declaration>());
     return new VerificationTaskResult(null, runResult);
   }
 

@@ -332,7 +332,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         } else {
           information += GetDescription(returnCounterexample.FailingReturn.Description);
         }
-        information += MoreInformation(returnCounterexample.FailingAssert.tok, currentlyHoveringPostcondition);
+        information += MoreInformation(returnCounterexample.FailingEnsures.tok, currentlyHoveringPostcondition);
       } else if (counterexample is CallCounterexample callCounterexample) {
         if (assertionNode.StatusVerification == GutterVerificationStatus.Error &&
             callCounterexample.FailingRequires.Description.SuccessDescription != "assertion always holds"
