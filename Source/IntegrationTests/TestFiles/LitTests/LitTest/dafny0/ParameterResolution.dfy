@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %build "%s" --allow-axioms > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --allow-axioms
+
 
 module Actuals {
   function F(x: int, y: int, z: int): int
