@@ -153,6 +153,7 @@ class SplitPartTriggerWriter {
 
     if (!NeedsAutoTriggers()) {
       DisableEmptyTriggers(Comprehension.Attributes, "trigger");
+      return;
     }
 
     AddTriggerAttribute(systemModuleManager);
