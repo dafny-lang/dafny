@@ -25,4 +25,4 @@ InductionWithoutTriggers.dfy(124,0): Error: a postcondition could not be proved 
 InductionWithoutTriggers.dfy(123,10): Related location: this is the postcondition that could not be proved
 InductionWithoutTriggers.dfy(31,27): Related location: this proposition could not be proved
 
-Dafny program verifier finished with 17 verified, 8 errors
+Dafny program verifier finished with 12 verified, 8 errors

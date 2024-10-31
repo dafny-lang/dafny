@@ -28,17 +28,17 @@ git-issue-977.dfy(84,16): Info: decreases num
 git-issue-977.dfy(129,16): Info: decreases k, num
 git-issue-977.dfy(146,16): Info: decreases k, num
 git-issue-977.dfy(54,6): Info: {:induction num}
-git-issue-977.dfy(54,6): Info: {:inductionPattern GreatestPredNat(num)}
-git-issue-977.dfy(54,6): Info: {:inductionPattern GreatestPredOrd(num)}
-git-issue-977.dfy(54,6): Info: {:inductionPattern Pred(num)}
+git-issue-977.dfy(54,6): Info: {:inductionTrigger GreatestPredNat(num)}
+git-issue-977.dfy(54,6): Info: {:inductionTrigger GreatestPredOrd(num)}
+git-issue-977.dfy(54,6): Info: {:inductionTrigger Pred(num)}
 git-issue-977.dfy(61,6): Info: {:induction k, num}
-git-issue-977.dfy(61,6): Info: {:inductionPattern RicochetOrd(k, num)}
-git-issue-977.dfy(61,6): Info: {:inductionPattern GreatestManualOrd(k, num)}
-git-issue-977.dfy(61,6): Info: {:inductionPattern GreatestPredOrd#[k](num)}
+git-issue-977.dfy(61,6): Info: {:inductionTrigger RicochetOrd(k, num)}
+git-issue-977.dfy(61,6): Info: {:inductionTrigger GreatestManualOrd(k, num)}
+git-issue-977.dfy(61,6): Info: {:inductionTrigger GreatestPredOrd#[k](num)}
 git-issue-977.dfy(77,6): Info: {:induction k, num}
-git-issue-977.dfy(77,6): Info: {:inductionPattern RicochetNat(k, num)}
-git-issue-977.dfy(77,6): Info: {:inductionPattern GreatestManualNat(k, num)}
-git-issue-977.dfy(77,6): Info: {:inductionPattern GreatestPredNat#[k](num)}
+git-issue-977.dfy(77,6): Info: {:inductionTrigger RicochetNat(k, num)}
+git-issue-977.dfy(77,6): Info: {:inductionTrigger GreatestManualNat(k, num)}
+git-issue-977.dfy(77,6): Info: {:inductionTrigger GreatestPredNat#[k](num)}
 git-issue-977.dfy(71,4): Info: ensures GreatestPredOrd#[m](num)
 git-issue-977.dfy(71,4): Info: ensures GreatestManualOrd(m, num)
 git-issue-977.dfy(71,4): Info: ensures RicochetOrd(m, num)
