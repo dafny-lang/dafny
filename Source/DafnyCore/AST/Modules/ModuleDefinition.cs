@@ -72,6 +72,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
                                           // nested module declaration is outside its enclosing module
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public Attributes Attributes { get; set; }
+  public string WhatKind => "module definition";
   public readonly Implements Implements; // null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public readonly ModuleKindEnum ModuleKind;
@@ -210,13 +211,18 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   string compileName;
 
+  public ModuleDefinition GetImplementedModule() {
+    return Implements is { Kind: ImplementationKind.Replacement } ? Implements.Target.Def : null;
+  }
+
   public string GetCompileName(DafnyOptions options) {
     if (compileName != null) {
       return compileName;
     }
 
-    if (Implements is { Kind: ImplementationKind.Replacement }) {
-      return Implements.Target.Def.GetCompileName(options);
+    var implemented = GetImplementedModule();
+    if (implemented != null) {
+      return implemented.GetCompileName(options);
     }
 
     var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
@@ -413,8 +419,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   public IToken NavigationToken => tok;
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).
-    Concat(DefaultClasses).
+    Attributes.AsEnumerable().
+    Concat<Node>(DefaultClasses).
     Concat(SourceDecls).
     Concat(PrefixNamedModules.Any() ? PrefixNamedModules.Select(m => m.Module) : ResolvedPrefixNamedModules).
     Concat(Implements == null ? Enumerable.Empty<Node>() : new Node[] { Implements.Target });
@@ -424,8 +430,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   public override IEnumerable<INode> PreResolveChildren {
     get {
-      var attributes = Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>();
-      return attributes.Concat(preResolveTopLevelDecls ?? TopLevelDecls).
+      return Attributes.AsEnumerable().
+        Concat<Node>(preResolveTopLevelDecls ?? TopLevelDecls).
         Concat(preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Module));
     }
   }

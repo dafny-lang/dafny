@@ -19,9 +19,15 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
   class GoCodeGenerator : SinglePassCodeGenerator {
+    protected override void EmitStaticExternMethodQualifier(string qual, ConcreteSyntaxTree wr) {
+      if (qual != null) {
+        qual = ImportPrefix + qual;
+      }
+      base.EmitStaticExternMethodQualifier(qual, wr);
+    }
+
     protected override bool RequiresAllVariablesToBeUsed => true;
-    //TODO: This is tentative, update this to point to public module once available.
-    private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/";
+    private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/v4/";
 
     private bool GoModuleMode;
     private string GoModuleName;
@@ -33,7 +39,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       if (Options?.CoverageLegendFile != null) {
         //TODO: What's the module name for this?
-        Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
+        ImportsNotFromDafnyModules.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
       }
     }
 
@@ -53,8 +59,10 @@ namespace Microsoft.Dafny.Compilers {
       return $"_default_{tp.GetCompileName(Options)}";
     }
 
-    private readonly List<Import> Imports = new(StandardImports);
+    private readonly Dictionary<ModuleDefinition, Import> ModuleImports = new();
+    private readonly List<Import> ImportsNotFromDafnyModules = new(StandardImports);
     private string ModuleName;
+    private ModuleDefinition CurrentModule;
     private ConcreteSyntaxTree RootImportWriter;
     private ConcreteSyntaxTree RootImportDummyWriter;
 
@@ -65,6 +73,7 @@ namespace Microsoft.Dafny.Compilers {
       };
     private static string DummyTypeName = "Dummy__";
 
+    private static string ImportPrefix = "m_";
     private struct Import {
       public string Name, Path;
       public ModuleDefinition ExternModule;
@@ -73,6 +82,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Go", program.Name);
 
+      CurrentModule = null;
       ModuleName = MainModuleName = program.MainMethod != null ? "main" : TransformToClassName(Path.GetFileNameWithoutExtension(program.Name));
 
       wr.WriteLine("package {0}", ModuleName);
@@ -85,7 +95,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         path = GoModuleMode ? DafnyRuntimeGoModule : "";
       }
-      Imports.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
+      ImportsNotFromDafnyModules.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
 
       if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
         EmitRuntimeSource("DafnyStandardLibraries_go", wr);
@@ -124,7 +134,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine(")");
       importDummyWriter = wr.Fork();
       if (ModuleName != "dafny") {
-        foreach (var import in Imports) {
+        foreach (var import in ImportsNotFromDafnyModules.Concat(ModuleImports.Values)) {
           EmitImport(import, importWriter, importDummyWriter);
         }
       }
@@ -134,6 +144,7 @@ namespace Microsoft.Dafny.Compilers {
       IdProtect(Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_"));
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
+      CurrentModule = null;
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
 
       var wBody = wr.NewNamedBlock("func main()");
@@ -159,7 +170,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Sequence)", FormatCompanionTypeName(((GoCodeGenerator.ClassWriter)cw).ClassName), argsParameterName);
     }
 
-    private Import CreateImport(string moduleName, bool isDefault, ModuleDefinition externModule, string /*?*/ libraryName) {
+    private Import CreateImport(string moduleName, ModuleDefinition externModule,
+      string /*?*/ libraryName) {
       string pkgName;
       if (libraryName != null) {
         pkgName = libraryName;
@@ -177,7 +189,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
 
-      return new Import { Name = moduleName, Path = pkgName, ExternModule = externModule };
+      return new Import { Name = ImportPrefix + moduleName, Path = pkgName, ExternModule = externModule };
     }
 
     protected override bool ShouldCompileModule(Program program, ModuleDefinition module) {
@@ -192,7 +204,7 @@ namespace Microsoft.Dafny.Compilers {
       return true;
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault,
+    protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
       ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       if (isDefault) {
@@ -209,13 +221,14 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       ModuleName = PublicModuleIdProtect(moduleName);
-      var import = CreateImport(ModuleName, isDefault, externModule, libraryName);
+      CurrentModule = module;
+      var import = CreateImport(ModuleName, externModule, libraryName);
       var filename = string.Format("{0}/{0}.go", import.Path);
       var w = wr.NewFile(filename);
       EmitModuleHeader(w);
 
       import.Path = goModuleName + import.Path;
-      AddImport(import);
+      AddImport(module, import);
 
       return w;
     }
@@ -254,20 +267,26 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var publicModuleName = PublicModuleIdProtect(module.GetCompileName(Options));
-      var import = CreateImport(publicModuleName, module.IsDefaultModule, externModule, libraryName);
+      var import = CreateImport(publicModuleName, externModule, libraryName);
       import.Path = goModuleName + import.Path;
-      AddImport(import);
+      AddImport(module, import);
     }
 
     protected override void FinishModule() {
+      CurrentModule = null;
       ModuleName = MainModuleName;
     }
 
-    private void AddImport(Import import) {
+    private void AddImport(ModuleDefinition module, Import import) {
       // Import in root module
       EmitImport(import, RootImportWriter, RootImportDummyWriter);
       // Import in all subsequent modules
-      Imports.Add(import);
+      ModuleImports[module] = import;
+      var implemented = module.GetImplementedModule();
+      while (implemented != null) {
+        ModuleImports[implemented] = import;
+        implemented = implemented.GetImplementedModule();
+      }
     }
 
     private void EmitImport(Import import, ConcreteSyntaxTree importWriter, ConcreteSyntaxTree importDummyWriter) {
@@ -1367,7 +1386,7 @@ namespace Microsoft.Dafny.Compilers {
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = p.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-            if (!instantiatedType.Equals(p.Type)) {
+            if (!p.IsGhost && !instantiatedType.Equals(p.Type)) {
               // var p instantiatedType = p.(instantiatedType)
               var pName = IdName(inParams[i]);
               DeclareLocalVar(pName, instantiatedType, p.tok, true, null, w);
@@ -1833,10 +1852,10 @@ namespace Microsoft.Dafny.Compilers {
       // XXX This duplicates some of the logic in UserDefinedTypeName, but if we
       // don't do it here, we end up passing the name of the module to
       // FormatCompanionName, which doesn't help anyone
-      if (type is UserDefinedType udt && udt.ResolvedClass != null && IsExternMemberOfExternModule(member, udt.ResolvedClass)) {
+      if (type is UserDefinedType { ResolvedClass: not null } udt && IsExternMemberOfExternModule(member, udt.ResolvedClass)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!udt.ResolvedClass.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
-        return IdProtect(udt.ResolvedClass.EnclosingModuleDefinition.GetCompileName(Options));
+        return IdProtect(ModuleImports[udt.ResolvedClass.EnclosingModuleDefinition].Name);
       }
       return TypeName_Related(FormatCompanionName, type, wr, tok, member);
     }
@@ -2236,8 +2255,11 @@ namespace Microsoft.Dafny.Compilers {
       if (cl is TraitDecl { IsObjectTrait: true }) {
         wr.Write("_dafny.New_Object()");
       } else {
+        var ctor = (Constructor)initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
+        var sep = "";
         wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
         EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr);
+        wr.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
         wr.Write(")");
       }
     }
@@ -2681,7 +2703,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
-      var enclosingModuleDefinitionId = PublicModuleIdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
+      string enclosingModuleDefinitionId;
+      if (CurrentModule == cl.EnclosingModuleDefinition || cl.EnclosingModuleDefinition.IsDefaultModule) {
+        enclosingModuleDefinitionId = PublicModuleIdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
+      } else {
+        enclosingModuleDefinitionId = ModuleImports[cl.EnclosingModuleDefinition].Name;
+      }
       if (IsExternMemberOfExternModule(member, cl)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
@@ -2700,7 +2727,6 @@ namespace Microsoft.Dafny.Compilers {
           // Don't use IdName since that'll capitalize, which is unhelpful for
           // built-in types
           return qual + (qual == "" ? "" : ".") + cl.GetCompileName(Options);
-
         } else if (!full || cl.EnclosingModuleDefinition.TryToAvoidName || this.ModuleName == enclosingModuleDefinitionId) {
           return IdName(cl);
         } else {

@@ -213,6 +213,7 @@ PRODUCTIONS
 Dafny
 = (. IToken includeStartToken;
      IToken fileStartToken = t;
+     Attributes attrs = null;
   .)
   { "include"                 (. includeStartToken = t; .)
     stringToken               (. {
@@ -231,7 +232,9 @@ Dafny
                                }
                             .)
   }
-  { TopDecl<theModule, /* isTopLevel */ true> }
+  { AtAttributes<ref attrs>
+    TopDecl<theModule, /* isTopLevel */ true, ref attrs> }
+  (. CheckNoAttributes(ref attrs); .)
   (. 
     theModule.RangeToken = new RangeToken(fileStartToken.Next, t);
   .)
@@ -241,17 +244,20 @@ Dafny
 
 /*------------------------------------------------------------------------*/
 DeclModifier<ref DeclModifierData dmod>
-= ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  | "replaceable"                          (. dmod.IsReplaceable = true;  CheckAndSetToken(ref dmod.ReplaceableToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+= ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  | "replaceable"                          (. dmod.IsReplaceable = true;  CheckAndSetToken(ref dmod.ReplaceableToken); CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
   )
   .
 
 /*------------------------------------------------------------------------*/
-TopDecl<. ModuleDefinition module, bool isTopLevel .>
-= (. DeclModifierData dmod = new DeclModifierData(); ModuleDecl submodule;
+TopDecl<ModuleDefinition module, bool isTopLevel, ref Attributes attrs>
+= (. DeclModifierData dmod = new DeclModifierData() {
+       Attributes = Consume(ref attrs)
+     };
+     ModuleDecl submodule;
      DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      TraitDecl/*!*/ trait;
   .)
@@ -311,7 +317,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
 /*------------------------------------------------------------------------*/
 ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
 =  "module"
-   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
+   (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes);
      Attributes attrs = null;
      IToken/*!*/ iderr;
      IToken tokenWithTrailingDocString;
@@ -323,7 +329,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      var dafnyOptionsBackup = theOptions;
      CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Replaceable);
    .)
-   { Attribute<ref attrs> }            (. ApplyOptionsFromAttributes(attrs); .)
+   { Attribute<ref dmod.Attributes> }            (. ApplyOptionsFromAttributes(dmod.Attributes); .)
    ModuleQualifiedName<out var names>
    (. var name = names[^1];
       prefixIds = names.GetRange(0,names.Count-1).Select(n => n.StartToken).ToList();
@@ -334,12 +340,14 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, GetModuleKind(dmod), false,
-                                        idRefined == null ? null : new Implements(implementationKind, new ModuleQualifiedId(idRefined)), parent, attrs);
+                                        idRefined == null ? null : new Implements(implementationKind, new ModuleQualifiedId(idRefined)), parent, dmod.Attributes);
    .)
    SYNC                                (. tokenWithTrailingDocString = t; .)
    "{"                                 (. module.BodyStartTok = t; .)
-     { TopDecl<module, /* isTopLevel */ false>}
+     { AtAttributes<ref attrs>
+       TopDecl<module, /* isTopLevel */ false, ref attrs>}
    "}"
+   (. CheckNoAttributes(ref attrs); .)
     (.
       module.RangeToken = new RangeToken(dmod.FirstToken, t);
       module.TokenWithTrailingDocString = tokenWithTrailingDocString;
@@ -514,7 +522,6 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      Name/*!*/ name;
      IToken tokenWithTrailingDocString = Token.NoToken;
      List<Type> parentTraits = new List<Type>();
-     Attributes attrs = null;
      bool isRefining = false;
      List<TypeParameter> typeArgs = new List<TypeParameter>();
      List<MemberDecl> members = new List<MemberDecl>();
@@ -523,8 +530,8 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      DeclModifierData dmod;
   .)
   SYNC
-  "class" (. CheckAndSetTokenOnce(ref dmodClass.FirstToken); .)
-  { Attribute<ref attrs> }
+  "class" (. CheckAndSetTokenOnce(ref dmodClass.FirstTokenExceptAttributes); .)
+  { Attribute<ref dmodClass.Attributes> }
   ClassName<out name>                     (. tokenWithTrailingDocString = t; .)
   [ GenericParameters<typeArgs, true> ] (. tokenWithTrailingDocString = t; .)
   [ ExtendsClause<parentTraits, out tokenWithTrailingDocString, null>
@@ -537,7 +544,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
       ClassMemberDecl<dmod, members, true, false>
     }
   "}"
-  (. c = new ClassDecl(new RangeToken(dmodClass.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
+  (. c = new ClassDecl(new RangeToken(dmodClass.FirstToken, t), name, module, typeArgs, members, dmodClass.Attributes, isRefining, parentTraits);
      c.BodyStartTok = bodyStart;
      c.TokenWithTrailingDocString = tokenWithTrailingDocString;
   .)
@@ -567,7 +574,6 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      CheckDeclModifiers(ref dmodIn, "trait", AllowedDeclModifiers.None);
      IToken/*!*/ tokenWithTrailingDocString;
      List<Type> parentTraits = new List<Type>();
-     Attributes attrs = null;
      bool isRefining = false;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
@@ -575,8 +581,8 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      DeclModifierData dmod;
   .)
   SYNC
-  "trait"                       (. CheckAndSetTokenOnce(ref dmodIn.FirstToken); .)
-  { Attribute<ref attrs> }
+  "trait"                       (. CheckAndSetTokenOnce(ref dmodIn.FirstTokenExceptAttributes); .)
+  { Attribute<ref dmodIn.Attributes> }
   ClassName<out var name>                         (. tokenWithTrailingDocString = t; .)
   [ GenericParameters<typeArgs, true> ]     (. tokenWithTrailingDocString = t; .)
   [ ExtendsClause<parentTraits, out tokenWithTrailingDocString, null>
@@ -588,7 +594,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
       ClassMemberDecl<dmod, members, true, false>
     }
   "}"
-  (. trait = new TraitDecl(new RangeToken(dmodIn.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
+  (. trait = new TraitDecl(new RangeToken(dmodIn.FirstToken, t), name, module, typeArgs, members, dmodIn.Attributes, isRefining, parentTraits);
      trait.BodyStartTok = bodyStart;
      trait.TokenWithTrailingDocString = tokenWithTrailingDocString;
     .)
@@ -630,7 +636,6 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out dt)!=null);
      Name/*!*/ name;
-     Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<Type> parentTraits = new List<Type>();
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
@@ -643,8 +648,8 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   SYNC
   ( "datatype"
   | "codatatype"     (. co = true; .)
-  )                                        (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  { Attribute<ref attrs> }
+  )                                        (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  { Attribute<ref dmod.Attributes> }
   DatatypeName<out name>
   [ GenericParameters<typeArgs, true> ]
   [ ExtendsClause<parentTraits, out _, co ? "codatatype" : "datatype"> ]
@@ -659,9 +664,9 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   )
   [ TypeMembers<module, members> ]
   (. if (co) {
-       dt = new CoDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, parentTraits, members, attrs, isRefining);
+       dt = new CoDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, parentTraits, members, dmod.Attributes, isRefining);
      } else {
-       dt = new IndDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, parentTraits, members, attrs, isRefining);
+       dt = new IndDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, parentTraits, members, dmod.Attributes, isRefining);
      }
      dt.BodyStartTok = bodyStart;
      dt.TokenWithTrailingDocString = bodyStart;
@@ -694,7 +699,9 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
 = (. DeclModifierData dmod;
   .)
   "{"
-  { (. dmod = new DeclModifierData(); .)
+  { (. dmod = new DeclModifierData();
+    .)
+    AtAttributes<ref dmod.Attributes>
     { DeclModifier<ref dmod> }
     ClassMemberDecl<dmod, members, false, false>
   }
@@ -737,7 +744,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque);
   .)
   SYNC
-  "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
   { Attribute<ref attrs> }
   ( IF(!IsIdentifier(la.kind) && la.kind != _digits)
     (. SemErr(ErrorId.p_const_decl_missing_identifier, la, "expected an identifier after 'const' and any attributes"); .)
@@ -763,7 +770,6 @@ LocalVarName<out IToken id> = NoUSIdent<out id> .
 NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. Name name;
      IToken bvId;
-     Attributes attrs = null;
      td = null;
      Type baseType = null;
      Expression constraint;
@@ -773,8 +779,8 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      var members = new List<MemberDecl>();
      var typeParameters = new List<TypeParameter>();
   .)
-  "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  { Attribute<ref attrs> }
+  "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  { Attribute<ref dmod.Attributes> }
   NewtypeName<out name>
   [ GenericParameters<typeParameters, true> ]
   [ ExtendsClause<parentTraits, out _, "newtype"> ]
@@ -792,13 +798,13 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     [ TypeMembers<module, members> ]
     (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module,
          new BoundVar(bvId, bvId.val, baseType),
-         constraint, witnessKind, witness, parentTraits, members, attrs, isRefining: false);
+         constraint, witnessKind, witness, parentTraits, members, dmod.Attributes, isRefining: false);
     .)
   | Type<out baseType>
     WitnessClause<out var witnessKind, out witness>
     [ TypeMembers<module, members> ]
     (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module,
-         baseType, witnessKind, witness, parentTraits, members, attrs, isRefining: false);
+         baseType, witnessKind, witness, parentTraits, members, dmod.Attributes, isRefining: false);
     .)
   )
   | ellipsis
@@ -806,7 +812,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     (. baseType = null; // Base type is not known yet
        td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module, baseType,
          SubsetTypeDecl.WKind.CompiledZero, null,
-         parentTraits, members, attrs, isRefining: true);
+         parentTraits, members, dmod.Attributes, isRefining: true);
     .)
   )  (. if (td != null) {
           td.TokenWithTrailingDocString = t; 
@@ -819,7 +825,6 @@ SynonymTypeName<out Name name> = Name<out name> .
 // The following includes Opaque type definitions
 SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken bvId;
-     Attributes attrs = null;
      var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
      var typeArgs = new List<TypeParameter>();
      td = null;
@@ -831,8 +836,8 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      var members = new List<MemberDecl>();
      var isRefining = false;
   .)
-  "type"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  { Attribute<ref attrs> }
+  "type"                      (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  { Attribute<ref dmod.Attributes> }
   SynonymTypeName<out var name>
   { TypeParameterCharacteristics<ref characteristics> }
   [ GenericParameters<typeArgs, true> ]
@@ -844,12 +849,12 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
       Expression<out constraint, false, true>
       WitnessClause<out var witnessKind, out witness>
       (. td = new SubsetTypeDecl(new RangeToken(dmod.FirstToken, t), name, characteristics, typeArgs, module, 
-            new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
+            new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, dmod.Attributes);
          kind = "subset type";
       .)
     |
       Type<out ty>
-      (. td = new TypeSynonymDecl(new RangeToken(dmod.FirstToken, t), name, characteristics, typeArgs, module, ty, attrs);
+      (. td = new TypeSynonymDecl(new RangeToken(dmod.FirstToken, t), name, characteristics, typeArgs, module, ty, dmod.Attributes);
          kind = "type synonym";
       .)
     )
@@ -864,7 +869,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
          // abstract type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }
-       td = new AbstractTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, parentTraits, members, attrs, isRefining);
+       td = new AbstractTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, parentTraits, members, dmod.Attributes, isRefining);
      }
      td.TokenWithTrailingDocString = t;
   .)
@@ -1042,8 +1047,8 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      CheckDeclModifiers(ref dmod, "iterator", AllowedDeclModifiers.None);
   .)
   SYNC
-  "iterator"                (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  { Attribute<ref attrs> }
+  "iterator"                (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  { Attribute<ref dmod.Attributes> }    (. MergeInto(ref attrs, ref dmod.Attributes); .)
   IteratorName<out var name>
   (
     [ GenericParameters<typeArgs, true> ]
@@ -1063,7 +1068,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
                              new Specification<FrameExpression>(mod, modAttrs),
                              new Specification<Expression>(decreases, decrAttrs),
                              req, ens, yieldReq, yieldEns,
-                             body, attrs, signatureEllipsis);
+                             body, dmod.Attributes, signatureEllipsis);
      iter.BodyStartTok = bodyStart;
  .)
   .
@@ -1155,7 +1160,6 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      bool hasName = false;
      Name name = new Name("<noNameGiven>");  
      IToken keywordToken;
-     Attributes attrs = null;
      List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
      List<Formal/*!*/> ins = new List<Formal/*!*/>();
      List<Formal/*!*/> outs = new List<Formal/*!*/>();
@@ -1184,31 +1188,31 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   .)
   SYNC
   ( "method"                        (. isPlainOlMethod = true; caption = "method";
-                                       CheckAndSetTokenOnce(ref dmod.FirstToken);
+                                       CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes);
                                        allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
   | "lemma"                         (. isLemma = true; caption = "lemma";
-                                       CheckAndSetTokenOnce(ref dmod.FirstToken);
+                                       CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes);
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
       "lemma"
-    | "colemma"                     (. CheckAndSetTokenOnce(ref dmod.FirstToken); 
+    | "colemma"                     (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); 
                                        errors.Deprecated(ErrorId.p_deprecated_colemma, t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); 
                                     .)
     )
                                     (. isGreatestLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | ( "least"                       (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-    | "inductive"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
+  | ( "least"                       (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+    | "inductive"                   (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes);
                                        errors.Deprecated(ErrorId.p_deprecated_inductive_lemma, t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); 
                                     .)
     )
     "lemma"
                                     (. isLeastLemma = true;  caption = "least lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
-  | "twostate"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "twostate"                      (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
     "lemma"                         (. isTwoStateLemma = true; caption = "two-state lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | "constructor"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
+  | "constructor"                   (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes);
                                        if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
@@ -1219,7 +1223,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                     .)
   )                                 (. keywordToken = t;
                                        CheckDeclModifiers(ref dmod, caption, allowed); .)
-  { Attribute<ref attrs> }
+  { Attribute<ref dmod.Attributes> }
   [ MethodFunctionName<out name>               (. hasName = true; .)
   ]
   (. if (!hasName) {
@@ -1262,25 +1266,25 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                            req, new Specification<FrameExpression>(reads, readsAttrs), 
                            new Specification<FrameExpression>(mod, modAttrs), ens, 
                            new Specification<Expression>(dec, decAttrs), 
-                           (DividedBlockStmt)body, attrs, signatureEllipsis);
+                           (DividedBlockStmt)body, dmod.Attributes, signatureEllipsis);
      } else if (isLeastLemma) {
        m = new LeastLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
-                          req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                          req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, dmod.Attributes, signatureEllipsis);
      } else if (isGreatestLemma) {
        m = new GreatestLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
-                             req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                             req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, dmod.Attributes, signatureEllipsis);
      } else if (isLemma) {
        m = new Lemma(range, name, dmod.IsStatic, typeArgs, ins, outs,
-                     req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                     req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, dmod.Attributes, signatureEllipsis);
      } else if (isTwoStateLemma) {
        m = new TwoStateLemma(range, name, dmod.IsStatic, typeArgs, ins, outs,
                              req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs),
-                             ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                             ens, new Specification<Expression>(dec, decAttrs), body, dmod.Attributes, signatureEllipsis);
      } else {
        m = new Method(range, name, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
                       req, new Specification<FrameExpression>(reads, readsAttrs), 
                       new Specification<FrameExpression>(mod, modAttrs), ens, 
-                      new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                      new Specification<Expression>(dec, decAttrs), body, dmod.Attributes, signatureEllipsis);
      }
      m.BodyStartTok = bodyStart;
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
@@ -1415,23 +1419,23 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
      Expression defaultValue;
      bool isNameOnly;
      bool isOlder;
-     Attributes attributes = null;
+     Attributes attrs = null;
      RangeToken range;
      Name name;
   .)
   "("
   [
-    { Attribute<ref attributes> }
+    { Attribute<ref attrs> }
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attributes, isOld, isNameOnly, isOlder)
+                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
                         { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
                     ); .)
-    { "," 
-      { Attribute<ref attributes> }
+    { ","
+      { Attribute<ref attrs> }
       GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
       ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attributes, isOld, isNameOnly, isOlder)
+                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
                         { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
                     ); .)
     }
@@ -1681,7 +1685,6 @@ GenericInstantiation<.List<Type> gt.>
 /*------------------------------------------------------------------------*/
 FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
 = (. Contract.Ensures(Contract.ValueAtReturn(out f) != null);
-     Attributes attrs = null;
      Name name = null; // To please compiler
      List<TypeParameter> typeArgs = new List<TypeParameter>();
      List<Formal> formals = new List<Formal>();
@@ -1742,12 +1745,12 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
    */
 
   /* ----- function ----- */
-  [ "twostate"   (. isTwoState = true; CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  [ "twostate"   (. isTwoState = true; CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
   ]
-  ( "function"   (. headToken = t; CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  ( "function"   (. headToken = t; CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
     [ "method"   (. functionMethodToken = t; .)
     ]
-    { Attribute<ref attrs> }
+    { Attribute<ref dmod.Attributes> }
     MethodFunctionName<out name>
     (
       [ GenericParameters<typeArgs, false> ]
@@ -1767,10 +1770,10 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     )
 
   /* ----- predicate ----- */
-  | "predicate"  (. headToken = t; isPredicate = true; CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "predicate"  (. headToken = t; isPredicate = true; CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
     [ "method"   (. functionMethodToken = t; .)
     ]
-    { Attribute<ref attrs> }
+    { Attribute<ref dmod.Attributes> }
     MethodFunctionName<out name>
     (
       [ GenericParameters<typeArgs, false> ]
@@ -1788,12 +1791,12 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   /* ----- least predicate ----- */
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "least"
     .)
-    ( "least"                  (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-    | "inductive"              (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(ErrorId.p_deprecated_inductive_predicate, t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
+    ( "least"                  (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+    | "inductive"              (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); errors.Deprecated(ErrorId.p_deprecated_inductive_predicate, t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
     )
     "predicate"
     (. isLeastPredicate = true; .)
-    { Attribute<ref attrs> }
+    { Attribute<ref dmod.Attributes> }
     MethodFunctionName<out name>
     (
       [ GenericParameters<typeArgs, false> ]
@@ -1806,12 +1809,12 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   /* ----- greatest predicate ----- */
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "greatest"
     .)
-    ( "greatest"                 (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+    ( "greatest"                 (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
       "predicate"     
-    | "copredicate"              (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(ErrorId.p_deprecated_copredicate, t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
+    | "copredicate"              (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); errors.Deprecated(ErrorId.p_deprecated_copredicate, t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
     )
     (. isGreatestPredicate = true; .)
-    { Attribute<ref attrs> }
+    { Attribute<ref dmod.Attributes> }
     MethodFunctionName<out name>
     (
       [ GenericParameters<typeArgs, false> ]
@@ -1982,39 +1985,38 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      /* =========================================
       * Finally, we create the AST node for the function declaration we parsed.
       */
-
      var range = new RangeToken(dmod.FirstToken, t);
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStatePredicate(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result,
                                  reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
-                                 new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
+                                 new Specification<Expression>(decreases, decAttrs), body, dmod.Attributes, signatureEllipsis);
      } else if (isTwoState) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStateFunction(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result, returnType,
                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
-                                new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
+                                new Specification<Expression>(decreases, decAttrs), body, dmod.Attributes, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
        f = new Predicate(range, name, dmod.IsStatic, isGhost, dmod.IsOpaque, typeArgs, formals, result,
                          reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
                          new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
-                         byMethodTok, byMethodBody, attrs, signatureEllipsis);
+                         byMethodTok, byMethodBody, dmod.Attributes, signatureEllipsis);
      } else if (isLeastPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new LeastPredicate(range, name, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
-                              reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, body, attrs, signatureEllipsis);
+                              reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, body, dmod.Attributes, signatureEllipsis);
      } else if (isGreatestPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new GreatestPredicate(range, name, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
-                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, body, attrs, signatureEllipsis);
+                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, body, dmod.Attributes, signatureEllipsis);
      } else {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
        f = new Function(range, name, dmod.IsStatic, isGhost, dmod.IsOpaque,
                         typeArgs, formals, result, returnType,
                         reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body,
                         byMethodTok, byMethodBody,
-                        attrs, signatureEllipsis);
+                        dmod.Attributes, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;
      f.TokenWithTrailingDocString = tokenWithTrailingDocString;
@@ -2262,8 +2264,10 @@ BreakStmt<out Statement/*!*/ s>
      IToken start = Token.NoToken;
      IToken label = null;
      int breakAndContinueCount = 1;
+     Attributes attributes = null;
   .)
   ( "continue"              (. start = t; isContinue = true; .)
+    [ Attribute<ref attributes> ]
     [ LabelName<out label> ]
   | "break"                 (. start = t; .)
     ( LabelName<out label>
@@ -2278,7 +2282,7 @@ BreakStmt<out Statement/*!*/ s>
   (. Contract.Assert(label == null || breakAndContinueCount == 1);
      s = label != null ?
        new BreakStmt(new RangeToken(start, t), label, isContinue) :
-       new BreakStmt(new RangeToken(start, t), breakAndContinueCount, isContinue);
+       new BreakStmt(new RangeToken(start, t), breakAndContinueCount, isContinue, attributes);
   .)
   .
 
@@ -2289,14 +2293,16 @@ ReturnStmt<out Statement/*!*/ s>
          IToken returnTok = t;
          List<AssignmentRhs> rhss = null;
          AssignmentRhs r;
+         Attributes attributes = null;
        .)
+  [ Attribute<ref attributes> ]
   [ Rhs<out r>                       (. rhss = new List<AssignmentRhs>();
                                         rhss.Add(r);
                                      .)
     { "," Rhs<out r>                 (. rhss.Add(r); .)
     }
   ]
-  ";"                                (. s = new ReturnStmt(new RangeToken(returnTok, t), rhss);
+  ";"                                (. s = new ReturnStmt(new RangeToken(returnTok, t), rhss, attributes);
                                      .)
   .
 
@@ -3833,7 +3839,9 @@ ParensExpression<out Expression e>
      var args = new List<ActualBinding>();
      e = dummyExpr;
   .)
- "("                                        (. lp = t; .)
+ "("
+ (. lp = t;
+ .)
   (
     MaybeDecreasesToExpression<out e, lp>
     ")"                                     (. rp = t;
@@ -4255,9 +4263,11 @@ NameSegment<out Expression e>
   ( IF(IsGenericInstantiation(true))
     (. typeArgs = new List<Type>(); .)
     GenericInstantiation<typeArgs>
-    [ AtCall<out atLabel, out openParen, out args> ]
+    [ IF(IsAtCall())
+      AtCall<out atLabel, out openParen, out args> ]
   | HashCall<id, out openParen, out typeArgs, out args>
-  | [ AtCall<out atLabel, out openParen, out args> ]
+  | [ IF(IsAtCall())
+      AtCall<out atLabel, out openParen, out args> ]
   )
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
   (. e = new NameSegment(id, id.val, typeArgs);
@@ -4346,9 +4356,11 @@ Suffix<ref Expression e>
       ( IF(IsGenericInstantiation(true))
         (. typeArgs = new List<Type>(); .)
         GenericInstantiation<typeArgs>
-        [ AtCall<out atLabel, out openParen, out args> ]
+        [ IF(IsAtCall())
+          AtCall<out atLabel, out openParen, out args> ]
       | HashCall<id, out openParen, out typeArgs, out args>
-      | [ AtCall<out atLabel, out openParen, out args> ]
+      | [ IF(IsAtCall())
+          AtCall<out atLabel, out openParen, out args> ]
       )
       (. e = new ExprDotName(id, e, id.val, typeArgs) {
            RangeToken = new RangeToken(startToken, id)
@@ -4589,6 +4601,28 @@ Attribute<ref Attributes attrs>
      var rtok = new RangeToken(openBrace, t);
      if (!CheckAttribute(errors, x, rtok)) return;
      attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
+     attrs.RangeToken = rtok;
+  .)
+  .
+
+AtAttributes<ref Attributes attrs>
+= { AtAttribute<ref attrs> }
+  .
+
+/* After literals that start a block, we usually add this
+   Note that it will parse all at-attributes at once since expression parsing
+   return attributes parsed after them. No need to wrap in a repeat statement
+*/
+AtAttribute<ref Attributes attrs>
+= (. IToken atToken = null;
+     Expression arg;
+  .)
+  "@"
+  (. atToken = t; .)
+  Expression<out arg, false, false, false>
+  (. 
+     var rtok = new RangeToken(atToken, t);
+     attrs = new UserSuppliedAtAttribute(t, arg, attrs);
      attrs.RangeToken = rtok;
   .)
   .

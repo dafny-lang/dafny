@@ -63,7 +63,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"static Main({argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
+      ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
       if (externModule == null || libraryName != null) {
