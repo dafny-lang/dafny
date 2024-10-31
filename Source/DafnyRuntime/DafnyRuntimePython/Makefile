@@ -20,16 +20,16 @@ update-system-module: build-system-module
 
 setup-venv:
 	python -m venv --clear $(VIRTUALENV)
-	$(VIRTUALENV)/bin/pip install --upgrade build twine
+	python -m pip install --upgrade build twine
 
 clean-package:
 	rm -rf dist/ *.egg-info/
 
 build-package:
-	$(VIRTUALENV)/bin/python -m build
+	python -m build
 
 upload-package-testpypi:
-	$(VIRTUALENV)/bin/python -m twine upload --repository testpypi dist/*
+	python -m twine upload --repository testpypi dist/*
 
 upload-package-pypi:
-	$(VIRTUALENV)/bin/python -m twine upload dist/*
+	python -m twine upload dist/*
