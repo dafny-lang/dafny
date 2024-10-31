@@ -34,3 +34,6 @@ lemma {:induction} {:inductionTrigger f(n)} NoWarning2(n: nat) ensures f(n + 0) 
 lemma {:inductionTrigger} Legacy(n: nat) ensures f(n) {}
 lemma {:inductionTrigger} Legacy1(n: nat) ensures f(n + 0) {}
 lemma {:induction} {:inductionTrigger} Legacy2(n: nat) ensures f(n + 0) {}
+
+// Poorly chosen explicit trigger, so no warning ⇒ Proof fails.
+lemma {:induction} {:inductionTrigger g(n)} NoWarning3(n: nat) ensures f(n + 0) {} // error

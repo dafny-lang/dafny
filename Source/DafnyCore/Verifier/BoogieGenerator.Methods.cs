@@ -790,7 +790,10 @@ namespace Microsoft.Dafny {
             null, null, false, true);
         };
 
-        var triggers = Attributes.FindAllExpressions(m.Attributes, "inductionTrigger");
+        var triggers = m.Attributes.AsEnumerable()
+          .Where(attr => attr.Name is "inductionTrigger" or "_inductionTrigger")
+          .Select(attr => attr.Args)
+          .ToList();
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
         var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
         var exporter = new BoogieStmtListBuilder(this, options, builder.Context);

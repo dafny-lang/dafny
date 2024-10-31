@@ -224,8 +224,8 @@ public class InductionRewriter : IRewriter {
   /// Report as tooltips the matching patterns selected for the induction hypothesis.
   /// </summary>
   private void ReportInductionTriggers(IToken tok, [CanBeNull] Method lemma, Attributes attributes) {
-    foreach (var trigger in attributes.AsEnumerable().Where(attr => attr.Name == "inductionTrigger")) {
-      var ss = Printer.OneAttributeToString(Reporter.Options, trigger);
+    foreach (var trigger in attributes.AsEnumerable().Where(attr => attr.Name == "_inductionTrigger")) {
+      var ss = Printer.OneAttributeToString(Reporter.Options, trigger, "inductionTrigger");
       if (lemma is PrefixLemma) {
         ss = lemma.Name + " " + ss;
       }
@@ -303,7 +303,7 @@ public class InductionRewriter : IRewriter {
     }
 
     foreach (var trigger in result) {
-      attributes = new Attributes("inductionTrigger", trigger, attributes);
+      attributes = new Attributes("_inductionTrigger", trigger, attributes);
     }
     return result.Count == 0 ? null : result; // Return null to indicate no results
   }
