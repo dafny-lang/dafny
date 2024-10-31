@@ -110,3 +110,69 @@ module Example3 {
     print r, "\n";
   }
 }
+
+// The following tests make sure that the appropriate type information (without allocatedness information) is available
+// when checking the _postcondition_ of functions.
+module FunctionResultType {
+  datatype Option<X> = None | Some(value: X)
+
+  function Search0<T(==)>(s: seq<T>, x: T): (o: Option<nat>)
+    ensures
+      o.Some? && o.value < |s| ==>
+      s[o.value] == x // in order to prove ".value" is non-negative, the type of "o" is necessary
+  {
+    if |s| < 12 then
+      None
+    else if s[9] == x then
+      Some(9)
+    else if s[2] == x then
+      Some(2)
+    else
+      None
+  }
+
+  function Search1<T(==)>(s: seq<T>, x: T): Option<nat>
+    ensures var o := Search1(s, x);
+      o.Some? && o.value < |s| ==>
+      s[o.value] == x // in order to prove ".value" is non-negative, the type of "Search1(s, x)" and "o" is necessary
+  {
+    if |s| < 12 then
+      None
+    else if s[9] == x then
+      Some(9)
+    else if s[2] == x then
+      Some(2)
+    else
+      None
+  }
+
+  function Search2<T(==)>(s: seq<T>, x: T): Option<nat>
+    ensures
+      Search2(s, x).Some? && Search2(s, x).value < |s| ==>
+      s[Search2(s, x).value] == x // in order to prove ".value" is non-negative, the type of "Search2(s, x)" is necessary
+  {
+    if |s| < 12 then
+      None
+    else if s[9] == x then
+      Some(9)
+    else if s[2] == x then
+      Some(2)
+    else
+      None
+  }
+
+  function Search4<T(==)>(s: seq<T>, x: T): (o: Option<int>)
+    ensures
+      o.Some? && o.value < |s| ==>
+      s[o.value] == x // error: ".value" may be negative
+  {
+    if |s| < 12 then
+      None
+    else if s[9] == x then
+      Some(9)
+    else if s[2] == x then
+      Some(2)
+    else
+      None
+  }
+}

@@ -14,5 +14,6 @@ git-issue-1958.dfy(77,13): Error: cannot establish the existence of LHS values t
 git-issue-1958.dfy(81,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 git-issue-1958.dfy(104,16): Error: function precondition could not be proved
 git-issue-1958.dfy(97,13): Related location: this proposition could not be proved
+git-issue-1958.dfy(167,7): Error: index out of range
 
-Dafny program verifier finished with 3 verified, 11 errors
+Dafny program verifier finished with 6 verified, 12 errors

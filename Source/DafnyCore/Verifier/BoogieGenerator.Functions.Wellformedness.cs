@@ -313,6 +313,11 @@ public partial class BoogieGenerator {
       var wh = generator.GetWhereClause(f.tok, funcAppl, f.ResultType, etran, NOALLOC);
       if (wh != null) {
         postCheckBuilder.Add(TrAssumeCmd(f.tok, wh));
+        if (f.Result != null) {
+          var resultVarId = new Bpl.IdentifierExpr(f.Result.tok, f.Result.AssignUniqueName(f.IdGenerator), generator.TrType(f.Result.Type));
+          wh = generator.GetWhereClause(f.Result.tok, resultVarId, f.Result.Type, etran, NOALLOC);
+          postCheckBuilder.Add(TrAssumeCmd(f.Result.tok, wh));
+        }
       }
       // Now for the ensures clauses
       foreach (AttributedExpression p in f.Ens) {
