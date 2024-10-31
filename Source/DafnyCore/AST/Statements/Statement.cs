@@ -12,15 +12,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public int ScopeDepth { get; set; }
   public LList<Label> Labels;  // mutable during resolution
 
-  private Attributes attributes;
-  public Attributes Attributes {
-    get {
-      return attributes;
-    }
-    set {
-      attributes = value;
-    }
-  }
+  public Attributes Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "statement";
 
   [ContractInvariantMethod]
@@ -36,7 +28,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   protected Statement(Cloner cloner, Statement original) : base(cloner.Tok(original.RangeToken)) {
     cloner.AddStatementClone(original, this);
-    this.attributes = cloner.CloneAttributes(original.Attributes);
+    this.Attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
       IsGhost = original.IsGhost;
@@ -45,7 +37,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   }
 
   protected Statement(RangeToken rangeToken, Attributes attrs) : base(rangeToken) {
-    this.attributes = attrs;
+    this.Attributes = attrs;
   }
 
   protected Statement(RangeToken rangeToken)
