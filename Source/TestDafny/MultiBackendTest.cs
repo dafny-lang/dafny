@@ -111,7 +111,7 @@ public class MultiBackendTest {
     string rawCompilerFilter = options.Compilers ??
                                Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS")
                                ?? "";
-    string[] CompilerFilter = rawCompilerFilter
+    string[] compilerFilter = rawCompilerFilter
       .Split(",")
       .Where(name => name.Trim() != "").ToArray();
 
@@ -202,7 +202,7 @@ public class MultiBackendTest {
     var success = true;
     foreach (var plugin in plugins) {
       foreach (var compiler in plugin.GetCompilers(DafnyOptions.Default)) {
-        if (!compiler.IsStable || CompilerFilter.Any() && !CompilerFilter.Contains(compiler.TargetId)) {
+        if (!compiler.IsStable || (compilerFilter.Any() && !compilerFilter.Contains(compiler.TargetId))) {
           continue;
         }
 
