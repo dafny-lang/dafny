@@ -1123,7 +1123,7 @@ namespace Microsoft.Dafny {
         if (!formal.HasName) {
           foreach (var previousFormal in previousParametersWithDefaultValue) {
             ReportError(previousFormal.DefaultValue.tok,
-              $"because of a later nameless parameter, this default value is never used; remove it or name all subsequent parameters");
+              "because of a later nameless parameter, which is a required parameter, this default value is never used; remove it or name all subsequent parameters");
           }
           previousParametersWithDefaultValue.Clear();
         }
@@ -1139,7 +1139,7 @@ namespace Microsoft.Dafny {
         } else if (nameOfMostRecentNameonlyParameter != null && !formal.IsNameOnly) {
           // "formal" is preceded by a nameonly parameter, but itself is neither nameonly nor has a default value
           ReportError(formal.tok,
-            $"this parameter is effectively nameonly (because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'); " +
+            $"this parameter has to be nameonly, because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'; " +
             "declare it as nameonly or give it a default-value expression");
         }
         if (formal.IsNameOnly) {
