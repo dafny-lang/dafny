@@ -77,10 +77,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   Expression RedirectingTypeDecl.Witness { get { return null; } }
   VerificationIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
-  public bool ContainsHide {
-    get => throw new NotSupportedException();
-    set => throw new NotSupportedException();
-  }
+  public bool ContainsHide { get; set; }
 
   bool ICodeContext.IsGhost => throw new NotSupportedException(); // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
   List<TypeParameter> ICodeContext.TypeArgs => TypeArgs;
