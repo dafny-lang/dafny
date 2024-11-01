@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment --allow-deprecation "%s" > "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method M(n: nat) {
@@ -11,11 +11,11 @@ method Main() {
 }
 
 class MyClass {
-  var f: nat;
+  var f: nat
 
   method CheckField(x: nat, y: int)
-    requires 0 <= y;
-    modifies this;
+    requires 0 <= y
+    modifies this
   {
     var y: nat := y;
 
@@ -155,20 +155,20 @@ ghost function TakesANat(n: nat): bool
 }
 
 ghost function Naturally(): nat
-  ensures TakesANat(Naturally());  // the wellformedness of this check requires
+  ensures TakesANat(Naturally())  // the wellformedness of this check requires
 {
   17
 }
 
 ghost function Integrally_Bad(): int
-  ensures TakesANat(Integrally_Bad());  // error: well-formedness check fails
+  ensures TakesANat(Integrally_Bad())  // error: well-formedness check fails
 {
   17
 }
 
 ghost function Integrally_Good(): int
-  ensures 0 <= Integrally_Good();
-  ensures TakesANat(Integrally_Good());  // here, the needed information follows from the preceding ensures clause
+  ensures 0 <= Integrally_Good()
+  ensures TakesANat(Integrally_Good())  // here, the needed information follows from the preceding ensures clause
 {
   17
 }
