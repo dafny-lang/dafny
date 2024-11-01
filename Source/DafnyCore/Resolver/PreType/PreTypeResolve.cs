@@ -1117,7 +1117,7 @@ namespace Microsoft.Dafny {
         if (!formal.HasName) {
           foreach (var previousFormal in previousParametersWithDefaultValue) {
             ReportError(previousFormal.DefaultValue.tok,
-              $"because of a later nameless parameter, which is a required parameter, this default value is never used; remove it or name all subsequent parameters");
+              "because of a later nameless parameter, which is a required parameter, this default value is never used; remove it or name all subsequent parameters");
           }
           previousParametersWithDefaultValue.Clear();
         }
