@@ -754,20 +754,21 @@ public partial class BoogieGenerator {
     Contract.Requires(type != null);
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
-    var udt = type as UserDefinedType;
-    if (udt != null && udt.ResolvedClass is NonNullTypeDecl) {
-      var nnt = (NonNullTypeDecl)udt.ResolvedClass;
+    if (type is UserDefinedType { ResolvedClass: NonNullTypeDecl nnt }) {
       type = nnt.RhsWithArgument(type.TypeArgs);
     }
+
     if (includeHavoc) {
       // havoc $nw;
       builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
-      // assume $nw != null && $Is($nw, type);
-      var nwNotNull = Bpl.Expr.Neq(nw, Predef.Null);
-      // drop the $Is conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
-      var rightType = type.IsObjectQ ? Bpl.Expr.True : MkIs(nw, type);
-      builder.Add(TrAssumeCmd(tok, BplAnd(nwNotNull, rightType)));
     }
+
+    // assume $nw != null && $Is($nw, type);
+    var nwNotNull = Bpl.Expr.Neq(nw, Predef.Null);
+    // drop the $Is conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
+    var rightType = type.IsObjectQ ? Bpl.Expr.True : MkIs(nw, type);
+    builder.Add(TrAssumeCmd(tok, BplAnd(nwNotNull, rightType)));
+
     // assume !$Heap[$nw, alloc];
     var notAlloc = Bpl.Expr.Not(etran.IsAlloced(tok, nw));
     builder.Add(TrAssumeCmd(tok, notAlloc));
