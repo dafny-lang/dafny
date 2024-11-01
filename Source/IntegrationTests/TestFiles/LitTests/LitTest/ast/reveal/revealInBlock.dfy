@@ -100,3 +100,8 @@ method hide()
 {
   hide();  
 }
+
+// Let's not bother with a separate file
+opaque function f(): int { 0 }
+
+type T = x: int | true witness (reveal f(); 0)
