@@ -915,7 +915,9 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
               }
             }
 
-            ctor.Destructors.Add(dtor);
+            if (!localDuplicate) {
+              ctor.Destructors.Add(dtor);
+            }
           }
 
           foreach (var duplicate in duplicates) {
