@@ -1021,11 +1021,6 @@ namespace Microsoft.Dafny {
 
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attributeHost.Attributes.AsEnumerable()) {
-        if (attributeHost != null && attr is UserSuppliedAttributes usa) {
-#if TODO          
-          usa.Recognized = resolver.IsRecognizedAttribute(usa, attributeHost); // TODO: this could be done in a later resolution pass
-#endif
-        }
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             if (Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name is "revealedFunction" && arg is NameSegment nameSegment) {

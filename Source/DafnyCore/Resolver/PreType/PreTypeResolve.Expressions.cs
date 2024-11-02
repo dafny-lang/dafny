@@ -1430,7 +1430,7 @@ namespace Microsoft.Dafny {
       if (args == null) {
         r = rr;
       } else {
-        r = rr; // this doesn't really matter, since we're returning an "rWithArgs" (but if would have been proper to have returned the ctor as a lambda)
+        r = rr; // this doesn't really matter, since we're returning an "rWithArgs" (but it would have been proper to have returned the ctor as a lambda)
         rWithArgs = rr;
       }
       return false;
