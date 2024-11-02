@@ -98,7 +98,7 @@ module {:options "/functionSyntax:4"} Match {
     // the following match statement is ghost, because it directly mentions a ghost constructor
     match xy
     case D0(_) =>
-    case G0 => r := 0; // error: assignment to r in a ghost context
+    case G0(_) => r := 0; // error: assignment to r in a ghost context
     case any =>
   }
 
