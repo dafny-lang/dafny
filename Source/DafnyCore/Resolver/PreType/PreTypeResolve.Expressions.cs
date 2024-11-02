@@ -1263,7 +1263,9 @@ namespace Microsoft.Dafny {
       } else if (isLastNameSegment && resolver.moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
         if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
-          return null;
+          if (!complain) {
+            return null;
+          }
         }
 
       } else if (resolver.moduleInfo.TopLevels.TryGetValue(name, out var decl)) {
@@ -1316,7 +1318,9 @@ namespace Microsoft.Dafny {
       } else if (!isLastNameSegment && resolver.moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 5. datatype constructor
         if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
-          return null;
+          if (!complain) {
+            return null;
+          }
         }
 
       } else {
