@@ -178,9 +178,15 @@ ghost function Integrally_Good(): int
 datatype GList<G> = GNil | GCons(G, GList<G>)
 
 method GList_Append(xs: GList<nat>, x: int) returns (ys: GList<nat>) {
-  if 100 <= x {
-    ys := GCons(x, xs);  // fine, result is a GList<nat> and x is a nat
+  if x < 100 {
+    ys := GCons(x as nat, xs);  // error: result is a GList<nat>, but x may not be a nat
+  } else if 200 <= x {
+    ys := GCons(x as nat, xs);  // fine, result is a GList<nat> and x is a nat
+  } else if 200 <= x {
+    ys := GList.GCons(x as nat, xs);  // fine, result is a GList<nat> and x is a nat
+  } else if 300 <= x {
+    ys := GList<nat>.GCons(x, xs);  // fine, result is a GList<nat> and x is provably a nat
   } else {
-    ys := GCons(x, xs);  // error: result is a GList<nat>, but x may not be a nat
+    ys := GCons(x, xs);  // error: RHS is inferred as GList<int> and xs is not GList<int>
   }
 }
