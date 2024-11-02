@@ -170,6 +170,17 @@ public partial class Parser {
     return IsFunctionDecl(kind);
   }
 
+  bool IsDecreasesTo() {
+    scanner.ResetPeek();
+    if (la.kind is _decreases or _nonincreases) {
+      Token x = scanner.Peek();
+      if (x.kind == _ident && x.val == "to") {
+        return true;
+      }
+    }
+    return false;
+  }
+  
   private bool IsFunctionDecl(int kind) {
     switch (kind) {
       case _function:

@@ -1,6 +1,6 @@
-DecreasesTo3.dfy(5,32): Error: assertion might not hold
+DecreasesTo3.dfy(5,31): Error: assertion might not hold
  Asserted expression: 1 decreases to 0 && 0 decreases to 1
-DecreasesTo3.dfy(9,9): Error: assertion might not hold
+DecreasesTo3.dfy(9,12): Error: assertion might not hold
  Asserted expression: 0 decreases to 1
 
 Dafny program verifier finished with 0 verified, 2 errors
