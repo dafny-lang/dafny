@@ -1,4 +1,4 @@
-// RUN: %exits-with 0 %verify "%s"
+// RUN: %testDafnyForEachCompiler "%s"
 
 method Main(args: seq<string>) 
 {
