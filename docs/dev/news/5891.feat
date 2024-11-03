@@ -1,0 +1,1 @@
+Accept `decreases to` and `nonincreaes to` expressions with 0 LHSs and/or 0 RHSs, and allow parentheses to be omitted when there is 1 LHS and 1 RHS.
