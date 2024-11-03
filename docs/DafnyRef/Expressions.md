@@ -1878,11 +1878,12 @@ internal. However, it can be written as a Dafny expression using the
 `decreases to` operator.
 
 The Boolean expression `(a, ..., b decreases to a', ..., b')` encodes
-this ordering. For example, the following assertions are valid:
+this ordering. (The parentheses can be omitted if there is exactly 1 left-hand side
+and exactly 1 right-hand side.) For example, the following assertions are valid:
 <!-- %check-verify -->
 ```dafny
 method M(x: int, y: int) {
-  assert (1 decreases to 0);
+  assert 1 decreases to 0;
   assert (true, false decreases to false, true);
   assert (x, y decreases to x - 1, y);
 }
@@ -1892,12 +1893,12 @@ Conversely, the following assertion is invalid:
 <!-- %check-verify Expressions.5.expect -->
 ```dafny
 method M(x: int, y: int) {
-  assert (x decreases to x + 1);
+  assert x decreases to x + 1;
 }
 ```
 
-Currently, `decreases to` expressions must be written in parentheses to
-avoid parsing ambiguities.
+The `decreases to` operator is strict, that is, it means "strictly greater than".
+The `nonincreases to` operator is the non-strict ("greater than or equal") version of it.
 
 ## 9.39. Compile-Time Constants {#sec-compile-time-constants}
 
