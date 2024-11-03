@@ -207,35 +207,35 @@ namespace Microsoft.Dafny {
       PrintExpr(expr, 0, false, true, isFollowedBySemicolon, -1, keyword);
     }
 
-    private const int BindingGroup = 0xFC;
+    private const int BindingGroup = 0xF0;
 
-    private const int BindingStrengthDecreasesTo = 0x04; // decreases to, nonincreases to
+    private const int BindingStrengthDecreasesTo = 0x10; // decreases to, nonincreases to
 
-    private const int BindingStrengthEquiv = 0x08; // <==>
+    private const int BindingStrengthEquiv = 0x20; // <==>
 
-    private const int BindingStrengthImplies = 0x10; // ==>
-    private const int BindingStrengthExplies = 0x11; // <==
+    private const int BindingStrengthImplies = 0x30; // ==>
+    private const int BindingStrengthExplies = 0x31; // <==
 
-    private const int BindingStrengthAnd = 0x20; // &&
-    private const int BindingStrengthOr = 0x21; // ||
+    private const int BindingStrengthAnd = 0x40; // &&
+    private const int BindingStrengthOr = 0x41; // ||
 
-    private const int BindingStrengthCompare = 0x30; // == != ==#[...] !=#[...] < <= >= >
+    private const int BindingStrengthCompare = 0x50; // == != ==#[...] !=#[...] < <= >= >
 
-    private const int BindingStrengthAdd = 0x40; // + -
+    private const int BindingStrengthAdd = 0x60; // + -
 
-    private const int BindingStrengthShift = 0x48; // << >>
+    private const int BindingStrengthShift = 0x70; // << >>
 
-    private const int BindingStrengthMul = 0x50; // * / %
+    private const int BindingStrengthMul = 0x80; // * / %
 
-    private const int BindingStrengthBitwiseAnd = 0x60; // &
-    private const int BindingStrengthBitwiseOr = 0x61; // |
-    private const int BindingStrengthBitwiseXor = 0x62; // ^
+    private const int BindingStrengthBitwiseAnd = 0x90; // &
+    private const int BindingStrengthBitwiseOr = 0x91; // |
+    private const int BindingStrengthBitwiseXor = 0x92; // ^
 
-    private const int BindingStrengthUnarySuffix = 0x70; // as is
+    private const int BindingStrengthUnarySuffix = 0xA0; // as is
 
-    private const int BindingStrengthUnaryPrefix = 0x80; // ! -
+    private const int BindingStrengthUnaryPrefix = 0xB0; // ! -
 
-    private const int BindingStrengthSuffix = 0x90; // X.name X.(name := ...) X(...) X[...]
+    private const int BindingStrengthSuffix = 0xC0; // X.name X.(name := ...) X(...) X[...]
 
     private bool ParensNeeded(int opBindingStrength, int contextBindingStrength, bool fragileContext) {
       int opGroupStrength = opBindingStrength & BindingGroup;
