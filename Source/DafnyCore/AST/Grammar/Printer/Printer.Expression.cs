@@ -1228,7 +1228,7 @@ namespace Microsoft.Dafny {
           PrintExpr(newExpr, opBindingStrength, true, !parensNeeded && isRightmost, true, -1);
           comma = true;
         }
-        
+
         if (parensNeeded) { wr.Write(")"); }
 
       } else {
