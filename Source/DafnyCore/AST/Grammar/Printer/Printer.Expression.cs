@@ -20,6 +20,7 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
 
   public partial class Printer {
+    private const int BindingGroup = 0xF8;
 
     /// <summary>
     /// PrintExtendedExpr prints an expression, but formats top-level if-then-else and match expressions across several lines.
@@ -859,8 +860,8 @@ namespace Microsoft.Dafny {
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary operator
         }
-        int opBS = opBindingStrength & 0xF8;
-        int ctxtBS = contextBindingStrength & 0xF8;
+        int opBS = opBindingStrength & BindingGroup;
+        int ctxtBS = contextBindingStrength & BindingGroup;
         bool parensNeeded = opBS < ctxtBS ||
           (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
 
@@ -904,8 +905,8 @@ namespace Microsoft.Dafny {
             var fragileLeftContext = true;
             var fragileRightContext = true;
 
-            int opBS = opBindingStrength & 0xF8;
-            int ctxtBS = contextBindingStrength & 0xF8;
+            int opBS = opBindingStrength & BindingGroup;
+            int ctxtBS = contextBindingStrength & BindingGroup;
             bool parensNeeded = opBS < ctxtBS ||
               (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
 
@@ -927,8 +928,8 @@ namespace Microsoft.Dafny {
         var e = (ChainingExpression)expr;
         // determine if parens are needed
         int opBindingStrength = 0x30;
-        int opBS = opBindingStrength & 0xF8;
-        int ctxtBS = contextBindingStrength & 0xF8;
+        int opBS = opBindingStrength & BindingGroup;
+        int ctxtBS = contextBindingStrength & BindingGroup;
         bool parensNeeded = opBS < ctxtBS ||
           (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
 
@@ -1198,12 +1199,20 @@ namespace Microsoft.Dafny {
       } else if (expr is Resolver_IdentifierExpr) {
         wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
       } else if (expr is DecreasesToExpr decreasesToExpr) {
+        var opBindingStrength = 0x04;
+        var parensNeeded =
+          opBindingStrength < contextBindingStrength ||
+          (opBindingStrength == contextBindingStrength && fragileContext) ||
+          decreasesToExpr.OldExpressions.Count != 1 || decreasesToExpr.NewExpressions.Count != 1; // always parenthesize non-simple expressions
+
+        if (parensNeeded) { wr.Write("("); }
+
         var comma = false;
         foreach (var oldExpr in decreasesToExpr.OldExpressions) {
           if (comma) {
             wr.Write(", ");
           }
-          PrintExpression(oldExpr, false);
+          PrintExpr(oldExpr, opBindingStrength, true, false, false, -1);
           comma = true;
         }
         if (decreasesToExpr.AllowNoChange) {
@@ -1216,9 +1225,12 @@ namespace Microsoft.Dafny {
           if (comma) {
             wr.Write(", ");
           }
-          PrintExpression(newExpr, false);
+          PrintExpr(newExpr, opBindingStrength, true, !parensNeeded && isRightmost, true, -1);
           comma = true;
         }
+        
+        if (parensNeeded) { wr.Write(")"); }
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
