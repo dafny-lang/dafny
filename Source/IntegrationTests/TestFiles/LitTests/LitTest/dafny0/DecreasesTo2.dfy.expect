@@ -6,4 +6,6 @@ DecreasesTo2.dfy(17,22): Error: ident expected
 DecreasesTo2.dfy(17,13): Error: expected 'to'
 DecreasesTo2.dfy(21,23): Error: ident expected
 DecreasesTo2.dfy(21,10): Error: expected 'to'
-8 parse errors detected in DecreasesTo2.dfy
+DecreasesTo2.dfy(25,44): Error: closeparen expected
+DecreasesTo2.dfy(25,51): Error: invalid Suffix
+10 parse errors detected in DecreasesTo2.dfy
