@@ -475,7 +475,6 @@ module Std.JSON.ZeroCopy.Serializer {
     // needs to call ItemsSpec and the termination checker gets confused by
     // that.  Instead, see Items above. // DISCUSS
 
-  // TODO: Without isolate_assertions, only fails to verify in a group, not by itself
   method {:isolate_assertions} MembersImpl(obj: jobject, writer: Writer) returns (wr: Writer)
     decreases obj, 1
     ensures wr == MembersSpec(obj, obj.data, writer)
