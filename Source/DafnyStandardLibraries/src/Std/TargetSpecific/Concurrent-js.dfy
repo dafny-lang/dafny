@@ -146,7 +146,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
     }
 
     method Size() returns (c: nat)
-      requires Valid()
     {
       c := |internal|;
     }
