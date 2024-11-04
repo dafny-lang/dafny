@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code 4 "%s"
+
 
 lemma M(n: nat) //returns (y: nat)
 {
@@ -20,7 +20,7 @@ lemma MM(n: nat) returns (y: nat)
 {
   if n != 0 {
     y := FF(n-1);
-  }
+  } else { y := *; }
 }
 ghost function FF(n: nat): nat
   decreases n, 1
@@ -92,9 +92,9 @@ ghost function F_PreconditionViolation(n: int): int
 // --------------------- These had had parsing problems in the past
 
 lemma MyLemma(x: int) {
-  var d: Dtz;
+  var d: Dtz := *;
   if 0 < x {
-    var y: int;
+    var y: int := *;
     match MyLemma(y); d {  // error: cannot prove termination
       case Cons0(_) =>
       case Cons1(_) =>
