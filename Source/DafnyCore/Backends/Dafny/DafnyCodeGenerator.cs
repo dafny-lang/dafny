@@ -124,7 +124,8 @@ namespace Microsoft.Dafny.Compilers {
              memberDecl is Function { Body: null } or Method { Body: null };
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
+      ModuleDefinition externModule,
       string libraryName, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       if (currentBuilder is ModuleContainer moduleBuilder) {
         var attributes = (Sequence<DAST.Attribute>)ParseAttributes(moduleAttributes);
@@ -482,17 +483,21 @@ namespace Microsoft.Dafny.Compilers {
       if (writer is BuilderSyntaxTree<StatementContainer> builder) {
         var membersToInitialize = ((TopLevelDeclWithMembers)m.EnclosingClass).Members.Where((md =>
           md is Field and not ConstantField { Rhs: { } }));
-        var outFormals = membersToInitialize.Select((MemberDecl md) =>
-          DAST.Formal.create_Formal(
-          Sequence<Rune>.UnicodeFromString(
-            (md is ConstantField ? InternalFieldPrefix : "") +
-            md.GetCompileName(Options)),
-              GenType(((Field)md).Type.Subst(((TopLevelDeclWithMembers)((Field)md).EnclosingClass).ParentFormalTypeParametersToActuals))
-          , ParseAttributes(md.Attributes)
-          )
+        var outFields = membersToInitialize.Select((MemberDecl md) => {
+          var formal = DAST.Formal.create_Formal(
+            Sequence<Rune>.UnicodeFromString(
+              (md is ConstantField ? InternalFieldPrefix : "") +
+              md.GetCompileName(Options)),
+            GenType(((Field)md).Type.Subst(((TopLevelDeclWithMembers)((Field)md).EnclosingClass)
+              .ParentFormalTypeParametersToActuals))
+            , ParseAttributes(md.Attributes)
+          );
+          return DAST.Field.create_Field(formal, md is ConstantField,
+            Std.Wrappers.Option<DAST.Expression>.create_None());
+        }
         ).ToList();
         builder.Builder.AddStatement((DAST.Statement)DAST.Statement.create_ConstructorNewSeparator(
-          Sequence<_IFormal>.FromArray(outFormals.ToArray())));
+          Sequence<_IField>.FromArray(outFields.ToArray())));
       } else {
         throw new InvalidCastException("Divided block statement outside of a statement container");
       }
@@ -669,7 +674,7 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<Rune>.UnicodeFromString(name),
           compiler.GenType(type),
           compiler.ParseAttributes(field.Attributes)
-        ), rhsExpr);
+        ), isConst || field is ConstantField, rhsExpr);
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
@@ -737,7 +742,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override string TailRecursiveVar(int inParamIndex, IVariable variable) {
-      return preventShadowing ? base.TailRecursiveVar(inParamIndex, variable) : DCOMP.COMP.TailRecursionPrefix.ToVerbatimString(false) + inParamIndex;
+      return preventShadowing ? base.TailRecursiveVar(inParamIndex, variable) : Defs.__default.TailRecursionPrefix.ToVerbatimString(false) + inParamIndex;
     }
 
     protected override void EmitJumpToTailCallStart(ConcreteSyntaxTree wr) {
@@ -998,7 +1003,7 @@ namespace Microsoft.Dafny.Compilers {
       if (GetExprBuilder(wr, out var builder)) {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_ExternCompanion(
           Sequence<ISequence<Rune>>.FromArray(new[] {
-            DCOMP.COMP.DAFNY__EXTERN__MODULE,
+            Defs.__default.DAFNY__EXTERN__MODULE,
             Sequence<Rune>.UnicodeFromString(qual)
           })
           ));
@@ -1591,7 +1596,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L,
-      string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs) {
+      string tupleTypeArgs, ForallStmt s, SingleAssignStmt s0, Expression rhs) {
       AddUnsupportedFeature(Token.NoToken, Feature.NonSequentializableForallStatements);
       return wr;
     }
@@ -1925,11 +1930,12 @@ namespace Microsoft.Dafny.Compilers {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(compileName),
-            member is ConstantField,
+            FieldMutabilityOf(member),
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
-            Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options))
+            Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
+            member is ConstantField
           ), this);
         }
       } else if (member is SpecialField { SpecialId: SpecialField.ID.ArrayLength } arraySpecial) {
@@ -1969,11 +1975,12 @@ namespace Microsoft.Dafny.Compilers {
         return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
           objExpr,
           Sequence<Rune>.UnicodeFromString(compiledName),
-          member is ConstantField,
+          FieldMutabilityOf(member),
           member.EnclosingClass is DatatypeDecl, GenType(expectedType)
         ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
           objExpr,
-          Sequence<Rune>.UnicodeFromString(compiledName)
+          Sequence<Rune>.UnicodeFromString(compiledName),
+          member is ConstantField
         ), this);
       } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
         obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));
@@ -2001,24 +2008,34 @@ namespace Microsoft.Dafny.Compilers {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
-            false,
+            FieldMutabilityOf(member, isInternal: true),
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
-            Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options))
+            Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
+            member is ConstantField
           ), this);
         } else {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
-            member is ConstantField,
+            FieldMutabilityOf(member),
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
-            Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options))
+            Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
+            member is ConstantField
           ), this);
         }
       }
+    }
+
+    private static _IFieldMutability FieldMutabilityOf(MemberDecl member, bool isInternal = false) {
+      return member is ConstantField
+          ? isInternal
+            ? new FieldMutability_InternalClassConstantField()
+            : new FieldMutability_ConstantField()
+          : new FieldMutability_ClassMutableField();
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
@@ -2284,7 +2301,7 @@ namespace Microsoft.Dafny.Compilers {
             builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Select(
               sourceAST,
               Sequence<Rune>.UnicodeFromString(compileName),
-              false,
+              new FieldMutability_ConstantField(),
               true, GenType(dtor.Type)
             ));
           }
@@ -2420,7 +2437,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitMultiSetBoundedPool(Expression of, bool includeDuplicates, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      AddUnsupported("<i>EmitMultiSetBoundedPool</i>");
+      if (GetExprConverter(wr, wStmts, out var exprBuilder, out var convert)) {
+        exprBuilder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_MultisetBoundedPool(
+          convert(of), includeDuplicates
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitSubSetBoundedPool(Expression of, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

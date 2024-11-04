@@ -18,14 +18,14 @@ namespace Microsoft.Dafny.Compilers {
     public override void Compile(Sequence<DAST.Module> program, Sequence<ISequence<Rune>> otherFiles, ConcreteSyntaxTree w) {
       var c = new DCOMP.COMP();
       var charType = Options.Get(CommonOptionBag.UnicodeCharacters)
-        ? DCOMP.CharType.create_UTF32()
-        : DCOMP.CharType.create_UTF16();
+        ? Defs.CharType.create_UTF32()
+        : Defs.CharType.create_UTF16();
       var pointerType = Options.Get(CommonOptionBag.RawPointers)
-        ? PointerType.create_Raw()
-        : PointerType.create_RcMut();
+        ? Defs.PointerType.create_Raw()
+        : Defs.PointerType.create_RcMut();
       var rootType = Options.Get(RustBackend.RustModuleNameOption) is { } opt && opt != "" ?
-          RootType.create_RootPath(Sequence<Rune>.UnicodeFromString(opt))
-          : RootType.create_RootCrate();
+          Defs.RootType.create_RootPath(Sequence<Rune>.UnicodeFromString(opt))
+          : Defs.RootType.create_RootCrate();
       c.__ctor(charType, pointerType, rootType);
       var s = c.Compile(program, otherFiles);
       if (!Options.Get(CommonOptionBag.EmitUncompilableCode) && c.error.is_Some) {

@@ -10,6 +10,7 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
     get { return attributes; }
     set { attributes = value; }
   }
+  string IAttributeBearingDeclaration.WhatKind => "assignment right-hand-side";
 
   public bool HasAttributes() {
     return Attributes != null;

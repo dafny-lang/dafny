@@ -1,6 +1,0 @@
-feat: allow type parameters of `newtype` declarations
-feat: support optional `witness` clause of constraint-less `newtype` declarations
-feat: show tool tips for auto-completed type parameters
-feat: show tool tips for inferred `(==)` characteristics
-fix: Don't let `newtype` well-formedness checking affect witness checking (fixes ##5520)
-fix: Check the emptiness status of constraint-less `newtype` declarations (fixes #5521)

@@ -1,0 +1,7 @@
+Verified 0/2 symbols. Waiting for Foo to verify.
+Verified 1/2 of Foo: assertion at line 9 - verified successfully <redacted>
+Verified 2/2 of Foo: assertion at line 10 - verified successfully <redacted>
+Verified 1/2 symbols. Waiting for Bar to verify.
+Verified 1/1 of Bar: entire body - verified successfully <redacted>
+
+Dafny program verifier finished with 3 verified, 0 errors
