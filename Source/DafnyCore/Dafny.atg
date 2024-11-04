@@ -3101,7 +3101,9 @@ ForallStmt<out Statement s>
   "forall"                                  (. startToken = t; .)
 
   ( IF(la.kind == _openparen)  /* disambiguation needed, because of the possibility of a body-less forall statement */
-    "("
+    "("   (. errors.Deprecated(ErrorId.p_deprecated_forall_statement_with_parentheses_around_bound_variables, t,
+               "a forall statement with no bound variables is deprecated; use an 'assert by' statement instead");
+          .)
     [ QuantifierDomain<out bvars, out qattrs, out range, true, true, true> ]
     ")"
   | [ IF(IsIdentifier(la.kind))  /* disambiguation needed, because of the possibility of a body-less forall statement */
