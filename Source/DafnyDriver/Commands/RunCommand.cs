@@ -32,11 +32,9 @@ public static class RunCommand {
       options.MainMethod = value;
     });
 
-    DooFile.RegisterNoChecksNeeded(
-      Inputs,
-      MainOverride,
-      CommonOptionBag.BuildFile
-    );
+    OptionRegistry.RegisterOption(Inputs, OptionScope.Cli);
+    OptionRegistry.RegisterOption(MainOverride, OptionScope.Cli);
+    OptionRegistry.RegisterOption(CommonOptionBag.BuildFile, OptionScope.Cli);
   }
 
   public static readonly Option<string> MainOverride =

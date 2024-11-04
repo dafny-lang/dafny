@@ -1,5 +1,10 @@
 SmallTests.dfy(920,4): Warning: You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'.
 SmallTests.dfy(926,4): Warning: You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'.
+SmallTests.dfy(389,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
+SmallTests.dfy(399,31): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless function together with the {:axiom} attribute instead
+SmallTests.dfy(411,25): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
+SmallTests.dfy(421,30): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless constructor together with the {:axiom} attribute instead
+SmallTests.dfy(431,33): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless function together with the {:axiom} attribute instead
 SmallTests.dfy(599,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 SmallTests.dfy(548,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 SmallTests.dfy(34,11): Error: index out of range
@@ -36,7 +41,7 @@ SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decrease
 SmallTests.dfy(408,11): Error: assertion might not hold
 SmallTests.dfy(418,11): Error: assertion might not hold
 SmallTests.dfy(428,5): Error: cannot prove termination; try supplying a decreases clause
-SmallTests.dfy(440,15): Error: a postcondition could not be proved on this return path
+SmallTests.dfy(445,2): Error: a postcondition could not be proved on this return path
 SmallTests.dfy(443,40): Related location: this is the postcondition that could not be proved
 SmallTests.dfy(604,11): Error: assertion might not hold
 SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next might refer to the same location
@@ -57,6 +62,11 @@ SmallTests.dfy(920,10): Error: assertion might not hold
 SmallTests.dfy(926,10): Error: assertion might not hold
 
 Dafny program verifier finished with 56 verified, 50 errors
+SmallTests.dfy.tmp.dprint.dfy(65,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
+SmallTests.dfy.tmp.dprint.dfy(75,31): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless function together with the {:axiom} attribute instead
+SmallTests.dfy.tmp.dprint.dfy(590,25): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
+SmallTests.dfy.tmp.dprint.dfy(600,30): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless constructor together with the {:axiom} attribute instead
+SmallTests.dfy.tmp.dprint.dfy(610,33): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless function together with the {:axiom} attribute instead
 SmallTests.dfy.tmp.dprint.dfy(121,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 SmallTests.dfy.tmp.dprint.dfy(685,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -49,12 +50,18 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
+  public bool ContainsHide {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
+
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {
@@ -82,7 +89,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   }
 
   public override IEnumerable<ISymbol> ChildSymbols => base.ChildSymbols.Concat(Ctors);
-  public override SymbolKind Kind => SymbolKind.Enum;
+  public override SymbolKind? Kind => SymbolKind.Enum;
 
   public bool SetIndent(int indent, TokenNewIndentCollector formatter) {
     var indent2 = indent + formatter.SpaceTab;

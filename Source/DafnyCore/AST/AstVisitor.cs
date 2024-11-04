@@ -136,12 +136,12 @@ namespace Microsoft.Dafny {
 
       VisitAttributes(function, function.EnclosingClass.EnclosingModuleDefinition);
 
-      foreach (var formal in function.Formals) {
+      foreach (var formal in function.Ins) {
         VisitUserProvidedType(formal.Type, context);
       }
       VisitUserProvidedType(function.ResultType, context);
 
-      VisitDefaultParameterValues(function.Formals, context);
+      VisitDefaultParameterValues(function.Ins, context);
 
       function.Req.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
 
@@ -328,15 +328,15 @@ namespace Microsoft.Dafny {
         // Visit user-provided types
         if (stmt is VarDeclStmt varDeclStmt) {
           foreach (var local in varDeclStmt.Locals) {
-            VisitUserProvidedType(local.OptionalType, context);
+            VisitUserProvidedType(local.SyntacticType, context);
           }
 
         } else if (stmt is VarDeclPattern varDeclPattern) {
           foreach (var local in varDeclPattern.LocalVars) {
-            VisitUserProvidedType(local.OptionalType, context);
+            VisitUserProvidedType(local.SyntacticType, context);
           }
 
-        } else if (stmt is AssignStmt assignStmt) {
+        } else if (stmt is SingleAssignStmt assignStmt) {
           if (assignStmt.Rhs is TypeRhs typeRhs) {
             if (typeRhs.EType != null) {
               VisitUserProvidedType(typeRhs.EType, context);

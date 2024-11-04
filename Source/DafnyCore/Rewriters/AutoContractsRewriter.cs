@@ -186,7 +186,7 @@ public class AutoContractsRewriter : IRewriter {
                 rRepr = f;
               }
             } else if (memb is Function { IsStatic: false, Name: "Valid" } fn) {
-              if (fn.Formals.Count == 0 && fn.ResultType.IsBoolType) {
+              if (fn.Ins.Count == 0 && fn.ResultType.IsBoolType) {
                 rValid = fn;
               }
             }
@@ -197,7 +197,7 @@ public class AutoContractsRewriter : IRewriter {
           subobjects.Add(new Tuple<Field, Field, Function>(field, rRepr, rValid));
         }
       } else if (member is Function { IsStatic: false, Name: "Valid" } validFunction) {
-        if (validFunction.Formals.Count == 0 && validFunction.ResultType.IsBoolType) {
+        if (validFunction.Ins.Count == 0 && validFunction.ResultType.IsBoolType) {
           Valid = validFunction;
         }
       }
@@ -284,7 +284,7 @@ public class AutoContractsRewriter : IRewriter {
             // Repr := {this};
             var e = new SetDisplayExpr(tok, true, new List<Expression>() { self });
             e.Type = systemModuleManager.ObjectSetType();
-            Statement s = new AssignStmt(member.RangeToken, Repr, new ExprRhs(e));
+            Statement s = new SingleAssignStmt(member.RangeToken, Repr, new ExprRhs(e));
             s.IsGhost = true;
             sbs.AppendStmt(s);
           }
@@ -375,7 +375,7 @@ public class AutoContractsRewriter : IRewriter {
         nguard = Expression.CreateAnd(nguard, ng);
       }
       // Repr := Repr + ...;
-      Statement s = new AssignStmt(tok.ToRange(), Repr, new ExprRhs(rhs));
+      Statement s = new SingleAssignStmt(tok.ToRange(), Repr, new ExprRhs(rhs));
       s.IsGhost = true;
       // wrap if statement around s
       e = Expression.CreateAnd(IsNotNull(tok, F), Expression.CreateNot(tok, nguard));
@@ -423,11 +423,11 @@ public class AutoContractsRewriter : IRewriter {
 
   bool LocalAssignsOnly(Statement s) {
     Contract.Requires(s != null);
-    if (s is AssignStmt) {
-      var ss = (AssignStmt)s;
+    if (s is SingleAssignStmt) {
+      var ss = (SingleAssignStmt)s;
       return ss.Lhs.Resolved is IdentifierExpr;
-    } else if (s is ConcreteUpdateStatement) {
-      var ss = (ConcreteUpdateStatement)s;
+    } else if (s is ConcreteAssignStatement) {
+      var ss = (ConcreteAssignStatement)s;
       return ss.Lhss.TrueForAll(e => e.Resolved is IdentifierExpr);
     } else if (s is CallStmt) {
       return false;

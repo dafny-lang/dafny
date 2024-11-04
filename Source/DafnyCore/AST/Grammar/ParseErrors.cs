@@ -11,6 +11,7 @@ public class ParseErrors {
   public enum ErrorId {
     // ReSharper disable once InconsistentNaming
     none,
+    p_extra_attributes,
     p_duplicate_modifier,
     p_abstract_not_allowed,
     p_no_ghost_for_by_method,
@@ -139,10 +140,14 @@ public class ParseErrors {
     p_file_has_no_code,
     p_general_traits_datatype,
     p_general_traits_full,
+    p_decreases_without_to,
+    p_binding_in_decreases_to,
   }
 
   static ParseErrors() {
-
+    Add(ErrorId.p_extra_attributes,
+      @"
+@-attributes are not supported here".TrimStart(), Remove(true, "Remove this @-attribute"));
     Add(ErrorId.p_duplicate_modifier,
       @"
 No Dafny modifier, such as [`abstract`, `static`, `ghost`](https://dafny.org/latest/DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated

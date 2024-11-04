@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -24,12 +25,16 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
     return true;
   }
 
+  public bool ContainsHide { get; set; }
+
   public new bool IsGhost { get { return this.isGhost; } }
   public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
   public List<Formal> Ins { get { return new List<Formal>(); } }
   public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   public bool MustReverify { get { return false; } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
+
   public string NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
@@ -47,7 +52,7 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
   public bool AllowsAllocation => true;
 
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
-  public override SymbolKind Kind => SymbolKind.Constant;
+  public override SymbolKind? Kind => SymbolKind.Constant;
 
   public override IEnumerable<INode> PreResolveChildren => Children;
   public ModuleDefinition ContainingModule => EnclosingModule;

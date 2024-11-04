@@ -1,4 +1,5 @@
 # 11. Attributes {#sec-attributes}
+
 Dafny allows many of its entities to be annotated with _Attributes_.
 Attributes are declared between `{:` and `}` like this:
 <!-- %no-check -->
@@ -270,12 +271,13 @@ using integration with the target language environment.
 Currently, the only way to satisfy this requirement is to ensure that the specification
 of the function or method includes the equivalent of `reads {}` and `modifies {}`.
 This ensures that the code does not read or write any shared mutable state,
-although it is free to write and write newly allocated objects.
+although it is free to read and write newly allocated objects.
 
 ### 11.2.7. `{:extern <name>}` {#sec-extern-method}
 See [`{:extern <name>}`](#sec-extern).
 
 ### 11.2.8. `{:fuel X}` {#sec-fuel}
+
 The fuel attribute is used to specify how much "fuel" a function should have,
 i.e., how many times the verifier is permitted to unfold its definition.  The
 `{:fuel}` annotation can be added to the function itself, in which
@@ -1001,4 +1003,42 @@ following attributes.
 * `{:weight}`
 * `{:yields}`
 
+## 11.9. New attribute syntax {#sec-at-attributes}
 
+There is a new syntax for typed prefix attributes that is being added: `@Attribute(...)`.
+For now, the new syntax works only as top-level declarations. When all previous attributes will be migrated, this section will be rewritten. For example, you can write
+
+<!-- %check-resolve -->
+```dafny
+@IsolateAssertions
+method Test() {
+}
+```
+
+instead of
+
+<!-- %check-resolve -->
+```dafny
+method {:isolate_assertions} Test() {
+}
+```
+
+
+Dafny rewrites `@`-attributes to old-style equivalent attributes. The definition of these attributes is similar to the following:
+
+<!-- %no-check -->
+```dafny
+datatype Attribute =
+    Fuel(low: int, high: int := low + 1, functionName: string := "")
+  | Options(string)
+  | Compile(bool)
+  | IsolateAssertions
+```
+
+@-attributes have the same checks as regular resolved datatype values
+* The attribute should exist
+* Arguments should be compatible with the parameters, like for a datatype constructor call
+
+However, @-attributes have more checks:
+* The attribute should be applied to a place where it can be used by Dafny
+* Arguments should be literals

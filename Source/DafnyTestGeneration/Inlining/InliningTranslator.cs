@@ -27,7 +27,9 @@ public static class InliningTranslator {
     // Remove short-circuiting expressions from method and byMethod bodies
     new RemoveShortCircuitingRewriter(ShouldProcessForInlining).PreResolve(dafnyProgram);
     // Resolve the program (in particular, resolve all function calls)
-    new ProgramResolver(dafnyProgram).Resolve(CancellationToken.None); // now resolved
+#pragma warning disable VSTHRD002
+    new ProgramResolver(dafnyProgram).Resolve(CancellationToken.None).Wait(); // now resolved
+#pragma warning restore VSTHRD002
     if (dafnyProgram.Reporter.HasErrors) {
       return false;
     }

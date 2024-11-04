@@ -111,7 +111,7 @@ type ImapSimulator<!A, B> =
     /// </summary>
     [Fact]
     public async Task ProverLogRegression() {
-      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.CreateUsingOldParser(new WriterFromOutputHelper(testOutputHelper));
 
       var filePath = Path.Combine(Directory.GetCurrentDirectory(), "expectedProverLog.smt2");
       var expectation = await File.ReadAllTextAsync(filePath);
@@ -149,6 +149,7 @@ type ImapSimulator<!A, B> =
       foreach (var proverFile in Directory.GetFiles(directory)) {
         yield return await File.ReadAllTextAsync(proverFile);
       }
+      Directory.Delete(directory, true);
     }
 
     async Task<IReadOnlyList<BoogieProgram>> GetBoogie(DafnyOptions options, string dafnyProgramText) {

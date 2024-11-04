@@ -11,7 +11,7 @@ public static class ErrorReporterExtensions {
     var usingSnippets = reporter.Options.Get(Snippets.ShowSnippets);
     var relatedInformation = new List<DafnyRelatedInformation>();
     foreach (var auxiliaryInformation in error.Aux) {
-      if (auxiliaryInformation.Category == RelatedMessageCategory) {
+      if (auxiliaryInformation.Category == RelatedMessageCategory || auxiliaryInformation.Category == AssertedExprCategory) {
         error.Msg += "\n" + auxiliaryInformation.FullMsg;
       } else if (auxiliaryInformation.Category == RelatedLocationCategory) {
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg, usingSnippets));
@@ -46,7 +46,8 @@ public static class ErrorReporterExtensions {
   private const string RelatedLocationCategory = "Related location";
   public const string RelatedLocationMessage = RelatedLocationCategory;
   private const string RelatedMessageCategory = "Related message";
-  public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
+  public const string AssertedExprCategory = "Asserted expression";
+  public static readonly string PostConditionFailingMessage = new EnsuresDescription(null, null, null).FailureDescription;
   private static string FormatRelated(string related) {
     return $"Could not prove: {related}";
   }

@@ -20,24 +20,24 @@ public class ProjectFileDiagnosticsTest : ClientBasedLanguageServerTest {
     var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, DafnyProject.FileName);
     var diagnostics = await GetLastDiagnostics(projectFile, DiagnosticSeverity.Error);
     Assert.Single(diagnostics);
-    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.First().Range);
-    Assert.Contains("contains the following errors", diagnostics.First().Message);
+    Assert.Equal(new Range(0, 12, 0, 12), diagnostics.First().Range);
+    Assert.Contains("Unexpected token", diagnostics.First().Message);
   }
 
   [Fact]
   public async Task ProjectFileErrorIsShownFromDafnyFile() {
     var projectFileSource = @"includes = [stringWithoutQuotes]";
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
     await File.WriteAllTextAsync(projectFilePath, projectFileSource);
     await CreateOpenAndWaitForResolve("method Foo() { }", Path.Combine(directory, "ProjectFileErrorIsShownFromDafnyFile.dfy"));
-    var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var diagnostics = (await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken));
+    var errors = diagnostics.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
     Assert.Equal(DocumentUri.File(projectFilePath), diagnostics.Uri.GetFileSystemPath());
-    Assert.Equal(2, diagnostics.Diagnostics.Count());
-    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
-    Assert.Contains(diagnostics.Diagnostics, d => d.Message.Contains("contains the following errors"));
-    Assert.Contains(diagnostics.Diagnostics, d => d.Message.Contains($"Files referenced by project are:{Environment.NewLine}ProjectFileErrorIsShownFromDafnyFile.dfy"));
+    Assert.Single(errors);
+    Assert.Contains(errors, d => d.Message.Contains("Unexpected token"));
+    Directory.Delete(directory, true);
   }
 
   [Fact]
@@ -61,8 +61,8 @@ library = [""doesNotExist.dfy""]
 
     var project = CreateAndOpenTestDocument(projectFile, DafnyProject.FileName);
     var diagnostics = await GetLastDiagnostics(project, DiagnosticSeverity.Error);
-    Assert.Single(diagnostics);
-    Assert.Contains("not found", diagnostics[0].Message);
+    Assert.Equal(2, diagnostics.Length);
+    Assert.Contains(diagnostics, d => d.Message.Contains("not found"));
   }
 
   public ProjectFileDiagnosticsTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)

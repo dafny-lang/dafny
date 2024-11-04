@@ -1,0 +1,1 @@
+// CHECK-L: error[E0277]: the trait bound `LazyFieldWrapper<Rc<Nat>>: Clone` is not satisfied

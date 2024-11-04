@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
@@ -16,12 +18,37 @@ public class GoBackend : ExecutableBackend {
   public override string TargetName => "Go";
   public override bool IsStable => true;
   public override string TargetExtension => "go";
-  public override string TargetBaseDir(string dafnyProgramName) =>
-    $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-go/src";
+
+  public override string TargetBaseDir(string dafnyProgramName) {
+    var topLevelDir = $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-go";
+    if (GoModuleMode) {
+      return topLevelDir;
+    }
+
+    return $"{topLevelDir}/src";
+  }
 
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
+
+  public bool GoModuleMode { get; set; } = true;
+  public string GoModuleName;
+
+  public static readonly Option<string> GoModuleNameCliOption = new("--go-module-name",
+    @"This Option is used to specify the Go Module Name for the translated code".TrimStart()) {
+  };
+  public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { GoModuleNameCliOption };
+
+  static GoBackend() {
+    OptionRegistry.RegisterOption(GoModuleNameCliOption, OptionScope.Translation);
+  }
+
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
+    var goModuleName = Options.Get(GoModuleNameCliOption);
+    GoModuleMode = goModuleName != null;
+    if (GoModuleMode) {
+      GoModuleName = goModuleName;
+    }
     return new GoCodeGenerator(Options, Reporter);
   }
 
@@ -89,6 +116,15 @@ public class GoBackend : ExecutableBackend {
       }
     }
 
+    // Dafny used to compile to the old Go package system only, but Go has moved on to a module
+    // system. Although compiler has moved to new system, it still doesn't generate the go.mod file which
+    // is required by go run. It also supports backwards compatability with GOPATH hence those env variables
+    // are still being used while running in GOPATH mode.
+    if (GoModuleMode) {
+      Reporter.Info(MessageSource.Compiler, Token.Cli, "go build/run skipped in Go Module Mode");
+      return true;
+    }
+
     List<string> goArgs = new();
     if (run) {
       goArgs.Add("run");
@@ -114,6 +150,7 @@ public class GoBackend : ExecutableBackend {
         }
         output = Path.ChangeExtension(dafnyProgramName, extension);
       } else {
+        // This is used when there is no main method but user has invoked dafny run.
         switch (Environment.OSVersion.Platform) {
           case PlatformID.Unix:
           case PlatformID.MacOSX:
@@ -137,8 +174,6 @@ public class GoBackend : ExecutableBackend {
     var psi = PrepareProcessStartInfo("go", goArgs);
 
     psi.EnvironmentVariables["GOPATH"] = GoPath(targetFilename);
-    // Dafny compiles to the old Go package system, whereas Go has moved on to a module
-    // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.
     psi.EnvironmentVariables["GO111MODULE"] = "auto";
 
     return 0 == await RunProcess(psi, outputWriter, errorWriter);

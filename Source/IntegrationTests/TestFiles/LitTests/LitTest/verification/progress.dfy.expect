@@ -1,19 +1,7 @@
 Verified 0/5 symbols. Waiting for Foo to verify.
-Verification part 1/3 of Foo, on line 5, verified successfully, redacted and consuming 8.7E+002 resources
-Verification part 2/3 of Foo, on line 7, verified successfully, redacted and consuming 3.1E+003 resources
-Verification part 3/3 of Foo, on line 8, verified successfully, redacted and consuming 2.8E+003 resources
 Verified 1/5 symbols. Waiting for Faz to verify.
-Verification part 1/2 of Faz, on line 11, verified successfully, redacted and consuming 8.7E+002 resources
-Verification part 2/2 of Faz, on line 11, verified successfully, redacted and consuming 3.1E+003 resources
 Verified 2/5 symbols. Waiting for Fopple to verify.
-Verification part 1/2 of Fopple, on line 13, verified successfully, redacted and consuming 8.7E+002 resources
-Verification part 2/2 of Fopple, on line 13, verified successfully, redacted and consuming 3.1E+003 resources
 Verified 3/5 symbols. Waiting for Burp to verify.
-Verification part 1/3 of Burp, on line 15, verified successfully, redacted and consuming 8.7E+002 resources
-Verification part 2/3 of Burp, on line 17, verified successfully, redacted and consuming 3.1E+003 resources
-Verification part 3/3 of Burp, on line 18, verified successfully, redacted and consuming 2.8E+003 resources
 Verified 4/5 symbols. Waiting for Blanc to verify.
-Verification part 1/2 of Blanc, on line 21, verified successfully, redacted and consuming 8.7E+002 resources
-Verification part 2/2 of Blanc, on line 21, verified successfully, redacted and consuming 3.1E+003 resources
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 7 verified, 0 errors

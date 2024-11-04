@@ -69,11 +69,11 @@ module Std.Base64 {
     // Dafny 1.9.9 added support for char to int conversion
     // https://github.com/dafny-lang/dafny/releases/tag/v1.9.9
     // 0 - 9
-    else if 52 <= i <= 61 then (i - 4) as char
+    else if 52 <= i <= 61 then (i - 4) as int as char
     // a - z
-    else if 26 <= i <= 51 then i as char + 71 as char
+    else if 26 <= i <= 51 then i as int as char + 71 as char
     // A - Z
-    else i as char + 65 as char
+    else i as int as char + 65 as char
   }
 
   lemma IndexToCharIsBase64(i: index)
@@ -93,9 +93,9 @@ module Std.Base64 {
     // Perform the inverse operations of IndexToChar
     if c == '/' then 63
     else if c == '+' then 62
-    else if '0' <= c <= '9' then (c + 4 as char) as index
-    else if 'a' <= c <= 'z' then (c - 71 as char) as index
-    else (c - 65 as char) as index
+    else if '0' <= c <= '9' then (c + 4 as char) as int as index
+    else if 'a' <= c <= 'z' then (c - 71 as char) as int as index
+    else (c - 65 as char) as int as index
   }
 
   lemma {:resource_limit 2000000} {:isolate_assertions} CharToIndexToChar(c: char)

@@ -50,16 +50,18 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
       );
 
   BoundVar RedirectingTypeDecl.Var => Var;
+  PreType RedirectingTypeDecl.BasePreType => Var.PreType;
+  Type RedirectingTypeDecl.BaseType => Var.Type;
   Expression RedirectingTypeDecl.Constraint => Constraint;
   WKind RedirectingTypeDecl.WitnessKind => WitnessKind;
   Expression RedirectingTypeDecl.Witness => Witness;
 
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
+  public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
     return new List<Type> { RhsWithArgument(typeArgs) };
   }
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
-  public override SymbolKind Kind => SymbolKind.Class;
+  public override SymbolKind? Kind => SymbolKind.Class;
   public override string GetDescription(DafnyOptions options) {
     return "subset type";
   }

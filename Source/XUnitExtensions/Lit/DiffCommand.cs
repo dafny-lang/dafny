@@ -11,7 +11,7 @@ namespace XUnitExtensions.Lit {
   /// because 'diff' does not exist on Windows.
   /// </summary>
   public class DiffCommand : ILitCommand {
-    public static readonly bool UpdateExpectFile = false;
+    public static readonly bool UpdateExpectFile = Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE") == "true";
 
     public string ExpectedPath { get; }
     public string ActualPath { get; }
@@ -32,6 +32,9 @@ namespace XUnitExtensions.Lit {
 
     public static string? Run(string expectedOutputFile, string actualOutput) {
       if (UpdateExpectFile) {
+        if (Path.GetExtension(expectedOutputFile) == ".tmp") {
+          return "With DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE=true, first argument of %diff cannot be a *.tmp file, it should be an *.expect file";
+        }
         var path = Path.GetFullPath(expectedOutputFile).Replace("bin" + Path.DirectorySeparatorChar + "Debug" + Path.DirectorySeparatorChar + "net8.0" + Path.DirectorySeparatorChar, "");
         File.WriteAllText(path, actualOutput);
         return null;

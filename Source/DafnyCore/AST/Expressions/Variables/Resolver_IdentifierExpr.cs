@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// This class is used only inside the resolver itself. It gets hung in the AST in uncompleted name segments.
 /// </summary>
-class Resolver_IdentifierExpr : Expression, IHasUsages, ICloneable<Resolver_IdentifierExpr> {
+class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_IdentifierExpr> {
   public readonly TopLevelDecl Decl;
   public readonly List<Type> TypeArgs;
   [ContractInvariantMethod]
@@ -75,11 +75,11 @@ class Resolver_IdentifierExpr : Expression, IHasUsages, ICloneable<Resolver_Iden
     Contract.Requires(tp != null);
   }
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IEnumerable<IHasNavigationToken> GetReferences() {
     return new[] { Decl };
   }
 
-  public IToken NameToken => tok;
+  public IToken NavigationToken => tok;
   public Resolver_IdentifierExpr Clone(Cloner cloner) {
     return new Resolver_IdentifierExpr(cloner, this);
   }

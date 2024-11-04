@@ -26,7 +26,7 @@ public class CachingParser : ProgramParser {
     CancellationToken cancellationToken) {
     return parseCache.ProfileAndPruneCache(() =>
       base.ParseFiles(programName, files, errorReporter, cancellationToken),
-      telemetryPublisher, programName, "parsing");
+      logger, telemetryPublisher, programName, "parsing", cancellationToken);
   }
 
   protected override DfyParseResult ParseFile(DafnyOptions options, Func<TextReader> getReader,

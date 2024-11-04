@@ -16,15 +16,16 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
 
   lemma {:isolate_assertions} CharIsUnicodeScalarValue(c: char)
     ensures
-      && var asBits := c as bv24;
+      && var asBits := c as int as bv24;
       && asBits <= 0x10_FFFF
       && (0 <= asBits < Base.HIGH_SURROGATE_MIN || Base.LOW_SURROGATE_MAX < asBits)
   {
     assert c as int < 0x11_0000;
     // This seems to be just too expensive to verify for such a wide bit-vector type,
     // but is clearly true given the above.
-    assume {:axiom} c as bv24 < 0x11_0000 as bv24;
+    assume {:axiom} c as int as bv24 < 0x11_0000 as bv24;
     var asBits := c as int as bv24;
+    assert asBits < 0x11_0000 as bv24;
     assert (asBits < Base.HIGH_SURROGATE_MIN || asBits > Base.LOW_SURROGATE_MAX);
     assert asBits <= 0x10_FFFF;
   }
@@ -41,7 +42,7 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
 
   function CharAsUnicodeScalarValue(c: char): Base.ScalarValue {
     CharIsUnicodeScalarValue(c);
-    c as Base.ScalarValue
+    c as int as Base.ScalarValue
   }
 
   function CharFromUnicodeScalarValue(sv: Base.ScalarValue): char {

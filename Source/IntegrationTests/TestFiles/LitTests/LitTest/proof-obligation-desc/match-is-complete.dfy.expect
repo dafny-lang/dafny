@@ -1,0 +1,6 @@
+match-is-complete.dfy(7,2): Error: missing case in match expression: D1
+ Asserted expression: false
+   in an added catch-all case:
+     case _ => ...
+
+Dafny program verifier finished with 0 verified, 1 error

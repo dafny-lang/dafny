@@ -18,6 +18,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 using Xunit.Abstractions;
 using Xunit;
 using Xunit.Sdk;
@@ -31,6 +32,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   protected ILanguageClient client;
   protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
   protected TestNotificationReceiver<CompilationStatusParams> compilationStatusReceiver;
+  protected TestNotificationReceiver<TelemetryEventParams> telemetryReceiver;
   protected DiagnosticsReceiver diagnosticsReceiver;
   protected TestNotificationReceiver<GhostDiagnosticsParams> ghostnessReceiver;
 
@@ -199,7 +201,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public async Task<bool> WaitUntilResolutionFinished(TextDocumentItem documentId,
-    CancellationToken cancellationToken = default) {
+    CancellationToken cancellationToken = default, bool allowException = false) {
 
     CompilationStatusParams compilationStatusParams = compilationStatusReceiver.GetLatestAndClearQueue(s => s.Uri == documentId.Uri);
     while (compilationStatusParams == null || compilationStatusParams.Version != documentId.Version || compilationStatusParams.Uri != documentId.Uri ||
@@ -207,6 +209,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       compilationStatusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
     }
 
+    if (!allowException && compilationStatusParams.Status == CompilationStatus.InternalException) {
+      throw new Exception("Encountered internal exception");
+    }
     return compilationStatusParams.Status == CompilationStatus.ResolutionSucceeded;
   }
 
@@ -239,13 +244,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected virtual async Task SetUp(Action<DafnyOptions> modifyOptions) {
-
     // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
     cancellationSource = new();
     cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
 
     diagnosticsReceiver = new(logger);
     compilationStatusReceiver = new(logger);
+    telemetryReceiver = new(logger);
     verificationStatusReceiver = new(logger);
     ghostnessReceiver = new(logger);
     (client, Server) = await Initialize(InitialiseClientHandler, modifyOptions);
@@ -253,6 +258,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   protected virtual void InitialiseClientHandler(LanguageClientOptions options) {
     options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
+    options.OnTelemetryEvent(telemetryReceiver.NotificationReceived);
     options.AddHandler(DafnyRequestNames.CompilationStatus,
       NotificationHandler.For<CompilationStatusParams>(compilationStatusReceiver.NotificationReceived));
     options.AddHandler(DafnyRequestNames.GhostDiagnostics,
@@ -412,7 +418,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task<TextDocumentItem> GetDocumentItem(string source, string filename, bool includeProjectFile) {
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     source = source.TrimStart();
     if (includeProjectFile) {
       var projectFile = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
@@ -435,7 +441,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     var documentItem = await CreateOpenAndWaitForResolve(cleanSource, filePath);
     for (var index = 0; index < positions.Count; index++) {
       var position = positions[index];
-      var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();
+      var range = ranges.ContainsKey(index.ToString()) ? ranges[index.ToString()].Single() : ranges[string.Empty][index];
       var result = (await RequestDefinition(documentItem, position)).Single();
       Assert.Equal(range, result.Location!.Range);
     }

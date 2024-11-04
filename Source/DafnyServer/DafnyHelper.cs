@@ -45,8 +45,8 @@ namespace Microsoft.Dafny {
       var uri = new Uri("transcript:///" + fname);
       reporter = new ConsoleErrorReporter(options);
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
-      var file = await DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
-      var program = await new ProgramParser().ParseFiles(fname, file == null ? Array.Empty<DafnyFile>() : new[] { file },
+      var file = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
+      var program = await new ProgramParser().ParseFiles(fname, new[] { file },
         reporter, CancellationToken.None);
 
       var success = !reporter.HasErrors;
@@ -58,7 +58,9 @@ namespace Microsoft.Dafny {
 
     private bool Resolve() {
       var resolver = new ProgramResolver(dafnyProgram);
-      resolver.Resolve(CancellationToken.None);
+#pragma warning disable VSTHRD002
+      resolver.Resolve(CancellationToken.None).Wait();
+#pragma warning restore VSTHRD002
       return reporter.Count(ErrorLevel.Error) == 0;
     }
 

@@ -29,14 +29,14 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       if (newtypeDecl.Var != null) {
         if (!IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
           resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, newtypeDecl.tok,
-            $"{newtypeDecl.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{newtypeDecl.Var.Name}'");
+            $"base type of {newtypeDecl.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{newtypeDecl.Var.Name}'");
         }
       }
 
     } else if (decl is SubsetTypeDecl subsetTypeDecl) {
       if (!IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
         resolver.ReportError(ResolutionErrors.ErrorId.r_subset_type_base_undetermined, subsetTypeDecl.tok,
-          $"{subsetTypeDecl.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{subsetTypeDecl.Var.Name}'");
+          $"base type of {subsetTypeDecl.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{subsetTypeDecl.Var.Name}'");
       }
 
     } else if (decl is DatatypeDecl datatypeDecl) {
@@ -160,14 +160,14 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       var e = (MemberSelectExpr)expr;
       if (e.Member is Function || e.Member is Method) {
         var i = 0;
-        foreach (var p in Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember)) {
-          var tp = i < e.TypeApplication_AtEnclosingClass.Count ?
+        foreach (var p in Util.Concat(e.TypeApplicationAtEnclosingClass, e.TypeApplicationJustMember)) {
+          var tp = i < e.TypeApplicationAtEnclosingClass.Count ?
               (e.Member.EnclosingClass is DefaultClassDecl ?
                 // In a "revealedFunction" attribute, the EnclosingClass is DefaultClassDecl
                 // and does not have type arguments
                 null :
                 e.Member.EnclosingClass.TypeArgs[i])
-            : ((ICallable)e.Member).TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
+            : ((ICallable)e.Member).TypeArgs[i - e.TypeApplicationAtEnclosingClass.Count];
           if (tp == null) {
             continue;
           }
@@ -189,7 +189,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           ? e.Function.EnclosingClass.TypeArgs[i]
           : e.Function.TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
         if (!IsDetermined(p.Normalize())) {
-          var hint = e.Name.StartsWith(RevealStmt.RevealLemmaPrefix)
+          var hint = e.Name.StartsWith(HideRevealStmt.RevealLemmaPrefix)
             ? ". If you are making an opaque function, make sure that the function can be called."
             : "";
           resolver.ReportError(ResolutionErrors.ErrorId.r_function_type_parameter_undetermined, e.tok,

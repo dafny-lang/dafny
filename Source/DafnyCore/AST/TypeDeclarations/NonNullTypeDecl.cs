@@ -13,7 +13,7 @@ public class NonNullTypeDecl : SubsetTypeDecl {
   /// in order to build values that depend on previously computed parameters.
   /// </summary>
   public NonNullTypeDecl(ClassLikeDecl cl)
-    : this(cl, cl.TypeArgs.ConvertAll(tp => new TypeParameter(tp.RangeToken, tp.NameNode, tp.VarianceSyntax, tp.Characteristics))) {
+    : this(cl, TypeParameter.CloneTypeParameters(cl.TypeArgs)) {
     Contract.Requires(cl != null);
   }
 
@@ -34,10 +34,10 @@ public class NonNullTypeDecl : SubsetTypeDecl {
     Class = cl;
   }
 
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
-    List<Type> result = new List<Type>(base.ParentTypes(typeArgs));
+  public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
+    var result = new List<Type>(base.ParentTypes(typeArgs, includeTypeBounds));
 
-    foreach (var rhsParentType in Class.ParentTypes(typeArgs)) {
+    foreach (var rhsParentType in Class.ParentTypes(typeArgs, includeTypeBounds)) {
       var rhsParentUdt = (UserDefinedType)rhsParentType; // all parent types of .Class are expected to be possibly-null class types
       Contract.Assert(rhsParentUdt.ResolvedClass is TraitDecl);
       result.Add(UserDefinedType.CreateNonNullTypeIfReferenceType(rhsParentUdt));
@@ -46,7 +46,7 @@ public class NonNullTypeDecl : SubsetTypeDecl {
     return result;
   }
 
-  public override SymbolKind Kind => Class.Kind;
+  public override SymbolKind? Kind => Class.Kind;
 
   public override string GetDescription(DafnyOptions options) {
     return Class.GetDescription(options);

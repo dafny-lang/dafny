@@ -60,7 +60,7 @@ the default command for any test that compiles and/or executes a valid Dafny pro
 
 This command will run the program with each backend
 and assert that the program output matches the content of `<test file>.expect`.
-See [the TestDafny utility](../Source/TestDafny/) for more details.
+See [the TestDafny utility](../../../../TestDafny/README.md) for more details.
 
 Any test that manually compiles and/or executes a program against one or more backends
 will be flagged by CI, and should be fixed by either converting it to use
@@ -104,4 +104,17 @@ and then right-click the test you wish to debug and select
 so you may wish to remove the calls you are not interested in first, e.g. if you are debugging an issue with a specific compiler.
 
 ## Updating test expect files
-If you set the static field `DiffCommand.UpdateExpectFile` to true instead of false, then the `diff` command in tests will not do a comparison but instead overwrite the expected file with the actual contents. This can be useful when you need to update expect files.
+If you set the environment variable `DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE` to `true`, then the `diff` command in tests will not do a comparison but instead overwrite the expected file with the actual contents. This can be useful when you need to update expect files.
+
+## Updating compiler-specific test expect files
+To update compiler-specific error-aware output files for tests running with `%forEachDafnyCompiler`,
+do the following:
+
+1. Set the environment variable `DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE` to `true` (See the Debugging Tests section above on how to set the environment variables)
+2. Set the environment variable `DAFNY_INTEGRATION_TESTS_ROOT_DIR` to the path to the  `dafny\Source\IntegrationTests` folder
+3. To additionally run only the foreach compiler tests, and specifically on one single compiler:
+  * Set the environment variable `DAFNY_INTEGRATION_TESTS_MODE` to `only-multi-backend`
+  * Set the environment variable `DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS` to `rs` for rust for example. It's a comma-separated list of compiler IDs for which the tests should run
+
+With 1. and 2. every time a compiler encounters errors on a `file.dfy`, it will emit a `file.dfy.ID.error.expect` next to that file so that we know what this file is not supported by the compiler.
+Make sure you set `DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE` back to false when you don't need to update these files!

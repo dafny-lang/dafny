@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ExportSignature : TokenNode, IHasUsages {
+public class ExportSignature : TokenNode, IHasReferences {
   public readonly IToken ClassIdTok;
   public readonly bool Opaque;
   public readonly string ClassId;
@@ -57,10 +57,10 @@ public class ExportSignature : TokenNode, IHasUsages {
     return Id;
   }
 
-  public IToken NameToken => Tok;
+  public IToken NavigationToken => Tok;
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IEnumerable<IHasNavigationToken> GetReferences() {
     return new[] { Decl };
   }
 }

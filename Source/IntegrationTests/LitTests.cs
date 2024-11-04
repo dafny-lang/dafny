@@ -133,6 +133,12 @@ namespace IntegrationTests {
         }, {
           "%sed", (args, config) => SedCommand.Parse(args.ToArray())
         }, {
+          "%mv", (args, config) => MvCommand.Parse(args.ToArray())
+        }, {
+          "%rm", (args, config) => RmCommand.Parse(args.ToArray())
+        }, {
+          "%cp", (args, config) => CpCommand.Parse(args.ToArray())
+        }, {
           "%OutputCheck", OutputCheckCommand.Parse
         }
       };

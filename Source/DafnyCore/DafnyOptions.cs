@@ -169,9 +169,9 @@ namespace Microsoft.Dafny {
     }
 
     private static DafnyOptions defaultImmutableOptions;
-    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create(Console.Out, Console.In);
+    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= CreateUsingOldParser(Console.Out, Console.In);
 
-    public static DafnyOptions Create(TextWriter outputWriter, TextReader input = null, params string[] arguments) {
+    public static DafnyOptions CreateUsingOldParser(TextWriter outputWriter, TextReader input = null, params string[] arguments) {
       input ??= TextReader.Null;
       var result = new DafnyOptions(input, outputWriter, outputWriter);
       result.Parse(arguments);
@@ -188,10 +188,10 @@ namespace Microsoft.Dafny {
 
       try {
         if (i >= arguments.Length) {
-          return BaseParse(arguments);
+          return BaseParse(arguments, true);
         }
         MainArgs = arguments.Skip(i + 1).ToList();
-        return BaseParse(arguments.Take(i).ToArray());
+        return BaseParse(arguments.Take(i).ToArray(), true);
       } catch (Exception e) {
         ErrorWriter.WriteLine("Invalid filename: " + e.Message);
         return false;
@@ -222,7 +222,7 @@ namespace Microsoft.Dafny {
     /// Customized version of Microsoft.Boogie.CommandLineOptions.Parse
     /// Needed because the Boogie version writes to Console.Error
     /// </summary>
-    private bool BaseParse(string[] args) {
+    public bool BaseParse(string[] args, bool allowFile) {
       Environment = Environment + "Command Line Options: " + string.Join(" ", args);
       args = cce.NonNull<string[]>((string[])args.Clone());
       Bpl.CommandLineParseState state;
@@ -249,8 +249,10 @@ namespace Microsoft.Dafny {
               UnknownSwitch(state);
             }
           }
-        } else {
+        } else if (allowFile) {
           AddFile(file, state);
+        } else {
+          state.Error($"Boogie option '{state.s}' must start with - or /");
         }
       }
       if (state.EncounteredErrors) {
@@ -351,7 +353,8 @@ namespace Microsoft.Dafny {
     public bool WarnShadowing = false;
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version4;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version4;
-    public int DefiniteAssignmentLevel = 1; // [0..5] 2 and 3 have the same effect, 4 turns off an array initialisation check and field initialization check, unless --enforce-determinism is used.
+
+    public int DefiniteAssignmentLevel { get; set; } = 1;
     public HashSet<string> LibraryFiles { get; set; } = new();
     public ContractTestingMode TestContracts = ContractTestingMode.None;
 
@@ -377,6 +380,8 @@ namespace Microsoft.Dafny {
     public bool FailOnWarnings = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
+
+    public bool ShowProofObligationExpressions = false;
 
     public bool AuditProgram = false;
 
@@ -650,6 +655,10 @@ namespace Microsoft.Dafny {
           VerifyAllModules = true;
           return true;
 
+        case "emitUncompilableCode":
+          this.Set(CommonOptionBag.EmitUncompilableCode, true);
+          return true;
+
         case "separateModuleOutput":
           SeparateModuleOutput = true;
           return true;
@@ -792,6 +801,10 @@ namespace Microsoft.Dafny {
         case "extractCounterexample":
           ExtractCounterexample = true;
           EnhancedErrorMessages = 1;
+          return true;
+
+        case "showProofObligationExpressions":
+          ShowProofObligationExpressions = true;
           return true;
 
         case "testContracts":
@@ -1360,6 +1373,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /verifyAllModules
     Verify modules that come from an include directive.
+
+/emitUncompilableCode
+    Allow compilers to emit uncompilable code that usually contain useful
+    information about what feature is missing, rather than
+    stopping on the first problem
 
 /separateModuleOutput
     Output verification results for each module separately, rather than

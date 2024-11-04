@@ -59,8 +59,8 @@ class DafnyDoc {
 
     // Collect all the dafny files; dafnyFiles already includes files from a .toml project file
     var exitValue = ExitValue.SUCCESS;
-    var folderFiles = (await Task.WhenAll(dafnyFolders.Select(folderPath =>
-      FormatCommand.GetFilesForFolder(options, folderPath)))).SelectMany(x => x);
+    var folderFiles = dafnyFolders.Select(folderPath =>
+      FormatCommand.GetFilesForFolder(options, folderPath)).SelectMany(x => x);
     dafnyFiles = dafnyFiles.Concat(folderFiles).ToList();
     await options.OutputWriter.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {
@@ -756,7 +756,7 @@ class DafnyDoc {
       var f = m as Function;
       var typeparams = TypeFormals(f.TypeArgs);
       var allowNew = m is TwoStateFunction;
-      var formals = String.Join(", ", f.Formals.Select(ff => FormalAsString(ff, allowNew)));
+      var formals = String.Join(", ", f.Ins.Select(ff => FormalAsString(ff, allowNew)));
       return (Bold(m.Name) + typeparams) + "(" + formals + "): " + TypeLink(f.ResultType);
     } else {
       return "";
@@ -806,7 +806,7 @@ class DafnyDoc {
   }
 
   public static bool IsGeneratedName(string name) {
-    return (name.Length > 1 && name[0] == '_') || name.StartsWith(RevealStmt.RevealLemmaPrefix);
+    return (name.Length > 1 && name[0] == '_') || name.StartsWith(HideRevealStmt.RevealLemmaPrefix);
   }
 
   public string IndentedHtml(string docstring, bool nothingIfNull = false) {

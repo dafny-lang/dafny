@@ -50,10 +50,10 @@ public partial class BoogieGenerator {
   /// </summary>
   void AddPrefixPredicateAxioms(PrefixPredicate pp) {
     Contract.Requires(pp != null);
-    Contract.Requires(predef != null);
+    Contract.Requires(Predef != null);
     var co = pp.ExtremePred;
     var tok = pp.tok;
-    var etran = new ExpressionTranslator(this, predef, tok, pp);
+    var etran = new ExpressionTranslator(this, Predef, tok, pp);
 
     var tyvars = MkTyParamBinders(GetTypeParams(pp), out var tyexprs);
 
@@ -63,7 +63,7 @@ public partial class BoogieGenerator {
     var prefixArgsLimited = new List<Bpl.Expr>(tyexprs);
     var prefixArgsLimitedM = new List<Bpl.Expr>(tyexprs);
     if (pp.IsFuelAware()) {
-      var sV = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$ly", predef.LayerType));
+      var sV = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$ly", Predef.LayerType));
       var s = new Bpl.IdentifierExpr(tok, sV);
       var succS = FunctionCall(tok, BuiltinFunction.LayerSucc, null, s);
       bvs.Add(sV);
@@ -75,7 +75,7 @@ public partial class BoogieGenerator {
 
     Bpl.Expr h;
     if (pp.ReadsHeap) {
-      var heapIdent = new Bpl.TypedIdent(tok, predef.HeapVarName, predef.HeapType);
+      var heapIdent = new Bpl.TypedIdent(tok, Predef.HeapVarName, Predef.HeapType);
       var bv = new Bpl.BoundVariable(tok, heapIdent);
       h = new Bpl.IdentifierExpr(tok, bv);
       bvs.Add(bv);
@@ -114,8 +114,8 @@ public partial class BoogieGenerator {
 
     // DR: Changed to add the pp formals instead of co (since types would otherwise be wrong)
     //     Note that k is not added to bvs or coArgs.
-    foreach (var p in pp.Formals) {
-      bool is_k = p == pp.Formals[0];
+    foreach (var p in pp.Ins) {
+      bool is_k = p == pp.Ins[0];
       var bv = new Bpl.BoundVariable(p.tok,
         new Bpl.TypedIdent(p.tok, p.AssignUniqueName(pp.IdGenerator), TrType(p.Type)));
       var formal = new Bpl.IdentifierExpr(p.tok, bv);
@@ -179,8 +179,8 @@ public partial class BoogieGenerator {
     moreBvs.AddRange(bvs);
     moreBvs.Add(k);
     var z = Bpl.Expr.Eq(kId,
-      pp.Formals[0].Type.IsBigOrdinalType
-        ? (Bpl.Expr)FunctionCall(tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(0))
+      pp.Ins[0].Type.IsBigOrdinalType
+        ? (Bpl.Expr)FunctionCall(tok, "ORD#FromNat", Predef.BigOrdinalType, Bpl.Expr.Literal(0))
         : Bpl.Expr.Literal(0));
     funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
     Bpl.Expr prefixLimitedBody = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
@@ -216,7 +216,7 @@ public partial class BoogieGenerator {
 #endif
     // A more targeted monotonicity axiom used to increase the power of automation for proving the limit case for
     // least predicates that have more than one focal-predicate term.
-    if (pp.ExtremePred is LeastPredicate && pp.Formals[0].Type.IsBigOrdinalType) {
+    if (pp.ExtremePred is LeastPredicate && pp.Ins[0].Type.IsBigOrdinalType) {
       // forall args,k,m,limit ::
       //   { P#[k](args), ORD#LessThanLimit(k,limit), ORD#LessThanLimit(m,limit) }
       //   args-have-appropriate-values && k < m && P#[k](args) ==> P#[m](args))
@@ -264,12 +264,12 @@ public partial class BoogieGenerator {
     var typeMap = Util.Dict<TypeParameter, Type>(pp.ExtremePred.TypeArgs, Map(pp.TypeArgs, x => new UserDefinedType(x)));
 
     var paramMap = new Dictionary<IVariable, Expression>();
-    for (int i = 0; i < pp.ExtremePred.Formals.Count; i++) {
-      var replacement = pp.Formals[i + 1];  // the +1 is to skip pp's _k parameter
+    for (int i = 0; i < pp.ExtremePred.Ins.Count; i++) {
+      var replacement = pp.Ins[i + 1];  // the +1 is to skip pp's _k parameter
       var param = new IdentifierExpr(replacement.tok, replacement.Name);
       param.Var = replacement;  // resolve here
       param.Type = replacement.Type;  // resolve here
-      paramMap.Add(pp.ExtremePred.Formals[i], param);
+      paramMap.Add(pp.ExtremePred.Ins[i], param);
     }
 
     var k = new IdentifierExpr(pp.tok, pp.K.Name);
@@ -293,7 +293,7 @@ public partial class BoogieGenerator {
       substMap.Add(pp.K, kprime);
       Expression recursiveCallReceiver;
       List<Expression> recursiveCallArgs;
-      pp.RecursiveCallParameters(pp.tok, pp.TypeArgs, pp.Formals, null, substMap, out recursiveCallReceiver, out recursiveCallArgs);
+      pp.RecursiveCallParameters(pp.tok, pp.TypeArgs, pp.Ins, null, substMap, out recursiveCallReceiver, out recursiveCallArgs);
       var ppCall = new FunctionCallExpr(pp.tok, pp.Name, recursiveCallReceiver, pp.tok, pp.tok, recursiveCallArgs);
       ppCall.Function = pp;
       ppCall.Type = Type.Bool;

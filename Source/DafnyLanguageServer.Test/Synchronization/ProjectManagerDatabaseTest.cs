@@ -8,11 +8,42 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 [Collection("Sequential Collection")]
 public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
+
+  [Fact]
+  public async Task CloseAndReopenProject() {
+    var path = GetFreshTempPath();
+    var project = CreateAndOpenTestDocument("", Path.Combine(path, DafnyProject.FileName));
+    var file1 = CreateAndOpenTestDocument("method Foo() { }", Path.Combine(path, "file1.dfy"));
+
+    client.CloseDocument(project);
+    var project2 = CreateAndOpenTestDocument("", Path.Combine(path, DafnyProject.FileName));
+    ApplyChange(ref file1, new Range(0, 0, 0, 0), @"syntaxError");
+    var error = await GetLastDiagnostics(file1);
+    Assert.NotEmpty(error);
+  }
+
+  [Fact]
+  public async Task ChangeAndUndoProjectWithMultipleFiles() {
+    var path = GetFreshTempPath();
+    var project = CreateAndOpenTestDocument("", Path.Combine(path, DafnyProject.FileName));
+    var file1 = CreateAndOpenTestDocument("method Foo() { }", Path.Combine(path, "file1.dfy"));
+    var file2 = CreateAndOpenTestDocument("method Bar() { }", Path.Combine(path, "file2.dfy"));
+
+    ApplyChange(ref project, new Range(0, 0, 0, 0), @"includes = [""**/*.dfy""]
+");
+    ApplyChange(ref file1, new Range(0, 0, 0, 0), @"//comment\n");
+    ApplyChange(ref project, new Range(0, 0, 1, 0), "");
+    var fine = await GetLastDiagnostics(project);
+    ApplyChange(ref file2, new Range(0, 0, 0, 0), @"syntaxError");
+    var error = await GetLastDiagnostics(file2);
+    Assert.NotEmpty(error);
+  }
 
   [Fact]
   public async Task OpenAndCloseConcurrentlySeparateProjects() {

@@ -96,7 +96,7 @@ These commands are described in [Section 13.6.1](#sec-dafny-commands).
 [^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
 For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
-### 13.3.1. Dafny Build Artifacts: the Library Backend and .doo Files {#sec-doo-files}
+### 13.3.1. Dafny Verification Artifacts: the Library Backend and .doo Files {#sec-doo-files}
 
 As of Dafny 4.1, `dafny` now supports outputting a single file containing
 a fully-verified program along with metadata about how it was verified.
@@ -130,6 +130,33 @@ A `.doo` file is a compressed archive of multiple files, similar to the `.jar` f
 The exact file format is internal and may evolve over time to support additional features.
 
 Note that the library backend only supports the [newer command-style CLI interface](#sec-dafny-commands).
+
+### 13.3.2. Dafny Translation Artifacts: .dtr Files {#sec-dtr-files}
+
+Some options, such as `--outer-module` or `--optimize-erasable-datatype-wrapper`,
+affect what target language code the same Dafny code is translated to.
+In order to translate Dafny libaries separately from their consuming codebases,
+the translation process for consuming code needs to be aware
+of what options were used when translating the library.
+
+For example, if a library defines a `Foo()` function in an `A` module,
+but `--outer-module org.coolstuff.foolibrary.dafnyinternal` is specified when translating the library to Java,
+then a reference to `A.Foo()` in a consuming Dafny project
+needs to be translated to `org.coolstuff.foolibrary.dafnyinternal.A.Foo()`,
+independently of what value of `--outer-module` is used for the consuming project.
+
+To meet this need,
+`dafny translate` also outputs a `<program-name>-<target id>.dtr` Dafny Translation Record file.
+Like `.doo` files, `.dtr` files record all the relevant options that were used,
+in this case relevant to translation rather than verification.
+These files can be provided to future calls to `dafny translate` using the `--translation-record` option,
+in order to provide the details of how various libraries provided with the `--library` flag were translated.
+
+Currently `--outer-module` is the only option recorded in `.dtr` files,
+but more relevant options will be added in the future.
+A later version of Dafny will also require `.dtr` files that cover all modules
+that are defined in `--library` options,
+to support checking that all relevant options are compatible.
 
 ## 13.4. Dafny Standard Libraries
 
@@ -825,10 +852,11 @@ Here's an example of a Dafny project file:
 includes = ["src/**/*.dfy"]
 excludes = ["**/ignore.dfy"]
 
+base = ["../commonOptions.dfyconfig.toml"]
+
 [options]
 enforce-determinism = true
 warn-shadowing = true
-default-function-opacity = "Opaque"
 ```
 
 - At most one `.toml` file may be named on the command-line; when using the command-line no `.toml` file is used by default.
@@ -839,6 +867,8 @@ The `excludes` does not remove any files that are listed explicitly on the comma
 - When executing a `dafny` command using a project file, any options specified in the file that can be applied to the command, will be. Options that can't be applied are ignored; options that are invalid for any dafny command trigger warnings.
 - Options specified on the command-line take precedence over any specified in the project file, no matter the order of items on the command-line.
 - When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree looking for the closest `dfyconfig.toml` file to the dfy being parsed that it can find. Options from the project file will override options passed to `dafny server`.
+
+- The field 'base' can be used to let one project file inherit options from another. If an option is specified in both, then the value specified in the inheriting project is used. Includes from the inheritor override excludes from the base.
 
 It's not possible to use Dafny project files in combination with the legacy CLI UI.
 
@@ -1001,9 +1031,6 @@ This list is not exhaustive but can definitely be useful to provide the next ste
  <br><br>`assert A == B;`<br>`callLemma(x);`<br>`assert B == C;`<br> | [`calc == {`](#sec-calc-statement)<br>&nbsp;&nbsp;`  A;`<br>&nbsp;&nbsp;`  B;`<br>&nbsp;&nbsp;`  { callLemma(x); }`<br>&nbsp;&nbsp;`  C;`<br>`};`<br>`assert A == B;`<br>where the [`calc`](#sec-calc-statement) statement can be used to make intermediate computation steps explicit. Works with `<`, `>`, `<=`, `>=`, `==>`, `<==` and `<==>` for example.
  <br><br><br>`assert A ==> B;` | `if A {`<br>&nbsp;&nbsp;`  assert B;`<br>`};`<br>`assert A ==> B;`
  <br><br>`assert A && B;` | `assert A;`<br>`assert B;`<br>`assert A && B;`
- <br>`assert P(x);`<br>where `P` is an [`{:opaque}`](#sec-opaque) predicate | [`reveal P();`](#sec-reveal-statement)<br>`assert P(x);`<br><br>
- `assert P(x);`<br>where `P` is an [`{:opaque}`](#sec-opaque) predicate<br><br> | [`assert P(x) by {`](#sec-assert-statement)<br>[&nbsp;&nbsp;`  reveal P();`](#sec-reveal-statement)<br>`}`
- `assert P(x);`<br>where `P` is not an [`{:opaque}`](#sec-opaque) predicate with a lot of `&&` in its body and is assumed | Make `P` [`{:opaque}`](#sec-opaque) so that if it's assumed, it can be proven more easily. You can always [reveal](#sec-reveal-statement) it when needed.
  `ensures P ==> Q` on a lemma<br> | `requires P ensures Q` to avoid accidentally calling the lemma on inputs that do not satisfy `P`
  `seq(size, i => P)` | `seq(size, i requires 0 <= i < size => P);`
   <br><br>`assert forall x :: G(i) ==> R(i);` |  `assert G(i0);`<br>`assert R(i0);`<br>`assert forall i :: G(i) ==> R(i);` with a guess of the `i0` that makes the second assert to fail.
@@ -1453,17 +1480,11 @@ The fundamental unit of verification in `dafny` is an _assertion batch_, which c
 
 #### 13.7.3.1. Controlling assertion batches {#sec-assertion-batches-control}
 
-Here is how you can control how `dafny` partitions assertions into batches.
+When Dafny verifies a symbol, such as a method, a function or a constant with a subset type, that verification may contain multiple assertions. A symbol is generally verified the fastest when all assertions it in are verified together, in what we call a single 'assertion batch'. However, is it possible to split verification of a symbol into multiple batches, and doing so makes the individual batches simpler, which can lead to less brittle verification behavior. Dafny contains several attributes that allow you to customize how verification is split into batches.
 
-* [`{:focus}`](#sec-focus) on an assert generates a separate assertion batch for the assertions of the enclosing block.
-* [`{:split_here}`](#sec-split_here) on an assert generates a separate assertion batch for assertions after this point.
-* [`{:isolate_assertions}`](#sec-isolate_assertions) on a function or a method generates one assertion batch per assertion
+Firstly, you can instruct Dafny to verify individual assertions in separate batches. You can place the `{:isolate}` attribute on a single assertion to place it in a separate batch, or you can place `{:isolate_assertions}` on a symbol, such as a function or method declaration, to place all assertions in it into separate batches. The CLI option `--isolate-assertions` will place all assertions into separate batches for all symbols. `{:isolate}` can be used on `assert`, `return` and `continue` statements. When placed on a `return` statement, it will verify the postconditions for all paths leading to that `return` in a separate batch. When placed on a `continue`, it will verify the loop invariants for all paths leading to that `continue` in a separate batch. 
 
-We discourage the use of the following _heuristics attributes_ to partition assertions into batches.
-The effect of these attributes may vary, because they are low-level attributes and tune low-level heuristics, and will result in splits that could be manually controlled anyway.
-* [`{:vcs_max_cost N}`](#sec-vcs_max_cost) on a function or method enables splitting the assertion batch until the "cost" of each batch is below N.
-  Usually, you would set [`{:vcs_max_cost 0}`](#sec-vcs_max_cost) and [`{:vcs_max_splits N}`](#sec-vcs_max_splits) to ensure it generates N assertion batches.
-* [`{:vcs_max_keep_going_splits N}`](#sec-vcs_max_keep_going_splits) where N > 1 on a method dynamically splits the initial assertion batch up to N components if the verifier is stuck the first time.
+Given an assertion that is placed into a separate batch, you can then further simplify the verification of this assertion by placing each control flow path that leads to this assertion into a separate batch. You can do this using the attribute `{:isolate "paths"}`.
 
 ### 13.7.4. Command-line options and other attributes to control verification {#sec-command-line-options-and-attributes-for-verification}
 

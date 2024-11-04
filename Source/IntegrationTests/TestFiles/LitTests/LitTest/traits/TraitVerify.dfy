@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %build "%s" > "%t"
+// RUN: %exits-with 4 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 trait Tr<X> { }

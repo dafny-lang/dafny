@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 // --------------- ghost function error messages ------------------------------
 
@@ -189,8 +189,8 @@ module TypeCharacteristicsInGhostCode {
     var d := m == n;  // fine, since d is implicitly ghost
     d, c, d := m == n, k == l, m == n;  // error: "k == l" requires T to support equality
 
-    var q' := QuadEq([x], [x], [0], [0]);  // error: seq<T> requires T to support equality
-    var q'' := QuadEq([0], [0], [x], [x]); // error: seq<T> requires T to support equality
+    var q' := QuadEq([x], [x], [0], [0]);  // error: seq<T> requires T to support equality (1 error for local var, 1 for datatype ctor)
+    var q'' := QuadEq([0], [0], [x], [x]); // error: seq<T> requires T to support equality (1 error for local var, 1 for datatype ctor)
   }
 
   newtype NT = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context

@@ -112,7 +112,7 @@ public class ExpectContracts : IRewriter {
     var newFunc = cloner.CloneFunction(origFunc);
     newFunc.NameNode.Value = newName;
 
-    var args = newFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
+    var args = newFunc.Ins.Select(Expression.CreateIdentExpr).ToList();
     var receiver = ModuleResolver.GetReceiver(parent, origFunc, decl.tok);
     var callExpr = Expression.CreateResolvedCall(tok, receiver, origFunc, args,
       newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(), systemModuleManager);
@@ -129,13 +129,13 @@ public class ExpectContracts : IRewriter {
     var lhss = new List<Expression> { localExpr };
     var rhss = new List<AssignmentRhs> { callRhs };
 
-    var assignStmt = new AssignStmt(decl.RangeToken, localExpr, callRhs);
+    var assignStmt = new SingleAssignStmt(decl.RangeToken, localExpr, callRhs);
     Statement callStmt;
     if (origFunc.Result?.Name is null) {
       var local = new LocalVariable(decl.RangeToken, localName, newFunc.ResultType, false);
       local.type = newFunc.ResultType;
       var locs = new List<LocalVariable> { local };
-      var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new UpdateStmt(decl.RangeToken, lhss, rhss) {
+      var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new AssignStatement(decl.RangeToken, lhss, rhss) {
         ResolvedStatements = new List<Statement>() { assignStmt }
       });
       localExpr.Var = local;
@@ -170,9 +170,9 @@ public class ExpectContracts : IRewriter {
     var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.tok);
     var memberSelectExpr = new MemberSelectExpr(decl.tok, receiver, origMethod.Name);
     memberSelectExpr.Member = origMethod;
-    memberSelectExpr.TypeApplication_JustMember =
+    memberSelectExpr.TypeApplicationJustMember =
       newMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
-    memberSelectExpr.TypeApplication_AtEnclosingClass =
+    memberSelectExpr.TypeApplicationAtEnclosingClass =
       parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
     var callStmt = new CallStmt(decl.RangeToken, outs, memberSelectExpr, args);
 
@@ -193,7 +193,7 @@ public class ExpectContracts : IRewriter {
     // been set. Instead, we compute here directly from f.HasStaticKeyword and "cl".
     var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
     var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
-    var fn = Expression.CreateResolvedCall(tok, receiver, f, f.Formals.ConvertAll(Expression.CreateIdentExpr),
+    var fn = Expression.CreateResolvedCall(tok, receiver, f, f.Ins.ConvertAll(Expression.CreateIdentExpr),
       f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter)), systemModuleManager);
     var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
       Type = Type.Bool
@@ -207,7 +207,7 @@ public class ExpectContracts : IRewriter {
       reads.Expressions.Add(new FrameExpression(tok, emptySet, null));
     }
     var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
-      f.Formals, new List<Formal>() { resultVar },
+      f.Ins, new List<Formal>() { resultVar },
       f.Req, reads, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
       f.ByMethodBody, f.Attributes, null, true);
     Contract.Assert(f.ByMethodDecl == null);
