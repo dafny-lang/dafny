@@ -1,3 +1,4 @@
+Parallel.dfy(267,11): Warning: parentheses around the forall-statement bound variables are deprecated and not needed
 Parallel.dfy(267,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
 Parallel.dfy(279,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
 Parallel.dfy(286,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
