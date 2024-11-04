@@ -89,12 +89,12 @@ namespace DafnyTestGeneration {
         // variable declaration:
         var variable = GetNewLocalVariable(node, Type.Bool, varName);
         // set variable to false when visiting a block
-        block.cmds.Insert(0, new AssignCmd(new Token(),
+        block.Cmds.Insert(0, new AssignCmd(new Token(),
           new List<AssignLhs>() { new SimpleAssignLhs(new Token(), new IdentifierExpr(new Token(), variable)) },
           new List<Expr>() { new LiteralExpr(new Token(), false) }));
         blockToVariable[block] = variable;
         // initialization:
-        node.Blocks[0].cmds.Insert(0, new AssignCmd(new Token(),
+        node.Blocks[0].Cmds.Insert(0, new AssignCmd(new Token(),
           new List<AssignLhs>() { new SimpleAssignLhs(new Token(), new IdentifierExpr(new Token(), variable)) },
           new List<Expr>() { new LiteralExpr(new Token(), true) }));
       }
@@ -116,13 +116,13 @@ namespace DafnyTestGeneration {
           yield return new Path(impl, currPathVariables.ToList(), new() { block },
             currPath.Append(block).ToList());
         } else {
-          if (currPath.Count != 0 && ((GotoCmd)currPath.Last().TransferCmd).labelTargets.Count != 1) {
+          if (currPath.Count != 0 && ((GotoCmd)currPath.Last().TransferCmd).LabelTargets.Count != 1) {
             currPathVariables.Add(blockToVariable[block]); // only constrain the path if there is more than one goto
           }
           currPath.Add(block);
           otherGotos.Add(new List<Block>());
           var gotoCmd = block.TransferCmd as GotoCmd;
-          foreach (var nextBlock in gotoCmd?.labelTargets ?? new List<Block>()) {
+          foreach (var nextBlock in gotoCmd?.LabelTargets ?? new List<Block>()) {
             if (currPathVariables.Contains(blockToVariable[nextBlock])) { // this prevents cycles
               continue;
             }
@@ -192,7 +192,7 @@ namespace DafnyTestGeneration {
       internal void AssertPath() {
         foreach (var returnBlock in returnBlocks) {
           if (path.Count == 0) {
-            returnBlock.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+            returnBlock.Cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
             return;
           }
         }
@@ -201,13 +201,13 @@ namespace DafnyTestGeneration {
           ConstructDisjunction(path.Select(variable => new IdentifierExpr(new Token(), variable) as Expr).ToList());
 
         foreach (var returnBlock in returnBlocks) {
-          returnBlock.cmds.Add(new AssertCmd(new Token(), condition));
+          returnBlock.Cmds.Add(new AssertCmd(new Token(), condition));
         }
       }
 
       internal void NoAssertPath() {
         foreach (var returnBlock in returnBlocks) {
-          returnBlock.cmds.RemoveAt(returnBlock.cmds.Count - 1);
+          returnBlock.Cmds.RemoveAt(returnBlock.Cmds.Count - 1);
         }
       }
     }

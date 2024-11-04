@@ -129,13 +129,13 @@ public class ExpectContracts : IRewriter {
     var lhss = new List<Expression> { localExpr };
     var rhss = new List<AssignmentRhs> { callRhs };
 
-    var assignStmt = new AssignStmt(decl.RangeToken, localExpr, callRhs);
+    var assignStmt = new SingleAssignStmt(decl.RangeToken, localExpr, callRhs);
     Statement callStmt;
     if (origFunc.Result?.Name is null) {
       var local = new LocalVariable(decl.RangeToken, localName, newFunc.ResultType, false);
       local.type = newFunc.ResultType;
       var locs = new List<LocalVariable> { local };
-      var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new UpdateStmt(decl.RangeToken, lhss, rhss) {
+      var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new AssignStatement(decl.RangeToken, lhss, rhss) {
         ResolvedStatements = new List<Statement>() { assignStmt }
       });
       localExpr.Var = local;

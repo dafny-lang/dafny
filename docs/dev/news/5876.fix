@@ -1,0 +1,1 @@
+Fix soundness issue where the verifier had assumed properties of `this` already during the first phase of a constructor

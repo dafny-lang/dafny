@@ -12,6 +12,7 @@ using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
 using DafnyCore;
+using DafnyCore.Options;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.GeneratorErrors;
@@ -182,7 +183,13 @@ namespace Microsoft.Dafny.Compilers {
     /// call to the instance Main method in the enclosing class.
     /// </summary>
     protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName);
-    protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+
+    protected virtual bool ShouldCompileModule(Program program, ModuleDefinition module) {
+      return module.ShouldCompile(program.Compilation);
+    }
+
+    protected abstract ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
+      ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr);
     /// <summary>
     /// Indicates the current program depends on the given module without creating it.
@@ -1578,14 +1585,14 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      if (!module.ShouldCompile(program.Compilation)) {
+      if (!ShouldCompileModule(program, module)) {
         DependOnModule(program, module, externModule, libraryName);
         return;
       }
 
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
-      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, module.Attributes, programNode);
+      var wr = CreateModule(module, module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, module.Attributes, programNode);
       var v = new CheckHasNoAssumes_Visitor(this, wr);
       foreach (TopLevelDecl d in module.TopLevelDecls) {
         if (!ProgramResolver.ShouldCompile(d)) {
@@ -3251,7 +3258,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected virtual ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs) {
+    protected virtual ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, SingleAssignStmt s0, Expression rhs) {
       var wStmts = wr.Fork();
       var wrVarInit = DeclareLocalVar(ingredients, null, null, wr);
       {
@@ -3292,7 +3299,7 @@ namespace Microsoft.Dafny.Compilers {
       return fce.IsByMethodCall && fce.Function.ByMethodDecl == enclosingMethod && fce.Function.ByMethodDecl.IsTailRecursive;
     }
 
-    protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
+    protected virtual void EmitMemberSelect(SingleAssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       var lhs = (MemberSelectExpr)s0.Lhs;
 
       var typeArgs = TypeArgumentInstantiation.ListFromMember(lhs.Member, null, lhs.TypeApplicationJustMember);
@@ -3306,7 +3313,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitTupleSelect(tup, 1, wCoerced);
     }
 
-    protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
+    protected virtual void EmitSeqSelect(SingleAssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       var lhs = (SeqSelectExpr)s0.Lhs;
       EmitIndexCollectionUpdate(lhs.Seq.Type, out var wColl, out var wIndex, out var wValue, wr, nativeIndex: true);
       var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
@@ -3317,7 +3324,7 @@ namespace Microsoft.Dafny.Compilers {
       EndStmt(wr);
     }
 
-    protected virtual void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
+    protected virtual void EmitMultiSelect(SingleAssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
       var lhs = (MultiSelectExpr)s0.Lhs;
       var wArray = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);

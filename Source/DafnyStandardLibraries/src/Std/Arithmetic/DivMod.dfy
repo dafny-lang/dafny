@@ -746,7 +746,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   }
 
   /* this is the same as writing x + (b/d) == x when b is less than d; this is true because (b/d) == 0 */
-  lemma LemmaDivMultiplesVanishFancy(x: int, b: int, d: int)
+  lemma {:vcs_split_on_every_assert} LemmaDivMultiplesVanishFancy(x: int, b: int, d: int)
     requires 0 < d
     requires 0 <= b < d
     ensures (d * x + b) / d == x

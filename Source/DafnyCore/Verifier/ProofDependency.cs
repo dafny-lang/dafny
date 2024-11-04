@@ -55,13 +55,13 @@ public abstract class ProofDependency {
 public class ProofObligationDependency : ProofDependency {
   public override RangeToken Range { get; }
 
-  public PODesc.ProofObligationDescription ProofObligation { get; }
+  public ProofObligationDescription ProofObligation { get; }
 
   public override string Description =>
       $"{ProofObligation.SuccessDescription}";
 
-  public ProofObligationDependency(Microsoft.Boogie.IToken tok, PODesc.ProofObligationDescription proofObligation) {
-    Range = BoogieGenerator.ToDafnyToken(true, tok).ToRange();
+  public ProofObligationDependency(Microsoft.Boogie.IToken tok, ProofObligationDescription proofObligation) {
+    Range = tok as RangeToken ?? (proofObligation as AssertStatementDescription)?.AssertStatement.RangeToken ?? BoogieGenerator.ToDafnyToken(true, tok).ToRange();
     ProofObligation = proofObligation;
   }
 }
@@ -69,13 +69,13 @@ public class ProofObligationDependency : ProofDependency {
 public class AssumedProofObligationDependency : ProofDependency {
   public override RangeToken Range { get; }
 
-  public PODesc.ProofObligationDescription ProofObligation { get; }
+  public ProofObligationDescription ProofObligation { get; }
 
   public override string Description =>
       $"assumption that {ProofObligation.SuccessDescription}";
 
-  public AssumedProofObligationDependency(IToken tok, PODesc.ProofObligationDescription proofObligation) {
-    Range = tok as RangeToken ?? new RangeToken(tok, tok);
+  public AssumedProofObligationDependency(IToken tok, ProofObligationDescription proofObligation) {
+    Range = tok as RangeToken ?? (proofObligation as AssertStatementDescription)?.AssertStatement.RangeToken ?? new RangeToken(tok, tok);
     ProofObligation = proofObligation;
   }
 }
@@ -120,7 +120,7 @@ public class EnsuresDependency : ProofDependency {
 // Represents the goal of proving a specific requires clause of a specific
 // call.
 public class CallRequiresDependency : ProofDependency {
-  private readonly CallDependency call;
+  public readonly CallDependency call;
   private readonly RequiresDependency requires;
 
   public override RangeToken Range =>
@@ -138,7 +138,7 @@ public class CallRequiresDependency : ProofDependency {
 // Represents the assumption of a specific ensures clause of a specific
 // call.
 public class CallEnsuresDependency : ProofDependency {
-  private readonly CallDependency call;
+  public readonly CallDependency call;
   private readonly EnsuresDependency ensures;
 
   public override RangeToken Range =>
@@ -155,7 +155,7 @@ public class CallEnsuresDependency : ProofDependency {
 
 // Represents the fact that a particular call occurred.
 public class CallDependency : ProofDependency {
-  private readonly CallStmt call;
+  public readonly CallStmt call;
 
   public override RangeToken Range =>
     call.RangeToken;
@@ -224,7 +224,7 @@ public class FunctionDefinitionDependency : ProofDependency {
   public override string Description =>
     $"function definition for {function.Name}";
 
-  private Function function;
+  public Function function;
 
   public FunctionDefinitionDependency(Function f) {
     function = f;

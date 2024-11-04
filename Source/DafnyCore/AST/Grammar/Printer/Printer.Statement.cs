@@ -19,6 +19,10 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
+  interface ICanPrint {
+    void Render(TextWriter wr, Printer printer, int indent);
+  }
+
   public partial class Printer {
 
     /// <summary>
@@ -26,10 +30,13 @@ namespace Microsoft.Dafny {
     /// If the statement requires several lines, subsequent lines are indented at "indent".
     /// No newline is printed after the statement.
     /// </summary>
-    public void PrintStatement(Statement stmt, int indent) {
+    public void PrintStatement(Statement stmt, int indent, bool includeSemicolon = true) {
       Contract.Requires(stmt != null);
 
-      if (stmt.IsGhost && printMode == PrintModes.NoGhostOrIncludes) { return; }
+      if (stmt.IsGhost && printMode == PrintModes.NoGhostOrIncludes) {
+        return;
+      }
+
       for (LList<Label> label = stmt.Labels; label != null; label = label.Next) {
         if (label.Data.Name != null) {
           wr.WriteLine("label {0}:", label.Data.Name);
@@ -37,33 +44,13 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (stmt is PredicateStmt) {
-        if (printMode == PrintModes.NoGhostOrIncludes) { return; }
-        Expression expr = ((PredicateStmt)stmt).Expr;
-        var assertStmt = stmt as AssertStmt;
-        var expectStmt = stmt as ExpectStmt;
-        wr.Write(assertStmt != null ? "assert" :
-                 expectStmt != null ? "expect" :
-                 "assume");
-        if (stmt.Attributes != null) {
-          PrintAttributes(stmt.Attributes);
-        }
-        wr.Write(" ");
-        if (assertStmt != null && assertStmt.Label != null) {
-          wr.Write("{0}: ", assertStmt.Label.Name);
-        }
-        PrintExpression(expr, true);
-        if (assertStmt != null && assertStmt.Proof != null) {
-          wr.Write(" by ");
-          PrintStatement(assertStmt.Proof, indent);
-        } else if (expectStmt != null && expectStmt.Message != null) {
-          wr.Write(", ");
-          PrintExpression(expectStmt.Message, true);
-          wr.Write(";");
-        } else {
-          wr.Write(";");
-        }
+      if (stmt is ICanPrint canPrint) {
+        canPrint.Render(wr, this, indent);
+        return;
+      }
 
+      if (stmt is PredicateStmt) {
+        PrintPredicateStmt(stmt, includeSemicolon);
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         wr.Write("print");
@@ -96,8 +83,8 @@ namespace Microsoft.Dafny {
         }
         wr.Write(";");
 
-      } else if (stmt is AssignStmt) {
-        AssignStmt s = (AssignStmt)stmt;
+      } else if (stmt is SingleAssignStmt) {
+        SingleAssignStmt s = (SingleAssignStmt)stmt;
         PrintExpression(s.Lhs, true);
         wr.Write(" := ");
         PrintRhs(s.Rhs);
@@ -124,17 +111,8 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.Write("}");
 
-      } else if (stmt is BlockStmt) {
-        wr.WriteLine("{");
-        int ind = indent + IndentAmount;
-        foreach (Statement s in ((BlockStmt)stmt).Body) {
-          Indent(ind);
-          PrintStatement(s, ind);
-          wr.WriteLine();
-        }
-        Indent(indent);
-        wr.Write("}");
-
+      } else if (stmt is BlockStmt blockStmt) {
+        PrintBlockStmt(blockStmt, indent);
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
         PrintIfStatement(indent, s, false);
@@ -162,7 +140,9 @@ namespace Microsoft.Dafny {
         PrintSpec("invariant", s.Invariants, indent + IndentAmount);
         PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
         PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
-        bool hasSpecs = s.Invariants.Count != 0 || (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || s.Mod.Expressions != null;
+        bool hasSpecs = s.Invariants.Count != 0 ||
+                        (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) ||
+                        s.Mod.Expressions != null;
         if (s.UsesOptionalBraces) {
           if (hasSpecs) {
             wr.WriteLine();
@@ -251,7 +231,7 @@ namespace Microsoft.Dafny {
           }
           // print the operator, if any
           if (op != null || (options.DafnyPrintResolvedFile != null && s.Op != null)) {
-            Indent(indent);  // this lines up with the "calc"
+            Indent(indent); // this lines up with the "calc"
             PrintCalcOp(op ?? s.Op);
             wr.WriteLine();
           }
@@ -351,20 +331,8 @@ namespace Microsoft.Dafny {
           wr.Write("}");
         }
 
-      } else if (stmt is ConcreteUpdateStatement) {
-        var s = (ConcreteUpdateStatement)stmt;
-        string sep = "";
-        foreach (var lhs in s.Lhss) {
-          wr.Write(sep);
-          PrintExpression(lhs, true);
-          sep = ", ";
-        }
-        if (s.Lhss.Count > 0) {
-          wr.Write(" ");
-        }
-        PrintUpdateRHS(s, indent);
-        PrintBy(s);
-
+      } else if (stmt is ConcreteAssignStatement concreteAssignStatement) {
+        PrintConcreteUpdateStatement(concreteAssignStatement, indent, includeSemicolon);
       } else if (stmt is CallStmt) {
         // Most calls are printed from their concrete syntax given in the input. However, recursive calls to
         // prefix lemmas end up as CallStmt's by the end of resolution and they may need to be printed here.
@@ -391,11 +359,14 @@ namespace Microsoft.Dafny {
           PrintType(": ", local.SyntacticType);
           sep = ",";
         }
-        if (s.Update != null) {
+        if (s.Assign != null) {
           wr.Write(" ");
-          PrintUpdateRHS(s.Update, indent);
+          PrintUpdateRHS(s.Assign, indent);
         }
-        PrintBy(s.Update);
+
+        if (includeSemicolon) {
+          wr.Write(";");
+        }
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
         if (s.tok is AutoGeneratedToken) {
@@ -454,19 +425,61 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
 
-      void PrintBy(ConcreteUpdateStatement statement) {
-        BlockStmt proof = statement switch {
-          UpdateStmt updateStmt => updateStmt.Proof,
-          AssignOrReturnStmt returnStmt => returnStmt.Proof,
-          _ => null
-        };
-        if (proof != null) {
-          wr.Write(" by ");
-          PrintStatement(proof, indent);
-        } else {
-          wr.Write(";");
-        }
+    public void PrintConcreteUpdateStatement(ConcreteAssignStatement stmt, int indent, bool includeSemicolon = true) {
+      string sep = "";
+      foreach (var lhs in stmt.Lhss) {
+        wr.Write(sep);
+        PrintExpression(lhs, true);
+        sep = ", ";
+      }
+      if (stmt.Lhss.Count > 0) {
+        wr.Write(" ");
+      }
+      PrintUpdateRHS(stmt, indent);
+      if (includeSemicolon) {
+        wr.Write(";");
+      }
+    }
+
+    public void PrintBlockStmt(BlockStmt stmt, int indent) {
+      wr.WriteLine("{");
+      int ind = indent + IndentAmount;
+      foreach (Statement s in stmt.Body) {
+        Indent(ind);
+        PrintStatement(s, ind);
+        wr.WriteLine();
+      }
+      Indent(indent);
+      wr.Write("}");
+    }
+
+    public void PrintPredicateStmt(Statement stmt, bool includeSemicolon = true) {
+      if (printMode == PrintModes.NoGhostOrIncludes) {
+        return;
+      }
+      Expression expr = ((PredicateStmt)stmt).Expr;
+      var assertStmt = stmt as AssertStmt;
+      var expectStmt = stmt as ExpectStmt;
+      wr.Write(assertStmt != null ? "assert" :
+        expectStmt != null ? "expect" :
+        "assume");
+      if (stmt.Attributes != null) {
+        PrintAttributes(stmt.Attributes);
+      }
+      wr.Write(" ");
+      if (assertStmt != null && assertStmt.Label != null) {
+        wr.Write("{0}: ", assertStmt.Label.Name);
+      }
+      PrintExpression(expr, true);
+      if (expectStmt is { Message: not null }) {
+        wr.Write(", ");
+        PrintExpression(expectStmt.Message, true);
+      }
+
+      if (includeSemicolon) {
+        wr.Write(";");
       }
     }
 
@@ -523,10 +536,10 @@ namespace Microsoft.Dafny {
     /// Does not print LHS, nor the space one might want between LHS and RHS,
     /// because if there's no LHS, we don't want to start with a space
     /// </summary>
-    void PrintUpdateRHS(ConcreteUpdateStatement s, int indent) {
+    void PrintUpdateRHS(ConcreteAssignStatement s, int indent) {
       Contract.Requires(s != null);
-      if (s is UpdateStmt) {
-        var update = (UpdateStmt)s;
+      if (s is AssignStatement) {
+        var update = (AssignStatement)s;
         if (update.Lhss.Count != 0) {
           wr.Write(":= ");
         }

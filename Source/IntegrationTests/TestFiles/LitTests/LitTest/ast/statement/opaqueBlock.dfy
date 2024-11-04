@@ -181,3 +181,18 @@ method MultipleAssignment() returns (r: int) {
   }
   r := x;
 }
+
+method FlattenedMatch(x: Option<int>, y: Option<int>) {
+   // This match statement must copy some of the case bodies when flattening
+   var z := 3;
+   opaque {
+     match (x, y) {
+       case (Some(a), _) =>
+         var y := a;
+       case (_, Some(b)) =>
+         var z := b;
+       case _ =>
+     }
+   }
+   assert z == 3;
+}

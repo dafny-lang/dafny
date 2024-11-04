@@ -192,22 +192,22 @@ method {:testEntry} RedundantAssumeMethod(n: int)
     // either one or the other assumption shouldn't be covered
     assume </span><span class="pc" id="176:12">n > 4</span><span class="na" id="176:17">;
     assume </span><span class="fc" id="177:12">n > 3</span><span class="na" id="177:17">;
-    assert n </span><span class="fc" id="178:14">></span><span class="na" id="178:15"> 1;
-}
+    </span><span class="fc" id="178:5">assert n > 1;
+</span><span class="na" id="179:1">}
 
 method {:testEntry} ContradictoryAssumeMethod(n: int)
 {
     assume </span><span class="pc" id="183:12">n > 0</span><span class="na" id="183:17">;
     assume </span><span class="pc" id="184:12">n < 0</span><span class="na" id="184:17">;
     assume </span><span class="nc" id="185:12">n == 5</span><span class="na" id="185:18">; // shouldn't be covered
-    assert n </span><span class="nc" id="186:14"><</span><span class="na" id="186:15"> 10; // shouldn't be covered
+    </span><span class="nc" id="186:5">assert n < 10;</span><span class="na" id="186:19"> // shouldn't be covered
 }
 
 method {:testEntry} AssumeFalseMethod(n: int)
 {
     assume </span><span class="nc" id="191:12">n == 1</span><span class="na" id="191:18">5; // shouldn't be covered
     assume </span><span class="pc" id="192:12">f</span><span class="na" id="192:13">alse;
-    assert n </span><span class="nc" id="193:14"><</span><span class="na" id="193:15"> 10; // shouldn't be covered
+    </span><span class="nc" id="193:5">assert n < 10;</span><span class="na" id="193:19"> // shouldn't be covered
 }
 
 // Obvious contradiction in requires clauses.
@@ -216,7 +216,7 @@ function {:testEntry} ObviouslyContradictoryRequiresFunc(x: nat): (r: nat)
   requires x < 10
   ensures r < x // only provable vacuously 
 {
-  assert x </span><span class="nc" id="202:12">=</span><span class="na" id="202:13">= 10; // contradicts both requires clauses
+  </span><span class="nc" id="202:3">assert x == 10;</span><span class="na" id="202:18"> // contradicts both requires clauses
   </span><span class="nc" id="203:3">x - 1</span><span class="na" id="203:8"> // not necessarily a valid nat
 }
 
@@ -225,7 +225,7 @@ method {:testEntry} ObviouslyContradictoryRequiresMethod(x: nat) returns (r: nat
   requires x < 10
   ensures r < x // only provable vacuously
 {
-  assert x </span><span class="nc" id="211:12">=</span><span class="na" id="211:13">= 10; // contradicts both requires clauses
+  </span><span class="nc" id="211:3">assert x == 10;</span><span class="na" id="211:18"> // contradicts both requires clauses
   </span><span class="nc" id="212:3">return x - 1;</span><span class="na" id="212:16"> // not necessarily a valid nat
 </span><span class="nc" id="213:1">}
 
@@ -377,8 +377,8 @@ method {:testEntry} FalseAntecedentRequiresClauseMethod(x: int) returns (r: int)
 </span><span class="na" id="360:1">// False antecedent assert statement.
 method {:testEntry} FalseAntecedentAssertStatementMethod(x: int) {
   var y </span><span class="fc" id="362:9">:= x*x;
-</span><span class="na" id="363:1">  assert </span><span class="pc" id="363:10">y < 0 ==> x < 0</span><span class="na" id="363:25">;
-}
+</span><span class="na" id="363:1">  </span><span class="fc" id="363:3">assert </span><span class="pc" id="363:10">y < 0 ==> x < 0</span><span class="fc" id="363:25">;
+</span><span class="na" id="364:1">}
 
 // False antecedent ensures clause.
 method {:testEntry} FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)
@@ -449,8 +449,8 @@ method {:testEntry} ObviouslyUnreachableMatchStatementCaseMethod(t: T) returns (
 
 method {:testEntry} DontWarnAboutVacuousAssertFalse(x: int) {
   assume </span><span class="pc" id="434:10">x == x + 1</span><span class="na" id="434:20">;
-  assert </span><span class="nc" id="435:10">f</span><span class="na" id="435:11">alse;
-}
+  </span><span class="nc" id="435:3">assert false;
+</span><span class="na" id="436:1">}
 
 class C {
   var x: int
@@ -465,8 +465,8 @@ function {:testEntry} GetX(c: C): int
 
 method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
   assume </span><span class="pc" id="450:10">t</span><span class="na" id="450:11">rue;
-  assert 1 + x </span><span class="fc" id="451:16">=</span><span class="na" id="451:17">= x + 1;
-}
+  </span><span class="fc" id="451:3">assert 1 + x == x + 1;
+</span><span class="na" id="452:1">}
 
 }
 

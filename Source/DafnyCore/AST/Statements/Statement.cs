@@ -12,15 +12,8 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public int ScopeDepth { get; set; }
   public LList<Label> Labels;  // mutable during resolution
 
-  private Attributes attributes;
-  public Attributes Attributes {
-    get {
-      return attributes;
-    }
-    set {
-      attributes = value;
-    }
-  }
+  public Attributes Attributes { get; set; }
+  string IAttributeBearingDeclaration.WhatKind => "statement";
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -35,7 +28,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   protected Statement(Cloner cloner, Statement original) : base(cloner.Tok(original.RangeToken)) {
     cloner.AddStatementClone(original, this);
-    this.attributes = cloner.CloneAttributes(original.Attributes);
+    this.Attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
       IsGhost = original.IsGhost;
@@ -44,7 +37,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   }
 
   protected Statement(RangeToken rangeToken, Attributes attrs) : base(rangeToken) {
-    this.attributes = attrs;
+    this.Attributes = attrs;
   }
 
   protected Statement(RangeToken rangeToken)
@@ -165,9 +158,9 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     var variable = new LocalVariable(rangeToken, name, value.Type, false);
     variable.type = value.Type;
     Expression variableExpr = new IdentifierExpr(tok, variable);
-    var variableUpdateStmt = new UpdateStmt(rangeToken, Util.Singleton(variableExpr),
+    var variableUpdateStmt = new AssignStatement(rangeToken, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
-    var variableAssignStmt = new AssignStmt(rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
+    var variableAssignStmt = new SingleAssignStmt(rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
     variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
     return new VarDeclStmt(rangeToken, Util.Singleton(variable), variableUpdateStmt);
   }
@@ -186,11 +179,13 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   }
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       SubStatements.Concat<Node>(SubExpressions));
 
   public override IEnumerable<INode> PreResolveChildren =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
 
   public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => Enumerable.Empty<IdentifierExpr>();

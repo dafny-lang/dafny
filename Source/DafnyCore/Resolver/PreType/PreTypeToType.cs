@@ -212,7 +212,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
     if (stmt is VarDeclPattern varDeclPattern) {
       VisitPattern(varDeclPattern.LHS, context);
-    } else if (stmt is AssignStmt { Rhs: TypeRhs tRhs }) {
+    } else if (stmt is SingleAssignStmt { Rhs: TypeRhs tRhs }) {
       Type rhsType;
       // convert the type of the RHS, which we expect to be a reference type, and then create the non-null version of it
       var udtConvertedFromPretype = (UserDefinedType)PreType2TypeUtil.PreType2FixedType(tRhs.PreType);

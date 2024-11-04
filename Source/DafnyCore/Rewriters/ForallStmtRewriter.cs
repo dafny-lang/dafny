@@ -89,7 +89,7 @@ public class ForallStmtRewriter : IRewriter {
         return;
       }
 
-      var s0 = (AssignStmt)stmt.S0;
+      var s0 = (SingleAssignStmt)stmt.S0;
       if (s0.Rhs is not ExprRhs exprRhs) {
         return;
       }

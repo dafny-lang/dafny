@@ -11,11 +11,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using OmniSharp.Extensions.JsonRpc.Server;
-using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
@@ -336,7 +332,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         } else {
           information += GetDescription(returnCounterexample.FailingReturn.Description);
         }
-        information += MoreInformation(returnCounterexample.FailingAssert.tok, currentlyHoveringPostcondition);
+        information += MoreInformation(returnCounterexample.FailingEnsures.tok, currentlyHoveringPostcondition);
       } else if (counterexample is CallCounterexample callCounterexample) {
         if (assertionNode.StatusVerification == GutterVerificationStatus.Error &&
             callCounterexample.FailingRequires.Description.SuccessDescription != "assertion always holds"
