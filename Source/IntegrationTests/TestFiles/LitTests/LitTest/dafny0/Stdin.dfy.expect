@@ -3,6 +3,5 @@ Dafny program verifier finished with 0 verified, 0 errors
 <stdin>(1,20): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error
-<stdin>(1,0): Warning: File contains no code
 
 Dafny program verifier finished with 0 verified, 0 errors
