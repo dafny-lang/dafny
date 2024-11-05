@@ -511,6 +511,7 @@ module Std.Actions {
 
   }
 
+  // TODO: Extract a ProducesSetProof trait
   class SetEnumerator<T(==)> extends Action<(), T> {
     ghost const original: set<T>
     var remaining: set<T>
@@ -523,8 +524,6 @@ module Std.Actions {
     {
       && this in Repr
       && CanProduce(history)
-      && Enumerated(history) !! remaining
-      && Enumerated(history) <= original
       && remaining == original - Enumerated(history)
     }
 
@@ -558,6 +557,7 @@ module Std.Actions {
       decreases height
     {
       && Seq.HasNoDuplicates(Outputs(history))
+      && Enumerated(history) <= original
     }
 
     lemma EnumeratedCardinality()
