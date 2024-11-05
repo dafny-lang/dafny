@@ -227,9 +227,7 @@ namespace DafnyServer {
       var updateStmt = (AssignStatement)statement;
       var leftSide = updateStmt.Lhss;
       var rightSide = updateStmt.Rhss;
-      var leftSideDots = leftSide.OfType<ExprDotName>();
-      var rightSideDots = rightSide.OfType<ExprDotName>();
-      var allExprDotNames = leftSideDots.Concat(rightSideDots);
+      var allExprDotNames = leftSide.OfType<ExprDotName>();
       foreach (var exprDotName in allExprDotNames) {
         if (!(exprDotName.Lhs.Type is UserDefinedType)) {
           continue;
@@ -304,12 +302,8 @@ namespace DafnyServer {
           var updateStmt = (AssignStatement)statement;
           var leftSide = updateStmt.Lhss;
           var rightSide = updateStmt.Rhss;
-          var leftSideDots = leftSide.OfType<ExprDotName>();
-          var rightSideDots = rightSide.OfType<ExprDotName>();
-          var exprDotNames = leftSideDots.Concat(rightSideDots);
-          var leftSideNameSegments = leftSide.OfType<NameSegment>();
-          var rightSideNameSegments = rightSide.OfType<NameSegment>();
-          var nameSegments = leftSideNameSegments.Concat(rightSideNameSegments);
+          var exprDotNames = leftSide.OfType<ExprDotName>();
+          var nameSegments = leftSide.OfType<NameSegment>();
           var allRightSideExpressions = rightSide.SelectMany(e => e.SubExpressions.SelectMany(GetAllSubExpressions));
           var allLeftSideExpressions =
               leftSide.SelectMany(e => e.SubExpressions.SelectMany(GetAllSubExpressions));
