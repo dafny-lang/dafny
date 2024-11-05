@@ -256,7 +256,7 @@ module Std.Collections.Seq {
 
   /* For an element that occurs at least once in a sequence, the index of its
      first occurrence is returned. */
-  function IndexOf<T(==)>(xs: seq<T>, v: T): (i: nat)
+  function {:opaque} IndexOf<T(==)>(xs: seq<T>, v: T): (i: nat)
     requires v in xs
     ensures i < |xs| && xs[i] == v
     ensures forall j :: 0 <= j < i ==> xs[j] != v
@@ -266,7 +266,7 @@ module Std.Collections.Seq {
 
   /* Returns Some(i), if an element occurs at least once in a sequence, and i is
      the index of its first occurrence. Otherwise the return is None. */
-  function IndexOfOption<T(==)>(xs: seq<T>, v: T): (o: Option<nat>)
+  function {:opaque} IndexOfOption<T(==)>(xs: seq<T>, v: T): (o: Option<nat>)
     ensures if o.Some? then o.value < |xs| && xs[o.value] == v &&
                             forall j :: 0 <= j < o.value ==> xs[j] != v
             else v !in xs
@@ -276,7 +276,7 @@ module Std.Collections.Seq {
 
   /* Returns Some(i), if an element satisfying p occurs at least once in a sequence, and i is
     the index of the first such occurrence. Otherwise the return is None. */
-  function IndexByOption<T(==)>(xs: seq<T>, p: T -> bool): (o: Option<nat>)
+  function {:opaque} IndexByOption<T(==)>(xs: seq<T>, p: T -> bool): (o: Option<nat>)
     ensures if o.Some? then o.value < |xs| && p(xs[o.value]) &&
                             forall j :: 0 <= j < o.value ==> !p(xs[j])
             else forall x <- xs ::!p(x)
@@ -291,7 +291,7 @@ module Std.Collections.Seq {
 
   /* For an element that occurs at least once in a sequence, the index of its
      last occurrence is returned. */
-  function LastIndexOf<T(==)>(xs: seq<T>, v: T): (i: nat)
+  function {:opaque} LastIndexOf<T(==)>(xs: seq<T>, v: T): (i: nat)
     requires v in xs
     ensures i < |xs| && xs[i] == v
     ensures forall j :: i < j < |xs| ==> xs[j] != v
@@ -301,7 +301,7 @@ module Std.Collections.Seq {
 
   /* Returns Some(i), if an element occurs at least once in a sequence, and i is
      the index of its last occurrence. Otherwise the return is None. */
-  function LastIndexOfOption<T(==)>(xs: seq<T>, v: T): (o: Option<nat>)
+  function {:opaque} LastIndexOfOption<T(==)>(xs: seq<T>, v: T): (o: Option<nat>)
     ensures if o.Some? then o.value < |xs| && xs[o.value] == v &&
                             forall j :: o.value < j < |xs| ==> xs[j] != v
             else v !in xs
@@ -311,7 +311,7 @@ module Std.Collections.Seq {
 
   /* Returns Some(i), if an element satisfying p occurs at least once in a sequence, and i is
      the index of the last such occurrence. Otherwise the return is None. */
-  function LastIndexByOption<T(==)>(xs: seq<T>, p: T -> bool): (o: Option<nat>)
+  function {:opaque} LastIndexByOption<T(==)>(xs: seq<T>, p: T -> bool): (o: Option<nat>)
     ensures if o.Some? then o.value < |xs| && p(xs[o.value]) &&
                             forall j {:trigger xs[j]} :: o.value < j < |xs| ==> !p(xs[j])
             else forall x <- xs ::!p(x)
@@ -321,7 +321,7 @@ module Std.Collections.Seq {
   }
 
   /* Returns a sequence without the element at a given position. */
-  function Remove<T>(xs: seq<T>, pos: nat): (ys: seq<T>)
+  function {:opaque} Remove<T>(xs: seq<T>, pos: nat): (ys: seq<T>)
     requires pos < |xs|
     ensures |ys| == |xs| - 1
     ensures forall i {:trigger ys[i], xs[i]} | 0 <= i < pos :: ys[i] == xs[i]
@@ -332,7 +332,7 @@ module Std.Collections.Seq {
 
   /* If a given element occurs at least once in a sequence, the sequence without
      its first occurrence is returned. Otherwise the same sequence is returned. */
-  function RemoveValue<T(==)>(xs: seq<T>, v: T): (ys: seq<T>)
+  function {:opaque} RemoveValue<T(==)>(xs: seq<T>, v: T): (ys: seq<T>)
     ensures v !in xs ==> xs == ys
     ensures v in xs ==> |multiset(ys)| == |multiset(xs)| - 1
     ensures v in xs ==> multiset(ys)[v] == multiset(xs)[v] - 1
@@ -346,7 +346,7 @@ module Std.Collections.Seq {
   }
 
   /* Inserts an element at a given position and returns the resulting (longer) sequence. */
-  function Insert<T>(xs: seq<T>, a: T, pos: nat): seq<T>
+  function {:opaque} Insert<T>(xs: seq<T>, a: T, pos: nat): seq<T>
     requires pos <= |xs|
     ensures |Insert(xs, a, pos)| == |xs| + 1
     ensures forall i {:trigger Insert(xs, a, pos)[i], xs[i]} :: 0 <= i < pos ==> Insert(xs, a, pos)[i] == xs[i]
@@ -359,7 +359,7 @@ module Std.Collections.Seq {
   }
 
   /* Returns the sequence that is in reverse order to a given sequence. */
-  function Reverse<T>(xs: seq<T>): (ys: seq<T>)
+  function {:opaque} Reverse<T>(xs: seq<T>): (ys: seq<T>)
     ensures |ys| == |xs|
     ensures forall i {:trigger ys[i]}{:trigger xs[|xs| - i - 1]} :: 0 <= i < |xs| ==> ys[i] == xs[|xs| - i - 1]
   {
@@ -367,7 +367,7 @@ module Std.Collections.Seq {
   }
 
   /* Returns a constant sequence of a given length. */
-  function Repeat<T>(v: T, length: nat): (xs: seq<T>)
+  function {:opaque} Repeat<T>(v: T, length: nat): (xs: seq<T>)
     ensures |xs| == length
     ensures forall i: nat | i < |xs| :: xs[i] == v
   {
@@ -378,7 +378,7 @@ module Std.Collections.Seq {
   }
 
   /* Unzips a sequence that contains pairs into two separate sequences. */
-  function Unzip<A, B>(xs: seq<(A, B)>): (seq<A>, seq<B>)
+  function {:opaque} Unzip<A, B>(xs: seq<(A, B)>): (seq<A>, seq<B>)
     ensures |Unzip(xs).0| == |Unzip(xs).1| == |xs|
     ensures forall i {:trigger Unzip(xs).0[i]} {:trigger Unzip(xs).1[i]}
               :: 0 <= i < |xs| ==> (Unzip(xs).0[i], Unzip(xs).1[i]) == xs[i]
@@ -390,7 +390,7 @@ module Std.Collections.Seq {
   }
 
   /* Zips two sequences of equal length into one sequence that consists of pairs. */
-  function Zip<A, B>(xs: seq<A>, ys: seq<B>): seq<(A, B)>
+  function {:opaque} Zip<A, B>(xs: seq<A>, ys: seq<B>): seq<(A, B)>
     requires |xs| == |ys|
     ensures |Zip(xs, ys)| == |xs|
     ensures forall i {:trigger Zip(xs, ys)[i]} :: 0 <= i < |Zip(xs, ys)| ==> Zip(xs, ys)[i] == (xs[i], ys[i])
@@ -424,7 +424,7 @@ module Std.Collections.Seq {
    ***********************************************************/
 
   /* Returns the maximum integer value in a non-empty sequence of integers. */
-  function Max(xs: seq<int>): int
+  function {:opaque} Max(xs: seq<int>): int
     requires 0 < |xs|
     ensures forall k :: k in xs ==> Max(xs) >= k
     ensures Max(xs) in xs
@@ -449,7 +449,7 @@ module Std.Collections.Seq {
   }
 
   /* Returns the minimum integer value in a non-empty sequence of integers. */
-  function Min(xs: seq<int>): int
+  function {:opaque} Min(xs: seq<int>): int
     requires 0 < |xs|
     ensures forall k :: k in xs ==> Min(xs) <= k
     ensures Min(xs) in xs
@@ -701,7 +701,7 @@ module Std.Collections.Seq {
 
   /* Returns the sequence one obtains by applying a function to every element
      of a sequence. */
-  function Map<T, R>(f: (T ~> R), xs: seq<T>): (result: seq<R>)
+  function {:opaque} Map<T, R>(f: (T ~> R), xs: seq<T>): (result: seq<R>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures |result| == |xs|
     ensures forall i {:trigger result[i]} :: 0 <= i < |xs| ==> result[i] == f(xs[i])
@@ -714,7 +714,7 @@ module Std.Collections.Seq {
   /* Applies a function to every element of a sequence, returning a Result value (which is a
      failure-compatible type). Returns either a failure, or, if successful at every element,
      the transformed sequence.  */
-  function MapWithResult<T, R, E>(f: (T ~> Result<R, E>), xs: seq<T>): (result: Result<seq<R>, E>)
+  function {:opaque} MapWithResult<T, R, E>(f: (T ~> Result<R, E>), xs: seq<T>): (result: Result<seq<R>, E>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures result.Success? ==>
               && |result.value| == |xs|
@@ -754,7 +754,7 @@ module Std.Collections.Seq {
 
   /* Returns the subsequence consisting of those elements of a sequence that satisfy a given
      predicate. */
-  function Filter<T>(f: (T ~> bool), xs: seq<T>): (result: seq<T>)
+  function {:opaque} Filter<T>(f: (T ~> bool), xs: seq<T>): (result: seq<T>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures |result| <= |xs|
     ensures forall i: nat :: i < |result| && f.requires(result[i]) ==> f(result[i])
