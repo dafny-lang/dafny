@@ -1180,15 +1180,6 @@ scanner recognizes. The only pragma ever recognized was `#line`.
 
 <!-- ./DafnyCore/AST/Grammar/ProgramParser.cs -->
 
-## **Warning: File contains no code** {#p_file_has_no_code}
-
-<!-- %check-resolve-warn -->
-```dafny
-// const c := 42
-```
-
-<!-- INSERT-TEXT -->
-
 ## **Error: [internal error] Parser exception: _message_** {#p_internal_exception}
 
 <!-- INSERT-TEXT -->
