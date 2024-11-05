@@ -1,1 +1,1 @@
-// CHECK-L: error[E0277]: the trait bound `Rc<Node>: DafnyType` is not satisfied
+// CHECK-L: error[E0369]: binary operation `!=` cannot be applied to type `Sequence<Rc<Node>>`

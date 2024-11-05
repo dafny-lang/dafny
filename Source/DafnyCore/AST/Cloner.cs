@@ -86,12 +86,13 @@ namespace Microsoft.Dafny {
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
         if (dd.Var == null) {
-          return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, CloneType(dd.BaseType),
+          return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), dd.TypeArgs.ConvertAll(CloneTypeParam), newParent,
+            CloneType(dd.BaseType), dd.WitnessKind, CloneExpr(dd.Witness),
             dd.ParentTraits.ConvertAll(CloneType),
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         } else {
-          return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, CloneBoundVar(dd.Var, false),
-            CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness),
+          return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), dd.TypeArgs.ConvertAll(CloneTypeParam), newParent,
+            CloneBoundVar(dd.Var, false), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness),
             dd.ParentTraits.ConvertAll(CloneType),
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         }
@@ -194,7 +195,7 @@ namespace Microsoft.Dafny {
     public TypeParameter CloneTypeParam(TypeParameter tp) {
       return (TypeParameter)typeParameterClones.GetOrCreate(tp,
         () => new TypeParameter(Range(tp.RangeToken), tp.NameNode.Clone(this), tp.VarianceSyntax,
-          CloneTPChar(tp.Characteristics)));
+          CloneTPChar(tp.Characteristics), tp.TypeBounds.ConvertAll(CloneType)));
     }
 
     public virtual MemberDecl CloneMember(MemberDecl member, bool isReference) {
@@ -333,10 +334,11 @@ namespace Microsoft.Dafny {
       } else if (!CloneResolvedFields && attrs.Name.StartsWith("_")) {
         // skip this attribute, since it would have been produced during resolution
         return CloneAttributes(attrs.Prev);
-      } else if (attrs is UserSuppliedAttributes) {
-        var usa = (UserSuppliedAttributes)attrs;
+      } else if (attrs is UserSuppliedAttributes usa) {
         return new UserSuppliedAttributes(Tok(usa.tok), Tok(usa.OpenBrace), Tok(usa.CloseBrace),
           attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
+      } else if (attrs is UserSuppliedAtAttribute usaa) {
+        return new UserSuppliedAtAttribute(Tok(usaa.tok), CloneExpr(usaa.Arg), CloneAttributes(usaa.Prev));
       } else {
         return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
       }

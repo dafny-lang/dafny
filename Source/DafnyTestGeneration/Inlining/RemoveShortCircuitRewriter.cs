@@ -124,7 +124,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
     switch (statement) {
       case IfStmt ifStatement:
         return CloneIfStmt(ifStatement);
-      case UpdateStmt updateStatement:
+      case AssignStatement updateStatement:
         return CloneUpdateStmt(updateStatement);
       case ReturnStmt returnStatement:
         return CloneReturnStmt(returnStatement);
@@ -142,7 +142,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
         return CloneForLoopStmt(forLoopStmt);
       case CallStmt callStmt:
         return CloneCallStmt(callStmt);
-      case PredicateStmt or ForallStmt or RevealStmt: // always ghost?
+      case PredicateStmt or ForallStmt or HideRevealStmt: // always ghost?
         return statement;
       default:
         return base.CloneStmt(statement, isReference);
@@ -202,8 +202,8 @@ public class RemoveShortCircuitingRewriter : Cloner {
     return new IfStmt(ifStatement.RangeToken, ifStatement.IsBindingGuard, guard, thn, els, ifStatement.Attributes);
   }
 
-  private Statement CloneUpdateStmt(UpdateStmt updateStatement) {
-    return new UpdateStmt(updateStatement.RangeToken, CloneExpressionList(updateStatement.Lhss), CloneRhss(updateStatement.Rhss, true));
+  private Statement CloneUpdateStmt(AssignStatement updateStatement) {
+    return new AssignStatement(updateStatement.RangeToken, CloneExpressionList(updateStatement.Lhss), CloneRhss(updateStatement.Rhss, true));
   }
 
   private Statement CloneAssignOrReturnStmt(AssignOrReturnStmt assignOrReturnStmt) {
@@ -310,16 +310,16 @@ public class RemoveShortCircuitingRewriter : Cloner {
         new List<LocalVariable> { new(new RangeToken(original.StartToken, original.StartToken), tmpVarName, typ, false) }, null);
     newStmtStack.Last().Add(varDecl);
     if (initialExpr != null) {
-      var updateStmt = new UpdateStmt(new RangeToken(original.StartToken, original.StartToken), new List<Expression> { identifierExpr },
+      var updateStmt = new AssignStatement(new RangeToken(original.StartToken, original.StartToken), new List<Expression> { identifierExpr },
           new List<AssignmentRhs> { new ExprRhs(initialExpr) });
       newStmtStack.Last().Add(updateStmt);
     }
-    var thenStmt = new UpdateStmt(
+    var thenStmt = new AssignStatement(
       new RangeToken(thenToken, thenToken),
       new List<Expression> { identifierExpr },
       new List<AssignmentRhs> { new ExprRhs(thenExpr) });
     var elseStmt = elseExpr != null
-      ? new UpdateStmt(new RangeToken(elseToken, elseToken), new List<Expression> { identifierExpr },
+      ? new AssignStatement(new RangeToken(elseToken, elseToken), new List<Expression> { identifierExpr },
         new List<AssignmentRhs> { new ExprRhs(elseExpr) })
       : null;
     var ifStmt = new IfStmt(new RangeToken(original.StartToken, original.StartToken), false, testExpr,
@@ -344,7 +344,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
     VarDeclStmt varDecl = new VarDeclStmt(
       new RangeToken(expr.StartToken, expr.StartToken),
       new List<LocalVariable> { new(new RangeToken(expr.StartToken, expr.StartToken), tmpVarName, new InferredTypeProxy(), false) }, null);
-    UpdateStmt updateStmt;
+    AssignStatement assignStatement;
     int i = 0;
 
     switch (expr) {
@@ -363,20 +363,20 @@ public class RemoveShortCircuitingRewriter : Cloner {
           Expression.CreateBoolLiteral(binaryExpr.E1.EndToken, true), binaryExpr);
       case StmtExpr stmtExpr:
         newStmtStack.Last().Add(varDecl);
-        updateStmt = new UpdateStmt(stmtExpr.E.RangeToken, new List<Expression> { identifierExpr },
+        assignStatement = new AssignStatement(stmtExpr.E.RangeToken, new List<Expression> { identifierExpr },
           new List<AssignmentRhs> { new ExprRhs(stmtExpr.E) });
         var stmtBlockUpdate = new BlockStmt(new RangeToken(stmtExpr.S.StartToken, stmtExpr.E.EndToken), new List<Statement>());
         stmtBlockUpdate.Body.Add(stmtExpr.S);
-        stmtBlockUpdate.Body.Add(updateStmt);
+        stmtBlockUpdate.Body.Add(assignStatement);
         newStmtStack.Last().Add(stmtBlockUpdate);
         return identifierExpr;
       case NestedMatchExpr matchExpr:
         newStmtStack.Last().Add(varDecl);
         var caseStmts = new List<NestedMatchCaseStmt>();
         foreach (var c in matchExpr.Cases) {
-          updateStmt = new UpdateStmt(new RangeToken(c.Body.StartToken, c.Body.StartToken), new List<Expression> { identifierExpr },
+          assignStatement = new AssignStatement(new RangeToken(c.Body.StartToken, c.Body.StartToken), new List<Expression> { identifierExpr },
             new List<AssignmentRhs> { new ExprRhs(c.Body) });
-          caseStmts.Add(new NestedMatchCaseStmt(new RangeToken(c.StartToken, c.StartToken), c.Pat, new List<Statement> { updateStmt }));
+          caseStmts.Add(new NestedMatchCaseStmt(new RangeToken(c.StartToken, c.StartToken), c.Pat, new List<Statement> { assignStatement }));
         }
         var matchStmt = new NestedMatchStmt(matchExpr.RangeToken, matchExpr.Source, caseStmts, false, matchExpr.Attributes);
         newStmtStack.Last().Add(matchStmt);
@@ -388,16 +388,16 @@ public class RemoveShortCircuitingRewriter : Cloner {
         varDecl = new VarDeclStmt(
           new RangeToken(letOrFailExpr.Lhs.Var.StartToken, letOrFailExpr.Rhs.EndToken),
           new List<LocalVariable> { new(letOrFailExpr.Lhs.Var.RangeToken, letOrFailExpr.Lhs.Var.Name, new InferredTypeProxy(), false) }, assignOrReturn);
-        updateStmt = new UpdateStmt(letOrFailExpr.Body.RangeToken, new List<Expression> { identifierExpr },
+        assignStatement = new AssignStatement(letOrFailExpr.Body.RangeToken, new List<Expression> { identifierExpr },
           new List<AssignmentRhs> { new ExprRhs(letOrFailExpr.Body) });
-        newStmtStack.Last().Add(new BlockStmt(letOrFailExpr.RangeToken, new List<Statement> { varDecl, updateStmt }));
+        newStmtStack.Last().Add(new BlockStmt(letOrFailExpr.RangeToken, new List<Statement> { varDecl, assignStatement }));
         return identifierExpr;
       case LetOrFailExpr letOrFailExpr:
         newStmtStack.Last().Add(varDecl);
         var assignOrReturnNoLhs = new AssignOrReturnStmt(letOrFailExpr.Rhs.RangeToken, new List<Expression>(), new ExprRhs(letOrFailExpr.Rhs), null, new List<AssignmentRhs>());
-        updateStmt = new UpdateStmt(letOrFailExpr.Body.RangeToken, new List<Expression> { identifierExpr },
+        assignStatement = new AssignStatement(letOrFailExpr.Body.RangeToken, new List<Expression> { identifierExpr },
           new List<AssignmentRhs> { new ExprRhs(letOrFailExpr.Body) });
-        newStmtStack.Last().Add(new BlockStmt(letOrFailExpr.RangeToken, new List<Statement> { assignOrReturnNoLhs, updateStmt }));
+        newStmtStack.Last().Add(new BlockStmt(letOrFailExpr.RangeToken, new List<Statement> { assignOrReturnNoLhs, assignStatement }));
         return identifierExpr;
       case LetExpr letExpr:
         if (letExpr.Exact == false || letExpr.BoundVars.Count() != letExpr.RHSs.Count) {
@@ -408,28 +408,28 @@ public class RemoveShortCircuitingRewriter : Cloner {
         var blockUpdate = new BlockStmt(letExpr.RangeToken, new List<Statement>());
         foreach (var boundVar in letExpr.BoundVars) {
           identifierExpr = new IdentifierExpr(letExpr.RHSs[i].StartToken, boundVar.Name);
-          updateStmt = new UpdateStmt(letExpr.RHSs[i].RangeToken, new List<Expression> { identifierExpr },
+          assignStatement = new AssignStatement(letExpr.RHSs[i].RangeToken, new List<Expression> { identifierExpr },
               new List<AssignmentRhs> { new ExprRhs(letExpr.RHSs[i]) });
           varDecl = new VarDeclStmt(
             new RangeToken(boundVar.StartToken, letExpr.RHSs[i].EndToken),
-            new List<LocalVariable> { new(boundVar.RangeToken, boundVar.Name, new InferredTypeProxy(), false) }, updateStmt);
+            new List<LocalVariable> { new(boundVar.RangeToken, boundVar.Name, new InferredTypeProxy(), false) }, assignStatement);
           blockUpdate.Body.Add(varDecl);
           i += 1;
         }
         identifierExpr = new IdentifierExpr(letExpr.Body.StartToken, tmpVarName);
-        updateStmt = new UpdateStmt(letExpr.Body.RangeToken, new List<Expression> { identifierExpr },
+        assignStatement = new AssignStatement(letExpr.Body.RangeToken, new List<Expression> { identifierExpr },
           new List<AssignmentRhs> { new ExprRhs(letExpr.Body) });
-        blockUpdate.Body.Add(updateStmt);
+        blockUpdate.Body.Add(assignStatement);
         newStmtStack.Last().Add(blockUpdate);
         return identifierExpr;
       case ApplySuffix applySuffix:
         if (wasProcessingRhs) {
           break;
         }
-        updateStmt = new UpdateStmt(applySuffix.RangeToken, new List<Expression> { identifierExpr },
+        assignStatement = new AssignStatement(applySuffix.RangeToken, new List<Expression> { identifierExpr },
           new List<AssignmentRhs> { new ExprRhs(applySuffix) });
         newStmtStack.Last().Add(varDecl);
-        newStmtStack.Last().Add(updateStmt);
+        newStmtStack.Last().Add(assignStatement);
         return identifierExpr;
     }
     nextVariableId--; // the new variable was not used in the end

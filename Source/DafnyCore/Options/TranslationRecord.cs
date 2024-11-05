@@ -26,19 +26,31 @@ public class TranslationRecord {
 
     OptionsByModule = new();
 
-    foreach (var module in program.RawModules()) {
+    foreach (var module in program.CompileModules) {
       if (module is DefaultModuleDefinition || !module.ShouldCompile(program.Compilation)) {
+        continue;
+      }
+
+      // This is primarily here to exclude prefix modules
+      // (e.g. something like A.B that only appears in a module A.B.C { ... } declaration)
+      // since those can appear in multiple separately-compiled projects. 
+      if (ModuleEmptyForCompilation(module)) {
         continue;
       }
 
       Dictionary<string, object> recordedOptions = new();
       OptionsByModule[module.FullDafnyName] = recordedOptions;
 
-      foreach (var (option, _) in OptionChecks) {
+      foreach (var option in OptionRegistry.TranslationOptions) {
         var optionValue = program.Options.Get((dynamic)option);
         recordedOptions.Add(option.Name, optionValue);
       }
     }
+  }
+
+  public static bool ModuleEmptyForCompilation(ModuleDefinition module) {
+    return !(module.DefaultClass?.Members.Any() ?? false)   // DefaultClass is null for _System
+           && module.TopLevelDecls.All(d => d is DefaultClassDecl or ModuleDecl);
   }
 
   public static TranslationRecord Empty(Program program) {
@@ -104,26 +116,7 @@ public class TranslationRecord {
       }
     }
 
-    var success = true;
-    // Yo dawg, we heard you liked options so we put Options in your Options... :)
-    var relevantOptions = dafnyProgram.Options.Options.OptionArguments.Keys.ToHashSet();
-    foreach (var (option, check) in OptionChecks) {
-      // It's important to only look at the options the current command uses,
-      // because other options won't be initialized to the correct default value.
-      // See CommandRegistry.Create().
-      if (!relevantOptions.Contains(option)) {
-        continue;
-      }
-
-      var localValue = dafnyProgram.Options.Get(option);
-
-      foreach (var moduleName in OptionsByModule.Keys) {
-        var libraryValue = Get(dafnyProgram.Reporter, moduleName, option);
-        success = success && check(dafnyProgram.Reporter, origin, messagePrefix, option, localValue, libraryValue);
-      }
-    }
-
-    return success;
+    return true;
   }
 
   public object Get(ErrorReporter reporter, string moduleName, Option option) {
@@ -158,13 +151,5 @@ public class TranslationRecord {
     }
 
     OptionsByModule = OptionsByModule.Union(other.OptionsByModule).ToDictionary(p => p.Key, p => p.Value);
-  }
-
-  private static readonly Dictionary<Option, OptionCompatibility.OptionCheck> OptionChecks = new();
-
-  public static void RegisterLibraryChecks(IDictionary<Option, OptionCompatibility.OptionCheck> checks) {
-    foreach (var (option, check) in checks) {
-      OptionChecks.Add(option, check);
-    }
   }
 }

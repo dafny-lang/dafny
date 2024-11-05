@@ -8,22 +8,25 @@
 using System;
 using System.Numerics;
 using System.Collections;
+#pragma warning disable CS0164 // This label has not been referenced
+#pragma warning disable CS0162 // Unreachable code detected
+#pragma warning disable CS1717 // Assignment made to same variable
 
 namespace Std.Arithmetic.MulInternals {
 
   public partial class __default {
     public static BigInteger MulPos(BigInteger x, BigInteger y)
     {
-      BigInteger _149___accumulator = BigInteger.Zero;
+      BigInteger _0___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((x).Sign == 0) {
-        return (BigInteger.Zero) + (_149___accumulator);
+        return (BigInteger.Zero) + (_0___accumulator);
       } else {
-        _149___accumulator = (_149___accumulator) + (y);
-        BigInteger _in32 = (x) - (BigInteger.One);
-        BigInteger _in33 = y;
-        x = _in32;
-        y = _in33;
+        _0___accumulator = (_0___accumulator) + (y);
+        BigInteger _in0 = (x) - (BigInteger.One);
+        BigInteger _in1 = y;
+        x = _in0;
+        y = _in1;
         goto TAIL_CALL_START;
       }
     }

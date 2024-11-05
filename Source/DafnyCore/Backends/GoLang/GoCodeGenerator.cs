@@ -12,14 +12,22 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Text.RegularExpressions;
 using DafnyCore;
+using DafnyCore.Options;
 using JetBrains.Annotations;
 using Tomlyn.Model;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
   class GoCodeGenerator : SinglePassCodeGenerator {
-    //TODO: This is tentative, update this to point to public module once available.
-    private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/";
+    protected override void EmitStaticExternMethodQualifier(string qual, ConcreteSyntaxTree wr) {
+      if (qual != null) {
+        qual = ImportPrefix + qual;
+      }
+      base.EmitStaticExternMethodQualifier(qual, wr);
+    }
+
+    protected override bool RequiresAllVariablesToBeUsed => true;
+    private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/v4/";
 
     private bool GoModuleMode;
     private string GoModuleName;
@@ -31,7 +39,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       if (Options?.CoverageLegendFile != null) {
         //TODO: What's the module name for this?
-        Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
+        ImportsNotFromDafnyModules.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
       }
     }
 
@@ -51,8 +59,10 @@ namespace Microsoft.Dafny.Compilers {
       return $"_default_{tp.GetCompileName(Options)}";
     }
 
-    private readonly List<Import> Imports = new(StandardImports);
+    private readonly Dictionary<ModuleDefinition, Import> ModuleImports = new();
+    private readonly List<Import> ImportsNotFromDafnyModules = new(StandardImports);
     private string ModuleName;
+    private ModuleDefinition CurrentModule;
     private ConcreteSyntaxTree RootImportWriter;
     private ConcreteSyntaxTree RootImportDummyWriter;
 
@@ -63,6 +73,7 @@ namespace Microsoft.Dafny.Compilers {
       };
     private static string DummyTypeName = "Dummy__";
 
+    private static string ImportPrefix = "m_";
     private struct Import {
       public string Name, Path;
       public ModuleDefinition ExternModule;
@@ -71,6 +82,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Go", program.Name);
 
+      CurrentModule = null;
       ModuleName = MainModuleName = program.MainMethod != null ? "main" : TransformToClassName(Path.GetFileNameWithoutExtension(program.Name));
 
       wr.WriteLine("package {0}", ModuleName);
@@ -83,7 +95,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         path = GoModuleMode ? DafnyRuntimeGoModule : "";
       }
-      Imports.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
+      ImportsNotFromDafnyModules.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
 
       if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
         EmitRuntimeSource("DafnyStandardLibraries_go", wr);
@@ -122,7 +134,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine(")");
       importDummyWriter = wr.Fork();
       if (ModuleName != "dafny") {
-        foreach (var import in Imports) {
+        foreach (var import in ImportsNotFromDafnyModules.Concat(ModuleImports.Values)) {
           EmitImport(import, importWriter, importDummyWriter);
         }
       }
@@ -132,6 +144,7 @@ namespace Microsoft.Dafny.Compilers {
       IdProtect(Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_"));
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
+      CurrentModule = null;
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
 
       var wBody = wr.NewNamedBlock("func main()");
@@ -157,7 +170,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Sequence)", FormatCompanionTypeName(((GoCodeGenerator.ClassWriter)cw).ClassName), argsParameterName);
     }
 
-    private Import CreateImport(string moduleName, bool isDefault, ModuleDefinition externModule, string /*?*/ libraryName) {
+    private Import CreateImport(string moduleName, ModuleDefinition externModule,
+      string /*?*/ libraryName) {
       string pkgName;
       if (libraryName != null) {
         pkgName = libraryName;
@@ -175,12 +189,24 @@ namespace Microsoft.Dafny.Compilers {
       }
 
 
-      return new Import { Name = moduleName, Path = pkgName, ExternModule = externModule };
+      return new Import { Name = ImportPrefix + moduleName, Path = pkgName, ExternModule = externModule };
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault,
+    protected override bool ShouldCompileModule(Program program, ModuleDefinition module) {
+      if (!base.ShouldCompileModule(program, module)) {
+        return false;
+      }
+
+      if (TranslationRecord.ModuleEmptyForCompilation(module)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
       ModuleDefinition externModule,
-      string libraryName /*?*/, ConcreteSyntaxTree wr) {
+      string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       if (isDefault) {
         // Fold the default module into the main module
         return wr;
@@ -195,19 +221,25 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       ModuleName = PublicModuleIdProtect(moduleName);
-      var import = CreateImport(ModuleName, isDefault, externModule, libraryName);
+      CurrentModule = module;
+      var import = CreateImport(ModuleName, externModule, libraryName);
       var filename = string.Format("{0}/{0}.go", import.Path);
       var w = wr.NewFile(filename);
       EmitModuleHeader(w);
 
       import.Path = goModuleName + import.Path;
-      AddImport(import);
+      AddImport(module, import);
 
       return w;
     }
 
     protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
+
+      if (externModule == null && TranslationRecord.ModuleEmptyForCompilation(module)) {
+        return;
+      }
+
       var goModuleName = "";
       if (GoModuleMode) {
         // "_System" module has a special handling because although it gets translated from a Dafny module,
@@ -234,20 +266,27 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      var import = CreateImport(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
+      var publicModuleName = PublicModuleIdProtect(module.GetCompileName(Options));
+      var import = CreateImport(publicModuleName, externModule, libraryName);
       import.Path = goModuleName + import.Path;
-      AddImport(import);
+      AddImport(module, import);
     }
 
     protected override void FinishModule() {
+      CurrentModule = null;
       ModuleName = MainModuleName;
     }
 
-    private void AddImport(Import import) {
+    private void AddImport(ModuleDefinition module, Import import) {
       // Import in root module
       EmitImport(import, RootImportWriter, RootImportDummyWriter);
       // Import in all subsequent modules
-      Imports.Add(import);
+      ModuleImports[module] = import;
+      var implemented = module.GetImplementedModule();
+      while (implemented != null) {
+        ModuleImports[implemented] = import;
+        implemented = implemented.GetImplementedModule();
+      }
     }
 
     private void EmitImport(Import import, ConcreteSyntaxTree importWriter, ConcreteSyntaxTree importDummyWriter) {
@@ -920,7 +959,7 @@ namespace Microsoft.Dafny.Compilers {
                 var compiledConstructorsProcessed = 0;
                 for (var i = 0; i < n; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
-                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                  Contract.Assert(arg.GetOrCreateCompileName(currentIdGenerator) == dtor.CorrespondingFormals[i].GetOrCreateCompileName(currentIdGenerator));
                   if (ctor_i.IsGhost) {
                     continue;
                   }
@@ -1347,7 +1386,7 @@ namespace Microsoft.Dafny.Compilers {
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = p.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-            if (!instantiatedType.Equals(p.Type)) {
+            if (!p.IsGhost && !instantiatedType.Equals(p.Type)) {
               // var p instantiatedType = p.(instantiatedType)
               var pName = IdName(inParams[i]);
               DeclareLocalVar(pName, instantiatedType, p.tok, true, null, w);
@@ -1592,11 +1631,11 @@ namespace Microsoft.Dafny.Compilers {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "_dafny.BV";
       } else if (xType.AsNewtype != null && member == null) {  // when member is given, use UserDefinedType case below
-        NativeType nativeType = xType.AsNewtype.NativeType;
-        if (nativeType != null) {
+        var newtypeDecl = xType.AsNewtype;
+        if (newtypeDecl.NativeType is { } nativeType) {
           return GetNativeTypeName(nativeType);
         }
-        return TypeName(xType.AsNewtype.BaseType, wr, tok);
+        return TypeName(newtypeDecl.ConcreteBaseType(xType.TypeArgs), wr, tok);
       } else if (xType.IsObjectQ) {
         return AnyType;
       } else if (xType.IsArrayType) {
@@ -1651,7 +1690,7 @@ namespace Microsoft.Dafny.Compilers {
         return "false";
       } else if (xType is CharType) {
         return $"{CharTypeName}({CharType.DefaultValueAsString})";
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         return "_dafny.Zero";
       } else if (xType is RealType) {
         return "_dafny.ZeroReal";
@@ -1695,7 +1734,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (td.NativeType != null) {
           return GetNativeTypeName(td.NativeType) + "(0)";
         } else {
-          return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.ConcreteBaseType(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
@@ -1813,10 +1852,10 @@ namespace Microsoft.Dafny.Compilers {
       // XXX This duplicates some of the logic in UserDefinedTypeName, but if we
       // don't do it here, we end up passing the name of the module to
       // FormatCompanionName, which doesn't help anyone
-      if (type is UserDefinedType udt && udt.ResolvedClass != null && IsExternMemberOfExternModule(member, udt.ResolvedClass)) {
+      if (type is UserDefinedType { ResolvedClass: not null } udt && IsExternMemberOfExternModule(member, udt.ResolvedClass)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!udt.ResolvedClass.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
-        return IdProtect(udt.ResolvedClass.EnclosingModuleDefinition.GetCompileName(Options));
+        return IdProtect(ModuleImports[udt.ResolvedClass.EnclosingModuleDefinition].Name);
       }
       return TypeName_Related(FormatCompanionName, type, wr, tok, member);
     }
@@ -1984,14 +2023,6 @@ namespace Microsoft.Dafny.Compilers {
       EmitReturnWithCoercions(outParams, null, null, wr);
     }
 
-    protected override void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      var wStmts = wr.Fork();
-      var w = EmitReturnExpr(wr);
-      var fromType = thisContext == null ? expr.Type : expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-      w = EmitCoercionIfNecessary(fromType, resultType, expr.tok, w);
-      w.Append(Expr(expr, inLetExprBody, wStmts));
-    }
-
     protected void EmitReturnWithCoercions(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, Dictionary<TypeParameter, Type>/*?*/ typeMap, ConcreteSyntaxTree wr) {
       wr.Write("return");
       var sep = " ";
@@ -2074,7 +2105,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
-      wr.Write($"for {loopIndex.CompileName} := ");
+      wr.Write($"for {loopIndex.GetOrCreateCompileName(currentIdGenerator)} := ");
       var startWr = wr.Fork();
       wr.Write($"; ");
 
@@ -2083,28 +2114,28 @@ namespace Microsoft.Dafny.Compilers {
         if (endVarName == null) {
           wr.Write("true");
         } else if (IsOrderedByCmp(loopIndex.Type)) {
-          wr.Write($"{loopIndex.CompileName}.Cmp({endVarName}) < 0");
+          wr.Write($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)}.Cmp({endVarName}) < 0");
         } else {
-          wr.Write($"{loopIndex.CompileName} < {endVarName}");
+          wr.Write($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)} < {endVarName}");
         }
         if (AsNativeType(loopIndex.Type) == null) {
-          bodyWr = wr.NewBlock($"; {loopIndex.CompileName} = {loopIndex.CompileName}.Plus(_dafny.One)");
+          bodyWr = wr.NewBlock($"; {loopIndex.GetOrCreateCompileName(currentIdGenerator)} = {loopIndex.GetOrCreateCompileName(currentIdGenerator)}.Plus(_dafny.One)");
         } else {
-          bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++");
+          bodyWr = wr.NewBlock($"; {loopIndex.GetOrCreateCompileName(currentIdGenerator)}++");
         }
       } else {
         if (endVarName == null) {
           wr.Write("true");
         } else if (IsOrderedByCmp(loopIndex.Type)) {
-          wr.Write($"{endVarName}.Cmp({loopIndex.CompileName}) < 0");
+          wr.Write($"{endVarName}.Cmp({loopIndex.GetOrCreateCompileName(currentIdGenerator)}) < 0");
         } else {
-          wr.Write($"{endVarName} < {loopIndex.CompileName}");
+          wr.Write($"{endVarName} < {loopIndex.GetOrCreateCompileName(currentIdGenerator)}");
         }
         bodyWr = wr.NewBlock($"; ");
         if (AsNativeType(loopIndex.Type) == null) {
-          bodyWr.WriteLine($"{loopIndex.CompileName} = {loopIndex.CompileName}.Minus(_dafny.One)");
+          bodyWr.WriteLine($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)} = {loopIndex.GetOrCreateCompileName(currentIdGenerator)}.Minus(_dafny.One)");
         } else {
-          bodyWr.WriteLine($"{loopIndex.CompileName}--");
+          bodyWr.WriteLine($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)}--");
         }
       }
       bodyWr = EmitContinueLabel(labels, bodyWr);
@@ -2224,8 +2255,11 @@ namespace Microsoft.Dafny.Compilers {
       if (cl is TraitDecl { IsObjectTrait: true }) {
         wr.Write("_dafny.New_Object()");
       } else {
+        var ctor = (Constructor)initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
+        var sep = "";
         wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
         EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr);
+        wr.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
         wr.Write(")");
       }
     }
@@ -2573,11 +2607,77 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    /* Obtained by running the following on the console on the page https://pkg.go.dev/std :
+     var lineLength = 0; copy([...document.querySelectorAll(
+    "td > div.UnitDirectories-pathCell > div > span, "+
+    "td > div.UnitDirectories-pathCell > div > a")]
+    .map((e, i) => {
+        var res = JSON.stringify(e.textContent);
+        if(lineLength + res.length > 94) {
+            lineLength = res.length;
+            res = ",\n      " + res;
+        } else if(i > 0) {
+            res = "," + res;
+            lineLength += res.length;
+        }
+        return res;
+    }).join(""))
+     */
+    public readonly HashSet<string> ReservedModuleNames = new() {
+      "c",
+      "archive",
+      "bufio",
+      "builtin",
+      "bytes",
+      "cmp",
+      "compress",
+      "container",
+      "context",
+      "crypto",
+      "database",
+      "debug",
+      "embed",
+      "encoding",
+      "errors",
+      "expvar",
+      "flag",
+      "fmt",
+      "go",
+      "hash",
+      "html",
+      "image",
+      "index",
+      "internal",
+      "io",
+      "log",
+      "maps",
+      "math",
+      "mime",
+      "net",
+      "os",
+      "path",
+      "plugin",
+      "reflect",
+      "regexp",
+      "runtime",
+      "slices",
+      "sort",
+      "strconv",
+      "strings",
+      "sync",
+      "syscall",
+      "testing",
+      "text",
+      "time",
+      "unicode",
+      "unsafe"
+    };
+
     public string PublicModuleIdProtect(string name) {
-      if (name == "C") {
-        return "_C";
+      if (ReservedModuleNames.Contains(name.ToLower())) {
+        return "_" + name;
       } else {
-        return name;
+        return IdProtect(name);
       }
     }
 
@@ -2603,7 +2703,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
-      var enclosingModuleDefinitionId = PublicModuleIdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
+      string enclosingModuleDefinitionId;
+      if (CurrentModule == cl.EnclosingModuleDefinition || cl.EnclosingModuleDefinition.IsDefaultModule) {
+        enclosingModuleDefinitionId = PublicModuleIdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
+      } else {
+        enclosingModuleDefinitionId = ModuleImports[cl.EnclosingModuleDefinition].Name;
+      }
       if (IsExternMemberOfExternModule(member, cl)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
@@ -2622,7 +2727,6 @@ namespace Microsoft.Dafny.Compilers {
           // Don't use IdName since that'll capitalize, which is unhelpful for
           // built-in types
           return qual + (qual == "" ? "" : ".") + cl.GetCompileName(Options);
-
         } else if (!full || cl.EnclosingModuleDefinition.TryToAvoidName || this.ModuleName == enclosingModuleDefinitionId) {
           return IdName(cl);
         } else {
@@ -2838,7 +2942,7 @@ namespace Microsoft.Dafny.Compilers {
             EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w);
             w.Write(")");
           });
-        } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
+        } else if (NeedsCustomReceiverNotTrait(member)) {
           // instance const in a newtype
           Contract.Assert(typeArgs.Count == 0);
           lvalue = SimpleLvalue(w => {
@@ -2847,7 +2951,7 @@ namespace Microsoft.Dafny.Compilers {
             w.Write(")");
           });
         } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
-          lvalue = SuffixLvalue(obj, $"._{member.GetCompileName(Options)}");
+          lvalue = SuffixLvalue(obj, $".{InternalFieldPrefix}{member.GetCompileName(Options)}");
         } else if (internalAccess) {
           lvalue = SuffixLvalue(obj, $".{IdName(member)}");
         } else if (member is ConstantField) {
@@ -2958,7 +3062,12 @@ namespace Microsoft.Dafny.Compilers {
       return (wArray, wRhs);
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex) => $"{HelperModulePrefix}IntOf({arrayIndex})";
+    protected override void EmitArrayIndexToInt(ConcreteSyntaxTree wr, out ConcreteSyntaxTree wIndex) {
+      wIndex = new ConcreteSyntaxTree();
+      wr.Write($"{HelperModulePrefix}IntOf(");
+      wr.Append(wIndex);
+      wr.Write(")");
+    }
 
     protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (expr is LiteralExpr lit) {
@@ -3201,7 +3310,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("{0}.{1}()", source, FormatDatatypeConstructorCheckName(ctor.GetCompileName(Options)));
     }
 
-    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex,
+      DatatypeCtor ctor, Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
@@ -3210,7 +3320,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an erasable-wrapper type, handled above
         wr.Write("(*(");
         source(wr);
-        wr.Write(").IndexInt({0})).({1})", formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Token.NoToken));
+        wr.Write(").IndexInt({0})).({1})", formalNonGhostIndex, TypeName(getTypeArgs()[formalNonGhostIndex], wr, Token.NoToken));
       } else {
         var dtorName = DatatypeFieldName(dtor, formalNonGhostIndex);
         wr = EmitCoercionIfNecessary(from: dtor.Type, to: bvType, tok: dtor.tok, wr: wr);
@@ -3304,7 +3414,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -3350,8 +3460,8 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
+            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
+            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1Type))) {
               staticCallString = $"{HelperModulePrefix}AreEqual";
             } else if (IsOrderedByCmp(eqType)) {
               callString = "Cmp";
@@ -3366,8 +3476,8 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
+            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
+            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1Type))) {
               preOpString = "!";
               staticCallString = $"{HelperModulePrefix}AreEqual";
             } else if (IsDirectlyComparable(eqType)) {
@@ -3387,7 +3497,7 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         case BinaryExpr.ResolvedOpcode.Lt:
-          if (IsOrderedByCmp(e0.Type)) {
+          if (IsOrderedByCmp(e0Type)) {
             callString = "Cmp";
             postOpString = " < 0";
           } else {
@@ -3395,7 +3505,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
-          if (IsOrderedByCmp(e0.Type)) {
+          if (IsOrderedByCmp(e0Type)) {
             callString = "Cmp";
             postOpString = " <= 0";
           } else {
@@ -3403,7 +3513,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
-          if (IsOrderedByCmp(e0.Type)) {
+          if (IsOrderedByCmp(e0Type)) {
             callString = "Cmp";
             postOpString = " >= 0";
           } else {
@@ -3411,7 +3521,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
-          if (IsOrderedByCmp(e0.Type)) {
+          if (IsOrderedByCmp(e0Type)) {
             callString = "Cmp";
             postOpString = " > 0";
           } else {
@@ -3424,11 +3534,11 @@ namespace Microsoft.Dafny.Compilers {
           }
           if (AsNativeType(resultType) != null) {
             opString = "<<";
-            if (AsNativeType(e1.Type) == null) {
+            if (AsNativeType(e1Type) == null) {
               postOpString = ".Uint64()";
             }
           } else {
-            if (AsNativeType(e1.Type) != null) {
+            if (AsNativeType(e1Type) != null) {
               callString = "Lsh(_dafny.IntOfUint64(uint64";
               postOpString = "))";
             } else {
@@ -3439,11 +3549,11 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.RightShift:
           if (AsNativeType(resultType) != null) {
             opString = ">>";
-            if (AsNativeType(e1.Type) == null) {
+            if (AsNativeType(e1Type) == null) {
               postOpString = ".Uint64()";
             }
           } else {
-            if (AsNativeType(e1.Type) != null) {
+            if (AsNativeType(e1Type) != null) {
               callString = "Rsh(_dafny.IntOfUint64(uint64";
               postOpString = "))";
             } else {
@@ -3563,7 +3673,7 @@ namespace Microsoft.Dafny.Compilers {
           staticCallString = $"{DafnySequenceCompanion}.Contains"; reverseArguments = true; break;
 
         default:
-          base.CompileBinOp(op, e0, e1, tok, resultType,
+          base.CompileBinOp(op, e0Type, e1Type, tok, resultType,
             out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);
           break;
@@ -3826,7 +3936,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (to.IsTypeParameter || (from != null && EqualsUpToParameters(from, to))) {
         // do nothing
         return wr;
-      } else if (from != null && from.IsSubtypeOf(to, true, true)) {
+      } else if (from != null && !from.IsTypeParameter && from.IsSubtypeOf(to, true, true)) {
         // upcast
         return wr;
       } else if (from == null || from.IsTypeParameter || to.IsSubtypeOf(from, true, true)) {
@@ -3850,15 +3960,23 @@ namespace Microsoft.Dafny.Compilers {
           return w;
         }
       } else if (from.AsNewtype is { } fromNewtypeDecl) {
-        var subst = TypeParameter.SubstitutionMap(fromNewtypeDecl.TypeArgs, from.TypeArgs);
-        from = fromNewtypeDecl.BaseType.Subst(subst);
-        return EmitCoercionIfNecessary(from, to, tok, wr, toOrig);
+        return EmitCoercionIfNecessary(fromNewtypeDecl.ConcreteBaseType(from.TypeArgs), to, tok, wr, toOrig);
       } else {
         // It's unclear to me whether it's possible to hit this case with a valid Dafny program,
         // so I'm not using UnsupportedFeatureError for now.
         Error(GeneratorErrors.ErrorId.c_Go_infeasible_conversion, tok, "Cannot convert from {0} to {1}", wr, from, to);
         return wr;
       }
+    }
+
+    protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
+      if (to.IsTraitType) {
+        wr.Write("{0}.CastTo_(", TypeName_Companion(to.AsTraitType, wr, tok));
+        var w = wr.Fork();
+        wr.Write(")");
+        return w;
+      }
+      return base.EmitDowncast(from, to, tok, wr);
     }
 
     protected override ConcreteSyntaxTree EmitCoercionToNativeInt(ConcreteSyntaxTree wr) {

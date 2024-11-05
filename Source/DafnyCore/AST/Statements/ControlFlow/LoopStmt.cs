@@ -3,9 +3,10 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class LoopStmt : Statement, IDeclarationOrUsage {
+public abstract class LoopStmt : Statement, IHasNavigationToken {
   public readonly List<AttributedExpression> Invariants;
   public readonly Specification<Expression> Decreases;
+
   [FilledInDuringResolution] public bool InferredDecreases;  // says that no explicit "decreases" clause was given and an attempt was made to find one automatically (which may or may not have produced anything)
   public readonly Specification<FrameExpression> Mod;
   [ContractInvariantMethod]
@@ -84,5 +85,5 @@ public abstract class LoopStmt : Statement, IDeclarationOrUsage {
     }
   }
 
-  public IToken NameToken => Tok;
+  public IToken NavigationToken => Tok;
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using Microsoft.Boogie;
@@ -25,7 +26,7 @@ Send notifications about the verification status of each line in the program.
   public static DocumentVerificationTree UpdateTree(DafnyOptions options, Program program, DocumentVerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
 
-    List<VerificationTree> result = new List<VerificationTree>();
+    ConcurrentBag<VerificationTree> result = new();
 
     HashSet<Position> recordedPositions = new HashSet<Position>();
 
@@ -79,9 +80,8 @@ Send notifications about the verification status of each line in the program.
               continue;
             }
 
-            if (member is ConstantField) {
-              var constantHasNoBody = member.RangeToken.EndToken.line == 0;
-              if (constantHasNoBody) {
+            if (member is ConstantField constantField) {
+              if (constantField.Rhs == null) {
                 continue; // Nothing to verify
               }
 
@@ -366,11 +366,12 @@ Send notifications about the verification status of each line in the program.
                 secondaryOutcomePosition == child.SecondaryPosition), null);
           if (previousChild != null) {
             // Temporary update of children.
-            implementationNode.Children.Remove(previousChild);
-            implementationNode.Children.Add(previousChild with {
-              StatusCurrent = CurrentStatus.Current,
-              StatusVerification = status
-            });
+            implementationNode.Children = new ConcurrentBag<VerificationTree>(implementationNode.Children.Where(child => child != previousChild)) {
+              previousChild with {
+                StatusCurrent = CurrentStatus.Current,
+                StatusVerification = status
+              }
+            };
           } else {
             implementationNode.Children.Add(nodeDiagnostic);
           }

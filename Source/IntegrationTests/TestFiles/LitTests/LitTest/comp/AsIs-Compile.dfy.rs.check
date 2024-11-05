@@ -1,1 +1,1 @@
-// CHECK-L: Unhandled exception: System.InvalidOperationException: Unknown buildable type: NULL
+// CHECK-L: error: prefix `ClassR` is unknown

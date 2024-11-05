@@ -36,7 +36,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           2) Reindentation algorithm provided by the same reindent */
       method ReindentProgramFromFirstToken(firstToken: IToken, reindent: IIndentationFormatter) returns (s: CsString)
         requires firstToken.Valid()
-        ensures forall token <- firstToken.allTokens :: s.Contains(token.val)
+        ensures forall token: IToken <- firstToken.allTokens :: s.Contains(token.val)
       {
         var token: IToken? := firstToken;
         var sb := new CsStringBuilder();
@@ -49,7 +49,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
                     && token.Valid()
                     && i < |allTokens|
                     && token == allTokens[i]
-          invariant forall t <- allTokens[0..i] :: sb.built.Contains(t.val)
+          invariant forall t: IToken <- allTokens[0..i] :: sb.built.Contains(t.val)
         {
           if(token.Next == null) {
             firstToken.TokenNextIsNullImpliesLastToken(token, i);
@@ -65,7 +65,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           sb.Append(token.val);
           sb.Append(newTrailingTrivia);
           ContainsTransitive();
-          assert {:split_here} forall t <- allTokens[0..i+1] :: sb.built.Contains(t.val);
+          assert {:split_here} forall t: IToken <- allTokens[0..i+1] :: sb.built.Contains(t.val);
           token := token.Next;
           i := i + 1;
         }

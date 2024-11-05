@@ -12,10 +12,10 @@
 // Java
 
 // RUN: %baredafny translate java --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy --outer-module testproducer.dafnyinternal --translation-record-output %S/timesTwo-customName.dtr
-// RUN: javac -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/Inputs/producer/timesTwo-java %S/Inputs/producer/timesTwo-java/timesTwo.java %S/Inputs/producer/timesTwo-java/*/*.java
+// RUN: javac -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/Inputs/producer/timesTwo-java %S/Inputs/producer/timesTwo-java/**/*.java
 
 // RUN: %baredafny translate java --output=%S/consumer/usesTimesTwo --allow-warnings --library=%S/Inputs/producer/timesTwo.dfy %s --translation-record %S/timesTwo-customName.dtr
-// RUN: javac -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/Inputs/producer/timesTwo-java%{pathsep}%S/consumer/usesTimesTwo-java %S/consumer/usesTimesTwo-java/usesTimesTwo.java %S/consumer/usesTimesTwo-java/*/*.java
+// RUN: javac -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/Inputs/producer/timesTwo-java%{pathsep}%S/consumer/usesTimesTwo-java %S/consumer/usesTimesTwo-java/**/*.java
 
 // RUN: java -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/Inputs/producer/timesTwo-java%{pathsep}%S/consumer/usesTimesTwo-java usesTimesTwo >> "%t"
 
@@ -49,12 +49,16 @@ include "Inputs/producer/timesTwo.dfy"
 
 module ConsumerModule {
 
-  import opened LibraryModule
+  import opened CoolLibraryName.LibraryModule
+  import Math
 
   method Main() {
     var n := 21;
     var TwoN := TimesTwo(n);
     print "Two times ", n, " is ", TwoN, "\n";
+
+    var z := Math.Add(20, 22);
+    print "20 plus 22 is ", z, "\n";
 
     // Need to actually execute the use of nat's type descriptor
     // to ensure it works on dynamic language targets.
@@ -67,5 +71,13 @@ module ConsumerModule {
 
   method PickSomething<T(0)>() returns (t: T) {
     t := *;
+  }
+
+  method MakeAResult() {
+    var r: Result<nat, string> := Success(42);
+  }
+
+  method MakeAPair() {
+    var p: Pair<nat, string> := Pair(1, "partridge in a pair tree");
   }
 }

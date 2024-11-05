@@ -25,6 +25,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
       // Should cancel the previous request.
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
+
+      // Next line is only to gather more information for solving https://github.com/dafny-lang/dafny/issues/5436 
+      await WaitUntilResolutionFinished(documentItem);
+
       await AssertNothingIsQueued(documentItem);
     }
 
@@ -53,8 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         options.Set(BoogieOptionBag.Cores, 2U);
         options.Set(ProjectManager.Verification, VerifyOnMode.Save);
       });
-      var documentItem = CreateTestDocument(SlowToVerify2, "ChangingTheDocumentStopsManualVerification.dfy");
-      client.OpenDocument(documentItem);
+      var documentItem = CreateAndOpenTestDocument(SlowToVerify2, "ChangingTheDocumentStopsManualVerification.dfy");
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(0, 23), CancellationToken));
 

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %build "%s" --relax-definite-assignment --allow-axioms > "%t"
+// RUN: %exits-with 4 %verify "%s" --performance-stats=100 --relax-definite-assignment --allow-axioms > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module AssignmentToNat {

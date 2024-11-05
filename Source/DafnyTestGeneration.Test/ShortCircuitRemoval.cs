@@ -35,7 +35,7 @@ public class ShortCircuitRemoval : Setup {
     // If the following assertion fails, rename the corresponding variables in expected output of each test
     Assert.Equal(RemoveShortCircuitingRewriter.TmpVarPrefix, "#tmp");
     var options = GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
-    var program = await Utils.Parse(new BatchErrorReporter(options), source, false);
+    var program = await Parse(new BatchErrorReporter(options), source, false);
     var success = InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);
     Assert.True(success);
     var method = program.DefaultModuleDef.Children
@@ -474,8 +474,8 @@ function {:testEntry} EntryLetOrFail():Result<bool> {
     var blockStmt = resultingMethod.Body.Body[1] as BlockStmt;
     Assert.True(blockStmt.Body[0] is AssignOrReturnStmt);
     var assignOrReturn = blockStmt.Body[0] as AssignOrReturnStmt; // :- Fail() prior to desugaring
-    Assert.True(assignOrReturn.Children.ToList()[1] is UpdateStmt);
-    var updateStmt = assignOrReturn.Children.ToList()[1] as UpdateStmt; // := Fail(), which is part of desugaring
+    Assert.True(assignOrReturn.Children.ToList()[1] is AssignStatement);
+    var updateStmt = assignOrReturn.Children.ToList()[1] as AssignStatement; // := Fail(), which is part of desugaring
     Assert.Contains(updateStmt.ResolvedStatements, statement => statement is CallStmt); // Fail() is a method call
   }
 
@@ -506,8 +506,8 @@ function {:testEntry} EntryLetOrFail():Result<bool> {
     var blockStmt = resultingMethod.Body.Body[1] as BlockStmt;
     Assert.True(blockStmt.Body[0] is VarDeclStmt);
     var varDeclStmt = blockStmt.Body[0] as VarDeclStmt; // x :- Fail() prior to desugaring
-    Assert.True(varDeclStmt.Update.Children.ToList()[1] is UpdateStmt);
-    var updateStmt = varDeclStmt.Update.Children.ToList()[1] as UpdateStmt; // x := Fail(), which is part of desugaring
+    Assert.True(varDeclStmt.Assign.Children.ToList()[1] is AssignStatement);
+    var updateStmt = varDeclStmt.Assign.Children.ToList()[1] as AssignStatement; // x := Fail(), which is part of desugaring
     Assert.Contains(updateStmt.ResolvedStatements, statement => statement is CallStmt); // Fail() is a method call
   }
 

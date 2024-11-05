@@ -1,4 +1,4 @@
-﻿for-range-assignable.dfy(6,8): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'nat'
+for-range-assignable.dfy(6,8): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'nat'
  Asserted expression: forall i: nat | -1 <= i && i <= 0 :: i is nat
 
 Dafny program verifier finished with 0 verified, 1 error

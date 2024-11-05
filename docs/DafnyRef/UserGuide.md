@@ -857,7 +857,6 @@ base = ["../commonOptions.dfyconfig.toml"]
 [options]
 enforce-determinism = true
 warn-shadowing = true
-default-function-opacity = "Opaque"
 ```
 
 - At most one `.toml` file may be named on the command-line; when using the command-line no `.toml` file is used by default.
@@ -1032,9 +1031,6 @@ This list is not exhaustive but can definitely be useful to provide the next ste
  <br><br>`assert A == B;`<br>`callLemma(x);`<br>`assert B == C;`<br> | [`calc == {`](#sec-calc-statement)<br>&nbsp;&nbsp;`  A;`<br>&nbsp;&nbsp;`  B;`<br>&nbsp;&nbsp;`  { callLemma(x); }`<br>&nbsp;&nbsp;`  C;`<br>`};`<br>`assert A == B;`<br>where the [`calc`](#sec-calc-statement) statement can be used to make intermediate computation steps explicit. Works with `<`, `>`, `<=`, `>=`, `==>`, `<==` and `<==>` for example.
  <br><br><br>`assert A ==> B;` | `if A {`<br>&nbsp;&nbsp;`  assert B;`<br>`};`<br>`assert A ==> B;`
  <br><br>`assert A && B;` | `assert A;`<br>`assert B;`<br>`assert A && B;`
- <br>`assert P(x);`<br>where `P` is an [`{:opaque}`](#sec-opaque) predicate | [`reveal P();`](#sec-reveal-statement)<br>`assert P(x);`<br><br>
- `assert P(x);`<br>where `P` is an [`{:opaque}`](#sec-opaque) predicate<br><br> | [`assert P(x) by {`](#sec-assert-statement)<br>[&nbsp;&nbsp;`  reveal P();`](#sec-reveal-statement)<br>`}`
- `assert P(x);`<br>where `P` is not an [`{:opaque}`](#sec-opaque) predicate with a lot of `&&` in its body and is assumed | Make `P` [`{:opaque}`](#sec-opaque) so that if it's assumed, it can be proven more easily. You can always [reveal](#sec-reveal-statement) it when needed.
  `ensures P ==> Q` on a lemma<br> | `requires P ensures Q` to avoid accidentally calling the lemma on inputs that do not satisfy `P`
  `seq(size, i => P)` | `seq(size, i requires 0 <= i < size => P);`
   <br><br>`assert forall x :: G(i) ==> R(i);` |  `assert G(i0);`<br>`assert R(i0);`<br>`assert forall i :: G(i) ==> R(i);` with a guess of the `i0` that makes the second assert to fail.
@@ -1484,17 +1480,11 @@ The fundamental unit of verification in `dafny` is an _assertion batch_, which c
 
 #### 13.7.3.1. Controlling assertion batches {#sec-assertion-batches-control}
 
-Here is how you can control how `dafny` partitions assertions into batches.
+When Dafny verifies a symbol, such as a method, a function or a constant with a subset type, that verification may contain multiple assertions. A symbol is generally verified the fastest when all assertions it in are verified together, in what we call a single 'assertion batch'. However, is it possible to split verification of a symbol into multiple batches, and doing so makes the individual batches simpler, which can lead to less brittle verification behavior. Dafny contains several attributes that allow you to customize how verification is split into batches.
 
-* [`{:focus}`](#sec-focus) on an assert generates a separate assertion batch for the assertions of the enclosing block.
-* [`{:split_here}`](#sec-split_here) on an assert generates a separate assertion batch for assertions after this point.
-* [`{:isolate_assertions}`](#sec-isolate_assertions) on a function or a method generates one assertion batch per assertion
+Firstly, you can instruct Dafny to verify individual assertions in separate batches. You can place the `{:isolate}` attribute on a single assertion to place it in a separate batch, or you can place `{:isolate_assertions}` on a symbol, such as a function or method declaration, to place all assertions in it into separate batches. The CLI option `--isolate-assertions` will place all assertions into separate batches for all symbols. `{:isolate}` can be used on `assert`, `return` and `continue` statements. When placed on a `return` statement, it will verify the postconditions for all paths leading to that `return` in a separate batch. When placed on a `continue`, it will verify the loop invariants for all paths leading to that `continue` in a separate batch. 
 
-We discourage the use of the following _heuristics attributes_ to partition assertions into batches.
-The effect of these attributes may vary, because they are low-level attributes and tune low-level heuristics, and will result in splits that could be manually controlled anyway.
-* [`{:vcs_max_cost N}`](#sec-vcs_max_cost) on a function or method enables splitting the assertion batch until the "cost" of each batch is below N.
-  Usually, you would set [`{:vcs_max_cost 0}`](#sec-vcs_max_cost) and [`{:vcs_max_splits N}`](#sec-vcs_max_splits) to ensure it generates N assertion batches.
-* [`{:vcs_max_keep_going_splits N}`](#sec-vcs_max_keep_going_splits) where N > 1 on a method dynamically splits the initial assertion batch up to N components if the verifier is stuck the first time.
+Given an assertion that is placed into a separate batch, you can then further simplify the verification of this assertion by placing each control flow path that leads to this assertion into a separate batch. You can do this using the attribute `{:isolate "paths"}`.
 
 ### 13.7.4. Command-line options and other attributes to control verification {#sec-command-line-options-and-attributes-for-verification}
 

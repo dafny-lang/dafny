@@ -1,6 +1,7 @@
 #define TI_DEBUG_PRINT
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
@@ -16,6 +17,11 @@ public abstract class Type : TokenNode {
   public override IEnumerable<INode> PreResolveChildren => TypeArgs.OfType<Node>();
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
+
+  public static Type ResolvedString() {
+    return new SeqType(new CharType());
+  }
+
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
 
   private static ThreadLocal<List<VisibilityScope>> _scopes = new();
@@ -337,11 +343,10 @@ public abstract class Type : TokenNode {
       } else if (t.IsRealType) {
         return p == NumericPersuasion.Real;
       }
-      var d = t.AsNewtype;
-      if (d == null) {
+      if (t.AsNewtype is not { } newtypeDecl) {
         return false;
       }
-      t = d.BaseType;
+      t = newtypeDecl.RhsWithArgument(t.TypeArgs);
     }
   }
 
@@ -1664,7 +1669,7 @@ public abstract class Type : TokenNode {
     }
   }
 
-  public virtual List<Type> ParentTypes() {
+  public virtual List<Type> ParentTypes(bool includeTypeBounds) {
     return new List<Type>();
   }
 
@@ -1691,7 +1696,13 @@ public abstract class Type : TokenNode {
       return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
     }
 
-    return sub.ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
+    // There is a special case, namely when super is the non-null "object". Since "sub.ParentTypes()" only gives
+    // back the explicitly declared parent traits, the general case below may miss it.
+    if (super.IsObject) {
+      return sub.IsNonNullRefType;
+    }
+
+    return sub.ParentTypes(true).Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
   }
 
   public static bool CompatibleTypeArgs(Type super, Type sub) {
@@ -1946,19 +1957,21 @@ public abstract class CollectionType : NonProxyType {
   }
   public void SetTypeArg(Type arg) {
     Contract.Requires(arg != null);
-    Contract.Requires(1 <= this.TypeArgs.Count);  // this is actually an invariant of all collection types
     Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
     this.arg = arg;
-    this.TypeArgs[0] = arg;
+
+    Debug.Assert(TypeArgs.Count == 0);
+    TypeArgs.Add(arg);
   }
   public virtual void SetTypeArgs(Type arg, Type other) {
     Contract.Requires(arg != null);
     Contract.Requires(other != null);
-    Contract.Requires(this.TypeArgs.Count == 2);
     Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
     this.arg = arg;
-    this.TypeArgs[0] = arg;
-    this.TypeArgs[1] = other;
+
+    Debug.Assert(TypeArgs.Count == 0);
+    TypeArgs.Add(arg);
+    TypeArgs.Add(other);
   }
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -1971,14 +1984,23 @@ public abstract class CollectionType : NonProxyType {
   /// </summary>
   protected CollectionType(Type arg) {
     this.arg = arg;
-    this.TypeArgs = new List<Type> { arg };
+    TypeArgs = new List<Type>(1);
+    if (arg != null) {
+      TypeArgs.Add(arg);
+    }
   }
+
   /// <summary>
   /// This constructor is a collection types with 2 type arguments
   /// </summary>
   protected CollectionType(Type arg, Type other) {
     this.arg = arg;
-    this.TypeArgs = new List<Type> { arg, other };
+    TypeArgs = new List<Type>(2);
+    if (arg != null && other != null) {
+      TypeArgs.Add(arg);
+      TypeArgs.Add(other);
+    }
+    Debug.Assert(arg == null && other == null || arg != null && other != null);
   }
 
   protected CollectionType(Cloner cloner, CollectionType original) {

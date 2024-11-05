@@ -291,7 +291,7 @@ namespace Microsoft.Dafny {
           await BoogieAsync(dafnyProgram.Reporter, options, baseName, boogiePrograms, programId);
 
         if (options.TrackVerificationCoverage) {
-          ProofDependencyWarnings.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
+          ProofDependencyWarnings.WarnAboutSuspiciousDependenciesUsingStoredPartialResults(options, dafnyProgram.Reporter, depManager);
           var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
           if (coverageReportDir != null) {
             await new CoverageReporter(options).SerializeVerificationCoverageReport(
@@ -439,7 +439,7 @@ namespace Microsoft.Dafny {
       }
 
       var result =
-        await DafnyMain.BoogieOnce(errorReporter, options, output, engine, baseName, moduleName, program, programId);
+        await await DafnyMain.LargeStackFactory.StartNew(() => DafnyMain.BoogieOnce(errorReporter, options, output, engine, baseName, moduleName, program, programId));
 
       watch.Stop();
 
@@ -630,8 +630,8 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Generate a C# program from the Dafny program and, if "invokeCompiler" is "true", invoke
-    /// the C# compiler to compile it.
+    /// Generate a target language program from the Dafny program and, if "invokeCompiler" is "true", invoke
+    /// the target language compiler to compile it.
     /// </summary>
     public static async Task<bool> CompileDafnyProgram(Program dafnyProgram, string dafnyProgramName,
                                            ReadOnlyCollection<string> otherFileNames, bool invokeCompiler) {
@@ -649,19 +649,19 @@ namespace Microsoft.Dafny {
       // Compile the Dafny program into a string that contains the target program
       var oldErrorCount = dafnyProgram.Reporter.Count(ErrorLevel.Error);
       var options = dafnyProgram.Options;
-      options.Backend.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
+
+      var compiler = options.Backend;
+      compiler.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
 
       // Now that an internal compiler is instantiated, apply any plugin instrumentation.
       foreach (var compilerInstrumenter in options.Plugins.SelectMany(p => p.GetCompilerInstrumenters(dafnyProgram.Reporter))) {
-        options.Backend.InstrumentCompiler(compilerInstrumenter, dafnyProgram);
+        compiler.InstrumentCompiler(compilerInstrumenter, dafnyProgram);
       }
 
       if (options.Get(CommonOptionBag.ExecutionCoverageReport) != null
-          && options.Backend.UnsupportedFeatures.Contains(Feature.RuntimeCoverageReport)) {
+          && compiler.UnsupportedFeatures.Contains(Feature.RuntimeCoverageReport)) {
         throw new UnsupportedFeatureException(dafnyProgram.GetStartOfFirstFileToken(), Feature.RuntimeCoverageReport);
       }
-
-      var compiler = options.Backend;
 
       var hasMain = SinglePassCodeGenerator.HasMain(dafnyProgram, out var mainMethod);
       if (hasMain) {

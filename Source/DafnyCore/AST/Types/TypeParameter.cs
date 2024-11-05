@@ -1,14 +1,18 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
 public class TypeParameter : TopLevelDecl {
   public interface ParentType {
     string FullName { get; }
+    IToken Tok { get; }
   }
 
   public override string WhatKind => "type parameter";
+
+  public bool IsAutoCompleted => Name.StartsWith("_");
 
   ParentType parent;
   public ParentType Parent {
@@ -170,16 +174,30 @@ public class TypeParameter : TopLevelDecl {
   }
   public int PositionalIndex; // which type parameter this is (ie. in C<S, T, U>, S is 0, T is 1 and U is 2).
 
-  public TypeParameter(RangeToken rangeToken, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics)
+  public readonly List<Type> TypeBounds;
+
+  public IEnumerable<TopLevelDecl> TypeBoundHeads {
+    get {
+      foreach (var typeBound in TypeBounds) {
+        if (typeBound is UserDefinedType { ResolvedClass: { } parentDecl }) {
+          yield return parentDecl;
+        }
+      }
+    }
+  }
+
+  public TypeParameter(RangeToken rangeToken, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
+    List<Type> typeBounds)
     : base(rangeToken, name, null, new List<TypeParameter>(), null, false) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Characteristics = characteristics;
     VarianceSyntax = varianceS;
+    TypeBounds = typeBounds;
   }
 
   public TypeParameter(RangeToken rangeToken, Name name, TPVarianceSyntax varianceS)
-    : this(rangeToken, name, varianceS, new TypeParameterCharacteristics(false)) {
+    : this(rangeToken, name, varianceS, new TypeParameterCharacteristics(false), new List<Type>()) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
   }
@@ -190,11 +208,27 @@ public class TypeParameter : TopLevelDecl {
     Parent = parent;
   }
 
+  /// <summary>
+  /// Return a list of unresolved clones of the type parameters in "typeParameters".
+  /// </summary>
+  public static List<TypeParameter> CloneTypeParameters(List<TypeParameter> typeParameters) {
+    var cloner = new Cloner();
+    return typeParameters.ConvertAll(tp => {
+      var typeBounds = tp.TypeBounds.ConvertAll(cloner.CloneType);
+      return new TypeParameter(tp.RangeToken, tp.NameNode, tp.VarianceSyntax, tp.Characteristics, typeBounds);
+    });
+  }
+
   public override string FullName {
     get {
       // when debugging, print it all:
       return /* Parent.FullName + "." + */ Name;
     }
+  }
+
+  public override SymbolKind? Kind => SymbolKind.TypeParameter;
+  public override string GetDescription(DafnyOptions options) {
+    return null; // TODO test the effect of this
   }
 
   public static TypeParameterCharacteristics GetExplicitCharacteristics(TopLevelDecl d) {
@@ -225,4 +259,7 @@ public class TypeParameter : TopLevelDecl {
     return subst;
   }
 
+  public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
+    return includeTypeBounds ? TypeBounds : new List<Type>();
+  }
 }

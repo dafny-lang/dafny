@@ -8,6 +8,9 @@
 using System;
 using System.Numerics;
 using System.Collections;
+#pragma warning disable CS0164 // This label has not been referenced
+#pragma warning disable CS0162 // Unreachable code detected
+#pragma warning disable CS1717 // Assignment made to same variable
 
 namespace Std.Wrappers {
 
@@ -68,32 +71,38 @@ namespace Std.Wrappers {
     }
     public static T GetOr(Std.Wrappers._IOption<T> _this, T @default) {
       Std.Wrappers._IOption<T> _source0 = _this;
-      if (_source0.is_None) {
+      {
+        if (_source0.is_Some) {
+          T _0_v = _source0.dtor_value;
+          return _0_v;
+        }
+      }
+      {
         return @default;
-      } else {
-        T __mcc_h0 = _source0.dtor_value;
-        T v = __mcc_h0;
-        return v;
       }
     }
     public Std.Wrappers._IResult<T, __E> ToResult<__E>(__E error) {
-      Std.Wrappers._IOption<T> _source1 = this;
-      if (_source1.is_None) {
+      Std.Wrappers._IOption<T> _source0 = this;
+      {
+        if (_source0.is_Some) {
+          T _0_v = _source0.dtor_value;
+          return Std.Wrappers.Result<T, __E>.create_Success(_0_v);
+        }
+      }
+      {
         return Std.Wrappers.Result<T, __E>.create_Failure(error);
-      } else {
-        T __mcc_h0 = _source1.dtor_value;
-        T v = __mcc_h0;
-        return Std.Wrappers.Result<T, __E>.create_Success(v);
       }
     }
     public Std.Wrappers._IOutcome<__E> ToOutcome<__E>(__E error) {
-      Std.Wrappers._IOption<T> _source2 = this;
-      if (_source2.is_None) {
+      Std.Wrappers._IOption<T> _source0 = this;
+      {
+        if (_source0.is_Some) {
+          T _0_v = _source0.dtor_value;
+          return Std.Wrappers.Outcome<__E>.create_Pass();
+        }
+      }
+      {
         return Std.Wrappers.Outcome<__E>.create_Fail(error);
-      } else {
-        T __mcc_h0 = _source2.dtor_value;
-        T v = __mcc_h0;
-        return Std.Wrappers.Outcome<__E>.create_Pass();
       }
     }
     public static __FC Map<__FC>(Std.Wrappers._IOption<T> _this, Func<Std.Wrappers._IOption<T>, __FC> rewrap) {
@@ -201,54 +210,58 @@ namespace Std.Wrappers {
       return (this).dtor_value;
     }
     public static R GetOr(Std.Wrappers._IResult<R, E> _this, R @default) {
-      Std.Wrappers._IResult<R, E> _source3 = _this;
-      if (_source3.is_Success) {
-        R _10___mcc_h0 = _source3.dtor_value;
-        R _11_s = _10___mcc_h0;
-        return _11_s;
-      } else {
-        E _12___mcc_h1 = _source3.dtor_error;
-        E _13_e = _12___mcc_h1;
+      Std.Wrappers._IResult<R, E> _source0 = _this;
+      {
+        if (_source0.is_Success) {
+          R _0_s = _source0.dtor_value;
+          return _0_s;
+        }
+      }
+      {
+        E _1_e = _source0.dtor_error;
         return @default;
       }
     }
     public Std.Wrappers._IOption<R> ToOption() {
-      Std.Wrappers._IResult<R, E> _source4 = this;
-      if (_source4.is_Success) {
-        R _14___mcc_h0 = _source4.dtor_value;
-        R _15_s = _14___mcc_h0;
-        return Std.Wrappers.Option<R>.create_Some(_15_s);
-      } else {
-        E _16___mcc_h1 = _source4.dtor_error;
-        E _17_e = _16___mcc_h1;
+      Std.Wrappers._IResult<R, E> _source0 = this;
+      {
+        if (_source0.is_Success) {
+          R _0_s = _source0.dtor_value;
+          return Std.Wrappers.Option<R>.create_Some(_0_s);
+        }
+      }
+      {
+        E _1_e = _source0.dtor_error;
         return Std.Wrappers.Option<R>.create_None();
       }
     }
     public Std.Wrappers._IOutcome<E> ToOutcome() {
-      Std.Wrappers._IResult<R, E> _source5 = this;
-      if (_source5.is_Success) {
-        R _18___mcc_h0 = _source5.dtor_value;
-        R _19_s = _18___mcc_h0;
-        return Std.Wrappers.Outcome<E>.create_Pass();
-      } else {
-        E _20___mcc_h1 = _source5.dtor_error;
-        E _21_e = _20___mcc_h1;
-        return Std.Wrappers.Outcome<E>.create_Fail(_21_e);
+      Std.Wrappers._IResult<R, E> _source0 = this;
+      {
+        if (_source0.is_Success) {
+          R _0_s = _source0.dtor_value;
+          return Std.Wrappers.Outcome<E>.create_Pass();
+        }
+      }
+      {
+        E _1_e = _source0.dtor_error;
+        return Std.Wrappers.Outcome<E>.create_Fail(_1_e);
       }
     }
     public static __FC Map<__FC>(Std.Wrappers._IResult<R, E> _this, Func<Std.Wrappers._IResult<R, E>, __FC> rewrap) {
       return Dafny.Helpers.Id<Func<Std.Wrappers._IResult<R, E>, __FC>>(rewrap)(_this);
     }
     public static Std.Wrappers._IResult<R, __NewE> MapFailure<__NewE>(Std.Wrappers._IResult<R, E> _this, Func<E, __NewE> reWrap) {
-      Std.Wrappers._IResult<R, E> _source6 = _this;
-      if (_source6.is_Success) {
-        R _22___mcc_h0 = _source6.dtor_value;
-        R _23_s = _22___mcc_h0;
-        return Std.Wrappers.Result<R, __NewE>.create_Success(_23_s);
-      } else {
-        E _24___mcc_h1 = _source6.dtor_error;
-        E _25_e = _24___mcc_h1;
-        return Std.Wrappers.Result<R, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(reWrap)(_25_e));
+      Std.Wrappers._IResult<R, E> _source0 = _this;
+      {
+        if (_source0.is_Success) {
+          R _0_s = _source0.dtor_value;
+          return Std.Wrappers.Result<R, __NewE>.create_Success(_0_s);
+        }
+      }
+      {
+        E _1_e = _source0.dtor_error;
+        return Std.Wrappers.Result<R, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(reWrap)(_1_e));
       }
     }
   }
@@ -348,23 +361,27 @@ namespace Std.Wrappers {
       return this;
     }
     public Std.Wrappers._IOption<__R> ToOption<__R>(__R r) {
-      Std.Wrappers._IOutcome<E> _source7 = this;
-      if (_source7.is_Pass) {
-        return Std.Wrappers.Option<__R>.create_Some(r);
-      } else {
-        E _26___mcc_h0 = _source7.dtor_error;
-        E _27_e = _26___mcc_h0;
+      Std.Wrappers._IOutcome<E> _source0 = this;
+      {
+        if (_source0.is_Pass) {
+          return Std.Wrappers.Option<__R>.create_Some(r);
+        }
+      }
+      {
+        E _0_e = _source0.dtor_error;
         return Std.Wrappers.Option<__R>.create_None();
       }
     }
     public Std.Wrappers._IResult<__R, E> ToResult<__R>(__R r) {
-      Std.Wrappers._IOutcome<E> _source8 = this;
-      if (_source8.is_Pass) {
-        return Std.Wrappers.Result<__R, E>.create_Success(r);
-      } else {
-        E _28___mcc_h0 = _source8.dtor_error;
-        E _29_e = _28___mcc_h0;
-        return Std.Wrappers.Result<__R, E>.create_Failure(_29_e);
+      Std.Wrappers._IOutcome<E> _source0 = this;
+      {
+        if (_source0.is_Pass) {
+          return Std.Wrappers.Result<__R, E>.create_Success(r);
+        }
+      }
+      {
+        E _0_e = _source0.dtor_error;
+        return Std.Wrappers.Result<__R, E>.create_Failure(_0_e);
       }
     }
     public static __FC Map<__FC>(Std.Wrappers._IOutcome<E> _this, Func<Std.Wrappers._IOutcome<E>, __FC> rewrap) {
@@ -372,13 +389,15 @@ namespace Std.Wrappers {
     }
     public static Std.Wrappers._IResult<__T, __NewE> MapFailure<__T, __NewE>(Std.Wrappers._IOutcome<E> _this, Func<E, __NewE> rewrap, __T @default)
     {
-      Std.Wrappers._IOutcome<E> _source9 = _this;
-      if (_source9.is_Pass) {
-        return Std.Wrappers.Result<__T, __NewE>.create_Success(@default);
-      } else {
-        E _30___mcc_h0 = _source9.dtor_error;
-        E _31_e = _30___mcc_h0;
-        return Std.Wrappers.Result<__T, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(rewrap)(_31_e));
+      Std.Wrappers._IOutcome<E> _source0 = _this;
+      {
+        if (_source0.is_Pass) {
+          return Std.Wrappers.Result<__T, __NewE>.create_Success(@default);
+        }
+      }
+      {
+        E _0_e = _source0.dtor_error;
+        return Std.Wrappers.Result<__T, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(rewrap)(_0_e));
       }
     }
     public static Std.Wrappers._IOutcome<E> Need(bool condition, E error)

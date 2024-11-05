@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+<RollForward>Major</RollForward>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <Nullable>enable</Nullable>
     <RootNamespace>Microsoft.Dafny.LanguageServer</RootNamespace>

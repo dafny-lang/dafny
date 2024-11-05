@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --main-method:HappyModule.NewMain
+// RUN: %testDafnyForEachCompiler "%s" -- --main-method:HappyModule.NewMain --spill-translation
 
 method Main() {
   print "not printed";

@@ -1,0 +1,4 @@
+// CHECK: .*AcceptSubsetAndType\(x, y\).*
+// CHECK: .*AcceptSubsetAndType2\(x, y\).*
+// CHECK: .*AcceptSubsetAndType\(x, y1\).*
+// CHECK: .*AcceptSubsetAndType2\(x, y1\).*

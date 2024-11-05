@@ -8,29 +8,32 @@
 using System;
 using System.Numerics;
 using System.Collections;
+#pragma warning disable CS0164 // This label has not been referenced
+#pragma warning disable CS0162 // Unreachable code detected
+#pragma warning disable CS1717 // Assignment made to same variable
 
 namespace Std.Arithmetic.DivInternals {
 
   public partial class __default {
     public static BigInteger DivPos(BigInteger x, BigInteger d)
     {
-      BigInteger _150___accumulator = BigInteger.Zero;
+      BigInteger _0___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((x).Sign == -1) {
-        _150___accumulator = (_150___accumulator) + (new BigInteger(-1));
-        BigInteger _in38 = (x) + (d);
-        BigInteger _in39 = d;
-        x = _in38;
-        d = _in39;
+        _0___accumulator = (_0___accumulator) + (new BigInteger(-1));
+        BigInteger _in0 = (x) + (d);
+        BigInteger _in1 = d;
+        x = _in0;
+        d = _in1;
         goto TAIL_CALL_START;
       } else if ((x) < (d)) {
-        return (BigInteger.Zero) + (_150___accumulator);
+        return (BigInteger.Zero) + (_0___accumulator);
       } else {
-        _150___accumulator = (_150___accumulator) + (BigInteger.One);
-        BigInteger _in40 = (x) - (d);
-        BigInteger _in41 = d;
-        x = _in40;
-        d = _in41;
+        _0___accumulator = (_0___accumulator) + (BigInteger.One);
+        BigInteger _in2 = (x) - (d);
+        BigInteger _in3 = d;
+        x = _in2;
+        d = _in3;
         goto TAIL_CALL_START;
       }
     }

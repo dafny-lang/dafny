@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -115,6 +114,7 @@ public class Compilation : IDisposable {
       await RootFiles;
       await ParsedProgram;
       await Resolution;
+    } catch (OperationCanceledException) {
     } catch (Exception e) {
       HandleException(e);
     }
@@ -139,16 +139,12 @@ public class Compilation : IDisposable {
     await started.Task;
 
     var result = new List<DafnyFile>();
-    var includedFiles = new List<DafnyFile>();
-    foreach (var uri in Input.Project.GetRootSourceUris(fileSystem)) {
-      await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, uri,
-                       Project.StartingToken)) {
-        result.Add(file);
-        includedFiles.Add(file);
-      }
-    }
 
+    var handledInput = new HashSet<Uri>();
     foreach (var uri in Options.CliRootSourceUris) {
+      if (!handledInput.Add(uri)) {
+        continue;
+      }
       var shortPath = Path.GetRelativePath(Directory.GetCurrentDirectory(), uri.LocalPath);
       await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, uri, Token.Cli,
                        false,
@@ -156,6 +152,19 @@ public class Compilation : IDisposable {
         result.Add(file);
       }
     }
+
+    var includedFiles = new List<DafnyFile>();
+    foreach (var uri in Input.Project.GetRootSourceUris(fileSystem)) {
+      if (!handledInput.Add(uri)) {
+        continue;
+      }
+      await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, uri,
+                       Project.StartingToken)) {
+        result.Add(file);
+        includedFiles.Add(file);
+      }
+    }
+
     if (Options.UseStdin) {
       result.Add(DafnyFile.HandleStandardInput(Options, Token.Cli));
     }
@@ -315,7 +324,7 @@ public class Compilation : IDisposable {
     ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter, int? randomSeed) {
     try {
 
-      var ticket = verificationTickets.Dequeue(CancellationToken.None);
+      var ticket = verificationTickets.Dequeue();
       var containingModule = canVerify.ContainingModule;
 
       IReadOnlyDictionary<FilePosition, IReadOnlyList<IVerificationTask>> tasksForModule;
@@ -323,9 +332,6 @@ public class Compilation : IDisposable {
         tasksForModule = await translatedModules.GetOrAdd(containingModule, async () => {
           var result = await verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
             cancellationSource.Token);
-          foreach (var task in result) {
-            cancellationSource.Token.Register(task.Cancel);
-          }
 
           return result.GroupBy(t => ((IToken)t.ScopeToken).GetFilePosition()).ToDictionary(
             g => g.Key,
@@ -342,7 +348,7 @@ public class Compilation : IDisposable {
       var updated = false;
       var tasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
         var result =
-          tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
+          tasksForModule.GetValueOrDefault(canVerify.NavigationToken.GetFilePosition()) ??
           new List<IVerificationTask>(0);
 
         updated = true;
@@ -424,6 +430,11 @@ public class Compilation : IDisposable {
 
   public void CancelPendingUpdates() {
     cancellationSource.Cancel();
+    foreach (var (_, tasks) in tasksPerVerifiable) {
+      foreach (var task in tasks) {
+        task.Cancel();
+      }
+    }
   }
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
@@ -474,7 +485,7 @@ public class Compilation : IDisposable {
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, canVerify.NameToken.val, task.ScopeToken,
+    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, task.ScopeToken,
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
@@ -498,7 +509,7 @@ public class Compilation : IDisposable {
 
     // This reports problems that are not captured by counter-examples, like a time-out
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
-    var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
+    var boogieEngine = new ExecutionEngine(options, new EmptyVerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
     boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, null, false),
       name, token, null, TextWriter.Null,
@@ -531,10 +542,21 @@ public class Compilation : IDisposable {
         throw new ArgumentOutOfRangeException($"Unexpected ErrorKind: {errorInformation.Kind}");
     }
 
-    if (boogieProofObligationDesc is ProofObligationDescription.ProofObligationDescription dafnyProofObligationDesc) {
+    if (boogieProofObligationDesc is ProofObligationDescription dafnyProofObligationDesc) {
       var expr = dafnyProofObligationDesc.GetAssertedExpr(options);
+      string? msg = null;
       if (expr != null) {
-        errorInformation.AddAuxInfo(errorInformation.Tok, expr.ToString(), ErrorReporterExtensions.AssertedExprCategory);
+        msg = expr.ToString();
+      }
+
+      var extra = dafnyProofObligationDesc.GetExtraExplanation();
+      if (extra != null) {
+        msg = (msg ?? "") + extra;
+      }
+
+      if (msg != null) {
+        errorInformation.AddAuxInfo(errorInformation.Tok, msg,
+          ErrorReporterExtensions.AssertedExprCategory);
       }
     }
   }
@@ -554,9 +576,17 @@ public class Compilation : IDisposable {
       case SolverOutcome.Undetermined:
         return VcOutcome.Inconclusive;
       case SolverOutcome.Bounded:
-        return VcOutcome.ReachedBound;
+        return VcOutcome.Correct;
       default:
         throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
     }
+  }
+
+  public void ClearModuleCache(ModuleDefinition moduleDefinition) {
+    translatedModules.Remove(moduleDefinition);
+  }
+
+  public void ClearCanVerifyCache(ICanVerify canVerify) {
+    tasksPerVerifiable.Remove(canVerify);
   }
 }

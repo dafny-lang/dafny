@@ -16,7 +16,6 @@ using System.Reflection;
 using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
@@ -131,7 +130,7 @@ namespace Microsoft.Dafny {
           scope.AllowInstance = false;
           ResolveExpression(newtypeDecl.Witness, new ResolutionContext(codeContext, false));
           scope.PopMarker();
-          ConstrainSubtypeRelation(newtypeDecl.Var.Type, newtypeDecl.Witness.Type, newtypeDecl.Witness, "witness expression must have type '{0}' (got '{1}')", newtypeDecl.Var.Type, newtypeDecl.Witness.Type);
+          ConstrainSubtypeRelation(newtypeDecl.BaseType, newtypeDecl.Witness.Type, newtypeDecl.Witness, "witness expression must have type '{0}' (got '{1}')", newtypeDecl.BaseType, newtypeDecl.Witness.Type);
         }
         SolveAllTypeConstraints();
 
@@ -320,15 +319,20 @@ namespace Microsoft.Dafny {
 
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attributeHost.Attributes.AsEnumerable()) {
-        if (attr is UserSuppliedAttributes) {
-          var usa = (UserSuppliedAttributes)attr;
+        if (attr is UserSuppliedAtAttribute { Builtin: true }) { // Already resolved
+          continue;
+        } else if (attr is UserSuppliedAttributes usa) {
           usa.Recognized = IsRecognizedAttribute(usa, attributeHost);
         }
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             Contract.Assert(arg != null);
             if (!(Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name is "revealedFunction" && arg is NameSegment)) {
+              var prevCount = reporter.ErrorCount;
               ResolveExpression(arg, resolutionContext);
+              if (prevCount == reporter.ErrorCount && attr is UserSuppliedAtAttribute { Builtin: false }) {
+                reporter.Error(MessageSource.Resolver, attr.tok, "User-supplied @-Attributes not supported yet");
+              }
             } else {
               ResolveRevealLemmaAttribute(arg);
             }
@@ -373,8 +377,8 @@ namespace Microsoft.Dafny {
 
       var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
       rr.Member = f;
-      rr.TypeApplication_AtEnclosingClass = typeApplication;
-      rr.TypeApplication_JustMember = typeApplication_JustForMember;
+      rr.TypeApplicationAtEnclosingClass = typeApplication;
+      rr.TypeApplicationJustMember = typeApplication_JustForMember;
       List<Type> args = new List<Type>();
       for (int i = 0; i < f.Ins.Count; i++) {
         args.Add(new IntType());
@@ -545,7 +549,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
-        ResolveDotSuffix(e, true, null, resolutionContext, false);
+        ResolveDotSuffix(e, false, true, null, resolutionContext, false);
         if (e.Type is Resolver_IdentifierExpr.ResolverType_Module) {
           reporter.Error(MessageSource.Resolver, e.tok, "name of module ({0}) is used as a variable", e.SuffixName);
           e.ResetTypeAssignment();  // the rest of type checking assumes actual types
@@ -572,8 +576,8 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, e.tok, "a two-state function can be used only in a two-state context");
           }
           // build the type substitution map
-          e.TypeApplication_AtEnclosingClass = tentativeReceiverType.TypeArgs;
-          e.TypeApplication_JustMember = new List<Type>();
+          e.TypeApplicationAtEnclosingClass = tentativeReceiverType.TypeArgs;
+          e.TypeApplicationJustMember = new List<Type>();
           Dictionary<TypeParameter, Type> subst;
           var ctype = tentativeReceiverType as UserDefinedType;
           if (ctype == null) {
@@ -584,15 +588,15 @@ namespace Microsoft.Dafny {
           foreach (var tp in fn.TypeArgs) {
             Type prox = new InferredTypeProxy();
             subst[tp] = prox;
-            e.TypeApplication_JustMember.Add(prox);
+            e.TypeApplicationJustMember.Add(prox);
           }
           subst = BuildTypeArgumentSubstitute(subst);
           e.Type = SelectAppropriateArrowTypeForFunction(fn, subst, SystemModuleManager);
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
-          e.TypeApplication_AtEnclosingClass = tentativeReceiverType.TypeArgs;
-          e.TypeApplication_JustMember = new List<Type>();
+          e.TypeApplicationAtEnclosingClass = tentativeReceiverType.TypeArgs;
+          e.TypeApplicationJustMember = new List<Type>();
           if (e.Obj is StaticReceiverExpr && !field.IsStatic) {
             reporter.Error(MessageSource.Resolver, expr, "a field must be selected via an object, not just a class name");
           }
@@ -757,6 +761,10 @@ namespace Microsoft.Dafny {
               var declKind = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)resolutionContext.CodeContext).WhatKind;
               reporter.Error(MessageSource.Resolver, expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
+            break;
+          case UnaryOpExpr.Opcode.Assigned:
+            // the argument is allowed to have any type
+            expr.Type = Type.Bool;
             break;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
@@ -1137,7 +1145,7 @@ namespace Microsoft.Dafny {
 
         ResolveStatement(e.S, resolutionContext);
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var r = e.S as UpdateStmt;
+          var r = e.S as AssignStatement;
           if (r != null && r.ResolvedStatements.Count == 1) {
             var call = r.ResolvedStatements[0] as CallStmt;
             if (call.Method is TwoStateLemma && !resolutionContext.IsTwoState) {
@@ -1165,6 +1173,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         ResolveNestedMatchExpr(nestedMatchExpr, resolutionContext);
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        foreach (var subexpr in decreasesToExpr.SubExpressions) {
+          ResolveExpression(subexpr, resolutionContext);
+        }
+
+        decreasesToExpr.Type = Type.Bool;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -1667,7 +1681,7 @@ namespace Microsoft.Dafny {
         return polarities;
       }
 
-      foreach (var subParentType in sub.ParentTypes()) {
+      foreach (var subParentType in sub.ParentTypes(true)) {
         sub = subParentType;
         polarities = ConstrainTypeHead_Recursive(super, ref sub);
         if (polarities != null) {
@@ -2916,6 +2930,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentClass == null);
       Contract.Ensures(currentClass == null);
 
+      if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
+        Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_iterators_are_not_deterministic, iter.tok,
+          "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option");
+      }
+
       var initialErrorCount = reporter.Count(ErrorLevel.Error);
 
       // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
@@ -3099,43 +3118,6 @@ namespace Microsoft.Dafny {
       EnclosingStatementLabels.PopMarker();
     }
 
-    void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, ResolutionContext resolutionContext) {
-      Contract.Requires(alternatives != null);
-      Contract.Requires(resolutionContext != null);
-
-      // first, resolve the guards
-      foreach (var alternative in alternatives) {
-        int prevErrorCount = reporter.Count(ErrorLevel.Error);
-        ResolveExpression(alternative.Guard, resolutionContext);
-        Contract.Assert(alternative.Guard.Type != null);  // follows from postcondition of ResolveExpression
-        bool successfullyResolved = reporter.Count(ErrorLevel.Error) == prevErrorCount;
-        ConstrainTypeExprBool(alternative.Guard, "condition is expected to be of type bool, but is {0}");
-      }
-
-      if (loopToCatchBreaks != null) {
-        LoopStack.Add(loopToCatchBreaks);  // push
-      }
-      foreach (var alternative in alternatives) {
-        scope.PushMarker();
-        DominatingStatementLabels.PushMarker();
-        if (alternative.IsBindingGuard) {
-          var exists = (ExistsExpr)alternative.Guard;
-          foreach (var v in exists.BoundVars) {
-            ScopePushAndReport(scope, v, "bound-variable");
-          }
-        }
-        ResolveAttributes(alternative, resolutionContext);
-        foreach (Statement ss in alternative.Body) {
-          ResolveStatementWithLabels(ss, resolutionContext);
-        }
-        DominatingStatementLabels.PopMarker();
-        scope.PopMarker();
-      }
-      if (loopToCatchBreaks != null) {
-        LoopStack.RemoveAt(LoopStack.Count - 1);  // pop
-      }
-    }
-
     /// <summary>
     /// Resolves the given call statement.
     /// Assumes all LHSs have already been resolved (and checked for mutability).
@@ -3223,12 +3205,12 @@ namespace Microsoft.Dafny {
     /// "typeMap" is applied to the type of each formal.
     /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
     /// </summary>
-    void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext resolutionContext,
+    internal void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext resolutionContext,
       Dictionary<TypeParameter, Type> typeMap, Expression/*?*/ receiver) {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);
       Contract.Requires(callTok != null);
-      Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType);
+      Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType || context is UserSuppliedAtAttribute);
       Contract.Requires(typeMap != null);
       Contract.Requires(!bindings.WasResolved);
 
@@ -3243,6 +3225,9 @@ namespace Microsoft.Dafny {
       } else if (context is DatatypeCtor cCtor) {
         whatKind = "datatype constructor";
         name = $"{whatKind} '{cCtor.Name}'";
+      } else if (context is UserSuppliedAtAttribute usaa) {
+        whatKind = "attribute";
+        name = $"{whatKind} '{usaa.UserSuppliedName}'";
       } else {
         var cArrowType = (ArrowType)context;
         whatKind = "function application";
@@ -3522,52 +3507,8 @@ namespace Microsoft.Dafny {
         var s = (PrintStmt)stmt;
         s.Args.ForEach(e => ResolveExpression(e, resolutionContext));
 
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        foreach (var expr in s.Exprs) {
-          var name = RevealStmt.SingleName(expr);
-          var labeledAssert = name == null ? null : DominatingStatementLabels.Find(name) as AssertLabel;
-          if (labeledAssert != null) {
-            s.LabeledAsserts.Add(labeledAssert);
-          } else {
-            var revealResolutionContext = resolutionContext with { InReveal = true };
-            if (expr is ApplySuffix) {
-              var e = (ApplySuffix)expr;
-              var methodCallInfo = ResolveApplySuffix(e, revealResolutionContext, true);
-              if (methodCallInfo == null) {
-                // error has already been reported
-              } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
-                reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
-              } else if (methodCallInfo.Callee.AtLabel != null) {
-                Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
-                reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
-              } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
-                s.ResolvedStatements.Add(call);
-              }
-            } else if (expr is NameSegment or ExprDotName) {
-              if (expr is NameSegment) {
-                ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
-              } else {
-                ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
-              }
-              MemberSelectExpr callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
-              if (callee == null) {
-              } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
-                //The revealed member is a function
-                reporter.Error(MessageSource.Resolver, callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
-              } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
-                s.ResolvedStatements.Add(call);
-              }
-            } else {
-              ResolveExpression(expr, revealResolutionContext);
-            }
-          }
-        }
-        foreach (var a in s.ResolvedStatements) {
-          ResolveStatement(a, resolutionContext);
-        }
+      } else if (stmt is HideRevealStmt hideRevealStmt) {
+        stmt.GenResolve(this, resolutionContext);
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -3635,7 +3576,7 @@ namespace Microsoft.Dafny {
               }
               formals.Add(produceLhs);
             }
-            s.HiddenUpdate = new UpdateStmt(s.RangeToken, formals, s.Rhss, true);
+            s.HiddenUpdate = new AssignStatement(s.RangeToken, formals, s.Rhss, true);
             // resolving the update statement will check for return/yield statement specifics.
             ResolveStatement(s.HiddenUpdate, resolutionContext);
           }
@@ -3645,7 +3586,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         // We have four cases.
-        Contract.Assert(s.Update == null || s.Update is AssignSuchThatStmt || s.Update is UpdateStmt || s.Update is AssignOrReturnStmt);
+        Contract.Assert(s.Assign == null || s.Assign is AssignSuchThatStmt || s.Assign is AssignStatement || s.Assign is AssignOrReturnStmt);
         // 0.  There is no .Update.  This is easy, we will just resolve the locals.
         // 1.  The .Update is an AssignSuchThatStmt.  This is also straightforward:  first
         //     resolve the locals, which adds them to the scope, and then resolve the .Update.
@@ -3672,18 +3613,18 @@ namespace Microsoft.Dafny {
           }
         }
         // Resolve the UpdateStmt, if any
-        if (s.Update is UpdateStmt or AssignOrReturnStmt) {
+        if (s.Assign is AssignStatement or AssignOrReturnStmt) {
           // resolve the LHS
-          Contract.Assert(s.Update.Lhss.Count == s.Locals.Count);
-          for (int i = 0; i < s.Update.Lhss.Count; i++) {
+          Contract.Assert(s.Assign.Lhss.Count == s.Locals.Count);
+          for (int i = 0; i < s.Assign.Lhss.Count; i++) {
             var local = s.Locals[i];
-            var lhs = (IdentifierExpr)s.Update.Lhss[i];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
+            var lhs = (IdentifierExpr)s.Assign.Lhss[i];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
             Contract.Assert(lhs.Type == null);  // not yet resolved
             lhs.Var = local;
             lhs.Type = local.Type;
           }
           // resolve the whole thing
-          s.Update.Resolve(this, resolutionContext);
+          s.Assign.Resolve(this, resolutionContext);
         }
         // Add the locals to the scope
         foreach (var local in s.Locals) {
@@ -3694,7 +3635,7 @@ namespace Microsoft.Dafny {
           ResolveAttributes(local, resolutionContext);
         }
         // Resolve the AssignSuchThatStmt, if any
-        if (s.Update is AssignSuchThatStmt assignSuchThatStmt) {
+        if (s.Assign is AssignSuchThatStmt assignSuchThatStmt) {
           assignSuchThatStmt.Resolve(this, resolutionContext);
         }
       } else if (stmt is VarDeclPattern) {
@@ -3720,8 +3661,8 @@ namespace Microsoft.Dafny {
           // Every identifier-looking thing in the pattern resolved to a constructor; that is, this LHS is a constant literal
           reporter.Error(MessageSource.Resolver, s.LHS.tok, "LHS is a constant literal; to be legal, it must introduce at least one bound variable");
         }
-      } else if (stmt is AssignStmt) {
-        AssignStmt s = (AssignStmt)stmt;
+      } else if (stmt is SingleAssignStmt) {
+        SingleAssignStmt s = (SingleAssignStmt)stmt;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(s.Lhs, resolutionContext);  // allow ghosts for now, tighted up below
         bool lhsResolvedSuccessfully = reporter.Count(ErrorLevel.Error) == prevErrorCount;
@@ -3767,8 +3708,8 @@ namespace Microsoft.Dafny {
           TypeRhs rr = (TypeRhs)s.Rhs;
           ResolveTypeRhs(rr, stmt, resolutionContext);
           AddAssignableConstraint(stmt.Tok, lhsType, rr.Type, "type {1} is not assignable to LHS (of type {0})");
-        } else if (s.Rhs is HavocRhs) {
-          // nothing else to do
+        } else if (s.Rhs is HavocRhs havocRhs) {
+          havocRhs.Resolve(this, resolutionContext);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
         }
@@ -3785,41 +3726,25 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
-        if (s.Guard != null) {
-          ResolveExpression(s.Guard, resolutionContext);
-          Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
-        }
-
-        scope.PushMarker();
-        if (s.IsBindingGuard) {
-          var exists = (ExistsExpr)s.Guard;
-          foreach (var v in exists.BoundVars) {
-            ScopePushAndReport(scope, v, "bound-variable");
-          }
-        }
-        DominatingStatementLabels.PushMarker();
-        ResolveBlockStatement(s.Thn, resolutionContext);
-        DominatingStatementLabels.PopMarker();
-        scope.PopMarker();
-
-        if (s.Els != null) {
-          DominatingStatementLabels.PushMarker();
-          ResolveStatement(s.Els, resolutionContext);
-          DominatingStatementLabels.PopMarker();
-        }
-
+        s.Resolve(this, resolutionContext);
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        ResolveAlternatives(s.Alternatives, null, resolutionContext);
-
+        s.Resolve(this, resolutionContext);
       } else if (stmt is OneBodyLoopStmt) {
         var s = (OneBodyLoopStmt)stmt;
-        if (s is WhileStmt whileS && whileS.Guard != null) {
-          ResolveExpression(whileS.Guard, resolutionContext);
-          Contract.Assert(whileS.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
-        } else if (s is ForLoopStmt forS) {
+        if (s is WhileStmt whileS) {
+          if (whileS.Guard != null) {
+            ResolveExpression(whileS.Guard, resolutionContext);
+            Contract.Assert(whileS.Guard.Type != null);  // follows from postcondition of ResolveExpression
+            ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
+          } else {
+            if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+              Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_non_deterministic_loop_forbidden, s.Tok,
+                "nondeterministic loop forbidden by the --enforce-determinism option");
+            }
+          }
+        }
+        if (s is ForLoopStmt forS) {
           var loopIndex = forS.LoopIndex;
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveType(loopIndex.Tok, loopIndex.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
@@ -3864,9 +3789,12 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        ResolveAlternatives(s.Alternatives, s, resolutionContext);
+        if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+          Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_loop_forbidden, s.Tok,
+            "case-based loop forbidden by the --enforce-determinism option");
+        }
+        AlternativeStmt.ResolveAlternatives(this, s.Alternatives, s, resolutionContext);
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext);
-
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
 
@@ -3913,10 +3841,10 @@ namespace Microsoft.Dafny {
             // The effect of Assign and the postcondition of Call will be seen outside the forall
             // statement.
             Statement s0 = s.S0;
-            if (s0 is AssignStmt) {
+            if (s0 is SingleAssignStmt) {
               s.Kind = ForallStmt.BodyKind.Assign;
 
-              var rhs = ((AssignStmt)s0).Rhs;
+              var rhs = ((SingleAssignStmt)s0).Rhs;
               if (rhs is TypeRhs) {
                 reporter.Error(MessageSource.Resolver, rhs.Tok, "new allocation not supported in aggregate assignments");
               }
@@ -3957,13 +3885,19 @@ namespace Microsoft.Dafny {
         }
 
       } else if (stmt is ModifyStmt) {
-        var s = (ModifyStmt)stmt;
-        ResolveAttributes(s.Mod, resolutionContext);
-        foreach (FrameExpression fe in s.Mod.Expressions) {
+        var modifyStmt = (ModifyStmt)stmt;
+        if (modifyStmt.Body == null) {
+          if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+            Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_bodyless_modify_statement_forbidden,
+              modifyStmt.Tok, "modify statement without a body forbidden by the --enforce-determinism option");
+          }
+        }
+        ResolveAttributes(modifyStmt.Mod, resolutionContext);
+        foreach (FrameExpression fe in modifyStmt.Mod.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, resolutionContext);
         }
-        if (s.Body != null) {
-          ResolveBlockStatement(s.Body, resolutionContext);
+        if (modifyStmt.Body != null) {
+          ResolveBlockStatement(modifyStmt.Body, resolutionContext);
         }
 
       } else if (stmt is CalcStmt) {
@@ -4110,7 +4044,7 @@ namespace Microsoft.Dafny {
         if (!formal.HasName) {
           foreach (var previousFormal in previousParametersWithDefaultValue) {
             reporter.Error(MessageSource.Resolver, previousFormal.DefaultValue.tok,
-              $"because of a later nameless parameter, this default value is never used; remove it or name all subsequent parameters");
+              "because of a later nameless parameter, which is a required parameter, this default value is never used; remove it or name all subsequent parameters");
           }
           previousParametersWithDefaultValue.Clear();
         }
@@ -4125,7 +4059,7 @@ namespace Microsoft.Dafny {
         } else if (nameOfMostRecentNameonlyParameter != null && !formal.IsNameOnly) {
           // "formal" is preceded by a nameonly parameter, but itself is neither nameonly nor has a default value
           reporter.Error(MessageSource.Resolver, formal.tok,
-            $"this parameter is effectively nameonly (because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'); " +
+            $"this parameter has to be nameonly, because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'; " +
             "declare it as nameonly or give it a default-value expression");
         }
         if (formal.IsNameOnly) {
@@ -4336,7 +4270,8 @@ namespace Microsoft.Dafny {
         if (option.Opt == ResolveTypeOptionEnum.AllowPrefixExtend) {
           // extend defaultTypeArguments, if needed
           for (int i = defaultTypeArguments.Count; i < n; i++) {
-            var tp = new TypeParameter(tok.ToRange(), new Name(tok.ToRange(), "_T" + i), i, option.Parent);
+            var parentToken = option.Parent.Tok;
+            var tp = new TypeParameter(parentToken.ToRange(), new Name(parentToken.ToRange(), "_T" + i), i, option.Parent);
             if (option.Parent is IteratorDecl) {
               tp.Characteristics.AutoInit = Type.AutoInitInfo.CompilableValue;
             }
@@ -4478,7 +4413,7 @@ namespace Microsoft.Dafny {
               // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
               var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) { Type = rr.EType };
               var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
-              ResolveDotSuffix(callLhs, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
+              ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
@@ -4568,8 +4503,8 @@ namespace Microsoft.Dafny {
     }
 
     private void ReportMemberNotFoundError(IToken tok, string memberName, TopLevelDecl receiverDecl) {
-      if (memberName.StartsWith(RevealStmt.RevealLemmaPrefix)) {
-        var nameToBeRevealed = memberName[RevealStmt.RevealLemmaPrefix.Length..];
+      if (memberName.StartsWith(HideRevealStmt.RevealLemmaPrefix)) {
+        var nameToBeRevealed = memberName[HideRevealStmt.RevealLemmaPrefix.Length..];
         var members = receiverDecl is TopLevelDeclWithMembers topLevelDeclWithMembers ? GetClassMembers(topLevelDeclWithMembers) : null;
         if (members == null) {
           reporter.Error(MessageSource.Resolver, tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
@@ -5325,7 +5260,7 @@ namespace Microsoft.Dafny {
       // For 2 and 5:
       // For 3:
 
-      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
+      var name = resolutionContext.InReveal ? HideRevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
       v = scope.Find(name);
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
@@ -5442,7 +5377,7 @@ namespace Microsoft.Dafny {
 
     private void ReportUnresolvedIdentifierError(IToken tok, string name, ResolutionContext resolutionContext) {
       if (resolutionContext.InReveal) {
-        var nameToReport = name.StartsWith(RevealStmt.RevealLemmaPrefix) ? name[RevealStmt.RevealLemmaPrefix.Length..] : name;
+        var nameToReport = name.StartsWith(HideRevealStmt.RevealLemmaPrefix) ? name[HideRevealStmt.RevealLemmaPrefix.Length..] : name;
         reporter.Error(MessageSource.Resolver, tok,
           "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
           nameToReport);
@@ -5570,7 +5505,7 @@ namespace Microsoft.Dafny {
           // We have found a module name or a type name, neither of which is a type expression. However, the NameSegment we're
           // looking at may be followed by a further suffix that makes this into a type expresion. We postpone the rest of the
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
-          // or verifier, just to have a placeholder where we can recorded what we have found.
+          // or verifier, just to have a placeholder where we can record what we have found.
           r = CreateResolver_IdentifierExpr(expr.tok, expr.Name, expr.OptTypeArguments, decl);
         }
 
@@ -5634,7 +5569,7 @@ namespace Microsoft.Dafny {
     /// <param name="resolutionContext"></param>
     /// <param name="allowMethodCall">If false, generates an error if the name denotes a method. If true and the name denotes a method, returns
     /// a Resolver_MethodCall.</param>
-    Expression ResolveDotSuffix(ExprDotName expr, bool isLastNameSegment, List<ActualBinding> args, ResolutionContext resolutionContext, bool allowMethodCall) {
+    public Expression ResolveDotSuffix(ExprDotName expr, bool allowStaticReferenceToInstance, bool isLastNameSegment, List<ActualBinding> args, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(expr != null);
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(resolutionContext != null);
@@ -5647,7 +5582,7 @@ namespace Microsoft.Dafny {
       if (expr.Lhs is NameSegment) {
         ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, false, true, out shadowedImport);
       } else if (expr.Lhs is ExprDotName) {
-        ResolveDotSuffix((ExprDotName)expr.Lhs, false, null, nonRevealOpts, false);
+        ResolveDotSuffix((ExprDotName)expr.Lhs, false, false, null, nonRevealOpts, false);
       } else {
         ResolveExpression(expr.Lhs, nonRevealOpts);
       }
@@ -5662,7 +5597,7 @@ namespace Microsoft.Dafny {
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
       MemberDecl member = null;
 
-      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
+      var name = resolutionContext.InReveal ? HideRevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
       if (!expr.Lhs.WasResolved()) {
         return null;
       }
@@ -5756,7 +5691,7 @@ namespace Microsoft.Dafny {
             if (!VisibleInScope(member)) {
               reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not been imported in this scope and cannot be accessed here", name);
             }
-            if (!member.IsStatic) {
+            if (!member.IsStatic && !allowStaticReferenceToInstance) {
               reporter.Error(MessageSource.Resolver, expr.tok, "accessing member '{0}' requires an instance expression", name); //TODO Unify with similar error messages
               // nevertheless, continue creating an expression that approximates a correct one
             }
@@ -5840,8 +5775,8 @@ namespace Microsoft.Dafny {
       // Now, fill in rr.Type.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
       // parameters used in this NameSegment/ExprDotName.
       // Add to "subst" the type parameters given to the member's class/datatype
-      rr.TypeApplication_AtEnclosingClass = new List<Type>();
-      rr.TypeApplication_JustMember = new List<Type>();
+      rr.TypeApplicationAtEnclosingClass = new List<Type>();
+      rr.TypeApplicationJustMember = new List<Type>();
       Dictionary<TypeParameter, Type> subst;
       var rType = (receiverTypeBound ?? receiver.Type).NormalizeExpand();
       if (rType is UserDefinedType udt && udt.ResolvedClass != null) {
@@ -5849,14 +5784,14 @@ namespace Microsoft.Dafny {
         if (member.EnclosingClass == null) {
           // this can happen for some special members, like real.Floor
         } else {
-          rr.TypeApplication_AtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass).TypeArgs);
+          rr.TypeApplicationAtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass).TypeArgs);
         }
       } else {
         var vtd = ProgramResolver.SystemModuleManager.AsValuetypeDecl(rType);
         if (vtd != null) {
           Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);
           subst = TypeParameter.SubstitutionMap(vtd.TypeArgs, rType.TypeArgs);
-          rr.TypeApplication_AtEnclosingClass.AddRange(rType.TypeArgs);
+          rr.TypeApplicationAtEnclosingClass.AddRange(rType.TypeArgs);
         } else {
           Contract.Assert(rType.TypeArgs.Count == 0);
           subst = new Dictionary<TypeParameter, Type>();
@@ -5882,7 +5817,7 @@ namespace Microsoft.Dafny {
         }
         for (int i = 0; i < fn.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
-          rr.TypeApplication_JustMember.Add(ta);
+          rr.TypeApplicationJustMember.Add(ta);
           subst.Add(fn.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
@@ -5901,11 +5836,10 @@ namespace Microsoft.Dafny {
         }
         for (int i = 0; i < m.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
-          rr.TypeApplication_JustMember.Add(ta);
+          rr.TypeApplicationJustMember.Add(ta);
           subst.Add(m.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
-        rr.ResolvedOutparameterTypes = m.Outs.ConvertAll(f => f.Type.Subst(subst));
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
       }
       return rr;
@@ -5921,7 +5855,7 @@ namespace Microsoft.Dafny {
         r = ResolveNameSegment((NameSegment)e.Lhs, true, e.Bindings.ArgumentBindings, resolutionContext, allowMethodCall);
         // note, if r is non-null, then e.Args have been resolved and r is a resolved expression that incorporates e.Args
       } else if (e.Lhs is ExprDotName) {
-        r = ResolveDotSuffix((ExprDotName)e.Lhs, true, e.Bindings.ArgumentBindings, resolutionContext, allowMethodCall);
+        r = ResolveDotSuffix((ExprDotName)e.Lhs, false, true, e.Bindings.ArgumentBindings, resolutionContext, allowMethodCall);
         // note, if r is non-null, then e.Args have been resolved and r is a resolved expression that incorporates e.Args
       } else {
         ResolveExpression(e.Lhs, resolutionContext);
@@ -5982,10 +5916,10 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
+            var rr = new FunctionCallExpr(e.Lhs.Tok, callee.Name, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
-              TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass,
-              TypeApplication_JustFunction = mse.TypeApplication_JustMember
+              TypeApplication_AtEnclosingClass = mse.TypeApplicationAtEnclosingClass,
+              TypeApplication_JustFunction = mse.TypeApplicationJustMember
             };
             var typeMap = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
             ResolveActualParameters(rr.Bindings, callee.Ins, e.tok, callee, resolutionContext, typeMap, callee.IsStatic ? null : mse.Obj);

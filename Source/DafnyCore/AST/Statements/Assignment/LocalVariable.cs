@@ -9,7 +9,12 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   readonly string name;
   public string DafnyName => Name;
   public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+  Attributes IAttributeBearingDeclaration.Attributes {
+    get => Attributes;
+    set => Attributes = value;
+  }
+  string IAttributeBearingDeclaration.WhatKind => "local variable";
+
   public bool IsGhost;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -65,23 +70,20 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   private string uniqueName;
   public string UniqueName => uniqueName;
   public bool HasBeenAssignedUniqueName => uniqueName != null;
-  public string AssignUniqueName(FreshIdGenerator generator) {
+  public string AssignUniqueName(VerificationIdGenerator generator) {
     return uniqueName ??= generator.FreshId(Name + "#");
   }
 
   private string sanitizedNameShadowable;
 
-  public string SanitizedNameShadowable =>
+  public string CompileNameShadowable =>
     sanitizedNameShadowable ??= NonglobalVariable.SanitizeName(Name);
 
-  private string sanitizedName;
-
-  public string SanitizedName =>
-    sanitizedName ??= $"_{IVariable.CompileNameIdGenerator.FreshNumericId()}_{SanitizedNameShadowable}";
-
   string compileName;
-  public string CompileName =>
-    compileName ??= SanitizedName;
+
+  public string GetOrCreateCompileName(CodeGenIdGenerator generator) {
+    return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
+  }
 
   // TODO rename and update comment? Or make it nullable?
   public readonly Type SyntacticType;  // this is the type mentioned in the declaration, if any
@@ -129,14 +131,16 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     this.IsGhost = true;
   }
 
-  public IToken NameToken => RangeToken.StartToken;
+  public IToken NavigationToken => RangeToken.StartToken;
   public bool IsTypeExplicit { get; }
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
 
   public override IEnumerable<INode> PreResolveChildren =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       IsTypeExplicit ? new List<Node>() { SyntacticType ?? type } : Enumerable.Empty<Node>());
 
   public SymbolKind? Kind => SymbolKind.Variable;

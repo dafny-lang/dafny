@@ -81,7 +81,7 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
   }
 }
 
-public abstract class MatchCase : TokenNode, IHasUsages {
+public abstract class MatchCase : TokenNode, IHasReferences {
   public DatatypeCtor Ctor;
   public List<BoundVar> Arguments;
 
@@ -101,13 +101,13 @@ public abstract class MatchCase : TokenNode, IHasUsages {
     this.Arguments = arguments;
   }
 
-  public IToken NameToken => tok;
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IToken NavigationToken => tok;
+  public IEnumerable<IHasNavigationToken> GetReferences() {
     return new[] { Ctor };
   }
 }
 
-interface IMatch {
+public interface IMatch {
   IEnumerable<MatchCase> Cases { get; }
   Expression Source { get; }
   List<DatatypeCtor> MissingCases { get; }

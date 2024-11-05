@@ -11,11 +11,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using OmniSharp.Extensions.JsonRpc.Server;
-using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
@@ -68,16 +64,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private (ISymbol? symbol, string? symbolHoverContent) GetStaticHoverContent(HoverParams request, IdeState state) {
-      IDeclarationOrUsage? declarationOrUsage =
-        state.ResolvedProgram.FindNode<IDeclarationOrUsage>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+      IHasNavigationToken? declarationOrUsage =
+        state.ResolvedProgram.FindNode<IHasNavigationToken>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
       ISymbol? symbol;
 
-      if (declarationOrUsage is IHasUsages usage) {
-        symbol = state.SymbolTable.UsageToDeclaration.GetValueOrDefault(usage) as ISymbol;
+      if (declarationOrUsage is IHasReferences usage) {
+        symbol = state.SymbolTable.ReferenceToNode.GetValueOrDefault(usage) as ISymbol;
       } else {
         // If we hover over a usage, display the information of the declaration
         symbol = declarationOrUsage as ISymbol;
-        if (symbol != null && !symbol.NameToken.ToRange().ToLspRange().Contains(request.Position)) {
+        if (symbol != null && !symbol.NavigationToken.ToRange().ToLspRange().Contains(request.Position)) {
           symbol = null;
         }
       }
@@ -336,7 +332,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         } else {
           information += GetDescription(returnCounterexample.FailingReturn.Description);
         }
-        information += MoreInformation(returnCounterexample.FailingAssert.tok, currentlyHoveringPostcondition);
+        information += MoreInformation(returnCounterexample.FailingEnsures.tok, currentlyHoveringPostcondition);
       } else if (counterexample is CallCounterexample callCounterexample) {
         if (assertionNode.StatusVerification == GutterVerificationStatus.Error &&
             callCounterexample.FailingRequires.Description.SuccessDescription != "assertion always holds"

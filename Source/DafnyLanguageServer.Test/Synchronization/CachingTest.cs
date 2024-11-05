@@ -174,7 +174,7 @@ module ModC {
 ".TrimStart();
 
 
-    var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var temp = GetFreshTempPath();
     var noCachingProject = await CreateOpenAndWaitForResolve(@"[options]
 use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
     var noCaching = await CreateOpenAndWaitForResolve(source, Path.Combine(temp, "noCaching.dfy"));
@@ -365,14 +365,14 @@ method Foo() {
  var b: bool := 3;
 }";
 
-    var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var temp = GetFreshTempPath();
     var file1 = CreateAndOpenTestDocument(source1, Path.Combine(temp, "source1.dfy"));
     var file2 = CreateAndOpenTestDocument(source2, Path.Combine(temp, "source2.dfy"));
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     var project = CreateAndOpenTestDocument("", Path.Combine(temp, "dfyconfig.toml"));
     // Change in file1 causes project detection to realize it's now part of project, so it is added there.
     ApplyChange(ref file1, new Range(0, 0, 0, 0), "// added this comment\n");
     ApplyChange(ref file2, new Range(0, 0, 0, 0), "// added this comment\n");
+    await client.WaitForNotificationCompletionAsync(project.Uri, CancellationToken);
     var diagnostics0 = await GetLastDiagnostics(project);
     var diagnostics1 = await GetLastDiagnostics(file1);
     var diagnostics2 = await GetLastDiagnostics(file2);
@@ -381,7 +381,7 @@ method Foo() {
   }
 
   [Fact]
-  public async Task ConcurrentCompilationDoesNotBreakCaching() {
+  public async Task CachingWorksWhenManyChangesAreMadeWithoutWaits() {
     var largeImport1 = GetLargeFile("Imported1", 100);
     var largeImport2 = GetLargeFile("Imported2", 100);
 
@@ -394,17 +394,16 @@ method Foo() {
   }
 }";
 
-    var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var temp = GetFreshTempPath();
+    var project = CreateOpenAndWaitForResolve("", Path.Combine(temp, "dfyconfig.toml"));
     var imported1 = CreateAndOpenTestDocument(largeImport1, Path.Combine(temp, "imported1.dfy"));
     var imported2 = CreateAndOpenTestDocument(largeImport2, Path.Combine(temp, "imported2.dfy"));
     var importer = CreateAndOpenTestDocument(importerSource, Path.Combine(temp, "importer.dfy"));
-    var project = CreateOpenAndWaitForResolve("", Path.Combine(temp, "dfyconfig.toml"));
 
     var before1 = await WaitAndCountHits(imported1);
     var before2 = await WaitAndCountHits(imported2);
     var beforeImporter = await WaitAndCountHits(importer);
 
-    ApplyChange(ref importer, new Range(0, 0, 0, 0), "// added this comment\n");
     for (int i = 0; i < 100; i++) {
       ApplyChange(ref importer, new Range(0, 0, 0, 0), "// added this comment\n");
     }

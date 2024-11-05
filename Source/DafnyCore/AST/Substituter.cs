@@ -12,9 +12,9 @@ namespace Microsoft.Dafny {
   /// particular, the substituter does not copy parts of an expression that are used only for well-formedness checks.
   /// </summary>
   public class Substituter {
-    protected readonly Expression receiverReplacement;
-    protected readonly Dictionary<IVariable, Expression> substMap;
-    protected readonly Dictionary<TypeParameter, Type> typeMap;
+    protected Expression receiverReplacement { get; }
+    public Dictionary<IVariable, Expression> substMap { get; }
+    public Dictionary<TypeParameter, Type> typeMap { get; }
     protected readonly Label oldHeapLabel;
     [CanBeNull] protected readonly SystemModuleManager SystemModuleManager; // if non-null, substitutions into FunctionCallExpr's will be wrapped
 
@@ -118,15 +118,15 @@ namespace Microsoft.Dafny {
       } else if (expr is MemberSelectExpr) {
         var mse = (MemberSelectExpr)expr;
         var newObj = Substitute(mse.Obj);
-        var newTypeApplicationAtEnclosingClass = SubstituteTypeList(mse.TypeApplication_AtEnclosingClass);
-        var newTypeApplicationJustMember = SubstituteTypeList(mse.TypeApplication_JustMember);
+        var newTypeApplicationAtEnclosingClass = SubstituteTypeList(mse.TypeApplicationAtEnclosingClass);
+        var newTypeApplicationJustMember = SubstituteTypeList(mse.TypeApplicationJustMember);
         if (newObj != mse.Obj ||
-            newTypeApplicationAtEnclosingClass != mse.TypeApplication_AtEnclosingClass ||
-            newTypeApplicationJustMember != mse.TypeApplication_JustMember) {
+            newTypeApplicationAtEnclosingClass != mse.TypeApplicationAtEnclosingClass ||
+            newTypeApplicationJustMember != mse.TypeApplicationJustMember) {
           var fseNew = new MemberSelectExpr(mse.tok, newObj, mse.MemberName) {
             Member = mse.Member,
-            TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass,
-            TypeApplication_JustMember = newTypeApplicationJustMember,
+            TypeApplicationAtEnclosingClass = newTypeApplicationAtEnclosingClass,
+            TypeApplicationJustMember = newTypeApplicationJustMember,
             AtLabel = mse.AtLabel ?? oldHeapLabel
           };
           newExpr = fseNew;
@@ -314,7 +314,9 @@ namespace Microsoft.Dafny {
               case IdPattern idPattern:
                 if (idPattern.BoundVar == null) {
                   return new IdPattern(idPattern.Tok, idPattern.Id, idPattern.Type,
-                    idPattern.Arguments?.Select(SubstituteForPattern).ToList(), idPattern.IsGhost);
+                    idPattern.Arguments?.Select(SubstituteForPattern).ToList(), idPattern.IsGhost) {
+                    Ctor = idPattern.Ctor
+                  };
                 }
 
                 discoveredBvs.Add((BoundVar)idPattern.BoundVar);
@@ -424,6 +426,13 @@ namespace Microsoft.Dafny {
         if (anythingChanged) {
           newExpr = new BoogieGenerator.BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels, newArgs, newTyArgs);
         }
+
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        List<Expression> oldExpressionsSubst = SubstituteExprList(decreasesToExpr.OldExpressions.ToList());
+        List<Expression> newExpressionsSubst = SubstituteExprList(decreasesToExpr.NewExpressions.ToList());
+        newExpr = new DecreasesToExpr(decreasesToExpr.tok, oldExpressionsSubst, newExpressionsSubst, decreasesToExpr.AllowNoChange) {
+          Type = decreasesToExpr.Type
+        };
 
       } else {
         Contract.Assume(false); // unexpected Expression
@@ -757,7 +766,7 @@ namespace Microsoft.Dafny {
         return null;
       } else if (stmt is AssertStmt) {
         var s = (AssertStmt)stmt;
-        r = new AssertStmt(s.RangeToken, Substitute(s.Expr), SubstBlockStmt(s.Proof), s.Label, SubstAttributes(s.Attributes));
+        r = new AssertStmt(s.RangeToken, Substitute(s.Expr), s.Label, SubstAttributes(s.Attributes));
       } else if (stmt is ExpectStmt) {
         var s = (ExpectStmt)stmt;
         r = new ExpectStmt(s.RangeToken, Substitute(s.Expr), Substitute(s.Message), SubstAttributes(s.Attributes));
@@ -779,9 +788,9 @@ namespace Microsoft.Dafny {
         }
         breaks.Add(rr);
         r = rr;
-      } else if (stmt is AssignStmt) {
-        var s = (AssignStmt)stmt;
-        r = new AssignStmt(s.RangeToken, Substitute(s.Lhs), SubstRHS(s.Rhs));
+      } else if (stmt is SingleAssignStmt) {
+        var s = (SingleAssignStmt)stmt;
+        r = new SingleAssignStmt(s.RangeToken, Substitute(s.Lhs), SubstRHS(s.Rhs));
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         var rr = new CallStmt(s.RangeToken, s.Lhs.ConvertAll(Substitute), (MemberSelectExpr)Substitute(s.MethodSelect), s.Args.ConvertAll(Substitute));
@@ -838,15 +847,15 @@ namespace Microsoft.Dafny {
         r = new AssignSuchThatStmt(s.RangeToken, s.Lhss.ConvertAll(Substitute), Substitute(s.Expr), s.AssumeToken, null) {
           Bounds = SubstituteBoundedPoolList(s.Bounds)
         };
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
+      } else if (stmt is AssignStatement) {
+        var s = (AssignStatement)stmt;
         var resolved = s.ResolvedStatements;
-        UpdateStmt rr;
+        AssignStatement rr;
         if (resolved.Count == 1) {
           // when later translating this UpdateStmt, the s.Lhss and s.Rhss components won't be used, only s.ResolvedStatements
-          rr = new UpdateStmt(s.RangeToken, s.Lhss, s.Rhss, s.CanMutateKnownState);
+          rr = new AssignStatement(s.RangeToken, s.Lhss, s.Rhss, s.CanMutateKnownState);
         } else {
-          rr = new UpdateStmt(s.RangeToken, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
+          rr = new AssignStatement(s.RangeToken, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
         }
 
         if (s.ResolvedStatements != null) {
@@ -856,19 +865,24 @@ namespace Microsoft.Dafny {
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var lhss = CreateLocalVarSubstitutions(s.Locals, false);
-        var rr = new VarDeclStmt(s.RangeToken, lhss, (ConcreteUpdateStatement)SubstStmt(s.Update));
+        var rr = new VarDeclStmt(s.RangeToken, lhss, (ConcreteAssignStatement)SubstStmt(s.Assign));
         r = rr;
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
         var lhss = SubstituteCasePattern(s.LHS, false, CloneLocalVariable);
         var rr = new VarDeclPattern(s.RangeToken, lhss, (Expression)Substitute(s.RHS), s.HasGhostModifier);
         r = rr;
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
+      } else if (stmt is HideRevealStmt revealStmt) {
         // don't need to substitute s.Expr since it won't be used, only the s.ResolvedStatements are used.
-        var rr = new RevealStmt(s.RangeToken, s.Exprs);
-        rr.LabeledAsserts.AddRange(s.LabeledAsserts);
-        rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+        var rr = new HideRevealStmt(revealStmt.RangeToken, revealStmt.Exprs, revealStmt.Mode);
+        rr.LabeledAsserts.AddRange(revealStmt.LabeledAsserts);
+        rr.ResolvedStatements.AddRange(revealStmt.ResolvedStatements.ConvertAll(SubstStmt));
+        rr.OffsetMembers = revealStmt.OffsetMembers.ToList();
+        r = rr;
+      } else if (stmt is BlockByProofStmt blockByProofStmt) {
+        var rr = new BlockByProofStmt(blockByProofStmt.RangeToken,
+          (BlockStmt)SubstStmt(blockByProofStmt.Proof),
+          SubstStmt(blockByProofStmt.Body));
         r = rr;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement

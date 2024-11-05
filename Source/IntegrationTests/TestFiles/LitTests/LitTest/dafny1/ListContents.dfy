@@ -1,6 +1,5 @@
 // RUN: %testDafnyForEachResolver "%s"
 
-
 class Node<T> {
   ghost var List: seq<T>
   ghost var Repr: set<Node<T>>

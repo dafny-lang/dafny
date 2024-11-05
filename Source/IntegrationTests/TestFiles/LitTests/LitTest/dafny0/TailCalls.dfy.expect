@@ -26,6 +26,6 @@ TailCalls.dfy(449,14): Error: a recursive call in this context is not recognized
 TailCalls.dfy(451,19): Error: a recursive call in this context is not recognized as a tail call
 TailCalls.dfy(462,11): Error: a recursive call in this context is not recognized as a tail call
 TailCalls.dfy(110,14): Error: the recursive call to '_ctor' is not tail recursive, because the assignment of the LHS happens after the call
-TailCalls.dfy(126,19): Error: the recursive call to 'Compute' is not tail recursive because the actual type parameter is not the formal type parameter 'G'
-TailCalls.dfy(139,17): Error: the recursive call to 'Run' is not tail recursive because the actual type parameter 1 is not the formal type parameter 'G'
+TailCalls.dfy(126,19): Error: the recursive call to 'Compute' is not tail recursive because the actual type argument is not the formal type parameter 'G'
+TailCalls.dfy(139,17): Error: the recursive call to 'Run' is not tail recursive because the actual type argument 1 is not the formal type parameter 'G'
 30 resolution/type errors detected in TailCalls.dfy
