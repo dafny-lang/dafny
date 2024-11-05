@@ -2032,8 +2032,8 @@ namespace Microsoft.Dafny {
     public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      stmt.ResolveGhostness(this, Reporter, false, codeContext, proofContext,
-        false, codeContext is Method);
+      stmt.ResolveGhostness(this, Reporter, mustBeErasable, codeContext, proofContext,
+        codeContext is Method, false);
     }
 
     class ReportOtherAdditionalInformation_Visitor : ResolverBottomUpVisitor {
