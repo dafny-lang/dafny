@@ -6,6 +6,7 @@ module Std.Actions {
   import opened GenericActions
   import opened Termination
   import opened DynamicArray
+  import opened Math
   import Collections.Seq
 
   // TODO: Documentation, especially overall design
@@ -111,6 +112,17 @@ module Std.Actions {
     }
   }
 
+  // method Next<T>(e: Action<(), T>) returns (t: T)
+  //   requires e.Valid()
+  //   requires e.CanConsume(e.history, ())
+  //   reads e.Repr
+  //   modifies e.Repr
+  //   ensures e.Valid()
+  // {
+  //   assert e.Valid();
+  //   t := e.Invoke(());
+  // }
+
   method DefaultRepeatUntil<T, R>(a: Action<T, R>, t: T, stop: R -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, R>) 
     requires a.Valid()
     requires eventuallyStopsProof.Action() == a
@@ -140,22 +152,6 @@ module Std.Actions {
       }
       eventuallyStopsProof.InvokeUntilTerminationMetricDecreased@beforeInvoke(next);
     }
-  }
-
-  // Dependencies stolen from DafnyStandardLibraries
-  
-  function Max(a: int, b: int): int
-  {
-    if a < b
-    then b
-    else a
-  }
-
-  function Min(a: int, b: int): int
-  {
-    if a < b
-    then a
-    else b
   }
 
   // Common action invariants
@@ -513,6 +509,121 @@ module Std.Actions {
     // var d := enum.Invoke(());
     // var e := enum.Invoke(());
 
+  }
+
+  class SetEnumerator<T(==)> extends Action<(), T> {
+    ghost const original: set<T>
+    var remaining: set<T>
+
+    ghost predicate Valid() 
+      reads this, Repr 
+      ensures Valid() ==> this in Repr 
+      ensures Valid() ==> CanProduce(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && CanProduce(history)
+      && Enumerated(history) !! remaining
+      && Enumerated(history) <= original
+      && remaining == original - Enumerated(history)
+    }
+
+    constructor(s: set<T>) 
+      ensures Valid()
+      ensures fresh(Repr)
+      ensures history == []
+      ensures s == original
+    {
+      original := s;
+      remaining := s;
+
+      history := [];
+      Repr := {this};
+      height := 1;
+
+      reveal Seq.HasNoDuplicates();
+      reveal Seq.ToSet();
+    }
+
+    ghost function Enumerated(history: seq<((), T)>): set<T> {
+      Seq.ToSet(Outputs(history))
+    }
+
+    ghost predicate CanConsume(history: seq<((), T)>, next: ())
+      decreases height
+    {
+      |history| < |original|
+    }
+    ghost predicate CanProduce(history: seq<((), T)>)
+      decreases height
+    {
+      && Seq.HasNoDuplicates(Outputs(history))
+    }
+
+    lemma EnumeratedCardinality()
+      requires Valid()
+      ensures |Enumerated(history)| == |history|
+    {
+      reveal Seq.ToSet();
+      Seq.LemmaCardinalityOfSetNoDuplicates(Outputs(history));
+    }
+
+    method Invoke(t: ()) returns (r: T) 
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal()
+      ensures Ensures(t, r)
+    {
+      EnumeratedCardinality();
+      assert 0 < |remaining|;
+
+      r :| r in remaining;
+      remaining := remaining - {r};
+
+      Update(t, r);
+      Repr := {this};
+
+      assert Outputs(history) == Outputs(old(history)) + [r];
+      reveal Seq.ToSet();
+      assert r !in Outputs(old(history));
+      reveal Seq.HasNoDuplicates();
+      Seq.LemmaNoDuplicatesInConcat(Outputs(old(history)), [r]);
+    }
+
+    method RepeatUntil(t: (), stop: T -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), T>)
+      requires Valid()
+      requires eventuallyStopsProof.Action() == this
+      requires eventuallyStopsProof.FixedInput() == t
+      requires eventuallyStopsProof.StopFn() == stop
+      requires forall i <- Consumed() :: i == t
+      reads Reads(t)
+      modifies Repr
+      decreases Repr
+      ensures Valid()
+    {
+      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
+    }
+  }
+
+  method SetEnumeratorExample() {
+    var s: set<nat> := {1, 2, 3, 4, 5};
+    var copy: set<nat> := {};
+    var e: SetEnumerator<nat> := new SetEnumerator(s);
+
+    label before:
+    for enumerated := 0 to 5
+      invariant e.Valid()
+      invariant enumerated == |e.history|
+      invariant fresh(e.Repr - old@before(e.Repr))
+    {
+      var x := e.Invoke(());
+      copy := copy + {x};
+    }
+
+    // TODO: cool enough that we can statically invoke
+    // the enumerator the right number of times!
+    // But now prove that copy == s!
   }
 
   // Other primitives/examples todo:
