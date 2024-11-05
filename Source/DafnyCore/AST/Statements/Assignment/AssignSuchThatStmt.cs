@@ -116,4 +116,27 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
     resolver.ResolveExpression(Expr, resolutionContext);
     resolver.ConstrainTypeExprBool(Expr, "type of RHS of assign-such-that statement must be boolean (got {0})");
   }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable || AssumeToken != null || Lhss.Any(SingleAssignStmt.LhsIsToGhost);
+    if (mustBeErasable && !codeContext.IsGhost) {
+      foreach (var lhs in Lhss) {
+        var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
+        if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_to_var_in_ghost, lhs,
+            "cannot assign to {0} in a ghost context", SingleAssignStmt.NonGhostKind_To_String(gk));
+        }
+      }
+    } else if (!mustBeErasable && AssumeToken == null && ExpressionTester.UsesSpecFeatures(Expr)) {
+      foreach (var lhs in Lhss) {
+        var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
+        if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_ghost_to_var, lhs,
+            "{0} cannot be assigned a value that depends on a ghost", SingleAssignStmt.NonGhostKind_To_String(gk));
+        }
+      }
+    }
+  }
 }
