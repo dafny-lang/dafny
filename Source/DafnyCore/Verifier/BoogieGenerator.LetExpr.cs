@@ -197,7 +197,7 @@ namespace Microsoft.Dafny {
 
             // now that we've declared the functions and axioms, let's prepare the let-such-that desugaring
             {
-              var etran = new ExpressionTranslator(BoogieGenerator, predef, e.tok, null);
+              var etran = new ExpressionTranslator(BoogieGenerator, Predef, e.tok, null);
               var rhss = new List<Expression>();
               foreach (var bv in e.BoundVars) {
                 var args = info.SkolemFunctionArgs(bv, BoogieGenerator, etran);
@@ -233,7 +233,7 @@ namespace Microsoft.Dafny {
 
       private void AddLetSuchThenCanCallAxiom(LetExpr e, LetSuchThatExprInfo info, Bpl.Function canCallFunction) {
         var etranCC =
-          new ExpressionTranslator(BoogieGenerator, predef, info.HeapExpr(BoogieGenerator, false), info.HeapExpr(BoogieGenerator, true), null);
+          new ExpressionTranslator(BoogieGenerator, Predef, info.HeapExpr(BoogieGenerator, false), info.HeapExpr(BoogieGenerator, true), null);
         Bpl.Expr typeAntecedents; // later ignored
         List<Variable> gg = info.GAsVars(BoogieGenerator, false, out typeAntecedents, etranCC);
         var gExprs = new List<Bpl.Expr>();
