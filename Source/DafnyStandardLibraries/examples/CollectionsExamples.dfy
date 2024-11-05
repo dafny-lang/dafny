@@ -36,7 +36,7 @@ module CollectionsExamples {
       AssertAndExpect(reveal ToSet(); ToSet(s[1..]) == {1, 2, 3, 5, 8, 13, 21});
     }
 
-    method {:test} TestSequenceIndexOf() {
+    method {:test} {:isolate_assertions} TestSequenceIndexOf() {
       AssertAndExpect(IndexOf(s, 5) == 4);
       expect IndexOf(s, 1) == 0;
       AssertAndExpect(IndexOfOption(s, 5) == Some(4));
