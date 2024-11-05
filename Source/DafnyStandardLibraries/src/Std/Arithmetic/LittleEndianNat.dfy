@@ -392,7 +392,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Extends a sequence to a specified length. */
-  function SeqExtend(xs: seq<digit>, n: nat): (ys: seq<digit>)
+  function {:opaque} SeqExtend(xs: seq<digit>, n: nat): (ys: seq<digit>)
     requires |xs| <= n
     ensures |ys| == n
     ensures ToNatRight(ys) == ToNatRight(xs)
@@ -402,7 +402,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Extends a sequence to a length that is a multiple of n. */
-  function SeqExtendMultiple(xs: seq<digit>, n: nat): (ys: seq<digit>)
+  function {:opaque} SeqExtendMultiple(xs: seq<digit>, n: nat): (ys: seq<digit>)
     requires n > 0
     ensures |ys| % n == 0
     ensures ToNatRight(ys) == ToNatRight(xs)
@@ -445,7 +445,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Generates a sequence of zeros of a specified length. */
-  function SeqZero(len: nat): (xs: seq<digit>)
+  function {:opaque} SeqZero(len: nat): (xs: seq<digit>)
     ensures |xs| == len
     ensures forall i :: 0 <= i < |xs| ==> xs[i] == 0
     ensures ToNatRight(xs) == 0
@@ -482,7 +482,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   //////////////////////////////////////////////////////////////////////////////
 
   /* Adds two sequences. */
-  function SeqAdd(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
+  function {:opaque} SeqAdd(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
     requires |xs| == |ys|
     ensures var (zs, cout) := SeqAdd(xs, ys);
             |zs| == |xs| && 0 <= cout <= 1
@@ -535,7 +535,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Subtracts two sequences. */
-  function SeqSub(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
+  function {:opaque} SeqSub(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
     requires |xs| == |ys|
     ensures var (zs, cout) := SeqSub(xs, ys);
             |zs| == |xs| && 0 <= cout <= 1
