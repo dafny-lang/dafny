@@ -1,3 +1,4 @@
+
 Dafny program verifier finished with 0 verified, 0 errors
 source1.dfy(6,16): Error: a postcondition could not be proved on this return path
 source1.dfy(6,10): Related location: this is the postcondition that could not be proved

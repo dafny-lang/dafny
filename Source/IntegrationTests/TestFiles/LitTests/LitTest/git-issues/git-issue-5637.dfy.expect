@@ -1,6 +1,2 @@
-  |
-1 | // RUN: %translate cs --include-test-runner --allow-warnings %s > "%t"
-  | ^
-
 
 Dafny program verifier finished with 0 verified, 0 errors
