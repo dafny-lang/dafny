@@ -31,20 +31,20 @@ module ArithmeticExamples {
       expect FromNat(302) == [2, 0, 3];
     }
 
-    method {:test} TestToNatRight() {
+    method {:test} {:isolate_assertions} TestToNatRight() {
       expect ToNatRight([0]) == 0;
       expect ToNatRight([1]) == 1;
       expect ToNatRight([3]) == 3;
       expect ToNatRight([3,0,2]) == 203;
     }
 
-    method {:test} TestSeqExtend() {
+    method {:test} {:isolate_assertions} TestSeqExtend() {
       expect SeqExtend([], 3) == [0, 0, 0];
       expect SeqExtend([1], 3) == [1, 0, 0];
       expect SeqExtend([3,0,2], 4) == [3,0,2,0];
     }
 
-    method {:test} TestSeqExtendMultiple() {
+    method {:test} {:isolate_assertions} TestSeqExtendMultiple() {
       expect SeqExtendMultiple([], 3) == [0, 0, 0];
       print "length: ", |SeqExtendMultiple([1, 2, 3], 3)|;
       expect SeqExtendMultiple([1, 2], 3) == [1, 2, 0];

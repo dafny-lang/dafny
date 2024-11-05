@@ -15,7 +15,7 @@ module ArithmeticTests {
     }
   }
 
-  method {:test} TestPowLog() {
+  method {:test} {:isolate_assertions} TestPowLog() {
     expect Pow(-4, 0) == 1;
     expect Pow(-2, 2) == 4;
     expect Pow(-2, 3) == -8;
