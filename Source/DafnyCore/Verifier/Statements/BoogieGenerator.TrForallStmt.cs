@@ -170,6 +170,7 @@ public partial class BoogieGenerator {
       Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
       var callEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, initHeap, etran.scope);
       Bpl.Expr anteCanCalls, ante;
+      Bpl.Expr ante;
       Bpl.Expr post = Bpl.Expr.True;
       Bpl.Trigger tr;
       if (forallExpressions != null) {

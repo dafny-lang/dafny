@@ -4,7 +4,6 @@ Termination.dfy(126,16): Error: decreases expression must be bounded below by 0 
 Termination.dfy(255,34): Error: cannot prove termination; try supplying a decreases clause
 Termination.dfy(296,2): Error: decreases expression might not decrease
 Termination.dfy(361,46): Error: decreases clause might not decrease
-Termination.dfy[TerminationRefinement1](441,5): Error: decreases clause might not decrease
 Termination.dfy(534,2): Error: decreases expression might not decrease
 Termination.dfy(542,2): Error: decreases expression might not decrease
 Termination.dfy(549,2): Error: decreases expression might not decrease
@@ -21,5 +20,6 @@ Termination.dfy(730,2): Error: decreases expression might not decrease
 Termination.dfy(806,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(1178,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(1194,2): Error: cannot prove termination; try supplying a decreases clause for the loop
+Termination.dfy[TerminationRefinement1](441,5): Error: decreases clause might not decrease
 
 Dafny program verifier finished with 108 verified, 23 errors

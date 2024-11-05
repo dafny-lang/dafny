@@ -23,12 +23,7 @@ public static class InductionHeuristic {
   public static bool VarOccursInArgumentToRecursiveFunction(DafnyOptions options, Expression expr, IVariable? n) {
     switch (options.InductionHeuristic) {
       case 0: return true;
-      case 1:
-        if (n == null) {
-          return FreeVariablesUtil.ContainsFreeVariable(expr, true, null);
-        } else {
-          return FreeVariablesUtil.ContainsFreeVariable(expr, false, n);
-        }
+      case 1: return FreeVariablesUtil.ContainsFreeVariable(expr, n == null, n);
       default: return VarOccursInArgumentToRecursiveFunction(options, expr, n, false);
     }
   }
@@ -37,6 +32,7 @@ public static class InductionHeuristic {
   /// Worker routine for VarOccursInArgumentToRecursiveFunction(expr,n), where the additional parameter 'exprIsProminent' says whether or
   /// not 'expr' has prominent status in its context.
   /// DafnyInductionHeuristic cases 0 and 1 are assumed to be handled elsewhere (i.e., a precondition of this method is DafnyInductionHeuristic is at least 2).
+  /// Variable 'n' can be passed in as 'null', in which case it stands for 'this'.
   /// </summary>
   static bool VarOccursInArgumentToRecursiveFunction(DafnyOptions options, Expression expr, IVariable? n, bool exprIsProminent) {
     Contract.Requires(expr != null);

@@ -168,16 +168,8 @@ public class InductionRewriter : IRewriter {
       // The argument list was legal, so let's use it for the _induction attribute.
       // Next, look for matching patterns for the induction hypothesis.
       if (lemma != null) {
-        var triggers = ComputeAndReportInductionTriggers(lemma, ref attributes, goodArguments, body);
-        if (triggers.Count == 0) {
-          var suppressWarnings = Attributes.Contains(attributes, "nowarn");
-          var warningLevel = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
-
-          Reporter.Message(MessageSource.Rewriter, warningLevel, null, tok,
-            $"Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. " +
-            $"Change or remove the {{:induction}} attribute to generate a different induction hypothesis, or add {{:nowarn}} to silence this warning. " +
-            $"For more information, see the section quantifier instantiation rules in the reference manual.");
-        }
+        var triggers = ComputeInductionTriggers(goodArguments, body, lemma.EnclosingClass.EnclosingModuleDefinition, tok, ref attributes);
+        ReportInductionTriggers(lemma.tok, lemma, attributes);
       }
 
       attributes = new Attributes("_induction", goodArguments, attributes);
@@ -201,16 +193,16 @@ public class InductionRewriter : IRewriter {
     }
 
     if (inductionVariables.Count != 0) {
-      List<List<Expression>> triggers = null;
       if (lemma != null) {
-        triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition);
-        if (triggers.Count == 0) {
-          var msg = "omitting automatic induction because of lack of triggers";
-          if (args != null) {
-            Reporter.Warning(MessageSource.Rewriter, GenericErrors.ErrorId.none, tok, msg);
-          } else {
-            Reporter.Info(MessageSource.Rewriter, tok, msg);
-          }
+        // Compute the induction triggers, but don't report their patterns into attributes yet. Instead,
+        // call ReportInductionTriggers only after the "_induction" attribute has been added. This will cause the
+        // tooltips to appear in a logical order (showing the induction variables first, followed by the matching patterns).
+        var triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition,
+          args != null ? tok : null, ref attributes);
+        if (triggers == null && args == null) {
+          // The user didn't ask for induction. But since there were candidate induction variables, report an informational message.
+          var candidates = $"candidate{Util.Plural(inductionVariables.Count)} {Printer.ExprListToString(Reporter.Options, inductionVariables)}";
+          Reporter.Info(MessageSource.Rewriter, tok, $"omitting automatic induction (for induction-variable {candidates}) because of lack of triggers");
           return;
         }
       }
@@ -224,30 +216,20 @@ public class InductionRewriter : IRewriter {
       }
       Reporter.Info(MessageSource.Rewriter, tok, s);
 
-      if (triggers != null) {
-        ReportInductionTriggers(lemma, ref attributes, triggers);
-      }
+      ReportInductionTriggers(tok, lemma, attributes);
     }
   }
 
-  List<List<Expression>> ComputeAndReportInductionTriggers(Method lemma, ref Attributes attributes, List<Expression> inductionVariables,
-    Expression body) {
-    var triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition);
-    ReportInductionTriggers(lemma, ref attributes, triggers);
-    return triggers;
-  }
-
-  private void ReportInductionTriggers(Method lemma, ref Attributes attributes, List<List<Expression>> triggers) {
-    foreach (var trigger in triggers) {
-      attributes = new Attributes("_inductionPattern", trigger, attributes);
-#if DEBUG
-      var ss = Printer.OneAttributeToString(Reporter.Options, attributes, "inductionPattern");
+  /// <summary>
+  /// Report as tooltips the matching patterns selected for the induction hypothesis.
+  /// </summary>
+  private void ReportInductionTriggers(IToken tok, [CanBeNull] Method lemma, Attributes attributes) {
+    foreach (var trigger in attributes.AsEnumerable().Where(attr => attr.Name == "_inductionTrigger")) {
+      var ss = Printer.OneAttributeToString(Reporter.Options, trigger, "inductionTrigger");
       if (lemma is PrefixLemma) {
         ss = lemma.Name + " " + ss;
       }
-
-      Reporter.Info(MessageSource.Rewriter, lemma.tok, ss);
-#endif
+      Reporter.Info(MessageSource.Rewriter, tok, ss);
     }
   }
 
@@ -255,9 +237,21 @@ public class InductionRewriter : IRewriter {
   /// Obtain and return matching patterns for
   ///     (forall inductionVariables :: body)
   /// If there aren't any, then return null.
+  /// This trigger may come from analyzing "body" or from any user-supplied {:inductionTrigger ...} attributes.
+  /// Passing {:inductionTrigger} with no arguments causes an empty list to be returned (and disables trigger generation).
+  ///
+  /// If "errorToken" is non-null and there are no matching patterns, then a warning/info message is emitted.
+  /// The selection between warning vs info is done by looking for a {:nowarn} attribute among "attributes".
   /// </summary>
-  List<List<Expression>> ComputeInductionTriggers(List<Expression> inductionVariables, Expression body, ModuleDefinition moduleDefinition) {
+  List<List<Expression>> ComputeInductionTriggers(List<Expression> inductionVariables, Expression body, ModuleDefinition moduleDefinition,
+    [CanBeNull] IToken errorToken, ref Attributes attributes) {
     Contract.Requires(inductionVariables.Count != 0);
+
+    if (Attributes.Contains(attributes, "inductionTrigger")) {
+      // Empty triggers are not valid at the Boogie level, but they indicate that we don't want automatic selection
+      Triggers.SplitPartTriggerWriter.DisableEmptyTriggers(attributes, "inductionTrigger");
+      return Attributes.FindAllExpressions(attributes, "inductionTrigger") ?? new List<List<Expression>>(); // Never null
+    }
 
     // Construct a quantifier, because that's what the trigger-generating machinery expects.
     // We start by creating a new BoundVar for each ThisExpr-or-IdentifierExpr in "inductionVariables".
@@ -294,7 +288,24 @@ public class InductionRewriter : IRewriter {
     // to be ignored, so it is safer to not include triggers that require additional bound variables.)
     var triggers = quantifierCollection.GetTriggers(false);
     var reverseSubstituter = new Substituter(null, reverseSubstMap, new Dictionary<TypeParameter, Type>());
-    return triggers.ConvertAll(trigger => trigger.ConvertAll(reverseSubstituter.Substitute));
+    var result = triggers.ConvertAll(trigger => trigger.ConvertAll(reverseSubstituter.Substitute));
+
+    if (result.Count == 0 && errorToken != null) {
+      // The user explicitly asked for induction (with {:induction}, {:induction true}, or {:induction <variables>}).
+      // Respect this choice, but generate a warning that no triggers were found.
+      var suppressWarnings = Attributes.Contains(attributes, "nowarn");
+      var warningLevel = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
+
+      Reporter.Message(MessageSource.Rewriter, warningLevel, null, errorToken,
+        "Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. " +
+        "Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. " +
+        "For more information, see the section quantifier instantiation rules in the reference manual.");
+    }
+
+    foreach (var trigger in result) {
+      attributes = new Attributes("_inductionTrigger", trigger, attributes);
+    }
+    return result.Count == 0 ? null : result; // Return null to indicate no results
   }
 
   class InductionVisitor : BottomUpVisitor {

@@ -896,6 +896,8 @@ namespace Microsoft.Dafny {
         return null;
       } else if (boogieToken is IToken dafnyToken) {
         return dafnyToken;
+      } else if (boogieToken is VCGeneration.TokenWrapper tokenWrapper) {
+        return ToDafnyToken(reportRanges, tokenWrapper.Inner);
       } else if (boogieToken == Boogie.Token.NoToken) {
         return Token.NoToken;
       } else {

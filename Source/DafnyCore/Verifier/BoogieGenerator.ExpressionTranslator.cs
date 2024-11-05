@@ -1944,6 +1944,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
 
       private static readonly HashSet<string> NullaryAttributesToCopy = new(new[] {
         "focus",
+        "isolate",
         "ignore",
         "selective_checking",
         "split",
@@ -1970,6 +1971,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
 
       private static readonly HashSet<string> StringAttributesToCopy = new(new[] {
         "captureState",
+        "isolate",
         "error"
       });
 
@@ -2004,7 +2006,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           : rest;
       }
 
-      public QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
+      public QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute = null) {
         QKeyValue kv = null;
         var hasNewTimeLimit = Attributes.Contains(attrs, "_timeLimit");
         var hasNewRLimit = Attributes.Contains(attrs, "_rlimit");
@@ -2014,7 +2016,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               // omit the extern attribute when /noExterns option is specified.
               (name is "extern" && options.DisallowExterns) ||
               (name is "timeLimit" && hasNewTimeLimit) ||
-              (name is "rlimit" && hasNewRLimit)
+              (name is "rlimit" && hasNewRLimit) ||
+              (attr is UserSuppliedAtAttribute)
           ) {
             continue;
           }

@@ -11,7 +11,8 @@ exe:
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
 format-dfy:
-	(cd "${DIR}"/Source/DafnyCore ; ../../Binaries/Dafny.exe format .)
+	(cd "${DIR}"/Source/DafnyCore ; make format)
+	(cd "${DIR}"/Source/DafnyStandardLibraries ; make format)
 
 dfy-to-cs: 
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)

@@ -3450,6 +3450,13 @@ impl <T: ?Sized + UpcastObject<dyn Any>> DafnyPrint for Object<T> {
         }
     }
 }
+
+impl <T: DafnyType> DafnyPrint for Object<[T]> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        write!(f, "<object>")
+    }
+}
+
 impl UpcastObject<dyn Any> for String {
     fn upcast(&self) -> Object<dyn Any> {
         // SAFETY: RC was just created
@@ -3501,15 +3508,24 @@ impl <T: ?Sized> AsRef<T> for Object<T> {
 fn increment_strong_count<T: ?Sized>(data: *const T) {
     // SAFETY: This method is called only on values that were constructed from an Rc
     unsafe {
-       Rc::increment_strong_count(data);
+        // Black box avoids the compiler wrongly inferring that increment strong count does nothing since the data it was applied to can be traced to be borrowed
+       ::std::hint::black_box(Rc::increment_strong_count(data));
     }
 }
 
 impl <T: ?Sized> Object<T> {
+    // SAFETY: This function needs to be called from a reference obtained by calling read!(o) on an object
+    // We never inline this function, otherwise the compiler might figure out a way to remove the increment_strong_count
+    #[inline(never)]
     pub fn from_ref(r: &T) -> Object<T> {
         let pt = r as *const T as *const UnsafeCell<T>;
-        crate::increment_strong_count(pt);
-        let rebuilt = unsafe { Rc::from_raw(pt) };
+        // SAFETY: Not guaranteed unfortunately. But looking at the sources of from_raw as of today 10/24/2024
+        // it will will correctly rebuilt the Rc
+        let rebuilt = ::std::hint::black_box(unsafe { Rc::from_raw(pt) });
+        let previous_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
+        ::std::hint::black_box(crate::increment_strong_count(pt));
+        let new_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
+        assert_eq!(new_strong_count, previous_strong_count + 1); // Will panic if not
         Object(Some(rebuilt))
     }
 }
@@ -3642,9 +3658,11 @@ macro_rules! rd {
 #[macro_export]
 macro_rules! modify_field {
     ($pointer:expr, $rhs:expr) => {
-        let lhs = $pointer.get();
-        let rhs = $rhs;
-        unsafe {*lhs = rhs}
+        {
+            let lhs = $pointer.get();
+            let rhs = $rhs;
+            unsafe {*lhs = rhs}
+        }
     };
 }
 

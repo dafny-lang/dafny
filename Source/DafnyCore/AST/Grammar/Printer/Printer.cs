@@ -78,6 +78,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return wr.ToString();
     }
 
+    public static string ExprListToString(DafnyOptions options, List<Expression> expressions, [CanBeNull] PrintFlags printFlags = null) {
+      Contract.Requires(expressions != null);
+      using var wr = new StringWriter();
+      var pr = new Printer(wr, options, printFlags: printFlags);
+      pr.PrintExpressionList(expressions, false);
+      return wr.ToString();
+    }
+
     public static string GuardToString(DafnyOptions options, bool isBindingGuard, Expression expr) {
       Contract.Requires(!isBindingGuard || (expr is ExistsExpr && ((ExistsExpr)expr).Range == null));
       using (var wr = new System.IO.StringWriter()) {
