@@ -121,12 +121,10 @@ module Std.Actions {
     modifies a.Repr
     ensures a.Valid()
   {
-    // TODO: loops need to support reads clauses as well!
-
     while (true) 
       modifies a.Repr
-      invariant a.Valid()
       invariant fresh(a.Repr - old(a.Repr))
+      invariant a.Valid()
       invariant forall i <- a.Consumed() :: i == t
       decreases eventuallyStopsProof.Remaining()
     {
