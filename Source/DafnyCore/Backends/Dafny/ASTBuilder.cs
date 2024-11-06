@@ -39,9 +39,14 @@ namespace Microsoft.Dafny.Compilers {
       return new ModuleBuilder(this, name, attributes, requiresExterns);
     }
 
-    static public Module UnsupportedToModule(string why) {
-      return new Module(Sequence<Rune>.UnicodeFromString(why), Sequence<Attribute>.FromElements((Attribute)Attribute.create_Attribute(
-          Sequence<Rune>.UnicodeFromString(why), Sequence<Sequence<Rune>>.Empty)), false,
+    public static Module UnsupportedToModule(string why) {
+      return new Module(
+        Sequence<Rune>.UnicodeFromString(why.Replace(".", ",")),
+        Sequence<Attribute>.FromElements(
+          (Attribute)Attribute.create_Attribute(
+            Sequence<Rune>.UnicodeFromString("extern"),
+          Sequence<Sequence<Rune>>.FromElements(
+            (Sequence<Rune>)Sequence<Rune>.UnicodeFromString(why)))), false,
         Std.Wrappers.Option<Sequence<ModuleItem>>.create_None());
     }
   }
@@ -188,7 +193,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      this.parent.AddUnsupported("Field " + item.ToString());
     }
 
     public object Finish() {
@@ -223,6 +228,8 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<DAST.Statement> witnessStmts;
     readonly DAST.Expression witness;
     private ISequence<_IAttribute> attributes;
+    private readonly List<DAST._IMethod> methods;
+    private readonly List<DAST.Field> fields;
 
     public NewtypeBuilder(NewtypeContainer parent, string name, List<TypeArgDecl> typeParams,
       NewtypeRange newtypeRange, DAST.Type baseType, Option<DAST.NewtypeConstraint> constraint, List<DAST.Statement> statements,
@@ -237,14 +244,16 @@ namespace Microsoft.Dafny.Compilers {
       this.witnessStmts = statements;
       this.witness = witness;
       this.attributes = attributes;
+      this.methods = new();
+      this.fields = new();
     }
 
     public void AddMethod(DAST.Method item) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      methods.Add(item);
     }
 
     public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      fields.Add((DAST.Field)DAST.Field.create_Field(item, isConstant, defaultValue));
     }
 
     public object Finish() {
@@ -258,7 +267,9 @@ namespace Microsoft.Dafny.Compilers {
         this.witness == null
           ? Option<DAST._IExpression>.create_None()
           : Option<DAST._IExpression>.create_Some(this.witness),
-        attributes
+        attributes,
+        Sequence<DAST.Field>.FromArray(fields.ToArray()),
+        Sequence<DAST._IMethod>.FromArray(methods.ToArray())
       ));
       return parent;
     }
@@ -344,7 +355,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      parent.AddUnsupported("Datatype field " + item.ToString());
     }
 
     public object Finish() {

@@ -147,6 +147,7 @@ module {:extern "DAST"} DAST {
     | Class()
     | Datatype(variances: seq<Variance>)
     | Trait()
+    | SynonymType(baseType: Type)
     | Newtype(baseType: Type, range: NewtypeRange, erase: bool)
 
   datatype ResolvedType = ResolvedType(
@@ -190,7 +191,8 @@ module {:extern "DAST"} DAST {
     Newtype(
       name: Name, typeParams: seq<TypeArgDecl>, base: Type,
       range: NewtypeRange, constraint: Option<NewtypeConstraint>,
-      witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>)
+      witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>,
+      fields: seq<Field>, classItems: seq<ClassItem>)
 
   datatype NewtypeConstraint = NewtypeConstraint(variable: Formal, constraintStmts: seq<Statement>)
 

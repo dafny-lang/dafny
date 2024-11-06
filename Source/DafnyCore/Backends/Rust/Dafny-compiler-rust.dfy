@@ -202,6 +202,39 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       )
     }
 
+    method GenField(field: Field) returns (
+      rfield: R.Field, fieldInit: R.AssignIdentifier, usedTypeParams: set<string>)
+      modifies this
+    {
+      usedTypeParams := {};
+      var fieldType := GenType(field.formal.typ, GenTypeContext.default());
+      if !field.isConstant {
+        fieldType := R.dafny_runtime.MSel("Field").AsType().Apply([fieldType]);
+      }
+      usedTypeParams := GatherTypeParamNames(usedTypeParams, fieldType);
+      var fieldRustName := escapeVar(field.formal.name);
+      rfield := R.Field(R.PUB, R.Formal(fieldRustName, fieldType));
+
+      match field.defaultValue {
+        case Some(e) => {
+          // TODO(mikael): Fields must be initialized before the code of the constructor if possible
+          var expr, _, _ := GenExpr(e, NoSelf, Environment.Empty(), OwnershipOwned);
+
+          fieldInit := R.AssignIdentifier(
+              fieldRustName, expr);
+        }
+        case None => {
+          // TODO(mikael) Use type descriptors for default values if generics
+          var default := R.std_default_Default_default;
+          if fieldType.IsObjectOrPointer() {
+            default := fieldType.ToNullExpr();
+          }
+          fieldInit := R.AssignIdentifier(
+              fieldRustName, default);
+        }
+      }
+    }
+
     method GenClass(c: Class, path: seq<Ident>) returns (s: seq<R.ModDecl>)
       modifies this
     {
@@ -213,34 +246,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var usedTypeParams: set<string> := {};
       for fieldI := 0 to |c.fields| {
         var field := c.fields[fieldI];
-        var fieldType := GenType(field.formal.typ, GenTypeContext.default());
-        if !field.isConstant {
-          fieldType := R.dafny_runtime.MSel("Field").AsType().Apply([fieldType]);
-        }
-        usedTypeParams := GatherTypeParamNames(usedTypeParams, fieldType);
-        var fieldRustName := escapeVar(field.formal.name);
-        fields := fields + [R.Field(R.PUB, R.Formal(fieldRustName, fieldType))];
-
-        match field.defaultValue {
-          case Some(e) => {
-            // TODO(mikael): Fields must be initialized before the code of the constructor if possible
-            var expr, _, _ := GenExpr(e, NoSelf, Environment.Empty(), OwnershipOwned);
-
-            fieldInits := fieldInits + [
-              R.AssignIdentifier(
-                fieldRustName, expr)];
-          }
-          case None => {
-            // TODO(mikael) Use type descriptors for default values if generics
-            var default := R.std_default_Default_default;
-            if fieldType.IsObjectOrPointer() {
-              default := fieldType.ToNullExpr();
-            }
-            fieldInits := fieldInits + [
-              R.AssignIdentifier(
-                fieldRustName, default)];
-          }
-        }
+        var rfield, fieldInit, fieldUsedTypeParams := GenField(field);
+        fields := fields + [rfield];
+        fieldInits := fieldInits + [fieldInit];
+        usedTypeParams := usedTypeParams + fieldUsedTypeParams;
       }
 
       // A phantom field is necessary to avoid Rust complaining about no reference to the type parameter.
@@ -478,7 +487,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case None =>
           underlyingType := GenType(c.base, GenTypeContext.default());
       }
-      var resultingType :=
+      var resultingType: Type :=
         UserDefined(
           ResolvedType(
             [], [],
@@ -584,6 +593,35 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                     [R.Formal.selfBorrowed], Some(R.Borrowed(R.Self().MSel("Target").AsType())),
                     "",
                     Some(R.Borrow(R.self.Sel("0")))))]))];
+      var implementation := [];
+        // Newtype fields become functions        
+      for fieldI := 0 to |c.fields| {
+        var field := c.fields[fieldI];
+        var rfield, fieldInit, _ := GenField(field);
+        implementation := implementation + [
+          R.FnDecl(
+            R.PUB,
+            R.Fn(rfield.formal.name, [],
+                [], Some(rfield.formal.tpe),
+                "",
+                Some(fieldInit.rhs)))];
+      }
+      var implBody, traitBodies := GenClassImplBody(c.classItems, false, resultingType, typeParamsSeq);
+      if |traitBodies| > 0 {
+        error := Some("No support for trait in newtypes yet");
+      }
+      implementation := implementation + implBody;
+      if |implementation| > 0 {
+        s := s + [
+          R.ImplDecl(
+            R.Impl(
+              rTypeParamsDecls,
+              R.TypeApp(R.TIdentifier(newtypeName), rTypeParams),
+              whereConstraints,
+              implementation
+            )
+          )];
+      }
     }
 
     method GenSynonymType(c: SynonymType) returns (s: seq<R.ModDecl>)
@@ -1200,7 +1238,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case UserDefined(resolved) => {
           var t := GenPathType(resolved.path);
           var typeArgs := GenTypeArgs(resolved.typeArgs, genTypeContext.(forTraitParents := false));
-          s := R.TypeApp(t, typeArgs);
+          s := if |typeArgs| > 0 then R.TypeApp(t, typeArgs) else t;
 
           match resolved.kind {
             case Class() => {
@@ -1218,6 +1256,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               if !genTypeContext.forTraitParents {
                 s := Object(R.DynType(s));
               }
+            }
+            case SynonymType(base) => {
+              var underlying := GenType(base, GenTypeContext.default());
+              s := R.TSynonym(s, underlying);
             }
             case Newtype(base, range, erased) => {
               if erased {
@@ -2265,19 +2307,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if fromTpe == b {
         var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
         readIdents := recIdents;
+        r := recursiveGen;
         match nativeToType {
           case Some(v) =>
-            r := R.dafny_runtime.MSel("truncate!").AsExpr().Apply([recursiveGen, R.ExprFromType(v)]);
-            r, resultingOwnership := FromOwned(r, expectedOwnership);
+            r := R.dafny_runtime.MSel("truncate!").AsExpr().Apply([r, R.ExprFromType(v)]);
           case None =>
-            if erase {
-              r := recursiveGen;
-            } else {
-              var rhsType := GenType(toTpe, GenTypeContext.default());
-              r := R.ExprFromType(rhsType).Apply1(recursiveGen);
-            }
-            r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
         }
+        if !erase {
+          var rhsType := GenType(toTpe, GenTypeContext.default());
+          r := R.ExprFromType(rhsType).Apply1(r);
+        }
+        r, resultingOwnership := FromOwned(r, expectedOwnership);
       } else {
         if nativeToType.Some? {
           // Conversion between any newtypes that can be expressed as a native Rust type

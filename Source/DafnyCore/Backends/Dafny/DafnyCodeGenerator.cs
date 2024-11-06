@@ -1578,12 +1578,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
-      throw new UnsupportedInvalidOperationException("<i>EmitStringLiteral</i>");
+      AddUnsupported("<i>EmitStringLiteral</i>");
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
       bool surroundByUnchecked, ConcreteSyntaxTree wr) {
-      throw new UnsupportedInvalidOperationException("<i>EmitBitvectorTruncation</i>");
+      AddUnsupported("<i>EmitBitvectorTruncation</i>");
+      return wr;
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
@@ -1707,12 +1708,19 @@ namespace Microsoft.Dafny.Compilers {
 
       var properMethods = new List<Sequence<Rune>>();
       var extendedTraits = new List<DAST.Type>();
+      
+      var erasedIfNewtype = true;
       if (topLevel is TopLevelDeclWithMembers memberContainer) {
         foreach (var member in memberContainer.Members) {
+          erasedIfNewtype = false;
           if (member.OverriddenMember == null) {
             properMethods.Add((Sequence<Rune>)Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)));
           }
         }
+      }
+      
+      if (topLevel is NewtypeDecl newTypeDecl) {
+        Attributes.ContainsBool(topLevel.Attributes, "rust_erased", ref erasedIfNewtype);
       }
 
       foreach (var parentType in topLevel.ParentTypes(typeArgs, true)) {
@@ -1728,10 +1736,10 @@ namespace Microsoft.Dafny.Compilers {
       if (topLevel is NewtypeDecl newType) {
         var range = NativeTypeToNewtypeRange(newType.NativeType);
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Newtype(
-          GenType(EraseNewtypeLayers(topLevel)), range, true);
+          GenType(EraseNewtypeLayers(topLevel)), range, erasedIfNewtype);
       } else if (topLevel is TypeSynonymDecl typeSynonym) { // Also SubsetTypeDecl
-        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Newtype(
-          GenType(typeSynonym.Rhs.Subst(typeSynonym.TypeArgs.Zip(typeArgs).ToDictionary(kv => kv.Item1, kv => kv.Item2)).NormalizeExpand()), NewtypeRange.create_NoRange(), true);
+        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_SynonymType(
+          GenType(typeSynonym.Rhs.Subst(typeSynonym.TypeArgs.Zip(typeArgs).ToDictionary(kv => kv.Item1, kv => kv.Item2)).NormalizeExpand()));
       } else if (topLevel is TraitDecl) {
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait();
       } else if (topLevel is DatatypeDecl dd) {
@@ -2859,15 +2867,15 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitIsIntegerTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(source.Tok, Feature.TypeTests);
+      AddUnsupportedFeature(source.Tok, Feature.TypeTests);
     }
 
     protected override void EmitIsUnicodeScalarValueTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(source.Tok, Feature.TypeTests);
+      AddUnsupportedFeature(source.Tok, Feature.TypeTests);
     }
 
     protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(source.Tok, Feature.TypeTests);
+      AddUnsupportedFeature(source.Tok, Feature.TypeTests);
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
@@ -2919,7 +2927,7 @@ namespace Microsoft.Dafny.Compilers {
       if (GetStatementBuilder(wr, out var builder)) {
         var eType = e.Type.AsSetType;
         if (eType == null) {// dafny0/GeneralNewtypeCollections
-          throw new UnsupportedFeatureException(e.tok, Feature.NonNativeNewtypes);
+          AddUnsupportedFeature(e.tok, Feature.NonNativeNewtypes);
         }
         var elemType = GenType(eType.Arg);
         var setBuilderType = DAST.Type.create_SetBuilder(elemType);
