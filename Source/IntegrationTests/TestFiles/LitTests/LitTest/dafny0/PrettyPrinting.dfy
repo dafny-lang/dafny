@@ -208,3 +208,42 @@ module SimpleNewtypeWitness {
   newtype E = A ghost witness 104
   newtype F = A witness *
 }
+
+module DecreasesTo {
+  lemma Lemma(x: int) {
+  }
+
+  datatype Record = R
+
+  ghost method ParseAndPrettyPrintTests(b: bool)
+    ensures (Lemma(0); true)
+
+    ensures (if b then Lemma(0); true else Lemma(0); true)
+    ensures if b then Lemma(0); true else (Lemma(0); true)
+
+    ensures (Lemma(0); b <==> b) // Lemma(0) comes before <==> expression
+    ensures (Lemma(0); (b <==> b)) // same as above
+    ensures ((Lemma(0); b) <==> (Lemma(1); b))
+
+    ensures (Lemma(0); true decreases to (Lemma(1); false)) // Lemma(0) comes before the entire decreases-to
+    ensures (Lemma(0); true, Lemma(1); true decreases to (Lemma(2); false)) == (true, true) // Lemma(1) comes before the entire decreases-to
+    ensures (true, Lemma(0); true decreases to (Lemma(1); false)) == (true, true) // Lemma(0) comes before the entire decreases-to
+    ensures (Lemma(0); R, Lemma(0); true) decreases to (Lemma(0); R)
+    ensures (Lemma(0); true) decreases to (Lemma(0); false)
+  {
+    while Lemma(0); false  {
+    }
+    while if b then Lemma(0); false else Lemma(0); false
+    {
+    }
+    while (Lemma(0); false decreases to (Lemma(1); false))
+    {
+    }
+    while (Lemma(0); R, Lemma(0); true) decreases to (Lemma(0); 15)
+    {
+    }
+    while (Lemma(0); true) decreases to (Lemma(0); 15)
+    {
+    }
+  }
+}
