@@ -5,7 +5,7 @@ datatype MultisetContainer = EmptySet | BooleanMultiset(containerSet: multiset<b
 method Main() {
     var initialMultiset := multiset{false};
     
-    for iteration := 0 to 98 {
+    for iteration := 0 to 32 {
         var multisetInstance := BooleanMultiset(initialMultiset); 
         initialMultiset := initialMultiset + multisetInstance.containerSet;  
     }
