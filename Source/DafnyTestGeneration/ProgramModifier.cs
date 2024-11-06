@@ -150,13 +150,13 @@ namespace DafnyTestGeneration {
       }
 
       public override Block VisitBlock(Block node) {
-        int afterPartition = node.cmds.FindIndex(cmd =>
+        int afterPartition = node.Cmds.FindIndex(cmd =>
           cmd is not AssumeCmd assumeCmd || assumeCmd.Attributes == null || assumeCmd.Attributes.Key != "partition");
         afterPartition = afterPartition > -1 ? afterPartition : 0;
         foreach (var state in Utils.AllBlockIds(node, options)) {
           var data = new List<object>
             { "Block", implementation.Name, state };
-          node.cmds.Insert(afterPartition, GetAssumePrintCmd(data));
+          node.Cmds.Insert(afterPartition, GetAssumePrintCmd(data));
         }
         return base.VisitBlock(node);
       }
@@ -167,12 +167,12 @@ namespace DafnyTestGeneration {
         var data = new List<object> { "Types" };
         data.AddRange(node.InParams.Select(var =>
           var.TypedIdent.Type.ToString()));
-        node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
+        node.Blocks[0].Cmds.Insert(0, GetAssumePrintCmd(data));
 
         // record parameter values:
         data = new List<object> { "Impl", node.VerboseName.Split(" ")[0] };
         data.AddRange(node.InParams.Select(var => new IdentifierExpr(new Token(), var)));
-        node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
+        node.Blocks[0].Cmds.Insert(0, GetAssumePrintCmd(data));
         if (Utils.DeclarationHasAttribute(node, TestGenerationOptions.TestEntryAttribute) || Utils.DeclarationHasAttribute(node, TestGenerationOptions.TestInlineAttribute)) {
           VisitBlockList(node.Blocks);
         }
@@ -197,11 +197,11 @@ namespace DafnyTestGeneration {
       }
 
       public override Block VisitBlock(Block node) {
-        var toRemove = node.cmds.OfType<AssertCmd>().ToList();
+        var toRemove = node.Cmds.OfType<AssertCmd>().ToList();
         foreach (var cmd in toRemove) {
           var newCmd = new AssumeCmd(new Token(), cmd.Expr, cmd.Attributes);
-          node.cmds.Insert(node.cmds.IndexOf(cmd), newCmd);
-          node.cmds.Remove(cmd);
+          node.Cmds.Insert(node.Cmds.IndexOf(cmd), newCmd);
+          node.Cmds.Remove(cmd);
         }
         return node;
       }

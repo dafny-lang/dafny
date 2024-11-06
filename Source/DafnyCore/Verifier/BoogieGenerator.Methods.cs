@@ -41,7 +41,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (MemberDecl member in c.Members.FindAll(VisibleInScope)) {
-        Contract.Assert(isAllocContext == null);
+        Contract.Assert(IsAllocContext == null);
         CurrentDeclaration = member;
         if (!filterOnlyMembers || member.HasUserAttribute("only", out _)) {
           SetAssertionOnlyFilter(member);
@@ -143,7 +143,7 @@ namespace Microsoft.Dafny {
     void AddFunction_Top(Function f, bool includeAllMethods) {
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(f);
-      isAllocContext = new IsAllocContext(options, true);
+      IsAllocContext = new IsAllocContext(options, true);
 
       AddClassMember_Function(f);
 
@@ -161,7 +161,7 @@ namespace Microsoft.Dafny {
       }
 
       this.fuelContext = oldFuelContext;
-      isAllocContext = null;
+      IsAllocContext = null;
     }
 
     void AddMethod_Top(Method m, bool isByMethod, bool includeAllMethods) {
@@ -528,13 +528,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(proc != null);
       Contract.Requires(sink != null && Predef != null);
       Contract.Requires(wellformednessProc || m.Body != null);
-      Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
-      Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
+      Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && IsAllocContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && IsAllocContext == null);
 
       proofDependencies.SetCurrentDefinition(proc.VerboseName, m);
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
-      isAllocContext = new IsAllocContext(options, m.IsGhost);
+      IsAllocContext = new IsAllocContext(options, m.IsGhost);
 
       List<Variable> inParams = Boogie.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
@@ -579,7 +579,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      isAllocContext = null;
+      IsAllocContext = null;
       Reset();
     }
 
@@ -650,7 +650,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(p, wfOptions, localVariables, builder, etran);
       }
 
-      if (!(m is TwoStateLemma)) {
+      if (m is not TwoStateLemma) {
         var modifies = m.Mod;
         var allowsAllocation = m.AllowsAllocation;
 
@@ -665,8 +665,16 @@ namespace Microsoft.Dafny {
           outH.Add(new Boogie.IdentifierExpr(b.tok, b));
         }
         builder.Add(new Boogie.HavocCmd(m.tok, outH));
+        if (m is Constructor) {
+          var receiverType = ModuleResolver.GetReceiverType(m.tok, m);
+          var receiver = new Bpl.IdentifierExpr(m.tok, "this", TrType(receiverType));
+          var wh = BplAnd(
+            ReceiverNotNull(receiver),
+            GetWhereClause(m.tok, receiver, receiverType, etran, IsAllocType.ISALLOC));
+          builder.Add(TrAssumeCmd(m.tok, wh));
+        }
       }
-      // mark the end of the modifles/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
+      // mark the end of the modifies/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
       // omit the CaptureState if there's no ensures clause)
       if (m.Ens.Count != 0) {
         builder.AddCaptureState(m.Ens[0].E.tok, false, "post-state");
@@ -819,13 +827,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(m.Ins.Count == m.OverriddenMethod.Ins.Count);
       Contract.Requires(m.Outs.Count == m.OverriddenMethod.Outs.Count);
       //Contract.Requires(wellformednessProc || m.Body != null);
-      Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
-      Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
+      Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && IsAllocContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && IsAllocContext == null);
 
       proofDependencies.SetCurrentDefinition(proc.VerboseName, m);
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
-      isAllocContext = new IsAllocContext(options, m.IsGhost);
+      IsAllocContext = new IsAllocContext(options, m.IsGhost);
 
       List<Variable> inParams = Boogie.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
@@ -893,7 +901,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      isAllocContext = null;
+      IsAllocContext = null;
       Reset();
     }
 
@@ -917,8 +925,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(sink != null && Predef != null);
       Contract.Requires(f.OverriddenFunction != null);
       Contract.Requires(f.Ins.Count == f.OverriddenFunction.Ins.Count);
-      Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext != null);
-      Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext != null);
+      Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && IsAllocContext != null);
+      Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && IsAllocContext != null);
 
       proofDependencies.SetCurrentDefinition(MethodVerboseName(f.FullDafnyName, MethodTranslationKind.OverrideCheck), f);
       #region first procedure, no impl yet
@@ -1000,17 +1008,17 @@ namespace Microsoft.Dafny {
       var ens = new List<Boogie.Ensures>();
 
       var name = MethodName(f, MethodTranslationKind.OverrideCheck);
+      var implicitParameters = Util.Concat(typeInParams, inParams_Heap);
       var proc = new Boogie.Procedure(f.tok, name, new List<Boogie.TypeVariable>(),
-        Util.Concat(Util.Concat(typeInParams, inParams_Heap), inParams), outParams,
+        Util.Concat(implicitParameters, inParams), outParams,
         false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
+      var implImplicitParams = Boogie.Formal.StripWhereClauses(implicitParameters);
       var implInParams = Boogie.Formal.StripWhereClauses(inParams);
       var implOutParams = Boogie.Formal.StripWhereClauses(outParams);
 
       #endregion
-
-      //List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
       BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       var localVariables = new Variables();
@@ -1062,7 +1070,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
         AddImplementationWithAttributes(GetToken(f), proc,
-            Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
+            Util.Concat(implImplicitParams, implInParams),
             implOutParams, localVariables, stmts, kv);
       }
 
@@ -1688,15 +1696,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(m != null);
       Contract.Requires(m.EnclosingClass != null);
       Contract.Requires(Predef != null);
-      Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null);
-      Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null);
+      Contract.Requires(currentModule == null && codeContext == null && IsAllocContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null && IsAllocContext == null);
       Contract.Ensures(Contract.Result<Boogie.Procedure>() != null);
       Contract.Assert(VisibleInScope(m));
 
       proofDependencies.SetCurrentDefinition(MethodVerboseName(m.FullDafnyName, kind), m);
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
-      isAllocContext = new IsAllocContext(options, m.IsGhost);
+      IsAllocContext = new IsAllocContext(options, m.IsGhost);
       Boogie.Expr prevHeap = null;
       Boogie.Expr currHeap = null;
       var ordinaryEtran = new ExpressionTranslator(this, Predef, m.tok, m);
@@ -1732,7 +1740,7 @@ namespace Microsoft.Dafny {
 
       currentModule = null;
       codeContext = null;
-      isAllocContext = null;
+      IsAllocContext = null;
 
       return proc;
 

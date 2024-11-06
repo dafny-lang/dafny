@@ -332,9 +332,6 @@ public class Compilation : IDisposable {
         tasksForModule = await translatedModules.GetOrAdd(containingModule, async () => {
           var result = await verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
             cancellationSource.Token);
-          foreach (var task in result) {
-            cancellationSource.Token.Register(task.Cancel);
-          }
 
           return result.GroupBy(t => ((IToken)t.ScopeToken).GetFilePosition()).ToDictionary(
             g => g.Key,
@@ -433,6 +430,11 @@ public class Compilation : IDisposable {
 
   public void CancelPendingUpdates() {
     cancellationSource.Cancel();
+    foreach (var (_, tasks) in tasksPerVerifiable) {
+      foreach (var task in tasks) {
+        task.Cancel();
+      }
+    }
   }
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
@@ -507,7 +509,7 @@ public class Compilation : IDisposable {
 
     // This reports problems that are not captured by counter-examples, like a time-out
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
-    var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
+    var boogieEngine = new ExecutionEngine(options, new EmptyVerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
     boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, null, false),
       name, token, null, TextWriter.Null,
@@ -578,5 +580,13 @@ public class Compilation : IDisposable {
       default:
         throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
     }
+  }
+
+  public void ClearModuleCache(ModuleDefinition moduleDefinition) {
+    translatedModules.Remove(moduleDefinition);
+  }
+
+  public void ClearCanVerifyCache(ICanVerify canVerify) {
+    tasksPerVerifiable.Remove(canVerify);
   }
 }
