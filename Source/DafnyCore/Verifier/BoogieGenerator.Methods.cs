@@ -1940,5 +1940,12 @@ namespace Microsoft.Dafny {
         isAllocBoxExpr = new Bpl.ForallExpr(tok, vars, BplTrigger(isAllocBox), body);
       }
     }
+
+    void AddEnsures(List<Bpl.Ensures> list, Bpl.Ensures ens) {
+      list.Add(ens);
+      if (!ens.Free) {
+        this.assertionCount++;
+      }
+    }
   }
 }
