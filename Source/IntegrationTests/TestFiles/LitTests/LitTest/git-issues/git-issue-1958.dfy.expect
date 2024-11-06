@@ -1,0 +1,19 @@
+git-issue-1958.dfy(13,16): Error: value does not satisfy the subset constraints of 'R'
+git-issue-1958.dfy(18,16): Error: value does not satisfy the subset constraints of 'R'
+git-issue-1958.dfy(32,4): Error: value does not satisfy the subset constraints of 'R'
+git-issue-1958.dfy(36,4): Error: value does not satisfy the subset constraints of 'R'
+git-issue-1958.dfy(56,16): Error: function precondition could not be proved
+git-issue-1958.dfy(49,13): Related location: this proposition could not be proved
+git-issue-1958.dfy(61,4): Error: function precondition could not be proved
+git-issue-1958.dfy(49,13): Related location: this proposition could not be proved
+git-issue-1958.dfy(65,4): Error: function precondition could not be proved
+git-issue-1958.dfy(49,13): Related location: this proposition could not be proved
+git-issue-1958.dfy(70,9): Error: function precondition could not be proved
+git-issue-1958.dfy(49,13): Related location: this proposition could not be proved
+git-issue-1958.dfy(77,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+git-issue-1958.dfy(81,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+git-issue-1958.dfy(104,16): Error: function precondition could not be proved
+git-issue-1958.dfy(97,13): Related location: this proposition could not be proved
+git-issue-1958.dfy(167,7): Error: index out of range
+
+Dafny program verifier finished with 6 verified, 12 errors
