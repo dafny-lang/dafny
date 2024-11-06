@@ -2,6 +2,28 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.9.0
+
+## New features
+
+- Added opaque blocks to the language. Opaque blocks enable improving verification performance. See the documentation for more details. (https://github.com/dafny-lang/dafny/pull/5761)
+
+- By blocks ("... by { ... }") are now available for assert statements, call statements, and the three types of assignments (:=, :-, :|). Also, by blocks should now be more intuitive since they enable proving any assertions on the left-hand side of the 'by', not just the 'outermost' one. For example, previously `assert 3 / x == 1 by { assume x == 3; }` could still give a possible division by zero error, but now it won't. (https://github.com/dafny-lang/dafny/pull/5779)
+
+- Use --suggest-proof-refactoring to be alerted of function definitions, which have no contribution to a method's proof, and facts, which are only used once in a proof. (https://github.com/dafny-lang/dafny/pull/5812)
+
+- Support for [top-level @-attributes](https://dafny.org/latest/DafnyRef/DafnyRef#sec-at-attributes) (https://github.com/dafny-lang/dafny/pull/5825)
+
+## Bug fixes
+
+- Enable abstract imports to work well with match expression that occur in specifications (https://github.com/dafny-lang/dafny/pull/5808)
+
+- Fix a bug that prevented using reveal statement expressions in the body of a constant. (https://github.com/dafny-lang/dafny/pull/5823)
+
+- Improve performance of `dafny verify` for large applications, by removing memory leaks (https://github.com/dafny-lang/dafny/pull/5827)
+
+- Green gutter icons cover constants without RHS (https://github.com/dafny-lang/dafny/pull/5841)
+
 # 4.8.1
 
 ## New features

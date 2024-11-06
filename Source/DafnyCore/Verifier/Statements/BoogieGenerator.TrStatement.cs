@@ -43,7 +43,7 @@ public partial class BoogieGenerator {
 
     } else if (stmt is HideRevealStmt revealStmt) {
       TranslateRevealStmt(builder, locals, etran, revealStmt);
-    } else if (stmt is BreakStmt breakStmt) {
+    } else if (stmt is BreakOrContinueStmt breakStmt) {
       TrBreakStmt(builder, etran, breakStmt);
     } else if (stmt is ReturnStmt returnStmt) {
       AddComment(builder, returnStmt, "return statement");
@@ -404,14 +404,14 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void TrBreakStmt(BoogieStmtListBuilder builder, ExpressionTranslator etran, BreakStmt breakStmt) {
-    AddComment(builder, breakStmt, $"{breakStmt.Kind} statement");
-    foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - breakStmt.TargetStmt.ScopeDepth)) {
-      builder.Add(new ChangeScope(breakStmt.Tok, ChangeScope.Modes.Pop));
+  private void TrBreakStmt(BoogieStmtListBuilder builder, ExpressionTranslator etran, BreakOrContinueStmt breakOrContinueStmt) {
+    AddComment(builder, breakOrContinueStmt, $"{breakOrContinueStmt.Kind} statement");
+    foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - breakOrContinueStmt.TargetStmt.ScopeDepth)) {
+      builder.Add(new ChangeScope(breakOrContinueStmt.Tok, ChangeScope.Modes.Pop));
     }
-    var lbl = (breakStmt.IsContinue ? "continue_" : "after_") + breakStmt.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
-    builder.Add(new GotoCmd(breakStmt.Tok, new List<string> { lbl }) {
-      Attributes = etran.TrAttributes(breakStmt.Attributes)
+    var lbl = (breakOrContinueStmt.IsContinue ? "continue_" : "after_") + breakOrContinueStmt.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
+    builder.Add(new GotoCmd(breakOrContinueStmt.Tok, new List<string> { lbl }) {
+      Attributes = etran.TrAttributes(breakOrContinueStmt.Attributes)
     });
   }
 
@@ -754,20 +754,21 @@ public partial class BoogieGenerator {
     Contract.Requires(type != null);
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
-    var udt = type as UserDefinedType;
-    if (udt != null && udt.ResolvedClass is NonNullTypeDecl) {
-      var nnt = (NonNullTypeDecl)udt.ResolvedClass;
+    if (type is UserDefinedType { ResolvedClass: NonNullTypeDecl nnt }) {
       type = nnt.RhsWithArgument(type.TypeArgs);
     }
+
     if (includeHavoc) {
       // havoc $nw;
       builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
-      // assume $nw != null && $Is($nw, type);
-      var nwNotNull = Bpl.Expr.Neq(nw, Predef.Null);
-      // drop the $Is conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
-      var rightType = type.IsObjectQ ? Bpl.Expr.True : MkIs(nw, type);
-      builder.Add(TrAssumeCmd(tok, BplAnd(nwNotNull, rightType)));
     }
+
+    // assume $nw != null && $Is($nw, type);
+    var nwNotNull = Bpl.Expr.Neq(nw, Predef.Null);
+    // drop the $Is conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
+    var rightType = type.IsObjectQ ? Bpl.Expr.True : MkIs(nw, type);
+    builder.Add(TrAssumeCmd(tok, BplAnd(nwNotNull, rightType)));
+
     // assume !$Heap[$nw, alloc];
     var notAlloc = Bpl.Expr.Not(etran.IsAlloced(tok, nw));
     builder.Add(TrAssumeCmd(tok, notAlloc));

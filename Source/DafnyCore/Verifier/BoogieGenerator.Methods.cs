@@ -650,7 +650,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(p, wfOptions, localVariables, builder, etran);
       }
 
-      if (!(m is TwoStateLemma)) {
+      if (m is not TwoStateLemma) {
         var modifies = m.Mod;
         var allowsAllocation = m.AllowsAllocation;
 
@@ -665,8 +665,16 @@ namespace Microsoft.Dafny {
           outH.Add(new Boogie.IdentifierExpr(b.tok, b));
         }
         builder.Add(new Boogie.HavocCmd(m.tok, outH));
+        if (m is Constructor) {
+          var receiverType = ModuleResolver.GetReceiverType(m.tok, m);
+          var receiver = new Bpl.IdentifierExpr(m.tok, "this", TrType(receiverType));
+          var wh = BplAnd(
+            ReceiverNotNull(receiver),
+            GetWhereClause(m.tok, receiver, receiverType, etran, IsAllocType.ISALLOC));
+          builder.Add(TrAssumeCmd(m.tok, wh));
+        }
       }
-      // mark the end of the modifles/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
+      // mark the end of the modifies/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
       // omit the CaptureState if there's no ensures clause)
       if (m.Ens.Count != 0) {
         builder.AddCaptureState(m.Ens[0].E.tok, false, "post-state");
@@ -1000,17 +1008,17 @@ namespace Microsoft.Dafny {
       var ens = new List<Boogie.Ensures>();
 
       var name = MethodName(f, MethodTranslationKind.OverrideCheck);
+      var implicitParameters = Util.Concat(typeInParams, inParams_Heap);
       var proc = new Boogie.Procedure(f.tok, name, new List<Boogie.TypeVariable>(),
-        Util.Concat(Util.Concat(typeInParams, inParams_Heap), inParams), outParams,
+        Util.Concat(implicitParameters, inParams), outParams,
         false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
+      var implImplicitParams = Boogie.Formal.StripWhereClauses(implicitParameters);
       var implInParams = Boogie.Formal.StripWhereClauses(inParams);
       var implOutParams = Boogie.Formal.StripWhereClauses(outParams);
 
       #endregion
-
-      //List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
       BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       var localVariables = new Variables();
@@ -1062,7 +1070,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
         AddImplementationWithAttributes(GetToken(f), proc,
-            Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
+            Util.Concat(implImplicitParams, implInParams),
             implOutParams, localVariables, stmts, kv);
       }
 

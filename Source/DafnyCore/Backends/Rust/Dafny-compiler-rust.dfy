@@ -3744,8 +3744,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         } else {
           error := Some("Unrecognized external file " + externalFile + ". External file must be *.rs files");
         }
-        var externMod := R.ExternMod(externalMod);
-        s := s + externMod.ToString("") + "\n";
+        if rootType.RootCrate? {
+          var externMod := R.ExternMod(externalMod);
+          s := s + externMod.ToString("") + "\n";
+        }
         externUseDecls := externUseDecls + [
           R.UseDecl(R.Use(R.PUB, R.crate.MSel(externalMod).MSel("*")))
         ];

@@ -1,4 +1,5 @@
 pub mod additional_module;
+pub mod more_dafny_extern;
 
 fn main() {
   let x = additional_module::_module::_default::reverse(10);
