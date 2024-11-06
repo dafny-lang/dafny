@@ -6,12 +6,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     public Position Position { get; }
     public IDictionary<string, string> Variables { get; }
 
-    public string Assumption { get; }
-
-    public CounterExampleItem(Position position, IDictionary<string, string> variables, string assumption) {
+    public CounterExampleItem(Position position, IDictionary<string, string> variables) {
       Position = position;
       Variables = variables;
-      Assumption = assumption;
     }
   }
 }
