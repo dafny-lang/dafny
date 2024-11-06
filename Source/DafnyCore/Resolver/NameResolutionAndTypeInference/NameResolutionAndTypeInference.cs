@@ -3509,8 +3509,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is HideRevealStmt hideRevealStmt) {
         stmt.GenResolve(this, resolutionContext);
-      } else if (stmt is BreakStmt) {
-        var s = (BreakStmt)stmt;
+      } else if (stmt is BreakOrContinueStmt) {
+        var s = (BreakOrContinueStmt)stmt;
         if (s.TargetLabel != null) {
           Statement target = EnclosingStatementLabels.Find(s.TargetLabel.val);
           if (target == null) {

@@ -1,0 +1,1 @@
+Don't assume type information before binding variables (for let expressions and named function results)

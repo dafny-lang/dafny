@@ -1,8 +1,8 @@
 trait-decreases.dfy(11,2): Error: method's (possibly automatically generated) decreases clause must be below or equal to that in the trait
- Asserted expression: x, y nonincreases to y, x
+ Asserted expression: (x, y nonincreases to y, x)
 trait-decreases.dfy(13,2): Error: method's (possibly automatically generated) decreases clause must be below or equal to that in the trait
- Asserted expression: y, x nonincreases to y
+ Asserted expression: (y, x nonincreases to y)
 trait-decreases.dfy(15,2): Error: method's (possibly automatically generated) decreases clause must be below or equal to that in the trait
- Asserted expression: false, x nonincreases to y, x
+ Asserted expression: (false, x nonincreases to y, x)
 
 Dafny program verifier finished with 0 verified, 3 errors
