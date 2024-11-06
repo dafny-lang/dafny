@@ -128,7 +128,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
   {
     LemmaMulIncreasesAuto();
     LemmaPow0Auto(); // Base case
-     // Distributes power i + 1 in first inductive step
+    // Distributes power i + 1 in first inductive step
     LemmaMulInductionAuto(e, u => 0 <= u ==> 0 < Pow(b, u));
   }
 

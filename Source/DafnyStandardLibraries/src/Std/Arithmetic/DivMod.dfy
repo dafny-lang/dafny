@@ -947,7 +947,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     requires m > 0
     ensures ModRecursive(x, m) == x % m
     decreases if x < 0 then -x + m else x
-  { 
+  {
     if x < 0 {
       calc {
         ModRecursive(x, m);

@@ -784,7 +784,7 @@ module Std.Collections.Seq {
         { reveal Filter; assert (xs + ys)[0] == xs[0]; assert (xs + ys)[1..] == xs[1..] + ys; }
         Filter(f, [xs[0]]) + Filter(f, xs[1..] + ys);
         Filter(f, [xs[0]]) + Filter(f, xs[1..]) + Filter(f, ys);
-        { 
+        {
           reveal Filter;
           assert [(xs + ys)[0]] + (xs[1..] + ys) == xs + ys;
         }

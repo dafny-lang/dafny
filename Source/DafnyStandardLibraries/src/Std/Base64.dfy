@@ -358,7 +358,7 @@ module Std.Base64 {
     }
   }
 
-  lemma {:isolate_assertions} EncodeDecodeRecursively(b: seq<bv8>) 
+  lemma {:isolate_assertions} EncodeDecodeRecursively(b: seq<bv8>)
     requires |b| % 3 == 0
     ensures (EncodeRecursivelyBounds(b); DecodeRecursively(EncodeRecursively(b)) == b)
   {
@@ -374,10 +374,10 @@ module Std.Base64 {
         DecodeRecursively(EncodeRecursively(b));
       ==
         DecodeRecursively(s);
-      == { 
-        assert |s[4..]| % 4 == 0; 
-        reveal DecodeRecursively;
-      }
+      == {
+           assert |s[4..]| % 4 == 0;
+           reveal DecodeRecursively;
+         }
         DecodeBlock(s[..4]) + DecodeRecursively(s[4..]);
       == { EncodeRecursivelyBlock(b); }
         b[..3] + DecodeRecursively(s[4..]);
@@ -825,7 +825,7 @@ module Std.Base64 {
 
   lemma DecodeBVFailure(s: seq<char>)
     ensures !IsBase64String(s) ==> DecodeBV(s).Failure?
-  { 
+  {
   }
 
   ghost predicate StringIs7Bit(s: string) {
@@ -835,7 +835,7 @@ module Std.Base64 {
   lemma UnpaddedBase64StringIs7Bit(s: string)
     requires IsUnpaddedBase64String(s)
     ensures StringIs7Bit(s)
-  { 
+  {
   }
 
   lemma Is7Bit1Padding(s: string)
@@ -1127,9 +1127,9 @@ module Std.Base64 {
     requires Is2Padding(s[(|s| - 4)..])
     ensures
       (
-       var b := DecodeValid(s);
-       b[..(|b| - 1)] == DecodeUnpadded(s[..(|s| - 4)]) &&
-       b[(|b| - 1)..] == Decode2Padding(s[(|s| - 4)..]))
+        var b := DecodeValid(s);
+        b[..(|b| - 1)] == DecodeUnpadded(s[..(|s| - 4)]) &&
+        b[(|b| - 1)..] == Decode2Padding(s[(|s| - 4)..]))
   {
     AboutDecodeValid(s, DecodeValid(s));
     assert Is2Padding(s[(|s| - 4)..]);
@@ -1141,9 +1141,9 @@ module Std.Base64 {
     requires Is1Padding(s[(|s| - 4)..])
     ensures
       (
-       var b := DecodeValid(s);
-       b[..(|b| - 2)] == DecodeUnpadded(s[..(|s| - 4)]) &&
-       b[(|b| - 2)..] == Decode1Padding(s[(|s| - 4)..]))
+        var b := DecodeValid(s);
+        b[..(|b| - 2)] == DecodeUnpadded(s[..(|s| - 4)]) &&
+        b[(|b| - 2)..] == Decode1Padding(s[(|s| - 4)..]))
   {
     AboutDecodeValid(s, DecodeValid(s));
   }

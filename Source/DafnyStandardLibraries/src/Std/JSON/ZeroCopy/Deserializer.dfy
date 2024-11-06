@@ -161,9 +161,9 @@ module Std.JSON.ZeroCopy.Deserializer {
     }
 
     function BracketedFromParts(ghost cs: Cursor,
-                                       open: Split<Structural<jopen>>,
-                                       elems: Split<seq<TSuffixedElement>>,
-                                       close: Split<Structural<jclose>>)
+                                open: Split<Structural<jopen>>,
+                                elems: Split<seq<TSuffixedElement>>,
+                                close: Split<Structural<jclose>>)
       : (sp: Split<TBracketed>)
       requires Grammar.NoTrailingSuffix(elems.t)
       requires open.StrictlySplitFrom?(cs, c => Spec.Structural(c, SpecView))
@@ -190,10 +190,10 @@ module Std.JSON.ZeroCopy.Deserializer {
     }
 
     function AppendWithSuffix(ghost cs0: FreshCursor,
-                                     ghost json: ValueParser,
-                                     elems: Split<seq<TSuffixedElement>>,
-                                     elem: Split<TElement>,
-                                     sep: Split<Structural<jcomma>>)
+                              ghost json: ValueParser,
+                              elems: Split<seq<TSuffixedElement>>,
+                              elem: Split<TElement>,
+                              sep: Split<Structural<jcomma>>)
       : (elems': Split<seq<TSuffixedElement>>)
       requires elems.cs.StrictlySplitFrom?(json.cs)
       requires elems.SplitFrom?(cs0, SuffixedElementsSpec)
@@ -244,10 +244,10 @@ module Std.JSON.ZeroCopy.Deserializer {
     }
 
     function {:resource_limit 10000000} {:isolate_assertions} AppendLast(ghost cs0: FreshCursor,
-                                                                                ghost json: ValueParser,
-                                                                                elems: Split<seq<TSuffixedElement>>,
-                                                                                elem: Split<TElement>,
-                                                                                sep: Split<Structural<jclose>>)
+                                                                         ghost json: ValueParser,
+                                                                         elems: Split<seq<TSuffixedElement>>,
+                                                                         elem: Split<TElement>,
+                                                                         sep: Split<Structural<jclose>>)
       : (elems': Split<seq<TSuffixedElement>>)
       requires elems.cs.StrictlySplitFrom?(json.cs)
       requires elems.SplitFrom?(cs0, SuffixedElementsSpec)
@@ -885,7 +885,7 @@ module Std.JSON.ZeroCopy.Deserializer {
     }
 
     function KeyValueFromParts(ghost cs: Cursor, k: Split<jstring>,
-                                      colon: Split<Structural<jcolon>>, v: Split<Value>)
+                               colon: Split<Structural<jcolon>>, v: Split<Value>)
       : (sp: Split<jKeyValue>)
       requires k.StrictlySplitFrom?(cs, Spec.String)
       requires colon.StrictlySplitFrom?(k.cs, c => Spec.Structural(c, SpecView))
