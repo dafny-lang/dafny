@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Class "BreakStmt" represents both "break" and "continue" statements.
 /// </summary>
-public class BreakStmt : Statement, IHasReferences, ICloneable<BreakStmt> {
+public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOrContinueStmt> {
   public readonly IToken TargetLabel;
   public readonly bool IsContinue;
   public string Kind => IsContinue ? "continue" : "break";
@@ -18,11 +18,11 @@ public class BreakStmt : Statement, IHasReferences, ICloneable<BreakStmt> {
     Contract.Invariant(TargetLabel != null || 1 <= BreakAndContinueCount);
   }
 
-  public BreakStmt Clone(Cloner cloner) {
-    return new BreakStmt(cloner, this);
+  public BreakOrContinueStmt Clone(Cloner cloner) {
+    return new BreakOrContinueStmt(cloner, this);
   }
 
-  public BreakStmt(Cloner cloner, BreakStmt original) : base(cloner, original) {
+  public BreakOrContinueStmt(Cloner cloner, BreakOrContinueStmt original) : base(cloner, original) {
     TargetLabel = original.TargetLabel;
     IsContinue = original.IsContinue;
     BreakAndContinueCount = original.BreakAndContinueCount;
@@ -31,7 +31,7 @@ public class BreakStmt : Statement, IHasReferences, ICloneable<BreakStmt> {
     }
   }
 
-  public BreakStmt(RangeToken rangeToken, IToken targetLabel, bool isContinue, Attributes attributes = null)
+  public BreakOrContinueStmt(RangeToken rangeToken, IToken targetLabel, bool isContinue, Attributes attributes = null)
     : base(rangeToken, attributes) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(targetLabel != null);
@@ -43,7 +43,7 @@ public class BreakStmt : Statement, IHasReferences, ICloneable<BreakStmt> {
   /// For "isContinue == false", represents the statement "break ^breakAndContinueCount ;".
   /// For "isContinue == true", represents the statement "break ^(breakAndContinueCount - 1) continue;".
   /// </summary>
-  public BreakStmt(RangeToken rangeToken, int breakAndContinueCount, bool isContinue, Attributes attributes = null)
+  public BreakOrContinueStmt(RangeToken rangeToken, int breakAndContinueCount, bool isContinue, Attributes attributes = null)
     : base(rangeToken, attributes) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(1 <= breakAndContinueCount);
