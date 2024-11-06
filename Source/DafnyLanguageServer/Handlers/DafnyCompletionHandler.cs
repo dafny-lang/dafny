@@ -98,8 +98,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private string GetLastTwoCharactersBeforePositionIncluded(TextBuffer text, DafnyPosition position) {
         var index = text.ToIndex(position.GetLspPosition());
-        var beforePosition = text.FromIndex(Math.Max(0, index - 2));
-        return text.Extract(new Range(beforePosition, position.GetLspPosition()));
+        var indexTwoCharactersBefore = Math.Max(0, index - 2);
+        return text.Text.Substring(indexTwoCharactersBefore, index - indexTwoCharactersBefore);
       }
 
       private bool IsDotExpression() {
@@ -111,7 +111,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         var position = request.Position.ToDafnyPosition();
         var fileContent = filesystem.GetBuffer(request.TextDocument.Uri.ToUri());
         if (fileContent == null) {
-          // Impossible case because this only happens if the is not opened.
+          // Impossible case because this only happens if the file is not opened.
           return false;
         }
         var lastTwoChars = GetLastTwoCharactersBeforePositionIncluded(fileContent, position);
