@@ -482,7 +482,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   //////////////////////////////////////////////////////////////////////////////
 
   /* Adds two sequences. */
-  function {:opaque} SeqAdd(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
+  function SeqAdd(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
     requires |xs| == |ys|
     ensures var (zs, cout) := SeqAdd(xs, ys);
             |zs| == |xs| && 0 <= cout <= 1
@@ -535,7 +535,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Subtracts two sequences. */
-  function {:opaque} SeqSub(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
+  function SeqSub(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
     requires |xs| == |ys|
     ensures var (zs, cout) := SeqSub(xs, ys);
             |zs| == |xs| && 0 <= cout <= 1
