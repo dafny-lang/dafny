@@ -4483,6 +4483,22 @@ namespace Microsoft.Dafny {
       return dafnyOptions.DisableNLarith;
     }
 
+    /// <summary>
+    /// Return the conjuncts of "attributedExpressions".
+    /// </summary>
+    public static IEnumerable<AttributedExpression> ConjunctsOf(List<AttributedExpression> attributedExpressions) {
+      foreach (var attrExpr in attributedExpressions) {
+        if (attrExpr.Label != null) {
+          // don't mess with labeled expressions
+          yield return attrExpr;
+        } else {
+          foreach (var conjunct in Expression.ConjunctsWithLetsOnOutside(attrExpr.E)) {
+            yield return new AttributedExpression(conjunct, attrExpr.Attributes);
+          }
+        }
+      }
+    }
+
     List<SplitExprInfo> /*!*/ TrSplitExpr(BodyTranslationContext context, Expression expr, ExpressionTranslator etran, bool applyInduction,
       out bool splitHappened) {
       Contract.Requires(expr != null);
