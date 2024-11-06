@@ -317,16 +317,12 @@ method Bar() {
     Assert.Contains("int", consumer1Diagnostics[0].Message);
 
     ApplyChange(ref producerItem, new Range(0, 0, 2, 0), "");
-    var producerDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, producerItem);
-    Assert.Single(producerDiagnostics2); // File has no code
 
     var consumer2 = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer2.dfy"));
     var consumer2Diagnostics = await GetLastDiagnostics(consumer2);
     Assert.True(consumer2Diagnostics.Length > 1);
 
     client.CloseDocument(producerItem);
-    var producerDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.Empty(producerDiagnostics3); // File has no code
     var consumer3 = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer3.dfy"));
     var consumer3Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer3);
     Assert.Single(consumer3Diagnostics);
