@@ -250,6 +250,39 @@ module SimpleNewtypeWitness {
   newtype F = A
     witness *
 }
+
+module DecreasesTo {
+  lemma Lemma(x: int)
+  {
+  }
+
+  ghost method ParseAndPrettyPrintTests(b: bool)
+    ensures (Lemma(0); true)
+    ensures if b then Lemma(0); true else (Lemma(0); true)
+    ensures if b then Lemma(0); true else (Lemma(0); true)
+    ensures (Lemma(0); b <==> b)
+    ensures (Lemma(0); b <==> b)
+    ensures (Lemma(0); b) <==> (Lemma(1); b)
+    ensures (Lemma(0); true decreases to (Lemma(1); false))
+    ensures (Lemma(0); true, Lemma(1); true decreases to (Lemma(2); false)) == (true, true)
+    ensures (true, Lemma(0); true decreases to (Lemma(1); false)) == (true, true)
+    ensures (Lemma(0); R, Lemma(0); true) decreases to (Lemma(0); R)
+    ensures (Lemma(0); true) decreases to (Lemma(0); false)
+  {
+    while Lemma(0); false {
+    }
+    while if b then Lemma(0); false else Lemma(0); false {
+    }
+    while Lemma(0); false decreases to (Lemma(1); false) {
+    }
+    while (Lemma(0); R, Lemma(0); true) decreases to (Lemma(0); 15) {
+    }
+    while (Lemma(0); true) decreases to (Lemma(0); 15) {
+    }
+  }
+
+  datatype Record = R
+}
 PrettyPrinting.dfy(20,4): Error: skeleton statements are allowed only in refining methods
 PrettyPrinting.dfy(21,4): Error: skeleton statements are allowed only in refining methods
 PrettyPrinting.dfy(75,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating

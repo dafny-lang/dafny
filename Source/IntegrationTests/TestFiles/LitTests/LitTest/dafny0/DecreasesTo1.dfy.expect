@@ -1,9 +1,9 @@
-DecreasesTo1.dfy(19,9): Error: assertion might not hold
+DecreasesTo1.dfy(19,12): Error: assertion might not hold
  Asserted expression: 0 decreases to 1
-DecreasesTo1.dfy(23,9): Error: assertion might not hold
+DecreasesTo1.dfy(23,16): Error: assertion might not hold
  Asserted expression: x - 1 decreases to x
-DecreasesTo1.dfy(27,9): Error: assertion might not hold
- Asserted expression: x, y - 1 decreases to x, y
+DecreasesTo1.dfy(27,19): Error: assertion might not hold
+ Asserted expression: (x, y - 1 decreases to x, y)
 DecreasesTo1.dfy(39,34): Error: decreases clause might not decrease
  Asserted expression: n + m decreases to n + m + 1
 DecreasesTo1.dfy(49,20): Error: decreases clause might not decrease
@@ -14,11 +14,11 @@ DecreasesTo1.dfy(57,2): Error: decreases expression might not decrease
    and with the following declarations at the beginning of the loop body:
      var prev_x': int := x';
      var prev_y': int := y';
-DecreasesTo1.dfy(69,9): Error: assertion might not hold
+DecreasesTo1.dfy(69,12): Error: assertion might not hold
  Asserted expression: 0 nonincreases to 1
-DecreasesTo1.dfy(73,9): Error: assertion might not hold
+DecreasesTo1.dfy(73,12): Error: assertion might not hold
  Asserted expression: i decreases to b
-DecreasesTo1.dfy(77,9): Error: assertion might not hold
+DecreasesTo1.dfy(77,12): Error: assertion might not hold
  Asserted expression: 0 decreases to false
 
 Dafny program verifier finished with 2 verified, 9 errors
