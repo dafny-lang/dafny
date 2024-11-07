@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       private string GetLastTwoCharactersBeforePositionIncluded(TextBuffer text, DafnyPosition position) {
         var index = text.ToIndex(position.GetLspPosition());
         var indexTwoCharactersBefore = Math.Max(0, index - 2);
-        if (index >= text.Text.Length) {
+        if (index > text.Text.Length) {
           return "";
         }
 
