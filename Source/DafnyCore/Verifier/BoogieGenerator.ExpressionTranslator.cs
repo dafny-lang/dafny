@@ -22,6 +22,14 @@ namespace Microsoft.Dafny {
         get { Statistics_HeapUses++; return _the_heap_expr; }
       }
 
+      public Boogie.Expr HeapExprForArrow(Type arrowType) {
+        if (arrowType.IsArrowTypeWithoutReadEffects) {
+          return BoogieGenerator.NewOneHeapExpr(arrowType.tok);
+        } else {
+          return HeapExpr;
+        }
+      }
+
       /// <summary>
       /// Return HeapExpr as an IdentifierExpr.
       /// CAUTION: This getter should be used only if the caller "knows" that HeapExpr really is an IdentifierExpr.
@@ -659,7 +667,7 @@ namespace Microsoft.Dafny {
 
               var applied = FunctionCall(GetToken(applyExpr), BoogieGenerator.Apply(arity), Predef.BoxType,
                 Concat(Map(tt.TypeArgs, BoogieGenerator.TypeToTy),
-                  Cons(HeapExpr, Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
+                  Cons(HeapExprForArrow(e.Function.Type), Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
 
               return BoogieGenerator.UnboxUnlessInherentlyBoxed(applied, tt.Result);
             }
