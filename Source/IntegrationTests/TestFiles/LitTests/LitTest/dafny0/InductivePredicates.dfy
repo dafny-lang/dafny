@@ -263,6 +263,16 @@ module SomeCoolDisjunctionTests {
     requires P(x) || Q(x)
     ensures false  // fine
   {
+    // The following proof should not be necessary. This lemma used to verify
+    // automatically, but after a change with CanCall, it stopped verifying.
+    // The problem may be due to https://github.com/Z3Prover/z3/issues/7444.
+    // After it is fixed, we should try removing the following lines again.
+    assert !_k.IsLimit;
+    if P#[_k](x) {
+      assert P#[_k](x) == Q#[_k - 1](x);
+    } else {
+      assert Q#[_k](x);
+    }
   }
 
   least predicate Pn[nat](x: int)
