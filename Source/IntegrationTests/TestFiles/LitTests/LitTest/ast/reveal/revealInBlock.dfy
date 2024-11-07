@@ -100,3 +100,7 @@ method hide()
 {
   hide();  
 }
+
+opaque function f(): int { 0 }
+
+type T = x: int | true witness (reveal f(); 0)
