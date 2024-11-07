@@ -2221,7 +2221,7 @@ OneStmt<out Statement/*!*/ s>
   | ForLoopStmt<out s>
   | AssertStmt<out s>
   | AssumeStmt<out s>
-  | BreakStmt<out s>
+  | BreakOrContinueStmt<out s>
   | CalcStmt<out s>
   | ExpectStmt<out s>
   | ForallStmt<out s>
@@ -2259,7 +2259,7 @@ SkeletonStmt<out Statement s>
   .
 
 /*------------------------------------------------------------------------*/
-BreakStmt<out Statement/*!*/ s>
+BreakOrContinueStmt<out Statement/*!*/ s>
 = (. var isContinue = false;
      IToken start = Token.NoToken;
      IToken label = null;
@@ -2281,8 +2281,8 @@ BreakStmt<out Statement/*!*/ s>
   ";"
   (. Contract.Assert(label == null || breakAndContinueCount == 1);
      s = label != null ?
-       new BreakStmt(new RangeToken(start, t), label, isContinue) :
-       new BreakStmt(new RangeToken(start, t), breakAndContinueCount, isContinue, attributes);
+       new BreakOrContinueStmt(new RangeToken(start, t), label, isContinue) :
+       new BreakOrContinueStmt(new RangeToken(start, t), breakAndContinueCount, isContinue, attributes);
   .)
   .
 
@@ -3285,47 +3285,6 @@ Forall = "forall".
 Exists = "exists".
 QSep = "::".
 
-MaybeDecreasesToExpression<out Expression e, IToken lp>
-= (. List<ActualBinding> args = new();
-     List<Expression> newExprs = new();
-     Expression tmp = null;
-     IToken x = null;
-     bool allowNoChange = false;
-  .)
-  TupleArgs<args>
-  [ ( "decreases"                                                 (. allowNoChange = false; .)
-    | "nonincreases"                                              (. allowNoChange = true; .)
-    ) (. x = t; .)
-    ident
-    (. if (t.val != "to") {
-         SemErr(ErrorId.p_decreases_without_to, t, "expected 'to'");
-       }
-    .)
-    Expression<out tmp, false, false>                             (. newExprs.Add(tmp); .)
-    { ","
-      Expression<out tmp, false, false>                           (. newExprs.Add(tmp); .)
-    }
-  ]
-  (.
-      if (newExprs.Count() == 0) {
-        e = ProcessTupleArgs(args, lp);
-      } else if (args.Count() > 0 && newExprs.Count() > 0) {
-        var formals = args.Where(arg => arg.FormalParameterName != null).ToList();
-        if (formals.Any()) {
-          SemErr(ErrorId.p_binding_in_decreases_to,
-                 formals[0].FormalParameterName,
-                 "bindings are not allowed in `decreases to` expressions.");
-        }
-        var oldExprs = args.Select(arg => arg.Actual).ToList();
-        e = new DecreasesToExpr(x, oldExprs, newExprs, allowNoChange);
-        e.RangeToken = new RangeToken(oldExprs[0].tok, newExprs[newExprs.Count() - 1].tok);
-      } else {
-        // Unreachable
-        e = null;
-      }
-  .)
-  .
-
 /* The "allowLemma" argument says whether or not the expression
  * to be parsed is allowed to have the form S;E where S is a call to a lemma.
  * "allowLemma" should be passed in as "false" whenever the expression to
@@ -3343,10 +3302,15 @@ MaybeDecreasesToExpression<out Expression e, IToken lp>
  * at the top level of this expression. It is passed in as "false" only inside
  * cardinality brackets, that is, "|expr|".
  */
-Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
+Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true, bool allowDecreasesTo = true>
 = (. Expression e0; IToken semiToken; .)
   [ "new" (. SemErr(ErrorId.p_no_side_effects_in_expressions, t, "Calls with side-effects such as constructors are not allowed in expressions."); .) ]
   EquivExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
+  [ IF(allowDecreasesTo && IsDecreasesTo())
+    DecreasesTo<out var decreasesToToken, out var allowNoChange>
+    EquivExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
+    (. e = new DecreasesToExpr(decreasesToToken, new List<Expression>() { e }, new List<Expression>() { e0 }, allowNoChange); .)
+  ]
   [ IF(SemiFollowsCall(allowLemma, e))
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
     ";"                       (. semiToken = t; .)
@@ -3847,38 +3811,90 @@ ParensExpression<out Expression e>
 = (. IToken lp = null; IToken rp = null;
      var args = new List<ActualBinding>();
      e = dummyExpr;
+     var isDecreasesToExpr = false;
+     IToken decreasesToToken = null;
+     var allowNoChange = false;
+     List<Expression> oldExprs = null;
+     List<Expression> newExprs = null;
   .)
- "("
- (. lp = t;
- .)
-  (
-    MaybeDecreasesToExpression<out e, lp>
-    ")"                                     (. rp = t;
-                                               if (e is not DatatypeValue) {
-                                                 e = new ParensExpression(lp, e);
-                                               }
-                                            .)
-  |
-    ")"                                     (. rp = t;
-                                               e = ProcessTupleArgs(new List<ActualBinding>(), lp);
-                                            .)
-  )                                         (. e.RangeToken = new RangeToken(lp, rp); .)
+  "("                                       (. lp = t; .)
+  ( ")"                                     (. rp = t; .)
+
+  | (. isDecreasesToExpr = true;
+       oldExprs = new();
+    .)
+    DecreasesTo<out decreasesToToken, out allowNoChange>
+    DecreasesToExpressionList<out newExprs>
+    ")"                                     (. rp = t; .)
+
+  | TupleArgs<args>
+    [ (. isDecreasesToExpr = true; .)
+      DecreasesTo<out decreasesToToken, out allowNoChange>
+      (. foreach (var binding in args) {
+           if (binding.FormalParameterName != null) {
+             SemErr(ErrorId.p_binding_in_decreases_to, binding.FormalParameterName,
+               $"bindings are not allowed in `{decreasesToToken.val} to` expressions.");
+           } else if (binding.IsGhost) {
+             SemErr(ErrorId.p_ghost_in_decreases_to, binding.Actual.tok, // we don't have the token of "ghost" :(
+               $"'ghost' components are not allowed in `{decreasesToToken.val} to` expressions.");
+           }
+         }
+         oldExprs = args.Select(arg => arg.Actual).ToList();
+      .)
+      DecreasesToExpressionList<out newExprs>
+    ]
+    ")"                                     (. rp = t; .)
+  )
+
+  (. if (isDecreasesToExpr) {
+       e = new DecreasesToExpr(decreasesToToken, oldExprs, newExprs, allowNoChange);
+     } else {
+       e = ProcessTupleArgs(args, lp);
+       if (e is not DatatypeValue) { // here, a DatatypeValue is a tuple expression
+         e = new ParensExpression(lp, e);
+       }
+     }
+     e.RangeToken = new RangeToken(lp, rp);
+  .)
   .
 
-/*------------------------------------------------------------------------*/
 TupleArgs<.List<ActualBinding> args.>
 = (. ActualBinding binding; bool isGhost = false; .)
   // The IF is to distinguish between `(ghost var x := 5; x + x)` and (ghost x), both of which begin with `( ghost`.
   [ IF(la.kind == _ghost && !IsPeekVar())
-    "ghost"                             (. isGhost = true; .)
+    "ghost"                                     (. isGhost = true; .)
   ]
-  ActualBinding<out binding, isGhost>   (. args.Add(binding); .)
-  { ","                                 (. isGhost = false; .)
+  ActualBinding<out binding, isGhost, false>    (. args.Add(binding); .)
+  { ","                                         (. isGhost = false; .)
     [ IF(la.kind == _ghost && !IsPeekVar())
-      "ghost"                           (. isGhost = true; .)
+      "ghost"                                   (. isGhost = true; .)
     ]
-    ActualBinding<out binding, isGhost> (. args.Add(binding); .)
+    ActualBinding<out binding, isGhost, false>  (. args.Add(binding); .)
   }
+  .
+
+// the DecreasesTo production can be anticipated by IsDecreasesTo()
+DecreasesTo<out IToken x, out bool allowNoChange>
+= (. allowNoChange = false; .)
+  ( "decreases"
+  | "nonincreases"                (. allowNoChange = true; .)
+  )                               (. x = t; .)
+  ident
+  (. if (t.val != "to") {
+       SemErr(ErrorId.p_decreases_without_to, t, "expected 'to'");
+     }
+  .)
+  .
+
+DecreasesToExpressionList<.out List<Expression> newExprs.>
+= (. newExprs = new();
+     Expression expr;
+  .)
+  [ Expression<out expr, false, false>                   (. newExprs.Add(expr); .)
+    { ","
+      Expression<out expr, false, false>                 (. newExprs.Add(expr); .)
+    }
+  ]
   .
 
 /*------------------------------------------------------------------------*/
@@ -4468,18 +4484,18 @@ Suffix<ref Expression e>
 /*------------------------------------------------------------------------*/
 ActualBindings<.List<ActualBinding> bindings.>
 = (. ActualBinding binding; .)
-  ActualBinding<out binding>                      (. bindings.Add(binding); .)
-  { "," ActualBinding<out binding>                (. bindings.Add(binding); .)
+  ActualBinding<out binding, false, true>            (. bindings.Add(binding); .)
+  { "," ActualBinding<out binding, false, true>      (. bindings.Add(binding); .)
   }
   .
 
-ActualBinding<out ActualBinding binding, bool isGhost = false>
+ActualBinding<out ActualBinding binding, bool isGhost, bool allowDecreasesTo>
 = (. IToken id = null; Expression e; .)
   [ IF(IsBinding())
     NoUSIdentOrDigits<out id>
     ":="
   ]
-  Expression<out e, true, true>
+  Expression<out e, true, true, allowDecreasesTo: allowDecreasesTo>
   (. binding = new ActualBinding(id, e, isGhost); .)
   .
 

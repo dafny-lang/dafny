@@ -143,6 +143,7 @@ public class ParseErrors {
     p_general_traits_full,
     p_decreases_without_to,
     p_binding_in_decreases_to,
+    p_ghost_in_decreases_to,
   }
 
   static ParseErrors() {
