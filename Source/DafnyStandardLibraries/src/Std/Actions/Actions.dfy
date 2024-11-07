@@ -511,8 +511,18 @@ module Std.Actions {
 
   }
 
-  // TODO: Extract a ProducesSetProof trait
-  class SetEnumerator<T(==)> extends Action<(), T> {
+  trait ProducesSetProof<T> {
+    ghost function Action(): Action<(), T>
+    ghost function Set(): set<T>
+
+    lemma ProducesSet(history: seq<((), T)>) 
+      requires Action().CanProduce(history) 
+      ensures |history| <= |Set()|
+      ensures Seq.HasNoDuplicates(Outputs(history))
+      ensures Seq.ToSet(Outputs(history)) <= Set()
+  }
+
+  class SetEnumerator<T(==)> extends Action<(), T>, ProducesSetProof<T> {
     ghost const original: set<T>
     var remaining: set<T>
 
@@ -544,6 +554,20 @@ module Std.Actions {
       reveal Seq.ToSet();
     }
 
+    ghost function Action(): Action<(), T> {
+      this
+    }
+
+    ghost function Set(): set<T> {
+      original
+    }
+
+    lemma ProducesSet(history: seq<((), T)>) 
+      requires Action().CanProduce(history) 
+      ensures |history| <= |Set()|
+      ensures Seq.ToSet(Outputs(history)) <= Set()
+    {}
+
     ghost function Enumerated(history: seq<((), T)>): set<T> {
       Seq.ToSet(Outputs(history))
     }
@@ -556,6 +580,7 @@ module Std.Actions {
     ghost predicate CanProduce(history: seq<((), T)>)
       decreases height
     {
+      && |history| <= |original|
       && Seq.HasNoDuplicates(Outputs(history))
       && Enumerated(history) <= original
     }
@@ -624,6 +649,8 @@ module Std.Actions {
     // TODO: cool enough that we can statically invoke
     // the enumerator the right number of times!
     // But now prove that copy == s!
+    // assert |copy| == 5;
+    // assert copy == s;
   }
 
   // Other primitives/examples todo:
