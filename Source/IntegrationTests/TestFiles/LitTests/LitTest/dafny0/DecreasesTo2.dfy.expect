@@ -1,5 +1,11 @@
-DecreasesTo2.dfy(5,24): Error: invalid UnaryExpression
-DecreasesTo2.dfy(9,21): Error: ident expected
-DecreasesTo2.dfy(9,12): Error: expected 'to'
-DecreasesTo2.dfy(13,10): Error: invalid ParensExpression
-4 parse errors detected in DecreasesTo2.dfy
+DecreasesTo2.dfy(7,19): Error: ident expected
+DecreasesTo2.dfy(7,10): Error: expected 'to'
+DecreasesTo2.dfy(11,22): Error: ident expected
+DecreasesTo2.dfy(11,10): Error: expected 'to'
+DecreasesTo2.dfy(17,22): Error: ident expected
+DecreasesTo2.dfy(17,13): Error: expected 'to'
+DecreasesTo2.dfy(21,23): Error: ident expected
+DecreasesTo2.dfy(21,10): Error: expected 'to'
+DecreasesTo2.dfy(25,44): Error: closeparen expected
+DecreasesTo2.dfy(25,51): Error: invalid Suffix
+10 parse errors detected in DecreasesTo2.dfy

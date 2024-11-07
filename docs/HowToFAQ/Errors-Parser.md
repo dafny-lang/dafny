@@ -1542,17 +1542,6 @@ scanner recognizes. The only pragma ever recognized was `#line`.
 
 <!-- ./DafnyCore/AST/Grammar/ProgramParser.cs -->
 
-## **Warning: File contains no code** {#p_file_has_no_code}
-
-<!-- %check-resolve-warn -->
-```dafny
-// const c := 42
-```
-
-The indicated file has no code. This can be because the file is empty, because some parse error
-left the top-level module with no well-formed declarations, or because a unclosed comment
-has commented-out the whole file.
-
 ## **Error: [internal error] Parser exception: _message_** {#p_internal_exception}
 
 This error indicates an internal crashing bug in Dafny. Please report it with as much of 
