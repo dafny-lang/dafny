@@ -43,7 +43,7 @@ public partial class BoogieGenerator {
 
     } else if (stmt is HideRevealStmt revealStmt) {
       TranslateRevealStmt(builder, locals, etran, revealStmt);
-    } else if (stmt is BreakStmt breakStmt) {
+    } else if (stmt is BreakOrContinueStmt breakStmt) {
       TrBreakStmt(builder, etran, breakStmt);
     } else if (stmt is ReturnStmt returnStmt) {
       AddComment(builder, returnStmt, "return statement");
@@ -404,14 +404,14 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void TrBreakStmt(BoogieStmtListBuilder builder, ExpressionTranslator etran, BreakStmt breakStmt) {
-    AddComment(builder, breakStmt, $"{breakStmt.Kind} statement");
-    foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - breakStmt.TargetStmt.ScopeDepth)) {
-      builder.Add(new ChangeScope(breakStmt.Tok, ChangeScope.Modes.Pop));
+  private void TrBreakStmt(BoogieStmtListBuilder builder, ExpressionTranslator etran, BreakOrContinueStmt breakOrContinueStmt) {
+    AddComment(builder, breakOrContinueStmt, $"{breakOrContinueStmt.Kind} statement");
+    foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - breakOrContinueStmt.TargetStmt.ScopeDepth)) {
+      builder.Add(new ChangeScope(breakOrContinueStmt.Tok, ChangeScope.Modes.Pop));
     }
-    var lbl = (breakStmt.IsContinue ? "continue_" : "after_") + breakStmt.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
-    builder.Add(new GotoCmd(breakStmt.Tok, new List<string> { lbl }) {
-      Attributes = etran.TrAttributes(breakStmt.Attributes)
+    var lbl = (breakOrContinueStmt.IsContinue ? "continue_" : "after_") + breakOrContinueStmt.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
+    builder.Add(new GotoCmd(breakOrContinueStmt.Tok, new List<string> { lbl }) {
+      Attributes = etran.TrAttributes(breakOrContinueStmt.Attributes)
     });
   }
 
