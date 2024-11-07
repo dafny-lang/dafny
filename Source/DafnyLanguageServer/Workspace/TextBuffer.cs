@@ -60,7 +60,11 @@ public class TextBuffer {
     try {
       return indexToLineTree.Query(index).Single();
     } catch (InvalidOperationException) {
-      throw new ArgumentException($"index {index} is outside of the text buffer");
+      try {// Just in case we are on Windows and we happen to query an index between "\r" and "\n"
+        return indexToLineTree.Query(index - 1).Single();
+      } catch (InvalidOperationException) {
+        throw new ArgumentException($"index {index} is outside of the text buffer");
+      }
     }
   }
 
