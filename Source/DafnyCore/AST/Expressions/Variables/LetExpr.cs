@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -9,6 +10,7 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   public readonly List<Expression> RHSs;
   public readonly Expression Body;
   public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
+  [CanBeNull] public ExistsExpr SuchThatExists; // null for Exact==true; for let-such-that expressions, set to non-null during trigger selection 
   public Attributes Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "let expression";
   [FilledInDuringResolution] public List<BoundedPool> Constraint_Bounds;  // null for Exact=true and for when expression is in a ghost context
@@ -41,6 +43,9 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     Attributes = cloner.CloneAttributes(original.Attributes);
     if (cloner.CloneResolvedFields) {
       Constraint_Bounds = original.Constraint_Bounds;
+      if (original.SuchThatExists != null) {
+        SuchThatExists = (ExistsExpr)cloner.CloneExpr(original.SuchThatExists);
+      }
     }
   }
 
