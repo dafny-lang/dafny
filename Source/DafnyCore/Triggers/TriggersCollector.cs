@@ -48,11 +48,10 @@ internal class TriggersCollector {
 
     TriggerAnnotation annotation = null; // TODO: Using ApplySuffix fixes the unresolved members problem in GenericSort
 
-    if (expr is LetExpr) {
-      var le = (LetExpr)expr;
-      if (le.LHSs.All(p => p.Var != null) && le.Exact) {
+    if (expr is LetExpr { Exact: true } letExpr) {
+      if (letExpr.LHSs.All(p => p.Var != null)) {
         // Inline the let expression before doing trigger selection.
-        annotation = Annotate(BoogieGenerator.InlineLet(le));
+        annotation = Annotate(BoogieGenerator.InlineLet(letExpr));
       }
     }
 
