@@ -1,7 +1,4 @@
-nonLinearArithmetic.dfy(97,8): Error: Verification out of resource (Power3.LemmaPowSubAddCancel)
 
-Dafny program verifier finished with 15 verified, 0 errors, 1 out of resource
-nonLinearArithmetic.dfy(21,8): Error: Verification out of resource (Power0.LemmaPowSubAddCancel)
-nonLinearArithmetic.dfy(97,8): Error: Verification out of resource (Power3.LemmaPowSubAddCancel)
+Dafny program verifier finished with 16 verified, 0 errors
 
-Dafny program verifier finished with 14 verified, 0 errors, 2 out of resource
+Dafny program verifier finished with 16 verified, 0 errors
