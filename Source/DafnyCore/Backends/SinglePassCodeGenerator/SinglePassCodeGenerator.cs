@@ -1416,13 +1416,13 @@ namespace Microsoft.Dafny.Compilers {
       if (dualOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no dual"
         Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
         CompileBinOp(dualOp,
-          e1Type, e0Type, tok, resultType.GetRuntimeType(),
+          e1Type, e0Type, tok, GetRuntimeType(resultType),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
-          e0Type, e1Type, tok, resultType.GetRuntimeType(),
+          e0Type, e1Type, tok, GetRuntimeType(resultType),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         preOpString = "!" + preOpString;
@@ -2124,6 +2124,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected virtual bool InstanceConstAreStatic() {
+      return true;
+     }
+
     void CompileClassMembers(Program program, TopLevelDeclWithMembers c, IClassWriter classWriter) {
       Contract.Requires(c != null);
       Contract.Requires(classWriter != null);
@@ -2247,7 +2251,7 @@ namespace Microsoft.Dafny.Compilers {
                 // because a newtype value is always represented as some existing type.
                 // Likewise, an instance const with a RHS in a trait needs to be modeled as a static function (in the companion class)
                 // that takes a parameter, because trait-equivalents in target languages don't allow implementations.
-                wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), new List<Formal>(), cf.Type, cf.tok, true, true, cf, false, true);
+                wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), new List<Formal>(), cf.Type, cf.tok, InstanceConstAreStatic(), true, cf, false, true);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
                 if (c is TraitDecl) {
                   // also declare a function for the field in the interface

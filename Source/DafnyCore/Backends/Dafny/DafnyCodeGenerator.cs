@@ -316,7 +316,7 @@ namespace Microsoft.Dafny.Compilers {
         if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
           EmitExpr(
             nt.Witness, false,
-            EmitCoercionIfNecessary(nt.Witness.Type, erasedType, null,
+            EmitCoercionIfNecessary(nt.Witness.Type, erasedType, nt.Witness.tok,
               new BuilderSyntaxTree<ExprContainer>(buf, this)),
             new BuilderSyntaxTree<StatementContainer>(statementBuf, this)
           );
@@ -343,7 +343,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new ClassWriter(this, false, builder.Newtype(
           nt.GetCompileName(Options), new(),
-          GenType(erasedType), NativeTypeToNewtypeRange(nt.NativeType),
+          GenType(erasedType), NativeTypeToNewtypeRange(nt.NativeType, false),
             constraint, witnessStmts, witness, ParseAttributes(nt.Attributes)));
       } else {
         throw new InvalidOperationException();
@@ -373,6 +373,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return FullTypeNameAST(udt, null);
       } else if (AsNativeType(typ) != null) {
+        var overflows = typ is BitvectorType;
         var CreateNewtype = (string baseName, DAST._INewtypeRange newTypeRange) =>
           DAST.Type.create_UserDefined(
             DAST.ResolvedType.create_ResolvedType(
@@ -391,16 +392,16 @@ namespace Microsoft.Dafny.Compilers {
             )
           );
         return (DAST.Type)(AsNativeType(xType).Sel switch {
-          NativeType.Selection.Byte => CreateNewtype("u8", DAST.NewtypeRange.create_U8()),
-          NativeType.Selection.SByte => CreateNewtype("i8", DAST.NewtypeRange.create_I8()),
-          NativeType.Selection.Short => CreateNewtype("i16", DAST.NewtypeRange.create_I16()),
-          NativeType.Selection.UShort => CreateNewtype("u16", DAST.NewtypeRange.create_U16()),
-          NativeType.Selection.Int => CreateNewtype("i32", DAST.NewtypeRange.create_I32()),
-          NativeType.Selection.UInt => CreateNewtype("u32", DAST.NewtypeRange.create_U32()),
-          NativeType.Selection.Long => CreateNewtype("i64", DAST.NewtypeRange.create_I64()),
-          NativeType.Selection.ULong => CreateNewtype("u64", DAST.NewtypeRange.create_U64()),
-          NativeType.Selection.DoubleLong => CreateNewtype("i128", DAST.NewtypeRange.create_I128()),
-          NativeType.Selection.UDoubleLong => CreateNewtype("u128", DAST.NewtypeRange.create_U128()),
+          NativeType.Selection.Byte => CreateNewtype("u8", DAST.NewtypeRange.create_U8(overflows)),
+          NativeType.Selection.SByte => CreateNewtype("i8", DAST.NewtypeRange.create_I8(overflows)),
+          NativeType.Selection.Short => CreateNewtype("i16", DAST.NewtypeRange.create_I16(overflows)),
+          NativeType.Selection.UShort => CreateNewtype("u16", DAST.NewtypeRange.create_U16(overflows)),
+          NativeType.Selection.Int => CreateNewtype("i32", DAST.NewtypeRange.create_I32(overflows)),
+          NativeType.Selection.UInt => CreateNewtype("u32", DAST.NewtypeRange.create_U32(overflows)),
+          NativeType.Selection.Long => CreateNewtype("i64", DAST.NewtypeRange.create_I64(overflows)),
+          NativeType.Selection.ULong => CreateNewtype("u64", DAST.NewtypeRange.create_U64(overflows)),
+          NativeType.Selection.DoubleLong => CreateNewtype("i128", DAST.NewtypeRange.create_I128(overflows)),
+          NativeType.Selection.UDoubleLong => CreateNewtype("u128", DAST.NewtypeRange.create_U128(overflows)),
           _ => throw new InvalidOperationException(),
         });
       } else if (xType is SeqType seq) {
@@ -416,9 +417,6 @@ namespace Microsoft.Dafny.Compilers {
         var keyType = map.Domain;
         var valueType = map.Range;
         return (DAST.Type)DAST.Type.create_Map(GenType(keyType), GenType(valueType));
-      } else if (xType is BitvectorType) {
-        AddUnsupported("<i>Bitvector types</i>");
-        return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("Missing feature: Bitvector types"));
       } else {
         var why = "<i>Type name for " + xType + " (" + typ.GetType() + ")</i>";
         AddUnsupported(why);
@@ -440,7 +438,7 @@ namespace Microsoft.Dafny.Compilers {
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         EmitExpr(
           sst.Witness, false,
-          EmitCoercionIfNecessary(sst.Witness.Type, erasedType, null,
+          EmitCoercionIfNecessary(sst.Witness.Type, erasedType, sst.Witness.tok,
             new BuilderSyntaxTree<ExprContainer>(buf, this)),
           new BuilderSyntaxTree<StatementContainer>(statementBuf, this)
         );
@@ -493,7 +491,7 @@ namespace Microsoft.Dafny.Compilers {
             , ParseAttributes(md.Attributes)
           );
           return DAST.Field.create_Field(formal, md is ConstantField,
-            Std.Wrappers.Option<DAST.Expression>.create_None());
+            Std.Wrappers.Option<DAST.Expression>.create_None(), md.HasStaticKeyword);
         }
         ).ToList();
         builder.Builder.AddStatement((DAST.Statement)DAST.Statement.create_ConstructorNewSeparator(
@@ -504,7 +502,9 @@ namespace Microsoft.Dafny.Compilers {
       // We need to indicate to Dafny that 
       TrStmtList(dividedBlockStmt.BodyProper, writer);
     }
-
+    protected override bool InstanceConstAreStatic() {
+      return false;
+    }
     private class ClassWriter : IClassWriter {
       private readonly DafnyCodeGenerator compiler;
       private readonly ClassLike builder;
@@ -580,7 +580,7 @@ namespace Microsoft.Dafny.Compilers {
         compiler.AddUnsupportedFeature(m.tok, Feature.MethodSynthesis);
         return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
       }
-
+    
       public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
           List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
           bool forBodyInheritance, bool lookasideBody) {
@@ -674,7 +674,7 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<Rune>.UnicodeFromString(name),
           compiler.GenType(type),
           compiler.ParseAttributes(field.Attributes)
-        ), isConst || field is ConstantField, rhsExpr);
+        ), isConst || field is ConstantField, rhsExpr, field.IsStatic);
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
@@ -1126,7 +1126,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitCoercionIfNecessary(
           ll.Seq.Type,
           ll.Seq.Type.IsNonNullRefType || !ll.Seq.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Seq.Type.NormalizeExpand()),
-          null, new BuilderSyntaxTree<ExprContainer>(sourceBuf, this)
+          ll.tok, new BuilderSyntaxTree<ExprContainer>(sourceBuf, this)
         ),
         wStmts
       );
@@ -1563,10 +1563,14 @@ namespace Microsoft.Dafny.Compilers {
             break;
         }
 
-        if (e.Type.AsNewtype != null) {
-          baseExpr = (DAST.Expression)DAST.Expression.create_Convert(baseExpr, GenType(e.Type.AsNewtype.BaseType), GenType(e.Type));
-        } else if (e.Type.AsSubsetType != null) {
-          baseExpr = (DAST.Expression)DAST.Expression.create_Convert(baseExpr, GenType(e.Type.AsSubsetType.Rhs), GenType(e.Type));
+        if (e is not StaticReceiverExpr) {
+          if (e.Type.AsNewtype != null) {
+            baseExpr = (DAST.Expression)DAST.Expression.create_Convert(baseExpr, GenType(e.Type.AsNewtype.BaseType),
+              GenType(e.Type));
+          } else if (e.Type.AsSubsetType != null) {
+            baseExpr = (DAST.Expression)DAST.Expression.create_Convert(baseExpr, GenType(e.Type.AsSubsetType.Rhs),
+              GenType(e.Type));
+          }
         }
 
         builder.Builder.AddExpr(baseExpr);
@@ -1654,18 +1658,18 @@ namespace Microsoft.Dafny.Compilers {
       return Sequence<ISequence<Rune>>.FromArray(path.ToArray());
     }
 
-    private DAST.NewtypeRange NativeTypeToNewtypeRange(NativeType nativeType) {
+    private DAST.NewtypeRange NativeTypeToNewtypeRange(NativeType nativeType, bool overflows) {
       return (DAST.NewtypeRange)(nativeType?.Sel switch {
-        NativeType.Selection.Byte => NewtypeRange.create_U8(),
-        NativeType.Selection.SByte => NewtypeRange.create_I8(),
-        NativeType.Selection.UShort => NewtypeRange.create_U16(),
-        NativeType.Selection.Short => NewtypeRange.create_I16(),
-        NativeType.Selection.UInt => NewtypeRange.create_U32(),
-        NativeType.Selection.Int => NewtypeRange.create_I32(),
-        NativeType.Selection.ULong => NewtypeRange.create_U64(),
-        NativeType.Selection.Long => NewtypeRange.create_I64(),
-        NativeType.Selection.UDoubleLong => NewtypeRange.create_U128(),
-        NativeType.Selection.DoubleLong => NewtypeRange.create_I128(),
+        NativeType.Selection.Byte => NewtypeRange.create_U8(overflows),
+        NativeType.Selection.SByte => NewtypeRange.create_I8(overflows),
+        NativeType.Selection.UShort => NewtypeRange.create_U16(overflows),
+        NativeType.Selection.Short => NewtypeRange.create_I16(overflows),
+        NativeType.Selection.UInt => NewtypeRange.create_U32(overflows),
+        NativeType.Selection.Int => NewtypeRange.create_I32(overflows),
+        NativeType.Selection.ULong => NewtypeRange.create_U64(overflows),
+        NativeType.Selection.Long => NewtypeRange.create_I64(overflows),
+        NativeType.Selection.UDoubleLong => NewtypeRange.create_U128(overflows),
+        NativeType.Selection.DoubleLong => NewtypeRange.create_I128(overflows),
         _ => NewtypeRange.create_NoRange()
       });
     }
@@ -1699,6 +1703,16 @@ namespace Microsoft.Dafny.Compilers {
       return Sequence<DAST.Attribute>.FromArray(result.ToArray());
     }
 
+    private bool IsErasedIfNewtype(NewtypeDecl newtypeDecl) {
+      var erasedIfNewtype = true;
+      if (!Attributes.ContainsBool(newtypeDecl.Attributes, "rust_erased", ref erasedIfNewtype)) {
+        var hasNoMember = !newtypeDecl.Members.Any(); 
+        erasedIfNewtype = hasNoMember;
+      }
+
+      return erasedIfNewtype;
+    }
+
     private DAST.Type TypeNameASTFromTopLevel(TopLevelDecl topLevel, List<Type> typeArgs) {
       var path = PathFromTopLevel(topLevel);
 
@@ -1709,18 +1723,17 @@ namespace Microsoft.Dafny.Compilers {
       var properMethods = new List<Sequence<Rune>>();
       var extendedTraits = new List<DAST.Type>();
       
-      var erasedIfNewtype = true;
       if (topLevel is TopLevelDeclWithMembers memberContainer) {
         foreach (var member in memberContainer.Members) {
-          erasedIfNewtype = false;
           if (member.OverriddenMember == null) {
             properMethods.Add((Sequence<Rune>)Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)));
           }
         }
       }
       
-      if (topLevel is NewtypeDecl newTypeDecl) {
-        Attributes.ContainsBool(topLevel.Attributes, "rust_erased", ref erasedIfNewtype);
+      var erasedIfNewtype = true;
+      if (topLevel is NewtypeDecl newtypeDecl) {
+        erasedIfNewtype = IsErasedIfNewtype(newtypeDecl);
       }
 
       foreach (var parentType in topLevel.ParentTypes(typeArgs, true)) {
@@ -1734,7 +1747,7 @@ namespace Microsoft.Dafny.Compilers {
       DAST.ResolvedTypeBase resolvedTypeBase;
 
       if (topLevel is NewtypeDecl newType) {
-        var range = NativeTypeToNewtypeRange(newType.NativeType);
+        var range = NativeTypeToNewtypeRange(newType.NativeType, false);
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Newtype(
           GenType(EraseNewtypeLayers(topLevel)), range, erasedIfNewtype);
       } else if (topLevel is TypeSynonymDecl typeSynonym) { // Also SubsetTypeDecl
@@ -1762,6 +1775,14 @@ namespace Microsoft.Dafny.Compilers {
     private static Type EraseNewtypeLayers(TopLevelDecl topLevel) {
       var topLevelType = UserDefinedType.FromTopLevelDecl(topLevel.tok, topLevel);
       return topLevelType.NormalizeToAncestorType();
+    }
+
+    // Contrary to other backends, we don't necessarily erase newtypes
+    public override Type GetRuntimeType(Type tpe) {
+      if (tpe.AsNewtype is { } newtypeDecl && !IsErasedIfNewtype(newtypeDecl)) {
+        return tpe;
+      }
+      return base.GetRuntimeType(tpe);
     }
 
     public override ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
@@ -2114,7 +2135,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var indexBuf = new ExprBuffer(null);
-      var indexWr = EmitCoercionIfNecessary(index.Type.NormalizeExpand(), indexType, null, new BuilderSyntaxTree<ExprContainer>(indexBuf, this));
+      var indexWr = EmitCoercionIfNecessary(index.Type.NormalizeExpand(), indexType, source.tok, new BuilderSyntaxTree<ExprContainer>(indexBuf, this));
       EmitExpr(index, inLetExprBody, indexWr, wStmts);
 
       if (GetExprBuilder(wr, out var builder)) {
@@ -2205,7 +2226,7 @@ namespace Microsoft.Dafny.Compilers {
       DAST.Expression loExpr = null;
       if (lo != null) {
         var loBuf = new ExprBuffer(null);
-        var loWr = EmitCoercionIfNecessary(lo.Type.NormalizeExpand(), Type.Int, null, new BuilderSyntaxTree<ExprContainer>(loBuf, this));
+        var loWr = EmitCoercionIfNecessary(lo.Type.NormalizeExpand(), Type.Int, source.tok, new BuilderSyntaxTree<ExprContainer>(loBuf, this));
         EmitExpr(lo, inLetExprBody, loWr, wStmts);
         loExpr = loBuf.Finish();
       }
@@ -2213,7 +2234,7 @@ namespace Microsoft.Dafny.Compilers {
       DAST.Expression hiExpr = null;
       if (hi != null) {
         var hiBuf = new ExprBuffer(null);
-        var loWr = EmitCoercionIfNecessary(hi.Type.NormalizeExpand(), Type.Int, null, new BuilderSyntaxTree<ExprContainer>(hiBuf, this));
+        var loWr = EmitCoercionIfNecessary(hi.Type.NormalizeExpand(), Type.Int, source.tok, new BuilderSyntaxTree<ExprContainer>(hiBuf, this));
         EmitExpr(hi, inLetExprBody, loWr, wStmts);
         hiExpr = hiBuf.Finish();
       }
@@ -2595,6 +2616,7 @@ namespace Microsoft.Dafny.Compilers {
         truncateResult = false;
         convertE1_to_int = false;
         coerceE1 = false;
+        var overflows = e0Type is BitvectorType;
 
         opString = op switch {
           BinaryExpr.ResolvedOpcode.Iff => "==",
@@ -2678,7 +2700,7 @@ namespace Microsoft.Dafny.Compilers {
             Not(BinaryOp(BinOp.create_Eq(false), left, right))),
 
           BinaryExpr.ResolvedOpcode.Div =>
-            B(NeedsEuclideanDivision(resultType) ? BinOp.create_EuclidianDiv() : BinOp.create_Div()),
+            B(NeedsEuclideanDivision(resultType) ? BinOp.create_EuclidianDiv() : BinOp.create_Div(overflows)),
           BinaryExpr.ResolvedOpcode.Mod =>
             B(NeedsEuclideanDivision(resultType) ? BinOp.create_EuclidianMod() : BinOp.create_Mod()),
           BinaryExpr.ResolvedOpcode.Imp =>
@@ -2766,9 +2788,9 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.Concat => B(BinOp.create_Concat()),
           BinaryExpr.ResolvedOpcode.And => B(BinOp.create_And()),
           BinaryExpr.ResolvedOpcode.Or => B(BinOp.create_Or()),
-          BinaryExpr.ResolvedOpcode.Add => B(BinOp.create_Plus()),
-          BinaryExpr.ResolvedOpcode.Sub => B(BinOp.create_Minus()),
-          BinaryExpr.ResolvedOpcode.Mul => B(BinOp.create_Times()),
+          BinaryExpr.ResolvedOpcode.Add => B(BinOp.create_Plus(overflows)),
+          BinaryExpr.ResolvedOpcode.Sub => B(BinOp.create_Minus(overflows)),
+          BinaryExpr.ResolvedOpcode.Mul => B(BinOp.create_Times(overflows)),
           BinaryExpr.ResolvedOpcode.BitwiseAnd => B(BinOp.create_BitwiseAnd()),
           BinaryExpr.ResolvedOpcode.BitwiseOr => B(BinOp.create_BitwiseOr()),
           BinaryExpr.ResolvedOpcode.BitwiseXor => B(BinOp.create_BitwiseXor()),

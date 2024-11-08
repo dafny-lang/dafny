@@ -1620,12 +1620,15 @@ namespace DAST {
     bool is_USIZE { get; }
     bool is_BigInt { get; }
     bool is_NoRange { get; }
+    bool dtor_overflow { get; }
     _INewtypeRange DowncastClone();
+    bool canOverflow();
+    bool HasArithmeticOperations();
   }
   public abstract class NewtypeRange : _INewtypeRange {
     public NewtypeRange() {
     }
-    private static readonly DAST._INewtypeRange theDefault = create_U8();
+    private static readonly DAST._INewtypeRange theDefault = create_U8(false);
     public static DAST._INewtypeRange Default() {
       return theDefault;
     }
@@ -1633,35 +1636,35 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._INewtypeRange> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _INewtypeRange create_U8() {
-      return new NewtypeRange_U8();
+    public static _INewtypeRange create_U8(bool overflow) {
+      return new NewtypeRange_U8(overflow);
     }
-    public static _INewtypeRange create_I8() {
-      return new NewtypeRange_I8();
+    public static _INewtypeRange create_I8(bool overflow) {
+      return new NewtypeRange_I8(overflow);
     }
-    public static _INewtypeRange create_U16() {
-      return new NewtypeRange_U16();
+    public static _INewtypeRange create_U16(bool overflow) {
+      return new NewtypeRange_U16(overflow);
     }
-    public static _INewtypeRange create_I16() {
-      return new NewtypeRange_I16();
+    public static _INewtypeRange create_I16(bool overflow) {
+      return new NewtypeRange_I16(overflow);
     }
-    public static _INewtypeRange create_U32() {
-      return new NewtypeRange_U32();
+    public static _INewtypeRange create_U32(bool overflow) {
+      return new NewtypeRange_U32(overflow);
     }
-    public static _INewtypeRange create_I32() {
-      return new NewtypeRange_I32();
+    public static _INewtypeRange create_I32(bool overflow) {
+      return new NewtypeRange_I32(overflow);
     }
-    public static _INewtypeRange create_U64() {
-      return new NewtypeRange_U64();
+    public static _INewtypeRange create_U64(bool overflow) {
+      return new NewtypeRange_U64(overflow);
     }
-    public static _INewtypeRange create_I64() {
-      return new NewtypeRange_I64();
+    public static _INewtypeRange create_I64(bool overflow) {
+      return new NewtypeRange_I64(overflow);
     }
-    public static _INewtypeRange create_U128() {
-      return new NewtypeRange_U128();
+    public static _INewtypeRange create_U128(bool overflow) {
+      return new NewtypeRange_U128(overflow);
     }
-    public static _INewtypeRange create_I128() {
-      return new NewtypeRange_I128();
+    public static _INewtypeRange create_I128(bool overflow) {
+      return new NewtypeRange_I128(overflow);
     }
     public static _INewtypeRange create_USIZE() {
       return new NewtypeRange_USIZE();
@@ -1685,232 +1688,296 @@ namespace DAST {
     public bool is_USIZE { get { return this is NewtypeRange_USIZE; } }
     public bool is_BigInt { get { return this is NewtypeRange_BigInt; } }
     public bool is_NoRange { get { return this is NewtypeRange_NoRange; } }
-    public static System.Collections.Generic.IEnumerable<_INewtypeRange> AllSingletonConstructors {
+    public bool dtor_overflow {
       get {
-        yield return NewtypeRange.create_U8();
-        yield return NewtypeRange.create_I8();
-        yield return NewtypeRange.create_U16();
-        yield return NewtypeRange.create_I16();
-        yield return NewtypeRange.create_U32();
-        yield return NewtypeRange.create_I32();
-        yield return NewtypeRange.create_U64();
-        yield return NewtypeRange.create_I64();
-        yield return NewtypeRange.create_U128();
-        yield return NewtypeRange.create_I128();
-        yield return NewtypeRange.create_USIZE();
-        yield return NewtypeRange.create_BigInt();
-        yield return NewtypeRange.create_NoRange();
+        var d = this;
+        if (d is NewtypeRange_U8) { return ((NewtypeRange_U8)d)._overflow; }
+        if (d is NewtypeRange_I8) { return ((NewtypeRange_I8)d)._overflow; }
+        if (d is NewtypeRange_U16) { return ((NewtypeRange_U16)d)._overflow; }
+        if (d is NewtypeRange_I16) { return ((NewtypeRange_I16)d)._overflow; }
+        if (d is NewtypeRange_U32) { return ((NewtypeRange_U32)d)._overflow; }
+        if (d is NewtypeRange_I32) { return ((NewtypeRange_I32)d)._overflow; }
+        if (d is NewtypeRange_U64) { return ((NewtypeRange_U64)d)._overflow; }
+        if (d is NewtypeRange_I64) { return ((NewtypeRange_I64)d)._overflow; }
+        if (d is NewtypeRange_U128) { return ((NewtypeRange_U128)d)._overflow; }
+        return ((NewtypeRange_I128)d)._overflow;
       }
     }
     public abstract _INewtypeRange DowncastClone();
+    public bool canOverflow() {
+      return (((((((((((this).is_U8) || ((this).is_I8)) || ((this).is_U16)) || ((this).is_I16)) || ((this).is_U32)) || ((this).is_I32)) || ((this).is_U64)) || ((this).is_I64)) || ((this).is_U128)) || ((this).is_I128)) && ((this).dtor_overflow);
+    }
+    public bool HasArithmeticOperations() {
+      return true;
+    }
   }
   public class NewtypeRange_U8 : NewtypeRange {
-    public NewtypeRange_U8() : base() {
+    public readonly bool _overflow;
+    public NewtypeRange_U8(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _INewtypeRange DowncastClone() {
       if (this is _INewtypeRange dt) { return dt; }
-      return new NewtypeRange_U8();
+      return new NewtypeRange_U8(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.NewtypeRange_U8;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.U8";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
   public class NewtypeRange_I8 : NewtypeRange {
-    public NewtypeRange_I8() : base() {
+    public readonly bool _overflow;
+    public NewtypeRange_I8(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _INewtypeRange DowncastClone() {
       if (this is _INewtypeRange dt) { return dt; }
-      return new NewtypeRange_I8();
+      return new NewtypeRange_I8(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.NewtypeRange_I8;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.I8";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
   public class NewtypeRange_U16 : NewtypeRange {
-    public NewtypeRange_U16() : base() {
+    public readonly bool _overflow;
+    public NewtypeRange_U16(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _INewtypeRange DowncastClone() {
       if (this is _INewtypeRange dt) { return dt; }
-      return new NewtypeRange_U16();
+      return new NewtypeRange_U16(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.NewtypeRange_U16;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.U16";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
   public class NewtypeRange_I16 : NewtypeRange {
-    public NewtypeRange_I16() : base() {
+    public readonly bool _overflow;
+    public NewtypeRange_I16(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _INewtypeRange DowncastClone() {
       if (this is _INewtypeRange dt) { return dt; }
-      return new NewtypeRange_I16();
+      return new NewtypeRange_I16(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.NewtypeRange_I16;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.I16";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
   public class NewtypeRange_U32 : NewtypeRange {
-    public NewtypeRange_U32() : base() {
+    public readonly bool _overflow;
+    public NewtypeRange_U32(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _INewtypeRange DowncastClone() {
       if (this is _INewtypeRange dt) { return dt; }
-      return new NewtypeRange_U32();
+      return new NewtypeRange_U32(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.NewtypeRange_U32;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 4;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.U32";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
   public class NewtypeRange_I32 : NewtypeRange {
-    public NewtypeRange_I32() : base() {
+    public readonly bool _overflow;
+    public NewtypeRange_I32(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _INewtypeRange DowncastClone() {
       if (this is _INewtypeRange dt) { return dt; }
-      return new NewtypeRange_I32();
+      return new NewtypeRange_I32(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.NewtypeRange_I32;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 5;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.I32";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
   public class NewtypeRange_U64 : NewtypeRange {
-    public NewtypeRange_U64() : base() {
+    public readonly bool _overflow;
+    public NewtypeRange_U64(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _INewtypeRange DowncastClone() {
       if (this is _INewtypeRange dt) { return dt; }
-      return new NewtypeRange_U64();
+      return new NewtypeRange_U64(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.NewtypeRange_U64;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 6;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.U64";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
   public class NewtypeRange_I64 : NewtypeRange {
-    public NewtypeRange_I64() : base() {
+    public readonly bool _overflow;
+    public NewtypeRange_I64(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _INewtypeRange DowncastClone() {
       if (this is _INewtypeRange dt) { return dt; }
-      return new NewtypeRange_I64();
+      return new NewtypeRange_I64(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.NewtypeRange_I64;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 7;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.I64";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
   public class NewtypeRange_U128 : NewtypeRange {
-    public NewtypeRange_U128() : base() {
+    public readonly bool _overflow;
+    public NewtypeRange_U128(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _INewtypeRange DowncastClone() {
       if (this is _INewtypeRange dt) { return dt; }
-      return new NewtypeRange_U128();
+      return new NewtypeRange_U128(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.NewtypeRange_U128;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 8;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.U128";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
   public class NewtypeRange_I128 : NewtypeRange {
-    public NewtypeRange_I128() : base() {
+    public readonly bool _overflow;
+    public NewtypeRange_I128(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _INewtypeRange DowncastClone() {
       if (this is _INewtypeRange dt) { return dt; }
-      return new NewtypeRange_I128();
+      return new NewtypeRange_I128(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.NewtypeRange_I128;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 9;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.I128";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
@@ -3077,7 +3144,6 @@ namespace DAST {
     Dafny.ISequence<DAST._IStatement> dtor_witnessStmts { get; }
     Std.Wrappers._IOption<DAST._IExpression> dtor_witnessExpr { get; }
     Dafny.ISequence<DAST._IAttribute> dtor_attributes { get; }
-    Dafny.ISequence<DAST._IField> dtor_fields { get; }
     Dafny.ISequence<DAST._IMethod> dtor_classItems { get; }
     _INewtype DowncastClone();
   }
@@ -3090,9 +3156,8 @@ namespace DAST {
     public readonly Dafny.ISequence<DAST._IStatement> _witnessStmts;
     public readonly Std.Wrappers._IOption<DAST._IExpression> _witnessExpr;
     public readonly Dafny.ISequence<DAST._IAttribute> _attributes;
-    public readonly Dafny.ISequence<DAST._IField> _fields;
     public readonly Dafny.ISequence<DAST._IMethod> _classItems;
-    public Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Std.Wrappers._IOption<DAST._INewtypeConstraint> constraint, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes, Dafny.ISequence<DAST._IField> fields, Dafny.ISequence<DAST._IMethod> classItems) {
+    public Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Std.Wrappers._IOption<DAST._INewtypeConstraint> constraint, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes, Dafny.ISequence<DAST._IMethod> classItems) {
       this._name = name;
       this._typeParams = typeParams;
       this._base = @base;
@@ -3101,16 +3166,15 @@ namespace DAST {
       this._witnessStmts = witnessStmts;
       this._witnessExpr = witnessExpr;
       this._attributes = attributes;
-      this._fields = fields;
       this._classItems = classItems;
     }
     public _INewtype DowncastClone() {
       if (this is _INewtype dt) { return dt; }
-      return new Newtype(_name, _typeParams, _base, _range, _constraint, _witnessStmts, _witnessExpr, _attributes, _fields, _classItems);
+      return new Newtype(_name, _typeParams, _base, _range, _constraint, _witnessStmts, _witnessExpr, _attributes, _classItems);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Newtype;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._base, oth._base) && object.Equals(this._range, oth._range) && object.Equals(this._constraint, oth._constraint) && object.Equals(this._witnessStmts, oth._witnessStmts) && object.Equals(this._witnessExpr, oth._witnessExpr) && object.Equals(this._attributes, oth._attributes) && object.Equals(this._fields, oth._fields) && object.Equals(this._classItems, oth._classItems);
+      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._base, oth._base) && object.Equals(this._range, oth._range) && object.Equals(this._constraint, oth._constraint) && object.Equals(this._witnessStmts, oth._witnessStmts) && object.Equals(this._witnessExpr, oth._witnessExpr) && object.Equals(this._attributes, oth._attributes) && object.Equals(this._classItems, oth._classItems);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -3123,7 +3187,6 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._witnessStmts));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._witnessExpr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fields));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._classItems));
       return (int) hash;
     }
@@ -3146,13 +3209,11 @@ namespace DAST {
       s += ", ";
       s += Dafny.Helpers.ToString(this._attributes);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._fields);
-      s += ", ";
       s += Dafny.Helpers.ToString(this._classItems);
       s += ")";
       return s;
     }
-    private static readonly DAST._INewtype theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, DAST.Type.Default(), DAST.NewtypeRange.Default(), Std.Wrappers.Option<DAST._INewtypeConstraint>.Default(), Dafny.Sequence<DAST._IStatement>.Empty, Std.Wrappers.Option<DAST._IExpression>.Default(), Dafny.Sequence<DAST._IAttribute>.Empty, Dafny.Sequence<DAST._IField>.Empty, Dafny.Sequence<DAST._IMethod>.Empty);
+    private static readonly DAST._INewtype theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, DAST.Type.Default(), DAST.NewtypeRange.Default(), Std.Wrappers.Option<DAST._INewtypeConstraint>.Default(), Dafny.Sequence<DAST._IStatement>.Empty, Std.Wrappers.Option<DAST._IExpression>.Default(), Dafny.Sequence<DAST._IAttribute>.Empty, Dafny.Sequence<DAST._IMethod>.Empty);
     public static DAST._INewtype Default() {
       return theDefault;
     }
@@ -3160,11 +3221,11 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._INewtype> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _INewtype create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Std.Wrappers._IOption<DAST._INewtypeConstraint> constraint, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes, Dafny.ISequence<DAST._IField> fields, Dafny.ISequence<DAST._IMethod> classItems) {
-      return new Newtype(name, typeParams, @base, range, constraint, witnessStmts, witnessExpr, attributes, fields, classItems);
+    public static _INewtype create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Std.Wrappers._IOption<DAST._INewtypeConstraint> constraint, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes, Dafny.ISequence<DAST._IMethod> classItems) {
+      return new Newtype(name, typeParams, @base, range, constraint, witnessStmts, witnessExpr, attributes, classItems);
     }
-    public static _INewtype create_Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Std.Wrappers._IOption<DAST._INewtypeConstraint> constraint, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes, Dafny.ISequence<DAST._IField> fields, Dafny.ISequence<DAST._IMethod> classItems) {
-      return create(name, typeParams, @base, range, constraint, witnessStmts, witnessExpr, attributes, fields, classItems);
+    public static _INewtype create_Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Std.Wrappers._IOption<DAST._INewtypeConstraint> constraint, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes, Dafny.ISequence<DAST._IMethod> classItems) {
+      return create(name, typeParams, @base, range, constraint, witnessStmts, witnessExpr, attributes, classItems);
     }
     public bool is_Newtype { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
@@ -3205,11 +3266,6 @@ namespace DAST {
     public Dafny.ISequence<DAST._IAttribute> dtor_attributes {
       get {
         return this._attributes;
-      }
-    }
-    public Dafny.ISequence<DAST._IField> dtor_fields {
-      get {
-        return this._fields;
       }
     }
     public Dafny.ISequence<DAST._IMethod> dtor_classItems {
@@ -3447,24 +3503,27 @@ namespace DAST {
     DAST._IFormal dtor_formal { get; }
     bool dtor_isConstant { get; }
     Std.Wrappers._IOption<DAST._IExpression> dtor_defaultValue { get; }
+    bool dtor_isStatic { get; }
     _IField DowncastClone();
   }
   public class Field : _IField {
     public readonly DAST._IFormal _formal;
     public readonly bool _isConstant;
     public readonly Std.Wrappers._IOption<DAST._IExpression> _defaultValue;
-    public Field(DAST._IFormal formal, bool isConstant, Std.Wrappers._IOption<DAST._IExpression> defaultValue) {
+    public readonly bool _isStatic;
+    public Field(DAST._IFormal formal, bool isConstant, Std.Wrappers._IOption<DAST._IExpression> defaultValue, bool isStatic) {
       this._formal = formal;
       this._isConstant = isConstant;
       this._defaultValue = defaultValue;
+      this._isStatic = isStatic;
     }
     public _IField DowncastClone() {
       if (this is _IField dt) { return dt; }
-      return new Field(_formal, _isConstant, _defaultValue);
+      return new Field(_formal, _isConstant, _defaultValue, _isStatic);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Field;
-      return oth != null && object.Equals(this._formal, oth._formal) && this._isConstant == oth._isConstant && object.Equals(this._defaultValue, oth._defaultValue);
+      return oth != null && object.Equals(this._formal, oth._formal) && this._isConstant == oth._isConstant && object.Equals(this._defaultValue, oth._defaultValue) && this._isStatic == oth._isStatic;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -3472,6 +3531,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._formal));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isConstant));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._defaultValue));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isStatic));
       return (int) hash;
     }
     public override string ToString() {
@@ -3482,10 +3542,12 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._isConstant);
       s += ", ";
       s += Dafny.Helpers.ToString(this._defaultValue);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._isStatic);
       s += ")";
       return s;
     }
-    private static readonly DAST._IField theDefault = create(DAST.Formal.Default(), false, Std.Wrappers.Option<DAST._IExpression>.Default());
+    private static readonly DAST._IField theDefault = create(DAST.Formal.Default(), false, Std.Wrappers.Option<DAST._IExpression>.Default(), false);
     public static DAST._IField Default() {
       return theDefault;
     }
@@ -3493,11 +3555,11 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._IField> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IField create(DAST._IFormal formal, bool isConstant, Std.Wrappers._IOption<DAST._IExpression> defaultValue) {
-      return new Field(formal, isConstant, defaultValue);
+    public static _IField create(DAST._IFormal formal, bool isConstant, Std.Wrappers._IOption<DAST._IExpression> defaultValue, bool isStatic) {
+      return new Field(formal, isConstant, defaultValue, isStatic);
     }
-    public static _IField create_Field(DAST._IFormal formal, bool isConstant, Std.Wrappers._IOption<DAST._IExpression> defaultValue) {
-      return create(formal, isConstant, defaultValue);
+    public static _IField create_Field(DAST._IFormal formal, bool isConstant, Std.Wrappers._IOption<DAST._IExpression> defaultValue, bool isStatic) {
+      return create(formal, isConstant, defaultValue, isStatic);
     }
     public bool is_Field { get { return true; } }
     public DAST._IFormal dtor_formal {
@@ -3513,6 +3575,11 @@ namespace DAST {
     public Std.Wrappers._IOption<DAST._IExpression> dtor_defaultValue {
       get {
         return this._defaultValue;
+      }
+    }
+    public bool dtor_isStatic {
+      get {
+        return this._isStatic;
       }
     }
   }
@@ -5036,6 +5103,7 @@ namespace DAST {
     bool is_Concat { get; }
     bool is_Passthrough { get; }
     bool dtor_referential { get; }
+    bool dtor_overflow { get; }
     Dafny.ISequence<Dafny.Rune> dtor_Passthrough_a0 { get; }
     _IBinOp DowncastClone();
   }
@@ -5053,8 +5121,8 @@ namespace DAST {
     public static _IBinOp create_Eq(bool referential) {
       return new BinOp_Eq(referential);
     }
-    public static _IBinOp create_Div() {
-      return new BinOp_Div();
+    public static _IBinOp create_Div(bool overflow) {
+      return new BinOp_Div(overflow);
     }
     public static _IBinOp create_EuclidianDiv() {
       return new BinOp_EuclidianDiv();
@@ -5071,14 +5139,14 @@ namespace DAST {
     public static _IBinOp create_LtChar() {
       return new BinOp_LtChar();
     }
-    public static _IBinOp create_Plus() {
-      return new BinOp_Plus();
+    public static _IBinOp create_Plus(bool overflow) {
+      return new BinOp_Plus(overflow);
     }
-    public static _IBinOp create_Minus() {
-      return new BinOp_Minus();
+    public static _IBinOp create_Minus(bool overflow) {
+      return new BinOp_Minus(overflow);
     }
-    public static _IBinOp create_Times() {
-      return new BinOp_Times();
+    public static _IBinOp create_Times(bool overflow) {
+      return new BinOp_Times(overflow);
     }
     public static _IBinOp create_BitwiseAnd() {
       return new BinOp_BitwiseAnd();
@@ -5200,6 +5268,15 @@ namespace DAST {
         return ((BinOp_Eq)d)._referential;
       }
     }
+    public bool dtor_overflow {
+      get {
+        var d = this;
+        if (d is BinOp_Div) { return ((BinOp_Div)d)._overflow; }
+        if (d is BinOp_Plus) { return ((BinOp_Plus)d)._overflow; }
+        if (d is BinOp_Minus) { return ((BinOp_Minus)d)._overflow; }
+        return ((BinOp_Times)d)._overflow;
+      }
+    }
     public Dafny.ISequence<Dafny.Rune> dtor_Passthrough_a0 {
       get {
         var d = this;
@@ -5236,23 +5313,29 @@ namespace DAST {
     }
   }
   public class BinOp_Div : BinOp {
-    public BinOp_Div() : base() {
+    public readonly bool _overflow;
+    public BinOp_Div(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _IBinOp DowncastClone() {
       if (this is _IBinOp dt) { return dt; }
-      return new BinOp_Div();
+      return new BinOp_Div(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.BinOp_Div;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Div";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
@@ -5362,65 +5445,83 @@ namespace DAST {
     }
   }
   public class BinOp_Plus : BinOp {
-    public BinOp_Plus() : base() {
+    public readonly bool _overflow;
+    public BinOp_Plus(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _IBinOp DowncastClone() {
       if (this is _IBinOp dt) { return dt; }
-      return new BinOp_Plus();
+      return new BinOp_Plus(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.BinOp_Plus;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 7;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Plus";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
   public class BinOp_Minus : BinOp {
-    public BinOp_Minus() : base() {
+    public readonly bool _overflow;
+    public BinOp_Minus(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _IBinOp DowncastClone() {
       if (this is _IBinOp dt) { return dt; }
-      return new BinOp_Minus();
+      return new BinOp_Minus(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.BinOp_Minus;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 8;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Minus";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }
   public class BinOp_Times : BinOp {
-    public BinOp_Times() : base() {
+    public readonly bool _overflow;
+    public BinOp_Times(bool overflow) : base() {
+      this._overflow = overflow;
     }
     public override _IBinOp DowncastClone() {
       if (this is _IBinOp dt) { return dt; }
-      return new BinOp_Times();
+      return new BinOp_Times(_overflow);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.BinOp_Times;
-      return oth != null;
+      return oth != null && this._overflow == oth._overflow;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 9;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Times";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._overflow);
+      s += ")";
       return s;
     }
   }

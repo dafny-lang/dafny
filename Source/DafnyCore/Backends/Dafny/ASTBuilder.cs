@@ -138,8 +138,8 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
-      fields.Add((DAST.Field)DAST.Field.create_Field(item, isConstant, defaultValue));
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic) {
+      fields.Add((DAST.Field)DAST.Field.create_Field(item, isConstant, defaultValue, isStatic));
     }
 
     public object Finish() {
@@ -192,7 +192,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic) {
       this.parent.AddUnsupported("Field " + item.ToString());
     }
 
@@ -245,15 +245,14 @@ namespace Microsoft.Dafny.Compilers {
       this.witness = witness;
       this.attributes = attributes;
       this.methods = new();
-      this.fields = new();
     }
 
     public void AddMethod(DAST.Method item) {
       methods.Add(item);
     }
 
-    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
-      fields.Add((DAST.Field)DAST.Field.create_Field(item, isConstant, defaultValue));
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic) {
+      parent.AddUnsupported("Datatype field " + item.ToString());
     }
 
     public object Finish() {
@@ -268,7 +267,6 @@ namespace Microsoft.Dafny.Compilers {
           ? Option<DAST._IExpression>.create_None()
           : Option<DAST._IExpression>.create_Some(this.witness),
         attributes,
-        Sequence<DAST.Field>.FromArray(fields.ToArray()),
         Sequence<DAST._IMethod>.FromArray(methods.ToArray())
       ));
       return parent;
@@ -354,7 +352,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic) {
       parent.AddUnsupported("Datatype field " + item.ToString());
     }
 
@@ -374,7 +372,7 @@ namespace Microsoft.Dafny.Compilers {
   interface ClassLike {
     void AddMethod(DAST.Method item);
 
-    void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue);
+    void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic);
 
     public MethodBuilder Method(bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,

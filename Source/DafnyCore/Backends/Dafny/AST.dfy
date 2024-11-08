@@ -130,10 +130,29 @@ module {:extern "DAST"} DAST {
 
   datatype Primitive = Int | Real | String | Bool | Char | Native
 
-  // USIZE is for whatever target considers that native arrays can be indexed with
+
   datatype NewtypeRange =
-    | U8 | I8 | U16 | I16 | U32 | I32 | U64 | I64 | U128 | I128 | USIZE | BigInt
+    | U8(overflow: bool) // Whether arithmetic operations can overflow and wrap
+    | I8(overflow: bool)
+    | U16(overflow: bool)
+    | I16(overflow: bool)
+    | U32(overflow: bool)
+    | I32(overflow: bool)
+    | U64(overflow: bool)
+    | I64(overflow: bool)
+    | U128(overflow: bool)
+    | I128(overflow: bool)
+    | USIZE  // For whatever target considers that native arrays can be indexed with
+    | BigInt
     | NoRange
+  {
+    predicate canOverflow() {
+      (U8? || I8? || U16? || I16? || U32? || I32? || U64? || I64? || U128? || I128?) && overflow
+    }
+    predicate HasArithmeticOperations() {
+      true // To change when newtypes will have sequences and sets as ranges.
+    }
+  }
 
   datatype Attribute = Attribute(name: string, args: seq<string>)
 
@@ -192,7 +211,7 @@ module {:extern "DAST"} DAST {
       name: Name, typeParams: seq<TypeArgDecl>, base: Type,
       range: NewtypeRange, constraint: Option<NewtypeConstraint>,
       witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>,
-      fields: seq<Field>, classItems: seq<ClassItem>)
+      classItems: seq<ClassItem>)
 
   datatype NewtypeConstraint = NewtypeConstraint(variable: Formal, constraintStmts: seq<Statement>)
 
@@ -202,7 +221,7 @@ module {:extern "DAST"} DAST {
 
   datatype ClassItem = Method(Method)
 
-  datatype Field = Field(formal: Formal, isConstant: bool, defaultValue: Option<Expression>)
+  datatype Field = Field(formal: Formal, isConstant: bool, defaultValue: Option<Expression>, isStatic: bool)
 
   datatype Formal = Formal(name: VarName, typ: Type, attributes: seq<Attribute>)
 
@@ -254,11 +273,11 @@ module {:extern "DAST"} DAST {
 
   datatype BinOp =
     Eq(referential: bool) |
-    Div() | EuclidianDiv() |
+    Div(overflow: bool) | EuclidianDiv() |
     Mod() | EuclidianMod() |
     Lt() | // a <= b is !(b < a)
     LtChar() |
-    Plus() | Minus() | Times() |
+    Plus(overflow: bool) | Minus(overflow: bool) | Times(overflow: bool) |
     BitwiseAnd() | BitwiseOr() | BitwiseXor() |
     BitwiseShiftRight() | BitwiseShiftLeft() |
     And() | Or() |

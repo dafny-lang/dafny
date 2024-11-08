@@ -1,4 +1,6 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
+// RUN: %baredafny run -t:rs --refresh-exit-code=0 "%s"
+// RUN: %baredafny run -t:rs --unicode-char=false --refresh-exit-code=0 "%s"
+/// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 newtype int2 = x: int | -2 <= x < 2
 newtype int16 = x: int | -32768 <= x < 32768
@@ -11,6 +13,9 @@ const cu: CodeUnit := 0
 newtype uint8  = x: int | 0 <= x < 0x100
 type byte = uint8
 newtype uint32 = x: int | 0 <= x < 0x1_00000000
+
+newtype {:rust_erase false} uint32_noterased = x: int | 0 <= x < 0x1_00000000
+newtype another_int = x: int | true
 
 newtype uint32WithMethods = x: int | 0 <= x < 0x1_00000000 {
   static const zero: uint32WithMethods := 0 as uint32WithMethods
@@ -38,6 +43,11 @@ newtype uint32WithMethods = x: int | 0 <= x < 0x1_00000000 {
   function times_overflow(y: uint32WithMethods): uint32WithMethods
   {
     (this as bv32 * y as bv32) as uint32WithMethods
+  }
+  function div_overflow(y: uint32WithMethods): uint32WithMethods
+    requires y != 0
+  {
+    (this as bv32 / y as bv32) as uint32WithMethods
   }
 }
 
@@ -69,9 +79,33 @@ method Main(){
   var two := uint32WithMethods.ctor(2);
   var almost_overflow := 0xFFFFFFFF as uint32WithMethods;
   var almost_overflow2 := 0xFFFFFFFE as uint32WithMethods;
+  
+  // Non erased bounded newtype  <--> non erased unbounded newtype
+  var two_int := two as IntWrapper;
+  var two_back := two_int as uint32WithMethods;
+  expect two == two_back;
+  
+  // Non erased bounded newtype forced  <--> non erased unbounded newtype
+  var two_noterased := two as uint32_noterased;
+  var two_noterased_int := two_noterased as IntWrapper;
+  var two_noterased_int_back := two_noterased_int as uint32_noterased;
+  expect two_noterased == two_noterased_int_back;
+  
+  // erased bounded newtype <--> non erased unbounded newtype
+  var two_uint32 := two as uint32;
+  var two_uint32_int := two_uint32 as IntWrapper;
+  var two_uint32_int_back := two_uint32_int as uint32;
+  expect two_uint32 == two_uint32_int_back;
+
+  // erased bounded newtype <--> erased unbounded newtype
+  var two_uint32_another_int := two_uint32 as another_int;
+  var two_uint32_another_int_back := two_uint32_another_int as uint32;
+  expect two_uint32 == two_uint32_another_int_back;
+  
   expect two == three.plus_overflow(almost_overflow);
   expect almost_overflow == two.minus_overflow(three);
   expect six == three.times_overflow(two);
+  expect 0 as uint32WithMethods == two.div_overflow(three);
   expect almost_overflow2 == almost_overflow.times_overflow(two);
   expect (3 as IntWrapper).DoublePlus(1 as IntWrapper) == 7 as IntWrapper;
 }
