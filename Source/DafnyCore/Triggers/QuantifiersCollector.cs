@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.Triggers {
 
       if (expr is OldExpr oldExpr) {
         enclosingOldContext = oldExpr;
-      } else if (enclosingOldContext != null) { // FIXME be more restrctive on the type of stuff that we annotate
+      } else if (enclosingOldContext != null) { // FIXME be more restrictive on the type of stuff that we annotate
         // Add the association (expr, oldContext) to exprsInOldContext. However, due to chaining expressions,
         // expr may already be a key in exprsInOldContext.
         if (exprsInOldContext.TryGetValue(expr, out var prevValue)) {
