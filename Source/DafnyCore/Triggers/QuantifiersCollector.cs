@@ -1,12 +1,13 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
+using Microsoft.Boogie;
+using Action = System.Action;
 
 namespace Microsoft.Dafny.Triggers {
   internal class QuantifierCollector : TopDownVisitor<OldExpr/*?*/> {
@@ -79,7 +80,35 @@ namespace Microsoft.Dafny.Triggers {
         foreach (var expr in effectiveEnsuresClauses) {
           VisitOneExpr(expr, ref st);
         }
+      } else if (stmt is AssignSuchThatStmt { AssumeToken: null } assignSuchThatStmt) {
+        // Create a corresponding exists quantifier. Annoyingly, an ExistsExpr uses BoundVar's whereas the variables
+        // in the AssignSuchThatStmt are IVariable's, so we have to do a substitution back and forth.
+        var substLocalToBoundVar = new Dictionary<IVariable, Expression>();
+        var substBoundVarToLocal = new Dictionary<IVariable, Expression>();
+        var boundVars = new List<BoundVar>();
+        foreach (var localIdentifierExpr in assignSuchThatStmt.GetAssignedLocals()) {
+          var local = localIdentifierExpr.Var;
+          var boundVar = new BoundVar(local.Tok, local.Name, local.Type);
+          var boundVarIdentifierExpr = new IdentifierExpr(boundVar.tok, boundVar);
+          boundVars.Add(boundVar);
+          substLocalToBoundVar.Add(local, boundVarIdentifierExpr);
+          substBoundVarToLocal.Add(boundVar, localIdentifierExpr);
+        }
+
+        var substituterTo = new Substituter(null, substLocalToBoundVar, new Dictionary<TypeParameter, Type>());
+        var existsExpr = new ExistsExpr(assignSuchThatStmt.tok, assignSuchThatStmt.RangeToken, boundVars, null,
+          substituterTo.Substitute(assignSuchThatStmt.Expr),
+          substituterTo.SubstAttributes(assignSuchThatStmt.Attributes));
+
+        ActionsOnSelectedTriggers.Add(() => {
+          var substituteFrom = new Substituter(null, substBoundVarToLocal, new Dictionary<TypeParameter, Type>());
+          var updatedAttributes = substituteFrom.SubstAttributes(existsExpr.Attributes);
+          assignSuchThatStmt.Attributes = updatedAttributes;
+        });
+
+        VisitOneExpr(existsExpr, ref st);
       }
+
       return true;
     }
   }
