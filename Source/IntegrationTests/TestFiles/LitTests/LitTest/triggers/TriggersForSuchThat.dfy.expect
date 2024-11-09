@@ -1,26 +1,23 @@
-TriggersForSuchThat.dfy(12,11): Info: Selected triggers: {Q(w)}
-TriggersForSuchThat.dfy(14,11): Info: Selected triggers: {Q(y)}
-TriggersForSuchThat.dfy(16,10): Info: Selected triggers: {Q(z)}
-TriggersForSuchThat.dfy(23,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-TriggersForSuchThat.dfy(25,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-TriggersForSuchThat.dfy(27,10): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-TriggersForSuchThat.dfy(34,11): Info: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-TriggersForSuchThat.dfy(36,11): Info: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-TriggersForSuchThat.dfy(38,20): Info: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-TriggersForSuchThat.dfy(23,11): Error: assertion might not hold
-TriggersForSuchThat.dfy(25,11): Error: assertion might not hold
-TriggersForSuchThat.dfy(25,11): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-TriggersForSuchThat.dfy(27,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-TriggersForSuchThat.dfy(34,11): Error: assertion might not hold
-TriggersForSuchThat.dfy(36,11): Error: assertion might not hold
-TriggersForSuchThat.dfy(36,11): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-TriggersForSuchThat.dfy(38,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-TriggersForSuchThat.dfy(62,11): Error: assertion might not hold
-TriggersForSuchThat.dfy(64,11): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-TriggersForSuchThat.dfy(66,26): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-TriggersForSuchThat.dfy(73,11): Error: assertion might not hold
-TriggersForSuchThat.dfy(75,11): Error: assertion might not hold
-TriggersForSuchThat.dfy(75,11): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-TriggersForSuchThat.dfy(77,21): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+TriggersForSuchThat.dfy(13,13): Info: Selected triggers: {Q(w)}
+TriggersForSuchThat.dfy(15,13): Info: Selected triggers: {Q(y)}
+TriggersForSuchThat.dfy(17,12): Info: Selected triggers: {Q(z)}
+TriggersForSuchThat.dfy(24,13): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TriggersForSuchThat.dfy(26,13): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TriggersForSuchThat.dfy(28,12): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TriggersForSuchThat.dfy(35,13): Info: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TriggersForSuchThat.dfy(37,13): Info: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TriggersForSuchThat.dfy(39,22): Info: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TriggersForSuchThat.dfy(24,13): Error: assertion might not hold
+TriggersForSuchThat.dfy(26,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+TriggersForSuchThat.dfy(28,12): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+TriggersForSuchThat.dfy(35,13): Error: assertion might not hold
+TriggersForSuchThat.dfy(37,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+TriggersForSuchThat.dfy(39,22): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+TriggersForSuchThat.dfy(63,13): Error: assertion might not hold
+TriggersForSuchThat.dfy(65,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+TriggersForSuchThat.dfy(67,28): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+TriggersForSuchThat.dfy(74,13): Error: assertion might not hold
+TriggersForSuchThat.dfy(76,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+TriggersForSuchThat.dfy(78,23): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 
-Dafny program verifier finished with 3 verified, 15 errors
+Dafny program verifier finished with 3 verified, 12 errors
