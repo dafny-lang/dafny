@@ -65,12 +65,9 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     protected override bool VisitOneStmt(Statement stmt, ref OldExpr/*?*/ st) {
-      if (stmt is ForallStmt) {
-        ForallStmt s = (ForallStmt)stmt;
-        if (s.EffectiveEnsuresClauses != null) {
-          foreach (Expression expr in s.EffectiveEnsuresClauses) {
-            VisitOneExpr(expr, ref st);
-          }
+      if (stmt is ForallStmt { EffectiveEnsuresClauses: { } effectiveEnsuresClauses }) {
+        foreach (var expr in effectiveEnsuresClauses) {
+          VisitOneExpr(expr, ref st);
         }
       }
       return true;
