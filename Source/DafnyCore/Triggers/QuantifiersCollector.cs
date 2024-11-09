@@ -15,20 +15,30 @@ namespace Microsoft.Dafny.Triggers {
     internal readonly Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext = new Dictionary<Expression, HashSet<OldExpr>>();
     internal readonly List<ComprehensionTriggerGenerator> quantifierCollections = new List<ComprehensionTriggerGenerator>();
 
+    private readonly List<Action> ActionsOnSelectedTriggers = new();
+
     public QuantifierCollector(ErrorReporter reporter) {
       Contract.Requires(reporter != null);
       this.reporter = reporter;
     }
 
+    public void ApplyPostActions() {
+      foreach (var action in ActionsOnSelectedTriggers) {
+        action();
+      }
+    }
+
     protected override bool VisitOneExpr(Expression expr, ref OldExpr/*?*/ enclosingOldContext) {
-      if (expr is LetExpr { Exact: false, SuchThatExists: null } letExpr) {
+      if (expr is LetExpr { Exact: false } letExpr) {
         // create a corresponding exists quantifier
         Contract.Assert(letExpr.RHSs.Count == 1); // let-such-that expressions have exactly 1 RHS
         // Note, trigger selection adds some attributes. These will remain in the following exists expression. So, Boogie translation needs
         // to look at letExpr.SuchThatExists.Attributes (not letExpr.Attributes) to find them.
-        letExpr.SuchThatExists =
-          new ExistsExpr(letExpr.tok, letExpr.RangeToken, letExpr.BoundVars.ToList(), null, letExpr.RHSs[0], letExpr.Attributes);
-        expr = letExpr.SuchThatExists;
+        var existsExpr = new ExistsExpr(letExpr.tok, letExpr.RangeToken, letExpr.BoundVars.ToList(), null, letExpr.RHSs[0], letExpr.Attributes);
+        ActionsOnSelectedTriggers.Add(() => {
+          letExpr.Attributes = existsExpr.Attributes;
+        });
+        expr = existsExpr;
       }
 
       // only consider quantifiers that are not empty (Bound.Vars.Count > 0)
