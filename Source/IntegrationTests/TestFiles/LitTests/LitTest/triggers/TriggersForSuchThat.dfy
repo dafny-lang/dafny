@@ -88,4 +88,53 @@ module SuchThat {
   }
 }
 
+module GuardedIf {
+  predicate Q(x: int)
+  function F(x: int): int
+
+  ghost method Test(x: int) returns (b: bool)
+    ensures b ==> !Q(x)
+  {
+    b := true;
+    if w :| Q(w) { // trigger: Q(w)
+      b := false;
+    }
+  }
+
+  ghost method NothingToTriggerOn() {
+    if w :| Q(w + 1) { // warning: no trigger
+    }
+  }
+
+  ghost method NoWarn() {
+    if w {:nowarn} :| Q(w + 1) { // info: no trigger
+    }
+  }
+
+  ghost method ManualTriggerThatWorks(x: int) returns (b: bool)
+    ensures b && F(x) == 20 ==> !Q(x)
+  {
+    b := true;
+    if w {:trigger F(w)} :| Q(w) {
+      b := false;
+    }
+  }
+
+  ghost method ManualTriggerThatDoesNotWork(x: int) returns (b: bool)
+    ensures b && F(x) == 20 ==> !Q(x)
+  { // error: cannot prove postcondition
+    b := true;
+    if w {:trigger F(w)} :| Q(w + 1) {
+      b := false;
+    }
+  }
+
+  ghost method ManualExplicitNoTrigger(x: int) returns (b: bool)
+    ensures b && F(x) == 20 ==> !Q(x)
+  { // error: cannot prove postcondition
+    b := true;
+    if w {:trigger} :| Q(w + 1) {
+      b := false;
+    }
+  }
 }
