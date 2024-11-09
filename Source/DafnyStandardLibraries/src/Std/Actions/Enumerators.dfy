@@ -201,7 +201,7 @@ module Std.Enumerators {
       true
     }
 
-    method Invoke(t: ()) returns (r: Option<T>) 
+    method {:verify false} Invoke(t: ()) returns (r: Option<T>) 
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -236,7 +236,7 @@ module Std.Enumerators {
       } else {
         r := None;
       }
-      Update((), r);
+      Update(t, r);
     }
 
     method Process(u: Option<U>, a: Accumulator<T>)

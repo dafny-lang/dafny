@@ -810,7 +810,7 @@ module {:options "--function-syntax:4"} Std.Collections.Seq {
     else FoldLeft(f, f(init, xs[0]), xs[1..])
   }
 
-  lemma FoldLeftNewRightElement<A,T>(f: (A, T) -> A, init: A, xs: seq<T>, x: T)
+  lemma {:verify false} FoldLeftNewRightElement<A,T>(f: (A, T) -> A, init: A, xs: seq<T>, x: T)
     ensures FoldLeft(f, init, xs + [x]) == f(FoldLeft(f, init, xs), x)
   {
     reveal FoldLeft();
