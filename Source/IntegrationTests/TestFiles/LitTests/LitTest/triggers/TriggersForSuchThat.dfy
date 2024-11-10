@@ -138,3 +138,63 @@ module GuardedIf {
     }
   }
 }
+
+module GuardedIfCase {
+  predicate Q(x: int)
+  function F(x: int): int
+
+  ghost method Test(x: int) returns (b: bool)
+    ensures b ==> !Q(x)
+  {
+    if
+    case !Q(x) =>
+      b := true;
+    case w :| Q(w) => // trigger: Q(w)
+      b := false;
+  }
+
+  ghost method NothingToTriggerOn(x: int) {
+    if // error: cannot prove cases are exhaustive
+    case !Q(x) =>
+    case w :| Q(w + 1) => // warning: no trigger
+  }
+
+  ghost method NoWarn(x: int) {
+    if // error: cannot prove cases are exhaustive
+    case !Q(x) =>
+    case w {:nowarn} :| Q(w + 1) => // info: no trigger
+  }
+
+  ghost method ManualTriggerThatWorks(x: int) returns (b: bool)
+    requires F(x) == 20
+    ensures b ==> !Q(x)
+  {
+    if
+    case !Q(x) =>
+      b := *;
+    case w {:trigger F(w)} :| Q(w) =>
+      b := false;
+  }
+
+  ghost method ManualTriggerThatDoesNotWork(x: int) returns (b: bool)
+    requires F(x) == 20
+    ensures b ==> !Q(x)
+  {
+    if // error: cannot prove cases are exhaustive
+    case !Q(x) =>
+      b := *;
+    case w {:trigger F(w)} :| Q(w + 1) =>
+      b := false;
+  }
+
+  ghost method ManualExplicitNoTrigger(x: int) returns (b: bool)
+    requires F(x) == 20
+    ensures b ==> !Q(x)
+  {
+    if // error: cannot prove cases are exhaustive
+    case !Q(x) =>
+      b := *;
+    case w {:trigger} :| Q(w + 1) =>
+      b := false;
+  }
+}

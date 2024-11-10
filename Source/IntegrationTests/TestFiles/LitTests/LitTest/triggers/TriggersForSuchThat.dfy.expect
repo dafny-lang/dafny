@@ -10,6 +10,9 @@ TriggersForSuchThat.dfy(39,22): Info: Could not find a trigger for this quantifi
 TriggersForSuchThat.dfy(99,7): Info: Selected triggers: {Q(w)}
 TriggersForSuchThat.dfy(105,7): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 TriggersForSuchThat.dfy(110,7): Info: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TriggersForSuchThat.dfy(152,9): Info: Selected triggers: {Q(w)}
+TriggersForSuchThat.dfy(159,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TriggersForSuchThat.dfy(165,9): Info: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 TriggersForSuchThat.dfy(24,13): Error: assertion might not hold
 TriggersForSuchThat.dfy(26,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 TriggersForSuchThat.dfy(28,12): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
@@ -26,5 +29,9 @@ TriggersForSuchThat.dfy(125,2): Error: a postcondition could not be proved on th
 TriggersForSuchThat.dfy(124,32): Related location: this is the postcondition that could not be proved
 TriggersForSuchThat.dfy(134,2): Error: a postcondition could not be proved on this return path
 TriggersForSuchThat.dfy(133,32): Related location: this is the postcondition that could not be proved
+TriggersForSuchThat.dfy(157,4): Error: alternative cases fail to cover all possibilities
+TriggersForSuchThat.dfy(163,4): Error: alternative cases fail to cover all possibilities
+TriggersForSuchThat.dfy(183,4): Error: alternative cases fail to cover all possibilities
+TriggersForSuchThat.dfy(194,4): Error: alternative cases fail to cover all possibilities
 
-Dafny program verifier finished with 5 verified, 14 errors
+Dafny program verifier finished with 7 verified, 18 errors
