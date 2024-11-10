@@ -40,8 +40,8 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
     Contract.Requires(this != null);
     Contract.Requires(prefix != null);
 
-    if (SplitQuantifier != null) {
-      // TODO: what to do?  Substitute(exists.SplitQuantifierExpression);
+    if (SplitQuantifierExpression is ExistsExpr splitQuantifierExpression) {
+      return splitQuantifierExpression.AlphaRename(prefix);
     }
 
     var substMap = new Dictionary<IVariable, Expression>();
