@@ -392,7 +392,7 @@ module MultisetTests {
     if n == 0 then 0 else F'(a, n-1)
   }
 
-  ghost method M(n: nat, b: multiset<int>)
+  lemma M(n: nat, b: multiset<int>)
     ensures F(b, n) == 0  // proved via automatic induction
   {
   }
@@ -410,7 +410,7 @@ module MapTests {
     if n == 0 then 0 else F'(a, n-1)
   }
 
-  ghost method M(n: nat, b: map<int,int>)
+  lemma M(n: nat, b: map<int,int>)
     ensures F(b, n) == 0  // proved via automatic induction
   {
   }

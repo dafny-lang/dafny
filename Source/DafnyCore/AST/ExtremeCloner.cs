@@ -17,7 +17,7 @@ abstract class ExtremeCloner : Cloner {
     Contract.Requires(reporter != null);
     this.k = k;
     this.reporter = reporter;
-    this.suffix = string.Format("#[{0}]", Printer.ExprToString(reporter.Options, k));
+    this.suffix = $"#[{Printer.ExprToString(reporter.Options, k)}]";
   }
   protected Expression CloneCallAndAddK(ApplySuffix e) {
     Contract.Requires(e != null);
@@ -62,5 +62,17 @@ abstract class ExtremeCloner : Cloner {
     var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
     reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
     return fexp;
+  }
+
+  protected Expression CloneEqualityAndAddK(BinaryExpr binaryExpr) {
+    if (this.CloneResolvedFields) {
+      throw new NotImplementedException();
+    }
+
+    var eq = new TernaryExpr(Tok(binaryExpr.tok),
+      binaryExpr.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp,
+      k, CloneExpr(binaryExpr.E0), CloneExpr(binaryExpr.E1));
+    reporter.Info(MessageSource.Cloner, binaryExpr.tok, "==" + suffix);
+    return eq;
   }
 }

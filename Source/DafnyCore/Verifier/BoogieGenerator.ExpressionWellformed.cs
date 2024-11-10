@@ -1483,7 +1483,9 @@ namespace Microsoft.Dafny {
     void CheckWellformedLetExprWithResult(LetExpr e, WFOptions wfOptions, Variables locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran, bool checkRhs, AddResultCommands addResultCommands) {
       if (e.Exact) {
-        var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), builder, locals, etran, "#Z");
+        // Note, in the following line, we do NOT add an assumption about the type antecedent, because we don't yet know that a value even
+        // exists; rather, we ignore the type antecedent.
+        var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), out _, builder, locals, etran, "#Z");
         Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
         var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
         for (int i = 0; i < e.LHSs.Count; i++) {

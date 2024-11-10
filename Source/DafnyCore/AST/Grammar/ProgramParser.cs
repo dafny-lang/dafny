@@ -281,11 +281,6 @@ public class ProgramParser {
     Parser parser = SetupParser(content, uri, batchErrorReporter, cancellationToken);
     parser.Parse();
 
-    if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
-        && (parser.theModule.PrefixNamedModules == null || parser.theModule.PrefixNamedModules.Count == 0)) {
-      batchErrorReporter.Warning(MessageSource.Parser, ErrorId.p_file_has_no_code, new Token(1, 1) { Uri = uri }, "File contains no code");
-    }
-
     return new DfyParseResult(batchErrorReporter, parser.theModule, parser.SystemModuleModifiers);
   }
 
