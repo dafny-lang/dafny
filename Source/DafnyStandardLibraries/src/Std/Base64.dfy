@@ -391,7 +391,7 @@ module Std.Base64 {
     }
   }
 
-  lemma DecodeEncodeRecursively(s: seq<index>)
+  lemma {:isolate_assertions} DecodeEncodeRecursively(s: seq<index>)
     requires |s| % 4 == 0
     ensures (DecodeRecursivelyBounds(s); EncodeRecursively(DecodeRecursively(s)) == s)
   {
