@@ -547,7 +547,9 @@ namespace Dafny {
       return s + "}";
     }
     public static bool IsProperSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
-      return th.Count < other.Count && IsSubsetOf(th, other);
+      // Be sure to use ElementCount to avoid casting into 32 bits
+      // integers that could lead to overflows (see https://github.com/dafny-lang/dafny/issues/5554)
+      return th.ElementCount < other.ElementCount && IsSubsetOf(th, other);
     }
     public static bool IsSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
       var a = FromIMultiSet(th);
