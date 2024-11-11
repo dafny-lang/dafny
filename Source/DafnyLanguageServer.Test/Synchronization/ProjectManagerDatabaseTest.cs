@@ -42,6 +42,9 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     var fine = await GetLastDiagnostics(project);
     ApplyChange(ref file2, new Range(0, 0, 0, 0), @"syntaxError");
     var error = await GetLastDiagnostics(file2);
+    if (error.Length > 0) {
+      await output.WriteLineAsync(error[0].ToString());
+    }
     Assert.NotEmpty(error);
   }
 
