@@ -429,4 +429,14 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
 
     return true;
   }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = true;
+    foreach (var hint in Hints) {
+      hint.ResolveGhostness(resolver, reporter, true, codeContext, "a hint", allowAssumptionVariables,
+        inConstructorInitializationPhase);
+    }
+  }
 }

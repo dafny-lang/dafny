@@ -2038,8 +2038,8 @@ namespace Microsoft.Dafny {
     public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      var visitor = new GhostInterestVisitor(codeContext, this, reporter, false, codeContext is Method);
-      visitor.Visit(stmt, mustBeErasable, proofContext);
+      stmt.ResolveGhostness(this, Reporter, mustBeErasable, codeContext, proofContext,
+        codeContext is Method, false);
     }
 
     class ReportOtherAdditionalInformation_Visitor : ResolverBottomUpVisitor {
