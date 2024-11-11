@@ -1960,7 +1960,7 @@ namespace Microsoft.Dafny.Compilers {
             objExpr,
             Sequence<Rune>.UnicodeFromString(compileName),
             FieldMutabilityOf(member),
-            member.EnclosingClass is DatatypeDecl, GenType(expectedType)
+            member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
@@ -2005,7 +2005,7 @@ namespace Microsoft.Dafny.Compilers {
           objExpr,
           Sequence<Rune>.UnicodeFromString(compiledName),
           FieldMutabilityOf(member),
-          member.EnclosingClass is DatatypeDecl, GenType(expectedType)
+          member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
         ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
           objExpr,
           Sequence<Rune>.UnicodeFromString(compiledName),
@@ -2038,7 +2038,7 @@ namespace Microsoft.Dafny.Compilers {
             objExpr,
             Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
             FieldMutabilityOf(member, isInternal: true),
-            member.EnclosingClass is DatatypeDecl, GenType(expectedType)
+            member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
@@ -2049,7 +2049,7 @@ namespace Microsoft.Dafny.Compilers {
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
             FieldMutabilityOf(member),
-            member.EnclosingClass is DatatypeDecl, GenType(expectedType)
+            member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),

@@ -2327,7 +2327,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var Convert(expr, fromTpe, toTpe) := e;
       var UserDefined(ResolvedType(path, typeArgs, Newtype(b, range, erase), _, _, _)) := toTpe;
       var nativeToType := NewtypeRangeToRustType(range);
-      if fromTpe == b {
+      // To convert to a newtype
+      // 1. If the origin is a newtype, we unwrap it completely by converting it to its underlying type
+      // 2. Now we have a base type, either unbounded with a 1-1 correspondance to Rust, or bounded (DafnyInt)
+      // 3. We wrap accordingly the result
+      if fromTpe == b && nativeToType.None? { // Int 
         var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
         readIdents := recIdents;
         r := recursiveGen;
@@ -2356,6 +2360,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               }
               if nativeFromType.Some? {
                 r := R.TypeAscription(r, nativeToType.value);
+              }
+              match nativeToType {
+                case Some(v) =>
+                  r := R.dafny_runtime.MSel("truncate!").AsExpr().Apply([r, R.ExprFromType(v)]);
+                case None =>
               }
               if !erase {
                 var fullPath := GenPathExpr(path);

@@ -3482,12 +3482,23 @@ namespace DCOMP {
                   if ((_22_nativeFromType).is_Some) {
                     r = RAST.Expr.create_TypeAscription(r, (_11_nativeToType).dtor_value);
                   }
+                  Std.Wrappers._IOption<RAST._IType> _source2 = _11_nativeToType;
+                  {
+                    if (_source2.is_Some) {
+                      RAST._IType _26_v = _source2.dtor_value;
+                      r = (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("truncate!"))).AsExpr()).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(r, RAST.Expr.create_ExprFromType(_26_v)));
+                      goto after_match2;
+                    }
+                  }
+                  {
+                  }
+                after_match2: ;
                   if (!(_7_erase)) {
-                    RAST._IExpr _26_fullPath;
+                    RAST._IExpr _27_fullPath;
                     RAST._IExpr _out9;
                     _out9 = (this).GenPathExpr(_3_path, true);
-                    _26_fullPath = _out9;
-                    r = (_26_fullPath).Apply1(r);
+                    _27_fullPath = _out9;
+                    r = (_27_fullPath).Apply1(r);
                   }
                   RAST._IExpr _out10;
                   Defs._IOwnership _out11;
@@ -3505,22 +3516,22 @@ namespace DCOMP {
           }
         after_match1: ;
           if (object.Equals(_1_fromTpe, DAST.Type.create_Primitive(DAST.Primitive.create_Char()))) {
-            RAST._IExpr _27_recursiveGen;
-            Defs._IOwnership _28_recOwned;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _29_recIdents;
+            RAST._IExpr _28_recursiveGen;
+            Defs._IOwnership _29_recOwned;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _30_recIdents;
             RAST._IExpr _out12;
             Defs._IOwnership _out13;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out14;
             (this).GenExpr(_0_expr, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out12, out _out13, out _out14);
-            _27_recursiveGen = _out12;
-            _28_recOwned = _out13;
-            _29_recIdents = _out14;
+            _28_recursiveGen = _out12;
+            _29_recOwned = _out13;
+            _30_recIdents = _out14;
             RAST._IExpr _out15;
             Defs._IOwnership _out16;
-            (this).FromOwnership(RAST.Expr.create_TypeAscription((_27_recursiveGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("0")), (_11_nativeToType).dtor_value), _28_recOwned, expectedOwnership, out _out15, out _out16);
+            (this).FromOwnership(RAST.Expr.create_TypeAscription((_28_recursiveGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("0")), (_11_nativeToType).dtor_value), _29_recOwned, expectedOwnership, out _out15, out _out16);
             r = _out15;
             resultingOwnership = _out16;
-            readIdents = _29_recIdents;
+            readIdents = _30_recIdents;
             return ;
           }
         }

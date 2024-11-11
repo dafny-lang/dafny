@@ -144,13 +144,14 @@ module {:extern "DAST"} DAST {
     | I128(overflow: bool)
     | USIZE  // For whatever target considers that native arrays can be indexed with
     | BigInt
+    | Bool
     | NoRange
   {
     predicate canOverflow() {
       (U8? || I8? || U16? || I16? || U32? || I32? || U64? || I64? || U128? || I128?) && overflow
     }
     predicate HasArithmeticOperations() {
-      true // To change when newtypes will have sequences and sets as ranges.
+      !Bool? && !NoRange? // To change when newtypes will have sequences and sets as ranges.
     }
   }
 
