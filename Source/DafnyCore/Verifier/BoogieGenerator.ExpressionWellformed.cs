@@ -11,6 +11,7 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using DafnyCore.Verifier;
+using DafnyCore.Verifier.Statements;
 using Bpl = Microsoft.Boogie;
 using Microsoft.Boogie;
 using Std.Wrappers;
@@ -264,13 +265,12 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Adds to "builder" code that checks the well-formedness of "expr".  Any local variables introduced
     /// in this code are added to "locals".
-    /// If "result" is non-null, then after checking the well-formedness of "expr", the generated code will
-    /// assume the equivalent of "result == expr".
     /// See class WFOptions for descriptions of the specified options.
     /// </summary>
     public void CheckWellformedWithResult(Expression expr, WFOptions wfOptions,
       Variables locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
       AddResultCommands addResultCommands) {
+
       var origOptions = wfOptions;
       if (wfOptions.LValueContext) {
         // Turn off LValueContext for any recursive call
@@ -1320,7 +1320,7 @@ namespace Microsoft.Dafny {
             break;
           }
         case MatchExpr matchExpr:
-          MatchStatementVerifier.TrMatchExpr(this, matchExpr, wfOptions, locals, builder, etran, addResultCommands);
+          MatchStmtVerifier.TrMatchExpr(this, matchExpr, wfOptions, locals, builder, etran, addResultCommands);
           addResultCommands = null;
           break;
         case DatatypeUpdateExpr updateExpr: {
@@ -1489,7 +1489,9 @@ namespace Microsoft.Dafny {
     void CheckWellformedLetExprWithResult(LetExpr e, WFOptions wfOptions, Variables locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran, bool checkRhs, AddResultCommands addResultCommands) {
       if (e.Exact) {
-        var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), builder, locals, etran, "#Z");
+        // Note, in the following line, we do NOT add an assumption about the type antecedent, because we don't yet know that a value even
+        // exists; rather, we ignore the type antecedent.
+        var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), out _, builder, locals, etran, "#Z");
         Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
         var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
         for (int i = 0; i < e.LHSs.Count; i++) {

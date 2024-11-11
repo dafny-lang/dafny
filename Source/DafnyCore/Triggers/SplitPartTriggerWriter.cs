@@ -152,12 +152,7 @@ class SplitPartTriggerWriter {
     }
 
     if (!NeedsAutoTriggers()) {
-      var triggerAttribute = Attributes.Find(Comprehension.Attributes, "trigger");
-      if (triggerAttribute != null && triggerAttribute.Args.Count == 0) {
-        // Remove an empty trigger attribute, so it does not crash Boogie,
-        // and effectively becomes a way to silence a Dafny warning
-        triggerAttribute.Name = "deleted-trigger";
-      }
+      DisableEmptyTriggers(Comprehension.Attributes, "trigger");
       return;
     }
 
@@ -189,14 +184,24 @@ class SplitPartTriggerWriter {
 
     if (!CandidateTerms.Any() || !Candidates.Any()) {
       errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
-        $"Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. " +
+        "Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
-        $"For more information, see the section quantifier instantiation rules in the reference manual.");
+        "For more information, see the section quantifier instantiation rules in the reference manual.");
     } else if (!CouldSuppressLoops && !AllowsLoops) {
       errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
-        $"Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. " +
+        "Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
-        $"For more information, see the section quantifier instantiation rules in the reference manual.");
+        "For more information, see the section quantifier instantiation rules in the reference manual.");
+    }
+  }
+
+  public static void DisableEmptyTriggers(Attributes attribs, String attrName) {
+    foreach (var attr in attribs.AsEnumerable()) {
+      if (attr.Name == attrName && attr.Args.Count == 0) {
+        // Remove an empty trigger attribute, so it does not crash Boogie,
+        // and effectively becomes a way to silence a Dafny warning
+        attr.Name = $"deleted-{attrName}";
+      }
     }
   }
 

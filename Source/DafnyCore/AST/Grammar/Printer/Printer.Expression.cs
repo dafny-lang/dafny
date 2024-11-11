@@ -20,7 +20,6 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
 
   public partial class Printer {
-
     /// <summary>
     /// PrintExtendedExpr prints an expression, but formats top-level if-then-else and match expressions across several lines.
     /// Its intended use is thus to print the body of a function.
@@ -208,9 +207,42 @@ namespace Microsoft.Dafny {
       PrintExpr(expr, 0, false, true, isFollowedBySemicolon, -1, keyword);
     }
 
+    private const int BindingGroup = 0xF0;
+
+    private const int BindingStrengthDecreasesTo = 0x10; // decreases to, nonincreases to
+
+    private const int BindingStrengthEquiv = 0x20; // <==>
+
+    private const int BindingStrengthImplies = 0x30; // ==>
+    private const int BindingStrengthExplies = 0x31; // <==
+
+    private const int BindingStrengthAnd = 0x40; // &&
+    private const int BindingStrengthOr = 0x41; // ||
+
+    private const int BindingStrengthCompare = 0x50; // == != ==#[...] !=#[...] < <= >= >
+
+    private const int BindingStrengthAdd = 0x60; // + -
+
+    private const int BindingStrengthShift = 0x70; // << >>
+
+    private const int BindingStrengthMul = 0x80; // * / %
+
+    private const int BindingStrengthBitwiseAnd = 0x90; // &
+    private const int BindingStrengthBitwiseOr = 0x91; // |
+    private const int BindingStrengthBitwiseXor = 0x92; // ^
+
+    private const int BindingStrengthUnarySuffix = 0xA0; // as is
+
+    private const int BindingStrengthUnaryPrefix = 0xB0; // ! -
+
+    private const int BindingStrengthSuffix = 0xC0; // X.name X.(name := ...) X(...) X[...]
+
     private bool ParensNeeded(int opBindingStrength, int contextBindingStrength, bool fragileContext) {
-      return opBindingStrength < contextBindingStrength ||
-             (fragileContext && opBindingStrength == contextBindingStrength);
+      int opGroupStrength = opBindingStrength & BindingGroup;
+      int contextGroupStrength = contextBindingStrength & BindingGroup;
+      var parensNeeded = opGroupStrength < contextGroupStrength ||
+                         (opGroupStrength == contextGroupStrength && (opBindingStrength != contextBindingStrength || fragileContext));
+      return parensNeeded;
     }
 
 
@@ -530,7 +562,7 @@ namespace Microsoft.Dafny {
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
         // determine if parens are needed
-        int opBindingStrength = 0x90;
+        int opBindingStrength = BindingStrengthSuffix;
         bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
         Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
@@ -556,7 +588,7 @@ namespace Microsoft.Dafny {
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix)expr;
         // determine if parens are needed
-        int opBindingStrength = 0x90;
+        int opBindingStrength = BindingStrengthSuffix;
         bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
         Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
@@ -575,9 +607,8 @@ namespace Microsoft.Dafny {
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
         // determine if parens are needed
-        int opBindingStrength = 0x90;
-        bool parensNeeded = !e.Obj.IsImplicit &&
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        int opBindingStrength = BindingStrengthSuffix;
+        bool parensNeeded = !e.Obj.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
         if (!(e.Obj.IsImplicit)) {
@@ -590,7 +621,7 @@ namespace Microsoft.Dafny {
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         // determine if parens are needed
-        int opBindingStrength = 0x90;
+        int opBindingStrength = BindingStrengthSuffix;
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
@@ -614,7 +645,7 @@ namespace Microsoft.Dafny {
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
         // determine if parens are needed
-        int opBindingStrength = 0x90;
+        int opBindingStrength = BindingStrengthSuffix;
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
@@ -632,7 +663,7 @@ namespace Microsoft.Dafny {
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         // determine if parens are needed
-        int opBindingStrength = 0x90;
+        int opBindingStrength = BindingStrengthSuffix;
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
@@ -646,7 +677,7 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeUpdateExpr) {
         var e = (DatatypeUpdateExpr)expr;
         // determine if parens are needed
-        int opBindingStrength = 0x90;
+        int opBindingStrength = BindingStrengthSuffix;
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
@@ -671,7 +702,7 @@ namespace Microsoft.Dafny {
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
         // determine if parens are needed
-        int opBindingStrength = 0x90;
+        int opBindingStrength = BindingStrengthSuffix;
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
@@ -686,9 +717,8 @@ namespace Microsoft.Dafny {
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         // determine if parens are needed
-        int opBindingStrength = 0x90;
-        bool parensNeeded = !(e.Receiver.IsImplicit) &&
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        int opBindingStrength = BindingStrengthSuffix;
+        bool parensNeeded = !e.Receiver.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
         if (!e.Receiver.IsImplicit) {
@@ -779,7 +809,7 @@ namespace Microsoft.Dafny {
           int opBindingStrength;
           switch (e.Op) {
             case UnaryOpExpr.Opcode.Not:
-              op = "!"; opBindingStrength = 0x80; break;
+              op = "!"; opBindingStrength = BindingStrengthUnaryPrefix; break;
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary opcode
           }
@@ -793,7 +823,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is TypeUnaryExpr) {
         var e = (TypeUnaryExpr)expr;
-        int opBindingStrength = 0x70;
+        int opBindingStrength = BindingStrengthUnarySuffix;
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
@@ -812,30 +842,30 @@ namespace Microsoft.Dafny {
         switch (e.Op) {
           case BinaryExpr.Opcode.LeftShift:
           case BinaryExpr.Opcode.RightShift:
-            opBindingStrength = 0x48; fragileRightContext = true; break;
+            opBindingStrength = BindingStrengthShift; fragileRightContext = true; break;
           case BinaryExpr.Opcode.Add: {
-              opBindingStrength = 0x40;
+              opBindingStrength = BindingStrengthAdd;
               var t1 = e.E1.Type;
               fragileRightContext = t1 == null || !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
               break;
             }
           case BinaryExpr.Opcode.Sub:
-            opBindingStrength = 0x40; fragileRightContext = true; break;
+            opBindingStrength = BindingStrengthAdd; fragileRightContext = true; break;
           case BinaryExpr.Opcode.Mul: {
-              opBindingStrength = 0x50;
+              opBindingStrength = BindingStrengthMul;
               var t1 = e.E1.Type;
               fragileRightContext = t1 == null || !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
               break;
             }
           case BinaryExpr.Opcode.Div:
           case BinaryExpr.Opcode.Mod:
-            opBindingStrength = 0x50; fragileRightContext = true; break;
+            opBindingStrength = BindingStrengthMul; fragileRightContext = true; break;
           case BinaryExpr.Opcode.BitwiseAnd:
-            opBindingStrength = 0x60; break;
+            opBindingStrength = BindingStrengthBitwiseAnd; break;
           case BinaryExpr.Opcode.BitwiseOr:
-            opBindingStrength = 0x61; break;
+            opBindingStrength = BindingStrengthBitwiseOr; break;
           case BinaryExpr.Opcode.BitwiseXor:
-            opBindingStrength = 0x62; break;
+            opBindingStrength = BindingStrengthBitwiseXor; break;
           case BinaryExpr.Opcode.Eq:
           case BinaryExpr.Opcode.Neq:
           case BinaryExpr.Opcode.Gt:
@@ -845,24 +875,21 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.Disjoint:
           case BinaryExpr.Opcode.In:
           case BinaryExpr.Opcode.NotIn:
-            opBindingStrength = 0x30; fragileLeftContext = fragileRightContext = true; break;
+            opBindingStrength = BindingStrengthCompare; fragileLeftContext = fragileRightContext = true; break;
           case BinaryExpr.Opcode.And:
-            opBindingStrength = 0x20; break;
+            opBindingStrength = BindingStrengthAnd; break;
           case BinaryExpr.Opcode.Or:
-            opBindingStrength = 0x21; break;
+            opBindingStrength = BindingStrengthOr; break;
           case BinaryExpr.Opcode.Imp:
-            opBindingStrength = 0x10; fragileLeftContext = true; break;
+            opBindingStrength = BindingStrengthImplies; fragileLeftContext = true; break;
           case BinaryExpr.Opcode.Exp:
-            opBindingStrength = 0x11; fragileRightContext = true; break;
+            opBindingStrength = BindingStrengthExplies; fragileRightContext = true; break;
           case BinaryExpr.Opcode.Iff:
-            opBindingStrength = 0x08; break;
+            opBindingStrength = BindingStrengthEquiv; break;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary operator
         }
-        int opBS = opBindingStrength & 0xF8;
-        int ctxtBS = contextBindingStrength & 0xF8;
-        bool parensNeeded = opBS < ctxtBS ||
-          (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
+        bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         string op = BinaryExpr.OpcodeString(e.Op);
         if (parensNeeded) { wr.Write("("); }
@@ -900,14 +927,10 @@ namespace Microsoft.Dafny {
         switch (e.Op) {
           case TernaryExpr.Opcode.PrefixEqOp:
           case TernaryExpr.Opcode.PrefixNeqOp:
-            var opBindingStrength = 0x30;
+            var opBindingStrength = BindingStrengthCompare;
             var fragileLeftContext = true;
             var fragileRightContext = true;
-
-            int opBS = opBindingStrength & 0xF8;
-            int ctxtBS = contextBindingStrength & 0xF8;
-            bool parensNeeded = opBS < ctxtBS ||
-              (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
+            bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
             if (parensNeeded) { wr.Write("("); }
             var sem = !parensNeeded && isFollowedBySemicolon;
@@ -926,11 +949,8 @@ namespace Microsoft.Dafny {
       } else if (expr is ChainingExpression) {
         var e = (ChainingExpression)expr;
         // determine if parens are needed
-        int opBindingStrength = 0x30;
-        int opBS = opBindingStrength & 0xF8;
-        int ctxtBS = contextBindingStrength & 0xF8;
-        bool parensNeeded = opBS < ctxtBS ||
-          (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
+        int opBindingStrength = BindingStrengthCompare;
+        bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
         var sem = !parensNeeded && isFollowedBySemicolon;
@@ -1132,7 +1152,7 @@ namespace Microsoft.Dafny {
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
         string op = "-";
-        int opBindingStrength = 0x80;
+        int opBindingStrength = BindingStrengthUnaryPrefix;
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
@@ -1198,12 +1218,20 @@ namespace Microsoft.Dafny {
       } else if (expr is Resolver_IdentifierExpr) {
         wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
       } else if (expr is DecreasesToExpr decreasesToExpr) {
+        var opBindingStrength = BindingStrengthDecreasesTo;
+        var parensNeeded =
+          opBindingStrength < contextBindingStrength ||
+          (opBindingStrength == contextBindingStrength && fragileContext) ||
+          decreasesToExpr.OldExpressions.Count != 1 || decreasesToExpr.NewExpressions.Count != 1; // always parenthesize non-simple expressions
+
+        if (parensNeeded) { wr.Write("("); }
+
         var comma = false;
         foreach (var oldExpr in decreasesToExpr.OldExpressions) {
           if (comma) {
             wr.Write(", ");
           }
-          PrintExpression(oldExpr, false);
+          PrintExpr(oldExpr, opBindingStrength, true, false, false, -1);
           comma = true;
         }
         if (decreasesToExpr.AllowNoChange) {
@@ -1216,9 +1244,12 @@ namespace Microsoft.Dafny {
           if (comma) {
             wr.Write(", ");
           }
-          PrintExpression(newExpr, false);
+          PrintExpr(newExpr, opBindingStrength, true, !parensNeeded && isRightmost, true, -1);
           comma = true;
         }
+
+        if (parensNeeded) { wr.Write(")"); }
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

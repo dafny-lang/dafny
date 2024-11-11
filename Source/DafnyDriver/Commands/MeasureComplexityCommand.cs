@@ -112,7 +112,7 @@ static class MeasureComplexityCommand {
     await output.WriteLineAsync($"The total consumed resources are {totalResources}");
     await output.WriteLineAsync($"The most demanding {worstAmount} verification tasks consumed these resources:");
     foreach (var performer in decreasingWorst) {
-      var location = ((IToken)performer.Task.Token).TokenToString(cliCompilation.Options);
+      var location = BoogieGenerator.ToDafnyToken(false, performer.Task.Token).TokenToString(cliCompilation.Options);
       await output.WriteLineAsync($"{location}: {performer.Result.ResourceCount}");
     }
   }

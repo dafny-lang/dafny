@@ -2,7 +2,8 @@ include "../Dafny/AST.dfy"
 
 /*This module does not contain any compiled code because it
   only proves properties about DCOMP. In a sense, it's a test file. */
-module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompilerProofs {
+@Compile(false)
+module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
   import opened DafnyToRustCompiler
   import opened DafnyToRustCompilerDefinitions
 
@@ -136,6 +137,7 @@ module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompile
       if i[0] == '_' {
         assert |i| >= 2 &&
                i[1] in "_qkh" && IsDafnyEncodedIdTail(i[2..]);
+        assert [i[0]] + replaceDots(i[1..]) == [i[0]] + [i[1]] + replaceDots(i[2..]);
         ReplaceDotsInvertible(i[2..]);
         assert ReverseReplaceDots(replaceDots(i)) == i;
       } else {

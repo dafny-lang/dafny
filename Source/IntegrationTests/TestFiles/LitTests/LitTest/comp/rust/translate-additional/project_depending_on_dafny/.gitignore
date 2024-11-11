@@ -1,2 +1,3 @@
 src/additional_module.rs
+src/more_dafny_extern.rs
 target/

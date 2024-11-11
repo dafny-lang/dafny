@@ -138,7 +138,7 @@ namespace Microsoft.Dafny {
     }
 
     FuelContext fuelContext = null;
-    internal IsAllocContext isAllocContext = null;
+    public IsAllocContext IsAllocContext { get; set; } = null;
     Program program;
 
     [ContractInvariantMethod]
@@ -209,7 +209,7 @@ namespace Microsoft.Dafny {
     private VisibilityScope verificationScope;
     private Dictionary<Declaration, Bpl.Function> declarationMapping = new();
 
-    public readonly PredefinedDecls Predef;
+    public PredefinedDecls Predef { get; }
 
     private TranslatorFlags flags;
     private bool InsertChecksums { get { return flags.InsertChecksums; } }
@@ -2311,6 +2311,30 @@ namespace Microsoft.Dafny {
       return disjunction;
     }
 
+    public Bpl.Expr CtorInvocation(IToken tok, DatatypeCtor ctor, ExpressionTranslator etran,
+      Variables locals, BoogieStmtListBuilder localTypeAssumptions) {
+      Contract.Requires(tok != null);
+      Contract.Requires(ctor != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(localTypeAssumptions != null);
+      Contract.Requires(Predef != null);
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+
+      // create local variables for the formals
+      var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("a#");
+      var args = new List<Bpl.Expr>();
+      foreach (Formal arg in ctor.Formals) {
+        Contract.Assert(arg != null);
+        var nm = varNameGen.FreshId(string.Format("#{0}#", args.Count));
+        var bv = locals.GetOrAdd(new Bpl.LocalVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type))));
+        args.Add(new Bpl.IdentifierExpr(arg.tok, bv));
+      }
+
+      Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(tok, ctor.FullName, Predef.DatatypeType);
+      return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(id), args);
+    }
+
     void AddCasePatternVarSubstitutions(CasePattern<BoundVar> pat, Bpl.Expr rhs, Dictionary<IVariable, Expression> substMap) {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
@@ -2820,10 +2844,9 @@ namespace Microsoft.Dafny {
 
         Bpl.Expr wh;
         var receiver = new Bpl.IdentifierExpr(tok, "this", TrType(receiverType));
-        if (m is Constructor && kind == MethodTranslationKind.Implementation) {
-          wh = BplAnd(
-            ReceiverNotNull(receiver),
-            GetWhereClause(tok, receiver, receiverType, etran, IsAllocType.NEVERALLOC));
+        if (m is Constructor && kind is MethodTranslationKind.Implementation or MethodTranslationKind.SpecWellformedness) {
+          // For constructors, the typical "where" condition is added in an assumption in the body, rather than in the parameter declaration itself
+          wh = null;
         } else {
           wh = BplAnd(
             ReceiverNotNull(receiver),
@@ -2844,7 +2867,7 @@ namespace Microsoft.Dafny {
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetExtendedWhereClause(p.tok,
             new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), varType),
-            p.Type, p.IsOld ? etran.Old : etran, isAllocContext.Var(p));
+            p.Type, p.IsOld ? etran.Old : etran, IsAllocContext.Var(p));
           inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), varType, wh), true));
         }
       }
@@ -2857,7 +2880,7 @@ namespace Microsoft.Dafny {
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetWhereClause(p.tok,
             new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), varType),
-            p.Type, etran, isAllocContext.Var(p));
+            p.Type, etran, IsAllocContext.Var(p));
           if (kind == MethodTranslationKind.Implementation) {
             var tracker = AddDefiniteAssignmentTracker(p, outParams, true, m.IsGhost);
             if (wh != null && tracker != null) {
@@ -3421,8 +3444,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(builderToCollect != null);
       Contract.Requires(builderToCollect != null);
 
-      builderToCollect.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.False));
-      var ifCmd = new Bpl.IfCmd(tok, null, builderToCollect.Collect(tok), null, null);
+      if (!builderToCollect.Commands.Any()) {
+        return;
+      }
+      builderToCollect.Add(new AssumeCmd(tok, Bpl.Expr.False));
+      var ifCmd = new IfCmd(tok, null, builderToCollect.Collect(tok), null, null);
       builder.Add(ifCmd);
     }
 
@@ -3590,7 +3616,7 @@ namespace Microsoft.Dafny {
     }
 
 
-    public void AddComment(BoogieStmtListBuilder builder, Statement stmt, string comment) {
+    public static void AddComment(BoogieStmtListBuilder builder, Statement stmt, string comment) {
       Contract.Requires(builder != null);
       Contract.Requires(stmt != null);
       Contract.Requires(comment != null);
@@ -3973,7 +3999,8 @@ namespace Microsoft.Dafny {
       return cre;
     }
 
-    public void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, Expression source, BoogieStmtListBuilder builder, string errorMsgPrefix = "") {
+    public void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType,
+      Expression source, BoogieStmtListBuilder builder, string errorMsgPrefix = "") {
       Contract.Requires(tok != null);
       Contract.Requires(bSource != null);
       Contract.Requires(sourceType != null);
@@ -4032,7 +4059,7 @@ namespace Microsoft.Dafny {
     }
 
     int projectionFunctionCount = 0;
-    public Declaration CurrentDeclaration;
+    public Declaration CurrentDeclaration { get; set; }
 
     // ----- Expression ---------------------------------------------------------------------------
 
@@ -4410,8 +4437,7 @@ namespace Microsoft.Dafny {
       }
 
     }
-    public static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
-    public static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
+
     private bool DisableNonLinearArithmetic => DetermineDisableNonLinearArithmetic(forModule, options);
     private int ArithmeticSolver {
       get {
@@ -4455,36 +4481,6 @@ namespace Microsoft.Dafny {
       }
 
       return dafnyOptions.DisableNLarith;
-    }
-
-    internal class IsAllocContext {
-      private DafnyOptions options;
-      internal bool allVarsGhost;
-
-      internal IsAllocContext(DafnyOptions options, bool allVarsGhost) {
-        this.options = options;
-        this.allVarsGhost = allVarsGhost;
-      }
-
-      internal IsAllocType Var(bool isGhost) {
-        return ISALLOC;
-      }
-
-      internal IsAllocType Var(LocalVariable local) {
-        return Var(allVarsGhost || local.IsGhost);
-      }
-
-      internal IsAllocType Var(NonglobalVariable var) {
-        return Var(allVarsGhost || var.IsGhost);
-      }
-
-      internal IsAllocType Var(bool ghostStmt, LocalVariable var) {
-        return Var(allVarsGhost || ghostStmt || var.IsGhost);
-      }
-
-      internal IsAllocType Var(bool ghostStmt, NonglobalVariable var) {
-        return Var(allVarsGhost || ghostStmt || var.IsGhost);
-      }
     }
 
     /// <summary>
@@ -4852,6 +4848,9 @@ namespace Microsoft.Dafny {
       this.CreateRevealableConstant(f);
       return this.functionReveals[f];
     }
+
+    public static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
+    public static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
   }
 
   public enum AssertMode { Keep, Assume, Check }

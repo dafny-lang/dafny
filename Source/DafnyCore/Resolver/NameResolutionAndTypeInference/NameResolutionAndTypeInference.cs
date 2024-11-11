@@ -319,15 +319,20 @@ namespace Microsoft.Dafny {
 
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attributeHost.Attributes.AsEnumerable()) {
-        if (attr is UserSuppliedAttributes) {
-          var usa = (UserSuppliedAttributes)attr;
+        if (attr is UserSuppliedAtAttribute { Builtin: true }) { // Already resolved
+          continue;
+        } else if (attr is UserSuppliedAttributes usa) {
           usa.Recognized = IsRecognizedAttribute(usa, attributeHost);
         }
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             Contract.Assert(arg != null);
             if (!(Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name is "revealedFunction" && arg is NameSegment)) {
+              var prevCount = reporter.ErrorCount;
               ResolveExpression(arg, resolutionContext);
+              if (prevCount == reporter.ErrorCount && attr is UserSuppliedAtAttribute { Builtin: false }) {
+                reporter.Error(MessageSource.Resolver, attr.tok, "User-supplied @-Attributes not supported yet");
+              }
             } else {
               ResolveRevealLemmaAttribute(arg);
             }
@@ -3200,12 +3205,12 @@ namespace Microsoft.Dafny {
     /// "typeMap" is applied to the type of each formal.
     /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
     /// </summary>
-    void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext resolutionContext,
+    internal void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext resolutionContext,
       Dictionary<TypeParameter, Type> typeMap, Expression/*?*/ receiver) {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);
       Contract.Requires(callTok != null);
-      Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType);
+      Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType || context is UserSuppliedAtAttribute);
       Contract.Requires(typeMap != null);
       Contract.Requires(!bindings.WasResolved);
 
@@ -3220,6 +3225,9 @@ namespace Microsoft.Dafny {
       } else if (context is DatatypeCtor cCtor) {
         whatKind = "datatype constructor";
         name = $"{whatKind} '{cCtor.Name}'";
+      } else if (context is UserSuppliedAtAttribute usaa) {
+        whatKind = "attribute";
+        name = $"{whatKind} '{usaa.UserSuppliedName}'";
       } else {
         var cArrowType = (ArrowType)context;
         whatKind = "function application";
@@ -3501,8 +3509,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is HideRevealStmt hideRevealStmt) {
         stmt.GenResolve(this, resolutionContext);
-      } else if (stmt is BreakStmt) {
-        var s = (BreakStmt)stmt;
+      } else if (stmt is BreakOrContinueStmt) {
+        var s = (BreakOrContinueStmt)stmt;
         if (s.TargetLabel != null) {
           Statement target = EnclosingStatementLabels.Find(s.TargetLabel.val);
           if (target == null) {
@@ -4036,7 +4044,7 @@ namespace Microsoft.Dafny {
         if (!formal.HasName) {
           foreach (var previousFormal in previousParametersWithDefaultValue) {
             reporter.Error(MessageSource.Resolver, previousFormal.DefaultValue.tok,
-              $"because of a later nameless parameter, this default value is never used; remove it or name all subsequent parameters");
+              "because of a later nameless parameter, which is a required parameter, this default value is never used; remove it or name all subsequent parameters");
           }
           previousParametersWithDefaultValue.Clear();
         }
@@ -4051,7 +4059,7 @@ namespace Microsoft.Dafny {
         } else if (nameOfMostRecentNameonlyParameter != null && !formal.IsNameOnly) {
           // "formal" is preceded by a nameonly parameter, but itself is neither nameonly nor has a default value
           reporter.Error(MessageSource.Resolver, formal.tok,
-            $"this parameter is effectively nameonly (because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'); " +
+            $"this parameter has to be nameonly, because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'; " +
             "declare it as nameonly or give it a default-value expression");
         }
         if (formal.IsNameOnly) {

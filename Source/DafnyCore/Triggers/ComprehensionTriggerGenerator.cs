@@ -222,7 +222,7 @@ namespace Microsoft.Dafny.Triggers {
         reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null,
           comprehension.Tok, $"Quantifier was split into {partWriters.Count} parts. " +
            "Better verification performance and error reporting may be obtained by splitting the quantifier in source. " +
-           $"For more information, see the section quantifier instantiation rules in the reference manual.");
+           "For more information, see the section quantifier instantiation rules in the reference manual.");
       }
 
       for (var index = 0; index < partWriters.Count; index++) {
@@ -235,12 +235,8 @@ namespace Microsoft.Dafny.Triggers {
       var triggers = new List<List<Expression>>();
       foreach (var triggerWriter in partWriters) {
         if (includeTriggersThatRequireNamedExpressions || triggerWriter.NamedExpressions.Count == 0) {
-          foreach (var triggerTerms in triggerWriter.Candidates) {
-            var trigger = new List<Expression>();
-            foreach (var triggerTerm in triggerTerms.Terms) {
-              trigger.Add(triggerTerm.Expr);
-            }
-
+          foreach (var triggerCandidate in triggerWriter.Candidates) {
+            var trigger = triggerCandidate.Terms.ConvertAll(t => t.Expr);
             triggers.Add(trigger);
           }
         }

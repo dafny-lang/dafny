@@ -12,15 +12,8 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public int ScopeDepth { get; set; }
   public LList<Label> Labels;  // mutable during resolution
 
-  private Attributes attributes;
-  public Attributes Attributes {
-    get {
-      return attributes;
-    }
-    set {
-      attributes = value;
-    }
-  }
+  public Attributes Attributes { get; set; }
+  string IAttributeBearingDeclaration.WhatKind => "statement";
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -35,7 +28,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   protected Statement(Cloner cloner, Statement original) : base(cloner.Tok(original.RangeToken)) {
     cloner.AddStatementClone(original, this);
-    this.attributes = cloner.CloneAttributes(original.Attributes);
+    this.Attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
       IsGhost = original.IsGhost;
@@ -44,7 +37,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   }
 
   protected Statement(RangeToken rangeToken, Attributes attrs) : base(rangeToken) {
-    this.attributes = attrs;
+    this.Attributes = attrs;
   }
 
   protected Statement(RangeToken rangeToken)
@@ -186,11 +179,13 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   }
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       SubStatements.Concat<Node>(SubExpressions));
 
   public override IEnumerable<INode> PreResolveChildren =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
 
   public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => Enumerable.Empty<IdentifierExpr>();

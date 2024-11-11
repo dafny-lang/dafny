@@ -1456,8 +1456,8 @@ public partial class BoogieGenerator {
   void AddWellformednessCheck(RedirectingTypeDecl decl) {
     Contract.Requires(decl != null);
     Contract.Requires(sink != null && Predef != null);
-    Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null);
-    Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null);
+    Contract.Requires(currentModule == null && codeContext == null && IsAllocContext == null);
+    Contract.Ensures(currentModule == null && codeContext == null && IsAllocContext == null);
 
     proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.FullDafnyName, MethodTranslationKind.SpecWellformedness), null);
 
@@ -1511,7 +1511,7 @@ public partial class BoogieGenerator {
     var builder = new BoogieStmtListBuilder(this, options, context);
     builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
     builder.AddCaptureState(decl.tok, false, "initial state");
-    isAllocContext = new IsAllocContext(options, true);
+    IsAllocContext = new IsAllocContext(options, true);
 
     DefineFrame(decl.tok, etran.ReadsFrame(decl.tok), new List<FrameExpression>(), builder, locals, null);
 
@@ -1594,7 +1594,7 @@ public partial class BoogieGenerator {
 
     Contract.Assert(currentModule == decl.Module);
     Contract.Assert(CodeContextWrapper.Unwrap(codeContext) == decl);
-    isAllocContext = null;
+    IsAllocContext = null;
     Reset();
   }
 
