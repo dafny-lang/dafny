@@ -13,10 +13,9 @@ class ResolvedDesugaredExecutableDafnyCodeGenerator : DafnyWrittenCodeGenerator 
   }
 
   public override ISequence<Rune> EmitCallToMain(
-    DAST.Expression companion, 
+    DAST.Expression companion,
     Sequence<Rune> mainMethodName,
-    bool hasArguments)
-  {
+    bool hasArguments) {
     return COMP.EmitCallToMain(companion);
   }
 }

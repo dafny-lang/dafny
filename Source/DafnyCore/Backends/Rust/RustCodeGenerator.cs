@@ -40,11 +40,16 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override ISequence<Rune> EmitCallToMain(
-      DAST.Expression companion, 
+      DAST.Expression companion,
       Sequence<Rune> mainMethodName,
       bool hasArguments) {
       var c = CreateCompiler();
-      return c.EmitCallToMain(companion, mainMethodName, hasArguments);
+      var result = c.EmitCallToMain(companion, mainMethodName, hasArguments);
+      if (!Options.Get(CommonOptionBag.EmitUncompilableCode) && c.error.is_Some) {
+        throw new UnsupportedInvalidOperationException(c.error.dtor_value.ToVerbatimString(false));
+      }
+
+      return result;
     }
   }
 

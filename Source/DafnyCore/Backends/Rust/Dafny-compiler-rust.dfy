@@ -3771,11 +3771,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         s := s + "\n";
         s := s + m.ToString("");
-
       }
     }
 
-    method EmitCallToMain(companion: Expression, mainMethodName: string, hasArgs: bool) returns (s: string) {
+    method EmitCallToMain(companion: Expression, mainMethodName: string, hasArgs: bool) returns (s: string)
+      modifies this
+    {
       s := "\nfn main() {";
       if hasArgs {
         s := s + @"
