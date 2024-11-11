@@ -268,12 +268,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(LambdaExpr expr1, LambdaExpr expr2) {
-#if THROW_UNSUPPORTED_COMPARISONS
-      Contract.Assume(false); // This kind of expression never appears in a trigger
-      throw new NotImplementedException();
-#else
-      return false;
-#endif
+      return true;
     }
 
     private static bool ShallowEq(MapComprehension expr1, MapComprehension expr2) {

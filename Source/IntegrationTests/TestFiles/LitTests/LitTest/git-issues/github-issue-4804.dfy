@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --allow-axioms --resource-limit 1000000 %s > %t
+// RUN: %exits-with 4 %verify --allow-axioms --resource-limit 1200 %s > %t
 // RUN: %diff "%s.expect" "%t"
 module Power {
 

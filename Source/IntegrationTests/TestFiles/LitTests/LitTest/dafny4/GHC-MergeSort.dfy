@@ -472,6 +472,17 @@ lemma stable_sequences(g: G, xs: List<G>)
     case Cons(a, ys) =>
       match ys {
         case Nil =>
+          calc {
+            flatten(sequences(xs));
+            // def. sequences, since xs == Cons(a, Nil)
+            flatten(Cons(xs, Nil));
+            // def. flatten
+            append(xs, flatten(Nil));
+            // def. flatten
+            append(xs, Nil);
+            { append_Nil(xs); }
+            xs;
+          }
         case Cons(b, zs) =>
           if !Below(a, b) {
             calc {
