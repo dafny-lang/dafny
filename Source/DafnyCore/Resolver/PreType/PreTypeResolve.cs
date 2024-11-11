@@ -520,15 +520,20 @@ namespace Microsoft.Dafny {
       Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(a, b, tok, allowBaseTypeCast,
         "(Duplicate error message) " + errorMessage(), false));
       if (!allowBaseTypeCast) {
-        // The "comparable types" constraint may be useful as a bound if nothing else is known about a proxy. 
-        if (a.Normalize() is PreTypeProxy aPreTypeProxy) {
-          Constraints.AddCompatibleBounds(aPreTypeProxy, b);
-        }
-        if (b.Normalize() is PreTypeProxy bPreTypeProxy) {
-          Constraints.AddCompatibleBounds(bPreTypeProxy, a);
-        }
+        AddComparableTypesDefault(a, b);
       }
       Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, allowBaseTypeCast), errorMessage);
+    }
+
+    private void AddComparableTypesDefault(PreType a, PreType b) {
+      // The "comparable types" constraint may be useful as a bound if nothing else is known about a proxy. 
+      if (a.Normalize() is PreTypeProxy aPreTypeProxy) {
+        Constraints.AddCompatibleBounds(aPreTypeProxy, b);
+      }
+
+      if (b.Normalize() is PreTypeProxy bPreTypeProxy) {
+        Constraints.AddCompatibleBounds(bPreTypeProxy, a);
+      }
     }
 
     /// <summary>
@@ -674,6 +679,7 @@ namespace Microsoft.Dafny {
             Constraints.AddEqualityConstraint(aa, bb, tok, msgFormat, null, reportErrors);
           } else {
             Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(aa, bb, tok, false, msgFormat, reportErrors));
+            AddComparableTypesDefault(aa, bb);
           }
         }
 
@@ -1015,11 +1021,6 @@ namespace Microsoft.Dafny {
 
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attributeHost.Attributes.AsEnumerable()) {
-        if (attributeHost != null && attr is UserSuppliedAttributes usa) {
-#if TODO          
-          usa.Recognized = resolver.IsRecognizedAttribute(usa, attributeHost); // TODO: this could be done in a later resolution pass
-#endif
-        }
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             if (Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name is "revealedFunction" && arg is NameSegment nameSegment) {

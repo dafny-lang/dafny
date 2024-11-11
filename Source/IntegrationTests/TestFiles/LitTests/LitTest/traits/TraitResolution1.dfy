@@ -18,7 +18,7 @@ module M0 {
 }
 
 module M1 {
-  trait Tr<X(0)> {
+  trait Tr<X(0)> extends object {
     var w: X
   }
 
@@ -67,7 +67,7 @@ module M4 {
 }
 
 module NewMustMentionAClassName {
-  trait Tr<X> {
+  trait Tr<X> extends object {
     method Make() { }
   }
 
@@ -442,7 +442,7 @@ module ProvidingModule {
     provides Klass, Klass.M, Klass.N
     provides Dt, Dt.M, Dt.N
 
-  trait Trait<AA> {
+  trait Trait<AA> extends object {
     const M := 100
     ghost const N: AA
   }
@@ -469,7 +469,7 @@ module ImporterOfProvidingModule {
 }
 
 module NeedForConstructors {
-  trait Tr<X> {
+  trait Tr<X> extends object {
     var w: X
   }
 
@@ -486,7 +486,7 @@ module NeedForConstructors {
 }
 
 module TypeCharacteristicsDiscrepancies {
-  trait RequiresZero<X(0)> {
+  trait RequiresZero<X(0)> extends object {
     var x: X
   }
 

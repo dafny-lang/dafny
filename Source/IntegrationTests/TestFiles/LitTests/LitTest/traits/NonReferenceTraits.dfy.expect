@@ -104,7 +104,7 @@ NonReferenceTraits.dfy(447,11): Error: arguments must have comparable types (got
 NonReferenceTraits.dfy(448,11): Error: arguments must have comparable types (got object and TraitB)
 NonReferenceTraits.dfy(449,11): Error: arguments must have comparable types (got TraitA and object)
 NonReferenceTraits.dfy(450,11): Error: arguments must have comparable types (got TraitB and object)
-NonReferenceTraits.dfy(460,11): Error: arguments must have comparable types (got TraitA and TraitB)
+NonReferenceTraits.dfy(460,9): Error: == can only be applied to expressions of types that support equality (got TraitA)
 NonReferenceTraits.dfy(470,9): Error: == can only be applied to expressions of types that support equality (got TraitA)
 NonReferenceTraits.dfy(471,9): Error: == can only be applied to expressions of types that support equality (got TraitB)
 NonReferenceTraits.dfy(472,14): Error: set argument type must support equality (got TraitA)

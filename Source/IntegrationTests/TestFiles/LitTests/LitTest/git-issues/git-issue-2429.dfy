@@ -3,7 +3,7 @@
 
 ghost predicate P<A>(s: seq<A>)
 
-trait T<A> {
+trait T<A> extends object {
   method M(a: A)
     requires Q([a][0 := a])
     modifies if P([a][0 := a]) then {} else {this}

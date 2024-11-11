@@ -2463,7 +2463,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (fromType.Equals(toType) || fromType.AsNewtype != null || toType.AsNewtype != null) {
         wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
       } else {
-        Contract.Assert(false, $"not implemented for javascript: {fromType} -> {toType}");
+        EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
       }
     }
 

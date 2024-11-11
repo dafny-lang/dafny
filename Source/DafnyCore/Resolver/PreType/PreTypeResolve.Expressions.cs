@@ -31,7 +31,9 @@ namespace Microsoft.Dafny {
         case ParensExpression expression: {
             var e = expression;
             ResolveExpression(e.E, resolutionContext);
-            e.ResolvedExpression = e.E;
+            var innerRange = e.E.RangeToken;
+            e.ResolvedExpression = e.E; // Overwrites the range, which is not suitable for ParensExpressions
+            e.E.RangeToken = innerRange;
             e.PreType = e.E.PreType;
             break;
           }
@@ -1107,9 +1109,8 @@ namespace Microsoft.Dafny {
         return (null, null);
       }
 
-      var receiverDecl = dReceiver.Decl;
+      var receiverDecl = dReceiver.DeclWithMembersBypassInternalSynonym();
       if (receiverDecl is TopLevelDeclWithMembers receiverDeclWithMembers) {
-        // TODO: does this case need to do something like this?  var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
 
         var members = resolver.GetClassMembers(receiverDeclWithMembers);
         if (members == null || !members.TryGetValue(memberName, out var member)) {
@@ -1125,6 +1126,9 @@ namespace Microsoft.Dafny {
           // TODO: We should return the original "member", not an overridden member. Alternatively, we can just return "member" so that the
           // caller can figure out the types, and then a later pass can figure out which particular "member" is intended.
           return (member, dReceiver);
+        } else if (reportErrorOnMissingMember) {
+          ReportError(tok, $"member '{memberName}' has not been imported in this scope and cannot be accessed here");
+          return (null, null);
         }
       }
       if (reportErrorOnMissingMember) {
@@ -1259,7 +1263,9 @@ namespace Microsoft.Dafny {
       } else if (isLastNameSegment && resolver.moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
         if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
-          return null;
+          if (!complain) {
+            return null;
+          }
         }
 
       } else if (resolver.moduleInfo.TopLevels.TryGetValue(name, out var decl)) {
@@ -1312,7 +1318,9 @@ namespace Microsoft.Dafny {
       } else if (!isLastNameSegment && resolver.moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 5. datatype constructor
         if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
-          return null;
+          if (!complain) {
+            return null;
+          }
         }
 
       } else {
@@ -1422,7 +1430,7 @@ namespace Microsoft.Dafny {
       if (args == null) {
         r = rr;
       } else {
-        r = rr; // this doesn't really matter, since we're returning an "rWithArgs" (but if would have been proper to have returned the ctor as a lambda)
+        r = rr; // this doesn't really matter, since we're returning an "rWithArgs" (but it would have been proper to have returned the ctor as a lambda)
         rWithArgs = rr;
       }
       return false;
@@ -1491,7 +1499,7 @@ namespace Microsoft.Dafny {
             ReportError(expr.tok, "the name '{0}' denotes a datatype constructor in module {2}, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", name, pair.Item1.EnclosingDatatype.Name, ((ModuleDecl)ri.Decl).Name);
           } else {
             if (expr.OptTypeArguments != null) {
-              ReportError(expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
+              ReportError(expr.tok, $"datatype constructor does not take any type parameters ('{name}')");
             }
             var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<ActualBinding>());
             ResolveDatatypeValue(resolutionContext, rr, pair.Item1.EnclosingDatatype, null);
@@ -1549,8 +1557,13 @@ namespace Microsoft.Dafny {
             if (expr.OptTypeArguments != null) {
               ReportError(expr.tok, $"datatype constructor does not take any type parameters ('{name}')");
             }
+
             var rr = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, name, args ?? new List<ActualBinding>());
+            if (ri.TypeArgs.Count != 0) {
+              rr.InferredTypeArgs = ri.TypeArgs;
+            }
             ResolveDatatypeValue(resolutionContext, rr, ctor.EnclosingDatatype, (DPreType)Type2PreType(ty));
+
             if (args == null) {
               r = rr;
             } else {
@@ -1748,7 +1761,7 @@ namespace Microsoft.Dafny {
           // e.Lhs does denote a function value
           // In the general case, we'll resolve this as an ApplyExpr, but in the more common case of the Lhs
           // naming a function directly, we resolve this as a FunctionCallExpr.
-          var mse = e.Lhs is NameSegment || e.Lhs is ExprDotName ? e.Lhs.Resolved as MemberSelectExpr : null;
+          var mse = e.Lhs is NameSegment or ExprDotName ? e.Lhs.Resolved as MemberSelectExpr : null;
           var callee = mse?.Member as Function;
           if (atLabel != null && !(callee is TwoStateFunction)) {
             ReportError(e.AtTok, "an @-label can only be applied to a two-state function");
@@ -1759,7 +1772,9 @@ namespace Microsoft.Dafny {
             var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
               PreTypeApplication_AtEnclosingClass = mse.PreTypeApplicationAtEnclosingClass,
-              PreTypeApplication_JustFunction = mse.PreTypeApplicationJustMember
+              PreTypeApplication_JustFunction = mse.PreTypeApplicationJustMember,
+              TypeApplication_AtEnclosingClass = mse.TypeApplicationAtEnclosingClass,
+              TypeApplication_JustFunction = mse.TypeApplicationJustMember
             };
             var typeMap = mse.PreTypeArgumentSubstitutionsAtMemberDeclaration();
             var preTypeMap = BuildPreTypeArgumentSubstitute(
@@ -1951,12 +1966,16 @@ namespace Microsoft.Dafny {
     private Expression DesugarDatatypeUpdate(IToken tok, Expression root, DPreType rootPreType,
       List<DatatypeCtor> candidateResultCtors, Dictionary<string, Tuple<BoundVar, IdentifierExpr, Expression>> rhsBindings,
       ResolutionContext resolutionContext) {
-      Contract.Requires(1 <= candidateResultCtors.Count);
-
+      
+      if (candidateResultCtors.Count == 0) {
+        return root;
+      }
+      
       // Create a unique name for d', the variable we introduce in the let expression
       var dName = resolver.FreshTempVarName("dt_update_tmp#", resolutionContext.CodeContext);
-      var dVar = new BoundVar(new AutoGeneratedToken(tok), dName, new InferredTypeProxy());
-      dVar.PreType = rootPreType;
+      var dVar = new BoundVar(new AutoGeneratedToken(tok), dName, new InferredTypeProxy()) {
+        PreType = rootPreType
+      };
       var d = new IdentifierExpr(new AutoGeneratedToken(tok), dVar);
       Expression body = null;
       candidateResultCtors.Reverse();

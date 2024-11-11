@@ -1,3 +1,3 @@
-TraitPolymorphism.dfy(56,10): Error: arguments must have comparable types (got C1 and T2)
-TraitPolymorphism.dfy(58,6): Error: RHS (of type C1) not assignable to LHS (of type T2)
+TraitPolymorphism.dfy(56,12): Error: arguments must have comparable types (got C1 and T2)
+TraitPolymorphism.dfy(58,4): Error: RHS (of type C1) not assignable to LHS (of type T2)
 2 resolution/type errors detected in TraitPolymorphism.dfy
