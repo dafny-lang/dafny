@@ -138,8 +138,9 @@ public class MatchFlattener : IRewriter {
         }
       }
 
-      new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, Reporter, false, false).
-        Visit(result, nestedMatchStmt.IsGhost, null);
+      var context = resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext;
+      result.ResolveGhostness(null, Reporter, nestedMatchStmt.IsGhost, context,
+        null, false, false);
       return result;
     }
     Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer

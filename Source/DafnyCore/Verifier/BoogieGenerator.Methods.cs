@@ -767,6 +767,7 @@ namespace Microsoft.Dafny {
         foreach (var pre in m.Req) {
           parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverSubst, substMap));
         }
+
         // construct an expression (generator) for:  VF' << VF
         ExpressionConverter decrCheck = delegate (Dictionary<IVariable, Expression> decrSubstMap, ExpressionTranslator exprTran) {
           var decrToks = new List<IToken>();
@@ -789,14 +790,20 @@ namespace Microsoft.Dafny {
             null, null, false, true);
         };
 
+        var triggers = m.Attributes.AsEnumerable()
+          .Where(attr => attr.Name is "inductionTrigger" or "_inductionTrigger")
+          .Select(attr => attr.Args)
+          .ToList();
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
-          var definedness = new BoogieStmtListBuilder(this, options);
-          var exporter = new BoogieStmtListBuilder(this, options);
-          TrForallStmtCall(m.tok, parBoundVars, parRange, decrCheck, null, recursiveCall, definedness, exporter, localVariables, etran);
-          // All done, so put the two pieces together
-          builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));
+        var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
+        var exporter = new BoogieStmtListBuilder(this, options, builder.Context);
+        TrForallStmtCall(m.tok, parBoundVars, parBounds, parRange, decrCheck, null, triggers, recursiveCall, definedness,
+          exporter, localVariables, etran);
+        // All done, so put the two pieces together
+        builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));
 #else
-        TrForallStmtCall(m.tok, parBoundVars, parBounds, parRange, decrCheck, null, recursiveCall, null, builder, localVariables, etran);
+        TrForallStmtCall(m.tok, parBoundVars, parBounds, parRange, decrCheck, null, triggers, recursiveCall, null,
+          builder, localVariables, etran);
 #endif
       }
       // translate the body of the method
@@ -1008,17 +1015,17 @@ namespace Microsoft.Dafny {
       var ens = new List<Boogie.Ensures>();
 
       var name = MethodName(f, MethodTranslationKind.OverrideCheck);
+      var implicitParameters = Util.Concat(typeInParams, inParams_Heap);
       var proc = new Boogie.Procedure(f.tok, name, new List<Boogie.TypeVariable>(),
-        Util.Concat(Util.Concat(typeInParams, inParams_Heap), inParams), outParams,
+        Util.Concat(implicitParameters, inParams), outParams,
         false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
+      var implImplicitParams = Boogie.Formal.StripWhereClauses(implicitParameters);
       var implInParams = Boogie.Formal.StripWhereClauses(inParams);
       var implOutParams = Boogie.Formal.StripWhereClauses(outParams);
 
       #endregion
-
-      //List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
       BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       var localVariables = new Variables();
@@ -1070,7 +1077,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
         AddImplementationWithAttributes(GetToken(f), proc,
-            Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
+            Util.Concat(implImplicitParams, implInParams),
             implOutParams, localVariables, stmts, kv);
       }
 

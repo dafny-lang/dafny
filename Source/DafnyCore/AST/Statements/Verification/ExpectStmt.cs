@@ -44,4 +44,19 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
     }
     resolver.ResolveExpression(Message, context);
   }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = false;
+    if (mustBeErasable) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_expect_statement_is_not_ghost, this,
+        "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+    } else {
+      ExpressionTester.CheckIsCompilable(resolver, reporter, Expr, codeContext);
+      // If not provided, the message is populated with a default value in resolution
+      Contract.Assert(Message != null);
+      ExpressionTester.CheckIsCompilable(resolver, reporter, Message, codeContext);
+    }
+  }
 }
