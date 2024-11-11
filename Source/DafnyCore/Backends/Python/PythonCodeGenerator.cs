@@ -891,7 +891,7 @@ namespace Microsoft.Dafny.Compilers {
       return fullCompileName;
     }
 
-    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
+    internal override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
 
       if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt) {
