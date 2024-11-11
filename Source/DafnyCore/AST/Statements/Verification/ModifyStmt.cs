@@ -76,4 +76,21 @@ public class ModifyStmt : Statement, ICloneable<ModifyStmt>, ICanFormat {
 
     return true;
   }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    if (proofContext != null) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_modify_forbidden_in_proof, this, $"a modify statement is not allowed in {proofContext}");
+    }
+
+    IsGhost = mustBeErasable;
+    if (IsGhost) {
+      Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
+    }
+    if (Body != null) {
+      Body.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables,
+        inConstructorInitializationPhase);
+    }
+  }
 }
