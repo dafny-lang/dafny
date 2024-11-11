@@ -170,6 +170,7 @@ public class RustBackend : DafnyExecutableBackend {
         await cargoTomlWriter.WriteLineAsync();
       }
     }
+    RecoverTargetFolderFromSiblingCompilation(targetDirectory);
 
     var args = new List<string> {
       "build",
@@ -187,6 +188,35 @@ public class RustBackend : DafnyExecutableBackend {
     psi.WorkingDirectory = targetDirectory;
     return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files."), null);
   }
+
+  private static void RecoverTargetFolderFromSiblingCompilation(string targetDirectory)
+  {
+    // Detect if there is already a "target" folder inside the target directory, which indices that cargo was run before
+    var targetDirectoryAlreadyExists = Directory.Exists(Path.Combine(targetDirectory, "target"));
+
+    if (targetDirectoryAlreadyExists) {
+      return; // No need to recover it from a sibling since it already exists.
+    }
+    // Before we run "cargo build", we detect if there are any other folders ending with -rust next to it,
+    // and if so, we copy the "target" folder. That avoid downloading gigabytes of dependencies over the internet.
+      
+    var targetParentDirectory = Path.GetDirectoryName(targetDirectory)!;
+    // list all the folders there, filtering the ones ending with -rust and containing a target folder
+    var rustFoldersWithTarget = Directory.GetDirectories(targetParentDirectory).Where(
+      f => f.EndsWith("-rust") && Directory.Exists(Path.Combine(f, "target")));
+    // Take the most recent of these folders and copy it over
+    var mostRecentRustFolderWithTarget = rustFoldersWithTarget.MaxBy(f => Directory.GetCreationTime(f));
+    if (mostRecentRustFolderWithTarget == null) {
+      return; // No choice but download the dependencies
+    }
+
+    var mostRecentTargetFolder = Path.Combine(mostRecentRustFolderWithTarget, "target");
+    var targetFolder = Path.Combine(targetDirectory, "target");
+    Directory.CreateDirectory(targetFolder); // We know it does not exist yet
+    // Recursively copy everything from mostRecentTargetFolder to targetFolder
+    IO.CopyDirectory(mostRecentTargetFolder, targetFolder);
+  }
+
   public override Encoding OutputWriterEncoding => Encoding.UTF8;
 
   public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
