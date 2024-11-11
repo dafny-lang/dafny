@@ -7,8 +7,7 @@ module P {
 
 module N2 {
   import opened M = P
-  trait T {
-      var m: M.M
+  trait T extends object {
+    var m: M.M
   }
 }
-
