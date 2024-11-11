@@ -397,9 +397,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     requires e1 <= e2
     ensures Pow(b, e1) <= Pow(b, e2)
   {
-    LemmaPowAuto();
     var f := e => 0 <= e ==> Pow(b, e1) <= Pow(b, e1 + e);
-    forall i {:trigger IsLe(0, i)} | IsLe(0, i) && f(i)
+    forall i | IsLe(0, i) && f(i)
       ensures f(i + 1)
     {
       calc {

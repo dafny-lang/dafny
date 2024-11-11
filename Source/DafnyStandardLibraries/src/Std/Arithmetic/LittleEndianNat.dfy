@@ -116,7 +116,13 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     requires |xs| == 2
     ensures ToNatRight(xs) == First(xs) + xs[1] * BASE()
   {
-    LemmaSeqLen1(DropLast(xs));
+    var xs1 := DropFirst(xs);
+    calc {
+      ToNatRight(xs);
+      ToNatRight(xs1) * BASE() + First(xs);
+      (ToNatRight([]) * BASE() + First(xs1)) * BASE() + First(xs);
+      (0 * BASE() + First(xs1)) * BASE() + First(xs);
+    }
   }
 
   /* Appending a zero does not change the nat representation of the sequence. */
