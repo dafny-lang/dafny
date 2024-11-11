@@ -35,8 +35,8 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
     : base(rangeToken, attributes) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(targetLabel != null);
-    this.TargetLabel = targetLabel;
-    this.IsContinue = isContinue;
+    TargetLabel = targetLabel;
+    IsContinue = isContinue;
   }
 
   /// <summary>
@@ -47,8 +47,8 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
     : base(rangeToken, attributes) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(1 <= breakAndContinueCount);
-    this.BreakAndContinueCount = breakAndContinueCount;
-    this.IsContinue = isContinue;
+    BreakAndContinueCount = breakAndContinueCount;
+    IsContinue = isContinue;
   }
 
   public IEnumerable<IHasNavigationToken> GetReferences() {
@@ -56,4 +56,15 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
   }
 
   public IToken NavigationToken => Tok;
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable;
+    if (IsGhost && !TargetStmt.IsGhost) {
+      var targetKind = TargetStmt is LoopStmt ? "loop" : "structure";
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_ghost_break, this,
+        $"ghost-context {Kind} statement is not allowed to {Kind} out of non-ghost {targetKind}");
+    }
+  }
 }
