@@ -66,7 +66,7 @@ ghost function binom(a: nat, b: nat): nat
 // div-2 is applied to both arguments, except in the case where
 // the first argument to "binom" is even and the second argument
 // is odd, in which case "binom" is always even.
-lemma {:resource_limit "8e6"} Lucas_Binary(a: nat, b: nat)
+lemma {:resource_limit "8e6"} {:induction a, b} {:nowarn} Lucas_Binary(a: nat, b: nat)
   ensures EVEN(binom(2*a, 2*b + 1))
   ensures EVEN(binom(2*a, 2*b)) <==> EVEN(binom(a, b))
   ensures EVEN(binom(2*a + 1, 2*b + 1)) <==> EVEN(binom(a, b))
@@ -83,7 +83,7 @@ lemma {:resource_limit "8e6"} Lucas_Binary(a: nat, b: nat)
 }
 
 // Here is an alternative way to phrase the previous lemma.
-lemma {:resource_limit "200e6"} Lucas_Binary'(a: nat, b: nat)
+lemma {:resource_limit "200e6"} {:induction a, b} {:nowarn} Lucas_Binary'(a: nat, b: nat)
   ensures binom(2*a, 2*b) % 2 == binom(a, b) % 2
   ensures binom(2*a, 2*b + 1) % 2 == 0
   ensures binom(2*a + 1, 2*b) % 2 == binom(a, b) % 2

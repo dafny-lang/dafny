@@ -84,9 +84,15 @@ namespace Microsoft.Dafny.Compilers {
       if (moduleName != DafnyDefaultModule) {
         wr.WriteLine($"import {moduleName}");
       }
-      wr.NewBlockPy("try:")
+      if (UnicodeCharEnabled) {
+        wr.NewBlockPy("try:")
+          .WriteLine($"dafnyArgs = [{DafnyRuntimeModule}.SeqWithoutIsStrInference(map({DafnyRuntimeModule}.CodePoint, a)) for a in sys.argv]")
+          .WriteLine($"{mainMethod.EnclosingClass.GetFullCompileName(Options)}.{(IssueCreateStaticMain(mainMethod) ? "StaticMain" : IdName(mainMethod))}(dafnyArgs)");
+      } else {
+        wr.NewBlockPy("try:")
         .WriteLine($"dafnyArgs = [{DafnyRuntimeModule}.Seq(a) for a in sys.argv]")
         .WriteLine($"{mainMethod.EnclosingClass.GetFullCompileName(Options)}.{(IssueCreateStaticMain(mainMethod) ? "StaticMain" : IdName(mainMethod))}(dafnyArgs)");
+      }
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
         .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + e.message + \"\\n\")")
         .WriteLine("sys.exit(1)");

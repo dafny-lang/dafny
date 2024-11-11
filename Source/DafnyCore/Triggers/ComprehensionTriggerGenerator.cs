@@ -122,7 +122,7 @@ namespace Microsoft.Dafny.Triggers {
       // In addition, we ignore cases where the only differences between a trigger
       // and a trigger match are places where a variable is replaced with an
       // expression whose free variables do not intersect that of the quantifier
-      // in which that expression is found. For examples of this behavious, see
+      // in which that expression is found. For examples of this behavior, see
       // triggers/literals-do-not-cause-loops.
       // This ignoring logic is implemented by the CouldCauseLoops method.
       bool foundLoop = false;
@@ -222,13 +222,26 @@ namespace Microsoft.Dafny.Triggers {
         reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null,
           comprehension.Tok, $"Quantifier was split into {partWriters.Count} parts. " +
            "Better verification performance and error reporting may be obtained by splitting the quantifier in source. " +
-           $"For more information, see the section quantifier instantiation rules in the reference manual.");
+           "For more information, see the section quantifier instantiation rules in the reference manual.");
       }
 
       for (var index = 0; index < partWriters.Count; index++) {
         var triggerWriter = partWriters[index];
         triggerWriter.CommitTrigger(reporter, partWriters.Count > 1 ? index : null, systemModuleManager);
       }
+    }
+
+    public List<List<Expression>> GetTriggers(bool includeTriggersThatRequireNamedExpressions) {
+      var triggers = new List<List<Expression>>();
+      foreach (var triggerWriter in partWriters) {
+        if (includeTriggersThatRequireNamedExpressions || triggerWriter.NamedExpressions.Count == 0) {
+          foreach (var triggerCandidate in triggerWriter.Candidates) {
+            var trigger = triggerCandidate.Terms.ConvertAll(t => t.Expr);
+            triggers.Add(trigger);
+          }
+        }
+      }
+      return triggers;
     }
   }
 }

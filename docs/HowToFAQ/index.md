@@ -121,7 +121,6 @@ Also see [the error catalog](./Errors) for a complete, searchable list of error 
 - ["Cannot export mutable field 'x' without revealing its enclosing class 'A'"](ERROR_MutableField)
 - ["this symbol not expected in Dafny"](ERROR_PostconditionLemma)
 - [Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown "Overflow encountered when expanding old_vector")](ERROR_ProverError1)
-- ["Warning: File contains no code: ..."](ERROR_NoCode)
 - ["Duplicate name of import: ..."](ERROR_DuplicateImportName)
 - ["Warning: /!\ No terms found to trigger on."](ERROR_NoTriggers)
 - ["Error: value does not satisfy the subset constraints of '(seq\<uint8>, Materials.EncryptedDataKey) -> seq\<uint8>' (possible cause: it may be partial or have read effects)"](ERROR_SubsetConstraints)
