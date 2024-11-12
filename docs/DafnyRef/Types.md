@@ -1414,7 +1414,7 @@ type abstractly. There are several mechanisms in Dafny to do this:
 * ([Section 5.6.1](#sec-synonym-type)) A typical _synonym type_, in which a type name is a synonym for another type
 * ([Section 5.6.2](#sec-abstract-types)) An _abstract type_, in which a new type name is declared as an uninterpreted type
 * ([Section 5.6.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
-* ([Section 0.0){#sec-newtypes)) A _newtype_, in which a subset type is declared, but with restrictions on converting to and from its base type
+* ([Section 5.7](#sec-newtypes)) A _newtype_, in which a subset type is declared, but with restrictions on converting to and from its base type
 
 ### 5.6.1. Type synonyms ([grammar](#g-type-definition)) {#sec-synonym-type}
 
