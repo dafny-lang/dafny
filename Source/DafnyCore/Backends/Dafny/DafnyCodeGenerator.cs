@@ -468,7 +468,7 @@ namespace Microsoft.Dafny.Compilers {
     private Sequence<DAST.Formal> GenFormals(List<Formal> formals) {
       List<DAST.Formal> paramsList = new();
       foreach (var param in formals) {
-        if (param is not ImplicitFormal && !param.IsGhost) {
+        if (!param.IsGhost) {
           paramsList.Add((DAST.Formal)DAST.Formal.create_Formal(
             Sequence<Rune>.UnicodeFromString(IdProtect(param.CompileName)), GenType(param.Type), ParseAttributes(param.Attributes)));
         }
@@ -821,7 +821,7 @@ namespace Microsoft.Dafny.Compilers {
       return fullCompileName;
     }
 
-    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
+    internal override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
       ExprContainer actualBuilder;
       if (wr is BuilderSyntaxTree<ExprContainer> st) {
         actualBuilder = st.Builder;
