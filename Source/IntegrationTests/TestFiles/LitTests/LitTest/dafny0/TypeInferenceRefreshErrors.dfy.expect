@@ -22,7 +22,7 @@ TypeInferenceRefreshErrors.dfy(124,12): Error: unresolved identifier: x
 TypeInferenceRefreshErrors.dfy(124,16): Error: unresolved identifier: y
 TypeInferenceRefreshErrors.dfy(124,14): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got ?6)
 TypeInferenceRefreshErrors.dfy(131,11): Error: literal (84848484848484848) is too large for the bitvector type bv7
-TypeInferenceRefreshErrors.dfy(140,11): Error: type of real literal is used as bv7
+TypeInferenceRefreshErrors.dfy(140,11): Error: real literal used as if it had type bv7
 TypeInferenceRefreshErrors.dfy(143,11): Error: integer literal used as if it had type real
 TypeInferenceRefreshErrors.dfy(144,11): Error: integer literal used as if it had type real
 TypeInferenceRefreshErrors.dfy(145,11): Error: integer literal used as if it had type real
