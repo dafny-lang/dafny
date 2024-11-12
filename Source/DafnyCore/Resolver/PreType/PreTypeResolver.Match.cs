@@ -92,7 +92,7 @@ namespace Microsoft.Dafny {
       }
 
       var idPattern = (IdPattern)pattern;
-      if (idPattern.Type is not TypeProxy) {
+      if (idPattern.Type is not TypeProxy || idPattern.IsWildcardPattern) {
         Contract.Assert(idPattern.Arguments == null); // the parser ensures this condition (the ID cannot be followed by both "(...)" and ": ...")
         resolver.ResolveType(idPattern.Tok, idPattern.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         // When a type is supplied, the ID is understood to be a bound variable.
