@@ -127,7 +127,7 @@ public class CliCompilation {
           dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
-          var programName = finishedParsing.Program.Name;
+          var programName = finishedParsing.ParseResult.Program.Name;
           Options.OutputWriter.WriteLine($"{errorCount} parse errors detected in {programName}");
         }
       } else if (ev is FinishedResolution finishedResolution) {

@@ -8,7 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using DafnyCore;
 using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Tomlyn;
@@ -64,7 +63,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
     DafnyProject result;
     try {
-      using var textReader = fileSystem.ReadFile(uri);
+      using var textReader = fileSystem.ReadFile(uri).Reader;
       var text = await textReader.ReadToEndAsync();
       var model = Toml.ToModel<DafnyProjectFile>(text, null, new TomlModelOptions());
       var directory = Path.GetDirectoryName(uri.LocalPath)!;

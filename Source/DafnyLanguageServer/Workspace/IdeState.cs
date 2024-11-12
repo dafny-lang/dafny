@@ -31,6 +31,7 @@ public record IdeCanVerifyState(VerificationPreparationState PreparationProgress
 /// </summary>
 public record IdeState(
   ISet<Uri> OwnedUris,
+  IReadOnlyDictionary<Uri, int> VersionedFiles,
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
@@ -64,6 +65,7 @@ public record IdeState(
   public static IdeState InitialIdeState(CompilationInput input) {
     var program = new EmptyNode();
     return new IdeState(ImmutableHashSet<Uri>.Empty,
+      ImmutableDictionary<Uri, int>.Empty,
       input,
       CompilationStatus.Parsing,
       program,
@@ -356,7 +358,7 @@ public record IdeState(
     var trees = previousState.VerificationTrees;
     foreach (var uri in trees.Keys) {
       trees = trees.SetItem(uri,
-        new DocumentVerificationTree(finishedParsing.Program, uri) {
+        new DocumentVerificationTree(finishedParsing.ParseResult.Program, uri) {
           Children = trees[uri].Children
         });
     }
@@ -365,7 +367,8 @@ public record IdeState(
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
 
     return previousState with {
-      Program = finishedParsing.Program,
+      VersionedFiles = finishedParsing.ParseResult.VersionedFiles,
+      Program = finishedParsing.ParseResult.Program,
       Status = status,
       VerificationTrees = trees
     };
