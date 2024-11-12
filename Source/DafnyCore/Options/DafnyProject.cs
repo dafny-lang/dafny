@@ -30,6 +30,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   public BatchErrorReporter Errors { get; init; } = new(DafnyOptions.Default);
 
+  public int? Version { get; }
   public Uri Uri { get; set; }
 
   public Uri? Base { get; set; }
@@ -47,7 +48,8 @@ public class DafnyProject : IEquatable<DafnyProject> {
     col = 1
   };
 
-  public DafnyProject(Uri uri, Uri? @base, ISet<string> includes, ISet<string>? excludes = null, IDictionary<string, object>? options = null) {
+  public DafnyProject(int? version, Uri uri, Uri? @base, ISet<string> includes, ISet<string>? excludes = null, IDictionary<string, object>? options = null) {
+    Version = version;
     Uri = uri;
     Base = @base;
     Includes = includes;
@@ -58,17 +60,18 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, IToken uriOrigin,
     bool defaultIncludes = true, bool serverNameCheck = true) {
 
-    var emptyProject = new DafnyProject(uri, null, new HashSet<string>(), new HashSet<string>(),
+    var emptyProject = new DafnyProject(null, uri, null, new HashSet<string>(), new HashSet<string>(),
       new Dictionary<string, object>());
 
     DafnyProject result;
     try {
-      using var textReader = fileSystem.ReadFile(uri).Reader;
+      var fileSnapshot = fileSystem.ReadFile(uri);
+      using var textReader = fileSnapshot.Reader;
       var text = await textReader.ReadToEndAsync();
       var model = Toml.ToModel<DafnyProjectFile>(text, null, new TomlModelOptions());
       var directory = Path.GetDirectoryName(uri.LocalPath)!;
 
-      result = new DafnyProject(uri, model.Base == null ? null : new Uri(Path.GetFullPath(model.Base, directory!)),
+      result = new DafnyProject(fileSnapshot.Version, uri, model.Base == null ? null : new Uri(Path.GetFullPath(model.Base, directory!)),
         model.Includes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? new HashSet<string>(),
         model.Excludes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? new HashSet<string>(),
         model.Options ?? new Dictionary<string, object>());

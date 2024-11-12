@@ -216,8 +216,13 @@ public record IdeState(
     }
     ownedUris.Add(determinedRootFiles.Project.Uri);
 
+    var versionedFiles = ImmutableDictionary<Uri, int>.Empty;
+    if (determinedRootFiles.Project.Version != null) {
+      versionedFiles = versionedFiles.Add(determinedRootFiles.Project.Uri, determinedRootFiles.Project.Version.Value);
+    }
     return this with {
       OwnedUris = ownedUris,
+      VersionedFiles = versionedFiles,
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
         file => file.Uri,
@@ -366,6 +371,9 @@ public record IdeState(
     var errors = CurrentFastDiagnostics.Where(d => d.Diagnostic.Severity == DiagnosticSeverity.Error);
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
 
+    foreach (var entry in previousState.VersionedFiles) {
+      finishedParsing.ParseResult.VersionedFiles.Add(entry.Key, entry.Value);
+    }
     return previousState with {
       VersionedFiles = finishedParsing.ParseResult.VersionedFiles,
       Program = finishedParsing.ParseResult.Program,

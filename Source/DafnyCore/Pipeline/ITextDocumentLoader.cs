@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny {
-  public record ProgramParseResult(Program Program, IReadOnlyDictionary<Uri, int> VersionedFiles);
+  public record ProgramParseResult(Program Program, Dictionary<Uri, int> VersionedFiles);
 
   /// <summary>
   /// Implementations are responsible to load a specified language server document and generate
