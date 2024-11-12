@@ -1,4 +1,4 @@
 git-issue-2068.dfy(5,19): Error: 'this' is not allowed in a 'static' context
-git-issue-2068.dfy(10,51): Error: 'this' is not allowed in a 'static' context
 git-issue-2068.dfy(4,34): Error: 'this' is not allowed in a 'static' context
+git-issue-2068.dfy(10,51): Error: 'this' is not allowed in a 'static' context
 3 resolution/type errors detected in git-issue-2068.dfy
