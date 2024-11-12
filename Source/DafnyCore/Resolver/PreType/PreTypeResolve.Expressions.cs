@@ -73,8 +73,8 @@ namespace Microsoft.Dafny {
                 e.PreType = CreatePreTypeProxy($"real literal '{e.Value}'");
                 Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Real);
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InRealFamily, e.PreType, e.tok, "type of real literal is used as {0}"); // TODO: make this error message have the same form as the one for integers above
-              } else if (e.Value is bool) {
-                e.PreType = CreatePreTypeProxy($"boolean literal '{e.Value.ToString().ToLower()}'");
+              } else if (e.Value is bool boolValue) {
+                e.PreType = CreatePreTypeProxy($"boolean literal '{boolValue.ToString().ToLower()}'");
                 Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Bool);
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, e.PreType, e.tok, "boolean literal used as if it had type {0}");
               } else if (e is CharLiteralExpr) {
