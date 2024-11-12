@@ -160,9 +160,8 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Tries to resolve "idPattern" as a symbolic constant with a LiteralExpr RHS.
-    ///
-    /// Return "true" iff "idPattern" is a symbolic constant with a RHS (regardless of what that RHS is).
+    /// Tries to resolve "idPattern" as a symbolic constant with a LiteralExpr RHS, and
+    /// returns "true" upon success.
     ///
     /// If there is such a RHS and that RHS is a LiteralExpr, then
     ///   * record the RHS literal as "idPattern.ResolvedLit", and
@@ -178,10 +177,10 @@ namespace Microsoft.Dafny {
           // the ID refers to a const whose RHS is a literal
           idPattern.ResolvedLit = lit;
           AddSubtypeConstraint(preType, lit.PreType, idPattern.Tok, "literal pattern (of type {1}) cannot be used with source type {0}");
+          return true;
         } else if (reportErrors) {
           ReportError(idPattern.Tok, $"{idPattern.Id} is not initialized as a constant literal");
         }
-        return true;
       }
       return false;
     }
