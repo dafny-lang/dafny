@@ -10,8 +10,8 @@ git-issue-2506.dfy(57,45): Error: a least predicate is not allowed to declare an
 git-issue-2506.dfy(73,33): Error: a recursive call from a least predicate can go only to other least predicates
 git-issue-2506.dfy(76,41): Error: a least predicate can be called recursively only in positive positions
 git-issue-2506.dfy(78,45): Error: a least predicate is not allowed to declare any ensures clause
-git-issue-2506.dfy(90,17): Error: const definition contains a cycle: T.a -> T.b -> T.a
-git-issue-2506.dfy(94,17): Error: const definition contains a cycle: T.a -> T.b -> T.a
-git-issue-2506.dfy(98,17): Error: const definition contains a cycle: T.a -> T.b -> T.a
-git-issue-2506.dfy(102,17): Error: const definition contains a cycle: T.a -> T.b -> T.a
+git-issue-2506.dfy(90,17): Error: const definition contains a cycle: Class.a -> Class.b -> Class.a
+git-issue-2506.dfy(94,17): Error: const definition contains a cycle: Datatype.a -> Datatype.b -> Datatype.a
+git-issue-2506.dfy(98,17): Error: const definition contains a cycle: Newtype.a -> Newtype.b -> Newtype.a
+git-issue-2506.dfy(102,17): Error: const definition contains a cycle: AbstractType.a -> AbstractType.b -> AbstractType.a
 16 resolution/type errors detected in git-issue-2506.dfy
