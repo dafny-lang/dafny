@@ -82,9 +82,10 @@ namespace Microsoft.Dafny {
                 Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Char);
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InCharFamily, e.PreType, e.tok, "character literal used as if it had type {0}");
               } else if (e is StringLiteralExpr) {
-                e.PreType = CreatePreTypeProxy($"string literal \"{e.Value}\"");
-                Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.String);
-                AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InSeqFamily, e.PreType, e.tok, "string literal used as if it had type {0}");
+                var charPreType = CreatePreTypeProxy($"character in string literal");
+                Constraints.AddDefaultAdvice(charPreType, CommonAdvice.Target.Char);
+                AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InCharFamily, charPreType, e.tok, "character literal used as if it had type {0}");
+                ResolveCollectionProducingExpr(PreType.TypeNameSeq, $"string literal \"{e.Value}\"", e, charPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily);
               } else {
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
               }
