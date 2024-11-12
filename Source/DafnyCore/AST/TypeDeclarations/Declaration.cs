@@ -16,6 +16,10 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public Name NameNode;
 
+  public string GetNameRelativeToModule() {
+    return this is ICallable iCallable ? iCallable.NameRelativeToModule : ToString();
+  }
+
   public override IToken Tok => NameNode.StartToken;
   public virtual IToken NavigationToken => NameNode.StartToken;
 
