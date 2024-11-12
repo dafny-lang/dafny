@@ -1,0 +1,50 @@
+Fill in matching patterns for the quantifiers introduced by automatic induction to represent the induction hypothesis. Suppress the generation of the induction hypothesis if no such matching patterns are found. Enhance tooltips accordingly. This feature is added to stabilize verification, but by sometimes not generating induction hypotheses, some automatic proofs may no longer go through. For backward compatibility, use an explicit `{:induction ...}` where `...` is the list of variables to use for the induction-hypothesis quantifier. Additionally, use a  `{:nowarn}` attribute to suppress any warning about lack of matching patterns.
+
+Improve the selection of induction variables.
+
+Allow codatatype equality in matching patterns and as a focal predicate for extreme predicates.
+
+More specifically:
+
+* If a lemma bears `{:induction x, y, z}`, where `x, y, z` is a subset of the lemma's parameters (in the same order
+   that the lemma gives them), then an induction hypothesis (IH) is generated. The IH quantifies over the
+   given variables.
+
+   For an instance-member lemma, the variables may include the implicit `this` parameter.
+
+   For an extreme lemma, the IH generated is the for corresponding prefix lemma, and the given variables may
+   include the implicit parameter `_k`.
+
+   If good matching patterns are found for the quantifier, then these are indicated in tooltips.
+   If no patterns are found, then a warning is generated; except, if the lemma bears `{:nowarn}`, then only
+   an informational message is given.
+
+* If a lemma bears `{:induction}` or `{:induction true}`, then a list of induction variables is determined heuristically.
+
+   If the list is empty, then a warning message is generated and no IH is generated. If the list is nonempty,
+   an IH is generated and the list of variables is indicated in a tooltip.
+
+   If good matching patterns are found for the quantifier, then these are indicated in tooltips.
+   If no patterns are found, then a warning is generated; except, if the lemma bears {:nowarn}, then only
+   an informational message is given.
+
+* If a lemma bears `{:induction false}`, then no IH is generated.
+
+* If a lemma bears an `:induction` attribute other than those listed above, then an error is generated.
+
+* If a lemma bears no `:induction` attribute, and the `--manual-lemma-induction` flag is present, then no IH is generated.
+
+* Otherwise, a list of induction variables is determined heuristically.
+
+   If this list is empty, then no IH is generated and no warning/info is given.
+
+   If the list is nonempty, then the machinery looks for matching patterns for the IH quantifier. If none are
+   found, then no IH is generated.  An informational message is generated, saying which candidate variables were
+   used and saying that no matching patterns were found.
+
+   If patterns are found, then an IH is generated, the list of variables and the patterns are indicated in tooltips,
+   and the patterns are used with the IH quantifier.
+
+   The pattern search can be overriden by providing patterns explicitly using the `{:inductionTrigger}` attribute.
+   This attribute has the same syntax as the `{:trigger}` attribute.  Using an empty list of triggers restores
+   Dafny's legacy behavior (no triggers for lemma induction hypotheses).

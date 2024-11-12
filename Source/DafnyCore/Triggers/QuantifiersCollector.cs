@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
 using Action = System.Action;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Triggers {
   internal class QuantifierCollector : TopDownVisitor<OldExpr/*?*/> {
@@ -29,6 +30,17 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
+    public void AddComprehension(ComprehensionExpr comprehensionExpr, [CanBeNull] List<Expression> splitQuantifier) {
+      quantifiers.Add(comprehensionExpr);
+      if (splitQuantifier != null) {
+        var collection = splitQuantifier.OfType<ComprehensionExpr>();
+        quantifierCollections.Add(new ComprehensionTriggerGenerator(comprehensionExpr, collection, reporter));
+        quantifiers.UnionWith(splitQuantifier);
+      } else {
+        quantifierCollections.Add(new ComprehensionTriggerGenerator(comprehensionExpr, Enumerable.Repeat(comprehensionExpr, 1), reporter));
+      }
+    }
+
     protected override bool VisitOneExpr(Expression expr, ref OldExpr/*?*/ enclosingOldContext) {
       if (expr is LetExpr { Exact: false } letExpr) {
         // create a corresponding exists quantifier
@@ -45,17 +57,9 @@ namespace Microsoft.Dafny.Triggers {
       // only consider quantifiers that are not empty (Bound.Vars.Count > 0)
       if (expr is ComprehensionExpr e && e.BoundVars.Count > 0 && !quantifiers.Contains(e)) {
         if (e is SetComprehension or MapComprehension) {
-          quantifiers.Add(e);
-          quantifierCollections.Add(new ComprehensionTriggerGenerator(e, Enumerable.Repeat(e, 1), reporter));
+          AddComprehension(e, null);
         } else if (e is QuantifierExpr quantifier) {
-          quantifiers.Add(quantifier);
-          if (quantifier.SplitQuantifier != null) {
-            var collection = quantifier.SplitQuantifier.Select(q => q as ComprehensionExpr).Where(q => q != null);
-            quantifierCollections.Add(new ComprehensionTriggerGenerator(e, collection, reporter));
-            quantifiers.UnionWith(quantifier.SplitQuantifier);
-          } else {
-            quantifierCollections.Add(new ComprehensionTriggerGenerator(e, Enumerable.Repeat(quantifier, 1), reporter));
-          }
+          AddComprehension(quantifier, quantifier.SplitQuantifier);
         }
       }
 
