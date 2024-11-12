@@ -1,0 +1,5 @@
+git-issue-5730.dfy(5,9): Warning: Members with {:only} temporarily disable the verification of other members in the entire file
+git-issue-5730-include.dfy(4,9): Error: assertion might not hold
+git-issue-5730.dfy(6,11): Error: assertion might not hold
+
+Dafny program verifier finished with 0 verified, 2 errors

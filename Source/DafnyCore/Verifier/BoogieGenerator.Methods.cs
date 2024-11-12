@@ -43,10 +43,13 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in c.Members.FindAll(VisibleInScope)) {
         Contract.Assert(IsAllocContext == null);
         CurrentDeclaration = member;
-        if (!filterOnlyMembers || member.HasUserAttribute("only", out _)) {
-          SetAssertionOnlyFilter(member);
-        } else {
+        var ignored =
+          filesWhereOnlyMembersAreVerified.Contains(member.tok.Uri) &&
+          !member.HasUserAttribute("only", out _);
+        if (ignored) {
           assertionOnlyFilter = _ => false;
+        } else {
+          SetAssertionOnlyFilter(member);
         }
 
         if (member is Field) {
@@ -1646,7 +1649,7 @@ namespace Microsoft.Dafny {
         if (node is AssertStmt assertStmt &&
             assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {
           var ifAfterLastToken = m.EndToken;
-          if (rangesOnly.FindIndex(r => r.Contains(node.StartToken.pos)) is var x && x >= 0) {
+          if (rangesOnly.FindIndex(r => r.Contains(node.StartToken)) is var x && x >= 0) {
             if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before) {// Just shorten the previous range
               rangesOnly[x] = new RangeToken(rangesOnly[x].StartToken, node.EndToken);
               return true;
@@ -1672,7 +1675,7 @@ namespace Microsoft.Dafny {
       });
       if (rangesOnly.Any()) {
         // TODO: What to do with refined postconditions?
-        assertionOnlyFilter = token => rangesOnly.Any(range => range.Contains((token.pos)));
+        assertionOnlyFilter = token => rangesOnly.Any(range => range.Contains(token));
       }
     }
 
