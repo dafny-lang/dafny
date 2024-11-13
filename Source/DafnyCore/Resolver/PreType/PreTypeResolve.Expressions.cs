@@ -479,7 +479,14 @@ namespace Microsoft.Dafny {
                   if (familyDeclName == PreType.TypeNameInt) {
                     errorMessageFormat = "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
                   } else if (familyDeclName == PreType.TypeNameReal) {
-                    errorMessageFormat = "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
+                    var legacy = !resolver.Options.Get(CommonOptionBag.GeneralNewtypes);
+                    if (legacy) {
+                      errorMessageFormat = "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
+                    } else if (dtoPreType.Decl.Name == PreType.TypeNameReal) {
+                      errorMessageFormat = "type conversion to real is allowed only from numeric-based types (got {1})";
+                    } else {
+                      errorMessageFormat = "type conversion to a real-based type is allowed only from real (got {1})";
+                    }
                   } else if (IsBitvectorName(familyDeclName)) {
                     errorMessageFormat = "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
                   } else if (familyDeclName == PreType.TypeNameChar) {

@@ -1,8 +1,8 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s"
 
 newtype sreal = r: real | r > -4 as real
 newtype sint = r: int | r > -4 as int
-newtype ssreal = r: sreal | r > -3 as sreal
+newtype ssreal = r: sreal | r > -3 as real as sreal
 newtype ssint = r: sint | r > -3 as sint
 
 method Print(b: bool, end: string)
@@ -19,8 +19,8 @@ method Print(b: bool, end: string)
 
 method Main() {
   Print(24 as real <= 1507 as real, " ");
-  Print(24 as sreal <= 1507 as sreal, " ");
-  Print(24 as ssreal <= 1507 as ssreal, " ");
+  Print(24 as real as sreal <= 1507 as real as sreal, " ");
+  Print(24 as real as ssreal <= 1507 as real as ssreal, " ");
   Print(24 as int <= 1507 as int, " ");
   Print(24 as sint <= 1507 as sint, " ");
   Print(24 as ssint <= 1507 as ssint, " ");
@@ -30,8 +30,8 @@ method Main() {
   Print(24 as ORDINAL <= 1507 as ORDINAL, "\n");
 
   Print(24 as real == 1507 as real, " ");
-  Print(24 as sreal == 1507 as sreal, " ");
-  Print(24 as ssreal == 1507 as ssreal, " ");
+  Print(24 as real as sreal == 1507 as real as sreal, " ");
+  Print(24 as real as ssreal == 1507 as real as ssreal, " ");
   Print(24 as int == 1507 as int, " ");
   Print(24 as sint == 1507 as sint, " ");
   Print(24 as ssint == 1507 as ssint, " ");
@@ -41,8 +41,8 @@ method Main() {
   Print(24 as ORDINAL == 1507 as ORDINAL, "\n");
 
   Print(24 as real >= 1507 as real, " ");
-  Print(24 as sreal >= 1507 as sreal, " ");
-  Print(24 as ssreal >= 1507 as ssreal, " ");
+  Print(24 as real as sreal >= 1507 as real as sreal, " ");
+  Print(24 as real as ssreal >= 1507 as real as ssreal, " ");
   Print(24 as int >= 1507 as int, " ");
   Print(24 as sint >= 1507 as sint, " ");
   Print(24 as ssint >= 1507 as ssint, " ");
@@ -52,8 +52,8 @@ method Main() {
   Print(24 as ORDINAL >= 1507 as ORDINAL, "\n");
 
   Print(24 as real < 1507 as real, " ");
-  Print(24 as sreal < 1507 as sreal, " ");
-  Print(24 as ssreal < 1507 as ssreal, " ");
+  Print(24 as real as sreal < 1507 as real as sreal, " ");
+  Print(24 as real as ssreal < 1507 as real as ssreal, " ");
   Print(24 as int < 1507 as int, " ");
   Print(24 as sint < 1507 as sint, " ");
   Print(24 as ssint < 1507 as ssint, " ");
@@ -63,8 +63,8 @@ method Main() {
   Print(24 as ORDINAL < 1507 as ORDINAL, "\n");
 
   Print(24 as real != 1507 as real, " ");
-  Print(24 as sreal != 1507 as sreal, " ");
-  Print(24 as ssreal != 1507 as ssreal, " ");
+  Print(24 as real as sreal != 1507 as real as sreal, " ");
+  Print(24 as real as ssreal != 1507 as real as ssreal, " ");
   Print(24 as int != 1507 as int, " ");
   Print(24 as sint != 1507 as sint, " ");
   Print(24 as ssint != 1507 as ssint, " ");
@@ -74,8 +74,8 @@ method Main() {
   Print(24 as ORDINAL != 1507 as ORDINAL, "\n");
 
   Print(24 as real > 1507 as real, " ");
-  Print(24 as sreal > 1507 as sreal, " ");
-  Print(24 as ssreal > 1507 as ssreal, " ");
+  Print(24 as real as sreal > 1507 as real as sreal, " ");
+  Print(24 as real as ssreal > 1507 as real as ssreal, " ");
   Print(24 as int > 1507 as int, " ");
   Print(24 as sint > 1507 as sint, " ");
   Print(24 as ssint > 1507 as ssint, " ");
