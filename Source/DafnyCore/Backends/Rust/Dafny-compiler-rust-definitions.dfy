@@ -352,6 +352,14 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     if !overflow then tpe else R.TMetaData(tpe, copySemantics := true, overflow := true)
   }
 
+  // We use the range as the wrapped type only if the base is a Primitive
+  function NewtypeRangeToUnwrappedBoundedRustType(base: Type, range: NewtypeRange): Option<R.Type> {
+    if base == Primitive(Primitive.Int) then
+      NewtypeRangeToRustType(range)
+    else
+      None
+  }
+
   function NewtypeRangeToRustType(range: NewtypeRange)
     : Option<R.Type> {
     match range {
@@ -369,6 +377,35 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       case USIZE() => Some(R.Type.USIZE)
       case _ => None
     }
+  }
+
+  
+  function GetUnwrappedBoundedRustType(tpe: Type): Option<R.Type> {
+    match tpe {
+      case UserDefined(ResolvedType(path, typeArgs, Newtype(base, range, erase), _, _, _)) =>
+        NewtypeRangeToUnwrappedBoundedRustType(base, range)
+      case _ => None
+    }
+  }
+
+  predicate NeedsUnwrappingConversion(tpe: Type) {
+    match tpe {
+      case UserDefined(ResolvedType(path, typeArgs, Newtype(base, range, erase), _, _, _)) =>
+        NewtypeRangeToUnwrappedBoundedRustType(base, range).None?
+      case _ => false
+    }
+  }
+
+  predicate IsNewtype(tpe: Type) {
+    tpe.UserDefined? && tpe.resolved.kind.Newtype?
+  }
+
+  lemma CoveredAllNewtypeCases(tpe: Type)
+    requires GetUnwrappedBoundedRustType(tpe).None?
+    requires !NeedsUnwrappingConversion(tpe)
+    ensures !IsNewtype(tpe)
+  {
+
   }
 
   predicate OwnershipGuarantee(expectedOwnership: Ownership, resultingOwnership: Ownership) {

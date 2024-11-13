@@ -229,7 +229,6 @@ namespace Microsoft.Dafny.Compilers {
     readonly DAST.Expression witness;
     private ISequence<_IAttribute> attributes;
     private readonly List<DAST._IMethod> methods;
-    private readonly List<DAST.Field> fields;
 
     public NewtypeBuilder(NewtypeContainer parent, string name, List<TypeArgDecl> typeParams,
       NewtypeRange newtypeRange, DAST.Type baseType, Option<DAST.NewtypeConstraint> constraint, List<DAST.Statement> statements,

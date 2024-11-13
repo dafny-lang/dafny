@@ -485,13 +485,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var typeParamsSeq, rTypeParams, rTypeParamsDecls, whereConstraints := GenTypeParameters(c.typeParams);
       var constrainedTypeParams := R.TypeParamDecl.ToStringMultiple(rTypeParamsDecls, R.IND + R.IND);
 
-      var underlyingType;
-      var rustType := NewtypeRangeToRustType(c.range);
-      match rustType {
-        case Some(v) =>
-          underlyingType := v;
-        case None =>
-          underlyingType := GenType(c.base, GenTypeContext.default());
+      var wrappedType;
+      var rustType := NewtypeRangeToUnwrappedBoundedRustType(c.base, c.range);
+      if rustType.Some? {
+        wrappedType := rustType.value;
+      } else {
+        wrappedType := GenType(c.base, GenTypeContext.default());
       }
       var newtypeType: Type :=
         UserDefined(
@@ -516,7 +515,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             ],
             newtypeName,
             rTypeParamsDecls,
-            R.NamelessFields([R.NamelessField(R.PUB, underlyingType)])
+            R.NamelessFields([R.NamelessField(R.PUB, wrappedType)])
           ))];
 
       var fnBody := R.Identifier(newtypeName);
@@ -599,7 +598,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             R.std.MSel("ops").MSel("Deref").AsType(),
             resultingType,
             "",
-            [R.TypeDeclMember("Target", underlyingType),
+            [R.TypeDeclMember("Target", wrappedType),
              R.FnDecl(
                R.PRIV,
                R.Fn("deref", [],
@@ -1266,12 +1265,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
             case Newtype(base, range, erased) => {
               if erased {
-                match NewtypeRangeToRustType(range) {
-                  case Some(v) =>
-                    s := v;
-                  case None =>
-                    var underlying := GenType(base, GenTypeContext.default());
-                    s := underlying;
+                var unwrappedType := NewtypeRangeToUnwrappedBoundedRustType(base, range);
+                if unwrappedType.Some? {
+                  s := unwrappedType.value;
+                } else {
+                  var unwrappedType := GenType(base, GenTypeContext.default());
+                  s := unwrappedType;
                 }
               } else if IsNewtypeCopy(range) {
                 s := R.TMetaData(s, copySemantics := true, overflow := range.canOverflow());
@@ -2311,132 +2310,142 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       return;
     }
 
-    method GenExprConvertToNewtype(
-      e: Expression,
-      selfIdent: SelfInfo,
-      env: Environment,
+    // To use when we know that the expression is a Convert(_, _, toTpe)
+    // and toTpe is a newtype
+    method {:isolate_assertions} {:only} GenExprConvertTo(
+      expr: R.Expr,
+      exprOwnership: Ownership,
+      fromTpe: Type,
+      toTpe: Type,
       expectedOwnership: Ownership
-    ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
-      requires e.Convert?
-      requires e.from != e.typ
-      requires e.typ.UserDefined? && e.typ.resolved.kind.Newtype?
+    ) returns (r: R.Expr, resultingOwnership: Ownership)
+      requires exprOwnership != OwnershipAutoBorrowed
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
-      decreases e, 0, 0
+      decreases fromTpe, toTpe // We unwrap newtypes
     {
-      var Convert(expr, fromTpe, toTpe) := e;
-      var UserDefined(ResolvedType(path, typeArgs, Newtype(b, range, erase), _, _, _)) := toTpe;
-      var nativeToType := NewtypeRangeToRustType(range);
-      // To convert to a newtype
-      // 1. If the origin is a newtype, we unwrap it completely by converting it to its underlying type
-      // 2. Now we have a base type, either unbounded with a 1-1 correspondance to Rust, or bounded (DafnyInt)
-      // 3. We wrap accordingly the result
-      if fromTpe == b && nativeToType.None? { // Int 
-        var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-        readIdents := recIdents;
-        r := recursiveGen;
-        match nativeToType {
-          case Some(v) =>
-            r := R.dafny_runtime.MSel("truncate!").AsExpr().Apply([r, R.ExprFromType(v)]);
-          case None =>
-        }
-        if !erase {
-          var rhsType := GenType(toTpe, GenTypeContext.default());
-          r := R.ExprFromType(rhsType).Apply1(r);
-        }
-        r, resultingOwnership := FromOwned(r, expectedOwnership);
-      } else {
-        if nativeToType.Some? {
-          // Conversion between any newtypes that can be expressed as a native Rust type
-          match fromTpe {
-            case UserDefined(
-              ResolvedType(path0, _, Newtype(b0, range0, erase0), attributes0, _, _)) => {
-              var nativeFromType := NewtypeRangeToRustType(range0);
-              var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-              r := recursiveGen;
-              // Need to transition via the erased newtype
-              if !erase0 {
-                r := r.Sel("0");
-              }
-              if nativeFromType.Some? {
-                r := R.TypeAscription(r, nativeToType.value);
-              }
-              match nativeToType {
-                case Some(v) =>
-                  r := R.dafny_runtime.MSel("truncate!").AsExpr().Apply([r, R.ExprFromType(v)]);
-                case None =>
-              }
-              if !erase {
-                var fullPath := GenPathExpr(path);
-                r := fullPath.Apply1(r);
-              }
-              r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
-              readIdents := recIdents;
-              return;
-            }
-            case _ =>
-          }
-          if fromTpe == Primitive(Char) {
-            var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            r, resultingOwnership := FromOwnership(R.TypeAscription(recursiveGen.Sel("0"), nativeToType.value), recOwned, expectedOwnership);
-            readIdents := recIdents;
-            return;
-          }
-        }
-        assume {:axiom} Convert(Convert(expr, fromTpe, b), b, toTpe) < e; // make termination go through
-        r, resultingOwnership, readIdents := GenExpr(Convert(Convert(expr, fromTpe, b), b, toTpe), selfIdent, env, expectedOwnership);
+      r := expr;
+      if fromTpe == toTpe {
+        r, resultingOwnership := FromOwnership(r, exprOwnership, expectedOwnership);
+        return;
       }
-    }
-
-    method GenExprConvertFromNewtype(
-      e: Expression,
-      selfIdent: SelfInfo,
-      env: Environment,
-      expectedOwnership: Ownership
-    ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
-      requires e.Convert?
-      requires e.from != e.typ
-      requires (!e.typ.UserDefined? || !e.typ.resolved.kind.Newtype?)
-      requires e.from.UserDefined? && e.from.resolved.kind.Newtype?
-      modifies this
-      ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
-      decreases e, 0, 0
-    {
-      var Convert(expr, fromTpe, toTpe) := e;
-      var UserDefined(
-      ResolvedType(_, _, Newtype(b, range, erase), attributes, _, _)) := fromTpe;
-      var nativeFromType := NewtypeRangeToRustType(range);
-      if b == toTpe {
-        var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-        readIdents := recIdents;
-        if erase {
-          r := recursiveGen;
-        } else {
-          r := recursiveGen.Sel("0");
+      if NeedsUnwrappingConversion(fromTpe) {
+        // From type is a newtype but it's not a primitive one.
+        if !fromTpe.resolved.kind.erase {
+          r := r.Sel("0");
         }
-        match nativeFromType {
-          case Some(v) =>
-            var toTpeRust := GenType(toTpe, GenTypeContext.default());
-            r := R.std.MSel("convert").MSel("Into").AsExpr().ApplyType([toTpeRust]).FSel("into").Apply([r]);
-            r, resultingOwnership := FromOwned(r, expectedOwnership);
-          case None =>
-            r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
+        r, resultingOwnership := 
+          GenExprConvertTo(r, exprOwnership, fromTpe.resolved.kind.baseType, toTpe, expectedOwnership);
+        return;
+      }
+      if NeedsUnwrappingConversion(toTpe) {
+        var toKind := toTpe.resolved.kind;
+        r, resultingOwnership := 
+          GenExprConvertTo(r, exprOwnership, fromTpe, toKind.baseType, expectedOwnership);
+        if !toKind.erase {
+          var fullPath := GenPathExpr(toTpe.resolved.path);
+          if resultingOwnership == OwnershipOwned {
+            r := fullPath.Apply1(r);
+          } else {
+            r := fullPath.FSel("_from_ref").Apply1(r); // Keep borrowbility
+          }
         }
-      } else {
-        if nativeFromType.Some? {
-          // The case where toTpe is a NewType which compiles to a native integer has already been handled.
-          if toTpe == Primitive(Char) {
-            var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
-            r, resultingOwnership := FromOwnership(
-              R.dafny_runtime.MSel(DafnyChar).AsExpr().Apply1(
-                R.TypeAscription(recursiveGen, DafnyCharUnderlying)
-              ), recOwned, expectedOwnership);
-            readIdents := recIdents;
+        r, resultingOwnership := FromOwnership(r, resultingOwnership, expectedOwnership);
+        return;
+      }
+      // At this point, our newtypes are either primitives or we have other types.
+      var unwrappedFromType := GetUnwrappedBoundedRustType(fromTpe);
+      var unwrappedToType := GetUnwrappedBoundedRustType(toTpe);
+      if unwrappedToType.Some? {
+        var boundedToType := unwrappedToType.value;
+        if unwrappedFromType.Some? {
+          if unwrappedFromType.value != unwrappedToType.value {
+            var asType := boundedToType;
+            if exprOwnership == OwnershipBorrowed {
+              asType := R.Borrowed(asType);
+            }
+            r := R.TypeAscription(r, asType);
+            r, resultingOwnership := FromOwnership(r, exprOwnership, expectedOwnership);
             return;
           }
         }
-        assume {:axiom} Convert(Convert(expr, fromTpe, b), b, toTpe) < e; // make termination go through
-        r, resultingOwnership, readIdents := GenExpr(Convert(Convert(expr, fromTpe, b), b, toTpe), selfIdent, env, expectedOwnership);
+        assert !IsNewtype(fromTpe);
+        if fromTpe == Primitive(Primitive.Int) {
+          if exprOwnership == OwnershipBorrowed {
+            r := r.Clone();
+          }
+          r := R.dafny_runtime.MSel("truncate!").AsExpr().Apply([r, R.ExprFromType(boundedToType)]);        
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+          return;
+        }
+        if fromTpe == Primitive(Char) {
+          r, resultingOwnership := FromOwned(
+            R.TypeAscription(r.Sel("0"), boundedToType), expectedOwnership);
+          return;
+        }
+        var fromTpeRust := GenType(fromTpe, GenTypeContext.default());
+        r := Error("No conversion available from "+fromTpeRust.ToString("")+" to " + boundedToType.ToString(""));
+        r, resultingOwnership := FromOwned(r, expectedOwnership);
+        return;
+      }
+      assert !IsNewtype(toTpe);
+      if unwrappedFromType.Some? {
+        if !fromTpe.resolved.kind.erase {
+          r := r.Sel("0");
+        }
+        // Now r is of type unwrappedFromType.value
+        if toTpe == Primitive(Char) {
+          r, resultingOwnership := FromOwnership(
+            R.dafny_runtime.MSel(DafnyChar).AsExpr().Apply1(
+              R.TypeAscription(r, DafnyCharUnderlying)
+            ), exprOwnership, expectedOwnership);
+          return;
+        }
+        if toTpe == Primitive(Primitive.Int) {
+          r, resultingOwnership := FromOwnership(r, exprOwnership, OwnershipOwned);
+          r := R.dafny_runtime.MSel("int!").AsExpr().Apply1(r);
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+          return;
+        }
+        var toTpeRust := GenType(toTpe, GenTypeContext.default());
+        error := Some("No conversion available from "+unwrappedFromType.value.ToString("")+" to " + toTpeRust.ToString(""));
+        r := R.RawExpr(error.value);
+        resultingOwnership := expectedOwnership;
+        return;
+      }
+      assert !IsNewtype(fromTpe);
+      match (fromTpe, toTpe) {
+        case (Primitive(Int), Primitive(Real)) => {
+          r := R.RcNew(R.dafny_runtime.MSel("BigRational").AsExpr().FSel("from_integer").Apply1(r));
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+        }
+        case (Primitive(Real), Primitive(Int)) => {
+          r := R.dafny_runtime.AsExpr().FSel("dafny_rational_to_int").Apply1(r);
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+        }
+        case (Primitive(Int), Primitive(Char)) => {
+          var rhsType := GenType(toTpe, GenTypeContext.default());
+          var uType := if charType.UTF32? then R.U32 else R.U16;
+          if exprOwnership != OwnershipOwned {
+            r := r.Clone();
+          }
+          r := R.TraitCast(uType, R.dafny_runtime.MSel("NumCast").AsType()).FSel("from").Apply1(
+            r
+          ).Sel("unwrap").Apply0();
+          if charType.UTF32? {
+            r := R.Identifier("char").FSel("from_u32").Apply1(r).Sel("unwrap").Apply0();
+          }
+          r := R.dafny_runtime.MSel(DafnyChar).AsExpr().Apply1(r);
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+        }
+        case (Primitive(Char), Primitive(Int)) => {
+          var rhsType := GenType(fromTpe, GenTypeContext.default());
+          r := R.dafny_runtime.MSel("int!").AsExpr().Apply1(r.Sel("0"));
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+        }
+        case _ => {
+          r, resultingOwnership := GenExprConvertOther(expr, fromTpe, toTpe, expectedOwnership);
+        }
       }
     }
 
@@ -2563,40 +2572,32 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     }
 
     method GenExprConvertOther(
-      e: Expression,
-      selfIdent: SelfInfo,
-      env: Environment,
+      expr: R.Expr,
+      fromTpe: Type,
+      toTpe: Type,
       expectedOwnership: Ownership
-    ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
-      requires e.Convert?
+    ) returns (r: R.Expr, resultingOwnership: Ownership)
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
-      decreases e, 0, 0
     {
-      var Convert(expr, fromTpe, toTpe) := e;
+      r := expr;
       var fromTpeGen := GenType(fromTpe, GenTypeContext.default());
       var toTpeGen := GenType(toTpe, GenTypeContext.default());
       var upcastConverter := UpcastConversionLambda(fromTpe, fromTpeGen, toTpe, toTpeGen, map[]);
       if upcastConverter.Success? {
         var conversionLambda := upcastConverter.value;
-        var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-        readIdents := recIdents;
-        r := conversionLambda.Apply1(recursiveGen);
+        r := conversionLambda.Apply1(r);
         r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
       } else if IsDowncastConversion(fromTpeGen, toTpeGen) {
-        var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-        readIdents := recIdents;
         assert toTpeGen.IsObjectOrPointer();
         toTpeGen := toTpeGen.ObjectOrPointerUnderlying();
         r := R.dafny_runtime
-        .MSel(downcast).AsExpr().Apply([recursiveGen, R.ExprFromType(toTpeGen)]);
+        .MSel(downcast).AsExpr().Apply([r, R.ExprFromType(toTpeGen)]);
         r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
       } else {
-        var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
-        readIdents := recIdents;
         var Failure((fromType, fromTpeGen, toType, toTpeGen, m)) := upcastConverter;
-        r := Error("<i>Coercion from " + fromTpeGen.ToString(IND) + " to " + toTpeGen.ToString(IND) + "</i> not yet implemented", recursiveGen);
-        r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
+        r := Error("<i>Coercion from " + fromTpeGen.ToString(IND) + " to " + toTpeGen.ToString(IND) + "</i> not yet implemented", r);
+        r, resultingOwnership := FromOwned(r, expectedOwnership);
       }
     }
 
@@ -2612,83 +2613,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       decreases e, 0
     {
       var Convert(expr, fromTpe, toTpe) := e;
-      if fromTpe == toTpe {
-        var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
-        r := recursiveGen;
-        r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
-        readIdents := recIdents;
-      } else {
-        match (fromTpe, toTpe) {
-          case (_, UserDefined(ResolvedType(_, _, Newtype(b, range, erase), attributes, _, _))) => {
-            r, resultingOwnership, readIdents := GenExprConvertToNewtype(e, selfIdent, env, expectedOwnership);
-          }
-          case (UserDefined(ResolvedType(_, _, Newtype(b, range, erase), attributes, _, _)), _) => {
-            r, resultingOwnership, readIdents := GenExprConvertFromNewtype(e, selfIdent, env, expectedOwnership);
-          }
-          case (Primitive(Int), Primitive(Real)) => {
-            var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            r := R.RcNew(R.dafny_runtime.MSel("BigRational").AsExpr().FSel("from_integer").Apply1(recursiveGen));
-            r, resultingOwnership := FromOwned(r, expectedOwnership);
-            readIdents := recIdents;
-          }
-          case (Primitive(Real), Primitive(Int)) => {
-            var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipBorrowed);
-            r := R.dafny_runtime.AsExpr().FSel("dafny_rational_to_int").Apply1(recursiveGen);
-            r, resultingOwnership := FromOwned(r, expectedOwnership);
-            readIdents := recIdents;
-          }
-          case (Primitive(Int), Passthrough(_)) => {
-            var rhsType := GenType(toTpe, GenTypeContext.default());
-            var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            r := R.TraitCast(rhsType, R.dafny_runtime.MSel("NumCast").AsType()).FSel("from").Apply1(recursiveGen).Sel("unwrap").Apply0();
-            r, resultingOwnership := FromOwned(r, expectedOwnership);
-            readIdents := recIdents;
-          }
-          case (Passthrough(_), Primitive(Int)) => {
-            var rhsType := GenType(fromTpe, GenTypeContext.default());
-            var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            r := R.dafny_runtime.MSel("DafnyInt").AsExpr().FSel("new")
-            .Apply1(R.std.MSel("rc").MSel("Rc").AsExpr().FSel("new")
-                    .Apply1(R.dafny_runtime.MSel("BigInt").AsExpr().FSel("from").Apply1(recursiveGen)));
-            r, resultingOwnership := FromOwned(r, expectedOwnership);
-            readIdents := recIdents;
-          }
-          case (Primitive(Int), Primitive(Char)) => {
-            var rhsType := GenType(toTpe, GenTypeContext.default());
-            var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            var uType := if charType.UTF32? then R.U32 else R.U16;
-            r := R.TraitCast(uType, R.dafny_runtime.MSel("NumCast").AsType());
-            r := r.FSel("from").Apply1(
-              recursiveGen
-            ).Sel("unwrap").Apply0();
-            if charType.UTF32? {
-              r := R.Identifier("char").FSel("from_u32").Apply1(r).Sel("unwrap").Apply0();
-            }
-            r := R.dafny_runtime.MSel(DafnyChar).AsExpr().Apply1(r);
-            r, resultingOwnership := FromOwned(r, expectedOwnership);
-            readIdents := recIdents;
-          }
-          case (Primitive(Char), Primitive(Int)) => {
-            var rhsType := GenType(fromTpe, GenTypeContext.default());
-            var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            r := R.dafny_runtime.MSel("int!").AsExpr().Apply1(recursiveGen.Sel("0"));
-            r, resultingOwnership := FromOwned(r, expectedOwnership);
-            readIdents := recIdents;
-          }
-          case (Passthrough(_), Passthrough(_)) => {
-            var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            var toTpeGen := GenType(toTpe, GenTypeContext.default());
-
-            r := R.TypeAscription(recursiveGen, toTpeGen);
-
-            r, resultingOwnership := FromOwned(r, expectedOwnership);
-            readIdents := recIdents;
-          }
-          case _ => {
-            r, resultingOwnership, readIdents := GenExprConvertOther(e, selfIdent, env, expectedOwnership);
-          }
-        }
-      }
+      var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
+      r := recursiveGen;
+      r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
+      readIdents := recIdents;
+      r, resultingOwnership := GenExprConvertTo(r, recOwned, fromTpe, toTpe, expectedOwnership);
       assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
       return;
     }
