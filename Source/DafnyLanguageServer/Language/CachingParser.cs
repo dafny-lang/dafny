@@ -50,7 +50,8 @@ public class CachingParser : ProgramParser {
     // We should cache an immutable version of the AST instead: https://github.com/dafny-lang/dafny/issues/4086
     var cloner = new Cloner(true, false);
     var clonedResult = result! with {
-      Module = new FileModuleDefinition(cloner, result.Module)
+      Module = new FileModuleDefinition(cloner, result.Module),
+      Version = fileSnapshot.Version
     };
     return clonedResult;
   }
