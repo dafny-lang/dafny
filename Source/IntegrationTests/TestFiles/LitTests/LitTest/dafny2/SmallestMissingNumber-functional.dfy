@@ -219,30 +219,10 @@ lemma Elements_Property(xs: List)
 opaque ghost function IntRange(lo: nat, len: nat): (s: set<nat>)
   ensures |s| == len
   ensures forall x :: x in s <==> lo <= x < lo + len
+  decreases len
 {
-  var S := FormSet(lo, len);
-  AboutFormSet(lo, len);
-  S
-}
-
-opaque ghost function FormSet(lo: nat, len: nat): (s: set<nat>)
-  ensures forall x :: x in s <==> lo <= x < lo + len
-{
-  set x {:trigger} | lo <= x < lo + len
-}
-
-lemma {:induction false} AboutFormSet(lo: nat, len: nat)
-  ensures |FormSet(lo, len)| == len
-{
-  var S := FormSet(lo, len);
-  if len == 0 {
-    assert S == {};
-  } else {
-    var max := lo + len - 1;
-    var S' := FormSet(lo, len - 1);
-    assert S == S' + {max};
-    AboutFormSet(lo, len - 1);
-  }
+  if len == 0 then {} else
+    IntRange (lo + 1, len - 1) + {lo}
 }
 
 // ----- Proofs of alternative versions
@@ -267,17 +247,16 @@ lemma {:induction false} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
     var bound := IntRange(n, half);
     Cardinality(Elements(L), bound);
     if llen < half {
-      reveal SMN'();
       SMN'_Correct(L, n, llen);
     } else {
       var s := SMN'(xs, n, len);
-      var t := SMN'(R, n + llen, len - llen);
       SMN'_Correct(R, n + llen, len - llen);
       assert n <= s <= n + len by {
       }
       assert s !in Elements(xs) by {
       }
       assert forall x :: n <= x < s ==> x in Elements(xs) by {
+        var t := SMN'(R, n + llen, len - llen);
         forall x | n <= x < t
           ensures x in Elements(xs)
         {
