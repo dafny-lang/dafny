@@ -29,9 +29,8 @@ public class CachingParser : ProgramParser {
       logger, telemetryPublisher, programName, "parsing", cancellationToken);
   }
 
-  protected override DfyParseFileResult ParseFile(DafnyOptions options, Func<FileSnapshot> getReader,
+  protected override DfyParseFileResult ParseFile(DafnyOptions options, FileSnapshot fileSnapshot,
     Uri uri, CancellationToken cancellationToken) {
-    var fileSnapshot = getReader();
     using var reader = fileSnapshot.Reader;
 
     // Add NUL delimiter to avoid collisions (otherwise hash("A" + "BC") == hash("AB" + "C"))
@@ -40,7 +39,7 @@ public class CachingParser : ProgramParser {
     var (newReader, hash) = ComputeHashFromReader(uriBytes, reader, HashAlgorithm.Create("SHA256")!);
     if (!parseCache.TryGet(hash, out var result)) {
       logger.LogDebug($"Parse cache miss for {uri}");
-      result = base.ParseFile(options, () => fileSnapshot with { Reader = newReader }, uri, cancellationToken);
+      result = base.ParseFile(options, fileSnapshot with { Reader = newReader }, uri, cancellationToken);
       parseCache.Set(hash, result);
     } else {
       logger.LogDebug($"Parse cache hit for {uri}");

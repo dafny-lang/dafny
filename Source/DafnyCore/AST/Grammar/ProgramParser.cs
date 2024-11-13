@@ -113,8 +113,9 @@ public class ProgramParser {
     IToken origin,
     Uri uri,
     CancellationToken cancellationToken) {
+    var fileSnapshot = getSnapShot();
     try {
-      return ParseFile(options, getSnapShot, uri, cancellationToken);
+      return ParseFile(options, fileSnapshot, uri, cancellationToken);
     } catch (IOException e) {
       if (origin == null) {
         throw;
@@ -123,7 +124,7 @@ public class ProgramParser {
       var reporter = new BatchErrorReporter(options);
       reporter.Error(MessageSource.Parser, origin,
         $"Unable to open the file {uri} because {e.Message}.");
-      return new DfyParseFileResult(null, uri, reporter, new FileModuleDefinition(Token.NoToken),
+      return new DfyParseFileResult(fileSnapshot.Version, uri, reporter, new FileModuleDefinition(Token.NoToken),
         new Action<SystemModuleManager>[] { });
     } catch (OperationCanceledException) {
       throw;
@@ -139,7 +140,7 @@ public class ProgramParser {
       var reporter = new BatchErrorReporter(options);
       reporter.Error(MessageSource.Parser, ErrorId.p_internal_exception, internalErrorDummyToken,
         "[internal error] Parser exception: " + e.Message + "\n" + e.StackTrace);
-      return new DfyParseFileResult(null, uri, reporter, new FileModuleDefinition(Token.NoToken),
+      return new DfyParseFileResult(fileSnapshot.Version, uri, reporter, new FileModuleDefinition(Token.NoToken),
         new Action<SystemModuleManager>[] { });
     }
   }
@@ -271,10 +272,9 @@ public class ProgramParser {
   /// Returns the number of parsing errors encountered.
   /// Note: first initialize the Scanner.
   ///</summary>
-  protected virtual DfyParseFileResult ParseFile(DafnyOptions options, Func<FileSnapshot> getSnapshot,
+  protected virtual DfyParseFileResult ParseFile(DafnyOptions options, FileSnapshot fileSnapshot,
     Uri uri, CancellationToken cancellationToken) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
-    var fileSnapshot = getSnapshot();
     using var reader = fileSnapshot.Reader;
     var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
     return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
