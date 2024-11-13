@@ -470,17 +470,26 @@ public class Attributes : TokenNode, ICanFormat {
   // This list could be obtained from parsing and resolving a .Dfy file
   // but for now it's good enough.
   public static readonly List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = new() {
-    BuiltIn("AutoContracts"),
-    BuiltIn("AutoRequires"),
-    BuiltIn("AutoRevealDependenciesAll").WithArg(TupleItem0Name, Type.Bool, DefaultBool(true)),
-    BuiltIn("AutoRevealDependencies").WithArg("level", Type.Int),
-    BuiltIn("Axiom"),
+    BuiltIn("AutoContracts")
+      .Filter(attributeHost => attributeHost is ClassDecl),
+    BuiltIn("AutoRequires")
+      .Filter(attributeHost => attributeHost is Function),
+    BuiltIn("AutoRevealDependenciesAll").WithArg(TupleItem0Name, Type.Bool, DefaultBool(true))
+      .Filter(attributeHost => attributeHost is MethodOrFunction),
+    BuiltIn("AutoRevealDependencies").WithArg("level", Type.Int)
+      .Filter(attributeHost => attributeHost is MethodOrFunction),
+    BuiltIn("Axiom")
+      .Filter(attributeHost => attributeHost is MethodOrFunction),
     BuiltIn("Compile")
       .WithArg(TupleItem0Name, Type.Bool, DefaultBool(true))
       .Filter(attributeHost =>
         attributeHost is TopLevelDecl and not TypeParameter or MemberDecl or ModuleDefinition),
-    BuiltIn("Concurrent"),
-    BuiltIn("DisableNonlinearArithmetic"),
+    BuiltIn("Concurrent")
+      .Filter(attributeHost =>
+        attributeHost is MethodOrFunction),
+    BuiltIn("DisableNonlinearArithmetic")
+      .Filter(attributeHost =>
+        attributeHost is ModuleDefinition),
     BuiltIn("Fuel")
       .WithArg("low", Type.Int, DefaultInt(1))
       .WithArg("high", Type.Int, DefaultInt(2))
@@ -488,39 +497,69 @@ public class Attributes : TokenNode, ICanFormat {
       .Filter(attributeHost => attributeHost is Function or AssertStmt),
     BuiltIn("IsolateAssertions")
       .Filter(attributeHost => attributeHost is ICanVerify),
-    BuiltIn("NativeUInt8"),
-    BuiltIn("NativeInt8"),
-    BuiltIn("NativeUInt16"),
-    BuiltIn("NativeInt16"),
-    BuiltIn("NativeUInt32"),
-    BuiltIn("NativeInt32"),
-    BuiltIn("NativeInt53"),
-    BuiltIn("NativeUInt64"),
-    BuiltIn("NativeInt64"),
-    BuiltIn("NativeUInt128"),
-    BuiltIn("NativeInt128"),
-    BuiltIn("NativeInt"),
-    BuiltIn("NativeNone"),
-    BuiltIn("NativeIntOrReal"),
+    BuiltIn("NativeUInt8")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeInt8")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeUInt16")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeInt16")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeUInt32")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeInt32")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeInt53")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeUInt64")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeInt64")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeUInt128")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeInt128")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeInt")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeNone")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
+    BuiltIn("NativeIntOrReal")
+      .Filter(attributeHost => attributeHost is NewtypeDecl),
     BuiltIn("Options")
       .WithArg(TupleItem0Name, Type.ResolvedString())
       .Filter(attributeHost => attributeHost is ModuleDecl or ModuleDefinition),
-    BuiltIn("Print"),
-    BuiltIn("Priority").WithArg(TupleItem0Name, Type.Int),
-    BuiltIn("ResourceLimit").WithArg(TupleItem0Name, Type.Int),
-    BuiltIn("Synthesize"),
-    BuiltIn("TimeLimit").WithArg(TupleItem0Name, Type.Int),
-    BuiltIn("TimeLimitMultiplier").WithArg(TupleItem0Name, Type.Int),
-    BuiltIn("TailRecursion"),
-    BuiltIn("Test"),
-    BuiltIn("TestEntry"),
-    BuiltIn("TestInline").WithArg("level", Type.Int, DefaultInt(1)),
-    BuiltIn("Transparent"),
-    BuiltIn("VcsMaxCost").WithArg(TupleItem0Name, Type.Int),
-    BuiltIn("VcsMaxKeepGoingSplits").WithArg(TupleItem0Name, Type.Int),
-    BuiltIn("VcsMaxSplits").WithArg(TupleItem0Name, Type.Int),
-    BuiltIn("Verify"),
-    BuiltIn("VerifyOnly"),
+    BuiltIn("Print")
+      .Filter(attributeHost => attributeHost is Method),
+    BuiltIn("Priority").WithArg(TupleItem0Name, Type.Int)
+      .Filter(attributeHost => attributeHost is ICanVerify),
+    BuiltIn("ResourceLimit").WithArg(TupleItem0Name, Type.Int)
+      .Filter(attributeHost => attributeHost is ICanVerify),
+    BuiltIn("Synthesize")
+      .Filter(attributeHost => attributeHost is Method),
+    BuiltIn("TimeLimit").WithArg(TupleItem0Name, Type.Int)
+      .Filter(attributeHost => attributeHost is ICanVerify),
+    BuiltIn("TimeLimitMultiplier").WithArg(TupleItem0Name, Type.Int)
+      .Filter(attributeHost => attributeHost is ICanVerify),
+    BuiltIn("TailRecursion")
+      .Filter(attributeHost => attributeHost is MethodOrFunction),
+    BuiltIn("Test")
+      .Filter(attributeHost => attributeHost is MethodOrFunction),
+    BuiltIn("TestEntry")
+      .Filter(attributeHost => attributeHost is MethodOrFunction),
+    BuiltIn("TestInline").WithArg("level", Type.Int, DefaultInt(1))
+      .Filter(attributeHost => attributeHost is MethodOrFunction),
+    BuiltIn("Transparent")
+      .Filter(attributeHost => attributeHost is Function),
+    BuiltIn("VcsMaxCost").WithArg(TupleItem0Name, Type.Int)
+      .Filter(attributeHost => attributeHost is ICanVerify),
+    BuiltIn("VcsMaxKeepGoingSplits").WithArg(TupleItem0Name, Type.Int)
+      .Filter(attributeHost => attributeHost is ICanVerify),
+    BuiltIn("VcsMaxSplits").WithArg(TupleItem0Name, Type.Int)
+      .Filter(attributeHost => attributeHost is ICanVerify),
+    BuiltIn("Verify")
+      .Filter(attributeHost => attributeHost is ICanVerify),
+    BuiltIn("VerifyOnly")
+      .Filter(attributeHost => attributeHost is ICanVerify),
   };
 
   ////// Helpers to create default values for the @-attribute definitions above //////
