@@ -773,17 +773,17 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssumeStmt) {
         var s = (AssumeStmt)stmt;
         r = new AssumeStmt(s.RangeToken, Substitute(s.Expr), SubstAttributes(s.Attributes));
-      } else if (stmt is BreakStmt) {
-        var s = (BreakStmt)stmt;
-        BreakStmt rr;
+      } else if (stmt is BreakOrContinueStmt) {
+        var s = (BreakOrContinueStmt)stmt;
+        BreakOrContinueStmt rr;
         if (s.TargetLabel != null) {
-          rr = new BreakStmt(s.RangeToken, s.TargetLabel, s.IsContinue);
+          rr = new BreakOrContinueStmt(s.RangeToken, s.TargetLabel, s.IsContinue);
         } else {
-          rr = new BreakStmt(s.RangeToken, s.BreakAndContinueCount, s.IsContinue);
+          rr = new BreakOrContinueStmt(s.RangeToken, s.BreakAndContinueCount, s.IsContinue);
         }
         // r.TargetStmt will be filled in as later
         if (!BreaksToBeResolved.TryGetValue(s, out var breaks)) {
-          breaks = new List<BreakStmt>();
+          breaks = new List<BreakOrContinueStmt>();
           BreaksToBeResolved.Add(s, breaks);
         }
         breaks.Add(rr);
@@ -904,7 +904,7 @@ namespace Microsoft.Dafny {
       return r;
     }
 
-    Dictionary<Statement, List<BreakStmt>> BreaksToBeResolved = new Dictionary<Statement, List<BreakStmt>>();  // old-target -> new-breaks
+    Dictionary<Statement, List<BreakOrContinueStmt>> BreaksToBeResolved = new Dictionary<Statement, List<BreakOrContinueStmt>>();  // old-target -> new-breaks
 
     protected void AddStmtLabels(Statement s, LList<Label> node) {
       if (node != null) {

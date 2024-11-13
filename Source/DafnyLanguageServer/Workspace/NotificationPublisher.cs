@@ -7,7 +7,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -87,16 +86,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
         languageServer.SendNotification(new CompilationStatusParams {
           Uri = uri,
-          Version = filesystem.GetVersion(uri),
+          Version = GetFileVersion(state, uri),
           Status = current,
           Message = null
         });
       }
     }
 
+    private static int? GetFileVersion(IdeState state, Uri uri) {
+      int? version = null;
+      if (state.VersionedFiles.TryGetValue(uri, out var file)) {
+        version = file;
+      }
+
+      return version;
+    }
+
     private FileVerificationStatus GetFileVerificationStatus(IdeState state, Uri uri) {
       var verificationResults = state.GetVerificationResults(uri);
-      return new FileVerificationStatus(uri, filesystem.GetVersion(uri),
+      return new FileVerificationStatus(uri, GetFileVersion(state, uri),
         verificationResults.Select(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value)).
             OrderBy(s => s.NameRange.Start).ToList());
     }
@@ -181,7 +189,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           logger.LogTrace($"Publish diagnostics called for URI {publishUri}");
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
-            Version = filesystem.GetVersion(publishUri),
+            Version = GetFileVersion(state, publishUri),
             Diagnostics = diagnostics,
           });
         }
@@ -213,7 +221,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         var linesCount = tree.Range.End.Line + 1;
-        var fileVersion = filesystem.GetVersion(uri);
+        var fileVersion = GetFileVersion(state, uri);
         if (linesCount == 0) {
           return;
         }

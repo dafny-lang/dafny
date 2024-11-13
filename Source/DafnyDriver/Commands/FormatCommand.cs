@@ -96,9 +96,9 @@ Use '--print' to output the content of the formatted files instead of overwritin
       }
 
       var content = dafnyFile.GetContent();
-      var originalText = await content.ReadToEndAsync();
-      content.Close(); // Manual closing because we want to overwrite
-      dafnyFile.GetContent = () => new StringReader(originalText);
+      var originalText = await content.Reader.ReadToEndAsync();
+      content.Reader.Close(); // Manual closing because we want to overwrite
+      dafnyFile.GetContent = () => content with { Reader = new StringReader(originalText) };
       // Might not be totally optimized but let's do that for now
       var (dafnyProgram, err) = await DafnyMain.Parse(new List<DafnyFile> { dafnyFile }, programName, options);
       if (err != null) {

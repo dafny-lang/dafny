@@ -5,7 +5,14 @@ DAFNY = dotnet run --project ../../Dafny --no-build --
 GENERATED_SYSTEM_MODULE_SOURCE=../obj/systemModulePopulator-py/System_.py
 GENERATED_SYSTEM_MODULE_TARGET=System_/__init__.py
 
+# Use a virtual environment in order to avoid polluting the system installation,
+# dependency conflicts, etc.
 VIRTUALENV = venv
+ifeq ($(OS),Windows_NT)
+	VIRTUALENV_PYTHON = $(VIRTUALENV)/Scripts/python.exe
+else
+	VIRTUALENV_PYTHON = $(VIRTUALENV)/bin/python
+endif
 
 all: check-system-module
 
@@ -20,16 +27,16 @@ update-system-module: build-system-module
 
 setup-venv:
 	python -m venv --clear $(VIRTUALENV)
-	$(VIRTUALENV)/bin/pip install --upgrade build twine
+	$(VIRTUALENV_PYTHON) -m pip install --upgrade build twine
 
 clean-package:
 	rm -rf dist/ *.egg-info/
 
 build-package:
-	$(VIRTUALENV)/bin/python -m build
+	$(VIRTUALENV_PYTHON) -m build
 
 upload-package-testpypi:
-	$(VIRTUALENV)/bin/python -m twine upload --repository testpypi dist/*
+	$(VIRTUALENV_PYTHON) -m twine upload --repository testpypi dist/*
 
 upload-package-pypi:
-	$(VIRTUALENV)/bin/python -m twine upload dist/*
+	$(VIRTUALENV_PYTHON) -m twine upload dist/*

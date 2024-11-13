@@ -223,13 +223,14 @@ public class Compilation : IDisposable {
       return null;
     }
 
-    transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
+    var parseResult = await documentLoader.ParseAsync(this, cancellationSource.Token);
+    transformedProgram = parseResult.Program;
     transformedProgram.HasParseErrors = HasErrors;
 
     var cloner = new Cloner(true);
     programAfterParsing = new Program(cloner, transformedProgram);
 
-    updates.OnNext(new FinishedParsing(programAfterParsing));
+    updates.OnNext(new FinishedParsing(parseResult with { Program = programAfterParsing }));
     logger.LogDebug(
       $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
     return programAfterParsing;

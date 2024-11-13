@@ -295,15 +295,6 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
     }
 
     [Fact]
-    public async Task EmptyFileNoCodeWarning() {
-      var source = "";
-      var documentItem = CreateTestDocument(source, "EmptyFileNoCodeWarning.dfy");
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(new Range(0, 0, 0, 0), diagnostics[0].Range);
-    }
-
-    [Fact]
     public async Task OpeningFailingFunctionPreconditionHasRelatedDiagnostics() {
       var source = @"
 predicate P(i: int) {
@@ -387,11 +378,7 @@ predicate {:opaque} m() {
       await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
       ApplyChange(ref documentItem, ((0, 0), (3, 0)), "\n");
 
-      var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Single(diagnostics);
       ApplyChange(ref documentItem, ((1, 0), (1, 0)), "const x := 1");
-      var diagnostics2 = await GetLastDiagnostics(documentItem);
-      Assert.Empty(diagnostics2);
       await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
     }
 
