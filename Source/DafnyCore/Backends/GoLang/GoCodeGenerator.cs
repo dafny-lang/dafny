@@ -1847,7 +1847,7 @@ namespace Microsoft.Dafny.Compilers {
       return string.Format("{0}{1}_{2}", ptr, TypeName(UserDefinedType.FromTopLevelDecl(ctor.tok, ctor.EnclosingDatatype), wr, ctor.tok), ctor.GetCompileName(Options));
     }
 
-    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
+    internal override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       // XXX This duplicates some of the logic in UserDefinedTypeName, but if we
       // don't do it here, we end up passing the name of the module to
