@@ -294,16 +294,16 @@ method M3()
 }
 
 method M4()
-    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b7: bv7, w: bv32, seven: bv7, noll: bv0)
-  ensures UseTheVars(x, n, r, even, small, b7 as bv67, w, seven, noll)
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, seven as bv67, w, seven, noll)
 {
   if {
     case true =>
       even := noll as EvenInt;
     case true =>
-      even := b7 as EvenInt;
-    case b7 as int % 2 == 0 =>
-      even := b7 as EvenInt;
+      even := seven as EvenInt;
+    case seven as int % 2 == 0 =>
+      even := seven as EvenInt;
     case true =>
       small := seven as SmallReal;
     case true =>
@@ -366,7 +366,7 @@ TypeConversions.dfy(62,28): Error: value to be converted might not fit in bv7
 TypeConversions.dfy(72,29): Error: value to be converted might not fit in bv0
 TypeConversions.dfy(73,27): Error: value to be converted might not fit in bv0
 TypeConversions.dfy(74,31): Error: value to be converted might not fit in bv0
-TypeConversions.dfy(96,28): Error: result of operation might violate newtype constraint for 'EvenInt'
+TypeConversions.dfy(96,31): Error: result of operation might violate newtype constraint for 'EvenInt'
 TypeConversions.dfy(100,20): Error: result of operation might violate newtype constraint for 'EvenInt'
 TypeConversions.dfy(100,20): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 TypeConversions.dfy(102,20): Error: result of operation might violate newtype constraint for 'EvenInt'

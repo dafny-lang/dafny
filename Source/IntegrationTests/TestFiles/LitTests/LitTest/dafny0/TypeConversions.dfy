@@ -88,13 +88,13 @@ method M3() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
   assert 0 <= x && 0.0 <= r;
 }
 // M4 is checked quickly, but using bv67 instead of bv7 takes forever, and even bv23 takes 40 minutes. See numbers at bottom of this file.
-method M4() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b7: bv7, w: bv32, seven: bv7, noll: bv0)
-  ensures UseTheVars(x, n, r, even, small, b7 as bv67, w, seven, noll)
+method M4() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, seven as bv67, w, seven, noll)
 {
   if {
     case true => even := noll as EvenInt;
-    case true => even := b7 as EvenInt;  // error: bv7 may be odd
-    case b7 as int % 2 == 0 => even := b7 as EvenInt;
+    case true => even := seven as EvenInt;  // error: "seven" may be odd
+    case seven as int % 2 == 0 => even := seven as EvenInt;
     case true => small := seven as SmallReal;
     case true =>
       even := small as EvenInt;  // error (x2): small may not even be an integer, let alone odd
