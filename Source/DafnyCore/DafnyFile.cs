@@ -23,7 +23,7 @@ public class DafnyFile {
   public bool ShouldNotVerify { get; private set; }
   public bool ShouldNotCompile { get; private set; }
   public DafnyOptions FileOptions { get; private set; }
-  public Func<TextReader> GetContent { get; set; }
+  public Func<FileSnapshot> GetContent { get; set; }
   public Uri Uri { get; private set; }
   public IToken? Origin { get; }
 
@@ -156,7 +156,8 @@ public class DafnyFile {
   }
 
   public static DafnyFile HandleStandardInput(DafnyOptions options, IToken origin) {
-    return new DafnyFile(DafnyFileExtension, "<stdin>", "<stdin>", () => options.Input, new Uri("stdin:///"), origin, options) {
+    return new DafnyFile(DafnyFileExtension, "<stdin>", "<stdin>",
+      () => new FileSnapshot(options.Input, null), new Uri("stdin:///"), origin, options) {
       ShouldNotCompile = false,
       ShouldNotVerify = false,
     };
@@ -188,7 +189,7 @@ public class DafnyFile {
     }
 
     return new DafnyFile(".dll", canonicalPath, baseName,
-      () => new StringReader(sourceText), uri, origin, parseOptions) {
+      () => new FileSnapshot(new StringReader(sourceText), null), uri, origin, parseOptions) {
       ShouldNotCompile = true,
       ShouldNotVerify = true,
     };
@@ -242,14 +243,14 @@ public class DafnyFile {
     // the DooFile class should encapsulate the serialization logic better
     // and expose a Program instead of the program text.
     yield return new DafnyFile(DooFile.Extension, Canonicalize(uri.LocalPath).LocalPath, Path.GetFileName(uri.LocalPath),
-      () => new StringReader(dooFile.ProgramText), uri, origin, validDooOptions) {
+      () => new FileSnapshot(new StringReader(dooFile.ProgramText), null), uri, origin, validDooOptions) {
       ShouldNotCompile = asLibrary,
       ShouldNotVerify = true,
     };
   }
 
   protected DafnyFile(string extension, string canonicalPath, string baseName,
-    Func<TextReader> getContent, Uri uri, IToken? origin, DafnyOptions fileOptions) {
+    Func<FileSnapshot> getContent, Uri uri, IToken? origin, DafnyOptions fileOptions) {
     Extension = extension;
     CanonicalPath = canonicalPath;
     BaseName = baseName;

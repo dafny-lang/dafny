@@ -62,7 +62,8 @@ namespace DafnyPipeline.Test {
         var reporter = new BatchErrorReporter(options);
         Microsoft.Dafny.Type.ResetScopes();
 
-        var dafnyProgram = await new ProgramParser().Parse(programNotIndented, uri, reporter);
+        var parseResult = await new ProgramParser().Parse(programNotIndented, uri, reporter);
+        var dafnyProgram = parseResult.Program;
 
         if (reporter.HasErrors) {
           var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
@@ -125,7 +126,7 @@ namespace DafnyPipeline.Test {
         // Verify that the formatting is stable.
         Microsoft.Dafny.Type.ResetScopes();
         var newReporter = new BatchErrorReporter(options);
-        dafnyProgram = await new ProgramParser().Parse(reprinted, uri, newReporter);
+        dafnyProgram = (await new ProgramParser().Parse(reprinted, uri, newReporter)).Program;
 
         Assert.Equal(initErrorCount, reporter.ErrorCount + newReporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTokenForUri(uri);
