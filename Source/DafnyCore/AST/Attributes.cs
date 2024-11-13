@@ -326,29 +326,29 @@ public class Attributes : TokenNode, ICanFormat {
 
     switch (name) {
       case "AutoContracts": {
-        return A("autocontracts");
-      }
+          return A("autocontracts");
+        }
       case "AutoRequires": {
-        return A("autoReq");
-      }
+          return A("autoReq");
+        }
       case "AutoRevealDependenciesAll": {
-        return A1("autoRevealDependencies", bindings);
-      }
+          return A1("autoRevealDependencies", bindings);
+        }
       case "AutoRevealDependencies": {
-        return A1("autoRevealDependencies", bindings);
-      }
+          return A1("autoRevealDependencies", bindings);
+        }
       case "Axiom": {
-        return A(AxiomAttributeName);
-      }
+          return A(AxiomAttributeName);
+        }
       case "Compile": {
           return A1("compile", bindings);
         }
       case "Concurrent": {
-        return A(ConcurrentAttributeName);
-      }
+          return A(ConcurrentAttributeName);
+        }
       case "DisableNonlinearArithmetic": {
-        return A1("disable-nonlinear-arithmetic", bindings);
-      }
+          return A1("disable-nonlinear-arithmetic", bindings);
+        }
       case "Fuel": {
           if (Get(bindings, 0, out var lowFuel) && lowFuel != null) {
             if (Get(bindings, 1, out var highFuel) && highFuel != null) {
@@ -368,98 +368,98 @@ public class Attributes : TokenNode, ICanFormat {
           return A("isolate_assertions");
         }
       case "NativeUInt8": {
-        return A("nativeType", DefaultString("byte"));
-      }
+          return A("nativeType", DefaultString("byte"));
+        }
       case "NativeInt8": {
-        return A("nativeType", DefaultString("sbyte"));
-      }
+          return A("nativeType", DefaultString("sbyte"));
+        }
       case "NativeUInt16": {
-        return A("nativeType", DefaultString("ushort"));
-      }
+          return A("nativeType", DefaultString("ushort"));
+        }
       case "NativeInt16": {
-        return A("nativeType", DefaultString("short"));
-      }
+          return A("nativeType", DefaultString("short"));
+        }
       case "NativeUInt32": {
-        return A("nativeType", DefaultString("uint"));
-      }
+          return A("nativeType", DefaultString("uint"));
+        }
       case "NativeInt32": {
-        return A("nativeType", DefaultString("int"));
-      }
+          return A("nativeType", DefaultString("int"));
+        }
       case "NativeInt53": {
-        return A("nativeType", DefaultString("number"));
-      }
+          return A("nativeType", DefaultString("number"));
+        }
       case "NativeUInt64": {
-        return A("nativeType", DefaultString("ulong"));
-      }
+          return A("nativeType", DefaultString("ulong"));
+        }
       case "NativeInt64": {
-        return A("nativeType", DefaultString("long"));
-      }
+          return A("nativeType", DefaultString("long"));
+        }
       case "NativeUInt128": {
-        return A("nativeType", DefaultString("udoublelong"));
-      }
+          return A("nativeType", DefaultString("udoublelong"));
+        }
       case "NativeInt128": {
-        return A("nativeType", DefaultString("doublelong"));
-      }
+          return A("nativeType", DefaultString("doublelong"));
+        }
       case "NativeInt": {
-        return A("nativeType", DefaultBool(true));
-      }
+          return A("nativeType", DefaultBool(true));
+        }
       case "NativeNone": {
-        return A("nativeType", DefaultBool(false));
-      }
+          return A("nativeType", DefaultBool(false));
+        }
       case "NativeIntOrReal": {
-        return A("nativeType");
-      }
+          return A("nativeType");
+        }
       case "Options": {
           return A1("options", bindings);
         }
       case "Print": {
-        return A("print");
-      }
+          return A("print");
+        }
       case "Priority": {
-        return A1("priority", bindings);
-      }
+          return A1("priority", bindings);
+        }
       case "ResourceLimit": {
-        return A1("resource_limit", bindings);
-      }
+          return A1("resource_limit", bindings);
+        }
       case "Synthesize": {
-        return A("synthesize");
-      }
+          return A("synthesize");
+        }
       case "TimeLimit": {
-        return A1("timeLimit", bindings);
-      }
+          return A1("timeLimit", bindings);
+        }
       case "TimeLimitMultiplier": {
-        return A1("timeLimitMultiplier", bindings);
-      }
+          return A1("timeLimitMultiplier", bindings);
+        }
       case "TailRecursion": {
-        return A("tailrecursion");
-      }
+          return A("tailrecursion");
+        }
       case "Test": {
-        return A("test");
-      }
+          return A("test");
+        }
       case "TestEntry": {
-        return A("TestEntry");
-      }
+          return A("TestEntry");
+        }
       case "TestInline": {
-        return A1("testInline", bindings);
-      }
+          return A1("testInline", bindings);
+        }
       case "Transparent": {
-        return A("transparent");
-      }
+          return A("transparent");
+        }
       case "VcsMaxCost": {
-        return A1("vcs_max_cost", bindings);
-      }
+          return A1("vcs_max_cost", bindings);
+        }
       case "VcsMaxKeepGoingSplits": {
-        return A1("vcs_max_keep_going_splits", bindings);
-      }
+          return A1("vcs_max_keep_going_splits", bindings);
+        }
       case "VcsMaxSplits": {
-        return A1("vcs_max_splits", bindings);
-      }
+          return A1("vcs_max_splits", bindings);
+        }
       case "Verify": {
-        return A1(VerifyAttributeName, bindings);
-      }
+          return A1(VerifyAttributeName, bindings);
+        }
       case "VerifyOnly": {
-        return A("only");
-      }
+          return A("only");
+        }
       default: {
           throw new Exception("@-Attribute added to Attributes.BuiltinAtAttributes needs to be handled here");
         }
