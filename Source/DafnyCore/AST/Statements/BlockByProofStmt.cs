@@ -49,4 +49,14 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint, IClo
   public Statement Clone(Cloner cloner) {
     return new BlockByProofStmt(cloner, this);
   }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
+    Body.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
+    IsGhost = IsGhost || Body.IsGhost;
+
+    Proof.ResolveGhostness(resolver, reporter, true, codeContext, "a by block", allowAssumptionVariables, inConstructorInitializationPhase);
+  }
 }

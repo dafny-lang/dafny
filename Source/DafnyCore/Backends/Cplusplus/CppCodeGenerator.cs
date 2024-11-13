@@ -1117,7 +1117,7 @@ namespace Microsoft.Dafny.Compilers {
       return String.Format("std::shared_ptr<{0}{1}>", s, ActualTypeArgs(typeArgs));
     }
 
-    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
+    internal override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
       // There are no companion classes for Cpp
       var t = TypeName(type, wr, tok, member, true);
       return t;

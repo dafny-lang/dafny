@@ -1,0 +1,28 @@
+InductionWithoutTriggers.dfy(17,21): Warning: Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. For more information, see the section quantifier instantiation rules in the reference manual.
+InductionWithoutTriggers.dfy(40,24): Warning: Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. For more information, see the section quantifier instantiation rules in the reference manual.
+InductionWithoutTriggers.dfy(46,24): Warning: Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. For more information, see the section quantifier instantiation rules in the reference manual.
+InductionWithoutTriggers.dfy(66,19): Warning: Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. For more information, see the section quantifier instantiation rules in the reference manual.
+InductionWithoutTriggers.dfy(11,9): Error: assertion might not hold
+InductionWithoutTriggers.dfy(43,0): Error: a postcondition could not be proved on this return path
+InductionWithoutTriggers.dfy(42,10): Related location: this is the postcondition that could not be proved
+InductionWithoutTriggers.dfy(31,27): Related location: this proposition could not be proved
+InductionWithoutTriggers.dfy(49,0): Error: a postcondition could not be proved on this return path
+InductionWithoutTriggers.dfy(48,10): Related location: this is the postcondition that could not be proved
+InductionWithoutTriggers.dfy(31,27): Related location: this proposition could not be proved
+InductionWithoutTriggers.dfy(69,0): Error: a postcondition could not be proved on this return path
+InductionWithoutTriggers.dfy(68,10): Related location: this is the postcondition that could not be proved
+InductionWithoutTriggers.dfy(31,27): Related location: this proposition could not be proved
+InductionWithoutTriggers.dfy(83,0): Error: a postcondition could not be proved on this return path
+InductionWithoutTriggers.dfy(82,10): Related location: this is the postcondition that could not be proved
+InductionWithoutTriggers.dfy(31,27): Related location: this proposition could not be proved
+InductionWithoutTriggers.dfy(100,0): Error: a postcondition could not be proved on this return path
+InductionWithoutTriggers.dfy(99,10): Related location: this is the postcondition that could not be proved
+InductionWithoutTriggers.dfy(31,27): Related location: this proposition could not be proved
+InductionWithoutTriggers.dfy(124,0): Error: a postcondition could not be proved on this return path
+InductionWithoutTriggers.dfy(123,18): Related location: this is the postcondition that could not be proved
+InductionWithoutTriggers.dfy(35,27): Related location: this proposition could not be proved
+InductionWithoutTriggers.dfy(124,0): Error: a postcondition could not be proved on this return path
+InductionWithoutTriggers.dfy(123,10): Related location: this is the postcondition that could not be proved
+InductionWithoutTriggers.dfy(31,27): Related location: this proposition could not be proved
+
+Dafny program verifier finished with 17 verified, 8 errors

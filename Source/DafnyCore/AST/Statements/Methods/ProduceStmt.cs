@@ -69,4 +69,17 @@ public abstract class ProduceStmt : Statement {
       }
     }
   }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    var kind = this is YieldStmt ? "yield" : "return";
+    if (mustBeErasable && !codeContext.IsGhost) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_produce_statement_not_allowed_in_ghost, this,
+        "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
+    }
+
+    this.HiddenUpdate?.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext,
+      allowAssumptionVariables, inConstructorInitializationPhase);
+  }
 }

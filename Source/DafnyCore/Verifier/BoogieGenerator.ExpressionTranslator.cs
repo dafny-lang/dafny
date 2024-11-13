@@ -1674,17 +1674,18 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         return varsAndAntecedents;
       }
 
-      public Boogie.Expr TrBoundVariablesRename(List<BoundVar> boundVars, List<Variable> bvars, out Dictionary<IVariable, Expression> substMap, out Boogie.Trigger antitriggers) {
+      public Boogie.Expr TrBoundVariablesRename(List<BoundVar> boundVars, List<Variable> bvars, out Dictionary<IVariable, Expression> substMap) {
         Contract.Requires(boundVars != null);
         Contract.Requires(bvars != null);
 
         substMap = new Dictionary<IVariable, Expression>();
-        antitriggers = null;
         Boogie.Expr typeAntecedent = Boogie.Expr.True;
         foreach (BoundVar bv in boundVars) {
           var newBoundVar = new BoundVar(bv.tok, bv.Name, bv.Type);
-          IdentifierExpr ie = new IdentifierExpr(newBoundVar.tok, newBoundVar.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator));
-          ie.Var = newBoundVar; ie.Type = ie.Var.Type;  // resolve ie here
+          IdentifierExpr ie = new IdentifierExpr(newBoundVar.tok, newBoundVar.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator)) {
+            Var = newBoundVar,
+            Type = newBoundVar.Type
+          };
           substMap.Add(bv, ie);
           Boogie.Variable bvar = new Boogie.BoundVariable(newBoundVar.tok, new Boogie.TypedIdent(newBoundVar.tok, newBoundVar.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(newBoundVar.Type)));
           bvars.Add(bvar);
