@@ -200,7 +200,7 @@ pub mod dafny_runtime_conversions {
         DafnyMap::<K, V>::from_hashmap(map, converter_k, converter_v)
     }
 
-    // --unicode-chars:true
+    // --unicode-char:true
     pub mod unicode_chars_true {
         use crate::Sequence;
 
@@ -216,7 +216,7 @@ pub mod dafny_runtime_conversions {
         }
     }
 
-    // --unicode-chars:false
+    // --unicode-char:false
     pub mod unicode_chars_false {
         use crate::Sequence;
 
