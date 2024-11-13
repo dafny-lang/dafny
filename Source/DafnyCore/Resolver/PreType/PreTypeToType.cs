@@ -124,16 +124,32 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         VisitPattern(lhs, context);
       }
     } else if (expr is DatatypeValue datatypeValue) {
+      // If the datatype has no type parameters, then .InferredTypeArgs.Count == .InferredPreTypeArgs.Count == 0.
+      // If it has type parameters, say n of them, then:
+      //     with Ctor(args),                 .InferredTypeArgs.Count == 0 and .InferredPreTypeArgs.Count == n
+      //     with Dt<TArgs>.Ctor(args),       .InferredTypeArgs.Count == .InferredPreTypeArgs.Count == n
+      //     with Dt.Ctor(args),              .InferredTypeArgs.Count == .InferredPreTypeArgs.Count == n where the .InferredTypeArgs are
+      //                                      all InferredTypeProxy's.
+      // Note that "TArgs" may contain types whose type arguments are InferredTypeProxy's; this happens if a type argument
+      // in "TArgs" is given without its arguments
       Contract.Assert(datatypeValue.InferredTypeArgs.Count == 0 || datatypeValue.InferredTypeArgs.Count == datatypeValue.InferredPreTypeArgs.Count);
-      if (datatypeValue.InferredTypeArgs.Count == 0) {
-        var datatypeDecl = datatypeValue.Ctor.EnclosingDatatype;
-        Contract.Assert(datatypeValue.InferredPreTypeArgs.Count == datatypeDecl.TypeArgs.Count);
-        for (var i = 0; i < datatypeDecl.TypeArgs.Count; i++) {
+      if (datatypeValue.InferredTypeArgs.Any(typeArg => typeArg is TypeProxy)) {
+        Contract.Assert(datatypeValue.InferredTypeArgs.All(typeArg => typeArg is InferredTypeProxy));
+      }
+      var datatypeDecl = datatypeValue.Ctor.EnclosingDatatype;
+      Contract.Assert(datatypeValue.InferredPreTypeArgs.Count == datatypeDecl.TypeArgs.Count);
+
+      for (var i = 0; i < datatypeDecl.TypeArgs.Count; i++) {
+        var actualPreType = datatypeValue.InferredPreTypeArgs[i];
+        if (i < datatypeValue.InferredTypeArgs.Count) {
+          var givenTypeOrProxy = datatypeValue.InferredTypeArgs[i];
+          PreType2TypeUtil.Combine(givenTypeOrProxy, actualPreType, givenTypeOrProxy is TypeProxy);
+        } else {
           var formal = datatypeDecl.TypeArgs[i];
-          var actualPreType = datatypeValue.InferredPreTypeArgs[i];
           datatypeValue.InferredTypeArgs.Add(PreType2TypeUtil.PreType2RefinableType(actualPreType, formal.Variance));
         }
       }
+
     } else if (expr is ConversionExpr conversionExpr) {
       PreType2TypeUtil.Combine(conversionExpr.ToType, conversionExpr.PreType, false);
       expr.Type = conversionExpr.ToType;
