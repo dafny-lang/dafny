@@ -2215,11 +2215,11 @@ namespace Microsoft.Dafny {
 
       if (e0 != null) {
         ConstrainToIntFamilyOrBitvector(e0.PreType, e0.tok,
-          "multi-element selection position expression must have an integer or bitvector type (got {0})");
+          "multi-element selection expression must have an integer or bitvector type (got {0})");
       }
       if (e1 != null) {
         ConstrainToIntFamilyOrBitvector(e1.PreType, e1.tok,
-          "multi-element selection position expression must have an integer or bitvector type (got {0})");
+          "multi-element selection expression must have an integer or bitvector type (got {0})");
       }
 
       // In the expression s[e0..e1], correlate the type of s with the result type.
