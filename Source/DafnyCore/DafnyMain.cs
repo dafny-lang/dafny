@@ -67,7 +67,8 @@ namespace Microsoft.Dafny {
         _ => throw new ArgumentOutOfRangeException()
       };
 
-      var program = await new ProgramParser().ParseFiles(programName, files, reporter, CancellationToken.None);
+      var parseResult = await new ProgramParser().ParseFiles(programName, files, reporter, CancellationToken.None);
+      var program = parseResult.Program;
       var errorCount = program.Reporter.ErrorCount;
       if (errorCount != 0) {
         return (program, $"{errorCount} parse errors detected in {program.Name}");
