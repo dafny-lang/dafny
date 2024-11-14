@@ -782,7 +782,7 @@ module Std.Collections.Seq {
      and then using "Filter" is the same as using "Filter" on each sequence separately, and then
      concatenating the two resulting sequences. */
   lemma {:isolate_assertions} {:induction false}
-  LemmaFilterDistributesOverConcat<T(!new)>(f: T ~> bool, xs: seq<T>, ys: seq<T>)
+    LemmaFilterDistributesOverConcat<T(!new)>(f: T ~> bool, xs: seq<T>, ys: seq<T>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Filter(f, xs + ys) == Filter(f, xs) + Filter(f, ys)

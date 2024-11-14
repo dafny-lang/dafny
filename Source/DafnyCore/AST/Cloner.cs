@@ -336,11 +336,17 @@ namespace Microsoft.Dafny {
         return CloneAttributes(attrs.Prev);
       } else if (attrs is UserSuppliedAttributes usa) {
         return new UserSuppliedAttributes(Tok(usa.tok), Tok(usa.OpenBrace), Tok(usa.CloseBrace),
-          attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
+          attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev)) {
+          RangeToken = Tok(usa.RangeToken)
+        };
       } else if (attrs is UserSuppliedAtAttribute usaa) {
-        return new UserSuppliedAtAttribute(Tok(usaa.tok), CloneExpr(usaa.Arg), CloneAttributes(usaa.Prev));
+        return new UserSuppliedAtAttribute(Tok(usaa.tok), CloneExpr(usaa.Arg), CloneAttributes(usaa.Prev)) {
+          RangeToken = Tok(usaa.RangeToken)
+        };
       } else {
-        return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
+        return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev)) {
+          RangeToken = Tok(attrs.RangeToken)
+        };
       }
     }
 

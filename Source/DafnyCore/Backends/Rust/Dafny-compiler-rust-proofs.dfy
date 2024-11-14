@@ -124,8 +124,8 @@ module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
 
   // However, if we restrict ourself to a Dafny encoding, it's invertible
   @ResourceLimit("2500e3")
-    @IsolateAssertions
-    lemma ReplaceDotsInvertible(i: string)
+  @IsolateAssertions
+  lemma ReplaceDotsInvertible(i: string)
     requires IsDafnyEncodedIdTail(i)
     ensures ReverseReplaceDots(replaceDots(i)) == i
   {
@@ -191,7 +191,7 @@ module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
   }
 
   @Fuel(2, 3, "has_special")
-    lemma EscapeIdentExamples()
+  lemma EscapeIdentExamples()
     ensures escapeIdent("i") == "i"   // Loop variable
     ensures escapeIdent("_1") == "_1" // tuple deconstructor
     ensures escapeIdent("_m") == "_m" // any hidden variable

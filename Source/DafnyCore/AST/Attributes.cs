@@ -494,7 +494,7 @@ public class Attributes : TokenNode, ICanFormat {
       .WithArg("low", Type.Int, DefaultInt(1))
       .WithArg("high", Type.Int, DefaultInt(2))
       .WithArg("functionName", Type.ResolvedString(), DefaultString(""))
-      .Filter(attributeHost => attributeHost is Function or AssertStmt),
+      .Filter(attributeHost => attributeHost is MethodOrFunction or AssertStmt),
     BuiltIn("IsolateAssertions")
       .Filter(attributeHost => attributeHost is ICanVerify),
     BuiltIn("NativeUInt8")
@@ -532,7 +532,7 @@ public class Attributes : TokenNode, ICanFormat {
       .Filter(attributeHost => attributeHost is Method),
     BuiltIn("Priority").WithArg(TupleItem0Name, Type.Int)
       .Filter(attributeHost => attributeHost is ICanVerify),
-    BuiltIn("ResourceLimit").WithArg(TupleItem0Name, Type.Int)
+    BuiltIn("ResourceLimit").WithArg(TupleItem0Name, Type.ResolvedString())
       .Filter(attributeHost => attributeHost is ICanVerify),
     BuiltIn("Synthesize")
       .Filter(attributeHost => attributeHost is Method),
