@@ -309,8 +309,10 @@ public class RangeToken : TokenWrapper {
     return new BoogieRangeToken(StartToken, EndToken, null);
   }
 
-  public bool Contains(int position) {
-    return StartToken.pos <= position && (EndToken == null || position <= EndToken.pos);
+  public bool Contains(IToken otherToken) {
+    return StartToken.Uri == otherToken.Uri &&
+           StartToken.pos <= otherToken.pos &&
+           (EndToken == null || otherToken.pos <= EndToken.pos);
   }
 
   public bool Intersects(RangeToken other) {
