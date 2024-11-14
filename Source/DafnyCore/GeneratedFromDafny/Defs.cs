@@ -257,6 +257,14 @@ namespace Defs {
         return RAST.Type.create_TMetaData(tpe, true, true);
       }
     }
+    public static Std.Wrappers._IOption<RAST._IType> NewtypeRangeToUnwrappedBoundedRustType(DAST._IType @base, DAST._INewtypeRange range)
+    {
+      if (object.Equals(@base, DAST.Type.create_Primitive(DAST.Primitive.create_Int()))) {
+        return Defs.__default.NewtypeRangeToRustType(range);
+      } else {
+        return Std.Wrappers.Option<RAST._IType>.create_None();
+      }
+    }
     public static Std.Wrappers._IOption<RAST._IType> NewtypeRangeToRustType(DAST._INewtypeRange range) {
       DAST._INewtypeRange _source0 = range;
       {
@@ -332,6 +340,49 @@ namespace Defs {
       {
         return Std.Wrappers.Option<RAST._IType>.create_None();
       }
+    }
+    public static Std.Wrappers._IOption<RAST._IType> GetUnwrappedBoundedRustType(DAST._IType tpe) {
+      DAST._IType _source0 = tpe;
+      {
+        if (_source0.is_UserDefined) {
+          DAST._IResolvedType resolved0 = _source0.dtor_resolved;
+          Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _0_path = resolved0.dtor_path;
+          Dafny.ISequence<DAST._IType> _1_typeArgs = resolved0.dtor_typeArgs;
+          DAST._IResolvedTypeBase kind0 = resolved0.dtor_kind;
+          if (kind0.is_Newtype) {
+            DAST._IType _2_base = kind0.dtor_baseType;
+            DAST._INewtypeRange _3_range = kind0.dtor_range;
+            bool _4_erase = kind0.dtor_erase;
+            return Defs.__default.NewtypeRangeToUnwrappedBoundedRustType(_2_base, _3_range);
+          }
+        }
+      }
+      {
+        return Std.Wrappers.Option<RAST._IType>.create_None();
+      }
+    }
+    public static bool NeedsUnwrappingConversion(DAST._IType tpe) {
+      DAST._IType _source0 = tpe;
+      {
+        if (_source0.is_UserDefined) {
+          DAST._IResolvedType resolved0 = _source0.dtor_resolved;
+          Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _0_path = resolved0.dtor_path;
+          Dafny.ISequence<DAST._IType> _1_typeArgs = resolved0.dtor_typeArgs;
+          DAST._IResolvedTypeBase kind0 = resolved0.dtor_kind;
+          if (kind0.is_Newtype) {
+            DAST._IType _2_base = kind0.dtor_baseType;
+            DAST._INewtypeRange _3_range = kind0.dtor_range;
+            bool _4_erase = kind0.dtor_erase;
+            return (Defs.__default.NewtypeRangeToUnwrappedBoundedRustType(_2_base, _3_range)).is_None;
+          }
+        }
+      }
+      {
+        return false;
+      }
+    }
+    public static bool IsNewtype(DAST._IType tpe) {
+      return ((tpe).is_UserDefined) && ((((tpe).dtor_resolved).dtor_kind).is_Newtype);
     }
     public static bool OwnershipGuarantee(Defs._IOwnership expectedOwnership, Defs._IOwnership resultingOwnership)
     {

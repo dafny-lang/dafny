@@ -151,7 +151,7 @@ module {:extern "DAST"} DAST {
       (U8? || I8? || U16? || I16? || U32? || I32? || U64? || I64? || U128? || I128?) && overflow
     }
     predicate HasArithmeticOperations() {
-      !Bool? && !NoRange? // To change when newtypes will have sequences and sets as ranges.
+      !Bool?// To change when newtypes will have sequences and sets as ranges.
     }
   }
 

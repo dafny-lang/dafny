@@ -605,6 +605,26 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                     [R.Formal.selfBorrowed], Some(R.Borrowed(R.Self().MSel("Target").AsType())),
                     "",
                     Some(R.Borrow(R.self.Sel("0")))))]))];
+      
+      // Convert a ref to the underlying type to a ref of the wrapped newtype
+      s := s + [
+        R.ImplDecl(
+          R.Impl(
+            rTypeParamsDecls,
+            resultingType,
+            "",
+            [R.FnDecl(
+              R.PUB,
+              R.Fn(
+                "_from_ref", [],
+                [R.Formal("o", R.Borrowed(wrappedType))],
+                Some(R.Borrowed(R.Self().AsType())),
+                "",
+                Some(
+                  R.Unsafe(
+                    R.Block(
+                    //"The newtype is marked as transparent",
+                    R.std.MSel("mem").MSel("transmute").AsExpr().Apply1(R.Identifier("o")))))))]))];
       var rTypeParamsDeclsWithHash := R.TypeParamDecl.AddConstraintsMultiple(
         rTypeParamsDecls, [R.Hash]
       );
@@ -2310,9 +2330,48 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       return;
     }
 
+    // Given an expression that is a newtype, returns the underlying value
+    // Preserves ownership
+    method UnwrapNewtype(
+      expr: R.Expr,
+      exprOwnership: Ownership,
+      fromTpe: Type
+    ) returns (r: R.Expr)
+      requires IsNewtype(fromTpe)
+    {
+      r := expr;
+      if !fromTpe.resolved.kind.erase {
+        r := r.Sel("0");
+        if exprOwnership == OwnershipBorrowed {
+          r := R.Borrow(r);
+        }
+      }
+    }
+
+    // Given an expression that is the underlying value of a newtype, returns the newtype
+    // Preserves ownership
+    method WrapWithNewtype(
+      expr: R.Expr,
+      exprOwnership: Ownership,
+      toTpe: Type
+    ) returns (r: R.Expr)
+      requires IsNewtype(toTpe)
+    {
+      r := expr;
+      var toKind := toTpe.resolved.kind;
+      if !toKind.erase {
+        var fullPath := GenPathExpr(toTpe.resolved.path);
+        if exprOwnership == OwnershipOwned {
+          r := fullPath.Apply1(r);
+        } else {
+          r := fullPath.FSel("_from_ref").Apply1(r); // Keep borrowbility
+        }
+      }
+    }
+
     // To use when we know that the expression is a Convert(_, _, toTpe)
     // and toTpe is a newtype
-    method {:isolate_assertions} {:only} GenExprConvertTo(
+    method GenExprConvertTo(
       expr: R.Expr,
       exprOwnership: Ownership,
       fromTpe: Type,
@@ -2329,11 +2388,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         r, resultingOwnership := FromOwnership(r, exprOwnership, expectedOwnership);
         return;
       }
+      if fromTpe.UserDefined? && fromTpe.resolved.kind.SynonymType? {
+        r, resultingOwnership := GenExprConvertTo(expr, exprOwnership, fromTpe.resolved.kind.baseType, toTpe, expectedOwnership);
+        return;
+      }
+      if toTpe.UserDefined? && toTpe.resolved.kind.SynonymType? {
+        r, resultingOwnership := GenExprConvertTo(expr, exprOwnership, fromTpe, toTpe.resolved.kind.baseType, expectedOwnership);
+        return;
+      }
       if NeedsUnwrappingConversion(fromTpe) {
         // From type is a newtype but it's not a primitive one.
-        if !fromTpe.resolved.kind.erase {
-          r := r.Sel("0");
-        }
+        r := UnwrapNewtype(r, exprOwnership, fromTpe);
         r, resultingOwnership := 
           GenExprConvertTo(r, exprOwnership, fromTpe.resolved.kind.baseType, toTpe, expectedOwnership);
         return;
@@ -2342,14 +2407,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var toKind := toTpe.resolved.kind;
         r, resultingOwnership := 
           GenExprConvertTo(r, exprOwnership, fromTpe, toKind.baseType, expectedOwnership);
-        if !toKind.erase {
-          var fullPath := GenPathExpr(toTpe.resolved.path);
-          if resultingOwnership == OwnershipOwned {
-            r := fullPath.Apply1(r);
-          } else {
-            r := fullPath.FSel("_from_ref").Apply1(r); // Keep borrowbility
-          }
-        }
+        r := WrapWithNewtype(r, resultingOwnership, toTpe);
         r, resultingOwnership := FromOwnership(r, resultingOwnership, expectedOwnership);
         return;
       }
@@ -2359,15 +2417,23 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if unwrappedToType.Some? {
         var boundedToType := unwrappedToType.value;
         if unwrappedFromType.Some? {
+          r := UnwrapNewtype(r, exprOwnership, fromTpe);
+          var inOwnership := exprOwnership;
           if unwrappedFromType.value != unwrappedToType.value {
             var asType := boundedToType;
-            if exprOwnership == OwnershipBorrowed {
-              asType := R.Borrowed(asType);
+            if inOwnership == OwnershipBorrowed {
+              match r {
+                case UnaryOp("&", underlying, _) =>
+                  r := underlying;
+                case _ => r := r.Clone();
+              }
             }
             r := R.TypeAscription(r, asType);
-            r, resultingOwnership := FromOwnership(r, exprOwnership, expectedOwnership);
-            return;
+            inOwnership := OwnershipOwned;
           }
+          r := WrapWithNewtype(r, OwnershipOwned, toTpe);
+          r, resultingOwnership := FromOwnership(r, inOwnership, expectedOwnership);
+          return;
         }
         assert !IsNewtype(fromTpe);
         if fromTpe == Primitive(Primitive.Int) {
@@ -2375,12 +2441,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             r := r.Clone();
           }
           r := R.dafny_runtime.MSel("truncate!").AsExpr().Apply([r, R.ExprFromType(boundedToType)]);        
+          r := WrapWithNewtype(r, OwnershipOwned, toTpe);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
         if fromTpe == Primitive(Char) {
-          r, resultingOwnership := FromOwned(
-            R.TypeAscription(r.Sel("0"), boundedToType), expectedOwnership);
+          r := R.TypeAscription(r.Sel("0"), boundedToType);
+          r := WrapWithNewtype(r, OwnershipOwned, toTpe);
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
         var fromTpeRust := GenType(fromTpe, GenTypeContext.default());
@@ -2408,9 +2476,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         var toTpeRust := GenType(toTpe, GenTypeContext.default());
-        error := Some("No conversion available from "+unwrappedFromType.value.ToString("")+" to " + toTpeRust.ToString(""));
-        r := R.RawExpr(error.value);
-        resultingOwnership := expectedOwnership;
+        r := Error("No conversion available from "+unwrappedFromType.value.ToString("")+" to " + toTpeRust.ToString(""));
+        r, resultingOwnership := FromOwned(r, expectedOwnership);
         return;
       }
       assert !IsNewtype(fromTpe);
@@ -3026,8 +3093,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
           r := R.dafny_runtime.MSel("seq!").AsExpr().Apply(args);
           if |args| == 0 {
-            r := R.TypeAscription(r,
-                                  R.dafny_runtime.MSel("Sequence").AsType().Apply1(genTpe));
+            r := R.TypeAscription(
+              r,
+              R.dafny_runtime.MSel("Sequence").AsType().Apply1(genTpe));
           }
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;

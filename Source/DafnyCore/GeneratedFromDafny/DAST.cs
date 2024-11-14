@@ -1619,6 +1619,7 @@ namespace DAST {
     bool is_I128 { get; }
     bool is_USIZE { get; }
     bool is_BigInt { get; }
+    bool is_Bool { get; }
     bool is_NoRange { get; }
     bool dtor_overflow { get; }
     _INewtypeRange DowncastClone();
@@ -1672,6 +1673,9 @@ namespace DAST {
     public static _INewtypeRange create_BigInt() {
       return new NewtypeRange_BigInt();
     }
+    public static _INewtypeRange create_Bool() {
+      return new NewtypeRange_Bool();
+    }
     public static _INewtypeRange create_NoRange() {
       return new NewtypeRange_NoRange();
     }
@@ -1687,6 +1691,7 @@ namespace DAST {
     public bool is_I128 { get { return this is NewtypeRange_I128; } }
     public bool is_USIZE { get { return this is NewtypeRange_USIZE; } }
     public bool is_BigInt { get { return this is NewtypeRange_BigInt; } }
+    public bool is_Bool { get { return this is NewtypeRange_Bool; } }
     public bool is_NoRange { get { return this is NewtypeRange_NoRange; } }
     public bool dtor_overflow {
       get {
@@ -1708,7 +1713,7 @@ namespace DAST {
       return (((((((((((this).is_U8) || ((this).is_I8)) || ((this).is_U16)) || ((this).is_I16)) || ((this).is_U32)) || ((this).is_I32)) || ((this).is_U64)) || ((this).is_I64)) || ((this).is_U128)) || ((this).is_I128)) && ((this).dtor_overflow);
     }
     public bool HasArithmeticOperations() {
-      return true;
+      return !((this).is_Bool);
     }
   }
   public class NewtypeRange_U8 : NewtypeRange {
@@ -2023,6 +2028,27 @@ namespace DAST {
       return s;
     }
   }
+  public class NewtypeRange_Bool : NewtypeRange {
+    public NewtypeRange_Bool() : base() {
+    }
+    public override _INewtypeRange DowncastClone() {
+      if (this is _INewtypeRange dt) { return dt; }
+      return new NewtypeRange_Bool();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.NewtypeRange_Bool;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 12;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.NewtypeRange.Bool";
+      return s;
+    }
+  }
   public class NewtypeRange_NoRange : NewtypeRange {
     public NewtypeRange_NoRange() : base() {
     }
@@ -2036,7 +2062,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 12;
+      hash = ((hash << 5) + hash) + 13;
       return (int) hash;
     }
     public override string ToString() {

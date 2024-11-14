@@ -1,5 +1,5 @@
-// RUN: %baredafny run -t:rs --refresh-exit-code=0 "%s"
-// RUN: %baredafny run -t:rs --unicode-char=false --refresh-exit-code=0 "%s"
+// RUN: %baredafny run -t:rs --type-system-refresh --refresh-exit-code=0 "%s"
+// RUN: %baredafny run -t:rs --type-system-refresh --unicode-char=false --refresh-exit-code=0 "%s"
 /// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 newtype int2 = x: int | -2 <= x < 2
@@ -60,6 +60,23 @@ newtype IntWrapper = int {
     this
   }
 }
+
+newtype NestedIntWrapper = IntWrapper {
+  function DoubleMinus(other: NestedIntWrapper): IntWrapper {
+    (this * 47 - other) as IntWrapper
+  }
+}
+
+newtype BoolWrapper = bool {
+  const n: int := if this then 1 else 0
+  static function True(): BoolWrapper {
+    true as BoolWrapper
+  }
+  function Or(other: BoolWrapper): BoolWrapper {
+    if n == 1 then True() else other
+  }
+}
+
 // Ensuring the uint32 is hashable
 datatype {:rust_rc false} UInt32Pair = UInt32Pair(first: uint32WithMethods, second: uint32WithMethods)
 
@@ -108,4 +125,8 @@ method Main(){
   expect 0 as uint32WithMethods == two.div_overflow(three);
   expect almost_overflow2 == almost_overflow.times_overflow(two);
   expect (3 as IntWrapper).DoublePlus(1 as IntWrapper) == 7 as IntWrapper;
+
+  expect (true as BoolWrapper).Or(false as BoolWrapper) == (true as BoolWrapper);
+  expect (false as BoolWrapper).Or(false as BoolWrapper) == (false as BoolWrapper);
+  expect (false as BoolWrapper).Or(true as BoolWrapper) == (true as BoolWrapper);  
 }

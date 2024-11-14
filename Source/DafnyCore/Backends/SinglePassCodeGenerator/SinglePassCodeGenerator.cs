@@ -2113,8 +2113,8 @@ namespace Microsoft.Dafny.Compilers {
         return false;
       } else if (member.EnclosingClass is TraitDecl) {
         return false;
-      } else if (member.EnclosingClass is NewtypeDecl) {
-        return true;
+      } else if (member.EnclosingClass is NewtypeDecl newtypeDecl) {
+        return IsNewtypeErased(newtypeDecl);
       } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
         // An undefined value "o" cannot use this o.F(...) form in most languages.
         // Also, an erasable wrapper type has a receiver that's not part of the enclosing target class.
@@ -2122,6 +2122,10 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         return false;
       }
+    }
+
+    protected virtual bool IsNewtypeErased(NewtypeDecl newtypeDecl) {
+      return true;
     }
 
     protected virtual bool InstanceConstAreStatic() {
