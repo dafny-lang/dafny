@@ -67,10 +67,6 @@ datatype Useless = Useless
 @Fuel(1, 2)  // Fuel not supported on codatatype
 codatatype UselessCodatatype = UselessCodatatype
 
-@Fuel(1, 2) // Fuel not supported on method
-method g_method() {
-}
-
 @Fuel(1, 2) // Fuel not supported on type synonyms
 type NewInt = int
 

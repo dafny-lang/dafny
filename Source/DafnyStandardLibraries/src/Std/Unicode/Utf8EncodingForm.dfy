@@ -213,9 +213,9 @@ module Std.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
     (y << 6) | x as ScalarValue
   }
 
+  @ResourceLimit("115e6")
   function
-    {:resource_limit 115000000}
-    DecodeMinimalWellFormedCodeUnitSubsequenceTripleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
+  DecodeMinimalWellFormedCodeUnitSubsequenceTripleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 3
     ensures 0x800 <= v <= 0xFFFF
     ensures EncodeScalarValueTripleByte(v) == m
@@ -230,9 +230,9 @@ module Std.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
     (z << 12) | (y << 6) | x as ScalarValue
   }
 
+  @IsolateAssertions
   function
-    {:isolate_assertions}
-    DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
+  DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 4
     ensures 0x10000 <= v <= 0x10FFFF
     ensures EncodeScalarValueQuadrupleByte(v) == m
