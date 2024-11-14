@@ -104,5 +104,11 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     After,
     Single
   }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = true;
+  }
 }
 

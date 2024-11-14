@@ -38,7 +38,7 @@ public class LanguageServerFilesystem : IFileSystem {
     string existingText = "";
     try {
       if (OnDiskFileSystem.Instance.Exists(uri)) {
-        using var fileStream = OnDiskFileSystem.Instance.ReadFile(uri);
+        using var fileStream = OnDiskFileSystem.Instance.ReadFile(uri).Reader;
         existingText = fileStream.ReadToEnd();
       }
     } catch (IOException) {
@@ -64,7 +64,6 @@ public class LanguageServerFilesystem : IFileSystem {
     } catch (ArgumentOutOfRangeException) {
       return false;
     }
-    entry.Buffer = mergedBuffer;
 
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
@@ -76,7 +75,9 @@ public class LanguageServerFilesystem : IFileSystem {
         $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVersion}");
     }
 
-    entry.Version = newVersion!.Value;
+    // We assume no concurrent mutating calls to IFileSysten, in particular to OpenDocument and UpdateDocument
+    // Otherwise we'd have to lock around these calls.
+    openFiles[uri] = new Entry(mergedBuffer, newVersion!.Value);
     return true;
   }
 
@@ -89,9 +90,17 @@ public class LanguageServerFilesystem : IFileSystem {
     }
   }
 
-  public TextReader ReadFile(Uri uri) {
+  public TextBuffer? GetBuffer(Uri uri) {
     if (openFiles.TryGetValue(uri, out var entry)) {
-      return new StringReader(entry.Buffer.Text);
+      return entry.Buffer;
+    }
+
+    return null;
+  }
+
+  public FileSnapshot ReadFile(Uri uri) {
+    if (openFiles.TryGetValue(uri, out var entry)) {
+      return new FileSnapshot(new StringReader(entry.Buffer.Text), entry.Version);
     }
 
     return OnDiskFileSystem.Instance.ReadFile(uri);
@@ -106,18 +115,5 @@ public class LanguageServerFilesystem : IFileSystem {
     var inMemory = new InMemoryDirectoryInfoFromDotNet8(root, inMemoryFiles);
 
     return new CombinedDirectoryInfo(new[] { inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root) });
-  }
-
-  /// <summary>
-  /// Return the version of a particular file.
-  /// When the client sends file updates, it includes a new version for this file, which we store and return here.
-  /// File version are important to the client because it can use them to do client side migration of positions.
-  /// </summary>
-  public int? GetVersion(Uri uri) {
-    if (openFiles.TryGetValue(uri, out var file)) {
-      return file.Version;
-    }
-
-    return null;
   }
 }

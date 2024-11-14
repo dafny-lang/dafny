@@ -19,7 +19,7 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(body));
-    this.Body = body;
+    Body = body;
   }
 
   public override IEnumerable<Statement> SubStatements => Body;
@@ -70,5 +70,22 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
     }
 
     return false;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
+    if (this is DividedBlockStmt ds) {
+      ds.BodyInit.ForEach(ss =>
+        ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables, true));
+      ds.BodyProper.ForEach(ss =>
+        ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables,
+          inConstructorInitializationPhase));
+    } else {
+      Body.ForEach(ss => ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext,
+        allowAssumptionVariables, inConstructorInitializationPhase));
+    }
+    IsGhost = IsGhost || Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
   }
 }
