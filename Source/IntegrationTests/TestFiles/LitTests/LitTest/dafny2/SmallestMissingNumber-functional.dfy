@@ -269,7 +269,7 @@ lemma {:induction false} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   }
 }
 
-lemma {:induction false} SMN''_Correct(xs: List<nat>, n: nat, len: nat)
+lemma {:induction false} {:isolate_assertions} SMN''_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)
