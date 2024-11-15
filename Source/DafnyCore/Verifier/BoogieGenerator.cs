@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
     public DafnyOptions Options => options;
     public const string NameSeparator = "$$";
     public const string CallPrefix = "Call";
-    private bool filterOnlyMembers;
+    private HashSet<Uri> filesWhereOnlyMembersAreVerified = new();
 
     ErrorReporter reporter;
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
@@ -782,15 +782,16 @@ namespace Microsoft.Dafny {
       mods.Insert(0, forModule);
 
       var visibleTopLevelDecls =
-        mods.SelectMany(m => m.TopLevelDecls.Where(VisibleInScope));
+        mods.SelectMany(m => m.TopLevelDecls.Where(VisibleInScope)).ToList();
 
-      if (visibleTopLevelDecls.Any(
-            d => d is TopLevelDeclWithMembers memberContainer &&
-                 memberContainer.Members.Any(
-                   member =>
-                     Attributes.Contains(member.Attributes, "only")
-                 ))) {
-        filterOnlyMembers = true;
+      foreach (var d in visibleTopLevelDecls) {
+        if (d is TopLevelDeclWithMembers memberContainer) {
+          foreach (var member in memberContainer.Members) {
+            if (Attributes.Contains(member.Attributes, "only")) {
+              filesWhereOnlyMembersAreVerified.Add(member.tok.Uri);
+            }
+          }
+        }
       }
 
       foreach (TopLevelDecl d in visibleTopLevelDecls) {
@@ -806,7 +807,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      filterOnlyMembers = false;
+      filesWhereOnlyMembersAreVerified = new();
 
       AddTraitParentAxioms();
 
