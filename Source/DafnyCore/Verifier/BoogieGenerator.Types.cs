@@ -562,38 +562,6 @@ public partial class BoogieGenerator {
     return tagAxiom;
   }
 
-  private void AddBitvectorTypeAxioms(int w) {
-    Contract.Requires(0 <= w);
-
-    if (w == 0) {
-      // the axioms for bv0 are already in DafnyPrelude.bpl
-      return;
-    }
-
-    // box/unbox axiom
-    var tok = Token.NoToken;
-    var printableName = "bv" + w;
-    var dafnyType = new BitvectorType(options, w);
-    var boogieType = BplBvType(w);
-    var typeTerm = TypeToTy(dafnyType);
-    AddBoxUnboxAxiom(tok, printableName, typeTerm, boogieType, new List<Variable>());
-
-    // axiom (forall v: bv3 :: { $Is(v, TBitvector(3)) } $Is(v, TBitvector(3)));
-    var vVar = BplBoundVar("v", boogieType, out var v);
-    var bvs = new List<Variable>() { vVar };
-    var isBv = MkIs(v, typeTerm);
-    var tr = BplTrigger(isBv);
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isBv)));
-
-    // axiom (forall v: bv3, heap: Heap :: { $IsAlloc(v, TBitvector(3), h) } $IsAlloc(v, TBitvector(3), heap));
-    vVar = BplBoundVar("v", boogieType, out v);
-    var heapVar = BplBoundVar("heap", Predef.HeapType, out var heap);
-    bvs = new List<Variable>() { vVar, heapVar };
-    var isAllocBv = MkIsAlloc(v, typeTerm, heap);
-    tr = BplTrigger(isAllocBv);
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isAllocBv)));
-  }
-
   /// <summary>
   /// Generate:
   ///     axiom (forall args: Ty, bx: Box ::
@@ -1600,5 +1568,34 @@ public partial class BoogieGenerator {
 
     PathAsideBlock(decl.Tok, constraintCheckBuilder, builder);
     return builderInitializationArea;
+  }
+  
+
+  /// <summary>
+  /// Construct an expression denoting the equality of e0 and e1, taking advantage of
+  /// any available extensional equality based on the given Dafny type.
+  /// </summary>
+  public Expr TypeSpecificEqual(IToken tok, Dafny.Type type, Expr e0, Expr e1) {
+    Contract.Requires(tok != null);
+    Contract.Requires(type != null);
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+
+    type = type.NormalizeToAncestorType();
+    if (type.AsSetType != null) {
+      var finite = type.AsSetType.Finite;
+      return FunctionCall(tok, finite ? BuiltinFunction.SetEqual : BuiltinFunction.ISetEqual, null, e0, e1);
+    } else if (type.AsMapType != null) {
+      var finite = type.AsMapType.Finite;
+      return FunctionCall(tok, finite ? BuiltinFunction.MapEqual : BuiltinFunction.IMapEqual, null, e0, e1);
+    } else if (type.AsMultiSetType != null) {
+      return FunctionCall(tok, BuiltinFunction.MultiSetEqual, null, e0, e1);
+    } else if (type.AsSeqType != null) {
+      return FunctionCall(tok, BuiltinFunction.SeqEqual, null, e0, e1);
+    } else if (type.IsIndDatatype) {
+      return FunctionCall(tok, type.AsIndDatatype.FullSanitizedName + "#Equal", Bpl.Type.Bool, e0, e1);
+    } else {
+      return Bpl.Expr.Eq(e0, e1);
+    }
   }
 }

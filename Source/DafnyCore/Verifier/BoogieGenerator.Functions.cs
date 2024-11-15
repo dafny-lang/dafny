@@ -980,4 +980,69 @@ public partial class BoogieGenerator {
       BplImp(q0, eq)));
     sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, comment));
   }
+  
+
+  /// <summary>
+  /// Returns true if the body of function "f" is available in module "context".
+  /// This happens when the following conditions all hold:
+  ///   - "f" has a body
+  ///   - "f" is not opaque
+  /// </summary>
+  bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope) {
+    Contract.Requires(f != null);
+    Contract.Requires(context != null);
+    return f.Body != null && !IsOpaque(f, options) && f.IsRevealedInScope(scope);
+  }
+  public static bool IsOpaque(MemberDecl f, DafnyOptions options) {
+    Contract.Requires(f != null);
+    if (f is Function f1) {
+      return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque || f1.IsMadeImplicitlyOpaque(options);
+    } else {
+      return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque;
+    }
+  }
+  static bool IsOpaqueRevealLemma(Method m) {
+    Contract.Requires(m != null);
+    return Attributes.Contains(m.Attributes, "opaque_reveal");
+  }
+  
+
+  private void ComputeFunctionFuel() {
+    foreach (ModuleDefinition m in program.RawModules()) {
+      foreach (TopLevelDecl d in m.TopLevelDecls) {
+        if (d is not TopLevelDeclWithMembers) {
+          continue;
+        }
+
+        var c = (TopLevelDeclWithMembers)d;
+        foreach (MemberDecl member in c.Members) {
+          if (member is not Function || !RevealedInScope(member)) {
+            continue;
+          }
+
+          Function f = (Function)member;
+          // declare the fuel constant
+          if (f.IsFueled) {
+            // const BaseFuel_FunctionA : LayerType
+            Bpl.Constant baseFuel = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "BaseFuel_" + f.FullName, Predef.LayerType), false);
+            sink.AddTopLevelDeclaration(baseFuel);
+            Bpl.Expr baseFuel_expr = new Bpl.IdentifierExpr(f.tok, baseFuel);
+            // const StartFuel_FunctionA : LayerType
+            Bpl.Constant startFuel = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "StartFuel_" + f.FullName, Predef.LayerType), false);
+            sink.AddTopLevelDeclaration(startFuel);
+            Bpl.Expr startFuel_expr = new Bpl.IdentifierExpr(f.tok, startFuel);
+            // const StartFuelAssert_FunctionA : LayerType
+            Bpl.Constant startFuelAssert = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "StartFuelAssert_" + f.FullName, Predef.LayerType), false);
+            sink.AddTopLevelDeclaration(startFuelAssert);
+            Bpl.Expr startFuelAssert_expr = new Bpl.IdentifierExpr(f.tok, startFuelAssert);
+            this.functionFuel.Add(new FuelConstant(f, baseFuel_expr, startFuel_expr, startFuelAssert_expr));
+          }
+
+          if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
+            CreateRevealableConstant(f);
+          }
+        }
+      }
+    }
+  }
 }
