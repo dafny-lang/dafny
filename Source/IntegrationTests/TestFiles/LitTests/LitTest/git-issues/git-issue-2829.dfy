@@ -52,6 +52,6 @@ ghost function RepeatAux<A>(pred : (string, A) -> bool, repr: iset<A>, input: st
   || (exists init, tail, a, alist | a in repr ::
       && input == init + tail
       && output == [a] + alist
-      && pred(a, init)
+      && pred(a, init) // error (x2): parameters are reversed, so the types ("A" and "string") are reversed
       && RepeatAux(pred, repr, tail, alist))
 }
