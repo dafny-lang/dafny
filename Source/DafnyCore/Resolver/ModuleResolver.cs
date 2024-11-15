@@ -2166,7 +2166,7 @@ namespace Microsoft.Dafny {
       if (cl is NewtypeDecl newtypeDecl) {
         if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
           baseTypeDecl = basePreType?.Decl as TopLevelDeclWithMembers;
-          baseTypeArguments = basePreType?.Arguments.ConvertAll(preType => PreType2TypeUtil.PreType2Type(preType, false, TypeParameter.TPVariance.Co));
+          baseTypeArguments = basePreType?.Arguments.ConvertAll(preType => PreType2TypeUtil.PreType2Type(preType, false));
         } else {
           // ignore any subset types, since they have no members and thus we don't need their type-parameter mappings
           var baseType = newtypeDecl.BaseType.NormalizeExpand();

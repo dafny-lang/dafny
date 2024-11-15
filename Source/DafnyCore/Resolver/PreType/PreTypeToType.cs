@@ -145,8 +145,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
           var givenTypeOrProxy = datatypeValue.InferredTypeArgs[i];
           PreType2TypeUtil.Combine(givenTypeOrProxy, actualPreType, givenTypeOrProxy is TypeProxy);
         } else {
-          var formal = datatypeDecl.TypeArgs[i];
-          datatypeValue.InferredTypeArgs.Add(PreType2TypeUtil.PreType2RefinableType(actualPreType, formal.Variance));
+          datatypeValue.InferredTypeArgs.Add(PreType2TypeUtil.PreType2RefinableType(actualPreType));
         }
       }
 
@@ -199,7 +198,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
 
     // Case: refinement-wrapper pre-type type
-    expr.UnnormalizedType = PreType2TypeUtil.PreType2RefinableType(expr.PreType, TypeParameter.TPVariance.Co);
+    expr.UnnormalizedType = PreType2TypeUtil.PreType2RefinableType(expr.PreType);
   }
 
   private void VisitPattern<VT>(CasePattern<VT> casePattern, IASTVisitorContext context) where VT : class, IVariable {
