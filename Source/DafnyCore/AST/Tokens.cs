@@ -66,6 +66,7 @@ public class Token : IToken {
     this.val = "";
   }
 
+  public bool IsSourceToken => this != NoToken;
   public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
   public string ActualFilename => Filepath;
@@ -159,6 +160,8 @@ public abstract class TokenWrapper : IToken {
   public bool IsValid {
     get { return WrappedToken.IsValid; }
   }
+
+  public virtual bool IsSourceToken => false;
 
   public int kind {
     get { return WrappedToken.kind; }
@@ -304,6 +307,8 @@ public class RangeToken : TokenWrapper {
   public override IToken WithVal(string newVal) {
     throw new NotImplementedException();
   }
+
+  public override bool IsSourceToken => this != NoToken;
 
   public BoogieRangeToken ToToken() {
     return new BoogieRangeToken(StartToken, EndToken, null);
