@@ -198,7 +198,7 @@ public class CliCompilation {
             var result = origin switch {
               PathOrigin pathOrigin => $"{OriginDescription(pathOrigin.Inner, false)}" +
                                        $"after executing lines {string.Join(", ", pathOrigin.BranchTokens.Select(b => b.line))}",
-              RemainingAssertionsOrigin remainingAssertions => $"{OriginDescription(remainingAssertions.Origin, false)}remaining assertions",
+              RemainingAssertionsOrigin remainingAssertions => OriginDescription(remainingAssertions.Origin, false) + (outer ? "remaining assertions" : ""),
               IsolatedAssertionOrigin isolateOrigin => $"{OriginDescription(isolateOrigin.Origin, false)}assertion at line {isolateOrigin.line}",
               JumpOrigin returnOrigin => $"{OriginDescription(returnOrigin.Origin, false)}{JumpOriginKind(returnOrigin)} at line {returnOrigin.line}",
               AfterSplitOrigin splitOrigin => $"{OriginDescription(splitOrigin.Inner, false)}assertions after split_here at line {splitOrigin.line}",
