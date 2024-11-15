@@ -1,6 +1,6 @@
 Verified 0/2 symbols. Waiting for Foo to verify.
-Verified 1/6 of Foo: remaining assertions, assertion at line 10 - verified successfully <redacted>
-Verified 2/6 of Foo: remaining assertions, assertion at line 11 - verified successfully <redacted>
+Verified 1/6 of Foo: assertion at line 10 - verified successfully <redacted>
+Verified 2/6 of Foo: assertion at line 11 - verified successfully <redacted>
 Verified 3/6 of Foo: return at line 15, assertion at line 7 - verified successfully <redacted>
 Verified 4/6 of Foo: return at line 15, assertion at line 8 - could not be verified <redacted>
 Verified 5/6 of Foo: return at line 13, assertion at line 7 - verified successfully <redacted>
