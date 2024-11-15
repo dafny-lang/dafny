@@ -32,7 +32,7 @@ tests:
 
 # make test name=<part of the path of an integration test>
 test:
-	(cd "${DIR}"; dotnet test Source/IntegrationTests --filter "DisplayName~${name}")
+	(cd "${DIR}"; [ -z "${name}" ] && echo "Syntax: make test name=<integration test filter>" && exit 1; dotnet test Source/IntegrationTests --filter "DisplayName~${name}")
 
 # Run Dafny on an integration test case directly in the folder itself.
 # make test-run name=<part of the path> action="run ..."
