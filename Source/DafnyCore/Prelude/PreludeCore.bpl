@@ -655,6 +655,8 @@ procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: F
 // -- Axiomatization of sets -------------------------------------
 // ---------------------------------------------------------------
 
+#include "Sets.bpl"
+
 type Set = [Box]bool;
 
 function Set#Card(Set): int;

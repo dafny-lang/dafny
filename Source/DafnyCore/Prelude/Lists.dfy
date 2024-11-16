@@ -1,11 +1,11 @@
 module Lists {
   export
-    reveals List, List.Length, List.At, List.Append, List.Take, List.Drop, List.Split
-    provides List.LengthAppend, List.AppendAt, List.AboutDrop
+    reveals List, List.Length, List.At, List.Contains, List.Append, List.Take, List.Drop, List.Split
+    provides List.ContainsAt, List.AtContains, List.LengthAppend, List.AppendAt, List.AboutDrop
     provides List.AppendTake, List.TakeFromAppend, List.AppendDrop, List.DropFromAppend
     provides List.AppendTakeDrop, List.LengthTakeDrop
 
-  datatype List<X> = Nil | Cons(head: X, tail: List<X>)
+  datatype List<X(==)> = Nil | Cons(head: X, tail: List<X>)
   {
     function Length(): nat {
       if Nil? then 0 else 1 + tail.Length()
@@ -26,6 +26,37 @@ module Lists {
       requires i < Length()
     {
       if i == 0 then head else tail.At(i - 1)
+    }
+
+    predicate Contains(x: X) {
+      match this
+      case Nil => false
+      case Cons(y, tail) => x == y || tail.Contains(x)
+    }
+
+    lemma ContainsAt(x: X) returns (i: nat)
+      requires Contains(x)
+      ensures i < Length() && At(i) == x
+    {
+      if head == x {
+        return 0;
+      } else {
+        i := tail.ContainsAt(x);
+        return i + 1;
+      }
+    }
+
+    lemma AtContains(i: nat, x: X)
+      requires i < Length() && At(i) == x
+      ensures Contains(x)
+    {
+    }
+
+    lemma ConsAt(x: X, i: nat)
+      requires i < Cons(x, this).Length()
+      ensures Cons(x, this).At(i) ==
+              if i == 0 then x else At(i - 1)
+    {
     }
 
     lemma AppendAt(xs: List<X>, i: nat)
