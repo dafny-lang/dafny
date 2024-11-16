@@ -3,7 +3,7 @@ module {:extract_boogie} Sets {
   import opened Lists
 
   export
-    provides Set, In
+    provides Set, IsMember
     provides Card, AboutCard
     provides Empty, EmptyHasNoMembers, CardVsEmpty
     provides UnionOne, UnionOneAddsElement, UnionOneAddsSelf, UnionOneMaintainsMembership, UnionOneCardIdempotent, CardUnionOne
@@ -15,16 +15,13 @@ module {:extract_boogie} Sets {
     provides Equal, EqualDefinition, Extensionality
     provides Disjoint, DisjointDefinition, DisjointDifference
     provides Boxes
-    // TODO: The following two lines should be removed, after changing the signature of In
-    reveals Set
-    provides Lists, StrictlyIncreasing
 
   // type Set = [Box]bool;
   // TODO: can this be a "newtype"? does it matter?
   // The manually authored Boogie type "Set" is defined as a Boogie map from Box to bool.
   // There was no strong reason for doing so. In fact, there are probably stronger reasons
   // to just define it as an uninterpreted type, which is what the effect of this
-  // :extract_boogie_name annotation will have. See also the "In" predicate below.
+  // :extract_boogie_name annotation will have. See also the "IsMember" predicate below.
   type {:extract_boogie_name "Set"} Set = s: List<Box> | StrictlyIncreasing(s) witness Nil
   
   predicate StrictlyIncreasing(s: List<Box>) {
@@ -55,17 +52,21 @@ module {:extract_boogie} Sets {
   }
 
   // The manually written axioms use Boogie's built-in map selection operator, "_[_]",
-  // for the following "In" predicate. There's no real advantage of using map selection
-  // rather than a user-defined function, like the "In" here. In fact, by using the built-in
+  // for the following "IsMember" predicate. There's no real advantage of using map selection
+  // rather than a user-defined function, like the "IsMember" here. In fact, by using the built-in
   // operator, one needs to show that the sets here are a conservative extension of
   // Boogie's maps, which is just extra work for no gain.
-  predicate {:extract_boogie_name "[]"} In(s: List<Box>, o: Box) {
+  predicate {:extract_boogie_name "[]"} IsMember(s: Set, o: Box) {
+    In(s, o)
+  }
+
+  predicate In(s: List<Box>, o: Box) {
     s.Contains(o)
   }
 
   // axiom (forall o: Box :: { Set#Empty()[o] } !Set#Empty()[o]);
-  lemma {:extract_pattern In(Empty(), o)} EmptyHasNoMembers(o: Box)
-    ensures !In(Empty(), o)
+  lemma {:extract_pattern IsMember(Empty(), o)} EmptyHasNoMembers(o: Box)
+    ensures !IsMember(Empty(), o)
   {
   }
 
@@ -74,13 +75,13 @@ module {:extract_boogie} Sets {
   //   (Set#Card(s) != 0 ==> (exists x: Box :: s[x])));
   lemma {:extract_pattern Card(s)} CardVsEmpty(s: Set)
     ensures Card(s) == 0 <==> s == Empty()
-    ensures Card(s) != 0 ==> exists x: Box :: In(s, x)
+    ensures Card(s) != 0 ==> exists x: Box :: IsMember(s, x)
   {
     if Card(s) == 0 {
       assert s == Empty();
     } else {
       assert s != Empty();
-      assert In(s, s.head);
+      assert IsMember(s, s.head);
     }
   }
 
@@ -183,8 +184,8 @@ module {:extract_boogie} Sets {
 
   // axiom (forall a: Set, x: Box, o: Box :: { Set#UnionOne(a,x)[o] }
   //   Set#UnionOne(a,x)[o] <==> o == x || a[o]);
-  lemma {:extract_pattern In(UnionOne(a, x), o)} UnionOneAddsElement(a: Set, x: Box, o: Box)
-    ensures In(UnionOne(a, x), o) <==> o == x || In(a, o)
+  lemma {:extract_pattern IsMember(UnionOne(a, x), o)} UnionOneAddsElement(a: Set, x: Box, o: Box)
+    ensures IsMember(UnionOne(a, x), o) <==> o == x || IsMember(a, o)
   {
     var b := UnionOne(a, x);
     match a
@@ -215,16 +216,16 @@ module {:extract_boogie} Sets {
   // axiom (forall a: Set, x: Box :: { Set#UnionOne(a, x) }
   //   Set#UnionOne(a, x)[x]);
   lemma {:extract_pattern UnionOne(a, x)} UnionOneAddsSelf(a: Set, x: Box)
-    ensures In(UnionOne(a, x), x)
+    ensures IsMember(UnionOne(a, x), x)
   {
     UnionOneAddsElement(a, x, x);
   }
 
   // axiom (forall a: Set, x: Box, y: Box :: { Set#UnionOne(a, x), a[y] }
   //   a[y] ==> Set#UnionOne(a, x)[y]);
-  lemma {:extract_pattern UnionOne(a, x), In(a, y)} UnionOneMaintainsMembership(a: Set, x: Box, y: Box)
-    requires In(a, y)
-    ensures In(UnionOne(a, x), y)
+  lemma {:extract_pattern UnionOne(a, x), IsMember(a, y)} UnionOneMaintainsMembership(a: Set, x: Box, y: Box)
+    requires IsMember(a, y)
+    ensures IsMember(UnionOne(a, x), y)
   {
     UnionOneAddsElement(a, x, y);
   }
@@ -232,7 +233,7 @@ module {:extract_boogie} Sets {
   // axiom (forall a: Set, x: Box :: { Set#Card(Set#UnionOne(a, x)) }
   //   a[x] ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a));
   lemma {:extract_pattern Card(UnionOne(a, x))} UnionOneCardIdempotent(a: Set, x: Box)
-    requires In(a, x)
+    requires IsMember(a, x)
     ensures Card(UnionOne(a, x)) == Card(a)
   {
     assert Equal(UnionOne(a, x), a) by {
@@ -248,7 +249,7 @@ module {:extract_boogie} Sets {
   // axiom (forall a: Set, x: Box :: { Set#Card(Set#UnionOne(a, x)) }
   //   !a[x] ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a) + 1);
   lemma {:extract_pattern Card(UnionOne(a, x))} CardUnionOne(a: Set, x: Box)
-    requires !In(a, x)
+    requires !IsMember(a, x)
     ensures Card(UnionOne(a, x)) == Card(a) + 1
   {
     match a
@@ -275,8 +276,8 @@ module {:extract_boogie} Sets {
 
   // axiom (forall a: Set, b: Set, o: Box :: { Set#Union(a,b)[o] }
   //   Set#Union(a,b)[o] <==> a[o] || b[o]);
-  lemma {:extract_pattern In(Union(a, b), o)} UnionElements(a: Set, b: Set, o: Box)
-    ensures In(Union(a, b), o) <==> In(a, o) || In(b, o)
+  lemma {:extract_pattern IsMember(Union(a, b), o)} UnionElements(a: Set, b: Set, o: Box)
+    ensures IsMember(Union(a, b), o) <==> IsMember(a, o) || IsMember(b, o)
   {
     match a
     case Nil =>
@@ -295,18 +296,18 @@ module {:extract_boogie} Sets {
 
   // axiom (forall a, b: Set, y: Box :: { Set#Union(a, b), a[y] }
   //   a[y] ==> Set#Union(a, b)[y]);
-  lemma {:extract_pattern In(Union(a, b), y)} UnionMonotonicA(a: Set, b: Set, y: Box)
-    requires In(a, y)
-    ensures In(Union(a, b), y)
+  lemma {:extract_pattern IsMember(Union(a, b), y)} UnionMonotonicA(a: Set, b: Set, y: Box)
+    requires IsMember(a, y)
+    ensures IsMember(Union(a, b), y)
   {
     UnionElements(a, b, y);
   }
 
   // axiom (forall a, b: Set, y: Box :: { Set#Union(a, b), b[y] }
   //   b[y] ==> Set#Union(a, b)[y]);
-  lemma {:extract_pattern In(Union(a, b), y)} UnionMonotonicB(a: Set, b: Set, y: Box)
-    requires In(b, y)
-    ensures In(Union(a, b), y)
+  lemma {:extract_pattern IsMember(Union(a, b), y)} UnionMonotonicB(a: Set, b: Set, y: Box)
+    requires IsMember(b, y)
+    ensures IsMember(Union(a, b), y)
   {
     UnionElements(a, b, y);
   }
@@ -420,8 +421,8 @@ module {:extract_boogie} Sets {
 
   // axiom (forall a: Set, b: Set, o: Box :: { Set#Intersection(a,b)[o] }
   //   Set#Intersection(a,b)[o] <==> a[o] && b[o]);
-  lemma {:extract_pattern In(Intersection(a, b), o)} IntersectionElements(a: Set, b: Set, o: Box)
-    ensures In(Intersection(a, b), o) <==> In(a, o) && In(b, o)
+  lemma {:extract_pattern IsMember(Intersection(a, b), o)} IntersectionElements(a: Set, b: Set, o: Box)
+    ensures IsMember(Intersection(a, b), o) <==> IsMember(a, o) && IsMember(b, o)
   {
     IntersectionRawElements(a, b, o);
   }
@@ -618,17 +619,17 @@ module {:extract_boogie} Sets {
 
   // axiom (forall a: Set, b: Set, o: Box :: { Set#Difference(a,b)[o] }
   //   Set#Difference(a,b)[o] <==> a[o] && !b[o]);
-  lemma {:extract_pattern In(Difference(a, b), o)} DifferenceElements(a: Set, b: Set, o: Box)
-    ensures In(Difference(a, b), o) <==> In(a, o) && !In(b, o)
+  lemma {:extract_pattern IsMember(Difference(a, b), o)} DifferenceElements(a: Set, b: Set, o: Box)
+    ensures IsMember(Difference(a, b), o) <==> IsMember(a, o) && !IsMember(b, o)
   {
     DifferenceRawElements(a, b, o);
   }
 
   // axiom (forall a, b: Set, y: Box :: { Set#Difference(a, b), b[y] }
   //   b[y] ==> !Set#Difference(a, b)[y] );
-  lemma {:extract_pattern Difference(a, b), In(b, y)} DifferenceSubtracts(a: Set, b: Set, y: Box)
-    requires In(b, y)
-    ensures !In(Difference(a, b), y)
+  lemma {:extract_pattern Difference(a, b), IsMember(b, y)} DifferenceSubtracts(a: Set, b: Set, y: Box)
+    requires IsMember(b, y)
+    ensures !IsMember(Difference(a, b), y)
   {
     calc {
       In(Difference(a, b), y);
@@ -770,8 +771,9 @@ module {:extract_boogie} Sets {
   // axiom (forall a: Set, b: Set :: { Set#Subset(a,b) }
   //   Set#Subset(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] ==> b[o]));
   lemma {:extract_pattern Subset(a, b)} SubsetDefinition(a: Set, b: Set)
-    ensures Subset(a, b) <==> forall o {:extract_pattern In(a, o)} {:extract_pattern In(b, o)} :: In(a, o) ==> In(b, o)
+    ensures Subset(a, b) <==> forall o {:extract_pattern IsMember(a, o)} {:extract_pattern IsMember(b, o)} :: IsMember(a, o) ==> IsMember(b, o)
   {
+    assert forall o :: In(a, o) == IsMember(a, o);
   }
 
   // function Set#Equal(Set, Set): bool;
@@ -782,8 +784,9 @@ module {:extract_boogie} Sets {
   // axiom (forall a: Set, b: Set :: { Set#Equal(a,b) }
   //   Set#Equal(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] <==> b[o]));
   lemma {:extract_pattern Equal(a, b)} EqualDefinition(a: Set, b: Set)
-    ensures Equal(a, b) <==> forall o {:extract_pattern In(a, o)} {:extract_pattern In(b, o)} :: In(a, o) <==> In(b, o)
+    ensures Equal(a, b) <==> forall o {:extract_pattern IsMember(a, o)} {:extract_pattern IsMember(b, o)} :: IsMember(a, o) <==> IsMember(b, o)
   {
+    assert forall o :: In(a, o) == IsMember(a, o);
   }
 
   // axiom (forall a: Set, b: Set :: { Set#Equal(a,b) }  // extensionality axiom for sets
@@ -881,8 +884,9 @@ module {:extract_boogie} Sets {
   // axiom (forall a: Set, b: Set :: { Set#Disjoint(a,b) }
   //   Set#Disjoint(a,b) <==> (forall o: Box :: {a[o]} {b[o]} !a[o] || !b[o]));
   lemma {:extract_pattern Disjoint(a, b)} DisjointDefinition(a: Set, b: Set)
-    ensures Disjoint(a, b) <==> forall o {:extract_pattern In(a, o)} {:extract_pattern In(b, o)} :: !In(a, o) || !In(b, o)
+    ensures Disjoint(a, b) <==> forall o {:extract_pattern IsMember(a, o)} {:extract_pattern IsMember(b, o)} :: !IsMember(a, o) || !IsMember(b, o)
   {
+    assert forall o :: In(a, o) == IsMember(a, o);
   }
 
 }
