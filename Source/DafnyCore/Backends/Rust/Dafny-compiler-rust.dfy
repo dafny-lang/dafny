@@ -133,7 +133,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           case Trait(t) =>
             generated := GenTrait(t, containingPath);
           case Newtype(n) =>
-            generated := GenNewtype(n);
+            generated := GenNewtype(n, containingPath + [Ident.Ident(n.name)]);
           case SynonymType(s) =>
             generated := GenSynonymType(s);
           case Datatype(d) =>
@@ -479,7 +479,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       && range.HasArithmeticOperations()
     }
 
-    method GenNewtype(c: Newtype) returns (s: seq<R.ModDecl>)
+    method GenNewtype(c: Newtype, path: seq<Ident>) returns (s: seq<R.ModDecl>)
       modifies this
     {
       var typeParamsSeq, rTypeParams, rTypeParamsDecls, whereConstraints := GenTypeParameters(c.typeParams);
@@ -495,7 +495,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var newtypeType: Type :=
         UserDefined(
           ResolvedType(
-            [], typeParamsSeq,
+            path, typeParamsSeq,
             ResolvedTypeBase.Newtype(c.base, c.range, false),
             c.attributes, [], []));
       var newtypeName := escapeName(c.name);
@@ -518,17 +518,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             R.NamelessFields([R.NamelessField(R.PUB, wrappedType)])
           ))];
 
-      var fnBody := R.Identifier(newtypeName);
+      var fnBody;
 
       match c.witnessExpr {
         case Some(e) => {
-          var e := if c.base == newtypeType then e else Convert(e, c.base, newtypeType);
+          var e := Convert(e, c.base, newtypeType);
           // TODO(Mikael): generate statements if any
-          var eStr, _, _ := GenExpr(e, NoSelf, Environment.Empty(), OwnershipOwned);
-          fnBody := fnBody.Apply1(eStr);
+          var r, _, _ := GenExpr(e, NoSelf, Environment.Empty(), OwnershipOwned);
+          fnBody := r;
         }
         case None => {
-          fnBody := fnBody.Apply1(R.std_default_Default_default);
+          fnBody := R.Identifier(newtypeName).Apply1(R.std_default_Default_default);
         }
       }
 
@@ -2305,13 +2305,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 }
               }
               case Div(true) =>
-                r := left.Sel("overflowing_div").Apply1(right).Sel("0");
+                r := left.Sel("wrapping_div").Apply1(right);
               case Plus(true) =>
-                r := left.Sel("overflowing_add").Apply1(right).Sel("0");
+                r := left.Sel("wrapping_add").Apply1(right);
               case Times(true) =>
-                r := left.Sel("overflowing_mul").Apply1(right).Sel("0");
+                r := left.Sel("wrapping_mul").Apply1(right);
               case Minus(true) =>
-                r := left.Sel("overflowing_sub").Apply1(right).Sel("0");
+                r := left.Sel("wrapping_sub").Apply1(right);
               case EuclidianDiv() => {
                 r := R.dafny_runtime.MSel("euclidian_division").AsExpr().Apply([left, right]);
               }

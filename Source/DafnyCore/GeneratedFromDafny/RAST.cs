@@ -2769,6 +2769,7 @@ namespace RAST {
     RAST._IType ReplaceMap(Dafny.IMap<RAST._IType,RAST._IType> mapping);
     RAST._IType Replace(Func<RAST._IType, RAST._IType> mapping);
     __T Fold<__T>(__T acc, Func<__T, RAST._IType, __T> f);
+    bool IsAutoSize();
     bool CanReadWithoutClone();
     bool IsRcOrBorrowedRc();
     Std.Wrappers._IOption<RAST._IType> ExtractMaybePlacebo();
@@ -3371,8 +3372,11 @@ namespace RAST {
         return (_30_display).Fold<__T>(_0_newAcc, f);
       }
     }
+    public bool IsAutoSize() {
+      return (((((((((((((this).is_U8) || ((this).is_U16)) || ((this).is_U32)) || ((this).is_U64)) || ((this).is_U128)) || ((this).is_I8)) || ((this).is_I16)) || ((this).is_I32)) || ((this).is_I64)) || ((this).is_I128)) || ((this).is_USIZE)) || (((this).is_TSynonym) && (((this).dtor_base).IsAutoSize()))) || (((this).is_TMetaData) && (((this).dtor_display).IsAutoSize()));
+    }
     public bool CanReadWithoutClone() {
-      return (((((((((((((((this).is_U8) || ((this).is_U16)) || ((this).is_U32)) || ((this).is_U64)) || ((this).is_U128)) || ((this).is_I8)) || ((this).is_I16)) || ((this).is_I32)) || ((this).is_I64)) || ((this).is_I128)) || ((this).is_USIZE)) || ((this).is_Bool)) || ((this).IsPointer())) || (((this).is_TSynonym) && (((this).dtor_base).CanReadWithoutClone()))) || (((this).is_TMetaData) && (((this).dtor_copySemantics) || (((this).dtor_display).CanReadWithoutClone())));
+      return (((((this).IsAutoSize()) || ((this).is_Bool)) || ((this).IsPointer())) || (((this).is_TSynonym) && (((this).dtor_base).CanReadWithoutClone()))) || (((this).is_TMetaData) && (((this).dtor_copySemantics) || (((this).dtor_display).CanReadWithoutClone())));
     }
     public bool IsRcOrBorrowedRc() {
       return ((((this).is_TypeApp) && (object.Equals((this).dtor_baseName, RAST.__default.RcType))) || (((this).is_Borrowed) && (((this).dtor_underlying).IsRcOrBorrowedRc()))) || (((this).is_TSynonym) && (((this).dtor_base).IsRcOrBorrowedRc()));

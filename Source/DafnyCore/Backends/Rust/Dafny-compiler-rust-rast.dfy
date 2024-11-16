@@ -780,8 +780,14 @@ module RAST
       }
     }
 
+    predicate IsAutoSize() {
+      U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || USIZE?
+      || (TSynonym? && base.IsAutoSize())
+      || (TMetaData? && display.IsAutoSize())
+    }
+
     predicate CanReadWithoutClone() {
-      U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || USIZE? || Bool?
+      IsAutoSize() || Bool?
       || IsPointer()
       || (TSynonym? && base.CanReadWithoutClone())
       || (TMetaData? && (copySemantics || display.CanReadWithoutClone()))
