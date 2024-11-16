@@ -1,12 +1,25 @@
 module {:extract_boogie} Sets {
   import opened Boxes
-  import opened Order
-  import opened BoxLists
   import opened Lists
 
   // type Set = [Box]bool;
   // TODO: can this be a "newtype"? does it matter?
-  type {:extract_boogie_name "Set"} Set = BoxList
+  // The manually authored Boogie type "Set" is defined as a Boogie map from Box to bool.
+  // There was no strong reason for doing so. In fact, there are probably stronger reasons
+  // to just define it as an uninterpreted type, which is what the effect of this
+  // :extract_boogie_name annotation will have. See also the "In" predicate below.
+  type {:extract_boogie_name "Set"} Set = s: List<Box> | StrictlyIncreasing(s) witness Nil
+  
+  predicate StrictlyIncreasing(s: List<Box>) {
+    forall i, j :: 0 <= i < j < s.Length() ==> Less(s.At(i), s.At(j))
+  }
+
+  lemma TailStrictlyIncreasing(s: List<Box>)
+    requires StrictlyIncreasing(s) && s.Cons?
+    ensures StrictlyIncreasing(s.tail)
+  {
+    assert forall i :: 0 <= i < s.tail.Length() ==> s.tail.At(i) == s.At(i + 1);
+  }
 
   // function Set#Card(Set): int;
   function {:extract_boogie_name "Set#Card"} Card(s: Set): int {
@@ -127,6 +140,28 @@ module {:extract_boogie} Sets {
           }
         }
      }
+  }
+
+  lemma PrependIncreasing(o: Box, s: List<Box>)
+    requires StrictlyIncreasing(s)
+    requires s != Nil && Less(o, s.head)
+    ensures StrictlyIncreasing(Cons(o, s))
+  {
+    var r := Cons(o, s);
+    forall i, j | 0 <= i < j < r.Length()
+      ensures Less(r.At(i), r.At(j))
+    {
+      if i == 0 {
+        var a, b, c := r.At(i), r.At(i + 1), r.At(j);
+        assert a == o && b == s.At(i) && c == s.At(j - 1);
+        if i + 1 == j {
+        } else {
+          assert Less(a, c) by {
+            LessTransitive(a, b, c);
+          }
+        }
+      }
+    }
   }
 
   // axiom (forall a: Set, x: Box, o: Box :: { Set#UnionOne(a,x)[o] }
