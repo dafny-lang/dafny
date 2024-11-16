@@ -75,7 +75,7 @@ module {:extract_boogie} Sets {
   //   (Set#Card(s) != 0 ==> (exists x: Box :: s[x])));
   lemma {:extract_pattern Card(s)} CardVsEmpty(s: Set)
     ensures Card(s) == 0 <==> s == Empty()
-    ensures Card(s) != 0 ==> exists x: Box :: IsMember(s, x)
+    ensures Card(s) != 0 ==> exists x :: IsMember(s, x)
   {
     if Card(s) == 0 {
       assert s == Empty();
