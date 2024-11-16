@@ -2,7 +2,8 @@ module Boxes {
   export
     provides Box, arbitrary
     provides Below, Reflexive, Antisymmetric, Transitive, Total
-    provides Less, LessIrreflexive, LessAsymmetric, LessBelowAsymmetric, LessTransitive, Connected
+    reveals Less
+    provides LessIrreflexive, LessAsymmetric, LessBelowAsymmetric, LessTransitive, Connected
 
   type Box(==,0,!new)
 

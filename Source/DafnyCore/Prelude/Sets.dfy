@@ -2,6 +2,23 @@ module {:extract_boogie} Sets {
   import opened Boxes
   import opened Lists
 
+  export
+    provides Set, In
+    provides Card, AboutCard
+    provides Empty, EmptyHasNoMembers, CardVsEmpty
+    provides UnionOne, UnionOneAddsElement, UnionOneAddsSelf, UnionOneMaintainsMembership, UnionOneCardIdempotent, CardUnionOne
+    provides Union, UnionElements, UnionMonotonicA, UnionMonotonicB, UnionIdempotentA, UnionIdempotentB
+    provides Intersection, IntersectionElements, IntersectionIdempotentA, IntersectionIdempotentB
+    provides Difference, DifferenceElements, DifferenceSubtracts
+    provides CardUnionIntersection, CardDifference
+    provides Subset, SubsetDefinition
+    provides Equal, EqualDefinition, Extensionality
+    provides Disjoint, DisjointDefinition, DisjointDifference
+    provides Boxes
+    // TODO: The following two lines should be removed, after changing the signature of In
+    reveals Set
+    provides Lists, StrictlyIncreasing
+
   // type Set = [Box]bool;
   // TODO: can this be a "newtype"? does it matter?
   // The manually authored Boogie type "Set" is defined as a Boogie map from Box to bool.
@@ -133,7 +150,7 @@ module {:extract_boogie} Sets {
           assert r.head == o || r.head == tail.head;
           if r.head == o {
             assert Less(x, o) by {
-              Total(o, x);
+              Connected(o, x);
             }
           } else {
             assert x == s.At(0) && tail.head == s.At(1);
@@ -256,73 +273,6 @@ module {:extract_boogie} Sets {
       UnionOne(Union(tail, b), x)
   }
 
-/*******************************
-  function UnionAlt(a: List<Box>, b: List<Box>): List<Box> {
-    match a
-    case Nil => b
-    case Cons(x, tail) =>
-      if In(b, x) then
-        UnionAlt(tail, b)
-      else
-        Cons(x, UnionAlt(tail, b))
-  }
-
-  lemma UnionAltElements(a: List<Box>, b: List<Box>, o: Box)
-    ensures In(UnionAlt(a, b), o) <==> In(a, o) || In(b, o)
-  {
-  }
-
-  lemma UnionAltPreservesStrictlyIncreasing(a: List<Box>, b: List<Box>)
-    requires StrictlyIncreasing(a) && StrictlyIncreasing(b)
-    ensures StrictlyIncreasing(UnionAlt(a, b))
-  {
-    match a
-    case Nil =>
-    case Cons(x, tail) =>
-      TailStrictlyIncreasing(a);
-      UnionAltPreservesStrictlyIncreasing(tail, b);
-      if !In(b, x) {
-        var c := UnionAlt(tail, b);
-        assert UnionAlt(a, b) == Cons(x, c);
-        forall o | In(c, o)
-          ensures Less(x, o)
-        {
-          assert In(tail, o) || In(b, o) by {
-            UnionAltElements(tail, b, o);
-          }
-          if In(tail, o) {
-            var j := tail.ContainsAt(o);
-            assert x == a.At(0) && o == a.At(j + 1);
-          } else {
-            var j := b.ContainsAt(o);
-//            assert x == a.At(0) && o == 
-          }
-        }
-        forall j | 0 <= j < c.Length()
-          ensures Less(x, c.At(j))
-        {
-          c.AtContains(j, c.At(j));
-        }
-      }
-  }
-
-  lemma UnionSameAsUnionAlt(a: Set, b: Set)
-    ensures Union(a, b) == UnionAlt(a, b)
-  {
-    forall o {
-      calc {
-        In(Union(a, b), o);
-        { UnionElements(a, b, o); }
-        In(a, o) || In(b, o);
-        { UnionAltElements(a, b, o); }
-        In(UnionAlt(a, b), o);
-      }
-    }
-    assert StrictlyIncreasing(UnionAlt(a, b));
-    Extensionality(Union(a, b), UnionAlt(a, b));
-  }
-*******************************/
-
   // axiom (forall a: Set, b: Set, o: Box :: { Set#Union(a,b)[o] }
   //   Set#Union(a,b)[o] <==> a[o] || b[o]);
   lemma {:extract_pattern In(Union(a, b), o)} UnionElements(a: Set, b: Set, o: Box)
@@ -380,7 +330,39 @@ module {:extract_boogie} Sets {
   //   Set#Disjoint(a, b) ==>
   //     Set#Difference(Set#Union(a, b), a) == b &&
   //     Set#Difference(Set#Union(a, b), b) == a);
-  // TODO
+  lemma {:extract_pattern Union(a, b)} DisjointDifference(a: Set, b: Set)
+    requires Disjoint(a, b)
+    ensures Difference(Union(a, b), a) == b
+    ensures Difference(Union(a, b), b) == a
+  {
+    DisjointDifferenceAux(a, b);
+
+    calc {
+      Difference(Union(a, b), b);
+      { UnionCommutative(a, b); }
+      Difference(Union(b, a), b);
+      { DisjointDifferenceAux(b, a); }
+      a;
+    }
+  }
+
+  lemma DisjointDifferenceAux(a: Set, b: Set)
+    requires Disjoint(a, b)
+    ensures Difference(Union(a, b), a) == b
+  {
+    forall o {
+      calc {
+        In(Difference(Union(a, b), a), o);
+        { DifferenceElements(Union(a, b), a, o); }
+        In(Union(a, b), o) && !In(a, o);
+        { UnionElements(a, b, o); }
+        (In(a, o) || In(b, o)) && !In(a, o);
+        In(b, o);
+      }
+    }
+    Extensionality(Difference(Union(a, b), a), b);
+  }
+
   // // Follows from the general union axiom, but might be still worth including, because disjoint union is a common case:
   // // axiom (forall a, b: Set :: { Set#Card(Set#Union(a, b)) }
   // //   Set#Disjoint(a, b) ==>
@@ -806,7 +788,7 @@ module {:extract_boogie} Sets {
 
   // axiom (forall a: Set, b: Set :: { Set#Equal(a,b) }  // extensionality axiom for sets
   //   Set#Equal(a,b) ==> a == b);
-  lemma Extensionality(a: Set, b: Set)
+  lemma {:extract_pattern Equal(a, b)} Extensionality(a: Set, b: Set)
     requires Equal(a, b)
     ensures a == b
   {
