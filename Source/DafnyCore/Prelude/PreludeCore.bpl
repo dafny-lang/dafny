@@ -818,14 +818,7 @@ axiom (forall a: ISet, b: ISet :: { ISet#Disjoint(a,b) }
 // -- Axiomatization of multisets --------------------------------
 // ---------------------------------------------------------------
 
-function Math#min(a: int, b: int): int;
-axiom (forall a: int, b: int :: { Math#min(a, b) } a <= b <==> Math#min(a, b) == a);
-axiom (forall a: int, b: int :: { Math#min(a, b) } b <= a <==> Math#min(a, b) == b);
-axiom (forall a: int, b: int :: { Math#min(a, b) } Math#min(a, b) == a || Math#min(a, b) == b);
-
-function Math#clip(a: int): int;
-axiom (forall a: int :: { Math#clip(a) } 0 <= a ==> Math#clip(a) == a);
-axiom (forall a: int :: { Math#clip(a) } a < 0  ==> Math#clip(a) == 0);
+#include "Math.bpl"
 
 type MultiSet = [Box]int;
 
