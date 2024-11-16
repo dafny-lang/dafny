@@ -1,3 +1,4 @@
+// NONUNIFORM: Test of Rust's ability to support newtypes
 // RUN: %baredafny run -t:rs "%s"
 // RUN: %baredafny run -t:rs --unicode-char=false "%s"
 /// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"

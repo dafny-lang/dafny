@@ -1,3 +1,4 @@
+// NONUNIFORM: Test of Rust's ability to support newtypes
 // RUN: %baredafny run -t:rs --type-system-refresh --general-newtypes "%s"
 
 newtype BoolWrapper = bool {
