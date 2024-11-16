@@ -203,7 +203,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     }
 
     method GenField(field: Field) returns (
-      rfield: R.Field, fieldInit: R.AssignIdentifier, usedTypeParams: set<string>)
+        rfield: R.Field, fieldInit: R.AssignIdentifier, usedTypeParams: set<string>)
       modifies this
     {
       usedTypeParams := {};
@@ -221,7 +221,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var expr, _, _ := GenExpr(e, NoSelf, Environment.Empty(), OwnershipOwned);
 
           fieldInit := R.AssignIdentifier(
-              fieldRustName, expr);
+            fieldRustName, expr);
         }
         case None => {
           // TODO(mikael) Use type descriptors for default values if generics
@@ -230,7 +230,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             default := fieldType.ToNullExpr();
           }
           fieldInit := R.AssignIdentifier(
-              fieldRustName, default);
+            fieldRustName, default);
         }
       }
     }
@@ -605,7 +605,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                     [R.Formal.selfBorrowed], Some(R.Borrowed(R.Self().MSel("Target").AsType())),
                     "",
                     Some(R.Borrow(R.self.Sel("0")))))]))];
-      
+
       // Convert a ref to the underlying type to a ref of the wrapped newtype
       s := s + [
         R.ImplDecl(
@@ -614,17 +614,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             resultingType,
             "",
             [R.FnDecl(
-              R.PUB,
-              R.Fn(
-                "_from_ref", [],
-                [R.Formal("o", R.Borrowed(wrappedType))],
-                Some(R.Borrowed(R.Self().AsType())),
-                "",
-                Some(
-                  R.Unsafe(
-                    R.Block(
-                    //"The newtype is marked as transparent",
-                    R.std.MSel("mem").MSel("transmute").AsExpr().Apply1(R.Identifier("o")))))))]))];
+               R.PUB,
+               R.Fn(
+                 "_from_ref", [],
+                 [R.Formal("o", R.Borrowed(wrappedType))],
+                 Some(R.Borrowed(R.Self().AsType())),
+                 "",
+                 Some(
+                   R.Unsafe(
+                     R.Block(
+                       //"The newtype is marked as transparent",
+                       R.std.MSel("mem").MSel("transmute").AsExpr().Apply1(R.Identifier("o")))))))]))];
       var rTypeParamsDeclsWithHash := R.TypeParamDecl.AddConstraintsMultiple(
         rTypeParamsDecls, [R.Hash]
       );
@@ -2399,13 +2399,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if NeedsUnwrappingConversion(fromTpe) {
         // From type is a newtype but it's not a primitive one.
         r := UnwrapNewtype(r, exprOwnership, fromTpe);
-        r, resultingOwnership := 
+        r, resultingOwnership :=
           GenExprConvertTo(r, exprOwnership, fromTpe.resolved.kind.baseType, toTpe, expectedOwnership);
         return;
       }
       if NeedsUnwrappingConversion(toTpe) {
         var toKind := toTpe.resolved.kind;
-        r, resultingOwnership := 
+        r, resultingOwnership :=
           GenExprConvertTo(r, exprOwnership, fromTpe, toKind.baseType, expectedOwnership);
         r := WrapWithNewtype(r, resultingOwnership, toTpe);
         r, resultingOwnership := FromOwnership(r, resultingOwnership, expectedOwnership);
@@ -2440,7 +2440,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           if exprOwnership == OwnershipBorrowed {
             r := r.Clone();
           }
-          r := R.dafny_runtime.MSel("truncate!").AsExpr().Apply([r, R.ExprFromType(boundedToType)]);        
+          r := R.dafny_runtime.MSel("truncate!").AsExpr().Apply([r, R.ExprFromType(boundedToType)]);
           r := WrapWithNewtype(r, OwnershipOwned, toTpe);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;

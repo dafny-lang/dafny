@@ -504,7 +504,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool InstanceConstAreStatic() {
       return false;
     }
-    
+
     private class ClassWriter : IClassWriter {
       private readonly DafnyCodeGenerator compiler;
       private readonly ClassLike builder;
@@ -580,7 +580,7 @@ namespace Microsoft.Dafny.Compilers {
         compiler.AddUnsupportedFeature(m.tok, Feature.MethodSynthesis);
         return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
       }
-    
+
       public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
           List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
           bool forBodyInheritance, bool lookasideBody) {
@@ -1671,7 +1671,7 @@ namespace Microsoft.Dafny.Compilers {
         NativeType.Selection.Long => NewtypeRange.create_I64(overflows),
         NativeType.Selection.UDoubleLong => NewtypeRange.create_U128(overflows),
         NativeType.Selection.DoubleLong => NewtypeRange.create_I128(overflows),
-        _ => 
+        _ =>
           EraseNewtypeLayers(newtypeDecl) is BoolType
             ? NewtypeRange.create_Bool()
           : NewtypeRange.create_NoRange()
@@ -1710,7 +1710,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool IsNewtypeErased(NewtypeDecl newtypeDecl) {
       var erasedIfNewtype = true;
       if (!Attributes.ContainsBool(newtypeDecl.Attributes, "rust_erased", ref erasedIfNewtype)) {
-        var hasNoMember = !newtypeDecl.Members.Any(); 
+        var hasNoMember = !newtypeDecl.Members.Any();
         erasedIfNewtype = hasNoMember;
       }
 
@@ -1726,7 +1726,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var properMethods = new List<Sequence<Rune>>();
       var extendedTraits = new List<DAST.Type>();
-      
+
       if (topLevel is TopLevelDeclWithMembers memberContainer) {
         foreach (var member in memberContainer.Members) {
           if (member.OverriddenMember == null) {
@@ -1734,7 +1734,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
       }
-      
+
       var erasedIfNewtype = true;
       if (topLevel is NewtypeDecl newtypeDecl) {
         erasedIfNewtype = IsNewtypeErased(newtypeDecl);

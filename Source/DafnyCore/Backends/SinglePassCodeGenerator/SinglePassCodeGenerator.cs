@@ -2130,7 +2130,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual bool InstanceConstAreStatic() {
       return true;
-     }
+    }
 
     void CompileClassMembers(Program program, TopLevelDeclWithMembers c, IClassWriter classWriter) {
       Contract.Requires(c != null);

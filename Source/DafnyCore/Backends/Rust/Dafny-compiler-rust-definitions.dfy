@@ -347,7 +347,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       BitwiseShiftRight() := ">>",
       BitwiseShiftLeft() := "<<"
     ]
-  
+
   function AddOverflow(tpe: R.Type, overflow: bool): R.Type {
     if !overflow then tpe else R.TMetaData(tpe, copySemantics := true, overflow := true)
   }
@@ -379,7 +379,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     }
   }
 
-  
+
   function GetUnwrappedBoundedRustType(tpe: Type): Option<R.Type> {
     match tpe {
       case UserDefined(ResolvedType(path, typeArgs, Newtype(base, range, erase), _, _, _)) =>
@@ -566,21 +566,21 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     hashImplBody: R.Expr
   ): R.ModDecl {
     R.ImplDecl(
-    R.ImplFor(
-      rTypeParamsDeclsWithHash,
-      R.Hash,
-      datatypeOrNewtypeType,
-      "",
-      [R.FnDecl(
-          R.PRIV,
-          R.Fn(
-            "hash", [R.TypeParamDecl("_H", [R.std.MSel("hash").MSel("Hasher").AsType()])],
-            [R.Formal.selfBorrowed,
-            R.Formal("_state", R.BorrowedMut(R.TIdentifier("_H")))],
-            None,
-            "",
-            Some(hashImplBody)))]
-    ))
+      R.ImplFor(
+        rTypeParamsDeclsWithHash,
+        R.Hash,
+        datatypeOrNewtypeType,
+        "",
+        [R.FnDecl(
+           R.PRIV,
+           R.Fn(
+             "hash", [R.TypeParamDecl("_H", [R.std.MSel("hash").MSel("Hasher").AsType()])],
+             [R.Formal.selfBorrowed,
+              R.Formal("_state", R.BorrowedMut(R.TIdentifier("_H")))],
+             None,
+             "",
+             Some(hashImplBody)))]
+      ))
   }
 
   function OpsImpl(
@@ -598,27 +598,27 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       case '*' => ("Mul", "mul")
     };
     R.ImplDecl(
-    R.ImplFor(
-      rTypeParamsDecls,
-      R.std.MSel("ops").MSel(traitName).AsType(),
-      newtypeType,
-      "",
-      [ R.TypeDeclMember("Output", newtypeType),
-        R.FnDecl(
-          R.PRIV,
-          R.Fn(
-            methodName, [],
-            [R.Formal.selfOwned,
-            R.Formal("other", R.SelfOwned)],
-            Some(R.SelfOwned),
-            "",
-            Some(R.Identifier(newtypeConstructor).Apply1(
-              R.BinaryOp(
-                [op],
-                R.self.Sel("0"),
-                R.Identifier("other").Sel("0"),
-                Format.BinaryOpFormat.NoFormat
-                )))))]
-    ))
+      R.ImplFor(
+        rTypeParamsDecls,
+        R.std.MSel("ops").MSel(traitName).AsType(),
+        newtypeType,
+        "",
+        [ R.TypeDeclMember("Output", newtypeType),
+          R.FnDecl(
+            R.PRIV,
+            R.Fn(
+              methodName, [],
+              [R.Formal.selfOwned,
+               R.Formal("other", R.SelfOwned)],
+              Some(R.SelfOwned),
+              "",
+              Some(R.Identifier(newtypeConstructor).Apply1(
+                     R.BinaryOp(
+                       [op],
+                       R.self.Sel("0"),
+                       R.Identifier("other").Sel("0"),
+                       Format.BinaryOpFormat.NoFormat
+                     )))))]
+      ))
   }
 }
