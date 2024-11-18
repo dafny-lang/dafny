@@ -606,19 +606,19 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       // Optimize away redundant lazy wrappers
       // (which will happen a lot with chained concatenations)
       var left' := left;
-      if (left is LazySequence<T>) {
-        var lazyLeft := left as LazySequence<T>;
+      if (left is LazySequenceCopy<T>) {
+        var lazyLeft := left as LazySequenceCopy<T>;
         left' := lazyLeft.box.Get();
       }
 
       var right' := right;
-      if (right is LazySequence<T>) {
-        var lazyRight := right as LazySequence<T>;
+      if (right is LazySequenceCopy<T>) {
+        var lazyRight := right as LazySequenceCopy<T>;
         right' := lazyRight.box.Get();
       }
 
       var c := new ConcatSequence(left', right');
-      ret := new LazySequence(c); // TODO Why this wrapper? Ins't ConcatSequence already lazy?
+      ret := new LazySequenceCopy(c);
     }
   }
 
@@ -850,8 +850,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       var concat := e as ConcatSequence<T>;
       AppendRecursive(builder, concat.left);
       AppendRecursive(builder, concat.right);
-    } else if e is LazySequence<T> {
-      var lazy := e as LazySequence<T>;
+    } else if e is LazySequenceCopy<T> {
+      var lazy := e as LazySequenceCopy<T>;
       var boxed := lazy.box.Get();
       AppendRecursive(builder, boxed);
     } else {
@@ -882,8 +882,9 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       label L1:
       AppendOptimized(builder, concat.left, stack);
       assert builder.Value() == old@L1(builder.Value()) + concat.left.Value() + ConcatValueOnStack(old@L1(stack.Value()));
-    } else if e is LazySequence<T> {
-      var lazy := e as LazySequence<T>;
+    } else if e is LazySequenceCopy<T> {
+      // TODO should this trigger materializing the lazy sequence? After all it's reading all its elements
+      var lazy := e as LazySequenceCopy<T>;
       var boxed := lazy.box.Get();
       AppendOptimized(builder, boxed, stack);
       assert builder.Value() == old(builder.Value()) + boxed.Value() + ConcatValueOnStack(old(stack.Value()));
@@ -935,12 +936,13 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       CardinalitySum(s[..last]) + s[last].Cardinality() as nat
   }
 
-  class LazySequence<T> extends Sequence<T> {
+  class LazySequenceCopy<T> extends Sequence<T> {
     ghost const value: seq<T>
     const box: AtomicBox<Sequence<T>>
     const length: size_t
 
     ghost predicate Valid()
+      reads this, Repr
       decreases |Repr|, 0
       ensures Valid() ==> 0 < |Repr|
     {
@@ -963,11 +965,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       this.box := box;
       this.length := wrapped.Cardinality();
       this.value := value;
-      new;
+
       var value := wrapped.Value();
+      new;
       var tRepr := {this} + wrapped.Repr;
-      var inv := (s: Sequence<T>) =>
-          && |s.Repr| < |Repr|
+      var inv := (s: Sequence<T>) reads s, s.Repr, this, Repr =>
+          // && |s.Repr| < |Repr|
           && s.Valid()
           && s.Value() == value;
       var box := AtomicBox.Make(inv, wrapped);
@@ -982,7 +985,16 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires index < Cardinality()
       ensures ret == Value()[index]
     {
-      
+      // TODO we could count how often Select is called, and only copy the array of .Select is called 1/10th of the total size.
+      var expr := box.Get();
+      if (expr is ArraySequence<T>) {
+        ret := (expr as ArraySequence<T>).Select(index);
+      } else {
+        var valuesArray := expr.ToArray();
+        var arraySeq := new ArraySequence(valuesArray);
+        box.Put(arraySeq);
+        ret := arraySeq.Select(index);
+      }
     }
 
     function Cardinality(): size_t
@@ -1009,10 +1021,14 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.values == Value()
     {
       var expr := box.Get();
-      ret := expr.ToArray();
-
-      var arraySeq := new ArraySequence(ret);
-      box.Put(arraySeq);
+      if (expr is ArraySequence<T>) {
+        ret := (expr as ArraySequence<T>).values;
+      } else {
+        var valuesArray := expr.ToArray();
+        var arraySeq := new ArraySequence(valuesArray);
+        box.Put(arraySeq);
+        ret := valuesArray;
+      }
     }
   }
 
