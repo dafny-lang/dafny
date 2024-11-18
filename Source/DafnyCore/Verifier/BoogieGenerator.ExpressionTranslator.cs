@@ -745,7 +745,12 @@ namespace Microsoft.Dafny {
           case SeqConstructionExpr constructionExpr: {
               var e = constructionExpr;
               var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg.NormalizeExpand();
-              return FunctionCall(GetToken(constructionExpr), "Seq#Create", Predef.SeqType, BoogieGenerator.TypeToTy(eType), HeapExpr, TrExpr(e.N), TrExpr(e.Initializer));
+              var initalizerHeap = e.Initializer.Type.IsArrowType ? HeapExprForArrow(e.Initializer.Type) : HeapExpr;
+              return FunctionCall(GetToken(constructionExpr), "Seq#Create", Predef.SeqType,
+                BoogieGenerator.TypeToTy(eType),
+                initalizerHeap, T
+                rExpr(e.N),
+                TrExpr(e.Initializer));
             }
           case MultiSetFormingExpr formingExpr: {
               MultiSetFormingExpr e = formingExpr;
