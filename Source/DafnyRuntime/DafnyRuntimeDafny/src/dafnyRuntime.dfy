@@ -463,34 +463,6 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       var stack := new Vector<Sequence<T>>(TEN_SIZE);
       AppendOptimized(builder, this, stack);
       ret := builder.Freeze();
-
-      // var size := Cardinality();
-      // var builder := NativeArray<T>.Make(size);
-      // var i := 0;
-      // while(i != size)
-      //   invariant builder.Valid()
-      //   invariant builder.Length() == size
-      //   invariant i <= size
-      //   invariant i <= builder.Length()
-      //   invariant fresh(builder.Repr)
-      //   invariant forall j: size_t :: j < i ==> 
-      //     builder.values[j].Set? 
-      //     && builder.values[j].value == Value()[j]
-      // { 
-      //   var value := Select(i);
-      //   builder.Update(i, value);
-      //   i := i + 1;
-      // }
-
-      // for i: size_t := 0 to Cardinality()
-      //   invariant builder.Valid()
-      //   invariant i < Cardinality() && i < builder.Length()
-      //   invariant fresh(builder.Repr)
-      // { 
-      //   var value := Select(i);
-      //   builder.Update(i, value);
-      // }
-      // ret := builder.Freeze(size);
     }
 
     // We specifically DON'T yet implement a ToString() method because that
