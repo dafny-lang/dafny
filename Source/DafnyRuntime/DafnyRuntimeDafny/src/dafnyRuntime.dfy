@@ -451,6 +451,48 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
 
+    method ToArrayDefault() returns (ret: ImmutableArray<T>)
+      requires Valid()
+      decreases |Repr|, 2
+      ensures Valid()
+      ensures ret.Valid()
+      ensures ret.Length() == Cardinality()
+      ensures ret.values == Value()
+    {
+      var builder := new Vector<T>(Cardinality());
+      var stack := new Vector<Sequence<T>>(TEN_SIZE);
+      AppendOptimized(builder, this, stack);
+      ret := builder.Freeze();
+
+      // var size := Cardinality();
+      // var builder := NativeArray<T>.Make(size);
+      // var i := 0;
+      // while(i != size)
+      //   invariant builder.Valid()
+      //   invariant builder.Length() == size
+      //   invariant i <= size
+      //   invariant i <= builder.Length()
+      //   invariant fresh(builder.Repr)
+      //   invariant forall j: size_t :: j < i ==> 
+      //     builder.values[j].Set? 
+      //     && builder.values[j].value == Value()[j]
+      // { 
+      //   var value := Select(i);
+      //   builder.Update(i, value);
+      //   i := i + 1;
+      // }
+
+      // for i: size_t := 0 to Cardinality()
+      //   invariant builder.Valid()
+      //   invariant i < Cardinality() && i < builder.Length()
+      //   invariant fresh(builder.Repr)
+      // { 
+      //   var value := Select(i);
+      //   builder.Update(i, value);
+      // }
+      // ret := builder.Freeze(size);
+    }
+
     // We specifically DON'T yet implement a ToString() method because that
     // doesn't help much in practice. Most runtimes implement the conversion between
     // various Dafny types and their native string type, which we don't yet model here.
@@ -573,7 +615,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Valid()
       ensures ret.Value() == s.Value()[..i] + [t] + s.Value()[(i + 1)..]
     {
-      var a := s.ToArray();
+      var a := s.ToArray(); // TODO Should remove
       var newValue := NativeArray<T>.Copy(a);
       newValue.Update(i, t);
       var newValueFrozen := newValue.Freeze(newValue.Length());
@@ -604,7 +646,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       }
 
       var c := new ConcatSequence(left', right');
-      ret := new LazySequence(c);
+      ret := new LazySequence(c); // TODO Why this wrapper? Ins't ConcatSequence already lazy?
     }
   }
 
@@ -670,32 +712,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
-      var size := Cardinality();
-      var builder := NativeArray<T>.Make(size);
-      var i := 0;
-      while(i != size)
-        invariant builder.Valid()
-        invariant builder.Length() == size
-        invariant i <= size
-        invariant i <= builder.Length()
-        invariant fresh(builder.Repr)
-        invariant forall j: size_t :: j < i ==> builder.values[j].Set? 
-          && builder.values[j].value == Value()[j]
-      { 
-        var value := Select(i);
-        builder.Update(i, value);
-        i := i + 1;
-      }
-
-      // for i: size_t := 0 to Cardinality()
-      //   invariant builder.Valid()
-      //   invariant i < Cardinality() && i < builder.Length()
-      //   invariant fresh(builder.Repr)
-      // { 
-      //   var value := Select(i);
-      //   builder.Update(i, value);
-      // }
-      ret := builder.Freeze(size);
+      ret := ToArrayDefault();
     }
   }
 
@@ -703,6 +720,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     const values: ImmutableArray<T>
 
     ghost predicate Valid()
+      reads this, Repr
       decreases |Repr|, 0
       ensures Valid() ==> 0 < |Repr|
     {
@@ -721,11 +739,16 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
 
     method Select(index: size_t) returns (ret: T)
+      decreases |Repr|
+      requires Valid()
+      requires index < Cardinality()
+      ensures ret == Value()[index]
     {
-      
+      ret := values.Select(index);
     }
 
     function Cardinality(): size_t
+      reads this, Repr
       requires Valid()
       decreases |Repr|, 1
     {
@@ -733,6 +756,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
 
     ghost function Value(): seq<T>
+      reads this, Repr
       requires Valid()
       decreases |Repr|, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
@@ -753,16 +777,24 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
   class ConcatSequence<T> extends Sequence<T> {
     const left: Sequence<T>
+    const leftSize: size_t
     const right: Sequence<T>
     const length: size_t
 
     ghost predicate Valid()
+      reads this, Repr
       decreases |Repr|, 0
       ensures Valid() ==> 0 < |Repr|
     {
-      && Repr == {this} + left.Repr + right.Repr
+      && {this, left, right} <= Repr
+      && left.Repr !! right.Repr
+      && this !in left.Repr
+      && this !in right.Repr
+      && left.Repr < Repr && |left.Repr| < |Repr| // Do not undertand why second part is needed
+      && right.Repr < Repr && |right.Repr| < |Repr| // Do not undertand why second part is needed
       && left.Valid()
       && right.Valid()
+      && leftSize == left.Cardinality()
       && left.Cardinality() as int + right.Cardinality() as int < SIZE_T_LIMIT as int
       && length == left.Cardinality() + right.Cardinality()
     }
@@ -770,23 +802,38 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     constructor(left: Sequence<T>, right: Sequence<T>)
       requires left.Valid()
       requires right.Valid()
+      requires left in left.Repr
+      requires right in right.Repr
+      requires left.Repr !! right.Repr
       requires left.Cardinality() as int + right.Cardinality() as int < SIZE_T_LIMIT as int
       ensures Valid()
       ensures Value() == left.Value() + right.Value()
     {
       this.left := left;
       this.right := right;
+      this.leftSize := left.Cardinality();
       this.length := left.Cardinality() + right.Cardinality();
       this.isString := left.isString || right.isString;
       this.Repr := {this} + left.Repr + right.Repr;
+      new;
+      assert |this.Repr| == |left.Repr| + |right.Repr| + 1;
     }
 
     method Select(index: size_t) returns (ret: T)
+      decreases |Repr|
+      requires Valid()
+      requires index < Cardinality()
+      ensures ret == Value()[index]
     {
-      
+      if (index < left.Cardinality()) {
+        ret := left.Select(index);
+      } else {
+        ret := right.Select(index - leftSize);
+      }
     }
     
     function Cardinality(): size_t
+      reads this, Repr
       requires Valid()
       decreases |Repr|, 1
     {
@@ -794,6 +841,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
 
     ghost function Value(): seq<T>
+      reads this, Repr
       requires Valid()
       decreases |Repr|, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
@@ -806,14 +854,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
       decreases |Repr|, 2
+      ensures Valid()
       ensures ret.Valid()
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
-      var builder := new Vector<T>(length);
-      var stack := new Vector<Sequence<T>>(TEN_SIZE);
-      AppendOptimized(builder, this, stack);
-      ret := builder.Freeze();
+      ret := ToArrayDefault();
     }
   }
 
@@ -959,6 +1005,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
 
     method Select(index: size_t) returns (ret: T)
+      decreases |Repr|
+      requires Valid()
+      requires index < Cardinality()
+      ensures ret == Value()[index]
     {
       
     }
