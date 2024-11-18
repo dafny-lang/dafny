@@ -107,7 +107,20 @@ module Lists {
                Append(xs).Take(n) ==
                if n <= Length() then Take(n) else Append(xs.Take(n - Length())))
     {
-      LengthAppend(xs);
+      if n == 0 {
+      } else {
+        match this
+        case Nil =>
+        case Cons(x, tail) =>
+          LengthAppend(xs);
+          calc {
+            Append(xs).Take(n);
+            Cons(x, tail.Append(xs)).Take(n);
+            Cons(x, tail.Append(xs).Take(n - 1));
+            { tail.TakeFromAppend(xs, n - 1); }
+            if n <= Length() then Take(n) else Append(xs.Take(n - Length()));
+          }
+      }
     }
 
     lemma AppendDrop(xs: List<X>)
@@ -125,7 +138,20 @@ module Lists {
                Append(xs).Drop(n) ==
                if n <= Length() then Drop(n).Append(xs) else xs.Drop(n - Length()))
     {
-      LengthAppend(xs);
+      if n == 0 {
+      } else {
+        match this
+        case Nil =>
+        case Cons(x, tail) =>
+          LengthAppend(xs);
+          calc {
+            Append(xs).Drop(n);
+            Cons(x, tail.Append(xs)).Drop(n);
+            tail.Append(xs).Drop(n - 1);
+            { tail.DropFromAppend(xs, n - 1); }
+            if n <= Length() then Drop(n).Append(xs) else xs.Drop(n - Length());
+          }
+      }
     }
 
     lemma AppendTakeDrop(i: nat)
