@@ -170,7 +170,7 @@ public static class InductionHeuristic {
       return false;
     } else {
       // in all other cases, reset the prominence status and recurse on the subexpressions
-      foreach (var exp in expr.SubExpressions) {
+      foreach (var exp in expr!.SubExpressions) {
         if (VarOccursInArgumentToRecursiveFunction(options, exp, n, subExprIsProminent)) {
           return true;
         }

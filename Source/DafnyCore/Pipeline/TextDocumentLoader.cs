@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
       this.symbolResolver = symbolResolver;
     }
 
-    public async Task<Program> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
+    public async Task<ProgramParseResult> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
         () => parser.Parse(compilation, cancellationToken), cancellationToken

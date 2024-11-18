@@ -23,6 +23,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     const thisFile: R.Path := if rootType.RootCrate? then R.crate else R.crate.MSel(rootType.moduleName)
 
     const DafnyChar := if charType.UTF32? then "DafnyChar" else "DafnyCharUTF16"
+    const conversions := if charType.UTF32? then "unicode_chars_true" else "unicode_chars_false"
     const DafnyCharUnderlying := if charType.UTF32? then R.RawType("char") else R.RawType("u16")
     const string_of := if charType.UTF32? then "string_of" else "string_utf16_of"
     const allocate :=
@@ -3772,21 +3773,30 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         s := s + "\n";
         s := s + m.ToString("");
-
       }
     }
 
-    static method EmitCallToMain(fullName: seq<Name>) returns (s: string) {
-      s := "\nfn main() {\n";
-      var i := 0;
-      while i < |fullName| {
-        if i > 0 {
-          s := s + "::";
-        }
-        s := s + escapeName(fullName[i]);
-        i := i + 1;
+    method EmitCallToMain(companion: Expression, mainMethodName: string, hasArgs: bool) returns (s: string)
+      modifies this
+    {
+      s := "\nfn main() {";
+      if hasArgs {
+        s := s + @"
+  let args: Vec<String> = ::std::env::args().collect();
+  let dafny_args =
+    ::dafny_runtime::dafny_runtime_conversions::vec_to_dafny_sequence(
+    &args, |s| 
+  ::dafny_runtime::dafny_runtime_conversions::" + conversions + @"::string_to_dafny_string(s));
+  ";
       }
-      s := s + "();\n}";
+      var call, _, _ := GenExpr(companion, NoSelf, Environment.Empty(), OwnershipOwned);
+      call := call.FSel(mainMethodName);
+      if hasArgs {
+        call := call.Apply1(R.Borrow(R.Identifier("dafny_args")));
+      } else {
+        call := call.Apply([]);
+      }
+      s := s + call.ToString("") + ";\n}";
     }
   }
 }

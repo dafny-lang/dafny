@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : new ProgramParser(innerParserLogger, fileSystem);
     }
 
-    public async Task<Program> Parse(Compilation compilation, CancellationToken cancellationToken) {
+    public async Task<ProgramParseResult> Parse(Compilation compilation, CancellationToken cancellationToken) {
       await mutex.WaitAsync(cancellationToken);
 
       var rootFiles = await compilation.RootFiles;
