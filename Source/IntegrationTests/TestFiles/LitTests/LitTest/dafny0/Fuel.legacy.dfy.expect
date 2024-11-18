@@ -1,5 +1,5 @@
-Fuel.legacy.dfy(129,8): Error: Fuel can only increase within a given scope. (ID: g_fuel_must_increase)
-Fuel.legacy.dfy(407,8): Error: Fuel can only increase within a given scope. (ID: g_fuel_must_increase)
+Fuel.legacy.dfy(129,8): Error: Fuel can only increase within a given scope.
+Fuel.legacy.dfy(407,8): Error: Fuel can only increase within a given scope.
 Fuel.legacy.dfy(17,22): Error: assertion might not hold
 Fuel.legacy.dfy(66,27): Error: assertion might not hold
 Fuel.legacy.dfy(71,27): Error: assertion might not hold
