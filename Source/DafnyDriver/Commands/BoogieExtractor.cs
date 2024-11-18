@@ -327,7 +327,7 @@ namespace Microsoft.Dafny.Compilers {
             );
 
             var patterns = Attributes.FindAllExpressions(quantifierExpr.Attributes, PatternAttribute);
-            if (patterns.Count == 0) {
+            if (patterns == null || patterns.Count == 0) {
               throw new ExtractorError($"extraction expects every quantifier to specify at least one :{PatternAttribute}");
             }
             var triggers = GetTriggers(tok, patterns);
