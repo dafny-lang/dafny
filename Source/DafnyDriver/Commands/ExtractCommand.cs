@@ -50,7 +50,8 @@ public static class ExtractCommand {
       var extractedProgram = BoogieExtractor.Extract(resolution.ResolvedProgram);
       engine.PrintBplFile(outputPath, extractedProgram, true, pretty: true);
     } catch (ExtractorError extractorError) {
-      await options.OutputWriter.WriteLineAsync($"Boogie axiom extraction error: {extractorError.Message}");
+      var tok = extractorError.Tok;
+      await options.OutputWriter.WriteLineAsync($"{tok.filename}({tok.line},{tok.col}): Boogie axiom extraction error: {extractorError.Message}");
       return 1;
     }
 
