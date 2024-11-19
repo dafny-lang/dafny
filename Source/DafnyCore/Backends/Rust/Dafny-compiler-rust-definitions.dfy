@@ -591,6 +591,40 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       ))
   }
 
+  function UnaryOpsImpl(
+    op: char,
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    newtypeType: R.Type,
+    newtypeConstructor: string
+  ): R.ModDecl
+    requires op in "!"
+  {
+    var (traitName, methodName) := match op {
+      case '!' => ("Not", "not")
+    };
+    R.ImplDecl(
+      R.ImplFor(
+        rTypeParamsDecls,
+        R.std.MSel("ops").MSel(traitName).AsType(),
+        newtypeType,
+        "",
+        [ R.TypeDeclMember("Output", newtypeType),
+          R.FnDecl(
+            R.PRIV,
+            R.Fn(
+              methodName, [],
+              [R.Formal.selfOwned],
+              Some(R.SelfOwned),
+              "",
+              Some(R.Identifier(newtypeConstructor).Apply1(
+                     R.UnaryOp(
+                       [op],
+                       R.self.Sel("0"),
+                       Format.UnaryOpFormat.NoFormat
+                     )))))]
+      ))
+  }
+
   function OpsImpl(
     op: char,
     rTypeParamsDecls: seq<R.TypeParamDecl>,

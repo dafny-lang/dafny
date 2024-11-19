@@ -115,8 +115,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       AddUnsupported("<i>create static main</i>");
-      return new BuilderSyntaxTree<ExprContainer>(
-        new ExprBuffer(this), this);
+      return WrBuffer(out _);
     }
 
     private bool NeedsExternalImport(MemberDecl memberDecl) {
@@ -309,13 +308,12 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is NewtypeContainer builder) {
         List<DAST.Statement> witnessStmts = new();
         DAST.Expression witness = null;
-        var buf = new ExprBuffer(null);
         var statementBuf = new StatementBuffer();
         if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
           EmitExpr(
             nt.Witness, false,
             EmitCoercionIfNecessary(nt.Witness.Type, nt.BaseType, nt.Witness.tok,
-              new BuilderSyntaxTree<ExprContainer>(buf, this)),
+              WrBuffer(out var buf)),
             new BuilderSyntaxTree<StatementContainer>(statementBuf, this)
           );
           witness = buf.Finish();
@@ -432,12 +430,11 @@ namespace Microsoft.Dafny.Compilers {
       List<DAST.Statement> witnessStmts = new();
       DAST.Expression witness = null;
       var statementBuf = new StatementBuffer();
-      var buf = new ExprBuffer(null);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         EmitExpr(
           sst.Witness, false,
           EmitCoercionIfNecessary(sst.Witness.Type, erasedType, sst.Witness.tok,
-            new BuilderSyntaxTree<ExprContainer>(buf, this)),
+            WrBuffer(out var buf)),
           new BuilderSyntaxTree<StatementContainer>(statementBuf, this)
         );
         witness = buf.Finish();
@@ -1120,19 +1117,17 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ILvalue SeqSelectLvalue(SeqSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var sourceBuf = new ExprBuffer(null);
       EmitExpr(
         ll.Seq, false,
         EmitCoercionIfNecessary(
           ll.Seq.Type,
           ll.Seq.Type.IsNonNullRefType || !ll.Seq.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Seq.Type.NormalizeExpand()),
-          ll.tok, new BuilderSyntaxTree<ExprContainer>(sourceBuf, this)
+          ll.tok, WrBuffer(out var sourceBuf)
         ),
         wStmts
       );
 
-      var indexBuf = new ExprBuffer(null);
-      EmitExpr(ll.E0, false, new BuilderSyntaxTree<ExprContainer>(indexBuf, this), wStmts);
+      EmitExpr(ll.E0, false, WrBuffer(out var indexBuf), wStmts);
 
       var source = sourceBuf.Finish();
       var index = indexBuf.Finish();
@@ -1291,8 +1286,7 @@ namespace Microsoft.Dafny.Compilers {
           TrStmtList(body, bodyWr);
           BuilderSyntaxTree<ExprContainer> toReturn;
           if (goingUp) {
-            var loBuf = new ExprBuffer(null);
-            toReturn = new BuilderSyntaxTree<ExprContainer>(loBuf, this);
+            toReturn = WrBuffer(out var loBuf);
             loHiBuilder.AddBuildable(loBuf);
           } else {
             toReturn = new BuilderSyntaxTree<ExprContainer>(loHiBuilder, this);
@@ -1407,8 +1401,7 @@ namespace Microsoft.Dafny.Compilers {
           arguments = ctor.Ins.Select((f, i) => (f, i))
             .Where(tp => !tp.f.IsGhost)
             .Select(tp => {
-              var buf = new ExprBuffer(null);
-              var localWriter = new BuilderSyntaxTree<ExprContainer>(buf, this);
+              var localWriter = WrBuffer(out var buf);
               EmitExpr(initCall.Args[tp.i], false, localWriter, wStmts);
               return buf.Finish();
             });
@@ -1804,6 +1797,11 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is ExprBuffer buf && wr is not BuilderSyntaxTree<ExprContainer>) {
         // the writers are not currently wired properly for DatatypeValue
         actualWr = new BuilderSyntaxTree<ExprContainer>(buf, this);
+      }
+      if(
+        actualWr is BuilderSyntaxTree<ExprContainer> { Builder: IfElseBuilder { Condition: null} or WhileBuilder  { Condition: null } } builder &&
+        expr.Type is not BoolType) {
+        actualWr = EmitConversion(builder, expr.Type, new BoolType());
       }
 
       if (expr is DatatypeValue) {
@@ -2551,19 +2549,20 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var container, out var convert)) {
+        var dastExpr = convert(expr);
         switch (op) {
           case ResolvedUnaryOp.BoolNot: {
-              container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
-                UnaryOp.create_Not(),
-                convert(expr),
-                new UnaryOpFormat_NoFormat()
-              ));
-              break;
-            }
+            container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
+              UnaryOp.create_Not(),
+              dastExpr,
+              new UnaryOpFormat_NoFormat()
+            ));
+            break;
+          }
           case ResolvedUnaryOp.BitwiseNot: {
               container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
                 UnaryOp.create_BitwiseNot(),
-                convert(expr),
+                dastExpr,
                 new UnaryOpFormat_NoFormat()
               ));
               break;
@@ -2571,7 +2570,7 @@ namespace Microsoft.Dafny.Compilers {
           case ResolvedUnaryOp.Cardinality: {
               container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
                 UnaryOp.create_Cardinality(),
-                convert(expr),
+                dastExpr,
                 new UnaryOpFormat_NoFormat()
               ));
               break;
@@ -2848,10 +2847,25 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public BuilderSyntaxTree<ExprContainer> WrBuffer(out ExprBuffer buf) {
+      buf = new ExprBuffer(null);
+      var wGuard = new BuilderSyntaxTree<ExprContainer>(buf, this);
+      return wGuard;
+    }
     protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
+        DAST.Expression convertedGuard;
+        if (guard.Type is BoolType) {
+          if(guard is UnaryOpExpr { ResolvedOp: UnaryOpExpr.ResolvedOpcode.BoolNot, E: var innerGuard} unaryOpExpr && innerGuard.Type is not BoolType) {
+            guard = unaryOpExpr.E;
+          }
+          convertedGuard = convert(guard);
+        } else {
+          EmitConversionExpr(guard, guard.Type, new BoolType(), inLetExprBody, WrBuffer(out var buf), wStmts);
+          convertedGuard = buf.Finish();
+        }
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Ite(
-          convert(guard),
+          convertedGuard,
           convert(thn),
           convert(els)
         ));
@@ -2869,14 +2883,19 @@ namespace Microsoft.Dafny.Compilers {
         if (toType.Equals(fromType)) {
           EmitExpr(fromExpr, inLetExprBody, builder, wStmts);
         } else {
-          EmitExpr(fromExpr, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(builder.Builder.Convert(
-            GenType(fromType),
-            GenType(toType)
-          ), this), wStmts);
+          EmitExpr(fromExpr, inLetExprBody, EmitConversion(builder, fromType, toType), wStmts);
         }
       } else {
         throw new InvalidOperationException();
       }
+    }
+
+    private BuilderSyntaxTree<ExprContainer> EmitConversion(BuilderSyntaxTree<ExprContainer> builder, Type fromType, Type toType)
+    {
+      return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Convert(
+        GenType(fromType),
+        GenType(toType)
+      ), this);
     }
 
     protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, ConcreteSyntaxTree wr) {
@@ -3019,8 +3038,7 @@ namespace Microsoft.Dafny.Compilers {
 
     // Normally wStmt is a BuilderSyntaxTree<StatementContainer> but it might not while the compiler is being developed
     private DAST.Expression ConvertExpression(Expression term, ConcreteSyntaxTree wStmt) {
-      var buffer0 = new ExprBuffer(null);
-      EmitExpr(term, false, new BuilderSyntaxTree<ExprContainer>(buffer0, this), wStmt);
+      EmitExpr(term, false, WrBuffer(out var buffer0), wStmt);
       return buffer0.Finish();
     }
 
@@ -3031,9 +3049,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private BuilderSyntaxTree<ExprContainer> CreateExprBuilder() {
-      var exprBuffer = new ExprBuffer(null);
-      var exprBuilder = new BuilderSyntaxTree<ExprContainer>(exprBuffer, this);
-      return exprBuilder;
+      return WrBuffer(out _);
     }
 
     protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, IToken tok, string collName, Expression term,
@@ -3051,8 +3067,7 @@ namespace Microsoft.Dafny.Compilers {
         return keyBuilder;
       } else {
         AddUnsupported("<i>EMitMapBuilder_Add</i>");
-        var buffer1 = new ExprBuffer(null);
-        return new BuilderSyntaxTree<ExprContainer>(buffer1, this);
+        return WrBuffer(out _);
       }
     }
 
@@ -3147,10 +3162,8 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       return (result, (wr) => {
-        var loBuf = new ExprBuffer(null);
-        wLo(new BuilderSyntaxTree<ExprContainer>(loBuf, this));
-        var hiBuf = new ExprBuffer(null);
-        wHi(new BuilderSyntaxTree<ExprContainer>(hiBuf, this));
+        wLo(WrBuffer(out var loBuf));
+        wHi(WrBuffer(out var hiBuf));
 
         if (GetExprBuilder(wr, out var builder)) {
           builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_IntRange(

@@ -9,8 +9,11 @@ newtype BoolWrapper = bool {
   function Or(other: BoolWrapper): BoolWrapper {
     if n == 1 then True() else other
   }
-  function NormalOr(other: BoolWrapper): BoolWrapper {
-    this || other
+  static const OrFun: (BoolWrapper, BoolWrapper) -> BoolWrapper := 
+    (a, b) => a || b
+
+  static function ApplyFalseTrue(f: (BoolWrapper, BoolWrapper) -> BoolWrapper): BoolWrapper {
+    f(false as BoolWrapper, true as BoolWrapper)
   }
 }
 
@@ -18,4 +21,11 @@ method Main(){
   expect (true as BoolWrapper).Or(false as BoolWrapper) == (true as BoolWrapper);
   expect (false as BoolWrapper).Or(false as BoolWrapper) == (false as BoolWrapper);
   expect (false as BoolWrapper).Or(true as BoolWrapper) == (true as BoolWrapper);
+  expect BoolWrapper.ApplyFalseTrue(BoolWrapper.OrFun) == (true as BoolWrapper);
+  var x := true as BoolWrapper;
+  if !x {
+    expect if !x then false else false;
+  } else if x {
+    expect if x then true else true;
+  }
 }

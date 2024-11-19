@@ -683,6 +683,8 @@ namespace Microsoft.Dafny.Compilers {
     object condition = null;
     readonly List<object> ifBody = new();
     readonly List<object> elseBody = new();
+    
+    public object Condition => condition;
 
     public IfElseBuilder() { }
 
@@ -785,6 +787,7 @@ namespace Microsoft.Dafny.Compilers {
   class WhileBuilder : ExprContainer, StatementContainer, BuildableStatement {
     object condition = null;
     readonly List<object> body = new();
+    public object Condition => condition;
 
     public void AddExpr(DAST.Expression value) {
       if (condition != null) {

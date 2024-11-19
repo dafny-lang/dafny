@@ -629,12 +629,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           resultingType,
           R.Identifier("self").Sel("0").Sel("hash").Apply1(R.Identifier("_state"))
         )];
-      if(c.range.HasArithmeticOperations()) {
+      if c.range.HasArithmeticOperations() {
         s := s + [
           OpsImpl('+', rTypeParamsDecls, resultingType, newtypeName),
           OpsImpl('-', rTypeParamsDecls, resultingType, newtypeName),
           OpsImpl('*', rTypeParamsDecls, resultingType, newtypeName),
           OpsImpl('/', rTypeParamsDecls, resultingType, newtypeName)
+        ];
+      }
+      if c.range.Bool? {
+        s := s + [
+          UnaryOpsImpl('!', rTypeParamsDecls, resultingType, newtypeName)
         ];
       }
       var implementation, traitBodies := GenClassImplBody(c.classItems, false, newtypeType, typeParamsSeq);
@@ -3331,7 +3336,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var onExprArgs := [];
           for i := 0 to |args| {
             var (name, ty) := args[i];
-            var rIdent, _, _ := GenIdent(name, selfIdent, lEnv, if ty.CanReadWithoutClone() then OwnershipOwned else OwnershipBorrowed);
+            var rIdent, _, _ := GenIdent(name, selfIdent, lEnv, if !isConstant && ty.CanReadWithoutClone() then OwnershipOwned else OwnershipBorrowed);
             onExprArgs := onExprArgs + [rIdent];
           }
           body := body.Apply(onExprArgs);
@@ -3660,7 +3665,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         case Apply(func, args) => {
-          // TODO: Need the type of the input of Func to ensure we generate arguments with the right ownership
           var funcExpr, _, recIdents := GenExpr(func, selfIdent, env, OwnershipBorrowed);
           readIdents := recIdents;
           var rArgs := [];
