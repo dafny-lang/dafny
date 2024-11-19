@@ -59,7 +59,7 @@ module Multisets {
   //   (MultiSet#Card(s) != 0 ==> (exists x: Box :: 0 < s[x])));
   lemma {:extract_pattern Card(s)} CardVsEmpty(s: Multiset)
     ensures Card(s) == 0 <==> s == Empty()
-    ensures Card(s) != 0 ==> exists x :: 0 < Multiplicity(s, x)
+    ensures Card(s) != 0 ==> exists x {:extract_pattern Multiplicity(s, x)} :: 0 < Multiplicity(s, x)
 
   // function MultiSet#Singleton(Box): MultiSet;
   function {:extract_boogie_name "MultiSet#Singleton"} Singleton(o: Box): Multiset {
