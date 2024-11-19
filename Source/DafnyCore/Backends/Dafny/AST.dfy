@@ -351,12 +351,15 @@ module {:extern "DAST"} DAST {
   // Since constant fields need to be set up in the constructor,
   // accessing constant fields is done in two ways:
   // - The internal field access (through the internal field that contains the value of the constant)
-  //   it's not initialized at the beginning of the constructor
+  //   it's not initialized at the beginning of the constructor.
   // - The external field access (through a function), which when accessed
-  //   must always be initialized
+  //   must always be initialized.
   // For Select expressions, it's important to know how the field is being accessed
   // For mutable fields, there is no wrapping function so only one way to access the mutable field
-  datatype FieldMutability = ConstantField | InternalClassConstantField  | ClassMutableField
+  datatype FieldMutability =
+    | ConstantField // Access a class constant field after initialization, or a datatype constant field
+    | InternalClassConstantFieldOrDatatypeDestructor // Access a class internal field before initialization, or a datatype destructor
+    | ClassMutableField
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
   datatype Literal =

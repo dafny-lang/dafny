@@ -2065,9 +2065,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private static _IFieldMutability FieldMutabilityOf(MemberDecl member, bool isInternal = false) {
-      return member is ConstantField
-          ? isInternal
-            ? new FieldMutability_InternalClassConstantField()
+      return member is ConstantField or DatatypeDestructor
+          ? isInternal || member is DatatypeDestructor
+            ? new FieldMutability_InternalClassConstantFieldOrDatatypeDestructor()
             : new FieldMutability_ConstantField()
           : new FieldMutability_ClassMutableField();
     }
@@ -2335,7 +2335,7 @@ namespace Microsoft.Dafny.Compilers {
             builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Select(
               sourceAST,
               Sequence<Rune>.UnicodeFromString(compileName),
-              new FieldMutability_ConstantField(),
+              new FieldMutability_InternalClassConstantFieldOrDatatypeDestructor(),
               true, GenType(dtor.Type)
             ));
           }

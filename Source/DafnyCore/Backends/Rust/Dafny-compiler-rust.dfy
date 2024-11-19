@@ -2204,6 +2204,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     }
 
     method FromBool(r: R.Expr, typ: Type) returns (out: R.Expr)
+      modifies this
     {
       out := r;
       if typ != Primitive(Primitive.Bool) {
@@ -3378,9 +3379,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
             // onExpr.field()
             r := onExpr.Sel(escapeVar(field)).Apply0();
+            var originalMutability := OwnershipOwned;
+            match fieldMutability {
+              case ConstantField() => // Good
+              case InternalClassConstantFieldOrDatatypeDestructor() =>
+                originalMutability := OwnershipBorrowed;
+              case ClassMutableField() =>
+                r := Error("datatypes don't have mutable fields");
+            }
             var typ := GenType(fieldType, GenTypeContext.default());
             // All fields are returned as addresses for now until we have something more clever
-            r, resultingOwnership := FromOwnership(r, OwnershipBorrowed, expectedOwnership);
+            r, resultingOwnership := FromOwnership(r, originalMutability, expectedOwnership);
             readIdents := recIdents;
           } else {
             var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
@@ -3401,7 +3410,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               case ConstantField() =>
                 r := r.Apply0();
                 r := r.Clone();
-              case InternalClassConstantField() =>
+              case InternalClassConstantFieldOrDatatypeDestructor() =>
                 r := r.Clone();
               case ClassMutableField() =>
                 r := read_mutable_field_macro.Apply1(r); // Already contains a clone.

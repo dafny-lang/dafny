@@ -8718,7 +8718,7 @@ namespace DAST {
 
   public interface _IFieldMutability {
     bool is_ConstantField { get; }
-    bool is_InternalClassConstantField { get; }
+    bool is_InternalClassConstantFieldOrDatatypeDestructor { get; }
     bool is_ClassMutableField { get; }
     _IFieldMutability DowncastClone();
   }
@@ -8736,19 +8736,19 @@ namespace DAST {
     public static _IFieldMutability create_ConstantField() {
       return new FieldMutability_ConstantField();
     }
-    public static _IFieldMutability create_InternalClassConstantField() {
-      return new FieldMutability_InternalClassConstantField();
+    public static _IFieldMutability create_InternalClassConstantFieldOrDatatypeDestructor() {
+      return new FieldMutability_InternalClassConstantFieldOrDatatypeDestructor();
     }
     public static _IFieldMutability create_ClassMutableField() {
       return new FieldMutability_ClassMutableField();
     }
     public bool is_ConstantField { get { return this is FieldMutability_ConstantField; } }
-    public bool is_InternalClassConstantField { get { return this is FieldMutability_InternalClassConstantField; } }
+    public bool is_InternalClassConstantFieldOrDatatypeDestructor { get { return this is FieldMutability_InternalClassConstantFieldOrDatatypeDestructor; } }
     public bool is_ClassMutableField { get { return this is FieldMutability_ClassMutableField; } }
     public static System.Collections.Generic.IEnumerable<_IFieldMutability> AllSingletonConstructors {
       get {
         yield return FieldMutability.create_ConstantField();
-        yield return FieldMutability.create_InternalClassConstantField();
+        yield return FieldMutability.create_InternalClassConstantFieldOrDatatypeDestructor();
         yield return FieldMutability.create_ClassMutableField();
       }
     }
@@ -8775,15 +8775,15 @@ namespace DAST {
       return s;
     }
   }
-  public class FieldMutability_InternalClassConstantField : FieldMutability {
-    public FieldMutability_InternalClassConstantField() : base() {
+  public class FieldMutability_InternalClassConstantFieldOrDatatypeDestructor : FieldMutability {
+    public FieldMutability_InternalClassConstantFieldOrDatatypeDestructor() : base() {
     }
     public override _IFieldMutability DowncastClone() {
       if (this is _IFieldMutability dt) { return dt; }
-      return new FieldMutability_InternalClassConstantField();
+      return new FieldMutability_InternalClassConstantFieldOrDatatypeDestructor();
     }
     public override bool Equals(object other) {
-      var oth = other as DAST.FieldMutability_InternalClassConstantField;
+      var oth = other as DAST.FieldMutability_InternalClassConstantFieldOrDatatypeDestructor;
       return oth != null;
     }
     public override int GetHashCode() {
@@ -8792,7 +8792,7 @@ namespace DAST {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "DAST.FieldMutability.InternalClassConstantField";
+      string s = "DAST.FieldMutability.InternalClassConstantFieldOrDatatypeDestructor";
       return s;
     }
   }
