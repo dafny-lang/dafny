@@ -683,7 +683,7 @@ namespace Microsoft.Dafny.Compilers {
     object condition = null;
     readonly List<object> ifBody = new();
     readonly List<object> elseBody = new();
-    
+
     public object Condition => condition;
 
     public IfElseBuilder() { }

@@ -69,7 +69,7 @@ module RASTCoverage {
     AssertCoverage(Optimize(ConversionNum(I128, DafnyIntLiteral("1"))) == LiteralInt("1"));
     TestNoOptimize(ConversionNum(I128, x));
     AssertCoverage(Optimize(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("z", y), RawExpr("return"))))
-                    == StmtExpr(DeclareVar(MUT, "z", Some(I128), Some(y)), RawExpr("return")));
+                   == StmtExpr(DeclareVar(MUT, "z", Some(I128), Some(y)), RawExpr("return")));
     TestNoOptimize(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("w", y), RawExpr("return"))));
 
     TestNoOptimize(x);
@@ -84,7 +84,7 @@ module RASTCoverage {
     TestNoOptimize(StmtExpr(LiteralString("2", true, false), x));
     TestNoOptimize(StmtExpr(LiteralString("3", false, true), x));
     AssertCoverage(Optimize(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("z", y), RawExpr("return"))))
-                    == StmtExpr(DeclareVar(MUT, "z", Some(I128), Some(y)), RawExpr("return")));
+                   == StmtExpr(DeclareVar(MUT, "z", Some(I128), Some(y)), RawExpr("return")));
 
     var coverageExpression := [
       RawExpr("abc"),

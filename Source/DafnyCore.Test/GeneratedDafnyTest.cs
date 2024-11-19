@@ -6,9 +6,9 @@ namespace DafnyCore.Test;
 public class GeneratedDafnyTest {
   [Fact]
   public void TestDafnyCoverage() {
-    DafnyToRustCompilerCoverage.__default.TestIsCopy();;
+    DafnyToRustCompilerCoverage.__default.TestIsCopy(); ;
   }
-  
+
   [Fact]
   public void TestRustASTCoverage() {
     RASTCoverage.__default.TestExpr();

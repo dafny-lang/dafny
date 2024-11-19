@@ -1798,8 +1798,8 @@ namespace Microsoft.Dafny.Compilers {
         // the writers are not currently wired properly for DatatypeValue
         actualWr = new BuilderSyntaxTree<ExprContainer>(buf, this);
       }
-      if(
-        actualWr is BuilderSyntaxTree<ExprContainer> { Builder: IfElseBuilder { Condition: null} or WhileBuilder  { Condition: null } } builder &&
+      if (
+        actualWr is BuilderSyntaxTree<ExprContainer> { Builder: IfElseBuilder { Condition: null } or WhileBuilder { Condition: null } } builder &&
         expr.Type is not BoolType) {
         actualWr = EmitConversion(builder, expr.Type, new BoolType());
       }
@@ -2552,13 +2552,13 @@ namespace Microsoft.Dafny.Compilers {
         var dastExpr = convert(expr);
         switch (op) {
           case ResolvedUnaryOp.BoolNot: {
-            container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
-              UnaryOp.create_Not(),
-              dastExpr,
-              new UnaryOpFormat_NoFormat()
-            ));
-            break;
-          }
+              container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
+                UnaryOp.create_Not(),
+                dastExpr,
+                new UnaryOpFormat_NoFormat()
+              ));
+              break;
+            }
           case ResolvedUnaryOp.BitwiseNot: {
               container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
                 UnaryOp.create_BitwiseNot(),
@@ -2686,7 +2686,7 @@ namespace Microsoft.Dafny.Compilers {
         TypedBinOp TypeOp(_IBinOp binOp) {
           return (TypedBinOp)TypedBinOp.create_TypedBinOp(binOp, typeLeft, typeRight, typeResult);
         }
-        
+
         TypedBinOp TypeOpRev(_IBinOp binOp) {
           return (TypedBinOp)TypedBinOp.create_TypedBinOp(binOp, typeRight, typeLeft, typeResult);
         }
@@ -2856,7 +2856,7 @@ namespace Microsoft.Dafny.Compilers {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         DAST.Expression convertedGuard;
         if (guard.Type is BoolType) {
-          if(guard is UnaryOpExpr { ResolvedOp: UnaryOpExpr.ResolvedOpcode.BoolNot, E: var innerGuard} unaryOpExpr && innerGuard.Type is not BoolType) {
+          if (guard is UnaryOpExpr { ResolvedOp: UnaryOpExpr.ResolvedOpcode.BoolNot, E: var innerGuard } unaryOpExpr && innerGuard.Type is not BoolType) {
             guard = unaryOpExpr.E;
           }
           convertedGuard = convert(guard);
@@ -2890,8 +2890,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private BuilderSyntaxTree<ExprContainer> EmitConversion(BuilderSyntaxTree<ExprContainer> builder, Type fromType, Type toType)
-    {
+    private BuilderSyntaxTree<ExprContainer> EmitConversion(BuilderSyntaxTree<ExprContainer> builder, Type fromType, Type toType) {
       return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Convert(
         GenType(fromType),
         GenType(toType)
