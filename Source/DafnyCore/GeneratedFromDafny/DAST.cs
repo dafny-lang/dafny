@@ -5091,6 +5091,92 @@ namespace DAST {
     }
   }
 
+  public interface _ITypedBinOp {
+    bool is_TypedBinOp { get; }
+    DAST._IBinOp dtor_op { get; }
+    DAST._IType dtor_leftType { get; }
+    DAST._IType dtor_rightType { get; }
+    DAST._IType dtor_resultType { get; }
+    _ITypedBinOp DowncastClone();
+  }
+  public class TypedBinOp : _ITypedBinOp {
+    public readonly DAST._IBinOp _op;
+    public readonly DAST._IType _leftType;
+    public readonly DAST._IType _rightType;
+    public readonly DAST._IType _resultType;
+    public TypedBinOp(DAST._IBinOp op, DAST._IType leftType, DAST._IType rightType, DAST._IType resultType) {
+      this._op = op;
+      this._leftType = leftType;
+      this._rightType = rightType;
+      this._resultType = resultType;
+    }
+    public _ITypedBinOp DowncastClone() {
+      if (this is _ITypedBinOp dt) { return dt; }
+      return new TypedBinOp(_op, _leftType, _rightType, _resultType);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.TypedBinOp;
+      return oth != null && object.Equals(this._op, oth._op) && object.Equals(this._leftType, oth._leftType) && object.Equals(this._rightType, oth._rightType) && object.Equals(this._resultType, oth._resultType);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._op));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._leftType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._rightType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._resultType));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.TypedBinOp.TypedBinOp";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._op);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._leftType);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._rightType);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._resultType);
+      s += ")";
+      return s;
+    }
+    private static readonly DAST._ITypedBinOp theDefault = create(DAST.BinOp.Default(), DAST.Type.Default(), DAST.Type.Default(), DAST.Type.Default());
+    public static DAST._ITypedBinOp Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._ITypedBinOp> _TYPE = new Dafny.TypeDescriptor<DAST._ITypedBinOp>(DAST.TypedBinOp.Default());
+    public static Dafny.TypeDescriptor<DAST._ITypedBinOp> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _ITypedBinOp create(DAST._IBinOp op, DAST._IType leftType, DAST._IType rightType, DAST._IType resultType) {
+      return new TypedBinOp(op, leftType, rightType, resultType);
+    }
+    public static _ITypedBinOp create_TypedBinOp(DAST._IBinOp op, DAST._IType leftType, DAST._IType rightType, DAST._IType resultType) {
+      return create(op, leftType, rightType, resultType);
+    }
+    public bool is_TypedBinOp { get { return true; } }
+    public DAST._IBinOp dtor_op {
+      get {
+        return this._op;
+      }
+    }
+    public DAST._IType dtor_leftType {
+      get {
+        return this._leftType;
+      }
+    }
+    public DAST._IType dtor_rightType {
+      get {
+        return this._rightType;
+      }
+    }
+    public DAST._IType dtor_resultType {
+      get {
+        return this._resultType;
+      }
+    }
+  }
+
   public interface _IBinOp {
     bool is_Eq { get; }
     bool is_Div { get; }
@@ -6187,7 +6273,7 @@ namespace DAST {
     DAST._IExpression dtor_els { get; }
     DAST._IUnaryOp dtor_unOp { get; }
     DAST.Format._IUnaryOpFormat dtor_format1 { get; }
-    DAST._IBinOp dtor_op { get; }
+    DAST._ITypedBinOp dtor_op { get; }
     DAST._IExpression dtor_left { get; }
     DAST._IExpression dtor_right { get; }
     DAST.Format._IBinaryOpFormat dtor_format2 { get; }
@@ -6313,7 +6399,7 @@ namespace DAST {
     public static _IExpression create_UnOp(DAST._IUnaryOp unOp, DAST._IExpression expr, DAST.Format._IUnaryOpFormat format1) {
       return new Expression_UnOp(unOp, expr, format1);
     }
-    public static _IExpression create_BinOp(DAST._IBinOp op, DAST._IExpression left, DAST._IExpression right, DAST.Format._IBinaryOpFormat format2) {
+    public static _IExpression create_BinOp(DAST._ITypedBinOp op, DAST._IExpression left, DAST._IExpression right, DAST.Format._IBinaryOpFormat format2) {
       return new Expression_BinOp(op, left, right, format2);
     }
     public static _IExpression create_ArrayLen(DAST._IExpression expr, DAST._IType exprType, BigInteger dim, bool native) {
@@ -6666,7 +6752,7 @@ namespace DAST {
         return ((Expression_UnOp)d)._format1;
       }
     }
-    public DAST._IBinOp dtor_op {
+    public DAST._ITypedBinOp dtor_op {
       get {
         var d = this;
         return ((Expression_BinOp)d)._op;
@@ -7677,11 +7763,11 @@ namespace DAST {
     }
   }
   public class Expression_BinOp : Expression {
-    public readonly DAST._IBinOp _op;
+    public readonly DAST._ITypedBinOp _op;
     public readonly DAST._IExpression _left;
     public readonly DAST._IExpression _right;
     public readonly DAST.Format._IBinaryOpFormat _format2;
-    public Expression_BinOp(DAST._IBinOp op, DAST._IExpression left, DAST._IExpression right, DAST.Format._IBinaryOpFormat format2) : base() {
+    public Expression_BinOp(DAST._ITypedBinOp op, DAST._IExpression left, DAST._IExpression right, DAST.Format._IBinaryOpFormat format2) : base() {
       this._op = op;
       this._left = left;
       this._right = right;

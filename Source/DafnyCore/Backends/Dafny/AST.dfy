@@ -272,6 +272,9 @@ module {:extern "DAST"} DAST {
 
   datatype CollKind = Seq | Array | Map
 
+  datatype TypedBinOp =
+    TypedBinOp(op: BinOp, leftType: Type, rightType: Type, resultType: Type)
+
   datatype BinOp =
     Eq(referential: bool) |
     Div(overflow: bool) | EuclidianDiv() |
@@ -317,7 +320,7 @@ module {:extern "DAST"} DAST {
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression, format1: Format.UnaryOpFormat) |
-    BinOp(op: BinOp, left: Expression, right: Expression, format2: Format.BinaryOpFormat) |
+    BinOp(op: TypedBinOp, left: Expression, right: Expression, format2: Format.BinaryOpFormat) |
     ArrayLen(expr: Expression, exprType: Type, dim: nat, native: bool) |
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |

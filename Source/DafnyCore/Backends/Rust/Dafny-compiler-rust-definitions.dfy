@@ -375,10 +375,14 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       case I64(overflow) => Some(AddOverflow(R.Type.I64, overflow))
       case I128(overflow) => Some(AddOverflow(R.Type.I128, overflow))
       case USIZE() => Some(R.Type.USIZE)
+      case Bool => Some(R.Bool)
       case _ => None
     }
   }
 
+  predicate IsBooleanOperator(op: BinOp) {
+    op.And? || op.Or?
+  }
 
   function GetUnwrappedBoundedRustType(tpe: Type): Option<R.Type> {
     match tpe {
@@ -405,7 +409,11 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     requires !NeedsUnwrappingConversion(tpe)
     ensures !IsNewtype(tpe)
   {
+  }
 
+  predicate IsNewtypeCopy(range: NewtypeRange) {
+    && NewtypeRangeToRustType(range).Some?
+    && (range.HasArithmeticOperations() || range.Bool?)
   }
 
   predicate OwnershipGuarantee(expectedOwnership: Ownership, resultingOwnership: Ownership) {

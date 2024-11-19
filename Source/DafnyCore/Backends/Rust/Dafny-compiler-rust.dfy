@@ -474,11 +474,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           ))];
     }
 
-    predicate IsNewtypeCopy(range: NewtypeRange) {
-      && NewtypeRangeToRustType(range).Some?
-      && range.HasArithmeticOperations()
-    }
-
     method GenNewtype(c: Newtype, path: seq<Ident>) returns (s: seq<R.ModDecl>)
       modifies this
     {
@@ -2198,6 +2193,25 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
+    method ToBool(r: R.Expr, typ: Type) returns (out: R.Expr)
+      modifies this
+    {
+      out := r;
+      if typ != Primitive(Primitive.Bool) {
+        var dummy;
+        out, dummy := GenExprConvertTo(r, OwnershipOwned, typ, Primitive(Primitive.Bool), OwnershipOwned);
+      }
+    }
+
+    method FromBool(r: R.Expr, typ: Type) returns (out: R.Expr)
+    {
+      out := r;
+      if typ != Primitive(Primitive.Bool) {
+        var dummy;
+        out, dummy := GenExprConvertTo(r, OwnershipOwned, Primitive(Primitive.Bool), typ, OwnershipOwned);
+      }
+    }
+
     method GenExprBinary(
       e: Expression,
       selfIdent: SelfInfo,
@@ -2209,7 +2223,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
       decreases e, 0
     {
-      var BinOp(op, lExpr, rExpr, format) := e;
+      var BinOp(TypedBinOp(op, lType, rType, resType), lExpr, rExpr, format) := e;
       var becomesLeftCallsRight := BecomesLeftCallsRight(op);
       var becomesRightCallsLeft := BecomesRightCallsLeft(op);
       var expectedLeftOwnership :=
@@ -2277,13 +2291,19 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           r := left.Sel("concat").Apply1(right);
         }
         case _ => {
-
           if op in OpTable {
+            if IsBooleanOperator(op) {
+              left := ToBool(left, lType);
+              right := ToBool(right, rType);
+            }
             r := R.Expr.BinaryOp(
               OpTable[op],
               left,
               right,
               format);
+            if IsBooleanOperator(op) {
+              r := FromBool(r, resType);
+            }
           } else {
             match op {
               case Eq(referential) => {

@@ -9,10 +9,13 @@ newtype BoolWrapper = bool {
   function Or(other: BoolWrapper): BoolWrapper {
     if n == 1 then True() else other
   }
+  function NormalOr(other: BoolWrapper): BoolWrapper {
+    this || other
+  }
 }
 
 method Main(){
   expect (true as BoolWrapper).Or(false as BoolWrapper) == (true as BoolWrapper);
   expect (false as BoolWrapper).Or(false as BoolWrapper) == (false as BoolWrapper);
-  expect (false as BoolWrapper).Or(true as BoolWrapper) == (true as BoolWrapper);  
+  expect (false as BoolWrapper).Or(true as BoolWrapper) == (true as BoolWrapper);
 }

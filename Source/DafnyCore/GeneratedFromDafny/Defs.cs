@@ -338,8 +338,16 @@ namespace Defs {
         }
       }
       {
+        if (_source0.is_Bool) {
+          return Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_Bool());
+        }
+      }
+      {
         return Std.Wrappers.Option<RAST._IType>.create_None();
       }
+    }
+    public static bool IsBooleanOperator(DAST._IBinOp op) {
+      return ((op).is_And) || ((op).is_Or);
     }
     public static Std.Wrappers._IOption<RAST._IType> GetUnwrappedBoundedRustType(DAST._IType tpe) {
       DAST._IType _source0 = tpe;
@@ -383,6 +391,9 @@ namespace Defs {
     }
     public static bool IsNewtype(DAST._IType tpe) {
       return ((tpe).is_UserDefined) && ((((tpe).dtor_resolved).dtor_kind).is_Newtype);
+    }
+    public static bool IsNewtypeCopy(DAST._INewtypeRange range) {
+      return ((Defs.__default.NewtypeRangeToRustType(range)).is_Some) && (((range).HasArithmeticOperations()) || ((range).is_Bool));
     }
     public static bool OwnershipGuarantee(Defs._IOwnership expectedOwnership, Defs._IOwnership resultingOwnership)
     {

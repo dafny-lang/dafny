@@ -54,6 +54,9 @@ newtype uint32WithMethods = x: int | 0 <= x < 0x1_00000000 {
 
 newtype IntWrapper = int {
   const zero := 0 as IntWrapper
+  function add(other: IntWrapper): IntWrapper {
+    this + other
+  }
   function DoublePlus(plus: IntWrapper): IntWrapper {
     this * 2 + plus + plus.zero.AddZero()
   }
@@ -69,7 +72,40 @@ newtype NestedIntWrapper = IntWrapper {
 }
 
 // Ensuring the uint32 is hashable
-datatype {:rust_rc false} UInt32Pair = UInt32Pair(first: uint32WithMethods, second: uint32WithMethods)
+datatype {:rust_rc false} UInt32Pair =
+  UInt32Pair(first: uint32WithMethods, second: uint32WithMethods)
+
+
+type PairIntWrappers = (IntWrapper, IntWrapper)
+datatype {:rust_rc false} PairInts = PairInts(
+    pair: PairIntWrappers 
+) {
+  static function build(i: IntWrapper, j: IntWrapper): PairInts {
+    PairInts((i, j))
+  }
+  function add(other: PairInts): PairInts {
+    PairInts((this.pair.0 + other.pair.0, this.pair.1 + other.pair.1))
+  }
+  
+  function second_(): IntWrapper { pair.1 }
+  const second := second_() 
+}
+
+datatype {:rust_rc false} TwoIntWrappers = TwoIntWrappers(
+    first:IntWrapper,
+    second:IntWrapper
+) {
+    function PairIntsFirstZero():PairInts { PairInts.build(0, second) }
+    const firstZero := PairIntsFirstZero()
+    const secondZero := PairInts.build(first, 0)
+    const underlying := firstZero.add(secondZero)
+    static const origin := TwoIntWrappers(0,0)  
+    const total := first + second
+    
+    function plus(a:TwoIntWrappers):(r:TwoIntWrappers) { 
+        TwoIntWrappers(first.add(a.first), firstZero.add(a.firstZero).second)
+    }
+}
 
 method Main(){
   print INT2_MAX as int, "\n";

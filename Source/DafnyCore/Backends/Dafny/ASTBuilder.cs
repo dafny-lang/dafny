@@ -1241,8 +1241,8 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
-    BinOpBuilder BinOp(DAST.BinOp op) {
-      var ret = new BinOpBuilder(op);
+    BinOpBuilder BinOp(DAST.BinOp op, DAST.Type leftType, DAST.Type rightType, DAST.Type resType) {
+      var ret = new BinOpBuilder(op, leftType, rightType, resType);
       AddBuildable(ret);
       return ret;
     }
@@ -1393,9 +1393,10 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<object> operands = new();
     private readonly string op;
 
-    public BinOpBuilder(DAST.BinOp op) {
+    public BinOpBuilder(DAST.BinOp op, DAST.Type leftType, DAST.Type rightType, DAST.Type resType) {
       this.internalBuilder = (DAST.Expression left, DAST.Expression right) =>
-        (DAST.Expression)DAST.Expression.create_BinOp(op, left, right, new BinaryOpFormat_NoFormat());
+        (DAST.Expression)DAST.Expression.create_BinOp(
+          DAST.TypedBinOp.create_TypedBinOp(op, leftType, rightType, resType), left, right, new BinaryOpFormat_NoFormat());
       this.op = op.ToString();
     }
 
