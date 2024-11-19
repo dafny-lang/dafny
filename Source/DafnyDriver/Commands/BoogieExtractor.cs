@@ -309,6 +309,8 @@ namespace Microsoft.Dafny.Compilers {
                 return Boogie.Expr.Add(e0, e1);
               case BinaryExpr.ResolvedOpcode.Sub:
                 return Boogie.Expr.Sub(e0, e1);
+              case BinaryExpr.ResolvedOpcode.Mul:
+                return Boogie.Expr.Mul(e0, e1);
               default:
                 break;
             }
