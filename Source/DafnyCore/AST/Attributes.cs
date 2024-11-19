@@ -488,6 +488,7 @@ public class Attributes : TokenNode, ICanFormat {
       .Filter(attributeHost =>
         attributeHost is MethodOrFunction),
     BuiltIn("DisableNonlinearArithmetic")
+      .WithArg("disable", Type.Bool, DefaultBool(true))
       .Filter(attributeHost =>
         attributeHost is ModuleDefinition),
     BuiltIn("Fuel")

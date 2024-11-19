@@ -340,8 +340,13 @@ namespace Microsoft.Dafny {
           RangeToken = Tok(usa.RangeToken)
         };
       } else if (attrs is UserSuppliedAtAttribute usaa) {
-        return new UserSuppliedAtAttribute(Tok(usaa.tok), CloneExpr(usaa.Arg), CloneAttributes(usaa.Prev)) {
-          RangeToken = Tok(usaa.RangeToken)
+        var arg = CloneExpr(usaa.Arg);
+        if (usaa.Arg.Type != null) { // The attribute has already been expanded
+          arg.Type = usaa.Arg.Type;
+        }
+        return new UserSuppliedAtAttribute(Tok(usaa.tok), arg, CloneAttributes(usaa.Prev)) {
+          RangeToken = Tok(usaa.RangeToken),
+          Builtin = usaa.Builtin
         };
       } else {
         return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev)) {
