@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /arith:1 "%s" > "%t"
+// RUN: %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Proof of the Lucas theorem

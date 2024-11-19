@@ -70,7 +70,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       foreach (var e in base.SpecificationSubExpressions) {
         yield return e;
       }
-      foreach (var e in base.Lhss) {
+      foreach (var e in Lhss) {
         yield return e;
       }
       if (Rhs != null) {
@@ -350,5 +350,13 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
           "The Extract member may not be ghost unless the initial LHS is ghost");
       }
     }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    ResolvedStatements.ForEach(ss => ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext,
+      proofContext, allowAssumptionVariables, inConstructorInitializationPhase));
+    IsGhost = ResolvedStatements.All(ss => ss.IsGhost);
   }
 }

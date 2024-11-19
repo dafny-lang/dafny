@@ -376,12 +376,12 @@ namespace Microsoft.Dafny.Compilers {
     }
     protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
       ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments);
-    protected abstract string/*?*/ TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member);
+    abstract internal string/*?*/ TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member);
     protected virtual void EmitTypeName_Companion(Type type, ConcreteSyntaxTree wr, ConcreteSyntaxTree surrounding, IToken tok, MemberDecl/*?*/ member) {
       wr.Write(TypeName_Companion(type, surrounding, tok, member));
     }
 
-    protected string TypeName_Companion(TopLevelDecl cls, ConcreteSyntaxTree wr, IToken tok) {
+    internal string TypeName_Companion(TopLevelDecl cls, ConcreteSyntaxTree wr, IToken tok) {
       Contract.Requires(cls != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);

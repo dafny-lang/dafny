@@ -105,7 +105,7 @@ class GhostInterestVisitor {
         hideRevealStmt.ResolvedStatements.ForEach(ss => Visit(ss, true, $"a {hideRevealStmt.Kind} statement"));
         hideRevealStmt.IsGhost = hideRevealStmt.ResolvedStatements.All(ss => ss.IsGhost);
         break;
-      case BreakStmt breakStmt: {
+      case BreakOrContinueStmt breakStmt: {
           var s = breakStmt;
           s.IsGhost = mustBeErasable;
           if (s.IsGhost && !s.TargetStmt.IsGhost) {

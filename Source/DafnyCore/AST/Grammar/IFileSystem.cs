@@ -8,8 +8,10 @@ using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 
 namespace Microsoft.Dafny;
 
+public record FileSnapshot(TextReader Reader, int? Version);
+
 public interface IFileSystem {
-  TextReader ReadFile(Uri uri);
+  FileSnapshot ReadFile(Uri uri);
 
   public bool Exists(Uri path);
   DirectoryInfoBase GetDirectoryInfoBase(string root);
@@ -22,9 +24,9 @@ public class InMemoryFileSystem : IFileSystem {
     this.files = files;
   }
 
-  public TextReader ReadFile(Uri uri) {
+  public FileSnapshot ReadFile(Uri uri) {
     if (files.TryGetValue(uri, out var entry)) {
-      return new StringReader(entry);
+      return new FileSnapshot(new StringReader(entry), null);
     }
 
     return OnDiskFileSystem.Instance.ReadFile(uri);
@@ -47,8 +49,8 @@ public class OnDiskFileSystem : IFileSystem {
   private OnDiskFileSystem() {
   }
 
-  public TextReader ReadFile(Uri uri) {
-    return new StreamReader(uri.LocalPath);
+  public FileSnapshot ReadFile(Uri uri) {
+    return new FileSnapshot(new StreamReader(uri.LocalPath), null);
   }
 
   public bool Exists(Uri path) {
