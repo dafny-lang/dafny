@@ -1369,7 +1369,7 @@ namespace DCOMP {
                     s = _9_unwrappedType;
                   }
                 } else if (Defs.__default.IsNewtypeCopy(_6_range)) {
-                  s = RAST.Type.create_TMetaData(s, true, (_6_range).canOverflow());
+                  s = RAST.Type.create_TMetaData(s, true, (_6_range).CanOverflow());
                 }
               }
             }
@@ -1750,7 +1750,7 @@ namespace DCOMP {
               if ((((enclosingType).is_UserDefined) && ((((enclosingType).dtor_resolved).dtor_kind).is_Datatype)) && ((this).IsRcWrapped(((enclosingType).dtor_resolved).dtor_attributes))) {
                 _15_tpe = RAST.Type.create_Borrowed(RAST.__default.Rc(RAST.__default.SelfOwned));
               } else if ((((enclosingType).is_UserDefined) && ((((enclosingType).dtor_resolved).dtor_kind).is_Newtype)) && (Defs.__default.IsNewtypeCopy((((enclosingType).dtor_resolved).dtor_kind).dtor_range))) {
-                _15_tpe = RAST.Type.create_TMetaData(RAST.__default.SelfOwned, true, ((((enclosingType).dtor_resolved).dtor_kind).dtor_range).canOverflow());
+                _15_tpe = RAST.Type.create_TMetaData(RAST.__default.SelfOwned, true, ((((enclosingType).dtor_resolved).dtor_kind).dtor_range).CanOverflow());
               } else {
                 _15_tpe = RAST.__default.SelfBorrowed;
               }

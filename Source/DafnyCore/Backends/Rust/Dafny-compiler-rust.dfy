@@ -1294,7 +1294,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   s := unwrappedType;
                 }
               } else if IsNewtypeCopy(range) {
-                s := R.TMetaData(s, copySemantics := true, overflow := range.canOverflow());
+                s := R.TMetaData(s, copySemantics := true, overflow := range.CanOverflow());
               }
             }
           }
@@ -1490,7 +1490,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 tpe := R.TMetaData(
                   R.SelfOwned,
                   copySemantics := true,
-                  overflow := enclosingType.resolved.kind.range.canOverflow());
+                  overflow := enclosingType.resolved.kind.range.CanOverflow());
               } else { // For raw-defined datatypes, non-copy newtypes
                 tpe := R.SelfBorrowed;
               }

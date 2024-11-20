@@ -333,7 +333,7 @@ namespace Defs {
         }
       }
       {
-        if (_source0.is_USIZE) {
+        if (_source0.is_NativeArrayIndex) {
           return Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_USIZE());
         }
       }

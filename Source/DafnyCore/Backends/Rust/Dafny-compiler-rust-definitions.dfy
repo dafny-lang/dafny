@@ -374,7 +374,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       case I32(overflow) => Some(AddOverflow(R.Type.I32, overflow))
       case I64(overflow) => Some(AddOverflow(R.Type.I64, overflow))
       case I128(overflow) => Some(AddOverflow(R.Type.I128, overflow))
-      case USIZE() => Some(R.Type.USIZE)
+      case NativeArrayIndex() => Some(R.Type.USIZE)
       case Bool => Some(R.Bool)
       case _ => None
     }

@@ -1617,13 +1617,13 @@ namespace DAST {
     bool is_I64 { get; }
     bool is_U128 { get; }
     bool is_I128 { get; }
-    bool is_USIZE { get; }
+    bool is_NativeArrayIndex { get; }
     bool is_BigInt { get; }
     bool is_Bool { get; }
     bool is_NoRange { get; }
     bool dtor_overflow { get; }
     _INewtypeRange DowncastClone();
-    bool canOverflow();
+    bool CanOverflow();
     bool HasArithmeticOperations();
   }
   public abstract class NewtypeRange : _INewtypeRange {
@@ -1667,8 +1667,8 @@ namespace DAST {
     public static _INewtypeRange create_I128(bool overflow) {
       return new NewtypeRange_I128(overflow);
     }
-    public static _INewtypeRange create_USIZE() {
-      return new NewtypeRange_USIZE();
+    public static _INewtypeRange create_NativeArrayIndex() {
+      return new NewtypeRange_NativeArrayIndex();
     }
     public static _INewtypeRange create_BigInt() {
       return new NewtypeRange_BigInt();
@@ -1689,7 +1689,7 @@ namespace DAST {
     public bool is_I64 { get { return this is NewtypeRange_I64; } }
     public bool is_U128 { get { return this is NewtypeRange_U128; } }
     public bool is_I128 { get { return this is NewtypeRange_I128; } }
-    public bool is_USIZE { get { return this is NewtypeRange_USIZE; } }
+    public bool is_NativeArrayIndex { get { return this is NewtypeRange_NativeArrayIndex; } }
     public bool is_BigInt { get { return this is NewtypeRange_BigInt; } }
     public bool is_Bool { get { return this is NewtypeRange_Bool; } }
     public bool is_NoRange { get { return this is NewtypeRange_NoRange; } }
@@ -1709,7 +1709,7 @@ namespace DAST {
       }
     }
     public abstract _INewtypeRange DowncastClone();
-    public bool canOverflow() {
+    public bool CanOverflow() {
       return (((((((((((this).is_U8) || ((this).is_I8)) || ((this).is_U16)) || ((this).is_I16)) || ((this).is_U32)) || ((this).is_I32)) || ((this).is_U64)) || ((this).is_I64)) || ((this).is_U128)) || ((this).is_I128)) && ((this).dtor_overflow);
     }
     public bool HasArithmeticOperations() {
@@ -1986,15 +1986,15 @@ namespace DAST {
       return s;
     }
   }
-  public class NewtypeRange_USIZE : NewtypeRange {
-    public NewtypeRange_USIZE() : base() {
+  public class NewtypeRange_NativeArrayIndex : NewtypeRange {
+    public NewtypeRange_NativeArrayIndex() : base() {
     }
     public override _INewtypeRange DowncastClone() {
       if (this is _INewtypeRange dt) { return dt; }
-      return new NewtypeRange_USIZE();
+      return new NewtypeRange_NativeArrayIndex();
     }
     public override bool Equals(object other) {
-      var oth = other as DAST.NewtypeRange_USIZE;
+      var oth = other as DAST.NewtypeRange_NativeArrayIndex;
       return oth != null;
     }
     public override int GetHashCode() {
@@ -2003,7 +2003,7 @@ namespace DAST {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "DAST.NewtypeRange.USIZE";
+      string s = "DAST.NewtypeRange.NativeArrayIndex";
       return s;
     }
   }
