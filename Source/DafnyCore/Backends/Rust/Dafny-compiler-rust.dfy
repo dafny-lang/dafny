@@ -2538,7 +2538,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           r, resultingOwnership := FromOwned(r, expectedOwnership);
         }
         case _ => {
-          r, resultingOwnership := GenExprConvertOther(expr, fromTpe, toTpe, expectedOwnership);
+          r, resultingOwnership := GenExprConvertOther(expr, exprOwnership, fromTpe, toTpe, expectedOwnership);
         }
       }
     }
@@ -2667,6 +2667,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     method GenExprConvertOther(
       expr: R.Expr,
+      exprOwnership: Ownership,
       fromTpe: Type,
       toTpe: Type,
       expectedOwnership: Ownership
@@ -2680,6 +2681,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var upcastConverter := UpcastConversionLambda(fromTpe, fromTpeGen, toTpe, toTpeGen, map[]);
       if upcastConverter.Success? {
         var conversionLambda := upcastConverter.value;
+        if exprOwnership == OwnershipBorrowed {
+          match r {
+            case UnaryOp("&", underlying, _) =>
+              r := underlying;
+            case _ => r := r.Clone();
+          }
+        }
         r := conversionLambda.Apply1(r);
         r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
       } else if IsDowncastConversion(fromTpeGen, toTpeGen) {
