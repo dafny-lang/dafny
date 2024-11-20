@@ -347,7 +347,7 @@ public class Attributes : TokenNode, ICanFormat {
           return A(ConcurrentAttributeName);
         }
       case "DisableNonlinearArithmetic": {
-          return A1("disable-nonlinear-arithmetic", bindings);
+          return A1("disableNonlinearArithmetic", bindings);
         }
       case "Fuel": {
           if (Get(bindings, 0, out var lowFuel) && lowFuel != null) {
