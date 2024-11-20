@@ -335,12 +335,12 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       Mod() := "%",
       And() := "&&",
       Or() := "||",
-      Div() := "/",
+      Div(overflow := false) := "/",
       Lt() := "<",
       LtChar() := "<",
-      Plus() := "+",
-      Minus() := "-",
-      Times() := "*",
+      Plus(overflow := false) := "+",
+      Minus(overflow := false) := "-",
+      Times(overflow := false) := "*",
       BitwiseAnd() := "&",
       BitwiseOr() := "|",
       BitwiseXor() := "^",
@@ -348,23 +348,72 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       BitwiseShiftLeft() := "<<"
     ]
 
+  function AddOverflow(tpe: R.Type, overflow: bool): R.Type {
+    if !overflow then tpe else R.TMetaData(tpe, copySemantics := true, overflow := true)
+  }
+
+  // We use the range as the wrapped type only if the base is a Primitive
+  function NewtypeRangeToUnwrappedBoundedRustType(base: Type, range: NewtypeRange): Option<R.Type> {
+    if base == Primitive(Primitive.Int) then
+      NewtypeRangeToRustType(range)
+    else
+      None
+  }
+
   function NewtypeRangeToRustType(range: NewtypeRange)
     : Option<R.Type> {
     match range {
       case NoRange() => None
-      case U8() => Some(R.Type.U8)
-      case U16() => Some(R.Type.U16)
-      case U32() => Some(R.Type.U32)
-      case U64() => Some(R.Type.U64)
-      case U128() => Some(R.Type.U128)
-      case I8() => Some(R.Type.I8)
-      case I16() => Some(R.Type.I16)
-      case I32() => Some(R.Type.I32)
-      case I64() => Some(R.Type.I64)
-      case I128() => Some(R.Type.I128)
-      case USIZE() => Some(R.Type.USIZE)
+      case U8(overflow) => Some(AddOverflow(R.Type.U8, overflow))
+      case U16(overflow) => Some(AddOverflow(R.Type.U16, overflow))
+      case U32(overflow) => Some(AddOverflow(R.Type.U32, overflow))
+      case U64(overflow) => Some(AddOverflow(R.Type.U64, overflow))
+      case U128(overflow) => Some(AddOverflow(R.Type.U128, overflow))
+      case I8(overflow) => Some(AddOverflow(R.Type.I8, overflow))
+      case I16(overflow) => Some(AddOverflow(R.Type.I16, overflow))
+      case I32(overflow) => Some(AddOverflow(R.Type.I32, overflow))
+      case I64(overflow) => Some(AddOverflow(R.Type.I64, overflow))
+      case I128(overflow) => Some(AddOverflow(R.Type.I128, overflow))
+      case NativeArrayIndex() => Some(R.Type.USIZE)
+      case Bool => Some(R.Bool)
       case _ => None
     }
+  }
+
+  predicate IsBooleanOperator(op: BinOp) {
+    op.And? || op.Or?
+  }
+
+  function GetUnwrappedBoundedRustType(tpe: Type): Option<R.Type> {
+    match tpe {
+      case UserDefined(ResolvedType(path, typeArgs, Newtype(base, range, erase), _, _, _)) =>
+        NewtypeRangeToUnwrappedBoundedRustType(base, range)
+      case _ => None
+    }
+  }
+
+  predicate NeedsUnwrappingConversion(tpe: Type) {
+    match tpe {
+      case UserDefined(ResolvedType(path, typeArgs, Newtype(base, range, erase), _, _, _)) =>
+        NewtypeRangeToUnwrappedBoundedRustType(base, range).None?
+      case _ => false
+    }
+  }
+
+  predicate IsNewtype(tpe: Type) {
+    tpe.UserDefined? && tpe.resolved.kind.Newtype?
+  }
+
+  lemma CoveredAllNewtypeCases(tpe: Type)
+    requires GetUnwrappedBoundedRustType(tpe).None?
+    requires !NeedsUnwrappingConversion(tpe)
+    ensures !IsNewtype(tpe)
+  {
+  }
+
+  predicate IsNewtypeCopy(range: NewtypeRange) {
+    && NewtypeRangeToRustType(range).Some?
+    && (range.HasArithmeticOperations() || range.Bool?)
   }
 
   predicate OwnershipGuarantee(expectedOwnership: Ownership, resultingOwnership: Ownership) {
@@ -516,5 +565,102 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
              Some(R.dafny_runtime.MSel("seq!").AsExpr().Apply(singletonConstructors).Sel("iter").Apply0())
            )
          )]))
+  }
+
+  // Requires the hashImplBody to depend on the variable "_state"
+  function HashImpl(
+    rTypeParamsDeclsWithHash: seq<R.TypeParamDecl>,
+    datatypeOrNewtypeType: R.Type,
+    hashImplBody: R.Expr
+  ): R.ModDecl {
+    R.ImplDecl(
+      R.ImplFor(
+        rTypeParamsDeclsWithHash,
+        R.Hash,
+        datatypeOrNewtypeType,
+        "",
+        [R.FnDecl(
+           R.PRIV,
+           R.Fn(
+             "hash", [R.TypeParamDecl("_H", [R.std.MSel("hash").MSel("Hasher").AsType()])],
+             [R.Formal.selfBorrowed,
+              R.Formal("_state", R.BorrowedMut(R.TIdentifier("_H")))],
+             None,
+             "",
+             Some(hashImplBody)))]
+      ))
+  }
+
+  function UnaryOpsImpl(
+    op: char,
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    newtypeType: R.Type,
+    newtypeConstructor: string
+  ): R.ModDecl
+    requires op in "!"
+  {
+    var (traitName, methodName) := match op {
+      case '!' => ("Not", "not")
+    };
+    R.ImplDecl(
+      R.ImplFor(
+        rTypeParamsDecls,
+        R.std.MSel("ops").MSel(traitName).AsType(),
+        newtypeType,
+        "",
+        [ R.TypeDeclMember("Output", newtypeType),
+          R.FnDecl(
+            R.PRIV,
+            R.Fn(
+              methodName, [],
+              [R.Formal.selfOwned],
+              Some(R.SelfOwned),
+              "",
+              Some(R.Identifier(newtypeConstructor).Apply1(
+                     R.UnaryOp(
+                       [op],
+                       R.self.Sel("0"),
+                       Format.UnaryOpFormat.NoFormat
+                     )))))]
+      ))
+  }
+
+  function OpsImpl(
+    op: char,
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    newtypeType: R.Type,
+    newtypeConstructor: string
+  ): R.ModDecl
+    requires op in "+-/*"
+  {
+    var (traitName, methodName) := match op {
+      case '+' => ("Add", "add")
+      case '-' => ("Sub", "sub")
+      case '/' => ("Div", "div")
+      case '*' => ("Mul", "mul")
+    };
+    R.ImplDecl(
+      R.ImplFor(
+        rTypeParamsDecls,
+        R.std.MSel("ops").MSel(traitName).AsType(),
+        newtypeType,
+        "",
+        [ R.TypeDeclMember("Output", newtypeType),
+          R.FnDecl(
+            R.PRIV,
+            R.Fn(
+              methodName, [],
+              [R.Formal.selfOwned,
+               R.Formal("other", R.SelfOwned)],
+              Some(R.SelfOwned),
+              "",
+              Some(R.Identifier(newtypeConstructor).Apply1(
+                     R.BinaryOp(
+                       [op],
+                       R.self.Sel("0"),
+                       R.Identifier("other").Sel("0"),
+                       Format.BinaryOpFormat.NoFormat
+                     )))))]
+      ))
   }
 }
