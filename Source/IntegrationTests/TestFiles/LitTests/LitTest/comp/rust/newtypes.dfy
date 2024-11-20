@@ -55,7 +55,9 @@ newtype uint32WithMethods = x: int | 0 <= x < 0x1_00000000 {
 newtype IntWrapper = int {
   const zero := 0 as IntWrapper
   const even := (this as int) % 2 == 0
-  function len(): int {
+  function len(): int
+    requires this >= 0
+  {
     if this == 0 then 0 else
     1 + (this / 2).len()
   }
@@ -173,4 +175,10 @@ method Main(){
   var j := 2;
   expect (j as IntWrapper).even;
   expect (i as IntWrapper).less(j as IntWrapper);
+  expect (7 as IntWrapper).len() == 3;
+  expect (8 as IntWrapper).len() == 4;
+  var x := (8 as IntWrapper).firstTwoBits(100);
+  expect x == 2;
+  x := (7 as IntWrapper).firstTwoBits(100);
+  expect x == 3;
 }
