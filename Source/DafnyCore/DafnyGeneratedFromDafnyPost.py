@@ -17,7 +17,7 @@ output = sys.argv[1]
 
 # test if the file exists before opening it. If not, fail gracefully
 if not os.path.exists(output + '.cs'):
-  print(f"File {output} was not generated. Fix issues and re-run ./DafnyGeneratedFromDafny.sh")
+  print(f"File {output}.cs was not generated. Fix issues and re-run ./DafnyGeneratedFromDafny.sh")
   exit()
 
 with open(output + '.cs', 'r' ) as f:
