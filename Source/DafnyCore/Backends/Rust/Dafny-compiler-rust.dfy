@@ -2222,13 +2222,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     {
       out := ToPrimitive(r, typ, Primitive(Primitive.Bool));
     }
-    
+
     method ToInt(r: R.Expr, typ: Type) returns (out: R.Expr)
       modifies this
     {
       out := ToPrimitive(r, typ, Primitive(Primitive.Int));
     }
-    
+
     method FromPrimitive(r: R.Expr, primitiveType: Type, typ: Type) returns (out: R.Expr)
       modifies this
     {

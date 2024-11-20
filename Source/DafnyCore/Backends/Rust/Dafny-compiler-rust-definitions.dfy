@@ -383,7 +383,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   predicate IsBooleanOperator(op: BinOp) {
     op.And? || op.Or?
   }
-  
+
   predicate IsComplexArithmetic(op: BinOp) {
     op.EuclidianDiv? || op.EuclidianMod?
   }
@@ -667,7 +667,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
                      )))))]
       ))
   }
-  
+
   function PartialOrdImpl(
     rTypeParamsDecls: seq<R.TypeParamDecl>,
     newtypeType: R.Type,
@@ -690,9 +690,9 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
               "",
               Some(
                 R.std.MSel("cmp").MSel("PartialOrd").AsExpr().FSel("partial_cmp").Apply([
-                  R.Borrow(R.self.Sel("0")),
-                  R.Borrow(R.Identifier("other").Sel("0"))
-                ]))
+                                                                                          R.Borrow(R.self.Sel("0")),
+                                                                                          R.Borrow(R.Identifier("other").Sel("0"))
+                                                                                        ]))
             ))
         ]))
   }
