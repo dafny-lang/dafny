@@ -54,6 +54,18 @@ newtype uint32WithMethods = x: int | 0 <= x < 0x1_00000000 {
 
 newtype IntWrapper = int {
   const zero := 0 as IntWrapper
+  const even := (this as int) % 2 == 0
+  function len(): int {
+    if this == 0 then 0 else
+    1 + (this / 2).len()
+  }
+  method firstTwoBits(maxDepth: uint32WithMethods) returns (output: int) {
+    if this <= 3 || maxDepth == 0 {
+      output := this as int;
+    } else {
+      output := (this / 2).firstTwoBits(maxDepth - 1);
+    }
+  }
   function add(other: IntWrapper): IntWrapper {
     this + other
   }
@@ -62,6 +74,10 @@ newtype IntWrapper = int {
   }
   function AddZero(): IntWrapper {
     this
+  }
+
+  function less(other: IntWrapper): bool {
+    this < other
   }
 }
 
@@ -152,4 +168,9 @@ method Main(){
   expect 0 as uint32WithMethods == two.div_overflow(three);
   expect almost_overflow2 == almost_overflow.times_overflow(two);
   expect (3 as IntWrapper).DoublePlus(1 as IntWrapper) == 7 as IntWrapper;
+  var i := 1;
+  expect !(i as IntWrapper).even;
+  var j := 2;
+  expect (j as IntWrapper).even;
+  expect (i as IntWrapper).less(j as IntWrapper);
 }
