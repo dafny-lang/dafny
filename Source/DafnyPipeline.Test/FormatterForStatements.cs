@@ -233,6 +233,29 @@ module ModifyStmtBreak1 refines ModifyStmtBreak0 {
   }
 
   [Fact]
+  public async Task FormatterWorksForReveal() {
+    await FormatterWorksFor(@"
+method Foo() {
+  var x := 3 by {
+   reveal p.q;
+  }
+  match foo {
+    case Some(x) => {
+      reveal x.y;
+      a := b(
+        c,
+        d
+      );
+    }
+    case None => {
+      a := e;
+    }
+  }
+}
+");
+  }
+  
+  [Fact]
   public async Task FormatterWorksForDividedBlockStmt() {
     await FormatterWorksFor(@"
 class X {
