@@ -40,7 +40,9 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
     TextDocumentItem textDocumentItem = null) {
     var result = await AwaitNextNotificationAsync(cancellationToken);
     if (textDocumentItem != null) {
-      AssertM.Equal(textDocumentItem.Version, result.Version,
+      // Before parsing finishes, the version can be null even for open files.
+      var resultVersion = result.Version ?? textDocumentItem.Version;
+      AssertM.Equal(textDocumentItem.Version, resultVersion,
         $"received incorrect version, diagnostics were: [{string.Join(", ", result.Diagnostics)}]");
       Assert.Equal(textDocumentItem.Uri, result.Uri);
     }
