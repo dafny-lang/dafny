@@ -46,7 +46,7 @@ namespace Microsoft.Dafny {
       public readonly string This;
       public readonly string readsFrame; // the name of the context's frame variable for reading state.
                                          // May be null to indicate the context's reads frame is * and doesn't require any reads checks.
-      public readonly IFrameScope scope; // lambda, function or predicate 
+      public readonly IFrameScope scope; // lambda, function or predicate
       public readonly string modifiesFrame; // the name of the context's frame variable for writing state.
       readonly Function applyLimited_CurrentFunction;
       internal readonly FuelSetting layerInterCluster;
@@ -128,7 +128,6 @@ namespace Microsoft.Dafny {
         old.oldEtran = old;
         this.oldEtran = old;
       }
-
       public ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.Expr heap, IFrameScope scope, string thisVar)
         : this(boogieGenerator, predef, heap, thisVar, null, new FuelSetting(boogieGenerator, 1), null, scope, "$_ReadsFrame", "$_ModifiesFrame", false) {
         Contract.Requires(boogieGenerator != null);
@@ -1567,7 +1566,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           return new KeyValuePair<IVariable, Expression>(bv, new BoogieWrapper(unboxy, bv.Type));
         }).ToDictionary(x => x.Key, x => x.Value);
         var su = new Substituter(null, subst, new Dictionary<TypeParameter, Type>());
-        var et = new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpr, this.scope);
+        // JATIN_UNDO: var oldHeapExpr = this.Old.HeapExpr;
+        // var et = new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpr, this.scope);
+        var et = new ExpressionTranslator(this, heap);
         var lvars = new List<Boogie.Variable>();
         var ly = BplBoundVar(varNameGen.FreshId("#ly#"), Predef.LayerType, lvars);
         et = et.WithLayer(ly);
@@ -2345,7 +2346,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           var varNameGen = BoogieGenerator.CurrentIdGenerator.NestedFreshIdGenerator("$l#");
 
           Boogie.Expr heap; var hVar = BplBoundVar(varNameGen.FreshId("#heap#"), BoogieGenerator.Predef.HeapType, out heap);
-          var et = new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpr, this.scope);
+          var et = new ExpressionTranslator(this, heap);
+          // JATIN_UNDO: var et = new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpr, this.scope);
 
           Dictionary<IVariable, Expression> subst = new Dictionary<IVariable, Expression>();
           foreach (var bv in e.BoundVars) {
