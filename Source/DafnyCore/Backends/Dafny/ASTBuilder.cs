@@ -1828,7 +1828,7 @@ namespace Microsoft.Dafny.Compilers {
         DAST.ResolvedType.create_ResolvedType(
         Sequence<Sequence<Rune>>.FromElements((Sequence<Rune>)Sequence<Rune>.UnicodeFromString("usize")),
         Sequence<_IType>.Empty,
-        DAST.ResolvedTypeBase.create_Newtype(origType, DAST.NewtypeRange.create_USIZE(), true), Sequence<_IAttribute>.Empty,
+        DAST.ResolvedTypeBase.create_Newtype(origType, DAST.NewtypeRange.create_NativeArrayIndex(), true), Sequence<_IAttribute>.Empty,
         Sequence<Sequence<Rune>>.Empty, Sequence<_IType>.Empty)
       ));
     }
