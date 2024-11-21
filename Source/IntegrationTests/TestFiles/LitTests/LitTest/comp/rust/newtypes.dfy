@@ -181,4 +181,6 @@ method Main(){
   expect x == 2;
   x := (7 as IntWrapper).firstTwoBits(100);
   expect x == 3;
+  var bb := 1 as bv8;
+  expect !bb == 255;
 }

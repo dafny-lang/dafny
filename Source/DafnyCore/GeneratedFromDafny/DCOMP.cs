@@ -5176,7 +5176,7 @@ namespace DCOMP {
               _160_recursiveGen = _out142;
               _161___v104 = _out143;
               _162_recIdents = _out144;
-              r = RAST.Expr.create_UnaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("~"), _160_recursiveGen, _159_format);
+              r = RAST.Expr.create_UnaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"), _160_recursiveGen, _159_format);
               RAST._IExpr _out145;
               Defs._IOwnership _out146;
               (this).FromOwned(r, expectedOwnership, out _out145, out _out146);

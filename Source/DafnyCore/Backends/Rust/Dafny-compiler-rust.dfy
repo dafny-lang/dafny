@@ -3302,7 +3302,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case UnOp(BitwiseNot, e, format) => {
           var recursiveGen, _, recIdents := GenExpr(e, selfIdent, env, OwnershipOwned);
 
-          r := R.UnaryOp("~", recursiveGen, format);
+          r := R.UnaryOp("!", recursiveGen, format);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := recIdents;
           return;
