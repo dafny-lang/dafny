@@ -354,7 +354,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
 
   // We use the range as the wrapped type only if the base is a Primitive
   function NewtypeRangeToUnwrappedBoundedRustType(base: Type, range: NewtypeRange): Option<R.Type> {
-    if base == Primitive(Primitive.Int) then
+    if base.IsPrimitiveInt() then
       NewtypeRangeToRustType(range)
     else
       None

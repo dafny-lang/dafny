@@ -2505,7 +2505,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         assert !IsNewtype(fromTpe);
-        if fromTpe == Primitive(Primitive.Int) {
+        if fromTpe.IsPrimitiveInt() {
           if exprOwnership == OwnershipBorrowed {
             r := r.Clone();
           }
@@ -2538,7 +2538,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             ), exprOwnership, expectedOwnership);
           return;
         }
-        if toTpe == Primitive(Primitive.Int) {
+        if toTpe.IsPrimitiveInt() {
           r, resultingOwnership := FromOwnership(r, exprOwnership, OwnershipOwned);
           r := R.dafny_runtime.MSel("int!").AsExpr().Apply1(r);
           r, resultingOwnership := FromOwned(r, expectedOwnership);

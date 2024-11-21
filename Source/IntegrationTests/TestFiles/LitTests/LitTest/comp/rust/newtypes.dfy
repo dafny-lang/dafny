@@ -14,6 +14,7 @@ const cu: CodeUnit := 0
 newtype uint8  = x: int | 0 <= x < 0x100
 type byte = uint8
 newtype uint32 = x: int | 0 <= x < 0x1_00000000
+newtype {:nativeType  "ulong"}  NewNat = n:nat | n <= -(1 as bv64) as nat
 
 newtype {:rust_erase false} uint32_noterased = x: int | 0 <= x < 0x1_00000000
 newtype another_int = x: int | true
@@ -182,5 +183,5 @@ method Main(){
   x := (7 as IntWrapper).firstTwoBits(100);
   expect x == 3;
   var bb := 1 as bv8;
-  expect !bb == 255;
+  expect !bb == 254;
 }

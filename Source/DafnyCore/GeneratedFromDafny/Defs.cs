@@ -259,7 +259,7 @@ namespace Defs {
     }
     public static Std.Wrappers._IOption<RAST._IType> NewtypeRangeToUnwrappedBoundedRustType(DAST._IType @base, DAST._INewtypeRange range)
     {
-      if (object.Equals(@base, DAST.Type.create_Primitive(DAST.Primitive.create_Int()))) {
+      if ((@base).IsPrimitiveInt()) {
         return Defs.__default.NewtypeRangeToRustType(range);
       } else {
         return Std.Wrappers.Option<RAST._IType>.create_None();

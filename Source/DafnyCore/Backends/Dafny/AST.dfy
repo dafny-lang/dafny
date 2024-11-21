@@ -115,6 +115,15 @@ module {:extern "DAST"} DAST {
           this
       }
     }
+    
+    predicate IsPrimitiveInt() {
+      match this {
+        case Primitive(Int) => true
+        case UserDefined(ResolvedType(_, _, SynonymType(typ), _, _, _)) =>
+          typ.IsPrimitiveInt()
+        case _ => false
+      }
+    }
   }
 
   datatype Variance =

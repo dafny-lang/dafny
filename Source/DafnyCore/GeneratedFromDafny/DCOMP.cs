@@ -2895,9 +2895,9 @@ namespace DCOMP {
       DAST._IExpression _source0 = e;
       {
         if (_source0.is_Literal) {
-          DAST._ILiteral _h170 = _source0.dtor_Literal_a0;
-          if (_h170.is_BoolLiteral) {
-            bool _0_b = _h170.dtor_BoolLiteral_a0;
+          DAST._ILiteral _h230 = _source0.dtor_Literal_a0;
+          if (_h230.is_BoolLiteral) {
+            bool _0_b = _h230.dtor_BoolLiteral_a0;
             {
               RAST._IExpr _out0;
               Defs._IOwnership _out1;
@@ -2913,10 +2913,10 @@ namespace DCOMP {
       }
       {
         if (_source0.is_Literal) {
-          DAST._ILiteral _h171 = _source0.dtor_Literal_a0;
-          if (_h171.is_IntLiteral) {
-            Dafny.ISequence<Dafny.Rune> _1_i = _h171.dtor_IntLiteral_a0;
-            DAST._IType _2_t = _h171.dtor_IntLiteral_a1;
+          DAST._ILiteral _h231 = _source0.dtor_Literal_a0;
+          if (_h231.is_IntLiteral) {
+            Dafny.ISequence<Dafny.Rune> _1_i = _h231.dtor_IntLiteral_a0;
+            DAST._IType _2_t = _h231.dtor_IntLiteral_a1;
             {
               DAST._IType _source1 = _2_t;
               {
@@ -2959,11 +2959,11 @@ namespace DCOMP {
       }
       {
         if (_source0.is_Literal) {
-          DAST._ILiteral _h172 = _source0.dtor_Literal_a0;
-          if (_h172.is_DecLiteral) {
-            Dafny.ISequence<Dafny.Rune> _5_n = _h172.dtor_DecLiteral_a0;
-            Dafny.ISequence<Dafny.Rune> _6_d = _h172.dtor_DecLiteral_a1;
-            DAST._IType _7_t = _h172.dtor_DecLiteral_a2;
+          DAST._ILiteral _h232 = _source0.dtor_Literal_a0;
+          if (_h232.is_DecLiteral) {
+            Dafny.ISequence<Dafny.Rune> _5_n = _h232.dtor_DecLiteral_a0;
+            Dafny.ISequence<Dafny.Rune> _6_d = _h232.dtor_DecLiteral_a1;
+            DAST._IType _7_t = _h232.dtor_DecLiteral_a2;
             {
               DAST._IType _source2 = _7_t;
               {
@@ -3002,10 +3002,10 @@ namespace DCOMP {
       }
       {
         if (_source0.is_Literal) {
-          DAST._ILiteral _h173 = _source0.dtor_Literal_a0;
-          if (_h173.is_StringLiteral) {
-            Dafny.ISequence<Dafny.Rune> _10_l = _h173.dtor_StringLiteral_a0;
-            bool _11_verbatim = _h173.dtor_verbatim;
+          DAST._ILiteral _h233 = _source0.dtor_Literal_a0;
+          if (_h233.is_StringLiteral) {
+            Dafny.ISequence<Dafny.Rune> _10_l = _h233.dtor_StringLiteral_a0;
+            bool _11_verbatim = _h233.dtor_verbatim;
             {
               r = (((RAST.__default.dafny__runtime).MSel((this).string__of)).AsExpr()).Apply1(RAST.Expr.create_LiteralString(_10_l, false, _11_verbatim));
               RAST._IExpr _out8;
@@ -3022,9 +3022,9 @@ namespace DCOMP {
       }
       {
         if (_source0.is_Literal) {
-          DAST._ILiteral _h174 = _source0.dtor_Literal_a0;
-          if (_h174.is_CharLiteralUTF16) {
-            BigInteger _12_c = _h174.dtor_CharLiteralUTF16_a0;
+          DAST._ILiteral _h234 = _source0.dtor_Literal_a0;
+          if (_h234.is_CharLiteralUTF16) {
+            BigInteger _12_c = _h234.dtor_CharLiteralUTF16_a0;
             {
               r = RAST.Expr.create_LiteralInt(Std.Strings.__default.OfNat(_12_c));
               r = RAST.Expr.create_TypeAscription(r, RAST.Type.create_U16());
@@ -3043,9 +3043,9 @@ namespace DCOMP {
       }
       {
         if (_source0.is_Literal) {
-          DAST._ILiteral _h175 = _source0.dtor_Literal_a0;
-          if (_h175.is_CharLiteral) {
-            Dafny.Rune _13_c = _h175.dtor_CharLiteral_a0;
+          DAST._ILiteral _h235 = _source0.dtor_Literal_a0;
+          if (_h235.is_CharLiteral) {
+            Dafny.Rune _13_c = _h235.dtor_CharLiteral_a0;
             {
               r = RAST.Expr.create_LiteralInt(Std.Strings.__default.OfNat(new BigInteger((_13_c).Value)));
               if (!(((this).charType).is_UTF32)) {
@@ -3067,8 +3067,8 @@ namespace DCOMP {
         }
       }
       {
-        DAST._ILiteral _h176 = _source0.dtor_Literal_a0;
-        DAST._IType _14_tpe = _h176.dtor_Null_a0;
+        DAST._ILiteral _h236 = _source0.dtor_Literal_a0;
+        DAST._IType _14_tpe = _h236.dtor_Null_a0;
         {
           RAST._IType _15_tpeGen;
           RAST._IType _out14;
@@ -3615,7 +3615,7 @@ namespace DCOMP {
           resultingOwnership = _out17;
           return ;
         }
-        if (object.Equals(fromTpe, DAST.Type.create_Primitive(DAST.Primitive.create_Int()))) {
+        if ((fromTpe).IsPrimitiveInt()) {
           if (object.Equals(exprOwnership, Defs.Ownership.create_OwnershipBorrowed())) {
             r = (r).Clone();
           }
@@ -3668,7 +3668,7 @@ namespace DCOMP {
           resultingOwnership = _out29;
           return ;
         }
-        if (object.Equals(toTpe, DAST.Type.create_Primitive(DAST.Primitive.create_Int()))) {
+        if ((toTpe).IsPrimitiveInt()) {
           RAST._IExpr _out30;
           Defs._IOwnership _out31;
           (this).FromOwnership(r, exprOwnership, Defs.Ownership.create_OwnershipOwned(), out _out30, out _out31);
