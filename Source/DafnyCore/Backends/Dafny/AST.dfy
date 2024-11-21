@@ -166,16 +166,16 @@ module {:extern "DAST"} DAST {
 
   datatype Attribute = Attribute(name: string, args: seq<string>)
 
-  datatype DatatypeType = DatatypeType()
-
-  datatype TraitType = TraitType()
-
   datatype NewtypeType = NewtypeType(baseType: Type, range: NewtypeRange, erase: bool)
+  
+  datatype TraitType =
+    | ObjectTrait()     // Traits that extend objects with --type-system-refresh, all traits otherwise
+    | GeneralTrait()  // Traits that don't necessarily extend objects with --type-system-refresh
 
   datatype ResolvedTypeBase =
     | Class()
     | Datatype(variances: seq<Variance>)
-    | Trait()
+    | Trait(traitType: TraitType)
     | SynonymType(baseType: Type)
     | Newtype(baseType: Type, range: NewtypeRange, erase: bool)
 
@@ -208,7 +208,13 @@ module {:extern "DAST"} DAST {
 
   datatype Class = Class(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, superClasses: seq<Type>, fields: seq<Field>, body: seq<ClassItem>, attributes: seq<Attribute>)
 
-  datatype Trait = Trait(name: Name, typeParams: seq<TypeArgDecl>, parents: seq<Type>, body: seq<ClassItem>, attributes: seq<Attribute>)
+  datatype Trait = Trait(
+    name: Name,
+    typeParams: seq<TypeArgDecl>,
+    traitType: TraitType,
+    parents: seq<Type>,
+    body: seq<ClassItem>,
+    attributes: seq<Attribute>)
 
   datatype Datatype = Datatype(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, ctors: seq<DatatypeCtor>, body: seq<ClassItem>, isCo: bool, attributes: seq<Attribute>)
 

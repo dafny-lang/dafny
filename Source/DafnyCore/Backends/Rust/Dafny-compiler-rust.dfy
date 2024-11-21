@@ -354,7 +354,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         s := s + testMethods;
       }
       var genSelfPath := GenPathType(path);
-      // TODO: If general traits, check whether the trait extends object or not.
       if className != "_default" {
         s := s + [
           R.ImplDecl(
@@ -377,7 +376,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       for i := 0 to |superClasses| {
         var superClass := superClasses[i];
         match superClass {
-          case UserDefined(ResolvedType(traitPath, typeArgs, Trait(), _, properMethods, _)) => {
+          case UserDefined(ResolvedType(traitPath, typeArgs, Trait(traitType), _, properMethods, _)) => {
             var pathStr := GenPathType(traitPath);
             var typeArgs := GenTypeArgs(typeArgs, GenTypeContext.default());
             var body: seq<R.ImplMember> := [];
@@ -385,7 +384,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               body := traitBodies[traitPath];
             }
 
-            var traitType := R.TypeApp(pathStr, typeArgs);
+            var fullTraitPath := R.TypeApp(pathStr, typeArgs);
             if !extern.NoExtern? { // An extern of some kind
               // Either the Dafny code implements all the methods of the trait or none,
               if |body| == 0 && |properMethods| != 0 {
@@ -393,7 +392,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               }
               if |body| != |properMethods| {
                 error := Some("Error: In the class " + R.SeqToString(path, (s: Ident) => s.id.dafny_name, ".") + ", some proper methods of " +
-                              traitType.ToString("") + " are marked {:extern} and some are not." +
+                              fullTraitPath.ToString("") + " are marked {:extern} and some are not." +
                               " For the Rust compiler, please make all methods (" + R.SeqToString(properMethods, (s: Name) => s.dafny_name, ", ") +
                               ")  bodiless and mark as {:extern} and implement them in a Rust file, "+
                               "or mark none of them as {:extern} and implement them in Dafny. " +
@@ -403,10 +402,26 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             if |body| == 0 {
               // Extern type, we assume
             }
+            if traitType.GeneralTrait? {
+              // One more method: Cloning when boxed
+              /*impl Test for Wrapper {
+                  fn _clone(&self) -> Box<dyn Test> {
+                      Box::new(self.clone())
+                  }
+              }*/
+              body := body + [
+                R.FnDecl(
+                  R.PRIV,
+                    R.Fn(
+                      "_clone", [], [R.Formal.selfBorrowed], R.Boxed(R.DynType(fullTraitPath)),
+                      "",
+                      Some(R.BoxNew(R.self.MSel("clone").Apply0()))))
+              ];
+            }
             var x := R.ImplDecl(
               R.ImplFor(
                 rTypeParamsDecls,
-                traitType,
+                fullTraitPath,
                 R.TypeApp(genSelfPath, rTypeParams),
                 whereConstraints,
                 body
@@ -417,14 +432,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.ImplDecl(
                 R.ImplFor(
                   rTypeParamsDecls,
-                  R.dafny_runtime.MSel(Upcast).AsType().Apply([R.DynType(traitType)]),
+                  R.dafny_runtime.MSel(Upcast).AsType().Apply([R.DynType(fullTraitPath)]),
                   R.TypeApp(genSelfPath, rTypeParams),
                   whereConstraints,
                   [
                     R.ImplMemberMacro(
                       R.dafny_runtime
                       .MSel(UpcastFnMacro).AsExpr()
-                      .Apply1(R.ExprFromType(R.DynType(traitType))))
+                      .Apply1(R.ExprFromType(R.DynType(fullTraitPath))))
                   ]
                 )
               )
@@ -439,28 +454,41 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       modifies this
     {
       var typeParamsSeq := [];
-      var typeParamDecls := [];
-      var typeParams := [];
+      var rTypeParamsDecls: seq<R.TypeParamDecl> := [];
+      var typeParams: seq<R.Type> := [];
       if |t.typeParams| > 0 {
         for tpI := 0 to |t.typeParams| {
           var tp := t.typeParams[tpI];
           var typeArg, typeParamDecl := GenTypeParam(tp);
           typeParamsSeq := typeParamsSeq + [typeArg];
-          typeParamDecls := typeParamDecls + [typeParamDecl];
+          rTypeParamsDecls := rTypeParamsDecls + [typeParamDecl];
           var typeParam := GenType(typeArg, GenTypeContext.default());
           typeParams := typeParams + [typeParam];
         }
       }
 
       var fullPath := containingPath + [Ident.Ident(t.name)];
+      var traitFulltype := R.TypeApp(R.TIdentifier(escapeName(t.name)), typeParams);
       var implBody, _ := GenClassImplBody(
         t.body, true,
         UserDefined(
           ResolvedType(
             fullPath, [],
-            ResolvedTypeBase.Trait(), t.attributes,
+            ResolvedTypeBase.Trait(t.traitType), t.attributes,
             [], [])),
         typeParamsSeq);
+      if t.traitType.GeneralTrait? { // Cloning is boxed
+        // fn _clone(&self) -> Box<dyn Test>;
+        implBody := implBody + [
+          R.FnDecl(
+            R.PRIV,
+            R.Fn(
+              "_clone", [], [R.Formal.selfBorrowed], Some(R.Box(R.DynType(traitFulltype))),
+              "",
+              None
+            ));
+        ];
+      }
       var parents := [];
       for i := 0 to |t.parents| {
         var tpe := GenType(t.parents[i], GenTypeContext.ForTraitParents());
@@ -469,10 +497,32 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       s := [
         R.TraitDecl(
           R.Trait(
-            typeParamDecls, R.TypeApp(R.TIdentifier(escapeName(t.name)), typeParams),
+            rTypeParamsDecls, traitFulltype,
             parents,
             implBody
           ))];
+      if t.traitType.GeneralTrait? {
+        /*impl Clone for Box<dyn Test> {
+            fn clone(&self) -> Box<dyn Test> {
+              self._clone()
+            }
+          }*/
+        s := s + [
+          R.ImplDecl(
+            R.ImplFor(
+              rTypeParamsDecls,
+              R.std.MSel("clone").MSel("Clone"),
+              R.Box(R.DynType(traitFulltype)),
+              "",
+              [R.FnDecl(
+                 R.PRIV,
+                 R.Fn("clone", [],
+                      [ R.Formal.selfBorrowed ],
+                      Some(R.SelfOwned),
+                      "",
+                      Some(R.self.FSel("_clone").Apply0())
+               )]))];
+      }
     }
 
     method GenNewtype(c: Newtype, path: seq<Ident>) returns (s: seq<R.ModDecl>)
@@ -802,6 +852,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               ResolvedTypeBase.Datatype(variances),
               c.attributes, [], [])),
           typeParamsSeq);
+      if |traitBodies| > 0 {
+        error := Some("No support for trait in datatypes yet");
+      }
       var implBody: seq<R.ImplMember> := implBodyRaw;
       var emittedFields: set<string> := {};
       for i := 0 to |c.ctors| {
@@ -1273,7 +1326,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 s := R.Rc(s);
               }
             }
-            case Trait() => {
+            case Trait(GeneralTrait()) => {
+              if !genTypeContext.forTraitParents {
+                s := R.Box(R.DynType(s));
+              }
+            }
+            case Trait(ObjectTrait()) => {
               if resolved.path == [Ident.Ident(Name("_System")), Ident.Ident(Name("object"))] {
                 s := R.AnyTrait;
               }
@@ -2623,10 +2681,19 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     {
       if fromTpe == toTpe then
         Success(R.dafny_runtime.MSel("upcast_id").AsExpr().ApplyType([fromTpe]).Apply0())
+      else if toTpe.IsBox() then // General trait
+        var toTpeUnderlying := toTpe.BoxUnderlying();
+        if !toTpeUnderlying.DynType? then Failure((fromType, fromTpe, toType, toTpe, typeParams)) else
+        if fromTpe.IsBox() then
+          var fromTpeUnderlying := fromTpe.BoxUnderlying();
+          if !fromTpeUnderlying.DynType? then Failure((fromType, fromTpe, toType, toTpe, typeParams)) else
+          Success(R.dafny_runtime.MSel("upcast_box_box").AsExpr().ApplyType([fromTpeUnderlying, toTpeUnderlying]).Apply0()) 
+        else
+          Success(R.dafny_runtime.MSel("upcast_box").AsExpr().ApplyType([fromTpe, toTpeUnderlying]).Apply0())
       else if fromTpe.IsObjectOrPointer() && toTpe.IsObjectOrPointer() then
-        if !toTpe.ObjectOrPointerUnderlying().DynType? then Failure((fromType, fromTpe, toType, toTpe, typeParams)) else
-        var fromTpeUnderlying := fromTpe.ObjectOrPointerUnderlying();
         var toTpeUnderlying := toTpe.ObjectOrPointerUnderlying();
+        if !toTpeUnderlying.DynType? then Failure((fromType, fromTpe, toType, toTpe, typeParams)) else
+        var fromTpeUnderlying := fromTpe.ObjectOrPointerUnderlying();
         Success(R.dafny_runtime.MSel(upcast).AsExpr().ApplyType([fromTpeUnderlying, toTpeUnderlying]).Apply0())
       else if (fromTpe, toTpe) in typeParams then
         Success(typeParams[(fromTpe, toTpe)])

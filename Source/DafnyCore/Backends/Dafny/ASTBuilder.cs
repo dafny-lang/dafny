@@ -1021,7 +1021,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr value) {
       if (this.value != null) {
-        throw new InvalidOperationException();
+        AddUnsupported("Second value for ReturnBuilder");
       } else {
         this.value = value;
       }

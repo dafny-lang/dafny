@@ -2165,98 +2165,6 @@ namespace DAST {
     }
   }
 
-  public interface _IDatatypeType {
-    bool is_DatatypeType { get; }
-    _IDatatypeType DowncastClone();
-  }
-  public class DatatypeType : _IDatatypeType {
-    public DatatypeType() {
-    }
-    public _IDatatypeType DowncastClone() {
-      if (this is _IDatatypeType dt) { return dt; }
-      return new DatatypeType();
-    }
-    public override bool Equals(object other) {
-      var oth = other as DAST.DatatypeType;
-      return oth != null;
-    }
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
-    }
-    public override string ToString() {
-      string s = "DAST.DatatypeType.DatatypeType";
-      return s;
-    }
-    private static readonly DAST._IDatatypeType theDefault = create();
-    public static DAST._IDatatypeType Default() {
-      return theDefault;
-    }
-    private static readonly Dafny.TypeDescriptor<DAST._IDatatypeType> _TYPE = new Dafny.TypeDescriptor<DAST._IDatatypeType>(DAST.DatatypeType.Default());
-    public static Dafny.TypeDescriptor<DAST._IDatatypeType> _TypeDescriptor() {
-      return _TYPE;
-    }
-    public static _IDatatypeType create() {
-      return new DatatypeType();
-    }
-    public static _IDatatypeType create_DatatypeType() {
-      return create();
-    }
-    public bool is_DatatypeType { get { return true; } }
-    public static System.Collections.Generic.IEnumerable<_IDatatypeType> AllSingletonConstructors {
-      get {
-        yield return DatatypeType.create();
-      }
-    }
-  }
-
-  public interface _ITraitType {
-    bool is_TraitType { get; }
-    _ITraitType DowncastClone();
-  }
-  public class TraitType : _ITraitType {
-    public TraitType() {
-    }
-    public _ITraitType DowncastClone() {
-      if (this is _ITraitType dt) { return dt; }
-      return new TraitType();
-    }
-    public override bool Equals(object other) {
-      var oth = other as DAST.TraitType;
-      return oth != null;
-    }
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
-    }
-    public override string ToString() {
-      string s = "DAST.TraitType.TraitType";
-      return s;
-    }
-    private static readonly DAST._ITraitType theDefault = create();
-    public static DAST._ITraitType Default() {
-      return theDefault;
-    }
-    private static readonly Dafny.TypeDescriptor<DAST._ITraitType> _TYPE = new Dafny.TypeDescriptor<DAST._ITraitType>(DAST.TraitType.Default());
-    public static Dafny.TypeDescriptor<DAST._ITraitType> _TypeDescriptor() {
-      return _TYPE;
-    }
-    public static _ITraitType create() {
-      return new TraitType();
-    }
-    public static _ITraitType create_TraitType() {
-      return create();
-    }
-    public bool is_TraitType { get { return true; } }
-    public static System.Collections.Generic.IEnumerable<_ITraitType> AllSingletonConstructors {
-      get {
-        yield return TraitType.create();
-      }
-    }
-  }
-
   public interface _INewtypeType {
     bool is_NewtypeType { get; }
     DAST._IType dtor_baseType { get; }
@@ -2332,6 +2240,81 @@ namespace DAST {
     }
   }
 
+  public interface _ITraitType {
+    bool is_ObjectTrait { get; }
+    bool is_GeneralTrait { get; }
+    _ITraitType DowncastClone();
+  }
+  public abstract class TraitType : _ITraitType {
+    public TraitType() {
+    }
+    private static readonly DAST._ITraitType theDefault = create_ObjectTrait();
+    public static DAST._ITraitType Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._ITraitType> _TYPE = new Dafny.TypeDescriptor<DAST._ITraitType>(DAST.TraitType.Default());
+    public static Dafny.TypeDescriptor<DAST._ITraitType> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _ITraitType create_ObjectTrait() {
+      return new TraitType_ObjectTrait();
+    }
+    public static _ITraitType create_GeneralTrait() {
+      return new TraitType_GeneralTrait();
+    }
+    public bool is_ObjectTrait { get { return this is TraitType_ObjectTrait; } }
+    public bool is_GeneralTrait { get { return this is TraitType_GeneralTrait; } }
+    public static System.Collections.Generic.IEnumerable<_ITraitType> AllSingletonConstructors {
+      get {
+        yield return TraitType.create_ObjectTrait();
+        yield return TraitType.create_GeneralTrait();
+      }
+    }
+    public abstract _ITraitType DowncastClone();
+  }
+  public class TraitType_ObjectTrait : TraitType {
+    public TraitType_ObjectTrait() : base() {
+    }
+    public override _ITraitType DowncastClone() {
+      if (this is _ITraitType dt) { return dt; }
+      return new TraitType_ObjectTrait();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.TraitType_ObjectTrait;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.TraitType.ObjectTrait";
+      return s;
+    }
+  }
+  public class TraitType_GeneralTrait : TraitType {
+    public TraitType_GeneralTrait() : base() {
+    }
+    public override _ITraitType DowncastClone() {
+      if (this is _ITraitType dt) { return dt; }
+      return new TraitType_GeneralTrait();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.TraitType_GeneralTrait;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 1;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.TraitType.GeneralTrait";
+      return s;
+    }
+  }
+
   public interface _IResolvedTypeBase {
     bool is_Class { get; }
     bool is_Datatype { get; }
@@ -2339,6 +2322,7 @@ namespace DAST {
     bool is_SynonymType { get; }
     bool is_Newtype { get; }
     Dafny.ISequence<DAST._IVariance> dtor_variances { get; }
+    DAST._ITraitType dtor_traitType { get; }
     DAST._IType dtor_baseType { get; }
     DAST._INewtypeRange dtor_range { get; }
     bool dtor_erase { get; }
@@ -2361,8 +2345,8 @@ namespace DAST {
     public static _IResolvedTypeBase create_Datatype(Dafny.ISequence<DAST._IVariance> variances) {
       return new ResolvedTypeBase_Datatype(variances);
     }
-    public static _IResolvedTypeBase create_Trait() {
-      return new ResolvedTypeBase_Trait();
+    public static _IResolvedTypeBase create_Trait(DAST._ITraitType traitType) {
+      return new ResolvedTypeBase_Trait(traitType);
     }
     public static _IResolvedTypeBase create_SynonymType(DAST._IType baseType) {
       return new ResolvedTypeBase_SynonymType(baseType);
@@ -2379,6 +2363,12 @@ namespace DAST {
       get {
         var d = this;
         return ((ResolvedTypeBase_Datatype)d)._variances;
+      }
+    }
+    public DAST._ITraitType dtor_traitType {
+      get {
+        var d = this;
+        return ((ResolvedTypeBase_Trait)d)._traitType;
       }
     }
     public DAST._IType dtor_baseType {
@@ -2451,23 +2441,29 @@ namespace DAST {
     }
   }
   public class ResolvedTypeBase_Trait : ResolvedTypeBase {
-    public ResolvedTypeBase_Trait() : base() {
+    public readonly DAST._ITraitType _traitType;
+    public ResolvedTypeBase_Trait(DAST._ITraitType traitType) : base() {
+      this._traitType = traitType;
     }
     public override _IResolvedTypeBase DowncastClone() {
       if (this is _IResolvedTypeBase dt) { return dt; }
-      return new ResolvedTypeBase_Trait();
+      return new ResolvedTypeBase_Trait(_traitType);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.ResolvedTypeBase_Trait;
-      return oth != null;
+      return oth != null && object.Equals(this._traitType, oth._traitType);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._traitType));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.ResolvedTypeBase.Trait";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._traitType);
+      s += ")";
       return s;
     }
   }

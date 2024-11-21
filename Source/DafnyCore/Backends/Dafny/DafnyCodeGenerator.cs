@@ -1755,8 +1755,11 @@ namespace Microsoft.Dafny.Compilers {
       } else if (topLevel is TypeSynonymDecl typeSynonym) { // Also SubsetTypeDecl
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_SynonymType(
           GenType(typeSynonym.Rhs.Subst(typeSynonym.TypeArgs.Zip(typeArgs).ToDictionary(kv => kv.Item1, kv => kv.Item2)).NormalizeExpand()));
-      } else if (topLevel is TraitDecl) {
-        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait();
+      } else if (topLevel is TraitDecl traitDecl) {
+        var traitType = traitDecl.IsReferenceTypeDecl
+          ? TraitType.create_ObjectTrait()
+          : TraitType.create_GeneralTrait();
+        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait(traitType);
       } else if (topLevel is DatatypeDecl dd) {
         var variances = Sequence<Variance>.FromArray(dd.TypeArgs.Select(GenTypeVariance).ToArray());
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Datatype(variances);

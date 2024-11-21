@@ -593,6 +593,8 @@ module RAST
   }
 
   const PtrPath: Path := dafny_runtime.MSel("Ptr")
+  
+  const BoxPath := std.MSel("box").MSel("Box")
 
   const Ptr := PtrPath.AsExpr()
 
@@ -624,10 +626,25 @@ module RAST
   }
 
   function Box(content: Type): Type {
-    TypeApp(TIdentifier("Box"), [content])
+    TypeApp(BoxPath.AsType(), [content])
   }
   function BoxNew(content: Expr): Expr {
-    Identifier("Box").FSel("new").Apply([content])
+    BoxPath.AsExpr().FSel("new").Apply([content])
+  }
+  predicate IsBox() {
+    match this {
+      case TypeApp(TypeFromPath(o), elems1) =>
+        o == BoxPath && |elems1| == 1
+      case _ => false
+    }
+  }
+  function BoxUnderlying(): Type
+    requires IsBox()
+  {
+    match this {
+      case TypeApp(TypeFromPath(o), elems1) =>
+        elems1[0]
+    }
   }
 
   datatype Path =
