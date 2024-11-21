@@ -115,7 +115,7 @@ module {:extern "DAST"} DAST {
           this
       }
     }
-    
+
     predicate IsPrimitiveInt() {
       match this {
         case Primitive(Int) => true
