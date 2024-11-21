@@ -61,12 +61,12 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
       }
     }
 
-    foreach (var blockStmtBody in Body) {
-      if (blockStmtBody is not BlockStmt && OwnedTokens.Any()) {
-        formatter.SetIndentations(blockStmtBody.StartToken, innerBlockIndent, innerBlockIndent);
+    foreach (var childStatement in Body) {
+      if (childStatement is not BlockStmt or BlockByProofStmt && OwnedTokens.Any()) {
+        formatter.SetIndentations(childStatement.StartToken, innerBlockIndent, innerBlockIndent);
       }
 
-      formatter.Visit(blockStmtBody, indentBefore + formatter.SpaceTab);
+      formatter.Visit(childStatement, indentBefore + formatter.SpaceTab);
     }
 
     return false;
