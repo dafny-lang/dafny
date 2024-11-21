@@ -1580,7 +1580,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
       bool surroundByUnchecked, ConcreteSyntaxTree wr) {
-      AddUnsupported("<i>EmitBitvectorTruncation</i>");
+      if (nativeType != null && bvType.NativeType.Name == nativeType.Name && bvType.NativeType.Bitwidth == nativeType.Bitwidth) {
+        return wr;
+      }
+
+      AddUnsupported($"<i>EmitBitvectorTruncation from {bvType} to {nativeType}</i>");
       return wr;
     }
 

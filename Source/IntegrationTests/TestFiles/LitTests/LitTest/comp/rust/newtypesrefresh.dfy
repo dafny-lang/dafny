@@ -15,6 +15,10 @@ newtype BoolWrapper = bool {
   static function ApplyFalseTrue(f: (BoolWrapper, BoolWrapper) -> BoolWrapper): BoolWrapper {
     f(false as BoolWrapper, true as BoolWrapper)
   }
+  
+  function xor(other: BoolWrapper): BoolWrapper {
+    this != other
+  }
 }
 
 method Main(){

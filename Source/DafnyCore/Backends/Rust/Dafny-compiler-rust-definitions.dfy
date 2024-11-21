@@ -354,7 +354,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
 
   // We use the range as the wrapped type only if the base is a Primitive
   function NewtypeRangeToUnwrappedBoundedRustType(base: Type, range: NewtypeRange): Option<R.Type> {
-    if base == Primitive(Primitive.Int) then
+    if base.IsPrimitiveInt() then
       NewtypeRangeToRustType(range)
     else
       None
@@ -382,6 +382,10 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
 
   predicate IsBooleanOperator(op: BinOp) {
     op.And? || op.Or?
+  }
+
+  predicate IsComplexArithmetic(op: BinOp) {
+    op.EuclidianDiv? || op.EuclidianMod?
   }
 
   function GetUnwrappedBoundedRustType(tpe: Type): Option<R.Type> {
@@ -662,5 +666,34 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
                        Format.BinaryOpFormat.NoFormat
                      )))))]
       ))
+  }
+
+  function PartialOrdImpl(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    newtypeType: R.Type,
+    newtypeConstructor: string
+  ): R.ModDecl
+  {
+    R.ImplDecl(
+      R.ImplFor(
+        rTypeParamsDecls,
+        R.std.MSel("cmp").MSel("PartialOrd").AsType(),
+        newtypeType,
+        "",
+        [ R.FnDecl(
+            R.PRIV,
+            R.Fn(
+              "partial_cmp", [],
+              [R.Formal.selfBorrowed,
+               R.Formal("other", R.SelfBorrowed)],
+              Some(R.std.MSel("option").MSel("Option").AsType().Apply1(R.std.MSel("cmp").MSel("Ordering").AsType())),
+              "",
+              Some(
+                R.std.MSel("cmp").MSel("PartialOrd").AsExpr().FSel("partial_cmp").Apply([
+                                                                                          R.Borrow(R.self.Sel("0")),
+                                                                                          R.Borrow(R.Identifier("other").Sel("0"))
+                                                                                        ]))
+            ))
+        ]))
   }
 }

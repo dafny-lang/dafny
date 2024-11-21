@@ -558,6 +558,7 @@ namespace DAST {
     Dafny.ISequence<Dafny.Rune> dtor_TypeArg_a0 { get; }
     _IType DowncastClone();
     DAST._IType Replace(Dafny.IMap<DAST._IType,DAST._IType> mapping);
+    bool IsPrimitiveInt();
   }
   public abstract class Type : _IType {
     public Type() {
@@ -775,6 +776,35 @@ namespace DAST {
         {
           return this;
         }
+      }
+    }
+    public bool IsPrimitiveInt() {
+      _IType _this = this;
+    TAIL_CALL_START: ;
+      DAST._IType _source0 = _this;
+      {
+        if (_source0.is_Primitive) {
+          DAST._IPrimitive _h70 = _source0.dtor_Primitive_a0;
+          if (_h70.is_Int) {
+            return true;
+          }
+        }
+      }
+      {
+        if (_source0.is_UserDefined) {
+          DAST._IResolvedType resolved0 = _source0.dtor_resolved;
+          DAST._IResolvedTypeBase kind0 = resolved0.dtor_kind;
+          if (kind0.is_SynonymType) {
+            DAST._IType _0_typ = kind0.dtor_baseType;
+            DAST._IType _in0 = _0_typ;
+            _this = _in0;
+            ;
+            goto TAIL_CALL_START;
+          }
+        }
+      }
+      {
+        return false;
       }
     }
   }

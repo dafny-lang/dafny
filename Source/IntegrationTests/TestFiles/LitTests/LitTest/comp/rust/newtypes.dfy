@@ -1,7 +1,7 @@
 // NONUNIFORM: Test of Rust's ability to support newtypes
 // RUN: %baredafny run -t:rs "%s"
 // RUN: %baredafny run -t:rs --unicode-char=false "%s"
-/// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
+/// %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 newtype int2 = x: int | -2 <= x < 2
 newtype int16 = x: int | -32768 <= x < 32768
@@ -14,6 +14,7 @@ const cu: CodeUnit := 0
 newtype uint8  = x: int | 0 <= x < 0x100
 type byte = uint8
 newtype uint32 = x: int | 0 <= x < 0x1_00000000
+newtype {:nativeType  "ulong"}  NewNat = n:nat | n <= -(1 as bv64) as nat
 
 newtype {:rust_erase false} uint32_noterased = x: int | 0 <= x < 0x1_00000000
 newtype another_int = x: int | true
@@ -54,6 +55,20 @@ newtype uint32WithMethods = x: int | 0 <= x < 0x1_00000000 {
 
 newtype IntWrapper = int {
   const zero := 0 as IntWrapper
+  const even := (this as int) % 2 == 0
+  function len(): int
+    requires this >= 0
+  {
+    if this == 0 then 0 else
+    1 + (this / 2).len()
+  }
+  method firstTwoBits(maxDepth: uint32WithMethods) returns (output: int) {
+    if this <= 3 || maxDepth == 0 {
+      output := this as int;
+    } else {
+      output := (this / 2).firstTwoBits(maxDepth - 1);
+    }
+  }
   function add(other: IntWrapper): IntWrapper {
     this + other
   }
@@ -62,6 +77,10 @@ newtype IntWrapper = int {
   }
   function AddZero(): IntWrapper {
     this
+  }
+
+  function less(other: IntWrapper): bool {
+    this < other
   }
 }
 
@@ -152,4 +171,17 @@ method Main(){
   expect 0 as uint32WithMethods == two.div_overflow(three);
   expect almost_overflow2 == almost_overflow.times_overflow(two);
   expect (3 as IntWrapper).DoublePlus(1 as IntWrapper) == 7 as IntWrapper;
+  var i := 1;
+  expect !(i as IntWrapper).even;
+  var j := 2;
+  expect (j as IntWrapper).even;
+  expect (i as IntWrapper).less(j as IntWrapper);
+  expect (7 as IntWrapper).len() == 3;
+  expect (8 as IntWrapper).len() == 4;
+  var x := (8 as IntWrapper).firstTwoBits(100);
+  expect x == 2;
+  x := (7 as IntWrapper).firstTwoBits(100);
+  expect x == 3;
+  var bb := 1 as bv8;
+  expect !bb == 254;
 }
