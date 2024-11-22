@@ -124,6 +124,18 @@ module {:extern "DAST"} DAST {
         case _ => false
       }
     }
+ 
+    predicat IsGeneralTrait() {
+      match this {
+        case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.IsGeneralTrait()
+            case TraitType(GeneralTrait) => true
+            case _ => false
+        case _ => false
+      }
+    }
   }
 
   datatype Variance =
@@ -206,7 +218,7 @@ module {:extern "DAST"} DAST {
 
   datatype Ident = Ident(id: Name)
 
-  datatype Class = Class(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, superClasses: seq<Type>, fields: seq<Field>, body: seq<ClassItem>, attributes: seq<Attribute>)
+  datatype Class = Class(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, superTraitTypes: seq<Type>, fields: seq<Field>, body: seq<ClassItem>, attributes: seq<Attribute>)
 
   datatype Trait = Trait(
     name: Name,
@@ -216,7 +228,7 @@ module {:extern "DAST"} DAST {
     body: seq<ClassItem>,
     attributes: seq<Attribute>)
 
-  datatype Datatype = Datatype(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, ctors: seq<DatatypeCtor>, body: seq<ClassItem>, isCo: bool, attributes: seq<Attribute>)
+  datatype Datatype = Datatype(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, ctors: seq<DatatypeCtor>, body: seq<ClassItem>, isCo: bool, attributes: seq<Attribute>, superTraitTypes: seq<Type>)
 
   datatype DatatypeDtor = DatatypeDtor(formal: Formal, callName: Option<string>)
 

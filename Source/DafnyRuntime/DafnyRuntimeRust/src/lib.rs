@@ -3977,6 +3977,22 @@ macro_rules! UpcastObjectFn {
 }
 
 
+#[macro_export]
+macro_rules! UpcastBoxFn {
+    ($B:ident) => {
+        fn upcast(&self) -> ::std::boxed::Box<dyn $B> {
+            $B::_clone(self.as_ref())
+        }
+    };
+}
+#[macro_export]
+macro_rules! UpcastStructBoxFn {
+    ($B:ident) => {
+        fn upcast(&self) -> ::std::boxed::Box<dyn $B> {
+            $B::_clone(self)
+        }
+    };
+}
 
 // It works only when there is no type parameters for $A...
 #[macro_export]

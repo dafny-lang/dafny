@@ -631,21 +631,6 @@ module RAST
   function BoxNew(content: Expr): Expr {
     BoxPath.AsExpr().FSel("new").Apply([content])
   }
-  predicate IsBox() {
-    match this {
-      case TypeApp(TypeFromPath(o), elems1) =>
-        o == BoxPath && |elems1| == 1
-      case _ => false
-    }
-  }
-  function BoxUnderlying(): Type
-    requires IsBox()
-  {
-    match this {
-      case TypeApp(TypeFromPath(o), elems1) =>
-        elems1[0]
-    }
-  }
 
   datatype Path =
     | Global() // ::...   to access other crates
@@ -969,6 +954,21 @@ module RAST
           false
       else
         false
+    }    
+    predicate IsBox() {
+      match this {
+        case TypeApp(TypeFromPath(o), elems1) =>
+          o == BoxPath && |elems1| == 1
+        case _ => false
+      }
+    }
+    function BoxUnderlying(): Type
+      requires IsBox()
+    {
+      match this {
+        case TypeApp(TypeFromPath(o), elems1) =>
+          elems1[0]
+      }
     }
     predicate IsObject() {
       match this {

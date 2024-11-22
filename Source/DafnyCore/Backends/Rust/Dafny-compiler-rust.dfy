@@ -372,10 +372,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           )
         ];
       }
-      var superClasses := if className == "_default" then [] else c.superClasses;
-      for i := 0 to |superClasses| {
-        var superClass := superClasses[i];
-        match superClass {
+      var superTraitTypes := if className == "_default" then [] else c.superTraitTypes;
+      for i := 0 to |superTraitTypes| {
+        var superTraitType := superTraitTypes[i];
+        match superTraitType {
           case UserDefined(ResolvedType(traitPath, typeArgs, Trait(traitType), _, properMethods, _)) => {
             var pathStr := GenPathType(traitPath);
             var typeArgs := GenTypeArgs(typeArgs, GenTypeContext.default());
@@ -468,7 +468,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
 
       var fullPath := containingPath + [Ident.Ident(t.name)];
-      var traitFulltype := R.TypeApp(R.TIdentifier(escapeName(t.name)), typeParams);
+      var name := escapeName(t.name);
+      var traitFulltype := R.TypeApp(R.TIdentifier(name), typeParams);
+      var traitFullExpr := R.ApplyType(R.Identifier(name), typeParams);
       var implBody, _ := GenClassImplBody(
         t.body, true,
         UserDefined(
@@ -486,13 +488,33 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               "_clone", [], [R.Formal.selfBorrowed], Some(R.Box(R.DynType(traitFulltype))),
               "",
               None
-            ));
+            ))
         ];
       }
       var parents := [];
+      var upcastImplemented := [];
       for i := 0 to |t.parents| {
-        var tpe := GenType(t.parents[i], GenTypeContext.ForTraitParents());
-        parents := parents + [tpe] + [R.dafny_runtime.MSel(Upcast).AsType().Apply1(R.DynType(tpe))];
+        var parentTpe := GenType(t.parents[i], GenTypeContext.ForTraitParents());
+        parents := parents + [parentTpe];
+        var upcastTrait := if parentTpe.IsGeneralTrait() then "UpcastBox" else Upcast;
+        parents := parents + [R.dafny_runtime.MSel(upcastTrait).AsType().Apply1(R.DynType(parentTpe))];
+        if parentTpe.IsGeneralTrait() {
+          /*impl UpcastBox<dyn GeneralTraitSuper> for Box<dyn GeneralTrait> {
+              UpcastBoxFn!(GeneralTraitSuper);
+          }*/
+          upcastImplemented := upcastImplemented + [
+            R.ImplDecl(
+              R.ImplFor(
+                rTypeParamsDecls,
+                R.dafny_runtime.MSel("UpcastBox").AsType().Apply1(R.DynType(parentTpe)),
+                R.Box(R.DynType(traitFulltype)),
+                "",
+                [ R.ImplMemberMacro(
+                    R.dafny_runtime
+                    .MSel("UpcastBoxFn").AsExpr()
+                    .Apply1(R.ExprFromType(tpe)))]))
+          ];
+        }
       }
       s := [
         R.TraitDecl(
@@ -504,7 +526,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if t.traitType.GeneralTrait? {
         /*impl Clone for Box<dyn Test> {
             fn clone(&self) -> Box<dyn Test> {
-              self._clone()
+              Test::_clone(self.as_ref())
             }
           }*/
         s := s + [
@@ -520,9 +542,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                       [ R.Formal.selfBorrowed ],
                       Some(R.SelfOwned),
                       "",
-                      Some(R.self.FSel("_clone").Apply0())
-               )]))];
+                      Some(traitFullExpr.FSel("_clone").Apply1(R.self.Sel("as_ref").Apply0()))
+                 ))]))];
       }
+      s := s + upcastImplemented;
     }
 
     method GenNewtype(c: Newtype, path: seq<Ident>) returns (s: seq<R.ModDecl>)

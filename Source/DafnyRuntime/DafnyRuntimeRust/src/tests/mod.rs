@@ -941,9 +941,7 @@ mod tests {
         fn _clone(&self) -> Box<dyn GeneralTrait>;
     }
     impl UpcastBox<dyn GeneralTraitSuper> for Box<dyn GeneralTrait> {
-        fn upcast(&self) -> Box<dyn GeneralTraitSuper> {
-            GeneralTraitSuper::_clone(self.as_ref())
-        }
+        UpcastBoxFn!(GeneralTraitSuper);
     }
     impl Clone for Box<dyn GeneralTrait> {
         fn clone(&self) -> Self {
@@ -980,14 +978,10 @@ mod tests {
         }
     }
     impl UpcastBox<dyn GeneralTrait> for ADatatype {
-        fn upcast(&self) -> Box<dyn GeneralTrait> {
-            GeneralTrait::_clone(self)
-        }
+        UpcastStructBoxFn!(GeneralTrait);
     }
     impl UpcastBox<dyn GeneralTraitSuper> for ADatatype {
-        fn upcast(&self) -> Box<dyn GeneralTraitSuper> {
-            GeneralTraitSuper::_clone(self)
-        }
+        UpcastStructBoxFn!(GeneralTraitSuper);
     }
     #[test]
     fn test_general_traits() {
