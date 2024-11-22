@@ -577,13 +577,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
-      if (module.ModuleKind == ModuleKindEnum.Abstract) {
-        wr.Write("abstract ");
-      }
-      if (module.ModuleKind == ModuleKindEnum.Replaceable) {
-        wr.Write("replaceable ");
-      }
       PrintAttributes(module.Attributes, indent, () => {
+        if (module.ModuleKind == ModuleKindEnum.Abstract) {
+          wr.Write("abstract ");
+        }
+        if (module.ModuleKind == ModuleKindEnum.Replaceable) {
+          wr.Write("replaceable ");
+        }
         wr.Write("module");
       });
       wr.Write(" ");
