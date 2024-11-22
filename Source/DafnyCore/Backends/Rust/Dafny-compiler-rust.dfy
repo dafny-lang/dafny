@@ -875,9 +875,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               ResolvedTypeBase.Datatype(variances),
               c.attributes, [], [])),
           typeParamsSeq);
-      if |traitBodies| > 0 {
-        error := Some("No support for trait in datatypes yet");
-      }
       var implBody: seq<R.ImplMember> := implBodyRaw;
       var emittedFields: set<string> := {};
       for i := 0 to |c.ctors| {
@@ -1255,6 +1252,82 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                       Some(R.self))
                )]
             ))];
+      }
+      var superTraitTypes := c.superTraitTypes;
+      for i := 0 to |superTraitTypes| {
+        var superTraitType := superTraitTypes[i];
+        match superTraitType {
+          case UserDefined(ResolvedType(traitPath, typeArgs, Trait(traitType), _, properMethods, _)) => {
+            var pathStr := GenPathType(traitPath);
+            var typeArgs := GenTypeArgs(typeArgs, GenTypeContext.default());
+            var body: seq<R.ImplMember> := [];
+            if traitPath in traitBodies {
+              body := traitBodies[traitPath];
+            }
+
+            var fullTraitPath := R.TypeApp(pathStr, typeArgs);
+            if !extern.NoExtern? { // An extern of some kind
+              // Either the Dafny code implements all the methods of the trait or none,
+              if |body| == 0 && |properMethods| != 0 {
+                continue; // We assume everything is implemented externally
+              }
+              if |body| != |properMethods| {
+                error := Some("Error: In the class " + R.SeqToString(path, (s: Ident) => s.id.dafny_name, ".") + ", some proper methods of " +
+                              fullTraitPath.ToString("") + " are marked {:extern} and some are not." +
+                              " For the Rust compiler, please make all methods (" + R.SeqToString(properMethods, (s: Name) => s.dafny_name, ", ") +
+                              ")  bodiless and mark as {:extern} and implement them in a Rust file, "+
+                              "or mark none of them as {:extern} and implement them in Dafny. " +
+                              "Alternatively, you can insert an intermediate trait that performs the partial implementation if feasible.");
+              }
+            }
+            if |body| == 0 {
+              // Extern type, we assume
+            }
+            if traitType.GeneralTrait? {
+              // One more method: Cloning when boxed
+              /*impl Test for Wrapper {
+                  fn _clone(&self) -> Box<dyn Test> {
+                      Box::new(self.clone())
+                  }
+              }*/
+              body := body + [
+                R.FnDecl(
+                  R.PRIV,
+                    R.Fn(
+                      "_clone", [], [R.Formal.selfBorrowed], R.Boxed(R.DynType(fullTraitPath)),
+                      "",
+                      Some(R.BoxNew(R.self.MSel("clone").Apply0()))))
+              ];
+            }
+            var x := R.ImplDecl(
+              R.ImplFor(
+                rTypeParamsDecls,
+                fullTraitPath,
+                R.TypeApp(genSelfPath, rTypeParams),
+                whereConstraints,
+                body
+              ));
+            s := s + [x];
+
+            s := s + [
+              R.ImplDecl(
+                R.ImplFor(
+                  rTypeParamsDecls,
+                  R.dafny_runtime.MSel(Upcast).AsType().Apply([R.DynType(fullTraitPath)]),
+                  R.TypeApp(genSelfPath, rTypeParams),
+                  whereConstraints,
+                  [
+                    R.ImplMemberMacro(
+                      R.dafny_runtime
+                      .MSel(UpcastFnMacro).AsExpr()
+                      .Apply1(R.ExprFromType(R.DynType(fullTraitPath))))
+                  ]
+                )
+              )
+            ];
+          }
+          case _ => {}
+        }
       }
     }
 
