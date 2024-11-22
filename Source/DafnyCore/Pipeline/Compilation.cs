@@ -356,15 +356,27 @@ public class Compilation : IDisposable {
         return result;
       });
       if (updated || randomSeed != null) {
-        updates.OnNext(new CanVerifyPartsIdentified(canVerify,
-          tasksPerVerifiable[canVerify].ToList()));
+        updates.OnNext(new CanVerifyPartsIdentified(canVerify, tasks));
       }
 
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
+        foreach (var tokenTasks in tasks.GroupBy(t =>
+                  BoogieGenerator.ToDafnyToken(true, t.Token)).
+                  OrderBy(g => g.Key)) {
+          var functions = tokenTasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
+            OfType<FromDafnyNode>().Select(n => n.Node).
+            OfType<Function>()).Distinct();
+          var hiddenFunctions = string.Join(", ", functions.Select(f => f.FullDafnyName));
+          if (!string.IsNullOrEmpty(hiddenFunctions)) {
+            Reporter.Info(MessageSource.Verifier, tokenTasks.Key, $"hidden functions: {hiddenFunctions}");
+          }
+        }
+
         foreach (var task in tasks.Where(taskFilter)) {
+
           var seededTask = randomSeed == null ? task : task.FromSeed(randomSeed.Value);
           VerifyTask(canVerify, seededTask);
         }

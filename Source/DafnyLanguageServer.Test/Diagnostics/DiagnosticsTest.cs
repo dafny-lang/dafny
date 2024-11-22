@@ -1307,6 +1307,37 @@ method Foo() {
       Assert.Empty(diagnostics2);
     }
 
+    [Fact]
+    public async Task HiddenFunctionHints() {
+      var source = @"
+predicate Outer(x: int) {
+  Inner(x)
+}
+
+predicate Inner(x: int) {
+  x > 3
+}
+
+method {:isolate_assertions} InnerOuterUser() {
+  hide *;
+  assert Outer(0);
+  assert Outer(1) by {
+    reveal Outer;
+  }
+  assert Outer(2) by {
+    reveal Inner;
+  }
+  assert Outer(3) by {
+    reveal Outer, Inner;
+  }
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source, "HiddenFunctionHints.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, minimumSeverity: DiagnosticSeverity.Hint);
+      Assert.Equal(6, diagnostics.Length);
+    }
+
     public DiagnosticsTest(ITestOutputHelper output) : base(output) {
     }
   }
