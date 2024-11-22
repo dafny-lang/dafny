@@ -351,7 +351,7 @@ namespace Microsoft.Dafny {
         PrintType(": ", bv.Type);
         sep = ", ";
       }
-      PrintAttributes(attrs, AtAttributesOnSameLineIndent, () => {});
+      PrintAttributes(attrs, AtAttributesOnSameLineIndent, () => { });
       if (range != null) {
         wr.Write(" | ");
         PrintExpression(range, false);
@@ -1120,7 +1120,7 @@ namespace Microsoft.Dafny {
           } else {
             wr.Write(", ");
           }
-          
+
           PrintExpression(read.E, false);
         }
         wr.Write(" => ");

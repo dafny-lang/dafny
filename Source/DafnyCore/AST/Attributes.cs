@@ -285,7 +285,7 @@ public class Attributes : TokenNode, ICanFormat {
 
   // Helper to create an old-style attribute
   private static Attributes A(string name, params Expression[] args) {
-    return new Attributes(name, args.Select(arg => 
+    return new Attributes(name, args.Select(arg =>
       arg is DefaultValueExpression defaultExpr ? defaultExpr.Resolved : arg).ToList(), null);
   }
 

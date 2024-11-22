@@ -360,7 +360,7 @@ namespace Microsoft.Dafny {
         foreach (var local in s.Locals) {
           wr.Write(sep);
           if (local.Attributes != null) {
-            PrintAttributes(local.Attributes, AtAttributesOnSameLineIndent, () => {});
+            PrintAttributes(local.Attributes, AtAttributesOnSameLineIndent, () => { });
           }
           wr.Write(" {0}", local.DisplayName);
           PrintType(": ", local.SyntacticType);
@@ -472,8 +472,8 @@ namespace Microsoft.Dafny {
       var keyword = assertStmt != null ? "assert" :
         expectStmt != null ? "expect" :
         "assume";
-      PrintAttributes(stmt.Attributes, AtAttributesOnSameLineIndent, () => { 
-        wr.Write(keyword); 
+      PrintAttributes(stmt.Attributes, AtAttributesOnSameLineIndent, () => {
+        wr.Write(keyword);
       });
       wr.Write(" ");
       if (assertStmt != null && assertStmt.Label != null) {

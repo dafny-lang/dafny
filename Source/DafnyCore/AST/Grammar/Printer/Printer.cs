@@ -923,7 +923,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void PrintField(Field field, int indent) {
       Contract.Requires(field != null);
       Indent(indent);
-      
+
       PrintAttributes(field.Attributes, indent, () => {
         if (field.HasStaticKeyword) {
           wr.Write("static ");
