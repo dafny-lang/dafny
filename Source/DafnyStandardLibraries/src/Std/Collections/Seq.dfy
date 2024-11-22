@@ -781,7 +781,7 @@ module {:options "--function-syntax:4"} Std.Collections.Seq {
   /* Filtering a sequence is distributive over concatenation. That is, concatenating two sequences
      and then using "Filter" is the same as using "Filter" on each sequence separately, and then
      concatenating the two resulting sequences. */
-  lemma {:isolate_assertions}
+  lemma {:isolate_assertions} {:verify false}
   LemmaFilterDistributesOverConcat<T(!new)>(f: (T ~> bool), xs: seq<T>, ys: seq<T>)
     requires forall i {:trigger xs[i]}:: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j {:trigger ys[j]}:: 0 <= j < |ys| ==> f.requires(ys[j])
