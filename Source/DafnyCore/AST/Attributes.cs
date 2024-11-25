@@ -330,7 +330,7 @@ public class Attributes : TokenNode, ICanFormat {
     atAttribute.Arg.Type = Type.Int; // Dummy type to avoid crashes
     var intDecl = resolver.SystemModuleManager.valuetypeDecls.First(valueTypeDecl => valueTypeDecl.Name == PreType.TypeNameInt);
 
-    atAttribute.Arg.PreType = new DPreType(intDecl, new List<PreType>(), null); 
+    atAttribute.Arg.PreType = new DPreType(intDecl, new List<PreType>(), null);
 
     switch (name) {
       case "AutoContracts": {
