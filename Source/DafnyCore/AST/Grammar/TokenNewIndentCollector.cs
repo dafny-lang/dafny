@@ -461,6 +461,9 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     var indent2 = indent + SpaceTab;
     var rightOfVerticalBarIndent = indent2 + SpaceTab;
     var verticalBarIndent = indent2;
+    if (redirectingTypeDecl is IAttributeBearingDeclaration { Attributes: var attributes }) {
+      Attributes.SetIndents(attributes, indent, this);
+    }
     foreach (var token in redirectingTypeDecl.OwnedTokens) {
       switch (token.val) {
         case "newtype":

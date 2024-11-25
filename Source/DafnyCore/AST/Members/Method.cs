@@ -223,6 +223,8 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       formatter.SetDelimiterIndentedRegions(BodyStartTok, indentBefore);
     }
 
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
+
     formatter.SetFormalsIndentation(Ins);
     formatter.SetFormalsIndentation(Outs);
     foreach (var req in Req) {

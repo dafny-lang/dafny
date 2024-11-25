@@ -15,7 +15,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
   import opened MulInternals
   import opened Power
 
-  function {:opaque} Pow2(e: nat): nat
+  opaque function Pow2(e: nat): nat
     ensures Pow2(e) > 0
   {
     reveal Pow();

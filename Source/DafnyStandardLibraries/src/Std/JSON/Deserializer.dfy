@@ -31,7 +31,8 @@ module Std.JSON.Deserializer {
     UnsupportedEscape(FromUTF16Checked(code).GetOr("Couldn't decode UTF-16"))
   }
 
-  module {:disableNonlinearArithmetic} Uint16StrConversion refines Strings.ParametricConversion {
+  @DisableNonlinearArithmetic
+  module Uint16StrConversion refines Strings.ParametricConversion {
     import opened BoundedInts
 
     type Char = uint16
@@ -52,7 +53,8 @@ module Std.JSON.Deserializer {
       ]
 
     // The size of the map makes this impractical to verify easily.
-    lemma {:axiom} CharsConsistent()
+    @Axiom
+    lemma CharsConsistent()
       ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
   }
 
@@ -69,7 +71,9 @@ module Std.JSON.Deserializer {
     hd as uint16
   }
 
-  function {:tailrecursion} {:isolate_assertions} Unescape(str: seq<uint16>, start: nat := 0, prefix: seq<uint16> := []): DeserializationResult<seq<uint16>>
+  @TailRecursion
+  @IsolateAssertions
+  function Unescape(str: seq<uint16>, start: nat := 0, prefix: seq<uint16> := []): DeserializationResult<seq<uint16>>
     decreases |str| - start
   { // Assumes UTF-16 strings
     if start >= |str| then Success(prefix)
