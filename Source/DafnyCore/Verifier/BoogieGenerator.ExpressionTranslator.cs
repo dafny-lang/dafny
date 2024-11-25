@@ -1566,7 +1566,6 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           return new KeyValuePair<IVariable, Expression>(bv, new BoogieWrapper(unboxy, bv.Type));
         }).ToDictionary(x => x.Key, x => x.Value);
         var su = new Substituter(null, subst, new Dictionary<TypeParameter, Type>());
-        // JATIN_CHECK:
         var et = this.HeapExpr != null
           ? new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpr, this.scope)
           : new ExpressionTranslator(this, heap);
@@ -2347,7 +2346,6 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           var varNameGen = BoogieGenerator.CurrentIdGenerator.NestedFreshIdGenerator("$l#");
 
           Boogie.Expr heap; var hVar = BplBoundVar(varNameGen.FreshId("#heap#"), BoogieGenerator.Predef.HeapType, out heap);
-          // JATIN_CHECK:
           var et = this.HeapExpr != null
             ? new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpr, this.scope)
             : new ExpressionTranslator(this, heap);
