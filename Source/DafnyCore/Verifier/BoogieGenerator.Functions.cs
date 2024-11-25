@@ -536,7 +536,7 @@ public partial class BoogieGenerator {
       sink.AddTopLevelDeclaration(precondF);
 
       var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, reqFuncArguments);
-      Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl, readsHeap ? etran.HeapExpr : null);
+      Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl, f.ReadsHeap ? etran.HeapExpr : null);
       // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
       AddOtherDefinition(precondF, new Axiom(f.tok,
         BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
