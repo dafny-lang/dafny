@@ -594,7 +594,7 @@ module RAST
 
   const PtrPath: Path := dafny_runtime.MSel("Ptr")
   
-  const BoxPath := std.MSel("box").MSel("Box")
+  const BoxPath := std.MSel("boxed").MSel("Box")
 
   const Ptr := PtrPath.AsExpr()
 
@@ -961,6 +961,13 @@ module RAST
           o == BoxPath && |elems1| == 1
         case _ => false
       }
+    }
+    // Every type that needs to be .as_ref() to become purely borrowed
+    predicate NeedsAsRefForBorrow() {
+      if Borrowed? then
+        underlying.IsBox() || underlying.IsRc()
+      else
+        IsBox() || IsRc()
     }
     function BoxUnderlying(): Type
       requires IsBox()
@@ -1818,6 +1825,10 @@ module RAST
 
     function Clone(): Expr {
       Select(this, "clone").Apply0()
+    }
+
+    predicate IsBorrow() {
+      UnaryOp? && op1 == "&"
     }
   }
 

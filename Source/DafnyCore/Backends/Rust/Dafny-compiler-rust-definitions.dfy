@@ -24,6 +24,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     "box","do","final","macro","override","priv","try","typeof","unsized",
     "virtual","yield"}
 
+  // Method names that would automatically resolve to trait methods instead of inherent methods
+  // Hence, full name is always required for these methods
+  const builtin_trait_preferred_methods := {
+    "le", "eq", "lt", "ge", "gt"
+  }
+
+
   const reserved_vars := { "None", "hash" }
 
   const reserved_rust_need_prefix := {"u8", "u16", "u32", "u64", "u128","i8", "i16", "i32", "i64", "i128"}
@@ -127,6 +134,8 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       escapeIdent(f.dafny_name)
   }
 
+  // T, &T, &mut T, Box<T>
+  // Rc<T>, &Rc<T> are counted in T and &T since the type itself is wrapped by Rc
   datatype Ownership =
     | OwnershipOwned
     | OwnershipOwnedBox
@@ -163,6 +172,12 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     }
     predicate IsBorrowedMut(name: string) {
       name in types && types[name].BorrowedMut?
+    }
+    predicate IsBoxed(name: string) {
+      name in types && types[name].IsBox()
+    }
+    predicate NeedsAsRefForBorrow(name: string) {
+      name in types && types[name].NeedsAsRefForBorrow()
     }
     function AddAssigned(name: string, tpe: R.Type): Environment
       // If we know for sure the type of name extends the Copy trait
@@ -421,8 +436,10 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   }
 
   predicate OwnershipGuarantee(expectedOwnership: Ownership, resultingOwnership: Ownership) {
+    && expectedOwnership != OwnershipOwnedBox // We don't ask for a box, but we might get one
     && (expectedOwnership != OwnershipAutoBorrowed ==>
-          resultingOwnership == expectedOwnership)
+          || resultingOwnership == expectedOwnership
+          || (expectedOwnership == OwnershipOwned && resultingOwnership == OwnershipOwnedBox))
     && resultingOwnership != OwnershipAutoBorrowed // We know what's going on
   }
 

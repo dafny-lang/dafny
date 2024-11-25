@@ -245,7 +245,11 @@ namespace Microsoft.Dafny.Compilers {
           parents.Add(genType);
         }
 
-        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, parents, ParseAttributes(trait.Attributes)));
+        var traitType = trait.IsReferenceTypeDecl
+          ? DAST.TraitType.create_ObjectTrait()
+          : TraitType.create_GeneralTrait();
+
+        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, parents, ParseAttributes(trait.Attributes), traitType));
       } else {
         throw new InvalidOperationException();
       }
@@ -290,6 +294,8 @@ namespace Microsoft.Dafny.Compilers {
           select (DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(
             Sequence<Rune>.UnicodeFromString(ctor.GetCompileName(Options)),
             args, ctor.Formals.Count > 0);
+        var superClasses = dt.ParentTypeInformation.UniqueParentTraits();
+        var superTraitTypes = superClasses.Select(GenType).ToList();
 
         return new ClassWriter(this, typeParams.Count > 0, builder.Datatype(
           dt.GetCompileName(Options),
@@ -297,7 +303,8 @@ namespace Microsoft.Dafny.Compilers {
           typeParams,
           ctors.ToList(),
           dt is CoDatatypeDecl,
-          ParseAttributes(dt.Attributes)
+          ParseAttributes(dt.Attributes),
+          superTraitTypes
         ));
       } else {
         throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);

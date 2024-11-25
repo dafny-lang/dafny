@@ -66,10 +66,10 @@ namespace RAST {
       return RAST.Type.create_TIdentifier(content);
     }
     public static RAST._IType Box(RAST._IType content) {
-      return RAST.Type.create_TypeApp(RAST.Type.create_TIdentifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Box")), Dafny.Sequence<RAST._IType>.FromElements(content));
+      return RAST.Type.create_TypeApp((RAST.__default.BoxPath).AsType(), Dafny.Sequence<RAST._IType>.FromElements(content));
     }
     public static RAST._IExpr BoxNew(RAST._IExpr content) {
-      return ((RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Box"))).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("new"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(content));
+      return (((RAST.__default.BoxPath).AsExpr()).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("new"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(content));
     }
     public static RAST._IType SystemTupleType(Dafny.ISequence<RAST._IType> elements) {
       return ((((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_System"))).MSel(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Tuple"), Std.Strings.__default.OfNat(new BigInteger((elements).Count))))).AsType()).Apply(elements);
@@ -197,6 +197,9 @@ namespace RAST {
     } }
     public static RAST._IPath PtrPath { get {
       return (RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Ptr"));
+    } }
+    public static RAST._IPath BoxPath { get {
+      return ((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("boxed"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Box"));
     } }
     public static RAST._IExpr Ptr { get {
       return (RAST.__default.PtrPath).AsExpr();
@@ -2785,6 +2788,9 @@ namespace RAST {
     RAST._IType TypeAtInitialization();
     bool IsMaybeUninit();
     bool IsUninitArray();
+    bool IsBox();
+    bool NeedsAsRefForBorrow();
+    RAST._IType BoxUnderlying();
     bool IsObject();
     bool IsPointer();
     bool IsObjectOrPointer();
@@ -3647,6 +3653,38 @@ namespace RAST {
         }
       } else {
         return false;
+      }
+    }
+    public bool IsBox() {
+      RAST._IType _source0 = this;
+      {
+        if (_source0.is_TypeApp) {
+          RAST._IType baseName0 = _source0.dtor_baseName;
+          if (baseName0.is_TypeFromPath) {
+            RAST._IPath _0_o = baseName0.dtor_path;
+            Dafny.ISequence<RAST._IType> _1_elems1 = _source0.dtor_arguments;
+            return (object.Equals(_0_o, RAST.__default.BoxPath)) && ((new BigInteger((_1_elems1).Count)) == (BigInteger.One));
+          }
+        }
+      }
+      {
+        return false;
+      }
+    }
+    public bool NeedsAsRefForBorrow() {
+      if ((this).is_Borrowed) {
+        return (((this).dtor_underlying).IsBox()) || (((this).dtor_underlying).IsRc());
+      } else {
+        return ((this).IsBox()) || ((this).IsRc());
+      }
+    }
+    public RAST._IType BoxUnderlying() {
+      RAST._IType _source0 = this;
+      {
+        RAST._IType baseName0 = _source0.dtor_baseName;
+        RAST._IPath _0_o = baseName0.dtor_path;
+        Dafny.ISequence<RAST._IType> _1_elems1 = _source0.dtor_arguments;
+        return (_1_elems1).Select(BigInteger.Zero);
       }
     }
     public bool IsObject() {
@@ -5917,6 +5955,7 @@ namespace RAST {
     bool IsLhsIdentifier();
     Dafny.ISequence<Dafny.Rune> LhsIdentifierName();
     RAST._IExpr Clone();
+    bool IsBorrow();
   }
   public abstract class Expr : _IExpr {
     public Expr() {
@@ -7339,6 +7378,9 @@ namespace RAST {
     }
     public RAST._IExpr Clone() {
       return (RAST.Expr.create_Select(this, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("clone"))).Apply0();
+    }
+    public bool IsBorrow() {
+      return ((this).is_UnaryOp) && (((this).dtor_op1).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&")));
     }
     public RAST._IPrintingInfo printingInfo { get {
       RAST._IExpr _source0 = this;

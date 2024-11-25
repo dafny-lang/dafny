@@ -1,3 +1,5 @@
+#![allow(nonstandard_style)]
+
 // Test module
 #[cfg(test)]
 mod tests {
@@ -924,24 +926,24 @@ mod tests {
     }
 
     // Every general trait must declare how to clone a Box<dyn .> of itself
-    trait GeneralTraitSuper {
-        fn _clone(&self) -> Box<dyn GeneralTraitSuper>;
+    trait GeneralTraitSuper<T> {
+        fn _clone(&self) -> Box<dyn GeneralTraitSuper<T>>;
         fn _is_GeneralTrait(&self) -> bool;
         fn _as_GeneralTrait(&self) -> Box<dyn GeneralTrait>;
         fn _is_Datatype(&self) -> bool;
         fn _as_Datatype(&self) -> ADatatype;
     }
-    impl Clone for Box<dyn GeneralTraitSuper> {
+    impl <T> Clone for Box<dyn GeneralTraitSuper<T>> {
         fn clone(&self) -> Self {
             GeneralTraitSuper::_clone(self.as_ref())
         }
     }
     // Traits extending other traits also implement a direct way to upcast their Box<dyn .> of themselves
-    trait GeneralTrait: GeneralTraitSuper + UpcastBox<dyn GeneralTraitSuper> {
+    trait GeneralTrait: GeneralTraitSuper<i32> + UpcastBox<dyn GeneralTraitSuper<i32>> {
         fn _clone(&self) -> Box<dyn GeneralTrait>;
     }
-    impl UpcastBox<dyn GeneralTraitSuper> for Box<dyn GeneralTrait> {
-        UpcastBoxFn!(GeneralTraitSuper);
+    impl UpcastBox<dyn GeneralTraitSuper<i32>> for Box<dyn GeneralTrait> {
+        UpcastBoxFn!(dyn GeneralTraitSuper<i32>);
     }
     impl Clone for Box<dyn GeneralTrait> {
         fn clone(&self) -> Self {
@@ -956,8 +958,8 @@ mod tests {
             Box::new(self.clone()) as Box<dyn GeneralTrait>
         }
     }
-    impl GeneralTraitSuper for ADatatype {
-        fn _clone(&self) -> Box<dyn GeneralTraitSuper> {
+    impl GeneralTraitSuper<i32> for ADatatype {
+        fn _clone(&self) -> Box<dyn GeneralTraitSuper<i32>> {
             Box::new(self.clone())
         }
         
@@ -978,17 +980,17 @@ mod tests {
         }
     }
     impl UpcastBox<dyn GeneralTrait> for ADatatype {
-        UpcastStructBoxFn!(GeneralTrait);
+        UpcastStructBoxFn!(dyn GeneralTrait);
     }
-    impl UpcastBox<dyn GeneralTraitSuper> for ADatatype {
-        UpcastStructBoxFn!(GeneralTraitSuper);
+    impl UpcastBox<dyn GeneralTraitSuper<i32>> for ADatatype {
+        UpcastStructBoxFn!(dyn GeneralTraitSuper<i32>);
     }
     #[test]
     fn test_general_traits() {
         let x = ADatatype{i: 3};
         let gt = upcast_box::<ADatatype, dyn GeneralTrait>()(x.clone());
-        let gts = upcast_box::<ADatatype, dyn GeneralTraitSuper>()(x.clone());
-        let gtgts = upcast_box_box::<dyn GeneralTrait, dyn GeneralTraitSuper>()(gt.clone());
+        let gts = upcast_box::<ADatatype, dyn GeneralTraitSuper<i32>>()(x.clone());
+        let gtgts = upcast_box_box::<dyn GeneralTrait, dyn GeneralTraitSuper<i32>>()(gt.clone());
         assert!(gt._is_Datatype());
         assert!(gts._is_Datatype());
         assert!(gtgts._is_Datatype());

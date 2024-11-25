@@ -400,7 +400,7 @@ namespace Defs {
     }
     public static bool OwnershipGuarantee(Defs._IOwnership expectedOwnership, Defs._IOwnership resultingOwnership)
     {
-      return (!(!object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipAutoBorrowed())) || (object.Equals(resultingOwnership, expectedOwnership))) && (!object.Equals(resultingOwnership, Defs.Ownership.create_OwnershipAutoBorrowed()));
+      return ((!object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipOwnedBox())) && (!(!object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipAutoBorrowed())) || ((object.Equals(resultingOwnership, expectedOwnership)) || ((object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipOwned())) && (object.Equals(resultingOwnership, Defs.Ownership.create_OwnershipOwnedBox())))))) && (!object.Equals(resultingOwnership, Defs.Ownership.create_OwnershipAutoBorrowed()));
     }
     public static bool BecomesLeftCallsRight(DAST._IBinOp op) {
       DAST._IBinOp _source0 = op;
@@ -545,6 +545,9 @@ namespace Defs {
     } }
     public static Dafny.ISequence<Dafny.Rune> IND { get {
       return RAST.__default.IND;
+    } }
+    public static Dafny.ISet<Dafny.ISequence<Dafny.Rune>> builtin__trait__preferred__methods { get {
+      return Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("le"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("eq"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("lt"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ge"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("gt"));
     } }
     public static DAST._IAttribute AttributeOwned { get {
       return DAST.Attribute.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("owned"), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements());
@@ -727,6 +730,8 @@ namespace Defs {
     Std.Wrappers._IOption<RAST._IType> GetType(Dafny.ISequence<Dafny.Rune> name);
     bool IsBorrowed(Dafny.ISequence<Dafny.Rune> name);
     bool IsBorrowedMut(Dafny.ISequence<Dafny.Rune> name);
+    bool IsBoxed(Dafny.ISequence<Dafny.Rune> name);
+    bool NeedsAsRefForBorrow(Dafny.ISequence<Dafny.Rune> name);
     Defs._IEnvironment AddAssigned(Dafny.ISequence<Dafny.Rune> name, RAST._IType tpe);
     Defs._IEnvironment merge(Defs._IEnvironment other);
     Defs._IEnvironment RemoveAssigned(Dafny.ISequence<Dafny.Rune> name);
@@ -822,6 +827,12 @@ namespace Defs {
     }
     public bool IsBorrowedMut(Dafny.ISequence<Dafny.Rune> name) {
       return (((this).dtor_types).Contains(name)) && ((Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IType>.Select((this).dtor_types,name)).is_BorrowedMut);
+    }
+    public bool IsBoxed(Dafny.ISequence<Dafny.Rune> name) {
+      return (((this).dtor_types).Contains(name)) && ((Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IType>.Select((this).dtor_types,name)).IsBox());
+    }
+    public bool NeedsAsRefForBorrow(Dafny.ISequence<Dafny.Rune> name) {
+      return (((this).dtor_types).Contains(name)) && ((Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IType>.Select((this).dtor_types,name)).NeedsAsRefForBorrow());
     }
     public Defs._IEnvironment AddAssigned(Dafny.ISequence<Dafny.Rune> name, RAST._IType tpe)
     {

@@ -12,7 +12,7 @@ trait DatatypeOps<T> {
   }
 }
 
-datatype ADatatype extends DatatypeOps<int> = ADatatype(i: int) {
+datatype {:rust_rc false} ADatatype extends DatatypeOps<int> = ADatatype(i: int) {
   function AsDatatypeOps(): DatatypeOps<int> {
     this as DatatypeOps<int>
   }

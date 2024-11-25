@@ -125,14 +125,15 @@ module {:extern "DAST"} DAST {
       }
     }
  
-    predicat IsGeneralTrait() {
+    predicate IsGeneralTrait() {
       match this {
         case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
           match typeKind {
             case SynonymType(typ) =>
               typ.IsGeneralTrait()
-            case TraitType(GeneralTrait) => true
+            case Trait(GeneralTrait) => true
             case _ => false
+          }
         case _ => false
       }
     }
