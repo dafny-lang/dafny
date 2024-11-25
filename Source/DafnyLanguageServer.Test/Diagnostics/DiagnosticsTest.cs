@@ -1396,6 +1396,11 @@ method {:isolate_assertions} TestIsolateAssertions() {
 
       var infoDiagnostics = diagnostics.Where(d => d.Severity >= DiagnosticSeverity.Information).ToList();
       Assert.Single(infoDiagnostics);
+
+      var sorted = diagnostics.OrderBy(d => d.Range.Start).ToList();
+      for (int index = 0; index < 3; index++) {
+        Assert.Equal(sorted[index * 2].Range, sorted[index * 2 + 1].Range);
+      }
     }
 
     [Fact]
