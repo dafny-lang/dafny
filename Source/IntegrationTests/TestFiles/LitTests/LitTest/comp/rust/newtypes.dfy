@@ -69,6 +69,14 @@ newtype IntWrapper = int {
       output := (this / 2).firstTwoBits(maxDepth - 1);
     }
   }
+  // non-Copy output values
+  method firstTwoBitsAreThree(maxDepth: uint32WithMethods) returns (output: bool) {
+    if this <= 3 || maxDepth == 0 {
+      output := this == 3;
+    } else {
+      output := (this / 2).firstTwoBitsAreThree(maxDepth - 1);
+    }
+  }
   function add(other: IntWrapper): IntWrapper {
     this + other
   }
