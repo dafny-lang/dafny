@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 [DebuggerDisplay("Bound<{name}>")]
 public class BoundVar : NonglobalVariable {
   public override bool IsMutable => false;
-  public BoundVar(IToken tok, string name, Type type)
+  public BoundVar(IOrigin tok, string name, Type type)
     : base(tok, name, type, false) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -26,7 +26,7 @@ public class QuantifiedVar : BoundVar {
   public readonly Expression Domain;
   public readonly Expression Range;
 
-  public QuantifiedVar(IToken tok, string name, Type type, Expression domain, Expression range)
+  public QuantifiedVar(IOrigin tok, string name, Type type, Expression domain, Expression range)
     : base(tok, name, type) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -84,7 +84,7 @@ public interface IBoundVarsBearingExpression {
 class QuantifiedVariableDomainCloner : Cloner {
   public static readonly QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
   private QuantifiedVariableDomainCloner() { }
-  public override IToken Tok(IToken tok) {
+  public override IOrigin Tok(IOrigin tok) {
     return new QuantifiedVariableDomainToken(tok);
   }
 }
@@ -92,7 +92,7 @@ class QuantifiedVariableDomainCloner : Cloner {
 class QuantifiedVariableRangeCloner : Cloner {
   public static readonly QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
   private QuantifiedVariableRangeCloner() { }
-  public override IToken Tok(IToken tok) {
+  public override IOrigin Tok(IOrigin tok) {
     return new QuantifiedVariableRangeToken(tok);
   }
 }

@@ -32,7 +32,7 @@ public partial class BoogieGenerator {
   /// the check is:
   ///     allowance || (calleeDecreases LESS contextDecreases).
   /// </summary>
-  void CheckCallTermination(IToken tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
+  void CheckCallTermination(IOrigin tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
                             Expression allowance,
                             Expression receiverReplacement, Dictionary<IVariable, Expression> substMap,
                             Dictionary<IVariable, Expression> directSubstMap,
@@ -57,7 +57,7 @@ public partial class BoogieGenerator {
     }
 
     int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
-    var toks = new List<IToken>();
+    var toks = new List<IOrigin>();
     var callee = new List<Expr>();
     var caller = new List<Expr>();
     var oldExpressions = new List<Expression>();
@@ -102,7 +102,7 @@ public partial class BoogieGenerator {
   /// If builder is non-null, then the check '0 ATMOST decr' is generated to builder.
   /// Requires all types in types0 and types1 to be non-proxy non-synonym types (that is, callers should invoke NormalizeExpand)
   /// </summary>
-  Bpl.Expr DecreasesCheck(List<IToken> toks, List<VarDeclStmt> prevGhostLocals,
+  Bpl.Expr DecreasesCheck(List<IOrigin> toks, List<VarDeclStmt> prevGhostLocals,
                           List<Expression> dafny0, List<Expression> dafny1, List<Bpl.Expr> ee0, List<Bpl.Expr> ee1,
                           BoogieStmtListBuilder builder, string suffixMsg, bool allowNoChange, bool includeLowerBound) {
     Contract.Requires(cce.NonNullElements(toks));
@@ -240,7 +240,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  void ComputeLessEq(IToken tok, Type ty0, Type ty1, Bpl.Expr e0, Bpl.Expr e1, out Bpl.Expr less, out Bpl.Expr atmost, out Bpl.Expr eq, bool includeLowerBound) {
+  void ComputeLessEq(IOrigin tok, Type ty0, Type ty1, Bpl.Expr e0, Bpl.Expr e1, out Bpl.Expr less, out Bpl.Expr atmost, out Bpl.Expr eq, bool includeLowerBound) {
     Contract.Requires(tok != null);
     Contract.Requires(ty0 != null);
     Contract.Requires(ty1 != null);

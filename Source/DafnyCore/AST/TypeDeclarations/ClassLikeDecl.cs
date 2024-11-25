@@ -35,7 +35,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
-    IToken classToken = null;
+    IOrigin classToken = null;
     var parentTraitIndent = indentBefore + formatter.SpaceTab;
     var commaIndent = indentBefore;
     var extraIndent = 0;
@@ -78,7 +78,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public virtual string GetTriviaContainingDocstring() {
-    IToken candidate = null;
+    IOrigin candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
         candidate = token.Prev;

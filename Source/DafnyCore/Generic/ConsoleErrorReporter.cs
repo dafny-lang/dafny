@@ -18,7 +18,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     }
   }
 
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
     var printMessage = base.MessageCore(source, level, errorId, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info);
     if (!printMessage) {
       return false;

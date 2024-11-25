@@ -36,7 +36,7 @@ namespace Microsoft.Dafny {
     public Scope<Statement>/*!*/ enclosingStatementLabels;
     public Method currentMethod;
 
-    Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
+    Label/*?*/ ResolveDominatingLabelInExpr(IOrigin tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
       Contract.Requires(tok != null);
       Contract.Requires(expressionDescription != null);
       Contract.Requires(resolutionContext != null);
@@ -176,7 +176,7 @@ namespace Microsoft.Dafny {
       scope.PopMarker();
     }
 
-    void EagerAddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
+    void EagerAddAssignableConstraint(IOrigin tok, Type lhs, Type rhs, string errMsgFormat) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(rhs != null);
@@ -190,14 +190,14 @@ namespace Microsoft.Dafny {
         AddAssignableConstraint(tok, lhs, rhs, errMsgFormat);
       }
     }
-    public void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
+    public void AddAssignableConstraint(IOrigin tok, Type lhs, Type rhs, string errMsgFormat) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(rhs != null);
       Contract.Requires(errMsgFormat != null);
       AddXConstraint(tok, "Assignable", lhs, rhs, errMsgFormat);
     }
-    private void AddXConstraint(IToken tok, string constraintName, Type type, string errMsgFormat) {
+    private void AddXConstraint(IOrigin tok, string constraintName, Type type, string errMsgFormat) {
       Contract.Requires(tok != null);
       Contract.Requires(constraintName != null);
       Contract.Requires(type != null);
@@ -205,7 +205,7 @@ namespace Microsoft.Dafny {
       var types = new Type[] { type };
       AllXConstraints.Add(new XConstraint(tok, constraintName, types, new TypeConstraint.ErrorMsgWithToken(tok, errMsgFormat, types)));
     }
-    void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, TypeConstraint.ErrorMsg errMsg) {
+    void AddAssignableConstraint(IOrigin tok, Type lhs, Type rhs, TypeConstraint.ErrorMsg errMsg) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(rhs != null);
@@ -213,7 +213,7 @@ namespace Microsoft.Dafny {
       AddXConstraint(tok, "Assignable", lhs, rhs, errMsg);
     }
 
-    public void AddXConstraint(IToken tok, string constraintName, Type type, TypeConstraint.ErrorMsg errMsg) {
+    public void AddXConstraint(IOrigin tok, string constraintName, Type type, TypeConstraint.ErrorMsg errMsg) {
       Contract.Requires(tok != null);
       Contract.Requires(constraintName != null);
       Contract.Requires(type != null);
@@ -222,7 +222,7 @@ namespace Microsoft.Dafny {
       AllXConstraints.Add(new XConstraint(tok, constraintName, types, errMsg));
     }
 
-    public void AddXConstraint(IToken tok, string constraintName, Type type0, Type type1, string errMsgFormat) {
+    public void AddXConstraint(IOrigin tok, string constraintName, Type type0, Type type1, string errMsgFormat) {
       Contract.Requires(tok != null);
       Contract.Requires(constraintName != null);
       Contract.Requires(type0 != null);
@@ -232,7 +232,7 @@ namespace Microsoft.Dafny {
       AllXConstraints.Add(new XConstraint(tok, constraintName, types, new TypeConstraint.ErrorMsgWithToken(tok, errMsgFormat, types)));
     }
 
-    public void AddXConstraint(IToken tok, string constraintName, Type type0, Type type1, TypeConstraint.ErrorMsg errMsg) {
+    public void AddXConstraint(IOrigin tok, string constraintName, Type type0, Type type1, TypeConstraint.ErrorMsg errMsg) {
       Contract.Requires(tok != null);
       Contract.Requires(constraintName != null);
       Contract.Requires(type0 != null);
@@ -241,7 +241,7 @@ namespace Microsoft.Dafny {
       var types = new Type[] { type0, type1 };
       AllXConstraints.Add(new XConstraint(tok, constraintName, types, errMsg));
     }
-    private void AddXConstraint(IToken tok, string constraintName, Type type, Expression expr0, Expression expr1, string errMsgFormat) {
+    private void AddXConstraint(IOrigin tok, string constraintName, Type type, Expression expr0, Expression expr1, string errMsgFormat) {
       Contract.Requires(tok != null);
       Contract.Requires(constraintName != null);
       Contract.Requires(type != null);
@@ -1228,7 +1228,7 @@ namespace Microsoft.Dafny {
       ConstrainSubtypeRelation(Type.Bool, e.Type, e, message, e.Type);
     }
 
-    public bool ConstrainSubtypeRelation(Type super, Type sub, IToken tok, string msg, params object[] msgArgs) {
+    public bool ConstrainSubtypeRelation(Type super, Type sub, IOrigin tok, string msg, params object[] msgArgs) {
       Contract.Requires(sub != null);
       Contract.Requires(super != null);
       Contract.Requires(tok != null);
@@ -2201,7 +2201,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    TypeProxy NewIntegerBasedProxy(IToken tok) {
+    TypeProxy NewIntegerBasedProxy(IOrigin tok) {
       Contract.Requires(tok != null);
       var proxy = new InferredTypeProxy();
       ConstrainSubtypeRelation(new IntVarietiesSupertype(), proxy, tok, "integer literal used as if it had type {0}", proxy);
@@ -3205,7 +3205,7 @@ namespace Microsoft.Dafny {
     /// "typeMap" is applied to the type of each formal.
     /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
     /// </summary>
-    internal void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext resolutionContext,
+    internal void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IOrigin callTok, object context, ResolutionContext resolutionContext,
       Dictionary<TypeParameter, Type> typeMap, Expression/*?*/ receiver) {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);
@@ -3462,7 +3462,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    internal Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
+    internal Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IOrigin tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(decl != null);
@@ -4077,7 +4077,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// See ResolveTypeOption for a description of the option/defaultTypeArguments parameters.
     /// </summary>
-    public void ResolveType(IToken tok, Type type, ResolutionContext resolutionContext, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
+    public void ResolveType(IOrigin tok, Type type, ResolutionContext resolutionContext, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
       Contract.Requires(resolutionContext != null);
@@ -4085,15 +4085,15 @@ namespace Microsoft.Dafny {
       ResolveType(tok, type, resolutionContext, new ResolveTypeOption(eopt), defaultTypeArguments);
     }
 
-    public void ResolveType(IToken tok, Type type, ICodeContext topLevelContext, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
+    public void ResolveType(IOrigin tok, Type type, ICodeContext topLevelContext, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
       ResolveType(tok, type, ResolutionContext.FromCodeContext(topLevelContext), eopt, defaultTypeArguments);
     }
 
-    public void ResolveType(IToken tok, Type type, ICodeContext topLevelContext, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
+    public void ResolveType(IOrigin tok, Type type, ICodeContext topLevelContext, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
       ResolveType(tok, type, ResolutionContext.FromCodeContext(topLevelContext), option, defaultTypeArguments);
     }
 
-    public void ResolveType(IToken tok, Type type, ResolutionContext resolutionContext, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
+    public void ResolveType(IOrigin tok, Type type, ResolutionContext resolutionContext, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
       Contract.Requires(resolutionContext != null);
@@ -4112,7 +4112,7 @@ namespace Microsoft.Dafny {
     ///   shorter, then return an unresolved replacement type where the identifier sequence is one
     ///   shorter.  (In all other cases, the method returns null.)
     /// </summary>
-    public ResolveTypeReturn ResolveTypeLenient(IToken tok, Type type, ResolutionContext resolutionContext, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments, bool allowDanglingDotName) {
+    public ResolveTypeReturn ResolveTypeLenient(IOrigin tok, Type type, ResolutionContext resolutionContext, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments, bool allowDanglingDotName) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
       Contract.Requires(resolutionContext != null);
@@ -4254,7 +4254,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Adds to "typeArgs" a list of "n" type arguments, possibly extending "defaultTypeArguments".
     /// </summary>
-    static void FillInTypeArguments(IToken tok, int n, List<Type> typeArgs, List<TypeParameter> defaultTypeArguments, ResolveTypeOption option) {
+    static void FillInTypeArguments(IOrigin tok, int n, List<Type> typeArgs, List<TypeParameter> defaultTypeArguments, ResolveTypeOption option) {
       Contract.Requires(tok != null);
       Contract.Requires(0 <= n);
       Contract.Requires(typeArgs != null && typeArgs.Count == 0);
@@ -4383,7 +4383,7 @@ namespace Microsoft.Dafny {
             }
           } else {
             string initCallName = null;
-            IToken initCallTok = null;
+            IOrigin initCallTok = null;
             // Resolve rr.Path and do one of three things:
             // * If rr.Path denotes a type, then set EType,initCallName to rr.Path,"_ctor", which sets up a call to the anonymous constructor.
             // * If the all-but-last components of rr.Path denote a type, then do EType,initCallName := allButLast(EType),last(EType)
@@ -4441,7 +4441,7 @@ namespace Microsoft.Dafny {
     /// "receiverType" is an unresolved proxy type and that, after solving more type constraints, "receiverType"
     /// eventually gets set to a type more specific than "tentativeReceiverType".
     /// </summary>
-    public MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out NonProxyType tentativeReceiverType) {
+    public MemberDecl ResolveMember(IOrigin tok, Type receiverType, string memberName, out NonProxyType tentativeReceiverType) {
       Contract.Requires(tok != null);
       Contract.Requires(receiverType != null);
       Contract.Requires(memberName != null);
@@ -4502,7 +4502,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    private void ReportMemberNotFoundError(IToken tok, string memberName, TopLevelDecl receiverDecl) {
+    private void ReportMemberNotFoundError(IOrigin tok, string memberName, TopLevelDecl receiverDecl) {
       if (memberName.StartsWith(HideRevealStmt.RevealLemmaPrefix)) {
         var nameToBeRevealed = memberName[HideRevealStmt.RevealLemmaPrefix.Length..];
         var members = receiverDecl is TopLevelDeclWithMembers topLevelDeclWithMembers ? GetClassMembers(topLevelDeclWithMembers) : null;
@@ -4534,7 +4534,7 @@ namespace Microsoft.Dafny {
     /// but it may also be a type in a super- or subtype relation to "t".
     /// In some cases, it is necessary to make some inference decisions in order to figure out the type to return.
     /// </summary>
-    public Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null, int strength = 0) {
+    public Type PartiallyResolveTypeForMemberSelection(IOrigin tok, Type t, string memberName = null, int strength = 0) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -5023,7 +5023,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// See ConstrainToIntegerType description for the overload above.
     /// </summary>
-    public void ConstrainToIntegerType(IToken tok, Type type, bool allowBitVector, TypeConstraint.ErrorMsg errorMsg) {
+    public void ConstrainToIntegerType(IOrigin tok, Type type, bool allowBitVector, TypeConstraint.ErrorMsg errorMsg) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
       Contract.Requires(errorMsg != null);
@@ -5049,7 +5049,7 @@ namespace Microsoft.Dafny {
     /// desugaring during resolution, because then the desugaring can be constructed as a non-resolved expression on which ResolveExpression
     /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
-    (Expression, Expression) ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates,
+    (Expression, Expression) ResolveDatatypeUpdate(IOrigin tok, Expression root, DatatypeDecl dt, List<Tuple<IOrigin, string, Expression>> memberUpdates,
       ResolutionContext resolutionContext, out List<MemberDecl> members, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
@@ -5144,7 +5144,7 @@ namespace Microsoft.Dafny {
     ///     else
     ///       CandidateResultConstructorN(x, y, ..., d.k0, d.k1, ...)
     /// </summary>
-    private Expression DesugarDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<DatatypeCtor> candidateResultCtors,
+    private Expression DesugarDatatypeUpdate(IOrigin tok, Expression root, DatatypeDecl dt, List<DatatypeCtor> candidateResultCtors,
       Dictionary<string, Tuple<BoundVar, IdentifierExpr, Expression>> rhsBindings, ResolutionContext resolutionContext) {
 
       if (candidateResultCtors.Count == 0) {
@@ -5375,7 +5375,7 @@ namespace Microsoft.Dafny {
       return rWithArgs;
     }
 
-    private void ReportUnresolvedIdentifierError(IToken tok, string name, ResolutionContext resolutionContext) {
+    private void ReportUnresolvedIdentifierError(IOrigin tok, string name, ResolutionContext resolutionContext) {
       if (resolutionContext.InReveal) {
         var nameToReport = name.StartsWith(HideRevealStmt.RevealLemmaPrefix) ? name[HideRevealStmt.RevealLemmaPrefix.Length..] : name;
         reporter.Error(MessageSource.Resolver, tok,
@@ -5386,7 +5386,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static Expression GetReceiver(TopLevelDeclWithMembers container, MemberDecl member, IToken token) {
+    public static Expression GetReceiver(TopLevelDeclWithMembers container, MemberDecl member, IOrigin token) {
       Expression receiver;
       token = new AutoGeneratedToken(token);
       if (member.IsStatic) {
@@ -5740,7 +5740,7 @@ namespace Microsoft.Dafny {
     /// exposed through both `M` and `M.M`, without ambiguity.
     /// </summary>
     private void CheckForAmbiguityInShadowedImportedModule(ModuleDecl moduleDecl, string name,
-      IToken tok, bool useCompileSignatures, bool isLastNameSegment) {
+      IOrigin tok, bool useCompileSignatures, bool isLastNameSegment) {
       if (moduleDecl != null && NameConflictsWithModuleContents(moduleDecl, name, useCompileSignatures, isLastNameSegment)) {
         reporter.Error(MessageSource.Resolver, tok,
           "Reference to member '{0}' is ambiguous: name '{1}' shadows an import-opened module of the same name, and "
@@ -5761,7 +5761,7 @@ namespace Microsoft.Dafny {
       );
     }
 
-    Expression ResolveExprDotCall(IToken tok, Expression receiver, Type receiverTypeBound/*?*/,
+    Expression ResolveExprDotCall(IOrigin tok, Expression receiver, Type receiverTypeBound/*?*/,
       MemberDecl member, List<ActualBinding> args, List<Type> optTypeArguments, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
@@ -6120,5 +6120,5 @@ namespace Microsoft.Dafny {
 
   }
 
-  public record MethodCallInformation(IToken Tok, MemberSelectExpr Callee, List<ActualBinding> ActualParameters);
+  public record MethodCallInformation(IOrigin Tok, MemberSelectExpr Callee, List<ActualBinding> ActualParameters);
 }

@@ -274,7 +274,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public void PrintTopLevelDecls(CompilationData compilation, IEnumerable<TopLevelDecl> decls, int indent,
-      IEnumerable<IToken>/*?*/ prefixIds) {
+      IEnumerable<IOrigin>/*?*/ prefixIds) {
       Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
@@ -572,7 +572,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public void PrintModuleDefinition(CompilationData compilation, ModuleDefinition module, VisibilityScope scope, int indent, IEnumerable<IToken>/*?*/ prefixIds) {
+    public void PrintModuleDefinition(CompilationData compilation, ModuleDefinition module, VisibilityScope scope, int indent, IEnumerable<IOrigin>/*?*/ prefixIds) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
@@ -993,7 +993,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return false;
     }
 
-    private bool PrintModeSkipGeneral(DafnyProject project, IToken tok) {
+    private bool PrintModeSkipGeneral(DafnyProject project, IOrigin tok) {
       return (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhostOrIncludes)
              && tok.Uri != null && !project.ContainsSourceFile(tok.Uri);
     }

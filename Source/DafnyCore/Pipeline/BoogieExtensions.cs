@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
     /// <param name="startToken">The token to get the range of.</param>
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range GetLspRange(this IToken startToken, IToken endToken) {
+    public static Range GetLspRange(this IOrigin startToken, IOrigin endToken) {
       return GetLspRangeGeneric(startToken, endToken);
     }
 
@@ -72,7 +72,7 @@ namespace Microsoft.Dafny {
       return new Position(position.Line, position.Column);
     }
 
-    public static Location GetLocation(this IToken token) {
+    public static Location GetLocation(this IOrigin token) {
       return new Location {
         Uri = DocumentUri.From(token.Uri),
         Range = token.GetLspRange(true)
@@ -86,7 +86,7 @@ namespace Microsoft.Dafny {
       };
     }
 
-    public static FilePosition GetFilePosition(this IToken token, bool end = false) {
+    public static FilePosition GetFilePosition(this IOrigin token, bool end = false) {
       return new FilePosition(token.Uri, GetLspPosition(token, end));
     }
 

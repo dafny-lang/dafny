@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class CallStmt : Statement, ICloneable<CallStmt> {
   // OverrideToken is required because MethodSelect.EndToken can be incorrect. Will remove once resolved expressions have correct ranges.
-  public override IToken Tok => overrideToken ?? MethodSelect.EndToken.Next;
+  public override IOrigin Tok => overrideToken ?? MethodSelect.EndToken.Next;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -25,7 +25,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
 
   public readonly List<Expression> Lhs;
   public readonly MemberSelectExpr MethodSelect;
-  private readonly IToken overrideToken;
+  private readonly IOrigin overrideToken;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   public Expression OriginalInitialLhs = null;
@@ -33,7 +33,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver => MethodSelect.Obj;
   public Method Method => (Method)MethodSelect.Member;
 
-  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IToken overrideToken = null)
+  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IOrigin overrideToken = null)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(lhs));

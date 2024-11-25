@@ -12,7 +12,7 @@ public class NodeTests {
     }
 
     public override RangeToken RangeToken { get; set; }
-    public override IToken Tok => RangeToken.StartToken;
+    public override IOrigin Tok => RangeToken.StartToken;
     public override IEnumerable<INode> Children { get; }
     public override IEnumerable<INode> PreResolveChildren => Children;
   }

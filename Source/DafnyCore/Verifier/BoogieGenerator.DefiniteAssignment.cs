@@ -97,7 +97,7 @@ namespace Microsoft.Dafny {
       MarkDefiniteAssignmentTracker(expr.tok, expr.Var.UniqueName, builder);
     }
 
-    void MarkDefiniteAssignmentTracker(IToken tok, string name, BoogieStmtListBuilder builder) {
+    void MarkDefiniteAssignmentTracker(IOrigin tok, string name, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
       Contract.Requires(builder != null);
 
@@ -107,7 +107,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal IToken GetToken(INode node) {
+    internal IOrigin GetToken(INode node) {
       if (flags.ReportRanges) {
         // Filter against IHasUsages to only select declarations, not usages.
         if (node is IHasNavigationToken declarationOrUsage && node is not IHasReferences) {
@@ -150,7 +150,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    void CheckDefiniteAssignmentSurrogate(IToken tok, Field field, bool atNew, BoogieStmtListBuilder builder) {
+    void CheckDefiniteAssignmentSurrogate(IOrigin tok, Field field, bool atNew, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
       Contract.Requires(field != null);
       Contract.Requires(builder != null);
@@ -193,7 +193,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckDefiniteAssignmentReturn(IToken tok, Formal p, BoogieStmtListBuilder builder) {
+    void CheckDefiniteAssignmentReturn(IOrigin tok, Formal p, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
       Contract.Requires(p != null && !p.InParam);
       Contract.Requires(builder != null);

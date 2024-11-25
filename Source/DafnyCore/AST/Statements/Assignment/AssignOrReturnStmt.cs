@@ -14,7 +14,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
   public readonly AttributedToken KeywordToken;
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new();
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
-  public override IToken Tok {
+  public override IOrigin Tok {
     get {
       var result = Rhs.StartToken.Prev;
       if (char.IsLetter(result.val[0])) {

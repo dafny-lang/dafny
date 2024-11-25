@@ -15,7 +15,7 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
   public override IEnumerable<INode> PreResolveChildren =>
     Lhss.Concat<Node>(new List<Node>() { Expr });
 
-  public override IToken Tok {
+  public override IOrigin Tok {
     get {
       var result = Expr.StartToken.Prev;
       if (char.IsLetter(result.val[0])) {

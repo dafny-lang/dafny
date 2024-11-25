@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
         token = refinementToken.WrappedToken;
       }
 
-      return DocumentUri.From(((IToken)token).Uri);
+      return DocumentUri.From(((IOrigin)token).Uri);
     }
 
     /// <summary>

@@ -19,7 +19,7 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
     Contract.Invariant(cce.NonNullElements(MissingCases));
   }
 
-  public MatchExpr(IToken tok, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
+  public MatchExpr(IOrigin tok, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(source != null);
@@ -92,7 +92,7 @@ public abstract class MatchCase : TokenNode, IHasReferences {
     Contract.Invariant(cce.NonNullElements(Arguments));
   }
 
-  public MatchCase(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
+  public MatchCase(IOrigin tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
@@ -101,7 +101,7 @@ public abstract class MatchCase : TokenNode, IHasReferences {
     Arguments = arguments;
   }
 
-  public IToken NavigationToken => tok;
+  public IOrigin NavigationToken => tok;
   public IEnumerable<IHasNavigationToken> GetReferences() {
     return new[] { Ctor };
   }
@@ -284,7 +284,7 @@ public class MatchCaseExpr : MatchCase {
   public override IEnumerable<INode> Children => Arguments.Concat<Node>(new[] { body });
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
+  public MatchCaseExpr(IOrigin tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
     : base(tok, ctor, arguments) {
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);

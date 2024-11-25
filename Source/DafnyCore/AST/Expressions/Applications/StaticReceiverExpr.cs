@@ -21,7 +21,7 @@ public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
   /// </summary>
   public Expression ContainerExpression;
 
-  public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
+  public StaticReceiverExpr(IOrigin tok, Type t, bool isImplicit)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(t != null);
@@ -38,7 +38,7 @@ public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
   /// Constructs a resolved LiteralExpr representing the fictitious static-receiver literal whose type is
   /// "cl" parameterized by the type arguments of "cl" itself.
   /// </summary>
-  public StaticReceiverExpr(IToken tok, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
+  public StaticReceiverExpr(IOrigin tok, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(cl != null);
@@ -62,7 +62,7 @@ public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
   ///   a trait that in turn extends trait "W(g(Y))".  If "t" denotes type "C(G)" and "cl" denotes "W",
   ///   then type of the StaticReceiverExpr will be "T(g(f(G)))".
   /// </summary>
-  public StaticReceiverExpr(IToken tok, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
+  public StaticReceiverExpr(IOrigin tok, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(t.ResolvedClass != null);

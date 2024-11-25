@@ -10,7 +10,7 @@ public class DecreasesToExpr : Expression, ICloneable<DecreasesToExpr> {
 
   public bool AllowNoChange { get; }
 
-  public DecreasesToExpr(IToken tok,
+  public DecreasesToExpr(IOrigin tok,
     IReadOnlyList<Expression> oldExpressions,
     IReadOnlyList<Expression> newExpressions, bool allowNoChange) : base(tok) {
     OldExpressions = oldExpressions;

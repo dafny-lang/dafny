@@ -35,7 +35,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
   private static JsonObject SerializeToken(Boogie.IToken tok) {
     return new JsonObject {
       ["filename"] = tok.filename,
-      ["uri"] = ((IToken)tok).Uri.AbsoluteUri,
+      ["uri"] = ((IOrigin)tok).Uri.AbsoluteUri,
       ["range"] = SerializeRange(tok)
     };
   }
@@ -111,7 +111,7 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
 }
 
 public class JsonConsoleErrorReporter : BatchErrorReporter {
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorID, Dafny.IToken tok, string msg) {
+  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorID, Dafny.IOrigin tok, string msg) {
     if (base.MessageCore(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
       new DiagnosticMessageData(source, level, tok, level == ErrorLevel.Error ? "Error" : null, msg, null).WriteJsonTo(Options.OutputWriter);
       return true;

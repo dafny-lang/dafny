@@ -30,7 +30,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public override IEnumerable<INode> PreResolveChildren => Children;
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
-  public readonly IToken SignatureEllipsis;
+  public readonly IOrigin SignatureEllipsis;
   public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
@@ -141,7 +141,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
-    Attributes attributes, IToken signatureEllipsis,
+    Attributes attributes, IOrigin signatureEllipsis,
     bool isByMethod = false)
     : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
       typeArgs, ins, req, ens, decreases) {
@@ -384,7 +384,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   public string GetTriviaContainingDocstring() {
-    IToken lastClosingParenthesis = null;
+    IOrigin lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
         lastClosingParenthesis = token;

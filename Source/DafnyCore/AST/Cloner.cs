@@ -591,7 +591,7 @@ namespace Microsoft.Dafny {
       return new RangeToken(Tok(range.StartToken), Tok(range.EndToken));
     }
 
-    public virtual IToken Tok(IToken tok) {
+    public virtual IOrigin Tok(IOrigin tok) {
       Contract.Requires(tok != null);
       return tok;
     }

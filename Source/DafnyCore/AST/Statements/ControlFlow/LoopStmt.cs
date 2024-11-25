@@ -85,5 +85,5 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
     }
   }
 
-  public IToken NavigationToken => Tok;
+  public IOrigin NavigationToken => Tok;
 }

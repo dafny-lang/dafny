@@ -56,7 +56,7 @@ public class LitPattern : ExtendedPattern {
     }
   }
 
-  public LitPattern(IToken tok, Expression lit, bool isGhost = false) : base(tok, isGhost) {
+  public LitPattern(IOrigin tok, Expression lit, bool isGhost = false) : base(tok, isGhost) {
     Contract.Requires(lit is LiteralExpr || lit is NegationExpression);
     this.OrigLit = lit;
   }

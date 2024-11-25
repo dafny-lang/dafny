@@ -12,7 +12,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  public override IToken Tok {
+  public override IOrigin Tok {
     get {
       var firstRhs = Rhss.First();
       if (firstRhs.StartToken != StartToken) {
@@ -96,7 +96,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
 
     base.Resolve(resolver, resolutionContext);
 
-    IToken firstEffectfulRhs = null;
+    IOrigin firstEffectfulRhs = null;
     MethodCallInformation methodCallInfo = null;
     ResolvedStatements = new();
     foreach (var rhs in Rhss) {

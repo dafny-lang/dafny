@@ -4,7 +4,6 @@
 //
 //-----------------------------------------------------------------------------
 using Microsoft.Dafny;
-using IToken = Microsoft.Dafny.IToken;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace DafnyCore.Verifier;
@@ -74,7 +73,7 @@ public class AssumedProofObligationDependency : ProofDependency {
   public override string Description =>
       $"assumption that {ProofObligation.SuccessDescription}";
 
-  public AssumedProofObligationDependency(IToken tok, ProofObligationDescription proofObligation) {
+  public AssumedProofObligationDependency(IOrigin tok, ProofObligationDescription proofObligation) {
     Range = tok as RangeToken ?? (proofObligation as AssertStatementDescription)?.AssertStatement.RangeToken ?? new RangeToken(tok, tok);
     ProofObligation = proofObligation;
   }
@@ -85,7 +84,7 @@ public class AssumedProofObligationDependency : ProofDependency {
 public class RequiresDependency : ProofDependency {
   private Expression requires;
 
-  private IToken tok;
+  private IOrigin tok;
 
   public override RangeToken Range =>
     tok as RangeToken ?? requires.RangeToken;
@@ -93,7 +92,7 @@ public class RequiresDependency : ProofDependency {
   public override string Description =>
     $"requires clause";
 
-  public RequiresDependency(IToken token, Expression requires) {
+  public RequiresDependency(IOrigin token, Expression requires) {
     this.requires = requires;
     this.tok = token;
   }
@@ -103,7 +102,7 @@ public class RequiresDependency : ProofDependency {
 public class EnsuresDependency : ProofDependency {
   private readonly Expression ensures;
 
-  private readonly IToken tok;
+  private readonly IOrigin tok;
 
   public override RangeToken Range =>
     tok as RangeToken ?? ensures.RangeToken;
@@ -111,7 +110,7 @@ public class EnsuresDependency : ProofDependency {
   public override string Description =>
     "ensures clause";
 
-  public EnsuresDependency(IToken token, Expression ensures) {
+  public EnsuresDependency(IOrigin token, Expression ensures) {
     this.ensures = ensures;
     this.tok = token;
   }
