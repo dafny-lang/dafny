@@ -865,7 +865,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     /// <summary>
     /// Prints a space before each attribute.
     /// For @-Attributes, prints a newline and indent after each @-Attribute
-    /// Jse an indent of -1 to put just a space after the @-Attribute
+    /// Use an indent of -1 to put just a space after the @-Attribute
     /// </summary>
     public void PrintAttributes(Attributes a, bool atAttributes, int indent = -1) {
       if (a != null) {

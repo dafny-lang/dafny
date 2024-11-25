@@ -343,6 +343,7 @@ namespace Microsoft.Dafny {
         var arg = CloneExpr(usaa.Arg);
         if (usaa.Arg.Type != null) { // The attribute has already been expanded
           arg.Type = usaa.Arg.Type;
+          arg.PreType = usaa.Arg.PreType;
         }
         return new UserSuppliedAtAttribute(Tok(usaa.tok), arg, CloneAttributes(usaa.Prev)) {
           RangeToken = Tok(usaa.RangeToken),

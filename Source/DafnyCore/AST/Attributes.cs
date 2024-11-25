@@ -319,11 +319,18 @@ public class Attributes : TokenNode, ICanFormat {
       program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, UserSuppliedAtAttribute.AtName + atAttribute.UserSuppliedName + " attribute cannot be applied to " + attributeHost.WhatKind);
     }
 
+    var resolver = new ModuleResolver(new ProgramResolver(program), program.Options) {
+      reporter = program.Reporter
+    };
+    resolver.moduleInfo = resolver.ProgramResolver.SystemModuleManager.systemNameInfo;
     var formals = builtinSyntax.Args.Select(arg => arg.ToFormal()).ToArray();
-    ResolveLikeDatatypeConstructor(program, formals, name, atAttribute, bindings);
+    ResolveLikeDatatypeConstructor(program, formals, name, atAttribute, bindings, resolver);
 
     atAttribute.Builtin = true;
     atAttribute.Arg.Type = Type.Int; // Dummy type to avoid crashes
+    var intDecl = resolver.SystemModuleManager.valuetypeDecls.First(valueTypeDecl => valueTypeDecl.Name == PreType.TypeNameInt);
+
+    atAttribute.Arg.PreType = new DPreType(intDecl, new List<PreType>(), null); 
 
     switch (name) {
       case "AutoContracts": {
@@ -596,15 +603,10 @@ public class Attributes : TokenNode, ICanFormat {
 
   // Resolves bindings given a list of datatype constructor-like formals,
   // obtained from built-in @-attribute definitions
-  private static void ResolveLikeDatatypeConstructor(
-    Program program, Formal[] formals, string attrName,
-    UserSuppliedAtAttribute attrs, ActualBindings bindings) {
+  private static void ResolveLikeDatatypeConstructor(Program program, Formal[] formals, string attrName,
+    UserSuppliedAtAttribute attrs, ActualBindings bindings, ModuleResolver resolver) {
     var resolutionContext = new ResolutionContext(new NoContext(program.DefaultModuleDef), false); ;
     var typeMap = new Dictionary<TypeParameter, Type>();
-    var resolver = new ModuleResolver(new ProgramResolver(program), program.Options) {
-      reporter = program.Reporter
-    };
-    resolver.moduleInfo = resolver.ProgramResolver.SystemModuleManager.systemNameInfo;
     resolver.ResolveActualParameters(bindings, formals.ToList(), attrs.tok,
       attrs, resolutionContext, typeMap, null);
     resolver.FillInDefaultValueExpressions();
