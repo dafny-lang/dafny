@@ -400,7 +400,7 @@ namespace Defs {
     }
     public static bool OwnershipGuarantee(Defs._IOwnership expectedOwnership, Defs._IOwnership resultingOwnership)
     {
-      return ((!object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipOwnedBox())) && (!(!object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipAutoBorrowed())) || ((object.Equals(resultingOwnership, expectedOwnership)) || ((object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipOwned())) && (object.Equals(resultingOwnership, Defs.Ownership.create_OwnershipOwnedBox())))))) && (!object.Equals(resultingOwnership, Defs.Ownership.create_OwnershipAutoBorrowed()));
+      return (!(!object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipAutoBorrowed())) || (object.Equals(resultingOwnership, expectedOwnership))) && (!object.Equals(resultingOwnership, Defs.Ownership.create_OwnershipAutoBorrowed()));
     }
     public static bool BecomesLeftCallsRight(DAST._IBinOp op) {
       DAST._IBinOp _source0 = op;
@@ -565,7 +565,6 @@ namespace Defs {
 
   public interface _IOwnership {
     bool is_OwnershipOwned { get; }
-    bool is_OwnershipOwnedBox { get; }
     bool is_OwnershipBorrowed { get; }
     bool is_OwnershipBorrowedMut { get; }
     bool is_OwnershipAutoBorrowed { get; }
@@ -585,9 +584,6 @@ namespace Defs {
     public static _IOwnership create_OwnershipOwned() {
       return new Ownership_OwnershipOwned();
     }
-    public static _IOwnership create_OwnershipOwnedBox() {
-      return new Ownership_OwnershipOwnedBox();
-    }
     public static _IOwnership create_OwnershipBorrowed() {
       return new Ownership_OwnershipBorrowed();
     }
@@ -598,14 +594,12 @@ namespace Defs {
       return new Ownership_OwnershipAutoBorrowed();
     }
     public bool is_OwnershipOwned { get { return this is Ownership_OwnershipOwned; } }
-    public bool is_OwnershipOwnedBox { get { return this is Ownership_OwnershipOwnedBox; } }
     public bool is_OwnershipBorrowed { get { return this is Ownership_OwnershipBorrowed; } }
     public bool is_OwnershipBorrowedMut { get { return this is Ownership_OwnershipBorrowedMut; } }
     public bool is_OwnershipAutoBorrowed { get { return this is Ownership_OwnershipAutoBorrowed; } }
     public static System.Collections.Generic.IEnumerable<_IOwnership> AllSingletonConstructors {
       get {
         yield return Ownership.create_OwnershipOwned();
-        yield return Ownership.create_OwnershipOwnedBox();
         yield return Ownership.create_OwnershipBorrowed();
         yield return Ownership.create_OwnershipBorrowedMut();
         yield return Ownership.create_OwnershipAutoBorrowed();
@@ -634,27 +628,6 @@ namespace Defs {
       return s;
     }
   }
-  public class Ownership_OwnershipOwnedBox : Ownership {
-    public Ownership_OwnershipOwnedBox() : base() {
-    }
-    public override _IOwnership DowncastClone() {
-      if (this is _IOwnership dt) { return dt; }
-      return new Ownership_OwnershipOwnedBox();
-    }
-    public override bool Equals(object other) {
-      var oth = other as Defs.Ownership_OwnershipOwnedBox;
-      return oth != null;
-    }
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
-    }
-    public override string ToString() {
-      string s = "DafnyToRustCompilerDefinitions.Ownership.OwnershipOwnedBox";
-      return s;
-    }
-  }
   public class Ownership_OwnershipBorrowed : Ownership {
     public Ownership_OwnershipBorrowed() : base() {
     }
@@ -668,7 +641,7 @@ namespace Defs {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 2;
+      hash = ((hash << 5) + hash) + 1;
       return (int) hash;
     }
     public override string ToString() {
@@ -689,7 +662,7 @@ namespace Defs {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 3;
+      hash = ((hash << 5) + hash) + 2;
       return (int) hash;
     }
     public override string ToString() {
@@ -710,7 +683,7 @@ namespace Defs {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 4;
+      hash = ((hash << 5) + hash) + 3;
       return (int) hash;
     }
     public override string ToString() {

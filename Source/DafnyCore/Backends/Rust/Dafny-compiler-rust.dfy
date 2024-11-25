@@ -2164,13 +2164,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     method FromOwned(r: R.Expr, expectedOwnership: Ownership)
       returns (out: R.Expr, resultingOwnership: Ownership)
       modifies this
-      requires expectedOwnership != OwnershipOwnedBox
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
     {
-      if expectedOwnership == OwnershipOwnedBox {
-        out := R.BoxNew(r);
-        resultingOwnership := OwnershipOwnedBox;
-      } else if expectedOwnership == OwnershipOwned || expectedOwnership == OwnershipAutoBorrowed {
+      if expectedOwnership == OwnershipOwned || expectedOwnership == OwnershipAutoBorrowed {
         out := r;
         resultingOwnership := OwnershipOwned;
       } else if expectedOwnership == OwnershipBorrowed {
@@ -2187,7 +2183,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     method FromOwnership(r: R.Expr, ownership: Ownership, expectedOwnership: Ownership)
       returns (out: R.Expr, resultingOwnership: Ownership)
       requires ownership != OwnershipAutoBorrowed
-      requires expectedOwnership != OwnershipOwnedBox
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
     {
@@ -2199,28 +2194,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if ownership == OwnershipOwned {
         out, resultingOwnership := FromOwned(r, expectedOwnership);
         return;
-      } else if ownership == OwnershipOwnedBox {
-        if expectedOwnership == OwnershipBorrowed {
-          out := r.Sel("as_ref").Apply0();
-          resultingOwnership := OwnershipBorrowed;
-        } else if expectedOwnership == OwnershipAutoBorrowed {
-          resultingOwnership := OwnershipOwnedBox;
-          out := r;
-        } else if expectedOwnership == OwnershipBorrowedMut {
-          out := r.Sel("as_mut").Apply0(); // For completeness, not sure we can ever reach that case
-          resultingOwnership := OwnershipBorrowedMut;
-        } else if expectedOwnership == OwnershipOwned {
-          resultingOwnership := OwnershipOwnedBox;
-          out := r;
-        }
-        return;
       } else if ownership == OwnershipBorrowed || ownership == OwnershipBorrowedMut {
         if expectedOwnership == OwnershipOwned{
           resultingOwnership := OwnershipOwned;
           out := r.Clone();
-        } else if expectedOwnership == OwnershipOwnedBox {
-          resultingOwnership := OwnershipOwnedBox;
-          out := R.BoxNew(r.Clone());
         } else if expectedOwnership == ownership
                   || expectedOwnership == OwnershipAutoBorrowed {
           resultingOwnership := ownership;
@@ -2247,7 +2224,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
       requires e.Literal?
-      requires expectedOwnership != OwnershipOwnedBox
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
       decreases e, 0
@@ -2399,7 +2375,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
       requires e.BinOp?
-      requires expectedOwnership != OwnershipOwnedBox
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
       decreases e, 0
@@ -2590,7 +2565,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership)
       requires exprOwnership != OwnershipAutoBorrowed
-      requires expectedOwnership != OwnershipOwnedBox
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
       decreases fromTpe, toTpe // We unwrap newtypes
@@ -2866,7 +2840,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       toTpe: Type,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership)
-      requires expectedOwnership != OwnershipOwnedBox
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
     {
@@ -2905,7 +2878,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
       requires e.Convert?
-      requires expectedOwnership != OwnershipOwnedBox
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
       decreases e, 0
@@ -2930,7 +2902,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
-      requires expectedOwnership != OwnershipOwnedBox
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
     {
@@ -2976,12 +2947,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
         }
         resultingOwnership := OwnershipOwned;
-      } else if expectedOwnership == OwnershipOwnedBox {
-        if !noNeedOfClone {
-          r := r.Clone(); // We don't transfer the ownership of an identifier
-        }
-        r := R.BoxNew(r);
-        resultingOwnership := OwnershipOwnedBox;
       } else if currentlyBorrowed {
         assert expectedOwnership == OwnershipBorrowed;
         resultingOwnership := OwnershipBorrowed;
@@ -3097,7 +3062,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
-      requires expectedOwnership != OwnershipOwnedBox
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
       decreases e, 1 {

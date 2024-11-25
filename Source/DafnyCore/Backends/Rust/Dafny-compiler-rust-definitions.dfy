@@ -134,11 +134,10 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       escapeIdent(f.dafny_name)
   }
 
-  // T, &T, &mut T, Box<T>
-  // Rc<T>, &Rc<T> are counted in T and &T since the type itself is wrapped by Rc
+  // T, &T, &mut T
+  // Box<T>, &Box<T>, Rc<T>, &Rc<T> are counted in T
   datatype Ownership =
     | OwnershipOwned
-    | OwnershipOwnedBox
     | OwnershipBorrowed
     | OwnershipBorrowedMut
     | OwnershipAutoBorrowed
@@ -436,10 +435,8 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   }
 
   predicate OwnershipGuarantee(expectedOwnership: Ownership, resultingOwnership: Ownership) {
-    && expectedOwnership != OwnershipOwnedBox // We don't ask for a box, but we might get one
     && (expectedOwnership != OwnershipAutoBorrowed ==>
-          || resultingOwnership == expectedOwnership
-          || (expectedOwnership == OwnershipOwned && resultingOwnership == OwnershipOwnedBox))
+          resultingOwnership == expectedOwnership)
     && resultingOwnership != OwnershipAutoBorrowed // We know what's going on
   }
 

@@ -2916,10 +2916,7 @@ namespace DCOMP {
     {
       @out = RAST.Expr.Default();
       resultingOwnership = Defs.Ownership.Default();
-      if (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipOwnedBox())) {
-        @out = RAST.__default.BoxNew(r);
-        resultingOwnership = Defs.Ownership.create_OwnershipOwnedBox();
-      } else if ((object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipOwned())) || (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipAutoBorrowed()))) {
+      if ((object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipOwned())) || (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipAutoBorrowed()))) {
         @out = r;
         resultingOwnership = Defs.Ownership.create_OwnershipOwned();
       } else if (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipBorrowed())) {
@@ -2949,28 +2946,10 @@ namespace DCOMP {
         @out = _out0;
         resultingOwnership = _out1;
         return ;
-      } else if (object.Equals(ownership, Defs.Ownership.create_OwnershipOwnedBox())) {
-        if (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipBorrowed())) {
-          @out = ((r).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_ref"))).Apply0();
-          resultingOwnership = Defs.Ownership.create_OwnershipBorrowed();
-        } else if (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipAutoBorrowed())) {
-          resultingOwnership = Defs.Ownership.create_OwnershipOwnedBox();
-          @out = r;
-        } else if (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipBorrowedMut())) {
-          @out = ((r).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_mut"))).Apply0();
-          resultingOwnership = Defs.Ownership.create_OwnershipBorrowedMut();
-        } else if (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipOwned())) {
-          resultingOwnership = Defs.Ownership.create_OwnershipOwnedBox();
-          @out = r;
-        }
-        return ;
       } else if ((object.Equals(ownership, Defs.Ownership.create_OwnershipBorrowed())) || (object.Equals(ownership, Defs.Ownership.create_OwnershipBorrowedMut()))) {
         if (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipOwned())) {
           resultingOwnership = Defs.Ownership.create_OwnershipOwned();
           @out = (r).Clone();
-        } else if (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipOwnedBox())) {
-          resultingOwnership = Defs.Ownership.create_OwnershipOwnedBox();
-          @out = RAST.__default.BoxNew((r).Clone());
         } else if ((object.Equals(expectedOwnership, ownership)) || (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipAutoBorrowed()))) {
           resultingOwnership = ownership;
           @out = r;
@@ -4241,12 +4220,6 @@ namespace DCOMP {
           }
         }
         resultingOwnership = Defs.Ownership.create_OwnershipOwned();
-      } else if (object.Equals(expectedOwnership, Defs.Ownership.create_OwnershipOwnedBox())) {
-        if (!(_3_noNeedOfClone)) {
-          r = (r).Clone();
-        }
-        r = RAST.__default.BoxNew(r);
-        resultingOwnership = Defs.Ownership.create_OwnershipOwnedBox();
       } else if (_2_currentlyBorrowed) {
         resultingOwnership = Defs.Ownership.create_OwnershipBorrowed();
       } else {
