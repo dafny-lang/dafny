@@ -23,14 +23,14 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     Guard = cloner.CloneExpr(original.Guard);
   }
 
-  public WhileStmt(RangeToken rangeToken, Expression guard,
+  public WhileStmt(IOrigin rangeToken, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body)
     : base(rangeToken, invariants, decreases, mod, body, null) {
     Guard = guard;
   }
 
-  public WhileStmt(RangeToken rangeToken, Expression guard,
+  public WhileStmt(IOrigin rangeToken, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body, Attributes attrs)
     : base(rangeToken, invariants, decreases, mod, body, attrs) {

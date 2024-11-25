@@ -87,7 +87,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
 
-  protected TopLevelDeclWithMembers(RangeToken rangeToken, Name name, ModuleDefinition module,
+  protected TopLevelDeclWithMembers(IOrigin rangeToken, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
     bool isRefining, List<Type>/*?*/ traits = null)
     : base(rangeToken, name, module, typeArgs, attributes, isRefining) {

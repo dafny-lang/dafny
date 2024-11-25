@@ -22,7 +22,7 @@ public class DividedBlockStmt : BlockStmt, ICloneable<DividedBlockStmt> {
     SeparatorTok = original.SeparatorTok;
   }
 
-  public DividedBlockStmt(RangeToken rangeToken, List<Statement> bodyInit, IOrigin/*?*/ separatorTok, List<Statement> bodyProper)
+  public DividedBlockStmt(IOrigin rangeToken, List<Statement> bodyInit, IOrigin/*?*/ separatorTok, List<Statement> bodyProper)
     : base(rangeToken, Util.Concat(bodyInit, bodyProper)) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(bodyInit));

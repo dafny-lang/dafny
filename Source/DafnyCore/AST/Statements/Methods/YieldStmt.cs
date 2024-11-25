@@ -10,7 +10,7 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt>, ICanFormat {
   public YieldStmt(Cloner cloner, YieldStmt original) : base(cloner, original) {
   }
 
-  public YieldStmt(RangeToken rangeToken, List<AssignmentRhs> rhss)
+  public YieldStmt(IOrigin rangeToken, List<AssignmentRhs> rhss)
     : base(rangeToken, rhss, null) {
   }
 

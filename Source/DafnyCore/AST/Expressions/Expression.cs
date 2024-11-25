@@ -752,7 +752,7 @@ public abstract class Expression : TokenNode {
     Contract.Requires(function.Ins.Count == arguments.Count);
     Contract.Requires(function.TypeArgs.Count == typeArguments.Count);
 
-    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, arguments) {
+    var call = new FunctionCallExpr(tok, function.Name, receiver, Token.NoToken, Token.NoToken, arguments) {
       Function = function,
       Type = function.ResultType,
       TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs,
@@ -775,7 +775,7 @@ public abstract class Expression : TokenNode {
     };
 
     subst = TypeParameter.SubstitutionMap(call.Function.TypeArgs, call.TypeApplication_JustFunction);
-    return new ApplySuffix(call.tok, null, exprDotName, new ActualBindings(call.Args).ArgumentBindings, call.tok) {
+    return new ApplySuffix(call.tok, null, exprDotName, new ActualBindings(call.Args).ArgumentBindings, Token.NoToken) {
       ResolvedExpression = call,
       Type = call.Function.ResultType.Subst(subst)
     };

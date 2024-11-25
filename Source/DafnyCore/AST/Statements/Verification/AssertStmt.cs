@@ -25,7 +25,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     return assertFalse;
   }
 
-  public AssertStmt(RangeToken rangeToken, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
+  public AssertStmt(IOrigin rangeToken, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
     : base(rangeToken, expr, attrs) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);

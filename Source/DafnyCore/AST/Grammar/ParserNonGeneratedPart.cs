@@ -660,21 +660,21 @@ public partial class Parser {
   /// </summary>
   class DeclModifierData {
     public bool IsReplaceable;
-    public IOrigin ReplaceableToken;
+    public Token ReplaceableToken;
     public bool IsAbstract;
-    public IOrigin AbstractToken;
+    public Token AbstractToken;
     public bool IsGhost;
-    public IOrigin GhostToken;
+    public Token GhostToken;
     public bool IsStatic;
-    public IOrigin StaticToken;
+    public Token StaticToken;
     public bool IsOpaque;
-    public IOrigin OpaqueToken;
-    public IOrigin FirstTokenExceptAttributes;
+    public Token OpaqueToken;
+    public Token FirstTokenExceptAttributes;
     public Attributes Attributes = null;
 
-    public IOrigin FirstToken {
+    public Token FirstToken {
       get {
-        IOrigin result = FirstTokenExceptAttributes;
+        Token result = FirstTokenExceptAttributes;
         foreach (var attr in Attributes.AsEnumerable()) {
           if (result == null || result.pos > attr.tok.pos) {
             result = attr.StartToken;
@@ -712,7 +712,7 @@ public partial class Parser {
   }
 
   // Check that token has not been set, then set it.
-  public void CheckAndSetToken(ref IOrigin token) {
+  public void CheckAndSetToken(ref Token token) {
     if (token != null) {
       SemErr(ErrorId.p_duplicate_modifier, t, "Duplicate declaration modifier: " + t.val);
     }
@@ -720,7 +720,7 @@ public partial class Parser {
   }
 
   // Check that token has not been set, then set it, but just ignores if it was set already
-  public void CheckAndSetTokenOnce(ref IOrigin token) {
+  public void CheckAndSetTokenOnce(ref Token token) {
     if (token == null) {
       token = t;
     }

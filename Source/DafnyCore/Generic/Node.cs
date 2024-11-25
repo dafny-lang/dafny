@@ -1,25 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
 using Action = System.Action;
 
 namespace Microsoft.Dafny;
-
-public interface INode {
-  bool SingleFileToken { get; }
-  public IOrigin StartToken => RangeToken.StartToken;
-  public IOrigin EndToken => RangeToken.EndToken;
-  IEnumerable<IOrigin> OwnedTokens { get; }
-  RangeToken RangeToken { get; }
-  IOrigin Tok { get; }
-  IEnumerable<INode> Children { get; }
-  IEnumerable<INode> PreResolveChildren { get; }
-}
 
 public interface ICanFormat : INode {
   /// Sets the indentation of individual tokens owned by this node, given
@@ -36,9 +23,9 @@ public abstract class Node : INode {
   protected IReadOnlyList<IOrigin> OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
-  public IOrigin StartToken => RangeToken?.StartToken;
+  public Token StartToken => RangeToken?.StartToken;
 
-  public IOrigin EndToken => RangeToken?.EndToken;
+  public Token EndToken => RangeToken?.EndToken;
   public abstract IOrigin Tok { get; }
 
   /// <summary>
@@ -130,7 +117,7 @@ public abstract class Node : INode {
     }
   }
 
-  public abstract RangeToken RangeToken { get; set; }
+  public abstract IOrigin RangeToken { get; set; }
 
   // <summary>
   // Returns all assumptions contained in this node or its descendants.
@@ -202,90 +189,5 @@ public abstract class Node : INode {
       }
     }
     return null;
-  }
-}
-
-public abstract class TokenNode : Node {
-  // Contains tokens that did not make it in the AST but are part of the expression,
-  // Enables ranges to be correct.
-  // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal IOrigin[] FormatTokens = null;
-
-  protected RangeToken rangeToken = null;
-
-  public IOrigin tok = Token.NoToken;
-
-  [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IOrigin Tok {
-    get => tok;
-  }
-
-  public override RangeToken RangeToken {
-    get {
-      if (rangeToken == null) {
-
-        var startTok = tok;
-        var endTok = tok;
-
-        void UpdateStartEndToken(IOrigin token1) {
-          if (token1.Filepath != tok.Filepath) {
-            return;
-          }
-
-          if (token1.pos < startTok.pos) {
-            startTok = token1;
-          }
-
-          if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
-            endTok = token1;
-          }
-        }
-
-        void UpdateStartEndTokRecursive(INode node) {
-          if (node is null) {
-            return;
-          }
-
-          if (node.RangeToken.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
-              node is DefaultValueExpression) {
-            // Ignore any auto-generated expressions.
-          } else {
-            UpdateStartEndToken(node.StartToken);
-            UpdateStartEndToken(node.EndToken);
-          }
-        }
-
-        PreResolveChildren.ForEach(UpdateStartEndTokRecursive);
-
-        if (FormatTokens != null) {
-          foreach (var token in FormatTokens) {
-            UpdateStartEndToken(token);
-          }
-        }
-
-        rangeToken = new RangeToken(startTok, endTok);
-      }
-
-      return rangeToken;
-    }
-    set => rangeToken = value;
-  }
-}
-
-public abstract class RangeNode : Node { // TODO merge into Node when TokenNode is gone.
-
-  public override IOrigin Tok => StartToken; // TODO rename to ReportingToken in separate PR
-
-  public IOrigin tok => Tok; // TODO replace with Tok in separate PR
-
-  // TODO rename to Range in separate PR
-  public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
-
-  protected RangeNode(Cloner cloner, RangeNode original) {
-    RangeToken = cloner.Tok(original.RangeToken);
-  }
-
-  protected RangeNode(RangeToken rangeToken) {
-    RangeToken = rangeToken;
   }
 }

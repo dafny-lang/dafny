@@ -21,7 +21,7 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   }
 
   public AbstractModuleDecl(DafnyOptions options, RangeToken rangeToken, ModuleQualifiedId qid, Name name,
-    ModuleDefinition parent, bool opened, List<IOrigin> exports, Guid cloneId)
+    ModuleDefinition parent, bool opened, List<Token> exports, Guid cloneId)
     : base(options, rangeToken, name, parent, opened, false, cloneId) {
     Contract.Requires(qid != null && qid.Path.Count > 0);
     Contract.Requires(exports != null);

@@ -24,7 +24,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   [FilledInDuringResolution] public SpecialField QueryField;
   [FilledInDuringResolution] public List<DatatypeDestructor> Destructors = new List<DatatypeDestructor>();  // includes both implicit (not mentionable in source) and explicit destructors
 
-  public DatatypeCtor(RangeToken rangeToken, Name name, bool isGhost, [Captured] List<Formal> formals, Attributes attributes)
+  public DatatypeCtor(IOrigin rangeToken, Name name, bool isGhost, [Captured] List<Formal> formals, Attributes attributes)
     : base(rangeToken, name, attributes, false) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);

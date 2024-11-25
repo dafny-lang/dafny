@@ -353,7 +353,7 @@ namespace Microsoft.Dafny {
     }
 
     public virtual ActualBinding CloneActualBinding(ActualBinding binding) {
-      return new ActualBinding(binding.FormalParameterName == null ? null : Tok(binding.FormalParameterName),
+      return new ActualBinding(binding.FormalParameterName,
         CloneExpr(binding.Actual));
     }
 
@@ -584,11 +584,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual RangeToken Range(RangeToken range) {
+    public virtual IOrigin Range(IOrigin range) {
       if (range == null) {
         return null;
       }
-      return new RangeToken(Tok(range.StartToken), Tok(range.EndToken));
+
+      return Tok(range);
     }
 
     public virtual IOrigin Tok(IOrigin tok) {
@@ -596,17 +597,12 @@ namespace Microsoft.Dafny {
       return tok;
     }
 
-    public RangeToken Tok(RangeToken tok) {
-      Contract.Requires(tok != null);
-      return new RangeToken(Tok(tok.StartToken), Tok(tok.EndToken));
-    }
-
     public virtual AttributedToken AttributedTok(AttributedToken tok) {
       if (tok == null) {
         return null;
       }
 
-      return new AttributedToken(Tok(tok.Token), CloneAttributes(tok.Attrs));
+      return tok with { Attrs = CloneAttributes(tok.Attrs) };
     }
   }
 

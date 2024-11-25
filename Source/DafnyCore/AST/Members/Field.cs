@@ -27,7 +27,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
     Contract.Requires(type != null);
   }
 
-  public Field(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+  public Field(IOrigin rangeToken, Name name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
     : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, false) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);

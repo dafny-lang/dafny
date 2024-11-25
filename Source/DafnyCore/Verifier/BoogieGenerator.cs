@@ -3282,11 +3282,11 @@ namespace Microsoft.Dafny {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<IOrigin>() != null);
         var ftok = tok as ForceCheckToken;
-        return ftok != null ? ftok.WrappedToken : tok;
+        return ftok != null ? ftok.WrappedOrigin : tok;
       }
 
       public override IOrigin WithVal(string newVal) {
-        return new ForceCheckToken(WrappedToken.WithVal(newVal));
+        return new ForceCheckToken(WrappedOrigin.WithVal(newVal));
       }
     }
 

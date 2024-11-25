@@ -51,7 +51,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     Mode = mode;
   }
 
-  public HideRevealStmt(RangeToken rangeToken, List<Expression> exprs, HideRevealCmd.Modes mode)
+  public HideRevealStmt(IOrigin rangeToken, List<Expression> exprs, HideRevealCmd.Modes mode)
     : base(rangeToken) {
     Contract.Requires(exprs != null);
     this.Exprs = exprs;

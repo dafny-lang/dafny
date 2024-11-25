@@ -36,7 +36,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   }
 
   public ModuleExportDecl(DafnyOptions options, RangeToken rangeToken, Name name, ModuleDefinition parent,
-    List<ExportSignature> exports, List<IOrigin> extends,
+    List<ExportSignature> exports, List<Token> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
     : base(options, rangeToken, name, parent, false, isRefining, cloneId) {
     Contract.Requires(exports != null);

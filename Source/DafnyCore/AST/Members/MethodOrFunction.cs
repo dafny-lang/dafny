@@ -22,7 +22,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public readonly Specification<Expression> Decreases;
   public readonly List<Formal> Ins;
 
-  protected MethodOrFunction(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost,
+  protected MethodOrFunction(IOrigin rangeToken, Name name, bool hasStaticKeyword, bool isGhost,
     Attributes attributes, bool isRefining, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,

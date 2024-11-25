@@ -15,7 +15,7 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
     Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
   }
 
-  public BlockStmt(RangeToken rangeToken, [Captured] List<Statement> body)
+  public BlockStmt(IOrigin rangeToken, [Captured] List<Statement> body)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(body));

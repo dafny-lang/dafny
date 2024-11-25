@@ -817,7 +817,7 @@ public partial class BoogieGenerator {
   }
 
   public void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
-    RangeToken scopeRange = null, bool processLabels = true) {
+    IOrigin scopeRange = null, bool processLabels = true) {
     Contract.Requires(stmts != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);

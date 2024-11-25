@@ -142,7 +142,7 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     }
   }
 
-  public MatchStmt(RangeToken rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(IOrigin rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, MatchingContext context = null)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
@@ -250,7 +250,7 @@ public class MatchCaseStmt : MatchCase {
   public override IEnumerable<INode> Children => body;
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public MatchCaseStmt(RangeToken rangeToken, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+  public MatchCaseStmt(IOrigin rangeToken, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
     : base(rangeToken.StartToken, ctor, arguments) {
     RangeToken = rangeToken;
     Contract.Requires(tok != null);
