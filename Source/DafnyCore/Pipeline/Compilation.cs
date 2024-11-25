@@ -363,12 +363,14 @@ public class Compilation : IDisposable {
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
-        foreach (var tokenTasks in tasks.GroupBy(t =>
-                  BoogieGenerator.ToDafnyToken(true, t.Token)).
-                  OrderBy(g => g.Key)) {
+        var groups = tasks.GroupBy(t =>
+            // We unwrap so that we group on tokens as they are displayed to the user by Reporter.Info
+            TokenWrapper.Unwrap(BoogieGenerator.ToDafnyToken(true, t.Token))).
+          OrderBy(g => g.Key);
+        foreach (var tokenTasks in groups) {
           var functions = tokenTasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
             OfType<FromDafnyNode>().Select(n => n.Node).
-            OfType<Function>()).Distinct();
+            OfType<Function>()).Distinct().OrderBy(f => f.tok);
           var hiddenFunctions = string.Join(", ", functions.Select(f => f.FullDafnyName));
           if (!string.IsNullOrEmpty(hiddenFunctions)) {
             Reporter.Info(MessageSource.Verifier, tokenTasks.Key, $"hidden functions: {hiddenFunctions}");

@@ -1331,11 +1331,105 @@ method {:isolate_assertions} InnerOuterUser() {
     reveal Outer, Inner;
   }
 }
+
+
 ".TrimStart();
       var documentItem = CreateTestDocument(source, "HiddenFunctionHints.dfy");
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem, minimumSeverity: DiagnosticSeverity.Hint);
+
       Assert.Equal(6, diagnostics.Length);
+      var sorted = diagnostics.OrderBy(d => d.Range.Start).ToList();
+      for (int index = 0; index < 3; index++) {
+        Assert.Equal(sorted[index * 2].Range, sorted[index * 2 + 1].Range);
+      }
+    }
+
+    [Fact]
+    public async Task HiddenFunctionTooltipBlowup() {
+      var source = @"
+predicate A(x: int) {
+  x < 5
+}
+predicate B(x: int) {
+  x > 3
+}
+predicate P(x: int) {
+  A(x) && B(x)
+}
+
+method {:isolate_assertions} TestIsolateAssertions() {
+  hide *;
+  assert P(3);
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source, "HiddenFunctionHints.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, minimumSeverity: DiagnosticSeverity.Hint);
+
+      var infoDiagnostics = diagnostics.Where(d => d.Severity >= DiagnosticSeverity.Information).ToList();
+      Assert.Single(infoDiagnostics);
+    }
+
+    [Fact]
+    public async Task HiddenFunctionTooltipBlowup2() {
+      var source = @"
+predicate A(x: int) {
+  x < 5
+}
+predicate B(x: int) {
+  x > 3
+}
+predicate P(x: int) {
+  A(x) && B(x)
+}
+
+method {:isolate_assertions} TestIsolateAssertions() {
+  hide *;
+  reveal P;
+  assert P(3);
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source, "HiddenFunctionHints.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, minimumSeverity: DiagnosticSeverity.Hint);
+
+      var infoDiagnostics = diagnostics.Where(d => d.Severity >= DiagnosticSeverity.Information).ToList();
+      Assert.Single(infoDiagnostics);
+    }
+
+    [Fact]
+    public async Task HiddenFunctionTooltipBlowup3() {
+      var source = @"
+predicate A(x: int) {
+  x < 7 && C(x)
+}
+predicate B(x: int) {
+  x > 3
+}
+
+predicate C(x: int) {
+  x < 5
+}
+
+predicate P(x: int)
+  requires A(x) && B(x)
+{
+  true
+}
+
+method {:isolate_assertions} TestIsolateAssertions() {
+  hide *;
+  reveal P;
+  assert P(6);
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source, "HiddenFunctionHints.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, minimumSeverity: DiagnosticSeverity.Hint);
+
+      var infoDiagnostics = diagnostics.Where(d => d.Severity >= DiagnosticSeverity.Information).ToList();
+      Assert.Single(infoDiagnostics);
     }
 
     public DiagnosticsTest(ITestOutputHelper output) : base(output) {

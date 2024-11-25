@@ -204,6 +204,15 @@ public abstract class TokenWrapper : IToken {
   public int CompareTo(Boogie.IToken other) {
     return WrappedToken.CompareTo(other);
   }
+
+  public static IToken Unwrap(IToken token, bool includeRanges = false) {
+    if (token is TokenWrapper wrapper
+        && (includeRanges || token is not RangeToken)) {
+      return Unwrap(wrapper.WrappedToken);
+    }
+
+    return token;
+  }
 }
 
 public static class TokenExtensions {
