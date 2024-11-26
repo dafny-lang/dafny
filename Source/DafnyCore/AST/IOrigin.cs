@@ -7,6 +7,7 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
 
   public bool InclusiveEnd => EndToken != null;
 
+  bool IsInherited(ModuleDefinition d);
   Token Center { get; }
   Token StartToken { get; }
   Token EndToken { get; }
@@ -24,7 +25,7 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
   }
 
   public string ActualFilename => Uri.LocalPath;
-  string Filepath => Uri.LocalPath;
+  string Filepath => Uri?.LocalPath;
 
   Uri Uri { get; set; }
 

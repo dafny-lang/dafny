@@ -58,6 +58,10 @@ public class Token : IOrigin {
 
   public RangeToken To(Token end) => new(this, end);
 
+  public bool IsInherited(ModuleDefinition d) {
+    return false;
+  }
+
   public Token Center => this;
   public Token StartToken => this;  // TODO throw exception?
   public Token EndToken => this; // TODO throw exception?
@@ -240,7 +244,10 @@ public class NestedOrigin : OriginWrapper {
     Inner = inner;
     this.Message = message;
   }
-  public IOrigin Outer { get { return WrappedOrigin; } }
+
+  public override bool IsInherited(ModuleDefinition d) => Outer.IsInherited(d) || Inner.IsInherited(d);
+
+  public IOrigin Outer => WrappedOrigin;
   public readonly IOrigin Inner;
   public readonly string Message;
 

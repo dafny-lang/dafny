@@ -4,7 +4,7 @@ namespace Microsoft.Dafny;
 
 public interface INode {
   bool SingleFileToken { get; }
-  
+
   public Token Center => Origin.Center; // TODO inline
   public Token StartToken => Origin.StartToken; // TODO inline
   public Token EndToken => Origin.EndToken; // TODO inline

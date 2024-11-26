@@ -3,9 +3,9 @@ namespace Microsoft.Dafny;
 public abstract class RangeNode : Node {
   private IOrigin rangeToken; // TODO merge into Node when TokenNode is gone.
 
-  public override IOrigin Tok => StartToken; // TODO rename to ReportingToken in separate PR
+  public override IOrigin Tok => StartToken; // TODO remove
 
-  public IOrigin tok => Tok; // TODO replace with Tok in separate PR
+  public IOrigin tok => Origin; // TODO remove
 
   // TODO rename to Range in separate PR
   public override IOrigin RangeToken {

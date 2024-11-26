@@ -18,6 +18,7 @@ public abstract class OriginWrapper : IOrigin {
     set => WrappedOrigin.col = value;
   }
 
+  public virtual bool IsInherited(ModuleDefinition d) => WrappedOrigin.IsInherited(d);
   public virtual Token Center => WrappedOrigin.Center;
   public virtual Token StartToken => WrappedOrigin.StartToken;
   public virtual Token EndToken => WrappedOrigin.EndToken;
