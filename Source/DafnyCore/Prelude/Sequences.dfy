@@ -607,7 +607,7 @@ module {:extract_boogie} Sequences {
   //   0 <= j && j < n && j < Seq#Length(s) ==>
   //     Seq#Index(Seq#Take(s,n), j) == Seq#Index(s, j));
   lemma {:extract_attribute "weight", 25} {:extract_pattern Index(Take(s, n), j)} {:extract_pattern Index(s, j), Take(s, n)}
-  IndexTake(s: Seq, n: int, j: int)
+    IndexTake(s: Seq, n: int, j: int)
     requires 0 <= j < n && j < Length(s)
     ensures Index(Take(s, n), j) == Index(s, j)
   {
