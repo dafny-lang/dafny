@@ -7,17 +7,20 @@ module {:extern "System"} System {
   class {:extern "Text.StringBuilder"} CsStringBuilder {
     ghost var built: CsString
     constructor {:extern} ()
-    method {:axiom} {:extern "Append"} Append(s: CsString)
+    @Axiom
+    method {:extern "Append"} Append(s: CsString)
       modifies this
       ensures built == String.Concat(old(built), s)
     // This hack is necessary because ToString is replaced by ToString_
     // in the C# compiler, even if it's declared extern...
-    method {:axiom} {:extern @"ToString().ToString"} ToString() returns (r: CsString)
+    @Axiom
+    method {:extern @"ToString().ToString"} ToString() returns (r: CsString)
       ensures r == built
   }
   type {:extern "String"} CsString(!new,==) {
     ghost predicate {:extern} Contains(needle: CsString)
-    lemma {:axiom} ContainsTransitive(other: CsString, needle: CsString)
+    @Axiom
+    lemma ContainsTransitive(other: CsString, needle: CsString)
       requires Contains(other) && other.Contains(needle)
       ensures Contains(needle)
   }
@@ -33,7 +36,8 @@ module {:extern "System"} System {
   }
   @Compile(false)
   class {:extern "String"} String {
-    static function {:axiom} {:extern} Concat(s1: CsString, s2: CsString): (r: CsString)
+    @Axiom
+    static function {:extern} Concat(s1: CsString, s2: CsString): (r: CsString)
       ensures r.Contains(s1)
       ensures r.Contains(s2)
   }

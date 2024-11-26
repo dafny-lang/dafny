@@ -92,6 +92,8 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   public override SymbolKind? Kind => SymbolKind.Enum;
 
   public bool SetIndent(int indent, TokenNewIndentCollector formatter) {
+    Attributes.SetIndents(Attributes, indent, formatter);
+
     var indent2 = indent + formatter.SpaceTab;
     var verticalBarIndent = indent2;
     var rightOfVerticalBarIndent = indent2 + formatter.SpaceTab;
@@ -114,6 +116,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
       .OrderBy(token => token.pos);
     foreach (var token in ownedTokens) {
       switch (token.val) {
+        case "codatatype":
         case "datatype": {
             formatter.SetOpeningIndentedRegion(token, indent);
             break;

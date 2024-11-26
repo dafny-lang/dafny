@@ -2610,7 +2610,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     /* Applies a function to every element of a sequence, returning a Result value (which is a
       failure-compatible type). Returns either a failure, or, if successful at every element,
       the transformed sequence.  */
-    function {:opaque} SeqResultToResultSeq<T, E>(xs: seq<Result<T, E>>): (result: Result<seq<T>, E>)
+    opaque function SeqResultToResultSeq<T, E>(xs: seq<Result<T, E>>): (result: Result<seq<T>, E>)
     {
       if |xs| == 0 then Success([])
       else

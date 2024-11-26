@@ -337,7 +337,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     if (BodyStartTok.line > 0) {
       formatter.SetDelimiterIndentedRegions(BodyStartTok, indentBefore);
     }
-
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
     formatter.SetFormalsIndentation(Ins);
     if (Result is { } outFormal) {
       formatter.SetTypeIndentation(outFormal.SyntacticType);
