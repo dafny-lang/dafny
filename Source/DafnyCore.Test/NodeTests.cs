@@ -9,7 +9,7 @@ public class NodeTests {
     private IOrigin origin;
 
     public ConcreteNode(RangeToken rangeToken, IEnumerable<INode>? children = null) {
-      RangeToken = rangeToken;
+      origin = rangeToken;
       Children = children ?? Enumerable.Empty<INode>();
     }
 
