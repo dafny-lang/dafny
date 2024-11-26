@@ -694,7 +694,7 @@ namespace Microsoft.Dafny {
                 // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
                 // to BVD what this variable stands for and display it as such to the user.
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
-                LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
+                LocalVariable local = new LocalVariable(p.Origin, "##" + p.Name, et, p.IsGhost);
                 local.type = local.SyntacticType;  // resolve local here
                 var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator)) {
                   Var = local

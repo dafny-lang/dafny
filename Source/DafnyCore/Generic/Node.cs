@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Dafny;
 using Microsoft.Dafny.Auditor;
 using Action = System.Action;
 
@@ -24,9 +25,9 @@ public abstract class Node : INode {
 
   public virtual bool SingleFileToken => true;
   public Token Center => Tok.Center;
-  public Token StartToken => RangeToken?.StartToken;
+  public Token StartToken => Origin?.StartToken;
 
-  public Token EndToken => RangeToken?.EndToken;
+  public Token EndToken => Origin?.EndToken;
   public abstract IOrigin Tok { get; }
 
   /// <summary>
@@ -120,7 +121,7 @@ public abstract class Node : INode {
     }
   }
 
-  public abstract IOrigin RangeToken { get; set; }
+  public abstract IOrigin RangeToken { set; }
 
   // <summary>
   // Returns all assumptions contained in this node or its descendants.
@@ -132,7 +133,7 @@ public abstract class Node : INode {
     return Enumerable.Empty<Assumption>();
   }
 
-  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {
+  public System.Collections.Generic.ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {
     reportError ??= _ => { };
     beforeChildren ??= node => true;
 

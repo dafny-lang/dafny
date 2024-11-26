@@ -100,7 +100,7 @@ namespace Microsoft.Dafny {
           var substMap = new Dictionary<IVariable, Expression>();
           foreach (var v in FreeVariablesUtil.ComputeFreeVariables(options, assertStmt.Expr)) {
             if (v is LocalVariable) {
-              var vcopy = new LocalVariable(stmt.RangeToken, string.Format("##{0}#{1}", name, v.Name), v.Type,
+              var vcopy = new LocalVariable(stmt.Origin, string.Format("##{0}#{1}", name, v.Name), v.Type,
                 v.IsGhost);
               vcopy.type = vcopy.SyntacticType; // resolve local here
               IdentifierExpr ie = new IdentifierExpr(vcopy.Tok,

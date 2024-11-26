@@ -106,7 +106,11 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   public Token Center => CwInner.Center;
   public IEnumerable<IOrigin> OwnedTokens => CwInner.OwnedTokens;
   public IOrigin Origin => CwInner.Origin;
-  public IOrigin RangeToken => CwInner.RangeToken;
+
+  public IOrigin RangeToken {
+    set => CwInner.RangeToken = value;
+  }
+
   public IOrigin NavigationToken => CwInner.NavigationToken;
   public SymbolKind? Kind => CwInner.Kind;
   public string GetDescription(DafnyOptions options) {

@@ -104,7 +104,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
       }
 
       if (inStatementContext) {
-        var localVariable = new LocalVariable(RangeToken, Id, null, isGhost) {
+        var localVariable = new LocalVariable(Origin, Id, null, isGhost) {
           type = Type
         };
         BoundVar = localVariable;

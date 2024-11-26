@@ -706,7 +706,7 @@ public partial class Parser {
   /// </summary>
   public void CheckNoAttributes(ref Attributes attrs) {
     if (attrs != null) {
-      SemErr(ErrorId.p_extra_attributes, attrs.RangeToken, "Attribute not expected here");
+      SemErr(ErrorId.p_extra_attributes, attrs.Origin, "Attribute not expected here");
       attrs = null;
     }
   }

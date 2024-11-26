@@ -171,7 +171,7 @@ public static class DafnyCodeActionHelpers {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
     if (stmt is BlockStmt blockStmt && blockStmt.Tok.line == line && blockStmt.Tok.col == col) {
-      return blockStmt.RangeToken.EndToken;
+      return blockStmt.Origin.EndToken;
     }
 
     foreach (var subStmt in stmt.SubStatements) {

@@ -62,6 +62,10 @@ public class ModuleQualifiedId : Node, IHasReferences {
     }
   }
 
+  public override IOrigin RangeToken {
+    set => throw new NotImplementedException();
+  }
+
   public override IOrigin Tok => Path.Last().Tok;
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Children;

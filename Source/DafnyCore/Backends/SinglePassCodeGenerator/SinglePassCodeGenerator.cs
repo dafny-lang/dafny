@@ -2736,7 +2736,7 @@ namespace Microsoft.Dafny.Compilers {
         IVariable accVar = null;
         if (f.IsTailRecursive) {
           if (f.IsAccumulatorTailRecursive) {
-            accVar = new LocalVariable(f.RangeToken, "_accumulator", f.ResultType, false) {
+            accVar = new LocalVariable(f.Origin, "_accumulator", f.ResultType, false) {
               type = f.ResultType
             };
             var resultType = f.ResultType.NormalizeToAncestorType();
@@ -2824,7 +2824,7 @@ namespace Microsoft.Dafny.Compilers {
         var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass);
         LocalVariable receiver = null;
         if (!m.IsStatic) {
-          receiver = new LocalVariable(m.RangeToken, "b", ty, false) {
+          receiver = new LocalVariable(m.Origin, "b", ty, false) {
             type = ty
           };
           if (m.EnclosingClass is ClassLikeDecl) {
@@ -5033,7 +5033,7 @@ namespace Microsoft.Dafny.Compilers {
         baseType = baseTypeVarDecl.Type;
       } else {
         baseType = ((NewtypeDecl)declWithConstraints).BaseType;
-        baseTypeVarDecl = new BoundVar(declWithConstraints.RangeToken, "_base", baseType);
+        baseTypeVarDecl = new BoundVar(declWithConstraints.Origin, "_base", baseType);
       }
       baseType = baseType.NormalizeExpandKeepConstraints();
       var baseTypeVar = new IdentifierExpr(declWithConstraints.tok, baseTypeVarDecl);

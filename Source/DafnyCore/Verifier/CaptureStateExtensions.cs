@@ -16,7 +16,7 @@ namespace Microsoft.Dafny {
     private static Bpl.Cmd CaptureState(DafnyOptions options, Statement stmt) {
       Contract.Requires(stmt != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      return CaptureState(options, stmt.RangeToken.EndToken, true, null);
+      return CaptureState(options, stmt.Origin.EndToken, true, null);
     }
 
     internal static void AddCaptureState(this BoogieStmtListBuilder builder, IOrigin tok, bool isEndToken, string /*?*/ additionalInfo) {

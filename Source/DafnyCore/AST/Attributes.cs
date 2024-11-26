@@ -305,7 +305,7 @@ public class Attributes : TokenNode, ICanFormat {
     var bindings = atAttribute.UserSuppliedPreResolveBindings;
 
     if (name == null) {
-      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, "Attribute not recognized: " + atAttribute.ToString());
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.Origin, "Attribute not recognized: " + atAttribute.ToString());
       return null;
     }
 
@@ -315,7 +315,7 @@ public class Attributes : TokenNode, ICanFormat {
     }
 
     if (!builtinSyntax.CanBeApplied(attributeHost)) {
-      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, UserSuppliedAtAttribute.AtName + atAttribute.UserSuppliedName + " attribute cannot be applied to " + attributeHost.WhatKind);
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.Origin, UserSuppliedAtAttribute.AtName + atAttribute.UserSuppliedName + " attribute cannot be applied to " + attributeHost.WhatKind);
     }
 
     var formals = builtinSyntax.Args.Select(arg => arg.ToFormal()).ToArray();
@@ -422,7 +422,7 @@ public class Attributes : TokenNode, ICanFormat {
     // Verify that arguments are given literally
     foreach (var binding in bindings.ArgumentBindings) {
       if (binding.Actual is not LiteralExpr) {
-        program.Reporter.Error(MessageSource.Resolver, binding.Actual.RangeToken, $"Argument to attribute {attrName} must be a literal");
+        program.Reporter.Error(MessageSource.Resolver, binding.Actual.Origin, $"Argument to attribute {attrName} must be a literal");
       }
     }
   }

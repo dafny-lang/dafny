@@ -39,7 +39,7 @@ class TokenSourceOrigin : TokenWrapper {
             return;
           }
 
-          if (node.RangeToken.Filepath != WrappedOrigin.Filepath || node is Expression { IsImplicit: true } ||
+          if (node.Origin.Filepath != WrappedOrigin.Filepath || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {
@@ -84,11 +84,11 @@ public abstract class TokenNode : Node {
   public IOrigin tok = Token.NoToken; // TODO rename to center?
 
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IOrigin Tok {
-    get => tok;
-  }
-  public override IOrigin RangeToken { get => Origin;
-    set => ((TokenSourceOrigin)tok.Unwrap()).RangeToken = (RangeToken)value;
+  public override IOrigin Tok => tok;
+
+  public override IOrigin RangeToken { 
+    // TODO do not create new RangeToken.
+    set => ((TokenSourceOrigin)tok.Unwrap()).RangeToken = new RangeToken(value.StartToken, value.EndToken);
   }
   public override IOrigin Origin => tok;
 

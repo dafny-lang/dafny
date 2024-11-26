@@ -45,9 +45,9 @@ public class ClonerTest {
     var cloner = new Cloner();
     var dummyDecl2 = cloner.CloneMethod(dummyDecl);
     Assert.Equal(2, dummyDecl2.BodyStartTok.line);
-    Assert.Equal(2, dummyDecl2.Ins[0].RangeToken.StartToken.line);
+    Assert.Equal(2, dummyDecl2.Ins[0].Origin.StartToken.line);
     Assert.True(dummyDecl2.Ins[0].IsTypeExplicit);
-    Assert.Equal(2, dummyDecl2.Ins[1].RangeToken.StartToken.line);
+    Assert.Equal(2, dummyDecl2.Ins[1].Origin.StartToken.line);
     Assert.False(dummyDecl2.Ins[1].IsTypeExplicit);
   }
 }

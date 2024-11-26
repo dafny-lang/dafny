@@ -10,7 +10,7 @@ public interface INode {
   public Token EndToken => Origin.EndToken; // TODO inline
   IEnumerable<IOrigin> OwnedTokens { get; }
   IOrigin Origin { get; }
-  IOrigin RangeToken { get; } // TODO remove
+  IOrigin RangeToken { set; } // TODO remove
   IOrigin Tok { get; } // TODO remove
   IEnumerable<INode> Children { get; }
   IEnumerable<INode> PreResolveChildren { get; }

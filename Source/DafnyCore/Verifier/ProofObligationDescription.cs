@@ -1779,7 +1779,7 @@ public class LetSuchThatExists : ProofObligationDescription {
     this.bvars = bvars;
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new ExistsExpr(bvars[0].tok, bvars[0].RangeToken, bvars,
+    return new ExistsExpr(bvars[0].tok, bvars[0].Origin, bvars,
       null, condition, null);
   }
 }

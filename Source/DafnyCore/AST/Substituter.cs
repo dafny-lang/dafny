@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
         } else {
           return new ParensExpression(expr.tok, receiverReplacement) {
             ResolvedExpression = receiverReplacement,
-            RangeToken = expr.RangeToken,
+            RangeToken = expr.Origin,
             Type = receiverReplacement.Type
           };
         }
@@ -75,7 +75,7 @@ namespace Microsoft.Dafny {
             // clone it, using the source location of the original
             substExprFinal = new IdentifierExpr(expr.tok, substIdExpr.Var);
           } else {
-            if (substExpr.RangeToken != e.RangeToken) {
+            if (substExpr.Origin != e.Origin) {
               var substExprParens = new ParensExpression(expr.tok, substExpr);
               substExprParens.Type = substExpr.Type;
               substExprParens.ResolvedExpression = substExpr;
@@ -400,7 +400,7 @@ namespace Microsoft.Dafny {
         var resolvedExpression = Substitute(concreteSyntaxExpression.ResolvedExpression);
         return new ParensExpression(expr.tok, resolvedExpression) {
           ResolvedExpression = resolvedExpression,
-          RangeToken = expr.RangeToken,
+          RangeToken = expr.Origin,
           Type = resolvedExpression.Type
         };
 
@@ -609,7 +609,7 @@ namespace Microsoft.Dafny {
           newVars.Add(v);
         } else {
           anythingChanged = true;
-          var newVar = new LocalVariable(v.RangeToken, v.Name, tt, v.IsGhost);
+          var newVar = new LocalVariable(v.Origin, v.Name, tt, v.IsGhost);
           newVar.type = tt;  // resolve here
           newVars.Add(newVar);
           // update substMap to reflect the new LocalVariable substitutions
@@ -750,7 +750,7 @@ namespace Microsoft.Dafny {
     }
 
     public LocalVariable CloneLocalVariable(CasePattern<LocalVariable> pat, Type tt, LocalVariable lv) {
-      return new LocalVariable(pat.RangeToken, pat.Id, tt, lv.IsGhost);
+      return new LocalVariable(pat.Origin, pat.Id, tt, lv.IsGhost);
     }
     public BoundVar CloneBoundVar(CasePattern<BoundVar> pat, Type tt, BoundVar bv) {
       return new BoundVar(pat.tok, pat.Id, tt);
@@ -766,20 +766,20 @@ namespace Microsoft.Dafny {
         return null;
       } else if (stmt is AssertStmt) {
         var s = (AssertStmt)stmt;
-        r = new AssertStmt(s.RangeToken, Substitute(s.Expr), s.Label, SubstAttributes(s.Attributes));
+        r = new AssertStmt(s.Origin, Substitute(s.Expr), s.Label, SubstAttributes(s.Attributes));
       } else if (stmt is ExpectStmt) {
         var s = (ExpectStmt)stmt;
-        r = new ExpectStmt(s.RangeToken, Substitute(s.Expr), Substitute(s.Message), SubstAttributes(s.Attributes));
+        r = new ExpectStmt(s.Origin, Substitute(s.Expr), Substitute(s.Message), SubstAttributes(s.Attributes));
       } else if (stmt is AssumeStmt) {
         var s = (AssumeStmt)stmt;
-        r = new AssumeStmt(s.RangeToken, Substitute(s.Expr), SubstAttributes(s.Attributes));
+        r = new AssumeStmt(s.Origin, Substitute(s.Expr), SubstAttributes(s.Attributes));
       } else if (stmt is BreakOrContinueStmt) {
         var s = (BreakOrContinueStmt)stmt;
         BreakOrContinueStmt rr;
         if (s.TargetLabel != null) {
-          rr = new BreakOrContinueStmt(s.RangeToken, s.TargetLabel, s.IsContinue);
+          rr = new BreakOrContinueStmt(s.Origin, s.TargetLabel, s.IsContinue);
         } else {
-          rr = new BreakOrContinueStmt(s.RangeToken, s.BreakAndContinueCount, s.IsContinue);
+          rr = new BreakOrContinueStmt(s.Origin, s.BreakAndContinueCount, s.IsContinue);
         }
         // r.TargetStmt will be filled in as later
         if (!BreaksToBeResolved.TryGetValue(s, out var breaks)) {
@@ -790,10 +790,10 @@ namespace Microsoft.Dafny {
         r = rr;
       } else if (stmt is SingleAssignStmt) {
         var s = (SingleAssignStmt)stmt;
-        r = new SingleAssignStmt(s.RangeToken, Substitute(s.Lhs), SubstRHS(s.Rhs));
+        r = new SingleAssignStmt(s.Origin, Substitute(s.Lhs), SubstRHS(s.Rhs));
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
-        var rr = new CallStmt(s.RangeToken, s.Lhs.ConvertAll(Substitute), (MemberSelectExpr)Substitute(s.MethodSelect), s.Args.ConvertAll(Substitute));
+        var rr = new CallStmt(s.Origin, s.Lhs.ConvertAll(Substitute), (MemberSelectExpr)Substitute(s.MethodSelect), s.Args.ConvertAll(Substitute));
         r = rr;
       } else if (stmt is DividedBlockStmt) {
         r = SubstDividedBlockStmt((DividedBlockStmt)stmt);
@@ -802,16 +802,16 @@ namespace Microsoft.Dafny {
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
         var guard = s.IsBindingGuard ? SubstituteComprehensionExpr((ExistsExpr)s.Guard, false) : Substitute(s.Guard);
-        r = new IfStmt(s.RangeToken, s.IsBindingGuard, guard, SubstBlockStmt(s.Thn), SubstStmt(s.Els));
+        r = new IfStmt(s.Origin, s.IsBindingGuard, guard, SubstBlockStmt(s.Thn), SubstStmt(s.Els));
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        r = new AlternativeStmt(s.RangeToken, s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);
+        r = new AlternativeStmt(s.Origin, s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
-        r = new WhileStmt(s.RangeToken, Substitute(s.Guard), s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), SubstBlockStmt(s.Body));
+        r = new WhileStmt(s.Origin, Substitute(s.Guard), s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), SubstBlockStmt(s.Body));
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        r = new AlternativeLoopStmt(s.RangeToken, s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);
+        r = new AlternativeLoopStmt(s.Origin, s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
         var newBoundVars = CreateBoundVarSubstitutions(s.BoundVars, false);
@@ -822,7 +822,7 @@ namespace Microsoft.Dafny {
         }
 
         // Put things together
-        var rr = new ForallStmt(s.RangeToken, newBoundVars, SubstAttributes(s.Attributes), Substitute(s.Range), s.Ens.ConvertAll(SubstMayBeFreeExpr), body);
+        var rr = new ForallStmt(s.Origin, newBoundVars, SubstAttributes(s.Attributes), Substitute(s.Range), s.Ens.ConvertAll(SubstMayBeFreeExpr), body);
         rr.Kind = s.Kind;
         rr.CanConvert = s.CanConvert;
         rr.Bounds = SubstituteBoundedPoolList(s.Bounds);
@@ -832,19 +832,19 @@ namespace Microsoft.Dafny {
         r = rr;
       } else if (stmt is CalcStmt) {
         var s = (CalcStmt)stmt;
-        var rr = new CalcStmt(s.RangeToken, SubstCalcOp(s.UserSuppliedOp), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstAttributes(s.Attributes));
+        var rr = new CalcStmt(s.Origin, SubstCalcOp(s.UserSuppliedOp), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstAttributes(s.Attributes));
         rr.Op = SubstCalcOp(s.Op);
         rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
         rr.Result = Substitute(s.Result);
         r = rr;
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
-        var rr = new MatchStmt(s.RangeToken, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt), s.UsesOptionalBraces);
+        var rr = new MatchStmt(s.Origin, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt), s.UsesOptionalBraces);
         rr.MissingCases.AddRange(s.MissingCases);
         r = rr;
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        r = new AssignSuchThatStmt(s.RangeToken, s.Lhss.ConvertAll(Substitute), Substitute(s.Expr), s.AssumeToken, null) {
+        r = new AssignSuchThatStmt(s.Origin, s.Lhss.ConvertAll(Substitute), Substitute(s.Expr), s.AssumeToken, null) {
           Bounds = SubstituteBoundedPoolList(s.Bounds)
         };
       } else if (stmt is AssignStatement) {
@@ -853,9 +853,9 @@ namespace Microsoft.Dafny {
         AssignStatement rr;
         if (resolved.Count == 1) {
           // when later translating this UpdateStmt, the s.Lhss and s.Rhss components won't be used, only s.ResolvedStatements
-          rr = new AssignStatement(s.RangeToken, s.Lhss, s.Rhss, s.CanMutateKnownState);
+          rr = new AssignStatement(s.Origin, s.Lhss, s.Rhss, s.CanMutateKnownState);
         } else {
-          rr = new AssignStatement(s.RangeToken, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
+          rr = new AssignStatement(s.Origin, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
         }
 
         if (s.ResolvedStatements != null) {
@@ -865,22 +865,22 @@ namespace Microsoft.Dafny {
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var lhss = CreateLocalVarSubstitutions(s.Locals, false);
-        var rr = new VarDeclStmt(s.RangeToken, lhss, (ConcreteAssignStatement)SubstStmt(s.Assign));
+        var rr = new VarDeclStmt(s.Origin, lhss, (ConcreteAssignStatement)SubstStmt(s.Assign));
         r = rr;
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
         var lhss = SubstituteCasePattern(s.LHS, false, CloneLocalVariable);
-        var rr = new VarDeclPattern(s.RangeToken, lhss, (Expression)Substitute(s.RHS), s.HasGhostModifier);
+        var rr = new VarDeclPattern(s.Origin, lhss, (Expression)Substitute(s.RHS), s.HasGhostModifier);
         r = rr;
       } else if (stmt is HideRevealStmt revealStmt) {
         // don't need to substitute s.Expr since it won't be used, only the s.ResolvedStatements are used.
-        var rr = new HideRevealStmt(revealStmt.RangeToken, revealStmt.Exprs, revealStmt.Mode);
+        var rr = new HideRevealStmt(revealStmt.Origin, revealStmt.Exprs, revealStmt.Mode);
         rr.LabeledAsserts.AddRange(revealStmt.LabeledAsserts);
         rr.ResolvedStatements.AddRange(revealStmt.ResolvedStatements.ConvertAll(SubstStmt));
         rr.OffsetMembers = revealStmt.OffsetMembers.ToList();
         r = rr;
       } else if (stmt is BlockByProofStmt blockByProofStmt) {
-        var rr = new BlockByProofStmt(blockByProofStmt.RangeToken,
+        var rr = new BlockByProofStmt(blockByProofStmt.Origin,
           (BlockStmt)SubstStmt(blockByProofStmt.Proof),
           SubstStmt(blockByProofStmt.Body));
         r = rr;
@@ -914,7 +914,7 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual DividedBlockStmt SubstDividedBlockStmt(DividedBlockStmt stmt) {
-      return stmt == null ? null : new DividedBlockStmt(stmt.RangeToken, stmt.BodyInit.ConvertAll(SubstStmt), stmt.SeparatorTok, stmt.BodyProper.ConvertAll(SubstStmt));
+      return stmt == null ? null : new DividedBlockStmt(stmt.Origin, stmt.BodyInit.ConvertAll(SubstStmt), stmt.SeparatorTok, stmt.BodyProper.ConvertAll(SubstStmt));
     }
 
     protected virtual BlockStmt SubstBlockStmt(BlockStmt stmt) {
@@ -922,7 +922,7 @@ namespace Microsoft.Dafny {
         return null;
       }
       var prevSubstMap = new Dictionary<IVariable, Expression>(substMap);
-      var b = new BlockStmt(stmt.RangeToken, stmt.Body.ConvertAll(SubstStmt));
+      var b = new BlockStmt(stmt.Origin, stmt.Body.ConvertAll(SubstStmt));
       if (substMap.Count != prevSubstMap.Count) {
         // reset substMap to what it was (note that substMap is a readonly field, so we can't just change it back to prevSubstMap)
         substMap.Clear();
@@ -981,7 +981,7 @@ namespace Microsoft.Dafny {
     protected MatchCaseStmt SubstMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       var newBoundVars = CreateBoundVarSubstitutions(c.Arguments, false);
-      var r = new MatchCaseStmt(c.RangeToken, c.Ctor, c.FromBoundVar, newBoundVars, c.Body.ConvertAll(SubstStmt), c.Attributes);
+      var r = new MatchCaseStmt(c.Origin, c.Ctor, c.FromBoundVar, newBoundVars, c.Body.ConvertAll(SubstStmt), c.Attributes);
       r.Ctor = c.Ctor;
       // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
       foreach (var bv in c.Arguments) {
@@ -1065,19 +1065,19 @@ namespace Microsoft.Dafny {
       if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes ||
           newBounds != e.Bounds || !forceSubstituteOfBoundVars) {
         if (e is SetComprehension) {
-          newExpr = new SetComprehension(e.BodyStartTok, e.RangeToken, ((SetComprehension)e).Finite, newBoundVars,
+          newExpr = new SetComprehension(e.BodyStartTok, e.Origin, ((SetComprehension)e).Finite, newBoundVars,
             newRange, newTerm, newAttrs);
         } else if (e is MapComprehension) {
           var mc = (MapComprehension)e;
           var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
-          newExpr = new MapComprehension(e.BodyStartTok, e.RangeToken, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
+          newExpr = new MapComprehension(e.BodyStartTok, e.Origin, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
         } else if (expr is ForallExpr forallExpr) {
-          newExpr = new ForallExpr(expr.tok, e.RangeToken, newBoundVars, newRange, newTerm, newAttrs);
+          newExpr = new ForallExpr(expr.tok, e.Origin, newBoundVars, newRange, newTerm, newAttrs);
         } else if (expr is ExistsExpr existsExpr) {
-          newExpr = new ExistsExpr(expr.tok, e.RangeToken, newBoundVars, newRange, newTerm, newAttrs);
+          newExpr = new ExistsExpr(expr.tok, e.Origin, newBoundVars, newRange, newTerm, newAttrs);
         } else if (expr is LambdaExpr) {
           var l = (LambdaExpr)expr;
-          newExpr = new LambdaExpr(e.BodyStartTok, e.RangeToken, newBoundVars, newRange,
+          newExpr = new LambdaExpr(e.BodyStartTok, e.Origin, newBoundVars, newRange,
             SubstSpecFrameExpr(l.Reads), newTerm);
         } else {
           Contract.Assert(false); // unexpected ComprehensionExpr

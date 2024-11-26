@@ -846,7 +846,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
             // create and add the query "method" (field, really)
             var queryName = ctor.NameNode.Append("?");
-            var query = new DatatypeDiscriminator(ctor.RangeToken, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.GetCompileName(resolver.Options),
+            var query = new DatatypeDiscriminator(ctor.Origin, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.GetCompileName(resolver.Options),
               ctor.IsGhost, Type.Bool, null);
             query.InheritVisibility(dt);
             query.EnclosingClass = dt; // resolve here
@@ -897,7 +897,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
               dtor.AddAnotherEnclosingCtor(ctor, formal);
             } else {
               // either the destructor has no explicit name, or this constructor declared another destructor with this name, or no previous destructor had this name
-              dtor = new DatatypeDestructor(formal.Origin, ctor, formal, new Name(formal.RangeToken, formal.Name), "dtor_" + formal.CompileName,
+              dtor = new DatatypeDestructor(formal.Origin, ctor, formal, new Name(formal.Origin, formal.Name), "dtor_" + formal.CompileName,
                 formal.IsGhost, formal.Type, null);
               dtor.InheritVisibility(dt);
               dtor.EnclosingClass = dt; // resolve here

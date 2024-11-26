@@ -47,7 +47,7 @@ public class ExpectContracts : IRewriter {
       msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
-    return new ExpectStmt(expr.E.RangeToken, exprToCheck, msgExpr, null);
+    return new ExpectStmt(expr.E.Origin, exprToCheck, msgExpr, null);
   }
 
   /// <summary>
@@ -67,7 +67,7 @@ public class ExpectContracts : IRewriter {
       CreateContractExpectStatement(ens, "ensures"));
     var callStmtList = new List<Statement>() { callStmt };
     var bodyStatements = expectRequiresStmts.Concat(callStmtList).Concat(expectEnsuresStmts);
-    return new BlockStmt(callStmt.RangeToken, bodyStatements.ToList());
+    return new BlockStmt(callStmt.Origin, bodyStatements.ToList());
   }
 
   private bool ShouldGenerateWrapper(MemberDecl decl) {
@@ -129,13 +129,13 @@ public class ExpectContracts : IRewriter {
     var lhss = new List<Expression> { localExpr };
     var rhss = new List<AssignmentRhs> { callRhs };
 
-    var assignStmt = new SingleAssignStmt(decl.RangeToken, localExpr, callRhs);
+    var assignStmt = new SingleAssignStmt(decl.Origin, localExpr, callRhs);
     Statement callStmt;
     if (origFunc.Result?.Name is null) {
-      var local = new LocalVariable(decl.RangeToken, localName, newFunc.ResultType, false);
+      var local = new LocalVariable(decl.Origin, localName, newFunc.ResultType, false);
       local.type = newFunc.ResultType;
       var locs = new List<LocalVariable> { local };
-      var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new AssignStatement(decl.RangeToken, lhss, rhss) {
+      var varDeclStmt = new VarDeclStmt(decl.Origin, locs, new AssignStatement(decl.Origin, lhss, rhss) {
         ResolvedStatements = new List<Statement>() { assignStmt }
       });
       localExpr.Var = local;
@@ -148,7 +148,7 @@ public class ExpectContracts : IRewriter {
     var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
     if (origFunc.Result?.Name is null) {
-      body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
+      body.AppendStmt(new ReturnStmt(decl.Origin, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
     }
 
     newFunc.ByMethodBody = body;
@@ -174,7 +174,7 @@ public class ExpectContracts : IRewriter {
       newMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
     memberSelectExpr.TypeApplicationAtEnclosingClass =
       parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
-    var callStmt = new CallStmt(decl.RangeToken, outs, memberSelectExpr, args);
+    var callStmt = new CallStmt(decl.Origin, outs, memberSelectExpr, args);
 
     var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
     newMethod.Body = body;
@@ -206,7 +206,7 @@ public class ExpectContracts : IRewriter {
       var emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
       reads.Expressions.Add(new FrameExpression(tok, emptySet, null));
     }
-    var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
+    var method = new Method(f.Origin, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
       f.Ins, new List<Formal>() { resultVar },
       f.Req, reads, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
       f.ByMethodBody, f.Attributes, null, true);

@@ -266,7 +266,7 @@ public partial class BoogieGenerator {
 
       // The "new;" translates into an allocation of "this"
       AddComment(builder, stmt, "new;");
-      fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken.EndToken, f, true, builder));
+      fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.Origin.EndToken, f, true, builder));
       DefiniteAssignmentTrackers = beforeTrackers;
       var th = new ThisExpr(cl);
       var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
@@ -290,7 +290,7 @@ public partial class BoogieGenerator {
       BlockByProofStmtVerifier.EmitBoogie(this, blockByProof, builder, locals, etran, codeContext);
     } else if (stmt is BlockStmt blockStmt) {
       var previousTrackers = DefiniteAssignmentTrackers;
-      TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.RangeToken);
+      TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.Origin);
       DefiniteAssignmentTrackers = previousTrackers;
     } else if (stmt is IfStmt ifStmt) {
       IfStatementVerifier.EmitBoogie(this, ifStmt, builder, locals, etran);
@@ -687,7 +687,7 @@ public partial class BoogieGenerator {
         b.Add(TrAssumeCmdWithDependencies(etran, alternative.Guard.tok, alternative.Guard, "alternative guard"));
       }
       var prevDefiniteAssignmentTrackers = DefiniteAssignmentTrackers;
-      TrStmtList(alternative.Body, b, locals, etran, alternative.RangeToken);
+      TrStmtList(alternative.Body, b, locals, etran, alternative.Origin);
       DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
       Bpl.StmtList thn = b.Collect(alternative.Tok);
       elsIf = new Bpl.IfCmd(alternative.Tok, null, thn, elsIf, els);
