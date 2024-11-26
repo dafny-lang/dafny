@@ -33,5 +33,4 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-rm $output-cs.dtr 
 python3 DafnyGeneratedFromDafnyPost.py $output
