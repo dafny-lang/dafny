@@ -7,6 +7,7 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
 
   public bool InclusiveEnd => EndToken != null;
 
+  bool IsMissingRange { get; }
   bool IsInherited(ModuleDefinition d);
   Token Center { get; }
   Token StartToken { get; }

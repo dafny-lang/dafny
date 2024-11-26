@@ -77,7 +77,7 @@ public abstract class TokenNode : Node {
 
   public RangeToken rangeToken;
 
-  public IOrigin tok = Token.NoToken; // TODO rename to center
+  public IOrigin tok = Token.NoToken;
 
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
   public override IOrigin Tok => tok;
@@ -88,5 +88,5 @@ public abstract class TokenNode : Node {
     set => rangeToken = value == null ? null : new RangeToken(value.StartToken, value.EndToken);
   }
 
-  public override IOrigin Origin => new OriginWithComputedRange(tok, this);
+  public override IOrigin Origin => tok.IsMissingRange ? new OriginWithComputedRange(tok, this) : tok;
 }

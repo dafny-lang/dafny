@@ -58,6 +58,8 @@ public class Token : IOrigin {
 
   public RangeToken To(Token end) => new(this, end);
 
+  public bool IsMissingRange => true;
+
   public bool IsInherited(ModuleDefinition d) {
     return false;
   }

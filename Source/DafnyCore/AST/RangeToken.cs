@@ -5,6 +5,8 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public class RangeToken : IOrigin {
+  public bool IsMissingRange => false;
+
   public bool IsInherited(ModuleDefinition d) {
     return false;
   }
