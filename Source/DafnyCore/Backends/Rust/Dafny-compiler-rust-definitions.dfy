@@ -474,13 +474,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         "",
         [
           R.FnDecl(
+            "Helps debugging", [],
             R.PRIV,
             R.Fn(
               "fmt", [],
               [R.Formal.selfBorrowed,
                R.Formal("f", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType()))],
               Some(R.std.MSel("fmt").MSel("Result").AsType()),
-              "",
               Some(R.dafny_runtime
                    .MSel("DafnyPrint")
                    .AsExpr()
@@ -503,6 +503,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeType,
         "",
         [R.FnDecl(
+           "For Dafny print statements", [],
            R.PRIV,
            R.Fn(
              "fmt_print", [],
@@ -510,7 +511,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
               R.Formal("_formatter", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType())),
               R.Formal("_in_seq", R.Type.Bool)],
              Some(R.RawType("std::fmt::Result")),
-             "",
              Some(printImplBody)))]
       ))
   }
@@ -531,6 +531,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeType,
         "",
         [R.FnDecl(
+           "Given type parameter conversions, returns a lambda to convert this structure", [],
            R.PUB,
            R.Fn(
              "coerce", rCoerceTypeParams,
@@ -541,7 +542,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
                    R.FnType(
                      [datatypeType],
                      R.TypeApp(R.TIdentifier(datatypeName), coerceTypes))))),
-             "",
              Some(
                R.RcNew(R.Lambda([R.Formal("this", R.SelfOwned)],
                                 Some(R.TypeApp(R.TIdentifier(datatypeName), coerceTypes)),
@@ -560,12 +560,12 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeType,
         "",
         [R.FnDecl(
+           "Enumerates all possible values of " + datatypeType.ToString(""), [],
            R.PUB,
            R.Fn(
              "_AllSingletonConstructors", [],
              [],
              Some(R.dafny_runtime.MSel("SequenceIter").AsType().Apply([instantiationType])),
-             "",
              Some(R.dafny_runtime.MSel("seq!").AsExpr().Apply(singletonConstructors).Sel("iter").Apply0())
            )
          )]))
@@ -584,13 +584,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeOrNewtypeType,
         "",
         [R.FnDecl(
+           "", [],
            R.PRIV,
            R.Fn(
              "hash", [R.TypeParamDecl("_H", [R.std.MSel("hash").MSel("Hasher").AsType()])],
              [R.Formal.selfBorrowed,
               R.Formal("_state", R.BorrowedMut(R.TIdentifier("_H")))],
              None,
-             "",
              Some(hashImplBody)))]
       ))
   }
@@ -614,12 +614,12 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         "",
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
+            "", [],
             R.PRIV,
             R.Fn(
               methodName, [],
               [R.Formal.selfOwned],
               Some(R.SelfOwned),
-              "",
               Some(R.Identifier(newtypeConstructor).Apply1(
                      R.UnaryOp(
                        [op],
@@ -651,13 +651,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         "",
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
+            "", [],
             R.PRIV,
             R.Fn(
               methodName, [],
               [R.Formal.selfOwned,
                R.Formal("other", R.SelfOwned)],
               Some(R.SelfOwned),
-              "",
               Some(R.Identifier(newtypeConstructor).Apply1(
                      R.BinaryOp(
                        [op],
@@ -681,13 +681,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         newtypeType,
         "",
         [ R.FnDecl(
+            "", [],
             R.PRIV,
             R.Fn(
               "partial_cmp", [],
               [R.Formal.selfBorrowed,
                R.Formal("other", R.SelfBorrowed)],
               Some(R.std.MSel("option").MSel("Option").AsType().Apply1(R.std.MSel("cmp").MSel("Ordering").AsType())),
-              "",
               Some(
                 R.std.MSel("cmp").MSel("PartialOrd").AsExpr().FSel("partial_cmp").Apply([
                                                                                           R.Borrow(R.self.Sel("0")),
