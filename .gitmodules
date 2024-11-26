@@ -1,3 +1,0 @@
-[submodule "boogie"]
-	path = boogie
-	url = git@github.com:keyboardDrummer/boogie.git
