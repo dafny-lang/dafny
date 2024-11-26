@@ -9,7 +9,8 @@ include "System.dfy"
 include "DafnyInterface.dfy"
 
 // Provided new Dafny code (trait Microsoft.Dafny.Formatting.IIndentationFormatter)
-module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
+@Options("-functionSyntax:4")
+module {:extern "Microsoft"} Microsoft {
   module {:extern "Dafny"} Dafny {
     module {:extern "Formatting"} Formatting {
       import opened MicrosoftDafny

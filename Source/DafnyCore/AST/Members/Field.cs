@@ -18,7 +18,8 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
     Contract.Invariant(!IsUserMutable || IsMutable);  // IsUserMutable ==> IsMutable
   }
 
-  public override IEnumerable<INode> Children => Type?.Nodes ?? Enumerable.Empty<INode>();
+  public override IEnumerable<INode> Children =>
+    (Type?.Nodes ?? Enumerable.Empty<INode>()).Concat(this.Attributes.AsEnumerable());
 
   public Field(IOrigin rangeToken, Name name, bool isGhost, Type type, Attributes attributes)
     : this(rangeToken, name, false, isGhost, true, true, type, attributes) {
@@ -41,6 +42,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetOpeningIndentedRegion(StartToken, indentBefore);
     formatter.SetIndentations(EndToken, below: indentBefore);
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
     var hasComma = OwnedTokens.Any(token => token.val == ",");
     switch (this) {
       case ConstantField constantField:

@@ -30,6 +30,7 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
     var typeArgumentIndent = indent2;
     var commaIndent = indent2;
     var rightIndent = indent2;
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
     foreach (var token in OwnedTokens) {
       switch (token.val) {
         case "type": {

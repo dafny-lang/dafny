@@ -10,13 +10,14 @@
 former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort */
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.Power {
   import opened DivMod
   import opened GeneralInternals
   import opened Mul
   import opened MulInternals
 
-  function {:opaque} Pow(b: int, e: nat): int
+  opaque function Pow(b: int, e: nat): int
     decreases e
   {
     if e == 0 then

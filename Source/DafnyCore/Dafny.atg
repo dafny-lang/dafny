@@ -539,7 +539,9 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   ]
   SYNC
   "{"                                            (. bodyStart = t;  .)
-    { (. dmod = new DeclModifierData(); .)
+    {
+      (. dmod = new DeclModifierData(); .)
+      AtAttributes<ref dmod.Attributes>
       { DeclModifier<ref dmod> }
       ClassMemberDecl<dmod, members, true, false>
     }
@@ -589,7 +591,8 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   | ellipsis                    (. isRefining = true; tokenWithTrailingDocString = t; .)
   ]
   "{"                                            (. bodyStart = t; .)
-    { (. dmod  = new DeclModifierData(); .)
+    { (. dmod = new DeclModifierData(); .)
+      AtAttributes<ref dmod.Attributes>
       { DeclModifier<ref dmod> }
       ClassMemberDecl<dmod, members, true, false>
     }
@@ -734,7 +737,6 @@ FieldDecl<.DeclModifierData dmod, List<MemberDecl> mm.>
 /*------------------------------------------------------------------------*/
 ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool moduleLevelDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
-     Attributes attrs = null;
      Type/*!*/ ty;
      Expression e = null;
      if (moduleLevelDecl && dmod.StaticToken != null) {
@@ -745,7 +747,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   .)
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
-  { Attribute<ref attrs> }
+  { Attribute<ref dmod.Attributes> }
   ( IF(!IsIdentifier(la.kind) && la.kind != _digits)
     (. SemErr(ErrorId.p_const_decl_missing_identifier, la, "expected an identifier after 'const' and any attributes"); .)
   |
@@ -756,7 +758,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(ErrorId.p_const_is_missing_type_or_init, name.StartToken, "a const declaration must have a type or a RHS value");
                                                 }
-                                                var c = new ConstantField(new RangeToken(dmod.FirstToken, t), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
+                                                var c = new ConstantField(new RangeToken(dmod.FirstToken, t), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, dmod.Attributes);
                                                 mm.Add(c);
                                              .)
     OldSemi                                  (. c.TokenWithTrailingDocString = t; .)
