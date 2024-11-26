@@ -722,7 +722,7 @@ namespace Microsoft.Dafny {
             ResolveExpression(e.Test, resolutionContext);
             ResolveExpression(e.Thn, resolutionContext);
             ResolveExpression(e.Els, resolutionContext);
-            e.Test.PreType = ConstrainResultToBoolFamily(e.Test.tok, "if-then-else test", "guard condition in if-then-else expression must be a boolean (instead got {0})");
+            ConstrainExpressionToBoolFamily(e.Test, "guard condition in if-then-else expression must be a boolean (instead got {0})");
             iteExpr.PreType = CreatePreTypeProxy("if-then-else branches");
             AddSubtypeConstraint(iteExpr.PreType, e.Thn.PreType, iteExpr.tok, "the two branches of an if-then-else expression must have the same type (got {0} and {1})");
             AddSubtypeConstraint(iteExpr.PreType, e.Els.PreType, iteExpr.tok, "the two branches of an if-then-else expression must have the same type (got {0} and {1})");

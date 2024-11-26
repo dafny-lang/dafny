@@ -21,7 +21,8 @@ class MyMap<K(==), V> {
   }
 }
 
-method {:test} TestMyMap() {
+@Test
+method TestMyMap() {
   var m := new MyMap<string, string>();
   m.Put("message", "Hello");
   var greeting := Greet(m);
@@ -32,7 +33,8 @@ method {:test} TestMyMap() {
   expect greeting == "Hello\nDafny\n";
 }
 
-method {:test} TestGetGreetingSuccess() {
+@Test
+method TestGetGreetingSuccess() {
   var m := new MyMap<string, string>();
   m.Put("message", "Hello");
   m.Put("name", "Dafny");
@@ -40,7 +42,8 @@ method {:test} TestGetGreetingSuccess() {
   expect greeting == Some("Hello Dafny");
 }
 
-method {:test} TestGetGreetingFailure() {
+@Test
+method TestGetGreetingFailure() {
   var m := new MyMap<string, string>();
   var greeting := GetGreeting(m);
   expect greeting == None;
@@ -80,7 +83,8 @@ method GetGreeting(m: MyMap<string, string>) returns (res: Option<string>) {
   res := Some(message + " " + name);
 }
 
-method {:test} TestOptionUtilities() {
+@Test
+method TestOptionUtilities() {
   var stringNone: Option<string> := None;
 
   expect Some("thing").GetOr("else") == "thing";
@@ -151,7 +155,8 @@ method CopyFile(fs: MyFilesystem, fromPath: string, toPath: string) returns (res
   res := Success(());
 }
 
-method {:test} TestMyFilesystem() {
+@Test
+method TestMyFilesystem() {
   var fs := new MyFilesystem();
   :- expect fs.CreateFile("test.txt");
   :- expect fs.WriteFile("test.txt", "Test dummy file");
@@ -163,7 +168,8 @@ method {:test} TestMyFilesystem() {
   expect result == Failure("File not found");
 }
 
-method {:test} TestResultUtilities() {
+@Test
+method TestResultUtilities() {
   var stringSuccess: Result<string, string> := Success("I found my keys!");
   var stringFailure: Result<string, string> := Failure("I can't find my keys!");
 
@@ -229,7 +235,8 @@ method whatIsCharacterFive'(fs: MyFilesystem, fromPath: string) returns (res: Ou
   return Pass;
 }
 
-method {:test} TestNeed() {
+@Test
+method TestNeed() {
   var fs := new MyFilesystem();
   :- expect fs.CreateFile("test.txt");
   :- expect fs.WriteFile("test.txt", "12345678910");
@@ -244,7 +251,8 @@ method {:test} TestNeed() {
   expect outcome.Fail? && outcome.error == "File contents not long enough.";
 }
 
-method {:test} TestOutcomeUtilities() {
+@Test
+method TestOutcomeUtilities() {
   var stringPass: Outcome<string> := Pass;
   var stringFail: Outcome<string> := Fail("I'm too tired");
 

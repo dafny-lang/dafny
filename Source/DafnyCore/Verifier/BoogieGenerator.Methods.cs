@@ -1916,7 +1916,7 @@ namespace Microsoft.Dafny {
       byte[] data;
       using (var writer = new System.IO.StringWriter()) {
         var printer = new Printer(writer, options);
-        printer.PrintAttributes(m.Attributes);
+        printer.PrintAttributes(m.Attributes, false, -1);
         printer.PrintFormals(m.Ins, m);
         if (m.Outs.Any()) {
           writer.Write("returns ");

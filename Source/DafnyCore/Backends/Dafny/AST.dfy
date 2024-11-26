@@ -115,6 +115,15 @@ module {:extern "DAST"} DAST {
           this
       }
     }
+
+    predicate IsPrimitiveInt() {
+      match this {
+        case Primitive(Int) => true
+        case UserDefined(ResolvedType(_, _, SynonymType(typ), _, _, _)) =>
+          typ.IsPrimitiveInt()
+        case _ => false
+      }
+    }
   }
 
   datatype Variance =
@@ -130,10 +139,30 @@ module {:extern "DAST"} DAST {
 
   datatype Primitive = Int | Real | String | Bool | Char | Native
 
-  // USIZE is for whatever target considers that native arrays can be indexed with
+
   datatype NewtypeRange =
-    | U8 | I8 | U16 | I16 | U32 | I32 | U64 | I64 | U128 | I128 | USIZE | BigInt
+    | U8(overflow: bool) // Whether arithmetic operations can overflow and wrap
+    | I8(overflow: bool)
+    | U16(overflow: bool)
+    | I16(overflow: bool)
+    | U32(overflow: bool)
+    | I32(overflow: bool)
+    | U64(overflow: bool)
+    | I64(overflow: bool)
+    | U128(overflow: bool)
+    | I128(overflow: bool)
+    | NativeArrayIndex
+    | BigInt
+    | Bool
     | NoRange
+  {
+    predicate CanOverflow() {
+      (U8? || I8? || U16? || I16? || U32? || I32? || U64? || I64? || U128? || I128?) && overflow
+    }
+    predicate HasArithmeticOperations() {
+      !Bool?// To change when newtypes will have sequences and sets as ranges.
+    }
+  }
 
   datatype Attribute = Attribute(name: string, args: seq<string>)
 
@@ -147,6 +176,7 @@ module {:extern "DAST"} DAST {
     | Class()
     | Datatype(variances: seq<Variance>)
     | Trait()
+    | SynonymType(baseType: Type)
     | Newtype(baseType: Type, range: NewtypeRange, erase: bool)
 
   datatype ResolvedType = ResolvedType(
@@ -190,7 +220,8 @@ module {:extern "DAST"} DAST {
     Newtype(
       name: Name, typeParams: seq<TypeArgDecl>, base: Type,
       range: NewtypeRange, constraint: Option<NewtypeConstraint>,
-      witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>)
+      witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>,
+      classItems: seq<ClassItem>)
 
   datatype NewtypeConstraint = NewtypeConstraint(variable: Formal, constraintStmts: seq<Statement>)
 
@@ -200,7 +231,7 @@ module {:extern "DAST"} DAST {
 
   datatype ClassItem = Method(Method)
 
-  datatype Field = Field(formal: Formal, isConstant: bool, defaultValue: Option<Expression>)
+  datatype Field = Field(formal: Formal, isConstant: bool, defaultValue: Option<Expression>, isStatic: bool)
 
   datatype Formal = Formal(name: VarName, typ: Type, attributes: seq<Attribute>)
 
@@ -250,13 +281,16 @@ module {:extern "DAST"} DAST {
 
   datatype CollKind = Seq | Array | Map
 
+  datatype TypedBinOp =
+    TypedBinOp(op: BinOp, leftType: Type, rightType: Type, resultType: Type)
+
   datatype BinOp =
     Eq(referential: bool) |
-    Div() | EuclidianDiv() |
+    Div(overflow: bool) | EuclidianDiv() |
     Mod() | EuclidianMod() |
     Lt() | // a <= b is !(b < a)
     LtChar() |
-    Plus() | Minus() | Times() |
+    Plus(overflow: bool) | Minus(overflow: bool) | Times(overflow: bool) |
     BitwiseAnd() | BitwiseOr() | BitwiseXor() |
     BitwiseShiftRight() | BitwiseShiftLeft() |
     And() | Or() |
@@ -295,7 +329,7 @@ module {:extern "DAST"} DAST {
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression, format1: Format.UnaryOpFormat) |
-    BinOp(op: BinOp, left: Expression, right: Expression, format2: Format.BinaryOpFormat) |
+    BinOp(op: TypedBinOp, left: Expression, right: Expression, format2: Format.BinaryOpFormat) |
     ArrayLen(expr: Expression, exprType: Type, dim: nat, native: bool) |
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
@@ -326,12 +360,15 @@ module {:extern "DAST"} DAST {
   // Since constant fields need to be set up in the constructor,
   // accessing constant fields is done in two ways:
   // - The internal field access (through the internal field that contains the value of the constant)
-  //   it's not initialized at the beginning of the constructor
+  //   it's not initialized at the beginning of the constructor.
   // - The external field access (through a function), which when accessed
-  //   must always be initialized
+  //   must always be initialized.
   // For Select expressions, it's important to know how the field is being accessed
   // For mutable fields, there is no wrapping function so only one way to access the mutable field
-  datatype FieldMutability = ConstantField | InternalClassConstantField  | ClassMutableField
+  datatype FieldMutability =
+    | ConstantField // Access a class constant field after initialization, or a datatype constant field
+    | InternalClassConstantFieldOrDatatypeDestructor // Access a class internal field before initialization, or a datatype destructor
+    | ClassMutableField
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
   datatype Literal =

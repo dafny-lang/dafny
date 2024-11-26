@@ -1015,6 +1015,10 @@ namespace Microsoft.Dafny {
 
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attributeHost.Attributes.AsEnumerable()) {
+        if (attr is UserSuppliedAtAttribute { Builtin: true } usaa) {
+          Contract.Assert(usaa.Arg.Type != null); // Already resolved
+          continue;
+        }
         if (attributeHost != null && attr is UserSuppliedAttributes usa) {
 #if TODO          
           usa.Recognized = resolver.IsRecognizedAttribute(usa, attributeHost); // TODO: this could be done in a later resolution pass

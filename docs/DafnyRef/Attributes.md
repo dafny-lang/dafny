@@ -174,7 +174,7 @@ Dafny does not perform sanity checks on the arguments---it is the user's respons
 
 For more detail on the use of `{:extern}`, see the corresponding [section](#sec-extern-decls) in the user's guide.
 
-### 11.1.5. `{:disable-nonlinear-arithmetic}` {#sec-disable-nonlinear-arithmetic}
+### 11.1.5. `{:disableNonlinearArithmetic}` {#sec-disable-nonlinear-arithmetic}
 This attribute only applies to module declarations. It overrides the global option `--disable-nonlinear-arithmetic` for that specific module. The attribute can be given true or false to disable or enable nonlinear arithmetic. When no value is given, the default value is true.
 
 ## 11.2. Attributes on functions and methods
@@ -1032,10 +1032,35 @@ Dafny rewrites `@`-attributes to old-style equivalent attributes. The definition
 <!-- %no-check -->
 ```dafny
 datatype Attribute =
-    Fuel(low: int, high: int := low + 1, functionName: string := "")
-  | Options(string)
+  | AutoContracts
+  | AutoRequires
+  | AutoRevealDependenciesAll
+  | AutoRevealDependencies
+  | Axiom
   | Compile(bool)
+  | Concurrent
+  | DisableNonlinearArithmetic
+  | Fuel(low: int, high: int := low + 1, functionName: string := "")
   | IsolateAssertions
+  | NativeUInt8 | NativeInt8 ... | NativeUInt128 | NativeInt128 | NativeInt | NativeNone | NativeIntOrReal
+  | Options(string)
+  | Print
+  | Priority(weight: int)
+  | ResourceLimit(value: string)
+  | Synthesize
+  | TimeLimit(amount: int)
+  | TimeLimitMultiplier(multiplier: int)
+  | TailRecursion
+  | Test
+  | TestEntry
+  | TestInline(amount: int)
+  | Transparent
+  | VcsMaxCost
+  | VcsMaxKeepGoingSplits
+  | VcsMaxSplits
+  | Verify(verify: bool)
+  | VerifyOnly
+  
 ```
 
 @-attributes have the same checks as regular resolved datatype values

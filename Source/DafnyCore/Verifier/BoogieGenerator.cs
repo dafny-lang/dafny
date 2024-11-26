@@ -1992,7 +1992,7 @@ namespace Microsoft.Dafny {
       using (var writer = new System.IO.StringWriter()) {
         var printer = new Printer(writer, options);
         writer.Write(f.GetFunctionDeclarationKeywords(options));
-        printer.PrintAttributes(f.Attributes);
+        printer.PrintAttributes(f.Attributes, false, -1);
         printer.PrintFormals(f.Ins, f);
         writer.Write(": ");
         printer.PrintType(f.ResultType);
