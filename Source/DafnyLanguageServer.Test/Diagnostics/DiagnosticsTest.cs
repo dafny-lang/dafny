@@ -1423,10 +1423,11 @@ predicate P(x: int)
   true
 }
 
-method {:isolate_assertions} TestIsolateAssertions() {
+@IsolateAssertions
+method TestIsolateAssertions(x: int) {
   hide *;
   reveal P;
-  assert P(6);
+  assert P(x);
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source, "HiddenFunctionHints.dfy");

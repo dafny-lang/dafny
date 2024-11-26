@@ -204,6 +204,9 @@ public abstract class TokenWrapper : IToken {
     return WrappedToken.CompareTo(other);
   }
 
+  /// <summary>
+  ///  Removes token wrappings from a given token, so that it returns the bare token
+  /// </summary>
   public static IToken Unwrap(IToken token, bool includeRanges = false) {
     if (token is TokenWrapper wrapper
         && (includeRanges || token is not RangeToken)) {
