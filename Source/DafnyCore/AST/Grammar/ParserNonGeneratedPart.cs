@@ -17,9 +17,9 @@ public partial class Parser {
     dummyExpr = new LiteralExpr(Token.NoToken);
     dummyRhs = new ExprRhs(dummyExpr);
     dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
-    dummyStmt = new ReturnStmt(Token.NoToken.ToRange(), null);
-    var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
-    dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
+    dummyStmt = new ReturnStmt(Token.NoToken, null);
+    var dummyBlockStmt = new BlockStmt(Token.NoToken, new List<Statement>());
+    dummyIfStmt = new IfStmt(Token.NoToken, false, null, dummyBlockStmt, null);
 
     theOptions = new DafnyOptions(options);
     theModule = new FileModuleDefinition(scanner.FirstToken);

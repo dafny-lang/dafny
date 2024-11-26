@@ -762,7 +762,7 @@ namespace Microsoft.Dafny {
           TypeApplicationJustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp)),
           Type = new InferredTypeProxy()
         };
-        var recursiveCall = new CallStmt(m.tok.ToRange(), new List<Expression>(), methodSel, recursiveCallArgs) {
+        var recursiveCall = new CallStmt(m.tok, new List<Expression>(), methodSel, recursiveCallArgs) {
           IsGhost = m.IsGhost
         };
 

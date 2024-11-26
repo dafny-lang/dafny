@@ -2858,11 +2858,11 @@ Guard<out Expression e>   /* null represents demonic-choice */
 BindingGuard<out Expression e, bool allowLambda>
 = (. var bvars = new List<BoundVar>();
      BoundVar bv;  
-     IOrigin x;
+     Token x;
      Attributes attrs = null;
      Expression body;
   .)
-  IdentTypeOptional<out bv>                    (. bvars.Add(bv); x = bv.tok; .)
+  IdentTypeOptional<out bv>                    (. bvars.Add(bv); x = (Token)bv.tok; .)
   { ","
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }

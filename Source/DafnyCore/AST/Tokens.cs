@@ -9,6 +9,8 @@ namespace Microsoft.Dafny;
 
 public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
 
+  public bool InclusiveEnd => EndToken != null;
+  
   Token StartToken { get; }
   Token EndToken { get; }
   public bool ContainsRange { get; }
@@ -150,6 +152,26 @@ public class Token : IOrigin {
 public static class TokenExtensions {
   
 
+  public static DafnyRange ToDafnyRange(this IOrigin origin, bool includeTrailingWhitespace = false) {
+    var startLine = origin.StartToken.line - 1;
+    var startColumn = origin.StartToken.col - 1;
+    var endLine = origin.EndToken.line - 1;
+    int whitespaceOffset = 0;
+    if (includeTrailingWhitespace) {
+      string trivia = origin.EndToken.TrailingTrivia;
+      // Don't want to remove newlines or comments -- just spaces and tabs
+      while (whitespaceOffset < trivia.Length && (trivia[whitespaceOffset] == ' ' || trivia[whitespaceOffset] == '\t')) {
+        whitespaceOffset++;
+      }
+    }
+
+    var endColumn = origin.EndToken.col + (origin.InclusiveEnd ? origin.EndToken.val.Length : 0) + whitespaceOffset - 1;
+    return new DafnyRange(
+      new DafnyPosition(startLine, startColumn),
+      new DafnyPosition(endLine, endColumn));
+  }
+  
+
   public static bool Contains(this IOrigin origin, IOrigin otherToken) {
     return origin.StartToken.Uri == otherToken.Uri &&
            origin.StartToken.pos <= otherToken.pos &&
@@ -204,10 +226,6 @@ public static class TokenExtensions {
     };
 
     return $"{filename}({tok.line},{tok.col - 1})";
-  }
-
-  public static IOrigin ToRange(this IOrigin token) {
-    return token;
   }
 
   public static IOrigin Unwrap(this IOrigin token) {

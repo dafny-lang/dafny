@@ -142,9 +142,9 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
-    var variable = new LocalVariable(tok.ToRange(), name, type, false);
+    var variable = new LocalVariable(tok, name, type, false);
     variable.type = type;
-    return new VarDeclStmt(tok.ToRange(), Util.Singleton(variable), null);
+    return new VarDeclStmt(tok, Util.Singleton(variable), null);
   }
 
   /// <summary>

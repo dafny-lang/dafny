@@ -456,7 +456,7 @@ The currently defined type characteristics are designated by `==` (equality - su
 ".TrimStart(), range =>
     range.Prev.val == "," ?
       new List<DafnyAction> {
-      OneAction("remove comma", range.Prev.ToRange(), ""),
+      OneAction("remove comma", (IOrigin)range.Prev, ""),
       OneAction("insert '=='", range, "==" + range.PrintOriginal()),
       OneAction("insert '0'", range, "0" + range.PrintOriginal()),
       OneAction("insert '00'", range, "00" + range.PrintOriginal()),

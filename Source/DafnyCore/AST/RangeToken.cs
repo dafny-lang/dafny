@@ -13,25 +13,6 @@ public class RangeToken : IOrigin {
 
   public bool InclusiveEnd => endToken != null;
 
-  public DafnyRange ToDafnyRange(bool includeTrailingWhitespace = false) {
-    var startLine = StartToken.line - 1;
-    var startColumn = StartToken.col - 1;
-    var endLine = EndToken.line - 1;
-    int whitespaceOffset = 0;
-    if (includeTrailingWhitespace) {
-      string trivia = EndToken.TrailingTrivia;
-      // Don't want to remove newlines or comments -- just spaces and tabs
-      while (whitespaceOffset < trivia.Length && (trivia[whitespaceOffset] == ' ' || trivia[whitespaceOffset] == '\t')) {
-        whitespaceOffset++;
-      }
-    }
-
-    var endColumn = EndToken.col + (InclusiveEnd ? EndToken.val.Length : 0) + whitespaceOffset - 1;
-    return new DafnyRange(
-      new DafnyPosition(startLine, startColumn),
-      new DafnyPosition(endLine, endColumn));
-  }
-
   public RangeToken(Token startToken, Token endToken) {
     StartToken = startToken;
     Centre = startToken; // TODO update

@@ -4271,7 +4271,7 @@ namespace Microsoft.Dafny {
           // extend defaultTypeArguments, if needed
           for (int i = defaultTypeArguments.Count; i < n; i++) {
             var parentToken = option.Parent.Tok;
-            var tp = new TypeParameter(parentToken.ToRange(), new Name(parentToken.ToRange(), "_T" + i), i, option.Parent);
+            var tp = new TypeParameter(parentToken, new Name(parentToken, "_T" + i), i, option.Parent);
             if (option.Parent is IteratorDecl) {
               tp.Characteristics.AutoInit = Type.AutoInitInfo.CompilableValue;
             }
