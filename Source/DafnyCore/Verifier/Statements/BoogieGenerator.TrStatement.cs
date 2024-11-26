@@ -121,10 +121,10 @@ public partial class BoogieGenerator {
       foreach (var p in iter.YieldEnsures) {
         var ss = TrSplitExpr(builder.Context, p.E, yeEtran, true, out var splitHappened);
         foreach (var split in ss) {
-          if (RefinementToken.IsInherited(split.Tok, currentModule)) {
+          if (RefinementOrigin.IsInherited(split.Tok, currentModule)) {
             // this postcondition was inherited into this module, so just ignore it
           } else if (split.IsChecked) {
-            var yieldToken = new NestedToken(s.Tok, split.Tok);
+            var yieldToken = new NestedOrigin(s.Tok, split.Tok);
             var desc = new YieldEnsures(fieldSub.Substitute(p.E));
             builder.Add(AssertAndForget(builder.Context, yieldToken, split.E, desc, stmt.Tok, null));
           }

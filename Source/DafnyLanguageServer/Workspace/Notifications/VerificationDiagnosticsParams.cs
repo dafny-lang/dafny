@@ -598,7 +598,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       var tok = assertion.tok;
       var result = new List<Range>();
-      while (tok is NestedToken nestedToken) {
+      while (tok is NestedOrigin nestedToken) {
         tok = nestedToken.Inner;
         if (tok.filename == assertion.tok.filename) {
           result.Add(tok.GetLspRange());

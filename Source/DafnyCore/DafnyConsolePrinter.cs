@@ -106,7 +106,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
       }
     }
 
-    if (tok is NestedToken nestedToken) {
+    if (tok is NestedOrigin nestedToken) {
       ReportBplError(nestedToken.Inner, "Related location", false, tw);
     }
   }

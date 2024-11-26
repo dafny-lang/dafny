@@ -87,8 +87,8 @@ public class RangeToken : IOrigin {
 
   public bool IsValid => Centre.IsValid;
 
-  public BoogieRangeToken ToToken() {
-    return new BoogieRangeToken(StartToken, EndToken, null);
+  public BoogieRangeOrigin ToToken() {
+    return new BoogieRangeOrigin(StartToken, EndToken, null);
   }
 
   public int CompareTo(IToken other) {

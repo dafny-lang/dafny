@@ -62,9 +62,9 @@ public partial class BoogieGenerator {
     var caller = new List<Expr>();
     var oldExpressions = new List<Expression>();
     var newExpressions = new List<Expression>();
-    if (RefinementToken.IsInherited(tok, currentModule) && contextDecreases.All(e => !RefinementToken.IsInherited(e.tok, currentModule))) {
+    if (RefinementOrigin.IsInherited(tok, currentModule) && contextDecreases.All(e => !RefinementOrigin.IsInherited(e.tok, currentModule))) {
       // the call site is inherited but all the context decreases expressions are new
-      tok = new ForceCheckToken(tok);
+      tok = new ForceCheckOrigin(tok);
     }
     for (int i = 0; i < N; i++) {
       Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
@@ -81,7 +81,7 @@ public partial class BoogieGenerator {
       }
       oldExpressions.Add(e1);
       newExpressions.Add(e0direct);
-      toks.Add(new NestedToken(tok, e1.tok));
+      toks.Add(new NestedOrigin(tok, e1.tok));
       callee.Add(etranCurrent.TrExpr(e0));
       caller.Add(etranCurrent.TrExpr(e1));
     }

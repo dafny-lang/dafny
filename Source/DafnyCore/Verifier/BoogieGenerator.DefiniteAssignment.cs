@@ -111,10 +111,10 @@ namespace Microsoft.Dafny {
       if (flags.ReportRanges) {
         // Filter against IHasUsages to only select declarations, not usages.
         if (node is IHasNavigationToken declarationOrUsage && node is not IHasReferences) {
-          return new BoogieRangeToken(node.StartToken, node.EndToken, declarationOrUsage.NavigationToken);
+          return new BoogieRangeOrigin(node.StartToken, node.EndToken, declarationOrUsage.NavigationToken);
         }
 
-        return new BoogieRangeToken(node.StartToken, node.EndToken, node.Tok);
+        return new BoogieRangeOrigin(node.StartToken, node.EndToken, node.Tok);
       } else {
         // The commented line is what we want, but it changes what is translated.
         // Seems to relate to refinement and possibly RefinementToken.IsInherited and or ForceCheckToken

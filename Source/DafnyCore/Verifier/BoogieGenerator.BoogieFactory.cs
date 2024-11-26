@@ -882,7 +882,7 @@ namespace Microsoft.Dafny {
     }
 
     public static IOrigin ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
-      if (boogieToken is BoogieRangeToken boogieRangeToken) {
+      if (boogieToken is BoogieRangeOrigin boogieRangeToken) {
         if (!reportRanges && boogieRangeToken.Center is not null) {
           return boogieRangeToken.Center;
         }

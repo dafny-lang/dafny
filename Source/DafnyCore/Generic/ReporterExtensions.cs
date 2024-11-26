@@ -29,7 +29,7 @@ public static class ErrorReporterExtensions {
       error.Msg += "\n" + $"Related counterexample:\n{counterexampleModel}";
     }
 
-    if (error.Tok is NestedToken { Inner: var innerToken, Message: var msg }) {
+    if (error.Tok is NestedOrigin { Inner: var innerToken, Message: var msg }) {
       relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, msg, usingSnippets));
     }
 
@@ -38,7 +38,7 @@ public static class ErrorReporterExtensions {
     var tokens = new[] { dafnyToken }.Concat(relatedInformation.Select(i => i.Token)).ToList();
     IOrigin previous = tokens.Last();
     foreach (var (inner, outer) in relatedInformation.Zip(tokens).Reverse()) {
-      previous = new NestedToken(outer, previous, inner.Message);
+      previous = new NestedOrigin(outer, previous, inner.Message);
     }
     reporter.Message(MessageSource.Verifier, ErrorLevel.Error, null, previous, error.Msg);
   }
@@ -53,7 +53,7 @@ public static class ErrorReporterExtensions {
   }
 
   public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IOrigin token, string? message, bool usingSnippets) {
-    var (tokenForMessage, inner, newMessage) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
+    var (tokenForMessage, inner, newMessage) = token is NestedOrigin nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
     var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
     if (!usingSnippets && dafnyToken is RangeToken rangeToken) {
       if (message == PostConditionFailingMessage) {

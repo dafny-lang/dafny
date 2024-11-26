@@ -257,7 +257,7 @@ public class Compilation : IDisposable {
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
-    if (task.ScopeToken is RefinementToken refinementToken) {
+    if (task.ScopeToken is RefinementOrigin refinementToken) {
       prefix += "." + refinementToken.InheritingModule.Name;
     }
 

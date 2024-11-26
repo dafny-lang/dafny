@@ -50,7 +50,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     }
 
     var innerToken = tok;
-    while (innerToken is NestedToken nestedToken) {
+    while (innerToken is NestedOrigin nestedToken) {
       innerToken = nestedToken.Inner;
       if (innerToken.Filepath == nestedToken.Filepath &&
           innerToken.line == nestedToken.line &&

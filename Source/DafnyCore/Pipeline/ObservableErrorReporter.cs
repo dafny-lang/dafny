@@ -34,7 +34,7 @@ namespace Microsoft.Dafny {
       var relatedInformation = new List<DafnyRelatedInformation>();
 
       var usingSnippets = Options.Get(Snippets.ShowSnippets);
-      if (rootTok is NestedToken nestedToken) {
+      if (rootTok is NestedOrigin nestedToken) {
         relatedInformation.AddRange(
           ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
             nestedToken.Inner, nestedToken.Message, usingSnippets)

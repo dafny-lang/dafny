@@ -1,15 +1,14 @@
-using System;
 using System.Diagnostics;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-class TokenSourceOrigin : TokenWrapper {
-  private TokenNode node;
+class OriginWithComputedRange : OriginWrapper {
+  private readonly TokenNode node;
 
   private RangeToken rangeToken;
 
-  public TokenSourceOrigin(Token center, TokenNode node) : base(center) {
+  public OriginWithComputedRange(IOrigin center, TokenNode node) : base(center) {
     this.node = node;
   }
 
@@ -17,8 +16,8 @@ class TokenSourceOrigin : TokenWrapper {
     get {
       if (rangeToken == null) {
 
-        var startTok = (Token)WrappedOrigin;
-        var endTok = (Token)WrappedOrigin;
+        var startTok = Center;
+        var endTok = Center;
 
         void UpdateStartEndToken(Token token1) {
           if (token1.Filepath != WrappedOrigin.Filepath) {
@@ -65,12 +64,8 @@ class TokenSourceOrigin : TokenWrapper {
   }
 
   public override IOrigin WithVal(string newVal) {
-    return new TokenSourceOrigin(Center.WithVal(newVal), node);
+    return new OriginWithComputedRange(Center.WithVal(newVal), node);
   }
-
-  public Token Center => (Token)WrappedOrigin;
-  public Token StartToken => RangeToken.StartToken;
-  public Token EndToken => RangeToken.StartToken;
 }
 
 public abstract class TokenNode : Node {
@@ -79,17 +74,17 @@ public abstract class TokenNode : Node {
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
   internal Token[] FormatTokens = null;
 
-  protected IOrigin rangeToken = null;
+  protected IOrigin rangeToken;
 
-  public IOrigin tok = Token.NoToken; // TODO rename to center?
+  public IOrigin tok = Token.NoToken; // TODO rename to center
 
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
   public override IOrigin Tok => tok;
 
   public override IOrigin RangeToken { 
     // TODO do not create new RangeToken.
-    set => ((TokenSourceOrigin)tok.Unwrap()).RangeToken = new RangeToken(value.StartToken, value.EndToken);
+    set => rangeToken = new RangeToken(value.StartToken, value.EndToken);
   }
-  public override IOrigin Origin => tok;
-
+  
+  public override IOrigin Origin => new OriginWithComputedRange(tok, this);
 }

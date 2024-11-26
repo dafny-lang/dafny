@@ -54,7 +54,7 @@ public static class ShouldCompileOrVerify {
   }
 
   public static bool FromIncludeDirective(this IOrigin token, CompilationData outerModule) {
-    if (token is RefinementToken) {
+    if (token is RefinementOrigin) {
       return false;
     }
 

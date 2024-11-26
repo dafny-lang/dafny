@@ -3,10 +3,10 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class TokenWrapper : IOrigin {
+public abstract class OriginWrapper : IOrigin {
 
   public readonly IOrigin WrappedOrigin;
-  protected TokenWrapper(IOrigin wrappedOrigin) {
+  protected OriginWrapper(IOrigin wrappedOrigin) {
     Contract.Requires(wrappedOrigin != null);
     WrappedOrigin = wrappedOrigin;
   }
