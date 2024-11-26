@@ -9,6 +9,7 @@ public class RangeToken : IOrigin {
   public Token StartToken { get; private set; }
   public Token Centre { get; private set; }
 
+  
   public Token EndToken => endToken ?? StartToken;
   public bool ContainsRange => true;
 

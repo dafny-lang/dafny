@@ -9,6 +9,8 @@ public abstract class RangeNode : Node { // TODO merge into Node when TokenNode 
   // TODO rename to Range in separate PR
   public override IOrigin RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
 
+  public override IOrigin Origin => RangeToken;
+
   protected RangeNode(Cloner cloner, RangeNode original) {
     RangeToken = cloner.Tok(original.RangeToken);
   }

@@ -105,6 +105,7 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   public bool SingleFileToken => CwInner.SingleFileToken;
   public Token Center => CwInner.Center;
   public IEnumerable<IOrigin> OwnedTokens => CwInner.OwnedTokens;
+  public IOrigin Origin => CwInner.Origin;
   public IOrigin RangeToken => CwInner.RangeToken;
   public IOrigin NavigationToken => CwInner.NavigationToken;
   public SymbolKind? Kind => CwInner.Kind;

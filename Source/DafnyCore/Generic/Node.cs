@@ -102,6 +102,8 @@ public abstract class Node : INode {
     }
   }
 
+  public abstract IOrigin Origin { get; }
+
   /// <summary>
   // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
   // Therefore, we have to find all the concrete children by unwrapping such nodes. 
