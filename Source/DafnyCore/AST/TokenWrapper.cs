@@ -18,6 +18,7 @@ public abstract class TokenWrapper : IOrigin {
     set => WrappedOrigin.col = value;
   }
 
+  public Token Center => WrappedOrigin.Center;
   public Token StartToken => WrappedOrigin.StartToken;
   public Token EndToken => WrappedOrigin.EndToken;
   public bool ContainsRange => WrappedOrigin.ContainsRange;

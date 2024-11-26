@@ -9,7 +9,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
   public readonly List<Statement> Body;
   public Attributes Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "match statement case";
-  public NestedMatchCaseStmt(RangeToken rangeToken, ExtendedPattern pat, List<Statement> body) : base(rangeToken.StartToken, pat) {
+  public NestedMatchCaseStmt(IOrigin rangeToken, ExtendedPattern pat, List<Statement> body) : base(rangeToken.StartToken, pat) {
     RangeToken = rangeToken;
     Contract.Requires(body != null);
     this.Body = body;

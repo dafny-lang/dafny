@@ -5,6 +5,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public class RangeToken : IOrigin {
+  public Token Center => StartToken; // TODO change to [optional] field
   public Token StartToken { get; private set; }
   public Token Centre { get; private set; }
 

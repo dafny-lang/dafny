@@ -23,6 +23,7 @@ public abstract class Node : INode {
   protected IReadOnlyList<IOrigin> OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
+  public Token Center => Tok.Center;
   public Token StartToken => RangeToken?.StartToken;
 
   public Token EndToken => RangeToken?.EndToken;
@@ -43,7 +44,7 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<INode> PreResolveChildren { get; }
 
-  public IEnumerable<IOrigin> CoveredTokens {
+  public IEnumerable<Token> CoveredTokens {
     get {
       var token = StartToken;
       if (token == Token.NoToken) {

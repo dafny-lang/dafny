@@ -22,8 +22,8 @@ public abstract class TokenNode : Node {
     get {
       if (rangeToken == null) {
 
-        var startTok = (Token)tok.Unwrap();
-        var endTok = tok.Unwrap();
+        var startTok = Center;
+        var endTok = Center;
 
         void UpdateStartEndToken(Token token1) {
           if (token1.Filepath != tok.Filepath) {

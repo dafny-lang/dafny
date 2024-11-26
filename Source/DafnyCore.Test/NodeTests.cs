@@ -11,7 +11,7 @@ public class NodeTests {
       Children = children ?? Enumerable.Empty<INode>();
     }
 
-    public override RangeToken RangeToken { get; set; }
+    public override IOrigin RangeToken { get; set; }
     public override IOrigin Tok => RangeToken.StartToken;
     public override IEnumerable<INode> Children { get; }
     public override IEnumerable<INode> PreResolveChildren => Children;

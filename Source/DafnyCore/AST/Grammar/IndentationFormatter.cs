@@ -47,11 +47,11 @@ public class IndentationFormatter : IIndentationFormatter {
 
   #region Override for implementing IIndentationFormatter
 
-  public string GetNewLeadingTrivia(IOrigin token) {
+  public string GetNewLeadingTrivia(Token token) {
     return GetNewTrivia(token, false);
   }
 
-  public string GetNewTrailingTrivia(IOrigin token) {
+  public string GetNewTrailingTrivia(Token token) {
     return GetNewTrivia(token, true);
   }
 

@@ -15,10 +15,10 @@ using System.Collections;
 namespace Formatting {
 
   public partial class __default {
-    public static System.String ReindentProgramFromFirstToken(Microsoft.Dafny.IOrigin firstToken, Formatting.IIndentationFormatter reindent)
+    public static System.String ReindentProgramFromFirstToken(Microsoft.Dafny.Token firstToken, Formatting.IIndentationFormatter reindent)
     {
       System.String s = default(System.String);
-      Microsoft.Dafny.IOrigin _0_token;
+      Microsoft.Dafny.Token _0_token;
       _0_token = firstToken;
       System.Text.StringBuilder _1_sb;
       System.Text.StringBuilder _nw0 = new System.Text.StringBuilder();
@@ -41,8 +41,8 @@ namespace Formatting {
   }
 
   public interface IIndentationFormatter {
-    System.String GetNewLeadingTrivia(Microsoft.Dafny.IOrigin token);
-    System.String GetNewTrailingTrivia(Microsoft.Dafny.IOrigin token);
+    System.String GetNewLeadingTrivia(Microsoft.Dafny.Token token);
+    System.String GetNewTrailingTrivia(Microsoft.Dafny.Token token);
   }
   public class _Companion_IIndentationFormatter {
   }

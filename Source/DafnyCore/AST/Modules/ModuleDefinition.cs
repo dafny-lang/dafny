@@ -69,7 +69,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
   public readonly List<Token> PrefixIds; // The qualified module name, except the last segment when a
-                                          // nested module declaration is outside its enclosing module
+                                         // nested module declaration is outside its enclosing module
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public Attributes Attributes { get; set; }
   public string WhatKind => "module definition";
@@ -158,7 +158,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  public ModuleDefinition(RangeToken tok, Name name, List<Token> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
+  public ModuleDefinition(IOrigin tok, Name name, List<Token> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
     Implements implements, ModuleDefinition parent, Attributes attributes) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);

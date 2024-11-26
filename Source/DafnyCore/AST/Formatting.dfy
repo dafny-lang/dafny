@@ -20,11 +20,11 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
       trait IIndentationFormatter {
         // Given the current indentation at this point
         // returns the leading trivia but with its indentation corrected.
-        function GetNewLeadingTrivia(token: IToken): CsString
+        function GetNewLeadingTrivia(token: Token): CsString
 
         // Given the current indentation at this point
         // returns the trailing trivia but with its indentation corrected.
-        function GetNewTrailingTrivia(token: IToken): CsString
+        function GetNewTrailingTrivia(token: Token): CsString
       }
 
       lemma IsAllocated<T>(x: T)

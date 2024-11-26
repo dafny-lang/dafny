@@ -2777,10 +2777,10 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in cl.Members) {
         Contract.Assert(VisibleInScope(member));
         if (member.HasUserAttribute("only", out var attribute)) {
-          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.RangeToken.ToToken(),
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.RangeToken,
             "Members with {:only} temporarily disable the verification of other members in the entire file");
           if (attribute.Args.Count >= 1) {
-            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].RangeToken.ToToken(),
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].RangeToken,
               "{:only} on members does not support arguments");
           }
         }
@@ -5049,7 +5049,7 @@ namespace Microsoft.Dafny {
     /// desugaring during resolution, because then the desugaring can be constructed as a non-resolved expression on which ResolveExpression
     /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
-    (Expression, Expression) ResolveDatatypeUpdate(IOrigin tok, Expression root, DatatypeDecl dt, List<Tuple<IOrigin, string, Expression>> memberUpdates,
+    (Expression, Expression) ResolveDatatypeUpdate(IOrigin tok, Expression root, DatatypeDecl dt, List<Tuple<Token, string, Expression>> memberUpdates,
       ResolutionContext resolutionContext, out List<MemberDecl> members, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
@@ -5893,7 +5893,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = Options.Get(Snippets.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
+                var tok = Options.Get(Snippets.ShowSnippets) ? e.RangeToken : e.tok;
                 var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
@@ -5916,7 +5916,7 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.Tok, callee.Name, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
+            var rr = new FunctionCallExpr(e.Lhs.Tok, callee.Name, mse.Obj, Token.NoToken, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
               TypeApplication_AtEnclosingClass = mse.TypeApplicationAtEnclosingClass,
               TypeApplication_JustFunction = mse.TypeApplicationJustMember

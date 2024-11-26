@@ -37,7 +37,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Thn = thn;
     Els = els;
   }
-  public IfStmt(RangeToken rangeToken, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
+  public IfStmt(IOrigin rangeToken, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
     : base(rangeToken, attrs) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));

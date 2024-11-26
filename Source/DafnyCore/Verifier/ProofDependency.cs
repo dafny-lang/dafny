@@ -75,8 +75,8 @@ public class AssumedProofObligationDependency : ProofDependency {
 
   public AssumedProofObligationDependency(IOrigin tok, ProofObligationDescription proofObligation) {
     var unwrapped = tok.Unwrap();
-    Range = unwrapped as RangeToken 
-      ?? ((proofObligation as AssertStatementDescription)?.AssertStatement.RangeToken 
+    Range = unwrapped as RangeToken
+      ?? ((proofObligation as AssertStatementDescription)?.AssertStatement.RangeToken
          ?? new RangeToken((Token)unwrapped, (Token)unwrapped));
     ProofObligation = proofObligation;
   }
