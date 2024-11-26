@@ -69,8 +69,6 @@ trait TestTrait {}
 
 predicate TestPredicate() { false }", "test-workspace-symbols.dfy", false);
 
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-
       var testSymbols = new List<string> {
         "TestClass",
         "TestModule",

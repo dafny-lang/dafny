@@ -16,8 +16,8 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   public IOrigin TokenWithTrailingDocString = Token.NoToken;
   public Name NameNode;
 
-  public override IOrigin Tok => NameNode.StartToken;
-  public virtual IOrigin NavigationToken => NameNode.StartToken;
+  public override IOrigin Tok => NameNode.Center;
+  public virtual IOrigin NavigationToken => NameNode.Origin;
 
   public string Name => NameNode.Value;
   public bool IsRefining;

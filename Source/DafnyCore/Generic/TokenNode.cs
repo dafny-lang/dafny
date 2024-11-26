@@ -84,7 +84,8 @@ public abstract class TokenNode : Node {
 
   public override IOrigin RangeToken { 
     // TODO do not create new RangeToken.
-    set => rangeToken = new RangeToken(value.StartToken, value.EndToken);
+    // Let IOrigin also get a RangeToken.
+    set => rangeToken = value == null ? null : new RangeToken(value.StartToken, value.EndToken);
   }
   
   public override IOrigin Origin => new OriginWithComputedRange(tok, this);

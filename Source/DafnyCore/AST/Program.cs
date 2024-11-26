@@ -110,7 +110,7 @@ public class Program : TokenNode {
 
   /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
   /// (skips included tokens)
-  public IOrigin GetStartOfFirstFileToken() {
+  public Token GetStartOfFirstFileToken() {
     return GetFirstTokenForUri(Compilation.RootSourceUris[0]);
   }
 
