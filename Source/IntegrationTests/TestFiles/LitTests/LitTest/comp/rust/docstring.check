@@ -1,0 +1,11 @@
+// CHECK: .*Docstring for test method.*
+// CHECK: .*Docstring for functions.*
+// CHECK: .*Docstring for classes 1.*
+// CHECK: .*Docstring for datatype.*
+// CHECK: .*Docstring for Constructor1.*
+// CHECK: .*Docstring for Constructor2.*
+// CHECK: .*Docstring for synonym type.*
+// CHECK: .*Docstring for module.*
+// CHECK: .*Docstring for classes 2.*
+// CHECK: .*Docstring for const.*
+// CHECK: .*Docstring for predicate.*
