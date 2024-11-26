@@ -127,6 +127,19 @@ module All {
     r := Some(true);
   }
 
+  datatype ObjectContainer = ObjectContainer(y: Y<int>)
+
+  method ParameterBorrows(y: Y<int>, o: ObjectContainer) { // y is borrowed
+    var z: SubTrait<int, int> := y as SubTrait<int, int>;
+    var p: SuperTrait := y;
+    var y2 := o.y; // y2 is owned
+    ConsumeBorrows(y2 as SubTrait<int, int>);
+    ConsumeBorrows(y2 as SubTrait<int, int>);
+  }
+  method ConsumeBorrows(y: SubTrait<int, int>) {
+
+  }
+
   method Main() {
     var rts := Test(Some(2));
     expect rts == Some(true);
