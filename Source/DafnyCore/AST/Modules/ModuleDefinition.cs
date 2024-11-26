@@ -128,7 +128,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   public ModuleDefinition(Cloner cloner, ModuleDefinition original) : base(cloner, original) {
     NameNode = original.NameNode;
-    PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
+    PrefixIds = original.PrefixIds.ToList();
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     ModuleKind = original.ModuleKind;
@@ -634,7 +634,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
       var prefixNameModule = prefixNamedModules.First();
       var firstPartToken = prefixNameModule.Parts[0];
-      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IOrigin>(), ModuleKindEnum.Concrete,
+      var modDef = new ModuleDefinition(Dafny.RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IOrigin>(), ModuleKindEnum.Concrete,
         false, null, this, null);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 

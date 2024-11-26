@@ -33,7 +33,7 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
     Args = original.Args.Select(cloner.CloneExpr).ToList();
   }
 
-  public PrintStmt(RangeToken rangeToken, List<Expression> args)
+  public PrintStmt(IOrigin rangeToken, List<Expression> args)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(args));

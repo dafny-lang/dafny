@@ -130,7 +130,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
   /// If the first token on the line of the given token satisfies the given predicate.
   /// Used to detect commented cases or datatype constructors
-  public static bool FirstTokenOnLineIs(IOrigin token, Func<IOrigin, bool> predicate) {
+  public static bool FirstTokenOnLineIs(Token token, Func<Token, bool> predicate) {
     if (token.Prev == null || token.Prev.line != token.line) {
       return predicate(token);
     }

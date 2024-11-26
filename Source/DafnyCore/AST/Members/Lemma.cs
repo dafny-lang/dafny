@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 public class Lemma : Method {
   public override string WhatKind => "lemma";
   public override string WhatKindMentionGhost => WhatKind;
-  public Lemma(RangeToken rangeToken, Name name,
+  public Lemma(IOrigin rangeToken, Name name,
     bool hasStaticKeyword,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -30,7 +30,7 @@ public class TwoStateLemma : Method {
   public override string WhatKind => "twostate lemma";
   public override string WhatKindMentionGhost => WhatKind;
 
-  public TwoStateLemma(RangeToken rangeToken, Name name,
+  public TwoStateLemma(IOrigin rangeToken, Name name,
     bool hasStaticKeyword,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,

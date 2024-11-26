@@ -45,7 +45,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
     CloneId = original.CloneId;
   }
 
-  protected ModuleDecl(DafnyOptions options, RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
+  protected ModuleDecl(DafnyOptions options, IOrigin rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
     : base(rangeToken, name, parent, new List<TypeParameter>(), null, isRefining) {
     Options = options;
     Height = -1;

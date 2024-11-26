@@ -28,7 +28,7 @@ public class SpecialField : Field {
     : this(rangeToken, new Name(name), specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
   }
 
-  public SpecialField(RangeToken rangeToken, Name name, ID specialId, object idParam,
+  public SpecialField(IOrigin rangeToken, Name name, ID specialId, object idParam,
     bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
     : base(rangeToken, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
     Contract.Requires(rangeToken != null);
@@ -65,7 +65,7 @@ public class DatatypeDiscriminator : SpecialField {
     get { return "discriminator"; }
   }
 
-  public DatatypeDiscriminator(RangeToken rangeToken, Name name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
+  public DatatypeDiscriminator(IOrigin rangeToken, Name name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
     : base(rangeToken, name, specialId, idParam, false, isGhost, false, false, type, attributes) {
   }
 }
@@ -81,8 +81,8 @@ public class DatatypeDestructor : SpecialField {
     Contract.Invariant(EnclosingCtors.Count == CorrespondingFormals.Count);
   }
 
-  public DatatypeDestructor(RangeToken rangeToken, DatatypeCtor enclosingCtor, Formal correspondingFormal, Name name, string compiledName, bool isGhost, Type type, Attributes attributes)
-    : base(rangeToken, name, SpecialField.ID.UseIdParam, compiledName, false, isGhost, false, false, type, attributes) {
+  public DatatypeDestructor(IOrigin rangeToken, DatatypeCtor enclosingCtor, Formal correspondingFormal, Name name, string compiledName, bool isGhost, Type type, Attributes attributes)
+    : base(rangeToken, name, ID.UseIdParam, compiledName, false, isGhost, false, false, type, attributes) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(enclosingCtor != null);
     Contract.Requires(correspondingFormal != null);

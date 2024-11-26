@@ -37,7 +37,8 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
     this.Decreases = decreases;
     this.Mod = mod;
   }
-  public LoopStmt(RangeToken rangeToken, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
+
+  protected LoopStmt(IOrigin rangeToken, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
     : base(rangeToken, attrs) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(invariants));

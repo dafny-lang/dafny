@@ -12,7 +12,7 @@ public class PrefixLemma : Method {
 
   public readonly Formal K;
   public readonly ExtremeLemma ExtremeLemma;
-  public PrefixLemma(RangeToken rangeToken, Name name, bool hasStaticKeyword,
+  public PrefixLemma(IOrigin rangeToken, Name name, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
     List<AttributedExpression> req, [Captured] Specification<FrameExpression> reads,
     Specification<FrameExpression> mod, List<AttributedExpression> ens, Specification<Expression> decreases,

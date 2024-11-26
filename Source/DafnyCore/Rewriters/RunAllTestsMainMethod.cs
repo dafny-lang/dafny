@@ -186,7 +186,7 @@ public class RunAllTestsMainMethod : IRewriter {
 
           if (resultVarExpr?.Type is UserDefinedType udt && udt.ResolvedClass is TopLevelDeclWithMembers resultClass) {
             var failureGuardExpr =
-              new FunctionCallExpr(tok, "IsFailure", resultVarExpr, tok, tok, new List<Expression>());
+              new FunctionCallExpr(tok, "IsFailure", resultVarExpr, Token.NoToken, Token.NoToken, new List<Expression>());
             var isFailureMember = resultClass.Members.First(m => m.Name == "IsFailure");
             failureGuardExpr.Function = (Function)isFailureMember;
             failureGuardExpr.Type = Type.Bool;

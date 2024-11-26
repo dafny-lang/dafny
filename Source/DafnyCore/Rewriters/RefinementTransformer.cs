@@ -1070,7 +1070,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new RangeToken(new BoogieGenerator.ForceCheckToken(skel.RangeToken.StartToken), skel.RangeToken.EndToken),
+                body.Add(new AssertStmt(new BoogieGenerator.ForceCheckToken(skel.RangeToken),
                   e, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;

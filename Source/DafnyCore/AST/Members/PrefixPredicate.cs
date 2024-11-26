@@ -11,7 +11,7 @@ public class PrefixPredicate : Function {
   public override string WhatKindMentionGhost => WhatKind;
   public readonly Formal K;
   public readonly ExtremePredicate ExtremePred;
-  public PrefixPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword,
+  public PrefixPredicate(IOrigin rangeToken, Name name, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, Formal k, List<Formal> ins,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, ExtremePredicate extremePred)

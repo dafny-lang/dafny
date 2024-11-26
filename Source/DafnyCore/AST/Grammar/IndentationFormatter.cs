@@ -148,7 +148,7 @@ public class IndentationFormatter : IIndentationFormatter {
   ///   // One last word
   /// }
   /// ```
-  public string GetNewTrivia(IOrigin token, bool trailingTrivia) {
+  public string GetNewTrivia(Token token, bool trailingTrivia) {
     var precededByNewline = token.Prev != null && !trailingTrivia && TriviaFormatterHelper.EndsWithNewline(token.Prev.TrailingTrivia);
     if (token.val == "") {
       return trailingTrivia ? token.TrailingTrivia : token.LeadingTrivia;
@@ -297,7 +297,7 @@ public class IndentationFormatter : IIndentationFormatter {
     return Whitespace(currentIndent + relativeIndent - initialRelativeIndent) + result;
   }
 
-  private string ReIndentSingleLineComment(IOrigin token, string capturedComment, int originalCommentIndent,
+  private string ReIndentSingleLineComment(Token token, string capturedComment, int originalCommentIndent,
     int currentIndent, int newCommentIndent, Group caseCommented, ref bool previousMatchWasSingleLineCommentToAlign,
     ref string indentationBefore) {
     if (capturedComment.StartsWith("///") && !capturedComment.StartsWith("////")) {

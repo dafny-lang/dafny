@@ -782,8 +782,7 @@ namespace Microsoft.Dafny {
       var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
       var fn = new ApplySuffix(tok, null,
         new ExprDotName(tok, receiver, f.Name, f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter))),
-        new ActualBindings(f.Ins.ConvertAll(Expression.CreateIdentExpr)).ArgumentBindings,
-        tok);
+        new ActualBindings(f.Ins.ConvertAll(Expression.CreateIdentExpr)).ArgumentBindings, Token.NoToken);
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       Specification<FrameExpression> reads;
       if (Options.Get(Method.ReadsClausesOnMethods)) {
@@ -818,7 +817,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(moduleSignatures != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var module = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IOrigin>(), ModuleKindEnum.Abstract, true, null, null, null);
+      var module = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<Token>(), ModuleKindEnum.Abstract, true, null, null, null);
       module.Height = height;
       foreach (var kv in origin.TopLevels) {
         if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {

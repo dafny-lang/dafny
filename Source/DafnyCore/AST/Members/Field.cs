@@ -20,7 +20,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
 
   public override IEnumerable<INode> Children => Type?.Nodes ?? Enumerable.Empty<INode>();
 
-  public Field(RangeToken rangeToken, Name name, bool isGhost, Type type, Attributes attributes)
+  public Field(IOrigin rangeToken, Name name, bool isGhost, Type type, Attributes attributes)
     : this(rangeToken, name, false, isGhost, true, true, type, attributes) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);

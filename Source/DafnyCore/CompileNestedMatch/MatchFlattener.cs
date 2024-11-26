@@ -602,7 +602,7 @@ public class MatchFlattener : IRewriter {
     return new List<Statement>() { statement };
   }
 
-  private BlockStmt BlockStmtOfCStmt(RangeToken rangeToken, Statement stmt) {
+  private BlockStmt BlockStmtOfCStmt(IOrigin rangeToken, Statement stmt) {
     if (stmt is BlockStmt) {
       return (BlockStmt)stmt;
     }

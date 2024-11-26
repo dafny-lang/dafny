@@ -646,7 +646,7 @@ namespace Microsoft.Dafny {
                 var mem = recv as MemberSelectExpr;
                 var fn = mem == null ? null : mem.Member as Function;
                 if (fn != null) {
-                  return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.tok, e.CloseParen, e.Args) {
+                  return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, Token.NoToken, e.CloseParen, e.Args) {
                     Function = fn,
                     Type = e.Type,
                     TypeApplication_AtEnclosingClass = mem.TypeApplicationAtEnclosingClass,

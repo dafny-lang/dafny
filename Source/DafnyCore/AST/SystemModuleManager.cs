@@ -87,7 +87,7 @@ public class SystemModuleManager {
   }
 
   public SystemModuleManager(DafnyOptions options) {
-    SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IOrigin>(),
+    SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<Token>(),
       ModuleKindEnum.Concrete, false, null, null, null);
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
@@ -302,7 +302,7 @@ public class SystemModuleManager {
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
         (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
-      var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, tok, argExprs) {
+      var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), Token.NoToken, Token.NoToken, argExprs) {
         Type = ObjectSetType(),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
@@ -384,7 +384,7 @@ public class SystemModuleManager {
       TypeApplicationJustMember = new List<Type>(),
       Type = GetTypeOfFunction(member, tps.ConvertAll(tp => (Type)new UserDefinedType(tp)), new List<Type>())
     };
-    Expression body = new ApplyExpr(tok, fn, args, tok);
+    Expression body = new ApplyExpr(tok, fn, args, Token.NoToken);
     body.Type = member.ResultType;  // resolve here
     if (!total) {
       Expression emptySet = new SetDisplayExpr(tok, true, new List<Expression>());

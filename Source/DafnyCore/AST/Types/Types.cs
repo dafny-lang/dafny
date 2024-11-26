@@ -1897,8 +1897,8 @@ public class BitvectorType : BasicType {
 public class SelfType : NonProxyType {
   public TypeParameter TypeArg;
   public Type ResolvedType;
-  public SelfType() : base() {
-    TypeArg = new TypeParameter(RangeToken.NoToken, new Name("selfType"), TypeParameter.TPVarianceSyntax.NonVariant_Strict);
+  public SelfType() {
+    TypeArg = new TypeParameter(Dafny.RangeToken.NoToken, new Name("selfType"), TypeParameter.TPVarianceSyntax.NonVariant_Strict);
   }
 
   [System.Diagnostics.Contracts.Pure]

@@ -156,7 +156,7 @@ public static class TokenExtensions {
            (origin.EndToken == null || otherToken.pos <= origin.EndToken.pos);
   }
 
-  public static bool Intersects(this IOrigin origin, RangeToken other) {
+  public static bool Intersects(this IOrigin origin, IOrigin other) {
     return !(other.EndToken.pos + other.EndToken.val.Length <= origin.StartToken.pos
              || origin.EndToken.pos + origin.EndToken.val.Length <= other.StartToken.pos);
   }
@@ -206,15 +206,8 @@ public static class TokenExtensions {
     return $"{filename}({tok.line},{tok.col - 1})";
   }
 
-  public static RangeToken ToRange(this IOrigin token) {
-    if (token is BoogieRangeToken boogieRangeToken) {
-      return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
-    }
-
-    if (token is NestedToken nestedToken) {
-      return ToRange(nestedToken.Outer);
-    }
-    return token as RangeToken ?? new RangeToken(token, token);
+  public static IOrigin ToRange(this IOrigin token) {
+    return token;
   }
 
   public static IOrigin Unwrap(this IOrigin token) {
@@ -223,12 +216,6 @@ public static class TokenExtensions {
     }
 
     return token;
-  }
-  
-  public static TokenWrapper UpdateWrapped(this IOrigin token, Func<IOrigin, IOrigin> origin) {
-    if (token is TokenWrapper wrapper) {
-      
-    }
   }
 }
 
@@ -245,7 +232,7 @@ public class BoogieRangeToken : TokenWrapper {
   // Used for range reporting
   public override string val => new(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
 
-  public BoogieRangeToken(Token startTok, Token endTok, Token center) : base(
+  public BoogieRangeToken(Token startTok, Token endTok, IOrigin center) : base(
     center ?? startTok) {
     StartToken = startTok;
     EndToken = endTok;

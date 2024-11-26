@@ -2331,7 +2331,7 @@ AssignStatement<out Statement/*!*/ s>
      Expression e;
      AssignmentRhs r;
      BlockStmt proof = null;
-     Token x = Token.NoToken;
+     IOrigin x = Token.NoToken;
      Token endTok = Token.NoToken;
      Token startToken = Token.NoToken;
      Attributes attrs = null;
@@ -2557,11 +2557,11 @@ VarDeclStatement<.out Statement/*!*/ s.>
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
          foreach (var lhs in lhss) {
-           lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name) { RangeToken = new RangeToken(lhs.Tok, lhs.Tok) } );
+           lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name) { RangeToken = new RangeToken((Token)lhs.Tok, (Token)lhs.Tok) } );
          }
        } else { // not explicitly ghost, but with init - so auto-ghost
          foreach (var lhs in lhss) {
-           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name) { RangeToken = new RangeToken(lhs.Tok, lhs.Tok) } );
+           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name) { RangeToken = new RangeToken((Token)lhs.Tok, (Token)lhs.Tok) } );
          }
        }
        var rangeToken = new RangeToken(startToken, t);
@@ -2857,7 +2857,8 @@ Guard<out Expression e>   /* null represents demonic-choice */
 /*------------------------------------------------------------------------*/
 BindingGuard<out Expression e, bool allowLambda>
 = (. var bvars = new List<BoundVar>();
-     BoundVar bv;  Token x;
+     BoundVar bv;  
+     IOrigin x;
      Attributes attrs = null;
      Expression body;
   .)

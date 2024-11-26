@@ -154,7 +154,7 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     Context = context is null ? new HoleCtx() : context;
   }
 
-  public MatchStmt(RangeToken rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(IOrigin rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
     : base(rangeToken, attrs) {
     Contract.Requires(rangeToken != null);

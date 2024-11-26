@@ -86,7 +86,7 @@ public static class ErrorRegistry {
 
   public static RangeToken ExpandStart(RangeToken range, TokenPredicate pred, bool include) {
     var t = range.StartToken;
-    IOrigin p = null;
+    Token p = null;
     while (!pred(t)) {
       p = t;
       t = t.Prev;
@@ -99,7 +99,7 @@ public static class ErrorRegistry {
 
   public static RangeToken ExpandEnd(RangeToken range, TokenPredicate pred, bool include) {
     var t = range.EndToken;
-    IOrigin p = null;
+    Token p = null;
     while (!pred(t)) {
       p = t;
       t = t.Prev;
