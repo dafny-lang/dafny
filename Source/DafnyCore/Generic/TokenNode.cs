@@ -6,15 +6,16 @@ namespace Microsoft.Dafny;
 class OriginWithComputedRange : OriginWrapper {
   private readonly TokenNode node;
 
-  private RangeToken rangeToken;
-
   public OriginWithComputedRange(IOrigin center, TokenNode node) : base(center) {
     this.node = node;
   }
 
+  public override Token StartToken => RangeToken.StartToken;
+  public override Token EndToken => RangeToken.EndToken;
+
   public RangeToken RangeToken {
     get {
-      if (rangeToken == null) {
+      if (node.rangeToken == null) {
 
         var startTok = Center;
         var endTok = Center;
@@ -55,12 +56,12 @@ class OriginWithComputedRange : OriginWrapper {
           }
         }
 
-        rangeToken = new RangeToken(startTok, endTok);
+        node.rangeToken = new RangeToken(startTok, endTok);
       }
 
-      return rangeToken;
+      return node.rangeToken;
     }
-    set => rangeToken = value;
+    set => node.rangeToken = value;
   }
 
   public override IOrigin WithVal(string newVal) {
@@ -74,7 +75,7 @@ public abstract class TokenNode : Node {
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
   internal Token[] FormatTokens = null;
 
-  protected IOrigin rangeToken;
+  public RangeToken rangeToken;
 
   public IOrigin tok = Token.NoToken; // TODO rename to center
 

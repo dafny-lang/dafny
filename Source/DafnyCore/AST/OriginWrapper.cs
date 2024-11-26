@@ -18,9 +18,9 @@ public abstract class OriginWrapper : IOrigin {
     set => WrappedOrigin.col = value;
   }
 
-  public Token Center => WrappedOrigin.Center;
-  public Token StartToken => WrappedOrigin.StartToken;
-  public Token EndToken => WrappedOrigin.EndToken;
+  public virtual Token Center => WrappedOrigin.Center;
+  public virtual Token StartToken => WrappedOrigin.StartToken;
+  public virtual Token EndToken => WrappedOrigin.EndToken;
   public bool ContainsRange => WrappedOrigin.ContainsRange;
   public string ActualFilename => WrappedOrigin.ActualFilename;
 

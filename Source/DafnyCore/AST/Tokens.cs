@@ -205,13 +205,13 @@ public static class TokenExtensions {
 
 public class BoogieRangeOrigin : OriginWrapper {
   // The wrapped token is the startTok
-  public Token StartToken { get; }
-  public Token EndToken { get; }
+  public override Token StartToken { get; }
+  public override Token EndToken { get; }
 
   /// <summary>
   /// If only a single position is used to refer to this piece of code, this position is the best
   /// </summary>
-  public IOrigin Center { get; }
+  public IOrigin Centerish { get; }
 
   // Used for range reporting
   public override string val => new(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
@@ -220,7 +220,7 @@ public class BoogieRangeOrigin : OriginWrapper {
     center ?? startTok) {
     StartToken = startTok;
     EndToken = endTok;
-    Center = center;
+    Centerish = center;
   }
 
   public override IOrigin WithVal(string newVal) {
