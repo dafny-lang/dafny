@@ -7,7 +7,7 @@ module {:extern "Microsoft.Dafny"} MicrosoftDafny {
   import opened System
 
   @Compile(false)
-  trait {:extern "IToken"} IToken {
+  trait {:extern "Token"} Token {
     var val: CsString
     var LeadingTrivia: CsString
     var TrailingTrivia: CsString
