@@ -317,7 +317,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 rTypeParamsDecls,
                 fullTraitPath,
                 R.TypeApp(genSelfPath, rTypeParams),
-                "",
                 body
               ));
             s := s + [x];
@@ -335,7 +334,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   R.dafny_runtime.MSel(upcastTraitToImplement).AsType().Apply([
                     R.DynType(fullTraitPath)]),
                   R.TypeApp(genSelfPath, rTypeParams),
-                  "",
                   [
                     R.ImplMemberMacro(
                       R.dafny_runtime
@@ -432,7 +430,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var i := R.Impl(
           rTypeParamsDecls,
           R.TypeApp(selfTypeForImpl, rTypeParams),
-          "",
           implBody
         );
         s := s + [R.ImplDecl(i)];
@@ -466,7 +463,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               rTypeParamsDecls,
               R.dafny_runtime.MSel(Upcast).AsType().Apply([R.DynType(R.AnyTrait)]),
               R.TypeApp(genSelfPath, rTypeParams),
-              "",
               [
                 R.ImplMemberMacro(
                   R.dafny_runtime
@@ -548,10 +544,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 rTypeParamsDecls,
                 R.dafny_runtime.MSel("UpcastBox").AsType().Apply1(R.DynType(parentTpe)),
                 R.Box(R.DynType(traitFulltype)),
-                "",
                 [ R.ImplMemberMacro(
                     R.dafny_runtime
-                    .MSel("UpcastBoxFn").AsExpr()
+                    .MSel("UpcastBoxFn!").AsExpr()
                     .Apply1(R.ExprFromType(parentTpe)))]))
           ];
         }
@@ -575,7 +570,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               rTypeParamsDecls,
               R.std.MSel("clone").MSel("Clone").AsType(),
               R.Box(R.DynType(traitFulltype)),
-              "",
               [R.FnDecl(
                  R.PRIV,
                  R.Fn("clone", [],
@@ -659,7 +653,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.Impl(
                 rTypeParamsDecls,
                 resultingType,
-                "",
                 [
                   R.FnDecl(
                     R.PUB,
@@ -678,7 +671,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             rTypeParamsDecls,
             R.DefaultTrait,
             resultingType,
-            "",
             [body]))];
       s := s + [
         R.ImplDecl(
@@ -686,7 +678,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             rTypeParamsDecls,
             R.DafnyPrint,
             resultingType,
-            "",
             [R.FnDecl(
                R.PRIV,
                R.Fn("fmt_print", [],
@@ -706,7 +697,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             rTypeParamsDecls,
             R.std.MSel("ops").MSel("Deref").AsType(),
             resultingType,
-            "",
             [R.TypeDeclMember("Target", wrappedType),
              R.FnDecl(
                R.PRIV,
@@ -721,7 +711,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           R.Impl(
             rTypeParamsDecls,
             resultingType,
-            "",
             [R.FnDecl(
                R.PUB,
                R.Fn(
@@ -767,7 +756,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             R.Impl(
               rTypeParamsDecls,
               R.TypeApp(R.TIdentifier(newtypeName), rTypeParams),
-              "",
               implementation
             )
           )];
@@ -1059,7 +1047,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
            R.Impl(
              rTypeParamsDecls,
              R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
-             "",
              implBody
            ))];
 
@@ -1225,7 +1212,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               rTypeParamsDeclsWithEq,
               R.Eq,
               R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
-              "",
               []
             )
           )];
@@ -1262,7 +1248,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                defaultConstrainedTypeParams,
                R.DefaultTrait,
                fullType,
-               "",
                [R.FnDecl(
                   R.PRIV,
                   R.Fn(
@@ -1284,7 +1269,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               rTypeParamsDecls,
               R.std.MSel("convert").MSel("AsRef").AsType().Apply1(fullType),
               R.Borrowed(fullType),
-              "",
               [R.FnDecl(
                  R.PRIV,
                  R.Fn("as_ref", [], [R.Formal.selfBorrowed], Some(R.SelfOwned),

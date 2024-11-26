@@ -112,13 +112,13 @@ module RAST
 
     function VisitImplMapping(acc: T, impl: Impl): T {
       match impl {
-        case ImplFor(typeParams, tpe, forType, where, body) =>
+        case ImplFor(typeParams, tpe, forType, body) =>
           var acc := VisitTypeParams(acc, typeParams);
           var acc := VisitType(acc, tpe);
           var acc := VisitType(acc, forType);
           VisitBody(acc, body)
         // TODO: Add body
-        case Impl(typeParams, tpe, where, body) =>
+        case Impl(typeParams, tpe, body) =>
           var acc := VisitType(acc, tpe);
           VisitBody(acc, body)
       }
@@ -243,15 +243,14 @@ module RAST
 
     function ReplaceImplDecl(impl: Impl): Impl {
       match impl {
-        case ImplFor(typeParams, tpe, forType, where, body) =>
+        case ImplFor(typeParams, tpe, forType, body) =>
           ImplFor(
             ReplaceTypeParams(typeParams),
             ReplaceType(tpe),
             ReplaceType(forType),
-            where,
             ReplaceBody(body))
-        case Impl(typeParams, tpe, where, body) =>
-          Impl(ReplaceTypeParams(typeParams), ReplaceType(tpe), where, ReplaceBody(body))
+        case Impl(typeParams, tpe, body) =>
+          Impl(ReplaceTypeParams(typeParams), ReplaceType(tpe), ReplaceBody(body))
       }
     }
 
@@ -1118,13 +1117,12 @@ module RAST
   }
 
   datatype Impl =
-    | ImplFor(typeParams: seq<TypeParamDecl>, tpe: Type, forType: Type, where: string, body: seq<ImplMember>)
-    | Impl(typeParams: seq<TypeParamDecl>, tpe: Type, where: string, body: seq<ImplMember>)
+    | ImplFor(typeParams: seq<TypeParamDecl>, tpe: Type, forType: Type, body: seq<ImplMember>)
+    | Impl(typeParams: seq<TypeParamDecl>, tpe: Type, body: seq<ImplMember>)
   {
     function ToString(ind: string): string {
       "impl" + TypeParamDecl.ToStringMultiple(typeParams, ind) + " " + tpe.ToString(ind)
       + (if ImplFor? then "\n" + ind + IND + "for " + forType.ToString(ind + IND) else "")
-      + (if where != "" then "\n" + ind + IND + where else "")
       + " {" +
       SeqToString(body, (member: ImplMember) => "\n" + ind + IND + member.ToString(ind + IND), "")
       + (if |body| == 0 then "" else "\n" + ind) + "}"

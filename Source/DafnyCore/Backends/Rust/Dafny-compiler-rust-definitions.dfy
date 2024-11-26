@@ -485,7 +485,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("fmt").MSel("Debug").AsType(),
         datatypeType,
-        "",
         [
           R.FnDecl(
             R.PRIV,
@@ -515,7 +514,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.DafnyPrint,
         datatypeType,
-        "",
         [R.FnDecl(
            R.PRIV,
            R.Fn(
@@ -543,7 +541,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.Impl(
         rTypeParamsDecls,
         datatypeType,
-        "",
         [R.FnDecl(
            R.PUB,
            R.Fn(
@@ -572,7 +569,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.Impl(
         rTypeParamsDecls,
         datatypeType,
-        "",
         [R.FnDecl(
            R.PUB,
            R.Fn(
@@ -596,7 +592,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDeclsWithHash,
         R.Hash,
         datatypeOrNewtypeType,
-        "",
         [R.FnDecl(
            R.PRIV,
            R.Fn(
@@ -625,7 +620,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("ops").MSel(traitName).AsType(),
         newtypeType,
-        "",
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
             R.PRIV,
@@ -662,7 +656,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("ops").MSel(traitName).AsType(),
         newtypeType,
-        "",
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
             R.PRIV,
@@ -693,7 +686,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("cmp").MSel("PartialOrd").AsType(),
         newtypeType,
-        "",
         [ R.FnDecl(
             R.PRIV,
             R.Fn(

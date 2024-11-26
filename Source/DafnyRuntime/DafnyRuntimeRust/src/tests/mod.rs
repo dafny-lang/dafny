@@ -938,16 +938,28 @@ mod tests {
             GeneralTraitSuper::_clone(self.as_ref())
         }
     }
+    impl <T> DafnyPrint for Box<dyn GeneralTraitSuper<T>> {
+        fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+            write!(f, "GeneralTraitSuper")
+        }
+    }
     // Traits extending other traits also implement a direct way to upcast their Box<dyn .> of themselves
     trait GeneralTrait: GeneralTraitSuper<i32> + UpcastBox<dyn GeneralTraitSuper<i32>> {
         fn _clone(&self) -> Box<dyn GeneralTrait>;
     }
     impl UpcastBox<dyn GeneralTraitSuper<i32>> for Box<dyn GeneralTrait> {
-        UpcastBoxFn!(dyn GeneralTraitSuper<i32>);
+        fn upcast(&self) -> ::std::boxed::Box<dyn crate::tests::tests::GeneralTraitSuper<i32>> {
+            crate::tests::tests::GeneralTraitSuper::<i32>::_clone(self.as_ref())
+        }
     }
     impl Clone for Box<dyn GeneralTrait> {
         fn clone(&self) -> Self {
             GeneralTrait::_clone(self.as_ref())
+        }
+    }
+    impl DafnyPrint for Box<dyn GeneralTrait> {
+        fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+            write!(f, "GeneralTrait")
         }
     }
 

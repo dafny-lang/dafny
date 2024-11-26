@@ -3979,12 +3979,12 @@ macro_rules! UpcastObjectFn {
 // This is for Box<dyn ...> or traits
 #[macro_export]
 macro_rules! UpcastBoxFn {
-    (dyn $trait_name:ident<$($type_args:ty),*>) => {
-        fn upcast(&self) -> ::std::boxed::Box<dyn $trait_name<$($type_args), *>> {
+    (dyn $trait_name:path, $($type_args:ty),*) => {
+        fn upcast(&self) -> ::std::boxed::Box<dyn ($trait_name<$($type_args), *>)> {
             $trait_name::<$($type_args), *>::_clone(self.as_ref())
         }
     };
-    (dyn $trait_name:ident) => {
+    (dyn $trait_name:path) => {
         fn upcast(&self) -> ::std::boxed::Box<dyn $trait_name> {
             $trait_name::_clone(self.as_ref())
         }
