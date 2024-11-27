@@ -10,7 +10,8 @@
 former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort*/
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.DivMod {
 
   import opened DivInternals
   import DivINL = DivInternalsNonlinear
@@ -752,7 +753,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   }
 
   /* this is the same as writing x + (b/d) == x when b is less than d; this is true because (b/d) == 0 */
-  lemma {:vcs_split_on_every_assert} LemmaDivMultiplesVanishFancy(x: int, b: int, d: int)
+  @IsolateAssertions
+  lemma LemmaDivMultiplesVanishFancy(x: int, b: int, d: int)
     requires 0 < d
     requires 0 <= b < d
     ensures (d * x + b) / d == x
@@ -1281,7 +1283,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     }
   }
 
-  lemma {:isolate_assertions} LemmaModNegNeg(x: int, d: int)
+  @IsolateAssertions
+  lemma LemmaModNegNeg(x: int, d: int)
     requires 0 < d
     ensures x % d == (x * (1 - d)) % d
   {
@@ -1298,7 +1301,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   }
 
   /* proves the validity of the quotient and remainder */
-  lemma {:timeLimitMultiplier 5} LemmaFundamentalDivModConverse(x: int, d: int, q: int, r: int)
+  @TimeLimitMultiplier(5)
+  lemma LemmaFundamentalDivModConverse(x: int, d: int, q: int, r: int)
     requires d != 0
     requires 0 <= r < d
     requires x == q * d + r
@@ -1310,7 +1314,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     LemmaMulInductionAuto(q, u => r == (u * d + r) % d);
   }
 
-  lemma {:timeLimitMultiplier 5} LemmaFundamentalDivModConverseAuto()
+  @TimeLimitMultiplier(5)
+  lemma LemmaFundamentalDivModConverseAuto()
     ensures forall x: int, d: int, q: int, r: int {:trigger q * d + r, x % d}
               :: d != 0 && 0 <= r < d && x == q * d + r ==> q == x / d && r == x % d
   {

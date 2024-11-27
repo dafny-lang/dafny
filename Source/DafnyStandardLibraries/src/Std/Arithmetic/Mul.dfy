@@ -10,7 +10,8 @@
 former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort */
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.Mul {
 
   import MulINL = MulInternalsNonlinear
   import opened MulInternals

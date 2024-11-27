@@ -4,7 +4,8 @@ using System.IO;
 
 namespace Microsoft.Dafny;
 
-public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint, ICloneable<Statement> {
+public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint,
+  ICloneable<Statement>, ICanFormat {
 
   public Statement Body { get; }
   public BlockStmt Proof { get; }
@@ -58,5 +59,11 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint, IClo
     IsGhost = IsGhost || Body.IsGhost;
 
     Proof.ResolveGhostness(resolver, reporter, true, codeContext, "a by block", allowAssumptionVariables, inConstructorInitializationPhase);
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetStatementIndentation(Body);
+    Proof.SetIndent(indentBefore, formatter);
+    return false;
   }
 }

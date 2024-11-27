@@ -1,9 +1,10 @@
-module {:disableNonlinearArithmetic} Std.Arithmetic.Logarithm {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.Logarithm {
   import opened Mul
   import opened DivMod
   import opened Power
 
-  function {:opaque} Log(base: nat, pow: nat): nat
+  opaque function Log(base: nat, pow: nat): nat
     requires base > 1
     decreases pow
   {

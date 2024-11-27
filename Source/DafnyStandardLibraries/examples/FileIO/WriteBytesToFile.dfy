@@ -6,12 +6,14 @@
 module WriteBytesToFile {
   import Std.FileIO
 
-  method {:test} Test() {
+  @Test
+  method Test() {
     // TODO: extern function for the expected error prefix
     theMain("build/../build/fileioexamples", "");
   }
 
-  method {:resource_limit 2000000} theMain(outputDir: string, expectedErrorPrefix: string) {
+  @ResourceLimit("2e6")
+  method theMain(outputDir: string, expectedErrorPrefix: string) {
 
       // Happy paths: write files to the output dir. (The %diff LIT commands check that we wrote the correct content.)
     {
