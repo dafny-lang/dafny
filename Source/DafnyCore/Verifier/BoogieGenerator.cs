@@ -3288,6 +3288,10 @@ namespace Microsoft.Dafny {
       public override IOrigin WithVal(string newVal) {
         return new ForceCheckOrigin(WrappedOrigin.WithVal(newVal));
       }
+
+      public override bool IsInherited(ModuleDefinition d) {
+        return false;
+      }
     }
 
     public Bpl.PredicateCmd Assert(IOrigin tok, Bpl.Expr condition, ProofObligationDescription description,
