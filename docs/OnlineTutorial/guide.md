@@ -516,7 +516,7 @@ method Abs(x: int) returns (y: int)
 
 This expresses exactly the property we discussed before,
 that the absolute value is the same for non-negative integers. The second
-ensures is expressed via the implication operator, which basically says that
+ensures is expressed via the implication operator `==>`, which basically says that
 the left hand side implies the right in the mathematical sense (it binds more
 weakly than boolean "and" and comparisons, so the above says `0 <= x` implies `y == x`).
 The left and right sides must both be boolean expressions.
