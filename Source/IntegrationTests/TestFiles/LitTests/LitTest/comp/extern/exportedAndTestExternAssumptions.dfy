@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --allow-axioms --allow-external-contracts
+// RUN: %testDafnyForEachCompiler "%s" -- --find-project
 predicate Pre(x: int, y: int) {
   x > y
 }
@@ -15,10 +15,10 @@ class Foo {
       this.y := y;
   }
 
-  static method {:extern} Builder(x: int, y: int) returns (result: Foo)
+  static method {:extern} Builder(x: int, y: int) returns (r: Foo)
     requires Pre(x, y)
   {
-    result := new Foo(x, y);
+    r := new Foo(x, y);
   }
 
   method {:extern} GetX() returns (r: int) {

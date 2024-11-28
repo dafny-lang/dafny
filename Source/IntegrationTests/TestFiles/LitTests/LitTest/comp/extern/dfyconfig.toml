@@ -1,0 +1,4 @@
+[options]
+test-assumptions="externs"
+allow-axioms=true
+allow-external-contracts=true 
