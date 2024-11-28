@@ -25,7 +25,9 @@ class Foo {
     r := x;
   }
 
-  function {:extern} AddY(r: int): int {
+  function {:extern} AddY(r: int): int
+    reads this 
+  {
     r + y
   }
 

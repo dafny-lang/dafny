@@ -2196,13 +2196,13 @@ namespace Microsoft.Dafny.Compilers {
               EmitSetterParameter(sw);
             }
           } else if (member is Function fn) {
-            if (!Attributes.Contains(fn.Attributes, "extern") && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
+            if (!IsImported(fn) && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
               Contract.Assert(fn.Body != null);
               var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
               EmitCallToInheritedFunction(fn, null, w);
             }
           } else if (member is Method method) {
-            if (!Attributes.Contains(method.Attributes, "extern") && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
+            if (!IsImported(method) && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
               Contract.Assert(method.Body != null);
               var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
               var wBefore = w.Fork();
@@ -2318,7 +2318,7 @@ namespace Microsoft.Dafny.Compilers {
             if (f.Body != null) {
               CompileFunction(f, classWriter, true);
             }
-          } else if (f.IsExtern(Options)) {
+          } else if (IsImported(f)) {
             if (IncludeImportedMembers) {
               CompileFunction(f, classWriter, false);
             }
@@ -5272,7 +5272,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var customReceiver = NeedsCustomReceiverNotTrait(f);
-      if (f.IsExtern(Options, out var qual, out var compileName) && qual != null) {
+      if (f.Body == null && f.IsExtern(Options, out var qual, out var compileName) && qual != null) {
         EmitStaticExternMethodQualifier(qual, wr);
         wr.Write("{1}", qual, ModuleSeparator);
       } else if (f.IsStatic || customReceiver) {
