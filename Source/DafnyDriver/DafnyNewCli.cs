@@ -303,7 +303,7 @@ public static class DafnyNewCli {
       dependencyOptions.Compile = true;
       dependencyOptions.RunAfterCompile = false;
       var libraryBackend = new LibraryBackend(dependencyOptions);
-      dependencyOptions.CompilerName = libraryBackend.TargetId;
+      dependencyOptions.Backend = libraryBackend;
 
       dependencyOptions.DafnyProject = dependencyProject;
       dependencyOptions.CliRootSourceUris.Clear();
