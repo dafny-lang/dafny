@@ -11,7 +11,8 @@ Little endian interpretation of a sequence of numbers with a given base. The
 first element of a sequence is the least significant position; the last
 element is the most significant position.
  */
-abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
+@DisableNonlinearArithmetic
+abstract module Std.Arithmetic.LittleEndianNat {
 
   import opened DivMod
   import opened Mul
@@ -31,7 +32,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   //////////////////////////////////////////////////////////////////////////////
 
   /* Converts a sequence to a nat beginning with the least significant position. */
-  function {:opaque} ToNatRight(xs: seq<digit>): nat
+  opaque function ToNatRight(xs: seq<digit>): nat
   {
     if |xs| == 0 then 0
     else
@@ -40,7 +41,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Converts a sequence to a nat beginning with the most significant position. */
-  function {:opaque} ToNatLeft(xs: seq<digit>): nat
+  opaque function ToNatLeft(xs: seq<digit>): nat
   {
     if |xs| == 0 then 0
     else
@@ -50,7 +51,8 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Given the same sequence, ToNatRight and ToNatLeft return the same nat. */
-  lemma {:isolate_assertions} LemmaToNatLeftEqToNatRight(xs: seq<digit>)
+  @IsolateAssertions
+  lemma LemmaToNatLeftEqToNatRight(xs: seq<digit>)
     ensures ToNatRight(xs) == ToNatLeft(xs)
   {
     reveal ToNatRight();
@@ -185,7 +187,8 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* The nat representation of a sequence can be calculated using the nat
   representation of its prefix. */
-  lemma {:isolate_assertions} LemmaSeqPrefix(xs: seq<digit>, i: nat)
+  @IsolateAssertions
+  lemma LemmaSeqPrefix(xs: seq<digit>, i: nat)
     requires 0 <= i <= |xs|
     ensures ToNatRight(xs[..i]) + ToNatRight(xs[i..]) * Pow(BASE(), i) == ToNatRight(xs)
   {
@@ -236,7 +239,8 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* Two sequences do not have the same nat representations if their prefixes
   do not have the same nat representations. Helper lemma for LemmaSeqNeq. */
-  lemma {:isolate_assertions} LemmaSeqPrefixNeq(xs: seq<digit>, ys: seq<digit>, i: nat)
+  @IsolateAssertions
+  lemma LemmaSeqPrefixNeq(xs: seq<digit>, ys: seq<digit>, i: nat)
     requires 0 <= i <= |xs| == |ys|
     requires ToNatRight(xs[..i]) != ToNatRight(ys[..i])
     ensures ToNatRight(xs) != ToNatRight(ys)
@@ -311,7 +315,8 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* The nat representation of a sequence and its least significant position are
   congruent. */
-  lemma {:isolate_assertions} LemmaSeqLswModEquivalence(xs: seq<digit>)
+  @IsolateAssertions
+  lemma LemmaSeqLswModEquivalence(xs: seq<digit>)
     requires |xs| >= 1
     ensures IsModEquivalent(ToNatRight(xs), First(xs), BASE())
   {
@@ -339,7 +344,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   //////////////////////////////////////////////////////////////////////////////
 
   /* Converts a nat to a sequence. */
-  function {:opaque} FromNat(n: nat): (xs: seq<digit>)
+  opaque function FromNat(n: nat): (xs: seq<digit>)
   {
     if n == 0 then []
     else
@@ -422,7 +427,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Extends a sequence to a specified length. */
-  function {:opaque} SeqExtend(xs: seq<digit>, n: nat): (ys: seq<digit>)
+  opaque function SeqExtend(xs: seq<digit>, n: nat): (ys: seq<digit>)
     requires |xs| <= n
     ensures |ys| == n
     ensures ToNatRight(ys) == ToNatRight(xs)
@@ -432,7 +437,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Extends a sequence to a length that is a multiple of n. */
-  function {:opaque} SeqExtendMultiple(xs: seq<digit>, n: nat): (ys: seq<digit>)
+  opaque function SeqExtendMultiple(xs: seq<digit>, n: nat): (ys: seq<digit>)
     requires n > 0
     ensures |ys| % n == 0
     ensures ToNatRight(ys) == ToNatRight(xs)
@@ -448,7 +453,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Converts a nat to a sequence of a specified length. */
-  function {:opaque} FromNatWithLen(n: nat, len: nat): (xs: seq<digit>)
+  opaque function FromNatWithLen(n: nat, len: nat): (xs: seq<digit>)
     requires Pow(BASE(), len) > n
     ensures |xs| == len
     ensures ToNatRight(xs) == n
@@ -460,7 +465,8 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* If the nat representation of a sequence is zero, then the sequence is a
   sequence of zeros. */
-  lemma {:resource_limit "10e6"} LemmaSeqZero(xs: seq<digit>)
+  @ResourceLimit("10e6")
+  lemma LemmaSeqZero(xs: seq<digit>)
     requires ToNatRight(xs) == 0
     ensures forall i :: 0 <= i < |xs| ==> xs[i] == 0
   {
@@ -476,7 +482,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Generates a sequence of zeros of a specified length. */
-  function {:opaque} SeqZero(len: nat): (xs: seq<digit>)
+  opaque function SeqZero(len: nat): (xs: seq<digit>)
     ensures |xs| == len
     ensures forall i :: 0 <= i < |xs| ==> xs[i] == 0
     ensures ToNatRight(xs) == 0
@@ -515,7 +521,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   //////////////////////////////////////////////////////////////////////////////
 
   /* Adds two sequences. */
-  function {:opaque} SeqAdd(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
+  opaque function SeqAdd(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
     requires |xs| == |ys|
     ensures var (zs, cout) := SeqAdd(xs, ys);
             |zs| == |xs| && 0 <= cout <= 1
@@ -532,7 +538,8 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* SeqAdd returns the same value as converting the sequences to nats, then
   adding them. */
-  lemma {:isolate_assertions} LemmaSeqAdd(xs: seq<digit>, ys: seq<digit>, zs: seq<digit>, cout: nat)
+  @IsolateAssertions
+  lemma LemmaSeqAdd(xs: seq<digit>, ys: seq<digit>, zs: seq<digit>, cout: nat)
     requires |xs| == |ys|
     requires SeqAdd(xs, ys) == (zs, cout)
     ensures ToNatRight(xs) + ToNatRight(ys) == ToNatRight(zs) + cout * Pow(BASE(), |xs|)
@@ -572,7 +579,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Subtracts two sequences. */
-  function {:opaque} SeqSub(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
+  opaque function SeqSub(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
     requires |xs| == |ys|
     ensures var (zs, cout) := SeqSub(xs, ys);
             |zs| == |xs| && 0 <= cout <= 1
@@ -589,7 +596,8 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* SeqSub returns the same value as converting the sequences to nats, then
   subtracting them. */
-  lemma {:isolate_assertions} LemmaSeqSub(xs: seq<digit>, ys: seq<digit>, zs: seq<digit>, cout: nat)
+  @IsolateAssertions
+  lemma LemmaSeqSub(xs: seq<digit>, ys: seq<digit>, zs: seq<digit>, cout: nat)
     requires |xs| == |ys|
     requires SeqSub(xs, ys) == (zs, cout)
     ensures ToNatRight(xs) - ToNatRight(ys) + cout * Pow(BASE(), |xs|) == ToNatRight(zs)

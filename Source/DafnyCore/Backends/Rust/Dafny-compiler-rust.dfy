@@ -1698,15 +1698,18 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             } else {
               var tupleArgs := [];
               assume {:axiom} |m.outTypes| == |outVars|;
+              var isTailRecursive := |m.body| == 1 && m.body[0].TailRecursive?;
 
               for outI := 0 to |outVars| {
                 var outVar := outVars[outI];
-                var outType := GenType(m.outTypes[outI], GenTypeContext.default());
+                var outTyp := m.outTypes[outI];
+                var outType := GenType(outTyp, GenTypeContext.default());
                 var outName := escapeVar(outVar);
-                paramNames := paramNames + [outName];
-                var outMaybeType := if outType.CanReadWithoutClone() then outType else R.MaybePlaceboType(outType);
-                paramTypes := paramTypes[outName := outMaybeType];
-
+                if !isTailRecursive {// Out parameters are assigned in the inner block
+                  paramNames := paramNames + [outName];
+                  var outMaybeType := if outType.CanReadWithoutClone() then outType else R.MaybePlaceboType(outType);
+                  paramTypes := paramTypes[outName := outMaybeType];
+                }
                 tupleArgs := tupleArgs + [outName];
               }
               earlyReturn := Some(tupleArgs);
@@ -2095,9 +2098,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             var param := oldEnv.names[paramI];
             if param == "_accumulator" {
               continue; // This is an already mutable variable handled by SinglePassCodeGenerator
-            }
-            if param in oldEnv.types && oldEnv.types[param].ExtractMaybePlacebo().Some? {
-              continue; // This is an output variable. Output variables don't need to be iterated on.
             }
             var paramInit, _, _ := GenIdent(param, selfIdent, oldEnv, OwnershipOwned);
             var recVar := TailRecursionPrefix + Strings.OfNat(paramI);
@@ -2766,7 +2766,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     /* Applies a function to every element of a sequence, returning a Result value (which is a
       failure-compatible type). Returns either a failure, or, if successful at every element,
       the transformed sequence.  */
-    function {:opaque} SeqResultToResultSeq<T, E>(xs: seq<Result<T, E>>): (result: Result<seq<T>, E>)
+    opaque function SeqResultToResultSeq<T, E>(xs: seq<Result<T, E>>): (result: Result<seq<T>, E>)
     {
       if |xs| == 0 then Success([])
       else
@@ -3155,11 +3155,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         case InitializationValue(typ) => {
           var typExpr := GenType(typ, GenTypeContext.default());
-          if typExpr.IsObjectOrPointer() {
-            r := typExpr.ToNullExpr();
-          } else {
-            r := R.TraitCast(typExpr, R.DefaultTrait).FSel("default").Apply0();
-          }
+          r := R.TraitCast(typExpr, R.DefaultTrait).FSel("default").Apply0();
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := {};
           return;

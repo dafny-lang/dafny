@@ -556,7 +556,8 @@ module RAST
       if |typeParams| == 0 then "" else
       "<" + SeqToString(typeParams, (t: TypeParamDecl) => t.ToString(ind + IND), ", ") + ">"
     }
-    static function {:tailrecursion true} AddConstraintsMultiple(
+    @TailRecursion
+    static function AddConstraintsMultiple(
       typeParams: seq<TypeParamDecl>, constraints: seq<TypeParamConstraint>
     ): seq<TypeParamDecl> {
       if |typeParams| == 0 then []
