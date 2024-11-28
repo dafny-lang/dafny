@@ -20,9 +20,22 @@ class Foo {
   {
     result := new Foo(x, y);
   }
+
+  method {:extern} GetX() returns (r: int) {
+    r := x;
+  }
+
+  function {:extern} AddY(r: int): int {
+    r + y
+  }
+
+  static function {:extern} AddOne(r: int): int {
+    r + 1
+  }
 }
 
 method Main() {
   var foo := Foo.Builder(3, 2);
-  print foo.x;
+  var x := foo.GetX(); 
+  print Foo.AddOne(Foo.AddY(x));
 }
