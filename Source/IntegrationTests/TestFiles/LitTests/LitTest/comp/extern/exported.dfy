@@ -37,5 +37,5 @@ class Foo {
 method Main() {
   var foo := Foo.Builder(3, 2);
   var x := foo.GetX(); 
-  print Foo.AddOne(Foo.AddY(x));
+  print Foo.AddOne(foo.AddY(x));
 }
