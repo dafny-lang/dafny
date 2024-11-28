@@ -533,7 +533,7 @@ namespace Microsoft.Dafny.Compilers {
       return wGet;
     }
     protected ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      if (m.IsExtern(Options, out _, out _) && (m.IsStatic || m is Constructor)) {
+      if (!createBody && (m.IsStatic || m is Constructor)) {
         // No need for an abstract version of a static method or a constructor
         return null;
       }
@@ -884,7 +884,7 @@ namespace Microsoft.Dafny.Compilers {
     // We write an extern class as a base class that the actual extern class
     // needs to extend, so the extern methods and functions need to be abstract
     // in the base class
-    protected override bool IncludeExternMembers { get => true; }
+    protected override bool IncludeImportedMembers => true;
 
     //
     // An example to show how type parameters are dealt with:
