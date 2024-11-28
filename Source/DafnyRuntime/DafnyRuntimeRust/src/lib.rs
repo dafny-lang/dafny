@@ -3976,36 +3976,6 @@ macro_rules! UpcastObjectFn {
     };
 }
 
-// This is for Box<dyn ...> or traits
-#[macro_export]
-macro_rules! UpcastBoxFn {
-    (dyn $trait_name:path, $($type_args:ty),*) => {
-        fn upcast(&self) -> ::std::boxed::Box<dyn ($trait_name<$($type_args), *>)> {
-            $trait_name::<$($type_args), *>::_clone(self.as_ref())
-        }
-    };
-    (dyn $trait_name:path) => {
-        fn upcast(&self) -> ::std::boxed::Box<dyn $trait_name> {
-            $trait_name::_clone(self.as_ref())
-        }
-    };
-}
-
-// This is for datatypes
-#[macro_export]
-macro_rules! UpcastStructBoxFn {
-    (dyn $trait_name:ident<$($type_args:ty),*>) => {
-        fn upcast(&self) -> ::std::boxed::Box<dyn $trait_name<$($type_args), *>> {
-            $trait_name::<$($type_args), *>::_clone(self)
-        }
-    };
-    (dyn $trait_name:ident) => {
-        fn upcast(&self) -> ::std::boxed::Box<dyn $trait_name> {
-            $trait_name::_clone(self)
-        }
-    };
-}
-
 // It works only when there is no type parameters for $A...
 #[macro_export]
 macro_rules! UpcastDef {

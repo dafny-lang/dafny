@@ -592,7 +592,7 @@ module RAST
   }
 
   const PtrPath: Path := dafny_runtime.MSel("Ptr")
-  
+
   const BoxPath := std.MSel("boxed").MSel("Box")
 
   const Ptr := PtrPath.AsExpr()
@@ -953,7 +953,7 @@ module RAST
           false
       else
         false
-    }    
+    }
     predicate IsBox() {
       match this {
         case TypeApp(TypeFromPath(o), elems1) =>

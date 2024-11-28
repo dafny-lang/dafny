@@ -124,7 +124,7 @@ module {:extern "DAST"} DAST {
         case _ => false
       }
     }
- 
+
     predicate IsGeneralTrait() {
       match this {
         case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
@@ -180,7 +180,7 @@ module {:extern "DAST"} DAST {
   datatype Attribute = Attribute(name: string, args: seq<string>)
 
   datatype NewtypeType = NewtypeType(baseType: Type, range: NewtypeRange, erase: bool)
-  
+
   datatype TraitType =
     | ObjectTrait()     // Traits that extend objects with --type-system-refresh, all traits otherwise
     | GeneralTrait()  // Traits that don't necessarily extend objects with --type-system-refresh

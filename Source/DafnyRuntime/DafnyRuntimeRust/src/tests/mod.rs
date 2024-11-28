@@ -992,10 +992,14 @@ mod tests {
         }
     }
     impl UpcastBox<dyn GeneralTrait> for ADatatype {
-        UpcastStructBoxFn!(dyn GeneralTrait);
+        fn upcast(&self) -> ::std::boxed::Box<dyn GeneralTrait> {
+            GeneralTrait::_clone(self)
+        }
     }
     impl UpcastBox<dyn GeneralTraitSuper<i32>> for ADatatype {
-        UpcastStructBoxFn!(dyn GeneralTraitSuper<i32>);
+        fn upcast(&self) -> ::std::boxed::Box<dyn GeneralTraitSuper<i32>> {
+            GeneralTraitSuper::<i32>::_clone(self)
+        }
     }
     #[test]
     fn test_general_traits() {

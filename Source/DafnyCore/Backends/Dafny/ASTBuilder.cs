@@ -41,12 +41,12 @@ namespace Microsoft.Dafny.Compilers {
 
     public static Module UnsupportedToModule(string why) {
       return new Module(
-        Sequence<Rune>.UnicodeFromString(why.Replace(".", ",")),
+        Sequence<Rune>.UnicodeFromString($"uncompilable/*{why.Replace(".", ",")}*/"),
         Sequence<Attribute>.FromElements(
           (Attribute)Attribute.create_Attribute(
             Sequence<Rune>.UnicodeFromString("extern"),
           Sequence<Sequence<Rune>>.FromElements(
-            (Sequence<Rune>)Sequence<Rune>.UnicodeFromString(why)))), false,
+            (Sequence<Rune>)Sequence<Rune>.UnicodeFromString($"uncompilable/*{why}*/")))), false,
         Std.Wrappers.Option<Sequence<ModuleItem>>.create_None());
     }
   }
@@ -1323,7 +1323,7 @@ namespace Microsoft.Dafny.Compilers {
 
     static DAST.Expression UnsupportedToExpr(string why) {
       return (DAST.Expression)DAST.Expression.create_Ident(
-        Sequence<ISequence<Rune>>.UnicodeFromString($"<i>Unsupported: {why}</i>")
+        Sequence<ISequence<Rune>>.UnicodeFromString($"uncompilable(\"<i>Unsupported: {why}</i>\")")
       );
     }
   }
