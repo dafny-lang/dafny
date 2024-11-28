@@ -393,11 +393,29 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       }
     }
 
-    if (lastClosingParenthesis != null && lastClosingParenthesis.TrailingTrivia.Trim() != "") {
-      return lastClosingParenthesis.TrailingTrivia;
+    var tentativeTrivia = "";
+    if (lastClosingParenthesis != null) {
+      if (lastClosingParenthesis.pos < EndToken.pos) {
+        tentativeTrivia = lastClosingParenthesis.TrailingTrivia + lastClosingParenthesis.Next.LeadingTrivia;
+      } else {
+        tentativeTrivia = lastClosingParenthesis.TrailingTrivia;
+      }
+
+      if (tentativeTrivia.Trim() != "") {
+        return tentativeTrivia;
+      }
+    }
+    
+    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+      return triviaFound;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
+    }
+
+    return null;
   }
 
   public override SymbolKind? Kind => SymbolKind.Method;

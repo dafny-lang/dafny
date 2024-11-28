@@ -95,14 +95,23 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
       }
     }
 
-    if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
-      return openingBlock.Prev.TrailingTrivia;
+    var tentativeTrivia = "";
+    if (openingBlock != null) {
+      tentativeTrivia = (openingBlock.Prev.TrailingTrivia + openingBlock.LeadingTrivia).Trim();
+      if(tentativeTrivia != "") {
+        return tentativeTrivia;
+      }
     }
 
-    if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+      return triviaFound;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
+    }
+
+    return null;
   }
 }

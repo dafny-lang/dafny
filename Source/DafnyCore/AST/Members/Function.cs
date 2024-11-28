@@ -485,15 +485,29 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   public string GetTriviaContainingDocstring() {
 
     var endTokenDefinition =
-      OwnedTokens.LastOrDefault(token => token.val == ")" || token.pos == ResultType.EndToken.pos)
-      ?? EndToken;
-    if (endTokenDefinition.TrailingTrivia.Trim() != "") {
-      return endTokenDefinition.TrailingTrivia;
+      OwnedTokens.LastOrDefault(token => token.val == ")" || token.pos == ResultType.EndToken.pos);
+    var tentativeTrivia = "";
+    if (endTokenDefinition != null) {
+      if (endTokenDefinition.pos < this.EndToken.pos) { // All comments are docstring
+        tentativeTrivia = (endTokenDefinition.TrailingTrivia + endTokenDefinition.Next.LeadingTrivia).Trim();
+      } else {
+        // Comments at the end of bodiless functions
+        tentativeTrivia = endTokenDefinition.TrailingTrivia.Trim();
+      }
+      if (tentativeTrivia != "") {
+        return tentativeTrivia;
+      }
+    }
+    
+    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+      return triviaFound;
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return StartToken.LeadingTrivia;
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
     }
+
     return null;
   }
 

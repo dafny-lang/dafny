@@ -151,21 +151,23 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
 
   public string GetTriviaContainingDocstring() {
-    IToken candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
-        candidate = token.Prev;
-        if (candidate.TrailingTrivia.Trim() != "") {
-          return candidate.TrailingTrivia;
+        if ((token.Prev.TrailingTrivia + token.LeadingTrivia).Trim() is {} tentativeTrivia1 and not "") {
+          return tentativeTrivia1;
         }
       }
     }
 
-    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+      return triviaFound;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    if (EndToken.TrailingTrivia.Trim() is {} tentativeTrivia and not "") {
+      return tentativeTrivia;
+    }
+
+    return null;
   }
 
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;

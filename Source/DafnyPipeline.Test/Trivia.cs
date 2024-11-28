@@ -27,6 +27,203 @@ namespace DafnyPipeline.Test {
     private Newlines currentNewlines;
 
     [Fact]
+    public async Task DocStringForAbstractTypeDecl() {
+      var programString = @"
+// Not docstring
+type AB(==) // [START Docstring0 END Docstring0]
+// Not docstring
+
+// Not docstring
+type AC // [START Docstring1
+// END Docstring1]
+{
+}
+
+/** [START Docstring2 END Docstring2] */
+type AD
+// Not docstring
+
+// Just a comment because not using the adequate syntax
+type NoDocstring3
+// Not docstring
+
+// Not docstring
+type AF { } // [START Docstring4 END Docstring4]
+// Not docstring
+";
+      await TestAllDocstrings(programString);
+    }
+    
+    [Fact]
+    public async Task DocStringForClassLikeDecl() {
+      var programString = @"
+// Not docstring
+class A { } // [START Docstring0 END Docstring0]
+// Not docstring
+
+// Not docstring
+class AC // [START Docstring1
+// END Docstring1]
+{
+}
+
+/** [START Docstring2 END Docstring2] */
+trait AT {} 
+// Just a comment
+
+/** [START Docstring3 END Docstring3] */
+trait AT {} // Not a docstring because the syntax above looks more like a docstring
+// Just a comment
+
+// Not docstring
+class AC2 extends AT // [START Docstring4
+// END Docstring4]
+{
+}
+
+// No docstring
+class NoDocstring5 {}
+// No docstring
+
+/** [START Docstring6 END Docstring6] */
+class AD  {}
+// Not docstring
+";
+      await TestAllDocstrings(programString);
+    }
+    
+    [Fact]
+    public async Task DocStringForDatatypeDecl() {
+      var programString = @"
+/** [START Docstring0 END Docstring0] */
+datatype X = FirstCtor() // [START Docstring1 END Docstring1]
+// No docstring
+
+/** No docstring */
+datatype Y // [START Docstring2
+// END Docstring2]
+= 
+/** [START Docstring3 END Docstring3] */
+SecondCtor()
+";
+      await TestAllDocstrings(programString);
+    }
+    
+    [Fact]
+    public async Task DocStringForConstVar() {
+      var programString = @"
+class NoDocstring0 {
+  const NoDocstring1: int
+  /** [START Docstring2 END Docstring2] */
+  const a2: int
+  const a3: int /** [START Docstring3 END Docstring3] */
+  const a4: int := 5 /** [START Docstring4 END Docstring4] */
+  const a5: int
+    // [START Docstring5
+    // END Docstring5]
+  := 5
+
+  var NoDocstring6: int
+  /** [START Docstring7 END Docstring7] */
+  var a7: int
+  var a8: int // [START Docstring8 END Docstring8]
+}
+";
+      await TestAllDocstrings(programString);
+    }
+    
+    [Fact]
+    public async Task DocStringForFunctions() {
+      var programString = @"
+class NoDocstring0 {
+  /** [START Docstring1 END Docstring1] */
+  function Test1(): int
+  function Test2(): int // [START Docstring2 END Docstring2]
+  /** [START Docstring3 END Docstring3] */
+  function Test3(): int { 1 } // Not docstring
+  function Test4(): int { 2 } // [START Docstring4 END Docstring4]
+  /** Not docstring because docstring in precise place */
+  function Test5(): int // [START Docstring5
+    // END Docstring5]
+  {
+    1
+  }
+
+  /** [START Docstring6 END Docstring6] */
+  function Test6(): (r: int)
+  function Test7(): (r: int) // [START Docstring7 END Docstring7]
+  /** [START Docstring8 END Docstring8] */
+  function Test8(): (r: int) { 1 } // Not docstring
+  function Test9(): (r: int) { 2 } // [START Docstring9 END Docstring9]
+  /** Not docstring because docstring in precise place */
+  function Test10(): (r: int) // [START Docstring10
+    // END Docstring10]
+  {
+    1
+  }
+}
+";
+      await TestAllDocstrings(programString);
+    }
+
+
+    private async Task TestAllDocstrings(string programString)
+    {
+      var options = DafnyOptions.CreateUsingOldParser(output);
+      foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
+        currentNewlines = newLinesType;
+        programString = AdjustNewlines(programString);
+
+        var reporter = new BatchErrorReporter(options);
+        var dafnyProgram = await Utils.Parse(reporter, programString, false);
+        Assert.Equal(0, reporter.ErrorCount);
+        var topLevelDecls = dafnyProgram.DefaultModuleDef.TopLevelDecls.ToList();
+        var hasDocString = topLevelDecls.OfType<IHasDocstring>().SelectMany(i => {
+          var result = new List<IHasDocstring> { i };
+          if (i is DatatypeDecl d) {
+            foreach (var ctor in d.Ctors) {
+              result.Add(ctor);
+            }
+          }
+
+          if (i is TopLevelDeclWithMembers memberContainer) {
+            foreach (var member in memberContainer.Members) {
+              if (member is IHasDocstring hasDocstring) { 
+                result.Add(hasDocstring);
+              }
+            }
+          }
+
+          return result;
+        }).ToList();
+        var matches = new Regex($@"Docstring(\d+)").Matches(programString);
+        var highestDocstringIndex = 0;
+        for (var i = 0; i < matches.Count; i++) {
+          var match = matches[i];
+          var index = int.Parse(match.Groups[1].Value);
+          if (index > highestDocstringIndex) {
+            highestDocstringIndex = index;
+          }
+        }
+
+        Assert.Equal(hasDocString.Count - 1, highestDocstringIndex);
+        for(var i = 0; i < hasDocString.Count; i++) {
+          var iHasDocString = hasDocString[i];
+          var triviaWithDocstring = AdjustNewlines(iHasDocString.GetTriviaContainingDocstring() ?? "");
+          if (!(new Regex($@"\[START Docstring{i}[\s\S]*END Docstring{i}\]")).IsMatch(triviaWithDocstring)) {
+            if (iHasDocString is Declaration decl && decl.Name.Contains("NoDocstring")) {
+              // OK
+            } else {
+              Assert.True(false, $"\"[START Docstring{i}...END Docstring{i}]\" not found in {triviaWithDocstring}");
+            }
+          } else {
+            Assert.Equal(triviaWithDocstring.Trim(), triviaWithDocstring);
+          }
+        }
+      }
+    }
+
+    [Fact]
     public async Task TriviaSplitWorksOnLinuxMacAndWindows() {
       var options = DafnyOptions.CreateUsingOldParser(output);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
@@ -159,14 +356,13 @@ ensures true
       };
     }
 
-    private void AssertTrivia(TopLevelDecl topLevelDecl, string triviaBefore, string triviaDoc) {
+    private void AssertTrivia(Node topLevelDecl, string triviaBefore, string triviaDoc) {
       Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.StartToken.LeadingTrivia);
-      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenWithTrailingDocString.TrailingTrivia);
-    }
-
-    private void AssertTrivia(MemberDecl topLevelDecl, string triviaBefore, string triviaDoc) {
-      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.StartToken.LeadingTrivia);
-      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenWithTrailingDocString.TrailingTrivia);
+      if (topLevelDecl is IHasDocstring hasDocstring) {
+        Assert.Equal(AdjustNewlines(triviaDoc), hasDocstring.GetTriviaContainingDocstring());
+      } else {
+        Assert.True(false);
+      }
     }
   }
 }

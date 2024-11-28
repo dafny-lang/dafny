@@ -6,6 +6,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using DafnyCore;
 using DafnyCore.Options;
+using JetBrains.Annotations;
 using Microsoft.Dafny.Auditor;
 using Microsoft.Dafny.Compilers;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -41,7 +42,6 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   }
 
   public IToken BodyStartTok = Token.NoToken;
-  public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
   public Name NameNode; // (Last segment of the) module name
 
@@ -1078,6 +1078,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   });
 
   public SymbolKind? Kind => SymbolKind.Namespace;
+  [CanBeNull] public LiteralModuleDecl EnclosingLiteralModuleDecl { get; set; }
+
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }

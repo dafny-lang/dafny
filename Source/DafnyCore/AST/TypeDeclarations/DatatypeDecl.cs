@@ -181,8 +181,10 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
   public string GetTriviaContainingDocstring() {
     foreach (var token in OwnedTokens) {
-      if (token.val == "=" && token.TrailingTrivia.Trim() != "") {
-        return token.TrailingTrivia;
+      if (token.val == "=") {
+        if ((token.Prev.TrailingTrivia + (token.LeadingTrivia ?? "")).Trim() is {} tentativeTrivia and not "") {
+          return tentativeTrivia;
+        }
       }
     }
 

@@ -65,20 +65,26 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
       PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : Enumerable.Empty<IToken>();
+    var tentativeTrivia = "";
     foreach (var token in tokens) {
       if (token.val == "{") {
         candidate = token.Prev;
-        if (candidate.TrailingTrivia.Trim() != "") {
-          return candidate.TrailingTrivia;
+        tentativeTrivia = candidate.TrailingTrivia + token.LeadingTrivia;
+        if (tentativeTrivia.Trim() != "") {
+          return tentativeTrivia;
         }
       }
     }
 
-    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+      return triviaFound;
+    }
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 
   public override SymbolKind? Kind => SymbolKind.Namespace;

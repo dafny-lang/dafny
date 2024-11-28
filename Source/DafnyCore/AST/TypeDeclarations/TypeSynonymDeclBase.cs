@@ -115,15 +115,21 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
       }
     }
 
-    if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
-      return openingBlock.Prev.TrailingTrivia;
+    if (openingBlock != null) {
+      if((openingBlock.Prev.TrailingTrivia + openingBlock.LeadingTrivia).Trim() is {} tentativeTrivia and not "") {
+        return tentativeTrivia;
+      }
     }
 
-    if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+      return triviaFound;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    if (EndToken.TrailingTrivia.Trim() is {} tentativeTrivia2 and not "") {
+      return tentativeTrivia2;
+    }
+
+    return null;
   }
 
   public abstract override SymbolKind? Kind { get; }

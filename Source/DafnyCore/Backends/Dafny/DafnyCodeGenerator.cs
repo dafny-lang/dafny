@@ -54,6 +54,10 @@ namespace Microsoft.Dafny.Compilers {
       return preventShadowing ? v.GetOrCreateCompileName(currentIdGenerator) : v.CompileNameShadowable;
     }
 
+    public string TokenToString(IToken tok) {
+      return $"{tok.Uri}({tok.line},{tok.col})";
+    }
+
     public void AddUnsupported(string why) {
       if (emitUncompilableCode && currentBuilder is Container container) {
         container.AddUnsupported(why);
@@ -141,12 +145,19 @@ namespace Microsoft.Dafny.Compilers {
            GetIsExternAndIncluded(classLikeDecl) is (classIsExtern: true, _)) ||
           (decl is AbstractTypeDecl)
         );
-        currentBuilder = moduleBuilder.Module(moduleName, attributes, requiresExternImport);
+        var docString = GetDocString(module.EnclosingLiteralModuleDecl is {} node ? node : module);
+        currentBuilder = moduleBuilder.Module(moduleName, docString, attributes, requiresExternImport);
       } else {
         throw new InvalidOperationException();
       }
 
       return wr;
+    }
+
+    private string GetDocString(INode node)
+    {
+      return ((node is IHasDocstring iHasDocstring ? iHasDocstring?.GetDocstring(Options) : "") +
+              "\n" + (node.StartToken.line != 0 ? TokenToString(node.StartToken) : "")).Trim();
     }
 
     protected override void FinishModule() {
@@ -187,7 +198,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new ClassWriter(this, typeParams.Count > 0, builder.Class(
           name, moduleName, typeParams, superClasses.Select(t => GenType(t)).ToList(),
-          ParseAttributes(cls.Attributes))
+          ParseAttributes(cls.Attributes), GetDocString(cls))
           );
       } else {
         throw new InvalidOperationException();
@@ -245,7 +256,7 @@ namespace Microsoft.Dafny.Compilers {
           parents.Add(genType);
         }
 
-        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, parents, ParseAttributes(trait.Attributes)));
+        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, parents, ParseAttributes(trait.Attributes), GetDocString(trait)));
       } else {
         throw new InvalidOperationException();
       }
@@ -289,6 +300,7 @@ namespace Microsoft.Dafny.Compilers {
           let args = Sequence<DAST.DatatypeDtor>.FromArray(allDtors.ToArray<DatatypeDtor>())
           select (DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(
             Sequence<Rune>.UnicodeFromString(ctor.GetCompileName(Options)),
+            Sequence<Rune>.UnicodeFromString(GetDocString(ctor)),
             args, ctor.Formals.Count > 0);
 
         return new ClassWriter(this, typeParams.Count > 0, builder.Datatype(
@@ -297,7 +309,8 @@ namespace Microsoft.Dafny.Compilers {
           typeParams,
           ctors.ToList(),
           dt is CoDatatypeDecl,
-          ParseAttributes(dt.Attributes)
+          ParseAttributes(dt.Attributes),
+          GetDocString(dt)
         ));
       } else {
         throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
@@ -340,7 +353,7 @@ namespace Microsoft.Dafny.Compilers {
         return new ClassWriter(this, false, builder.Newtype(
           nt.GetCompileName(Options), new(),
           GenType(nt.BaseType), NativeTypeToNewtypeRange(nt, false),
-            constraint, witnessStmts, witness, ParseAttributes(nt.Attributes)));
+            constraint, witnessStmts, witness, ParseAttributes(nt.Attributes), GetDocString(nt)));
       } else {
         throw new InvalidOperationException();
       }
@@ -448,7 +461,7 @@ namespace Microsoft.Dafny.Compilers {
 
       builder.SynonymType(sst.GetCompileName(Options), typeParams,
         GenType(erasedType), witnessStmts, witness,
-        ParseAttributes(sst.Attributes)).Finish();
+        ParseAttributes(sst.Attributes), GetDocString(sst)).Finish();
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
@@ -558,6 +571,7 @@ namespace Microsoft.Dafny.Compilers {
         var builder = this.builder.Method(
           m.IsStatic, createBody, m is Constructor, false,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
+          compiler.GetDocString(m),
           attributes,
           m.GetCompileName(compiler.Options),
           astTypeArgs, params_,
@@ -595,6 +609,7 @@ namespace Microsoft.Dafny.Compilers {
         var builder = this.builder.Method(
           isStatic, createBody, false, true,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
+          compiler.GetDocString(member),
           attributes,
           name,
           astTypeArgs, params_,
@@ -625,6 +640,7 @@ namespace Microsoft.Dafny.Compilers {
         var builder = this.builder.Method(
           isStatic, createBody, false, true,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
+          compiler.GetDocString(member),
           attributes,
           name,
           new(), (Sequence<DAST.Formal>)Sequence<DAST.Formal>.Empty,

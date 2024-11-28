@@ -509,7 +509,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     }
 
     if (lastClosingParenthesis != null && lastClosingParenthesis.TrailingTrivia.Trim() != "") {
-      return lastClosingParenthesis.TrailingTrivia;
+      return lastClosingParenthesis.TrailingTrivia.Trim();
     }
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();

@@ -352,9 +352,9 @@ module RAST
     else FoldLeft(f, f(init, xs[0]), xs[1..])
   }
 
-  function ToDocstringPrefix(ind: string, s: string): string {
-    if s == "" then "" else
-    "/// " + AddIndent(s, "/// " + ind) + "\n" + ind
+  function ToDocstringPrefix(docString: string, ind: string): string {
+    if docString == "" then "" else
+    "/// " + AddIndent(docString, ind + "/// ") + "\n" + ind
   }
 
   datatype Mod =

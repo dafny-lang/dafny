@@ -98,10 +98,25 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   }
 
   public override string GetTriviaContainingDocstring() {
-    if (Tok.TrailingTrivia.Trim() != "") {
-      return Tok.TrailingTrivia;
+    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+      return triviaFound;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    var tentativeTrivia = "";
+    if (Tok.pos < EndToken.pos) {
+      tentativeTrivia = (Tok.TrailingTrivia + Tok.Next.LeadingTrivia).Trim();
+    } else {
+      tentativeTrivia = Tok.TrailingTrivia.Trim();
+    }
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
+    }
+    
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
+    }
+
+    return null;
   }
 }
