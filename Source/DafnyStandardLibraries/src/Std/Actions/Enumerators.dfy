@@ -6,7 +6,7 @@ module Std.Enumerators {
   import opened Wrappers
   import opened Math
 
-  trait Enumerator<T> extends Action<(), Option<T>>, ProducesTerminatedProof<(), Option<T>> {
+  trait {:termination false} Enumerator<T> extends Action<(), Option<T>>, ProducesTerminatedProof<(), Option<T>> {
     ghost function Action(): Action<(), Option<T>> {
       this
     }
@@ -19,6 +19,18 @@ module Std.Enumerators {
     predicate StopWhenNone(r: Option<T>) {
       r.None?
     }
+
+    ghost predicate CanConsume(history: seq<((), Option<T>)>, next: ())
+      requires CanProduce(history)
+      decreases height
+    {
+      true
+    }
+
+    lemma CanConsumeAll(history: seq<((), Option<T>)>, next: ()) 
+      requires Action().CanProduce(history) 
+      ensures Action().CanConsume(history, next)
+    {}
 
     lemma ProducesTerminated(history: seq<((), Option<T>)>)
       requires Action().CanProduce(history) 
@@ -99,13 +111,6 @@ module Std.Enumerators {
       && this in Repr
       && CanProduce(history)
     }
-    
-    ghost predicate CanConsume(history: seq<((), Option<T>)>, next: ())
-      requires CanProduce(history)
-      decreases height
-    {
-      true
-    }
 
     ghost predicate CanProduce(history: seq<((), Option<T>)>)
       decreases height
@@ -155,11 +160,6 @@ module Std.Enumerators {
       |elements|
     }
 
-    lemma CanConsumeAll(history: seq<((), Option<T>)>, next: ()) 
-      requires Action().CanProduce(history) 
-      ensures Action().CanConsume(history, next)
-    {}
-
     lemma ProducesTerminated(history: seq<((), Option<T>)>)
       requires Action().CanProduce(history) 
       requires (forall i <- Inputs(history) :: i == FixedInput())
@@ -188,13 +188,7 @@ module Std.Enumerators {
       && CanProduce(history)
     }
 
-    ghost predicate CanConsume(history: seq<((), Option<T>)>, next: ())
-      requires CanProduce(history)
-      decreases height
-    {
-      true
-    }
-
+    // TODO: needs refinement
     ghost predicate CanProduce(history: seq<((), Option<T>)>)
       decreases height
     {
@@ -261,11 +255,6 @@ module Std.Enumerators {
     {
       DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
-
-    lemma CanConsumeAll(history: seq<((), Option<T>)>, next: ()) 
-      requires Action().CanProduce(history) 
-      ensures Action().CanConsume(history, next)
-    {}
 
     ghost function Limit(): nat {
       upstream.Limit()
