@@ -20,6 +20,7 @@ using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using DafnyCore.Verifier;
 using JetBrains.Annotations;
+using Microsoft.Dafny;
 using Microsoft.Dafny.Triggers;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
@@ -2713,7 +2714,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
         }
         var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
-        func = new Bpl.Function(f.tok, f.FullSanitizedName, new List<Bpl.TypeVariable>(), formals, res, "function declaration for " + f.FullName);
+        func = new Bpl.Function(new FromDafnyNode(f), f.FullSanitizedName, new List<Bpl.TypeVariable>(), formals, res, "function declaration for " + f.FullName);
         if (InsertChecksums) {
           InsertChecksum(f, func);
         }
@@ -4858,3 +4859,11 @@ namespace Microsoft.Dafny {
 }
 
 public enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
+
+class FromDafnyNode : VCGeneration.TokenWrapper {
+  public INode Node { get; }
+
+  public FromDafnyNode(INode node) : base(node.Tok) {
+    this.Node = node;
+  }
+}

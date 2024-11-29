@@ -1,4 +1,4 @@
-// RUN: ! %verify --type-system-refresh --allow-axioms --isolate-assertions %s > %t
+// RUN: ! %verify --type-system-refresh --allow-axioms --show-hints --isolate-assertions %s > %t
 // RUN: %diff "%s.expect" "%t"
 
 function P(x: int): bool {
@@ -102,4 +102,26 @@ module M2 {
         hide *;
         reveal RecFunc;
     }
+}
+
+predicate Outer(x: int) {
+  Inner(x)
+}
+
+predicate Inner(x: int) {
+  x > 3
+}
+
+method InnerOuterUser() {
+  hide *;
+  assert Outer(0);
+  assert Outer(1) by {
+    reveal Outer;
+  }
+  assert Outer(2) by {
+    reveal Inner;
+  }
+  assert Outer(3) by {
+    reveal Outer, Inner;
+  }
 }
