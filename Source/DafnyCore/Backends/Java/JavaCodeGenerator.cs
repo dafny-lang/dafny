@@ -884,7 +884,7 @@ namespace Microsoft.Dafny.Compilers {
     // We write an extern class as a base class that the actual extern class
     // needs to extend, so the extern methods and functions need to be abstract
     // in the base class
-    protected override bool IncludeImportedMembers => true;
+    protected override bool IncludeExternallyImportedMembers => true;
 
     //
     // An example to show how type parameters are dealt with:

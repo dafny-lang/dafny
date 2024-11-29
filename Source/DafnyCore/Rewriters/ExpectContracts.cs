@@ -117,8 +117,7 @@ public class ExpectContracts : IRewriter {
 
     newFunc.Body = callExpr;
 
-    var resultVar = origFunc.Result ?? new Formal(tok, "#result", origFunc.ResultType, false, false, null);
-    var localName = origFunc.Result?.Name ?? "__BLA__result";
+    var resultVar = origFunc.Result ?? new Formal(tok, "#result", newFunc.ResultType, false, false, null);
     var localExpr = Expression.CreateIdentExpr(resultVar);
 
     var callRhs = new ExprRhs(callExpr);
@@ -126,27 +125,9 @@ public class ExpectContracts : IRewriter {
     var lhss = new List<Expression> { localExpr };
     var rhss = new List<AssignmentRhs> { callRhs };
 
-    var assignStmt = new SingleAssignStmt(decl.RangeToken, localExpr, callRhs);
-    Statement callStmt;
-    if (false && origFunc.Result?.Name is null) {
-      var local = new LocalVariable(decl.RangeToken, localName, newFunc.ResultType, false);
-      local.type = newFunc.ResultType;
-      var locs = new List<LocalVariable> { local };
-      var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new AssignStatement(decl.RangeToken, lhss, rhss) {
-        ResolvedStatements = new List<Statement>() { assignStmt }
-      });
-      // localExpr.Var = local;
-      callStmt = varDeclStmt;
-    } else {
-      // localExpr.Var = origFunc.Result;
-      callStmt = assignStmt;
-    }
+    var callStmt = new SingleAssignStmt(decl.RangeToken, localExpr, callRhs);
 
     var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
-
-    // if (origFunc.Result?.Name is null) {
-    //   body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
-    // }
 
     newFunc.ByMethodBody = body;
     // We especially want to remove {:extern} from the wrapper, but also any other attributes.

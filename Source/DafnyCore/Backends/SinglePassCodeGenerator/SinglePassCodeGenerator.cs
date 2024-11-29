@@ -214,7 +214,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree/*?*/ ErrorWriter();
       void Finish();
     }
-    protected virtual bool IncludeImportedMembers { get => false; }
+    protected virtual bool IncludeExternallyImportedMembers { get => false; }
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
     protected virtual bool ClassMethodsAllowedToCallTraitMethods => true;
@@ -2319,7 +2319,7 @@ namespace Microsoft.Dafny.Compilers {
               CompileFunction(f, classWriter, true);
             }
           } else if (IsImported(f)) {
-            if (IncludeImportedMembers) {
+            if (IncludeExternallyImportedMembers) {
               CompileFunction(f, classWriter, false);
             }
           } else if (f.Body == null) {
@@ -2354,7 +2354,7 @@ namespace Microsoft.Dafny.Compilers {
               CompileMethod(program, m, classWriter, true);
             }
           } else if (m.IsExtern(Options) && m.Body == null) {
-            if (IncludeImportedMembers) {
+            if (IncludeExternallyImportedMembers) {
               CompileMethod(program, m, classWriter, false);
             }
           } else if (m.Body == null) {
@@ -2727,7 +2727,7 @@ namespace Microsoft.Dafny.Compilers {
     private void CompileFunction(Function f, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(f != null);
       Contract.Requires(cw != null);
-      Contract.Requires(f.Body != null || (IncludeImportedMembers && Attributes.Contains(f.Attributes, "extern")));
+      Contract.Requires(f.Body != null || (IncludeExternallyImportedMembers && Attributes.Contains(f.Attributes, "extern")));
 
       var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f),
         f.Ins, f.ResultType, f.tok, f.IsStatic,
@@ -2782,7 +2782,7 @@ namespace Microsoft.Dafny.Compilers {
     private void CompileMethod(Program program, Method m, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
-      Contract.Requires(m.Body != null || (IncludeImportedMembers && Attributes.Contains(m.Attributes, "extern")));
+      Contract.Requires(m.Body != null || (IncludeExternallyImportedMembers && Attributes.Contains(m.Attributes, "extern")));
 
       var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !IsImported(m), false, lookasideBody);
       if (w != null) {
