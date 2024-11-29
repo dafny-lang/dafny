@@ -94,6 +94,8 @@ module Std.Enumerators {
 
     constructor(elements: seq<T>) 
       ensures Valid()
+      ensures history == []
+      ensures fresh(Repr)
     {
       this.elements := elements;
       this.index := 0;
