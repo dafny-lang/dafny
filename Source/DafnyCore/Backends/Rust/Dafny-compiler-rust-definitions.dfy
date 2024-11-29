@@ -481,7 +481,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeType,
         "",
         [R.FnDecl(
-           "", [],
+           R.NoDoc, R.NoAttr,
            R.PRIV,
            R.Fn(
              "default", [], [], Some(datatypeType),
@@ -502,7 +502,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         R.Borrowed(datatypeType),
         "",
         [R.FnDecl(
-           "", [],
+           R.NoDoc, R.NoAttr,
            R.PRIV,
            R.Fn("as_ref", [], [R.Formal.selfBorrowed], Some(R.SelfOwned),
                 Some(R.self))
@@ -519,7 +519,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         "",
         [
           R.FnDecl(
-            "", [],
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               "fmt", [],
@@ -548,7 +548,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeType,
         "",
         [R.FnDecl(
-           "", [],
+           R.NoDoc, R.NoAttr,
            R.PRIV,
            R.Fn(
              "fmt_print", [],
@@ -576,7 +576,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeType,
         "",
         [R.FnDecl(
-           "Given type parameter conversions, returns a lambda to convert this structure", [],
+           "Given type parameter conversions, returns a lambda to convert this structure", R.NoAttr,
            R.PUB,
            R.Fn(
              "coerce", rCoerceTypeParams,
@@ -629,7 +629,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeOrNewtypeType,
         "",
         [R.FnDecl(
-           "", [],
+           R.NoDoc, R.NoAttr,
            R.PRIV,
            R.Fn(
              "hash", [R.TypeParamDecl("_H", [R.std.MSel("hash").MSel("Hasher").AsType()])],
@@ -659,7 +659,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         "",
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
-            "", [],
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               methodName, [],
@@ -696,7 +696,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         "",
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
-            "", [],
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               methodName, [],
@@ -726,7 +726,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         newtypeType,
         "",
         [ R.FnDecl(
-            "", [],
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               "partial_cmp", [],

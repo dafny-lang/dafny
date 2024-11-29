@@ -1897,4 +1897,10 @@ module RAST
       }
     }
   }
+
+  /** Placeholder when there is no Rust docstring */
+  const NoDoc := ""
+
+  /** Placeholder when there are no Rust attributes */
+  const NoAttr: seq<Attribute> := []
 }

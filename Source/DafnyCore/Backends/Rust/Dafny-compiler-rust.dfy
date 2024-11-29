@@ -304,7 +304,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if extern.NoExtern? && className != "_default" {
         implBody := [
           R.FnDecl(
-            "Allocates an UNINITIALIZED instance. Only the Dafny compiler should use that.", [],
+            "Allocates an UNINITIALIZED instance. Only the Dafny compiler should use that.", R.NoAttr,
             R.PUB,
             R.Fn(
               allocate_fn,
@@ -552,7 +552,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 whereConstraints,
                 [
                   R.FnDecl(
-                    "Constraint check", [],
+                    "Constraint check", R.NoAttr,
                     R.PUB,
                     R.Fn(
                       "is", [], rFormals, Some(R.Bool()),
@@ -578,7 +578,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             resultingType,
             "",
             [R.FnDecl(
-               "For Dafny print statements", [],
+               "For Dafny print statements", R.NoAttr,
                R.PRIV,
                R.Fn("fmt_print", [],
                     [ R.Formal.selfBorrowed,
@@ -599,7 +599,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             "",
             [R.TypeDeclMember("Target", wrappedType),
              R.FnDecl(
-               "", [],
+               R.NoDoc, R.NoAttr,
                R.PRIV,
                R.Fn("deref", [],
                     [R.Formal.selfBorrowed], Some(R.Borrowed(R.Self().MSel("Target").AsType())),
@@ -613,7 +613,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             resultingType,
             "",
             [R.FnDecl(
-               "SAFETY: The newtype is marked as transparent", [],
+               "SAFETY: The newtype is marked as transparent", R.NoAttr,
                R.PUB,
                R.Fn(
                  "_from_ref", [],
@@ -1576,7 +1576,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         fBody := None;
       }
       s := R.FnDecl(
-        m.docString, [],
+        m.docString, R.NoAttr,
         visibility,
         R.Fn(
           fnName,

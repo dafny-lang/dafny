@@ -13,8 +13,6 @@ module FactorPathsOptimizationTest {
       expect sA == sB;
     }
   }
-  const NoDoc := ""
-  const NoAttr: seq<Attribute> := []
 
   method TestApply() {
     var T_Decl := TypeParamDecl("T", [DafnyType]);

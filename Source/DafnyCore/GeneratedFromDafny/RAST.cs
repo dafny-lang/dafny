@@ -302,8 +302,14 @@ namespace RAST {
     public static RAST._IExpr std__default__Default__default { get {
       return ((RAST.__default.std__default__Default).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("default"))).Apply0();
     } }
+    public static Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> NoAttr { get {
+      return Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements();
+    } }
     public static BigInteger MAX__TUPLE__SIZE { get {
       return new BigInteger(12);
+    } }
+    public static Dafny.ISequence<Dafny.Rune> NoDoc { get {
+      return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
     } }
   }
 
