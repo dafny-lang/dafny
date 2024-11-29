@@ -170,7 +170,7 @@ module M {
              L4
     provides L5
            , L6
-             // Comment
+    // Comment
     provides
       L7, L8
     provides
@@ -187,7 +187,7 @@ module M {
             M4
     reveals M5
           , M6
-            // Comment
+    // Comment
     reveals
       M7, M8
     reveals
