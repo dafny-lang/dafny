@@ -1,4 +1,6 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --find-project
+// This file tests whether it's possible to export Dafny members using {:extern} annotations, AND
+// tests whether 'test-assumptions="externs"' adds dynamic contracts to exported members 
+// RUN: %testDafnyForEachCompiler "%s" --run-fails -- --find-project
 predicate Pre(x: int, y: int) {
   x > y
 }
@@ -34,10 +36,20 @@ class Foo {
   static function {:extern} AddOne(r: int): int {
     r + 1
   }
+
+  //static method {:extern} IncorrectEnsuresClause() returns (x: nat)
+  //  ensures x == 3 {
+  //  assume {:axiom} false;
+  //  return 2;
+  //}
 }
 
 method Main() {
   var foo := Foo.Builder(3, 2);
   var x := foo.GetX(); 
-  print Foo.AddOne(foo.AddY(x));
+  print Foo.AddOne(foo.AddY(x)), "\n";
+
+  assume {:axiom} false;
+  var foo2 := Foo.Builder(2, 3);
+  print "oops";
 }
