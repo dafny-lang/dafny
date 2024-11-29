@@ -465,6 +465,51 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.Identifier("panic!").Apply1(R.LiteralString(optText, binary := false, verbatim := false))
   }
 
+  function DefaultDatatypeImpl(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    datatypeType: R.Type,
+    datatypeName: R.Expr,
+    structAssignments: seq<R.AssignIdentifier>
+  ): R.ModDecl {
+    var defaultConstrainedTypeParams := R.TypeParamDecl.AddConstraintsMultiple(
+                                          rTypeParamsDecls, [R.DefaultTrait]
+                                        );
+    R.ImplDecl(
+      R.ImplFor(
+        defaultConstrainedTypeParams,
+        R.DefaultTrait,
+        datatypeType,
+        "",
+        [R.FnDecl(
+           "", [],
+           R.PRIV,
+           R.Fn(
+             "default", [], [], Some(datatypeType),
+             Some(
+               R.StructBuild(
+                 datatypeName,
+                 structAssignments
+               )))
+         )]
+      ))
+  }
+
+  function AsRefDatatypeImpl(rTypeParamsDecls: seq<R.TypeParamDecl>, datatypeType: R.Type): R.ModDecl {
+    R.ImplDecl(
+      R.ImplFor(
+        rTypeParamsDecls,
+        R.std.MSel("convert").MSel("AsRef").AsType().Apply1(datatypeType),
+        R.Borrowed(datatypeType),
+        "",
+        [R.FnDecl(
+           "", [],
+           R.PRIV,
+           R.Fn("as_ref", [], [R.Formal.selfBorrowed], Some(R.SelfOwned),
+                Some(R.self))
+         )]
+      ))
+  }
+
   function DebugImpl(rTypeParamsDecls: seq<R.TypeParamDecl>, datatypeType: R.Type, rTypeParams: seq<R.Type>): R.ModDecl {
     R.ImplDecl(
       R.ImplFor(
@@ -474,7 +519,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         "",
         [
           R.FnDecl(
-            "Helps debugging", [],
+            "", [],
             R.PRIV,
             R.Fn(
               "fmt", [],
@@ -503,7 +548,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeType,
         "",
         [R.FnDecl(
-           "For Dafny print statements", [],
+           "", [],
            R.PRIV,
            R.Fn(
              "fmt_print", [],

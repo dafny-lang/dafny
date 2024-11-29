@@ -386,6 +386,10 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   public string GetTriviaContainingDocstring() {
+    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+      return triviaFound;
+    }
+
     IToken lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
@@ -396,18 +400,14 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     var tentativeTrivia = "";
     if (lastClosingParenthesis != null) {
       if (lastClosingParenthesis.pos < EndToken.pos) {
-        tentativeTrivia = lastClosingParenthesis.TrailingTrivia + lastClosingParenthesis.Next.LeadingTrivia;
+        tentativeTrivia = (lastClosingParenthesis.TrailingTrivia + lastClosingParenthesis.Next.LeadingTrivia).Trim();
       } else {
-        tentativeTrivia = lastClosingParenthesis.TrailingTrivia;
+        tentativeTrivia = lastClosingParenthesis.TrailingTrivia.Trim();
       }
 
-      if (tentativeTrivia.Trim() != "") {
+      if (tentativeTrivia != "") {
         return tentativeTrivia;
       }
-    }
-    
-    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
-      return triviaFound;
     }
 
     tentativeTrivia = EndToken.TrailingTrivia.Trim();

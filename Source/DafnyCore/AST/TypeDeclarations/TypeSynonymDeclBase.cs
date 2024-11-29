@@ -108,24 +108,19 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   }
 
   public string GetTriviaContainingDocstring() {
-    IToken openingBlock = null;
-    foreach (var token in OwnedTokens) {
-      if (token.val == "{") {
-        openingBlock = token;
-      }
-    }
-
-    if (openingBlock != null) {
-      if((openingBlock.Prev.TrailingTrivia + openingBlock.LeadingTrivia).Trim() is {} tentativeTrivia and not "") {
-        return tentativeTrivia;
-      }
-    }
-
     if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
       return triviaFound;
     }
 
-    if (EndToken.TrailingTrivia.Trim() is {} tentativeTrivia2 and not "") {
+    foreach (var token in OwnedTokens) {
+      if (token.val == "=") {
+        if ((token.Prev.TrailingTrivia + token.LeadingTrivia).Trim() is { } tentativeTrivia and not "") {
+          return tentativeTrivia;
+        }
+      }
+    }
+
+    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia2 and not "") {
       return tentativeTrivia2;
     }
 

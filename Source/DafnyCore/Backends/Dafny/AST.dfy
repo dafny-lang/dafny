@@ -1,6 +1,6 @@
 module {:extern "DAST.Format"} DAST.Format
-  /* Cues about how to format different AST elements if necessary,
-     e.g. to generate idiomatic code when needed. */
+/* Cues about how to format different AST elements if necessary,
+   e.g. to generate idiomatic code when needed. */
 {
   // Dafny AST compilation tenets:
   // - The Compiled Dafny AST should be minimal

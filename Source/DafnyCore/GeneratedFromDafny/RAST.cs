@@ -843,9 +843,10 @@ namespace RAST {
     public RAST._IEnumCase ReplaceEnumCase(RAST._IEnumCase enumCase) {
       RAST._IEnumCase _source0 = enumCase;
       {
-        Dafny.ISequence<Dafny.Rune> _0_name = _source0.dtor_name;
-        RAST._IFields _1_fields = _source0.dtor_fields;
-        return RAST.EnumCase.create(_0_name, (this).ReplaceFields(_1_fields));
+        Dafny.ISequence<Dafny.Rune> _0_docString = _source0.dtor_docString;
+        Dafny.ISequence<Dafny.Rune> _1_name = _source0.dtor_name;
+        RAST._IFields _2_fields = _source0.dtor_fields;
+        return RAST.EnumCase.create(_0_docString, _1_name, (this).ReplaceFields(_2_fields));
       }
     }
     public RAST._IImpl ReplaceImplDecl(RAST._IImpl impl) {
@@ -2313,29 +2314,33 @@ namespace RAST {
 
   public interface _IEnumCase {
     bool is_EnumCase { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_docString { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
     RAST._IFields dtor_fields { get; }
     _IEnumCase DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine);
   }
   public class EnumCase : _IEnumCase {
+    public readonly Dafny.ISequence<Dafny.Rune> _docString;
     public readonly Dafny.ISequence<Dafny.Rune> _name;
     public readonly RAST._IFields _fields;
-    public EnumCase(Dafny.ISequence<Dafny.Rune> name, RAST._IFields fields) {
+    public EnumCase(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.Rune> name, RAST._IFields fields) {
+      this._docString = docString;
       this._name = name;
       this._fields = fields;
     }
     public _IEnumCase DowncastClone() {
       if (this is _IEnumCase dt) { return dt; }
-      return new EnumCase(_name, _fields);
+      return new EnumCase(_docString, _name, _fields);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.EnumCase;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._fields, oth._fields);
+      return oth != null && object.Equals(this._docString, oth._docString) && object.Equals(this._name, oth._name) && object.Equals(this._fields, oth._fields);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._docString));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fields));
       return (int) hash;
@@ -2343,13 +2348,15 @@ namespace RAST {
     public override string ToString() {
       string s = "RAST.EnumCase.EnumCase";
       s += "(";
+      s += this._docString.ToVerbatimString(true);
+      s += ", ";
       s += this._name.ToVerbatimString(true);
       s += ", ";
       s += Dafny.Helpers.ToString(this._fields);
       s += ")";
       return s;
     }
-    private static readonly RAST._IEnumCase theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, RAST.Fields.Default());
+    private static readonly RAST._IEnumCase theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<Dafny.Rune>.Empty, RAST.Fields.Default());
     public static RAST._IEnumCase Default() {
       return theDefault;
     }
@@ -2357,13 +2364,18 @@ namespace RAST {
     public static Dafny.TypeDescriptor<RAST._IEnumCase> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IEnumCase create(Dafny.ISequence<Dafny.Rune> name, RAST._IFields fields) {
-      return new EnumCase(name, fields);
+    public static _IEnumCase create(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.Rune> name, RAST._IFields fields) {
+      return new EnumCase(docString, name, fields);
     }
-    public static _IEnumCase create_EnumCase(Dafny.ISequence<Dafny.Rune> name, RAST._IFields fields) {
-      return create(name, fields);
+    public static _IEnumCase create_EnumCase(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.Rune> name, RAST._IFields fields) {
+      return create(docString, name, fields);
     }
     public bool is_EnumCase { get { return true; } }
+    public Dafny.ISequence<Dafny.Rune> dtor_docString {
+      get {
+        return this._docString;
+      }
+    }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
         return this._name;
@@ -2376,7 +2388,7 @@ namespace RAST {
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine)
     {
-      return Dafny.Sequence<Dafny.Rune>.Concat((this).dtor_name, ((this).dtor_fields)._ToString(ind, newLine));
+      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.__default.ToDocstringPrefix((this).dtor_docString, ind), (this).dtor_name), ((this).dtor_fields)._ToString(ind, newLine));
     }
   }
 
@@ -4852,7 +4864,7 @@ namespace RAST {
     public abstract _IImplMember DowncastClone();
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
       if ((this).is_FnDecl) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(((this).dtor_pub)._ToString(), ((this).dtor_fun)._ToString(ind));
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.__default.ToDocstringPrefix((this).dtor_docString, ind), RAST.Attribute.ToStringMultiple((this).dtor_attributes, ind)), ((this).dtor_pub)._ToString()), ((this).dtor_fun)._ToString(ind));
       } else if ((this).is_ImplMemberMacro) {
         return Dafny.Sequence<Dafny.Rune>.Concat(((this).dtor_expr)._ToString(ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
       } else if ((this).is_TypeDeclMember) {

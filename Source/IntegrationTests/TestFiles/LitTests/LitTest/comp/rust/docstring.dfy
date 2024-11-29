@@ -6,20 +6,20 @@
   * Multi-line */
 method TestMethod() { }
 /** Docstring for functions */
-function TestFn(): int { 1 }
-/** Docstrings for classes 1 */
+function TestFn(): SynonymType { 1 }
+/** Docstring for classes 1 */
 class TestClass {}
-/** Docstrings for datatype */
+/** Docstring for datatype */
 datatype TestDatatype =
   | Constructor1() // Docstring for Constructor1
   | Constructor2() // Docstring for Constructor2
 
 /** Docstring for synonym type */ 
-type SynonymType = int
+type SynonymType = x: int | true
 
 /** Docstring for module */
 module SubModule {
-  /** Docstrings for classes 2 */
+  /** Docstring for classes 2 */
   class TestClass {
     /** Docstring for const */
     const testConst: bool

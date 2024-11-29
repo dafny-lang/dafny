@@ -55,7 +55,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public string TokenToString(IToken tok) {
-      return $"{tok.Uri}({tok.line},{tok.col})";
+      var absolutePath = tok.Uri;
+      var localPath = absolutePath.LocalPath;
+      var relativePath = System.IO.Path.GetRelativePath(".", localPath).Replace("\\", "/"); // Normalize paths
+      return $"{relativePath}({tok.line},{tok.col})";
     }
 
     public void AddUnsupported(string why) {
@@ -145,7 +148,7 @@ namespace Microsoft.Dafny.Compilers {
            GetIsExternAndIncluded(classLikeDecl) is (classIsExtern: true, _)) ||
           (decl is AbstractTypeDecl)
         );
-        var docString = GetDocString(module.EnclosingLiteralModuleDecl is {} node ? node : module);
+        var docString = GetDocString(module.EnclosingLiteralModuleDecl is { } node ? node : module);
         currentBuilder = moduleBuilder.Module(moduleName, docString, attributes, requiresExternImport);
       } else {
         throw new InvalidOperationException();
@@ -154,10 +157,9 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    private string GetDocString(INode node)
-    {
+    private string GetDocString(INode node) {
       return ((node is IHasDocstring iHasDocstring ? iHasDocstring?.GetDocstring(Options) : "") +
-              "\n" + (node.StartToken.line != 0 ? TokenToString(node.StartToken) : "")).Trim();
+              "\n" + (node.StartToken.line != 0 && node is not DatatypeCtor ? TokenToString(node.StartToken) : "")).Trim();
     }
 
     protected override void FinishModule() {

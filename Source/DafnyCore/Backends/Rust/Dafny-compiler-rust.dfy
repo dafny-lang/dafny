@@ -791,7 +791,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         if isNumeric {
           namedFields := namedFields.ToNamelessFields();
         }
-        ctors := ctors + [R.EnumCase(escapeName(ctor.name), namedFields)];
+        ctors := ctors + [R.EnumCase(ctor.docString, escapeName(ctor.name), namedFields)];
       }
       var unusedTypeParams := (set tp <- rTypeParamsDecls :: tp.name) - usedTypeParams;
 
@@ -878,7 +878,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.FnDecl(
                 if |c.ctors| == 1 then
                   "Returns a borrow of the field " + callName
-                else 
+                else
                   "Gets the field " + callName + " for all enum members which have it",
                 [],
                 R.PUB,
@@ -928,6 +928,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         if |unusedTypeParams| > 0 {
           ctors := ctors + [
             R.EnumCase(
+              "",
               "_PhantomVariant",
               R.NamelessFields(
                 Std.Collections.Seq.Map(
@@ -942,7 +943,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       s :=
         [R.EnumDecl(
            R.Enum(
-            c.docString,
+             c.docString,
              if cIsEq then
                [R.RawAttribute("#[derive(PartialEq, Clone)]")]
              else
@@ -1145,49 +1146,24 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.std.MSel("default").MSel("Default").AsExpr().FSel("default").Apply0())
           ];
         }
-        var defaultConstrainedTypeParams := R.TypeParamDecl.AddConstraintsMultiple(
-          rTypeParamsDecls, [R.DefaultTrait]
-        );
         var fullType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
 
         // Implementation of Default trait when c supports equality
         if cIsEq {
           s := s +
-          [R.ImplDecl(
-             R.ImplFor(
-               defaultConstrainedTypeParams,
-               R.DefaultTrait,
-               fullType,
-               "",
-               [R.FnDecl(
-                  "Returns one possible value of " + datatypeName, [],
-                  R.PRIV,
-                  R.Fn(
-                    "default", [], [], Some(fullType),
-                    Some(
-                      R.StructBuild(
-                        structName,
-                        structAssignments
-                      )))
-                )]
-             ))];
+          [ DefaultDatatypeImpl(
+              rTypeParamsDecls,
+              fullType,
+              structName,
+              structAssignments)];
         }
 
         // Implementation of AsRef trait
         s := s + [
-          R.ImplDecl(
-            R.ImplFor(
-              rTypeParamsDecls,
-              R.std.MSel("convert").MSel("AsRef").AsType().Apply1(fullType),
-              R.Borrowed(fullType),
-              "",
-              [R.FnDecl(
-                 "", [],
-                 R.PRIV,
-                 R.Fn("as_ref", [], [R.Formal.selfBorrowed], Some(R.SelfOwned),
-                      Some(R.self))
-               )]
-            ))];
+          AsRefDatatypeImpl(
+            rTypeParamsDecls,
+            fullType
+          )];
       }
     }
 

@@ -383,8 +383,8 @@ module Std.JSON.ZeroCopy.Serializer {
       SpecProperties.ConcatBytes_Linear(butLast, [last], Spec.Member);
       wr
   } // No by method block here, because the loop invariant in the method version
-    // needs to call MembersSpec and the termination checker gets confused by
-    // that.  Instead, see Members above. // DISCUSS
+  // needs to call MembersSpec and the termination checker gets confused by
+  // that.  Instead, see Members above. // DISCUSS
 
   // DISCUSS: Is there a way to avoid passing the ghost `v` around while
   // maintaining the termination argument?  Maybe the lambda for elements will be enough?
@@ -451,8 +451,8 @@ module Std.JSON.ZeroCopy.Serializer {
       }
       wr
   } // No by method block here, because the loop invariant in the method version
-    // needs to call `SequenceSpec` and the termination checker gets confused by
-    // that.  Instead, see `Sequence`Items above. // DISCUSS
+  // needs to call `SequenceSpec` and the termination checker gets confused by
+  // that.  Instead, see `Sequence`Items above. // DISCUSS
 
 
   ghost function ItemsSpec(arr: jarray, items: seq<jitem>, writer: Writer) : (wr: Writer)
@@ -473,8 +473,8 @@ module Std.JSON.ZeroCopy.Serializer {
       SpecProperties.ConcatBytes_Linear(butLast, [last], Spec.Item);
       wr
   } // No by method block here, because the loop invariant in the method version
-    // needs to call ItemsSpec and the termination checker gets confused by
-    // that.  Instead, see Items above. // DISCUSS
+  // needs to call ItemsSpec and the termination checker gets confused by
+  // that.  Instead, see Items above. // DISCUSS
 
   @ResourceLimit("10e6")
   method MembersImpl(obj: jobject, writer: Writer) returns (wr: Writer)

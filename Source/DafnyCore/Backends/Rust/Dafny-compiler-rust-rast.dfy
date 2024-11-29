@@ -1,7 +1,7 @@
 
 // Rust AST
 module RAST
-  // All ToString methods should produce well-formed Rust code
+// All ToString methods should produce well-formed Rust code
 {
   import opened Std.Wrappers
   import Std
@@ -236,8 +236,8 @@ module RAST
 
     function ReplaceEnumCase(enumCase: EnumCase): EnumCase {
       match enumCase {
-        case EnumCase(name, fields) =>
-          EnumCase(name, ReplaceFields(fields))
+        case EnumCase(docString, name, fields) =>
+          EnumCase(docString, name, ReplaceFields(fields))
       }
     }
 
@@ -435,9 +435,9 @@ module RAST
     }
   }
   datatype TopFnDecl = TopFn(
-        docString: string,
-        attributes: seq<Attribute>,
-        visibility: Visibility, fn: Fn) {
+    docString: string,
+    attributes: seq<Attribute>,
+    visibility: Visibility, fn: Fn) {
     function ToString(ind: string): string {
       ToDocstringPrefix(docString, ind) +
       Attribute.ToStringMultiple(attributes, ind) +
@@ -546,9 +546,10 @@ module RAST
   }
 
   datatype EnumCase =
-    | EnumCase(name: string, fields: Fields)
+    | EnumCase(docString: string, name: string, fields: Fields)
   {
     function ToString(ind: string, newLine: bool): string {
+      ToDocstringPrefix(docString, ind) +
       name + fields.ToString(ind, newLine)
     }
   }
@@ -1148,7 +1149,10 @@ module RAST
     | ImplMemberMacro(expr: Expr)
   {
     function ToString(ind: string): string {
-      if FnDecl? then pub.ToString() + fun.ToString(ind)
+      if FnDecl? then
+        ToDocstringPrefix(docString, ind) +
+        Attribute.ToStringMultiple(attributes, ind) +
+        pub.ToString() + fun.ToString(ind)
       else if ImplMemberMacro? then expr.ToString(ind) + ";"
       else if TypeDeclMember? then "type " + name + " = " + rhs.ToString(ind) + ";"
       else assert RawImplMember?; content

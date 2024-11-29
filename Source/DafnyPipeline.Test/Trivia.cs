@@ -53,7 +53,7 @@ type AF { } // [START Docstring4 END Docstring4]
 ";
       await TestAllDocstrings(programString);
     }
-    
+
     [Fact]
     public async Task DocStringForClassLikeDecl() {
       var programString = @"
@@ -91,7 +91,7 @@ class AD  {}
 ";
       await TestAllDocstrings(programString);
     }
-    
+
     [Fact]
     public async Task DocStringForDatatypeDecl() {
       var programString = @"
@@ -99,7 +99,7 @@ class AD  {}
 datatype X = FirstCtor() // [START Docstring1 END Docstring1]
 // No docstring
 
-/** No docstring */
+/* No docstring */
 datatype Y // [START Docstring2
 // END Docstring2]
 = 
@@ -108,7 +108,7 @@ SecondCtor()
 ";
       await TestAllDocstrings(programString);
     }
-    
+
     [Fact]
     public async Task DocStringForConstVar() {
       var programString = @"
@@ -131,7 +131,7 @@ class NoDocstring0 {
 ";
       await TestAllDocstrings(programString);
     }
-    
+
     [Fact]
     public async Task DocStringForFunctions() {
       var programString = @"
@@ -142,7 +142,7 @@ class NoDocstring0 {
   /** [START Docstring3 END Docstring3] */
   function Test3(): int { 1 } // Not docstring
   function Test4(): int { 2 } // [START Docstring4 END Docstring4]
-  /** Not docstring because docstring in precise place */
+  /* Not docstring */
   function Test5(): int // [START Docstring5
     // END Docstring5]
   {
@@ -155,7 +155,7 @@ class NoDocstring0 {
   /** [START Docstring8 END Docstring8] */
   function Test8(): (r: int) { 1 } // Not docstring
   function Test9(): (r: int) { 2 } // [START Docstring9 END Docstring9]
-  /** Not docstring because docstring in precise place */
+  /* Not docstring */
   function Test10(): (r: int) // [START Docstring10
     // END Docstring10]
   {
@@ -166,9 +166,148 @@ class NoDocstring0 {
       await TestAllDocstrings(programString);
     }
 
+    [Fact]
+    public async Task DocStringForMethods() {
+      var programString = @"
+class NoDocstring0 {
+  /** [START Docstring1 END Docstring1] */
+  method Test1()
+  method Test2() // [START Docstring2 END Docstring2]
+  /** [START Docstring3 END Docstring3] */
+  method Test3() {} // Not docstring
+  method Test4() { } // [START Docstring4 END Docstring4]
+  /* Just a comment */
+  method Test5() // [START Docstring5
+    // END Docstring5]
+  {
+  }
 
-    private async Task TestAllDocstrings(string programString)
-    {
+  /** [START Docstring6 END Docstring6] */
+  method Test6() returns (r: int)
+  method Test7() returns (r: int) // [START Docstring7 END Docstring7]
+  /** [START Docstring8 END Docstring8] */
+  method Test8() returns (r: int) { } // Not docstring
+  method Test9() returns (r: int) { } // [START Docstring9 END Docstring9]
+  /* Not docstring */
+  method Test10() returns (r: int) // [START Docstring10
+    // END Docstring10]
+  {
+  }
+}
+";
+      await TestAllDocstrings(programString);
+    }
+
+    [Fact]
+    public async Task DocStringForIterators() {
+      var programString = @"
+/** [START Docstring0 END Docstring0] */
+iterator Gen(start: int) yields (x: int) // Just a comment
+  yield ensures true
+{}
+
+/* Just a comment */
+iterator Gen(start: int) yields (x: int) //  [START Docstring1 END Docstring1]
+  yield ensures true
+{}
+
+/* Just a comment */
+iterator Gen(start: int) yields (x: int)
+  yield ensures true
+{} //  [START Docstring2 END Docstring2]
+// Just a comment
+";
+      await TestAllDocstrings(programString);
+    }
+
+    [Fact]
+    public async Task DocStringForModules() {
+      var programString = @"
+/** [START Docstring0 END Docstring0] */
+module Module0 {
+  // No docstring for this module
+  module NoDocstring1 {}
+  module Module2 {} // [START Docstring2 END Docstring2]
+  /** [START Docstring3 END Docstring3] */
+  module Module3 {} // Not docstring
+
+  module Test4 refines Else // [START Docstring4
+  // END Docstring4]
+  {
+  }
+}
+";
+      await TestAllDocstrings(programString);
+    }
+
+    [Fact]
+    public async Task DocStringForExportSets() {
+      var programString = @"
+module NoDocstring0 {
+  /** [START Docstring1 END Docstring1] */
+  export provides A, B, C
+
+  // Just a comment
+  export
+    // [START Docstring2 END Docstring2]
+    provides D, E, F
+
+  // Just a comment
+  export All
+    // [START Docstring3 END Docstring3]
+    provides D, E
+
+  // Just a comment
+  export AllBis
+    provides D, E // [START Docstring4 END Docstring4]
+  // Just a comment
+}";
+      await TestAllDocstrings(programString);
+    }
+
+    [Fact]
+    public async Task DocStringForNewtypes() {
+      var programString = @"
+/** [START Docstring0 END Docstring0] */
+newtype Int0 = x: int | true // Not docstring
+
+newtype Int1 = x: int | true { predicate NoDocstring2() { x == 0 } } // [START Docstring1 END Docstring1]
+
+/** [START Docstring3 END Docstring3] */
+newtype Int3 = x: int | true { predicate NoDocstring4() { x == 0 } } // Not docstring
+
+/* Not docstring */
+newtype Int5
+  // [START Docstring5
+  // END Docstring5]
+= x: int | true // Not docstring
+
+newtype Int6 = x: int | true witness 0 // [START Docstring6 END Docstring6]
+";
+      await TestAllDocstrings(programString);
+    }
+
+    [Fact]
+    public async Task DocStringForSynonymTypes() {
+      var programString = @"
+/** [START Docstring0 END Docstring0] */
+type Int0 = x: int | true // Not docstring
+
+type Int1 = x: int | true witness 0 // [START Docstring1 END Docstring1]
+
+/** [START Docstring2 END Docstring2] */
+type Int2 = x: int | true // Not docstring
+
+/* Not docstring */
+type Int3
+  // [START Docstring3
+  // END Docstring3]
+= x: int | true // Not docstring
+";
+      await TestAllDocstrings(programString);
+    }
+
+    private async Task TestAllDocstrings(string programString) {
       var options = DafnyOptions.CreateUsingOldParser(output);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
@@ -176,6 +315,9 @@ class NoDocstring0 {
 
         var reporter = new BatchErrorReporter(options);
         var dafnyProgram = await Utils.Parse(reporter, programString, false);
+        if (reporter.ErrorCount != 0) {
+          throw new Exception(reporter.AllMessagesByLevel[ErrorLevel.Error][0].ToString());
+        }
         Assert.Equal(0, reporter.ErrorCount);
         var topLevelDecls = dafnyProgram.DefaultModuleDef.TopLevelDecls.ToList();
         var hasDocString = topLevelDecls.OfType<IHasDocstring>().SelectMany(i => {
@@ -188,7 +330,15 @@ class NoDocstring0 {
 
           if (i is TopLevelDeclWithMembers memberContainer) {
             foreach (var member in memberContainer.Members) {
-              if (member is IHasDocstring hasDocstring) { 
+              if (member is IHasDocstring hasDocstring) {
+                result.Add(hasDocstring);
+              }
+            }
+          }
+
+          if (i is LiteralModuleDecl modDecl) {
+            foreach (var innerDecl in modDecl.ModuleDef.TopLevelDecls) {
+              if (innerDecl is IHasDocstring hasDocstring) {
                 result.Add(hasDocstring);
               }
             }
@@ -207,7 +357,7 @@ class NoDocstring0 {
         }
 
         Assert.Equal(hasDocString.Count - 1, highestDocstringIndex);
-        for(var i = 0; i < hasDocString.Count; i++) {
+        for (var i = 0; i < hasDocString.Count; i++) {
           var iHasDocString = hasDocString[i];
           var triviaWithDocstring = AdjustNewlines(iHasDocString.GetTriviaContainingDocstring() ?? "");
           if (!(new Regex($@"\[START Docstring{i}[\s\S]*END Docstring{i}\]")).IsMatch(triviaWithDocstring)) {
@@ -239,33 +389,28 @@ trait Trait1 { }
 // Just a comment
 trait Trait2 extends Trait1
 // Trait docstring
-{ }
-// This is attached to trait2
-// This is also attached to trait2
+{ } /*
+This is attached to trait2
+This is also attached to trait2 */
 
 // This is attached to n
-type n = x: int | x % 2 == 0
-// This is attached to n as well
+type n = x: int | x % 2 == 0 // This docstring is attached to n
 
 // Just a comment
 class Class1 extends Trait1
 // Class docstring
-{ }
-// This is attached to the class
+{ } // This is attached to the class
 
 // Comment attached to c
-const c := 2;
-// Docstring attached to c
+const c := 2 // Docstring attached to c
 
 // This is attached to f
-function f(): int
-// This is f docstring
+function f(): int // This is f docstring
 ensures true
 { 1 }
 
 /** This is the docstring */
-function g(): int
-// This is not the docstring
+function g(): int // This is not the docstring
 ensures true
 { 1 }
 
@@ -299,15 +444,15 @@ ensures true
         Assert.NotNull(trait1.StartToken.Next);
         Assert.Equal("Trait1", trait1.StartToken.Next.val);
 
-        AssertTrivia(moduleTest, "\n// Comment ∈ before\n", " // Module docstring\n");
-        AssertTrivia(trait1, "/** Trait docstring */\n", " ");
-        AssertTrivia(trait2, "// Just a comment\n", "\n// Trait docstring\n");
-        AssertTrivia(subsetType, "// This is attached to n\n", "\n// This is attached to n as well\n\n");
-        AssertTrivia(class1, "// Just a comment\n", "\n// Class docstring\n");
-        AssertTrivia(c, "// Comment attached to c\n", "\n// Docstring attached to c\n\n");
-        AssertTrivia(f, "// This is attached to f\n", "\n// This is f docstring\n");
-        AssertTrivia(g, "/** This is the docstring */\n", "\n// This is not the docstring\n");
-        AssertTrivia(m, "// Just a regular comment\n", "\n// This is the docstring\n");
+        AssertTrivia(moduleTest, "\n// Comment ∈ before\n", "// Module docstring");
+        AssertTrivia(trait1, "\n/** Trait docstring */\n", "/** Trait docstring */");
+        AssertTrivia(trait2, "\n// Just a comment\n", "// Trait docstring");
+        AssertTrivia(subsetType, "\n\n// This is attached to n\n", "// This docstring is attached to n");
+        AssertTrivia(class1, "\n// Just a comment\n", "// Class docstring");
+        AssertTrivia(c, "\n// Comment attached to c\n", "// Docstring attached to c");
+        AssertTrivia(f, "\n// This is attached to f\n", "// This is f docstring");
+        AssertTrivia(g, "\n/** This is the docstring */\n", "/** This is the docstring */");
+        AssertTrivia(m, "\n// Just a regular comment\n", "// This is the docstring");
 
         TestTokens(dafnyProgram);
       }

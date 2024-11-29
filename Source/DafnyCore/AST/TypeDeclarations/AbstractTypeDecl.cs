@@ -88,6 +88,9 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
   }
 
   public string GetTriviaContainingDocstring() {
+    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+      return triviaFound;
+    }
     IToken openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
@@ -98,13 +101,9 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
     var tentativeTrivia = "";
     if (openingBlock != null) {
       tentativeTrivia = (openingBlock.Prev.TrailingTrivia + openingBlock.LeadingTrivia).Trim();
-      if(tentativeTrivia != "") {
+      if (tentativeTrivia != "") {
         return tentativeTrivia;
       }
-    }
-
-    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
-      return triviaFound;
     }
 
     tentativeTrivia = EndToken.TrailingTrivia.Trim();

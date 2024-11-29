@@ -61,27 +61,22 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   }
 
   public virtual string GetTriviaContainingDocstring() {
+    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+      return triviaFound;
+    }
     IToken candidate = null;
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
       PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : Enumerable.Empty<IToken>();
-    var tentativeTrivia = "";
     foreach (var token in tokens) {
       if (token.val == "{") {
-        candidate = token.Prev;
-        tentativeTrivia = candidate.TrailingTrivia + token.LeadingTrivia;
-        if (tentativeTrivia.Trim() != "") {
+        if ((token.Prev.TrailingTrivia + token.LeadingTrivia).Trim() is { } tentativeTrivia and not "") {
           return tentativeTrivia;
         }
       }
     }
-
-    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
-      return triviaFound;
-    }
-    tentativeTrivia = EndToken.TrailingTrivia.Trim();
-    if (tentativeTrivia != "") {
-      return tentativeTrivia;
+    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia2 and not "") {
+      return tentativeTrivia2;
     }
 
     return null;

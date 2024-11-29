@@ -483,6 +483,9 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   }
 
   public string GetTriviaContainingDocstring() {
+    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+      return triviaFound;
+    }
 
     var endTokenDefinition =
       OwnedTokens.LastOrDefault(token => token.val == ")" || token.pos == ResultType.EndToken.pos);
@@ -497,10 +500,6 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       if (tentativeTrivia != "") {
         return tentativeTrivia;
       }
-    }
-    
-    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
-      return triviaFound;
     }
 
     tentativeTrivia = EndToken.TrailingTrivia.Trim();

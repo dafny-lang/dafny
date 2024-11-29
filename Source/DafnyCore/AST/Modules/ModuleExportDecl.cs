@@ -111,7 +111,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     if (tentativeTrivia != "") {
       return tentativeTrivia;
     }
-    
+
     tentativeTrivia = EndToken.TrailingTrivia.Trim();
     if (tentativeTrivia != "") {
       return tentativeTrivia;

@@ -96,12 +96,12 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
     }
     foreach (var token in OwnedTokens) {
       if (token.val == ":=") {
-        if ((token.Prev.TrailingTrivia + (token.LeadingTrivia ?? "")).Trim() is {} tentativeTrivia and not "") {
+        if ((token.Prev.TrailingTrivia + (token.LeadingTrivia ?? "")).Trim() is { } tentativeTrivia and not "") {
           return tentativeTrivia;
         }
       }
     }
-    if (EndToken.TrailingTrivia.Trim() is {} tentativeTrivia2 and not "") {
+    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia2 and not "") {
       return tentativeTrivia2;
     }
 
