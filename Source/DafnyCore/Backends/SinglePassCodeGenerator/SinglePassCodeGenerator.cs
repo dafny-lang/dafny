@@ -1548,14 +1548,9 @@ namespace Microsoft.Dafny.Compilers {
       var include = true;
       var classIsExtern = cl.IsExtern(Options);
       var nonGhost = cl.Members.Where(m => !m.IsGhost).ToList();
-      var hasImported = nonGhost.Any(IsImported);
       var hasNotImported = nonGhost.Any(m => !IsImported(m));
       if (classIsExtern && !hasNotImported) {
         include = false;
-      }
-
-      if (hasImported && hasNotImported && !AllowMixingImportsAndNonImports) {
-        Error(ErrorId.None, cl.Tok, $"Class {cl.Name} has both imported and not imported members, which is not allowed when translating to {Options.Backend.TargetName}", new ConcreteSyntaxTree());
       }
 
       return (classIsExtern, include);

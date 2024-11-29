@@ -1,4 +1,0 @@
-
-Dafny program verifier finished with 0 verified, 0 errors
-mixedImportsAndNotImports.dfy(4,16): Error: Class HalfExtern has both imported and not imported members, which is not allowed when translating to Java
-Translation was aborted because errors were found
