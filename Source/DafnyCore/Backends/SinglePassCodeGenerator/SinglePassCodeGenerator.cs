@@ -2819,6 +2819,11 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
+      HandleCompilingMainMethod(program, m, cw);
+    }
+
+    private void HandleCompilingMainMethod(Program program, Method m, IClassWriter cw) {
+      ConcreteSyntaxTree w;
       if (m == program.MainMethod && IssueCreateStaticMain(m)) {
         w = CreateStaticMain(cw, STATIC_ARGS_NAME);
         var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass);
@@ -2859,13 +2864,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private bool IsImported(Function f)
-    {
+    protected bool IsImported(Function f) {
       return f.Body == null && f.IsExtern(Options, out _, out _);
     }
-    
-    private bool IsImported(Method m)
-    {
+
+    protected bool IsImported(Method m) {
       return m.Body == null && m.IsExtern(Options, out _, out _);
     }
 
