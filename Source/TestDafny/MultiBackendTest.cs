@@ -24,7 +24,7 @@ public class ForEachCompilerOptions {
 
   [Option("run-fails", HelpText = "Whether the running program should return a non-zero exit code")]
   public bool RunShouldFail { get; set; } = false;
-  
+
   [Option("refresh-exit-code", HelpText = "If present, also run with --type-system-refresh and expect the given exit code.")]
   public int? RefreshExitCode { get; set; } = null;
 
@@ -418,7 +418,7 @@ public class MultiBackendTest {
         }
       }
     }
-    
+
     if (exitCodeAsExpected) {
       if (diffMessage != null) {
         await output.WriteLineAsync(diffMessage);
