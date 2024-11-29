@@ -62,6 +62,12 @@ module Std.Enumerators {
       [produced[0].value] + Enumerated(produced[1..])
   }
 
+  // TODO: This needs to be refactored to be just a helper method for
+  //
+  // Compose(e, a).RepeatUntil((), o -> o.None?)
+  //
+  // so that extern implementations of Enumerator that are push-based
+  // can implement this by attaching `a` as a callback.  
   method ForEach<T>(e: Enumerator<T>, a: Accumulator<T>) 
     requires e.Valid()
     requires a.Valid()
