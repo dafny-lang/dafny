@@ -1874,7 +1874,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
+    @IsolateAssertions @ResourceLimit("1e6")
     method GenOwnedCallPart(ghost e: Expression, on: Expression, selfIdent: SelfInfo, name: CallName, typeArgs: seq<Type>, args: seq<Expression>, env: Environment) returns (r: R.Expr, readIdents: set<string>)
+      requires forall a <- args :: a < e
+      requires on < e
       modifies this
       decreases e, 1, 1
     {
@@ -2125,7 +2128,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           newEnv := env;
         }
         case Call(on, name, typeArgs, args, maybeOutVars) => {
-          assume {:axiom} (if |args| > 0 then args[0] else Expression.Tuple([])) < stmt;
+          assume {:axiom} Expression.Call(on, name, typeArgs, args) < stmt;
           generated, readIdents := GenOwnedCallPart(Expression.Call(on, name, typeArgs, args), on, selfIdent, name, typeArgs, args, env);
 
           if maybeOutVars.Some? && |maybeOutVars.value| == 1 {
@@ -3057,6 +3060,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             argOwnership := OwnershipOwned;
           }
         }
+        assert args[i] in args;
         var argExpr, _, argIdents := GenExpr(args[i], selfIdent, env, argOwnership);
         argExprs := argExprs + [argExpr];
         readIdents := readIdents + argIdents;
