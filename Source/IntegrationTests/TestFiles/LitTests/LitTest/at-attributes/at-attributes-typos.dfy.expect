@@ -1,15 +1,55 @@
-at-attributes-typos.dfy(16,9): Error: the parameter named 'low' is already given positionally
-at-attributes-typos.dfy(14,9): Error: Argument to attribute Compile must be a literal
-at-attributes-typos.dfy(13,20): Error: wrong number of arguments (got 2, but attribute 'Compile' expects at most 1: (0: bool))
-at-attributes-typos.dfy(12,15): Error: incorrect argument type for attribute parameter '0' (expected bool, found string)
-at-attributes-typos.dfy(28,0): Error: @Fuel attribute cannot be applied to method
-at-attributes-typos.dfy(42,31): Error: wrong number of arguments (got 1, but attribute 'IsolateAssertions' expects 0)
-at-attributes-typos.dfy(22,0): Error: @Fuel attribute cannot be applied to datatype
-at-attributes-typos.dfy(25,0): Error: @Fuel attribute cannot be applied to codatatype
-at-attributes-typos.dfy(32,0): Error: @Fuel attribute cannot be applied to type synonym
-at-attributes-typos.dfy(35,0): Error: @Fuel attribute cannot be applied to subset type
-at-attributes-typos.dfy(38,0): Error: @Fuel attribute cannot be applied to newtype
-at-attributes-typos.dfy(15,1): Error: unresolved identifier: fuel
-at-attributes-typos.dfy(11,1): Error: unresolved identifier: compile
-at-attributes-typos.dfy(41,1): Error: unresolved identifier: isolate_assertions
-14 resolution/type errors detected in at-attributes-typos.dfy
+at-attributes-typos.dfy(20,0): Error: @DisableNonlinearArithmetic attribute cannot be applied to function
+at-attributes-typos.dfy(19,0): Error: @NativeInt128 attribute cannot be applied to function
+at-attributes-typos.dfy(18,0): Error: @NativeUInt128 attribute cannot be applied to function
+at-attributes-typos.dfy(17,0): Error: @NativeInt64 attribute cannot be applied to function
+at-attributes-typos.dfy(16,0): Error: @NativeUInt64 attribute cannot be applied to function
+at-attributes-typos.dfy(15,0): Error: @NativeInt53 attribute cannot be applied to function
+at-attributes-typos.dfy(14,0): Error: @NativeInt32 attribute cannot be applied to function
+at-attributes-typos.dfy(13,0): Error: @NativeUInt32 attribute cannot be applied to function
+at-attributes-typos.dfy(12,0): Error: @NativeInt16 attribute cannot be applied to function
+at-attributes-typos.dfy(11,0): Error: @NativeUInt16 attribute cannot be applied to function
+at-attributes-typos.dfy(10,0): Error: @NativeInt8 attribute cannot be applied to function
+at-attributes-typos.dfy(9,0): Error: @NativeUInt8 attribute cannot be applied to function
+at-attributes-typos.dfy(8,0): Error: @NativeNone attribute cannot be applied to function
+at-attributes-typos.dfy(7,0): Error: @NativeInt attribute cannot be applied to function
+at-attributes-typos.dfy(6,0): Error: @NativeIntOrReal attribute cannot be applied to function
+at-attributes-typos.dfy(5,0): Error: @AutoContracts attribute cannot be applied to function
+at-attributes-typos.dfy(58,9): Error: the parameter named 'low' is already given positionally
+at-attributes-typos.dfy(56,9): Error: Argument to attribute Compile must be a literal
+at-attributes-typos.dfy(55,20): Error: wrong number of arguments (got 2, but attribute 'Compile' expects at most 1: (0: bool))
+at-attributes-typos.dfy(54,15): Error: incorrect argument type for attribute parameter '0' (expected bool, found string)
+at-attributes-typos.dfy(82,0): Error: @Transparent attribute cannot be applied to method
+at-attributes-typos.dfy(80,31): Error: wrong number of arguments (got 1, but attribute 'IsolateAssertions' expects 0)
+at-attributes-typos.dfy(49,0): Error: @Synthesize attribute cannot be applied to module definition
+at-attributes-typos.dfy(48,0): Error: @IsolateAssertions attribute cannot be applied to module definition
+at-attributes-typos.dfy(47,0): Error: @VcsMaxSplits attribute cannot be applied to module definition
+at-attributes-typos.dfy(46,0): Error: @VcsMaxKeepGoingSplits attribute cannot be applied to module definition
+at-attributes-typos.dfy(45,0): Error: @VcsMaxCost attribute cannot be applied to module definition
+at-attributes-typos.dfy(44,0): Error: @TestEntry attribute cannot be applied to module definition
+at-attributes-typos.dfy(43,0): Error: @TestInline attribute cannot be applied to module definition
+at-attributes-typos.dfy(42,0): Error: @TestInline attribute cannot be applied to module definition
+at-attributes-typos.dfy(41,0): Error: @Test attribute cannot be applied to module definition
+at-attributes-typos.dfy(40,0): Error: @Verify attribute cannot be applied to module definition
+at-attributes-typos.dfy(39,0): Error: @TimeLimitMultiplier attribute cannot be applied to module definition
+at-attributes-typos.dfy(38,0): Error: @TimeLimit attribute cannot be applied to module definition
+at-attributes-typos.dfy(37,0): Error: @ResourceLimit attribute cannot be applied to module definition
+at-attributes-typos.dfy(37,19): Error: incorrect argument type for attribute parameter '0' (expected seq<char>, found int)
+at-attributes-typos.dfy(36,0): Error: @Priority attribute cannot be applied to module definition
+at-attributes-typos.dfy(35,0): Error: @Print attribute cannot be applied to module definition
+at-attributes-typos.dfy(34,0): Error: @VerifyOnly attribute cannot be applied to module definition
+at-attributes-typos.dfy(33,0): Error: @TailRecursion attribute cannot be applied to module definition
+at-attributes-typos.dfy(32,0): Error: @Concurrent attribute cannot be applied to module definition
+at-attributes-typos.dfy(31,0): Error: @Axiom attribute cannot be applied to module definition
+at-attributes-typos.dfy(30,0): Error: @AutoRevealDependencies attribute cannot be applied to module definition
+at-attributes-typos.dfy(29,0): Error: @AutoRevealDependenciesAll attribute cannot be applied to module definition
+at-attributes-typos.dfy(28,0): Error: @AutoRevealDependenciesAll attribute cannot be applied to module definition
+at-attributes-typos.dfy(27,0): Error: @AutoRequires attribute cannot be applied to module definition
+at-attributes-typos.dfy(64,0): Error: @Fuel attribute cannot be applied to datatype
+at-attributes-typos.dfy(67,0): Error: @Fuel attribute cannot be applied to codatatype
+at-attributes-typos.dfy(70,0): Error: @Fuel attribute cannot be applied to type synonym
+at-attributes-typos.dfy(73,0): Error: @Fuel attribute cannot be applied to subset type
+at-attributes-typos.dfy(76,0): Error: @Fuel attribute cannot be applied to newtype
+at-attributes-typos.dfy(57,1): Error: unresolved identifier: fuel
+at-attributes-typos.dfy(53,1): Error: unresolved identifier: compile
+at-attributes-typos.dfy(79,1): Error: unresolved identifier: isolate_assertions
+54 resolution/type errors detected in at-attributes-typos.dfy

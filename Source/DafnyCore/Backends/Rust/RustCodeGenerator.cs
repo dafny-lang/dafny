@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.Compilers {
       this.Options = options;
     }
 
-    public override void Compile(Sequence<DAST.Module> program, Sequence<ISequence<Rune>> otherFiles, ConcreteSyntaxTree w) {
+    private COMP CreateCompiler() {
       var c = new DCOMP.COMP();
       var charType = Options.Get(CommonOptionBag.UnicodeCharacters)
         ? Defs.CharType.create_UTF32()
@@ -24,9 +24,14 @@ namespace Microsoft.Dafny.Compilers {
         ? Defs.PointerType.create_Raw()
         : Defs.PointerType.create_RcMut();
       var rootType = Options.Get(RustBackend.RustModuleNameOption) is { } opt && opt != "" ?
-          Defs.RootType.create_RootPath(Sequence<Rune>.UnicodeFromString(opt))
-          : Defs.RootType.create_RootCrate();
+        Defs.RootType.create_RootPath(Sequence<Rune>.UnicodeFromString(opt))
+        : Defs.RootType.create_RootCrate();
       c.__ctor(charType, pointerType, rootType);
+      return c;
+    }
+
+    public override void Compile(Sequence<DAST.Module> program, Sequence<ISequence<Rune>> otherFiles, ConcreteSyntaxTree w) {
+      var c = CreateCompiler();
       var s = c.Compile(program, otherFiles);
       if (!Options.Get(CommonOptionBag.EmitUncompilableCode) && c.error.is_Some) {
         throw new UnsupportedInvalidOperationException(c.error.dtor_value.ToVerbatimString(false));
@@ -34,10 +39,17 @@ namespace Microsoft.Dafny.Compilers {
       w.Write(s.ToVerbatimString(false));
     }
 
-    public override ISequence<Rune> EmitCallToMain(string fullName) {
-      var splitByDot = fullName.Split('.');
-      var convertedToUnicode = Sequence<Sequence<Rune>>.FromArray(splitByDot.Select(s => (Sequence<Rune>)Sequence<Rune>.UnicodeFromString(s)).ToArray());
-      return DCOMP.COMP.EmitCallToMain(convertedToUnicode);
+    public override ISequence<Rune> EmitCallToMain(
+      DAST.Expression companion,
+      Sequence<Rune> mainMethodName,
+      bool hasArguments) {
+      var c = CreateCompiler();
+      var result = c.EmitCallToMain(companion, mainMethodName, hasArguments);
+      if (!Options.Get(CommonOptionBag.EmitUncompilableCode) && c.error.is_Some) {
+        throw new UnsupportedInvalidOperationException(c.error.dtor_value.ToVerbatimString(false));
+      }
+
+      return result;
     }
   }
 

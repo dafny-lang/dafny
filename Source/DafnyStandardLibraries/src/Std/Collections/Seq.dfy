@@ -190,7 +190,8 @@ module Std.Collections.Seq {
   /* If sequences xs and ys don't have duplicates and there are no
      elements in common between them, then the concatenated sequence xs + ys
      will not contain duplicates either. */
-  lemma {:timeLimitMultiplier 3} LemmaNoDuplicatesInConcat<T>(xs: seq<T>, ys: seq<T>)
+  @TimeLimitMultiplier(3)
+  lemma LemmaNoDuplicatesInConcat<T>(xs: seq<T>, ys: seq<T>)
     requires HasNoDuplicates(xs)
     requires HasNoDuplicates(ys)
     requires multiset(xs) !! multiset(ys)
@@ -256,7 +257,7 @@ module Std.Collections.Seq {
 
   /* For an element that occurs at least once in a sequence, the index of its
      first occurrence is returned. */
-  function {:opaque} IndexOf<T(==)>(xs: seq<T>, v: T): (i: nat)
+  opaque function IndexOf<T(==)>(xs: seq<T>, v: T): (i: nat)
     requires v in xs
     ensures i < |xs| && xs[i] == v
     ensures forall j :: 0 <= j < i ==> xs[j] != v
@@ -266,7 +267,7 @@ module Std.Collections.Seq {
 
   /* Returns Some(i), if an element occurs at least once in a sequence, and i is
      the index of its first occurrence. Otherwise the return is None. */
-  function {:opaque} IndexOfOption<T(==)>(xs: seq<T>, v: T): (o: Option<nat>)
+  opaque function IndexOfOption<T(==)>(xs: seq<T>, v: T): (o: Option<nat>)
     ensures if o.Some? then o.value < |xs| && xs[o.value] == v &&
                             forall j :: 0 <= j < o.value ==> xs[j] != v
             else v !in xs
@@ -276,7 +277,7 @@ module Std.Collections.Seq {
 
   /* Returns Some(i), if an element satisfying p occurs at least once in a sequence, and i is
     the index of the first such occurrence. Otherwise the return is None. */
-  function {:opaque} IndexByOption<T(==)>(xs: seq<T>, p: T -> bool): (o: Option<nat>)
+  opaque function IndexByOption<T(==)>(xs: seq<T>, p: T -> bool): (o: Option<nat>)
     ensures if o.Some? then o.value < |xs| && p(xs[o.value]) &&
                             forall j :: 0 <= j < o.value ==> !p(xs[j])
             else forall x <- xs ::!p(x)
@@ -291,7 +292,7 @@ module Std.Collections.Seq {
 
   /* For an element that occurs at least once in a sequence, the index of its
      last occurrence is returned. */
-  function {:opaque} LastIndexOf<T(==)>(xs: seq<T>, v: T): (i: nat)
+  opaque function LastIndexOf<T(==)>(xs: seq<T>, v: T): (i: nat)
     requires v in xs
     ensures i < |xs| && xs[i] == v
     ensures forall j :: i < j < |xs| ==> xs[j] != v
@@ -301,7 +302,7 @@ module Std.Collections.Seq {
 
   /* Returns Some(i), if an element occurs at least once in a sequence, and i is
      the index of its last occurrence. Otherwise the return is None. */
-  function {:opaque} LastIndexOfOption<T(==)>(xs: seq<T>, v: T): (o: Option<nat>)
+  opaque function LastIndexOfOption<T(==)>(xs: seq<T>, v: T): (o: Option<nat>)
     ensures if o.Some? then o.value < |xs| && xs[o.value] == v &&
                             forall j :: o.value < j < |xs| ==> xs[j] != v
             else v !in xs
@@ -311,7 +312,7 @@ module Std.Collections.Seq {
 
   /* Returns Some(i), if an element satisfying p occurs at least once in a sequence, and i is
      the index of the last such occurrence. Otherwise the return is None. */
-  function {:opaque} LastIndexByOption<T(==)>(xs: seq<T>, p: T -> bool): (o: Option<nat>)
+  opaque function LastIndexByOption<T(==)>(xs: seq<T>, p: T -> bool): (o: Option<nat>)
     ensures if o.Some? then o.value < |xs| && p(xs[o.value]) &&
                             forall j {:trigger xs[j]} :: o.value < j < |xs| ==> !p(xs[j])
             else forall x <- xs ::!p(x)
@@ -321,7 +322,7 @@ module Std.Collections.Seq {
   }
 
   /* Returns a sequence without the element at a given position. */
-  function {:opaque} Remove<T>(xs: seq<T>, pos: nat): (ys: seq<T>)
+  opaque function Remove<T>(xs: seq<T>, pos: nat): (ys: seq<T>)
     requires pos < |xs|
     ensures |ys| == |xs| - 1
     ensures forall i {:trigger ys[i], xs[i]} | 0 <= i < pos :: ys[i] == xs[i]
@@ -332,7 +333,7 @@ module Std.Collections.Seq {
 
   /* If a given element occurs at least once in a sequence, the sequence without
      its first occurrence is returned. Otherwise the same sequence is returned. */
-  function {:opaque} RemoveValue<T(==)>(xs: seq<T>, v: T): (ys: seq<T>)
+  opaque function RemoveValue<T(==)>(xs: seq<T>, v: T): (ys: seq<T>)
     ensures v !in xs ==> xs == ys
     ensures v in xs ==> |multiset(ys)| == |multiset(xs)| - 1
     ensures v in xs ==> multiset(ys)[v] == multiset(xs)[v] - 1
@@ -346,7 +347,7 @@ module Std.Collections.Seq {
   }
 
   /* Inserts an element at a given position and returns the resulting (longer) sequence. */
-  function {:opaque} Insert<T>(xs: seq<T>, a: T, pos: nat): seq<T>
+  opaque function Insert<T>(xs: seq<T>, a: T, pos: nat): seq<T>
     requires pos <= |xs|
     ensures |Insert(xs, a, pos)| == |xs| + 1
     ensures forall i {:trigger Insert(xs, a, pos)[i], xs[i]} :: 0 <= i < pos ==> Insert(xs, a, pos)[i] == xs[i]
@@ -359,7 +360,7 @@ module Std.Collections.Seq {
   }
 
   /* Returns the sequence that is in reverse order to a given sequence. */
-  function {:opaque} Reverse<T>(xs: seq<T>): (ys: seq<T>)
+  opaque function Reverse<T>(xs: seq<T>): (ys: seq<T>)
     ensures |ys| == |xs|
     ensures forall i {:trigger ys[i]}{:trigger xs[|xs| - i - 1]} :: 0 <= i < |xs| ==> ys[i] == xs[|xs| - i - 1]
   {
@@ -367,7 +368,7 @@ module Std.Collections.Seq {
   }
 
   /* Returns a constant sequence of a given length. */
-  function {:opaque} Repeat<T>(v: T, length: nat): (xs: seq<T>)
+  opaque function Repeat<T>(v: T, length: nat): (xs: seq<T>)
     ensures |xs| == length
     ensures forall i: nat | i < |xs| :: xs[i] == v
   {
@@ -378,7 +379,7 @@ module Std.Collections.Seq {
   }
 
   /* Unzips a sequence that contains pairs into two separate sequences. */
-  function {:opaque} Unzip<A, B>(xs: seq<(A, B)>): (seq<A>, seq<B>)
+  opaque function Unzip<A, B>(xs: seq<(A, B)>): (seq<A>, seq<B>)
     ensures |Unzip(xs).0| == |Unzip(xs).1| == |xs|
     ensures forall i {:trigger Unzip(xs).0[i]} {:trigger Unzip(xs).1[i]}
               :: 0 <= i < |xs| ==> (Unzip(xs).0[i], Unzip(xs).1[i]) == xs[i]
@@ -390,7 +391,7 @@ module Std.Collections.Seq {
   }
 
   /* Zips two sequences of equal length into one sequence that consists of pairs. */
-  function {:opaque} Zip<A, B>(xs: seq<A>, ys: seq<B>): seq<(A, B)>
+  opaque function Zip<A, B>(xs: seq<A>, ys: seq<B>): seq<(A, B)>
     requires |xs| == |ys|
     ensures |Zip(xs, ys)| == |xs|
     ensures forall i {:trigger Zip(xs, ys)[i]} :: 0 <= i < |Zip(xs, ys)| ==> Zip(xs, ys)[i] == (xs[i], ys[i])
@@ -424,7 +425,7 @@ module Std.Collections.Seq {
    ***********************************************************/
 
   /* Returns the maximum integer value in a non-empty sequence of integers. */
-  function {:opaque} Max(xs: seq<int>): int
+  opaque function Max(xs: seq<int>): int
     requires 0 < |xs|
     ensures forall k :: k in xs ==> Max(xs) >= k
     ensures Max(xs) in xs
@@ -450,7 +451,7 @@ module Std.Collections.Seq {
   }
 
   /* Returns the minimum integer value in a non-empty sequence of integers. */
-  function {:opaque} Min(xs: seq<int>): int
+  opaque function Min(xs: seq<int>): int
     requires 0 < |xs|
     ensures forall k :: k in xs ==> Min(xs) <= k
     ensures Min(xs) in xs
@@ -519,7 +520,8 @@ module Std.Collections.Seq {
   /* Flattening sequences of sequences is distributive over concatenation. That is, concatenating
      the flattening of two sequences of sequences is the same as flattening the
      concatenation of two sequences of sequences. */
-  lemma {:isolate_assertions} LemmaFlattenConcat<T>(xs: seq<seq<T>>, ys: seq<seq<T>>)
+  @IsolateAssertions
+  lemma LemmaFlattenConcat<T>(xs: seq<seq<T>>, ys: seq<seq<T>>)
     ensures Flatten(xs + ys) == Flatten(xs) + Flatten(ys)
   {
     if |xs| == 0 {
@@ -622,7 +624,8 @@ module Std.Collections.Seq {
     ensures Flatten(seqs) == Join(seqs, [])
   {}
 
-  function {:tailrecursion} Split<T(==)>(s: seq<T>, delim: T): (res: seq<seq<T>>)
+  @TailRecursion
+  function Split<T(==)>(s: seq<T>, delim: T): (res: seq<seq<T>>)
     ensures delim !in s ==> res == [s]
     ensures s == [] ==> res == [[]]
     ensures 0 < |res|
@@ -635,7 +638,8 @@ module Std.Collections.Seq {
   }
 
   /* Split on first occurrence of delim, which must exist */
-  function {:tailrecursion} SplitOnce<T(==)>(s: seq<T>, delim: T): (res : (seq<T>,seq<T>))
+  @TailRecursion
+  function SplitOnce<T(==)>(s: seq<T>, delim: T): (res : (seq<T>,seq<T>))
     requires delim in s
     ensures res.0 + [delim] + res.1 == s
     ensures !(delim in res.0)
@@ -646,7 +650,8 @@ module Std.Collections.Seq {
   }
 
   // split on first occurrence of delim, return None if delim not present
-  function {:tailrecursion} SplitOnceOption<T(==)>(s: seq<T>, delim: T): (res : Option<(seq<T>,seq<T>)>)
+  @TailRecursion
+  function SplitOnceOption<T(==)>(s: seq<T>, delim: T): (res : Option<(seq<T>,seq<T>)>)
     ensures res.Some? ==> res.value.0 + [delim] + res.value.1 == s
     ensures res.None? ==> !(delim in s)
     ensures res.Some? ==> !(delim in res.value.0)
@@ -655,7 +660,9 @@ module Std.Collections.Seq {
     Some((s[..i], s[(i + 1)..]))
   }
 
-  lemma {:rlimit 1000} {:vcs_split_on_every_assert} WillSplitOnDelim<T>(s: seq<T>, delim: T, prefix: seq<T>)
+  @ResourceLimit("1e6")
+  @IsolateAssertions
+  lemma WillSplitOnDelim<T>(s: seq<T>, delim: T, prefix: seq<T>)
     requires |prefix| < |s|
     requires forall i :: 0 <= i < |prefix| ==> prefix[i] == s[i]
     requires delim !in prefix && s[|prefix|] == delim
@@ -703,7 +710,7 @@ module Std.Collections.Seq {
 
   /* Returns the sequence one obtains by applying a function to every element
      of a sequence. */
-  function {:opaque} Map<T, R>(f: (T ~> R), xs: seq<T>): (result: seq<R>)
+  opaque function Map<T, R>(f: (T ~> R), xs: seq<T>): (result: seq<R>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures |result| == |xs|
     ensures forall i {:trigger result[i]} :: 0 <= i < |xs| ==> result[i] == f(xs[i])
@@ -716,7 +723,7 @@ module Std.Collections.Seq {
   /* Applies a function to every element of a sequence, returning a Result value (which is a
      failure-compatible type). Returns either a failure, or, if successful at every element,
      the transformed sequence.  */
-  function {:opaque} MapWithResult<T, R, E>(f: (T ~> Result<R, E>), xs: seq<T>): (result: Result<seq<R>, E>)
+  opaque function MapWithResult<T, R, E>(f: (T ~> Result<R, E>), xs: seq<T>): (result: Result<seq<R>, E>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures result.Success? ==>
               && |result.value| == |xs|
@@ -735,7 +742,8 @@ module Std.Collections.Seq {
   /* Applying a function to a sequence  is distributive over concatenation. That is, concatenating
      two sequences and then applying Map is the same as applying Map to each sequence separately,
      and then concatenating the two resulting sequences. */
-  lemma {:resource_limit 1000000000} LemmaMapDistributesOverConcat<T,R>(f: (T ~> R), xs: seq<T>, ys: seq<T>)
+  @ResourceLimit("1e9")
+  lemma LemmaMapDistributesOverConcat<T,R>(f: (T ~> R), xs: seq<T>, ys: seq<T>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Map(f, xs + ys) == Map(f, xs) + Map(f, ys)
@@ -756,7 +764,7 @@ module Std.Collections.Seq {
 
   /* Returns the subsequence consisting of those elements of a sequence that satisfy a given
      predicate. */
-  function {:opaque} Filter<T>(f: (T ~> bool), xs: seq<T>): (result: seq<T>)
+  opaque function Filter<T>(f: (T ~> bool), xs: seq<T>): (result: seq<T>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures |result| <= |xs|
     ensures forall i: nat :: i < |result| && f.requires(result[i]) ==> f(result[i])
@@ -769,8 +777,9 @@ module Std.Collections.Seq {
   /* Filtering a sequence is distributive over concatenation. That is, concatenating two sequences
      and then using "Filter" is the same as using "Filter" on each sequence separately, and then
      concatenating the two resulting sequences. */
-  lemma {:isolate_assertions} {:induction false}
-  LemmaFilterDistributesOverConcat<T(!new)>(f: T ~> bool, xs: seq<T>, ys: seq<T>)
+  @IsolateAssertions
+  lemma {:induction false}
+    LemmaFilterDistributesOverConcat<T(!new)>(f: T ~> bool, xs: seq<T>, ys: seq<T>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Filter(f, xs + ys) == Filter(f, xs) + Filter(f, ys)
@@ -1005,7 +1014,8 @@ module Std.Collections.Seq {
   }
 
   // Helper function for MergeSortBy
-  function {:tailrecursion} MergeSortedWith<T(!new)>(left: seq<T>, right: seq<T>, lessThanOrEq: (T, T) -> bool) : (result :seq<T>)
+  @TailRecursion
+  function MergeSortedWith<T(!new)>(left: seq<T>, right: seq<T>, lessThanOrEq: (T, T) -> bool) : (result :seq<T>)
     requires SortedBy(lessThanOrEq, left)
     requires SortedBy(lessThanOrEq, right)
     requires TotalOrdering(lessThanOrEq)

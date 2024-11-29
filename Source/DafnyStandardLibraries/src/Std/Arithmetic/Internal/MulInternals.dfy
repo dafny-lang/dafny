@@ -8,7 +8,8 @@
 
 /* lemmas and functions in this file are used in the proofs in Mul.dfy */
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.MulInternals {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.MulInternals {
 
   import opened GeneralInternals
   import opened MulInternalsNonlinear

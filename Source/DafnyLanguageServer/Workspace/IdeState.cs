@@ -31,6 +31,7 @@ public record IdeCanVerifyState(VerificationPreparationState PreparationProgress
 /// </summary>
 public record IdeState(
   ISet<Uri> OwnedUris,
+  IReadOnlyDictionary<Uri, int> VersionedFiles,
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
@@ -64,6 +65,7 @@ public record IdeState(
   public static IdeState InitialIdeState(CompilationInput input) {
     var program = new EmptyNode();
     return new IdeState(ImmutableHashSet<Uri>.Empty,
+      ImmutableDictionary<Uri, int>.Empty,
       input,
       CompilationStatus.Parsing,
       program,
@@ -214,8 +216,13 @@ public record IdeState(
     }
     ownedUris.Add(determinedRootFiles.Project.Uri);
 
+    var versionedFiles = ImmutableDictionary<Uri, int>.Empty;
+    if (determinedRootFiles.Project.Version != null) {
+      versionedFiles = versionedFiles.Add(determinedRootFiles.Project.Uri, determinedRootFiles.Project.Version.Value);
+    }
     return this with {
       OwnedUris = ownedUris,
+      VersionedFiles = versionedFiles,
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
         file => file.Uri,
@@ -356,7 +363,7 @@ public record IdeState(
     var trees = previousState.VerificationTrees;
     foreach (var uri in trees.Keys) {
       trees = trees.SetItem(uri,
-        new DocumentVerificationTree(finishedParsing.Program, uri) {
+        new DocumentVerificationTree(finishedParsing.ParseResult.Program, uri) {
           Children = trees[uri].Children
         });
     }
@@ -364,8 +371,12 @@ public record IdeState(
     var errors = CurrentFastDiagnostics.Where(d => d.Diagnostic.Severity == DiagnosticSeverity.Error);
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
 
+    foreach (var entry in previousState.VersionedFiles) {
+      finishedParsing.ParseResult.VersionedFiles.Add(entry.Key, entry.Value);
+    }
     return previousState with {
-      Program = finishedParsing.Program,
+      VersionedFiles = finishedParsing.ParseResult.VersionedFiles,
+      Program = finishedParsing.ParseResult.Program,
       Status = status,
       VerificationTrees = trees
     };
@@ -382,7 +393,6 @@ public record IdeState(
 
     var range = canVerifyPartsIdentified.CanVerify.NavigationToken.GetLspRange();
     var previousImplementations = previousState.CanVerifyStates[uri][range].VerificationTasks;
-    var names = canVerifyPartsIdentified.Parts.Select(Compilation.GetTaskName);
     var verificationResult = new IdeCanVerifyState(PreparationProgress: VerificationPreparationState.Done,
       VerificationTasks: canVerifyPartsIdentified.Parts.ToImmutableDictionary(Compilation.GetTaskName,
         k => {

@@ -10,7 +10,8 @@
 former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort */
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.Power {
   import opened DivMod
   import opened GeneralInternals
   import opened Mul

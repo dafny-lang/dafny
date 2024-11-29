@@ -37,7 +37,7 @@ public class CliCompilation {
     if (options.DafnyProject == null) {
       var firstFile = options.CliRootSourceUris.FirstOrDefault();
       var uri = firstFile ?? new Uri(Directory.GetCurrentDirectory());
-      options.DafnyProject = new DafnyProject(uri, null, new HashSet<string>() { uri.LocalPath }, new HashSet<string>(),
+      options.DafnyProject = new DafnyProject(null, uri, null, new HashSet<string>() { uri.LocalPath }, new HashSet<string>(),
         new Dictionary<string, object>()) {
         ImplicitFromCli = true
       };
@@ -127,7 +127,7 @@ public class CliCompilation {
           dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
-          var programName = finishedParsing.Program.Name;
+          var programName = finishedParsing.ParseResult.Program.Name;
           Options.OutputWriter.WriteLine($"{errorCount} parse errors detected in {programName}");
         }
       } else if (ev is FinishedResolution finishedResolution) {
@@ -198,7 +198,7 @@ public class CliCompilation {
             var result = origin switch {
               PathOrigin pathOrigin => $"{OriginDescription(pathOrigin.Inner, false)}" +
                                        $"after executing lines {string.Join(", ", pathOrigin.BranchTokens.Select(b => b.line))}",
-              RemainingAssertionsOrigin remainingAssertions => $"{OriginDescription(remainingAssertions.Origin, false)}remaining assertions",
+              RemainingAssertionsOrigin remainingAssertions => OriginDescription(remainingAssertions.Origin, false) + (outer ? "remaining assertions" : ""),
               IsolatedAssertionOrigin isolateOrigin => $"{OriginDescription(isolateOrigin.Origin, false)}assertion at line {isolateOrigin.line}",
               JumpOrigin returnOrigin => $"{OriginDescription(returnOrigin.Origin, false)}{JumpOriginKind(returnOrigin)} at line {returnOrigin.line}",
               AfterSplitOrigin splitOrigin => $"{OriginDescription(splitOrigin.Inner, false)}assertions after split_here at line {splitOrigin.line}",

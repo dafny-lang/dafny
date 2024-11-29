@@ -1667,6 +1667,16 @@ namespace Microsoft.Dafny {
       } else if (moreAttrs is UserSuppliedAttributes) {
         var usa = (UserSuppliedAttributes)moreAttrs;
         return new UserSuppliedAttributes(Tok(usa.tok), Tok(usa.OpenBrace), Tok(usa.CloseBrace), moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
+      } else if (moreAttrs is UserSuppliedAtAttribute usaa) {
+        var arg = CloneExpr(usaa.Arg);
+        if (usaa.Arg.Type != null) { // The attribute has already been expanded
+          arg.Type = usaa.Arg.Type;
+          arg.PreType = usaa.Arg.PreType;
+        }
+        return new UserSuppliedAtAttribute(Tok(usaa.tok), arg, MergeAttributes(prevAttrs, moreAttrs.Prev)) {
+          RangeToken = Tok(usaa.RangeToken),
+          Builtin = usaa.Builtin
+        };
       } else {
         return new Attributes(moreAttrs.Name, moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
       }

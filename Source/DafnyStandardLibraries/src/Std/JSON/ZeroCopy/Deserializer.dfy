@@ -58,7 +58,9 @@ module Std.JSON.ZeroCopy.Deserializer {
       return Cursor(cs.s, cs.beg, point', cs.end).Split();
     }
 
-    function {:isolate_assertions} {:resource_limit 1000000000} Structural<T>(cs: FreshCursor, parser: Parser<T>)
+    @IsolateAssertions
+    @ResourceLimit("1000e6")
+    function Structural<T>(cs: FreshCursor, parser: Parser<T>)
       : (pr: ParseResult<Structural<T>>)
       requires forall cs :: parser.fn.requires(cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, st => Spec.Structural(st, parser.spec))
@@ -71,7 +73,8 @@ module Std.JSON.ZeroCopy.Deserializer {
 
     type jopt = v: Vs.View | v.Length() <= 1 witness Vs.View.OfBytes([])
 
-    function {:resource_limit 100000000} TryStructural(cs: FreshCursor)
+    @ResourceLimit("100e6")
+    function TryStructural(cs: FreshCursor)
       : (sp: Split<Structural<jopt>>)
       ensures sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView))
     {
@@ -243,11 +246,14 @@ module Std.JSON.ZeroCopy.Deserializer {
       elems'
     }
 
-    function {:resource_limit 10000000} {:isolate_assertions} AppendLast(ghost cs0: FreshCursor,
-                                                                         ghost json: ValueParser,
-                                                                         elems: Split<seq<TSuffixedElement>>,
-                                                                         elem: Split<TElement>,
-                                                                         sep: Split<Structural<jclose>>)
+    @ResourceLimit("10e6")
+    @IsolateAssertions
+    function AppendLast(
+      ghost cs0: FreshCursor,
+      ghost json: ValueParser,
+      elems: Split<seq<TSuffixedElement>>,
+      elem: Split<TElement>,
+      sep: Split<Structural<jclose>>)
       : (elems': Split<seq<TSuffixedElement>>)
       requires elems.cs.StrictlySplitFrom?(json.cs)
       requires elems.SplitFrom?(cs0, SuffixedElementsSpec)
@@ -279,7 +285,9 @@ module Std.JSON.ZeroCopy.Deserializer {
       elems'
     }
 
-    lemma {:resource_limit "10e6"} {:isolate_assertions} AboutTryStructural(cs: FreshCursor)
+    @ResourceLimit("10e6")
+    @IsolateAssertions
+    lemma AboutTryStructural(cs: FreshCursor)
       ensures
         var sp := Core.TryStructural(cs);
         var s0 := sp.t.t.Peek();
@@ -291,14 +299,17 @@ module Std.JSON.ZeroCopy.Deserializer {
     {
     }
 
-    lemma {:isolate_assertions} AboutLists<T>(xs: seq<T>, i: uint32)
+    @IsolateAssertions
+    lemma AboutLists<T>(xs: seq<T>, i: uint32)
       requires 0 <= (i as int) < |xs|
       ensures xs[(i as int)..(i as int)+1] == [xs[i as int]]
     {}
 
     // The implementation and proof of this function is more painful than
     // expected due to the tail recursion.
-    function {:isolate_assertions} {:tailrecursion} Elements(
+    @IsolateAssertions
+    @TailRecursion
+    function Elements(
       ghost cs0: FreshCursor,
       json: ValueParser,
       open: Split<Structural<jopen>>,
@@ -419,7 +430,8 @@ module Std.JSON.ZeroCopy.Deserializer {
       }
     }
 
-    function {:isolate_assertions} Bracketed(cs: FreshCursor, json: ValueParser)
+    @IsolateAssertions
+    function Bracketed(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<TBracketed>)
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, BracketedSpec)
@@ -476,7 +488,9 @@ module Std.JSON.ZeroCopy.Deserializer {
       case OtherError(err) => err
     }
 
-    function {:isolate_assertions} {:resource_limit 10000000} JSON(cs: Cursors.FreshCursor) : (pr: DeserializationResult<Cursors.Split<JSON>>)
+    @IsolateAssertions
+    @ResourceLimit("10e6")
+    function JSON(cs: Cursors.FreshCursor) : (pr: DeserializationResult<Cursors.Split<JSON>>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.JSON)
     {
       Core.Structural(cs, Parsers.Parser(Values.Value, Spec.Value)).MapFailure(LiftCursorError)
@@ -514,7 +528,8 @@ module Std.JSON.ZeroCopy.Deserializer {
     import opened Utils.Cursors
     import opened Core
 
-    function {:isolate_assertions} Value(cs: FreshCursor) : (pr: ParseResult<Value>)
+    @IsolateAssertions
+    function Value(cs: FreshCursor) : (pr: ParseResult<Value>)
       decreases cs.Length(), 1
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Value)
     {
@@ -693,7 +708,8 @@ module Std.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     }
 
-    function {:resource_limit 10000000} String(cs: FreshCursor): (pr: ParseResult<jstring>)
+    @ResourceLimit("10e6")
+    function String(cs: FreshCursor): (pr: ParseResult<jstring>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.String)
     {
       var SP(lq, cs) :- Quote(cs);
@@ -754,7 +770,9 @@ module Std.JSON.ZeroCopy.Deserializer {
       else Success(sp)
     }
 
-    function {:isolate_assertions} {:resource_limit 100000000} Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
+    @IsolateAssertions
+    @ResourceLimit("100e6")
+    function Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, exp => Spec.Maybe(exp, Spec.Exp))
     {
       var SP(e, cs) :=
@@ -841,7 +859,8 @@ module Std.JSON.ZeroCopy.Deserializer {
   module Arrays refines Sequences {
     import opened Params = ArrayParams
 
-    lemma {:isolate_assertions} BracketedToArray(arr: jarray)
+    @IsolateAssertions
+    lemma BracketedToArray(arr: jarray)
       ensures Spec.Bracketed(arr, SuffixedElementSpec) == Spec.Array(arr)
     {
       var rItem := (d: jitem) requires d < arr => Spec.Item(d);
@@ -856,7 +875,8 @@ module Std.JSON.ZeroCopy.Deserializer {
       }
     }
 
-    function {:isolate_assertions} Array(cs: FreshCursor, json: ValueParser)
+    @IsolateAssertions
+    function Array(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<jarray>)
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Array)
@@ -910,7 +930,8 @@ module Std.JSON.ZeroCopy.Deserializer {
       Spec.KeyValue(t)
     }
 
-    function {:isolate_assertions} Element(cs: FreshCursor, json: ValueParser)
+    @IsolateAssertions
+    function Element(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<TElement>)
     {
       var k :- Strings.String(cs);
@@ -956,7 +977,8 @@ module Std.JSON.ZeroCopy.Deserializer {
   module Objects refines Sequences {
     import opened Params = ObjectParams
 
-    lemma {:isolate_assertions} BracketedToObject(obj: jobject)
+    @IsolateAssertions
+    lemma BracketedToObject(obj: jobject)
       ensures Spec.Bracketed(obj, SuffixedElementSpec) == Spec.Object(obj)
     {
       var rMember := (d: jmember) requires d < obj => Spec.Member(d);
@@ -973,7 +995,9 @@ module Std.JSON.ZeroCopy.Deserializer {
       }
     }
 
-    function {:isolate_assertions} {:resource_limit 10000000} Object(cs: FreshCursor, json: ValueParser)
+    @IsolateAssertions
+    @ResourceLimit("10e6")
+    function Object(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<jobject>)
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Object)

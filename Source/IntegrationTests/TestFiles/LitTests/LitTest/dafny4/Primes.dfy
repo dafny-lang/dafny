@@ -56,7 +56,7 @@ lemma GetLargerPrime(s: set<int>, bound: int) returns (p: int)
   }
 }
 
-ghost function product(s: set<int>): int
+opaque ghost function product(s: set<int>): int
 {
   if s == {} then 1 else
   var a := PickLargest(s); a * product(s - {a})
@@ -66,6 +66,7 @@ lemma product_property(s: set<int>)
   requires forall x :: x in s ==> 1 <= x
   ensures 1 <= product(s) && forall x :: x in s ==> x <= product(s)
 {
+  reveal product();
   if s != {} {
     var a := PickLargest(s);
     var s' := s - {a};
@@ -108,23 +109,23 @@ lemma RemoveFactor(x: int, s: set<int>)
   ensures product(s) == x * product(s - {x})
 {
   var y := PickLargest(s);
-  if x != y {
+  if x == y {
+    reveal product();
+  } else {
     calc {
       product(s);
+      { reveal product(); }
       y * product(s - {y});
       { RemoveFactor(x, s - {y}); }
       y * x * product(s - {y} - {x});
       x * y * product(s - {y} - {x});
       { assert s - {y} - {x} == s - {x} - {y}; }
       x * y * product(s - {x} - {y});
-      /* FIXME: This annotation wasn't needed before the introduction
-       * of auto-triggers. It's not needed if one adds {:no_trigger}
-       * to the forall y :: y in s ==> y <= x part of PickLargest, but that
-       * boils down to z3 picking $Box(...) as good trigger
-       */
-      // FIXME: the parens shouldn't be needed around (s - {x})
-      { assert y in (s - {x}); }
-      { assert y == PickLargest(s - {x}); }
+      { assert y * product(s - {x} - {y}) == product(s - {x}) by {
+          reveal product();
+          assert y in s - {x};
+        }
+      }
       x * product(s - {x});
     }
   }
@@ -186,8 +187,9 @@ lemma Composite(c: int) returns (a: int, b: int)
   }
 }
 
-ghost function PickLargest(s: set<int>): int
+opaque ghost function PickLargest(s: set<int>): (x: int)
   requires s != {}
+  ensures x in s && forall y :: y in s ==> y <= x
 {
   LargestElementExists(s);
   var x :| x in s && forall y :: y in s ==> y <= x;

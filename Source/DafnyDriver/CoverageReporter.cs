@@ -339,7 +339,7 @@ public class CoverageReporter {
     var files = await DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance,
         new ConsoleErrorReporter(options), options, uri, Token.Cli).ToListAsync();
     var dafnyFile = files[0];
-    var source = await dafnyFile.GetContent().ReadToEndAsync();
+    var source = await dafnyFile.GetContent().Reader.ReadToEndAsync();
     var lines = source.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
     var characterLabels = new CoverageLabel[lines.Length][];
     for (int i = 0; i < lines.Length; i++) {

@@ -16,7 +16,8 @@ This may produce "surprising" results for negative values.
 For example, -3 div 5 is -1 and -3 mod 5 is 2.
 Note this is consistent: -3 * -1 + 2 == 5 */
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.DivInternals {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.DivInternals {
 
   import opened GeneralInternals
   import opened ModInternals
@@ -107,7 +108,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivInternals {
     (-n <= z < 0 && (x - y) / n == x / n - y / n - 1)
   }
 
-  lemma {:isolate_assertions} LemmaDivAutoAuxPlus(n: int)
+  @IsolateAssertions
+  lemma LemmaDivAutoAuxPlus(n: int)
     requires n > 0 && ModAuto(n)
     ensures DivAutoPlus(n)
   {
@@ -136,7 +138,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivInternals {
     }
   }
 
-  lemma {:isolate_assertions} LemmaDivAutoAuxMinusHelper(n: int)
+  @IsolateAssertions
+  lemma LemmaDivAutoAuxMinusHelper(n: int)
     requires n > 0 && ModAuto(n)
     ensures forall i, j ::
               && (j >= 0 && DivMinus(n, i, j) ==> DivMinus(n, i, j + n))

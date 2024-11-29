@@ -20,6 +20,7 @@ using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using DafnyCore.Verifier;
 using JetBrains.Annotations;
+using Microsoft.Dafny;
 using Microsoft.Dafny.Triggers;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
@@ -30,7 +31,7 @@ namespace Microsoft.Dafny {
     public DafnyOptions Options => options;
     public const string NameSeparator = "$$";
     public const string CallPrefix = "Call";
-    private bool filterOnlyMembers;
+    private HashSet<Uri> filesWhereOnlyMembersAreVerified = new();
 
     ErrorReporter reporter;
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
@@ -782,15 +783,16 @@ namespace Microsoft.Dafny {
       mods.Insert(0, forModule);
 
       var visibleTopLevelDecls =
-        mods.SelectMany(m => m.TopLevelDecls.Where(VisibleInScope));
+        mods.SelectMany(m => m.TopLevelDecls.Where(VisibleInScope)).ToList();
 
-      if (visibleTopLevelDecls.Any(
-            d => d is TopLevelDeclWithMembers memberContainer &&
-                 memberContainer.Members.Any(
-                   member =>
-                     Attributes.Contains(member.Attributes, "only")
-                 ))) {
-        filterOnlyMembers = true;
+      foreach (var d in visibleTopLevelDecls) {
+        if (d is TopLevelDeclWithMembers memberContainer) {
+          foreach (var member in memberContainer.Members) {
+            if (Attributes.Contains(member.Attributes, "only")) {
+              filesWhereOnlyMembersAreVerified.Add(member.tok.Uri);
+            }
+          }
+        }
       }
 
       foreach (TopLevelDecl d in visibleTopLevelDecls) {
@@ -806,7 +808,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      filterOnlyMembers = false;
+      filesWhereOnlyMembersAreVerified = new();
 
       AddTraitParentAxioms();
 
@@ -1983,7 +1985,7 @@ namespace Microsoft.Dafny {
       using (var writer = new System.IO.StringWriter()) {
         var printer = new Printer(writer, options);
         writer.Write(f.GetFunctionDeclarationKeywords(options));
-        printer.PrintAttributes(f.Attributes);
+        printer.PrintAttributes(f.Attributes, false, -1);
         printer.PrintFormals(f.Ins, f);
         writer.Write(": ");
         printer.PrintType(f.ResultType);
@@ -2696,7 +2698,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
         }
         var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
-        func = new Bpl.Function(f.tok, f.FullSanitizedName, new List<Bpl.TypeVariable>(), formals, res, "function declaration for " + f.FullName);
+        func = new Bpl.Function(new FromDafnyNode(f), f.FullSanitizedName, new List<Bpl.TypeVariable>(), formals, res, "function declaration for " + f.FullName);
         if (InsertChecksums) {
           InsertChecksum(f, func);
         }
@@ -4801,3 +4803,11 @@ namespace Microsoft.Dafny {
 }
 
 public enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
+
+class FromDafnyNode : VCGeneration.TokenWrapper {
+  public INode Node { get; }
+
+  public FromDafnyNode(INode node) : base(node.Tok) {
+    this.Node = node;
+  }
+}
