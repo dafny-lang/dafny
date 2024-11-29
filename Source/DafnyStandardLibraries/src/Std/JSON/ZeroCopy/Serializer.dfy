@@ -317,7 +317,6 @@ module Std.JSON.ZeroCopy.Serializer {
     assert wr.Bytes() == writer.Bytes() + Spec.Bracketed(obj, Spec.Member) by {
       hide *;
     }
-
     assert Spec.Bracketed(obj, Spec.Member) == Spec.Object(obj) by { BracketedToObject(obj); }
     wr
   }
