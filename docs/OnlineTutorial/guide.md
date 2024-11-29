@@ -733,9 +733,8 @@ function fib(n: nat): nat
 
 Here we use `nat`s, the type of
 natural numbers (non-negative integers), which is often more convenient than
-annotating everything to be non-negative. It turns out that we could make this
-function a function method if we wanted to. But this would be extremely slow,
-as this version of calculating the Fibonacci numbers has exponential
+annotating everything to be non-negative. Using this function for actually calculating
+the Fibonacci numbers would be extremely slow, as this implementation has exponential
 complexity. There are much better ways to calculate the Fibonacci function. But
 this function is still useful, as we can have Dafny prove that a fast version
 really matches the mathematical definition. We can get the best of both worlds:
