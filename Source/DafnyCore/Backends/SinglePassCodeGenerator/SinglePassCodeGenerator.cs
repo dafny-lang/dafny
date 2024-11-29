@@ -1529,15 +1529,33 @@ namespace Microsoft.Dafny.Compilers {
       EmitFooter(program, wrx);
     }
 
-    protected (bool classIsExtern, bool included) GetIsExternAndIncluded(ClassLikeDecl cl) {
+
+    public bool IsImported(IAttributeBearingDeclaration me) {
+      if (me is Function function) {
+        return IsImported(function);
+      }
+
+      if (me is Method method) {
+        return IsImported(method);
+      }
+
+      return me.IsExtern(Options);
+    }
+
+    protected virtual bool AllowMixingImportsAndNonImports => true;
+
+    protected (bool ClassIsExtern, bool Included) GetIsExternAndIncluded(ClassLikeDecl cl) {
       var include = true;
-      var classIsExtern = false;
-      if (include) {
-        classIsExtern = !Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
-        if (classIsExtern && cl.Members.TrueForAll(member =>
-              member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
-          include = false;
-        }
+      var classIsExtern = cl.IsExtern(Options);
+      var nonGhost = cl.Members.Where(m => !m.IsGhost).ToList();
+      var hasImported = nonGhost.Any(IsImported);
+      var hasNotImported = nonGhost.Any(m => !IsImported(m));
+      if (classIsExtern && !hasNotImported) {
+        include = false;
+      }
+
+      if (hasImported && hasNotImported && !AllowMixingImportsAndNonImports) {
+        Error(ErrorId.None, cl.Tok, $"Class {cl.Name} has both imported and not imported members, which is not allowed when translating to {Options.Backend.TargetName}", new ConcreteSyntaxTree());
       }
 
       return (classIsExtern, include);

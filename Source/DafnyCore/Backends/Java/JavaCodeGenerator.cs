@@ -2719,6 +2719,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override bool AllowMixingImportsAndNonImports => false;
+
     protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
       var typeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
