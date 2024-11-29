@@ -393,7 +393,6 @@ public record IdeState(
 
     var range = canVerifyPartsIdentified.CanVerify.NavigationToken.GetLspRange();
     var previousImplementations = previousState.CanVerifyStates[uri][range].VerificationTasks;
-    var names = canVerifyPartsIdentified.Parts.Select(Compilation.GetTaskName);
     var verificationResult = new IdeCanVerifyState(PreparationProgress: VerificationPreparationState.Done,
       VerificationTasks: canVerifyPartsIdentified.Parts.ToImmutableDictionary(Compilation.GetTaskName,
         k => {
