@@ -732,7 +732,7 @@ axiom (forall a: Set, b: Set ::
   { Set#Intersection(a, Set#Intersection(a, b)) }
   Set#Intersection(a, Set#Intersection(a, b)) == Set#Intersection(a, b));
 
-axiom (forall a, b: Set ::
+axiom (forall a: Set, b: Set ::
   { Set#Card(Set#Union(a, b)) }{ Set#Card(Set#Intersection(a, b)) }
   Set#Card(Set#Union(a, b)) + Set#Card(Set#Intersection(a, b)) == Set#Card(a) + Set#Card(b));
 
@@ -853,7 +853,10 @@ function Math#min(a: int, b: int) : int;
 axiom (forall a: int, b: int :: { Math#min(a, b) } a <= b <==> Math#min(a, b) == a);
 
 axiom (forall a: int, b: int :: { Math#min(a, b) } b <= a <==> Math#min(a, b) == b);
-axiom (forall a: int, b: int :: { Math#min(a, b) } Math#min(a, b) == a || Math#min(a, b) == b);
+
+axiom (forall a: int, b: int ::
+  { Math#min(a, b) }
+  Math#min(a, b) == a || Math#min(a, b) == b);
 
 function Math#clip(a: int) : int;
 
@@ -864,7 +867,7 @@ axiom (forall a: int :: { Math#clip(a) } a < 0 ==> Math#clip(a) == 0);
 type MultiSet = [Box]int;
 
 function $IsGoodMultiSet(ms: MultiSet) : bool;
-// ints are non-negative, used after havocing, and for conversion from sequences to multisets.
+
 axiom (forall ms: MultiSet :: { $IsGoodMultiSet(ms) }
   $IsGoodMultiSet(ms) <==>
   (forall bx: Box :: { ms[bx] } 0 <= ms[bx] && ms[bx] <= MultiSet#Card(ms)));
@@ -888,10 +891,10 @@ axiom (forall r: Box, o: Box :: { MultiSet#Singleton(r)[o] } (MultiSet#Singleton
 axiom (forall r: Box :: { MultiSet#Singleton(r) } MultiSet#Singleton(r) == MultiSet#UnionOne(MultiSet#Empty(), r));
 
 function MultiSet#UnionOne(m: MultiSet, o: Box) : MultiSet;
-// pure containment axiom (in the original multiset or is the added element)
+
 axiom (forall a: MultiSet, x: Box, o: Box :: { MultiSet#UnionOne(a,x)[o] }
   0 < MultiSet#UnionOne(a,x)[o] <==> o == x || 0 < a[o]);
-// union-ing increases count by one
+
 axiom (forall a: MultiSet, x: Box :: { MultiSet#UnionOne(a, x) }
   MultiSet#UnionOne(a, x)[x] == a[x] + 1);
 axiom (forall a: MultiSet, x: Box, y: Box :: { MultiSet#UnionOne(a, x), a[y] }
@@ -903,7 +906,7 @@ axiom (forall a: MultiSet, x: Box :: { MultiSet#Card(MultiSet#UnionOne(a, x)) }
 
 
 function MultiSet#Union(a: MultiSet, b: MultiSet) : MultiSet;
-// union-ing is the sum of the contents
+
 axiom (forall a: MultiSet, b: MultiSet, o: Box :: { MultiSet#Union(a,b)[o] }
   MultiSet#Union(a,b)[o] == a[o] + b[o]);
 axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Card(MultiSet#Union(a,b)) }
@@ -913,18 +916,17 @@ function MultiSet#Intersection(a: MultiSet, b: MultiSet) : MultiSet;
 axiom (forall a: MultiSet, b: MultiSet, o: Box :: { MultiSet#Intersection(a,b)[o] }
   MultiSet#Intersection(a,b)[o] == Math#min(a[o],  b[o]));
 
-// left and right pseudo-idempotence
-axiom (forall a, b: MultiSet :: { MultiSet#Intersection(MultiSet#Intersection(a, b), b) }
+axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Intersection(MultiSet#Intersection(a, b), b) }
   MultiSet#Intersection(MultiSet#Intersection(a, b), b) == MultiSet#Intersection(a, b));
-axiom (forall a, b: MultiSet :: { MultiSet#Intersection(a, MultiSet#Intersection(a, b)) }
+axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Intersection(a, MultiSet#Intersection(a, b)) }
   MultiSet#Intersection(a, MultiSet#Intersection(a, b)) == MultiSet#Intersection(a, b));
 
 function MultiSet#Difference(a: MultiSet, b: MultiSet) : MultiSet;
 axiom (forall a: MultiSet, b: MultiSet, o: Box :: { MultiSet#Difference(a,b)[o] }
   MultiSet#Difference(a,b)[o] == Math#clip(a[o] - b[o]));
-axiom (forall a, b: MultiSet, y: Box :: { MultiSet#Difference(a, b), b[y], a[y] }
+axiom (forall a: MultiSet, b: MultiSet, y: Box :: { MultiSet#Difference(a, b), b[y], a[y] }
   a[y] <= b[y] ==> MultiSet#Difference(a, b)[y] == 0 );
-axiom (forall a, b: MultiSet ::
+axiom (forall a: MultiSet, b: MultiSet ::
   { MultiSet#Card(MultiSet#Difference(a, b)) }
   MultiSet#Card(MultiSet#Difference(a, b)) + MultiSet#Card(MultiSet#Difference(b, a))
   + 2 * MultiSet#Card(MultiSet#Intersection(a, b))
@@ -975,7 +977,7 @@ axiom (forall s: Seq, i: int, v: Box, x: Box ::
     0 <= i && i < Seq#Length(s) ==>
     MultiSet#FromSeq(Seq#Update(s, i, v))[x] ==
       MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s,i))), MultiSet#Singleton(v))[x] );
-  // i.e. MS(Update(s, i, v)) == MS(s) - {{s[i]}} + {{v}}
+
 axiom (forall s: Seq, x: Box :: { MultiSet#FromSeq(s)[x] }
   (exists i : int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && x == Seq#Index(s,i)) <==> 0 < MultiSet#FromSeq(s)[x] );
 
