@@ -1,4 +1,4 @@
-module Multisets {
+module {:extract_boogie} Multisets {
   import opened Boxes
   import opened Lists
   import Math
@@ -173,7 +173,7 @@ module Multisets {
   }
 
   // function $IsGoodMultiSet(ms: MultiSet): bool;
-  predicate {:extract_boogie_name "$IsGoodMultiSet"} IsGood(m: Multiset) {
+  predicate {:extract_boogie_name "$IsGoodMultiSet"} IsGood(ms: Multiset) {
     true
   }
   

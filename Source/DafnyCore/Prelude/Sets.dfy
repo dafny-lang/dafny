@@ -91,7 +91,7 @@ module {:extract_boogie} Sets {
   }
 
   // function Set#UnionOne(Set, Box): Set;
-  function {:extract_boogie "Set#UnionOne"} UnionOne(s: Set, o: Box): Set {
+  function {:extract_boogie_name "Set#UnionOne"} UnionOne(s: Set, o: Box): Set {
     UnionOnePreservesStrictlyIncreasing(s, o);
     UnionOneRaw(s, o)
   }
@@ -769,7 +769,7 @@ module {:extract_boogie} Sets {
   }
 
   // function Set#Subset(Set, Set): bool;
-  ghost predicate Subset(a: Set, b: Set) {
+  ghost predicate {:extract_boogie_name "Set#Subset"} Subset(a: Set, b: Set) {
     forall o {:extract_pattern In(a, o)} {:extract_pattern In(b, o)} :: In(a, o) ==> In(b, o)
   }
 
