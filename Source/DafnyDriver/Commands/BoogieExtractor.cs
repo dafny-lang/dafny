@@ -63,8 +63,8 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// Throws an "ExtractorError" if the input is unexpected or unsupported.
     /// </summary>
-    public static Boogie.Program Extract(Program program) {
-      var extractor = new BoogieExtractor();
+    public static Boogie.Program Extract(Program program, string sourceModuleName) {
+      var extractor = new BoogieExtractor(sourceModuleName);
       extractor.VisitModule(program.DefaultModule);
       extractor.FixUpUsedByInformation();
 
@@ -73,12 +73,14 @@ namespace Microsoft.Dafny.Compilers {
       return extractedProgram;
     }
 
+    private readonly string SourceModuleName;
     private List<Boogie.Declaration> declarations = new(); // for the current module
-    private List<Boogie.Declaration> allDeclarations = new(); // these are the declarations for all modules marked with {:extract} 
+    private List<Boogie.Declaration> allDeclarations = new(); // these are the declarations for all modules selected for extraction 
     private readonly Dictionary<Function, Boogie.Function> functionExtractions = new();
     private readonly List<(IToken, Boogie.Axiom, Function)> axiomUsedBy = new();
 
-    private BoogieExtractor() {
+    private BoogieExtractor(string sourceModuleName) {
+      SourceModuleName = sourceModuleName;
     }
 
     void FixUpUsedByInformation() {
@@ -111,6 +113,11 @@ namespace Microsoft.Dafny.Compilers {
     protected override void VisitOneDeclaration(TopLevelDecl decl) {
       if (decl is ModuleDecl moduleDecl) {
         VisitModule(moduleDecl);
+        return;
+      }
+
+      if (decl.EnclosingModuleDefinition.Name != SourceModuleName) {
+        // ignore this declaration
         return;
       }
 
