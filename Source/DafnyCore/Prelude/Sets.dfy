@@ -301,7 +301,7 @@ module {:extract_boogie} Sets {
 
   // axiom (forall a, b: Set, y: Box :: { Set#Union(a, b), a[y] }
   //   a[y] ==> Set#Union(a, b)[y]);
-  lemma {:extract_pattern IsMember(Union(a, b), y)} UnionMonotonicA(a: Set, b: Set, y: Box)
+  lemma {:extract_pattern Union(a, b), IsMember(a, y)} UnionMonotonicA(a: Set, b: Set, y: Box)
     requires IsMember(a, y)
     ensures IsMember(Union(a, b), y)
   {
@@ -310,7 +310,7 @@ module {:extract_boogie} Sets {
 
   // axiom (forall a, b: Set, y: Box :: { Set#Union(a, b), b[y] }
   //   b[y] ==> Set#Union(a, b)[y]);
-  lemma {:extract_pattern IsMember(Union(a, b), y)} UnionMonotonicB(a: Set, b: Set, y: Box)
+  lemma {:extract_pattern Union(a, b), IsMember(b, y)} UnionMonotonicB(a: Set, b: Set, y: Box)
     requires IsMember(b, y)
     ensures IsMember(Union(a, b), y)
   {
@@ -782,7 +782,7 @@ module {:extract_boogie} Sets {
   }
 
   // function Set#Equal(Set, Set): bool;
-  ghost predicate {:extract_boogie_name "Seq#Equal"} Equal(a: Set, b: Set) {
+  ghost predicate {:extract_boogie_name "Set#Equal"} Equal(a: Set, b: Set) {
     forall x :: In(a, x) <==> In(b, x)
   }
 

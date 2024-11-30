@@ -760,7 +760,7 @@ axiom (forall a: Set, b: Set ::
   { Set#Subset(a, b) }
   Set#Subset(a, b) <==> (forall o: Box :: { a[o] } { b[o] } a[o] ==> b[o]));
 
-function Seq#Equal(a: Set, b: Set) : bool;
+function Set#Equal(a: Set, b: Set) : bool;
 
 axiom (forall a: Set, b: Set ::
   { Set#Equal(a, b) }
