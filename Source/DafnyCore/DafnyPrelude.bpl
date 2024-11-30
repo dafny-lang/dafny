@@ -657,38 +657,33 @@ procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: F
 
 type Set = [Box]bool;
 
-function Set#Card(Set): int;
+function Set#Card(s: Set) : int;
+
 axiom (forall s: Set :: { Set#Card(s) } 0 <= Set#Card(s));
 
-function Set#Empty(): Set;
 axiom (forall o: Box :: { Set#Empty()[o] } !Set#Empty()[o]);
 axiom (forall s: Set :: { Set#Card(s) }
   (Set#Card(s) == 0 <==> s == Set#Empty()) &&
   (Set#Card(s) != 0 ==> (exists x: Box :: s[x])));
+function Set#Empty() : Set;
 
-// the empty set could be of anything
-//axiom (forall t: Ty :: { $Is(Set#Empty() : [Box]bool, TSet(t)) } $Is(Set#Empty() : [Box]bool, TSet(t)));
 
-function Set#Singleton(Box): Set;
-axiom (forall r: Box :: { Set#Singleton(r) } Set#Singleton(r)[r]);
-axiom (forall r: Box, o: Box :: { Set#Singleton(r)[o] } Set#Singleton(r)[o] <==> r == o);
-axiom (forall r: Box :: { Set#Card(Set#Singleton(r)) } Set#Card(Set#Singleton(r)) == 1);
-
-function Set#UnionOne(Set, Box): Set;
 axiom (forall a: Set, x: Box, o: Box :: { Set#UnionOne(a,x)[o] }
   Set#UnionOne(a,x)[o] <==> o == x || a[o]);
 axiom (forall a: Set, x: Box :: { Set#UnionOne(a, x) }
   Set#UnionOne(a, x)[x]);
 axiom (forall a: Set, x: Box, y: Box :: { Set#UnionOne(a, x), a[y] }
+function Set#UnionOne(s: Set, o: Box) : Set;
   a[y] ==> Set#UnionOne(a, x)[y]);
 axiom (forall a: Set, x: Box :: { Set#Card(Set#UnionOne(a, x)) }
   a[x] ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a));
 axiom (forall a: Set, x: Box :: { Set#Card(Set#UnionOne(a, x)) }
   !a[x] ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a) + 1);
 
-function Set#Union(Set, Set): Set;
 axiom (forall a: Set, b: Set, o: Box :: { Set#Union(a,b)[o] }
   Set#Union(a,b)[o] <==> a[o] || b[o]);
+function Set#Union(a: Set, b: Set) : Set;
+
 axiom (forall a, b: Set, y: Box :: { Set#Union(a, b), a[y] }
   a[y] ==> Set#Union(a, b)[y]);
 axiom (forall a, b: Set, y: Box :: { Set#Union(a, b), b[y] }
@@ -697,14 +692,11 @@ axiom (forall a, b: Set :: { Set#Union(a, b) }
   Set#Disjoint(a, b) ==>
     Set#Difference(Set#Union(a, b), a) == b &&
     Set#Difference(Set#Union(a, b), b) == a);
-// Follows from the general union axiom, but might be still worth including, because disjoint union is a common case:
-// axiom (forall a, b: Set :: { Set#Card(Set#Union(a, b)) }
-//   Set#Disjoint(a, b) ==>
-//     Set#Card(Set#Union(a, b)) == Set#Card(a) + Set#Card(b));
 
-function Set#Intersection(Set, Set): Set;
 axiom (forall a: Set, b: Set, o: Box :: { Set#Intersection(a,b)[o] }
   Set#Intersection(a,b)[o] <==> a[o] && b[o]);
+function Set#Intersection(a: Set, b: Set) : Set;
+
 
 axiom (forall a, b: Set :: { Set#Union(Set#Union(a, b), b) }
   Set#Union(Set#Union(a, b), b) == Set#Union(a, b));
@@ -717,35 +709,35 @@ axiom (forall a, b: Set :: { Set#Intersection(a, Set#Intersection(a, b)) }
 axiom (forall a, b: Set :: { Set#Card(Set#Union(a, b)) }{ Set#Card(Set#Intersection(a, b)) }
   Set#Card(Set#Union(a, b)) + Set#Card(Set#Intersection(a, b)) == Set#Card(a) + Set#Card(b));
 
-function Set#Difference(Set, Set): Set;
 axiom (forall a: Set, b: Set, o: Box :: { Set#Difference(a,b)[o] }
   Set#Difference(a,b)[o] <==> a[o] && !b[o]);
+function Set#Difference(a: Set, b: Set) : Set;
+
 axiom (forall a, b: Set, y: Box :: { Set#Difference(a, b), b[y] }
-  b[y] ==> !Set#Difference(a, b)[y] );
+  b[y] ==> !Set#Difference(a, b)[y]);
 axiom (forall a, b: Set ::
   { Set#Card(Set#Difference(a, b)) }
   Set#Card(Set#Difference(a, b)) + Set#Card(Set#Difference(b, a))
-  + Set#Card(Set#Intersection(a, b))
+         + Set#Card(Set#Intersection(a, b))
     == Set#Card(Set#Union(a, b)) &&
   Set#Card(Set#Difference(a, b)) == Set#Card(a) - Set#Card(Set#Intersection(a, b)));
+function Set#Subset(a: Set, b: Set) : bool;
 
-function Set#Subset(Set, Set): bool;
+
 axiom (forall a: Set, b: Set :: { Set#Subset(a,b) }
   Set#Subset(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] ==> b[o]));
-// axiom(forall a: Set, b: Set ::
-//   { Set#Subset(a,b), Set#Card(a), Set#Card(b) }  // very restrictive trigger
-//   Set#Subset(a,b) ==> Set#Card(a) <= Set#Card(b));
+function Seq#Equal(a: Set, b: Set) : bool;
 
 
-function Set#Equal(Set, Set): bool;
 axiom (forall a: Set, b: Set :: { Set#Equal(a,b) }
   Set#Equal(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] <==> b[o]));
 axiom (forall a: Set, b: Set :: { Set#Equal(a,b) }  // extensionality axiom for sets
   Set#Equal(a,b) ==> a == b);
+function Set#Disjoint(a: Set, b: Set) : bool;
 
-function Set#Disjoint(Set, Set): bool;
 axiom (forall a: Set, b: Set :: { Set#Disjoint(a,b) }
-  Set#Disjoint(a,b) <==> (forall o: Box :: {a[o]} {b[o]} !a[o] || !b[o]));
+  Set#Disjoint(a, b) <==> (forall o: Box :: { a[o] } { b[o] } !a[o] || !b[o]));
+
 
 // ---------------------------------------------------------------
 // -- Axiomatization of isets -------------------------------------
@@ -818,14 +810,20 @@ axiom (forall a: ISet, b: ISet :: { ISet#Disjoint(a,b) }
 // -- Axiomatization of multisets --------------------------------
 // ---------------------------------------------------------------
 
-function Math#min(a: int, b: int): int;
+
+
+function Math#min(a: int, b: int) : int;
+
 axiom (forall a: int, b: int :: { Math#min(a, b) } a <= b <==> Math#min(a, b) == a);
+
 axiom (forall a: int, b: int :: { Math#min(a, b) } b <= a <==> Math#min(a, b) == b);
 axiom (forall a: int, b: int :: { Math#min(a, b) } Math#min(a, b) == a || Math#min(a, b) == b);
 
-function Math#clip(a: int): int;
+function Math#clip(a: int) : int;
+
 axiom (forall a: int :: { Math#clip(a) } 0 <= a ==> Math#clip(a) == a);
-axiom (forall a: int :: { Math#clip(a) } a < 0  ==> Math#clip(a) == 0);
+
+axiom (forall a: int :: { Math#clip(a) } a < 0 ==> Math#clip(a) == 0);
 
 type MultiSet = [Box]int;
 
@@ -840,7 +838,8 @@ axiom (forall s: MultiSet :: { MultiSet#Card(s) } 0 <= MultiSet#Card(s));
 axiom (forall s: MultiSet, x: Box, n: int :: { MultiSet#Card(s[x := n]) }
   0 <= n ==> MultiSet#Card(s[x := n]) == MultiSet#Card(s) - s[x] + n);
 
-function MultiSet#Empty(): MultiSet;
+function MultiSet#Empty() : MultiSet;
+
 axiom (forall o: Box :: { MultiSet#Empty()[o] } MultiSet#Empty()[o] == 0);
 axiom (forall s: MultiSet :: { MultiSet#Card(s) }
   (MultiSet#Card(s) == 0 <==> s == MultiSet#Empty()) &&
@@ -972,13 +971,6 @@ axiom Seq#Length(Seq#Empty()) == 0;
 }
 
 axiom (forall s: Seq :: { Seq#Length(s) } Seq#Length(s) == 0 ==> s == Seq#Empty());
-// The following would be a nice fact to include, because it would enable verifying the
-// GenericPick.SeqPick* methods in Test/dafny0/SmallTests.dfy.  However, it substantially
-// slows down performance on some other tests, including running seemingly forever on
-// some.
-//  axiom (forall s: Seq :: { Seq#Length(s) }
-//    (Seq#Length(s) != 0 ==> (exists x: Box :: Seq#Contains(s, x)))
-//    );
 
 function Seq#Build(s: Seq, val: Box) : Seq;
 
@@ -1044,7 +1036,6 @@ axiom (forall s0: Seq, s1: Seq, x: Box ::
   Seq#Contains(Seq#Append(s0, s1), x)
      <==> Seq#Contains(s0, x) || Seq#Contains(s1, x));
 
-// needed to prove things like '4 in [2,3,4]', see method TestSequences0 in SmallTests.dfy
 axiom (forall s: Seq, v: Box, x: Box ::
   { Seq#Contains(Seq#Build(s, v), x) }
   Seq#Contains(Seq#Build(s, v), x) <==> v == x || Seq#Contains(s, x));
@@ -1073,7 +1064,6 @@ axiom (forall s0: Seq, s1: Seq ::
         { Seq#Index(s0, j) } { Seq#Index(s1, j) }
         0 <= j && j < Seq#Length(s0) ==> Seq#Index(s0, j) == Seq#Index(s1, j)));
 
-// extensionality axiom for sequences
 axiom (forall a: Seq, b: Seq :: { Seq#Equal(a, b) } Seq#Equal(a, b) ==> a == b);
 
 function Seq#SameUntil(s0: Seq, s1: Seq, n: int) : bool;
@@ -1117,7 +1107,6 @@ axiom (forall s: Seq, t: Seq, n: int ::
   n == Seq#Length(s)
      ==> Seq#Take(Seq#Append(s, t), n) == s && Seq#Drop(Seq#Append(s, t), n) == t);
 
-// Commutability of Take and Drop with Update.
 axiom (forall s: Seq, i: int, v: Box, n: int ::
   { Seq#Take(Seq#Update(s, i, v), n) }
   0 <= i && i < n && n <= Seq#Length(s)
@@ -1138,13 +1127,11 @@ axiom (forall s: Seq, i: int, v: Box, n: int ::
   0 <= i && i < n && n <= Seq#Length(s)
      ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
 
-// drop commutes with build.
 axiom (forall s: Seq, v: Box, n: int ::
   { Seq#Drop(Seq#Build(s, v), n) }
   0 <= n && n <= Seq#Length(s)
      ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v));
 
-// Additional axioms about common things
 axiom (forall s: Seq, n: int :: { Seq#Drop(s, n) } n == 0 ==> Seq#Drop(s, n) == s);
 
 axiom (forall s: Seq, n: int ::
