@@ -1,4 +1,5 @@
 DAFNY=../../../Scripts/dafny
+TARGET_PRELUDE=../DafnyPrelude.bpl
 
 all: DafnyPrelude.bpl
 
@@ -21,3 +22,9 @@ Sequences.bpl Math.bpl Sets.bpl Multisets.bpl: Lists.dfy Boxes.dfy Sequences.dfy
 	$(DAFNY) extract Multisets Multisets.bpl Boxes.dfy Lists.dfy Math.dfy Sequences.dfy Sets.dfy Multisets.dfy
 	# Remove trailing spaces that the Boogie pretty printer emits
 	sed -e "s| *$$||" -i "" Sequences.bpl Math.bpl Sets.bpl Multisets.bpl
+
+update: DafnyPrelude.bpl
+	cp DafnyPrelude.bpl $(TARGET_PRELUDE)
+
+check: DafnyPrelude.bpl
+	diff $(TARGET_PRELUDE) DafnyPrelude.bpl
