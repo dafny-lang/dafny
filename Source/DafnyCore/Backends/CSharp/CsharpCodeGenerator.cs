@@ -311,7 +311,7 @@ namespace Microsoft.Dafny.Compilers {
 
       ConcreteSyntaxTree/*?*/ wCtorBody = null;
       if (cls is ClassLikeDecl cl) {
-        if (!cl.Members.OfType<Constructor>().Any(IsImported)) {
+        if (!cl.Members.OfType<Constructor>().Any(IsExternallyImported)) {
           // This is a (non-default) class with no :extern constructor, so emit a C# constructor for the target class
           EmitTypeDescriptorsForClass(typeParameters, cls, out var wTypeFields, out var wCtorParams, out _, out wCtorBody);
           wBody.Append(wTypeFields);

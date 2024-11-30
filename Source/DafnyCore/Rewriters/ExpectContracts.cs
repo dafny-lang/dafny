@@ -162,7 +162,6 @@ public class ExpectContracts : IRewriter {
   private void RegisterResolvedByMethod(Formal resultVar, Function f, TopLevelDeclWithMembers cl) {
 
     var tok = f.ByMethodTok;
-    // var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
     var r = Expression.CreateIdentExpr(resultVar);
     // To construct the receiver, we want to know if the function is static or instance. That information is ordinarily computed
     // by f.IsStatic, which looks at f.HasStaticKeyword and f.EnclosingClass. However, at this time, f.EnclosingClass hasn't yet

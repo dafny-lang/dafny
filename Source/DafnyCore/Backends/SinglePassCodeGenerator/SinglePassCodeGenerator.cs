@@ -762,7 +762,7 @@ namespace Microsoft.Dafny.Compilers {
     // and call the constructor with all arguments.
     protected string ConstructorArguments(CallStmt initCall, ConcreteSyntaxTree wStmts, Constructor ctor, string sep = "") {
       var arguments = Enumerable.Empty<string>();
-      if (ctor != null && IsImported(ctor)) {
+      if (ctor != null && IsExternallyImported(ctor)) {
         // the arguments of any external constructor are placed here
         arguments = ctor.Ins.Select((f, i) => (f, i))
           .Where(tp => !tp.f.IsGhost)
@@ -1530,13 +1530,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
 
-    public bool IsImported(IAttributeBearingDeclaration me) {
+    public bool IsExternallyImported(IAttributeBearingDeclaration me) {
       if (me is Function function) {
-        return IsImported(function);
+        return IsExternallyImported(function);
       }
 
       if (me is Method method) {
-        return IsImported(method);
+        return IsExternallyImported(method);
       }
 
       return me.IsExtern(Options);
@@ -1548,7 +1548,7 @@ namespace Microsoft.Dafny.Compilers {
       var include = true;
       var classIsExtern = cl.IsExtern(Options);
       var nonGhost = cl.Members.Where(m => !m.IsGhost).ToList();
-      var hasNotImported = nonGhost.Any(m => !IsImported(m));
+      var hasNotImported = nonGhost.Any(m => !IsExternallyImported(m));
       if (classIsExtern && !hasNotImported) {
         include = false;
       }
@@ -2209,13 +2209,13 @@ namespace Microsoft.Dafny.Compilers {
               EmitSetterParameter(sw);
             }
           } else if (member is Function fn) {
-            if (!IsImported(fn) && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
+            if (!IsExternallyImported(fn) && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
               Contract.Assert(fn.Body != null);
               var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
               EmitCallToInheritedFunction(fn, null, w);
             }
           } else if (member is Method method) {
-            if (!IsImported(method) && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
+            if (!IsExternallyImported(method) && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
               Contract.Assert(method.Body != null);
               var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
               var wBefore = w.Fork();
@@ -2331,7 +2331,7 @@ namespace Microsoft.Dafny.Compilers {
             if (f.Body != null) {
               CompileFunction(f, classWriter, true);
             }
-          } else if (IsImported(f)) {
+          } else if (IsExternallyImported(f)) {
             if (IncludeExternallyImportedMembers) {
               CompileFunction(f, classWriter, false);
             }
@@ -2744,7 +2744,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f),
         f.Ins, f.ResultType, f.tok, f.IsStatic,
-        !IsImported(f), f, false, lookasideBody);
+        !IsExternallyImported(f), f, false, lookasideBody);
       if (w != null) {
         IVariable accVar = null;
         if (f.IsTailRecursive) {
@@ -2797,7 +2797,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(m != null);
       Contract.Requires(m.Body != null || (IncludeExternallyImportedMembers && Attributes.Contains(m.Attributes, "extern")));
 
-      var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !IsImported(m), false, lookasideBody);
+      var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !IsExternallyImported(m), false, lookasideBody);
       if (w != null) {
         if (m.IsTailRecursive) {
           w = EmitTailCallStructure(m, w);
@@ -2877,11 +2877,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected bool IsImported(Function f) {
+    protected bool IsExternallyImported(Function f) {
       return f.Body == null && f.IsExtern(Options, out _, out _);
     }
 
-    protected bool IsImported(Method m) {
+    protected bool IsExternallyImported(Method m) {
       return m.Body == null && m.IsExtern(Options, out _, out _);
     }
 
@@ -4096,7 +4096,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitNew(typeRhs.EType, typeRhs.Tok, constructor != null ? typeRhs.InitCall : null, wRhs, wStmts);
         // Proceed with initialization
         if (typeRhs.InitCall != null) {
-          if (constructor != null && IsImported(constructor)) {
+          if (constructor != null && IsExternallyImported(constructor)) {
             // initialization was done at the time of allocation
           } else {
             var wrBefore = wStmts.Fork();
