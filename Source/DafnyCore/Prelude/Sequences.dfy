@@ -1,6 +1,6 @@
 module {:extract_boogie} Sequences {
   export
-    provides Lists, Boxes
+    provides Boxes
     provides Seq, Length, AboutLength
     provides Empty, LengthEmpty0, LengthEmpty1
     provides Index, Append, IndexAppend
@@ -14,6 +14,10 @@ module {:extract_boogie} Sequences {
     provides TakeContains, DropContains, AppendTakeDrop
     provides DropNothing, TakeNothing, DropDrop
     provides TakeUpdate0, TakeUpdate1, DropUpdate0, DropUpdate1, DropBuild
+  // For friends, we also export the fact that a sequence is represented as a list.
+  export Friends extends Sequences
+    reveals Seq, Empty, Length, Index, Append, Build, Update
+    provides Lists, TailContains
 
   import opened Lists
   import opened Boxes
@@ -299,6 +303,30 @@ module {:extract_boogie} Sequences {
   // boogie: function Seq#Contains(Seq, Box): bool;
   predicate {:extract_boogie_name "Seq#Contains"} Contains(s: Seq, val: Box) {
     exists i :: 0 <= i < Length(s) && Index(s, i) == val
+  }
+
+  lemma TailContains(s: Seq, val: Box)
+    requires s.Cons?
+    ensures Contains(s, val) <==> s.head == val || Contains(s.tail, val)
+  {
+    if Contains(s, val) {
+      var i :| 0 <= i < Length(s) && Index(s, i) == val;
+      if i != 0 {
+        var j := i - 1;
+        assert Index(s, i) == Index(s.tail, j);
+        assert 0 <= j < Length(s.tail) && Index(s.tail, j) == val;
+      }
+    }
+
+    if !Contains(s, val) {
+      assert forall i :: 0 <= i < Length(s) ==> Index(s, i) != val;
+      assert s.head == Index(s, 0) != val;
+      forall j | 0 <= j < Length(s.tail)
+        ensures Index(s.tail, j) != val
+      {
+        assert Index(s.tail, j) == Index(s, j + 1);
+      }
+    }
   }
 
   // boogie:

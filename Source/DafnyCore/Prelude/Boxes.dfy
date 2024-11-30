@@ -3,7 +3,8 @@ module Boxes {
     provides Box, arbitrary
     provides Below, Reflexive, Antisymmetric, Transitive, Total
     reveals Less
-    provides LessIrreflexive, LessAsymmetric, LessBelowAsymmetric, LessTransitive, Connected
+    provides LessIrreflexive, LessAsymmetric, LessBelowAsymmetric, LessTransitive, LessBelowTransitive, Connected
+    provides BelowIsNonStrictLess, NotLess
 
   type Box(==,0,!new)
 
@@ -33,6 +34,18 @@ module Boxes {
     Below(a, b) && a != b
   }
 
+  lemma BelowIsNonStrictLess(a: Box, b: Box)
+    ensures Below(a, b) <==> Less(a, b) || a == b
+  {
+    calc {
+      Less(a, b) || a == b;
+      (Below(a, b) && a != b) || a == b;
+      Below(a, b) || a == b;
+      { Reflexive(a); }
+      Below(a, b);
+    }
+  }
+
   lemma LessIrreflexive(a: Box)
     ensures !Less(a, a)
   {
@@ -52,8 +65,42 @@ module Boxes {
     Antisymmetric(a, b);
   }
 
+  lemma NotLess(a: Box, b: Box)
+    ensures !Less(a, b) <==> Below(b, a)
+  {
+    if !Less(a, b) {
+      calc {
+        true;
+        { Connected(a, b); }
+        a == b || Less(a, b) || Less(b, a);
+        // assumption !Less(a, b)
+        a == b || Less(b, a);
+        { BelowIsNonStrictLess(b, a); }
+        Below(b, a);
+      }
+    }
+
+    if Less(a, b) {
+      assert !Below(b, a) by {
+        if Below(b, a) {
+          LessBelowAsymmetric(a, b);
+          assert false;
+        }
+      }
+    }
+  }
+
   lemma LessTransitive(a: Box, b: Box, c: Box)
     requires Less(a, b) && Less(b, c)
+    ensures Less(a, c)
+  {
+    LessBelowTransitive(a, b, c);
+  }
+
+  lemma LessBelowTransitive(a: Box, b: Box, c: Box)
+    requires
+      || (Less(a, b) && Below(b, c)) 
+      || (Below(a, b) && Less(b, c))
     ensures Less(a, c)
   {
     assert Below(a, c) by {

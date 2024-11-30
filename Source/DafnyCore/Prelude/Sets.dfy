@@ -15,9 +15,14 @@ module {:extract_boogie} Sets {
     provides Equal, EqualDefinition, Extensionality
     provides Disjoint, DisjointDefinition, DisjointDifference
     provides Boxes
+  // For friends, we also export the fact that a set is represented as a sorted list.
+  export Friends extends Sets
+    reveals Set
+    provides Lists
+    reveals StrictlyIncreasing, Card, IsMember, In
+    provides TailStrictlyIncreasing
 
   // type Set = [Box]bool;
-  // TODO: can this be a "newtype"? does it matter?
   // The manually authored Boogie type "Set" is defined as a Boogie map from Box to bool.
   // There was no strong reason for doing so. In fact, there are probably stronger reasons
   // to just define it as an uninterpreted type, which is what the effect of this

@@ -1,7 +1,7 @@
 module Lists {
   export
     reveals List, List.Length, List.At, List.Contains, List.Append, List.Take, List.Drop, List.Split
-    provides List.ContainsAt, List.AtContains, List.LengthAppend, List.AppendAt, List.AboutDrop
+    provides List.HeadTailAt, List.ContainsAt, List.AtContains, List.LengthAppend, List.AppendAt, List.AboutDrop
     provides List.AppendTake, List.TakeFromAppend, List.AppendDrop, List.DropFromAppend
     provides List.AppendTakeDrop, List.LengthTakeDrop
 
@@ -26,6 +26,13 @@ module Lists {
       requires i < Length()
     {
       if i == 0 then head else tail.At(i - 1)
+    }
+
+    lemma HeadTailAt()
+      requires Cons?
+      ensures head == At(0)
+      ensures forall i :: 0 <= i < tail.Length() ==> tail.At(i) == At(i + 1)
+    {
     }
 
     predicate Contains(x: X) {
