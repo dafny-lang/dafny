@@ -733,8 +733,9 @@ axiom (forall a: Set, b: Set ::
   Set#Intersection(a, Set#Intersection(a, b)) == Set#Intersection(a, b));
 
 axiom (forall a: Set, b: Set ::
-  { Set#Card(Set#Union(a, b)) }{ Set#Card(Set#Intersection(a, b)) }
-  Set#Card(Set#Union(a, b)) + Set#Card(Set#Intersection(a, b)) == Set#Card(a) + Set#Card(b));
+  { Set#Card(Set#Union(a, b)) } { Set#Card(Set#Intersection(a, b)) }
+  Set#Card(Set#Union(a, b)) + Set#Card(Set#Intersection(a, b))
+     == Set#Card(a) + Set#Card(b));
 
 function Set#Difference(a: Set, b: Set) : Set;
 
@@ -868,90 +869,134 @@ type MultiSet = [Box]int;
 
 function $IsGoodMultiSet(ms: MultiSet) : bool;
 
-axiom (forall ms: MultiSet :: { $IsGoodMultiSet(ms) }
-  $IsGoodMultiSet(ms) <==>
-  (forall bx: Box :: { ms[bx] } 0 <= ms[bx] && ms[bx] <= MultiSet#Card(ms)));
+axiom (forall ms: MultiSet ::
+  { $IsGoodMultiSet(ms) }
+  $IsGoodMultiSet(ms)
+     <==> (forall bx: Box :: { ms[bx] } 0 <= ms[bx] && ms[bx] <= MultiSet#Card(ms)));
 
 function MultiSet#Card(m: MultiSet) : int;
 
 axiom (forall s: MultiSet :: { MultiSet#Card(s) } 0 <= MultiSet#Card(s));
-axiom (forall s: MultiSet, x: Box, n: int :: { MultiSet#Card(s[x := n]) }
+
+axiom (forall s: MultiSet, x: Box, n: int ::
+  { MultiSet#Card(s[x := n]) }
   0 <= n ==> MultiSet#Card(s[x := n]) == MultiSet#Card(s) - s[x] + n);
 
 function MultiSet#Empty() : MultiSet;
 
 axiom (forall o: Box :: { MultiSet#Empty()[o] } MultiSet#Empty()[o] == 0);
-axiom (forall s: MultiSet :: { MultiSet#Card(s) }
-  (MultiSet#Card(s) == 0 <==> s == MultiSet#Empty()) &&
-  (MultiSet#Card(s) != 0 ==> (exists x: Box :: 0 < s[x])));
+
+axiom (forall s: MultiSet ::
+  { MultiSet#Card(s) }
+  (MultiSet#Card(s) == 0 <==> s == MultiSet#Empty())
+     && (MultiSet#Card(s) != 0 ==> (exists x: Box :: { s[x] } 0 < s[x])));
 
 function MultiSet#Singleton(o: Box) : MultiSet;
-axiom (forall r: Box, o: Box :: { MultiSet#Singleton(r)[o] } (MultiSet#Singleton(r)[o] == 1 <==> r == o) &&
-                                                            (MultiSet#Singleton(r)[o] == 0 <==> r != o));
-axiom (forall r: Box :: { MultiSet#Singleton(r) } MultiSet#Singleton(r) == MultiSet#UnionOne(MultiSet#Empty(), r));
+
+axiom (forall r: Box, o: Box ::
+  { MultiSet#Singleton(r)[o] }
+  (MultiSet#Singleton(r)[o] == 1 <==> r == o)
+     && (MultiSet#Singleton(r)[o] == 0 <==> r != o));
+
+axiom (forall r: Box ::
+  { MultiSet#Singleton(r) }
+  MultiSet#Singleton(r) == MultiSet#UnionOne(MultiSet#Empty(), r));
 
 function MultiSet#UnionOne(m: MultiSet, o: Box) : MultiSet;
 
 axiom (forall a: MultiSet, x: Box, o: Box :: { MultiSet#UnionOne(a,x)[o] }
   0 < MultiSet#UnionOne(a,x)[o] <==> o == x || 0 < a[o]);
 
-axiom (forall a: MultiSet, x: Box :: { MultiSet#UnionOne(a, x) }
+axiom (forall a: MultiSet, x: Box ::
+  { MultiSet#UnionOne(a, x) }
   MultiSet#UnionOne(a, x)[x] == a[x] + 1);
-axiom (forall a: MultiSet, x: Box, y: Box :: { MultiSet#UnionOne(a, x), a[y] }
-  0 < a[y] ==> 0 < MultiSet#UnionOne(a, x)[y]);
-axiom (forall a: MultiSet, x: Box, y: Box :: { MultiSet#UnionOne(a, x), a[y] }
-  x != y ==> a[y] == MultiSet#UnionOne(a, x)[y]);
-axiom (forall a: MultiSet, x: Box :: { MultiSet#Card(MultiSet#UnionOne(a, x)) }
-  MultiSet#Card(MultiSet#UnionOne(a, x)) == MultiSet#Card(a) + 1);
 
+axiom (forall a: MultiSet, x: Box, y: Box ::
+  { MultiSet#UnionOne(a, x), a[y] }
+  0 < a[y] ==> 0 < MultiSet#UnionOne(a, x)[y]);
+
+axiom (forall a: MultiSet, x: Box, y: Box ::
+  { MultiSet#UnionOne(a, x), a[y] }
+  x != y ==> a[y] == MultiSet#UnionOne(a, x)[y]);
+
+axiom (forall a: MultiSet, x: Box ::
+  { MultiSet#Card(MultiSet#UnionOne(a, x)) }
+  MultiSet#Card(MultiSet#UnionOne(a, x)) == MultiSet#Card(a) + 1);
 
 function MultiSet#Union(a: MultiSet, b: MultiSet) : MultiSet;
 
-axiom (forall a: MultiSet, b: MultiSet, o: Box :: { MultiSet#Union(a,b)[o] }
+axiom (forall a: MultiSet, b: MultiSet, o: Box ::
+  { MultiSet#Union(a,b)[o] }
   MultiSet#Union(a,b)[o] == a[o] + b[o]);
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Card(MultiSet#Union(a,b)) }
+
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Card(MultiSet#Union(a,b)) }
   MultiSet#Card(MultiSet#Union(a,b)) == MultiSet#Card(a) + MultiSet#Card(b));
 
 function MultiSet#Intersection(a: MultiSet, b: MultiSet) : MultiSet;
-axiom (forall a: MultiSet, b: MultiSet, o: Box :: { MultiSet#Intersection(a,b)[o] }
+
+axiom (forall a: MultiSet, b: MultiSet, o: Box ::
+  { MultiSet#Intersection(a,b)[o] }
   MultiSet#Intersection(a,b)[o] == Math#min(a[o],  b[o]));
 
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Intersection(MultiSet#Intersection(a, b), b) }
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Intersection(MultiSet#Intersection(a, b), b) }
   MultiSet#Intersection(MultiSet#Intersection(a, b), b) == MultiSet#Intersection(a, b));
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Intersection(a, MultiSet#Intersection(a, b)) }
+
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Intersection(a, MultiSet#Intersection(a, b)) }
   MultiSet#Intersection(a, MultiSet#Intersection(a, b)) == MultiSet#Intersection(a, b));
 
 function MultiSet#Difference(a: MultiSet, b: MultiSet) : MultiSet;
-axiom (forall a: MultiSet, b: MultiSet, o: Box :: { MultiSet#Difference(a,b)[o] }
-  MultiSet#Difference(a,b)[o] == Math#clip(a[o] - b[o]));
-axiom (forall a: MultiSet, b: MultiSet, y: Box :: { MultiSet#Difference(a, b), b[y], a[y] }
-  a[y] <= b[y] ==> MultiSet#Difference(a, b)[y] == 0 );
+
+axiom (forall a: MultiSet, b: MultiSet, o: Box ::
+  { MultiSet#Difference(a, b)[o] }
+  MultiSet#Difference(a, b)[o] == Math#clip(a[o] - b[o]));
+
+axiom (forall a: MultiSet, b: MultiSet, y: Box ::
+  { MultiSet#Difference(a, b), b[y], a[y] }
+  a[y] <= b[y] ==> MultiSet#Difference(a, b)[y] == 0);
+
 axiom (forall a: MultiSet, b: MultiSet ::
   { MultiSet#Card(MultiSet#Difference(a, b)) }
-  MultiSet#Card(MultiSet#Difference(a, b)) + MultiSet#Card(MultiSet#Difference(b, a))
-  + 2 * MultiSet#Card(MultiSet#Intersection(a, b))
-    == MultiSet#Card(MultiSet#Union(a, b)) &&
-  MultiSet#Card(MultiSet#Difference(a, b)) == MultiSet#Card(a) - MultiSet#Card(MultiSet#Intersection(a, b)));
+  MultiSet#Card(MultiSet#Difference(a, b))
+         + MultiSet#Card(MultiSet#Difference(b, a))
+         + 2 * MultiSet#Card(MultiSet#Intersection(a, b))
+       == MultiSet#Card(MultiSet#Union(a, b))
+     && MultiSet#Card(MultiSet#Difference(a, b))
+       == MultiSet#Card(a) - MultiSet#Card(MultiSet#Intersection(a, b)));
 
 function MultiSet#Subset(a: MultiSet, b: MultiSet) : bool;
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Subset(a,b) }
-  MultiSet#Subset(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] <= b[o]));
+
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Subset(a, b) }
+  MultiSet#Subset(a, b) <==> (forall o: Box :: { a[o] } { b[o] } a[o] <= b[o]));
 
 function MultiSet#Equal(a: MultiSet, b: MultiSet) : bool;
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Equal(a,b) }
-  MultiSet#Equal(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] == b[o]));
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Equal(a,b) }
-  MultiSet#Equal(a,b) ==> a == b);
+
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Equal(a, b) }
+  MultiSet#Equal(a, b) <==> (forall o: Box :: { a[o] } { b[o] } a[o] == b[o]));
+
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Equal(a, b) }
+  MultiSet#Equal(a, b) ==> a == b);
 
 function MultiSet#Disjoint(a: MultiSet, b: MultiSet) : bool;
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Disjoint(a,b) }
+
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Disjoint(a,b) }
   MultiSet#Disjoint(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] == 0 || b[o] == 0));
 
 function MultiSet#FromSet(s: Set) : MultiSet;
-axiom (forall s: Set, a: Box :: { MultiSet#FromSet(s)[a] }
-  (MultiSet#FromSet(s)[a] == 0 <==> !s[a]) &&
-  (MultiSet#FromSet(s)[a] == 1 <==> s[a]));
-axiom (forall s: Set :: { MultiSet#Card(MultiSet#FromSet(s)) }
+
+axiom (forall s: Set, a: Box ::
+  { MultiSet#FromSet(s)[a] }
+  (MultiSet#FromSet(s)[a] == 0 <==> !s[a])
+     && (MultiSet#FromSet(s)[a] == 1 <==> s[a]));
+
+axiom (forall s: Set ::
+  { MultiSet#Card(MultiSet#FromSet(s)) }
   MultiSet#Card(MultiSet#FromSet(s)) == Set#Card(s));
 
 function MultiSet#FromSeq(s: Seq) : MultiSet
@@ -959,14 +1004,15 @@ uses {
 axiom MultiSet#FromSeq(Seq#Empty()) == MultiSet#Empty();
 }
 
-axiom (forall s: Seq :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
+axiom (forall s: Seq :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)));
+
 axiom (forall s: Seq ::
   { MultiSet#Card(MultiSet#FromSeq(s)) }
-    MultiSet#Card(MultiSet#FromSeq(s)) == Seq#Length(s));
+  MultiSet#Card(MultiSet#FromSeq(s)) == Seq#Length(s));
+
 axiom (forall s: Seq, v: Box ::
   { MultiSet#FromSeq(Seq#Build(s, v)) }
-    MultiSet#FromSeq(Seq#Build(s, v)) == MultiSet#UnionOne(MultiSet#FromSeq(s), v)
-  );
+  MultiSet#FromSeq(Seq#Build(s, v)) == MultiSet#UnionOne(MultiSet#FromSeq(s), v));
 
 axiom (forall a: Seq, b: Seq ::
   { MultiSet#FromSeq(Seq#Append(a, b)) }
@@ -974,9 +1020,9 @@ axiom (forall a: Seq, b: Seq ::
 
 axiom (forall s: Seq, i: int, v: Box, x: Box ::
   { MultiSet#FromSeq(Seq#Update(s, i, v))[x] }
-    0 <= i && i < Seq#Length(s) ==>
-    MultiSet#FromSeq(Seq#Update(s, i, v))[x] ==
-      MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s,i))), MultiSet#Singleton(v))[x] );
+  0 <= i && i < Seq#Length(s) ==>
+  MultiSet#FromSeq(Seq#Update(s, i, v))[x] ==
+    MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s,i))), MultiSet#Singleton(v))[x] );
 
 axiom (forall s: Seq, x: Box :: { MultiSet#FromSeq(s)[x] }
   (exists i : int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && x == Seq#Index(s,i)) <==> 0 < MultiSet#FromSeq(s)[x] );
