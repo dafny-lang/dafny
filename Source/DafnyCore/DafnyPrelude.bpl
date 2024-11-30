@@ -661,28 +661,32 @@ function Set#Card(s: Set) : int;
 
 axiom (forall s: Set :: { Set#Card(s) } 0 <= Set#Card(s));
 
-axiom (forall o: Box :: { Set#Empty()[o] } !Set#Empty()[o]);
-axiom (forall s: Set :: { Set#Card(s) }
-  (Set#Card(s) == 0 <==> s == Set#Empty()) &&
-  (Set#Card(s) != 0 ==> (exists x: Box :: s[x])));
 function Set#Empty() : Set;
 
+axiom (forall o: Box :: { Set#Empty()[o] } !Set#Empty()[o]);
+
+axiom (forall s: Set ::
+  { Set#Card(s) }
+  (Set#Card(s) == 0 <==> s == Set#Empty())
+     && (Set#Card(s) != 0 ==> (exists x: Box :: s[x])));
+
+function Set#UnionOne(s: Set, o: Box) : Set;
 
 axiom (forall a: Set, x: Box, o: Box :: { Set#UnionOne(a,x)[o] }
   Set#UnionOne(a,x)[o] <==> o == x || a[o]);
 axiom (forall a: Set, x: Box :: { Set#UnionOne(a, x) }
   Set#UnionOne(a, x)[x]);
 axiom (forall a: Set, x: Box, y: Box :: { Set#UnionOne(a, x), a[y] }
-function Set#UnionOne(s: Set, o: Box) : Set;
   a[y] ==> Set#UnionOne(a, x)[y]);
 axiom (forall a: Set, x: Box :: { Set#Card(Set#UnionOne(a, x)) }
   a[x] ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a));
 axiom (forall a: Set, x: Box :: { Set#Card(Set#UnionOne(a, x)) }
   !a[x] ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a) + 1);
 
+function Set#Union(a: Set, b: Set) : Set;
+
 axiom (forall a: Set, b: Set, o: Box :: { Set#Union(a,b)[o] }
   Set#Union(a,b)[o] <==> a[o] || b[o]);
-function Set#Union(a: Set, b: Set) : Set;
 
 axiom (forall a, b: Set, y: Box :: { Set#Union(a, b), a[y] }
   a[y] ==> Set#Union(a, b)[y]);
@@ -693,9 +697,10 @@ axiom (forall a, b: Set :: { Set#Union(a, b) }
     Set#Difference(Set#Union(a, b), a) == b &&
     Set#Difference(Set#Union(a, b), b) == a);
 
+function Set#Intersection(a: Set, b: Set) : Set;
+
 axiom (forall a: Set, b: Set, o: Box :: { Set#Intersection(a,b)[o] }
   Set#Intersection(a,b)[o] <==> a[o] && b[o]);
-function Set#Intersection(a: Set, b: Set) : Set;
 
 
 axiom (forall a, b: Set :: { Set#Union(Set#Union(a, b), b) }
@@ -709,9 +714,10 @@ axiom (forall a, b: Set :: { Set#Intersection(a, Set#Intersection(a, b)) }
 axiom (forall a, b: Set :: { Set#Card(Set#Union(a, b)) }{ Set#Card(Set#Intersection(a, b)) }
   Set#Card(Set#Union(a, b)) + Set#Card(Set#Intersection(a, b)) == Set#Card(a) + Set#Card(b));
 
+function Set#Difference(a: Set, b: Set) : Set;
+
 axiom (forall a: Set, b: Set, o: Box :: { Set#Difference(a,b)[o] }
   Set#Difference(a,b)[o] <==> a[o] && !b[o]);
-function Set#Difference(a: Set, b: Set) : Set;
 
 axiom (forall a, b: Set, y: Box :: { Set#Difference(a, b), b[y] }
   b[y] ==> !Set#Difference(a, b)[y]);
@@ -721,18 +727,19 @@ axiom (forall a, b: Set ::
          + Set#Card(Set#Intersection(a, b))
     == Set#Card(Set#Union(a, b)) &&
   Set#Card(Set#Difference(a, b)) == Set#Card(a) - Set#Card(Set#Intersection(a, b)));
-function Set#Subset(a: Set, b: Set) : bool;
 
+function Set#Subset(a: Set, b: Set) : bool;
 
 axiom (forall a: Set, b: Set :: { Set#Subset(a,b) }
   Set#Subset(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] ==> b[o]));
-function Seq#Equal(a: Set, b: Set) : bool;
 
+function Seq#Equal(a: Set, b: Set) : bool;
 
 axiom (forall a: Set, b: Set :: { Set#Equal(a,b) }
   Set#Equal(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] <==> b[o]));
 axiom (forall a: Set, b: Set :: { Set#Equal(a,b) }  // extensionality axiom for sets
   Set#Equal(a,b) ==> a == b);
+
 function Set#Disjoint(a: Set, b: Set) : bool;
 
 axiom (forall a: Set, b: Set :: { Set#Disjoint(a,b) }
