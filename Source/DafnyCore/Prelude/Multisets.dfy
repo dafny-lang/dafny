@@ -26,7 +26,7 @@ module {:extract_boogie} Multisets {
     assert forall i :: 0 <= i < s.tail.Length() ==> s.tail.At(i) == s.At(i + 1);
   }
 
-  function {:extract_boogie_name "[]"} Multiplicity(m: Multiset, o: Box): int {
+  function {:extract_boogie_name "MultiSet#Multiplicity"} Multiplicity(m: Multiset, o: Box): int {
     match m
     case Nil => 0
     case Cons(x, tail) =>
@@ -38,7 +38,7 @@ module {:extract_boogie} Multisets {
     if b then 1 else 0
   }
 
-  function {:extract_boogie_name "[:=]"} UpdateMultiplicity(m: Multiset, o: Box, n: int): Multiset
+  function {:extract_boogie_name "MultiSet#UpdateMultiplicity"} UpdateMultiplicity(m: Multiset, o: Box, n: int): Multiset
   {
     if n < 0 then m else
       UpdatePreservesIncreasing(m, o, n);
