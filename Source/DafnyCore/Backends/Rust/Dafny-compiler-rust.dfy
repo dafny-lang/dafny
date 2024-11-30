@@ -267,21 +267,22 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var superTraitType := superTraitTypes[i];
         match superTraitType {
           case UserDefined(ResolvedType(traitPath, typeArgs, Trait(traitType), _, properMethods, _)) => {
-            var pathStr := GenPathType(traitPath);
+            var path := GenPath(traitPath);
+            var pathType := path.AsType();
             var typeArgs := GenTypeArgs(typeArgs, GenTypeContext.default());
             var body: seq<R.ImplMember> := [];
             if traitPath in traitBodies {
               body := traitBodies[traitPath];
             }
 
-            var fullTraitPath := R.TypeApp(pathStr, typeArgs);
+            var fullTraitPath := R.TypeApp(pathType, typeArgs);
             if !extern.NoExtern? { // An extern of some kind
               // Either the Dafny code implements all the methods of the trait or none,
               if |body| == 0 && |properMethods| != 0 {
                 continue; // We assume everything is implemented externally
               }
               if |body| != |properMethods| {
-                error := Some("Error: In the "+kind+" " + R.SeqToString(path, (s: Ident) => s.id.dafny_name, ".") + ", some proper methods of " +
+                error := Some("Error: In the "+kind+" " + R.SeqToString(traitPath, (s: Ident) => s.id.dafny_name, ".") + ", some proper methods of " +
                               fullTraitPath.ToString("") + " are marked {:extern} and some are not." +
                               " For the Rust compiler, please make all methods (" + R.SeqToString(properMethods, (s: Name) => s.dafny_name, ", ") +
                               ")  bodiless and mark as {:extern} and implement them in a Rust file, "+
@@ -338,7 +339,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                           [], [R.Formal.selfBorrowed],
                           Some(R.Box(R.DynType(fullTraitPath))),
                           "",
-                          Some(genPathExpr.ApplyType(rTypeParams).FSel("_clone").Apply1(R.self))) // Difference with UpcastStructBox is that there is no .as_ref()
+                          Some(path.AsExpr().ApplyType(typeArgs).FSel("_clone").Apply1(R.self))) // Difference with UpcastStructBox is that there is no .as_ref()
                       ) ]))
               ];
             } else {
@@ -523,7 +524,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var name := escapeName(t.name);
       var traitFulltype := R.TIdentifier(name).Apply(typeParams);
       var traitFullExpr := R.Identifier(name).ApplyType(typeParams);
-      var implBody, _ := GenClassImplBody(
+      var implBody, implBodyImplementingOtherTraits := GenClassImplBody(
         t.body, true,
         UserDefined(
           ResolvedType(
@@ -543,11 +544,26 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             ))
         ];
       }
+      while |implBodyImplementingOtherTraits| > 0 {
+        var otherTrait :| otherTrait in implBodyImplementingOtherTraits;
+        var otherMethods := implBodyImplementingOtherTraits[otherTrait];
+        for i := 0 to |otherMethods| {
+          implBody := implBody + [otherMethods[i]]; // Defined in the trait, but not overriding. Implementations would have to ensure they call into that trait
+        }
+        implBodyImplementingOtherTraits := implBodyImplementingOtherTraits - {otherTrait};
+      }
       var parents := [];
       var upcastImplemented := [];
       for i := 0 to |t.parents| {
         var parentTyp := t.parents[i];
         var parentTpe := GenType(parentTyp, GenTypeContext.ForTraitParents());
+        var parentTpeExprMaybe := parentTpe.ToExpr();
+        var parentTpeExpr;
+        if parentTpeExprMaybe.None? {
+          parentTpeExpr := Error("Cannot convert " + parentTpe.ToString("") + " to an expression");
+        } else {
+          parentTpeExpr := parentTpeExprMaybe.value;
+        }
         parents := parents + [parentTpe];
         var upcastTrait := if parentTyp.IsGeneralTrait() then "UpcastBox" else Upcast;
         parents := parents + [R.dafny_runtime.MSel(upcastTrait).AsType().Apply1(R.DynType(parentTpe))];
@@ -570,7 +586,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                       [], [R.Formal.selfBorrowed],
                       Some(R.Box(R.DynType(parentTpe))),
                       "",
-                      Some(traitFullExpr.FSel("_clone").Apply1(R.self.FSel("as_ref").Apply0()))
+                      Some(parentTpeExpr.FSel("_clone").Apply1(R.self.Sel("as_ref").Apply0()))
                     )
                   )]))
           ];
@@ -1884,6 +1900,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var argExprs, recIdents, typeExprs, fullNameQualifier := GenArgs(e, selfIdent, name, typeArgs, args, env);
       readIdents := recIdents;
 
+      if selfIdent.IsSelf() && name.CallName? && name.receiverArg.Some? && |argExprs| > 0 && R.IsBorrowUpcastBox(argExprs[0]) {
+        // The first argument is self and should not need conversion if it was applied as it should be passed raw.
+        argExprs := [R.Identifier("self")] + argExprs[1..];
+      }
+
       match fullNameQualifier {
         // Trait calls are fully specified as we can't guarantee traits will be in context
         case Some(ResolvedType(path, onTypeArgs, base, _, _, _)) =>
@@ -1920,7 +1941,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             readIdents := readIdents + recIdents;
           }
           r := fullPath.ApplyType(onTypeExprs).FSel(escapeName(name.name)).ApplyType(typeExprs).Apply([onExpr] + argExprs);
-        case _ => // Infix call on.name(args)
+        case _ => // Infix call on.name(args) or Companion::name(args)
           var onExpr, _, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
           readIdents := readIdents + recIdents;
           var renderedName := GetMethodName(on, name);

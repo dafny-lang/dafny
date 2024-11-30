@@ -22,7 +22,12 @@ namespace Microsoft.Dafny.Compilers {
     public string internalFieldPrefix;
     public bool preventShadowing;
 
-    protected override bool InstanceMethodsAllowedToCallTraitMethods => false;
+    // In a language like Rust, trait methods with bodies don't need to be called by
+    // the class or datatype extending it with overriding functions or methods that call into the trait.
+    // However, if a method is declared in a trait A, and another trait B implements it,
+    // then any class or datatype extending that last trait B must also explicitly implement the first trait A
+    // by calling the trait implementation in B
+    protected override bool InstanceMethodsCanOnlyCallOverridenTraitMethods => true;
 
     public void Start() {
       if (items != null) {
@@ -189,10 +194,12 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is ClassContainer builder) {
         List<DAST.TypeArgDecl> typeParams = typeParameters.Select(tp => GenTypeArgDecl(tp)).ToList();
 
-        return new ClassWriter(this, typeParams.Count > 0, builder.Class(
+        var classWriter = new ClassWriter(this, typeParams.Count > 0, builder.Class(
           name, moduleName, typeParams, superClasses.Select(t => GenType(t)).ToList(),
           ParseAttributes(cls.Attributes))
           );
+
+        return classWriter;
       } else {
         throw new InvalidOperationException();
       }
@@ -301,7 +308,7 @@ namespace Microsoft.Dafny.Compilers {
         var superClasses = dt.ParentTypeInformation.UniqueParentTraits();
         var superTraitTypes = superClasses.Select(GenType).ToList();
 
-        return new ClassWriter(this, typeParams.Count > 0, builder.Datatype(
+        var datatypeBuilder = builder.Datatype(
           dt.GetCompileName(Options),
           dt.EnclosingModuleDefinition.GetCompileName(Options),
           typeParams,
@@ -309,7 +316,9 @@ namespace Microsoft.Dafny.Compilers {
           dt is CoDatatypeDecl,
           ParseAttributes(dt.Attributes),
           superTraitTypes
-        ));
+        );
+
+        return new ClassWriter(this, typeParams.Count > 0, datatypeBuilder);
       } else {
         throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
       }

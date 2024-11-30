@@ -1,8 +1,10 @@
 // NONUNIFORM: Rust-specific tests
 // RUN: %baredafny run --target=rs --type-system-refresh --general-traits=datatype "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
-trait DatatypeOps<T> {
+trait SuperTrait {
+  function GetBool(): bool
+}
+trait DatatypeOps<T> extends SuperTrait {
   function GetInt(): int
   function GetBool(): bool {
     GetInt() % 2 == 0
@@ -51,5 +53,9 @@ method Main() {
   expect y1.ChooseAmong(8, 9) == 9;
   var y1m := y1.ChooseAmongMethod(8, 9);
   expect y1m == 9;
+  var zy := y as SuperTrait;
+  var zx := x as SuperTrait;
+  expect zx.GetBool();
+  expect !zy.GetBool();
   print "Main passed all the tests";
 }

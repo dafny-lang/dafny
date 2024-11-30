@@ -693,6 +693,22 @@ module RAST
     | TSynonym(display: Type, base: Type)
     | TMetaData(display: Type, nameonly copySemantics: bool, nameonly overflow: bool)
   {
+    /** Converts Name<Args...> (the type) to Name::<Args...> (the expr) */
+    function ToExpr(): Option<Expr> {
+      match this {
+        case TypeFromPath(path) => Some(ExprFromPath(path))
+        case TypeApp(baseName, arguments) =>
+          var baseNameExpr :- baseName.ToExpr();
+          Some(baseNameExpr.ApplyType(arguments))
+        case TSynonym(display, base) =>
+          display.ToExpr()
+        case TMetaData(display, _, _) =>
+          display.ToExpr()
+        case TIdentifier(name) =>
+          Some(Identifier(name))
+        case _ => None
+      }
+    }
     function Expand(): (r: Type)
       ensures !r.TSynonym? && !r.TMetaData? && (!TSynonym? && !TMetaData? ==> r == this)
     {
@@ -1885,6 +1901,19 @@ module RAST
           body.ToString(ind + IND) +
           "\n" + ind + "}"
       }
+    }
+  }
+  predicate IsBorrowUpcastBox(r: Expr) {
+    match r {
+      case UnaryOp("&", Call(Call(CallType(name, targs0), args0), args1), _) =>
+        name == dafny_runtime.MSel("upcast_box").AsExpr() && |args0| == 0 &&
+        |args1| == 1 &&
+        match args1[0] {
+          case Call(Select(Identifier("self"), clone), args2) =>
+            |args2| == 0
+          case _ => false
+        }
+      case _ => false
     }
   }
 }

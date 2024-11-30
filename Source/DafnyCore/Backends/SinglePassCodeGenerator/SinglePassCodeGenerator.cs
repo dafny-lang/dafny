@@ -217,7 +217,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool IncludeExternMembers { get => false; }
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
-    protected virtual bool InstanceMethodsAllowedToCallTraitMethods => true;
+    protected virtual bool InstanceMethodsCanOnlyCallOverridenTraitMethods => false;
     protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl cls, ConcreteSyntaxTree wr) {
       return CreateClass(moduleName, name, false, null, cls.TypeArgs,
         cls, (cls as TopLevelDeclWithMembers)?.ParentTypeInformation.UniqueParentTraits(), null, wr);
@@ -2063,7 +2063,7 @@ namespace Microsoft.Dafny.Compilers {
       return true;
     }
 
-    void OrderedBySCC(List<MemberDecl> decls, TopLevelDeclWithMembers c) {
+    protected void OrderedBySCC(List<MemberDecl> decls, TopLevelDeclWithMembers c) {
       List<ConstantField> consts = new List<ConstantField>();
       foreach (var decl in decls) {
         if (decl is ConstantField) {
@@ -2147,9 +2147,9 @@ namespace Microsoft.Dafny.Compilers {
 
       if (c is not TraitDecl || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
-        var canRedeclareMemberDefinedInTrait = c is not ClassLikeDecl and not DatatypeDecl and not NewtypeDecl ||
-                                                InstanceMethodsAllowedToCallTraitMethods;
         foreach (var member in inheritedMembers.Select(memberx => (memberx as Function)?.ByMethodDecl ?? memberx)) {
+          var canRedeclareMemberDefinedInTrait = c is not ClassLikeDecl and not DatatypeDecl and not NewtypeDecl ||
+                                                 !InstanceMethodsCanOnlyCallOverridenTraitMethods || member.IsOverrideThatAddsBody;
           enclosingDeclaration = member;
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
@@ -2200,7 +2200,10 @@ namespace Microsoft.Dafny.Compilers {
           } else if (member is Function fn) {
             if (!Attributes.Contains(fn.Attributes, "extern") && canRedeclareMemberDefinedInTrait) {
               Contract.Assert(fn.Body != null);
-              var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
+              var typeArguments = InstanceMethodsCanOnlyCallOverridenTraitMethods ?
+                  new List<TypeArgumentInstantiation>()
+                : CombineAllTypeArguments(fn);
+              var w = classWriter.CreateFunction(IdName(fn), typeArguments, fn.Ins, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
               w = EmitReturnExpr(w);
               EmitCallToInheritedFunction(fn, null, w);
             }
