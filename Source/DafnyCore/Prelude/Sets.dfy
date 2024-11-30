@@ -61,7 +61,7 @@ module {:extract_boogie} Sets {
   // rather than a user-defined function, like the "IsMember" here. In fact, by using the built-in
   // operator, one needs to show that the sets here are a conservative extension of
   // Boogie's maps, which is just extra work for no gain.
-  predicate {:extract_boogie_name "Set#IsMember"} IsMember(s: Set, o: Box) {
+  predicate {:extract_boogie_name "[]"} IsMember(s: Set, o: Box) {
     In(s, o)
   }
 
