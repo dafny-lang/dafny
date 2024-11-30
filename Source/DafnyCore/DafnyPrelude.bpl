@@ -904,8 +904,9 @@ axiom (forall r: Box ::
 
 function MultiSet#UnionOne(m: MultiSet, o: Box) : MultiSet;
 
-axiom (forall a: MultiSet, x: Box, o: Box :: { MultiSet#UnionOne(a,x)[o] }
-  0 < MultiSet#UnionOne(a,x)[o] <==> o == x || 0 < a[o]);
+axiom (forall a: MultiSet, x: Box, o: Box ::
+  { MultiSet#UnionOne(a, x)[o] }
+  0 < MultiSet#UnionOne(a, x)[o] <==> o == x || 0 < a[o]);
 
 axiom (forall a: MultiSet, x: Box ::
   { MultiSet#UnionOne(a, x) }
@@ -926,26 +927,28 @@ axiom (forall a: MultiSet, x: Box ::
 function MultiSet#Union(a: MultiSet, b: MultiSet) : MultiSet;
 
 axiom (forall a: MultiSet, b: MultiSet, o: Box ::
-  { MultiSet#Union(a,b)[o] }
-  MultiSet#Union(a,b)[o] == a[o] + b[o]);
+  { MultiSet#Union(a, b)[o] }
+  MultiSet#Union(a, b)[o] == a[o] + b[o]);
 
 axiom (forall a: MultiSet, b: MultiSet ::
-  { MultiSet#Card(MultiSet#Union(a,b)) }
-  MultiSet#Card(MultiSet#Union(a,b)) == MultiSet#Card(a) + MultiSet#Card(b));
+  { MultiSet#Card(MultiSet#Union(a, b)) }
+  MultiSet#Card(MultiSet#Union(a, b)) == MultiSet#Card(a) + MultiSet#Card(b));
 
 function MultiSet#Intersection(a: MultiSet, b: MultiSet) : MultiSet;
 
 axiom (forall a: MultiSet, b: MultiSet, o: Box ::
-  { MultiSet#Intersection(a,b)[o] }
-  MultiSet#Intersection(a,b)[o] == Math#min(a[o],  b[o]));
+  { MultiSet#Intersection(a, b)[o] }
+  MultiSet#Intersection(a, b)[o] == Math#min(a[o], b[o]));
 
 axiom (forall a: MultiSet, b: MultiSet ::
   { MultiSet#Intersection(MultiSet#Intersection(a, b), b) }
-  MultiSet#Intersection(MultiSet#Intersection(a, b), b) == MultiSet#Intersection(a, b));
+  MultiSet#Intersection(MultiSet#Intersection(a, b), b)
+     == MultiSet#Intersection(a, b));
 
 axiom (forall a: MultiSet, b: MultiSet ::
   { MultiSet#Intersection(a, MultiSet#Intersection(a, b)) }
-  MultiSet#Intersection(a, MultiSet#Intersection(a, b)) == MultiSet#Intersection(a, b));
+  MultiSet#Intersection(a, MultiSet#Intersection(a, b))
+     == MultiSet#Intersection(a, b));
 
 function MultiSet#Difference(a: MultiSet, b: MultiSet) : MultiSet;
 
@@ -985,8 +988,9 @@ axiom (forall a: MultiSet, b: MultiSet ::
 function MultiSet#Disjoint(a: MultiSet, b: MultiSet) : bool;
 
 axiom (forall a: MultiSet, b: MultiSet ::
-  { MultiSet#Disjoint(a,b) }
-  MultiSet#Disjoint(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] == 0 || b[o] == 0));
+  { MultiSet#Disjoint(a, b) }
+  MultiSet#Disjoint(a, b)
+     <==> (forall o: Box :: { a[o] } { b[o] } a[o] == 0 || b[o] == 0));
 
 function MultiSet#FromSet(s: Set) : MultiSet;
 
@@ -1016,16 +1020,23 @@ axiom (forall s: Seq, v: Box ::
 
 axiom (forall a: Seq, b: Seq ::
   { MultiSet#FromSeq(Seq#Append(a, b)) }
-    MultiSet#FromSeq(Seq#Append(a, b)) == MultiSet#Union(MultiSet#FromSeq(a), MultiSet#FromSeq(b)) );
+  MultiSet#FromSeq(Seq#Append(a, b))
+     == MultiSet#Union(MultiSet#FromSeq(a), MultiSet#FromSeq(b)));
 
 axiom (forall s: Seq, i: int, v: Box, x: Box ::
   { MultiSet#FromSeq(Seq#Update(s, i, v))[x] }
-  0 <= i && i < Seq#Length(s) ==>
-  MultiSet#FromSeq(Seq#Update(s, i, v))[x] ==
-    MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s,i))), MultiSet#Singleton(v))[x] );
+  0 <= i && i < Seq#Length(s)
+     ==> MultiSet#FromSeq(Seq#Update(s, i, v))[x]
+       == MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s, i))),
+        MultiSet#Singleton(v))[x]);
 
-axiom (forall s: Seq, x: Box :: { MultiSet#FromSeq(s)[x] }
-  (exists i : int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && x == Seq#Index(s,i)) <==> 0 < MultiSet#FromSeq(s)[x] );
+axiom (forall s: Seq, x: Box ::
+  { MultiSet#FromSeq(s)[x] }
+  (exists i: int ::
+      { Seq#Index(s, i) }
+      0 <= i && i < Seq#Length(s) && x == Seq#Index(s, i))
+     <==> 0 < MultiSet#FromSeq(s)[x]);
+
 
 // ---------------------------------------------------------------
 // -- Axiomatization of sequences --------------------------------
