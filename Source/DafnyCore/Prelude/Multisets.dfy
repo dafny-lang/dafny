@@ -454,7 +454,7 @@ module {:extract_boogie} Multisets {
 
   // axiom (forall a: MultiSet, x: Box :: { MultiSet#Card(MultiSet#UnionOne(a, x)) }
   //   MultiSet#Card(MultiSet#UnionOne(a, x)) == MultiSet#Card(a) + 1);
-  lemma {:Card(UnionOne(a, x))} CardUnionOne(a: Multiset, x: Box)
+  lemma {:extract_pattern Card(UnionOne(a, x))} CardUnionOne(a: Multiset, x: Box)
     ensures Card(UnionOne(a, x)) == Card(a) + 1
   {
     if a.Cons? {
