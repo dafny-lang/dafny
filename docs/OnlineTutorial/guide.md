@@ -516,7 +516,7 @@ method Abs(x: int) returns (y: int)
 
 This expresses exactly the property we discussed before,
 that the absolute value is the same for non-negative integers. The second
-ensures is expressed via the implication operator, which basically says that
+`ensures` is expressed via the implication operator `==>`, which basically says that
 the left hand side implies the right in the mathematical sense (it binds more
 weakly than boolean "and" and comparisons, so the above says `0 <= x` implies `y == x`).
 The left and right sides must both be boolean expressions.
@@ -733,9 +733,8 @@ function fib(n: nat): nat
 
 Here we use `nat`s, the type of
 natural numbers (non-negative integers), which is often more convenient than
-annotating everything to be non-negative. It turns out that we could make this
-function a function method if we wanted to. But this would be extremely slow,
-as this version of calculating the Fibonacci numbers has exponential
+annotating everything to be non-negative. Using this function for actually calculating
+the Fibonacci numbers would be extremely slow, as this implementation has exponential
 complexity. There are much better ways to calculate the Fibonacci function. But
 this function is still useful, as we can have Dafny prove that a fast version
 really matches the mathematical definition. We can get the best of both worlds:
@@ -1456,7 +1455,7 @@ queries are made of the same data. If the array is sorted, then we can use the
 very efficient binary search procedure to find the key. But in order for us to
 be able to prove our implementation correct, we need some way to require that
 the input array actually is sorted. We could do this directly with a quantifier
-inside a requires clause of our method, but a more modular way to express this
+inside a `requires` clause of our method, but a more modular way to express this
 is through a *predicate*.
 
 ## Predicates
