@@ -548,7 +548,7 @@ namespace Microsoft.Dafny {
             Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", Predef.DatatypeType));
             bvs.Add(dVar);
             Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            Bpl.Expr inSet = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+            var inSet = IsSetMember(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie), argType.AsSetType.Finite);
             Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
             var ct = FunctionCall(ctor.tok, ctor.FullName, Predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
@@ -563,12 +563,12 @@ namespace Microsoft.Dafny {
             Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", Predef.DatatypeType));
             bvs.Add(dVar);
             Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            var inMultiset = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
-            Bpl.Expr ante = Bpl.Expr.Gt(inMultiset, Bpl.Expr.Literal(0));
+            var multiplicity = MultisetMultiplicity(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+            Bpl.Expr ante = Bpl.Expr.Gt(multiplicity, Bpl.Expr.Literal(0));
             Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
             var ct = FunctionCall(ctor.tok, ctor.FullName, Predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-            var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inMultiset, ct });
+            var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { multiplicity, ct });
             q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, BplImp(ante, Bpl.Expr.Lt(lhs, rhs)));
             sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive multiset element rank"));
           } else if (argType is MapType) {

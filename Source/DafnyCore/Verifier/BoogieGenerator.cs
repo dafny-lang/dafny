@@ -2264,10 +2264,10 @@ namespace Microsoft.Dafny {
           // say "reads set o :: allocated(o)", so it's hard to work around
           // this issue.
           disjunct = etran.IsAlloced(tok, o);
-        } else if (eType is SetType) {
+        } else if (eType is SetType setType) {
           // e[Box(o)]
           bool pr;
-          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, true, out pr);
+          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, setType.Finite, true, out pr);
         } else if (eType is MultiSetType) {
           // e[Box(o)] > 0
           disjunct = etran.TrInMultiSet_Aux(tok, o, boxO, e, true);
@@ -2564,16 +2564,28 @@ namespace Microsoft.Dafny {
       if (isSetType) {
         description = "set element";
         obj = x;
-        antecedent = Bpl.Expr.SelectTok(e.tok, s, BoxIfNecessary(e.tok, x, type));
+        antecedent = IsSetMember(e.tok, s, BoxIfNecessary(e.tok, x, type), eType.AsSetType.Finite);
       } else if (isMultisetType) {
         description = "multiset element";
         obj = x;
-        antecedent = Boogie.Expr.Gt(Bpl.Expr.SelectTok(e.tok, s, BoxIfNecessary(e.tok, x, type)), Boogie.Expr.Literal(0));
+        antecedent = Boogie.Expr.Gt(MultisetMultiplicity(e.tok, s, BoxIfNecessary(e.tok, x, type)), Boogie.Expr.Literal(0));
       } else {
         description = "sequence element";
         obj = UnboxUnlessInherentlyBoxed(FunctionCall(e.tok, BuiltinFunction.SeqIndex, Predef.BoxType, s, x), type);
         antecedent = InSeqRange(e.tok, x, Type.Int, s, true, null, false);
       }
+    }
+
+    private Bpl.Expr IsSetMember(IToken tok, Bpl.Expr set, Bpl.Expr boxedElement, bool isFiniteSet) {
+      return Bpl.Expr.SelectTok(tok, set, boxedElement);
+    }
+
+    private Bpl.Expr MultisetMultiplicity(IToken tok, Bpl.Expr multiset, Bpl.Expr boxedElement) {
+      return Bpl.Expr.SelectTok(tok, multiset, boxedElement);
+    }
+
+    private Bpl.Expr UpdateMultisetMultiplicity(IToken tok, Bpl.Expr multiset, Bpl.Expr boxedElement, Bpl.Expr newMultiplicity) {
+      return Boogie.Expr.StoreTok(tok, multiset, boxedElement, newMultiplicity);
     }
 
     private Bpl.Function GetOrCreateTypeConstructor(TopLevelDecl td) {
