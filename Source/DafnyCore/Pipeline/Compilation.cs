@@ -301,6 +301,12 @@ public class Compilation : IDisposable {
       return false;
     }
 
+    if (!solverOptionsSet) {
+      solverOptionsSet = true;
+
+      Options.ProcessSolverOptions(Reporter, Options.DafnyProject.StartingToken);
+    }
+
     var containingModule = canVerify.ContainingModule;
     if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation)) {
       return false;
@@ -320,6 +326,8 @@ public class Compilation : IDisposable {
     _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
     return true;
   }
+
+  private bool solverOptionsSet;
 
   private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
     ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter, int? randomSeed) {
