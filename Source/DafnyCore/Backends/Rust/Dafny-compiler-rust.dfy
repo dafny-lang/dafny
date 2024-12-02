@@ -2207,48 +2207,48 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    method ToPrimitive(r: R.Expr, typ: Type, primitiveType: Type) returns (out: R.Expr)
+    method ToPrimitive(r: R.Expr, typ: Type, primitiveType: Type, env: Environment) returns (out: R.Expr)
       modifies this
     {
       out := r;
       if typ != primitiveType {
         var dummy;
-        out, dummy := GenExprConvertTo(r, OwnershipOwned, typ, primitiveType, OwnershipOwned);
+        out, dummy := GenExprConvertTo(r, OwnershipOwned, typ, primitiveType, env, OwnershipOwned);
       }
     }
 
-    method ToBool(r: R.Expr, typ: Type) returns (out: R.Expr)
+    method ToBool(r: R.Expr, typ: Type, env: Environment) returns (out: R.Expr)
       modifies this
     {
-      out := ToPrimitive(r, typ, Primitive(Primitive.Bool));
+      out := ToPrimitive(r, typ, Primitive(Primitive.Bool), env);
     }
 
-    method ToInt(r: R.Expr, typ: Type) returns (out: R.Expr)
+    method ToInt(r: R.Expr, typ: Type, env: Environment) returns (out: R.Expr)
       modifies this
     {
-      out := ToPrimitive(r, typ, Primitive(Primitive.Int));
+      out := ToPrimitive(r, typ, Primitive(Primitive.Int), env);
     }
 
-    method FromPrimitive(r: R.Expr, primitiveType: Type, typ: Type) returns (out: R.Expr)
+    method FromPrimitive(r: R.Expr, primitiveType: Type, typ: Type, env: Environment) returns (out: R.Expr)
       modifies this
     {
       out := r;
       if typ != primitiveType {
         var dummy;
-        out, dummy := GenExprConvertTo(r, OwnershipOwned, primitiveType, typ, OwnershipOwned);
+        out, dummy := GenExprConvertTo(r, OwnershipOwned, primitiveType, typ, env, OwnershipOwned);
       }
     }
 
-    method FromBool(r: R.Expr, typ: Type) returns (out: R.Expr)
+    method FromBool(r: R.Expr, typ: Type, env: Environment) returns (out: R.Expr)
       modifies this
     {
-      out := FromPrimitive(r, Primitive(Primitive.Bool), typ);
+      out := FromPrimitive(r, Primitive(Primitive.Bool), typ, env);
     }
 
-    method FromInt(r: R.Expr, typ: Type) returns (out: R.Expr)
+    method FromInt(r: R.Expr, typ: Type, env: Environment) returns (out: R.Expr)
       modifies this
     {
-      out := FromPrimitive(r, Primitive(Primitive.Int), typ);
+      out := FromPrimitive(r, Primitive(Primitive.Int), typ, env);
     }
 
     method GenExprBinary(
@@ -2332,8 +2332,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case _ => {
           if op in OpTable {
             if IsBooleanOperator(op) {
-              left := ToBool(left, lType);
-              right := ToBool(right, rType);
+              left := ToBool(left, lType, env);
+              right := ToBool(right, rType, env);
             }
             r := R.Expr.BinaryOp(
               OpTable[op],
@@ -2341,12 +2341,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               right,
               format);
             if IsBooleanOperator(op) {
-              r := FromBool(r, resType);
+              r := FromBool(r, resType, env);
             }
           } else {
             if IsComplexArithmetic(op) {
-              left := ToInt(left, lType);
-              right := ToInt(right, rType);
+              left := ToInt(left, lType, env);
+              right := ToInt(right, rType, env);
             }
             match op {
               case Eq(referential) => {
@@ -2365,7 +2365,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   } else {
                     r := R.BinaryOp("==", left, right, DAST.Format.BinaryOpFormat.NoFormat());
                     if resType != Primitive(Primitive.Bool) {
-                      r, resultingOwnership := GenExprConvertTo(r, OwnershipOwned, Primitive(Primitive.Bool), resType, OwnershipOwned);
+                      r, resultingOwnership := GenExprConvertTo(r, OwnershipOwned, Primitive(Primitive.Bool), resType, env, OwnershipOwned);
                     }
                   }
                 }
@@ -2389,7 +2389,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               }
             }
             if IsComplexArithmetic(op) {
-              r := FromInt(r, resType);
+              r := FromInt(r, resType, env);
             }
           }
         }
@@ -2445,6 +2445,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       exprOwnership: Ownership,
       fromTpe: Type,
       toTpe: Type,
+      env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership)
       requires exprOwnership != OwnershipAutoBorrowed
@@ -2458,24 +2459,24 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         return;
       }
       if fromTpe.UserDefined? && fromTpe.resolved.kind.SynonymType? {
-        r, resultingOwnership := GenExprConvertTo(expr, exprOwnership, fromTpe.resolved.kind.baseType, toTpe, expectedOwnership);
+        r, resultingOwnership := GenExprConvertTo(expr, exprOwnership, fromTpe.resolved.kind.baseType, toTpe, env, expectedOwnership);
         return;
       }
       if toTpe.UserDefined? && toTpe.resolved.kind.SynonymType? {
-        r, resultingOwnership := GenExprConvertTo(expr, exprOwnership, fromTpe, toTpe.resolved.kind.baseType, expectedOwnership);
+        r, resultingOwnership := GenExprConvertTo(expr, exprOwnership, fromTpe, toTpe.resolved.kind.baseType, env, expectedOwnership);
         return;
       }
       if NeedsUnwrappingConversion(fromTpe) {
         // From type is a newtype but it's not a primitive one.
         r := UnwrapNewtype(r, exprOwnership, fromTpe);
         r, resultingOwnership :=
-          GenExprConvertTo(r, exprOwnership, fromTpe.resolved.kind.baseType, toTpe, expectedOwnership);
+          GenExprConvertTo(r, exprOwnership, fromTpe.resolved.kind.baseType, toTpe, env, expectedOwnership);
         return;
       }
       if NeedsUnwrappingConversion(toTpe) {
         var toKind := toTpe.resolved.kind;
         r, resultingOwnership :=
-          GenExprConvertTo(r, exprOwnership, fromTpe, toKind.baseType, expectedOwnership);
+          GenExprConvertTo(r, exprOwnership, fromTpe, toKind.baseType, env, expectedOwnership);
         r := WrapWithNewtype(r, resultingOwnership, toTpe);
         r, resultingOwnership := FromOwnership(r, resultingOwnership, expectedOwnership);
         return;
@@ -2580,7 +2581,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           r, resultingOwnership := FromOwned(r, expectedOwnership);
         }
         case _ => {
-          r, resultingOwnership := GenExprConvertOther(expr, exprOwnership, fromTpe, toTpe, expectedOwnership);
+          r, resultingOwnership := GenExprConvertOther(expr, exprOwnership, fromTpe, toTpe, env, expectedOwnership);
         }
       }
     }
@@ -2707,11 +2708,24 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         false
     }
 
+    // Assumes expr to be borrowed. Will return and expression that is owned instead
+    function BorrowedToOwned(expr: R.Expr, env: Environment): (out: R.Expr) {
+      match expr
+      case UnaryOp("&", underlying, _) =>
+        // We need to clone underlying unless it has borrow semantics.
+        if underlying.Identifier? && env.CanReadWithoutClone(underlying.name) then
+          underlying
+        else
+          underlying.Clone() // Auto-borrow allows for implicit code
+      case _ => expr.Clone()
+    }
+
     method GenExprConvertOther(
       expr: R.Expr,
       exprOwnership: Ownership,
       fromTpe: Type,
       toTpe: Type,
+      env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership)
       modifies this
@@ -2724,11 +2738,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if upcastConverter.Success? {
         var conversionLambda := upcastConverter.value;
         if exprOwnership == OwnershipBorrowed {
-          match r {
-            case UnaryOp("&", underlying, _) =>
-              r := underlying;
-            case _ => r := r.Clone();
-          }
+          // we need the value to be owned for conversion
+          r := BorrowedToOwned(r, env);
         }
         r := conversionLambda.Apply1(r);
         r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
@@ -2765,7 +2776,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, argumentOwnership);
       r := recursiveGen;
       readIdents := recIdents;
-      r, resultingOwnership := GenExprConvertTo(r, recOwned, fromTpe, toTpe, expectedOwnership);
+      r, resultingOwnership := GenExprConvertTo(r, recOwned, fromTpe, toTpe, env, expectedOwnership);
       assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
       return;
     }

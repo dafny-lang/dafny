@@ -20,6 +20,10 @@ if not os.path.exists(output + '.cs'):
   print(f"File {output}.cs was not generated. Fix issues and re-run ./DafnyGeneratedFromDafny.sh")
   exit()
 
+if os.path.exists(output + '-cs.dtr'):
+    os.remove(output + '-cs.dtr')
+    print("File deleted: " + output + '-cs.dtr')
+
 with open(output + '.cs', 'r' ) as f:
   content = f.read()
   content_trimmed = re.sub('\[assembly[\s\S]*?(?=namespace Formatting)|namespace\s+\w+\s*\{\s*\}\s*//.*', '', content, flags = re.M)
