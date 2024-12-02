@@ -43,13 +43,10 @@ module Std.Arithmetic.Mul {
     ensures x * y == MulPos(x, y)
   {
     if x == 0 {
-      assert MulPos(x, y) == 0 by {
-        reveal MulPos();
-      }
+      assert MulPos(x, y) == 0;
     } else {
       calc {
         MulPos(x, y);
-        { reveal MulPos(x, y); }
         y + MulPos(x - 1, y);
         { LemmaMulIsMulPos(x - 1, y); }
         y + (x - 1) * y;

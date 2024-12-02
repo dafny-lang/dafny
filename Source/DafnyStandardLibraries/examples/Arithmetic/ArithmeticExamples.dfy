@@ -34,6 +34,8 @@ module ArithmeticExamples {
 
     @Test
     method TestToNatRight() {
+      hide *;
+      reveal BASE;
       expect ToNatRight([0]) == 0;
       expect ToNatRight([1]) == 1;
       expect ToNatRight([3]) == 3;
@@ -41,6 +43,7 @@ module ArithmeticExamples {
     }
 
     @Test
+    @IsolateAssertions
     method TestSeqExtend() {
       expect SeqExtend([], 3) == [0, 0, 0];
       expect SeqExtend([1], 3) == [1, 0, 0];
@@ -49,6 +52,8 @@ module ArithmeticExamples {
 
     @Test
     method TestSeqExtendMultiple() {
+      hide *;
+      reveal BASE;
       expect SeqExtendMultiple([], 3) == [0, 0, 0];
       print "length: ", |SeqExtendMultiple([1, 2, 3], 3)|;
       expect SeqExtendMultiple([1, 2], 3) == [1, 2, 0];
