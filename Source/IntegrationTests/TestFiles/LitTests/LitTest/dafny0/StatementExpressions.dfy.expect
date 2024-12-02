@@ -3,5 +3,7 @@ StatementExpressions.dfy(59,13): Error: assertion might not hold
 StatementExpressions.dfy(77,5): Error: possible division by zero
 StatementExpressions.dfy(88,4): Error: value does not satisfy the subset constraints of 'nat'
 StatementExpressions.dfy(98,17): Error: cannot prove termination; try supplying a decreases clause
+StatementExpressions.dfy(178,2): Error: function precondition could not be proved
+StatementExpressions.dfy(164,13): Related location: this proposition could not be proved
 
-Dafny program verifier finished with 11 verified, 5 errors
+Dafny program verifier finished with 20 verified, 6 errors

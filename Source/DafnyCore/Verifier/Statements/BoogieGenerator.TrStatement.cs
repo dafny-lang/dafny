@@ -42,7 +42,7 @@ public partial class BoogieGenerator {
       }
 
     } else if (stmt is HideRevealStmt revealStmt) {
-      TranslateRevealStmt(builder, locals, etran, revealStmt);
+      TranslateRevealStmt(this, builder, locals, etran, revealStmt);
     } else if (stmt is BreakOrContinueStmt breakStmt) {
       TrBreakStmt(builder, etran, breakStmt);
     } else if (stmt is ReturnStmt returnStmt) {
@@ -499,27 +499,6 @@ public partial class BoogieGenerator {
     if (varDeclStmt.Assign != null) {
       TrStmt(varDeclStmt.Assign, builder, locals, etran);
     }
-  }
-
-  private void TranslateRevealStmt(BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
-    HideRevealStmt revealStmt) {
-    AddComment(builder, revealStmt, "hide/reveal statement");
-    foreach (var la in revealStmt.LabeledAsserts) {
-      Contract.Assert(la.E != null);  // this should have been filled in by now
-      builder.Add(new Bpl.AssumeCmd(revealStmt.Tok, la.E));
-    }
-
-    if (builder.Context.ContainsHide) {
-      if (revealStmt.Wildcard) {
-        builder.Add(new HideRevealCmd(revealStmt.Tok, revealStmt.Mode));
-      } else {
-        foreach (var member in revealStmt.OffsetMembers) {
-          builder.Add(new HideRevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName), revealStmt.Mode));
-        }
-      }
-    }
-
-    TrStmtList(revealStmt.ResolvedStatements, builder, locals, etran);
   }
 
   private void TrCalcStmt(CalcStmt stmt, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
