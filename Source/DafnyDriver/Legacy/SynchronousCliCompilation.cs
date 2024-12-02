@@ -117,7 +117,7 @@ namespace Microsoft.Dafny {
       ISet<String> filesSeen = new HashSet<string>();
       var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(options.LibraryFiles).ToHashSet();
       foreach (var file in options.CliRootSourceUris.Where(u => u.IsFile).Select(u => u.LocalPath).
-                 Concat(libraryFiles)) {
+                 Concat(libraryFiles).Distinct()) {
         Contract.Assert(file != null);
         var extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }

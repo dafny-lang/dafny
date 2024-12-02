@@ -1,3 +1,11 @@
+FunctionHidingRefactoring.dfy(35,12): Info: hidden functions: Id
+FunctionHidingRefactoring.dfy(46,12): Info: hidden functions: Square
+FunctionHidingRefactoring.dfy(51,2): Info: hidden functions: Square
+FunctionHidingRefactoring.dfy(52,14): Info: hidden functions: Square
+FunctionHidingRefactoring.dfy(52,16): Info: hidden functions: Square
+FunctionHidingRefactoring.dfy(53,14): Info: hidden functions: Square
+FunctionHidingRefactoring.dfy(55,9): Info: hidden functions: Square
+FunctionHidingRefactoring.dfy(58,7): Info: hidden functions: Square
 FunctionHidingRefactoring.dfy(13,0): Info: Consider hiding these functions, which are unused by the proof: Id, Square
 FunctionHidingRefactoring.dfy(19,0): Info: Consider hiding these functions, which are unused by the proof: Id, Square
 FunctionHidingRefactoring.dfy(36,0): Info: Consider hiding this function, which is unused by the proof: Square
