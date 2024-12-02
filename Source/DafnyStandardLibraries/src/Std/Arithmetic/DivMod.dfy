@@ -30,16 +30,12 @@ module Std.Arithmetic.DivMod {
     requires 0 < d
     ensures DivRecursive(x, d) == x / d
   {
-    reveal DivPos();
-    reveal DivRecursive();
     LemmaDivInductionAuto(d, x, u => DivRecursive(u, d) == u / d);
   }
 
   lemma LemmaDivIsDivRecursiveAuto()
     ensures forall x: int, d: int {:trigger x / d} :: d > 0 ==> DivRecursive(x, d) == x / d
   {
-    reveal DivPos();
-    reveal DivRecursive();
     forall x: int, d: int | d > 0
       ensures DivRecursive(x, d) == x / d
     {
@@ -133,8 +129,6 @@ module Std.Arithmetic.DivMod {
     ensures x / y >= x / z
     decreases x
   {
-    reveal DivPos();
-    reveal DivRecursive();
     LemmaDivIsDivRecursiveAuto();
     assert forall u: int, d: int {:trigger u / d} {:trigger DivRecursive(u, d)}
         :: d > 0 ==> DivRecursive(u, d) == u / d;
@@ -153,7 +147,7 @@ module Std.Arithmetic.DivMod {
   lemma LemmaDivIsOrderedByDenominatorAuto()
     ensures forall x: int, y: int, z: int {:trigger x / y, x / z} :: 0 <= x && 1 <= y <= z ==> x / y >= x / z
   {
-    forall (x: int, y: int, z: int | 0 <= x && 1 <= y <= z)
+    forall x: int, y: int, z: int | 0 <= x && 1 <= y <= z
       ensures x / y >= x / z
     {
       LemmaDivIsOrderedByDenominator(x, y, z);
@@ -174,7 +168,7 @@ module Std.Arithmetic.DivMod {
   lemma LemmaDivIsStrictlyOrderedByDenominatorAuto()
     ensures forall x: int, d: int {:trigger x / d} :: 0 < x && 1 < d ==> x / d < x
   {
-    forall (x: int, d: int | 0 < x && 1 < d )
+    forall x: int, d: int | 0 < x && 1 < d
       ensures x / d < x
     {
       LemmaDivIsStrictlyOrderedByDenominator(x, d);
@@ -205,7 +199,7 @@ module Std.Arithmetic.DivMod {
               :: 0 < d &&  R == a%d + b%d - (a+b)%d ==> d*((a+b)/d) - R == d*(a/d) + d*(b/d)
   {
     // https://github.com/dafny-lang/dafny/issues/4771
-    forall (a: int, b: int, d: int, R: int {:trigger d * ((a + b) / d) - R, d*(a/d) + d*(b/d)} | 0< d &&  R == a%d + b%d - (a+b)%d)
+    forall a: int, b: int, d: int, R: int {:trigger d * ((a + b) / d) - R, d*(a/d) + d*(b/d)} | 0< d &&  R == a%d + b%d - (a+b)%d
       ensures d*((a+b)/d) - R == d*(a/d) + d*(b/d)
     {
       LemmaDividingSums(a, b, d, R);
@@ -225,7 +219,7 @@ module Std.Arithmetic.DivMod {
   lemma LemmaDivPosIsPosAuto()
     ensures forall x: int, d: int {:trigger x / d} :: 0 <= x && 0 < d ==> 0 <= x / d
   {
-    forall (x: int, d: int | 0 <= x && 0 < d)
+    forall x: int, d: int | 0 <= x && 0 < d
       ensures 0 <= x / d
     {
       LemmaDivPosIsPos(x, d);
@@ -244,7 +238,7 @@ module Std.Arithmetic.DivMod {
   lemma LemmaDivPlusOneAuto()
     ensures forall x: int, d: int {:trigger 1 + x / d, (d + x) / d} :: 0 < d ==> 1 + x / d == (d + x) / d
   {
-    forall (x: int, d: int | 0 < d)
+    forall x: int, d: int | 0 < d
       ensures 1 + x / d == (d + x) / d
     {
       LemmaDivPlusOne(x, d);
@@ -263,7 +257,7 @@ module Std.Arithmetic.DivMod {
   lemma LemmaDivMinusOneAuto()
     ensures forall x: int, d: int {:trigger -1 + x / d, (-d + x) / d} :: 0 < d ==> -1 + x / d == (-d + x) / d
   {
-    forall (x: int, d: int | 0 < d)
+    forall x: int, d: int | 0 < d
       ensures -1 + x / d == (-d + x) / d
     {
       LemmaDivMinusOne(x, d);
@@ -281,7 +275,7 @@ module Std.Arithmetic.DivMod {
   lemma LemmaBasicDivAuto()
     ensures forall x: int, d: int {:trigger x / d} :: 0 <= x < d ==> x / d == 0
   {
-    forall (x: int, d: int | 0 <= x < d)
+    forall x: int, d: int | 0 <= x < d
       ensures x / d == 0
     {
       LemmaBasicDiv(d);
@@ -300,7 +294,7 @@ module Std.Arithmetic.DivMod {
   lemma LemmaDivIsOrderedAuto()
     ensures forall x: int, y: int, z: int {:trigger x / z, y / z} :: x <= y && 0 < z ==> x / z <= y / z
   {
-    forall (x: int, y: int, z: int | x <= y && 0 < z)
+    forall x: int, y: int, z: int | x <= y && 0 < z
       ensures x / z <= y / z
     {
       LemmaDivIsOrdered(x, y, z);
@@ -320,7 +314,7 @@ module Std.Arithmetic.DivMod {
   lemma LemmaDivDecreasesAuto()
     ensures forall x: int, d: int {:trigger x / d} :: 0 < x && 1 < d ==> x / d < x
   {
-    forall (x: int, d: int | 0 < x && 1 < d)
+    forall x: int, d: int | 0 < x && 1 < d
       ensures x / d < x
     {
       LemmaDivDecreases(x, d);
@@ -340,7 +334,7 @@ module Std.Arithmetic.DivMod {
   lemma LemmaDivNonincreasingAuto()
     ensures forall x: int, d: int {:trigger x / d } :: 0 <= x && 0 < d ==> x / d <= x
   {
-    forall (x: int, d: int | 0 <= x && 0 < d)
+    forall x: int, d: int | 0 <= x && 0 < d
       ensures x / d <= x
     {
       LemmaDivNonincreasing(x, d);
@@ -410,7 +404,7 @@ module Std.Arithmetic.DivMod {
     ensures forall x: int, y: int, z: int {:trigger y * z, x % (y * z), y * ((x / y) % z) + x % y}
               :: 0 <= x && 0 < y && 0 < z ==> 0 < y * z && x % (y * z) == y * ((x / y) % z) + x % y
   {
-    forall (x: int, y: int, z: int  | 0 <= x && 0 < y && 0 < z)
+    forall x: int, y: int, z: int  | 0 <= x && 0 < y && 0 < z
       ensures 0 < y * z && x % (y * z) == y * ((x / y) % z) + x % y
     {
       LemmaBreakdown(x, y, z);
@@ -429,7 +423,7 @@ module Std.Arithmetic.DivMod {
   lemma LemmaRemainderUpperAuto()
     ensures forall x: int, d: int {:trigger x - d, d * d} :: 0 <= x && 0 < d ==> x - d < x / d * d
   {
-    forall (x: int, d: int | 0 <= x && 0 < d)
+    forall x: int, d: int | 0 <= x && 0 < d
       ensures x - d < x / d * d
     {
       LemmaRemainderUpper(x, d);
@@ -628,7 +622,7 @@ module Std.Arithmetic.DivMod {
     ensures forall x: int, y: int, z: int {:trigger x * (y / z), (x * y) / z}
               :: 0 <= x && 0 < z ==> x * (y / z) <= (x * y) / z
   {
-    forall (x: int, y: int, z: int | 0 <= x && 0 < z)
+    forall x: int, y: int, z: int | 0 <= x && 0 < z
       ensures x * (y / z) <= (x * y) / z
     {
       LemmaMulHoistInequality(x, y, z);
@@ -956,7 +950,6 @@ module Std.Arithmetic.DivMod {
     ensures ModRecursive(x, m) == x % m
     decreases if x < 0 then -x + m else x
   {
-    reveal ModRecursive();
     if x < 0 {
       calc {
         ModRecursive(x, m);
@@ -991,7 +984,6 @@ module Std.Arithmetic.DivMod {
   lemma LemmaModIsModRecursiveAuto()
     ensures forall x: int, d: int {:trigger x % d}:: d > 0 ==> ModRecursive(x, d) == x % d
   {
-    reveal ModRecursive();
     forall x: int, d: int | d > 0
       ensures ModRecursive(x, d) == x % d
     {

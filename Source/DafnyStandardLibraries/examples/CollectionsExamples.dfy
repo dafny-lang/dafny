@@ -39,6 +39,8 @@ module CollectionsExamples {
 
     @Test
     method TestSequenceIndexOf() {
+      hide *;
+      reveal s;
       AssertAndExpect(IndexOf(s, 5) == 4);
       expect IndexOf(s, 1) == 0;
       AssertAndExpect(IndexOfOption(s, 5) == Some(4));
