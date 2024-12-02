@@ -28,6 +28,19 @@ datatype {:rust_rc false} ADatatype extends DatatypeOps<int> = ADatatype(i: int)
   function GetInt(): int { i }
 }
 
+method StaticWithGenerics<T>(c: bool, a: T, b: T) returns (t: T){
+  if c {
+    t := a;
+  } else {
+    t := b;
+  }
+}
+function StaticWithGenericsFn<T>(c: bool, a: T, b: T): (t: T){
+  if c then a else b
+}
+
+//datatype TraitWrapper<T> = TraitWrapper(d: DatatypeOps<T>) {}
+
 method Main() {
   var x := ADatatype(2);
   expect x.GetInt() == 2;
@@ -57,5 +70,14 @@ method Main() {
   var zx := x as SuperTrait;
   expect zx.GetBool();
   expect !zy.GetBool();
+  var xory1a := StaticWithGenerics(true, x, y);
+  var xory1b := StaticWithGenerics(false, x, y);
+  var xory1c := StaticWithGenericsFn(true, x, y);
+  var xory1d := StaticWithGenericsFn(false, x, y);
+  expect xory1a == x == xory1c;
+  //expect xory1b == y == xory1d;
+  print x1, "\n"; // Ensure we can print even if behind trait
+  //print TraitWrapper(x1) == TraitWrapper(x1), "\n"; // True
+  //print TraitWrapper(x1) == TraitWrapper(y1), "\n"; // False
   print "Main passed all the tests";
 }

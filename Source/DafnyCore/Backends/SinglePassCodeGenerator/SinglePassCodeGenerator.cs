@@ -2211,7 +2211,10 @@ namespace Microsoft.Dafny.Compilers {
             if (!Attributes.Contains(method.Attributes, "extern")
                 && canRedeclareMemberDefinedInTrait) {
               Contract.Assert(method.Body != null);
-              var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
+              var typeArguments = InstanceMethodsCanOnlyCallOverridenTraitMethods ?
+                new List<TypeArgumentInstantiation>()
+                : CombineAllTypeArguments(member);
+              var w = classWriter.CreateMethod(method, typeArguments, true, true, false);
               var wBefore = w.Fork();
               var wCall = w.Fork();
               var wAfter = w;

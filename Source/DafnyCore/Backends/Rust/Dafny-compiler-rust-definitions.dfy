@@ -695,11 +695,19 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
               Some(R.std.MSel("option").MSel("Option").AsType().Apply1(R.std.MSel("cmp").MSel("Ordering").AsType())),
               "",
               Some(
-                R.std.MSel("cmp").MSel("PartialOrd").AsExpr().FSel("partial_cmp").Apply([
-                                                                                          R.Borrow(R.self.Sel("0")),
-                                                                                          R.Borrow(R.Identifier("other").Sel("0"))
-                                                                                        ]))
+                R.std.MSel("cmp").MSel("PartialOrd").AsExpr().FSel("partial_cmp").Apply(
+                  [
+                    R.Borrow(R.self.Sel("0")),
+                    R.Borrow(R.Identifier("other").Sel("0"))
+                  ]))
             ))
         ]))
   }
+
+  const fmt_print_parameters := [
+    R.Formal.selfBorrowed,
+    R.Formal("_formatter", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType())),
+    R.Formal("in_seq", R.Type.Bool)]
+  
+  const fmt_print_result := R.std.MSel("fmt").MSel("Result").AsType()
 }

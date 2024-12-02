@@ -294,10 +294,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               // Extern type, we assume
             }
             if traitType.GeneralTrait? {
-              // One more method: Cloning when boxed
+              // Two more methods: Cloning when boxed and printing when boxed
               /*impl Test for Wrapper {
+                  ...
                   fn _clone(&self) -> Box<dyn Test> {
                       Box::new(self.clone())
+                  }
+                  fn _fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+                    self.fmt_print(f, in_seq)
                   }
               }*/
               body := body + [
@@ -306,7 +310,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   R.Fn(
                     "_clone", [], [R.Formal.selfBorrowed], Some(R.Box(R.DynType(fullTraitPath))),
                     "",
-                    Some(R.BoxNew(R.self.Sel("clone").Apply0()))))
+                    Some(R.BoxNew(R.self.Sel("clone").Apply0())))),
+                R.FnDecl(
+                  R.PRIV,
+                  R.Fn(
+                    "_fmt_print", [], fmt_print_parameters, Some(fmt_print_result),
+                    "",
+                    Some(R.self.Sel("fmt_print").Apply([R.Identifier("_formatter"), R.Identifier("in_seq")]))))
               ];
             } else {
               if kind == "datatype" || kind == "newtype" {
@@ -541,7 +551,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               "_clone", [], [R.Formal.selfBorrowed], Some(R.Box(R.DynType(traitFulltype))),
               "",
               None
-            ))
+            )),
+          R.FnDecl(
+            R.PRIV,
+            R.Fn(
+              "_fmt_print", [], fmt_print_parameters, Some(fmt_print_result), "", None
+            )
+          )
         ];
       }
       while |implBodyImplementingOtherTraits| > 0 {
@@ -604,7 +620,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             fn clone(&self) -> Box<dyn Test> {
               Test::_clone(self.as_ref())
             }
-          }*/
+          }
+          impl DafnyPrint for Box<dyn Test> {
+            fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+              self._fmt_print(f, in_seq)
+            }
+          }
+          */
         s := s + [
           R.ImplDecl(
             R.ImplFor(
@@ -618,7 +640,20 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                       Some(R.SelfOwned),
                       "",
                       Some(traitFullExpr.FSel("_clone").Apply1(R.self.Sel("as_ref").Apply0()))
-                 ))]))];
+                 ))])),
+          R.ImplDecl(
+            R.ImplFor(
+              rTypeParamsDecls,
+              R.DafnyPrint,
+              R.Box(R.DynType(traitFulltype)),
+              [R.FnDecl(
+                 R.PRIV,
+                 R.Fn("fmt_print", [], fmt_print_parameters,
+                      Some(fmt_print_result),
+                      "",
+                      Some(traitFullExpr.FSel("_fmt_print").Apply([R.self.Sel("as_ref").Apply0(), R.Identifier("_formatter"), R.Identifier("in_seq")]))
+                 ))]))
+        ];
       }
       s := s + upcastImplemented;
     }
@@ -722,10 +757,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             [R.FnDecl(
                R.PRIV,
                R.Fn("fmt_print", [],
-                    [ R.Formal.selfBorrowed,
-                      R.Formal("_formatter", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType())),
-                      R.Formal("in_seq", R.Type.Bool)],
-                    Some(R.std.MSel("fmt").MSel("Result").AsType()),
+                    fmt_print_parameters,
+                    Some(fmt_print_result),
                     "",
                     Some(R.dafny_runtime.MSel("DafnyPrint").AsExpr().FSel("fmt_print").Apply(
                            [ R.Borrow(R.self.Sel("0")),
@@ -1137,11 +1170,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               writeStr("<function>")
             else
               R.UnaryOp("?",
-                        R.dafny_runtime.MSel("DafnyPrint").AsExpr().FSel("fmt_print").Apply([
-                                                                                              R.Identifier(patternName),
-                                                                                              R.Identifier("_formatter"),
-                                                                                              R.LiteralBool(false)
-                                                                                            ]), Format.UnaryOpFormat.NoFormat)
+                        R.dafny_runtime.MSel("DafnyPrint").AsExpr().FSel("fmt_print").Apply(
+                          [
+                            R.Identifier(patternName),
+                            R.Identifier("_formatter"),
+                            R.LiteralBool(false)
+                          ]), Format.UnaryOpFormat.NoFormat)
           );
 
           var coerceRhsArg: R.Expr;
@@ -1890,7 +1924,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    @IsolateAssertions @ResourceLimit("1e6")
     method GenOwnedCallPart(ghost e: Expression, on: Expression, selfIdent: SelfInfo, name: CallName, typeArgs: seq<Type>, args: seq<Expression>, env: Environment) returns (r: R.Expr, readIdents: set<string>)
       requires forall a <- args :: a < e
       requires on < e

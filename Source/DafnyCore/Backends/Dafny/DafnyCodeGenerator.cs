@@ -536,12 +536,7 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
-        if (m.IsStatic && this.hasTypeArgs) {
-          compiler.AddUnsupported(m.tok, "<i>Static methods with type arguments</i>");
-          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
-        }
-
-        var astTypeArgs = typeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg.Formal)).ToList();
+        var astTypeArgs = m.TypeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg)).ToList();
 
         var params_ = compiler.GenFormals(m.Ins);
 
@@ -601,12 +596,8 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
           List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
           bool forBodyInheritance, bool lookasideBody) {
-        if (isStatic && this.hasTypeArgs) {
-          compiler.AddUnsupported(tok, "<i>Static functions with type arguments</i>");
-          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
-        }
 
-        var astTypeArgs = typeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg.Formal)).ToList();
+        var astTypeArgs = ((Function)member).TypeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg)).ToList();
 
         var params_ = compiler.GenFormals(formals);
 
