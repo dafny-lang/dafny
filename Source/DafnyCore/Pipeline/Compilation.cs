@@ -72,7 +72,7 @@ public class Compilation : IDisposable {
 
   public Task<IReadOnlyList<DafnyFile>> RootFiles { get; set; }
   public bool HasErrors { get; private set; }
-  public bool ProcessSolverOptions { get; set; } = true;
+  public bool ShouldProcessSolverOptions { get; set; } = true;
 
   public Compilation(
     ILogger<Compilation> logger,
