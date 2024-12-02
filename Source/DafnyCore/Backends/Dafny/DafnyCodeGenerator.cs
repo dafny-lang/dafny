@@ -597,7 +597,7 @@ namespace Microsoft.Dafny.Compilers {
           List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
           bool forBodyInheritance, bool lookasideBody) {
 
-        var astTypeArgs = ((Function)member).TypeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg)).ToList();
+        var astTypeArgs = (member is Function fun ? fun.TypeArgs : Enumerable.Empty<TypeParameter>()).Select(typeArg => compiler.GenTypeArgDecl(typeArg)).ToList();
 
         var params_ = compiler.GenFormals(formals);
 

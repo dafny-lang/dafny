@@ -700,7 +700,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               rTypeParamsDecls,
               R.std.MSel("cmp").MSel("Eq").AsType(),
               R.Box(R.DynType(traitFulltype)),
-            [])),
+              [])),
           /*
           impl Hash
             for Box<dyn Test> {
@@ -718,11 +718,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               [R.FnDecl(
                  R.PRIV,
                  R.Fn(
-                  "hash", hash_type_parameters,
-                  hash_parameters,
-                  None,
-                  "",
-                  Some(hash_function.Apply([R.Borrow(traitFullExpr.FSel("_hash").Apply1(R.self.Sel("as_ref").Apply0())), R.Identifier("_state")]))
+                   "hash", hash_type_parameters,
+                   hash_parameters,
+                   None,
+                   "",
+                   Some(hash_function.Apply([R.Borrow(traitFullExpr.FSel("_hash").Apply1(R.self.Sel("as_ref").Apply0())), R.Identifier("_state")]))
                  ))]))
         ];
       }
@@ -1387,7 +1387,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var fullType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
 
         // Implementation of Default trait when c supports equality
-        if false && cIsEq {
+        if false && cIsEq { // We don't emit default because datatype defaults are broken.
+          // - There should be no default when an argument is a lambda
+          // - There is no possiblity to define witness for datatypes so that we know if it's (0) or (00)
+          // - General traits don't have defaults but can be wrapped in datatypes and datatypes are assumed to have default values always
+          // Default values are not used in --enforce-determinism anyway, only placebos values are useful and they are implemented with
+          // a custom option type.
+          // Leaving this code here for when datatypes' defaults will be fixed
           s := s +
           [R.ImplDecl(
              R.ImplFor(

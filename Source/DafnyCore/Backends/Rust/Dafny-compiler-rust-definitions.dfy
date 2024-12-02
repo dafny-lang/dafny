@@ -666,7 +666,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         "_fmt_print", [], fmt_print_parameters, Some(fmt_print_result),
         "",
         Some(R.self.Sel("fmt_print").Apply([R.Identifier("_formatter"), R.Identifier("in_seq")]))))
-  
+
   /**
     fn _as_any(&self) -> &dyn ::std::any::Any {
       self
@@ -783,6 +783,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     R.Formal.selfBorrowed,
     R.Formal("_formatter", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType())),
     R.Formal("in_seq", R.Type.Bool)]
-  
+
   const fmt_print_result := R.std.MSel("fmt").MSel("Result").AsType()
 }
