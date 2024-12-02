@@ -72,6 +72,7 @@ public class Compilation : IDisposable {
 
   public Task<IReadOnlyList<DafnyFile>> RootFiles { get; set; }
   public bool HasErrors { get; private set; }
+  public bool ProcessSolverOptions { get; set; } = true;
 
   public Compilation(
     ILogger<Compilation> logger,
@@ -246,6 +247,10 @@ public class Compilation : IDisposable {
       return null;
     }
 
+    if (ProcessSolverOptions) {
+      Options.ProcessSolverOptions(Reporter, Options.DafnyProject.StartingToken);
+    }
+
     updates.OnNext(new FinishedResolution(resolution));
     staticDiagnosticsSubscription.Dispose();
     logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
@@ -301,12 +306,6 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    if (!solverOptionsSet) {
-      solverOptionsSet = true;
-
-      Options.ProcessSolverOptions(Reporter, Options.DafnyProject.StartingToken);
-    }
-
     var containingModule = canVerify.ContainingModule;
     if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation)) {
       return false;
@@ -326,8 +325,6 @@ public class Compilation : IDisposable {
     _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
     return true;
   }
-
-  private bool solverOptionsSet;
 
   private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
     ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter, int? randomSeed) {
