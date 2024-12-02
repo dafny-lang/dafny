@@ -1,4 +1,4 @@
-// RUN: ! %verify --type-system-refresh --allow-axioms --show-hints --isolate-assertions %s > %t
+// RUN: ! %verify --type-system-refresh --allow-axioms --show-hints --isolate-assertions %s --bprint=%t.bpl > %t
 // RUN: %diff "%s.expect" "%t"
 
 function P(x: int): bool {
@@ -125,3 +125,19 @@ method InnerOuterUser() {
     reveal Outer, Inner;
   }
 }
+
+  
+function HideInFunction(): int 
+  ensures true
+{
+  var x := 3; // Trigger substitute logic 
+  assert P(0) by {
+    hide *;
+  }
+  hide *;
+  assert P(1);
+  reveal P;
+  assert P(2);
+  3
+}
+ 

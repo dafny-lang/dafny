@@ -30,16 +30,12 @@ module Std.Arithmetic.DivMod {
     requires 0 < d
     ensures DivRecursive(x, d) == x / d
   {
-    reveal DivPos();
-    reveal DivRecursive();
     LemmaDivInductionAuto(d, x, u => DivRecursive(u, d) == u / d);
   }
 
   lemma LemmaDivIsDivRecursiveAuto()
     ensures forall x: int, d: int {:trigger x / d} :: d > 0 ==> DivRecursive(x, d) == x / d
   {
-    reveal DivPos();
-    reveal DivRecursive();
     forall x: int, d: int | d > 0
       ensures DivRecursive(x, d) == x / d
     {
@@ -133,8 +129,6 @@ module Std.Arithmetic.DivMod {
     ensures x / y >= x / z
     decreases x
   {
-    reveal DivPos();
-    reveal DivRecursive();
     LemmaDivIsDivRecursiveAuto();
     assert forall u: int, d: int {:trigger u / d} {:trigger DivRecursive(u, d)}
         :: d > 0 ==> DivRecursive(u, d) == u / d;
@@ -956,7 +950,6 @@ module Std.Arithmetic.DivMod {
     ensures ModRecursive(x, m) == x % m
     decreases if x < 0 then -x + m else x
   {
-    reveal ModRecursive();
     if x < 0 {
       calc {
         ModRecursive(x, m);
@@ -991,7 +984,6 @@ module Std.Arithmetic.DivMod {
   lemma LemmaModIsModRecursiveAuto()
     ensures forall x: int, d: int {:trigger x % d}:: d > 0 ==> ModRecursive(x, d) == x % d
   {
-    reveal ModRecursive();
     forall x: int, d: int | d > 0
       ensures ModRecursive(x, d) == x % d
     {
