@@ -11,7 +11,6 @@ public class AtomicBox<T> {
 
     public AtomicBox(dafny.TypeDescriptor td) {
     }
-    
     public void __ctor(T t) {
         val = t;
     }

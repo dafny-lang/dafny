@@ -24,7 +24,7 @@ module Std.JSON.Utils.Parsers {
     }
   }
 
-  opaque function ParserWitness<T, R>(): (p: Parser_<T, R>)
+  function ParserWitness<T, R>(): (p: Parser_<T, R>)
     ensures p.Valid?()
   {
     Parser(_ => Failure(EOF), _ => [])
@@ -53,7 +53,7 @@ module Std.JSON.Utils.Parsers {
   type SubParser<!T, +R> = p: SubParser_<T, R> | p.Valid?()
     witness SubParserWitness<T, R>() // BUG(https://github.com/dafny-lang/dafny/issues/2175)
 
-  opaque function SubParserWitness<T, R>(): (subp: SubParser_<T, R>)
+  function SubParserWitness<T, R>(): (subp: SubParser_<T, R>)
     ensures subp.Valid?()
   {
     SubParser(Cursor([], 0, 0, 0),
