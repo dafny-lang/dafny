@@ -3123,7 +3123,7 @@ ForallStmt<out Statement s>
   ForallStatementEnsuresAndBody<out s, startToken, bvars, qattrs, range>
   .
 
-ForallStatementEnsuresAndBody<.out Statement s, IToken startToken, List<BoundVar> bvars, Attributes qattrs, Expression/*?*/ range.>
+ForallStatementEnsuresAndBody<.out Statement s, Token startToken, List<BoundVar> bvars, Attributes qattrs, Expression/*?*/ range.>
 = (. var ens = new List<AttributedExpression/*!*/>();
      BlockStmt block = null;
      range ??= new LiteralExpr(startToken, true);

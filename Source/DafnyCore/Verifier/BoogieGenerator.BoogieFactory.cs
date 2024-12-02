@@ -890,8 +890,8 @@ namespace Microsoft.Dafny {
         return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
       }
 
-      if (boogieToken is NestedToken nestedToken) {
-        return new NestedToken(
+      if (boogieToken is NestedOrigin nestedToken) {
+        return new NestedOrigin(
           ToDafnyToken(reportRanges, nestedToken.Outer),
           ToDafnyToken(reportRanges, nestedToken.Inner));
       }
