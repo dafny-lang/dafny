@@ -221,7 +221,7 @@ namespace Microsoft.Dafny {
     }
 
     private static IExecutableBackend GetBackend(DafnyOptions options) {
-      if (options.Backend != null) {
+      if (options.Backend.TargetId == options.CompilerName) {
         return options.Backend;
       }
 
