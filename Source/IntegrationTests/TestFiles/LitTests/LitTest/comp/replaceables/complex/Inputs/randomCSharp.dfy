@@ -38,7 +38,7 @@ module {:extern "System"} CSharpSystem {
   }
   
   class {:extern "Random" } Random {
-    constructor {:extern} () { }
+    constructor {:extern} ()
     
     method {:axiom} {:extern} Next(minValue: Int32, maxValue: Int32) returns (r: Int32)
       ensures minValue.value <= r.value && r.value < maxValue.value

@@ -138,7 +138,7 @@ namespace Microsoft.Dafny.Compilers {
            && defaultClassDecl.Members.Exists(NeedsExternalImport)
            ) ||
           (decl is ClassLikeDecl classLikeDecl &&
-           GetIsExternAndIncluded(classLikeDecl) is (classIsExtern: true, _)) ||
+           GetIsExternAndIncluded(classLikeDecl) is (ClassIsExtern: true, _)) ||
           (decl is AbstractTypeDecl)
         );
         currentBuilder = moduleBuilder.Module(moduleName, attributes, requiresExternImport);

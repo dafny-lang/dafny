@@ -533,7 +533,7 @@ namespace Microsoft.Dafny.Compilers {
       return wGet;
     }
     protected ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      if (m.IsExtern(Options, out _, out _) && (m.IsStatic || m is Constructor)) {
+      if (!createBody && (m.IsStatic || m is Constructor)) {
         // No need for an abstract version of a static method or a constructor
         return null;
       }
@@ -597,7 +597,7 @@ namespace Microsoft.Dafny.Compilers {
     protected ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
       List<Formal> formals, Type resultType, IOrigin tok, bool isStatic, bool createBody, MemberDecl member,
       ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      if (member.IsExtern(Options, out _, out _) && isStatic) {
+      if (!createBody && isStatic) {
         // No need for abstract version of static method
         return null;
       }
@@ -884,7 +884,7 @@ namespace Microsoft.Dafny.Compilers {
     // We write an extern class as a base class that the actual extern class
     // needs to extend, so the extern methods and functions need to be abstract
     // in the base class
-    protected override bool IncludeExternMembers { get => true; }
+    protected override bool IncludeExternallyImportedMembers => true;
 
     //
     // An example to show how type parameters are dealt with:
@@ -1446,51 +1446,7 @@ namespace Microsoft.Dafny.Compilers {
           return SimpleLvalue(obj);
         }
       } else if (member is Function fn) {
-        var wr = new ConcreteSyntaxTree();
-        EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)),
-          member.tok, null, false, wr);
-        var needsEtaConversion = typeArgs.Any()
-               || additionalCustomParameter != null
-               || (UnicodeCharEnabled &&
-                  (fn.ResultType.IsCharType || fn.Ins.Any(f => f.Type.IsCharType)));
-        if (!needsEtaConversion) {
-          var nameAndTypeArgs = wr.ToString();
-          return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
-        } else {
-          // We need an eta conversion to adjust for the difference in arity or coerce inputs/outputs.
-          // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., additionalCustomParameter, a0, a1, ...)
-          wr.Write("(");
-          var sep = "";
-          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), fn.tok, wr, ref sep);
-          if (additionalCustomParameter != null) {
-            wr.Write("{0}{1}", sep, additionalCustomParameter);
-            sep = ", ";
-          }
-          var prefixWr = new ConcreteSyntaxTree();
-          var prefixSep = "";
-          prefixWr.Write("(");
-          foreach (var arg in fn.Ins) {
-            if (!arg.IsGhost) {
-              var name = idGenerator.FreshId("_eta");
-              var ty = arg.Type.Subst(typeMap);
-              prefixWr.Write($"{prefixSep}{BoxedTypeName(ty, prefixWr, arg.tok)} {name}");
-              wr.Write(sep);
-              var coercedWr = EmitCoercionIfNecessary(NativeObjectType, ty, arg.tok, wr);
-              coercedWr.Write(name);
-              sep = ", ";
-              prefixSep = ", ";
-            }
-          }
-          prefixWr.Write(") -> ");
-          wr.Write(")");
-
-          if (fn.ResultType.IsCharType && UnicodeCharEnabled) {
-            prefixWr.Write("dafny.CodePoint.valueOf(");
-            wr.Write(")");
-          }
-
-          return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr}");
-        }
+        return EmitFunctionSelect(obj, member, typeArgs, typeMap, additionalCustomParameter, fn);
       } else {
         var field = (Field)member;
         ILvalue lvalue;
@@ -1525,6 +1481,55 @@ namespace Microsoft.Dafny.Compilers {
           lvalue = SuffixLvalue(obj, $".{IdName(member)}");
         }
         return CoercedLvalue(lvalue, field.Type, expectedType);
+      }
+    }
+
+    private ILvalue EmitFunctionSelect(Action<ConcreteSyntaxTree> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+      string additionalCustomParameter, Function fn) {
+      var wr = new ConcreteSyntaxTree();
+      EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)),
+        member.tok, null, false, wr);
+      var needsEtaConversion = typeArgs.Any()
+                               || additionalCustomParameter != null
+                               || (UnicodeCharEnabled &&
+                                   (fn.ResultType.IsCharType || fn.Ins.Any(f => f.Type.IsCharType)));
+      if (!needsEtaConversion) {
+        var nameAndTypeArgs = wr.ToString();
+        return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
+      } else {
+        // We need an eta conversion to adjust for the difference in arity or coerce inputs/outputs.
+        // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., additionalCustomParameter, a0, a1, ...)
+        wr.Write("(");
+        var sep = "";
+        EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), fn.tok, wr, ref sep);
+        if (additionalCustomParameter != null) {
+          wr.Write("{0}{1}", sep, additionalCustomParameter);
+          sep = ", ";
+        }
+        var prefixWr = new ConcreteSyntaxTree();
+        var prefixSep = "";
+        prefixWr.Write("(");
+        foreach (var arg in fn.Ins) {
+          if (!arg.IsGhost) {
+            var name = idGenerator.FreshId("_eta");
+            var ty = arg.Type.Subst(typeMap);
+            prefixWr.Write($"{prefixSep}{BoxedTypeName(ty, prefixWr, arg.tok)} {name}");
+            wr.Write(sep);
+            var coercedWr = EmitCoercionIfNecessary(NativeObjectType, ty, arg.tok, wr);
+            coercedWr.Write(name);
+            sep = ", ";
+            prefixSep = ", ";
+          }
+        }
+        prefixWr.Write(") -> ");
+        wr.Write(")");
+
+        if (fn.ResultType.IsCharType && UnicodeCharEnabled) {
+          prefixWr.Write("dafny.CodePoint.valueOf(");
+          wr.Write(")");
+        }
+
+        return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr}");
       }
     }
 
@@ -2713,6 +2718,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
     }
+
+    protected override bool AllowMixingImportsAndNonImports => false;
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;

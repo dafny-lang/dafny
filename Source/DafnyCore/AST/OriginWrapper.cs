@@ -78,4 +78,15 @@ public abstract class OriginWrapper : IOrigin {
   public int CompareTo(Boogie.IToken other) {
     return WrappedOrigin.CompareTo(other);
   }
+
+  /// <summary>
+  ///  Removes token wrappings from a given token, so that it returns the bare token
+  /// </summary>
+  public static IOrigin Unwrap(IOrigin token, bool includeRanges = false) {
+    if (token is OriginWrapper wrapper) {
+      return Unwrap(wrapper.WrappedOrigin);
+    }
+
+    return token;
+  }
 }

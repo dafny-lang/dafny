@@ -10,6 +10,17 @@ public class RangeToken : IOrigin {
   public bool IsInherited(ModuleDefinition d) {
     return false;
   }
+  public override bool Equals(object obj) {
+    if (obj is RangeToken other) {
+      return StartToken.Equals(other.StartToken) && EndToken.Equals(other.EndToken);
+    }
+
+    return false;
+  }
+
+  public override int GetHashCode() {
+    return HashCode.Combine(StartToken.GetHashCode(), EndToken.GetHashCode());
+  }
 
   public Token Center => StartToken; // TODO change to [optional] field
   public Token StartToken { get; private set; }
@@ -26,7 +37,6 @@ public class RangeToken : IOrigin {
     Centre = startToken; // TODO update
     this.endToken = endToken;
   }
-
   public int Length() {
     return EndToken.pos - StartToken.pos;
   }

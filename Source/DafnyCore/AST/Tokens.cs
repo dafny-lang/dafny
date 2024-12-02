@@ -112,8 +112,6 @@ public class Token : IOrigin {
 
 public static class TokenExtensions {
 
-
-
   /// <summary>
   /// Gets the LSP range of the specified token.
   /// </summary>
