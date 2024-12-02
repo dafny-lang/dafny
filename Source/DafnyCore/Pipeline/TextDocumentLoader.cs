@@ -52,6 +52,10 @@ namespace Microsoft.Dafny {
 
       await symbolResolver.ResolveSymbols(compilation, program, cancellationToken);
 
+      if (compilation.ProcessSolverOptions) {
+        compilation.Options.ProcessSolverOptions(compilation.Reporter, compilation.Options.DafnyProject.StartingToken);
+      }
+
       List<ICanVerify>? verifiables;
       if (compilation.HasErrors) {
         verifiables = null;

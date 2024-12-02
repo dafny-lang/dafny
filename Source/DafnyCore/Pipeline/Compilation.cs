@@ -247,10 +247,6 @@ public class Compilation : IDisposable {
       return null;
     }
 
-    if (ProcessSolverOptions) {
-      Options.ProcessSolverOptions(Reporter, Options.DafnyProject.StartingToken);
-    }
-
     updates.OnNext(new FinishedResolution(resolution));
     staticDiagnosticsSubscription.Dispose();
     logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
