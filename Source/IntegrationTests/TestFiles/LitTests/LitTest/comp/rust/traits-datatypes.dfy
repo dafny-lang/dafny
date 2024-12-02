@@ -74,6 +74,8 @@ method Main() {
   var xory1b := StaticWithGenerics(false, x1, y1);
   var xory1c := StaticWithGenericsFn(true, x1, y1);
   var xory1d := StaticWithGenericsFn(false, x1, y1);
+  var tw := TW(x1);
+  expect tw.d.GetInt() == 2;
   expect TW(xory1a) == TW(x1) == TW(xory1c) != TW(y1); // If not wrapped, Dafny complains
   expect TW(xory1b) == TW(y1) == TW(xory1d) != TW(x1);
   print x1, "\n"; // Ensure we can print even if behind trait

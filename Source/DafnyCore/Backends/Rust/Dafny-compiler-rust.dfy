@@ -2032,12 +2032,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             // 'on' is going to return an owned version of this box.
             onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
             if onExpr.Identifier? && env.NeedsAsRefForBorrow(onExpr.name) {
-              onExpr := onExpr.Sel("as_ref").Apply0();
-            } else if onExpr.IsBorrow() {
-              // If the resulting expression is a borrow, e.g. &something(), it means the trait was owned.
+              onExpr := onExpr.Sel("as_ref").Apply0(); // It's not necessarily the trait, it's usually Box::as_ref or Rc::as_ref
+            } else if recOwnership.OwnershipBorrowed? && onExpr != R.self {
+              // If the resulting expression is a borrow, e.g. &something() or datatype.field(), it means the trait was owned.
               // In our case we want dynamic dispatch, so we need to get the bare reference.
               // Because "on" is a general trait, we need to call as_ref() instead to get the bare expression
-              // If the onExpr is an identifier but not "self", we apply the same treatment
+              // If "on" was a field extraction, then the field is borrowed as well.
               onExpr := R.std.MSel("convert").MSel("AsRef").AsExpr().FSel("as_ref").Apply1(onExpr);
             }
             readIdents := readIdents + recIdents;
