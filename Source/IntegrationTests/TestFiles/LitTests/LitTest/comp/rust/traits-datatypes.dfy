@@ -39,7 +39,7 @@ function StaticWithGenericsFn<T>(c: bool, a: T, b: T): (t: T){
   if c then a else b
 }
 
-//datatype TraitWrapper<T> = TraitWrapper(d: DatatypeOps<T>) {}
+datatype TW<T> = TW(d: DatatypeOps<T>) {}
 
 method Main() {
   var x := ADatatype(2);
@@ -70,14 +70,14 @@ method Main() {
   var zx := x as SuperTrait;
   expect zx.GetBool();
   expect !zy.GetBool();
-  var xory1a := StaticWithGenerics(true, x, y);
-  var xory1b := StaticWithGenerics(false, x, y);
-  var xory1c := StaticWithGenericsFn(true, x, y);
-  var xory1d := StaticWithGenericsFn(false, x, y);
-  expect xory1a == x == xory1c;
-  //expect xory1b == y == xory1d;
+  var xory1a := StaticWithGenerics(true, x1, y1);
+  var xory1b := StaticWithGenerics(false, x1, y1);
+  var xory1c := StaticWithGenericsFn(true, x1, y1);
+  var xory1d := StaticWithGenericsFn(false, x1, y1);
+  expect TW(xory1a) == TW(x1) == TW(xory1c) != TW(y1); // If not wrapped, Dafny complains
+  expect TW(xory1b) == TW(y1) == TW(xory1d) != TW(x1);
   print x1, "\n"; // Ensure we can print even if behind trait
-  //print TraitWrapper(x1) == TraitWrapper(x1), "\n"; // True
-  //print TraitWrapper(x1) == TraitWrapper(y1), "\n"; // False
+  print TW(x1) == TW(x1), "\n"; // True
+  print TW(x1) == TW(y1), "\n"; // False
   print "Main passed all the tests";
 }

@@ -276,6 +276,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
 
             var fullTraitPath := R.TypeApp(pathType, typeArgs);
+            var fullTraitExpr := path.AsExpr().ApplyType(typeArgs);
             if !extern.NoExtern? { // An extern of some kind
               // Either the Dafny code implements all the methods of the trait or none,
               if |body| == 0 && |properMethods| != 0 {
@@ -294,7 +295,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               // Extern type, we assume
             }
             if traitType.GeneralTrait? {
-              // Two more methods: Cloning when boxed and printing when boxed
+              // More methods: Cloning, printing, hashing, equality when boxed
               /*impl Test for Wrapper {
                   ...
                   fn _clone(&self) -> Box<dyn Test> {
@@ -303,20 +304,24 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   fn _fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
                     self.fmt_print(f, in_seq)
                   }
+                  fn _hash(&self) -> u64 {
+                    let mut hasher = ::std::hash::DefaultHasher::new();
+                    self.hash(&mut hasher);
+                    hasher.finish()
+                  }
+                  fn _eq(&self, other: &Box<dyn DatatypeOps<DafnyInt>>) -> bool {
+                    other._as_any().downcast_ref::<ADatatype>().map_or(false, |x| self == x)
+                  }
+                  fn _as_any(&self) -> &dyn ::std::any::Any {
+                    self
+                  }
               }*/
               body := body + [
-                R.FnDecl(
-                  R.PRIV,
-                  R.Fn(
-                    "_clone", [], [R.Formal.selfBorrowed], Some(R.Box(R.DynType(fullTraitPath))),
-                    "",
-                    Some(R.BoxNew(R.self.Sel("clone").Apply0())))),
-                R.FnDecl(
-                  R.PRIV,
-                  R.Fn(
-                    "_fmt_print", [], fmt_print_parameters, Some(fmt_print_result),
-                    "",
-                    Some(R.self.Sel("fmt_print").Apply([R.Identifier("_formatter"), R.Identifier("in_seq")]))))
+                clone_trait(fullTraitPath),
+                print_trait,
+                hasher_trait,
+                eq_trait(fullTraitPath, fullTraitExpr),
+                as_any_trait
               ];
             } else {
               if kind == "datatype" || kind == "newtype" {
@@ -333,9 +338,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               ));
             s := s + [x];
 
-            var upcastTraitToImplement, upcastTraitFn;
             if traitType.GeneralTrait? {
-              upcastTraitToImplement, upcastTraitFn := "UpcastBox", "UpcastStructBoxFn!";
               s := s + [
                 R.ImplDecl(
                   R.ImplFor(
@@ -557,6 +560,25 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             R.Fn(
               "_fmt_print", [], fmt_print_parameters, Some(fmt_print_result), "", None
             )
+          ),
+          R.FnDecl(
+            R.PRIV,
+            R.Fn(
+              "_hash", [], [R.Formal.selfBorrowed], Some(R.Type.U64), "", None
+            )
+          ),
+          R.FnDecl(
+            R.PRIV,
+            R.Fn(
+              "_eq", [], [R.Formal.selfBorrowed, R.Formal("other", R.Borrowed(R.Box(R.DynType(traitFulltype))))],
+              Some(R.Bool), "", None
+            )
+          ),
+          R.FnDecl(
+            R.PRIV,
+            R.Fn(
+              "_as_any", [], [R.Formal.selfBorrowed], Some(R.Borrowed(R.DynType(R.std.MSel("any").MSel("Any").AsType()))), "", None
+            )
           )
         ];
       }
@@ -616,18 +638,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             implBody
           ))];
       if t.traitType.GeneralTrait? {
-        /*impl Clone for Box<dyn Test> {
-            fn clone(&self) -> Box<dyn Test> {
-              Test::_clone(self.as_ref())
-            }
-          }
-          impl DafnyPrint for Box<dyn Test> {
-            fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
-              self._fmt_print(f, in_seq)
-            }
-          }
-          */
         s := s + [
+          /*impl Clone for Box<dyn Test> {
+              fn clone(&self) -> Box<dyn Test> {
+                Test::_clone(self.as_ref())
+              }
+            }*/
           R.ImplDecl(
             R.ImplFor(
               rTypeParamsDecls,
@@ -641,6 +657,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                       "",
                       Some(traitFullExpr.FSel("_clone").Apply1(R.self.Sel("as_ref").Apply0()))
                  ))])),
+          /*
+          impl DafnyPrint for Box<dyn Test> {
+            fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+              self._fmt_print(f, in_seq)
+            }
+          }*/
           R.ImplDecl(
             R.ImplFor(
               rTypeParamsDecls,
@@ -652,6 +674,55 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                       Some(fmt_print_result),
                       "",
                       Some(traitFullExpr.FSel("_fmt_print").Apply([R.self.Sel("as_ref").Apply0(), R.Identifier("_formatter"), R.Identifier("in_seq")]))
+                 ))])),
+          /*
+          impl PartialEq for Box<dyn Test> {
+            fn eq(&self, other: &Self) -> bool {
+              Test::_eq(self.as_ref(), other)
+            }
+          }
+          impl Eq for Box<dyn Test> {}
+          */
+          R.ImplDecl(
+            R.ImplFor(
+              rTypeParamsDecls,
+              R.std.MSel("cmp").MSel("PartialEq").AsType(),
+              R.Box(R.DynType(traitFulltype)),
+              [R.FnDecl(
+                 R.PRIV,
+                 R.Fn("eq", [], [R.Formal.selfBorrowed, R.Formal("other", R.SelfBorrowed)],
+                      Some(R.Bool),
+                      "",
+                      Some(traitFullExpr.FSel("_eq").Apply([R.self.Sel("as_ref").Apply0(), R.Identifier("other")]))
+                 ))])),
+          R.ImplDecl(
+            R.ImplFor(
+              rTypeParamsDecls,
+              R.std.MSel("cmp").MSel("Eq").AsType(),
+              R.Box(R.DynType(traitFulltype)),
+            [])),
+          /*
+          impl Hash
+            for Box<dyn Test> {
+              fn hash<_H: Hasher>(&self, _state: &mut _H) {
+                Test::_hash(self.as_ref()).hash(_state)
+                Hash::hash(&Test::_hash(self.as_ref()), _state)
+              }
+          }
+          */
+          R.ImplDecl(
+            R.ImplFor(
+              rTypeParamsDecls,
+              R.Hash,
+              R.Box(R.DynType(traitFulltype)),
+              [R.FnDecl(
+                 R.PRIV,
+                 R.Fn(
+                  "hash", hash_type_parameters,
+                  hash_parameters,
+                  None,
+                  "",
+                  Some(hash_function.Apply([R.Borrow(traitFullExpr.FSel("_hash").Apply1(R.self.Sel("as_ref").Apply0())), R.Identifier("_state")]))
                  ))]))
         ];
       }
@@ -804,7 +875,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         HashImpl(
           rTypeParamsDeclsWithHash,
           resultingType,
-          R.Identifier("self").Sel("0").Sel("hash").Apply1(R.Identifier("_state"))
+          hash_function.Apply([R.Borrow(R.Identifier("self").Sel("0")), R.Identifier("_state")])
         )];
       if c.range.HasArithmeticOperations() {
         s := s + [
@@ -880,7 +951,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       match t
       case UserDefined(_) => true // ResolvedTypes are assumed to support equality
       case Tuple(ts) => forall t <- ts :: TypeIsEq(t)
-      case Array(t, _) => TypeIsEq(t)
+      case Array(t, _) => true // Reference equality
       case Seq(t) => TypeIsEq(t)
       case Set(t) => TypeIsEq(t)
       case Multiset(t) => TypeIsEq(t)
@@ -1157,7 +1228,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             if formalType.Arrow? then
               hashRhs.Then(R.LiteralInt("0").Sel("hash").Apply1(R.Identifier("_state")))
             else
-              hashRhs.Then(R.std.MSel("hash").MSel("Hash").AsExpr().FSel("hash").Apply([R.Identifier(patternName), R.Identifier("_state")]));
+              hashRhs.Then(hash_function.Apply([R.Identifier(patternName), R.Identifier("_state")]));
 
           ctorMatchInner := ctorMatchInner + patternName + ", ";
 
@@ -1316,7 +1387,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var fullType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
 
         // Implementation of Default trait when c supports equality
-        if cIsEq {
+        if false && cIsEq {
           s := s +
           [R.ImplDecl(
              R.ImplFor(
