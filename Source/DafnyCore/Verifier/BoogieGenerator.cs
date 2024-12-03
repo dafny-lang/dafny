@@ -319,7 +319,7 @@ namespace Microsoft.Dafny {
       }
 
       public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType,
-                             Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor,
+                             Bpl.TypeCtorDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeCtorDecl multiSetTypeCtor,
                              Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
                              Bpl.Function arrayLength, Bpl.Function realFloor,
                              Bpl.Function ORD_isLimit, Bpl.Function ORD_isSucc, Bpl.Function ORD_offset, Bpl.Function ORD_isNat,
@@ -374,9 +374,9 @@ namespace Microsoft.Dafny {
         Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new List<Bpl.Type>());
         this.RefType = refT;
         this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new List<Bpl.Type>());
-        this.SetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, setTypeCtor, new List<Bpl.Type> { });
-        this.MultiSetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, multiSetTypeCtor, new List<Bpl.Type> { });
+        this.SetType = new Bpl.CtorType(Token.NoToken, setTypeCtor, new List<Bpl.Type> { });
         this.ISetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, isetTypeCtor, new List<Bpl.Type> { });
+        this.MultiSetType = new Bpl.CtorType(Token.NoToken, multiSetTypeCtor, new List<Bpl.Type> { });
         this.SeqType = new Bpl.CtorType(Token.NoToken, seqTypeCtor, new List<Bpl.Type> { });
         this.MapType = new Bpl.CtorType(Token.NoToken, mapTypeCtor, new List<Bpl.Type> { });
         this.IMapType = new Bpl.CtorType(Token.NoToken, imapTypeCtor, new List<Bpl.Type> { });
@@ -425,9 +425,9 @@ namespace Microsoft.Dafny {
 
       Bpl.TypeCtorDecl charType = null;
       Bpl.TypeCtorDecl refType = null;
-      Bpl.TypeSynonymDecl setTypeCtor = null;
+      Bpl.TypeCtorDecl setTypeCtor = null;
       Bpl.TypeSynonymDecl isetTypeCtor = null;
-      Bpl.TypeSynonymDecl multiSetTypeCtor = null;
+      Bpl.TypeCtorDecl multiSetTypeCtor = null;
       Bpl.Function arrayLength = null;
       Bpl.Function realFloor = null;
       Bpl.Function ORDINAL_isLimit = null;
@@ -493,6 +493,10 @@ namespace Microsoft.Dafny {
             nameFamilyType = dt;
           } else if (dt.Name == "Box") {
             boxType = dt;
+          } else if (dt.Name == "Set") {
+            setTypeCtor = dt;
+          } else if (dt.Name == "MultiSet") {
+            multiSetTypeCtor = dt;
           } else if (dt.Name == "Map") {
             mapTypeCtor = dt;
           } else if (dt.Name == "IMap") {
@@ -500,11 +504,7 @@ namespace Microsoft.Dafny {
           }
         } else if (d is Bpl.TypeSynonymDecl) {
           Bpl.TypeSynonymDecl dt = (Bpl.TypeSynonymDecl)d;
-          if (dt.Name == "Set") {
-            setTypeCtor = dt;
-          } else if (dt.Name == "MultiSet") {
-            multiSetTypeCtor = dt;
-          } else if (dt.Name == "ISet") {
+          if (dt.Name == "ISet") {
             isetTypeCtor = dt;
           } else if (dt.Name == "Bv0") {
             bv0TypeDecl = dt;
