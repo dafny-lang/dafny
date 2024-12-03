@@ -217,7 +217,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool IncludeExternallyImportedMembers { get => false; }
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
-    protected virtual bool ClassMethodsAllowedToCallTraitMethods => true;
+    protected virtual bool InstanceMethodsAllowedToCallTraitMethods => true;
     protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl cls, ConcreteSyntaxTree wr) {
       return CreateClass(moduleName, name, false, null, cls.TypeArgs,
         cls, (cls as TopLevelDeclWithMembers)?.ParentTypeInformation.UniqueParentTraits(), null, wr);
@@ -2160,6 +2160,8 @@ namespace Microsoft.Dafny.Compilers {
 
       if (c is not TraitDecl || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
+        var canRedeclareMemberDefinedInTrait = c is not ClassLikeDecl and not DatatypeDecl and not NewtypeDecl ||
+                                                InstanceMethodsAllowedToCallTraitMethods;
         foreach (var member in inheritedMembers.Select(memberx => (memberx as Function)?.ByMethodDecl ?? memberx)) {
           enclosingDeclaration = member;
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
@@ -2209,13 +2211,15 @@ namespace Microsoft.Dafny.Compilers {
               EmitSetterParameter(sw);
             }
           } else if (member is Function fn) {
-            if (!IsExternallyImported(fn) && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
+            if (!IsExternallyImported(fn) && canRedeclareMemberDefinedInTrait) {
               Contract.Assert(fn.Body != null);
               var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
+              w = EmitReturnExpr(w);
               EmitCallToInheritedFunction(fn, null, w);
             }
           } else if (member is Method method) {
-            if (!IsExternallyImported(method) && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
+            if (!IsExternallyImported(method)
+                && canRedeclareMemberDefinedInTrait) {
               Contract.Assert(method.Body != null);
               var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
               var wBefore = w.Fork();
@@ -2341,6 +2345,7 @@ namespace Microsoft.Dafny.Compilers {
             CompileFunction(f, classWriter, false);
             var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Ins, f.ResultType, f.tok,
               false, true, f, true, false);
+            w = EmitReturnExpr(w);
             EmitCallToInheritedFunction(f, c, w);
           } else {
             CompileFunction(f, classWriter, false);
@@ -2459,7 +2464,7 @@ namespace Microsoft.Dafny.Compilers {
     /// "heir" is the type declaration that inherits the function. Or, it can be "null" to indicate that the function is declared in
     /// the type itself, in which case the "call to inherited" is actually a call from the dynamically dispatched function to its implementation.
     /// </summary>
-    protected void EmitCallToInheritedFunction(Function f, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr) {
+    protected virtual void EmitCallToInheritedFunction(Function f, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr) {
       Contract.Requires(f != null);
       Contract.Requires(!f.IsStatic);
       Contract.Requires(f.EnclosingClass is TraitDecl);
@@ -2478,14 +2483,14 @@ namespace Microsoft.Dafny.Compilers {
 
       // In a target language that requires type coercions, the function declared in "thisContext" has
       // the same signature as in "f.Original.EnclosingClass".
-      wr = EmitReturnExpr(wr);
       wr = EmitCoercionIfNecessary(f.ResultType, f.Original.ResultType, f.tok, wr);
 
       var companionName = CompanionMemberIdName(f);
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), StaticClassAccessor);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
-      EmitNameAndActualTypeArgs(companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)),
+      EmitNameAndActualTypeArgs(
+        companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)),
       f.tok, new ThisExpr(thisContext), true, wr);
       wr.Write("(");
       var sep = "";
@@ -2501,7 +2506,7 @@ namespace Microsoft.Dafny.Compilers {
         if (!p.IsGhost) {
           wr.Write(sep);
           w = EmitCoercionIfNecessary(f.Original.Ins[j].Type, f.Ins[j].Type, f.tok, wr);
-          w.Write(IdName(p));
+          EmitIdentifier(IdName(p), w);
           sep = ", ";
           l++;
         }

@@ -52,7 +52,9 @@ namespace Microsoft.Dafny {
 
       await symbolResolver.ResolveSymbols(compilation, program, cancellationToken);
 
-      compilation.Options.ProcessSolverOptions(compilation.Reporter, compilation.Options.DafnyProject.StartingToken);
+      if (compilation.ShouldProcessSolverOptions) {
+        compilation.Options.ProcessSolverOptions(compilation.Reporter, compilation.Options.DafnyProject.StartingToken);
+      }
 
       List<ICanVerify>? verifiables;
       if (compilation.HasErrors) {

@@ -112,13 +112,13 @@ module RAST
 
     function VisitImplMapping(acc: T, impl: Impl): T {
       match impl {
-        case ImplFor(typeParams, tpe, forType, where, body) =>
+        case ImplFor(typeParams, tpe, forType, body) =>
           var acc := VisitTypeParams(acc, typeParams);
           var acc := VisitType(acc, tpe);
           var acc := VisitType(acc, forType);
           VisitBody(acc, body)
         // TODO: Add body
-        case Impl(typeParams, tpe, where, body) =>
+        case Impl(typeParams, tpe, body) =>
           var acc := VisitType(acc, tpe);
           VisitBody(acc, body)
       }
@@ -243,15 +243,14 @@ module RAST
 
     function ReplaceImplDecl(impl: Impl): Impl {
       match impl {
-        case ImplFor(typeParams, tpe, forType, where, body) =>
+        case ImplFor(typeParams, tpe, forType, body) =>
           ImplFor(
             ReplaceTypeParams(typeParams),
             ReplaceType(tpe),
             ReplaceType(forType),
-            where,
             ReplaceBody(body))
-        case Impl(typeParams, tpe, where, body) =>
-          Impl(ReplaceTypeParams(typeParams), ReplaceType(tpe), where, ReplaceBody(body))
+        case Impl(typeParams, tpe, body) =>
+          Impl(ReplaceTypeParams(typeParams), ReplaceType(tpe), ReplaceBody(body))
       }
     }
 
@@ -595,6 +594,8 @@ module RAST
 
   const PtrPath: Path := dafny_runtime.MSel("Ptr")
 
+  const BoxPath := std.MSel("boxed").MSel("Box")
+
   const Ptr := PtrPath.AsExpr()
 
   function PtrType(underlying: Type): Type {
@@ -625,10 +626,10 @@ module RAST
   }
 
   function Box(content: Type): Type {
-    TypeApp(TIdentifier("Box"), [content])
+    TypeApp(BoxPath.AsType(), [content])
   }
   function BoxNew(content: Expr): Expr {
-    Identifier("Box").FSel("new").Apply([content])
+    BoxPath.AsExpr().FSel("new").Apply([content])
   }
 
   datatype Path =
@@ -954,6 +955,28 @@ module RAST
       else
         false
     }
+    predicate IsBox() {
+      match this {
+        case TypeApp(TypeFromPath(o), elems1) =>
+          o == BoxPath && |elems1| == 1
+        case _ => false
+      }
+    }
+    // Every type that needs to be .as_ref() to become purely borrowed
+    predicate NeedsAsRefForBorrow() {
+      if Borrowed? then
+        underlying.IsBox() || underlying.IsRc()
+      else
+        IsBox() || IsRc()
+    }
+    function BoxUnderlying(): Type
+      requires IsBox()
+    {
+      match this {
+        case TypeApp(TypeFromPath(o), elems1) =>
+          elems1[0]
+      }
+    }
     predicate IsObject() {
       match this {
         case TypeApp(TypeFromPath(o), elems1) =>
@@ -1095,13 +1118,12 @@ module RAST
   }
 
   datatype Impl =
-    | ImplFor(typeParams: seq<TypeParamDecl>, tpe: Type, forType: Type, where: string, body: seq<ImplMember>)
-    | Impl(typeParams: seq<TypeParamDecl>, tpe: Type, where: string, body: seq<ImplMember>)
+    | ImplFor(typeParams: seq<TypeParamDecl>, tpe: Type, forType: Type, body: seq<ImplMember>)
+    | Impl(typeParams: seq<TypeParamDecl>, tpe: Type, body: seq<ImplMember>)
   {
     function ToString(ind: string): string {
       "impl" + TypeParamDecl.ToStringMultiple(typeParams, ind) + " " + tpe.ToString(ind)
       + (if ImplFor? then "\n" + ind + IND + "for " + forType.ToString(ind + IND) else "")
-      + (if where != "" then "\n" + ind + IND + where else "")
       + " {" +
       SeqToString(body, (member: ImplMember) => "\n" + ind + IND + member.ToString(ind + IND), "")
       + (if |body| == 0 then "" else "\n" + ind) + "}"
@@ -1802,6 +1824,10 @@ module RAST
 
     function Clone(): Expr {
       Select(this, "clone").Apply0()
+    }
+
+    predicate IsBorrow() {
+      UnaryOp? && op1 == "&"
     }
   }
 

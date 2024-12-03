@@ -10,15 +10,15 @@ public class RangeToken : IOrigin {
   public bool IsInherited(ModuleDefinition d) {
     return false;
   }
-  
+
   public override bool Equals(object obj) {
     if (obj is RangeToken other) {
       return StartToken.Equals(other.StartToken) && EndToken.Equals(other.EndToken);
     }
-  
+
     return false;
   }
-  
+
   public override int GetHashCode() {
     return HashCode.Combine(StartToken.GetHashCode(), EndToken.GetHashCode());
   }

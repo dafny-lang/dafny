@@ -44,7 +44,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     }
   }
 
-  public HideRevealStmt(RangeToken rangeToken, HideRevealCmd.Modes mode)
+  public HideRevealStmt(IOrigin rangeToken, HideRevealCmd.Modes mode)
     : base(rangeToken) {
     Wildcard = true;
     this.Exprs = null;
