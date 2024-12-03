@@ -130,7 +130,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
   /// If the first token on the line of the given token satisfies the given predicate.
   /// Used to detect commented cases or datatype constructors
-  public static bool FirstTokenOnLineIs(IToken token, Func<IToken, bool> predicate) {
+  public static bool FirstTokenOnLineIs(Token token, Func<Token, bool> predicate) {
     if (token.Prev == null || token.Prev.line != token.line) {
       return predicate(token);
     }
@@ -929,7 +929,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   public bool SetIndentLabelTokens(IToken token, int indent) {
     if (token.val == "label") {
       SetOpeningIndentedRegion(token, indent);
-    } else if (token.val == ":" && token.Prev.Prev.val == "label") {
+    } else if (token.val == ":" && ((IToken)token.Prev).Prev.val == "label") {
       SetClosingIndentedRegion(token, indent);
     } else if (token.Prev.val != "label") {
       return false;

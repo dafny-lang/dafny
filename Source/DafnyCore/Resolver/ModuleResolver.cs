@@ -818,7 +818,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(moduleSignatures != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var module = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IToken>(), ModuleKindEnum.Abstract, true, null, null, null);
+      var module = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<Token>(), ModuleKindEnum.Abstract, true, null, null, null);
       module.Height = height;
       foreach (var kv in origin.TopLevels) {
         if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
@@ -881,7 +881,7 @@ namespace Microsoft.Dafny {
 
 
     public bool ResolveExport(ModuleDecl alias, ModuleDefinition parent, ModuleQualifiedId qid,
-      List<IToken> exports, out ModuleSignature p, ErrorReporter reporter) {
+      List<Token> exports, out ModuleSignature p, ErrorReporter reporter) {
       Contract.Requires(qid != null);
       Contract.Requires(qid.Path.Count > 0);
       Contract.Requires(exports != null);

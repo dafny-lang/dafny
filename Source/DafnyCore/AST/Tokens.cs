@@ -42,8 +42,8 @@ public interface IToken : Microsoft.Boogie.IToken, IComparable<IToken> {
   /// </summary>
   string TrailingTrivia { get; set; }
   string LeadingTrivia { get; set; }
-  IToken Next { get; set; } // The next token
-  IToken Prev { get; set; } // The previous token
+  Token Next { get; set; } // The next token
+  Token Prev { get; set; } // The previous token
 
   public IToken WithVal(string val);  // create a new token by setting the given val.
 }
@@ -90,9 +90,9 @@ public class Token : IToken {
 
   public string TrailingTrivia { get; set; } = "";
 
-  public IToken Next { get; set; } // The next token
+  public Token Next { get; set; } // The next token
 
-  public IToken Prev { get; set; } // The previous token
+  public Token Prev { get; set; } // The previous token
 
   public bool IsValid => this.ActualFilename != null;
 
@@ -187,11 +187,11 @@ public abstract class TokenWrapper : IToken {
     get { return WrappedToken.TrailingTrivia; }
     set { throw new NotSupportedException(); }
   }
-  public virtual IToken Next {
+  public virtual Token Next {
     get { return WrappedToken.Next; }
     set { throw new NotSupportedException(); }
   }
-  public virtual IToken Prev {
+  public virtual Token Prev {
     get { return WrappedToken.Prev; }
     set { throw new NotSupportedException(); }
   }

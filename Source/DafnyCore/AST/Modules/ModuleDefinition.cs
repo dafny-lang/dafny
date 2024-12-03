@@ -68,7 +68,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
       }
     }
   }
-  public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
+  public readonly List<Token> PrefixIds; // The qualified module name, except the last segment when a
                                           // nested module declaration is outside its enclosing module
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public Attributes Attributes { get; set; }
@@ -128,7 +128,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   public ModuleDefinition(Cloner cloner, ModuleDefinition original) : base(cloner, original) {
     NameNode = original.NameNode;
-    PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
+    PrefixIds = original.PrefixIds.ToList();
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     ModuleKind = original.ModuleKind;
@@ -158,7 +158,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
+  public ModuleDefinition(RangeToken tok, Name name, List<Token> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
     Implements implements, ModuleDefinition parent, Attributes attributes) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -634,7 +634,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
       var prefixNameModule = prefixNamedModules.First();
       var firstPartToken = prefixNameModule.Parts[0];
-      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), ModuleKindEnum.Concrete,
+      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<Token>(), ModuleKindEnum.Concrete,
         false, null, this, null);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 

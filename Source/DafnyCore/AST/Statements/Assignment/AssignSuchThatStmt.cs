@@ -20,7 +20,7 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
       var result = Expr.StartToken.Prev;
       if (char.IsLetter(result.val[0])) {
         // Jump to operator if we're on an assume keyword.
-        result = result.Prev;
+        result = ((IToken)result).Prev;
       }
       return result;
     }
