@@ -58,11 +58,11 @@ public abstract class OriginWrapper : IOrigin {
     get { return WrappedToken.TrailingTrivia; }
     set { throw new NotSupportedException(); }
   }
-  public virtual IOrigin Next {
+  public virtual Token Next {
     get { return WrappedToken.Next; }
     set { throw new NotSupportedException(); }
   }
-  public virtual IOrigin Prev {
+  public virtual Token Prev {
     get { return WrappedToken.Prev; }
     set { throw new NotSupportedException(); }
   }

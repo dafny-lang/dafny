@@ -1908,7 +1908,7 @@ internal class Utils {
       Token.NoToken,
       indexRanges,
       Enumerable.Repeat(BinaryExpr.Opcode.And, dims.Count - 1).ToList(),
-      Enumerable.Repeat(Token.NoToken as IOrigin, dims.Count - 1).ToList(),
+      Enumerable.Repeat((IOrigin)Token.NoToken, dims.Count - 1).ToList(),
       Enumerable.Repeat(null as Expression, dims.Count - 1).ToList()
     );
   }

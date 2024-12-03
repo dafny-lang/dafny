@@ -40,8 +40,8 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
   /// </summary>
   string TrailingTrivia { get; set; }
   string LeadingTrivia { get; set; }
-  IOrigin Next { get; set; } // The next token
-  IOrigin Prev { get; set; } // The previous token
+  Token Next { get; set; } // The next token
+  Token Prev { get; set; } // The previous token
 
   public IOrigin WithVal(string val);  // create a new token by setting the given val.
 }

@@ -47,9 +47,9 @@ public class Token : IOrigin {
 
   public string TrailingTrivia { get; set; } = "";
 
-  public IOrigin Next { get; set; } // The next token
+  public Token Next { get; set; } // The next token
 
-  public IOrigin Prev { get; set; } // The previous token
+  public Token Prev { get; set; } // The previous token
 
   public bool IsValid => this.ActualFilename != null;
 

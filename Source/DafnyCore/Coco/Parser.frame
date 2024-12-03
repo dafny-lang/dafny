@@ -47,8 +47,8 @@ public partial class Parser {
   public Errors  errors;
   CancellationToken cancellationToken;
 
-  public IOrigin t;    // last recognized token
-  public IOrigin la;   // lookahead token
+  public Token t;    // last recognized token
+  public Token la;   // lookahead token
   int errDist = minErrDist;
 
 -->declarations
