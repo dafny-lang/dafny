@@ -87,7 +87,7 @@ public class SystemModuleManager {
   }
 
   public SystemModuleManager(DafnyOptions options) {
-    SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<Token>(),
+    SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IOrigin>(),
       ModuleKindEnum.Concrete, false, null, null, null);
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else

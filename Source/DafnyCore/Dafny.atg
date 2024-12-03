@@ -321,7 +321,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      Attributes attrs = null;
      Token/*!*/ iderr;
      Token tokenWithTrailingDocString;
-     var prefixIds = new List<Token>();
+     var prefixIds = new List<IOrigin>();
      List<Name> idRefined = null;
      ModuleDefinition module;
      ImplementationKind implementationKind = ImplementationKind.Refinement;
@@ -332,7 +332,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    { Attribute<ref dmod.Attributes> }            (. ApplyOptionsFromAttributes(dmod.Attributes); .)
    ModuleQualifiedName<out var names>
    (. var name = names[^1];
-      prefixIds = names.GetRange(0,names.Count-1).Select(n => n.StartToken).ToList();
+      prefixIds = names.GetRange(0,names.Count-1).Select(n => (IOrigin)n.StartToken).ToList();
    .)
 
    [ "refines" ModuleQualifiedName<out idRefined> (. implementationKind = ImplementationKind.Refinement; .)

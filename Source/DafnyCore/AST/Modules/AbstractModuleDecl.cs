@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -16,7 +17,7 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
 
   public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
-    Exports = original.Exports;
+    Exports = original.Exports.Select(cloner.Tok).ToList();
     QId = new ModuleQualifiedId(cloner, original.QId);
   }
 

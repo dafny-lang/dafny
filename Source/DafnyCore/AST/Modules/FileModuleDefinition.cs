@@ -13,7 +13,7 @@ public class FileModuleDefinition : ModuleDefinition {
   public List<Include> Includes { get; } = new();
 
   public FileModuleDefinition(IOrigin token) :
-    base(token, new Name("_module"), new List<Token>(),
+    base(token, new Name("_module"), new List<IOrigin>(),
       ModuleKindEnum.Concrete, false, null, null, null) {
     {
     }

@@ -819,7 +819,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(moduleSignatures != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var module = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<Token>(), ModuleKindEnum.Abstract, true, null, null, null);
+      var module = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IOrigin>(), ModuleKindEnum.Abstract, true, null, null, null);
       module.Height = height;
       foreach (var kv in origin.TopLevels) {
         if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
