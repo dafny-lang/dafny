@@ -11,7 +11,7 @@ using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
-public class GoBackend : ExecutableBackend {
+public class GoLangBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".go" };
 
@@ -39,7 +39,7 @@ public class GoBackend : ExecutableBackend {
   };
   public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { GoModuleNameCliOption };
 
-  static GoBackend() {
+  static GoLangBackend() {
     OptionRegistry.RegisterOption(GoModuleNameCliOption, OptionScope.Translation);
   }
 
@@ -49,7 +49,7 @@ public class GoBackend : ExecutableBackend {
     if (GoModuleMode) {
       GoModuleName = goModuleName;
     }
-    return new GoCodeGenerator(Options, Reporter);
+    return new GoLangCodeGenerator(Options, Reporter);
   }
 
   public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
@@ -237,6 +237,6 @@ public class GoBackend : ExecutableBackend {
 
   private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*$");
 
-  public GoBackend(DafnyOptions options) : base(options) {
+  public GoLangBackend(DafnyOptions options) : base(options) {
   }
 }

@@ -34,7 +34,8 @@ namespace Microsoft.Dafny.Compilers {
       return stmts.FindIndex((stmt) => IsExtractStatement(stmt, expectedLeftName));
     }
 
-    protected void TrStmt(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
+    protected void TrStmt(StatementGenerationContext context, Statement stmt, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
 
@@ -67,7 +68,7 @@ namespace Microsoft.Dafny.Compilers {
             var s = produceStmt;
             var isTailRecursiveResult = false;
             if (s.HiddenUpdate != null) {
-              TrStmt(s.HiddenUpdate, wr);
+              TrStmt(context, s.HiddenUpdate, wr);
               var ss = s.HiddenUpdate.ResolvedStatements;
               if (ss.Count == 1 && ss[0] is SingleAssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
                 isTailRecursiveResult = true;
@@ -85,7 +86,7 @@ namespace Microsoft.Dafny.Compilers {
             var s = updateStmt;
             var resolved = s.ResolvedStatements;
             if (resolved.Count == 1) {
-              TrStmt(resolved[0], wr);
+              TrStmt(context, resolved[0], wr);
             } else {
               var assignStmts = resolved.Cast<SingleAssignStmt>().Where(assignStmt => !assignStmt.IsGhost).ToList();
               var lhss = new List<Expression>();
@@ -175,7 +176,7 @@ namespace Microsoft.Dafny.Compilers {
                   new List<LocalVariable>() { locals[0] },
                   (AssignStatement)stmts[innerExtractIndex]);
             }
-            TrStmtList(stmts, wr);
+            TrStmtList(context, stmts, wr);
 
             break;
           }
@@ -253,7 +254,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case BlockStmt blockStmt: {
             var w = EmitBlock(wr);
-            TrStmtList(blockStmt.Body, w);
+            TrStmtList(context, blockStmt.Body, w);
             break;
           }
         case IfStmt ifStmt: {
@@ -271,13 +272,13 @@ namespace Microsoft.Dafny.Compilers {
                 Coverage.Instrument(s.Tok, "implicit else branch", wr);
                 thenWriter = EmitIf(out guardWriter, false, thenWriter);
                 EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
-                TrStmtList(new List<Statement>(), thenWriter);
+                TrStmtList(context, new List<Statement>(), thenWriter);
               } else {
                 // let's compile the "then" branch
                 wr = EmitIf(out guardWriter, false, wr);
                 EmitExpr(Expression.CreateBoolLiteral(s.Thn.tok, true), false, guardWriter, wStmts);
                 Coverage.Instrument(s.Thn.Tok, "then branch", wr);
-                TrStmtList(s.Thn.Body, wr);
+                TrStmtList(context, s.Thn.Body, wr);
                 Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
               }
             } else {
@@ -289,7 +290,7 @@ namespace Microsoft.Dafny.Compilers {
                 IntroduceAndAssignBoundVars((ExistsExpr)s.Guard, thenWriter);
               }
               Coverage.Instrument(s.Thn.Tok, "then branch", thenWriter);
-              TrStmtList(s.Thn.Body, thenWriter);
+              TrStmtList(context, s.Thn.Body, thenWriter);
 
               if (coverageForElse) {
                 wr = EmitBlock(wr);
@@ -300,7 +301,7 @@ namespace Microsoft.Dafny.Compilers {
                 }
               }
               if (s.Els != null) {
-                TrStmtNonempty(s.Els, wr, wStmts);
+                TrStmtNonempty(context, s.Els, wr, wStmts);
               }
             }
 
@@ -315,7 +316,7 @@ namespace Microsoft.Dafny.Compilers {
                 IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, thn);
               }
               Coverage.Instrument(alternative.Tok, "if-case branch", thn);
-              TrStmtList(alternative.Body, thn);
+              TrStmtList(context, alternative.Body, thn);
             }
             var wElse = EmitBlock(wr);
             EmitAbsurd("unreachable alternative", wElse);
@@ -335,7 +336,7 @@ namespace Microsoft.Dafny.Compilers {
               EmitBreak(null, wBody);
               Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
             } else {
-              var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, s.Labels, wr);
+              var guardWriter = EmitWhile(context, s.Body.Tok, s.Body.Body, s.Labels, wr);
               EmitExpr(s.Guard, false, guardWriter, wStmts);
             }
 
@@ -350,7 +351,7 @@ namespace Microsoft.Dafny.Compilers {
                 var thn = EmitIf(out var guardWriter, true, w);
                 EmitExpr(alternative.Guard, false, guardWriter, wStmts);
                 Coverage.Instrument(alternative.Tok, "while-case branch", thn);
-                TrStmtList(alternative.Body, thn);
+                TrStmtList(context, alternative.Body, thn);
               }
               var wElse = EmitBlock(w);
               {
@@ -372,7 +373,7 @@ namespace Microsoft.Dafny.Compilers {
               wStmts = wr.Fork();
               EmitExpr(s.End, false, DeclareLocalVar(endVarName, s.End.Type, s.End.tok, wr), wStmts);
             }
-            var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
+            var startExprWriter = EmitForStmt(context, s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
             EmitExpr(s.Start, false, startExprWriter, wStmts);
             break;
           }
@@ -383,7 +384,7 @@ namespace Microsoft.Dafny.Compilers {
               return;
             } else if (s.BoundVars.Count == 0) {
               // the bound variables just spell out a single point, so the forall statement is equivalent to one execution of the body
-              TrStmt(s.Body, wr);
+              TrStmt(context, s.Body, wr);
               return;
             }
             var s0 = (SingleAssignStmt)s.S0;
@@ -397,7 +398,7 @@ namespace Microsoft.Dafny.Compilers {
             if (CanSequentializeForall(s.BoundVars, s.Bounds, s.Range, s0.Lhs, rhs)) {
               // Just put the statement inside the loops
               var wLoop = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
-              TrStmt(s0, wLoop);
+              TrStmt(context, s0, wLoop);
             } else {
               // Compile:
               //   forall (w,x,y,z | Range(w,x,y,z)) {
@@ -494,10 +495,10 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case NestedMatchStmt nestedMatchStmt:
-          EmitNestedMatchStmt(nestedMatchStmt, wr);
+          EmitNestedMatchStmt(context, nestedMatchStmt, wr);
           break;
         case MatchStmt matchStmt:
-          EmitMatchStmt(wr, matchStmt);
+          EmitMatchStmt(context, wr, matchStmt);
           break;
         case VarDeclStmt declStmt: {
             var s = declStmt;
@@ -532,7 +533,7 @@ namespace Microsoft.Dafny.Compilers {
             enclosingVarDecl = s;
             innerExtractIndex = indexExtract;
             if (s.Assign != null) {
-              TrStmt(s.Assign, wr);
+              TrStmt(context, s.Assign, wr);
             }
             enclosingVarDecl = null;
             innerExtractIndex = -1;
@@ -550,20 +551,20 @@ namespace Microsoft.Dafny.Compilers {
         case ModifyStmt modifyStmt: {
             var s = modifyStmt;
             if (s.Body != null) {
-              TrStmt(s.Body, wr);
+              TrStmt(context, s.Body, wr);
             }
 
             break;
           }
         case TryRecoverStatement h:
-          EmitHaltRecoveryStmt(h.TryBody, IdName(h.HaltMessageVar), h.RecoverBody, wr);
+          EmitHaltRecoveryStmt(h.TryBody, IdName(h.HaltMessageVar), h.RecoverBody, wr, context);
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
 
-    private void EmitMatchStmt(ConcreteSyntaxTree wr, MatchStmt s) {
+    private void EmitMatchStmt(StatementGenerationContext context, ConcreteSyntaxTree wr, MatchStmt s) {
       // Type source = e;
       // if (source.is_Ctor0) {
       //   FormalType f0 = ((Dt_Ctor0)source._D).a0;
@@ -582,15 +583,16 @@ namespace Microsoft.Dafny.Compilers {
         var sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
         foreach (MatchCaseStmt mc in s.Cases) {
           var w = MatchCasePrelude(source, sourceType, cce.NonNull(mc.Ctor), mc.Arguments, i, s.Cases.Count, wr);
-          TrStmtList(mc.Body, w);
+          TrStmtList(context, mc.Body, w);
           i++;
         }
       }
     }
 
-    protected virtual void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
+    protected virtual void EmitNestedMatchStmt(StatementGenerationContext context, NestedMatchStmt match,
+      ConcreteSyntaxTree writer) {
       EmitNestedMatchGeneric(match, true, (caseIndex, caseBody) => {
-        TrStmtList(match.Cases[caseIndex].Body, caseBody);
+        TrStmtList(context, match.Cases[caseIndex].Body, caseBody);
       }, false, writer);
     }
 

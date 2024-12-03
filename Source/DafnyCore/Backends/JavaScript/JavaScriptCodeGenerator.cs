@@ -1242,7 +1242,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine(");");
     }
 
-    protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+    protected override ConcreteSyntaxTree EmitForStmt(StatementGenerationContext context, IToken tok,
+      IVariable loopIndex, bool goingUp, string endVarName, /*?*/
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       var nativeType = AsNativeType(loopIndex.Type);
@@ -1281,7 +1282,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       bodyWr = EmitContinueLabel(labels, bodyWr);
-      TrStmtList(body, bodyWr);
+      TrStmtList(context, body, bodyWr);
 
       return startWr;
     }
@@ -2587,9 +2588,10 @@ namespace Microsoft.Dafny.Compilers {
       TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody, wStmts);
     }
 
-    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody,
+      ConcreteSyntaxTree wr, StatementGenerationContext context) {
       var tryBlock = wr.NewBlock("try");
-      TrStmt(body, tryBlock);
+      TrStmt(context, body, tryBlock);
       var catchBlock = wr.NewBlock("catch (e)");
       var ifBlock = catchBlock.NewBlock("if (e instanceof _dafny.HaltException)");
       ifBlock.Write($"let {haltMessageVarName} = ");
@@ -2600,7 +2602,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       ifBlock.WriteLine(";");
 
-      TrStmt(recoveryBody, ifBlock);
+      TrStmt(context, recoveryBody, ifBlock);
       var elseBlock = catchBlock.NewBlock("else");
       elseBlock.WriteLine("throw e");
     }

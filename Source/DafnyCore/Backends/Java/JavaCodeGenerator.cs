@@ -3858,7 +3858,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewNamedBlock($"for (java.math.BigInteger {indexVar} = {start}; {indexVar}.compareTo({bound}) < 0; {indexVar} = {indexVar}.add(java.math.BigInteger.ONE))");
     }
 
-    protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+    protected override ConcreteSyntaxTree EmitForStmt(StatementGenerationContext context, IToken tok,
+      IVariable loopIndex, bool goingUp, string endVarName, /*?*/
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       var nativeType = AsNativeType(loopIndex.Type);
@@ -3901,7 +3902,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       bodyWr = EmitContinueLabel(labels, bodyWr);
-      TrStmtList(body, bodyWr);
+      TrStmtList(context, body, bodyWr);
 
       return startWr;
     }
@@ -4386,12 +4387,13 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(iter.tok, Feature.Iterators);
     }
 
-    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody,
+      ConcreteSyntaxTree wr, StatementGenerationContext context) {
       var tryBlock = wr.NewBlock("try");
-      TrStmt(body, tryBlock);
+      TrStmt(context, body, tryBlock);
       var catchBlock = wr.NewBlock("catch (dafny.DafnyHaltException e)");
       catchBlock.WriteLine($"dafny.DafnySequence<Character> {haltMessageVarName} = dafny.DafnySequence.asString(e.getMessage());");
-      TrStmt(recoveryBody, catchBlock);
+      TrStmt(context, recoveryBody, catchBlock);
     }
 
     protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output,
@@ -4412,11 +4414,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
+    protected override void EmitNestedMatchStmt(StatementGenerationContext context, NestedMatchStmt match,
+      ConcreteSyntaxTree writer) {
       if (match.Cases.Count == 0) {
-        base.EmitNestedMatchStmt(match, writer);
+        base.EmitNestedMatchStmt(context, match, writer);
       } else {
-        TrStmt(match.Flattened, writer);
+        TrStmt(context, match.Flattened, writer);
       }
     }
   }

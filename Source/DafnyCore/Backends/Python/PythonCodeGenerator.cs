@@ -1037,7 +1037,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlockPy("if True:");
     }
 
-    protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
+    protected override ConcreteSyntaxTree EmitForStmt(StatementGenerationContext context, IToken tok,
+      IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
       string iterator;
       var lowWr = new ConcreteSyntaxTree();
@@ -1052,7 +1053,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Format($"for {IdName(loopIndex)} in {iterator}({lowWr}{argumentRemainder})");
       var bodyWr = wr.NewBlockPy($":");
       bodyWr = EmitContinueLabel(labels, bodyWr);
-      TrStmtList(body, bodyWr);
+      TrStmtList(context, body, bodyWr);
 
       return lowWr;
     }
@@ -1779,11 +1780,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer) {
+    protected override void TrStmtList(StatementGenerationContext context, List<Statement> stmts,
+      ConcreteSyntaxTree writer) {
       Contract.Requires(cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       var listWriter = new ConcreteSyntaxTree();
-      base.TrStmtList(stmts, listWriter);
+      base.TrStmtList(context, stmts, listWriter);
       if (listWriter.Descendants.OfType<LineSegment>().Any()) {
         writer.Append(listWriter);
       } else {
@@ -1975,9 +1977,10 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("]");
     }
 
-    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody,
+      ConcreteSyntaxTree wr, StatementGenerationContext context) {
       var tryBlock = wr.NewBlockPy("try:");
-      TrStmt(body, tryBlock);
+      TrStmt(context, body, tryBlock);
       var exceptBlock = wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:");
       exceptBlock.Write($"{IdProtect(haltMessageVarName)} = ");
       if (UnicodeCharEnabled) {
@@ -1986,7 +1989,7 @@ namespace Microsoft.Dafny.Compilers {
         exceptBlock.Write("e.message");
       }
       exceptBlock.WriteLine();
-      TrStmt(recoveryBody, exceptBlock);
+      TrStmt(context, recoveryBody, exceptBlock);
     }
   }
 }
