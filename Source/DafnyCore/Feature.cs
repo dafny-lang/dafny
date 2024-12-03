@@ -195,15 +195,15 @@ public class UnsupportedFeatureException : Exception {
   public const string MessagePrefix =
     "Feature not supported for this compilation target: ";
 
-  public readonly IToken Token;
+  public readonly IOrigin Token;
   public readonly Feature Feature;
 
-  public UnsupportedFeatureException(IToken token, Feature feature)
+  public UnsupportedFeatureException(IOrigin token, Feature feature)
     : this(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description) {
 
   }
 
-  public UnsupportedFeatureException(IToken token, Feature feature, string message) : base(message) {
+  public UnsupportedFeatureException(IOrigin token, Feature feature, string message) : base(message) {
     Token = token;
     Feature = feature;
   }
@@ -215,7 +215,7 @@ public class RecoverableUnsupportedFeatureException : UnsupportedFeatureExceptio
 
   public static readonly string MessageSuffix = ". To continue despite this issue, you can compile with the option --" +
                                        CommonOptionBag.EmitUncompilableCode.Name;
-  public RecoverableUnsupportedFeatureException(IToken token, Feature feature)
+  public RecoverableUnsupportedFeatureException(IOrigin token, Feature feature)
     : base(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description + MessageSuffix) {
   }
 }

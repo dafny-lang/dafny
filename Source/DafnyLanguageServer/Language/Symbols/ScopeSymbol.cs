@@ -5,8 +5,8 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ScopeSymbol : Symbol, ILocalizableSymbol {
     public INode Node { get; }
-    public readonly IToken BodyStartToken;
-    public readonly IToken BodyEndToken;
+    public readonly IOrigin BodyStartToken;
+    public readonly IOrigin BodyEndToken;
     public List<ILegacySymbol> Symbols { get; } = new();
     public override IEnumerable<ILegacySymbol> Children => Symbols;
 

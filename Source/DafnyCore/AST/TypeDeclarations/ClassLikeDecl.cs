@@ -24,10 +24,10 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public ClassLikeDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
+  public ClassLikeDecl(RangeToken rangeOrigin, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, module, typeArgs, members, attributes, isRefining, traits) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -35,7 +35,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
-    IToken classToken = null;
+    IOrigin classToken = null;
     var parentTraitIndent = indentBefore + formatter.SpaceTab;
     var commaIndent = indentBefore;
     var extraIndent = 0;
@@ -78,7 +78,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public virtual string GetTriviaContainingDocstring() {
-    IToken candidate = null;
+    IOrigin candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
         candidate = token.Prev;
