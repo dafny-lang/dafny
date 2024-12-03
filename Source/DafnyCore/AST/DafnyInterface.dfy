@@ -1,6 +1,6 @@
 include "System.dfy"
 
-// Interface with existing Dafny code (IToken)
+// Interface with existing Dafny code (IOrigin)
 @Compile(false)
 @Options("-functionSyntax:4")
 module {:extern "Microsoft.Dafny"} MicrosoftDafny {

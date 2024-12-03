@@ -145,7 +145,7 @@ namespace Microsoft.Dafny {
 
     private bool TrAssertCondition(PredicateStmt stmt,
       ExpressionTranslator etran, BoogieStmtListBuilder proofBuilder) {
-      IToken enclosingToken = null;
+      IOrigin enclosingToken = null;
       if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
         enclosingToken = stmt.Tok;
       }
@@ -153,14 +153,14 @@ namespace Microsoft.Dafny {
       var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
       var splits = TrSplitExpr(proofBuilder.Context, stmt.Expr, etran, true, out var splitHappened);
       if (!splitHappened) {
-        var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
+        var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedOrigin(enclosingToken, GetToken(stmt.Expr));
         var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
         proofBuilder.Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok, proofBuilder.Context,
           etran.TrAttributes(stmt.Attributes, null)));
       } else {
         foreach (var split in splits) {
           if (split.IsChecked) {
-            var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
+            var tok = enclosingToken == null ? split.E.tok : new NestedOrigin(enclosingToken, split.Tok);
             var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
             proofBuilder.Add(AssertAndForget(proofBuilder.Context, ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
               etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split

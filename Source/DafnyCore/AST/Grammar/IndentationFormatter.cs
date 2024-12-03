@@ -229,7 +229,7 @@ public class IndentationFormatter : IIndentationFormatter {
     });
   }
 
-  private string ReIndentMultilineComment(IToken token, string capturedComment, int currentIndent,
+  private string ReIndentMultilineComment(IOrigin token, string capturedComment, int currentIndent,
     string indentationBefore, bool precededByNewline, out bool previousMatchWasSingleLineCommentToAlign) {
     var doubleStar = capturedComment.StartsWith("/**") && !capturedComment.StartsWith("/***");
 

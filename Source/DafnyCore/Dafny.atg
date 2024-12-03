@@ -321,7 +321,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      Attributes attrs = null;
      Token/*!*/ iderr;
      Token tokenWithTrailingDocString;
-     var prefixIds = new List<IToken>();
+     var prefixIds = new List<IOrigin>();
      List<Name> idRefined = null;
      ModuleDefinition module;
      ImplementationKind implementationKind = ImplementationKind.Refinement;
@@ -360,7 +360,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
 /*------------------------------------------------------------------------*/
 ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
 =  "import"                          (.bool opened = false;
-                                      var idExports = new List<IToken>();
+                                      var idExports = new List<IOrigin>();
                                       var startToken = t;
                                       submodule = null;
                                      .)
@@ -395,7 +395,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
     Token exportId = t;
     Token/*!*/ id;
     List<ExportSignature> exports = new List<ExportSignature>();;
-    var extends = new List<IToken>();
+    var extends = new List<IOrigin>();
     var startToken = t;
     bool provideAll = false;
     bool revealAll = false;
@@ -496,15 +496,15 @@ ModuleQualifiedName<.out List<Name> names.>
   .
 
 /*------------------------------------------------------------------------*/
-QualifiedModuleExport<.out List<Name> namePath, out List<IToken> exports.>
-= (. exports = new List<IToken>();
+QualifiedModuleExport<.out List<Name> namePath, out List<IOrigin> exports.>
+= (. exports = new List<IOrigin>();
   .)
   ModuleQualifiedName<out namePath>
   [ "`" ModuleExportSuffix<exports> ]
   .
 
 /*------------------------------------------------------------------------*/
-ModuleExportSuffix<. List<IToken> exports.>
+ModuleExportSuffix<. List<IOrigin> exports.>
 =                              (. Token id; .)
     ( ExportId<out id>       (. exports.Add(id); .)
     | "{" ExportId<out id>   (. exports.Add(id); .)
@@ -1493,7 +1493,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
      Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
      tok = Token.NoToken;
      ty = new BoolType();  /*keep compiler happy*/
-     IToken startToken = null;
+     IOrigin startToken = null;
      List<Type> gt;
      List<Type> tupleArgTypes = null;
      List<Token> argumentGhostTokens = null;
@@ -1649,7 +1649,7 @@ TupleType<.out Type ty, out Token tok, out List<Type> tupleArgTypes, out List<To
 
 /*------------------------------------------------------------------------*/
 NamedType<.out Type ty, out Token tok, bool inExpressionContext.> =
-  (. Expression e; IToken startToken = null; .)
+  (. Expression e; IOrigin startToken = null; .)
   NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; startToken = e.StartToken; .)
   { "."
     TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
@@ -1970,8 +1970,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isGhost) {
        foreach (var formal in formals) {
          if (formal.IsGhost) {
-           IToken t = formal.tok;
-           IToken ghostToken = null;
+           IOrigin t = formal.tok;
+           IOrigin ghostToken = null;
            while (t != null && t.val != "," && t.val != "(") {
             if (t.val == "ghost") {
               ghostToken = t;
@@ -2120,7 +2120,7 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
      Expression/*!*/ e;
      Token/*!*/ id;
      string fieldName = null;
-     IToken feTok = null;
+     IOrigin feTok = null;
      fe = dummyFrameExpr;
   .)
   ( Expression<out e, allowLemma, allowLambda>   (. feTok = e.tok; .)
@@ -2333,9 +2333,9 @@ AssignStatement<out Statement/*!*/ s>
      Expression e;
      AssignmentRhs r;
      BlockStmt proof = null;
-     IToken x = Token.NoToken;
+     IOrigin x = Token.NoToken;
      Token endTok = Token.NoToken;
-     IToken startToken = Token.NoToken;
+     IOrigin startToken = Token.NoToken;
      Attributes attrs = null;
      Attributes tokenAttrs = null;
      AttributedToken suchThatAssume = null;
@@ -2431,7 +2431,7 @@ Rhs<out AssignmentRhs r>
      List<Expression> display = null;
      r = dummyRhs;  // to please compiler
      Attributes attrs = null;
-     IToken startToken = null;
+     IOrigin startToken = null;
   .)
   ( IF(la.val == "new")
     "new"                              (. newToken = t; startToken = t; .)
@@ -2475,7 +2475,7 @@ NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Ex
     "["                              (. display = new List<Expression>(); .)
     [ Expressions<display> ]
     "]"                              (. // we fill in the size
-                                        ee.Add(new LiteralExpr(new AutoGeneratedToken(x), display.Count));
+                                        ee.Add(new LiteralExpr(new AutoGeneratedOrigin(x), display.Count));
                                      .)
   | Expressions<ee>
     "]"                              (. // make sure an array class with this dimensionality exists
@@ -2495,7 +2495,7 @@ NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Ex
   )
   (. if (ee.Count == 0) {
        // an error occurred while parsing, but we still want to make sure to return a nonempty "ee"
-       ee.Add(new LiteralExpr(new AutoGeneratedToken(x), 0));
+       ee.Add(new LiteralExpr(new AutoGeneratedOrigin(x), 0));
      }
   .)
   .
@@ -2860,7 +2860,7 @@ Guard<out Expression e>   /* null represents demonic-choice */
 BindingGuard<out Expression e, bool allowLambda>
 = (. var bvars = new List<BoundVar>();
      BoundVar bv;  
-     IToken x;
+     IOrigin x;
      Attributes attrs = null;
      Expression body;
   .)
@@ -3217,7 +3217,7 @@ CalcStmt<out Statement s>
     /* now for the hint, which we build up as a possibly empty sequence of statements placed into one BlockStmt */
     (. var subhints = new List<Statement>();
        Token hintStart = la;  
-       IToken hintEnd = hintStart.Prev;
+       IOrigin hintEnd = hintStart.Prev;
        Token t0, t1;
        BlockStmt subBlock; Statement subCalc;
     .)
@@ -3395,7 +3395,7 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
 LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); Token/*!*/ x = null;  Expression/*!*/ e1;
      Expression first;
-     IToken startToken = null;
+     IOrigin startToken = null;
      Token/*!*/ firstOp = null;
      Token/*!*/ prefixOp = null;
      e0 = dummyExpr; /* mute the warning */
@@ -3419,8 +3419,8 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
        if (e0 == first && prefixOp != null) {
          // There was only one conjunct. To make sure that the type checker still checks it to
          // be a boolean, we conjoin "true" of "false" to its left.
-         if (firstOp.val == "&&") e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(new AutoGeneratedToken(x), true), e0);
-         else e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(new AutoGeneratedToken(x), false), e0);
+         if (firstOp.val == "&&") e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(new AutoGeneratedOrigin(x), true), e0);
+         else e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(new AutoGeneratedOrigin(x), false), e0);
          e0.RangeToken = new RangeToken(firstOp, t);
          e0.FormatTokens = new[] { firstOp };
        } else if(prefixOp != null) {
@@ -3435,9 +3435,9 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
      Token x = null;  Expression e0, e1 = null;  BinaryExpr.Opcode op;
      List<Expression> chain = null;
      List<BinaryExpr.Opcode> ops = null;
-     List<IToken> opLocs = null;
+     List<IOrigin> opLocs = null;
      List<Expression/*?*/> prefixLimits = null;
-     IToken startToken = null;
+     IOrigin startToken = null;
      Expression k;
      int kind = 0;  // 0 ("uncommitted") indicates chain of ==, possibly with one !=
                     // 1 ("ascending")   indicates chain of ==, <, <=, possibly with one !=
@@ -3464,7 +3464,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
                                    (. if (chain == null) {
                                         chain = new List<Expression>();
                                         ops = new List<BinaryExpr.Opcode>();
-                                        opLocs = new List<IToken>();
+                                        opLocs = new List<IOrigin>();
                                         prefixLimits = new List<Expression>();
                                         chain.Add(e0); ops.Add(op); opLocs.Add(x); prefixLimits.Add(k); chain.Add(e1);
                                         switch (op) {
@@ -4365,14 +4365,14 @@ Suffix<ref Expression e>
      Expression e0 = null;  Expression e1 = null;  Expression ee;  bool anyDots = false;
      List<Expression> multipleLengths = null; bool takeRest = false; // takeRest is relevant only if multipleLengths is non-null
      List<Expression> multipleIndices = null;
-     List<Tuple<IToken, string, Expression>> updates;
+     List<Tuple<IOrigin, string, Expression>> updates;
      var startToken = e.StartToken;
      Expression v;
   .)
   ( "."
-    ( "("                                             (. x = t; updates = new List<Tuple<IToken, string, Expression>>(); .)
-        MemberBindingUpdate<out id, out v>            (. updates.Add(Tuple.Create((IToken)id, id.val, v)); .)
-        { "," MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create((IToken)id, id.val, v)); .)
+    ( "("                                             (. x = t; updates = new List<Tuple<IOrigin, string, Expression>>(); .)
+        MemberBindingUpdate<out id, out v>            (. updates.Add(Tuple.Create((IOrigin)id, id.val, v)); .)
+        { "," MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create((IOrigin)id, id.val, v)); .)
         }
       ")"
       (. e = new DatatypeUpdateExpr(x, e, updates) { RangeToken = new RangeToken(startToken, t)}; .)
@@ -4611,7 +4611,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
        // This production used to have its own version of QuantifierDomain in which the
        // range was not optional, so we map null to "true" here so that the rest of the
        // logic doesn't hit exceptions.
-       range ??= LiteralExpr.CreateBoolLiteral(new AutoGeneratedToken(t), true);
+       range ??= LiteralExpr.CreateBoolLiteral(new AutoGeneratedOrigin(t), true);
        q = new SetComprehension(setToken, new RangeToken(setToken, t), finite, bvars, range, body, attrs);
      }
   .)

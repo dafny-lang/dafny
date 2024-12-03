@@ -110,12 +110,12 @@ public class Program : TokenNode {
 
   /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
   /// (skips included tokens)
-  public IToken GetStartOfFirstFileToken() {
+  public IOrigin GetStartOfFirstFileToken() {
     return GetFirstTokenForUri(Compilation.RootSourceUris[0]);
   }
 
   public Token GetFirstTokenForUri(Uri uri) {
-    return (Token)TokenWrapper.Unwrap(this.FindNodesInUris(uri).MinBy(n => n.RangeToken.StartToken.pos)?.StartToken);
+    return (Token)OriginWrapper.Unwrap(this.FindNodesInUris(uri).MinBy(n => n.RangeToken.StartToken.pos)?.StartToken);
   }
 
   public override IEnumerable<INode> Children => new[] { DefaultModule };

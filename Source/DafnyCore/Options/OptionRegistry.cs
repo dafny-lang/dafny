@@ -59,4 +59,4 @@ public class OptionRegistry {
 
 public enum OptionScope { Cli, Global, Module, Translation }
 
-public delegate bool GlobalOptionCheck(ErrorReporter reporter, IToken origin, string prefix, Option option, object localValue, object libraryValue);
+public delegate bool GlobalOptionCheck(ErrorReporter reporter, IOrigin origin, string prefix, Option option, object localValue, object libraryValue);

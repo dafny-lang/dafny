@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 
 public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, ICloneable<DatatypeUpdateExpr> {
   public readonly Expression Root;
-  public readonly List<Tuple<IToken, string, Expression>> Updates;
+  public readonly List<Tuple<IOrigin, string, Expression>> Updates;
   [FilledInDuringResolution] public List<MemberDecl> Members;
   [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
   [FilledInDuringResolution] public bool InCompiledContext;
@@ -34,7 +34,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
     }
   }
 
-  public DatatypeUpdateExpr(IToken tok, Expression root, List<Tuple<IToken, string, Expression>> updates)
+  public DatatypeUpdateExpr(IOrigin tok, Expression root, List<Tuple<IOrigin, string, Expression>> updates)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(root != null);
@@ -66,7 +66,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
     return (IEnumerable<ISymbol>)LegalSourceConstructors ?? Array.Empty<ISymbol>();
   }
 
-  public IToken NavigationToken => tok;
+  public IOrigin NavigationToken => tok;
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
     get {
