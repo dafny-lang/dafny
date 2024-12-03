@@ -512,11 +512,11 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.ImplFor(
         rTypeParamsDecls,
         R.std.MSel("convert").MSel("AsRef").AsType().Apply1(datatypeType),
-        R.Borrowed(datatypeType),
+        datatypeType,
         [R.FnDecl(
            R.NoDoc, R.NoAttr,
            R.PRIV,
-           R.Fn("as_ref", [], [R.Formal.selfBorrowed], Some(R.SelfOwned),
+           R.Fn("as_ref", [], [R.Formal.selfBorrowed], Some(R.SelfBorrowed),
                 Some(R.self))
          )]
       ))

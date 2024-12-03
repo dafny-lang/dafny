@@ -1,7 +1,7 @@
 
 // Rust AST
 module RAST
-  // All ToString methods should produce well-formed Rust code
+// All ToString methods should produce well-formed Rust code
 {
   import opened Std.Wrappers
   import Std
