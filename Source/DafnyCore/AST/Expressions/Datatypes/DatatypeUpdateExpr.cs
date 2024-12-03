@@ -19,7 +19,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
 
   public DatatypeUpdateExpr(Cloner cloner, DatatypeUpdateExpr original) : base(cloner, original) {
     Root = cloner.CloneExpr(original.Root);
-    Updates = original.Updates.Select(t => Tuple.Create<IToken, string, Expression>(t.Item1, t.Item2, cloner.CloneExpr(t.Item3)))
+    Updates = original.Updates.Select(t => Tuple.Create(cloner.Tok(t.Item1), t.Item2, cloner.CloneExpr(t.Item3)))
       .ToList();
 
     if (cloner.CloneResolvedFields) {

@@ -26,7 +26,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
     Exports = original.Exports.Select(s => new ExportSignature(cloner, s)).ToList();
-    Extends = original.Extends.ToList();
+    Extends = original.Extends.Select(cloner.Tok).ToList();
     ProvideAll = original.ProvideAll;
     RevealAll = original.RevealAll;
     IsRefining = original.IsRefining;
