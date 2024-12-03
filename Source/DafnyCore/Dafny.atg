@@ -3435,7 +3435,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
      Token x = null;  Expression e0, e1 = null;  BinaryExpr.Opcode op;
      List<Expression> chain = null;
      List<BinaryExpr.Opcode> ops = null;
-     List<Token> opLocs = null;
+     List<IToken> opLocs = null;
      List<Expression/*?*/> prefixLimits = null;
      IToken startToken = null;
      Expression k;
@@ -3464,7 +3464,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
                                    (. if (chain == null) {
                                         chain = new List<Expression>();
                                         ops = new List<BinaryExpr.Opcode>();
-                                        opLocs = new List<Token>();
+                                        opLocs = new List<IToken>();
                                         prefixLimits = new List<Expression>();
                                         chain.Add(e0); ops.Add(op); opLocs.Add(x); prefixLimits.Add(k); chain.Add(e1);
                                         switch (op) {
