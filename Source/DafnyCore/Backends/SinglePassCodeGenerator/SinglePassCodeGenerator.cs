@@ -11,11 +11,12 @@ using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
-using DafnyCore;
-using DafnyCore.Options;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
+using Microsoft.Dafny;
 using static Microsoft.Dafny.GeneratorErrors;
+
+public record StatementGenerationContext(IMethodCodeContext Method);
 
 namespace Microsoft.Dafny.Compilers {
 
@@ -639,15 +640,17 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock("", open: BlockStyle.Brace);
     }
 
-    protected virtual ConcreteSyntaxTree EmitWhile(IToken tok, List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {  // returns the guard writer
+    protected virtual ConcreteSyntaxTree EmitWhile(StatementGenerationContext context, IToken tok, List<Statement> body,
+      LList<Label> labels, ConcreteSyntaxTree wr) {  // returns the guard writer
       var wBody = CreateWhileLoop(out var guardWriter, wr);
       wBody = EmitContinueLabel(labels, wBody);
       Coverage.Instrument(tok, "while body", wBody);
-      TrStmtList(body, wBody);
+      TrStmtList(context, body, wBody);
       return guardWriter;
     }
 
-    protected abstract ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+    protected abstract ConcreteSyntaxTree EmitForStmt(StatementGenerationContext context, IToken tok,
+      IVariable loopIndex, bool goingUp, string endVarName, /*?*/
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr);
 
     protected virtual ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
@@ -1568,8 +1571,7 @@ namespace Microsoft.Dafny.Compilers {
         classIsExtern =
           (!Options.DisallowExterns && Attributes.Contains(defaultClassDecl.Attributes, "extern")) ||
           Attributes.Contains(defaultClassDecl.EnclosingModuleDefinition.Attributes, "extern");
-        if (classIsExtern && defaultClassDecl.Members.TrueForAll(member =>
-              member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+        if (classIsExtern && defaultClassDecl.Members.All(member => member.IsGhost || IsExternallyImported(member))) {
           include = false;
         }
       }
@@ -1671,7 +1673,7 @@ namespace Microsoft.Dafny.Compilers {
           if (iter.Body == null) {
             Error(ErrorId.c_iterator_has_no_body, iter.tok, "iterator {0} has no body", wIter, iter.FullName);
           } else {
-            TrStmtList(iter.Body.Body, wIter);
+            TrStmtList(new StatementGenerationContext(iter), iter.Body.Body, wIter);
           }
         } else if (d is TraitDecl trait) {
           // writing the trait
@@ -2361,32 +2363,36 @@ namespace Microsoft.Dafny.Compilers {
                 errorWr, m.FullName);
             }
           } else if (m.IsGhost) {
-          } else if (m.IsVirtual) {
-            if (m.OverriddenMember == null) {
-              var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), false, false, false);
-              Contract.Assert(w == null); // since we requested no body
-            } else if (TraitRepeatsInheritedDeclarations) {
-              RedeclareInheritedMember(m, classWriter);
-            }
-            if (m.Body != null) {
-              CompileMethod(program, m, classWriter, true);
-            }
-          } else if (m.IsExtern(Options) && m.Body == null) {
-            if (IncludeExternallyImportedMembers) {
-              CompileMethod(program, m, classWriter, false);
-            }
-          } else if (m.Body == null) {
-            Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body so it cannot be compiled", errorWr, m.FullName);
-          } else if (c is NewtypeDecl && m != m.Original) {
-            CompileMethod(program, m, classWriter, false);
-            var w = classWriter.CreateMethod(m, CombineAllTypeArguments(member), true, true, false);
-            var wBefore = w.Fork();
-            var wCall = w.Fork();
-            var wAfter = w;
-            EmitCallToInheritedMethod(m, c, wCall, wBefore, wAfter);
           } else {
-            CompileMethod(program, m, classWriter, false);
+            var context = new StatementGenerationContext(m);
+            if (m.IsVirtual) {
+              if (m.OverriddenMember == null) {
+                var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), false, false, false);
+                Contract.Assert(w == null); // since we requested no body
+              } else if (TraitRepeatsInheritedDeclarations) {
+                RedeclareInheritedMember(m, classWriter);
+              }
+              if (m.Body != null) {
+                CompileMethod(program, m, classWriter, true, context);
+              }
+            } else if (m.IsExtern(Options) && m.Body == null) {
+              if (IncludeExternallyImportedMembers) {
+                CompileMethod(program, m, classWriter, false, context);
+              }
+            } else if (m.Body == null) {
+              Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body so it cannot be compiled", errorWr, m.FullName);
+            } else if (c is NewtypeDecl && m != m.Original) {
+              CompileMethod(program, m, classWriter, false, context);
+              var w = classWriter.CreateMethod(m, CombineAllTypeArguments(member), true, true, false);
+              var wBefore = w.Fork();
+              var wCall = w.Fork();
+              var wAfter = w;
+              EmitCallToInheritedMethod(m, c, wCall, wBefore, wAfter);
+            } else {
+              CompileMethod(program, m, classWriter, false, context);
+            }
           }
+
           v.Visit(m);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
@@ -2797,7 +2803,8 @@ namespace Microsoft.Dafny.Compilers {
 
     public const string STATIC_ARGS_NAME = "args";
 
-    private void CompileMethod(Program program, Method m, IClassWriter cw, bool lookasideBody) {
+    private void CompileMethod(Program program, Method m, IClassWriter cw, bool lookasideBody,
+      StatementGenerationContext context) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
       Contract.Requires(m.Body != null || (IncludeExternallyImportedMembers && Attributes.Contains(m.Attributes, "extern")));
@@ -2827,9 +2834,9 @@ namespace Microsoft.Dafny.Compilers {
           Contract.Assert(enclosingMethod == null);
           enclosingMethod = m;
           if (m.Body is DividedBlockStmt dividedBlockStmt) {
-            TrDividedBlockStmt((Constructor)m, dividedBlockStmt, w);
+            TrDividedBlockStmt((Constructor)m, dividedBlockStmt, w, context);
           } else {
-            TrStmtList(m.Body.Body, w);
+            TrStmtList(new StatementGenerationContext(m), m.Body.Body, w);
           }
 
           Contract.Assert(enclosingMethod == m);
@@ -3288,12 +3295,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void TrStmtNonempty(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
+    void TrStmtNonempty(StatementGenerationContext context, Statement stmt, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
-      TrStmt(stmt, wr, wStmts);
+      TrStmt(context, stmt, wr, wStmts);
       if (stmt.IsGhost) {
-        TrStmtList(new List<Statement>(), EmitBlock(wr));
+        TrStmtList(context, new List<Statement>(), EmitBlock(wr));
       }
     }
 
@@ -4662,11 +4670,13 @@ namespace Microsoft.Dafny.Compilers {
       EmitJumpToTailCallStart(wr);
     }
 
-    protected virtual void TrDividedBlockStmt(Constructor m, DividedBlockStmt dividedBlockStmt, ConcreteSyntaxTree writer) {
-      TrStmtList(dividedBlockStmt.Body, writer);
+    protected virtual void TrDividedBlockStmt(Constructor m, DividedBlockStmt dividedBlockStmt,
+      ConcreteSyntaxTree writer, StatementGenerationContext context) {
+      TrStmtList(new StatementGenerationContext(m), dividedBlockStmt.Body, writer);
     }
 
-    protected virtual void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer) {
+    protected virtual void TrStmtList(StatementGenerationContext context, List<Statement> stmts,
+      ConcreteSyntaxTree writer) {
       Contract.Requires(cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       foreach (Statement ss in stmts) {
@@ -4681,7 +4691,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         var prelude = w.Fork();
         copyInstrWriters.Push(prelude);
-        TrStmt(ss, w);
+        TrStmt(context, ss, w);
         copyInstrWriters.Pop();
       }
     }
@@ -5402,6 +5412,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected abstract void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr);
+    protected abstract void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody,
+      ConcreteSyntaxTree wr, StatementGenerationContext context);
   }
 }

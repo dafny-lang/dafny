@@ -1324,7 +1324,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine(");");
     }
 
-    protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+    protected override ConcreteSyntaxTree EmitForStmt(StatementGenerationContext context, IToken tok,
+      IVariable loopIndex, bool goingUp, string endVarName, /*?*/
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(tok, Feature.ForLoops, "for loops have not yet been implemented");
     }
@@ -2468,7 +2469,8 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.ExactBoundedPool);
     }
 
-    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody,
+      ConcreteSyntaxTree wr, StatementGenerationContext context) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
   }

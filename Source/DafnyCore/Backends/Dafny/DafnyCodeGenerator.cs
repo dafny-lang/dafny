@@ -482,8 +482,9 @@ namespace Microsoft.Dafny.Compilers {
       return params_;
     }
 
-    protected override void TrDividedBlockStmt(Constructor m, DividedBlockStmt dividedBlockStmt, ConcreteSyntaxTree writer) {
-      TrStmtList(dividedBlockStmt.BodyInit, writer);
+    protected override void TrDividedBlockStmt(Constructor m, DividedBlockStmt dividedBlockStmt,
+      ConcreteSyntaxTree writer, StatementGenerationContext context) {
+      TrStmtList(context, dividedBlockStmt.BodyInit, writer);
       if (writer is BuilderSyntaxTree<StatementContainer> builder) {
         var membersToInitialize = ((TopLevelDeclWithMembers)m.EnclosingClass).Members.Where((md =>
           md is Field and not ConstantField { Rhs: { } }));
@@ -506,7 +507,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new InvalidCastException("Divided block statement outside of a statement container");
       }
       // We need to indicate to Dafny that 
-      TrStmtList(dividedBlockStmt.BodyProper, writer);
+      TrStmtList(context, dividedBlockStmt.BodyProper, writer);
     }
 
     protected override bool InstanceConstAreStatic() {
@@ -1278,7 +1279,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // Return a writer to write the start expression, which is lo if going up, and hi if going down
-    protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
+    protected override ConcreteSyntaxTree EmitForStmt(StatementGenerationContext context, IToken tok,
+      IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
       if (GetStatementBuilder(wr, out var statementContainer)) {
         var indexName = loopIndex.CompileNameShadowable;
@@ -1292,7 +1294,7 @@ namespace Microsoft.Dafny.Compilers {
             ));
           ConcreteSyntaxTree bodyWr = new BuilderSyntaxTree<StatementContainer>(foreachBuilder, this);
           bodyWr = EmitContinueLabel(labels, bodyWr);
-          TrStmtList(body, bodyWr);
+          TrStmtList(context, body, bodyWr);
           return new BuilderSyntaxTree<ExprContainer>(startBuilder, this);
         } else {
           var loHiBuilder = ((ExprContainer)foreachBuilder).BinOp("int_range", (DAST.Expression lo, DAST.Expression hi) =>
@@ -1304,7 +1306,7 @@ namespace Microsoft.Dafny.Compilers {
              ));
           ConcreteSyntaxTree bodyWr = new BuilderSyntaxTree<StatementContainer>(foreachBuilder, this);
           bodyWr = EmitContinueLabel(labels, bodyWr);
-          TrStmtList(body, bodyWr);
+          TrStmtList(context, body, bodyWr);
           BuilderSyntaxTree<ExprContainer> toReturn;
           if (goingUp) {
             toReturn = WrBuffer(out var loBuf);
@@ -3226,8 +3228,9 @@ namespace Microsoft.Dafny.Compilers {
         String.Compare(a.FullDafnyName, b.FullDafnyName, StringComparison.Ordinal));
     }
 
-    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
-      TrStmt(body, wr);
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody,
+      ConcreteSyntaxTree wr, StatementGenerationContext context) {
+      TrStmt(context, body, wr);
     }
 
     protected override ConcreteSyntaxTree GetNullClassConcreteSyntaxTree() {
@@ -3244,8 +3247,9 @@ namespace Microsoft.Dafny.Compilers {
       TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
     }
 
-    protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
-      TrStmt(match.Flattened, writer);
+    protected override void EmitNestedMatchStmt(StatementGenerationContext context, NestedMatchStmt match,
+      ConcreteSyntaxTree writer) {
+      TrStmt(context, match.Flattened, writer);
     }
   }
 }

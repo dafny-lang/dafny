@@ -9,7 +9,7 @@ internal class InternalBackendsPluginConfiguration : Plugins.PluginConfiguration
     return new IExecutableBackend[] {
       new CsharpBackend(options),
       new JavaScriptBackend(options),
-      new GoBackend(options),
+      new GoLangBackend(options),
       new JavaBackend(options),
       new PythonBackend(options),
       new CppBackend(options),

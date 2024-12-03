@@ -18,7 +18,7 @@ using Tomlyn.Model;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
-  class GoCodeGenerator : SinglePassCodeGenerator {
+  class GoLangCodeGenerator : SinglePassCodeGenerator {
     protected override void EmitStaticExternMethodQualifier(string qual, ConcreteSyntaxTree wr) {
       if (qual != null) {
         qual = ImportPrefix + qual;
@@ -31,8 +31,8 @@ namespace Microsoft.Dafny.Compilers {
 
     private bool GoModuleMode;
     private string GoModuleName;
-    public GoCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
-      var goModuleName = Options.Get(GoBackend.GoModuleNameCliOption);
+    public GoLangCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+      var goModuleName = Options.Get(GoLangBackend.GoModuleNameCliOption);
       GoModuleMode = goModuleName != null;
       if (GoModuleMode) {
         GoModuleName = goModuleName.ToString();
@@ -166,8 +166,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
-      var wr = ((GoCodeGenerator.ClassWriter)cw).ConcreteMethodWriter;
-      return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Sequence)", FormatCompanionTypeName(((GoCodeGenerator.ClassWriter)cw).ClassName), argsParameterName);
+      var wr = ((GoLangCodeGenerator.ClassWriter)cw).ConcreteMethodWriter;
+      return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Sequence)", FormatCompanionTypeName(((GoLangCodeGenerator.ClassWriter)cw).ClassName), argsParameterName);
     }
 
     private Import CreateImport(string moduleName, ModuleDefinition externModule,
@@ -256,7 +256,7 @@ namespace Microsoft.Dafny.Compilers {
           var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
           translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
           object moduleName = null;
-          moduleOptions?.TryGetValue(GoBackend.GoModuleNameCliOption.Name, out moduleName);
+          moduleOptions?.TryGetValue(GoLangBackend.GoModuleNameCliOption.Name, out moduleName);
 
           goModuleName = moduleName is string name ? moduleName + "/" : "";
           if (String.IsNullOrEmpty(goModuleName)) {
@@ -338,7 +338,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // TODO Consider splitting this into two functions; most things seem to be passing includeRtd: false, includeEquals: false and includeString: true.
-    private GoCodeGenerator.ClassWriter CreateClass(TopLevelDecl classContext, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr, bool includeRtd, bool includeEquals, bool includeString) {
+    private GoLangCodeGenerator.ClassWriter CreateClass(TopLevelDecl classContext, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr, bool includeRtd, bool includeEquals, bool includeString) {
       // See docs/Compilation/ReferenceTypes.md for a description of how instance members of classes and traits are compiled into Go.
       //
       // func New_Class_(Type0 _dafny.TypeDescriptor, Type1 _dafny.TypeDescriptor) *Class {
@@ -1229,7 +1229,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
     protected class ClassWriter : IClassWriter {
-      public readonly GoCodeGenerator CodeGenerator;
+      public readonly GoLangCodeGenerator CodeGenerator;
       public readonly TopLevelDecl ClassContext;
       public readonly bool IsClass;
       public readonly string ClassName;
@@ -1237,7 +1237,7 @@ namespace Microsoft.Dafny.Compilers {
       public readonly ConcreteSyntaxTree/*?*/ AbstractMethodWriter, ConcreteMethodWriter, InstanceFieldWriter, InstanceFieldInitWriter, TraitInitWriter, StaticFieldWriter, StaticFieldInitWriter;
       public bool AnyInstanceFields { get; private set; } = false;
 
-      public ClassWriter(GoCodeGenerator codeGenerator, TopLevelDecl classContext, bool isClass, string className, bool isExtern, ConcreteSyntaxTree abstractMethodWriter, ConcreteSyntaxTree concreteMethodWriter,
+      public ClassWriter(GoLangCodeGenerator codeGenerator, TopLevelDecl classContext, bool isClass, string className, bool isExtern, ConcreteSyntaxTree abstractMethodWriter, ConcreteSyntaxTree concreteMethodWriter,
         ConcreteSyntaxTree/*?*/ instanceFieldWriter, ConcreteSyntaxTree/*?*/ instanceFieldInitWriter, ConcreteSyntaxTree/*?*/ traitInitWriter,
         ConcreteSyntaxTree staticFieldWriter, ConcreteSyntaxTree staticFieldInitWriter) {
         Contract.Requires(codeGenerator != null);
@@ -1579,7 +1579,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool SupportsStaticsInGenericClasses => false;
     protected override bool TraitRepeatsInheritedDeclarations => true;
 
-    private void FinishClass(GoCodeGenerator.ClassWriter cw) {
+    private void FinishClass(GoLangCodeGenerator.ClassWriter cw) {
       // Go gets weird about zero-length structs.  In particular, it likes to
       // make all pointers to a zero-length struct the same.  Irritatingly, this
       // forces us to waste space here.
@@ -2102,7 +2102,8 @@ namespace Microsoft.Dafny.Compilers {
       return wBody;
     }
 
-    protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+    protected override ConcreteSyntaxTree EmitForStmt(StatementGenerationContext context, IToken tok,
+      IVariable loopIndex, bool goingUp, string endVarName, /*?*/
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       wr.Write($"for {loopIndex.GetOrCreateCompileName(currentIdGenerator)} := ");
@@ -2139,7 +2140,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       bodyWr = EmitContinueLabel(labels, bodyWr);
-      TrStmtList(body, bodyWr);
+      TrStmtList(context, body, bodyWr);
 
       return startWr;
     }
@@ -4085,15 +4086,16 @@ namespace Microsoft.Dafny.Compilers {
       TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody, wStmts);
     }
 
-    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody,
+      ConcreteSyntaxTree wr, StatementGenerationContext context) {
       var funcBlock = wr.NewBlock("func()", close: BlockStyle.Brace);
       var deferBlock = funcBlock.NewBlock("defer func()", close: BlockStyle.Brace);
       var ifRecoverBlock = deferBlock.NewBlock("if r := recover(); r != nil");
       var stringMaker = UnicodeCharEnabled ? "UnicodeSeqOfUtf8Bytes" : "SeqOfString";
       ifRecoverBlock.WriteLine($"var {haltMessageVarName} = {HelperModulePrefix}{stringMaker}(r.(string))");
-      TrStmt(recoveryBody, ifRecoverBlock);
+      TrStmt(context, recoveryBody, ifRecoverBlock);
       funcBlock.WriteLine("()");
-      TrStmt(body, funcBlock);
+      TrStmt(context, body, funcBlock);
       wr.WriteLine("()");
     }
   }

@@ -2045,7 +2045,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.Format($"throw new Dafny.HaltException({exceptionMessage});");
     }
 
-    protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+    protected override ConcreteSyntaxTree EmitForStmt(StatementGenerationContext context, IToken tok,
+      IVariable loopIndex, bool goingUp, string endVarName, /*?*/
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       wr.Write($"for ({TypeName(loopIndex.Type, wr, tok)} {loopIndex.GetOrCreateCompileName(currentIdGenerator)} = ");
@@ -2062,7 +2063,7 @@ namespace Microsoft.Dafny.Compilers {
         bodyWr.WriteLine($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)}--;");
       }
       bodyWr = EmitContinueLabel(labels, bodyWr);
-      TrStmtList(body, bodyWr);
+      TrStmtList(context, body, bodyWr);
 
       return startWr;
     }
@@ -3498,12 +3499,12 @@ namespace Microsoft.Dafny.Compilers {
       Coverage.EmitTearDown(wBody);
     }
 
-    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr, StatementGenerationContext context) {
       var tryBlock = wr.NewBlock("try");
-      TrStmt(body, tryBlock);
+      TrStmt(context, body, tryBlock);
       var catchBlock = wr.NewBlock("catch (Dafny.HaltException e)");
       catchBlock.WriteLine($"var {haltMessageVarName} = Dafny.Sequence<{CharTypeName}>.{CharMethodQualifier}FromString(e.Message);");
-      TrStmt(recoveryBody, catchBlock);
+      TrStmt(context, recoveryBody, catchBlock);
     }
 
     protected void EmitCoverageReportInstrumentation(Program program, ConcreteSyntaxTree wr) {
