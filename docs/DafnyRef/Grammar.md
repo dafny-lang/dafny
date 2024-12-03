@@ -186,9 +186,9 @@ In Dafny programs.
 * Documentation comments may be associated with any declaration, including type definitions, export declarations, and datatype constructors.
 * They may be placed before the declaration, between the declaration and the definition or after the definition. The priority of these comments is the following:
    * If there is a comment starting with `/**` right before the definition, it's the documentation comment.
-   * Otherwise, if one or more comments are between a declaration and the definition (which is not usual in other programming languages), whether it begins with `//` or `/**` or `/*`, they are considered as the documentation comment, as there is no other reason a comment would be at this place.
+   * Otherwise, if one or more comments appear between a declaration and its definition — which is uncommon in other programming languages — they are treated as documentation comments, regardless of whether they start with //, /**, or /*. This is because there is no other plausible reason for a comment to be placed in this position.
    * Otherwise, if there is a single comment starting with `//` or `/**` or `/*` at the end of the definition, it's the documentation comment. In this case, multi-line documentation comments must be starting with `/*`
-* The extraction of the doc-string from a documentation comment follow these rules 
+* The extraction of the doc-string from a documentation comment follows the following rules 
   * On the first line, an optional `*` right after `/*` and an optional space are removed, if present
   * On other lines, the indentation space (with possibly one star in it) is removed, as if the content was supposed to align with A if the comment started with `/** A` for example.
 * The documentation string is interpreted as plain text, but it is possible to provide a user-written

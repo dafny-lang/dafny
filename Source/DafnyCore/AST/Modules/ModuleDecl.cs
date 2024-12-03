@@ -64,7 +64,6 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
     if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
       return triviaFound;
     }
-    IToken candidate = null;
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
       PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : Enumerable.Empty<IToken>();
