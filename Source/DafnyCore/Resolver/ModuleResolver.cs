@@ -882,7 +882,7 @@ namespace Microsoft.Dafny {
 
 
     public bool ResolveExport(ModuleDecl alias, ModuleDefinition parent, ModuleQualifiedId qid,
-      List<Token> exports, out ModuleSignature p, ErrorReporter reporter) {
+      List<IOrigin> exports, out ModuleSignature p, ErrorReporter reporter) {
       Contract.Requires(qid != null);
       Contract.Requires(qid.Path.Count > 0);
       Contract.Requires(exports != null);

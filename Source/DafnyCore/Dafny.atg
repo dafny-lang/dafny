@@ -360,7 +360,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
 /*------------------------------------------------------------------------*/
 ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
 =  "import"                          (.bool opened = false;
-                                      List<Token> idExports = new List<Token>();
+                                      var idExports = new List<IOrigin>();
                                       var startToken = t;
                                       submodule = null;
                                      .)
@@ -395,7 +395,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
     Token exportId = t;
     Token/*!*/ id;
     List<ExportSignature> exports = new List<ExportSignature>();;
-    List<Token> extends = new List<Token>();
+    var extends = new List<IOrigin>();
     var startToken = t;
     bool provideAll = false;
     bool revealAll = false;
@@ -496,15 +496,15 @@ ModuleQualifiedName<.out List<Name> names.>
   .
 
 /*------------------------------------------------------------------------*/
-QualifiedModuleExport<.out List<Name> namePath, out List<Token> exports.>
-= (. exports = new List<Token>();
+QualifiedModuleExport<.out List<Name> namePath, out List<IOrigin> exports.>
+= (. exports = new List<IOrigin>();
   .)
   ModuleQualifiedName<out namePath>
   [ "`" ModuleExportSuffix<exports> ]
   .
 
 /*------------------------------------------------------------------------*/
-ModuleExportSuffix<. List<Token> exports.>
+ModuleExportSuffix<. List<IOrigin> exports.>
 =                              (. Token id; .)
     ( ExportId<out id>       (. exports.Add(id); .)
     | "{" ExportId<out id>   (. exports.Add(id); .)
@@ -4361,14 +4361,14 @@ Suffix<ref Expression e>
      Expression e0 = null;  Expression e1 = null;  Expression ee;  bool anyDots = false;
      List<Expression> multipleLengths = null; bool takeRest = false; // takeRest is relevant only if multipleLengths is non-null
      List<Expression> multipleIndices = null;
-     List<Tuple<Token, string, Expression>> updates;
+     List<Tuple<IOrigin, string, Expression>> updates;
      var startToken = e.StartToken;
      Expression v;
   .)
   ( "."
-    ( "("                                             (. x = t; updates = new List<Tuple<Token, string, Expression>>(); .)
-        MemberBindingUpdate<out id, out v>            (. updates.Add(Tuple.Create(id, id.val, v)); .)
-        { "," MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create(id, id.val, v)); .)
+    ( "("                                             (. x = t; updates = new List<Tuple<IOrigin, string, Expression>>(); .)
+        MemberBindingUpdate<out id, out v>            (. updates.Add(Tuple.Create((IOrigin)id, id.val, v)); .)
+        { "," MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create((IOrigin)id, id.val, v)); .)
         }
       ")"
       (. e = new DatatypeUpdateExpr(x, e, updates) { RangeToken = new RangeToken(startToken, t)}; .)
