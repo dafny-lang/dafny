@@ -5,7 +5,7 @@ public abstract class RangeNode : Node {
 
   public override IOrigin Tok => StartToken; // TODO remove
 
-  public IOrigin tok => Origin; // TODO remove
+  public IOrigin tok => Tok; // TODO remove
 
   // TODO rename to Range in separate PR
   public override IOrigin RangeToken {
