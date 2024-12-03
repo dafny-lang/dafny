@@ -235,8 +235,10 @@ namespace Microsoft.Dafny.Compilers {
         );
         var result = new Boogie.Formal(tok, new TypedIdent(tok, TypedIdent.NoName, ExtractType(function.ResultType)), false);
         var fn = new Boogie.Function(tok, extractName, inParams, result);
-        declarations.Add(fn);
-        functionExtractions.Add(function, fn);
+        if (extractName is not ("[]" or "[:=]")) {
+          declarations.Add(fn);
+          functionExtractions.Add(function, fn);
+        }
       }
     }
 
@@ -288,8 +290,21 @@ namespace Microsoft.Dafny.Compilers {
             var function = functionCallExpr.Function;
             var functionName = GetExtractName(function.Attributes) ?? function.Name;
             Contract.Assert(function.IsStatic);
-            var arguments = functionCallExpr.Args.ConvertAll(ExtractExpr);
-            return new Boogie.NAryExpr(tok, new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, functionName)), arguments);
+            if (functionName == "[]") {
+              if (functionCallExpr.Args.Count != 2) {
+                throw new ExtractorError(tok, $"function {functionName} expects 2 arguments, got {functionCallExpr.Args.Count}");
+              }
+              return Boogie.Expr.SelectTok(tok, ExtractExpr(functionCallExpr.Args[0]), ExtractExpr(functionCallExpr.Args[1]));
+            } else if (functionName == "[:=]") {
+              if (functionCallExpr.Args.Count != 3) {
+                throw new ExtractorError(tok, $"function {functionName} expects 3 arguments, got {functionCallExpr.Args.Count}");
+              }
+              return Boogie.Expr.StoreTok(tok, ExtractExpr(functionCallExpr.Args[0]),
+                ExtractExpr(functionCallExpr.Args[1]), ExtractExpr(functionCallExpr.Args[2]));
+            } else {
+              var arguments = functionCallExpr.Args.ConvertAll(ExtractExpr);
+              return new Boogie.NAryExpr(tok, new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, functionName)), arguments);
+            }
           }
 
         case BinaryExpr binaryExpr: {
