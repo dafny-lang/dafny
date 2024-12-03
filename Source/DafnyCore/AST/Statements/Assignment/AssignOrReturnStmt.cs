@@ -19,7 +19,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       var result = Rhs.StartToken.Prev;
       if (char.IsLetter(result.val[0])) {
         // Jump to operator if we're on an assume/expect/assert keyword.
-        result = ((IToken)result).Prev;
+        result = result.Prev;
       }
       return result;
     }

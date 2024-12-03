@@ -166,7 +166,7 @@ namespace DafnyPipeline.Test {
       Dictionary<int, List<INode>> posToOwnerNode) {
       var nextOwnedToken = notOwnedToken.Next;
       while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
-        nextOwnedToken = ((IToken)nextOwnedToken).Next;
+        nextOwnedToken = nextOwnedToken.Next;
       }
 
       var before = programNotIndented.Substring(0, notOwnedToken.pos);
