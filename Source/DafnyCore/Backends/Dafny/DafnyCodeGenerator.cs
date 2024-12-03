@@ -54,11 +54,11 @@ namespace Microsoft.Dafny.Compilers {
       return preventShadowing ? v.GetOrCreateCompileName(currentIdGenerator) : v.CompileNameShadowable;
     }
 
-    public string TokenToString(IToken tok) {
+    public string TokenToString(IOrigin tok) {
       return $"{tok.Uri}({tok.line},{tok.col})";
     }
 
-    public void AddUnsupported(IToken tok, string why) {
+    public void AddUnsupported(IOrigin tok, string why) {
       if (emitUncompilableCode && currentBuilder is Container container) {
         container.AddUnsupported($"{TokenToString(tok)}: {why}");
       } else {
@@ -902,13 +902,8 @@ namespace Microsoft.Dafny.Compilers {
       needsTypeDescriptor = false;
     }
 
-<<<<<<< HEAD
     protected override bool DeclareFormal(string prefix, string name, Type type, IOrigin tok, bool isInParam, ConcreteSyntaxTree wr) {
-      AddUnsupported("<i>Declare formal</i>");
-=======
-    protected override bool DeclareFormal(string prefix, string name, Type type, IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
       AddUnsupported(tok, "<i>Declare formal</i>");
->>>>>>> origin/master
       return true;
     }
 
