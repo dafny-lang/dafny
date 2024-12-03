@@ -13,7 +13,7 @@ function myf(o: Ref): ()
   ()
 }
 
-method Main()
+method M()
   ensures false
 {
   var outer := new Ref();
@@ -25,6 +25,15 @@ method Main()
   outer.inner := inner1;
   var reads1 := myh.reads(outer);
   assert reads1 == {inner1}; // Error: assertion might not hold
+}
+
+method M2()
+  ensures false
+{
+  var outer := new Ref();
+
+  var myg := myf.requires;
+  var myh := myg.requires;
 
   var inner2 := new Ref();
   outer.inner := inner2;

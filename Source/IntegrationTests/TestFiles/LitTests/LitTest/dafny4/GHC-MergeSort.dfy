@@ -382,8 +382,10 @@ lemma sorted_reverse(xs: List<G>, ys: List<G>)
 {
   match xs
   case Nil =>
-  case Cons(x, rest) =>
+  case Cons(x, rest) => {
     sorted_reverse(rest, Cons(x, ys));
+    assert forall a,b :: a in multiset_of(xs) && b in multiset_of(ys) ==> Below(a, b);
+  }
 }
 
 lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
