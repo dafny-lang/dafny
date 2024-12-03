@@ -1,6 +1,6 @@
 module {:extern "DAST.Format"} DAST.Format
-/* Cues about how to format different AST elements if necessary,
-   e.g. to generate idiomatic code when needed. */
+  /* Cues about how to format different AST elements if necessary,
+     e.g. to generate idiomatic code when needed. */
 {
   // Dafny AST compilation tenets:
   // - The Compiled Dafny AST should be minimal
@@ -129,6 +129,19 @@ module {:extern "DAST"} DAST {
         case _ => false
       }
     }
+
+    predicate IsGeneralTrait() {
+      match this {
+        case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.IsGeneralTrait()
+            case Trait(GeneralTrait) => true
+            case _ => false
+          }
+        case _ => false
+      }
+    }
   }
 
   datatype Variance =
@@ -171,16 +184,16 @@ module {:extern "DAST"} DAST {
 
   datatype Attribute = Attribute(name: string, args: seq<string>)
 
-  datatype DatatypeType = DatatypeType()
-
-  datatype TraitType = TraitType()
-
   datatype NewtypeType = NewtypeType(baseType: Type, range: NewtypeRange, erase: bool)
+
+  datatype TraitType =
+    | ObjectTrait()     // Traits that extend objects with --type-system-refresh, all traits otherwise
+    | GeneralTrait()  // Traits that don't necessarily extend objects with --type-system-refresh
 
   datatype ResolvedTypeBase =
     | Class()
     | Datatype(variances: seq<Variance>)
-    | Trait()
+    | Trait(traitType: TraitType)
     | SynonymType(baseType: Type)
     | Newtype(baseType: Type, range: NewtypeRange, erase: bool)
 
@@ -216,7 +229,7 @@ module {:extern "DAST"} DAST {
     docString: string,
     enclosingModule: Ident,
     typeParams: seq<TypeArgDecl>,
-    superClasses: seq<Type>,
+    superTraitTypes: seq<Type>,
     fields: seq<Field>,
     body: seq<ClassItem>,
     attributes: seq<Attribute>)
@@ -225,6 +238,7 @@ module {:extern "DAST"} DAST {
     name: Name,
     docString: string,
     typeParams: seq<TypeArgDecl>,
+    traitType: TraitType,
     parents: seq<Type>,
     body: seq<ClassItem>,
     attributes: seq<Attribute>)
@@ -237,7 +251,8 @@ module {:extern "DAST"} DAST {
     ctors: seq<DatatypeCtor>,
     body: seq<ClassItem>,
     isCo: bool,
-    attributes: seq<Attribute>)
+    attributes: seq<Attribute>,
+    superTraitTypes: seq<Type>)
 
   datatype DatatypeDtor = DatatypeDtor(
     formal: Formal,

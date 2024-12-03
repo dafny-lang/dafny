@@ -41,14 +41,13 @@ namespace Microsoft.Dafny.Compilers {
 
     public static Module UnsupportedToModule(string why) {
       return new Module(
-        Sequence<Rune>.UnicodeFromString(why.Replace(".", ",")),
+        Sequence<Rune>.UnicodeFromString($"uncompilable/*{why.Replace(".", ",")}*/"),
         Sequence<Rune>.UnicodeFromString(""),
         Sequence<Attribute>.FromElements(
           (Attribute)Attribute.create_Attribute(
             Sequence<Rune>.UnicodeFromString("extern"),
             Sequence<Sequence<Rune>>.FromElements(
-              (Sequence<Rune>)Sequence<Rune>.UnicodeFromString(why))))
-        , false,
+              (Sequence<Rune>)Sequence<Rune>.UnicodeFromString($"uncompilable/*{why}*/")))), false,
         Std.Wrappers.Option<Sequence<ModuleItem>>.create_None());
     }
   }
@@ -167,8 +166,9 @@ namespace Microsoft.Dafny.Compilers {
   interface TraitContainer : Container {
     void AddTrait(Trait item);
 
-    public TraitBuilder Trait(string name, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents, ISequence<_IAttribute> attributes, string docString) {
-      return new TraitBuilder(this, name, docString, typeParams, parents, attributes);
+    public TraitBuilder Trait(string name, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents,
+      ISequence<_IAttribute> attributes, string docString, _ITraitType traitType) {
+      return new TraitBuilder(this, name, docString, typeParams, parents, attributes, traitType);
     }
   }
 
@@ -180,13 +180,15 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<DAST.Method> body = new();
     private ISequence<_IAttribute> attributes;
     private string docString;
+    private _ITraitType traitType;
 
-    public TraitBuilder(TraitContainer parent, string name, string docString, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents, ISequence<_IAttribute> attributes) {
+    public TraitBuilder(TraitContainer parent, string name, string docString, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents, ISequence<_IAttribute> attributes, _ITraitType traitType) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
       this.attributes = attributes;
       this.docString = docString;
+      this.traitType = traitType;
       this.parents = parents;
     }
 
@@ -211,6 +213,7 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<Rune>.UnicodeFromString(this.name),
         Sequence<Rune>.UnicodeFromString(this.docString),
         Sequence<DAST.TypeArgDecl>.FromArray(typeParams.ToArray()),
+        traitType,
         Sequence<DAST.Type>.FromArray(parents.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),
         attributes)
@@ -339,8 +342,8 @@ namespace Microsoft.Dafny.Compilers {
     void AddDatatype(Datatype item);
 
     public DatatypeBuilder Datatype(string name, string enclosingModule, List<DAST.TypeArgDecl> typeParams,
-      List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, string docString) {
-      return new DatatypeBuilder(this, name, docString, enclosingModule, typeParams, ctors, isCo, attributes);
+      List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, string docString, List<DAST.Type> superTraitTypes) {
+      return new DatatypeBuilder(this, name, docString, enclosingModule, typeParams, ctors, isCo, attributes, superTraitTypes);
     }
   }
 
@@ -354,8 +357,9 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<DAST.Method> body = new();
     private ISequence<_IAttribute> attributes;
     private string docString;
+    private List<DAST.Type> superTraitTypes;
 
-    public DatatypeBuilder(DatatypeContainer parent, string name, string docString, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes) {
+    public DatatypeBuilder(DatatypeContainer parent, string name, string docString, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, List<DAST.Type> superTraitTypes) {
       this.parent = parent;
       this.name = name;
       this.docString = docString;
@@ -364,6 +368,7 @@ namespace Microsoft.Dafny.Compilers {
       this.ctors = ctors;
       this.isCo = isCo;
       this.attributes = attributes;
+      this.superTraitTypes = superTraitTypes;
     }
 
     public void AddMethod(DAST.Method item) {
@@ -382,7 +387,8 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.TypeArgDecl>.FromArray(typeParams.ToArray()),
         Sequence<DAST.DatatypeCtor>.FromArray(ctors.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),
-        this.isCo, attributes
+        this.isCo, attributes,
+        Sequence<DAST.Type>.FromArray(superTraitTypes.ToArray())
       ));
       return parent;
     }
@@ -1045,7 +1051,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr value) {
       if (this.value != null) {
-        throw new InvalidOperationException();
+        AddUnsupported("Second value for ReturnBuilder");
       } else {
         this.value = value;
       }
@@ -1340,7 +1346,7 @@ namespace Microsoft.Dafny.Compilers {
 
     static DAST.Expression UnsupportedToExpr(string why) {
       return (DAST.Expression)DAST.Expression.create_Ident(
-        Sequence<ISequence<Rune>>.UnicodeFromString($"<i>Unsupported: {why}</i>")
+        Sequence<ISequence<Rune>>.UnicodeFromString($"uncompilable(\"<i>Unsupported: {why}</i>\")")
       );
     }
   }

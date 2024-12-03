@@ -82,7 +82,7 @@ module Std.JSON.Utils.Views.Writers {
       else UINT32_MAX
     }
 
-    opaque function Append(v': View): (rw: Writer)
+    function Append(v': View): (rw: Writer)
       requires Valid?
       ensures rw.Unsaturated? <==> v'.Length() < UINT32_MAX - length
       ensures rw.Bytes() == Bytes() + v'.Bytes()

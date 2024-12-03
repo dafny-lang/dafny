@@ -3078,36 +3078,45 @@ RevealStmt<out Statement s>
   .
 
 /*------------------------------------------------------------------------*/
-ForallStmt<out Statement/*!*/ s>
+ForallStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-     IToken/*!*/ x = Token.NoToken;
      List<BoundVar> bvars = null;
      Attributes qattrs = null;
      Expression range = null;
-     var ens = new List<AttributedExpression/*!*/>();
      IToken startToken = null;
-     BlockStmt block = null;
-     IToken bodyStart, bodyEnd;
-     IToken tok = Token.NoToken;
   .)
-  "forall"                                  (. x = t; tok = x; startToken = t; .)
+  "forall"                                  (. startToken = t; .)
 
   ( IF(la.kind == _openparen)  /* disambiguation needed, because of the possibility of a body-less forall statement */
-    "(" [ QuantifierDomain<out bvars, out qattrs, out range, true, true, true> ] ")"
-  |     [ IF(IsIdentifier(la.kind))  /* disambiguation needed, because of the possibility of a body-less forall statement */
-          QuantifierDomain<out bvars, out qattrs, out range, true, true, true>
-        ]
+    "("   (. errors.Deprecated(ErrorId.p_deprecated_forall_statement_with_parentheses_around_bound_variables, t,
+               "parentheses around the forall-statement bound variables are deprecated and not needed");
+          .)
+    [ QuantifierDomain<out bvars, out qattrs, out range, true, true, true> ]
+    ")"
+  | [ IF(IsIdentifier(la.kind))  /* disambiguation needed, because of the possibility of a body-less forall statement */
+      QuantifierDomain<out bvars, out qattrs, out range, true, true, true>
+    ]
   )
-  (. if (bvars == null) errors.Deprecated(ErrorId.p_deprecated_forall_with_no_bound_variables, startToken, "a forall statement with no bound variables is deprecated; use an 'assert by' statement instead");
-     if (bvars == null) { bvars = new List<BoundVar>(); }
-     if (range == null) { range = new LiteralExpr(x, true); }
+  (. if (bvars == null) {
+       errors.Deprecated(ErrorId.p_deprecated_forall_with_no_bound_variables, startToken,
+       "a forall statement with no bound variables is deprecated; use an 'assert by' statement instead");
+     }
+     bvars ??= new List<BoundVar>();
   .)
 
+  ForallStatementEnsuresAndBody<out s, startToken, bvars, qattrs, range>
+  .
+
+ForallStatementEnsuresAndBody<.out Statement s, IToken startToken, List<BoundVar> bvars, Attributes qattrs, Expression/*?*/ range.>
+= (. var ens = new List<AttributedExpression/*!*/>();
+     BlockStmt block = null;
+     range ??= new LiteralExpr(startToken, true);
+  .)
   {
     EnsuresClause<ens, true>
   }
   [ IF(la.kind == _lbrace)  /* if the input continues like a block statement, take it to be the body of the forall statement; a body-less forall statement must continue in some other way */
-    BlockStmt<out block, out bodyStart, out bodyEnd>
+    BlockStmt<out block, out _, out _>
   ]
   (. if (theOptions.DisallowSoundnessCheating && block == null && 0 < ens.Count) {
         SemErr(ErrorId.p_forall_with_ensures_must_have_body, t, "a forall statement with an ensures clause must have a body");
@@ -3981,7 +3990,7 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
      bool finite = true;
   .)
   ( "map" | "imap" (. finite = false; .) )     (. IToken mapToken = t; .)
-  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, allowBitwiseOps>
+  QuantifierDomain<out bvars, out attrs, out range, true, true, true>
   QSep
   Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsGets())  /* greedily parse ":=" */    (. bodyLeft = bodyRight; .)
@@ -4006,7 +4015,8 @@ EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
   | QuantifierExpression<out e, allowLemma, allowLambda>  /* types are such that we can allow bitwise operations in the quantifier body */
   | SetComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   | StmtInExpr<out s>
-    Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e) { RangeToken = new RangeToken(s.StartToken, e.EndToken) }; .)
+    Expression<out e, allowLemma, allowLambda, allowBitwiseOps>
+    (. e = new StmtExpr(s.Tok, s, e) { RangeToken = new RangeToken(s.StartToken, e.EndToken) }; .)
   | LetExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | MapComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
@@ -4484,20 +4494,30 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
      List<BoundVar/*!*/> bvars;
      Attributes attrs;
      Expression range;
-     Expression/*!*/ body;
+     q = dummyExpr;
   .)
   ( Forall                                     (. x = t;  univ = true; .)
   | Exists                                     (. x = t; .)
   )
-  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, true>
-  QSep
-  Expression<out body, allowLemma, allowLambda>
-  (. if (univ) {
-       q = new ForallExpr(x, new RangeToken(x, t), bvars, range, body, attrs);
-     } else {
-       q = new ExistsExpr(x, new RangeToken(x, t), bvars, range, body, attrs);
-     }
-  .)
+  QuantifierDomain<out bvars, out attrs, out range, true, true, true>
+  ( IF(univ && (la.kind == _ensures || la.kind == _lbrace))
+    // It's a forall statement. Parse it as part of a StmtExpr.
+    ForallStatementEnsuresAndBody<out var forallStatement, x, bvars, attrs, range>
+    Expression<out var expr, allowLemma, allowLambda>
+    (. q = new StmtExpr(forallStatement.Tok, forallStatement, expr) {
+         RangeToken = new RangeToken(forallStatement.StartToken, forallStatement.EndToken)
+       };
+    .)
+
+  | QSep
+    Expression<out var body, allowLemma, allowLambda>
+    (. if (univ) {
+         q = new ForallExpr(x, new RangeToken(x, t), bvars, range, body, attrs);
+       } else {
+         q = new ExistsExpr(x, new RangeToken(x, t), bvars, range, body, attrs);
+       }
+    .)
+  )
   .
 
 /*------------------------------------------------------------------------*/
@@ -4571,9 +4591,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
        // This production used to have its own version of QuantifierDomain in which the
        // range was not optional, so we map null to "true" here so that the rest of the
        // logic doesn't hit exceptions.
-       if (range == null) {
-         range = LiteralExpr.CreateBoolLiteral(new AutoGeneratedToken(t), true);
-       }
+       range ??= LiteralExpr.CreateBoolLiteral(new AutoGeneratedToken(t), true);
        q = new SetComprehension(setToken, new RangeToken(setToken, t), finite, bvars, range, body, attrs);
      }
   .)

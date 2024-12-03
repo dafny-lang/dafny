@@ -24,6 +24,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     "box","do","final","macro","override","priv","try","typeof","unsized",
     "virtual","yield"}
 
+  // Method names that would automatically resolve to trait methods instead of inherent methods
+  // Hence, full name is always required for these methods
+  const builtin_trait_preferred_methods := {
+    "le", "eq", "lt", "ge", "gt"
+  }
+
+
   const reserved_vars := { "None", "hash" }
 
   const reserved_rust_need_prefix := {"u8", "u16", "u32", "u64", "u128","i8", "i16", "i32", "i64", "i128"}
@@ -127,9 +134,10 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       escapeIdent(f.dafny_name)
   }
 
+  // T, &T, &mut T
+  // Box<T>, &Box<T>, Rc<T>, &Rc<T> are counted in T
   datatype Ownership =
     | OwnershipOwned
-    | OwnershipOwnedBox
     | OwnershipBorrowed
     | OwnershipBorrowedMut
     | OwnershipAutoBorrowed
@@ -163,6 +171,12 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     }
     predicate IsBorrowedMut(name: string) {
       name in types && types[name].BorrowedMut?
+    }
+    predicate IsBoxed(name: string) {
+      name in types && types[name].IsBox()
+    }
+    predicate NeedsAsRefForBorrow(name: string) {
+      name in types && types[name].NeedsAsRefForBorrow()
     }
     function AddAssigned(name: string, tpe: R.Type): Environment
       // If we know for sure the type of name extends the Copy trait
@@ -479,7 +493,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         defaultConstrainedTypeParams,
         R.DefaultTrait,
         datatypeType,
-        "",
         [R.FnDecl(
            R.NoDoc, R.NoAttr,
            R.PRIV,
@@ -500,7 +513,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("convert").MSel("AsRef").AsType().Apply1(datatypeType),
         R.Borrowed(datatypeType),
-        "",
         [R.FnDecl(
            R.NoDoc, R.NoAttr,
            R.PRIV,
@@ -516,7 +528,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("fmt").MSel("Debug").AsType(),
         datatypeType,
-        "",
         [
           R.FnDecl(
             R.NoDoc, R.NoAttr,
@@ -546,7 +557,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.DafnyPrint,
         datatypeType,
-        "",
         [R.FnDecl(
            R.NoDoc, R.NoAttr,
            R.PRIV,
@@ -574,7 +584,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.Impl(
         rTypeParamsDecls,
         datatypeType,
-        "",
         [R.FnDecl(
            "Given type parameter conversions, returns a lambda to convert this structure", R.NoAttr,
            R.PUB,
@@ -603,7 +612,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.Impl(
         rTypeParamsDecls,
         datatypeType,
-        "",
         [R.FnDecl(
            "Enumerates all possible values of " + datatypeType.ToString(""), [],
            R.PUB,
@@ -627,7 +635,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDeclsWithHash,
         R.Hash,
         datatypeOrNewtypeType,
-        "",
         [R.FnDecl(
            R.NoDoc, R.NoAttr,
            R.PRIV,
@@ -656,7 +663,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("ops").MSel(traitName).AsType(),
         newtypeType,
-        "",
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
             R.NoDoc, R.NoAttr,
@@ -693,7 +699,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("ops").MSel(traitName).AsType(),
         newtypeType,
-        "",
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
             R.NoDoc, R.NoAttr,
@@ -724,7 +729,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("cmp").MSel("PartialOrd").AsType(),
         newtypeType,
-        "",
         [ R.FnDecl(
             R.NoDoc, R.NoAttr,
             R.PRIV,

@@ -17,6 +17,7 @@ module ArithmeticTests {
   }
 
   @Test
+  @IsolateAssertions
   method TestPowLog() {
     expect Pow(-4, 0) == 1;
     expect Pow(-2, 2) == 4;

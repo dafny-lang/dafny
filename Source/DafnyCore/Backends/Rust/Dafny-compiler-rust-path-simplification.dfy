@@ -29,10 +29,10 @@ module FactorPathsOptimizationTest {
               Struct(NoDoc, [], "test", [T_Decl],
                      NamedFields([Field(PUB, Formal("a", std_any_Any.AsType()))]))),
             //                                   ::std::any::Any ==> Any
-            ImplDecl(Impl([T_Decl], TIdentifier("test").Apply([T]), "", [])),
+            ImplDecl(Impl([T_Decl], TIdentifier("test").Apply([T]), [])),
             ImplDecl(
               ImplFor(
-                [T_Decl], std_any_Any.AsType(), crate.MSel("onemodule").MSel("test").AsType().Apply([T]), "", []))
+                [T_Decl], std_any_Any.AsType(), crate.MSel("onemodule").MSel("test").AsType().Apply([T]), []))
             //         ::std::any::Any ==> Any  crate::onemodule::test ==> test
           ])),
       Mod(
@@ -43,8 +43,8 @@ module FactorPathsOptimizationTest {
           StructDecl(
             Struct(NoDoc, [], "test", [T_Decl_simp],
                    NamedFields([Field(PUB, Formal("a", Any))]))),
-          ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), "", [])),
-          ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
+          ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), [])),
+          ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), []))
         ]));
     ShouldBeEqual(
       apply(crate)(
@@ -54,7 +54,7 @@ module FactorPathsOptimizationTest {
             ImplDecl(
               ImplFor(
                 [T_Decl], dafny_runtime.MSel("UpcastObject").AsType().Apply([TIdentifier("x")]),
-                TIdentifier("test").Apply([T]), "", []))
+                TIdentifier("test").Apply([T]), []))
           ])),
       Mod(
         NoDoc, NoAttr,
@@ -64,7 +64,7 @@ module FactorPathsOptimizationTest {
           ImplDecl(
             ImplFor(
               [T_Decl_simp], TIdentifier("UpcastObject").Apply([TIdentifier("x")]),
-              TIdentifier("test").Apply([T]), "", []))
+              TIdentifier("test").Apply([T]), []))
         ]));
     ShouldBeEqual(
       apply(crate)(
