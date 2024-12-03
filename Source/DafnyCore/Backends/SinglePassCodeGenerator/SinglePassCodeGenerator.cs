@@ -1571,8 +1571,7 @@ namespace Microsoft.Dafny.Compilers {
         classIsExtern =
           (!Options.DisallowExterns && Attributes.Contains(defaultClassDecl.Attributes, "extern")) ||
           Attributes.Contains(defaultClassDecl.EnclosingModuleDefinition.Attributes, "extern");
-        if (classIsExtern && defaultClassDecl.Members.TrueForAll(member =>
-              member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+        if (classIsExtern && defaultClassDecl.Members.All(member => member.IsGhost || IsExternallyImported(member))) {
           include = false;
         }
       }
