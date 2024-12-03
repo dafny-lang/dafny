@@ -1,6 +1,7 @@
-### Description
+<!-- Please remove these Markdown comments before publishing this PR, since the PR message is used as the commit description -->
+
+### What was changed?
 <!-- Is this a user-visible change?  Remember to update RELEASE_NOTES.md -->
-<!-- Is this a bug fix for an issue visible in the latest release?  Mention this in the PR details and ensure a patch release is considered -->
 
 ### How has this been tested?
 <!-- Tests can be added to `Source/IntegrationTests/TestFiles/LitTests/LitTest/` or to `Source/*.Test/…` and run with `dotnet test` -->
