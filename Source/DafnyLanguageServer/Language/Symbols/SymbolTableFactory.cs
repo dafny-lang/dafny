@@ -330,8 +330,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           typeSymbol,
-          typeSymbol.Declaration.tok,
-          typeSymbol.Declaration.tok.GetLspRange(),
+          typeSymbol.Declaration.Origin,
+          typeSymbol.Declaration.NameNode.Origin.GetLspRange(),
           new Range(typeSymbol.Declaration.Origin.StartToken.GetLspPosition(), typeSymbol.Declaration.Origin.EndToken.GetLspPosition())
         );
         VisitChildren(typeSymbol);
@@ -424,13 +424,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private void RegisterLocation(ILegacySymbol symbol, IOrigin token, Range name, Range declaration) {
-        if (token.Filepath != null) {
+      private void RegisterLocation(ILegacySymbol symbol, IOrigin origin, Range name, Range declaration) {
+        if (origin.Filepath != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           var locationsForUri =
-            Locations.GetValueOrDefault(token.Uri) ?? new Dictionary<ILegacySymbol, SymbolLocation>();
-          Locations = Locations.SetItem(token.Uri, locationsForUri);
-          locationsForUri.Add(symbol, new SymbolLocation(token.Uri, name, declaration));
+            Locations.GetValueOrDefault(origin.Uri) ?? new Dictionary<ILegacySymbol, SymbolLocation>();
+          Locations = Locations.SetItem(origin.Uri, locationsForUri);
+          locationsForUri.Add(symbol, new SymbolLocation(origin.Uri, name, declaration));
         }
       }
     }
