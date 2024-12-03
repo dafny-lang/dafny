@@ -28,7 +28,7 @@ public abstract class ExtremeLemma : Method {
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
     BlockStmt body,
-    Attributes attributes, IToken signatureEllipsis)
+    Attributes attributes, IOrigin signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
@@ -58,7 +58,7 @@ public class LeastLemma : ExtremeLemma {
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
     BlockStmt body,
-    Attributes attributes, IToken signatureEllipsis)
+    Attributes attributes, IOrigin signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
@@ -88,7 +88,7 @@ public class GreatestLemma : ExtremeLemma {
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
     BlockStmt body,
-    Attributes attributes, IToken signatureEllipsis)
+    Attributes attributes, IOrigin signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);

@@ -1566,7 +1566,7 @@ public class InRange : ProofObligationDescription {
       }, new List<BinaryExpr.Opcode>() {
         BinaryExpr.Opcode.Le,
         upperExcluded ? BinaryExpr.Opcode.Lt : BinaryExpr.Opcode.Le
-      }, new List<IToken>() { Token.NoToken, Token.NoToken },
+      }, new List<IOrigin>() { Token.NoToken, Token.NoToken },
         new List<Expression>() { null, null });
     }
 
@@ -1606,7 +1606,7 @@ public class SequenceSelectRangeValid : ProofObligationDescription {
     }, new List<BinaryExpr.Opcode>() {
       BinaryExpr.Opcode.Le,
       BinaryExpr.Opcode.Le
-    }, new List<IToken>() { Token.NoToken, Token.NoToken }, new List<Expression>() { null, null });
+    }, new List<IOrigin>() { Token.NoToken, Token.NoToken }, new List<Expression>() { null, null });
   }
 }
 
@@ -1908,7 +1908,7 @@ internal class Utils {
       Token.NoToken,
       indexRanges,
       Enumerable.Repeat(BinaryExpr.Opcode.And, dims.Count - 1).ToList(),
-      Enumerable.Repeat(Token.NoToken as IToken, dims.Count - 1).ToList(),
+      Enumerable.Repeat(Token.NoToken as IOrigin, dims.Count - 1).ToList(),
       Enumerable.Repeat(null as Expression, dims.Count - 1).ToList()
     );
   }

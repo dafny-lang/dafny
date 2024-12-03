@@ -17,7 +17,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
   public readonly List<AttributedExpression> YieldEnsures;
   public readonly BlockStmt Body;
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
-  public readonly IToken SignatureEllipsis;
+  public readonly IOrigin SignatureEllipsis;
   public readonly List<Field> OutsFields;
   public readonly List<Field> OutsHistoryFields;  // these are the 'xs' variables
   [FilledInDuringResolution] public readonly List<Field> DecreasesFields;
@@ -36,7 +36,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     List<AttributedExpression> ensures,
     List<AttributedExpression> yieldRequires,
     List<AttributedExpression> yieldEnsures,
-    BlockStmt body, Attributes attributes, IToken signatureEllipsis)
+    BlockStmt body, Attributes attributes, IOrigin signatureEllipsis)
     : base(rangeToken, name, module, typeArgs, new List<MemberDecl>(), attributes, signatureEllipsis != null, null) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
@@ -501,7 +501,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
   }
 
   public override string GetTriviaContainingDocstring() {
-    IToken lastClosingParenthesis = null;
+    IOrigin lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
         lastClosingParenthesis = token;

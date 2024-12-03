@@ -12,11 +12,11 @@ namespace Microsoft.Dafny;
 
 public interface INode {
   bool SingleFileToken { get; }
-  public IToken StartToken => RangeToken.StartToken;
-  public IToken EndToken => RangeToken.EndToken;
-  IEnumerable<IToken> OwnedTokens { get; }
+  public IOrigin StartToken => RangeToken.StartToken;
+  public IOrigin EndToken => RangeToken.EndToken;
+  IEnumerable<IOrigin> OwnedTokens { get; }
   RangeToken RangeToken { get; }
-  IToken Tok { get; }
+  IOrigin Tok { get; }
   IEnumerable<INode> Children { get; }
   IEnumerable<INode> PreResolveChildren { get; }
 }
@@ -33,13 +33,13 @@ public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
 
-  protected IReadOnlyList<IToken> OwnedTokensCache;
+  protected IReadOnlyList<IOrigin> OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
-  public IToken StartToken => RangeToken?.StartToken;
+  public IOrigin StartToken => RangeToken?.StartToken;
 
-  public IToken EndToken => RangeToken?.EndToken;
-  public abstract IToken Tok { get; }
+  public IOrigin EndToken => RangeToken?.EndToken;
+  public abstract IOrigin Tok { get; }
 
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
@@ -56,7 +56,7 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<INode> PreResolveChildren { get; }
 
-  public IEnumerable<IToken> CoveredTokens {
+  public IEnumerable<IOrigin> CoveredTokens {
     get {
       var token = StartToken;
       if (token == Token.NoToken) {
@@ -73,7 +73,7 @@ public abstract class Node : INode {
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
   /// </summary>
-  public IEnumerable<IToken> OwnedTokens {
+  public IEnumerable<IOrigin> OwnedTokens {
     get {
       if (OwnedTokensCache != null) {
         return OwnedTokensCache;
@@ -90,7 +90,7 @@ public abstract class Node : INode {
         ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
       );
 
-      var result = new List<IToken>();
+      var result = new List<IOrigin>();
       if (StartToken == null) {
         Contract.Assume(EndToken == null);
       } else {
@@ -209,14 +209,14 @@ public abstract class TokenNode : Node {
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal IToken[] FormatTokens = null;
+  internal IOrigin[] FormatTokens = null;
 
   protected RangeToken rangeToken = null;
 
-  public IToken tok = Token.NoToken;
+  public IOrigin tok = Token.NoToken;
 
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IToken Tok {
+  public override IOrigin Tok {
     get => tok;
   }
 
@@ -227,7 +227,7 @@ public abstract class TokenNode : Node {
         var startTok = tok;
         var endTok = tok;
 
-        void UpdateStartEndToken(IToken token1) {
+        void UpdateStartEndToken(IOrigin token1) {
           if (token1.Filepath != tok.Filepath) {
             return;
           }
@@ -274,9 +274,9 @@ public abstract class TokenNode : Node {
 
 public abstract class RangeNode : Node { // TODO merge into Node when TokenNode is gone.
 
-  public override IToken Tok => StartToken; // TODO rename to ReportingToken in separate PR
+  public override IOrigin Tok => StartToken; // TODO rename to ReportingToken in separate PR
 
-  public IToken tok => Tok; // TODO replace with Tok in separate PR
+  public IOrigin tok => Tok; // TODO replace with Tok in separate PR
 
   // TODO rename to Range in separate PR
   public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.

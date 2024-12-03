@@ -107,7 +107,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
 
   string RedirectingTypeDecl.Name { get { return Name; } }
-  IToken RedirectingTypeDecl.tok { get { return tok; } }
+  IOrigin RedirectingTypeDecl.tok { get { return tok; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
@@ -151,7 +151,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
 
   public string GetTriviaContainingDocstring() {
-    IToken candidate = null;
+    IOrigin candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
         candidate = token.Prev;

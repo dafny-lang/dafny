@@ -28,9 +28,9 @@ namespace Microsoft.Dafny;
 public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanFormat {
   public readonly Statement? S;
   public bool ConditionOmitted => ConditionEllipsis != null;
-  public readonly IToken? ConditionEllipsis;
+  public readonly IOrigin? ConditionEllipsis;
   public bool BodyOmitted => BodyEllipsis != null;
-  public readonly IToken? BodyEllipsis;
+  public readonly IOrigin? BodyEllipsis;
 
   public SkeletonStatement Clone(Cloner cloner) {
     return new SkeletonStatement(cloner, this);
@@ -47,7 +47,7 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanF
     Contract.Requires(rangeToken != null);
     S = null;
   }
-  public SkeletonStatement(Statement s, IToken conditionEllipsis, IToken bodyEllipsis)
+  public SkeletonStatement(Statement s, IOrigin conditionEllipsis, IOrigin bodyEllipsis)
     : base(s.RangeToken) {
     Contract.Requires(s != null);
     S = s;

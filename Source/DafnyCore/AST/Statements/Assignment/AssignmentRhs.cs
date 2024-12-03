@@ -22,7 +22,7 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
     RangeToken = cloner.Range(original.rangeToken);
   }
 
-  internal AssignmentRhs(IToken tok, Attributes attrs = null) {
+  internal AssignmentRhs(IOrigin tok, Attributes attrs = null) {
     this.tok = tok;
     Attributes = attrs;
   }

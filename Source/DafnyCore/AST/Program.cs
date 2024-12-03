@@ -110,11 +110,11 @@ public class Program : TokenNode {
 
   /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
   /// (skips included tokens)
-  public IToken GetStartOfFirstFileToken() {
+  public IOrigin GetStartOfFirstFileToken() {
     return GetFirstTokenForUri(Compilation.RootSourceUris[0]);
   }
 
-  public IToken GetFirstTokenForUri(Uri uri) {
+  public IOrigin GetFirstTokenForUri(Uri uri) {
     return this.FindNodesInUris(uri).MinBy(n => n.RangeToken.StartToken.pos)?.StartToken;
   }
 

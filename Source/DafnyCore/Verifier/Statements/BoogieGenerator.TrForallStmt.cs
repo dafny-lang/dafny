@@ -72,7 +72,7 @@ public partial class BoogieGenerator {
   }
 
 
-  void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, List<BoundedPool> bounds,
+  void TrForallStmtCall(IOrigin tok, List<BoundVar> boundVars, List<BoundedPool> bounds,
     Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, List<List<Expression>> triggers, CallStmt s0,
     BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, Variables locals, ExpressionTranslator etran) {
     Contract.Requires(tok != null);
@@ -430,7 +430,7 @@ public partial class BoogieGenerator {
   ///   G             is rhs
   /// If lhsAsTrigger is true, then use the LHS of the equality above as the trigger; otherwise, don't specify any trigger.
   /// </summary>
-  private Bpl.Expr TrForall_NewValueAssumption(IToken tok, List<BoundVar> boundVars, List<BoundedPool> bounds, Expression range, Expression lhs, Expression rhs, Attributes attributes, ExpressionTranslator etran, ExpressionTranslator prevEtran) {
+  private Bpl.Expr TrForall_NewValueAssumption(IOrigin tok, List<BoundVar> boundVars, List<BoundedPool> bounds, Expression range, Expression lhs, Expression rhs, Attributes attributes, ExpressionTranslator etran, ExpressionTranslator prevEtran) {
     Contract.Requires(tok != null);
     Contract.Requires(boundVars != null);
     Contract.Requires(bounds != null);

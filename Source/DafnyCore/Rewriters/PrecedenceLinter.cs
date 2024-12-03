@@ -225,7 +225,7 @@ namespace Microsoft.Dafny {
       Visit(expr, null);
     }
 
-    void VisitLhsComponent(IToken errorToken, Expression expr, int leftMargin, string what) {
+    void VisitLhsComponent(IOrigin errorToken, Expression expr, int leftMargin, string what) {
       if (expr is ParensExpression || expr.StartToken.line == errorToken.line) {
         VisitIndependentComponent(expr);
       } else {
@@ -238,11 +238,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void VisitRhsComponent(IToken errorToken, Expression expr, string what) {
+    void VisitRhsComponent(IOrigin errorToken, Expression expr, string what) {
       VisitRhsComponent(errorToken, expr, expr.StartToken.col, what);
     }
 
-    void VisitRhsComponent(IToken errorToken, Expression expr, int rightMargin, string what) {
+    void VisitRhsComponent(IOrigin errorToken, Expression expr, int rightMargin, string what) {
       if (expr is ParensExpression || errorToken.FromIncludeDirective(compilation)) {
         VisitIndependentComponent(expr);
       } else {
@@ -255,7 +255,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static string LineCol(IToken tok) {
+    static string LineCol(IOrigin tok) {
       return $"line {tok.line}, column {tok.col}";
     }
   }

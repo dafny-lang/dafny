@@ -9,14 +9,14 @@ namespace Microsoft.Dafny;
 public class SubsetConstraintGhostChecker : ProgramTraverser {
   private class FirstErrorCollector : ErrorReporter {
     public string FirstCollectedMessage = "";
-    public IToken FirstCollectedToken = Token.NoToken;
+    public IOrigin FirstCollectedToken = Token.NoToken;
     public bool Collected = false;
 
-    public bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+    public bool Message(MessageSource source, ErrorLevel level, IOrigin tok, string msg) {
       return Message(source, level, ErrorRegistry.NoneId, tok, msg);
     }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
       if (!Collected && level == ErrorLevel.Error) {
         FirstCollectedMessage = msg;
         FirstCollectedToken = tok;
@@ -86,7 +86,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
         if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraints) {
           if (!declWithConstraints.ConstraintIsCompilable) {
 
-            IToken finalToken = boundVar.tok;
+            IOrigin finalToken = boundVar.tok;
             if (declWithConstraints.Constraint != null && declWithConstraints.Constraint.tok.line != 0) {
               var errorCollector = new FirstErrorCollector(reporter.Options);
               ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraints.Constraint,

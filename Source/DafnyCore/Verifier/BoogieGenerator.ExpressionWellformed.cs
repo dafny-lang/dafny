@@ -90,7 +90,7 @@ namespace Microsoft.Dafny {
         Locals, CreateAsserts, lValueContext, AssertKv);
     }
 
-    public Action<IToken, Bpl.Expr, ProofObligationDescription, Bpl.QKeyValue> AssertSink(BoogieGenerator tran, BoogieStmtListBuilder builder) {
+    public Action<IOrigin, Bpl.Expr, ProofObligationDescription, Bpl.QKeyValue> AssertSink(BoogieGenerator tran, BoogieStmtListBuilder builder) {
       return (t, e, d, qk) => {
         if (Locals != null) {
           var b = BoogieGenerator.BplLocalVar(tran.CurrentIdGenerator.FreshId("b$reqreads#"), Bpl.Type.Bool, Locals);
@@ -1417,7 +1417,7 @@ namespace Microsoft.Dafny {
     /// end of the code generated. (Any other exit would cause control flow to miss
     /// BuildWithHeapAs's assignment that restores the value of $Heap.)
     /// </summary>
-    void BuildWithHeapAs(IToken token, Bpl.Expr temporaryHeap, string heapVarSuffix, Variables locals,
+    void BuildWithHeapAs(IOrigin token, Bpl.Expr temporaryHeap, string heapVarSuffix, Variables locals,
       BoogieStmtListBuilder builder, System.Action build) {
       var suffix = CurrentIdGenerator.FreshId(heapVarSuffix);
       var tmpHeapVar = locals.GetOrAdd(new Bpl.LocalVariable(token, new Bpl.TypedIdent(token, "Heap$" + suffix, Predef.HeapType)));
@@ -1581,7 +1581,7 @@ namespace Microsoft.Dafny {
     /// and for a sequence ("!forArray"):
     ///     assert (forall i0 :: 0 <= i0 < dims[0] && ... ==> init.requires(i0));
     /// </summary>
-    private void CheckElementInit(IToken tok, bool forArray, List<Expression> dims, Type elementType, Expression init,
+    private void CheckElementInit(IOrigin tok, bool forArray, List<Expression> dims, Type elementType, Expression init,
       Bpl.IdentifierExpr/*?*/ nw, BoogieStmtListBuilder builder, ExpressionTranslator etran, WFOptions options) {
       Contract.Requires(tok != null);
       Contract.Requires(dims != null && dims.Count != 0);
@@ -1632,7 +1632,7 @@ namespace Microsoft.Dafny {
           FunctionCall(tok, Reads(1), TrType(objset), args),
           objset);
         var reads = new FrameExpression(tok, wrap, null);
-        Action<IToken, Bpl.Expr, ProofObligationDescription, Bpl.QKeyValue> maker = (t, e, d, qk) => {
+        Action<IOrigin, Bpl.Expr, ProofObligationDescription, Bpl.QKeyValue> maker = (t, e, d, qk) => {
           var qe = new Bpl.ForallExpr(t, bvs, BplImp(ante, e));
           options.AssertSink(this, builder)(t, qe, d, qk);
         };

@@ -44,7 +44,7 @@ public class Constructor : Method {
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
     DividedBlockStmt body,
-    Attributes attributes, IToken signatureEllipsis)
+    Attributes attributes, IOrigin signatureEllipsis)
     : base(rangeToken, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);

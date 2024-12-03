@@ -126,7 +126,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
     }
   }
 
-  public void RecursiveCallParameters(IToken tok, List<TypeParameter> typeParams, List<Formal> ins,
+  public void RecursiveCallParameters(IOrigin tok, List<TypeParameter> typeParams, List<Formal> ins,
     Expression receiverSubst, Dictionary<IVariable, Expression> substMap,
     out Expression receiver, out List<Expression> arguments) {
     Contract.Requires(tok != null);

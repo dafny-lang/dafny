@@ -145,7 +145,7 @@ namespace Microsoft.Dafny {
 
     private bool TrAssertCondition(PredicateStmt stmt,
       ExpressionTranslator etran, BoogieStmtListBuilder proofBuilder) {
-      IToken enclosingToken = null;
+      IOrigin enclosingToken = null;
       if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
         enclosingToken = stmt.Tok;
       }

@@ -20,7 +20,7 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
     Contract.Invariant(Rhs != null);
   }
 
-  public override IToken Tok {
+  public override IOrigin Tok {
     get {
       if (Rhs.StartToken.Prev is not null) {
         var previous = Rhs.StartToken.Prev;

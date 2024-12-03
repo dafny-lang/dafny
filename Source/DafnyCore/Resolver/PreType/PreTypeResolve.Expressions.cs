@@ -798,7 +798,7 @@ namespace Microsoft.Dafny {
       });
     }
 
-    private PreType ResolveBinaryExpr(IToken tok, BinaryExpr.Opcode opcode, Expression e0, Expression e1, ResolutionContext resolutionContext) {
+    private PreType ResolveBinaryExpr(IOrigin tok, BinaryExpr.Opcode opcode, Expression e0, Expression e1, ResolutionContext resolutionContext) {
       var opString = BinaryExpr.OpcodeString(opcode);
       PreType resultPreType;
       switch (opcode) {
@@ -1034,12 +1034,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private PreType ConstrainResultToBoolFamilyOperator(IToken tok, string opString) {
+    private PreType ConstrainResultToBoolFamilyOperator(IOrigin tok, string opString) {
       var proxyDescription = $"result of {opString} operation";
       return ConstrainResultToBoolFamily(tok, proxyDescription, "type of " + opString + " must be a boolean (got {0})");
     }
 
-    private PreType ConstrainResultToBoolFamily(IToken tok, string proxyDescription, string errorFormat) {
+    private PreType ConstrainResultToBoolFamily(IOrigin tok, string proxyDescription, string errorFormat) {
       var pt = CreatePreTypeProxy(proxyDescription);
       Constraints.AddDefaultAdvice(pt, CommonAdvice.Target.Bool);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, pt, tok, errorFormat);
@@ -1052,17 +1052,17 @@ namespace Microsoft.Dafny {
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, expr.PreType, expr.tok, errorFormat);
     }
 
-    private void ConstrainToIntFamily(PreType preType, IToken tok, string errorFormat) {
+    private void ConstrainToIntFamily(PreType preType, IOrigin tok, string errorFormat) {
       Constraints.AddDefaultAdvice(preType, CommonAdvice.Target.Int);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, preType, tok, errorFormat);
     }
 
-    private void ConstrainToIntFamilyOrBitvector(PreType preType, IToken tok, string errorFormat) {
+    private void ConstrainToIntFamilyOrBitvector(PreType preType, IOrigin tok, string errorFormat) {
       Constraints.AddDefaultAdvice(preType, CommonAdvice.Target.Int);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, preType, tok, errorFormat);
     }
 
-    private void ConstrainToCommonSupertype(IToken tok, string opString, PreType a, PreType b, PreType commonSupertype) {
+    private void ConstrainToCommonSupertype(IOrigin tok, string opString, PreType a, PreType b, PreType commonSupertype) {
       if (commonSupertype == null) {
         commonSupertype = CreatePreTypeProxy($"element type of common {opString} supertype");
       }
@@ -1071,7 +1071,7 @@ namespace Microsoft.Dafny {
       AddSubtypeConstraint(commonSupertype, b, tok, errorFormat);
     }
 
-    private void ConstrainOperandTypes(IToken tok, string opString, Expression e0, Expression e1, PreType resultPreType) {
+    private void ConstrainOperandTypes(IOrigin tok, string opString, Expression e0, Expression e1, PreType resultPreType) {
       if (e0 != null) {
         AddSubtypeConstraint(resultPreType, e0.PreType, tok,
           $"type of left argument to {opString} ({{1}}) must agree with the result type ({{0}})");
@@ -1092,7 +1092,7 @@ namespace Microsoft.Dafny {
     /// "receiverPreType" is an unresolved proxy type and that, after solving more type constraints, "receiverPreType"
     /// eventually gets set to a type more specific than "tentativeReceiverType".
     /// </summary>
-    (MemberDecl /*?*/, DPreType /*?*/) FindMember(IToken tok, PreType receiverPreType, string memberName, ResolutionContext resolutionContext,
+    (MemberDecl /*?*/, DPreType /*?*/) FindMember(IOrigin tok, PreType receiverPreType, string memberName, ResolutionContext resolutionContext,
       bool reportErrorOnMissingMember = true) {
       Contract.Requires(tok != null);
       Contract.Requires(receiverPreType != null);
@@ -1133,7 +1133,7 @@ namespace Microsoft.Dafny {
       return (null, null);
     }
 
-    private void ReportMemberNotFoundError(IToken tok, string memberName, [CanBeNull] Dictionary<string, MemberDecl> members,
+    private void ReportMemberNotFoundError(IOrigin tok, string memberName, [CanBeNull] Dictionary<string, MemberDecl> members,
       TopLevelDecl receiverDecl, ResolutionContext resolutionContext) {
       if (memberName.StartsWith(HideRevealStmt.RevealLemmaPrefix)) {
         var nameToBeRevealed = memberName[HideRevealStmt.RevealLemmaPrefix.Length..];
@@ -1339,7 +1339,7 @@ namespace Microsoft.Dafny {
       return rWithArgs;
     }
 
-    private void ReportUnresolvedIdentifierError(IToken tok, string name, ResolutionContext resolutionContext) {
+    private void ReportUnresolvedIdentifierError(IOrigin tok, string name, ResolutionContext resolutionContext) {
       if (resolutionContext.InReveal) {
         var nameToReport = name.StartsWith(HideRevealStmt.RevealLemmaPrefix) ? name[HideRevealStmt.RevealLemmaPrefix.Length..] : name;
         ReportError(tok,
@@ -1350,7 +1350,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
+    private Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IOrigin tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(decl != null);
@@ -1612,7 +1612,7 @@ namespace Microsoft.Dafny {
       return rWithArgs;
     }
 
-    Expression ResolveExprDotCall(IToken tok, Expression receiver, DPreType receiverPreTypeBound/*?*/,
+    Expression ResolveExprDotCall(IOrigin tok, Expression receiver, DPreType receiverPreTypeBound/*?*/,
       MemberDecl member, List<ActualBinding> args, List<Type> optTypeArguments, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
@@ -1699,7 +1699,7 @@ namespace Microsoft.Dafny {
       return rr;
     }
 
-    void AddTypeBoundConstraints(IToken tok, List<TypeParameter> typeParameters, Dictionary<TypeParameter, PreType> subst) {
+    void AddTypeBoundConstraints(IOrigin tok, List<TypeParameter> typeParameters, Dictionary<TypeParameter, PreType> subst) {
       foreach (var typeParameter in typeParameters) {
         foreach (var preTypeBound in TypeParameterBounds2PreTypes(typeParameter)) {
           var preTypeBoundWithSubst = preTypeBound.Substitute(subst);
@@ -1851,8 +1851,8 @@ namespace Microsoft.Dafny {
     /// desugaring during resolution, because then the desugaring can be constructed as a non-resolved expression on which ResolveExpression
     /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
-    (Expression, Expression) ResolveDatatypeUpdate(IToken tok, DPreType rootPreType, Expression root, DatatypeDecl dt,
-      List<Tuple<IToken, string, Expression>> memberUpdates,
+    (Expression, Expression) ResolveDatatypeUpdate(IOrigin tok, DPreType rootPreType, Expression root, DatatypeDecl dt,
+      List<Tuple<IOrigin, string, Expression>> memberUpdates,
       ResolutionContext resolutionContext, out List<MemberDecl> members, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
@@ -1948,7 +1948,7 @@ namespace Microsoft.Dafny {
     ///       CandidateResultConstructorN(x, y, ..., d.k0, d.k1, ...)
     ///
     /// </summary>
-    private Expression DesugarDatatypeUpdate(IToken tok, Expression root, DPreType rootPreType,
+    private Expression DesugarDatatypeUpdate(IOrigin tok, Expression root, DPreType rootPreType,
       List<DatatypeCtor> candidateResultCtors, Dictionary<string, Tuple<BoundVar, IdentifierExpr, Expression>> rhsBindings,
       ResolutionContext resolutionContext) {
       Contract.Requires(1 <= candidateResultCtors.Count);
@@ -2151,7 +2151,7 @@ namespace Microsoft.Dafny {
       return ok && ctor.Formals.Count == dtv.Arguments.Count;
     }
 
-    PreType ResolveSingleSelectionExpr(IToken tok, PreType collectionPreType, Expression index) {
+    PreType ResolveSingleSelectionExpr(IOrigin tok, PreType collectionPreType, Expression index) {
       var resultPreType = CreatePreTypeProxy("selection []");
       Constraints.AddGuardedConstraint(() => {
         var sourcePreType = Constraints.ApproximateReceiverType(collectionPreType, null);
@@ -2183,7 +2183,7 @@ namespace Microsoft.Dafny {
       return resultPreType;
     }
 
-    void ResolveRangeSelectionExpr(IToken tok, PreType sourceCollectionPreType, Expression expr, Expression e0, Expression e1) {
+    void ResolveRangeSelectionExpr(IOrigin tok, PreType sourceCollectionPreType, Expression expr, Expression e0, Expression e1) {
       var resultElementPreType = CreatePreTypeProxy("index-range selection elements");
       SetupCollectionProducingExpr(PreType.TypeNameSeq, "index-range selection", expr, resultElementPreType);
 
@@ -2258,7 +2258,7 @@ namespace Microsoft.Dafny {
             : resolver.LetPatIn(expr.tok, expr.Lhs, resolver.VarDotFunction(expr.tok, burrito, "Extract"), expr.Body)));
     }
 
-    private void EnsureSupportsErrorHandling(IToken tok, DPreType burritoPreType, bool expectExtract, ResolutionContext resolutionContext, [CanBeNull] string keyword) {
+    private void EnsureSupportsErrorHandling(IOrigin tok, DPreType burritoPreType, bool expectExtract, ResolutionContext resolutionContext, [CanBeNull] string keyword) {
       Contract.Requires(tok != null);
       Contract.Requires(burritoPreType != null);
 

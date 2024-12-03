@@ -773,7 +773,7 @@ namespace Microsoft.Dafny {
 
         // construct an expression (generator) for:  VF' << VF
         ExpressionConverter decrCheck = delegate (Dictionary<IVariable, Expression> decrSubstMap, ExpressionTranslator exprTran) {
-          var decrToks = new List<IToken>();
+          var decrToks = new List<IOrigin>();
           var decrTypes = new List<Type>();
           var decrCallee = new List<Expr>();
           var decrCaller = new List<Expr>();
@@ -1195,7 +1195,7 @@ namespace Microsoft.Dafny {
 
       QKeyValue kv = etran.TrAttributes(func.Attributes, null);
 
-      IToken tok = func.tok;
+      IOrigin tok = func.tok;
       // Declare a local variable $_ReadsFrame: [ref, Field]bool
       Bpl.IdentifierExpr traitFrame = etran.ReadsFrame(func.OverriddenFunction.tok);  // this is a throw-away expression, used only to extract the type and name of the $_ReadsFrame variable
       traitFrame.Name = func.EnclosingClass.Name + "_" + traitFrame.Name;
@@ -1550,7 +1550,7 @@ namespace Microsoft.Dafny {
       }
 
       int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
-      var toks = new List<IToken>();
+      var toks = new List<IOrigin>();
       var callee = new List<Expr>();
       var caller = new List<Expr>();
       var calleeDafny = new List<Expression>();
@@ -1901,7 +1901,7 @@ namespace Microsoft.Dafny {
       InsertChecksum(decl, data);
     }
 
-    internal IEnumerable<Bpl.Expr> TypeBoundAxioms(IToken tok, List<TypeParameter> typeParameters) {
+    internal IEnumerable<Bpl.Expr> TypeBoundAxioms(IOrigin tok, List<TypeParameter> typeParameters) {
       foreach (var typeParameter in typeParameters.Where(typeParameter => typeParameter.TypeBounds.Any())) {
         TypeBoundAxiomExpressions(tok, new List<Variable>(), new UserDefinedType(typeParameter), typeParameter.TypeBounds,
           out var isBoxExpr, out var isAllocBoxExpr);
@@ -1910,7 +1910,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void TypeBoundAxiomExpressions(IToken tok, List<Bpl.Variable> bvarsTypeParameters, Type type, List<Type> typeBounds,
+    public void TypeBoundAxiomExpressions(IOrigin tok, List<Bpl.Variable> bvarsTypeParameters, Type type, List<Type> typeBounds,
       out Bpl.Expr isBoxExpr, out Bpl.Expr isAllocBoxExpr) {
       {
         // (forall bvarsTypeParameters, bx: Box ::

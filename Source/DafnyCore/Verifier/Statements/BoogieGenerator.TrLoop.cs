@@ -298,7 +298,7 @@ public partial class BoogieGenerator {
 
     // include a free invariant that says that all completed iterations so far have only decreased the termination metric
     if (initDecr != null) {
-      var toks = new List<IToken>();
+      var toks = new List<IOrigin>();
       var decrs = new List<Expr>();
       var decrsDafny = new List<Expression>();
       var initDecrsDafny = new List<Expression>();
@@ -353,7 +353,7 @@ public partial class BoogieGenerator {
         // time for the actual loop body
         bodyTr(loopBodyBuilder, updatedFrameEtran);
         // check definedness of decreases expressions
-        var toks = new List<IToken>();
+        var toks = new List<IOrigin>();
         var decrs = new List<Expr>();
         var decrsDafny = new List<Expression>();
         var initDecrsDafny = new List<Expression>();

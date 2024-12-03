@@ -61,10 +61,10 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   }
 
   public virtual string GetTriviaContainingDocstring() {
-    IToken candidate = null;
+    IOrigin candidate = null;
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
-      PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : Enumerable.Empty<IToken>();
+      PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : Enumerable.Empty<IOrigin>();
     foreach (var token in tokens) {
       if (token.val == "{") {
         candidate = token.Prev;

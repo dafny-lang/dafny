@@ -88,7 +88,7 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
   }
 
   public string GetTriviaContainingDocstring() {
-    IToken openingBlock = null;
+    IOrigin openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
         openingBlock = token;

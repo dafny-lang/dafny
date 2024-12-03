@@ -294,7 +294,7 @@ namespace Microsoft.Dafny {
                 var nn = new List<Bpl.Expr>();
                 var kkDafny = new List<Expression>();
                 var nnDafny = new List<Expression>();
-                var toks = new List<IToken>();
+                var toks = new List<IOrigin>();
                 var substMap = new Dictionary<IVariable, Expression>();
                 foreach (var n in inductionVariables) {
                   toks.Add(n.tok);
@@ -540,8 +540,8 @@ namespace Microsoft.Dafny {
                 var unboxedConjunct = CondApplyUnbox(s.E.tok, s.E, typeSpecializedResultType, expr.Type);
                 var bodyOrConjunct = BplOr(fargs, unboxedConjunct);
                 var tok = needsTokenAdjust
-                  ? (IToken)new ForceCheckToken(typeSpecializedBody.tok)
-                  : (IToken)new NestedToken(GetToken(fexp), s.Tok);
+                  ? (IOrigin)new ForceCheckToken(typeSpecializedBody.tok)
+                  : (IOrigin)new NestedToken(GetToken(fexp), s.Tok);
                 var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
                 splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
               }
@@ -650,7 +650,7 @@ namespace Microsoft.Dafny {
       public bool IsOnlyChecked { get { return Kind == K.Checked; } }
       public bool IsChecked { get { return Kind != K.Free; } }
       public readonly Expr E;
-      public IToken Tok;
+      public IOrigin Tok;
       public SplitExprInfo(bool reportRanges, K kind, Expr e) {
         Contract.Requires(e != null && e.tok != null);
         // TODO:  Contract.Requires(kind == K.Free || e.tok.IsValid);

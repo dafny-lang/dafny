@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 public class TypeParameter : TopLevelDecl {
   public interface ParentType {
     string FullName { get; }
-    IToken Tok { get; }
+    IOrigin Tok { get; }
   }
 
   public override string WhatKind => "type parameter";

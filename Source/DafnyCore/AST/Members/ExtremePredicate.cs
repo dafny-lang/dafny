@@ -22,7 +22,7 @@ public abstract class ExtremePredicate : Function {
   public ExtremePredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
-    Expression body, Attributes attributes, IToken signatureEllipsis)
+    Expression body, Attributes attributes, IOrigin signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, true, isOpaque, typeArgs, ins, result, Type.Bool,
       req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, null, null, attributes, signatureEllipsis) {
     TypeOfK = typeOfK;
@@ -55,7 +55,7 @@ public class GreatestPredicate : ExtremePredicate {
   public GreatestPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
-    Expression body, Attributes attributes, IToken signatureEllipsis)
+    Expression body, Attributes attributes, IOrigin signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, isOpaque, typeOfK, typeArgs, ins, result,
       req, reads, ens, body, attributes, signatureEllipsis) {
   }
@@ -66,7 +66,7 @@ public class LeastPredicate : ExtremePredicate {
   public LeastPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
-    Expression body, Attributes attributes, IToken signatureEllipsis)
+    Expression body, Attributes attributes, IOrigin signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, isOpaque, typeOfK, typeArgs, ins, result,
       req, reads, ens, body, attributes, signatureEllipsis) {
   }

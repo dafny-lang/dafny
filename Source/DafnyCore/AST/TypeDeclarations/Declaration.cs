@@ -12,12 +12,12 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Contract.Invariant(Name != null);
   }
 
-  public IToken BodyStartTok = Token.NoToken;
-  public IToken TokenWithTrailingDocString = Token.NoToken;
+  public IOrigin BodyStartTok = Token.NoToken;
+  public IOrigin TokenWithTrailingDocString = Token.NoToken;
   public Name NameNode;
 
-  public override IToken Tok => NameNode.StartToken;
-  public virtual IToken NavigationToken => NameNode.StartToken;
+  public override IOrigin Tok => NameNode.StartToken;
+  public virtual IOrigin NavigationToken => NameNode.StartToken;
 
   public string Name => NameNode.Value;
   public bool IsRefining;
