@@ -234,7 +234,7 @@ public class CliCompilation {
       yield break;
     }
 
-    var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
+    var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Origin).ToList();
 
     if (canVerifies == null) {
       yield break;
