@@ -21,11 +21,11 @@ module {:extern "Microsoft"} Microsoft {
       trait IIndentationFormatter {
         // Given the current indentation at this point
         // returns the leading trivia but with its indentation corrected.
-        function GetNewLeadingTrivia(token: IToken): CsString
+        function GetNewLeadingTrivia(token: IOrigin): CsString
 
         // Given the current indentation at this point
         // returns the trailing trivia but with its indentation corrected.
-        function GetNewTrailingTrivia(token: IToken): CsString
+        function GetNewTrailingTrivia(token: IOrigin): CsString
       }
 
       lemma IsAllocated<T>(x: T)
@@ -35,11 +35,11 @@ module {:extern "Microsoft"} Microsoft {
       /** Prints the entire program while fixing indentation, based on
           1) indentation information provided by the IIndentationFormatter reindent
           2) Reindentation algorithm provided by the same reindent */
-      method ReindentProgramFromFirstToken(firstToken: IToken, reindent: IIndentationFormatter) returns (s: CsString)
+      method ReindentProgramFromFirstToken(firstToken: IOrigin, reindent: IIndentationFormatter) returns (s: CsString)
         requires firstToken.Valid()
-        ensures forall token: IToken <- firstToken.allTokens :: s.Contains(token.val)
+        ensures forall token: IOrigin <- firstToken.allTokens :: s.Contains(token.val)
       {
-        var token: IToken? := firstToken;
+        var token: IOrigin? := firstToken;
         var sb := new CsStringBuilder();
         ghost var i := 0;
         var allTokens := firstToken.allTokens;
@@ -50,7 +50,7 @@ module {:extern "Microsoft"} Microsoft {
                     && token.Valid()
                     && i < |allTokens|
                     && token == allTokens[i]
-          invariant forall t: IToken <- allTokens[0..i] :: sb.built.Contains(t.val)
+          invariant forall t: IOrigin <- allTokens[0..i] :: sb.built.Contains(t.val)
         {
           if(token.Next == null) {
             firstToken.TokenNextIsNullImpliesLastToken(token, i);
@@ -66,7 +66,7 @@ module {:extern "Microsoft"} Microsoft {
           sb.Append(token.val);
           sb.Append(newTrailingTrivia);
           ContainsTransitive();
-          assert {:split_here} forall t: IToken <- allTokens[0..i+1] :: sb.built.Contains(t.val);
+          assert {:split_here} forall t: IOrigin <- allTokens[0..i+1] :: sb.built.Contains(t.val);
           token := token.Next;
           i := i + 1;
         }
