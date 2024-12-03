@@ -92,7 +92,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
               ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraints.Constraint,
                 new CodeContextWrapper(declWithConstraints, true));
               if (errorCollector.Collected) {
-                finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
+                finalToken = new NestedOrigin(finalToken, errorCollector.FirstCollectedToken,
                   "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
                 );
               }

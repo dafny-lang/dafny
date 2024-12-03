@@ -211,8 +211,8 @@ public class AssignmentDependency : ProofDependency {
   public override string Description =>
      "assignment (or return)";
 
-  public AssignmentDependency(RangeToken rangeToken) {
-    this.Range = rangeToken;
+  public AssignmentDependency(RangeToken rangeOrigin) {
+    this.Range = rangeOrigin;
   }
 }
 

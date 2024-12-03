@@ -22,8 +22,8 @@ public abstract class ConcreteSyntaxExpression : Expression {
     get => resolvedExpression;
     set {
       resolvedExpression = value;
-      if (rangeToken != null && resolvedExpression != null) {
-        resolvedExpression.RangeToken = rangeToken;
+      if (RangeOrigin != null && resolvedExpression != null) {
+        resolvedExpression.RangeToken = RangeOrigin;
       }
     }
   }  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"

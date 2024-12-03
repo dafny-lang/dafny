@@ -1225,7 +1225,7 @@ namespace Microsoft.Dafny {
           chunk = BplAnd(chunk, q);
         }
         if (conjuncts) {
-          yield return Bpl.Expr.Binary(new NestedToken(tok, ctor.tok), BinaryOperator.Opcode.Imp, aq, BplAnd(bq, chunk));
+          yield return Bpl.Expr.Binary(new NestedOrigin(tok, ctor.tok), BinaryOperator.Opcode.Imp, aq, BplAnd(bq, chunk));
         } else {
           yield return BplAnd(BplAnd(aq, bq), BplImp(BplAnd(aq, bq), chunk));
         }
@@ -3274,20 +3274,20 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// A ForceCheckToken is a token wrapper whose purpose is to hide inheritance.
     /// </summary>
-    public class ForceCheckToken : TokenWrapper {
-      public ForceCheckToken(IOrigin tok)
+    public class ForceCheckOrigin : OriginWrapper {
+      public ForceCheckOrigin(IOrigin tok)
         : base(tok) {
         Contract.Requires(tok != null);
       }
       public static IOrigin Unwrap(IOrigin tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<IOrigin>() != null);
-        var ftok = tok as ForceCheckToken;
+        var ftok = tok as ForceCheckOrigin;
         return ftok != null ? ftok.WrappedToken : tok;
       }
 
       public override IOrigin WithVal(string newVal) {
-        return new ForceCheckToken(WrappedToken.WithVal(newVal));
+        return new ForceCheckOrigin(WrappedToken.WithVal(newVal));
       }
     }
 
@@ -3305,12 +3305,12 @@ namespace Microsoft.Dafny {
       Bpl.PredicateCmd cmd;
       if (context.AssertMode == AssertMode.Assume
           || (assertionOnlyFilter != null && !assertionOnlyFilter(tok))
-          || (RefinementToken.IsInherited(refinesToken, currentModule) && codeContext is not { MustReverify: true })) {
+          || (RefinementOrigin.IsInherited(refinesToken, currentModule) && codeContext is not { MustReverify: true })) {
         // produce an assume instead
         cmd = TrAssumeCmd(tok, condition, kv);
         proofDependencies?.AddProofDependencyId(cmd, tok, new AssumedProofObligationDependency(tok, description));
       } else {
-        cmd = TrAssertCmdDesc(ForceCheckToken.Unwrap(tok), condition, description, kv);
+        cmd = TrAssertCmdDesc(ForceCheckOrigin.Unwrap(tok), condition, description, kv);
         proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
       }
       return cmd;
@@ -3329,11 +3329,11 @@ namespace Microsoft.Dafny {
       PredicateCmd cmd;
       if (context.AssertMode == AssertMode.Assume ||
           (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
-          (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+          (RefinementOrigin.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
         cmd = TrAssumeCmd(tok, Bpl.Expr.True, kv);
       } else {
-        tok = ForceCheckToken.Unwrap(tok);
+        tok = ForceCheckOrigin.Unwrap(tok);
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
         cmd = TrAssertCmdDesc(tok, condition, desc, new Bpl.QKeyValue(tok, "subsumption", args, kv));
@@ -3358,7 +3358,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
-      var unwrappedToken = ForceCheckToken.Unwrap(tok);
+      var unwrappedToken = ForceCheckOrigin.Unwrap(tok);
       Bpl.Ensures ens = new Bpl.Ensures(unwrappedToken, free, condition, comment);
       var description = new EnsuresDescription(dafnyCondition, errorMessage, successMessage);
       ens.Description = description;
@@ -3382,7 +3382,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(bCondition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
-      Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, bCondition, comment);
+      Bpl.Requires req = new Bpl.Requires(ForceCheckOrigin.Unwrap(tok), free, bCondition, comment);
       req.Description = new RequiresDescription(dafnyCondition, errorMessage, successMessage);
       return req;
     }
@@ -4548,7 +4548,7 @@ namespace Microsoft.Dafny {
 
     bool TrSplitNeedsTokenAdjustment(Expression expr) {
       Contract.Requires(expr != null);
-      return RefinementToken.IsInherited(expr.tok, currentModule) && (codeContext == null || !codeContext.MustReverify) && RefinementTransformer.ContainsChange(expr, currentModule);
+      return RefinementOrigin.IsInherited(expr.tok, currentModule) && (codeContext == null || !codeContext.MustReverify) && RefinementTransformer.ContainsChange(expr, currentModule);
     }
 
     /// <summary>

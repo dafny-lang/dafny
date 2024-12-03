@@ -26,7 +26,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
     };
     if (tok is RangeToken rangeToken1) {
       range["end"] = SerializePosition(rangeToken1.EndToken);
-    } else if (tok is BoogieRangeToken rangeToken2) {
+    } else if (tok is BoogieRangeOrigin rangeToken2) {
       range["end"] = SerializePosition(rangeToken2.EndToken);
     }
     return range;
@@ -61,7 +61,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
   }
 
   private static IEnumerable<JsonNode> SerializeInnerTokens(Boogie.IToken tok) {
-    while (tok is NestedToken nestedToken) {
+    while (tok is NestedOrigin nestedToken) {
       tok = nestedToken.Inner;
       var message = nestedToken.Message != null ? "Related location: " + nestedToken.Message : "Related location";
       yield return SerializeRelated(tok, null, message);

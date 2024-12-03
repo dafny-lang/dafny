@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// <param name="token">The token to get the boogie token from.</param>
     /// <returns>The uri of the document where the token is located.</returns>
     public static DocumentUri GetDocumentUri(this Boogie.IToken token) {
-      while (token is RefinementToken refinementToken) {
+      while (token is RefinementOrigin refinementToken) {
         token = refinementToken.WrappedToken;
       }
 

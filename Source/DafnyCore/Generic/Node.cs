@@ -211,7 +211,7 @@ public abstract class TokenNode : Node {
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
   internal IOrigin[] FormatTokens = null;
 
-  protected RangeToken rangeToken = null;
+  protected RangeToken RangeOrigin = null;
 
   public IOrigin tok = Token.NoToken;
 
@@ -222,7 +222,7 @@ public abstract class TokenNode : Node {
 
   public override RangeToken RangeToken {
     get {
-      if (rangeToken == null) {
+      if (RangeOrigin == null) {
 
         var startTok = tok;
         var endTok = tok;
@@ -263,12 +263,12 @@ public abstract class TokenNode : Node {
           }
         }
 
-        rangeToken = new RangeToken(startTok, endTok);
+        RangeOrigin = new RangeToken(startTok, endTok);
       }
 
-      return rangeToken;
+      return RangeOrigin;
     }
-    set => rangeToken = value;
+    set => RangeOrigin = value;
   }
 }
 
@@ -285,7 +285,7 @@ public abstract class RangeNode : Node { // TODO merge into Node when TokenNode 
     RangeToken = cloner.Tok(original.RangeToken);
   }
 
-  protected RangeNode(RangeToken rangeToken) {
-    RangeToken = rangeToken;
+  protected RangeNode(RangeToken rangeOrigin) {
+    RangeToken = rangeOrigin;
   }
 }
