@@ -1,18 +1,18 @@
 include "System.dfy"
 
-// Interface with existing Dafny code (IToken)
+// Interface with existing Dafny code (IOrigin)
 @Compile(false)
 @Options("-functionSyntax:4")
 module {:extern "Microsoft.Dafny"} MicrosoftDafny {
   import opened System
 
   @Compile(false)
-  trait {:extern "IToken"} IToken {
+  trait {:extern "Token"} Token {
     var val: CsString
     var LeadingTrivia: CsString
     var TrailingTrivia: CsString
-    var Next: IToken?
-    ghost var allTokens: seq<IToken>
+    var Next: Token?
+    ghost var allTokens: seq<Token>
 
     ghost predicate Valid() reads this, allTokens decreases |allTokens| {
       && |allTokens| > 0 && allTokens[0] == this
@@ -34,7 +34,7 @@ module {:extern "Microsoft.Dafny"} MicrosoftDafny {
         this.Next.AlltokenSpec(i - 1);
       }
     }
-    lemma TokenNextIsIPlus1(middle: IToken, i: int)
+    lemma TokenNextIsIPlus1(middle: Token, i: int)
       requires Valid()
       requires 0 <= i < |allTokens|
       requires allTokens[i] == middle
@@ -47,7 +47,7 @@ module {:extern "Microsoft.Dafny"} MicrosoftDafny {
       }
     }
 
-    lemma TokenNextIsNullImpliesLastToken(middle: IToken, i: int)
+    lemma TokenNextIsNullImpliesLastToken(middle: Token, i: int)
       requires middle.Valid() && this.Valid()
       requires 0 <= i < |allTokens|
       requires middle == allTokens[i]

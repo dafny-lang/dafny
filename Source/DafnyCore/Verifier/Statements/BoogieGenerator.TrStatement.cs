@@ -121,10 +121,10 @@ public partial class BoogieGenerator {
       foreach (var p in iter.YieldEnsures) {
         var ss = TrSplitExpr(builder.Context, p.E, yeEtran, true, out var splitHappened);
         foreach (var split in ss) {
-          if (RefinementToken.IsInherited(split.Tok, currentModule)) {
+          if (RefinementOrigin.IsInherited(split.Tok, currentModule)) {
             // this postcondition was inherited into this module, so just ignore it
           } else if (split.IsChecked) {
-            var yieldToken = new NestedToken(s.Tok, split.Tok);
+            var yieldToken = new NestedOrigin(s.Tok, split.Tok);
             var desc = new YieldEnsures(fieldSub.Substitute(p.E));
             builder.Add(AssertAndForget(builder.Context, yieldToken, split.E, desc, stmt.Tok, null));
           }
@@ -625,7 +625,7 @@ public partial class BoogieGenerator {
     return CheckContext;
   }
 
-  void TrAlternatives(List<GuardedAlternative> alternatives, IToken elseToken, Action<BoogieStmtListBuilder> buildElseCase,
+  void TrAlternatives(List<GuardedAlternative> alternatives, IOrigin elseToken, Action<BoogieStmtListBuilder> buildElseCase,
     BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran, bool isGhost) {
     Contract.Requires(alternatives != null);
     Contract.Requires(builder != null);
@@ -678,7 +678,7 @@ public partial class BoogieGenerator {
   }
 
 
-  void RecordNewObjectsIn_New(IToken tok, IteratorDecl iter, Bpl.Expr initHeap, Bpl.IdentifierExpr currentHeap,
+  void RecordNewObjectsIn_New(IOrigin tok, IteratorDecl iter, Bpl.Expr initHeap, Bpl.IdentifierExpr currentHeap,
     BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
     Contract.Requires(tok != null);
     Contract.Requires(iter != null);
@@ -727,7 +727,7 @@ public partial class BoogieGenerator {
     return description;
   }
 
-  private void SelectAllocateObject(IToken tok, Bpl.IdentifierExpr nw, Type type, bool includeHavoc, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+  private void SelectAllocateObject(IOrigin tok, Bpl.IdentifierExpr nw, Type type, bool includeHavoc, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
     Contract.Requires(tok != null);
     Contract.Requires(nw != null);
     Contract.Requires(type != null);
@@ -753,7 +753,7 @@ public partial class BoogieGenerator {
     builder.Add(TrAssumeCmd(tok, notAlloc));
   }
 
-  private void CommitAllocatedObject(IToken tok, Bpl.IdentifierExpr nw, Bpl.Cmd extraCmd, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+  private void CommitAllocatedObject(IOrigin tok, Bpl.IdentifierExpr nw, Bpl.Cmd extraCmd, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
     Contract.Requires(tok != null);
     Contract.Requires(nw != null);
     Contract.Requires(builder != null);

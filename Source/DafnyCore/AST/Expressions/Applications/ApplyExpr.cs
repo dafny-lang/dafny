@@ -18,7 +18,7 @@ public class ApplyExpr : Expression, ICloneable<ApplyExpr> {
     }
   }
 
-  public IToken CloseParen;
+  public IOrigin CloseParen;
 
   public ApplyExpr(Cloner cloner, ApplyExpr original) : base(cloner, original) {
     Function = cloner.CloneExpr(original.Function);
@@ -26,7 +26,7 @@ public class ApplyExpr : Expression, ICloneable<ApplyExpr> {
     CloseParen = cloner.Tok(original.CloseParen);
   }
 
-  public ApplyExpr(IToken tok, Expression fn, List<Expression> args, IToken closeParen)
+  public ApplyExpr(IOrigin tok, Expression fn, List<Expression> args, IOrigin closeParen)
     : base(tok) {
     Function = fn;
     Args = args;
