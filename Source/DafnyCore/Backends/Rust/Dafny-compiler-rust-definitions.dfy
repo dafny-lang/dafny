@@ -148,14 +148,15 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   // fn Test(i: &mut T) is map["i" := R.BorrowedMut(...)]
   datatype Environment = Environment(
     names: seq<string>,                 // All variable names, after escape, in Rust
-    types: map<string, R.Type>
+    types: map<string, R.Type>,
+    assignmentStatusKnown: set<string> // Variables that are guaranteed to be assigned exactly once
   ) {
     function ToOwned(): Environment {
       this.(types :=
       map k <- types :: k := types[k].ToOwned())
     }
     static function Empty(): Environment {
-      Environment([], map[])
+      Environment([], map[], {})
     }
     opaque predicate CanReadWithoutClone(name: string) {
       name in types && types[name].CanReadWithoutClone()
@@ -178,26 +179,45 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     predicate NeedsAsRefForBorrow(name: string) {
       name in types && types[name].NeedsAsRefForBorrow()
     }
+    predicate IsMaybePlacebo(name: string) {
+      name in types && types[name].ExtractMaybePlacebo().Some?
+    }
     function AddAssigned(name: string, tpe: R.Type): Environment
       // If we know for sure the type of name extends the Copy trait
     {
-      Environment(names + [name], types[name := tpe])
+      Environment(names + [name], types[name := tpe], assignmentStatusKnown - {name})
     }
     function merge(other: Environment): Environment
     {
       Environment(
         names + other.names,
-        types + other.types
+        types + other.types,
+        assignmentStatusKnown + other.assignmentStatusKnown
       )
     }
+    // Used to removed from the environment the "_is_assigned" vars used to initialize fields
     function RemoveAssigned(name: string): Environment
       requires name in names
     {
       var indexInEnv := Std.Collections.Seq.IndexOf(names, name);
       Environment(
         names[0..indexInEnv] + names[indexInEnv + 1..],
-        types - {name}
+        types - {name},
+        assignmentStatusKnown - {name}
       )
+    }
+    function AddAssignmentStatus(name: string, assignmentStatus: AssignmentStatus): Environment {
+      Environment(
+        names,
+        types,
+        if assignmentStatus.Unknown? then
+          assignmentStatusKnown - {name}
+        else
+          assignmentStatusKnown + {name}
+      )
+    }
+    predicate IsAssignmentStatusKnown(name: string) {
+      name in assignmentStatusKnown
     }
   }
 
@@ -744,5 +764,126 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
                                                                                         ]))
             ))
         ]))
+  }
+
+  // Overapproximate but sound static analysis domain for assignment of a variable
+  datatype AssignmentStatus = NotAssigned | SurelyAssigned | Unknown {
+    // After a if, typically. What we know if either of the assignment status is taken
+    function Join(other: AssignmentStatus): AssignmentStatus {
+      if SurelyAssigned? && other.SurelyAssigned? then SurelyAssigned
+      else if NotAssigned? && other.NotAssigned? then NotAssigned
+      else Unknown
+    }
+    function Then(other: AssignmentStatus): AssignmentStatus {
+      if SurelyAssigned? then SurelyAssigned
+      else if NotAssigned? then other
+      else Unknown // It's not as simple. If there are are two paths leading to one being assigned, the other not,
+           // Rust won't be albe to figure out the rules
+    }
+  }
+
+  // What could be problematic is the presence of branches in the assignment
+  // and one branch where a value is not assigned at all.
+  // If return false, we don't know if it's assigned or not
+  function DetectAssignmentStatus(stmts_remainder: seq<Statement>, dafny_name: VarName): AssignmentStatus {
+    if |stmts_remainder| == 0 then NotAssigned else
+    var stmt := stmts_remainder[0];
+    match stmt {
+      case Assign(Ident(assign_name), _) =>
+        if assign_name == dafny_name then SurelyAssigned else
+        DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+      case If(cond, thn, els) =>
+        DetectAssignmentStatus(thn, dafny_name).Join(DetectAssignmentStatus(els, dafny_name))
+      case Call(on, callName, typeArgs, args, outs) =>
+        if outs.Some? && dafny_name in outs.value then
+          SurelyAssigned
+        else
+          DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+      case Labeled(_, stmts) =>
+        DetectAssignmentStatus(stmts, dafny_name).Then(DetectAssignmentStatus(stmts_remainder[1..], dafny_name))
+      case DeclareVar(name, _, _) =>
+        if name == dafny_name then
+          NotAssigned // Shadowed
+        else
+          DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+      case Return(_) | EarlyReturn() | JumpTailCallStart() => NotAssigned
+      case Print(_) => DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+      case _ => Unknown
+    }
+  }
+}
+
+// Tests
+module {:extern "DefsCoverage"} DafnyToRustCompilerDefinitionsCoverage {
+  import opened DafnyToRustCompilerDefinitions
+  import opened DAST
+  import Strings = Std.Strings
+  import Std
+  import opened Std.Wrappers
+  import R = RAST
+  import opened DafnyCompilerRustUtils
+
+  const IND := R.IND
+  type Type = DAST.Type
+  type Formal = DAST.Formal
+
+  method Expect(x: bool)
+  {
+    expect x; // Avoids having too little coverage
+  }
+
+  method Tests() {
+    Expect(SurelyAssigned.Join(SurelyAssigned) == SurelyAssigned);
+    Expect(NotAssigned.Join(NotAssigned) == NotAssigned);
+    Expect(NotAssigned.Join(SurelyAssigned) == Unknown);
+    Expect(SurelyAssigned.Join(NotAssigned) == Unknown);
+    Expect(Unknown.Join(NotAssigned) == NotAssigned.Join(Unknown) == Unknown);
+    Expect(Unknown.Join(SurelyAssigned) == SurelyAssigned.Join(Unknown) == Unknown);
+    Expect(Unknown.Join(Unknown) == Unknown);
+
+    Expect(SurelyAssigned.Then(Unknown)
+        == SurelyAssigned.Then(NotAssigned)
+        == SurelyAssigned.Then(SurelyAssigned)
+        == NotAssigned.Then(SurelyAssigned)
+        == SurelyAssigned);
+    Expect(Unknown.Then(NotAssigned)
+        == Unknown.Then(SurelyAssigned)
+        == Unknown.Then(Unknown)
+        == NotAssigned.Then(Unknown)
+        == Unknown);
+    Expect(NotAssigned.Then(NotAssigned)
+           == NotAssigned);
+
+    var x := VarName("x");
+    var y := VarName("y");
+    var z := Expression.Ident(VarName("z"));
+    var assigns_x := [Assign(AssignLhs.Ident(x), Expression.Ident(y))];
+    var assigns_y := [Assign(AssignLhs.Ident(y), Expression.Ident(x))];
+    var cond := Expression.Ident(VarName("cond"));
+    var unknown_x := [If(cond, assigns_x, assigns_y)];
+    var surely_double_x := [If(cond, assigns_x, assigns_x)];
+    var call_to_x := [Statement.Call(z, SetBuilderAdd, [], [], Some([x]))];
+    var declare_x_again := [DeclareVar(x, Type.Tuple([]), None)];
+    Expect(DetectAssignmentStatus(assigns_y, x) == NotAssigned);
+    Expect(DetectAssignmentStatus(assigns_x, x) == SurelyAssigned);
+    Expect(DetectAssignmentStatus(assigns_x, y) == NotAssigned);
+    Expect(DetectAssignmentStatus(assigns_x + assigns_y, y) == SurelyAssigned);
+    Expect(DetectAssignmentStatus(unknown_x, x) == Unknown);
+    Expect(DetectAssignmentStatus(surely_double_x, x) == SurelyAssigned);
+    Expect(DetectAssignmentStatus(surely_double_x, y) == NotAssigned);
+    Expect(DetectAssignmentStatus(call_to_x, x) == SurelyAssigned);
+    Expect(DetectAssignmentStatus(call_to_x, y) == NotAssigned);
+    Expect(DetectAssignmentStatus(call_to_x + assigns_y, y) == SurelyAssigned);
+    Expect(DetectAssignmentStatus([Labeled("l", assigns_y)] + assigns_x, y) == SurelyAssigned);
+    Expect(DetectAssignmentStatus([Labeled("l", assigns_x)] + assigns_y, x) == SurelyAssigned);
+    Expect(DetectAssignmentStatus([Labeled("l", assigns_x)] + assigns_y, x) == SurelyAssigned);
+    Expect(DetectAssignmentStatus(declare_x_again + assigns_x, x) == NotAssigned);
+    Expect(DetectAssignmentStatus(declare_x_again + assigns_y, y) == SurelyAssigned);
+    Expect(DetectAssignmentStatus([Return(z)] + assigns_x, x) == NotAssigned);
+    Expect(DetectAssignmentStatus([EarlyReturn()] + assigns_x, x) == NotAssigned);
+    Expect(DetectAssignmentStatus([JumpTailCallStart()] + assigns_x, x) == NotAssigned);
+    Expect(DetectAssignmentStatus([Print(z)] + assigns_x, x) == SurelyAssigned);
+    Expect(DetectAssignmentStatus([Print(z)] + assigns_x, x) == SurelyAssigned);
+    Expect(DetectAssignmentStatus([While(z, [])] + assigns_x, x) == Unknown);
   }
 }

@@ -1704,13 +1704,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
           case None => {}
         }
-        env := Environment(preAssignNames + paramNames, preAssignTypes + paramTypes);
+        env := Environment(preAssignNames + paramNames, preAssignTypes + paramTypes, {});
 
         var body, _, _ := GenStmts(m.body, selfIdent, env, true, earlyReturn);
 
         fBody := Some(preBody.Then(body));
       } else {
-        env := Environment(paramNames, paramTypes);
+        env := Environment(paramNames, paramTypes, {});
         fBody := None;
       }
       s := R.FnDecl(
@@ -1740,19 +1740,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var stmts := stmts; // Make it mutable
       while i < |stmts| {
         var stmt := stmts[i];
-        // Avoid lazy initialization if it is not necessary
+        // Avoid maybe placebo wrapping if not necessary
         match stmt {
           case DeclareVar(name, optType, None) =>
-            if i + 1 < |stmts| {
-              match stmts[i + 1] {
-                case Assign(Ident(name2), rhs) =>
-                  if name2 == name {
-                    stmts := stmts[0..i] + [DeclareVar(name, optType, Some(rhs))] + stmts[i+2..];
-                    stmt := stmts[i];
-                  }
-                case _ =>
-              }
-            }
+            var laterAssignmentStatus := DetectAssignmentStatus(stmts[i + 1..], name);
+            newEnv := newEnv.AddAssignmentStatus(escapeVar(name), laterAssignmentStatus);
+          case DeclareVar(name, optType, Some(InitializationValue(typ))) =>
+            var tpe := GenType(typ, GenTypeContext.default());
+            var varName := escapeVar(name);
+            var laterAssignmentStatus := DetectAssignmentStatus(stmts[i + 1..], name);
+            newEnv := newEnv.AddAssignmentStatus(varName, laterAssignmentStatus);
           case _ =>
 
         }
@@ -1965,9 +1962,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var varName := escapeVar(name);
           var hasCopySemantics := tpe.CanReadWithoutClone();
           if expression.InitializationValue? && !hasCopySemantics {
-            generated := R.DeclareVar(R.MUT, varName, None, Some(R.MaybePlaceboPath.AsExpr().ApplyType1(tpe).FSel("new").Apply0()));
-            readIdents := {};
-            newEnv := env.AddAssigned(varName, R.MaybePlaceboType(tpe));
+            if env.IsAssignmentStatusKnown(varName) {
+              var tpe := GenType(typ, GenTypeContext.default());
+              generated := R.DeclareVar(R.MUT, varName, Some(tpe), None);
+              readIdents := {};
+              newEnv := env.AddAssigned(varName, tpe);
+            } else {
+              generated := R.DeclareVar(R.MUT, varName, None, Some(R.MaybePlaceboPath.AsExpr().ApplyType1(tpe).FSel("new").Apply0()));
+              readIdents := {};
+              newEnv := env.AddAssigned(varName, R.MaybePlaceboType(tpe));
+            }
           } else {
             var expr, recIdents;
             if expression.InitializationValue? &&
@@ -1985,9 +1989,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
         }
         case DeclareVar(name, typ, None) => {
-          var newStmt := DeclareVar(name, typ, Some(InitializationValue(typ)));
-          assume {:axiom} newStmt < stmt;
-          generated, readIdents, newEnv := GenStmt(newStmt, selfIdent, env, isLast, earlyReturn);
+          var varName := escapeVar(name);
+          if env.IsAssignmentStatusKnown(varName) {
+            var tpe := GenType(typ, GenTypeContext.default());
+            generated := R.DeclareVar(R.MUT, varName, Some(tpe), None);
+            readIdents := {};
+            newEnv := env.AddAssigned(varName, tpe);
+          } else {
+            var newStmt := DeclareVar(name, typ, Some(InitializationValue(typ)));
+            assume {:axiom} newStmt < stmt;
+            generated, readIdents, newEnv := GenStmt(newStmt, selfIdent, env, isLast, earlyReturn);
+          }
         }
         case Assign(lhs, expression) => {
           var exprGen, _, exprIdents := GenExpr(expression, selfIdent, env, OwnershipOwned);
@@ -2118,9 +2130,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           assume {:axiom} Expression.Call(on, name, typeArgs, args) < stmt;
           generated, readIdents := GenOwnedCallPart(Expression.Call(on, name, typeArgs, args), on, selfIdent, name, typeArgs, args, env);
 
+          newEnv := env;
           if maybeOutVars.Some? && |maybeOutVars.value| == 1 {
             var outVar := escapeVar(maybeOutVars.value[0]);
-            if !env.CanReadWithoutClone(outVar) {
+            if env.IsMaybePlacebo(outVar) {
               generated := R.MaybePlacebo(generated);
             }
             generated := R.AssignVar(outVar, generated);
@@ -2135,7 +2148,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             for outI := 0 to |outVars| {
               var outVar := escapeVar(outVars[outI]);
               var rhs := tmpId.Sel(Strings.OfNat(outI));
-              if !env.CanReadWithoutClone(outVar) {
+              if env.IsMaybePlacebo(outVar) {
                 rhs := R.MaybePlacebo(rhs);
               }
               generated := generated.Then(R.AssignVar(outVar, rhs));
@@ -3760,7 +3773,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             paramNames := paramNames + [name];
             paramTypesMap := paramTypesMap[name := params[i].tpe];
           }
-          var subEnv := env.ToOwned().merge(Environment(paramNames, paramTypesMap));
+          var subEnv := env.ToOwned().merge(Environment(paramNames, paramTypesMap, {}));
 
           var recursiveGen, recIdents, _ := GenStmts(body, if selfIdent != NoSelf then ThisTyped("_this", selfIdent.dafnyType) else NoSelf, subEnv, true, None);
           readIdents := {};
@@ -3818,7 +3831,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             readIdents := readIdents + recIdents;
           }
 
-          var newEnv := Environment(paramNames, paramTypes);
+          var newEnv := Environment(paramNames, paramTypes, {});
 
           var recGen, recOwned, recIdents := GenExpr(expr, selfIdent, newEnv, expectedOwnership);
           readIdents := recIdents - paramNamesSet;
