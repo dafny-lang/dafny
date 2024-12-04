@@ -41,7 +41,8 @@ module Std.JSON.Utils.Views.Writers {
         Chain(this, v')
     }
 
-    method {:tailrecursion} CopyTo(dest: array<byte>, end: uint32)
+    @TailRecursion
+    method CopyTo(dest: array<byte>, end: uint32)
       requires end as int == Length() <= dest.Length
       modifies dest
       ensures dest[..end] == Bytes()
@@ -81,7 +82,7 @@ module Std.JSON.Utils.Views.Writers {
       else UINT32_MAX
     }
 
-    opaque function Append(v': View): (rw: Writer)
+    function Append(v': View): (rw: Writer)
       requires Valid?
       ensures rw.Unsaturated? <==> v'.Length() < UINT32_MAX - length
       ensures rw.Bytes() == Bytes() + v'.Bytes()
@@ -98,7 +99,8 @@ module Std.JSON.Utils.Views.Writers {
       fn(this)
     }
 
-    method {:tailrecursion} CopyTo(dest: array<byte>)
+    @TailRecursion
+    method CopyTo(dest: array<byte>)
       requires Valid?
       requires Unsaturated?
       requires Length() <= dest.Length

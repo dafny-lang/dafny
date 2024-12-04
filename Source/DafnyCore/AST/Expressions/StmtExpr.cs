@@ -24,7 +24,7 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
 
   public override IEnumerable<INode> Children => new Node[] { S, E };
 
-  public StmtExpr(IToken tok, Statement stmt, Expression expr)
+  public StmtExpr(IOrigin tok, Statement stmt, Expression expr)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(stmt != null);

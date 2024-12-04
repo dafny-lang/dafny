@@ -1,0 +1,12 @@
+DecreasesTo0.dfy(22,11): Error: assertion might not hold
+DecreasesTo0.dfy(26,15): Error: assertion might not hold
+DecreasesTo0.dfy(30,19): Error: assertion might not hold
+DecreasesTo0.dfy(34,11): Error: assertion might not hold
+DecreasesTo0.dfy(38,11): Error: assertion might not hold
+DecreasesTo0.dfy(42,11): Error: assertion might not hold
+DecreasesTo0.dfy(52,24): Error: assertion might not hold
+DecreasesTo0.dfy(56,24): Error: assertion might not hold
+DecreasesTo0.dfy(58,13): Error: assertion might not hold
+DecreasesTo0.dfy(67,12): Error: assertion might not hold
+
+Dafny program verifier finished with 4 verified, 10 errors

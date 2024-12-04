@@ -1,0 +1,1 @@
+When using `--isolate-assertions` or `{:isolate_assertions}`, a separate assertion batch will be generated per pair of return statement and ensures clause.

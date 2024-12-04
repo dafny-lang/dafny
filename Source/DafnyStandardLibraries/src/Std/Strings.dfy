@@ -1,7 +1,8 @@
 /**
 The Strings module enables converting between numbers such as nat and int, and String
  */
-module {:disableNonlinearArithmetic} Std.Strings {
+@DisableNonlinearArithmetic
+module Std.Strings {
   import opened Wrappers
   import opened Arithmetic.Power
   import opened Arithmetic.Logarithm
@@ -13,7 +14,8 @@ module {:disableNonlinearArithmetic} Std.Strings {
     - the type of character used, Char
     - a conversion from nat to Char (the chars sequences) and vice versa (charToDigit)
    */
-  abstract module {:disableNonlinearArithmetic} ParametricConversion refines Arithmetic.LittleEndianNat {
+  @DisableNonlinearArithmetic
+  abstract module ParametricConversion refines Arithmetic.LittleEndianNat {
     import opened Wrappers
 
     type Char(==)
@@ -56,7 +58,7 @@ module {:disableNonlinearArithmetic} Std.Strings {
       ensures |str| == Log(base, n) + 1
       ensures forall c <- str :: c in chars
     {
-      if n == 0 then reveal Log(); [chars[0]]
+      if n == 0 then  [chars[0]]
       else LemmaFromNatLen2(n); OfDigits(FromNat(n))
     }
 
@@ -81,7 +83,8 @@ module {:disableNonlinearArithmetic} Std.Strings {
     /**
     Convert a String that represents a natural number, back into that number.
      */
-    function {:isolate_assertions} ToNat(str: String) : (n: nat)
+    @IsolateAssertions
+    function ToNat(str: String) : (n: nat)
       requires forall c <- str :: IsDigitChar(c)
     {
       if str == [] then 0
@@ -98,7 +101,6 @@ module {:disableNonlinearArithmetic} Std.Strings {
       ensures ToNat(str) < Pow(base, |str|)
     {
       if str == [] {
-        reveal Pow();
       } else {
         calc <= {
           ToNat(str);
@@ -110,7 +112,7 @@ module {:disableNonlinearArithmetic} Std.Strings {
           (Pow(base, |str| - 1) - 1) * base + base - 1;
           { LemmaMulIsDistributiveAuto(); }
           Pow(base, |str| - 1) * base - 1;
-          { reveal Pow(); LemmaMulIsCommutativeAuto(); }
+          {  LemmaMulIsCommutativeAuto(); }
           Pow(base, |str|) - 1;
         }
       }
@@ -168,7 +170,8 @@ module {:disableNonlinearArithmetic} Std.Strings {
     }
   }
 
-  module {:disableNonlinearArithmetic} HexConversion refines ParametricConversion {
+  @DisableNonlinearArithmetic
+  module HexConversion refines ParametricConversion {
     type Char = char
     const HEX_DIGITS: seq<char> := "0123456789ABCDEF"
     const chars := HEX_DIGITS
@@ -179,11 +182,13 @@ module {:disableNonlinearArithmetic} Std.Strings {
         'A' := 0xA, 'B' := 0xB, 'C' := 0xC, 'D' := 0xD, 'E' := 0xE, 'F' := 0xF
       ]
     // The size of the map makes this impractical to verify easily.
-    lemma {:axiom} CharsConsistent()
+    @Axiom
+    lemma CharsConsistent()
       ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
   }
 
-  module {:disableNonlinearArithmetic} DecimalConversion refines ParametricConversion {
+  @DisableNonlinearArithmetic
+  module DecimalConversion refines ParametricConversion {
     type Char = char
     const DIGITS: seq<char> := "0123456789"
     const chars := DIGITS

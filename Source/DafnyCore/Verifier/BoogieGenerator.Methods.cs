@@ -43,10 +43,13 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in c.Members.FindAll(VisibleInScope)) {
         Contract.Assert(IsAllocContext == null);
         CurrentDeclaration = member;
-        if (!filterOnlyMembers || member.HasUserAttribute("only", out _)) {
-          SetAssertionOnlyFilter(member);
-        } else {
+        var ignored =
+          filesWhereOnlyMembersAreVerified.Contains(member.tok.Uri) &&
+          !member.HasUserAttribute("only", out _);
+        if (ignored) {
           assertionOnlyFilter = _ => false;
+        } else {
+          SetAssertionOnlyFilter(member);
         }
 
         if (member is Field) {
@@ -767,9 +770,10 @@ namespace Microsoft.Dafny {
         foreach (var pre in m.Req) {
           parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverSubst, substMap));
         }
+
         // construct an expression (generator) for:  VF' << VF
         ExpressionConverter decrCheck = delegate (Dictionary<IVariable, Expression> decrSubstMap, ExpressionTranslator exprTran) {
-          var decrToks = new List<IToken>();
+          var decrToks = new List<IOrigin>();
           var decrTypes = new List<Type>();
           var decrCallee = new List<Expr>();
           var decrCaller = new List<Expr>();
@@ -789,14 +793,20 @@ namespace Microsoft.Dafny {
             null, null, false, true);
         };
 
+        var triggers = m.Attributes.AsEnumerable()
+          .Where(attr => attr.Name is "inductionTrigger" or "_inductionTrigger")
+          .Select(attr => attr.Args)
+          .ToList();
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
-          var definedness = new BoogieStmtListBuilder(this, options);
-          var exporter = new BoogieStmtListBuilder(this, options);
-          TrForallStmtCall(m.tok, parBoundVars, parRange, decrCheck, null, recursiveCall, definedness, exporter, localVariables, etran);
-          // All done, so put the two pieces together
-          builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));
+        var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
+        var exporter = new BoogieStmtListBuilder(this, options, builder.Context);
+        TrForallStmtCall(m.tok, parBoundVars, parBounds, parRange, decrCheck, null, triggers, recursiveCall, definedness,
+          exporter, localVariables, etran);
+        // All done, so put the two pieces together
+        builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));
 #else
-        TrForallStmtCall(m.tok, parBoundVars, parBounds, parRange, decrCheck, null, recursiveCall, null, builder, localVariables, etran);
+        TrForallStmtCall(m.tok, parBoundVars, parBounds, parRange, decrCheck, null, triggers, recursiveCall, null,
+          builder, localVariables, etran);
 #endif
       }
       // translate the body of the method
@@ -1185,7 +1195,7 @@ namespace Microsoft.Dafny {
 
       QKeyValue kv = etran.TrAttributes(func.Attributes, null);
 
-      IToken tok = func.tok;
+      IOrigin tok = func.tok;
       // Declare a local variable $_ReadsFrame: [ref, Field]bool
       Bpl.IdentifierExpr traitFrame = etran.ReadsFrame(func.OverriddenFunction.tok);  // this is a throw-away expression, used only to extract the type and name of the $_ReadsFrame variable
       traitFrame.Name = func.EnclosingClass.Name + "_" + traitFrame.Name;
@@ -1540,7 +1550,7 @@ namespace Microsoft.Dafny {
       }
 
       int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
-      var toks = new List<IToken>();
+      var toks = new List<IOrigin>();
       var callee = new List<Expr>();
       var caller = new List<Expr>();
       var calleeDafny = new List<Expression>();
@@ -1554,7 +1564,7 @@ namespace Microsoft.Dafny {
           N = i;
           break;
         }
-        toks.Add(new NestedToken(original.RangeToken.StartToken, e1.tok));
+        toks.Add(new NestedOrigin(original.RangeToken.StartToken, e1.tok));
         calleeDafny.Add(e0);
         callerDafny.Add(e1);
         callee.Add(etran.TrExpr(e0));
@@ -1654,7 +1664,7 @@ namespace Microsoft.Dafny {
         if (node is AssertStmt assertStmt &&
             assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {
           var ifAfterLastToken = m.EndToken;
-          if (rangesOnly.FindIndex(r => r.Contains(node.StartToken.pos)) is var x && x >= 0) {
+          if (rangesOnly.FindIndex(r => r.Contains(node.StartToken)) is var x && x >= 0) {
             if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before) {// Just shorten the previous range
               rangesOnly[x] = new RangeToken(rangesOnly[x].StartToken, node.EndToken);
               return true;
@@ -1680,7 +1690,7 @@ namespace Microsoft.Dafny {
       });
       if (rangesOnly.Any()) {
         // TODO: What to do with refined postconditions?
-        assertionOnlyFilter = token => rangesOnly.Any(range => range.Contains((token.pos)));
+        assertionOnlyFilter = token => rangesOnly.Any(range => range.Contains(token));
       }
     }
 
@@ -1826,7 +1836,7 @@ namespace Microsoft.Dafny {
           comment = null;
           foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
             var post = s.E;
-            if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
+            if (kind == MethodTranslationKind.Implementation && RefinementOrigin.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
               post = BplImp(new Boogie.IdentifierExpr(s.E.tok, "$_reverifyPost", Boogie.Type.Bool), post);
             }
@@ -1871,7 +1881,7 @@ namespace Microsoft.Dafny {
       byte[] data;
       using (var writer = new System.IO.StringWriter()) {
         var printer = new Printer(writer, options);
-        printer.PrintAttributes(m.Attributes);
+        printer.PrintAttributes(m.Attributes, false, -1);
         printer.PrintFormals(m.Ins, m);
         if (m.Outs.Any()) {
           writer.Write("returns ");
@@ -1891,7 +1901,7 @@ namespace Microsoft.Dafny {
       InsertChecksum(decl, data);
     }
 
-    internal IEnumerable<Bpl.Expr> TypeBoundAxioms(IToken tok, List<TypeParameter> typeParameters) {
+    internal IEnumerable<Bpl.Expr> TypeBoundAxioms(IOrigin tok, List<TypeParameter> typeParameters) {
       foreach (var typeParameter in typeParameters.Where(typeParameter => typeParameter.TypeBounds.Any())) {
         TypeBoundAxiomExpressions(tok, new List<Variable>(), new UserDefinedType(typeParameter), typeParameter.TypeBounds,
           out var isBoxExpr, out var isAllocBoxExpr);
@@ -1900,7 +1910,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void TypeBoundAxiomExpressions(IToken tok, List<Bpl.Variable> bvarsTypeParameters, Type type, List<Type> typeBounds,
+    public void TypeBoundAxiomExpressions(IOrigin tok, List<Bpl.Variable> bvarsTypeParameters, Type type, List<Type> typeBounds,
       out Bpl.Expr isBoxExpr, out Bpl.Expr isAllocBoxExpr) {
       {
         // (forall bvarsTypeParameters, bx: Box ::

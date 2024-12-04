@@ -174,7 +174,7 @@ Dafny does not perform sanity checks on the arguments---it is the user's respons
 
 For more detail on the use of `{:extern}`, see the corresponding [section](#sec-extern-decls) in the user's guide.
 
-### 11.1.5. `{:disable-nonlinear-arithmetic}` {#sec-disable-nonlinear-arithmetic}
+### 11.1.5. `{:disableNonlinearArithmetic}` {#sec-disable-nonlinear-arithmetic}
 This attribute only applies to module declarations. It overrides the global option `--disable-nonlinear-arithmetic` for that specific module. The attribute can be given true or false to disable or enable nonlinear arithmetic. When no value is given, the default value is true.
 
 ## 11.2. Attributes on functions and methods
@@ -325,13 +325,11 @@ The two contexts are:
 
 The form of the `{:induction}` attribute is one of the following:
 
-* `{:induction}` -- apply induction to all bound variables
+* `{:induction}` or `{:induction true}` -- apply induction to all bound variables
 * `{:induction false}` -- suppress induction, that is, don't apply it to any bound variable
-* `{:induction L}` where `L` is a list consisting entirely of bound variables
+* `{:induction L}` where `L` is a sublist of the bound variables
 -- apply induction to the specified bound variables
-* `{:induction X}` where `X` is anything else -- treat the same as
-`{:induction}`, that is, apply induction to all bound variables. For this
-usage conventionally `X` is `true`.
+* `{:induction X}` where `X` is anything else -- raise an error.
 
 Here is an example of using it on a quantifier expression:
 <!-- %check-verify -->
@@ -354,7 +352,12 @@ lemma Correspondence()
 }
 ```
 
-### 11.2.11. `{:only}` {#sec-only-functions-methods}
+
+### 11.2.11. `{:inductionTrigger}` {#sec-induction-trigger}
+
+Dafny automatically generates triggers for quantified induction hypotheses.  The default selection can be overridden using the `{:inductionTrigger}` attribute, which works like the usual [`{:trigger}` attribute](#sec-trigger).
+
+### 11.2.12. `{:only}` {#sec-only-functions-methods}
 
 `method {:only} X() {}` or `function {:only} X() {}`  temporarily disables the verification of all other non-`{:only}` members, e.g. other functions and methods, in the same file, even if they contain [assertions with `{:only}`](#sec-only).
 
@@ -381,7 +384,7 @@ method TestUnverified() {
 
 More information about the Boogie implementation of `{:opaque}` is [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
-### 11.2.12. `{:print}` {#sec-print}
+### 11.2.13. `{:print}` {#sec-print}
 This attribute declares that a method may have print effects,
 that is, it may use `print` statements and may call other methods
 that have print effects. The attribute can be applied to compiled
@@ -391,11 +394,11 @@ allowed to use a `{:print}` attribute only if the overridden method
 does.
 Print effects are enforced only with `--track-print-effects`.
 
-### 11.2.13. `{:priority}`
+### 11.2.14. `{:priority}`
 `{:priority N}` assigns a positive priority 'N' to a method or function to control the order
 in which methods or functions are verified (default: N = 1).
 
-### 11.2.14. `{:resource_limit}` and `{:rlimit}` {#sec-rlimit}
+### 11.2.15. `{:resource_limit}` and `{:rlimit}` {#sec-rlimit}
 
 `{:resource_limit N}` limits the verifier resource usage to verify the method or function to `N`.
 
@@ -444,14 +447,14 @@ To give orders of magnitude about resource usage, here is a list of examples ind
 
 Note that, the default solver Z3 tends to overshoot by `7K` to `8K`, so if you put `{:rlimit 20}` in the last example, the total resource usage would be `27K`.
 
-### 11.2.15. `{:selective_checking}`
+### 11.2.16. `{:selective_checking}`
 Turn all assertions into assumptions except for the ones reachable from after the
 assertions marked with the attribute `{:start_checking_here}`.
 Thus, `assume {:start_checking_here} something;` becomes an inverse
 of `assume false;`: the first one disables all verification before
 it, and the second one disables all verification after.
 
-### 11.2.16. `{:tailrecursion}`
+### 11.2.17. `{:tailrecursion}`
 This attribute is used on method or function declarations. It has a boolean argument.
 
 If specified with a `false` value, it means the user specifically
@@ -541,7 +544,7 @@ Note that the function definition can be changed by computing
 the tail closer to where it's used or switching the order of computing
 `r` and `tail`, but the `by method` body can stay the same.
 
-### 11.2.17. `{:test}` {#sec-test-attribute}
+### 11.2.18. `{:test}` {#sec-test-attribute}
 This attribute indicates the target function or method is meant
 to be executed at runtime in order to test that the program is working as intended.
 
@@ -579,10 +582,10 @@ harness that supplies input arguments but has no inputs of its own and that
 checks any output values, perhaps with `expect` statements. The test harness
 is then the method marked with `{:test}`.
 
-### 11.2.18. `{:timeLimit N}` {#sec-time-limit}
+### 11.2.19. `{:timeLimit N}` {#sec-time-limit}
 Set the time limit for verifying a given function or method.
 
-### 11.2.19. `{:timeLimitMultiplier X}`
+### 11.2.20. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timeLimit Y}` attribute is passed on to Boogie
@@ -590,11 +593,11 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `-timeLimit` command-line option.
 
-### 11.2.20. `{:transparent}` {#sec-transparent}
+### 11.2.21. `{:transparent}` {#sec-transparent}
 
 By default, the body of a function is transparent to its users. This can be overridden using the `--default-function-opacity` command line flag. If default function opacity is set to `opaque` or `autoRevealDependencies`, then this attribute can be used on functions to make them always non-opaque.
 
-### 11.2.21. `{:verify false}` {#sec-verify}
+### 11.2.22. `{:verify false}` {#sec-verify}
      
 Skip verification of a function or a method altogether,
 not even trying to verify the [well-formedness](#sec-assertion-batches) of postconditions and preconditions.
@@ -603,7 +606,7 @@ which performs these minimal checks while not checking that the body satisfies t
 
 If you simply want to temporarily disable all verification except on a single function or method, use the [`{:only}`](#sec-only-functions-methods) attribute on that function or method.
 
-### 11.2.22. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
+### 11.2.23. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
 Per-method version of the command-line option `/vcsMaxCost`.
 
 The [assertion batch](#sec-assertion-batches) of a method
@@ -612,7 +615,7 @@ number, defaults to 2000.0. In
 [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
 If [`{:isolate_assertions}`](#sec-isolate_assertions) is set, then this parameter is useless.
 
-### 11.2.23. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
+### 11.2.24. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
 
 Per-method version of the command-line option `/vcsMaxKeepGoingSplits`.
 If set to more than 1, activates the _keep going mode_ where, after the first round of splitting,
@@ -623,7 +626,7 @@ case an error is reported for that assertion).
 Defaults to 1.
 If [`{:isolate_assertions}`](#sec-isolate_assertions) is set, then this parameter is useless.
 
-### 11.2.24. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
+### 11.2.25. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
 
 Per-method version of the command-line option `/vcsMaxSplits`.
 Maximal number of [assertion batches](#sec-assertion-batches) generated for this method.
@@ -631,14 +634,14 @@ In [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first 
 Defaults to 1.
 If [`{:isolate_assertions}`](#sec-isolate_assertions) is set, then this parameter is useless.
 
-### 11.2.25. `{:isolate_assertions}` {#sec-isolate_assertions}
+### 11.2.26. `{:isolate_assertions}` {#sec-isolate_assertions}
 Per-method version of the command-line option<span id="sec-vcs_split_on_every_assert"></span> `/vcsSplitOnEveryAssert`
 
 In the first and only verification round, this option will split the original [assertion batch](#sec-assertion-batches)
 into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
-### 11.2.26. `{:synthesize}` {#sec-synthesize-attr}
+### 11.2.27. `{:synthesize}` {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
 return one or more fresh objects. During compilation, 
@@ -672,7 +675,7 @@ BOUNDVARS = ID : ID
           | BOUNDVARS, BOUNDVARS
 ```
 
-### 11.2.27. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
+### 11.2.28. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
 
 This attribute applies only to modules. It configures Dafny as if
 `OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,
@@ -1029,10 +1032,35 @@ Dafny rewrites `@`-attributes to old-style equivalent attributes. The definition
 <!-- %no-check -->
 ```dafny
 datatype Attribute =
-    Fuel(low: int, high: int := low + 1, functionName: string := "")
-  | Options(string)
+  | AutoContracts
+  | AutoRequires
+  | AutoRevealDependenciesAll
+  | AutoRevealDependencies
+  | Axiom
   | Compile(bool)
+  | Concurrent
+  | DisableNonlinearArithmetic
+  | Fuel(low: int, high: int := low + 1, functionName: string := "")
   | IsolateAssertions
+  | NativeUInt8 | NativeInt8 ... | NativeUInt128 | NativeInt128 | NativeInt | NativeNone | NativeIntOrReal
+  | Options(string)
+  | Print
+  | Priority(weight: int)
+  | ResourceLimit(value: string)
+  | Synthesize
+  | TimeLimit(amount: int)
+  | TimeLimitMultiplier(multiplier: int)
+  | TailRecursion
+  | Test
+  | TestEntry
+  | TestInline(amount: int)
+  | Transparent
+  | VcsMaxCost
+  | VcsMaxKeepGoingSplits
+  | VcsMaxSplits
+  | Verify(verify: bool)
+  | VerifyOnly
+  
 ```
 
 @-attributes have the same checks as regular resolved datatype values

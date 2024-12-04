@@ -71,9 +71,7 @@ public class ExpectContracts : IRewriter {
   }
 
   private bool ShouldGenerateWrapper(MemberDecl decl) {
-    return !decl.IsGhost &&
-           decl is not Constructor &&
-           CallRedirector.HasExternAttribute(decl);
+    return !decl.IsGhost && CallRedirector.HasExternAttribute(decl);
   }
 
   /// <summary>
@@ -108,7 +106,7 @@ public class ExpectContracts : IRewriter {
   }
 
   private MemberDecl GenerateFunctionWrapper(TopLevelDeclWithMembers parent, MemberDecl decl, Function origFunc,
-    string newName, IToken tok) {
+    string newName, IOrigin tok) {
     var newFunc = cloner.CloneFunction(origFunc);
     newFunc.NameNode.Value = newName;
 
@@ -119,49 +117,28 @@ public class ExpectContracts : IRewriter {
 
     newFunc.Body = callExpr;
 
-    var localName = origFunc.Result?.Name ?? "__result";
-    var localExpr = new IdentifierExpr(tok, localName) {
-      Type = newFunc.ResultType
-    };
+    var resultVar = origFunc.Result ?? new Formal(tok, "#result", newFunc.ResultType, false, false, null);
+    var localExpr = Expression.CreateIdentExpr(resultVar);
 
     var callRhs = new ExprRhs(callExpr);
 
     var lhss = new List<Expression> { localExpr };
     var rhss = new List<AssignmentRhs> { callRhs };
 
-    var assignStmt = new SingleAssignStmt(decl.RangeToken, localExpr, callRhs);
-    Statement callStmt;
-    if (origFunc.Result?.Name is null) {
-      var local = new LocalVariable(decl.RangeToken, localName, newFunc.ResultType, false);
-      local.type = newFunc.ResultType;
-      var locs = new List<LocalVariable> { local };
-      var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new AssignStatement(decl.RangeToken, lhss, rhss) {
-        ResolvedStatements = new List<Statement>() { assignStmt }
-      });
-      localExpr.Var = local;
-      callStmt = varDeclStmt;
-    } else {
-      localExpr.Var = origFunc.Result;
-      callStmt = assignStmt;
-    }
+    var callStmt = new SingleAssignStmt(decl.RangeToken, localExpr, callRhs);
 
     var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
-
-    if (origFunc.Result?.Name is null) {
-      body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
-    }
 
     newFunc.ByMethodBody = body;
     // We especially want to remove {:extern} from the wrapper, but also any other attributes.
     newFunc.Attributes = null;
-    RegisterResolvedByMethod(newFunc, parent);
+    RegisterResolvedByMethod(resultVar, newFunc, parent);
 
     return newFunc;
   }
 
   private MemberDecl GenerateMethodWrapper(TopLevelDeclWithMembers parent, MemberDecl decl, Method origMethod,
     string newName) {
-    MemberDecl newDecl;
     var newMethod = cloner.CloneMethod(origMethod);
     newMethod.NameNode.Value = newName;
 
@@ -178,21 +155,21 @@ public class ExpectContracts : IRewriter {
 
     var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
     newMethod.Body = body;
-    newDecl = newMethod;
-    return newDecl;
+    return newMethod;
   }
 
 
-  private void RegisterResolvedByMethod(Function f, TopLevelDeclWithMembers cl) {
+  private void RegisterResolvedByMethod(Formal resultVar, Function f, TopLevelDeclWithMembers cl) {
 
     var tok = f.ByMethodTok;
-    var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
     var r = Expression.CreateIdentExpr(resultVar);
     // To construct the receiver, we want to know if the function is static or instance. That information is ordinarily computed
     // by f.IsStatic, which looks at f.HasStaticKeyword and f.EnclosingClass. However, at this time, f.EnclosingClass hasn't yet
     // been set. Instead, we compute here directly from f.HasStaticKeyword and "cl".
     var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
-    var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
+    var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok) {
+      Type = UserDefinedType.FromTopLevelDecl(Token.NoToken, cl)
+    };
     var fn = Expression.CreateResolvedCall(tok, receiver, f, f.Ins.ConvertAll(Expression.CreateIdentExpr),
       f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter)), systemModuleManager);
     var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {

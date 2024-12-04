@@ -6,7 +6,8 @@
 /**
  Derives conversions to and from sequences of bytes.
  */
-module {:disableNonlinearArithmetic} Std.JSON.ByteStrConversion refines Strings.ParametricConversion {
+@DisableNonlinearArithmetic
+module Std.JSON.ByteStrConversion refines Strings.ParametricConversion {
   import opened BoundedInts
 
   type Char = byte

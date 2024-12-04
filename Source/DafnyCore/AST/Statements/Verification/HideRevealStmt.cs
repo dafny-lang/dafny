@@ -44,15 +44,15 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     }
   }
 
-  public HideRevealStmt(RangeToken rangeToken, HideRevealCmd.Modes mode)
-    : base(rangeToken) {
+  public HideRevealStmt(RangeToken rangeOrigin, HideRevealCmd.Modes mode)
+    : base(rangeOrigin) {
     Wildcard = true;
     this.Exprs = null;
     Mode = mode;
   }
 
-  public HideRevealStmt(RangeToken rangeToken, List<Expression> exprs, HideRevealCmd.Modes mode)
-    : base(rangeToken) {
+  public HideRevealStmt(RangeToken rangeOrigin, List<Expression> exprs, HideRevealCmd.Modes mode)
+    : base(rangeOrigin) {
     Contract.Requires(exprs != null);
     this.Exprs = exprs;
     Wildcard = false;
@@ -140,5 +140,13 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     foreach (var a in ResolvedStatements) {
       resolver.ResolveStatement(a, resolutionContext);
     }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    ResolvedStatements.ForEach(ss => ss.ResolveGhostness(resolver, reporter, true, codeContext,
+      $"a {Kind} statement", allowAssumptionVariables, inConstructorInitializationPhase));
+    IsGhost = ResolvedStatements.All(ss => ss.IsGhost);
   }
 }

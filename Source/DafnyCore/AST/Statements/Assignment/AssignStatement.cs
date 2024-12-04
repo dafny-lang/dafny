@@ -12,7 +12,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  public override IToken Tok {
+  public override IOrigin Tok {
     get {
       var firstRhs = Rhss.First();
       if (firstRhs.StartToken != StartToken) {
@@ -53,16 +53,16 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
     }
   }
 
-  public AssignStatement(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
-    : base(rangeToken, lhss) {
+  public AssignStatement(RangeToken rangeOrigin, List<Expression> lhss, List<AssignmentRhs> rhss)
+    : base(rangeOrigin, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = false;
   }
-  public AssignStatement(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
-    : base(rangeToken, lhss) {
+  public AssignStatement(RangeToken rangeOrigin, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
+    : base(rangeOrigin, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
@@ -96,7 +96,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
 
     base.Resolve(resolver, resolutionContext);
 
-    IToken firstEffectfulRhs = null;
+    IOrigin firstEffectfulRhs = null;
     MethodCallInformation methodCallInfo = null;
     ResolvedStatements = new();
     foreach (var rhs in Rhss) {
@@ -190,5 +190,13 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
     foreach (var a in ResolvedStatements) {
       resolver.ResolveStatement(a, resolutionContext);
     }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    ResolvedStatements.ForEach(ss => ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext,
+      proofContext, allowAssumptionVariables, inConstructorInitializationPhase));
+    IsGhost = ResolvedStatements.All(ss => ss.IsGhost);
   }
 }

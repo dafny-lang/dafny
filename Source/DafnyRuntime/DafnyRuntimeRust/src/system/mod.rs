@@ -104,8 +104,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType> AsRef<Tuple2<T0, T1>>
-    for &Tuple2<T0, T1> {
-    fn as_ref(&self) -> Self {
+    for Tuple2<T0, T1> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -164,8 +164,8 @@ pub mod _System {
   }
 
   impl AsRef<Tuple0>
-    for &Tuple0 {
-    fn as_ref(&self) -> Self {
+    for Tuple0 {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -244,8 +244,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType> AsRef<Tuple1<T0>>
-    for &Tuple1<T0> {
-    fn as_ref(&self) -> Self {
+    for Tuple1<T0> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -346,8 +346,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType> AsRef<Tuple3<T0, T1, T2>>
-    for &Tuple3<T0, T1, T2> {
-    fn as_ref(&self) -> Self {
+    for Tuple3<T0, T1, T2> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -459,8 +459,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType> AsRef<Tuple4<T0, T1, T2, T3>>
-    for &Tuple4<T0, T1, T2, T3> {
-    fn as_ref(&self) -> Self {
+    for Tuple4<T0, T1, T2, T3> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -583,8 +583,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType> AsRef<Tuple5<T0, T1, T2, T3, T4>>
-    for &Tuple5<T0, T1, T2, T3, T4> {
-    fn as_ref(&self) -> Self {
+    for Tuple5<T0, T1, T2, T3, T4> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -718,8 +718,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType> AsRef<Tuple6<T0, T1, T2, T3, T4, T5>>
-    for &Tuple6<T0, T1, T2, T3, T4, T5> {
-    fn as_ref(&self) -> Self {
+    for Tuple6<T0, T1, T2, T3, T4, T5> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -864,8 +864,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType> AsRef<Tuple7<T0, T1, T2, T3, T4, T5, T6>>
-    for &Tuple7<T0, T1, T2, T3, T4, T5, T6> {
-    fn as_ref(&self) -> Self {
+    for Tuple7<T0, T1, T2, T3, T4, T5, T6> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -1021,8 +1021,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType> AsRef<Tuple8<T0, T1, T2, T3, T4, T5, T6, T7>>
-    for &Tuple8<T0, T1, T2, T3, T4, T5, T6, T7> {
-    fn as_ref(&self) -> Self {
+    for Tuple8<T0, T1, T2, T3, T4, T5, T6, T7> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -1189,8 +1189,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType> AsRef<Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8>>
-    for &Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8> {
-    fn as_ref(&self) -> Self {
+    for Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -1368,8 +1368,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType> AsRef<Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>>
-    for &Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> {
-    fn as_ref(&self) -> Self {
+    for Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -1558,8 +1558,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType> AsRef<Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>>
-    for &Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
-    fn as_ref(&self) -> Self {
+    for Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -1759,8 +1759,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType> AsRef<Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>>
-    for &Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
-    fn as_ref(&self) -> Self {
+    for Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -1971,8 +1971,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType> AsRef<Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>>
-    for &Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
-    fn as_ref(&self) -> Self {
+    for Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -2194,8 +2194,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType> AsRef<Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>>
-    for &Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
-    fn as_ref(&self) -> Self {
+    for Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -2428,8 +2428,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType> AsRef<Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>>
-    for &Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
-    fn as_ref(&self) -> Self {
+    for Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -2673,8 +2673,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType> AsRef<Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>>
-    for &Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
-    fn as_ref(&self) -> Self {
+    for Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -2929,8 +2929,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType> AsRef<Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>>
-    for &Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {
-    fn as_ref(&self) -> Self {
+    for Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -3196,8 +3196,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType> AsRef<Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17>>
-    for &Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {
-    fn as_ref(&self) -> Self {
+    for Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -3474,8 +3474,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType, T18: DafnyType> AsRef<Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18>>
-    for &Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {
-    fn as_ref(&self) -> Self {
+    for Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }
@@ -3763,8 +3763,8 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType, T18: DafnyType, T19: DafnyType> AsRef<Tuple20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19>>
-    for &Tuple20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> {
-    fn as_ref(&self) -> Self {
+    for Tuple20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> {
+    fn as_ref(&self) -> &Self {
       self
     }
   }

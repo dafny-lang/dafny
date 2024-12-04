@@ -112,13 +112,13 @@ module RAST
 
     function VisitImplMapping(acc: T, impl: Impl): T {
       match impl {
-        case ImplFor(typeParams, tpe, forType, where, body) =>
+        case ImplFor(typeParams, tpe, forType, body) =>
           var acc := VisitTypeParams(acc, typeParams);
           var acc := VisitType(acc, tpe);
           var acc := VisitType(acc, forType);
           VisitBody(acc, body)
         // TODO: Add body
-        case Impl(typeParams, tpe, where, body) =>
+        case Impl(typeParams, tpe, body) =>
           var acc := VisitType(acc, tpe);
           VisitBody(acc, body)
       }
@@ -136,6 +136,8 @@ module RAST
         case RawImplMember(content) => acc
         case FnDecl(pub, fun) =>
           VisitFn(acc, fun)
+        case TypeDeclMember(name, tpe) =>
+          VisitType(acc, tpe)
         case ImplMemberMacro(expr: Expr) =>
           expr.Fold(acc, VisitExprSingle, VisitTypeSingle)
       }
@@ -241,15 +243,14 @@ module RAST
 
     function ReplaceImplDecl(impl: Impl): Impl {
       match impl {
-        case ImplFor(typeParams, tpe, forType, where, body) =>
+        case ImplFor(typeParams, tpe, forType, body) =>
           ImplFor(
             ReplaceTypeParams(typeParams),
             ReplaceType(tpe),
             ReplaceType(forType),
-            where,
             ReplaceBody(body))
-        case Impl(typeParams, tpe, where, body) =>
-          Impl(ReplaceTypeParams(typeParams), ReplaceType(tpe), where, ReplaceBody(body))
+        case Impl(typeParams, tpe, body) =>
+          Impl(ReplaceTypeParams(typeParams), ReplaceType(tpe), ReplaceBody(body))
       }
     }
 
@@ -306,6 +307,8 @@ module RAST
         case RawImplMember(content) => t
         case FnDecl(pub, fun) =>
           FnDecl(pub, ReplaceFn(fun))
+        case TypeDeclMember(name, tpe) =>
+          TypeDeclMember(name, ReplaceType(tpe))
         case ImplMemberMacro(expr: Expr) =>
           ImplMemberMacro(ReplaceExpr(expr))
       }
@@ -553,7 +556,8 @@ module RAST
       if |typeParams| == 0 then "" else
       "<" + SeqToString(typeParams, (t: TypeParamDecl) => t.ToString(ind + IND), ", ") + ">"
     }
-    static function {:tailrecursion true} AddConstraintsMultiple(
+    @TailRecursion
+    static function AddConstraintsMultiple(
       typeParams: seq<TypeParamDecl>, constraints: seq<TypeParamConstraint>
     ): seq<TypeParamDecl> {
       if |typeParams| == 0 then []
@@ -590,6 +594,8 @@ module RAST
 
   const PtrPath: Path := dafny_runtime.MSel("Ptr")
 
+  const BoxPath := std.MSel("boxed").MSel("Box")
+
   const Ptr := PtrPath.AsExpr()
 
   function PtrType(underlying: Type): Type {
@@ -620,10 +626,10 @@ module RAST
   }
 
   function Box(content: Type): Type {
-    TypeApp(TIdentifier("Box"), [content])
+    TypeApp(BoxPath.AsType(), [content])
   }
   function BoxNew(content: Expr): Expr {
-    Identifier("Box").FSel("new").Apply([content])
+    BoxPath.AsExpr().FSel("new").Apply([content])
   }
 
   datatype Path =
@@ -685,11 +691,13 @@ module RAST
     | IntersectionType(left: Type, right: Type)
     | Array(underlying: Type, size: Option<string>)
     | TSynonym(display: Type, base: Type)
+    | TMetaData(display: Type, nameonly copySemantics: bool, nameonly overflow: bool)
   {
     function Expand(): (r: Type)
-      ensures !r.TSynonym? && (!TSynonym? ==> r == this)
+      ensures !r.TSynonym? && !r.TMetaData? && (!TSynonym? && !TMetaData? ==> r == this)
     {
-      if TSynonym? then base.Expand() else this
+      if TSynonym? then base.Expand() else
+      if TMetaData? then display.Expand() else this
     }
     predicate EndsWithNameThatCanAcceptGenerics() {
       || U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128?
@@ -699,7 +707,7 @@ module RAST
       || (ImplType? && underlying.EndsWithNameThatCanAcceptGenerics())
       || (DynType? && underlying.EndsWithNameThatCanAcceptGenerics())
       || (IntersectionType? && right.EndsWithNameThatCanAcceptGenerics())
-      || (TSynonym? && display.EndsWithNameThatCanAcceptGenerics())
+      || ((TSynonym? || TMetaData?) && display.EndsWithNameThatCanAcceptGenerics())
     }
     function ReplaceMap(mapping: map<Type, Type>): Type {
       Replace((t: Type) => if t in mapping then mapping[t] else t)
@@ -732,6 +740,8 @@ module RAST
             this.(underlying := underlying.Replace(mapping))
           case TSynonym(display, base) =>
             this.(display := display.Replace(mapping), base := base.Replace(mapping))
+          case TMetaData(display, copySemantics, overflow) =>
+            this.(display := display.Replace(mapping))
         };
       mapping(r)
     }
@@ -768,12 +778,21 @@ module RAST
           right.Fold(left.Fold(newAcc, f), f)
         case Array(underlying, size) => underlying.Fold(newAcc, f)
         case TSynonym(display, base) => display.Fold(newAcc, f)
+        case TMetaData(display, _, _) => display.Fold(newAcc, f)
       }
     }
 
+    predicate IsAutoSize() {
+      U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || USIZE?
+      || (TSynonym? && base.IsAutoSize())
+      || (TMetaData? && display.IsAutoSize())
+    }
+
     predicate CanReadWithoutClone() {
-      U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || USIZE? || Bool?
-      || (TSynonym? && base.CanReadWithoutClone()) || IsPointer()
+      IsAutoSize() || Bool?
+      || IsPointer()
+      || (TSynonym? && base.CanReadWithoutClone())
+      || (TMetaData? && (copySemantics || display.CanReadWithoutClone()))
     }
     predicate IsRcOrBorrowedRc() {
       (TypeApp? && baseName == RcType) ||
@@ -849,6 +868,7 @@ module RAST
         case USIZE() => "usize"
         case Array(underlying, size) => "[" + underlying.ToString(ind) + (if size.Some? then "; " + size.value else "") + "]"
         case TSynonym(display, base) => display.ToString(ind)
+        case TMetaData(display, _, _) => display.ToString(ind)
       }
     }
 
@@ -934,6 +954,28 @@ module RAST
           false
       else
         false
+    }
+    predicate IsBox() {
+      match this {
+        case TypeApp(TypeFromPath(o), elems1) =>
+          o == BoxPath && |elems1| == 1
+        case _ => false
+      }
+    }
+    // Every type that needs to be .as_ref() to become purely borrowed
+    predicate NeedsAsRefForBorrow() {
+      if Borrowed? then
+        underlying.IsBox() || underlying.IsRc()
+      else
+        IsBox() || IsRc()
+    }
+    function BoxUnderlying(): Type
+      requires IsBox()
+    {
+      match this {
+        case TypeApp(TypeFromPath(o), elems1) =>
+          elems1[0]
+      }
     }
     predicate IsObject() {
       match this {
@@ -1076,13 +1118,12 @@ module RAST
   }
 
   datatype Impl =
-    | ImplFor(typeParams: seq<TypeParamDecl>, tpe: Type, forType: Type, where: string, body: seq<ImplMember>)
-    | Impl(typeParams: seq<TypeParamDecl>, tpe: Type, where: string, body: seq<ImplMember>)
+    | ImplFor(typeParams: seq<TypeParamDecl>, tpe: Type, forType: Type, body: seq<ImplMember>)
+    | Impl(typeParams: seq<TypeParamDecl>, tpe: Type, body: seq<ImplMember>)
   {
     function ToString(ind: string): string {
       "impl" + TypeParamDecl.ToStringMultiple(typeParams, ind) + " " + tpe.ToString(ind)
       + (if ImplFor? then "\n" + ind + IND + "for " + forType.ToString(ind + IND) else "")
-      + (if where != "" then "\n" + ind + IND + where else "")
       + " {" +
       SeqToString(body, (member: ImplMember) => "\n" + ind + IND + member.ToString(ind + IND), "")
       + (if |body| == 0 then "" else "\n" + ind) + "}"
@@ -1090,12 +1131,14 @@ module RAST
   }
   datatype ImplMember =
     | RawImplMember(content: string)
+    | TypeDeclMember(name: string, rhs: Type) // When implementing traits
     | FnDecl(pub: Visibility, fun: Fn)
     | ImplMemberMacro(expr: Expr)
   {
     function ToString(ind: string): string {
       if FnDecl? then pub.ToString() + fun.ToString(ind)
       else if ImplMemberMacro? then expr.ToString(ind) + ";"
+      else if TypeDeclMember? then "type " + name + " = " + rhs.ToString(ind) + ";"
       else assert RawImplMember?; content
     }
   }
@@ -1118,7 +1161,7 @@ module RAST
       tpe.Fold(acc, ft)
     }
     function ToString(ind: string): string {
-      if name == "self" && tpe == SelfOwned then name
+      if name == "self" && tpe.Expand() == SelfOwned then name
       else if name == "self" && tpe == SelfBorrowed then "&" + name
       else if name == "self" && tpe == SelfBorrowedMut then "&mut " + name
       else if tpe.TIdentifier? && tpe.name == "_" then
@@ -1781,6 +1824,10 @@ module RAST
 
     function Clone(): Expr {
       Select(this, "clone").Apply0()
+    }
+
+    predicate IsBorrow() {
+      UnaryOp? && op1 == "&"
     }
   }
 

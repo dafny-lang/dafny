@@ -14,7 +14,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
   public readonly AttributedToken KeywordToken;
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new();
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
-  public override IToken Tok {
+  public override IOrigin Tok {
     get {
       var result = Rhs.StartToken.Prev;
       if (char.IsLetter(result.val[0])) {
@@ -53,9 +53,9 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     }
   }
 
-  public AssignOrReturnStmt(RangeToken rangeToken, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss)
-    : base(rangeToken, lhss) {
-    Contract.Requires(rangeToken != null);
+  public AssignOrReturnStmt(RangeToken rangeOrigin, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss)
+    : base(rangeOrigin, lhss) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(lhss != null);
     Contract.Requires(lhss.Count <= 1);
     Contract.Requires(rhs != null);
@@ -70,7 +70,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       foreach (var e in base.SpecificationSubExpressions) {
         yield return e;
       }
-      foreach (var e in base.Lhss) {
+      foreach (var e in Lhss) {
         yield return e;
       }
       if (Rhs != null) {
@@ -350,5 +350,13 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
           "The Extract member may not be ghost unless the initial LHS is ghost");
       }
     }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    ResolvedStatements.ForEach(ss => ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext,
+      proofContext, allowAssumptionVariables, inConstructorInitializationPhase));
+    IsGhost = ResolvedStatements.All(ss => ss.IsGhost);
   }
 }

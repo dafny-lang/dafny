@@ -20,7 +20,7 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
     Contract.Invariant(Rhs != null);
   }
 
-  public override IToken Tok {
+  public override IOrigin Tok {
     get {
       if (Rhs.StartToken.Prev is not null) {
         var previous = Rhs.StartToken.Prev;
@@ -45,13 +45,13 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
     Rhs = cloner.CloneRHS(original.Rhs);
   }
 
-  public SingleAssignStmt(RangeToken rangeToken, Expression lhs, AssignmentRhs rhs)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public SingleAssignStmt(RangeToken rangeOrigin, Expression lhs, AssignmentRhs rhs)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(lhs != null);
     Contract.Requires(rhs != null);
-    this.Lhs = lhs;
-    this.Rhs = rhs;
+    Lhs = lhs;
+    Rhs = rhs;
   }
 
   public override IEnumerable<Statement> SubStatements {
@@ -139,5 +139,98 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
       return NonGhostKind.ArrayElement;
     }
     return NonGhostKind.IsGhost;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    var lhs = Lhs.Resolved;
+
+    // Make an auto-ghost variable a ghost if the RHS is a ghost
+    if (lhs.Resolved is AutoGhostIdentifierExpr autoGhostIdExpr) {
+      if (Rhs is ExprRhs eRhs && ExpressionTester.UsesSpecFeatures(eRhs.Expr)) {
+        autoGhostIdExpr.Var.MakeGhost();
+      } else if (Rhs is TypeRhs tRhs) {
+        if (tRhs.InitCall != null && tRhs.InitCall.Method.IsGhost) {
+          autoGhostIdExpr.Var.MakeGhost();
+        } else if (tRhs.ArrayDimensions != null && tRhs.ArrayDimensions.Exists(ExpressionTester.UsesSpecFeatures)) {
+          autoGhostIdExpr.Var.MakeGhost();
+        } else if (tRhs.ElementInit != null && ExpressionTester.UsesSpecFeatures(tRhs.ElementInit)) {
+          autoGhostIdExpr.Var.MakeGhost();
+        } else if (tRhs.InitDisplay != null && tRhs.InitDisplay.Any(ExpressionTester.UsesSpecFeatures)) {
+          autoGhostIdExpr.Var.MakeGhost();
+        }
+      }
+    }
+
+    if (proofContext != null && Rhs is TypeRhs) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_new_forbidden_in_proof, Rhs.Tok, $"{proofContext} is not allowed to use 'new'");
+    }
+
+    var gk = LhsIsToGhost_Which(lhs);
+    if (gk == NonGhostKind.IsGhost) {
+      IsGhost = true;
+      if (proofContext != null && !(lhs is IdentifierExpr)) {
+        reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_heap_update_in_proof, lhs.tok, $"{proofContext} is not allowed to make heap updates");
+      }
+      if (Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
+        tRhs.InitCall.ResolveGhostness(resolver, reporter, true, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
+      }
+    } else if (gk == NonGhostKind.Variable && codeContext.IsGhost) {
+      // cool
+    } else if (mustBeErasable) {
+      if (inConstructorInitializationPhase && codeContext is Constructor && codeContext.IsGhost && lhs is MemberSelectExpr mse &&
+          mse.Obj.Resolved is ThisExpr) {
+        // in this first division (before "new;") of a ghost constructor, allow assignment to non-ghost field of the object being constructed
+      } else {
+        string reason;
+        if (codeContext.IsGhost) {
+          reason = string.Format("this is a ghost {0}", codeContext is MemberDecl member ? member.WhatKind : "context");
+        } else {
+          reason = "the statement is in a ghost context; e.g., it may be guarded by a specification-only expression";
+        }
+        reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_assignment_forbidden_in_context, this, $"assignment to {NonGhostKind_To_String(gk)} is not allowed in this context, because {reason}");
+      }
+    } else {
+      if (gk == NonGhostKind.Field) {
+        var mse = (MemberSelectExpr)lhs;
+        ExpressionTester.CheckIsCompilable(resolver, reporter, mse.Obj, codeContext);
+      } else if (gk == NonGhostKind.ArrayElement) {
+        ExpressionTester.CheckIsCompilable(resolver, reporter, lhs, codeContext);
+      }
+
+      if (Rhs is ExprRhs) {
+        var rhs = (ExprRhs)Rhs;
+        if (!LhsIsToGhost(lhs)) {
+          ExpressionTester.CheckIsCompilable(resolver, reporter, rhs.Expr, codeContext);
+        }
+      } else if (Rhs is HavocRhs) {
+        // cool
+      } else {
+        var rhs = (TypeRhs)Rhs;
+        if (rhs.ArrayDimensions != null) {
+          rhs.ArrayDimensions.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
+          if (rhs.ElementInit != null) {
+            ExpressionTester.CheckIsCompilable(resolver, reporter, rhs.ElementInit, codeContext);
+          }
+          if (rhs.InitDisplay != null) {
+            rhs.InitDisplay.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
+          }
+        }
+        if (rhs.InitCall != null) {
+          var callee = rhs.InitCall.Method;
+          if (callee.IsGhost) {
+            reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_assignment_to_ghost_constructor_only_in_ghost,
+              rhs.InitCall, "the result of a ghost constructor can only be assigned to a ghost variable");
+          }
+          for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
+            if (!callee.Ins[i].IsGhost) {
+              ExpressionTester.CheckIsCompilable(resolver, reporter, rhs.InitCall.Args[i], codeContext);
+            }
+          }
+        }
+      }
+    }
   }
 }

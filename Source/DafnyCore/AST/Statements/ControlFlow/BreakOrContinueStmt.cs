@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// Class "BreakStmt" represents both "break" and "continue" statements.
 /// </summary>
 public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOrContinueStmt> {
-  public readonly IToken TargetLabel;
+  public readonly IOrigin TargetLabel;
   public readonly bool IsContinue;
   public string Kind => IsContinue ? "continue" : "break";
   public readonly int BreakAndContinueCount;
@@ -31,29 +31,40 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
     }
   }
 
-  public BreakOrContinueStmt(RangeToken rangeToken, IToken targetLabel, bool isContinue, Attributes attributes = null)
-    : base(rangeToken, attributes) {
-    Contract.Requires(rangeToken != null);
+  public BreakOrContinueStmt(RangeToken rangeOrigin, IOrigin targetLabel, bool isContinue, Attributes attributes = null)
+    : base(rangeOrigin, attributes) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(targetLabel != null);
-    this.TargetLabel = targetLabel;
-    this.IsContinue = isContinue;
+    TargetLabel = targetLabel;
+    IsContinue = isContinue;
   }
 
   /// <summary>
   /// For "isContinue == false", represents the statement "break ^breakAndContinueCount ;".
   /// For "isContinue == true", represents the statement "break ^(breakAndContinueCount - 1) continue;".
   /// </summary>
-  public BreakOrContinueStmt(RangeToken rangeToken, int breakAndContinueCount, bool isContinue, Attributes attributes = null)
-    : base(rangeToken, attributes) {
-    Contract.Requires(rangeToken != null);
+  public BreakOrContinueStmt(RangeToken rangeOrigin, int breakAndContinueCount, bool isContinue, Attributes attributes = null)
+    : base(rangeOrigin, attributes) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(1 <= breakAndContinueCount);
-    this.BreakAndContinueCount = breakAndContinueCount;
-    this.IsContinue = isContinue;
+    BreakAndContinueCount = breakAndContinueCount;
+    IsContinue = isContinue;
   }
 
   public IEnumerable<IHasNavigationToken> GetReferences() {
     return new[] { TargetStmt }.OfType<IHasNavigationToken>();
   }
 
-  public IToken NavigationToken => Tok;
+  public IOrigin NavigationToken => Tok;
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable;
+    if (IsGhost && !TargetStmt.IsGhost) {
+      var targetKind = TargetStmt is LoopStmt ? "loop" : "structure";
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_ghost_break, this,
+        $"ghost-context {Kind} statement is not allowed to {Kind} out of non-ghost {targetKind}");
+    }
+  }
 }
