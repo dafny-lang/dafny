@@ -11,7 +11,7 @@ public abstract class TypeUnaryExpr : UnaryExpr {
     ToType = cloner.CloneType(original.ToType);
   }
 
-  protected TypeUnaryExpr(IToken tok, Expression expr, Type toType)
+  protected TypeUnaryExpr(IOrigin tok, Expression expr, Type toType)
     : base(tok, expr) {
     Contract.Requires(tok != null);
     Contract.Requires(expr != null);

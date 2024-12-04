@@ -96,6 +96,7 @@ public class ParseErrors {
     p_no_decreases_expressions_with_star,
     p_assert_needs_by_or_semicolon,
     p_deprecated_forall_with_no_bound_variables,
+    p_deprecated_forall_statement_with_parentheses_around_bound_variables,
     p_forall_with_ensures_must_have_body,
     p_deprecated_modify_statement_with_block,
     p_calc_operator_must_be_transitive,

@@ -89,7 +89,7 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       this.knownValues := {};
     }
 
-    opaque ghost predicate Contained()
+    ghost predicate Contained()
       reads this`internal, this`knownKeys, this`knownValues
     {
       internal.Keys <= knownKeys && internal.Values <= knownValues
@@ -105,7 +105,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       requires Valid()
       ensures forall k :: k in keys ==> exists v :: v in knownValues && inv(k,v)
     {
-      reveal Contained();
       keys := internal.Keys;
     }
 
@@ -113,7 +112,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       requires Valid()
       ensures used ==> exists v :: v in knownValues && inv(k,v)
     {
-      reveal Contained();
       used := k in internal.Keys;
     }
 
@@ -121,7 +119,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       requires Valid()
       ensures forall v :: v in values ==> exists k :: k in knownKeys && inv(k,v)
     {
-      reveal Contained();
       values := internal.Values;
     }
 
@@ -149,7 +146,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       internal := internal[k := v];
       knownKeys := knownKeys + {k};
       knownValues := knownValues + {v};
-      reveal Contained();
     }
 
     method Remove(k: K)
@@ -162,16 +158,10 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       assert exists v :: inv(k,v);
 
       internal := internal - {k};
-      reveal Contained();
     }
 
     method Size() returns (c: nat)
-      requires Valid()
     {
-      // only here to mollify the auditor
-      reveal Contained();
-      assert Contained();
-
       c := |internal|;
     }
 

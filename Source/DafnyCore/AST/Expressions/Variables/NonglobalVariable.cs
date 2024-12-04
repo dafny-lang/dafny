@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 public abstract class NonglobalVariable : TokenNode, IVariable {
   readonly string name;
 
-  protected NonglobalVariable(IToken tok, string name, Type type, bool isGhost) {
+  protected NonglobalVariable(IOrigin tok, string name, Type type, bool isGhost) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
@@ -136,7 +136,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
     IsGhost = true;
   }
 
-  public IToken NavigationToken => tok;
+  public IOrigin NavigationToken => tok;
   public override IEnumerable<INode> Children => IsTypeExplicit ? new List<Node> { Type } : Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
   public SymbolKind? Kind => SymbolKind.Variable;

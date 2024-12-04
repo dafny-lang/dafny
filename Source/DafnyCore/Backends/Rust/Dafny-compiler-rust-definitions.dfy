@@ -24,6 +24,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     "box","do","final","macro","override","priv","try","typeof","unsized",
     "virtual","yield"}
 
+  // Method names that would automatically resolve to trait methods instead of inherent methods
+  // Hence, full name is always required for these methods
+  const builtin_trait_preferred_methods := {
+    "le", "eq", "lt", "ge", "gt"
+  }
+
+
   const reserved_vars := { "None", "hash" }
 
   const reserved_rust_need_prefix := {"u8", "u16", "u32", "u64", "u128","i8", "i16", "i32", "i64", "i128"}
@@ -127,9 +134,10 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       escapeIdent(f.dafny_name)
   }
 
+  // T, &T, &mut T
+  // Box<T>, &Box<T>, Rc<T>, &Rc<T> are counted in T
   datatype Ownership =
     | OwnershipOwned
-    | OwnershipOwnedBox
     | OwnershipBorrowed
     | OwnershipBorrowedMut
     | OwnershipAutoBorrowed
@@ -140,14 +148,15 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   // fn Test(i: &mut T) is map["i" := R.BorrowedMut(...)]
   datatype Environment = Environment(
     names: seq<string>,                 // All variable names, after escape, in Rust
-    types: map<string, R.Type>
+    types: map<string, R.Type>,
+    assignmentStatusKnown: set<string> // Variables that are guaranteed to be assigned exactly once
   ) {
     function ToOwned(): Environment {
       this.(types :=
       map k <- types :: k := types[k].ToOwned())
     }
     static function Empty(): Environment {
-      Environment([], map[])
+      Environment([], map[], {})
     }
     opaque predicate CanReadWithoutClone(name: string) {
       name in types && types[name].CanReadWithoutClone()
@@ -164,26 +173,51 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     predicate IsBorrowedMut(name: string) {
       name in types && types[name].BorrowedMut?
     }
+    predicate IsBoxed(name: string) {
+      name in types && types[name].IsBox()
+    }
+    predicate NeedsAsRefForBorrow(name: string) {
+      name in types && types[name].NeedsAsRefForBorrow()
+    }
+    predicate IsMaybePlacebo(name: string) {
+      name in types && types[name].ExtractMaybePlacebo().Some?
+    }
     function AddAssigned(name: string, tpe: R.Type): Environment
       // If we know for sure the type of name extends the Copy trait
     {
-      Environment(names + [name], types[name := tpe])
+      Environment(names + [name], types[name := tpe], assignmentStatusKnown - {name})
     }
     function merge(other: Environment): Environment
     {
       Environment(
         names + other.names,
-        types + other.types
+        types + other.types,
+        assignmentStatusKnown + other.assignmentStatusKnown
       )
     }
+    // Used to removed from the environment the "_is_assigned" vars used to initialize fields
     function RemoveAssigned(name: string): Environment
       requires name in names
     {
       var indexInEnv := Std.Collections.Seq.IndexOf(names, name);
       Environment(
         names[0..indexInEnv] + names[indexInEnv + 1..],
-        types - {name}
+        types - {name},
+        assignmentStatusKnown - {name}
       )
+    }
+    function AddAssignmentStatus(name: string, assignmentStatus: AssignmentStatus): Environment {
+      Environment(
+        names,
+        types,
+        if assignmentStatus.Unknown? then
+          assignmentStatusKnown - {name}
+        else
+          assignmentStatusKnown + {name}
+      )
+    }
+    predicate IsAssignmentStatusKnown(name: string) {
+      name in assignmentStatusKnown
     }
   }
 
@@ -465,22 +499,64 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.Identifier("panic!").Apply1(R.LiteralString(optText, binary := false, verbatim := false))
   }
 
+  function DefaultDatatypeImpl(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    datatypeType: R.Type,
+    datatypeName: R.Expr,
+    structAssignments: seq<R.AssignIdentifier>
+  ): R.ModDecl {
+    var defaultConstrainedTypeParams := R.TypeParamDecl.AddConstraintsMultiple(
+                                          rTypeParamsDecls, [R.DefaultTrait]
+                                        );
+    R.ImplDecl(
+      R.ImplFor(
+        defaultConstrainedTypeParams,
+        R.DefaultTrait,
+        datatypeType,
+        [R.FnDecl(
+           R.NoDoc, R.NoAttr,
+           R.PRIV,
+           R.Fn(
+             "default", [], [], Some(datatypeType),
+             Some(
+               R.StructBuild(
+                 datatypeName,
+                 structAssignments
+               )))
+         )]
+      ))
+  }
+
+  function AsRefDatatypeImpl(rTypeParamsDecls: seq<R.TypeParamDecl>, datatypeType: R.Type): R.ModDecl {
+    R.ImplDecl(
+      R.ImplFor(
+        rTypeParamsDecls,
+        R.std.MSel("convert").MSel("AsRef").AsType().Apply1(datatypeType),
+        datatypeType,
+        [R.FnDecl(
+           R.NoDoc, R.NoAttr,
+           R.PRIV,
+           R.Fn("as_ref", [], [R.Formal.selfBorrowed], Some(R.SelfBorrowed),
+                Some(R.self))
+         )]
+      ))
+  }
+
   function DebugImpl(rTypeParamsDecls: seq<R.TypeParamDecl>, datatypeType: R.Type, rTypeParams: seq<R.Type>): R.ModDecl {
     R.ImplDecl(
       R.ImplFor(
         rTypeParamsDecls,
         R.std.MSel("fmt").MSel("Debug").AsType(),
         datatypeType,
-        "",
         [
           R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               "fmt", [],
               [R.Formal.selfBorrowed,
                R.Formal("f", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType()))],
               Some(R.std.MSel("fmt").MSel("Result").AsType()),
-              "",
               Some(R.dafny_runtime
                    .MSel("DafnyPrint")
                    .AsExpr()
@@ -501,8 +577,8 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.DafnyPrint,
         datatypeType,
-        "",
         [R.FnDecl(
+           R.NoDoc, R.NoAttr,
            R.PRIV,
            R.Fn(
              "fmt_print", [],
@@ -510,7 +586,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
               R.Formal("_formatter", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType())),
               R.Formal("_in_seq", R.Type.Bool)],
              Some(R.RawType("std::fmt::Result")),
-             "",
              Some(printImplBody)))]
       ))
   }
@@ -529,8 +604,8 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.Impl(
         rTypeParamsDecls,
         datatypeType,
-        "",
         [R.FnDecl(
+           "Given type parameter conversions, returns a lambda to convert this structure", R.NoAttr,
            R.PUB,
            R.Fn(
              "coerce", rCoerceTypeParams,
@@ -541,7 +616,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
                    R.FnType(
                      [datatypeType],
                      R.TypeApp(R.TIdentifier(datatypeName), coerceTypes))))),
-             "",
              Some(
                R.RcNew(R.Lambda([R.Formal("this", R.SelfOwned)],
                                 Some(R.TypeApp(R.TIdentifier(datatypeName), coerceTypes)),
@@ -558,14 +632,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.Impl(
         rTypeParamsDecls,
         datatypeType,
-        "",
         [R.FnDecl(
+           "Enumerates all possible values of " + datatypeType.ToString(""), [],
            R.PUB,
            R.Fn(
              "_AllSingletonConstructors", [],
              [],
              Some(R.dafny_runtime.MSel("SequenceIter").AsType().Apply([instantiationType])),
-             "",
              Some(R.dafny_runtime.MSel("seq!").AsExpr().Apply(singletonConstructors).Sel("iter").Apply0())
            )
          )]))
@@ -582,15 +655,14 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDeclsWithHash,
         R.Hash,
         datatypeOrNewtypeType,
-        "",
         [R.FnDecl(
+           R.NoDoc, R.NoAttr,
            R.PRIV,
            R.Fn(
              "hash", [R.TypeParamDecl("_H", [R.std.MSel("hash").MSel("Hasher").AsType()])],
              [R.Formal.selfBorrowed,
               R.Formal("_state", R.BorrowedMut(R.TIdentifier("_H")))],
              None,
-             "",
              Some(hashImplBody)))]
       ))
   }
@@ -611,15 +683,14 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("ops").MSel(traitName).AsType(),
         newtypeType,
-        "",
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               methodName, [],
               [R.Formal.selfOwned],
               Some(R.SelfOwned),
-              "",
               Some(R.Identifier(newtypeConstructor).Apply1(
                      R.UnaryOp(
                        [op],
@@ -648,16 +719,15 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("ops").MSel(traitName).AsType(),
         newtypeType,
-        "",
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               methodName, [],
               [R.Formal.selfOwned,
                R.Formal("other", R.SelfOwned)],
               Some(R.SelfOwned),
-              "",
               Some(R.Identifier(newtypeConstructor).Apply1(
                      R.BinaryOp(
                        [op],
@@ -679,15 +749,14 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         R.std.MSel("cmp").MSel("PartialOrd").AsType(),
         newtypeType,
-        "",
         [ R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               "partial_cmp", [],
               [R.Formal.selfBorrowed,
                R.Formal("other", R.SelfBorrowed)],
               Some(R.std.MSel("option").MSel("Option").AsType().Apply1(R.std.MSel("cmp").MSel("Ordering").AsType())),
-              "",
               Some(
                 R.std.MSel("cmp").MSel("PartialOrd").AsExpr().FSel("partial_cmp").Apply([
                                                                                           R.Borrow(R.self.Sel("0")),
@@ -695,5 +764,51 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
                                                                                         ]))
             ))
         ]))
+  }
+
+  // Overapproximate but sound static analysis domain for assignment of a variable
+  datatype AssignmentStatus = NotAssigned | SurelyAssigned | Unknown {
+    // After a if, typically. What we know if either of the assignment status is taken
+    function Join(other: AssignmentStatus): AssignmentStatus {
+      if SurelyAssigned? && other.SurelyAssigned? then SurelyAssigned
+      else if NotAssigned? && other.NotAssigned? then NotAssigned
+      else Unknown
+    }
+    function Then(other: AssignmentStatus): AssignmentStatus {
+      if SurelyAssigned? then SurelyAssigned
+      else if NotAssigned? then other
+      else Unknown // It's not as simple. If there are are two paths leading to one being assigned, the other not,
+      // Rust won't be albe to figure out the rules
+    }
+  }
+
+  // What could be problematic is the presence of branches in the assignment
+  // and one branch where a value is not assigned at all.
+  // If return false, we don't know if it's assigned or not
+  function DetectAssignmentStatus(stmts_remainder: seq<Statement>, dafny_name: VarName): AssignmentStatus {
+    if |stmts_remainder| == 0 then NotAssigned else
+    var stmt := stmts_remainder[0];
+    match stmt {
+      case Assign(Ident(assign_name), _) =>
+        if assign_name == dafny_name then SurelyAssigned else
+        DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+      case If(cond, thn, els) =>
+        DetectAssignmentStatus(thn, dafny_name).Join(DetectAssignmentStatus(els, dafny_name))
+      case Call(on, callName, typeArgs, args, outs) =>
+        if outs.Some? && dafny_name in outs.value then
+          SurelyAssigned
+        else
+          DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+      case Labeled(_, stmts) =>
+        DetectAssignmentStatus(stmts, dafny_name).Then(DetectAssignmentStatus(stmts_remainder[1..], dafny_name))
+      case DeclareVar(name, _, _) =>
+        if name == dafny_name then
+          NotAssigned // Shadowed
+        else
+          DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+      case Return(_) | EarlyReturn() | JumpTailCallStart() => NotAssigned
+      case Print(_) => DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+      case _ => Unknown
+    }
   }
 }

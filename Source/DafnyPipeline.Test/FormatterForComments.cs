@@ -102,7 +102,7 @@ datatype Dt =
   // | ISet(iset<Dt>) //  This definition is not allowed because Dt appears in a non-strict/lax position
   // | IMap0(imap<Dt,int>) //  This definition is not allowed because Dt appears in a non-strict/lax position
   | IMap1(imap<int,Dt>)
-  // | Last case commented out
+// | Last case commented out
 
 method M4() {
   if {
@@ -229,8 +229,8 @@ abstract module C {
   public async Task FormatterWorksForAlignedSingleLineTrailingComments() {
     var before = @"
 module RefinedF refines BaseF {
-  function f(): bool { false } // OK. Local f preferred over imported f
-                               // even if imported into refinement parent
+  function f(): bool { false } /* OK. Local f preferred over imported f
+                                  even if imported into refinement parent */
   lemma A() {
   forall u: int {  // regression: the inferred ensures clause used to have
                    // a problem with static const fields
@@ -246,11 +246,11 @@ module RefinedF refines BaseF {
 }";
     var after = @"
 module RefinedF refines BaseF {
-  function f(): bool { false } // OK. Local f preferred over imported f
-                               // even if imported into refinement parent
+  function f(): bool { false } /* OK. Local f preferred over imported f
+                                  even if imported into refinement parent */
   lemma A() {
     forall u: int {  // regression: the inferred ensures clause used to have
-                     // a problem with static const fields
+      // a problem with static const fields
       B(u);
     }
   }
