@@ -2559,11 +2559,11 @@ VarDeclStatement<.out Statement/*!*/ s.>
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
          foreach (var lhs in lhss) {
-           lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name) { RangeOrigin =new RangeToken((Token)lhs.Tok, (Token)lhs.Tok) } );
+           lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name) { RangeOrigin =new RangeToken(lhs.StartToken, lhs.StartToken) } );
          }
        } else { // not explicitly ghost, but with init - so auto-ghost
          foreach (var lhs in lhss) {
-           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name) { RangeOrigin =new RangeToken((Token)lhs.Tok, (Token)lhs.Tok) } );
+           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Origin, lhs.Name) { RangeOrigin = new RangeToken(lhs.StartToken, lhs.StartToken) } );
          }
        }
        var rangeToken = new RangeToken(startToken, t);
