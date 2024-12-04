@@ -1136,7 +1136,7 @@ namespace Microsoft.Dafny {
                   return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, BoogieGenerator.TypeSpecificEqual(GetToken(binaryExpr), e.E0.Type, e0, e1));
 
                 case BinaryExpr.ResolvedOpcode.ProperSubset: {
-                    return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e0, e1);
+                    return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e0, e1, e.E0.Type.NormalizeToAncestorType().AsSetType.Finite);
                   }
                 case BinaryExpr.ResolvedOpcode.Subset: {
                     bool finite = e.E1.Type.NormalizeToAncestorType().AsSetType.Finite;
@@ -1149,7 +1149,7 @@ namespace Microsoft.Dafny {
                     return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, null, e1, e0);
                   }
                 case BinaryExpr.ResolvedOpcode.ProperSuperset:
-                  return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e1, e0);
+                  return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e1, e0, e.E0.Type.NormalizeToAncestorType().AsSetType.Finite);
                 case BinaryExpr.ResolvedOpcode.Disjoint: {
                     bool finite = e.E1.Type.NormalizeToAncestorType().AsSetType.Finite;
                     var f = finite ? BuiltinFunction.SetDisjoint : BuiltinFunction.ISetDisjoint;

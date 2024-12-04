@@ -307,7 +307,7 @@ public partial class BoogieGenerator {
       less = Bpl.Expr.Gt(e0, e1);
       atmost = Bpl.Expr.Ge(e0, e1);
 
-    } else if ((ty0 is SetType && ((SetType)ty0).Finite) || (ty0 is MapType && ((MapType)ty0).Finite)) {
+    } else if (ty0 is SetType { Finite: true } || ty0 is MapType { Finite: true }) {
       Bpl.Expr b0, b1;
       if (ty0 is SetType) {
         b0 = e0;
@@ -318,7 +318,7 @@ public partial class BoogieGenerator {
         b1 = FunctionCall(tok, BuiltinFunction.MapDomain, Predef.MapType, e1);
       }
       eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, b0, b1);
-      less = ProperSubset(tok, b0, b1);
+      less = ProperSubset(tok, b0, b1, true);
       atmost = FunctionCall(tok, BuiltinFunction.SetSubset, null, b0, b1);
 
     } else if (ty0 is SetType || ty0 is MapType) {

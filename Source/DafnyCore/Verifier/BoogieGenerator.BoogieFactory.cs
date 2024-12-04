@@ -615,15 +615,16 @@ namespace Microsoft.Dafny {
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, function, returnType)), aa);
     }
 
-    public Bpl.Expr ProperSubset(Bpl.IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
+    public Bpl.Expr ProperSubset(Bpl.IToken tok, Bpl.Expr e0, Bpl.Expr e1, bool isFinite) {
       Contract.Requires(tok != null);
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
+      var subsetOperator = isFinite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
       return Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.And,
-        FunctionCall(tok, BuiltinFunction.SetSubset, null, e0, e1),
-        Bpl.Expr.Not(FunctionCall(tok, BuiltinFunction.SetSubset, null, e1, e0)));
+        FunctionCall(tok, subsetOperator, null, e0, e1),
+        Bpl.Expr.Not(FunctionCall(tok, subsetOperator, null, e1, e0)));
     }
     public Bpl.Expr ProperMultiset(Bpl.IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
       Contract.Requires(tok != null);
