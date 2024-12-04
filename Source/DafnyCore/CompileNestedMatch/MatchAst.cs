@@ -92,7 +92,7 @@ public abstract class MatchCase : TokenNode, IHasReferences {
     Contract.Invariant(cce.NonNullElements(Arguments));
   }
 
-  public MatchCase(IOrigin tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
+  protected MatchCase(IOrigin tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
@@ -251,7 +251,7 @@ public class MatchCaseStmt : MatchCase {
   public override IEnumerable<INode> PreResolveChildren => Children;
 
   public MatchCaseStmt(IOrigin rangeOrigin, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
-    : base(rangeOrigin.StartToken, ctor, arguments) {
+    : base(rangeOrigin, ctor, arguments) {
     RangeOrigin = rangeOrigin;
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);

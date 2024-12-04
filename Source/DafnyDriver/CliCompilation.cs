@@ -247,7 +247,7 @@ public class CliCompilation {
 
     int done = 0;
 
-    var canVerifiesPerModule = canVerifies.ToList().GroupBy(c => c.ContainingModule).ToList();
+    var canVerifiesPerModule = canVerifies.GroupBy(c => c.ContainingModule).ToList();
     foreach (var canVerifiesForModule in canVerifiesPerModule.
                OrderBy(v => v.Key.Tok.pos)) {
       var orderedCanVerifies = canVerifiesForModule.OrderBy(v => v.Tok.pos).ToList();
