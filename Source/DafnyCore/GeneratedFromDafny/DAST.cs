@@ -560,6 +560,10 @@ namespace DAST {
     DAST._IType Replace(Dafny.IMap<DAST._IType,DAST._IType> mapping);
     bool IsPrimitiveInt();
     bool IsGeneralTrait();
+    DAST._IType GetGeneralTraitType();
+    bool IsDatatype();
+    DAST._IType GetDatatypeType();
+    bool Extends(DAST._IType other);
   }
   public abstract class Type : _IType {
     public Type() {
@@ -837,6 +841,98 @@ namespace DAST {
           {
             return false;
           }
+        }
+      }
+      {
+        return false;
+      }
+    }
+    public DAST._IType GetGeneralTraitType() {
+      _IType _this = this;
+    TAIL_CALL_START: ;
+      DAST._IType _source0 = _this;
+      {
+        DAST._IResolvedType resolved0 = _source0.dtor_resolved;
+        DAST._IResolvedTypeBase _0_typeKind = resolved0.dtor_kind;
+        DAST._IResolvedTypeBase _source1 = _0_typeKind;
+        {
+          if (_source1.is_SynonymType) {
+            DAST._IType _1_typ = _source1.dtor_baseType;
+            DAST._IType _in0 = _1_typ;
+            _this = _in0;
+            ;
+            goto TAIL_CALL_START;
+          }
+        }
+        {
+          return _this;
+        }
+      }
+    }
+    public bool IsDatatype() {
+      _IType _this = this;
+    TAIL_CALL_START: ;
+      DAST._IType _source0 = _this;
+      {
+        if (_source0.is_UserDefined) {
+          DAST._IResolvedType resolved0 = _source0.dtor_resolved;
+          DAST._IResolvedTypeBase _0_typeKind = resolved0.dtor_kind;
+          DAST._IResolvedTypeBase _source1 = _0_typeKind;
+          {
+            if (_source1.is_SynonymType) {
+              DAST._IType _1_typ = _source1.dtor_baseType;
+              DAST._IType _in0 = _1_typ;
+              _this = _in0;
+              ;
+              goto TAIL_CALL_START;
+            }
+          }
+          {
+            if (_source1.is_Datatype) {
+              return true;
+            }
+          }
+          {
+            return false;
+          }
+        }
+      }
+      {
+        return false;
+      }
+    }
+    public DAST._IType GetDatatypeType() {
+      _IType _this = this;
+    TAIL_CALL_START: ;
+      DAST._IType _source0 = _this;
+      {
+        DAST._IResolvedType resolved0 = _source0.dtor_resolved;
+        DAST._IResolvedTypeBase _0_typeKind = resolved0.dtor_kind;
+        DAST._IResolvedTypeBase _source1 = _0_typeKind;
+        {
+          if (_source1.is_SynonymType) {
+            DAST._IType _1_typ = _source1.dtor_baseType;
+            DAST._IType _in0 = _1_typ;
+            _this = _in0;
+            ;
+            goto TAIL_CALL_START;
+          }
+        }
+        {
+          return _this;
+        }
+      }
+    }
+    public bool Extends(DAST._IType other) {
+      DAST._IType _source0 = this;
+      {
+        if (_source0.is_UserDefined) {
+          DAST._IResolvedType resolved0 = _source0.dtor_resolved;
+          Dafny.ISequence<DAST._IType> _0_extendedTypes = resolved0.dtor_extendedTypes;
+          return ((_0_extendedTypes).Contains(other)) || (Dafny.Helpers.Id<Func<Dafny.ISequence<DAST._IType>, DAST._IType, bool>>((_1_extendedTypes, _2_other) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger((_1_extendedTypes).Count)), false, (((_exists_var_0) => {
+            BigInteger _3_i = (BigInteger)_exists_var_0;
+            return (((_3_i).Sign != -1) && ((_3_i) < (new BigInteger((_1_extendedTypes).Count)))) && (((_1_extendedTypes).Select(_3_i)).Extends(_2_other));
+          }))))(_0_extendedTypes, other));
         }
       }
       {

@@ -2038,16 +2038,6 @@ impl<T: DafnyPrint> Display for DafnyPrintWrapper<&T> {
     }
 }
 
-// from gazebo
-#[inline]
-pub unsafe fn transmute_unchecked<A, B>(x: A) -> B {
-    assert_eq!(std::mem::size_of::<A>(), std::mem::size_of::<B>());
-    debug_assert_eq!(0, (&x as *const A).align_offset(std::mem::align_of::<B>()));
-    let b = std::ptr::read(&x as *const A as *const B);
-    std::mem::forget(x);
-    b
-}
-
 pub trait DafnyPrint {
     fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result;
 
@@ -3899,9 +3889,9 @@ pub fn upcast_box<A, B: ?Sized>() -> Rc<impl Fn(A) -> Box<B>>
     Rc::new(|x: A| UpcastBox::upcast(&x))
 }
 pub fn upcast_box_box<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Box<A>) -> Box<B>>
-  where Box<A>: UpcastBox<B>
+    where A: UpcastBox<B>
 {
-    Rc::new(|x: Box<A>| UpcastBox::upcast(&x))
+    Rc::new(|x: Box<A>| UpcastBox::upcast(x.as_ref()))
 }
 
 pub fn upcast_id<A>() -> Rc<impl Fn(A) -> A>
@@ -3948,6 +3938,20 @@ impl <T: ?Sized> UpcastObject<T> for T {
 // For general traits
 pub trait UpcastBox<T: ?Sized> {
     fn upcast(&self) -> Box<T>;
+}
+impl <T: ?Sized, U> UpcastBox<T> for Rc<U>
+  where U: UpcastBox<T>
+{
+    fn upcast(&self) -> Box<T> {
+        UpcastBox::upcast(AsRef::as_ref(self))
+    }
+}
+impl <T: ?Sized, U: ?Sized> UpcastBox<T> for Box<U>
+  where U: UpcastBox<T>
+{
+    fn upcast(&self) -> Box<T> {
+        UpcastBox::upcast(AsRef::as_ref(self))
+    }
 }
 
 

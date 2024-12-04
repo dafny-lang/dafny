@@ -955,11 +955,6 @@ mod tests {
     trait GeneralTrait: GeneralTraitSuper<i32> + UpcastBox<dyn GeneralTraitSuper<i32>> {
         fn _clone(&self) -> Box<dyn GeneralTrait>;
     }
-    impl UpcastBox<dyn GeneralTraitSuper<i32>> for Box<dyn GeneralTrait> {
-        fn upcast(&self) -> ::std::boxed::Box<dyn crate::tests::tests::GeneralTraitSuper<i32>> {
-            crate::tests::tests::GeneralTraitSuper::<i32>::_clone(self.as_ref())
-        }
-    }
     impl Clone for Box<dyn GeneralTrait> {
         fn clone(&self) -> Self {
             GeneralTrait::_clone(self.as_ref())

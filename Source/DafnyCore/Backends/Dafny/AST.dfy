@@ -137,6 +137,59 @@ module {:extern "DAST"} DAST {
         case _ => false
       }
     }
+
+    function GetGeneralTraitType(): (r: Type)
+      requires IsGeneralTrait()
+      ensures r.UserDefined? && r.resolved.kind == ResolvedTypeBase.Trait(GeneralTrait)
+    {
+      match this {
+        case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.GetGeneralTraitType()
+            case _ => this
+          }
+      }
+    }
+
+    predicate IsDatatype() {
+      match this {
+        case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.IsDatatype()
+            case Datatype(_) => true
+            case _ => false
+          }
+        case _ => false
+      }
+    }
+
+    function GetDatatypeType(): (r: Type)
+      requires IsDatatype()
+      ensures r.UserDefined? && r.resolved.kind.Datatype?
+    {
+      match this {
+        case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.GetDatatypeType()
+            case _ => this
+          }
+      }
+    }
+
+    // Works well without diamond inheritance. If the case arise, we will need to memoize this function
+    // or ensure extendedTypes contains all supertypes.
+    predicate Extends(other: Type)
+      ensures this.Extends(other) ==> other < this
+    {
+      match this {
+        case UserDefined(ResolvedType(_, _, _, _, _, extendedTypes)) =>
+          other in extendedTypes || exists i | 0 <= i < |extendedTypes| :: extendedTypes[i].Extends(other)
+        case _ => false
+      }
+    }
   }
 
   datatype Variance =

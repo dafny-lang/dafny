@@ -785,4 +785,100 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     R.Formal("in_seq", R.Type.Bool)]
 
   const fmt_print_result := R.std.MSel("fmt").MSel("Result").AsType()
+
+  /*   
+  pub trait _Downcast_BDatatype<T> {
+    fn _is(&self) -> bool;
+    fn _as(&self) -> Rc<BDatatype<T>>;
+  } */
+  function DowncastTraitDeclFor(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    fullType: R.Type
+  ): Option<R.ModDecl> {
+    var downcast_type :- fullType.ToDowncast();
+    Some(
+      R.TraitDecl(
+        R.Trait(
+          rTypeParamsDecls,
+          downcast_type,
+          [],
+          [ R.FnDecl(
+              R.PRIV,
+              R.Fn(
+                "_is", [],
+                [R.Formal.selfBorrowed],
+                Some(R.Bool),
+                "",
+                None)),
+            R.FnDecl(
+              R.PRIV,
+              R.Fn(
+                "_as", [],
+                [R.Formal.selfBorrowed],
+                Some(fullType),
+                "",
+                None))
+          ])))
+  }
+
+  /*
+  impl _Downcast_ADatatype for ADatatype {
+    fn _is(&self) -> bool {
+      true
+    }
+    fn _as(&self) -> ADatatype {
+      self.clone()
+    }
+  }
+
+  impl _Downcast_BDatatype for ADatatype {
+    fn _is(&self) -> bool {
+      false
+    }
+    fn _as(&self) -> Rc<BDatatype> {
+      panic!("ADatatype is not a BDatatype")
+    }
+  } */
+  function DowncastImplFor(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    typeToDowncastTo: R.Type,
+    forType: R.Type
+  ): Option<R.ModDecl> {
+    var downcast_type :- typeToDowncastTo.ToDowncast();
+    var forTypeRaw := if forType.IsRc() then forType.RcUnderlying() else forType;
+    var sameType := typeToDowncastTo == forType;
+    var asBody :=
+      if sameType then
+        var body := R.self.Clone();
+        if forType.IsRc() then
+          R.RcNew(body)
+        else
+          body
+      else
+        R.Identifier("panic!").Apply1(R.LiteralString(forTypeRaw.ToString("")+" is not a "+typeToDowncastTo.ToString(""), false, true));
+    Some(
+      R.ImplDecl(
+        R.ImplFor(
+          rTypeParamsDecls,
+          downcast_type,
+          forType,
+          [ R.FnDecl(
+              R.PRIV,
+              R.Fn(
+                "_is", [],
+                [R.Formal.selfBorrowed],
+                Some(R.Bool),
+                "",
+                Some(R.LiteralBool(sameType)))),
+            R.FnDecl(
+              R.PRIV,
+              R.Fn(
+                "_as", [],
+                [R.Formal.selfBorrowed],
+                Some(forType),
+                "",
+                Some(asBody)))
+          ]))
+    )
+  }
 }

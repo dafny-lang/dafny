@@ -3,4 +3,7 @@ Dafny program verifier finished with 4 verified, 0 errors
 ADatatype.ADatatype(2)
 true
 false
+BDatatype.BDatatype(2)
+true
+false
 Main passed all the tests
