@@ -778,7 +778,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       if SurelyAssigned? then SurelyAssigned
       else if NotAssigned? then other
       else Unknown // It's not as simple. If there are are two paths leading to one being assigned, the other not,
-           // Rust won't be albe to figure out the rules
+      // Rust won't be albe to figure out the rules
     }
   }
 
