@@ -33,9 +33,9 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver => MethodSelect.Obj;
   public Method Method => (Method)MethodSelect.Member;
 
-  public CallStmt(IOrigin rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IOrigin overrideToken = null)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IOrigin overrideToken = null)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
     Contract.Requires(memSel.Member is Method);
@@ -62,8 +62,8 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   /// This constructor is intended to be used when constructing a resolved CallStmt. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public CallStmt(IOrigin rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
-    : this(rangeToken, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
+  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
+    : this(rangeOrigin, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 

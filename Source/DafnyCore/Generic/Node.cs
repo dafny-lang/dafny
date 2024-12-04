@@ -121,7 +121,7 @@ public abstract class Node : INode {
     }
   }
 
-  public abstract IOrigin RangeToken { set; }
+  public abstract IOrigin RangeOrigin { set; }
 
   // <summary>
   // Returns all assumptions contained in this node or its descendants.

@@ -67,9 +67,9 @@ public abstract class MemberDecl : Declaration, ISymbol {
     this.isGhost = original.isGhost;
   }
 
-  protected MemberDecl(IOrigin rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, attributes, isRefining) {
-    Contract.Requires(rangeToken != null);
+  protected MemberDecl(IOrigin rangeOrigin, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
+    : base(rangeOrigin, name, attributes, isRefining) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     this.hasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;

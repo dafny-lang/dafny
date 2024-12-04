@@ -82,7 +82,7 @@ public abstract class TokenNode : Node {
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
   public override IOrigin Tok => tok;
 
-  public override IOrigin RangeToken {
+  public override IOrigin RangeOrigin {
     // TODO do not create new RangeToken.
     // Let IOrigin also get a RangeToken.
     set => rangeToken = value == null ? null : new RangeToken(value.StartToken, value.EndToken);

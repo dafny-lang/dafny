@@ -45,9 +45,9 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
     Rhs = cloner.CloneRHS(original.Rhs);
   }
 
-  public SingleAssignStmt(IOrigin rangeToken, Expression lhs, AssignmentRhs rhs)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public SingleAssignStmt(IOrigin rangeOrigin, Expression lhs, AssignmentRhs rhs)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(lhs != null);
     Contract.Requires(rhs != null);
     Lhs = lhs;

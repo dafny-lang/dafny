@@ -22,12 +22,12 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public readonly Specification<Expression> Decreases;
   public readonly List<Formal> Ins;
 
-  protected MethodOrFunction(IOrigin rangeToken, Name name, bool hasStaticKeyword, bool isGhost,
+  protected MethodOrFunction(IOrigin rangeOrigin, Name name, bool hasStaticKeyword, bool isGhost,
     Attributes attributes, bool isRefining, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
     Specification<Expression> decreases)
-    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, isRefining) {
+    : base(rangeOrigin, name, hasStaticKeyword, isGhost, attributes, isRefining) {
     TypeArgs = typeArgs;
     Req = req;
     Decreases = decreases;

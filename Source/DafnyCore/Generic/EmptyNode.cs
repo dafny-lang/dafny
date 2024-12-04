@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 public class EmptyNode : Node {
   public override IOrigin Origin { get; } = new RangeToken(new Token(), new Token());
 
-  public override IOrigin RangeToken {
+  public override IOrigin RangeOrigin {
     set => throw new System.NotImplementedException();
   }
 

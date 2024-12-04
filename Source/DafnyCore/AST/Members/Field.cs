@@ -21,16 +21,16 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override IEnumerable<INode> Children =>
     (Type?.Nodes ?? Enumerable.Empty<INode>()).Concat(this.Attributes.AsEnumerable());
 
-  public Field(IOrigin rangeToken, Name name, bool isGhost, Type type, Attributes attributes)
-    : this(rangeToken, name, false, isGhost, true, true, type, attributes) {
-    Contract.Requires(rangeToken != null);
+  public Field(IOrigin rangeOrigin, Name name, bool isGhost, Type type, Attributes attributes)
+    : this(rangeOrigin, name, false, isGhost, true, true, type, attributes) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
   }
 
-  public Field(IOrigin rangeToken, Name name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, false) {
-    Contract.Requires(rangeToken != null);
+  public Field(IOrigin rangeOrigin, Name name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+    : base(rangeOrigin, name, hasStaticKeyword, isGhost, attributes, false) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
     Contract.Requires(!isUserMutable || isMutable);

@@ -21,19 +21,19 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
     UsesOptionalBraces = original.UsesOptionalBraces;
   }
 
-  public AlternativeLoopStmt(IOrigin rangeToken,
+  public AlternativeLoopStmt(IOrigin rangeOrigin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     List<GuardedAlternative> alternatives, bool usesOptionalBraces)
-    : base(rangeToken, invariants, decreases, mod) {
+    : base(rangeOrigin, invariants, decreases, mod) {
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;
     this.UsesOptionalBraces = usesOptionalBraces;
   }
-  public AlternativeLoopStmt(IOrigin rangeToken,
+  public AlternativeLoopStmt(IOrigin rangeOrigin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(rangeToken, invariants, decreases, mod, attrs) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, invariants, decreases, mod, attrs) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;
     this.UsesOptionalBraces = usesOptionalBraces;

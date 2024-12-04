@@ -9,10 +9,11 @@ namespace Microsoft.Dafny;
 /// Node that has a token that is used to navigate to this node
 /// </summary>
 public interface IHasNavigationToken : INode {
+  /// <summary>
+  /// For declarations, we could point to a Name,
+  /// but for references we can not, so we return an origin 
+  /// </summary>
   IOrigin NavigationToken { get; }
-  // Needs to be a range.
-  // TODO for references, always uses token, so could be defined only for definitions
-  // For definitions, should it return another Node, or a range IOrigin?
 }
 
 public interface IHasReferences : IHasNavigationToken {

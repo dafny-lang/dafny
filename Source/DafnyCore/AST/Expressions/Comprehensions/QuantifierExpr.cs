@@ -50,8 +50,9 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     return idGen.FreshId(prefix);
   }
 
-  public QuantifierExpr(IOrigin tok, IOrigin rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok, rangeToken, bvars, range, term, attrs) {
+  protected QuantifierExpr(IOrigin tok, IOrigin rangeOrigin, List<BoundVar> bvars, Expression range, Expression term,
+    Attributes attrs)
+    : base(tok, rangeOrigin, bvars, range, term, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(term != null);

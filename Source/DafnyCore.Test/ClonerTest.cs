@@ -11,7 +11,7 @@ public class ClonerTest {
     public DummyDecl(Cloner cloner, Declaration original) : base(cloner, original) {
     }
 
-    public DummyDecl(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken, name,
+    public DummyDecl(RangeToken rangeOrigin, Name name, Attributes attributes, bool isRefining) : base(rangeOrigin, name,
       attributes, isRefining) {
     }
 
@@ -27,11 +27,11 @@ public class ClonerTest {
     var rangeToken = new RangeToken(Token.NoToken, Token.NoToken);
     var specificationFrame = new LiteralExpr(Microsoft.Dafny.Token.NoToken, 1);
     var formal1 = new Formal(Token.NoToken, "a", Microsoft.Dafny.Type.Bool, true, false, null) {
-      RangeToken = new RangeToken(tokenBodyStart, tokenBodyStart),
+      RangeOrigin = new RangeToken(tokenBodyStart, tokenBodyStart),
       IsTypeExplicit = true
     };
     var formal2 = new Formal(Token.NoToken, "b", Microsoft.Dafny.Type.Bool, true, false, null) {
-      RangeToken = new RangeToken(tokenBodyStart, tokenBodyStart),
+      RangeOrigin = new RangeToken(tokenBodyStart, tokenBodyStart),
       IsTypeExplicit = false
     };
     var dummyDecl = new Method(rangeToken, new Name(rangeToken, "hello"),

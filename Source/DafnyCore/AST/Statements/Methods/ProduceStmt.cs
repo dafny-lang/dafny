@@ -19,8 +19,8 @@ public abstract class ProduceStmt : Statement {
     }
   }
 
-  protected ProduceStmt(IOrigin rangeToken, List<AssignmentRhs> rhss, Attributes attributes)
-    : base(rangeToken, attributes) {
+  protected ProduceStmt(IOrigin rangeOrigin, List<AssignmentRhs> rhss, Attributes attributes)
+    : base(rangeOrigin, attributes) {
     this.Rhss = rhss;
     HiddenUpdate = null;
   }

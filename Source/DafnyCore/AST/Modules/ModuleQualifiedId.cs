@@ -62,7 +62,7 @@ public class ModuleQualifiedId : Node, IHasReferences {
     }
   }
 
-  public override IOrigin RangeToken {
+  public override IOrigin RangeOrigin {
     set => throw new NotImplementedException();
   }
 

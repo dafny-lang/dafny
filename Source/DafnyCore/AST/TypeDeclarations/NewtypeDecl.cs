@@ -32,11 +32,11 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   [FilledInDuringResolution] public bool TargetTypeCoversAllBitPatterns; // "target complete" -- indicates that any bit pattern that can fill the target type is a value of the newtype
 
-  public NewtypeDecl(IOrigin rangeToken, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
+  public NewtypeDecl(IOrigin rangeOrigin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
     Type baseType,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(isRefining ^ (baseType != null));
@@ -47,11 +47,11 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     WitnessKind = witnessKind;
     this.NewSelfSynonym();
   }
-  public NewtypeDecl(IOrigin rangeToken, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
+  public NewtypeDecl(IOrigin rangeOrigin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
     BoundVar bv, Expression constraint,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(bv != null && bv.Type != null);

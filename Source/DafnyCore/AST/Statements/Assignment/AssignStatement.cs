@@ -53,16 +53,16 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
     }
   }
 
-  public AssignStatement(IOrigin rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
-    : base(rangeToken, lhss) {
+  public AssignStatement(IOrigin rangeOrigin, List<Expression> lhss, List<AssignmentRhs> rhss)
+    : base(rangeOrigin, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = false;
   }
-  public AssignStatement(IOrigin rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
-    : base(rangeToken, lhss) {
+  public AssignStatement(IOrigin rangeOrigin, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
+    : base(rangeOrigin, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);

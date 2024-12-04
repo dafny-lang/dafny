@@ -142,10 +142,10 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     }
   }
 
-  public MatchStmt(IOrigin rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(IOrigin rangeOrigin, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, MatchingContext context = null)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
@@ -154,10 +154,10 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     Context = context is null ? new HoleCtx() : context;
   }
 
-  public MatchStmt(IOrigin rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(IOrigin rangeOrigin, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
-    : base(rangeToken, attrs) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, attrs) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
@@ -250,9 +250,9 @@ public class MatchCaseStmt : MatchCase {
   public override IEnumerable<INode> Children => body;
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public MatchCaseStmt(IOrigin rangeToken, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
-    : base(rangeToken.StartToken, ctor, arguments) {
-    RangeToken = rangeToken;
+  public MatchCaseStmt(IOrigin rangeOrigin, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+    : base(rangeOrigin.StartToken, ctor, arguments) {
+    RangeOrigin = rangeOrigin;
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));

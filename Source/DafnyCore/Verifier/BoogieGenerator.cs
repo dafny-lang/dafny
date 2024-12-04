@@ -2447,7 +2447,7 @@ namespace Microsoft.Dafny {
 
       bv = new BoundVar(tok, CurrentIdGenerator.FreshId(prefix), iv.Type); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
       ie = new IdentifierExpr(tok, bv.Name);
-      bv.RangeToken = iv.Origin;
+      bv.RangeOrigin = iv.Origin;
       ie.Var = bv;  // resolve here
       ie.Type = bv.Type;  // resolve here
     }
@@ -4043,7 +4043,7 @@ namespace Microsoft.Dafny {
         : base(ToDafnyToken(false, expr.tok)) {
         Contract.Requires(expr != null);
         Contract.Requires(dafnyType != null);
-        RangeToken = ToDafnyToken(true, expr.tok);
+        RangeOrigin = ToDafnyToken(true, expr.tok);
         Expr = expr;
         Type = dafnyType;  // resolve immediately
       }

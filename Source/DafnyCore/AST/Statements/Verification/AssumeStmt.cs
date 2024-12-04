@@ -12,9 +12,9 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
   public AssumeStmt(Cloner cloner, AssumeStmt original) : base(cloner, original) {
   }
 
-  public AssumeStmt(IOrigin rangeToken, Expression expr, Attributes attrs)
-    : base(rangeToken, expr, attrs) {
-    Contract.Requires(rangeToken != null);
+  public AssumeStmt(IOrigin rangeOrigin, Expression expr, Attributes attrs)
+    : base(rangeOrigin, expr, attrs) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(expr != null);
   }
   public override IEnumerable<Expression> SpecificationSubExpressions {

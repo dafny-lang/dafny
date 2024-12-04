@@ -107,8 +107,8 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   public IEnumerable<IOrigin> OwnedTokens => CwInner.OwnedTokens;
   public IOrigin Origin => CwInner.Origin;
 
-  public IOrigin RangeToken {
-    set => CwInner.RangeToken = value;
+  public IOrigin RangeOrigin {
+    set => CwInner.RangeOrigin = value;
   }
 
   public IOrigin NavigationToken => CwInner.NavigationToken;

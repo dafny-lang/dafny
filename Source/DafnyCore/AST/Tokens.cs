@@ -112,6 +112,10 @@ public class Token : IOrigin {
 
 public static class TokenExtensions {
 
+  public static RangeToken SingleTokenRange(this Token token) {
+    return new RangeToken(token, token);
+  }
+  
   /// <summary>
   /// Gets the LSP range of the specified token.
   /// </summary>

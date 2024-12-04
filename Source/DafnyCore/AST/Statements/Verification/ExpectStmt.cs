@@ -16,9 +16,9 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
     Message = cloner.CloneExpr(original.Message);
   }
 
-  public ExpectStmt(IOrigin rangeToken, Expression expr, Expression message, Attributes attrs)
-    : base(rangeToken, expr, attrs) {
-    Contract.Requires(rangeToken != null);
+  public ExpectStmt(IOrigin rangeOrigin, Expression expr, Expression message, Attributes attrs)
+    : base(rangeOrigin, expr, attrs) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(expr != null);
     this.Message = message;
   }

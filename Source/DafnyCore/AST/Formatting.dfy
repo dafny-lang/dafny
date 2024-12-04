@@ -35,11 +35,11 @@ module {:extern "Microsoft"} Microsoft {
       /** Prints the entire program while fixing indentation, based on
           1) indentation information provided by the IIndentationFormatter reindent
           2) Reindentation algorithm provided by the same reindent */
-      method ReindentProgramFromFirstToken(firstToken: IToken, reindent: IIndentationFormatter) returns (s: CsString)
+      method ReindentProgramFromFirstToken(firstToken: Token, reindent: IIndentationFormatter) returns (s: CsString)
         requires firstToken.Valid()
-        ensures forall token: IToken <- firstToken.allTokens :: s.Contains(token.val)
+        ensures forall token: Token <- firstToken.allTokens :: s.Contains(token.val)
       {
-        var token: IToken? := firstToken;
+        var token: Token? := firstToken;
         var sb := new CsStringBuilder();
         ghost var i := 0;
         var allTokens := firstToken.allTokens;
@@ -50,7 +50,7 @@ module {:extern "Microsoft"} Microsoft {
                     && token.Valid()
                     && i < |allTokens|
                     && token == allTokens[i]
-          invariant forall t: IToken <- allTokens[0..i] :: sb.built.Contains(t.val)
+          invariant forall t: Token <- allTokens[0..i] :: sb.built.Contains(t.val)
         {
           if(token.Next == null) {
             firstToken.TokenNextIsNullImpliesLastToken(token, i);
@@ -66,7 +66,7 @@ module {:extern "Microsoft"} Microsoft {
           sb.Append(token.val);
           sb.Append(newTrailingTrivia);
           ContainsTransitive();
-          assert {:split_here} forall t: IToken <- allTokens[0..i+1] :: sb.built.Contains(t.val);
+          assert {:split_here} forall t: Token <- allTokens[0..i+1] :: sb.built.Contains(t.val);
           token := token.Next;
           i := i + 1;
         }

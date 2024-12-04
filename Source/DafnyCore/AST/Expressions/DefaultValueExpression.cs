@@ -41,7 +41,6 @@ public abstract class DefaultValueExpression : ConcreteSyntaxExpression {
     this.formal = formal;
     this.receiver = receiver;
     this.substMap = substMap;
-    // RangeToken = new RangeToken(tok, tok); // TODO not sure what this was.
   }
 
   protected DefaultValueExpression(Cloner cloner, DefaultValueExpression original) : base(cloner, original) {

@@ -16,9 +16,9 @@ public class ModifyStmt : Statement, ICloneable<ModifyStmt>, ICanFormat {
     Body = cloner.CloneBlockStmt(original.Body);
   }
 
-  public ModifyStmt(IOrigin rangeToken, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public ModifyStmt(IOrigin rangeOrigin, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(mod != null);
     Mod = new Specification<FrameExpression>(mod, attrs);
     Body = body;

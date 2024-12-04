@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
         } else {
           return new ParensExpression(expr.tok, receiverReplacement) {
             ResolvedExpression = receiverReplacement,
-            RangeToken = expr.Origin,
+            RangeOrigin = expr.Origin,
             Type = receiverReplacement.Type
           };
         }
@@ -400,7 +400,7 @@ namespace Microsoft.Dafny {
         var resolvedExpression = Substitute(concreteSyntaxExpression.ResolvedExpression);
         return new ParensExpression(expr.tok, resolvedExpression) {
           ResolvedExpression = resolvedExpression,
-          RangeToken = expr.Origin,
+          RangeOrigin = expr.Origin,
           Type = resolvedExpression.Type
         };
 

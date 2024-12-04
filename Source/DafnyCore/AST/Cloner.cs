@@ -272,7 +272,7 @@ namespace Microsoft.Dafny {
        : new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
          CloneExpr(formal.DefaultValue), CloneAttributes(formal.Attributes),
          formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation) {
-         RangeToken = formal.Origin,
+         RangeOrigin = formal.Origin,
          IsTypeExplicit = formal.IsTypeExplicit
        });
     }
@@ -337,7 +337,7 @@ namespace Microsoft.Dafny {
       } else if (attrs is UserSuppliedAttributes usa) {
         return new UserSuppliedAttributes(Tok(usa.tok), Tok(usa.OpenBrace), Tok(usa.CloseBrace),
           attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev)) {
-          RangeToken = Tok(usa.Origin)
+          RangeOrigin = Tok(usa.Origin)
         };
       } else if (attrs is UserSuppliedAtAttribute usaa) {
         var arg = CloneExpr(usaa.Arg);
@@ -346,12 +346,12 @@ namespace Microsoft.Dafny {
           arg.PreType = usaa.Arg.PreType;
         }
         return new UserSuppliedAtAttribute(Tok(usaa.tok), arg, CloneAttributes(usaa.Prev)) {
-          RangeToken = Tok(usaa.Origin),
+          RangeOrigin = Tok(usaa.Origin),
           Builtin = usaa.Builtin
         };
       } else {
         return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev)) {
-          RangeToken = Tok(attrs.Origin)
+          RangeOrigin = Tok(attrs.Origin)
         };
       }
     }

@@ -223,9 +223,9 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     Contract.Invariant(StepOps.Count == Hints.Count);
   }
 
-  public CalcStmt(IOrigin rangeToken, CalcOp userSuppliedOp, List<Expression> lines, List<BlockStmt> hints, List<CalcOp/*?*/> stepOps, Attributes attrs)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public CalcStmt(IOrigin rangeOrigin, CalcOp userSuppliedOp, List<Expression> lines, List<BlockStmt> hints, List<CalcOp/*?*/> stepOps, Attributes attrs)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(lines != null);
     Contract.Requires(hints != null);
     Contract.Requires(stepOps != null);

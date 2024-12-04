@@ -15,7 +15,7 @@ public class NodeTests {
 
     public override IOrigin Origin => origin;
 
-    public override IOrigin RangeToken {
+    public override IOrigin RangeOrigin {
       set => origin = value;
     }
 
