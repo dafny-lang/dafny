@@ -735,7 +735,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       if SurelyAssigned? then SurelyAssigned
       else if NotAssigned? then other
       else Unknown // It's not as simple. If there are are two paths leading to one being assigned, the other not,
-      // Rust won't be albe to figure out the rules
+           // Rust won't be albe to figure out the rules
     }
   }
 
@@ -797,20 +797,20 @@ module {:extern "DefsCoverage"} DafnyToRustCompilerDefinitionsCoverage {
     Expect(Unknown.Join(NotAssigned) == NotAssigned.Join(Unknown) == Unknown);
     Expect(Unknown.Join(SurelyAssigned) == SurelyAssigned.Join(Unknown) == Unknown);
     Expect(Unknown.Join(Unknown) == Unknown);
-    
+
     Expect(SurelyAssigned.Then(Unknown)
-                   == SurelyAssigned.Then(NotAssigned)
-                   == SurelyAssigned.Then(SurelyAssigned)
-                   == NotAssigned.Then(SurelyAssigned)
-                   == SurelyAssigned);
+        == SurelyAssigned.Then(NotAssigned)
+        == SurelyAssigned.Then(SurelyAssigned)
+        == NotAssigned.Then(SurelyAssigned)
+        == SurelyAssigned);
     Expect(Unknown.Then(NotAssigned)
-                   == Unknown.Then(SurelyAssigned)
-                   == Unknown.Then(Unknown)
-                   == NotAssigned.Then(Unknown)
-                   == Unknown);
+        == Unknown.Then(SurelyAssigned)
+        == Unknown.Then(Unknown)
+        == NotAssigned.Then(Unknown)
+        == Unknown);
     Expect(NotAssigned.Then(NotAssigned)
-                   == NotAssigned);
-    
+           == NotAssigned);
+
     var x := VarName("x");
     var y := VarName("y");
     var z := Expression.Ident(VarName("z"));

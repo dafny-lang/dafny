@@ -21,6 +21,6 @@ public class GeneratedDafnyTest {
 
   [Fact]
   public void TestDefsCoverage() {
-    DefsCoverage.__default.Test(); ;
+    DefsCoverage.__default.Tests();
   }
 }

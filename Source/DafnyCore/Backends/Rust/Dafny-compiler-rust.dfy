@@ -2142,7 +2142,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case Call(on, name, typeArgs, args, maybeOutVars) => {
           assume {:axiom} Expression.Call(on, name, typeArgs, args) < stmt;
           generated, readIdents := GenOwnedCallPart(Expression.Call(on, name, typeArgs, args), on, selfIdent, name, typeArgs, args, env);
-          
+
           newEnv := env;
           if maybeOutVars.Some? && |maybeOutVars.value| == 1 {
             var outVar := escapeVar(maybeOutVars.value[0]);
