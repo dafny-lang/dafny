@@ -1077,7 +1077,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   });
 
   public SymbolKind? Kind => SymbolKind.Namespace;
-  public LiteralModuleDecl? EnclosingLiteralModuleDecl { get; set; }
+  public LiteralModuleDecl EnclosingLiteralModuleDecl { get; set; }
 
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
