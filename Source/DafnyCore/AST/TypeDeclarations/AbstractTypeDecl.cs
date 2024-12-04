@@ -11,10 +11,10 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
 
-  public AbstractTypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics,
+  public AbstractTypeDecl(RangeToken rangeOrigin, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics,
     List<TypeParameter> typeArgs, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeArgs != null);
@@ -91,7 +91,7 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
     if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
       return triviaFound;
     }
-    IToken openingBlock = null;
+    IOrigin openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
         openingBlock = token;

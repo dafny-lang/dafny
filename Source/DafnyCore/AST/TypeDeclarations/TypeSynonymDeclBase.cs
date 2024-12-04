@@ -13,9 +13,9 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   }
   public readonly Type Rhs;
 
-  protected TypeSynonymDeclBase(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(rangeToken, name, module, typeArgs, attributes, false) {
-    Contract.Requires(rangeToken != null);
+  protected TypeSynonymDeclBase(RangeToken rangeOrigin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
+    : base(rangeOrigin, name, module, typeArgs, attributes, false) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(module != null);
@@ -60,7 +60,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
     Rhs != null ? new List<Node>() { Rhs } : Enumerable.Empty<Node>());
 
   string RedirectingTypeDecl.Name { get { return Name; } }
-  IToken RedirectingTypeDecl.tok { get { return tok; } }
+  IOrigin RedirectingTypeDecl.tok { get { return tok; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }

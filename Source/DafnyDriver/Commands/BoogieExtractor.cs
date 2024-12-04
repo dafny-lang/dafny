@@ -172,7 +172,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private Trigger? GetTriggers(IToken tok, List<List<Expression>>? patterns) {
+    private Trigger? GetTriggers(IOrigin tok, List<List<Expression>>? patterns) {
       if (patterns == null) {
         return null;
       }
@@ -186,7 +186,7 @@ namespace Microsoft.Dafny.Compilers {
       return triggers;
     }
 
-    private QKeyValue? GetKeyValues(IToken tok, Attributes? attributes) {
+    private QKeyValue? GetKeyValues(IOrigin tok, Attributes? attributes) {
       QKeyValue? kv = null;
       var extractAttributes = Attributes.FindAllExpressions(attributes, AttributeAttribute);
       if (extractAttributes == null) {

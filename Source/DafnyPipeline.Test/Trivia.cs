@@ -115,7 +115,7 @@ ensures true
     // and that every token from start to end of every program child
     // is owned by a node.
     private void TestTokens(Node program) {
-      var allTokens = new HashSet<IToken>();
+      var allTokens = new HashSet<IOrigin>();
 
       void Traverse(INode node) {
         foreach (var ownedToken in node.OwnedTokens) {

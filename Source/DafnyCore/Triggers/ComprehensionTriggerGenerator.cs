@@ -182,11 +182,11 @@ namespace Microsoft.Dafny.Triggers {
         foreach (var group in groups) {
           SplitPartTriggerWriter q = group.Quantifier;
           if (q.Comprehension is ForallExpr forallExpr) {
-            IToken tok = forallExpr.tok is NestedToken nestedToken ? nestedToken.Outer : forallExpr.tok;
+            IOrigin tok = forallExpr.tok is NestedOrigin nestedToken ? nestedToken.Outer : forallExpr.tok;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.And, group.Expressions);
             q.Comprehension = new ForallExpr(tok, forallExpr.RangeToken, forallExpr.BoundVars, forallExpr.Range, expr, TriggerUtils.CopyAttributes(forallExpr.Attributes)) { Type = forallExpr.Type, Bounds = forallExpr.Bounds };
           } else if (q.Comprehension is ExistsExpr existsExpr) {
-            IToken tok = existsExpr.tok is NestedToken nestedToken ? nestedToken.Outer : existsExpr.tok;
+            IOrigin tok = existsExpr.tok is NestedOrigin nestedToken ? nestedToken.Outer : existsExpr.tok;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.Or, group.Expressions);
             q.Comprehension = new ExistsExpr(tok, existsExpr.RangeToken, existsExpr.BoundVars, existsExpr.Range, expr, TriggerUtils.CopyAttributes(existsExpr.Attributes)) { Type = existsExpr.Type, Bounds = existsExpr.Bounds };
           }
@@ -209,7 +209,7 @@ namespace Microsoft.Dafny.Triggers {
       return arg1.Terms.SequenceEqual(arg2.Terms, new PredicateEqualityComparer<TriggerTerm>(comparer));
     }
 
-    private Expression QuantifiersToExpression(IToken tok, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr> expressions) {
+    private Expression QuantifiersToExpression(IOrigin tok, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr> expressions) {
       var expr = expressions[0].Term;
       for (int i = 1; i < expressions.Count; i++) {
         expr = new BinaryExpr(tok, op, expr, expressions[i].Term);
