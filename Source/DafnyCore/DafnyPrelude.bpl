@@ -615,36 +615,36 @@ function $HeapSuccGhost(Heap, Heap): bool;
 // ---------------------------------------------------------------
 
 // havoc everything in $Heap, except {this}+rds+nw
-procedure $YieldHavoc(this: ref, rds: [Box]bool, nw: [Box]bool);
+procedure $YieldHavoc(this: ref, rds: Set, nw: Set);
   modifies $Heap;
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
-            $o == this || rds[$Box($o)] || nw[$Box($o)] ==>
+            $o == this || Set#IsMember(rds, $Box($o)) || Set#IsMember(nw, $Box($o)) ==>
               read($Heap, $o, $f) == read(old($Heap), $o, $f));
   ensures $HeapSucc(old($Heap), $Heap);
 
 // havoc everything in $Heap, except rds-modi-{this}
-procedure $IterHavoc0(this: ref, rds: [Box]bool, modi: [Box]bool);
+procedure $IterHavoc0(this: ref, rds: Set, modi: Set);
   modifies $Heap;
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
-            rds[$Box($o)] && !modi[$Box($o)] && $o != this ==>
+            Set#IsMember(rds, $Box($o)) && !Set#IsMember(modi, $Box($o)) && $o != this ==>
               read($Heap, $o, $f) == read(old($Heap), $o, $f));
   ensures $HeapSucc(old($Heap), $Heap);
 
 // havoc $Heap at {this}+modi+nw
-procedure $IterHavoc1(this: ref, modi: [Box]bool, nw: [Box]bool);
+procedure $IterHavoc1(this: ref, modi: Set, nw: Set);
   modifies $Heap;
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
               read($Heap, $o, $f) == read(old($Heap), $o, $f) ||
-              $o == this || modi[$Box($o)] || nw[$Box($o)]);
+              $o == this || Set#IsMember(modi, $Box($o)) || Set#IsMember(nw, $Box($o)));
   ensures $HeapSucc(old($Heap), $Heap);
 
 procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: Field)
-                        returns (s: [Box]bool);
-  ensures (forall bx: Box :: { s[bx] } s[bx] <==>
-              ($Unbox(read(newHeap, this, NW)) : [Box]bool)[bx] ||
+                        returns (s: Set);
+  ensures (forall bx: Box :: { Set#IsMember(s, bx) } Set#IsMember(s, bx) <==>
+              Set#IsMember($Unbox(read(newHeap, this, NW)) : Set, bx) ||
               ($Unbox(bx) != null && !$Unbox(read(prevHeap, $Unbox(bx):ref, alloc)) && $Unbox(read(newHeap, $Unbox(bx):ref, alloc))));
 
 // ---------------------------------------------------------------
