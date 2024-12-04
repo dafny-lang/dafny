@@ -14,7 +14,7 @@ class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition> {
     this.ContinuityIsImportant = continuityIsImportant;
   }
 
-  public void KNatMismatchError(IToken tok, string contextName, ExtremePredicate.KType contextK, ExtremePredicate.KType calleeK) {
+  public void KNatMismatchError(IOrigin tok, string contextName, ExtremePredicate.KType contextK, ExtremePredicate.KType calleeK) {
     var hint = contextK == ExtremePredicate.KType.Unspecified ? string.Format(" (perhaps try declaring '{0}' as '{0}[nat]')", contextName) : "";
     reporter.Error(MessageSource.Resolver, tok,
       "this call does not type check, because the context uses a _k parameter of type {0} whereas the callee uses a _k parameter of type {1}{2}",

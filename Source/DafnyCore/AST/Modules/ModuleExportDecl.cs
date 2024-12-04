@@ -12,7 +12,7 @@ namespace Microsoft.Dafny;
 public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public readonly bool IsDefault;
   public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
-  public List<IToken> Extends; // list of exports that are extended
+  public List<IOrigin> Extends; // list of exports that are extended
   [FilledInDuringResolution] public readonly List<ModuleExportDecl> ExtendDecls = new();
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
@@ -35,10 +35,10 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     SetupDefaultSignature();
   }
 
-  public ModuleExportDecl(DafnyOptions options, RangeToken rangeToken, Name name, ModuleDefinition parent,
-    List<ExportSignature> exports, List<IToken> extends,
+  public ModuleExportDecl(DafnyOptions options, RangeToken rangeOrigin, Name name, ModuleDefinition parent,
+    List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(options, rangeToken, name, parent, false, isRefining, cloneId) {
+    : base(options, rangeOrigin, name, parent, false, isRefining, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
