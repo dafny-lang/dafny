@@ -260,7 +260,7 @@ public class CliCompilation {
 
         var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
         if (!shouldVerify) {
-          canVerifies.ToList().Remove(canVerify);
+          canVerifies.Remove(canVerify);
         }
       }
 
