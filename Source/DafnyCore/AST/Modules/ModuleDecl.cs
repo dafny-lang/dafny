@@ -61,7 +61,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   }
 
   public virtual string GetTriviaContainingDocstring() {
-    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+    if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }
     var tokens = OwnedTokens.Any() ?

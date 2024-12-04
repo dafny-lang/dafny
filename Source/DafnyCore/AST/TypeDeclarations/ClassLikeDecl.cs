@@ -78,7 +78,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public virtual string GetTriviaContainingDocstring() {
-    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+    if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }
 

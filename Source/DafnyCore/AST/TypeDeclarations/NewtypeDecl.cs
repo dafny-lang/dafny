@@ -151,7 +151,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
 
   public string GetTriviaContainingDocstring() {
-    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+    if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }
 

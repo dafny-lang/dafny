@@ -43,7 +43,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   }
 
   public string GetTriviaContainingDocstring() {
-    if (GetTriviaContainingDocstringFromStartTokenOrNull() is { } triviaFound and not "") {
+    if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }
 
