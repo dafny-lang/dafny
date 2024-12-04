@@ -48,10 +48,7 @@ jobs:
           cd ./Source/DafnyCore
           make test
           make check-format
-      - name: Test Prelude
-        run: |
-          cd ./Source/DafnyCore/Prelude
-          make check
+          make check-extract
       - name: Test DafnyRuntime (C#, Rust)
         run: |
           cd ./Source/DafnyRuntime
