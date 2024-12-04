@@ -1345,6 +1345,7 @@ namespace Microsoft.Dafny {
               //     Set#FromBoogieMap(lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T)))
               // or if "T" is "xs", then:
               //     Set#FromBoogieMap(lambda y: BoxType :: CorrectType(y) && R[xs := Unbox(y)])
+              // where Set#FromBoogieMap is omitted for iset.
               // FIXME: This is not a good translation, see comment in PreludeCore.bpl. It should be changed to not use a Boogie lambda expression
               // but to instead do the lambda lifting here.
               var yVar = new Boogie.BoundVariable(GetToken(comprehension), new Boogie.TypedIdent(GetToken(comprehension), BoogieGenerator.CurrentIdGenerator.FreshId("$y#"), Predef.BoxType));
@@ -1373,7 +1374,9 @@ namespace Microsoft.Dafny {
               }
               Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
               var lambda = new Boogie.LambdaExpr(GetToken(comprehension), new List<TypeVariable>(), new List<Variable> { yVar }, kv, lbody);
-              return FunctionCall(GetToken(comprehension), "Set#FromBoogieMap", Predef.SetType, lambda);
+              return comprehension.Type.AsSetType.Finite
+                ? FunctionCall(GetToken(comprehension), "Set#FromBoogieMap", Predef.SetType, lambda)
+                : lambda;
             }
           case MapComprehension comprehension: {
               var e = comprehension;
