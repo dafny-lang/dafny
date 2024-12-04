@@ -59,6 +59,80 @@ module {:extract_boogie} Multisets {
       m
   }
 
+  lemma {:extract_pattern Multiplicity(UpdateMultiplicity(m, o, n), p)} SelectOfUpdate(m: Multiset, o: Box, n: int, p: Box)
+    requires 0 <= n
+    ensures o == p ==> Multiplicity(UpdateMultiplicity(m, o, n), p) == n
+    ensures o != p ==> Multiplicity(UpdateMultiplicity(m, o, n), p) == Multiplicity(m, p)
+  {
+    if o == p {
+      MultiplicityUpdateSame(m, o, n);
+    } else {
+      MultiplicityUpdateDifferent(m, o, n, p);
+    }
+  }
+
+  lemma MultiplicityUpdateSame(m: Multiset, o: Box, n: int)
+    requires 0 <= n
+    ensures (UpdatePreservesIncreasing(m, o, n);
+      Multiplicity(Update(m, o, n), o) == n)
+  {
+    var u := Update(m, o, n);
+    UpdatePreservesIncreasing(m, o, n);
+    if m.Cons? && Less(m.head, o) {
+      assert u == Cons(m.head, Update(m.tail, o, n));
+      TailIncreasing(m);
+    } else if n != 0 {
+      assert u == Cons(o, Update(m, o, n - 1));
+      UpdatePreservesIncreasing(m, o, n - 1);
+    } else if m == Nil {
+      assert u == Nil;
+    } else if m.head == o {
+      assert u == Update(m.tail, o, 0);
+      calc {
+        Multiplicity(u, o);
+        Multiplicity(Update(m.tail, o, 0), o);
+        { TailIncreasing(m); MultiplicityUpdateSame(m.tail, o, 0); }
+        0;
+      }
+    } else {
+      assert u == m;
+      assert m.Cons? && m.head != o;
+      assert !Less(m.head, o);
+      assert Less(o, m.head) by {
+        Connected(m.head, o);
+      }
+      ZeroMultiplicityForLargerElements(m, o);
+    }
+  }
+
+  lemma MultiplicityUpdateDifferent(m: Multiset, o: Box, n: int, p: Box)
+    requires 0 <= n && o != p
+    ensures (UpdatePreservesIncreasing(m, o, n);
+      Multiplicity(Update(m, o, n), p) == Multiplicity(m, p))
+  {
+    var u := Update(m, o, n);
+    UpdatePreservesIncreasing(m, o, n);
+    if m.Cons? && Less(m.head, o) {
+      assert u == Cons(m.head, Update(m.tail, o, n));
+      TailIncreasing(m);
+    } else if n != 0 {
+      assert u == Cons(o, Update(m, o, n - 1));
+      UpdatePreservesIncreasing(m, o, n - 1);
+    } else if m == Nil {
+      assert u == Nil;
+    } else if m.head == o {
+      assert u == Update(m.tail, o, 0);
+      calc {
+        Multiplicity(u, p);
+        Multiplicity(Update(m.tail, o, 0), p);
+        { TailIncreasing(m); MultiplicityUpdateDifferent(m.tail, o, 0, p); }
+        Multiplicity(m.tail, p);
+      }
+    } else {
+      assert u == m;
+    }
+  }
+
   lemma ElementsOfUpdate(m: List<Box>, o: Box, n: nat, m': List<Box>)
     requires m' == Update(m, o, n)
     ensures forall i :: 0 <= i < m'.Length() ==> m'.At(i) == o || m.Contains(m'.At(i))
@@ -194,7 +268,7 @@ module {:extract_boogie} Multisets {
   {
     match m
     case Nil =>
-    case Cons(x, tail) =>
+    case Cons(y, tail) =>
       TailIncreasing(m);
   }
 

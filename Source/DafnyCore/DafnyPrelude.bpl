@@ -905,6 +905,14 @@ function MultiSet#Multiplicity(m: MultiSet, o: Box) : int;
 
 function MultiSet#UpdateMultiplicity(m: MultiSet, o: Box, n: int) : MultiSet;
 
+axiom (forall m: MultiSet, o: Box, n: int, p: Box ::
+  { MultiSet#Multiplicity(MultiSet#UpdateMultiplicity(m, o, n), p) }
+  0 <= n
+     ==> (o == p ==> MultiSet#Multiplicity(MultiSet#UpdateMultiplicity(m, o, n), p) == n)
+       && (o != p
+         ==> MultiSet#Multiplicity(MultiSet#UpdateMultiplicity(m, o, n), p)
+           == MultiSet#Multiplicity(m, p)));
+
 function $IsGoodMultiSet(ms: MultiSet) : bool;
 
 axiom (forall ms: MultiSet ::
