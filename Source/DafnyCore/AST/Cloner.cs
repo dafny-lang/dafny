@@ -600,7 +600,7 @@ namespace Microsoft.Dafny {
       if (origin == null) {
         return null;
       }
-      
+
       Contract.Requires(origin != null);
       return origin;
     }
