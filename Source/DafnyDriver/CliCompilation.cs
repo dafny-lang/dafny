@@ -234,7 +234,7 @@ public class CliCompilation {
       yield break;
     }
 
-    var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
+    var canVerifies = resolution.CanVerifies?.ToList();
 
     if (canVerifies == null) {
       yield break;
@@ -247,7 +247,7 @@ public class CliCompilation {
 
     int done = 0;
 
-    var canVerifiesPerModule = canVerifies.ToList().GroupBy(c => c.ContainingModule).ToList();
+    var canVerifiesPerModule = canVerifies.GroupBy(c => c.ContainingModule).ToList();
     foreach (var canVerifiesForModule in canVerifiesPerModule.
                OrderBy(v => v.Key.Tok.pos)) {
       var orderedCanVerifies = canVerifiesForModule.OrderBy(v => v.Tok.pos).ToList();
@@ -260,7 +260,7 @@ public class CliCompilation {
 
         var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
         if (!shouldVerify) {
-          canVerifies.ToList().Remove(canVerify);
+          canVerifies.Remove(canVerify);
         }
       }
 

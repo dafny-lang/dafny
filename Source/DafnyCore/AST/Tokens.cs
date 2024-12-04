@@ -2,6 +2,9 @@
 using System;
 using System.Diagnostics.Contracts;
 using System.IO;
+using JetBrains.Annotations;
+using Microsoft.Boogie;
+using VCGeneration;
 
 namespace Microsoft.Dafny;
 
@@ -116,8 +119,8 @@ public static class TokenExtensions {
   }
 
   public static RangeToken ToRange(this IOrigin token) {
-    if (token is BoogieRangeOrigin boogieRangeToken) {
-      return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
+    if (token is FromDafnyNode boogieRangeToken) {
+      return new RangeToken(boogieRangeToken.Inner.StartToken, boogieRangeToken.Inner.EndToken);
     }
 
     if (token is NestedOrigin nestedToken) {
@@ -127,32 +130,39 @@ public static class TokenExtensions {
   }
 }
 
-public class BoogieRangeOrigin : OriginWrapper {
-  // The wrapped token is the startTok
-  public IOrigin StartToken { get; }
-  public IOrigin EndToken { get; }
+public class FromDafnyNode : OriginWrapper {
+  public INode Inner { get; }
 
-  /// <summary>
-  /// If only a single position is used to refer to this piece of code, this position is the best
-  /// </summary>
-  public IOrigin Center { get; }
+  public FromDafnyNode(INode inner) : base(inner.Tok) {
+    Inner = inner;
+  }
 
-  // Used for range reporting
-  public override string val => new(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
+  protected bool Equals(FromDafnyNode other) {
+    return Equals(Inner, other.Inner);
+  }
 
-  public BoogieRangeOrigin(IOrigin startTok, IOrigin endTok, IOrigin center) : base(
-    center ?? startTok) {
-    StartToken = startTok;
-    EndToken = endTok;
-    Center = center;
+  public override bool Equals(object obj) {
+    if (ReferenceEquals(null, obj)) {
+      return false;
+    }
+
+    if (ReferenceEquals(this, obj)) {
+      return true;
+    }
+
+    if (obj.GetType() != this.GetType()) {
+      return false;
+    }
+
+    return Equals((FromDafnyNode)obj);
+  }
+
+  public override int GetHashCode() {
+    return (Inner != null ? Inner.GetHashCode() : 0);
   }
 
   public override IOrigin WithVal(string newVal) {
-    return this;
-  }
-
-  public string PrintOriginal() {
-    return new RangeToken(StartToken, EndToken).PrintOriginal();
+    throw new NotImplementedException();
   }
 }
 

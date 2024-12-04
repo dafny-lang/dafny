@@ -26,8 +26,8 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
     };
     if (tok is RangeToken rangeToken1) {
       range["end"] = SerializePosition(rangeToken1.EndToken);
-    } else if (tok is BoogieRangeOrigin rangeToken2) {
-      range["end"] = SerializePosition(rangeToken2.EndToken);
+    } else if (tok is FromDafnyNode rangeToken2) {
+      range["end"] = SerializePosition(rangeToken2.Inner.EndToken);
     }
     return range;
   }

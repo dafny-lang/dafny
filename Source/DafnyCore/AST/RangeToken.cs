@@ -80,10 +80,6 @@ public class RangeToken : OriginWrapper {
 
   public override bool IsSourceToken => this != NoToken;
 
-  public BoogieRangeOrigin ToToken() {
-    return new BoogieRangeOrigin(StartToken, EndToken, null);
-  }
-
   public bool Contains(IOrigin otherToken) {
     return StartToken.Uri == otherToken.Uri &&
            StartToken.pos <= otherToken.pos &&

@@ -960,13 +960,13 @@ namespace Microsoft.Dafny {
         }
         var bodyProper = MergeStmtList(sbsSkeleton.BodyProper, sbsOldStmt.BodyProper, out hoverText);
         if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.RangeToken.ToToken(), hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.RangeToken, hoverText);
         }
         return new DividedBlockStmt(sbsSkeleton.RangeToken, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
       } else {
         var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
         if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, skeleton.RangeToken.ToToken(), hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, skeleton.RangeToken, hoverText);
         }
         return new BlockStmt(skeleton.RangeToken, body);
       }

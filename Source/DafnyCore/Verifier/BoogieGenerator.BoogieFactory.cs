@@ -882,12 +882,13 @@ namespace Microsoft.Dafny {
     }
 
     public static IOrigin ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
-      if (boogieToken is BoogieRangeOrigin boogieRangeToken) {
-        if (!reportRanges && boogieRangeToken.Center is not null) {
-          return boogieRangeToken.Center;
-        }
-
-        return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
+      if (boogieToken is FromDafnyNode fromDafnyNode) {
+        return fromDafnyNode.Inner.Tok;
+        // if (!reportRanges && fromDafnyNode.Center is not null) {
+        //   return fromDafnyNode.Center;
+        // }
+        //
+        // return new RangeToken(fromDafnyNode.StartToken, fromDafnyNode.EndToken);
       }
 
       if (boogieToken is NestedOrigin nestedToken) {

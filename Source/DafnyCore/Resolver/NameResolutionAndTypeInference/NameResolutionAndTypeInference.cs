@@ -2778,10 +2778,10 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in cl.Members) {
         Contract.Assert(VisibleInScope(member));
         if (member.HasUserAttribute("only", out var attribute)) {
-          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.RangeToken.ToToken(),
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.RangeToken,
             "Members with {:only} temporarily disable the verification of other members in the entire file");
           if (attribute.Args.Count >= 1) {
-            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].RangeToken.ToToken(),
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].RangeToken,
               "{:only} on members does not support arguments");
           }
         }
@@ -5894,7 +5894,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = Options.Get(Snippets.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
+                var tok = Options.Get(Snippets.ShowSnippets) ? e.RangeToken : e.tok;
                 var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
