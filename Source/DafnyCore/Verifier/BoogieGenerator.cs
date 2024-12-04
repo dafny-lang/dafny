@@ -2577,15 +2577,19 @@ namespace Microsoft.Dafny {
     }
 
     private Bpl.Expr IsSetMember(IToken tok, Bpl.Expr set, Bpl.Expr boxedElement, bool isFiniteSet) {
-      return Bpl.Expr.SelectTok(tok, set, boxedElement);
+      if (isFiniteSet) {
+        return FunctionCall(tok, BuiltinFunction.SetIsMember, null, set, boxedElement);
+      } else {
+        return Bpl.Expr.SelectTok(tok, set, boxedElement);
+      }
     }
 
     private Bpl.Expr MultisetMultiplicity(IToken tok, Bpl.Expr multiset, Bpl.Expr boxedElement) {
-      return Bpl.Expr.SelectTok(tok, multiset, boxedElement);
+      return FunctionCall(tok, BuiltinFunction.MultiSetMultiplicity, null, multiset, boxedElement);
     }
 
     private Bpl.Expr UpdateMultisetMultiplicity(IToken tok, Bpl.Expr multiset, Bpl.Expr boxedElement, Bpl.Expr newMultiplicity) {
-      return Boogie.Expr.StoreTok(tok, multiset, boxedElement, newMultiplicity);
+      return FunctionCall(tok, BuiltinFunction.MultiSetUpdateMultiplicity, null, multiset, boxedElement, newMultiplicity);
     }
 
     private Bpl.Function GetOrCreateTypeConstructor(TopLevelDecl td) {

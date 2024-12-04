@@ -237,16 +237,16 @@ axiom (forall v: Bv0 :: { $Is(v, TBitvector(0)) } $Is(v, TBitvector(0)));
 
 axiom (forall v: Set, t0: Ty :: { $Is(v, TSet(t0)) }
   $Is(v, TSet(t0)) <==>
-  (forall bx: Box :: { v[bx] }
-    v[bx] ==> $IsBox(bx, t0)));
+  (forall bx: Box :: { Set#IsMember(v, bx) }
+    Set#IsMember(v, bx) ==> $IsBox(bx, t0)));
 axiom (forall v: ISet, t0: Ty :: { $Is(v, TISet(t0)) }
   $Is(v, TISet(t0)) <==>
   (forall bx: Box :: { v[bx] }
     v[bx] ==> $IsBox(bx, t0)));
 axiom (forall v: MultiSet, t0: Ty :: { $Is(v, TMultiSet(t0)) }
   $Is(v, TMultiSet(t0)) <==>
-  (forall bx: Box :: { v[bx] }
-    0 < v[bx] ==> $IsBox(bx, t0)));
+  (forall bx: Box :: { MultiSet#Multiplicity(v, bx) }
+    0 < MultiSet#Multiplicity(v, bx) ==> $IsBox(bx, t0)));
 axiom (forall v: MultiSet, t0: Ty :: { $Is(v, TMultiSet(t0)) }
   $Is(v, TMultiSet(t0)) ==> $IsGoodMultiSet(v));
 axiom (forall v: Seq, t0: Ty :: { $Is(v, TSeq(t0)) }
@@ -259,8 +259,8 @@ axiom (forall v: Map, t0: Ty, t1: Ty ::
   { $Is(v, TMap(t0, t1)) }
   $Is(v, TMap(t0, t1))
      <==> (forall bx: Box ::
-      { Map#Elements(v)[bx] } { Map#Domain(v)[bx] }
-      Map#Domain(v)[bx] ==>
+      { Map#Elements(v)[bx] } { Set#IsMember(Map#Domain(v), bx) }
+      Set#IsMember(Map#Domain(v), bx) ==>
         $IsBox(Map#Elements(v)[bx], t1) &&
         $IsBox(bx, t0)));
 
@@ -296,16 +296,16 @@ axiom (forall v: Bv0, h: Heap :: { $IsAlloc(v, TBitvector(0), h) } $IsAlloc(v, T
 
 axiom (forall v: Set, t0: Ty, h: Heap :: { $IsAlloc(v, TSet(t0), h) }
   $IsAlloc(v, TSet(t0), h) <==>
-  (forall bx: Box :: { v[bx] }
-    v[bx] ==> $IsAllocBox(bx, t0, h)));
+  (forall bx: Box :: { Set#IsMember(v, bx) }
+    Set#IsMember(v, bx) ==> $IsAllocBox(bx, t0, h)));
 axiom (forall v: ISet, t0: Ty, h: Heap :: { $IsAlloc(v, TISet(t0), h) }
   $IsAlloc(v, TISet(t0), h) <==>
   (forall bx: Box :: { v[bx] }
     v[bx] ==> $IsAllocBox(bx, t0, h)));
 axiom (forall v: MultiSet, t0: Ty, h: Heap :: { $IsAlloc(v, TMultiSet(t0), h) }
   $IsAlloc(v, TMultiSet(t0), h) <==>
-  (forall bx: Box :: { v[bx] }
-    0 < v[bx] ==> $IsAllocBox(bx, t0, h)));
+  (forall bx: Box :: { MultiSet#Multiplicity(v, bx) }
+    0 < MultiSet#Multiplicity(v, bx) ==> $IsAllocBox(bx, t0, h)));
 axiom (forall v: Seq, t0: Ty, h: Heap :: { $IsAlloc(v, TSeq(t0), h) }
   $IsAlloc(v, TSeq(t0), h) <==>
   (forall i : int :: { Seq#Index(v, i) }
@@ -316,8 +316,8 @@ axiom (forall v: Map, t0: Ty, t1: Ty, h: Heap ::
   { $IsAlloc(v, TMap(t0, t1), h) }
   $IsAlloc(v, TMap(t0, t1), h)
      <==> (forall bx: Box ::
-      { Map#Elements(v)[bx] } { Map#Domain(v)[bx] }
-      Map#Domain(v)[bx] ==>
+      { Map#Elements(v)[bx] } { Set#IsMember(Map#Domain(v), bx) }
+      Set#IsMember(Map#Domain(v), bx) ==>
         $IsAllocBox(Map#Elements(v)[bx], t1, h) &&
         $IsAllocBox(bx, t0, h)));
 
@@ -367,8 +367,8 @@ axiom (forall a: ClassName, b: ClassName :: { TypeTuple(a,b) }
 type HandleType;
 
 function SetRef_to_SetBox(s: [ref]bool): Set;
-axiom (forall s: [ref]bool, bx: Box :: { SetRef_to_SetBox(s)[bx] }
-  SetRef_to_SetBox(s)[bx] == s[$Unbox(bx): ref]);
+axiom (forall s: [ref]bool, bx: Box :: { Set#IsMember(SetRef_to_SetBox(s), bx) }
+  Set#IsMember(SetRef_to_SetBox(s), bx) == s[$Unbox(bx): ref]);
 axiom (forall s: [ref]bool :: { SetRef_to_SetBox(s) }
   $Is(SetRef_to_SetBox(s), TSet(Tclass._System.object?())));
 
@@ -615,7 +615,7 @@ function $HeapSuccGhost(Heap, Heap): bool;
 // ---------------------------------------------------------------
 
 // havoc everything in $Heap, except {this}+rds+nw
-procedure $YieldHavoc(this: ref, rds: Set, nw: Set);
+procedure $YieldHavoc(this: ref, rds: [Box]bool, nw: [Box]bool);
   modifies $Heap;
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
@@ -624,7 +624,7 @@ procedure $YieldHavoc(this: ref, rds: Set, nw: Set);
   ensures $HeapSucc(old($Heap), $Heap);
 
 // havoc everything in $Heap, except rds-modi-{this}
-procedure $IterHavoc0(this: ref, rds: Set, modi: Set);
+procedure $IterHavoc0(this: ref, rds: [Box]bool, modi: [Box]bool);
   modifies $Heap;
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
@@ -633,7 +633,7 @@ procedure $IterHavoc0(this: ref, rds: Set, modi: Set);
   ensures $HeapSucc(old($Heap), $Heap);
 
 // havoc $Heap at {this}+modi+nw
-procedure $IterHavoc1(this: ref, modi: Set, nw: Set);
+procedure $IterHavoc1(this: ref, modi: [Box]bool, nw: [Box]bool);
   modifies $Heap;
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
@@ -642,9 +642,9 @@ procedure $IterHavoc1(this: ref, modi: Set, nw: Set);
   ensures $HeapSucc(old($Heap), $Heap);
 
 procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: Field)
-                        returns (s: Set);
+                        returns (s: [Box]bool);
   ensures (forall bx: Box :: { s[bx] } s[bx] <==>
-              ($Unbox(read(newHeap, this, NW)) : Set)[bx] ||
+              ($Unbox(read(newHeap, this, NW)) : [Box]bool)[bx] ||
               ($Unbox(bx) != null && !$Unbox(read(prevHeap, $Unbox(bx):ref, alloc)) && $Unbox(read(newHeap, $Unbox(bx):ref, alloc))));
 
 // ---------------------------------------------------------------
@@ -657,18 +657,29 @@ procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: F
 
 #include "Sets.bpl"
 
+// FIXME: Finite-set comprehensions are translated into Boogie lambda expressions for Boogie maps and then converted,
+// using function Set#FromBoogieMap, to a set. The use of Boogie lambda expressions is convenient, since Boogie
+// performs lambda lifting on them. However, this is NOT right, because it allows ANY lambda to be converted
+// into a finite set. This should be fixed by doing the lambda lifting directly in Dafny and not use Boogie lambda
+// expressions.
+function Set#FromBoogieMap([Box]bool): Set;
+axiom (forall m: [Box]bool, bx: Box ::
+  { Set#IsMember(Set#FromBoogieMap(m), bx) }
+  Set#IsMember(Set#FromBoogieMap(m), bx) == m[bx]);
+
 // ---------------------------------------------------------------
 // -- Axiomatization of isets -------------------------------------
 // ---------------------------------------------------------------
 
 type ISet = [Box]bool;
 
-function ISet#Empty(): Set;
+function ISet#Empty(): ISet;
 axiom (forall o: Box :: { ISet#Empty()[o] } !ISet#Empty()[o]);
 
-// the empty set could be of anything
-//axiom (forall t: Ty :: { $Is(ISet#Empty() : [Box]bool, TISet(t)) } $Is(ISet#Empty() : [Box]bool, TISet(t)));
-
+function ISet#FromSet(Set): ISet;
+axiom (forall s: Set, bx: Box ::
+  { ISet#FromSet(s)[bx] }
+  ISet#FromSet(s)[bx] == Set#IsMember(s, bx));
 
 function ISet#UnionOne(ISet, Box): ISet;
 axiom (forall a: ISet, x: Box, o: Box :: { ISet#UnionOne(a,x)[o] }
@@ -683,7 +694,7 @@ axiom (forall a: ISet, b: ISet, o: Box :: { ISet#Union(a,b)[o] }
   ISet#Union(a,b)[o] <==> a[o] || b[o]);
 axiom (forall a, b: ISet, y: Box :: { ISet#Union(a, b), a[y] }
   a[y] ==> ISet#Union(a, b)[y]);
-axiom (forall a, b: Set, y: Box :: { ISet#Union(a, b), b[y] }
+axiom (forall a, b: ISet, y: Box :: { ISet#Union(a, b), b[y] }
   b[y] ==> ISet#Union(a, b)[y]);
 axiom (forall a, b: ISet :: { ISet#Union(a, b) }
   ISet#Disjoint(a, b) ==>
@@ -696,7 +707,7 @@ axiom (forall a: ISet, b: ISet, o: Box :: { ISet#Intersection(a,b)[o] }
 
 axiom (forall a, b: ISet :: { ISet#Union(ISet#Union(a, b), b) }
   ISet#Union(ISet#Union(a, b), b) == ISet#Union(a, b));
-axiom (forall a, b: Set :: { ISet#Union(a, ISet#Union(a, b)) }
+axiom (forall a, b: ISet :: { ISet#Union(a, ISet#Union(a, b)) }
   ISet#Union(a, ISet#Union(a, b)) == ISet#Union(a, b));
 axiom (forall a, b: ISet :: { ISet#Intersection(ISet#Intersection(a, b), b) }
   ISet#Intersection(ISet#Intersection(a, b), b) == ISet#Intersection(a, b));
@@ -821,13 +832,13 @@ axiom (forall m: Map ::
 
 axiom (forall m: Map ::
   { Map#Domain(m) }
-  m == Map#Empty() || (exists k: Box :: Map#Domain(m)[k]));
+  m == Map#Empty() || (exists k: Box :: Set#IsMember(Map#Domain(m), k)));
 axiom (forall m: Map ::
   { Map#Values(m) }
-  m == Map#Empty() || (exists v: Box :: Map#Values(m)[v]));
+  m == Map#Empty() || (exists v: Box :: Set#IsMember(Map#Values(m), v)));
 axiom (forall m: Map ::
   { Map#Items(m) }
-  m == Map#Empty() || (exists k, v: Box :: Map#Items(m)[$Box(#_System._tuple#2._#Make2(k, v))]));
+  m == Map#Empty() || (exists k, v: Box :: Set#IsMember(Map#Items(m), $Box(#_System._tuple#2._#Make2(k, v)))));
 
 axiom (forall m: Map ::
   { Set#Card(Map#Domain(m)) } { Map#Card(m) }
@@ -840,25 +851,21 @@ axiom (forall m: Map ::
   Set#Card(Map#Items(m)) == Map#Card(m));
 
 // The set of Values of a Map can be obtained by the function Map#Values, which is
-// defined as follows.  Remember, a Set is defined by membership (using Boogie's
-// square brackets) and Map#Card, so we need to define what these mean for the Set
-// returned by Map#Values.
+// defined as follows.  Remember, a Set is defined by Set#IsMember and Map#Card, so
+// we need to define what these mean for the Set returned by Map#Values.
 
 function Map#Values(Map) : Set;
 
-axiom (forall m: Map, v: Box :: { Map#Values(m)[v] }
-  Map#Values(m)[v] ==
-	(exists u: Box :: { Map#Domain(m)[u] } { Map#Elements(m)[u] }
-	  Map#Domain(m)[u] &&
+axiom (forall m: Map, v: Box :: { Set#IsMember(Map#Values(m), v) }
+  Set#IsMember(Map#Values(m), v) ==
+	(exists u: Box :: { Set#IsMember(Map#Domain(m), u) } { Map#Elements(m)[u] }
+	  Set#IsMember(Map#Domain(m), u) &&
     v == Map#Elements(m)[u]));
 
 // The set of Items--that is, (key,value) pairs--of a Map can be obtained by the
-// function Map#Items.  Again, we need to define membership of Set#Card for this
-// set.  Everywhere else in this axiomatization, Map is parameterized by types U V,
-// even though Dafny only ever instantiates U V with Box Box.  This makes the
-// axiomatization more generic.  Function Map#Items, however, returns a set of
-// pairs, and the axiomatization of pairs is Dafny specific.  Therefore, the
-// definition of Map#Items here is to be considered Dafny specific.  Also, note
+// function Map#Items.  Again, we need to define Set#IsMember and Set#Card for this
+// set. Function Map#Items returns a set of pairs, and the axiomatization of pairs is Dafny specific.
+// Therefore, the definition of Map#Items here is to be considered Dafny specific.  Also, note
 // that it relies on the two destructors for 2-tuples.
 
 function Map#Items(Map) : Set;
@@ -867,29 +874,29 @@ function #_System._tuple#2._#Make2(Box, Box) : DatatypeType;
 function _System.Tuple2._0(DatatypeType) : Box;
 function _System.Tuple2._1(DatatypeType) : Box;
 
-axiom (forall m: Map, item: Box :: { Map#Items(m)[item] }
-  Map#Items(m)[item] <==>
-    Map#Domain(m)[_System.Tuple2._0($Unbox(item))] &&
+axiom (forall m: Map, item: Box :: { Set#IsMember(Map#Items(m), item) }
+  Set#IsMember(Map#Items(m), item) <==>
+    Set#IsMember(Map#Domain(m), _System.Tuple2._0($Unbox(item))) &&
     Map#Elements(m)[_System.Tuple2._0($Unbox(item))] == _System.Tuple2._1($Unbox(item)));
 
 // Here are the operations that produce Map values.
 
 function Map#Empty(): Map;
 axiom (forall u: Box ::
-        { Map#Domain(Map#Empty(): Map)[u] }
-        !Map#Domain(Map#Empty(): Map)[u]);
+        { Set#IsMember(Map#Domain(Map#Empty(): Map), u) }
+        !Set#IsMember(Map#Domain(Map#Empty(): Map), u));
 
-function Map#Glue([Box]bool, [Box]Box, Ty): Map;
-axiom (forall a: [Box]bool, b: [Box]Box, t: Ty ::
+function Map#Glue(Set, [Box]Box, Ty): Map;
+axiom (forall a: Set, b: [Box]Box, t: Ty ::
   { Map#Domain(Map#Glue(a, b, t)) }
   Map#Domain(Map#Glue(a, b, t)) == a);
-axiom (forall a: [Box]bool, b: [Box]Box, t: Ty ::
+axiom (forall a: Set, b: [Box]Box, t: Ty ::
   { Map#Elements(Map#Glue(a, b, t)) }
   Map#Elements(Map#Glue(a, b, t)) == b);
-axiom (forall a: [Box]bool, b: [Box]Box, t0, t1: Ty ::
+axiom (forall a: Set, b: [Box]Box, t0, t1: Ty ::
   { Map#Glue(a, b, TMap(t0, t1)) }
   // In the following line, no trigger needed, since the quantifier only gets used in negative contexts
-  (forall bx: Box :: a[bx] ==> $IsBox(bx, t0) && $IsBox(b[bx], t1))
+  (forall bx: Box :: Set#IsMember(a, bx) ==> $IsBox(bx, t0) && $IsBox(b[bx], t1))
   ==>
   $Is(Map#Glue(a, b, TMap(t0, t1)), TMap(t0, t1)));
 
@@ -901,15 +908,15 @@ function Map#Build(Map, Box, Box): Map;
   Map#Domain(Map#Build(m, u, v))[u] && Map#Elements(Map#Build(m, u, v))[u] == v);*/
 
 axiom (forall m: Map, u: Box, u': Box, v: Box ::
-  { Map#Domain(Map#Build(m, u, v))[u'] } { Map#Elements(Map#Build(m, u, v))[u'] }
-  (u' == u ==> Map#Domain(Map#Build(m, u, v))[u'] &&
+  { Set#IsMember(Map#Domain(Map#Build(m, u, v)), u') } { Map#Elements(Map#Build(m, u, v))[u'] }
+  (u' == u ==> Set#IsMember(Map#Domain(Map#Build(m, u, v)), u') &&
                Map#Elements(Map#Build(m, u, v))[u'] == v) &&
-  (u' != u ==> Map#Domain(Map#Build(m, u, v))[u'] == Map#Domain(m)[u'] &&
+  (u' != u ==> Set#IsMember(Map#Domain(Map#Build(m, u, v)), u') == Set#IsMember(Map#Domain(m), u') &&
                Map#Elements(Map#Build(m, u, v))[u'] == Map#Elements(m)[u']));
 axiom (forall m: Map, u: Box, v: Box :: { Map#Card(Map#Build(m, u, v)) }
-  Map#Domain(m)[u] ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m));
+  Set#IsMember(Map#Domain(m), u) ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m));
 axiom (forall m: Map, u: Box, v: Box :: { Map#Card(Map#Build(m, u, v)) }
-  !Map#Domain(m)[u] ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m) + 1);
+  !Set#IsMember(Map#Domain(m), u) ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m) + 1);
 
 // Map operations
 function Map#Merge(Map, Map): Map;
@@ -918,9 +925,9 @@ axiom (forall m: Map, n: Map ::
   Map#Domain(Map#Merge(m, n)) == Set#Union(Map#Domain(m), Map#Domain(n)));
 axiom (forall m: Map, n: Map, u: Box ::
   { Map#Elements(Map#Merge(m, n))[u] }
-  Map#Domain(Map#Merge(m, n))[u] ==>
-    (!Map#Domain(n)[u] ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(m)[u]) &&
-    (Map#Domain(n)[u] ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(n)[u]));
+  Set#IsMember(Map#Domain(Map#Merge(m, n)), u) ==>
+    (!Set#IsMember(Map#Domain(n), u) ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(m)[u]) &&
+    (Set#IsMember(Map#Domain(n), u) ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(n)[u]));
 
 function Map#Subtract(Map, Set): Map;
 axiom (forall m: Map, s: Set ::
@@ -928,15 +935,15 @@ axiom (forall m: Map, s: Set ::
   Map#Domain(Map#Subtract(m, s)) == Set#Difference(Map#Domain(m), s));
 axiom (forall m: Map, s: Set, u: Box ::
   { Map#Elements(Map#Subtract(m, s))[u] }
-  Map#Domain(Map#Subtract(m, s))[u] ==>
+  Set#IsMember(Map#Domain(Map#Subtract(m, s)), u) ==>
     Map#Elements(Map#Subtract(m, s))[u] == Map#Elements(m)[u]);
 
 //equality for maps
 function Map#Equal(Map, Map): bool;
 axiom (forall m: Map, m': Map::
   { Map#Equal(m, m') }
-    Map#Equal(m, m') <==> (forall u : Box :: Map#Domain(m)[u] == Map#Domain(m')[u]) &&
-                          (forall u : Box :: Map#Domain(m)[u] ==> Map#Elements(m)[u] == Map#Elements(m')[u]));
+    Map#Equal(m, m') <==> (forall u : Box :: Set#IsMember(Map#Domain(m), u) == Set#IsMember(Map#Domain(m'), u)) &&
+                          (forall u : Box :: Set#IsMember(Map#Domain(m), u) ==> Map#Elements(m)[u] == Map#Elements(m')[u]));
 // extensionality
 axiom (forall m: Map, m': Map::
   { Map#Equal(m, m') }
@@ -945,7 +952,8 @@ axiom (forall m: Map, m': Map::
 function Map#Disjoint(Map, Map): bool;
 axiom (forall m: Map, m': Map ::
   { Map#Disjoint(m, m') }
-    Map#Disjoint(m, m') <==> (forall o: Box :: {Map#Domain(m)[o]} {Map#Domain(m')[o]} !Map#Domain(m)[o] || !Map#Domain(m')[o]));
+    Map#Disjoint(m, m') <==>
+    (forall o: Box :: {Set#IsMember(Map#Domain(m), o)} {Set#IsMember(Map#Domain(m'), o)} !Set#IsMember(Map#Domain(m), o) || !Set#IsMember(Map#Domain(m'), o)));
 
 // ---------------------------------------------------------------
 // -- Axiomatization of IMaps ------------------------------------
@@ -955,7 +963,7 @@ type IMap;
 
 // A IMap is defined by two functions, Map#Domain and Map#Elements.
 
-function IMap#Domain(IMap) : Set;
+function IMap#Domain(IMap) : ISet;
 
 function IMap#Elements(IMap) : [Box]Box;
 
@@ -979,12 +987,12 @@ axiom (forall m: IMap ::
   { IMap#Items(m) }
   m == IMap#Empty() <==> IMap#Items(m) == ISet#Empty());
 
-// The set of Values of a IMap can be obtained by the function IMap#Values, which is
-// defined as follows.  Remember, a ISet is defined by membership (using Boogie's
-// square brackets) so we need to define what these mean for the Set
-// returned by Map#Values.
+// The set of Values of an IMap can be obtained by the function IMap#Values, which is
+// defined as follows.  Remember, an ISet is defined by membership (using Boogie's
+// square brackets) so we need to define what these mean for the ISet
+// returned by IMap#Values.
 
-function IMap#Values(IMap) : Set;
+function IMap#Values(IMap) : ISet;
 
 axiom (forall m: IMap, v: Box :: { IMap#Values(m)[v] }
   IMap#Values(m)[v] ==
@@ -993,15 +1001,12 @@ axiom (forall m: IMap, v: Box :: { IMap#Values(m)[v] }
     v == IMap#Elements(m)[u]));
 
 // The set of Items--that is, (key,value) pairs--of a Map can be obtained by the
-// function IMap#Items.
-// Everywhere else in this axiomatization, IMap is parameterized by types U V,
-// even though Dafny only ever instantiates U V with Box Box.  This makes the
-// axiomatization more generic.  Function IMap#Items, however, returns a set of
+// function IMap#Items. Function IMap#Items returns a set of
 // pairs, and the axiomatization of pairs is Dafny specific.  Therefore, the
 // definition of IMap#Items here is to be considered Dafny specific.  Also, note
 // that it relies on the two destructors for 2-tuples.
 
-function IMap#Items(IMap) : Set;
+function IMap#Items(IMap) : ISet;
 
 axiom (forall m: IMap, item: Box :: { IMap#Items(m)[item] }
   IMap#Items(m)[item] <==>
@@ -1026,7 +1031,7 @@ axiom (forall a: [Box]bool, b: [Box]Box, t0, t1: Ty ::
   // In the following line, no trigger needed, since the quantifier only gets used in negative contexts
   (forall bx: Box :: a[bx] ==> $IsBox(bx, t0) && $IsBox(b[bx], t1))
   ==>
-  $Is(Map#Glue(a, b, TIMap(t0, t1)), TIMap(t0, t1)));
+  $Is(IMap#Glue(a, b, TIMap(t0, t1)), TIMap(t0, t1)));
 
 //Build is used in displays
 function IMap#Build(IMap, Box, Box): IMap;
@@ -1056,7 +1061,7 @@ axiom (forall m: IMap, m': IMap::
 function IMap#Merge(IMap, IMap): IMap;
 axiom (forall m: IMap, n: IMap ::
   { IMap#Domain(IMap#Merge(m, n)) }
-  IMap#Domain(IMap#Merge(m, n)) == Set#Union(IMap#Domain(m), IMap#Domain(n)));
+  IMap#Domain(IMap#Merge(m, n)) == ISet#Union(IMap#Domain(m), IMap#Domain(n)));
 axiom (forall m: IMap, n: IMap, u: Box ::
   { IMap#Elements(IMap#Merge(m, n))[u] }
   IMap#Domain(IMap#Merge(m, n))[u] ==>
@@ -1066,7 +1071,7 @@ axiom (forall m: IMap, n: IMap, u: Box ::
 function IMap#Subtract(IMap, Set): IMap;
 axiom (forall m: IMap, s: Set ::
   { IMap#Domain(IMap#Subtract(m, s)) }
-  IMap#Domain(IMap#Subtract(m, s)) == Set#Difference(IMap#Domain(m), s));
+  IMap#Domain(IMap#Subtract(m, s)) == ISet#Difference(IMap#Domain(m), ISet#FromSet(s)));
 axiom (forall m: IMap, s: Set, u: Box ::
   { IMap#Elements(IMap#Subtract(m, s))[u] }
   IMap#Domain(IMap#Subtract(m, s))[u] ==>

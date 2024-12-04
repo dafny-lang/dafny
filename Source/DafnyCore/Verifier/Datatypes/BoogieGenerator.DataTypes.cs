@@ -584,7 +584,7 @@ namespace Microsoft.Dafny {
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
               var domain = FunctionCall(arg.tok, f, finite ? Predef.MapType : Predef.IMapType,
                 args[i]);
-              var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+              var inDomain = IsSetMember(arg.tok, domain, FunctionCall(arg.tok, BuiltinFunction.Box, null, ie), finite);
               var lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
               var ct = FunctionCall(ctor.tok, ctor.FullName, Predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
@@ -603,7 +603,7 @@ namespace Microsoft.Dafny {
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
               var domain = FunctionCall(arg.tok, f, finite ? Predef.MapType : Predef.IMapType,
                 args[i]);
-              var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, ie);
+              var inDomain = IsSetMember(arg.tok, domain, ie, finite);
               var ef = finite ? BuiltinFunction.MapElements : BuiltinFunction.IMapElements;
               var element = FunctionCall(arg.tok, ef, finite ? Predef.MapType : Predef.IMapType,
                 args[i]);

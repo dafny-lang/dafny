@@ -110,8 +110,8 @@ public partial class BoogieGenerator {
         Func<Bpl.Expr, Bpl.Expr, Bpl.Expr> op = Bpl.Expr.Eq;
         if (selectorVar == "rd") {
           var bx = BplBoundVar("bx", Predef.BoxType, bvars);
-          lhs = Bpl.Expr.SelectTok(tok, lhs, bx);
-          rhs = Bpl.Expr.SelectTok(tok, rhs, bx);
+          lhs = IsSetMember(tok, lhs, bx, true);
+          rhs = IsSetMember(tok, rhs, bx, true);
           // op = BplImp;
         }
         if (selectorVar == "r") {
@@ -208,10 +208,10 @@ public partial class BoogieGenerator {
             BplAnd(
               Bpl.Expr.Neq(o, Predef.Null),
               // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
-              new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> {
-                  FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(hN, Cons(f, boxes)))),
-                  FunctionCall(tok, BuiltinFunction.Box, null, o)
-              })
+              IsSetMember(tok,
+                FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(hN, Cons(f, boxes)))),
+                FunctionCall(tok, BuiltinFunction.Box, null, o),
+                true)
             ),
             Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
 
@@ -416,7 +416,7 @@ public partial class BoogieGenerator {
         var r = BplBoundVar("r", Predef.RefType, bvarsR);
         var rNonNull = Bpl.Expr.Neq(r, Predef.Null);
         var reads = FunctionCall(tok, Reads(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-        var rInReads = Bpl.Expr.Select(reads, FunctionCall(tok, BuiltinFunction.Box, null, r));
+        var rInReads = IsSetMember(tok, reads, FunctionCall(tok, BuiltinFunction.Box, null, r), true);
         var rAlloc = IsAlloced(tok, h, r);
         var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
 

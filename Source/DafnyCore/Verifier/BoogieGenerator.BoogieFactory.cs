@@ -61,6 +61,7 @@ namespace Microsoft.Dafny {
 
       IsTraitParent,
 
+      SetIsMember,
       SetCard,
       SetEmpty,
       SetUnionOne,
@@ -80,6 +81,8 @@ namespace Microsoft.Dafny {
       ISetSubset,
       ISetDisjoint,
 
+      MultiSetMultiplicity,
+      MultiSetUpdateMultiplicity,
       MultiSetCard,
       MultiSetEmpty,
       MultiSetUnionOne,
@@ -293,6 +296,9 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "IsTraitParent", Bpl.Type.Bool, args);
 
+        case BuiltinFunction.SetIsMember:
+          Contract.Assert(args.Length == 2);
+          return FunctionCall(tok, "Set#IsMember", Bpl.Type.Bool, args);
         case BuiltinFunction.SetCard:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "Set#Card", Bpl.Type.Int, args);
@@ -351,6 +357,12 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.ISetDisjoint:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "ISet#Disjoint", Bpl.Type.Bool, args);
+        case BuiltinFunction.MultiSetMultiplicity:
+          Contract.Assert(args.Length == 2);
+          return FunctionCall(tok, "MultiSet#Multiplicity", Bpl.Type.Int, args);
+        case BuiltinFunction.MultiSetUpdateMultiplicity:
+          Contract.Assert(args.Length == 3);
+          return FunctionCall(tok, "MultiSet#UpdateMultiplicity", Predef.MultiSetType, args);
         case BuiltinFunction.MultiSetCard:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "MultiSet#Card", Bpl.Type.Int, args);

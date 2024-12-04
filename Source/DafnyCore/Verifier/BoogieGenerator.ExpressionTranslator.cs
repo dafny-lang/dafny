@@ -869,9 +869,9 @@ namespace Microsoft.Dafny {
               int bvWidth = e0Type.IsBitVectorType ? e0Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
               Boogie.Expr e0 = TrExpr(e.E0);
               if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
-                return TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, e.Type.AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
+                return TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, e.E1.Type.AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
-                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, e.Type.AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
+                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, e.E1.Type.AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
                 return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
                 return TrInMultiSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false); // let TrInMultiSet translate e.E1
@@ -1223,14 +1223,18 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.InMap: {
                     bool finite = e.E1.Type.NormalizeToAncestorType().AsMapType.Finite;
                     var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-                    return Boogie.Expr.SelectTok(GetToken(binaryExpr), BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? Predef.MapType : Predef.IMapType, e1),
-                      BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
+                    return BoogieGenerator.IsSetMember(GetToken(binaryExpr),
+                      BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? Predef.MapType : Predef.IMapType, e1),
+                      BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type),
+                      finite);
                   }
                 case BinaryExpr.ResolvedOpcode.NotInMap: {
                     bool finite = e.E1.Type.NormalizeToAncestorType().AsMapType.Finite;
                     var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-                    Boogie.Expr inMap = Boogie.Expr.SelectTok(GetToken(binaryExpr), BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? Predef.MapType : Predef.IMapType, e1),
-                      BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
+                    Boogie.Expr inMap = BoogieGenerator.IsSetMember(GetToken(binaryExpr),
+                      BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? Predef.MapType : Predef.IMapType, e1),
+                      BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type),
+                      finite);
                     return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, inMap);
                   }
                 case BinaryExpr.ResolvedOpcode.MapMerge: {
@@ -1338,9 +1342,11 @@ namespace Microsoft.Dafny {
               List<bool> freeOfAlloc = BoundedPool.HasBounds(e.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
 
               // Translate "set xs | R :: T" into:
-              //     lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
+              //     Set#FromBoogieMap(lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T)))
               // or if "T" is "xs", then:
-              //     lambda y: BoxType :: CorrectType(y) && R[xs := Unbox(y)]
+              //     Set#FromBoogieMap(lambda y: BoxType :: CorrectType(y) && R[xs := Unbox(y)])
+              // FIXME: This is not a good translation, see comment in PreludeCore.bpl. It should be changed to not use a Boogie lambda expression
+              // but to instead do the lambda lifting here.
               var yVar = new Boogie.BoundVariable(GetToken(comprehension), new Boogie.TypedIdent(GetToken(comprehension), BoogieGenerator.CurrentIdGenerator.FreshId("$y#"), Predef.BoxType));
               Boogie.Expr y = new Boogie.IdentifierExpr(GetToken(comprehension), yVar);
               Boogie.Expr lbody;
@@ -1366,7 +1372,8 @@ namespace Microsoft.Dafny {
                 lbody = new Boogie.ExistsExpr(GetToken(comprehension), bvars, triggers, ebody);
               }
               Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
-              return new Boogie.LambdaExpr(GetToken(comprehension), new List<TypeVariable>(), new List<Variable> { yVar }, kv, lbody);
+              var lambda = new Boogie.LambdaExpr(GetToken(comprehension), new List<TypeVariable>(), new List<Variable> { yVar }, kv, lbody);
+              return FunctionCall(GetToken(comprehension), "Set#FromBoogieMap", Predef.SetType, lambda);
             }
           case MapComprehension comprehension: {
               var e = comprehension;
