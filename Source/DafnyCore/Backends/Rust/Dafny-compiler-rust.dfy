@@ -1757,9 +1757,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         match stmt {
           case DeclareVar(name, optType, None) =>
             var laterAssignmentStatus := DetectAssignmentStatus(stmts[i + 1..], name);
-            if !laterAssignmentStatus.Unknown? {
-              newEnv := newEnv.AddAssignmentStatusKnown(escapeVar(name));
-            }
+            newEnv := newEnv.AddAssignmentStatus(escapeVar(name), laterAssignmentStatus);
+          case DeclareVar(name, optType, Some(InitializationValue(typ))) =>
+            var tpe := GenType(typ, GenTypeContext.default());
+            var varName := escapeVar(name);
+            var laterAssignmentStatus := DetectAssignmentStatus(stmts[i + 1..], name);
+            newEnv := newEnv.AddAssignmentStatus(varName, laterAssignmentStatus);
           case _ =>
 
         }
@@ -1972,9 +1975,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var varName := escapeVar(name);
           var hasCopySemantics := tpe.CanReadWithoutClone();
           if expression.InitializationValue? && !hasCopySemantics {
-            generated := R.DeclareVar(R.MUT, varName, None, Some(R.MaybePlaceboPath.AsExpr().ApplyType1(tpe).FSel("new").Apply0()));
-            readIdents := {};
-            newEnv := env.AddAssigned(varName, R.MaybePlaceboType(tpe));
+            if env.IsAssignmentStatusKnown(varName) {
+              var tpe := GenType(typ, GenTypeContext.default());
+              generated := R.DeclareVar(R.MUT, varName, Some(tpe), None);
+              readIdents := {};
+              newEnv := env.AddAssigned(varName, tpe);
+            } else {
+              generated := R.DeclareVar(R.MUT, varName, None, Some(R.MaybePlaceboPath.AsExpr().ApplyType1(tpe).FSel("new").Apply0()));
+              readIdents := {};
+              newEnv := env.AddAssigned(varName, R.MaybePlaceboType(tpe));
+            }
           } else {
             var expr, recIdents;
             if expression.InitializationValue? &&
@@ -1995,7 +2005,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var varName := escapeVar(name);
           if env.IsAssignmentStatusKnown(varName) {
             var tpe := GenType(typ, GenTypeContext.default());
-            generated := R.DeclareVar(R.MUT, varName, None, None);
+            generated := R.DeclareVar(R.MUT, varName, Some(tpe), None);
             readIdents := {};
             newEnv := env.AddAssigned(varName, tpe);
           } else {
@@ -2132,10 +2142,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case Call(on, name, typeArgs, args, maybeOutVars) => {
           assume {:axiom} Expression.Call(on, name, typeArgs, args) < stmt;
           generated, readIdents := GenOwnedCallPart(Expression.Call(on, name, typeArgs, args), on, selfIdent, name, typeArgs, args, env);
-
+          
+          newEnv := env;
           if maybeOutVars.Some? && |maybeOutVars.value| == 1 {
             var outVar := escapeVar(maybeOutVars.value[0]);
-            if !env.CanReadWithoutClone(outVar) {
+            if env.IsMaybePlacebo(outVar) {
               generated := R.MaybePlacebo(generated);
             }
             generated := R.AssignVar(outVar, generated);
@@ -2150,7 +2161,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             for outI := 0 to |outVars| {
               var outVar := escapeVar(outVars[outI]);
               var rhs := tmpId.Sel(Strings.OfNat(outI));
-              if !env.CanReadWithoutClone(outVar) {
+              if env.IsMaybePlacebo(outVar) {
                 rhs := R.MaybePlacebo(rhs);
               }
               generated := generated.Then(R.AssignVar(outVar, rhs));
