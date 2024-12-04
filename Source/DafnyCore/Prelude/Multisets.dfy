@@ -14,7 +14,7 @@ module {:extract_boogie} Multisets {
   // the model here uses functions Multiplicity and UpdateMultiplicity, respectively.
   // See also Sets.dfy and the "IsMember" predicate in that file.
   type {:extract_boogie_name "MultiSet"} Multiset = m: List<Box> | Increasing(m) witness Nil
-  
+
   predicate Increasing(m: List<Box>) {
     forall i, j :: 0 <= i < j < m.Length() ==> Below(m.At(i), m.At(j))
   }
@@ -41,8 +41,8 @@ module {:extract_boogie} Multisets {
   function {:extract_boogie_name "MultiSet#UpdateMultiplicity"} UpdateMultiplicity(m: Multiset, o: Box, n: int): Multiset
   {
     if n < 0 then m else
-      UpdatePreservesIncreasing(m, o, n);
-      Update(m, o, n)
+    UpdatePreservesIncreasing(m, o, n);
+    Update(m, o, n)
   }
 
   function Update(m: List<Box>, o: Box, n: nat): List<Box>
@@ -74,7 +74,7 @@ module {:extract_boogie} Multisets {
   lemma MultiplicityUpdateSame(m: Multiset, o: Box, n: int)
     requires 0 <= n
     ensures (UpdatePreservesIncreasing(m, o, n);
-      Multiplicity(Update(m, o, n), o) == n)
+             Multiplicity(Update(m, o, n), o) == n)
   {
     var u := Update(m, o, n);
     UpdatePreservesIncreasing(m, o, n);
@@ -108,7 +108,7 @@ module {:extract_boogie} Multisets {
   lemma MultiplicityUpdateDifferent(m: Multiset, o: Box, n: int, p: Box)
     requires 0 <= n && o != p
     ensures (UpdatePreservesIncreasing(m, o, n);
-      Multiplicity(Update(m, o, n), p) == Multiplicity(m, p))
+             Multiplicity(Update(m, o, n), p) == Multiplicity(m, p))
   {
     var u := Update(m, o, n);
     UpdatePreservesIncreasing(m, o, n);
@@ -182,7 +182,7 @@ module {:extract_boogie} Multisets {
             }
           }
         }
-      }
+    }
     }
   }
 
@@ -250,7 +250,7 @@ module {:extract_boogie} Multisets {
   predicate {:extract_boogie_name "$IsGoodMultiSet"} IsGood(ms: Multiset) {
     true
   }
-  
+
   // // ints are non-negative, used after havocing, and for conversion from sequences to multisets.
   // axiom (forall ms: MultiSet :: { $IsGoodMultiSet(ms) }
   //   $IsGoodMultiSet(ms) <==>
@@ -680,7 +680,7 @@ module {:extract_boogie} Multisets {
       } else if x != o {
         // proof automatic
       } else {
-        assert intersection == Intersection(tail, b);        
+        assert intersection == Intersection(tail, b);
         calc {
           Multiplicity(intersection, o);
           Multiplicity(Intersection(tail, b), o);
@@ -947,7 +947,7 @@ module {:extract_boogie} Multisets {
             }
           }
           ma + mb;
-          { MultiplicityUnion(a, b, o); }          
+          { MultiplicityUnion(a, b, o); }
           Multiplicity(uab, o);
         }
       }
@@ -1098,8 +1098,8 @@ module {:extract_boogie} Multisets {
   //   MultiSet#Equal(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] == b[o]));
   lemma {:extract_pattern Equal(a, b)} EqualDefinition(a: Multiset, b: Multiset)
     ensures Equal(a, b) <==>
-      forall o {:extract_pattern Multiplicity(a, o)} {:extract_pattern Multiplicity(b, o)} ::
-        Multiplicity(a, o) == Multiplicity(b, o)
+            forall o {:extract_pattern Multiplicity(a, o)} {:extract_pattern Multiplicity(b, o)} ::
+              Multiplicity(a, o) == Multiplicity(b, o)
   {
     if a != b {
       var o := ExhibitDifference(a, b);
@@ -1171,8 +1171,8 @@ module {:extract_boogie} Multisets {
   //   MultiSet#Disjoint(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] == 0 || b[o] == 0));
   lemma {:extract_pattern Disjoint(a, b)} DisjointDefinition(a: Multiset, b: Multiset)
     ensures Disjoint(a, b) <==>
-      forall o {:extract_pattern Multiplicity(a, o)} {:extract_pattern Multiplicity(b, o)} {:trigger MultiplicityWrapper(a, o)} ::
-        Multiplicity(a, o) == 0 || Multiplicity(b, o) == 0
+            forall o {:extract_pattern Multiplicity(a, o)} {:extract_pattern Multiplicity(b, o)} {:trigger MultiplicityWrapper(a, o)} ::
+              Multiplicity(a, o) == 0 || Multiplicity(b, o) == 0
   {
     if !Disjoint(a, b) {
       var o :| Multiplicity(a, o) != 0 && Multiplicity(b, o) != 0;
@@ -1288,7 +1288,7 @@ module {:extract_boogie} Multisets {
   lemma {:extract_pattern FromSeq(Sequences.Build(s, v))} BuildFromSeq(s: Sequences.Seq, v: Box)
     ensures FromSeq(Sequences.Build(s, v)) == UnionOne(FromSeq(s), v)
   {
-    var ss, vv := FromSeq(s), Cons(v, Nil);    
+    var ss, vv := FromSeq(s), Cons(v, Nil);
     calc {
       FromSeq(Sequences.Build(s, v));
       FromSeq(s.Append(Cons(v, Nil)));
@@ -1451,7 +1451,7 @@ module {:extract_boogie} Multisets {
         Multiplicity(FromSeq(s.tail), x) + BoolInt(v == x);
       >=  { MultiplicityCard(FromSeq(s.tail), x); }
         BoolInt(v == x);
-        { MultiplicityDelta(Nil, v, x); }
+          { MultiplicityDelta(Nil, v, x); }
         Multiplicity(UnionOne(Nil, v), x);
       }
     } else {
@@ -1482,7 +1482,7 @@ module {:extract_boogie} Multisets {
   //   (exists i : int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && x == Seq#Index(s,i)) <==> 0 < MultiSet#FromSeq(s)[x] );
   lemma {:extract_pattern Multiplicity(FromSeq(s), x)} MultiplicityFromSeq(s: Sequences.Seq, x: Box)
     ensures (exists i {:extract_pattern Sequences.Index(s, i)} :: 0 <= i < Sequences.Length(s) && x == Sequences.Index(s, i))
-      <==> 0 < Multiplicity(FromSeq(s), x)
+       <==> 0 < Multiplicity(FromSeq(s), x)
   {
     calc {
       exists i :: 0 <= i < Sequences.Length(s) && x == Sequences.Index(s, i);

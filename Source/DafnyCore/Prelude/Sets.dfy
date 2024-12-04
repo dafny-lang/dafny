@@ -28,7 +28,7 @@ module {:extract_boogie} Sets {
   // to just define it as an uninterpreted type, which is what the effect of this
   // :extract_boogie_name annotation will have. See also the "IsMember" predicate below.
   type {:extract_boogie_name "Set"} Set = s: List<Box> | StrictlyIncreasing(s) witness Nil
-  
+
   predicate StrictlyIncreasing(s: List<Box>) {
     forall i, j :: 0 <= i < j < s.Length() ==> Less(s.At(i), s.At(j))
   }
@@ -136,7 +136,7 @@ module {:extract_boogie} Sets {
     match s
     case Nil =>
     case Cons(x, tail) =>
-      if x == o { 
+      if x == o {
       } else if Less(o, x) {
         PrependIncreasing(o, s);
       } else {
@@ -162,7 +162,7 @@ module {:extract_boogie} Sets {
             assert x == s.At(0) && tail.head == s.At(1);
           }
         }
-     }
+      }
   }
 
   lemma PrependIncreasing(o: Box, s: List<Box>)
@@ -213,7 +213,7 @@ module {:extract_boogie} Sets {
             { assert y != o; assert In(tail, o) <==> In(a, o); }
             o == x || In(a, o);
           }
-          
+
         }
       }
   }
@@ -330,7 +330,7 @@ module {:extract_boogie} Sets {
       }
     }
     Extensionality(Union(a, b), Union(b, a));
-  }    
+  }
 
   // axiom (forall a, b: Set :: { Set#Union(a, b) }
   //   Set#Disjoint(a, b) ==>
@@ -445,7 +445,7 @@ module {:extract_boogie} Sets {
       }
     }
     Extensionality(Intersection(a, b), Intersection(b, a));
-  }    
+  }
 
   // axiom (forall a, b: Set :: { Set#Union(Set#Union(a, b), b) }
   //   Set#Union(Set#Union(a, b), b) == Set#Union(a, b));
@@ -526,8 +526,8 @@ module {:extract_boogie} Sets {
   lemma CardUnion(a: Set, b: Set)
     requires a != Nil
     ensures (TailStrictlyIncreasing(a);
-      var m, n := Card(Union(a, b)), Card(Union(a.tail, b));
-      m == if In(b, a.head) then n else n + 1)
+             var m, n := Card(Union(a, b)), Card(Union(a.tail, b));
+             m == if In(b, a.head) then n else n + 1)
   {
     TailStrictlyIncreasing(a);
     var Cons(x, tail) := a;

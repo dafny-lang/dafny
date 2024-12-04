@@ -10,7 +10,7 @@ module Boxes {
 
   const arbitrary: Box
 
-  /// The following predicate and 4 lemmas postulate a total order "Below" on Box'es.
+  // The following predicate and 4 lemmas postulate a total order "Below" on Box'es.
 
   predicate {:axiom} Below(a: Box, b: Box)
 
@@ -99,7 +99,7 @@ module Boxes {
 
   lemma LessBelowTransitive(a: Box, b: Box, c: Box)
     requires
-      || (Less(a, b) && Below(b, c)) 
+      || (Less(a, b) && Below(b, c))
       || (Below(a, b) && Less(b, c))
     ensures Less(a, c)
   {
