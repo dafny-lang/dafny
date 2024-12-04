@@ -23,7 +23,7 @@ namespace Formatting {
       System.Text.StringBuilder _1_sb;
       System.Text.StringBuilder _nw0 = new System.Text.StringBuilder();
       _1_sb = _nw0;
-      while ((_0_token) != (object) ((Microsoft.Dafny.IOrigin)null)) {
+      while ((_0_token) != (object) ((Microsoft.Dafny.Token)null)) {
         System.String _2_newLeadingTrivia;
         _2_newLeadingTrivia = (reindent).GetNewLeadingTrivia(_0_token);
         System.String _3_newTrailingTrivia;
