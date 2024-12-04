@@ -2160,8 +2160,6 @@ namespace Microsoft.Dafny.Compilers {
 
       if (c is not TraitDecl || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
-        var canRedeclareMemberDefinedInTrait = c is not ClassLikeDecl and not DatatypeDecl and not NewtypeDecl ||
-                                                InstanceMethodsAllowedToCallTraitMethods;
         foreach (var member in inheritedMembers.Select(memberx => (memberx as Function)?.ByMethodDecl ?? memberx)) {
           var canRedeclareMemberDefinedInTrait = c is not ClassLikeDecl and not DatatypeDecl and not NewtypeDecl ||
                                                  !InstanceMethodsCanOnlyCallOverridenTraitMethods || member.IsOverrideThatAddsBody;
