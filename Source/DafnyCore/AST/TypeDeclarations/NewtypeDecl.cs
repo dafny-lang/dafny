@@ -32,11 +32,11 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   [FilledInDuringResolution] public bool TargetTypeCoversAllBitPatterns; // "target complete" -- indicates that any bit pattern that can fill the target type is a value of the newtype
 
-  public NewtypeDecl(RangeToken rangeToken, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
+  public NewtypeDecl(RangeToken rangeOrigin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
     Type baseType,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(isRefining ^ (baseType != null));
@@ -47,11 +47,11 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     WitnessKind = witnessKind;
     this.NewSelfSynonym();
   }
-  public NewtypeDecl(RangeToken rangeToken, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
+  public NewtypeDecl(RangeToken rangeOrigin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
     BoundVar bv, Expression constraint,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(bv != null && bv.Type != null);
@@ -107,7 +107,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
 
   string RedirectingTypeDecl.Name { get { return Name; } }
-  IToken RedirectingTypeDecl.tok { get { return tok; } }
+  IOrigin RedirectingTypeDecl.tok { get { return tok; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
@@ -151,7 +151,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
 
   public string GetTriviaContainingDocstring() {
-    IToken candidate = null;
+    IOrigin candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
         candidate = token.Prev;

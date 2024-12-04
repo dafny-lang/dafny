@@ -96,7 +96,7 @@ namespace Microsoft.Dafny {
             if (position && e.Frame.Count > 1) {
               // split into a number of UnchangeExpr's, one for each FrameExpression
               foreach (var fe in e.Frame) {
-                var tok = new NestedToken(GetToken(e), fe.tok);
+                var tok = new NestedOrigin(GetToken(e), fe.tok);
                 Expression ee = new UnchangedExpr(tok, new List<FrameExpression> { fe }, e.At) { AtLabel = e.AtLabel };
                 ee.Type = Type.Bool;  // resolve here
                 TrSplitExpr(context, ee, splits, position, heightLimit, applyInduction, etran);
@@ -190,7 +190,7 @@ namespace Microsoft.Dafny {
               var A2 = etran2.TrExpr(e.E1);
               var B2 = etran2.TrExpr(e.E2);
               var needsTokenAdjust = TrSplitNeedsTokenAdjustment(ternaryExpr);
-              var tok = needsTokenAdjust ? new ForceCheckToken(ternaryExpr.tok) : ternaryExpr.tok;
+              var tok = needsTokenAdjust ? new ForceCheckOrigin(ternaryExpr.tok) : ternaryExpr.tok;
               Bpl.Expr layer = etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH);
               Bpl.Expr eqComponents = Bpl.Expr.True;
               foreach (var c in CoPrefixEquality(tok, codecl, e1type.TypeArgs, e2type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
@@ -294,7 +294,7 @@ namespace Microsoft.Dafny {
                 var nn = new List<Bpl.Expr>();
                 var kkDafny = new List<Expression>();
                 var nnDafny = new List<Expression>();
-                var toks = new List<IToken>();
+                var toks = new List<IOrigin>();
                 var substMap = new Dictionary<IVariable, Expression>();
                 foreach (var n in inductionVariables) {
                   toks.Add(n.tok);
@@ -334,7 +334,7 @@ namespace Microsoft.Dafny {
                 // or similar for existentials.
                 var caseProduct = new List<Bpl.Expr>() {
                 // make sure to include the correct token information (so, don't just use Bpl.Expr.True here)
-                new Bpl.LiteralExpr(TrSplitNeedsTokenAdjustment(expr) ? new ForceCheckToken(expr.tok) : expr.tok, true)
+                new Bpl.LiteralExpr(TrSplitNeedsTokenAdjustment(expr) ? new ForceCheckOrigin(expr.tok) : expr.tok, true)
               };
                 var i = 0;
                 foreach (var n in inductionVariables) {
@@ -342,7 +342,7 @@ namespace Microsoft.Dafny {
                   foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
                     foreach (var cs in caseProduct) {
                       if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
-                        newCases.Add(Bpl.Expr.Binary(new NestedToken(ToDafnyToken(flags.ReportRanges, cs.tok), ToDafnyToken(flags.ReportRanges, kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
+                        newCases.Add(Bpl.Expr.Binary(new NestedOrigin(ToDafnyToken(flags.ReportRanges, cs.tok), ToDafnyToken(flags.ReportRanges, kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
                       } else {
                         newCases.Add(cs);
                       }
@@ -379,7 +379,7 @@ namespace Microsoft.Dafny {
                 var r = etranBoost.TrExpr(expr);
                 var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
                 if (needsTokenAdjustment) {
-                  r.tok = new ForceCheckToken(expr.tok);
+                  r.tok = new ForceCheckOrigin(expr.tok);
                 }
                 if (etranBoost.Statistics_CustomLayerFunctionCount == 0) {
                   // apparently, the LayerOffset(1) we did had no effect
@@ -399,7 +399,7 @@ namespace Microsoft.Dafny {
               var r = etran.TrExpr(expr);
               var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
               if (needsTokenAdjustment) {
-                r.tok = new ForceCheckToken(expr.tok);
+                r.tok = new ForceCheckOrigin(expr.tok);
               }
               if (etran.Statistics_CustomLayerFunctionCount == 0) {
                 // apparently, doesn't use layer
@@ -427,7 +427,7 @@ namespace Microsoft.Dafny {
         splitHappened = etran.Statistics_CustomLayerFunctionCount != 0;  // return true if the LayerOffset(1) came into play
       }
       if (TrSplitNeedsTokenAdjustment(expr)) {
-        translatedExpression.tok = new ForceCheckToken(expr.tok);
+        translatedExpression.tok = new ForceCheckOrigin(expr.tok);
         splitHappened = true;
       }
       splits.Add(ToSplitExprInfo(SplitExprInfo.K.Both, translatedExpression));
@@ -482,7 +482,7 @@ namespace Microsoft.Dafny {
       var functionHeight = module.CallGraph.GetSCCRepresentativePredecessorCount(f);
 
       if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f)) {
-        if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
+        if (RefinementOrigin.IsInherited(fexp.tok, currentModule) &&
             f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
             (codeContext == null || !codeContext.MustReverify)) {
           // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
@@ -540,8 +540,8 @@ namespace Microsoft.Dafny {
                 var unboxedConjunct = CondApplyUnbox(s.E.tok, s.E, typeSpecializedResultType, expr.Type);
                 var bodyOrConjunct = BplOr(fargs, unboxedConjunct);
                 var tok = needsTokenAdjust
-                  ? (IToken)new ForceCheckToken(typeSpecializedBody.tok)
-                  : (IToken)new NestedToken(GetToken(fexp), s.Tok);
+                  ? (IOrigin)new ForceCheckOrigin(typeSpecializedBody.tok)
+                  : (IOrigin)new NestedOrigin(GetToken(fexp), s.Tok);
                 var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
                 splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
               }
@@ -650,7 +650,7 @@ namespace Microsoft.Dafny {
       public bool IsOnlyChecked { get { return Kind == K.Checked; } }
       public bool IsChecked { get { return Kind != K.Free; } }
       public readonly Expr E;
-      public IToken Tok;
+      public IOrigin Tok;
       public SplitExprInfo(bool reportRanges, K kind, Expr e) {
         Contract.Requires(e != null && e.tok != null);
         // TODO:  Contract.Requires(kind == K.Free || e.tok.IsValid);

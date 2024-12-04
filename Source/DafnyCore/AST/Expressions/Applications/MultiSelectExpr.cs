@@ -19,7 +19,7 @@ public class MultiSelectExpr : Expression, ICloneable<MultiSelectExpr> {
     Array = cloner.CloneExpr(original.Array);
   }
 
-  public MultiSelectExpr(IToken tok, Expression array, List<Expression> indices)
+  public MultiSelectExpr(IOrigin tok, Expression array, List<Expression> indices)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(array != null);

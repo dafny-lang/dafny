@@ -224,7 +224,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static void ValidateEscaping(DafnyOptions options, IToken t, string s, bool isVerbatimString, Errors errors) {
+    public static void ValidateEscaping(DafnyOptions options, IOrigin t, string s, bool isVerbatimString, Errors errors) {
       if (options.Get(CommonOptionBag.UnicodeCharacters)) {
         foreach (var token in TokensWithEscapes(s, isVerbatimString)) {
           if (token.StartsWith("\\u")) {

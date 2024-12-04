@@ -881,8 +881,8 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public static IToken ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
-      if (boogieToken is BoogieRangeToken boogieRangeToken) {
+    public static IOrigin ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
+      if (boogieToken is BoogieRangeOrigin boogieRangeToken) {
         if (!reportRanges && boogieRangeToken.Center is not null) {
           return boogieRangeToken.Center;
         }
@@ -890,15 +890,15 @@ namespace Microsoft.Dafny {
         return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
       }
 
-      if (boogieToken is NestedToken nestedToken) {
-        return new NestedToken(
+      if (boogieToken is NestedOrigin nestedToken) {
+        return new NestedOrigin(
           ToDafnyToken(reportRanges, nestedToken.Outer),
           ToDafnyToken(reportRanges, nestedToken.Inner));
       }
 
       if (boogieToken == null) {
         return null;
-      } else if (boogieToken is IToken dafnyToken) {
+      } else if (boogieToken is IOrigin dafnyToken) {
         return dafnyToken;
       } else if (boogieToken is VCGeneration.TokenWrapper tokenWrapper) {
         return ToDafnyToken(reportRanges, tokenWrapper.Inner);
