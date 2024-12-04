@@ -72,8 +72,8 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     BoundVars = original.BoundVars.Select(bv => cloner.CloneBoundVar(bv, false)).ToList();
     Range = cloner.CloneExpr(original.Range);
     Attributes = cloner.CloneAttributes(original.Attributes);
-    BodyStartTok = cloner.Tok(original.BodyStartTok);
-    RangeOrigin = cloner.Tok(original.Origin);
+    BodyStartTok = cloner.Origin(original.BodyStartTok);
+    RangeOrigin = cloner.Origin(original.Origin);
     Term = cloner.CloneExpr(original.Term);
 
     if (cloner.CloneResolvedFields) {

@@ -95,7 +95,7 @@ class ScopeCloner : DeepModuleSignatureCloner {
       var characteristics = TypeParameter.GetExplicitCharacteristics(d);
       var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
       // copy the newParent traits only if "d" is already an AbstractTypeDecl and is being export-revealed
-      var otd = new AbstractTypeDecl(Range(d.Origin), d.NameNode.Clone(this), newParent, characteristics, tps,
+      var otd = new AbstractTypeDecl(Origin(d.Origin), d.NameNode.Clone(this), newParent, characteristics, tps,
         new List<Type>(), // omit the newParent traits
         members, CloneAttributes(d.Attributes), d.IsRefining);
       based = otd;
@@ -114,7 +114,7 @@ class ScopeCloner : DeepModuleSignatureCloner {
     if (f is ConstantField { Rhs: not null } cf && !RevealedInScope(f)) {
       // We erase the RHS value. While we do that, we must also make sure the declaration does have a type, so instead of
       // cloning cf.Type, we assume "f" has been resolved and clone cf.Type.NormalizeExpandKeepConstraints().
-      return new ConstantField(Range(cf.Origin), cf.NameNode.Clone(this), null, cf.HasStaticKeyword, cf.IsGhost, cf.IsOpaque, CloneType(cf.Type.NormalizeExpandKeepConstraints()), CloneAttributes(cf.Attributes));
+      return new ConstantField(Origin(cf.Origin), cf.NameNode.Clone(this), null, cf.HasStaticKeyword, cf.IsGhost, cf.IsOpaque, CloneType(cf.Type.NormalizeExpandKeepConstraints()), CloneAttributes(cf.Attributes));
     }
     return base.CloneField(f);
   }

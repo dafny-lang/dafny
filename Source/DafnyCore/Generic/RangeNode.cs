@@ -15,7 +15,7 @@ public abstract class RangeNode : Node {
   public override IOrigin Origin => rangeToken;
 
   protected RangeNode(Cloner cloner, RangeNode original) {
-    RangeOrigin = cloner.Tok(original.rangeToken);
+    RangeOrigin = cloner.Origin(original.rangeToken);
   }
 
   protected RangeNode(IOrigin rangeOrigin) {

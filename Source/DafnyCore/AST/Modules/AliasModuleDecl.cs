@@ -28,7 +28,7 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
        */
       TargetQId.Root = original.TargetQId.Root;
     }
-    Exports = original.Exports.Select(cloner.Tok).ToList();
+    Exports = original.Exports.Select(cloner.Origin).ToList();
   }
 
   public AliasModuleDecl(DafnyOptions options, RangeToken rangeOrigin, ModuleQualifiedId path, Name name,

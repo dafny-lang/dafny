@@ -42,11 +42,11 @@ public class ExportSignature : TokenNode, IHasReferences {
   }
 
   public ExportSignature(Cloner cloner, ExportSignature original) {
-    tok = cloner.Tok(original.Tok);
+    tok = cloner.Origin(original.Tok);
     Id = original.Id;
     Opaque = original.Opaque;
     ClassId = original.ClassId;
-    ClassIdTok = cloner.Tok(original.ClassIdTok);
+    ClassIdTok = cloner.Origin(original.ClassIdTok);
     OwnedTokensCache = new List<IOrigin>() { Tok };
   }
 

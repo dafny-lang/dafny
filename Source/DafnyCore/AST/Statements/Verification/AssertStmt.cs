@@ -12,7 +12,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   public AssertStmt(Cloner cloner, AssertStmt original) : base(cloner, original) {
-    Label = original.Label == null ? null : new AssertLabel(cloner.Tok(original.Label.Tok), original.Label.Name);
+    Label = original.Label == null ? null : new AssertLabel(cloner.Origin(original.Label.Tok), original.Label.Name);
   }
 
   public static AssertStmt CreateErrorAssert(INode node, string message, Expression guard = null) {

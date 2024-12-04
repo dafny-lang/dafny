@@ -102,8 +102,8 @@ public abstract class Expression : TokenNode {
 
   protected Expression(Cloner cloner, Expression original) {
 
-    tok = cloner.Tok(original.tok);
-    RangeOrigin = cloner.Range(original.Origin);
+    tok = cloner.Origin(original.tok);
+    RangeOrigin = cloner.Origin(original.Origin);
 
     if (cloner.CloneResolvedFields && original.Type != null) {
       Type = original.Type;

@@ -43,7 +43,7 @@ public class Name : RangeNode {
   public override IEnumerable<INode> PreResolveChildren => Children;
 
   public Name Clone(Cloner cloner) {
-    return new Name(cloner.Tok(Origin), Value);
+    return new Name(cloner.Origin(Origin), Value);
   }
 
   public override string ToString() => Value;

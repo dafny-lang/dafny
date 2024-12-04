@@ -491,7 +491,7 @@ namespace Microsoft.Dafny {
       if (previousFunction is Predicate) {
         return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result,
           req, reads, ens, decreases, body, bodyOrigin,
-          previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
+          previousFunction.ByMethodTok == null ? null : refinementCloner.Origin(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is LeastPredicate) {
         return new LeastPredicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, ((LeastPredicate)previousFunction).TypeOfK, tps, formals, result,
@@ -508,7 +508,7 @@ namespace Microsoft.Dafny {
       } else {
         return new Function(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
           req, reads, ens, decreases, body,
-          previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
+          previousFunction.ByMethodTok == null ? null : refinementCloner.Origin(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       }
     }
@@ -1616,12 +1616,15 @@ namespace Microsoft.Dafny {
       return result;
     }
 
-    public override IOrigin Tok(IOrigin tok) {
+    public override IOrigin Origin(IOrigin origin) {
+      if (origin == null) {
+        return null;
+      }
       if (wrapWithRefinementToken) {
-        return new RefinementOrigin(tok, moduleUnderConstruction);
+        return new RefinementOrigin(origin, moduleUnderConstruction);
       }
 
-      return tok;
+      return origin;
     }
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition newParent) {
       var dd = base.CloneDeclaration(d, newParent);
@@ -1648,15 +1651,15 @@ namespace Microsoft.Dafny {
         return CloneAttributes(prevAttrs);
       } else if (moreAttrs is UserSuppliedAttributes) {
         var usa = (UserSuppliedAttributes)moreAttrs;
-        return new UserSuppliedAttributes(Tok(usa.tok), Tok(usa.OpenBrace), Tok(usa.CloseBrace), moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
+        return new UserSuppliedAttributes(Origin(usa.tok), Origin(usa.OpenBrace), Origin(usa.CloseBrace), moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
       } else if (moreAttrs is UserSuppliedAtAttribute usaa) {
         var arg = CloneExpr(usaa.Arg);
         if (usaa.Arg.Type != null) { // The attribute has already been expanded
           arg.Type = usaa.Arg.Type;
           arg.PreType = usaa.Arg.PreType;
         }
-        return new UserSuppliedAtAttribute(Tok(usaa.tok), arg, MergeAttributes(prevAttrs, moreAttrs.Prev)) {
-          RangeOrigin = Tok(usaa.Origin),
+        return new UserSuppliedAtAttribute(Origin(usaa.tok), arg, MergeAttributes(prevAttrs, moreAttrs.Prev)) {
+          RangeOrigin = Origin(usaa.Origin),
           Builtin = usaa.Builtin
         };
       } else {

@@ -29,7 +29,7 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
 
   public ApplySuffix(Cloner cloner, ApplySuffix original) :
     base(cloner, original) {
-    AtTok = original.AtTok == null ? null : cloner.Tok(original.AtTok);
+    AtTok = original.AtTok == null ? null : cloner.Origin(original.AtTok);
     CloseParen = original.CloseParen;
     FormatTokens = original.FormatTokens;
     Bindings = new ActualBindings(cloner, original.Bindings);

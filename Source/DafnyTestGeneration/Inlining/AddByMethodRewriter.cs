@@ -47,9 +47,9 @@ public class AddByMethodRewriter : IRewriter {
     if (attributes is UserSuppliedAttributes) {
       var usa = (UserSuppliedAttributes)attributes;
       return new UserSuppliedAttributes(
-        cloner.Tok(usa.tok),
-        cloner.Tok(usa.OpenBrace),
-        cloner.Tok(usa.CloseBrace),
+        cloner.Origin(usa.tok),
+        cloner.Origin(usa.OpenBrace),
+        cloner.Origin(usa.CloseBrace),
         attributes.Args.ConvertAll(cloner.CloneExpr),
         RemoveOpaqueAttr(attributes.Prev, cloner));
     }

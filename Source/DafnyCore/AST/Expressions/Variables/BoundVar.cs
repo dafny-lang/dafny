@@ -85,15 +85,21 @@ public interface IBoundVarsBearingExpression {
 class QuantifiedVariableDomainCloner : Cloner {
   public static readonly QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
   private QuantifiedVariableDomainCloner() { }
-  public override IOrigin Tok(IOrigin tok) {
-    return new QuantifiedVariableDomainOrigin(tok);
+  public override IOrigin Origin(IOrigin origin) {
+    if (origin == null) {
+      return null;
+    }
+    return new QuantifiedVariableDomainOrigin(origin);
   }
 }
 
 class QuantifiedVariableRangeCloner : Cloner {
   public static readonly QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
   private QuantifiedVariableRangeCloner() { }
-  public override IOrigin Tok(IOrigin tok) {
-    return new QuantifiedVariableRangeOrigin(tok);
+  public override IOrigin Origin(IOrigin origin) {
+    if (origin == null) {
+      return null;
+    }
+    return new QuantifiedVariableRangeOrigin(origin);
   }
 }

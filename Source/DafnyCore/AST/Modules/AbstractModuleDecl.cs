@@ -17,7 +17,7 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
 
   public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
-    Exports = original.Exports.Select(cloner.Tok).ToList();
+    Exports = original.Exports.Select(cloner.Origin).ToList();
     QId = new ModuleQualifiedId(cloner, original.QId);
   }
 
