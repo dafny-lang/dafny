@@ -1449,9 +1449,11 @@ namespace Microsoft.Dafny {
                 values = new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), new List<Variable> { wVar }, kv, BoxIfNecessary(GetToken(comprehension), ebody, e.Term.Type));
               }
 
-              bool finite = e.Finite;
-              var f = finite ? BuiltinFunction.MapGlue : BuiltinFunction.IMapGlue;
-              return BoogieGenerator.FunctionCall(GetToken(e), f, null, keys, values, BoogieGenerator.TypeToTy(comprehension.Type));
+              return BoogieGenerator.FunctionCall(GetToken(e),
+                e.Finite ? BuiltinFunction.MapGlue : BuiltinFunction.IMapGlue,
+                null,
+                e.Finite ? FunctionCall(GetToken(comprehension), "Set#FromBoogieMap", Predef.SetType, keys) : keys,
+                values, BoogieGenerator.TypeToTy(comprehension.Type));
             }
           case LambdaExpr lambdaExpr: {
               var e = lambdaExpr;
