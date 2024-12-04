@@ -1,4 +1,4 @@
-// RUN: %run --target go "%s" > %t
+// RUN: %run --target go --input %S/Inputs/externs.go "%s" > %t
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern} ExternModule {
