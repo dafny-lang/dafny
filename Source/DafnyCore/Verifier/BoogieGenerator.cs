@@ -1150,7 +1150,7 @@ namespace Microsoft.Dafny {
 
       type = type.NormalizeToAncestorType();
       if (type.AsSetType != null) {
-        var finite = type.AsSetType.Finite;
+        var finite = type.NormalizeToAncestorType().AsSetType.Finite;
         return FunctionCall(tok, finite ? BuiltinFunction.SetEqual : BuiltinFunction.ISetEqual, null, e0, e1);
       } else if (type.AsMapType != null) {
         var finite = type.AsMapType.Finite;
@@ -2564,7 +2564,7 @@ namespace Microsoft.Dafny {
       if (isSetType) {
         description = "set element";
         obj = x;
-        antecedent = IsSetMember(e.tok, s, BoxIfNecessary(e.tok, x, type), eType.AsSetType.Finite);
+        antecedent = IsSetMember(e.tok, s, BoxIfNecessary(e.tok, x, type), eType.NormalizeToAncestorType().AsSetType.Finite);
       } else if (isMultisetType) {
         description = "multiset element";
         obj = x;

@@ -548,7 +548,7 @@ namespace Microsoft.Dafny {
             Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", Predef.DatatypeType));
             bvs.Add(dVar);
             Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            var inSet = IsSetMember(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie), argType.AsSetType.Finite);
+            var inSet = IsSetMember(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie), argType.NormalizeToAncestorType().AsSetType.Finite);
             Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
             var ct = FunctionCall(ctor.tok, ctor.FullName, Predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);

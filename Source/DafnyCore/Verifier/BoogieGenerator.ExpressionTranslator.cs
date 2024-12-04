@@ -869,9 +869,9 @@ namespace Microsoft.Dafny {
               int bvWidth = e0Type.IsBitVectorType ? e0Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
               Boogie.Expr e0 = TrExpr(e.E0);
               if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
-                return TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, e.E1.Type.AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
+                return TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, e.E1.Type.NormalizeToAncestorType().AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
-                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, e.E1.Type.AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
+                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, e.E1.Type.NormalizeToAncestorType().AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
                 return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
                 return TrInMultiSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false); // let TrInMultiSet translate e.E1
@@ -1374,7 +1374,7 @@ namespace Microsoft.Dafny {
               }
               Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
               var lambda = new Boogie.LambdaExpr(GetToken(comprehension), new List<TypeVariable>(), new List<Variable> { yVar }, kv, lbody);
-              return comprehension.Type.AsSetType.Finite
+              return comprehension.Type.NormalizeToAncestorType().AsSetType.Finite
                 ? FunctionCall(GetToken(comprehension), "Set#FromBoogieMap", Predef.SetType, lambda)
                 : lambda;
             }
