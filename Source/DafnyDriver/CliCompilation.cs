@@ -151,7 +151,7 @@ public class CliCompilation {
 
   public bool VerifiedAssertions { get; private set; }
 
-  public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed) {
+  public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed = null) {
     if (!Options.Get(CommonOptionBag.UnicodeCharacters) && Options.Backend is not CppBackend) {
       Compilation.Reporter.Deprecated(MessageSource.Verifier, "unicodeCharDeprecated", Token.Cli,
         "the option unicode-char has been deprecated.");
@@ -234,7 +234,7 @@ public class CliCompilation {
       yield break;
     }
 
-    var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Origin).ToList();
+    var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Origin.GetFilePosition()).ToList();
 
     if (canVerifies == null) {
       yield break;
