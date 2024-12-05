@@ -205,7 +205,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic) {
-      this.parent.AddUnsupported("Field " + item.ToString());
+      this.parent.AddUnsupported("var/const fro trait - " + item.dtor_name);
     }
 
     public object Finish() {
@@ -267,7 +267,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic) {
-      parent.AddUnsupported("Datatype field " + item.ToString());
+      parent.AddUnsupported("Newtype field " + item.dtor_name);
     }
 
     public object Finish() {
@@ -376,7 +376,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic) {
-      parent.AddUnsupported("Datatype field " + item.ToString());
+      parent.AddUnsupported("Datatype field " + item.dtor_name);
     }
 
     public object Finish() {
