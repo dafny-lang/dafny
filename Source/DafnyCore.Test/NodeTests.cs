@@ -8,7 +8,7 @@ public class NodeTests {
   class ConcreteNode : Node {
     private IOrigin origin;
 
-    public ConcreteNode(RangeToken rangeToken, IEnumerable<INode>? children = null) {
+    public ConcreteNode(IOrigin rangeToken, IEnumerable<INode>? children = null) {
       origin = rangeToken;
       Children = children ?? Enumerable.Empty<INode>();
     }

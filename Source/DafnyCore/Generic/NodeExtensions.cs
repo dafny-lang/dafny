@@ -157,7 +157,7 @@ public static class NodeExtensions {
 
     // Example is the default class, although we could give it the same origin as the module it is in.
     // TODO remove either Token.NoToken or RangeToken.NoToken
-    var fillerNode = node.Origin != Token.NoToken && node.Origin != RangeToken.NoToken;
+    var fillerNode = node.Origin != Token.NoToken;
     if (fillerNode && !node.Origin.ToDafnyRange().Contains(position)) {
       return null;
     }
