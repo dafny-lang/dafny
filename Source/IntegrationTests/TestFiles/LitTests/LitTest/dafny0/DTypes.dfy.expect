@@ -19,4 +19,4 @@ DTypes.dfy(156,11): Error: assertion might not hold
 DTypes.dfy(179,2): Error: a postcondition could not be proved on this return path
 DTypes.dfy(178,14): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 21 verified, 7 errors
+Dafny program verifier finished with 20 verified, 7 errors
