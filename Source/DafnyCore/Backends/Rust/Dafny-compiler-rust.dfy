@@ -1736,41 +1736,78 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       readIdents := {};
       var i := 0;
       newEnv := env;
-      ghost var oldStmts := stmts;
-      var stmts := stmts; // Make it mutable
       while i < |stmts| {
         var stmt := stmts[i];
-        // Avoid maybe placebo wrapping if not necessary
-        match stmt {
-          case DeclareVar(name, optType, None) =>
-            var laterAssignmentStatus := DetectAssignmentStatus(stmts[i + 1..], name);
-            newEnv := newEnv.AddAssignmentStatus(escapeVar(name), laterAssignmentStatus);
-          case DeclareVar(name, optType, Some(InitializationValue(typ))) =>
-            var tpe := GenType(typ, GenTypeContext.default());
-            var varName := escapeVar(name);
-            var laterAssignmentStatus := DetectAssignmentStatus(stmts[i + 1..], name);
-            newEnv := newEnv.AddAssignmentStatus(varName, laterAssignmentStatus);
-          case _ =>
-
-        }
-        assume {:axiom} stmt in oldStmts;
-        var stmtExpr, recIdents, newEnv2 := GenStmt(stmt, selfIdent, newEnv, isLast && (i == |stmts| - 1), earlyReturn);
-        newEnv := newEnv2;
-
-        match stmt {
-          case DeclareVar(name, _, _) => {
-            declarations := declarations + {escapeVar(name)};
+        // Special case "var x: T; x = ...". We need to merge them
+        // because normally x can read a variable named x, and with two statements
+        // this is not possible.
+        if stmt.DeclareVar? && stmt.maybeValue.None? &&
+           i + 1 < |stmts| &&
+           stmts[i + 1].Assign? &&
+           stmts[i + 1].lhs.Ident? &&
+           stmts[i + 1].lhs.ident == stmt.name {
+          var name := stmt.name;
+          var typ := stmt.typ;
+          var stmtExpr, recIdents, newEnv2 := GenDeclareVarAssign(name, typ, stmts[i + 1].value, selfIdent, newEnv);
+          newEnv := newEnv2;
+          readIdents := readIdents + (recIdents - declarations);
+          declarations := declarations + {escapeVar(name)};
+          generated := generated.Then(stmtExpr);
+          i := i + 2;
+        } else {
+          // Avoid maybe placebo wrapping if not necessary
+          match stmt {
+            case DeclareVar(name, optType, None) =>
+              var laterAssignmentStatus := DetectAssignmentStatus(stmts[i + 1..], name);
+              newEnv := newEnv.AddAssignmentStatus(escapeVar(name), laterAssignmentStatus);
+            case DeclareVar(name, optType, Some(InitializationValue(typ))) =>
+              var tpe := GenType(typ, GenTypeContext.default());
+              var varName := escapeVar(name);
+              var laterAssignmentStatus := DetectAssignmentStatus(stmts[i + 1..], name);
+              newEnv := newEnv.AddAssignmentStatus(varName, laterAssignmentStatus);
+            case _ =>
           }
-          case _ => {}
-        }
-        readIdents := readIdents + (recIdents - declarations);
-        generated := generated.Then(stmtExpr);
+          var stmtExpr, recIdents, newEnv2 := GenStmt(stmt, selfIdent, newEnv, isLast && (i == |stmts| - 1), earlyReturn);
+          newEnv := newEnv2;
 
-        i := i + 1;
-        if stmtExpr.Return? { // The rest of statements is unreachable
-          break;
+          match stmt {
+            case DeclareVar(name, _, _) => {
+              declarations := declarations + {escapeVar(name)};
+            }
+            case _ => {}
+          }
+          readIdents := readIdents + (recIdents - declarations);
+          generated := generated.Then(stmtExpr);
+          if stmtExpr.Return? { // The rest of statements is unreachable
+            break;
+          }
+
+          i := i + 1;
         }
       }
+    }
+
+    method GenDeclareVarAssign(name: VarName, typ: Type, rhs: Expression, selfIdent: SelfInfo, env: Environment)
+      returns (generated: R.Expr, readIdents: set<string>, newEnv: Environment)
+      decreases rhs
+      modifies this
+    {
+      var tpe := GenType(typ, GenTypeContext.default());
+      var varName := escapeVar(name);
+      var exprRhs;
+      if rhs.InitializationValue? &&
+         tpe.IsObjectOrPointer() {
+        readIdents := {};
+        tpe := if rhs.NewUninitArray? then tpe.TypeAtInitialization() else tpe;
+        exprRhs := tpe.ToNullExpr();
+      } else {
+        var expr, exprOwnership;
+        expr, exprOwnership, readIdents := GenExpr(rhs, selfIdent, env, OwnershipOwned);
+        tpe := if rhs.NewUninitArray? then tpe.TypeAtInitialization() else tpe;
+        exprRhs := expr;
+      }
+      generated := R.DeclareVar(R.MUT, varName, Some(tpe), Some(exprRhs));
+      newEnv := env.AddAssigned(varName, tpe);
     }
 
     method GenAssignLhs(lhs: AssignLhs, rhs: R.Expr, selfIdent: SelfInfo, env: Environment) returns (generated: R.Expr, needsIIFE: bool, readIdents: set<string>, newEnv: Environment)
@@ -1962,30 +1999,18 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var varName := escapeVar(name);
           var hasCopySemantics := tpe.CanReadWithoutClone();
           if expression.InitializationValue? && !hasCopySemantics {
+            // We might be able to just let the variable uninitialized.
             if env.IsAssignmentStatusKnown(varName) {
-              var tpe := GenType(typ, GenTypeContext.default());
               generated := R.DeclareVar(R.MUT, varName, Some(tpe), None);
-              readIdents := {};
-              newEnv := env.AddAssigned(varName, tpe);
             } else {
               generated := R.DeclareVar(R.MUT, varName, None, Some(R.MaybePlaceboPath.AsExpr().ApplyType1(tpe).FSel("new").Apply0()));
-              readIdents := {};
-              newEnv := env.AddAssigned(varName, R.MaybePlaceboType(tpe));
+              tpe := R.MaybePlaceboType(tpe);
             }
-          } else {
-            var expr, recIdents;
-            if expression.InitializationValue? &&
-               tpe.IsObjectOrPointer() {
-              expr := tpe.ToNullExpr();
-              recIdents := {};
-            } else {
-              var exprOwnership;
-              expr, exprOwnership, recIdents := GenExpr(expression, selfIdent, env, OwnershipOwned);
-            }
-            readIdents := recIdents;
-            tpe := if expression.NewUninitArray? then tpe.TypeAtInitialization() else tpe;
-            generated := R.DeclareVar(R.MUT, varName, Some(tpe), Some(expr));
+            readIdents := {};
             newEnv := env.AddAssigned(varName, tpe);
+          } else {
+            generated, readIdents, newEnv := GenDeclareVarAssign(name, typ, expression, selfIdent, env);
+            return;
           }
         }
         case DeclareVar(name, typ, None) => {
