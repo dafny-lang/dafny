@@ -295,7 +295,7 @@ public class Compilation : IDisposable {
     return await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), null, onlyPrepareVerificationForGutterTests);
   }
 
-  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+  private async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
     int? randomSeed = 0,
     bool onlyPrepareVerificationForGutterTests = false) {
 
