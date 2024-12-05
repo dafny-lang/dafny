@@ -585,7 +585,7 @@ namespace Microsoft.Dafny {
             var mapDomain = fMapDomain.OptEval(current);
             var mapElements = fMapElements.OptEval(current);
             if (mapDomain != null && mapElements != null) {
-              foreach (var app in fSelect.AppsWithArg(0, mapDomain)) {
+              foreach (var app in fSetMember.AppsWithArg(0, mapDomain)) {
                 var valueElement = fSelect.OptEval(mapElements, app.Args[1]);
                 if (valueElement != null) {
                   valueElement = Unbox(valueElement);
