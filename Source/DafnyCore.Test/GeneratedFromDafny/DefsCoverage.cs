@@ -18,7 +18,7 @@ namespace DefsCoverage {
     public static void Expect(bool x)
     {
       if (!(x)) {
-        throw new Dafny.HaltException("Backends/Rust/Dafny-compiler-rust-definitions.dfy(789,4): " + Dafny.Sequence<Dafny.Rune>.UnicodeFromString("expectation violation").ToVerbatimString(false));}
+        throw new Dafny.HaltException("Backends/Rust/Dafny-compiler-rust-definitions-coverage.dfy(17,4): " + Dafny.Sequence<Dafny.Rune>.UnicodeFromString("expectation violation").ToVerbatimString(false));}
     }
     public static void Tests()
     {
@@ -73,6 +73,8 @@ namespace DefsCoverage {
       DefsCoverage.__default.Expect(object.Equals(Defs.__default.DetectAssignmentStatus(Dafny.Sequence<DAST._IStatement>.Concat(Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_Print(_2_z)), _3_assigns__x), _0_x), Defs.AssignmentStatus.create_SurelyAssigned()));
       DefsCoverage.__default.Expect(object.Equals(Defs.__default.DetectAssignmentStatus(Dafny.Sequence<DAST._IStatement>.Concat(Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_Print(_2_z)), _3_assigns__x), _0_x), Defs.AssignmentStatus.create_SurelyAssigned()));
       DefsCoverage.__default.Expect(object.Equals(Defs.__default.DetectAssignmentStatus(Dafny.Sequence<DAST._IStatement>.Concat(Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_While(_2_z, Dafny.Sequence<DAST._IStatement>.FromElements())), _3_assigns__x), _0_x), Defs.AssignmentStatus.create_Unknown()));
+      DefsCoverage.__default.Expect(object.Equals(Defs.__default.DetectAssignmentStatus(Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_If(_5_cond, _3_assigns__x, Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_If(_5_cond, _3_assigns__x, _4_assigns__y)))), _0_x), Defs.AssignmentStatus.create_Unknown()));
+      DefsCoverage.__default.Expect(object.Equals(Defs.__default.DetectAssignmentStatus(Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_If(_5_cond, Dafny.Sequence<DAST._IStatement>.Concat(Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_If(_5_cond, Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_Return(_2_z)), Dafny.Sequence<DAST._IStatement>.FromElements())), _3_assigns__x), Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_If(_5_cond, Dafny.Sequence<DAST._IStatement>.Concat(Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_If(_5_cond, Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_Return(_2_z)), Dafny.Sequence<DAST._IStatement>.FromElements())), _3_assigns__x), _4_assigns__y)))), _0_x), Defs.AssignmentStatus.create_Unknown()));
     }
     public static Dafny.ISequence<Dafny.Rune> IND { get {
       return RAST.__default.IND;

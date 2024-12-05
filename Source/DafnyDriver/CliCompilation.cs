@@ -234,7 +234,7 @@ public class CliCompilation {
       yield break;
     }
 
-    var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Origin.GetFilePosition()).ToList();
+    var canVerifies = resolution.CanVerifies?.ToList(); // TODO remove ToList
 
     if (canVerifies == null) {
       yield break;
@@ -250,21 +250,21 @@ public class CliCompilation {
     var canVerifiesPerModule = canVerifies.GroupBy(c => c.ContainingModule).
       OrderBy(v => v.Key.Tok.pos).ToList();
     foreach (var canVerifiesForModule in canVerifiesPerModule) {
-      var orderedCanVerifies = canVerifiesForModule.OrderBy(v => v.Tok.pos).ToList();
-      foreach (var canVerify in orderedCanVerifies) {
+      var toWaitFor = new List<ICanVerify>();
+      foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Tok.pos)) {
         var results = new CliCanVerifyState();
         canVerifyResults[canVerify] = results;
         if (line != null) {
           results.TaskFilter = t => KeepVerificationTask(t, line.Value);
         }
 
-        var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
-        if (!shouldVerify) {
-          canVerifies.Remove(canVerify);
+        var shouldVerify = await Compilation.VerifyLocation(canVerify.Tok.GetFilePosition(), results.TaskFilter, randomSeed);
+        if (shouldVerify) {
+          toWaitFor.Add(canVerify);
         }
       }
 
-      foreach (var canVerify in orderedCanVerifies) {
+      foreach (var canVerify in toWaitFor) {
         var results = canVerifyResults[canVerify];
         try {
           if (Options.Get(CommonOptionBag.ProgressOption) > CommonOptionBag.ProgressLevel.None) {

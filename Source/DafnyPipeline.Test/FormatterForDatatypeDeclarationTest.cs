@@ -29,11 +29,11 @@ datatype Color =   Red
 
 datatype Color2
   =   Red
-      // Comment1
+      // Comment not docstring
   |   Green   |
-      // Comment2
+      // Comment not docstring
       Blue
-      // Blue docstring
+// Not blue docstring
 
 // Comment here
 datatype T =
@@ -128,7 +128,7 @@ datatype Test =
   | MOne /* -1 */
     // Minus one
   | Both /* 2 */
-    /* Two */
+/* Two */
 ");
   }
   [Fact]

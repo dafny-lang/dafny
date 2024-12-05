@@ -46,6 +46,7 @@ namespace Microsoft.Dafny {
     }
 
     public override bool IsInherited(ModuleDefinition d) => InheritingModule == d;
+    public override bool IsCopy => true;
 
     public override string Filepath => WrappedOrigin.Filepath + "[" + InheritingModule.Name + "]";
   }
@@ -740,6 +741,8 @@ namespace Microsoft.Dafny {
                 Error(ErrorId.ref_mismatched_refinement_body, nwMember, $"a refining {f.WhatKind} is not allowed to extend/change the body");
               }
               var newF = CloneFunction(f, prevFunction, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
+              newF.RangeOrigin = f.Origin;
+              newF.NameNode.RangeOrigin = f.NameNode.Origin;
               newF.RefinementBase = member;
               nw.Members[index] = newF;
             }
@@ -802,6 +805,8 @@ namespace Microsoft.Dafny {
                 }
               }
               var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
+              newM.RangeOrigin = m.Origin;
+              newM.NameNode.RangeOrigin = m.NameNode.Origin;
               newM.RefinementBase = member;
               nw.Members[index] = newM;
             }

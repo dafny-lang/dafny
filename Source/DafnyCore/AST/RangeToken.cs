@@ -75,6 +75,8 @@ public class RangeToken : IOrigin {
     throw new NotImplementedException(); // TODO why is this needed?
   }
 
+  public bool IsCopy => false;
+
   public bool IsSourceToken => true;
 
   public int kind {

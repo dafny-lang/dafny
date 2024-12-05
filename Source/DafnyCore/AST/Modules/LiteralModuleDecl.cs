@@ -42,14 +42,13 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     ModuleDef = newModuleDefinition;
     DefaultExport = original.DefaultExport;
     BodyStartTok = ModuleDef.BodyStartTok;
-    TokenWithTrailingDocString = ModuleDef.TokenWithTrailingDocString;
   }
 
   public LiteralModuleDecl(DafnyOptions options, ModuleDefinition module, ModuleDefinition parent, Guid cloneId)
     : base(options, module.Origin, module.NameNode, parent, false, false, cloneId) {
     ModuleDef = module;
     BodyStartTok = module.BodyStartTok;
-    TokenWithTrailingDocString = module.TokenWithTrailingDocString;
+    module.EnclosingLiteralModuleDecl = this;
   }
 
   public override object Dereference() { return ModuleDef; }

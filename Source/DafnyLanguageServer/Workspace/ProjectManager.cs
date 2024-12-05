@@ -334,7 +334,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NavigationToken.GetFilePosition()).ToList();
     if (GutterIconTesting) {
       foreach (var canVerify in orderedVerifiableLocations) {
-        await compilation.VerifyLocation(canVerify, true);
+        await compilation.VerifyLocation(canVerify, onlyPrepareVerificationForGutterTests: true);
       }
 
       logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");

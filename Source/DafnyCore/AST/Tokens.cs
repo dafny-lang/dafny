@@ -87,6 +87,8 @@ public class Token : IOrigin {
     };
   }
 
+  public bool IsCopy => false;
+
   public int CompareTo(Boogie.IToken other) {
     if (line != other.line) {
       return line.CompareTo(other.line);
