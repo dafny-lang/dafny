@@ -47,6 +47,9 @@ public class Compilation : IDisposable {
   private readonly LazyConcurrentDictionary<ModuleDefinition,
     Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IVerificationTask>>>> translatedModules = new();
 
+  /// <summary>
+  /// We use file positions as keys, because nodes are transformed throughout the compilation pipeline
+  /// </summary>
   private readonly ConcurrentDictionary<FilePosition, Unit> verifyingOrVerifiedSymbols = new();
   private readonly LazyConcurrentDictionary<ICanVerify, IReadOnlyList<IVerificationTask>> tasksPerVerifiable = new();
 
