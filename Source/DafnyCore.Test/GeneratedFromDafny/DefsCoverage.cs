@@ -18,7 +18,7 @@ namespace DefsCoverage {
     public static void Expect(bool x)
     {
       if (!(x)) {
-        throw new Dafny.HaltException("Backends/Rust/Dafny-compiler-rust-definitions.dfy(968,4): " + Dafny.Sequence<Dafny.Rune>.UnicodeFromString("expectation violation").ToVerbatimString(false));}
+        throw new Dafny.HaltException("Backends/Rust/Dafny-compiler-rust-definitions-coverage.dfy(17,4): " + Dafny.Sequence<Dafny.Rune>.UnicodeFromString("expectation violation").ToVerbatimString(false));}
     }
     public static void Tests()
     {

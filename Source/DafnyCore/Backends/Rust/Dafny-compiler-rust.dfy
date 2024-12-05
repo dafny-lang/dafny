@@ -557,28 +557,32 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               None
             )),
           R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
-              "_fmt_print", [], fmt_print_parameters, Some(fmt_print_result), "", None
+              "_fmt_print", [], fmt_print_parameters, Some(fmt_print_result), None
             )
           ),
           R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
-              "_hash", [], [R.Formal.selfBorrowed], Some(R.Type.U64), "", None
+              "_hash", [], [R.Formal.selfBorrowed], Some(R.Type.U64), None
             )
           ),
           R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               "_eq", [], [R.Formal.selfBorrowed, R.Formal("other", R.Borrowed(R.Box(R.DynType(traitFullType))))],
-              Some(R.Bool), "", None
+              Some(R.Bool), None
             )
           ),
           R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
-              "_as_any", [], [R.Formal.selfBorrowed], Some(R.Borrowed(R.DynType(R.std.MSel("any").MSel("Any").AsType()))), "", None
+              "_as_any", [], [R.Formal.selfBorrowed], Some(R.Borrowed(R.DynType(R.std.MSel("any").MSel("Any").AsType()))), None
             )
           )
         ];
@@ -680,10 +684,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.DafnyPrint,
               R.Box(R.DynType(traitFullType)),
               [R.FnDecl(
+                 R.NoDoc, R.NoAttr,
                  R.PRIV,
                  R.Fn("fmt_print", [], fmt_print_parameters,
                       Some(fmt_print_result),
-                      "",
                       Some(traitFullExpr.FSel("_fmt_print").Apply([R.self.Sel("as_ref").Apply0(), R.Identifier("_formatter"), R.Identifier("in_seq")]))
                  ))])),
           /*
@@ -700,10 +704,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.std.MSel("cmp").MSel("PartialEq").AsType(),
               R.Box(R.DynType(traitFullType)),
               [R.FnDecl(
+                 R.NoDoc, R.NoAttr,
                  R.PRIV,
                  R.Fn("eq", [], [R.Formal.selfBorrowed, R.Formal("other", R.SelfBorrowed)],
                       Some(R.Bool),
-                      "",
                       Some(traitFullExpr.FSel("_eq").Apply([R.self.Sel("as_ref").Apply0(), R.Identifier("other")]))
                  ))])),
           R.ImplDecl(
@@ -727,12 +731,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.Hash,
               R.Box(R.DynType(traitFullType)),
               [R.FnDecl(
+                 R.NoDoc, R.NoAttr,
                  R.PRIV,
                  R.Fn(
                    "hash", hash_type_parameters,
                    hash_parameters,
                    None,
-                   "",
                    Some(hash_function.Apply([R.Borrow(traitFullExpr.FSel("_hash").Apply1(R.self.Sel("as_ref").Apply0())), R.Identifier("_state")]))
                  ))]))
         ];

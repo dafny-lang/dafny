@@ -677,10 +677,10 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     } */
   const hasher_trait :=
     R.FnDecl(
+      R.NoDoc, R.NoAttr,
       R.PRIV,
       R.Fn(
         "_hash", [], [R.Formal.selfBorrowed], Some(R.Type.U64),
-        "",
         Some(
           R.DeclareVar(R.MUT, "hasher", None, Some(R.std.MSel("hash").MSel("DefaultHasher").AsExpr().FSel("new").Apply0())).Then(
             R.self.Sel("hash").Apply1(R.UnaryOp("&mut", R.Identifier("hasher"), Format.UnaryOpFormat.NoFormat)).Then(
@@ -695,10 +695,10 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     } */
   function eq_trait(fullTraitPath: R.Type, fullTraitExpr: R.Expr): R.ImplMember {
     R.FnDecl(
+      R.NoDoc, R.NoAttr,
       R.PRIV,
       R.Fn(
         "_eq", [], [R.Formal.selfBorrowed, R.Formal("other", R.Borrowed(R.Box(R.DynType(fullTraitPath))))], Some(R.Type.Bool),
-        "",
         Some(
           fullTraitExpr.FSel("_as_any").Apply1(R.Identifier("other").Sel("as_ref").Apply0()).Sel("downcast_ref").ApplyType([R.SelfOwned]).Apply0().Sel("map_or").Apply(
             [
@@ -711,10 +711,10 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
 
   function clone_trait(fullTraitPath: R.Type): R.ImplMember {
     R.FnDecl(
+      R.NoDoc, R.NoAttr,
       R.PRIV,
       R.Fn(
         "_clone", [], [R.Formal.selfBorrowed], Some(R.Box(R.DynType(fullTraitPath))),
-        "",
         Some(R.BoxNew(R.self.Sel("clone").Apply0()))))
   }
 
@@ -724,10 +724,10 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     } */
   const print_trait :=
     R.FnDecl(
+      R.NoDoc, R.NoAttr,
       R.PRIV,
       R.Fn(
         "_fmt_print", [], fmt_print_parameters, Some(fmt_print_result),
-        "",
         Some(R.self.Sel("fmt_print").Apply([R.Identifier("_formatter"), R.Identifier("in_seq")]))))
 
   /**
@@ -736,10 +736,10 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     } */
   const as_any_trait :=
     R.FnDecl(
+      R.NoDoc, R.NoAttr,
       R.PRIV,
       R.Fn(
         "_as_any", [], [R.Formal.selfBorrowed], Some(R.Borrowed(R.DynType(R.std.MSel("any").MSel("Any").AsType()))),
-        "",
         Some(R.self)))
 
   function UnaryOpsImpl(
@@ -862,24 +862,25 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     Some(
       R.TraitDecl(
         R.Trait(
+          R.NoDoc, R.NoAttr,
           rTypeParamsDecls,
           downcast_type,
           [],
           [ R.FnDecl(
+              R.NoDoc, R.NoAttr,
               R.PRIV,
               R.Fn(
                 "_is", [],
                 [R.Formal.selfBorrowed],
                 Some(R.Bool),
-                "",
                 None)),
             R.FnDecl(
+              R.NoDoc, R.NoAttr,
               R.PRIV,
               R.Fn(
                 "_as", [],
                 [R.Formal.selfBorrowed],
                 Some(fullType),
-                "",
                 None))
           ])))
   }
@@ -926,20 +927,20 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
           downcast_type,
           forType,
           [ R.FnDecl(
+              R.NoDoc, R.NoAttr,
               R.PRIV,
               R.Fn(
                 "_is", [],
                 [R.Formal.selfBorrowed],
                 Some(R.Bool),
-                "",
                 Some(R.LiteralBool(sameType)))),
             R.FnDecl(
+              R.NoDoc, R.NoAttr,
               R.PRIV,
               R.Fn(
                 "_as", [],
                 [R.Formal.selfBorrowed],
                 Some(forType),
-                "",
                 Some(asBody)))
           ]))
     )
