@@ -25,7 +25,7 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
     set => throw new NotSupportedException();
   }
 
-  public string ActualFilename => Uri.LocalPath;
+  public string ActualFilename => Uri?.LocalPath;
   string Filepath => Uri?.LocalPath;
 
   Uri Uri { get; set; }
