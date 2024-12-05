@@ -585,12 +585,6 @@ AutoContracts.dfy(5,25): Related location: Could not prove: D
 AutoContracts.dfy(50,4): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(49,24): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
-AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
-AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy[N1](65,20): Related location: this proposition could not be proved
-AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
-AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy[N1](65,20): Related location: this proposition could not be proved
+AutoContracts.dfy(60,16): Related location: this postcondition might not hold: Y
 
-Dafny program verifier finished with 37 verified, 9 errors
+Dafny program verifier finished with 36 verified, 7 errors
