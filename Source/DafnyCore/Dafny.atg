@@ -1418,16 +1418,18 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
     { Attribute<ref attrs> }
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
-                        { RangeOrigin =defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
-                    ); .)
+                 (.  
+                     var origin = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range;
+                     formals.Add(new Formal(origin, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)); 
+                 .)
     { ","
       { Attribute<ref attrs> }
       GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
       ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
-                        { RangeOrigin =defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
-                    ); .)
+                 (. 
+                     var origin2 = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range;
+                     formals.Add(new Formal(origin2, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)); 
+                 .)
     }
   ]
   ")"
@@ -1456,13 +1458,11 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
   "("
   [
     TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
-            (. formals.Add(new Formal(name.Tok, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly) 
-                    { RangeOrigin =range }
+            (. formals.Add(new Formal(range, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly)
                ); 
             .)
     { "," TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
-            (. formals.Add(new Formal(name.Tok, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly)
-                    { RangeOrigin =range }
+            (. formals.Add(new Formal(range, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly)
                ); 
             .)
     }
@@ -1749,8 +1749,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          "("
            GIdentType<false, false, false, false, out var range2, out var resultName, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
-              result = new Formal(resultName.Tok, resultName.Value, ty, false, false, null, null, false)
-                { RangeOrigin =range2 };
+              result = new Formal(range2, resultName.Value, ty, false, false, null, null, false);
            .)
          ")"
          | Type<out returnType>
@@ -2054,8 +2053,7 @@ PredicateResult<string name, out Formal result>
           if (ty is not BoolType) {
             SemErr(ErrorId.p_predicate_return_type_must_be_bool, new RangeToken(ty.StartToken, t), $"{name} return type should be bool, got {ty}");
           }
-          result = new Formal(nameId.Tok, nameId.Value, ty, false, false, null, attributes, false)
-            { RangeOrigin =range };
+          result = new Formal(range, nameId.Value, ty, false, false, null, attributes, false);
        .)
      ")"
      | Type<out returnType> (. SemErr(ErrorId.p_no_return_type_for_predicate, new RangeToken(returnType.StartToken, t), $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
