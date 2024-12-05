@@ -189,19 +189,18 @@ public abstract class Node : INode {
   }
 
   // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
-  protected string GetTriviaContainingDocstringFromStartTokenOrNull() {
+  protected bool GetStartTriviaDocstring(out string trivia) {
     var matches = StartDocstringExtractor.Matches(StartToken.LeadingTrivia);
+    trivia = null;
     if (matches.Count > 0) {
-      return matches[^1].Value;
-    }
-
-    if (StartToken.Prev is { val: "|" or "{" }) {
+      trivia = matches[^1].Value;
+    } else if (StartToken.Prev is { val: "|" or "{" }) {
       matches = StartDocstringExtractor.Matches(StartToken.Prev.TrailingTrivia);
       if (matches.Count > 0) {
-        return matches[^1].Value;
+        trivia = matches[^1].Value;
       }
     }
-    return null;
+    return trivia is not ("" or null);
   }
 }
 

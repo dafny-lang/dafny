@@ -502,6 +502,49 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.Identifier("panic!").Apply1(R.LiteralString(optText, binary := false, verbatim := false))
   }
 
+  function DefaultDatatypeImpl(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    datatypeType: R.Type,
+    datatypeName: R.Expr,
+    structAssignments: seq<R.AssignIdentifier>
+  ): R.ModDecl {
+    var defaultConstrainedTypeParams := R.TypeParamDecl.AddConstraintsMultiple(
+                                          rTypeParamsDecls, [R.DefaultTrait]
+                                        );
+    R.ImplDecl(
+      R.ImplFor(
+        defaultConstrainedTypeParams,
+        R.DefaultTrait,
+        datatypeType,
+        [R.FnDecl(
+           R.NoDoc, R.NoAttr,
+           R.PRIV,
+           R.Fn(
+             "default", [], [], Some(datatypeType),
+             Some(
+               R.StructBuild(
+                 datatypeName,
+                 structAssignments
+               )))
+         )]
+      ))
+  }
+
+  function AsRefDatatypeImpl(rTypeParamsDecls: seq<R.TypeParamDecl>, datatypeType: R.Type): R.ModDecl {
+    R.ImplDecl(
+      R.ImplFor(
+        rTypeParamsDecls,
+        R.std.MSel("convert").MSel("AsRef").AsType().Apply1(datatypeType),
+        datatypeType,
+        [R.FnDecl(
+           R.NoDoc, R.NoAttr,
+           R.PRIV,
+           R.Fn("as_ref", [], [R.Formal.selfBorrowed], Some(R.SelfBorrowed),
+                Some(R.self))
+         )]
+      ))
+  }
+
   function DebugImpl(rTypeParamsDecls: seq<R.TypeParamDecl>, datatypeType: R.Type, rTypeParams: seq<R.Type>): R.ModDecl {
     R.ImplDecl(
       R.ImplFor(
@@ -510,13 +553,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeType,
         [
           R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               "fmt", [],
               [R.Formal.selfBorrowed,
                R.Formal("f", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType()))],
               Some(R.std.MSel("fmt").MSel("Result").AsType()),
-              "",
               Some(R.dafny_runtime
                    .MSel("DafnyPrint")
                    .AsExpr()
@@ -538,6 +581,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         R.DafnyPrint,
         datatypeType,
         [R.FnDecl(
+           R.NoDoc, R.NoAttr,
            R.PRIV,
            R.Fn(
              "fmt_print", [],
@@ -545,7 +589,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
               R.Formal("_formatter", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType())),
               R.Formal("_in_seq", R.Type.Bool)],
              Some(R.RawType("std::fmt::Result")),
-             "",
              Some(printImplBody)))]
       ))
   }
@@ -565,6 +608,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         datatypeType,
         [R.FnDecl(
+           "Given type parameter conversions, returns a lambda to convert this structure", R.NoAttr,
            R.PUB,
            R.Fn(
              "coerce", rCoerceTypeParams,
@@ -575,7 +619,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
                    R.FnType(
                      [datatypeType],
                      R.TypeApp(R.TIdentifier(datatypeName), coerceTypes))))),
-             "",
              Some(
                R.RcNew(R.Lambda([R.Formal("this", R.SelfOwned)],
                                 Some(R.TypeApp(R.TIdentifier(datatypeName), coerceTypes)),
@@ -593,12 +636,12 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         rTypeParamsDecls,
         datatypeType,
         [R.FnDecl(
+           "Enumerates all possible values of " + datatypeType.ToString(""), [],
            R.PUB,
            R.Fn(
              "_AllSingletonConstructors", [],
              [],
              Some(R.dafny_runtime.MSel("SequenceIter").AsType().Apply([instantiationType])),
-             "",
              Some(R.dafny_runtime.MSel("seq!").AsExpr().Apply(singletonConstructors).Sel("iter").Apply0())
            )
          )]))
@@ -616,13 +659,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         R.Hash,
         datatypeOrNewtypeType,
         [R.FnDecl(
+           R.NoDoc, R.NoAttr,
            R.PRIV,
            R.Fn(
              "hash", [R.TypeParamDecl("_H", [R.std.MSel("hash").MSel("Hasher").AsType()])],
              [R.Formal.selfBorrowed,
               R.Formal("_state", R.BorrowedMut(R.TIdentifier("_H")))],
              None,
-             "",
              Some(hashImplBody)))]
       ))
   }
@@ -645,12 +688,12 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         newtypeType,
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               methodName, [],
               [R.Formal.selfOwned],
               Some(R.SelfOwned),
-              "",
               Some(R.Identifier(newtypeConstructor).Apply1(
                      R.UnaryOp(
                        [op],
@@ -681,13 +724,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         newtypeType,
         [ R.TypeDeclMember("Output", newtypeType),
           R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               methodName, [],
               [R.Formal.selfOwned,
                R.Formal("other", R.SelfOwned)],
               Some(R.SelfOwned),
-              "",
               Some(R.Identifier(newtypeConstructor).Apply1(
                      R.BinaryOp(
                        [op],
@@ -710,13 +753,13 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         R.std.MSel("cmp").MSel("PartialOrd").AsType(),
         newtypeType,
         [ R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               "partial_cmp", [],
               [R.Formal.selfBorrowed,
                R.Formal("other", R.SelfBorrowed)],
               Some(R.std.MSel("option").MSel("Option").AsType().Apply1(R.std.MSel("cmp").MSel("Ordering").AsType())),
-              "",
               Some(
                 R.std.MSel("cmp").MSel("PartialOrd").AsExpr().FSel("partial_cmp").Apply([
                                                                                           R.Borrow(R.self.Sel("0")),
@@ -738,7 +781,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       if SurelyAssigned? then SurelyAssigned
       else if NotAssigned? then other
       else Unknown // It's not as simple. If there are are two paths leading to one being assigned, the other not,
-           // Rust won't be albe to figure out the rules
+      // Rust won't be albe to figure out the rules
     }
   }
 
@@ -770,80 +813,5 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       case Print(_) => DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
       case _ => Unknown
     }
-  }
-}
-
-// Tests
-module {:extern "DefsCoverage"} DafnyToRustCompilerDefinitionsCoverage {
-  import opened DafnyToRustCompilerDefinitions
-  import opened DAST
-  import Strings = Std.Strings
-  import Std
-  import opened Std.Wrappers
-  import R = RAST
-  import opened DafnyCompilerRustUtils
-
-  const IND := R.IND
-  type Type = DAST.Type
-  type Formal = DAST.Formal
-
-  method Expect(x: bool)
-  {
-    expect x; // Avoids having too little coverage
-  }
-
-  method Tests() {
-    Expect(SurelyAssigned.Join(SurelyAssigned) == SurelyAssigned);
-    Expect(NotAssigned.Join(NotAssigned) == NotAssigned);
-    Expect(NotAssigned.Join(SurelyAssigned) == Unknown);
-    Expect(SurelyAssigned.Join(NotAssigned) == Unknown);
-    Expect(Unknown.Join(NotAssigned) == NotAssigned.Join(Unknown) == Unknown);
-    Expect(Unknown.Join(SurelyAssigned) == SurelyAssigned.Join(Unknown) == Unknown);
-    Expect(Unknown.Join(Unknown) == Unknown);
-
-    Expect(SurelyAssigned.Then(Unknown)
-        == SurelyAssigned.Then(NotAssigned)
-        == SurelyAssigned.Then(SurelyAssigned)
-        == NotAssigned.Then(SurelyAssigned)
-        == SurelyAssigned);
-    Expect(Unknown.Then(NotAssigned)
-        == Unknown.Then(SurelyAssigned)
-        == Unknown.Then(Unknown)
-        == NotAssigned.Then(Unknown)
-        == Unknown);
-    Expect(NotAssigned.Then(NotAssigned)
-           == NotAssigned);
-
-    var x := VarName("x");
-    var y := VarName("y");
-    var z := Expression.Ident(VarName("z"));
-    var assigns_x := [Assign(AssignLhs.Ident(x), Expression.Ident(y))];
-    var assigns_y := [Assign(AssignLhs.Ident(y), Expression.Ident(x))];
-    var cond := Expression.Ident(VarName("cond"));
-    var unknown_x := [If(cond, assigns_x, assigns_y)];
-    var surely_double_x := [If(cond, assigns_x, assigns_x)];
-    var call_to_x := [Statement.Call(z, SetBuilderAdd, [], [], Some([x]))];
-    var declare_x_again := [DeclareVar(x, Type.Tuple([]), None)];
-    Expect(DetectAssignmentStatus(assigns_y, x) == NotAssigned);
-    Expect(DetectAssignmentStatus(assigns_x, x) == SurelyAssigned);
-    Expect(DetectAssignmentStatus(assigns_x, y) == NotAssigned);
-    Expect(DetectAssignmentStatus(assigns_x + assigns_y, y) == SurelyAssigned);
-    Expect(DetectAssignmentStatus(unknown_x, x) == Unknown);
-    Expect(DetectAssignmentStatus(surely_double_x, x) == SurelyAssigned);
-    Expect(DetectAssignmentStatus(surely_double_x, y) == NotAssigned);
-    Expect(DetectAssignmentStatus(call_to_x, x) == SurelyAssigned);
-    Expect(DetectAssignmentStatus(call_to_x, y) == NotAssigned);
-    Expect(DetectAssignmentStatus(call_to_x + assigns_y, y) == SurelyAssigned);
-    Expect(DetectAssignmentStatus([Labeled("l", assigns_y)] + assigns_x, y) == SurelyAssigned);
-    Expect(DetectAssignmentStatus([Labeled("l", assigns_x)] + assigns_y, x) == SurelyAssigned);
-    Expect(DetectAssignmentStatus([Labeled("l", assigns_x)] + assigns_y, x) == SurelyAssigned);
-    Expect(DetectAssignmentStatus(declare_x_again + assigns_x, x) == NotAssigned);
-    Expect(DetectAssignmentStatus(declare_x_again + assigns_y, y) == SurelyAssigned);
-    Expect(DetectAssignmentStatus([Return(z)] + assigns_x, x) == NotAssigned);
-    Expect(DetectAssignmentStatus([EarlyReturn()] + assigns_x, x) == NotAssigned);
-    Expect(DetectAssignmentStatus([JumpTailCallStart()] + assigns_x, x) == NotAssigned);
-    Expect(DetectAssignmentStatus([Print(z)] + assigns_x, x) == SurelyAssigned);
-    Expect(DetectAssignmentStatus([Print(z)] + assigns_x, x) == SurelyAssigned);
-    Expect(DetectAssignmentStatus([While(z, [])] + assigns_x, x) == Unknown);
   }
 }

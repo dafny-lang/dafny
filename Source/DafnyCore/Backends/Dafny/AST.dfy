@@ -1,6 +1,6 @@
 module {:extern "DAST.Format"} DAST.Format
-  /* Cues about how to format different AST elements if necessary,
-     e.g. to generate idiomatic code when needed. */
+/* Cues about how to format different AST elements if necessary,
+   e.g. to generate idiomatic code when needed. */
 {
   // Dafny AST compilation tenets:
   // - The Compiled Dafny AST should be minimal
@@ -40,7 +40,12 @@ module {:extern "DAST"} DAST {
   // For example, the identifier 'None' needs to be escaped in Rust, but not as a constructor.
   datatype VarName = VarName(dafny_name: string)
 
-  datatype Module = Module(name: Name, attributes: seq<Attribute>, requiresExterns: bool, body: Option<seq<ModuleItem>>)
+  datatype Module = Module(
+    name: Name,
+    docString: string,
+    attributes: seq<Attribute>,
+    requiresExterns: bool,
+    body: Option<seq<ModuleItem>>)
 
   datatype ModuleItem =
     | Module(Module)
@@ -219,25 +224,51 @@ module {:extern "DAST"} DAST {
 
   datatype Ident = Ident(id: Name)
 
-  datatype Class = Class(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, superTraitTypes: seq<Type>, fields: seq<Field>, body: seq<ClassItem>, attributes: seq<Attribute>)
+  datatype Class = Class(
+    name: Name,
+    docString: string,
+    enclosingModule: Ident,
+    typeParams: seq<TypeArgDecl>,
+    superTraitTypes: seq<Type>,
+    fields: seq<Field>,
+    body: seq<ClassItem>,
+    attributes: seq<Attribute>)
 
   datatype Trait = Trait(
     name: Name,
+    docString: string,
     typeParams: seq<TypeArgDecl>,
     traitType: TraitType,
     parents: seq<Type>,
     body: seq<ClassItem>,
     attributes: seq<Attribute>)
 
-  datatype Datatype = Datatype(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, ctors: seq<DatatypeCtor>, body: seq<ClassItem>, isCo: bool, attributes: seq<Attribute>, superTraitTypes: seq<Type>)
+  datatype Datatype = Datatype(
+    name: Name,
+    docString: string,
+    enclosingModule: Ident,
+    typeParams: seq<TypeArgDecl>,
+    ctors: seq<DatatypeCtor>,
+    body: seq<ClassItem>,
+    isCo: bool,
+    attributes: seq<Attribute>,
+    superTraitTypes: seq<Type>)
 
-  datatype DatatypeDtor = DatatypeDtor(formal: Formal, callName: Option<string>)
+  datatype DatatypeDtor = DatatypeDtor(
+    formal: Formal,
+    callName: Option<string>)
 
-  datatype DatatypeCtor = DatatypeCtor(name: Name, args: seq<DatatypeDtor>, hasAnyArgs: bool /* includes ghost */)
+  datatype DatatypeCtor = DatatypeCtor(
+    name: Name,
+    docString: string,
+    args: seq<DatatypeDtor>,
+    hasAnyArgs: bool /* includes ghost */)
 
   datatype Newtype =
     Newtype(
-      name: Name, typeParams: seq<TypeArgDecl>, base: Type,
+      name: Name,
+      docString: string,
+      typeParams: seq<TypeArgDecl>, base: Type,
       range: NewtypeRange, constraint: Option<NewtypeConstraint>,
       witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>,
       classItems: seq<ClassItem>)
@@ -246,7 +277,14 @@ module {:extern "DAST"} DAST {
 
   // At this point, constraints have been entirely removed,
   // but synonym types might have different witnesses to use for by the compiler
-  datatype SynonymType = SynonymType(name: Name, typeParams: seq<TypeArgDecl>, base: Type, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>)
+  datatype SynonymType = SynonymType(
+    name: Name,
+    docString: string,
+    typeParams: seq<TypeArgDecl>,
+    base: Type,
+    witnessStmts: seq<Statement>,
+    witnessExpr: Option<Expression>,
+    attributes: seq<Attribute>)
 
   datatype ClassItem = Method(Method)
 
@@ -255,6 +293,7 @@ module {:extern "DAST"} DAST {
   datatype Formal = Formal(name: VarName, typ: Type, attributes: seq<Attribute>)
 
   datatype Method = Method(
+    docString: string,
     attributes: seq<Attribute>,
     isStatic: bool,
     hasBody: bool,

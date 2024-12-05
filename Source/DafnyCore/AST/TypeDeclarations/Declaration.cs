@@ -13,7 +13,6 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   }
 
   public IOrigin BodyStartTok = Token.NoToken;
-  public IOrigin TokenWithTrailingDocString = Token.NoToken;
   public Name NameNode;
 
   public override IOrigin Tok => NameNode.StartToken;

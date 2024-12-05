@@ -88,6 +88,9 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
   }
 
   public string GetTriviaContainingDocstring() {
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
     IOrigin openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
@@ -95,14 +98,19 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
       }
     }
 
-    if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
-      return openingBlock.Prev.TrailingTrivia;
+    var tentativeTrivia = "";
+    if (openingBlock != null) {
+      tentativeTrivia = (openingBlock.Prev.TrailingTrivia + openingBlock.LeadingTrivia).Trim();
+      if (tentativeTrivia != "") {
+        return tentativeTrivia;
+      }
     }
 
-    if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 }

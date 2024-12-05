@@ -43,11 +43,16 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   }
 
   public string GetTriviaContainingDocstring() {
-    if (EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    var tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
+    }
+
+    return null;
   }
 
   public override SymbolKind? Kind => SymbolKind.EnumMember;

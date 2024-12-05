@@ -107,7 +107,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           error := Some(optExtern.reason);
         }
         s := GatheringModule.MergeSeqMap(
-          GatheringModule.Wrap(ContainingPathToRust(containingPath), R.Mod(modName, attributes, body)),
+          GatheringModule.Wrap(ContainingPathToRust(containingPath), R.Mod(mod.docString, attributes, modName, body)),
           allmodules);
       }
     }
@@ -301,10 +301,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               }*/
               body := body + [
                 R.FnDecl(
+                  R.NoDoc, R.NoAttr,
                   R.PRIV,
                   R.Fn(
                     "_clone", [], [R.Formal.selfBorrowed], Some(R.Box(R.DynType(fullTraitPath))),
-                    "",
                     Some(R.BoxNew(R.self.Sel("clone").Apply0()))))
               ];
             } else {
@@ -332,12 +332,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                     R.dafny_runtime.MSel("UpcastBox").AsType().Apply1(R.DynType(fullTraitPath)),
                     R.TypeApp(genSelfPath, rTypeParams),
                     [ R.FnDecl(
+                        R.NoDoc, R.NoAttr,
                         R.PRIV,
                         R.Fn(
                           "upcast",
                           [], [R.Formal.selfBorrowed],
                           Some(R.Box(R.DynType(fullTraitPath))),
-                          "",
                           Some(genPathExpr.ApplyType(rTypeParams).FSel("_clone").Apply1(R.self))) // Difference with UpcastStructBox is that there is no .as_ref()
                       ) ]))
               ];
@@ -403,7 +403,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
       var className, extern := GetName(c.attributes, c.name, "classes");
 
-      var struct := R.Struct([], className, rTypeParamsDecls, R.NamedFields(fields));
+      var struct := R.Struct(c.docString, [], className, rTypeParamsDecls, R.NamedFields(fields));
       s := [];
 
       if extern.NoExtern? {
@@ -424,13 +424,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if extern.NoExtern? && className != "_default" {
         implBody := [
           R.FnDecl(
+            "Allocates an UNINITIALIZED instance. Only the Dafny compiler should use that.", R.NoAttr,
             R.PUB,
-            R.Fn(allocate_fn,
-                 [], [], Some(Object(R.SelfOwned)),
-                 "",
-                 Some(
-                   R.dafny_runtime.MSel(allocate).AsExpr().ApplyType1(R.SelfOwned).Apply0()
-                 ))
+            R.Fn(
+              allocate_fn,
+              [], [], Some(Object(R.SelfOwned)),
+              Some(
+                R.dafny_runtime.MSel(allocate).AsExpr().ApplyType1(R.SelfOwned).Apply0()
+              ))
           )
         ] + implBody;
       }
@@ -461,10 +462,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             testMethods := testMethods + [
               R.TopFnDecl(
                 R.TopFn(
+                  m.docString,
                   [R.RawAttribute("#[test]")], R.PUB,
                   R.Fn(
                     fnName, [], [], None,
-                    "",
                     Some(R.Identifier("_default").FSel(fnName).Apply([])))
                 ))
             ];
@@ -535,10 +536,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         // fn _clone(&self) -> Box<dyn Test>;
         implBody := implBody + [
           R.FnDecl(
+            R.NoDoc, R.NoAttr,
             R.PRIV,
             R.Fn(
               "_clone", [], [R.Formal.selfBorrowed], Some(R.Box(R.DynType(traitFulltype))),
-              "",
               None
             ))
         ];
@@ -564,12 +565,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 R.dafny_runtime.MSel("UpcastBox").AsType().Apply1(R.DynType(parentTpe)),
                 R.Box(R.DynType(traitFulltype)),
                 [ R.FnDecl(
+                    R.NoDoc, R.NoAttr,
                     R.PRIV,
                     R.Fn(
                       "upcast",
                       [], [R.Formal.selfBorrowed],
                       Some(R.Box(R.DynType(parentTpe))),
-                      "",
                       Some(traitFullExpr.FSel("_clone").Apply1(R.self.FSel("as_ref").Apply0()))
                     )
                   )]))
@@ -579,6 +580,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       s := [
         R.TraitDecl(
           R.Trait(
+            t.docString, [],
             rTypeParamsDecls, traitFulltype,
             parents,
             implBody
@@ -596,11 +598,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.std.MSel("clone").MSel("Clone").AsType(),
               R.Box(R.DynType(traitFulltype)),
               [R.FnDecl(
+                 R.NoDoc, R.NoAttr,
                  R.PRIV,
                  R.Fn("clone", [],
                       [ R.Formal.selfBorrowed ],
                       Some(R.SelfOwned),
-                      "",
                       Some(traitFullExpr.FSel("_clone").Apply1(R.self.Sel("as_ref").Apply0()))
                  ))]))];
       }
@@ -637,6 +639,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       s := [
         R.StructDecl(
           R.Struct(
+            c.docString,
             [
               R.RawAttribute(attributes),
               R.RawAttribute("#[repr(transparent)]")
@@ -662,10 +665,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
       var body :=
         R.FnDecl(
+          "An element of " + newtypeName, [],
           R.PRIV,
           R.Fn(
             "default", [], [], Some(R.SelfOwned),
-            "",
             Some(fnBody)
           ));
       match c.constraint {
@@ -680,10 +683,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 resultingType,
                 [
                   R.FnDecl(
+                    "Constraint check", R.NoAttr,
                     R.PUB,
                     R.Fn(
                       "is", [], rFormals, Some(R.Bool()),
-                      "",
                       Some(rStmts)
                     ))
                 ]
@@ -704,13 +707,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             R.DafnyPrint,
             resultingType,
             [R.FnDecl(
+               "For Dafny print statements", R.NoAttr,
                R.PRIV,
                R.Fn("fmt_print", [],
                     [ R.Formal.selfBorrowed,
                       R.Formal("_formatter", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType())),
                       R.Formal("in_seq", R.Type.Bool)],
                     Some(R.std.MSel("fmt").MSel("Result").AsType()),
-                    "",
                     Some(R.dafny_runtime.MSel("DafnyPrint").AsExpr().FSel("fmt_print").Apply(
                            [ R.Borrow(R.self.Sel("0")),
                              R.Identifier("_formatter"),
@@ -724,10 +727,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             resultingType,
             [R.TypeDeclMember("Target", wrappedType),
              R.FnDecl(
+               R.NoDoc, R.NoAttr,
                R.PRIV,
                R.Fn("deref", [],
                     [R.Formal.selfBorrowed], Some(R.Borrowed(R.Self().MSel("Target").AsType())),
-                    "",
                     Some(R.Borrow(R.self.Sel("0")))))]))];
 
       // Convert a ref to the underlying type to a ref of the wrapped newtype
@@ -737,12 +740,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             rTypeParamsDecls,
             resultingType,
             [R.FnDecl(
+               "SAFETY: The newtype is marked as transparent", R.NoAttr,
                R.PUB,
                R.Fn(
                  "_from_ref", [],
                  [R.Formal("o", R.Borrowed(wrappedType))],
                  Some(R.Borrowed(R.Self().AsType())),
-                 "",
                  Some(
                    R.Unsafe(
                      R.Block(
@@ -797,6 +800,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       s := [
         R.TypeDecl(
           R.TypeSynonym(
+            c.docString,
             [],
             synonymTypeName, rTypeParamsDecls, resultingType
           ))];
@@ -812,10 +816,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           s := s + [
             R.TopFnDecl(
               R.TopFn(
+                "An element of " + synonymTypeName,
                 [], R.PUB,
                 R.Fn(
                   constantName, defaultConstrainedTypeParams, [], Some(resultingType),
-                  "",
                   Some(rStmts.Then(rExpr)))
               )
             )
@@ -913,7 +917,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         if isNumeric {
           namedFields := namedFields.ToNamelessFields();
         }
-        ctors := ctors + [R.EnumCase(escapeName(ctor.name), namedFields)];
+        ctors := ctors + [R.EnumCase(ctor.docString, escapeName(ctor.name), namedFields)];
       }
       var unusedTypeParams := (set tp <- rTypeParamsDecls :: tp.name) - usedTypeParams;
 
@@ -998,11 +1002,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
             implBody := implBody + [
               R.FnDecl(
+                if |c.ctors| == 1 then
+                  "Returns a borrow of the field " + callName
+                else
+                  "Gets the field " + callName + " for all enum members which have it",
+                [],
                 R.PUB,
                 R.Fn(
                   callName,
                   [], [R.Formal.selfBorrowed], Some(R.Borrowed(formalType)),
-                  "",
                   Some(methodBody)
                 ))];
           }
@@ -1046,6 +1054,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         if |unusedTypeParams| > 0 {
           ctors := ctors + [
             R.EnumCase(
+              "",
               "_PhantomVariant",
               R.NamelessFields(
                 Std.Collections.Seq.Map(
@@ -1060,6 +1069,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       s :=
         [R.EnumDecl(
            R.Enum(
+             c.docString,
              if cIsEq then
                [R.RawAttribute("#[derive(PartialEq, Clone)]")]
              else
@@ -1260,47 +1270,24 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.std.MSel("default").MSel("Default").AsExpr().FSel("default").Apply0())
           ];
         }
-        var defaultConstrainedTypeParams := R.TypeParamDecl.AddConstraintsMultiple(
-          rTypeParamsDecls, [R.DefaultTrait]
-        );
         var fullType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
 
         // Implementation of Default trait when c supports equality
         if cIsEq {
           s := s +
-          [R.ImplDecl(
-             R.ImplFor(
-               defaultConstrainedTypeParams,
-               R.DefaultTrait,
-               fullType,
-               [R.FnDecl(
-                  R.PRIV,
-                  R.Fn(
-                    "default", [], [], Some(fullType),
-                    "",
-                    Some(
-                      R.StructBuild(
-                        structName,
-                        structAssignments
-                      )))
-                )]
-             ))];
+          [ DefaultDatatypeImpl(
+              rTypeParamsDecls,
+              fullType,
+              structName,
+              structAssignments)];
         }
 
         // Implementation of AsRef trait
         s := s + [
-          R.ImplDecl(
-            R.ImplFor(
-              rTypeParamsDecls,
-              R.std.MSel("convert").MSel("AsRef").AsType().Apply1(fullType),
-              fullType,
-              [R.FnDecl(
-                 R.PRIV,
-                 R.Fn("as_ref", [], [R.Formal.selfBorrowed], Some(R.SelfBorrowed),
-                      "",
-                      Some(R.self))
-               )]
-            ))];
+          AsRefDatatypeImpl(
+            rTypeParamsDecls,
+            fullType
+          )];
       }
       var superTraitImplementations := GenTraitImplementations(
         path,
@@ -1727,13 +1714,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         fBody := None;
       }
       s := R.FnDecl(
+        m.docString, R.NoAttr,
         visibility,
         R.Fn(
           fnName,
           typeParams,
           params,
           Some(if |retTypeArgs| == 1 then retTypeArgs[0] else R.TupleType(retTypeArgs)),
-          "",
           fBody
         )
       );
@@ -4069,7 +4056,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
 
       if externUseDecls != [] {
-        s := s + R.Mod(DAFNY_EXTERN_MODULE, [], externUseDecls).ToString("") + "\n";
+        s := s + R.Mod(
+          "Flattens all imported externs so that they can be accessed from this module",
+          [],
+          DAFNY_EXTERN_MODULE, externUseDecls).ToString("") + "\n";
       }
 
       var allModules := SeqMap<string, GatheringModule>.Empty();

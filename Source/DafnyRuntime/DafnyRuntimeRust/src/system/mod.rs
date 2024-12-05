@@ -28,11 +28,13 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType> Tuple2<T0, T1> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple2::_T2{_0, _1, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple2::_T2{_0, _1, } => _1,
@@ -64,6 +66,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType> Tuple2<T0, T1> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple2<T0, T1>) -> Tuple2<__T0, __T1>> {
       Rc::new(move |this: Self| -> Tuple2<__T0, __T1>{
           match this {
@@ -137,6 +140,7 @@ pub mod _System {
   }
 
   impl Tuple0 {
+    /// Enumerates all possible values of Tuple0
     pub fn _AllSingletonConstructors() -> SequenceIter<Rc<Tuple0>> {
       seq![Rc::new(Tuple0::_T0 {})].iter()
     }
@@ -178,6 +182,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType> Tuple1<T0> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple1::_T1{_0, } => _0,
@@ -207,6 +212,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType> Tuple1<T0> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple1<T0>) -> Tuple1<__T0>> {
       Rc::new(move |this: Self| -> Tuple1<__T0>{
           match this {
@@ -260,16 +266,19 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType> Tuple3<T0, T1, T2> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple3::_T3{_0, _1, _2, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple3::_T3{_0, _1, _2, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple3::_T3{_0, _1, _2, } => _2,
@@ -303,6 +312,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType> Tuple3<T0, T1, T2> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple3<T0, T1, T2>) -> Tuple3<__T0, __T1, __T2>> {
       Rc::new(move |this: Self| -> Tuple3<__T0, __T1, __T2>{
           match this {
@@ -363,21 +373,25 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType> Tuple4<T0, T1, T2, T3> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple4::_T4{_0, _1, _2, _3, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple4::_T4{_0, _1, _2, _3, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple4::_T4{_0, _1, _2, _3, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple4::_T4{_0, _1, _2, _3, } => _3,
@@ -413,6 +427,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType> Tuple4<T0, T1, T2, T3> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple4<T0, T1, T2, T3>) -> Tuple4<__T0, __T1, __T2, __T3>> {
       Rc::new(move |this: Self| -> Tuple4<__T0, __T1, __T2, __T3>{
           match this {
@@ -477,26 +492,31 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType> Tuple5<T0, T1, T2, T3, T4> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple5::_T5{_0, _1, _2, _3, _4, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple5::_T5{_0, _1, _2, _3, _4, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple5::_T5{_0, _1, _2, _3, _4, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple5::_T5{_0, _1, _2, _3, _4, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple5::_T5{_0, _1, _2, _3, _4, } => _4,
@@ -534,6 +554,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType> Tuple5<T0, T1, T2, T3, T4> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple5<T0, T1, T2, T3, T4>) -> Tuple5<__T0, __T1, __T2, __T3, __T4>> {
       Rc::new(move |this: Self| -> Tuple5<__T0, __T1, __T2, __T3, __T4>{
           match this {
@@ -602,31 +623,37 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType> Tuple6<T0, T1, T2, T3, T4, T5> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple6::_T6{_0, _1, _2, _3, _4, _5, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple6::_T6{_0, _1, _2, _3, _4, _5, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple6::_T6{_0, _1, _2, _3, _4, _5, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple6::_T6{_0, _1, _2, _3, _4, _5, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple6::_T6{_0, _1, _2, _3, _4, _5, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple6::_T6{_0, _1, _2, _3, _4, _5, } => _5,
@@ -666,6 +693,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType> Tuple6<T0, T1, T2, T3, T4, T5> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple6<T0, T1, T2, T3, T4, T5>) -> Tuple6<__T0, __T1, __T2, __T3, __T4, __T5>> {
       Rc::new(move |this: Self| -> Tuple6<__T0, __T1, __T2, __T3, __T4, __T5>{
           match this {
@@ -738,36 +766,43 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType> Tuple7<T0, T1, T2, T3, T4, T5, T6> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple7::_T7{_0, _1, _2, _3, _4, _5, _6, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple7::_T7{_0, _1, _2, _3, _4, _5, _6, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple7::_T7{_0, _1, _2, _3, _4, _5, _6, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple7::_T7{_0, _1, _2, _3, _4, _5, _6, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple7::_T7{_0, _1, _2, _3, _4, _5, _6, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple7::_T7{_0, _1, _2, _3, _4, _5, _6, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple7::_T7{_0, _1, _2, _3, _4, _5, _6, } => _6,
@@ -809,6 +844,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType> Tuple7<T0, T1, T2, T3, T4, T5, T6> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple7<T0, T1, T2, T3, T4, T5, T6>) -> Tuple7<__T0, __T1, __T2, __T3, __T4, __T5, __T6>> {
       Rc::new(move |this: Self| -> Tuple7<__T0, __T1, __T2, __T3, __T4, __T5, __T6>{
           match this {
@@ -885,41 +921,49 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType> Tuple8<T0, T1, T2, T3, T4, T5, T6, T7> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple8::_T8{_0, _1, _2, _3, _4, _5, _6, _7, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple8::_T8{_0, _1, _2, _3, _4, _5, _6, _7, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple8::_T8{_0, _1, _2, _3, _4, _5, _6, _7, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple8::_T8{_0, _1, _2, _3, _4, _5, _6, _7, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple8::_T8{_0, _1, _2, _3, _4, _5, _6, _7, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple8::_T8{_0, _1, _2, _3, _4, _5, _6, _7, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple8::_T8{_0, _1, _2, _3, _4, _5, _6, _7, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple8::_T8{_0, _1, _2, _3, _4, _5, _6, _7, } => _7,
@@ -963,6 +1007,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType> Tuple8<T0, T1, T2, T3, T4, T5, T6, T7> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple8<T0, T1, T2, T3, T4, T5, T6, T7>) -> Tuple8<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7>> {
       Rc::new(move |this: Self| -> Tuple8<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7>{
           match this {
@@ -1043,46 +1088,55 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType> Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple9::_T9{_0, _1, _2, _3, _4, _5, _6, _7, _8, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple9::_T9{_0, _1, _2, _3, _4, _5, _6, _7, _8, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple9::_T9{_0, _1, _2, _3, _4, _5, _6, _7, _8, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple9::_T9{_0, _1, _2, _3, _4, _5, _6, _7, _8, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple9::_T9{_0, _1, _2, _3, _4, _5, _6, _7, _8, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple9::_T9{_0, _1, _2, _3, _4, _5, _6, _7, _8, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple9::_T9{_0, _1, _2, _3, _4, _5, _6, _7, _8, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple9::_T9{_0, _1, _2, _3, _4, _5, _6, _7, _8, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple9::_T9{_0, _1, _2, _3, _4, _5, _6, _7, _8, } => _8,
@@ -1128,6 +1182,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType> Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8>) -> Tuple9<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8>> {
       Rc::new(move |this: Self| -> Tuple9<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8>{
           match this {
@@ -1212,51 +1267,61 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType> Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple10::_T10{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple10::_T10{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple10::_T10{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple10::_T10{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple10::_T10{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple10::_T10{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple10::_T10{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple10::_T10{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple10::_T10{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, } => _8,
       }
     }
+    /// Returns a borrow of the field _9
     pub fn _9(&self) -> &T9 {
       match self {
         Tuple10::_T10{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, } => _9,
@@ -1304,6 +1369,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType> Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType, __T9: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>, f_9: Rc<impl ::std::ops::Fn(T9) -> __T9 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>) -> Tuple10<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9>> {
       Rc::new(move |this: Self| -> Tuple10<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9>{
           match this {
@@ -1392,56 +1458,67 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType> Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, } => _8,
       }
     }
+    /// Returns a borrow of the field _9
     pub fn _9(&self) -> &T9 {
       match self {
         Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, } => _9,
       }
     }
+    /// Returns a borrow of the field _10
     pub fn _10(&self) -> &T10 {
       match self {
         Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, } => _10,
@@ -1491,6 +1568,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType> Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType, __T9: DafnyType, __T10: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>, f_9: Rc<impl ::std::ops::Fn(T9) -> __T9 + 'static>, f_10: Rc<impl ::std::ops::Fn(T10) -> __T10 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>) -> Tuple11<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10>> {
       Rc::new(move |this: Self| -> Tuple11<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10>{
           match this {
@@ -1583,61 +1661,73 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType> Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _8,
       }
     }
+    /// Returns a borrow of the field _9
     pub fn _9(&self) -> &T9 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _9,
       }
     }
+    /// Returns a borrow of the field _10
     pub fn _10(&self) -> &T10 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _10,
       }
     }
+    /// Returns a borrow of the field _11
     pub fn _11(&self) -> &T11 {
       match self {
         Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, } => _11,
@@ -1689,6 +1779,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType> Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType, __T9: DafnyType, __T10: DafnyType, __T11: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>, f_9: Rc<impl ::std::ops::Fn(T9) -> __T9 + 'static>, f_10: Rc<impl ::std::ops::Fn(T10) -> __T10 + 'static>, f_11: Rc<impl ::std::ops::Fn(T11) -> __T11 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>) -> Tuple12<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11>> {
       Rc::new(move |this: Self| -> Tuple12<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11>{
           match this {
@@ -1785,66 +1876,79 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType> Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _8,
       }
     }
+    /// Returns a borrow of the field _9
     pub fn _9(&self) -> &T9 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _9,
       }
     }
+    /// Returns a borrow of the field _10
     pub fn _10(&self) -> &T10 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _10,
       }
     }
+    /// Returns a borrow of the field _11
     pub fn _11(&self) -> &T11 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _11,
       }
     }
+    /// Returns a borrow of the field _12
     pub fn _12(&self) -> &T12 {
       match self {
         Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, } => _12,
@@ -1898,6 +2002,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType> Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType, __T9: DafnyType, __T10: DafnyType, __T11: DafnyType, __T12: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>, f_9: Rc<impl ::std::ops::Fn(T9) -> __T9 + 'static>, f_10: Rc<impl ::std::ops::Fn(T10) -> __T10 + 'static>, f_11: Rc<impl ::std::ops::Fn(T11) -> __T11 + 'static>, f_12: Rc<impl ::std::ops::Fn(T12) -> __T12 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>) -> Tuple13<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12>> {
       Rc::new(move |this: Self| -> Tuple13<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12>{
           match this {
@@ -1998,71 +2103,85 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType> Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _8,
       }
     }
+    /// Returns a borrow of the field _9
     pub fn _9(&self) -> &T9 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _9,
       }
     }
+    /// Returns a borrow of the field _10
     pub fn _10(&self) -> &T10 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _10,
       }
     }
+    /// Returns a borrow of the field _11
     pub fn _11(&self) -> &T11 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _11,
       }
     }
+    /// Returns a borrow of the field _12
     pub fn _12(&self) -> &T12 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _12,
       }
     }
+    /// Returns a borrow of the field _13
     pub fn _13(&self) -> &T13 {
       match self {
         Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, } => _13,
@@ -2118,6 +2237,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType> Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType, __T9: DafnyType, __T10: DafnyType, __T11: DafnyType, __T12: DafnyType, __T13: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>, f_9: Rc<impl ::std::ops::Fn(T9) -> __T9 + 'static>, f_10: Rc<impl ::std::ops::Fn(T10) -> __T10 + 'static>, f_11: Rc<impl ::std::ops::Fn(T11) -> __T11 + 'static>, f_12: Rc<impl ::std::ops::Fn(T12) -> __T12 + 'static>, f_13: Rc<impl ::std::ops::Fn(T13) -> __T13 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>) -> Tuple14<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13>> {
       Rc::new(move |this: Self| -> Tuple14<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13>{
           match this {
@@ -2222,76 +2342,91 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType> Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _8,
       }
     }
+    /// Returns a borrow of the field _9
     pub fn _9(&self) -> &T9 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _9,
       }
     }
+    /// Returns a borrow of the field _10
     pub fn _10(&self) -> &T10 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _10,
       }
     }
+    /// Returns a borrow of the field _11
     pub fn _11(&self) -> &T11 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _11,
       }
     }
+    /// Returns a borrow of the field _12
     pub fn _12(&self) -> &T12 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _12,
       }
     }
+    /// Returns a borrow of the field _13
     pub fn _13(&self) -> &T13 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _13,
       }
     }
+    /// Returns a borrow of the field _14
     pub fn _14(&self) -> &T14 {
       match self {
         Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, } => _14,
@@ -2349,6 +2484,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType> Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType, __T9: DafnyType, __T10: DafnyType, __T11: DafnyType, __T12: DafnyType, __T13: DafnyType, __T14: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>, f_9: Rc<impl ::std::ops::Fn(T9) -> __T9 + 'static>, f_10: Rc<impl ::std::ops::Fn(T10) -> __T10 + 'static>, f_11: Rc<impl ::std::ops::Fn(T11) -> __T11 + 'static>, f_12: Rc<impl ::std::ops::Fn(T12) -> __T12 + 'static>, f_13: Rc<impl ::std::ops::Fn(T13) -> __T13 + 'static>, f_14: Rc<impl ::std::ops::Fn(T14) -> __T14 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>) -> Tuple15<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14>> {
       Rc::new(move |this: Self| -> Tuple15<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14>{
           match this {
@@ -2457,81 +2593,97 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType> Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _8,
       }
     }
+    /// Returns a borrow of the field _9
     pub fn _9(&self) -> &T9 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _9,
       }
     }
+    /// Returns a borrow of the field _10
     pub fn _10(&self) -> &T10 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _10,
       }
     }
+    /// Returns a borrow of the field _11
     pub fn _11(&self) -> &T11 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _11,
       }
     }
+    /// Returns a borrow of the field _12
     pub fn _12(&self) -> &T12 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _12,
       }
     }
+    /// Returns a borrow of the field _13
     pub fn _13(&self) -> &T13 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _13,
       }
     }
+    /// Returns a borrow of the field _14
     pub fn _14(&self) -> &T14 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _14,
       }
     }
+    /// Returns a borrow of the field _15
     pub fn _15(&self) -> &T15 {
       match self {
         Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, } => _15,
@@ -2591,6 +2743,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType> Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType, __T9: DafnyType, __T10: DafnyType, __T11: DafnyType, __T12: DafnyType, __T13: DafnyType, __T14: DafnyType, __T15: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>, f_9: Rc<impl ::std::ops::Fn(T9) -> __T9 + 'static>, f_10: Rc<impl ::std::ops::Fn(T10) -> __T10 + 'static>, f_11: Rc<impl ::std::ops::Fn(T11) -> __T11 + 'static>, f_12: Rc<impl ::std::ops::Fn(T12) -> __T12 + 'static>, f_13: Rc<impl ::std::ops::Fn(T13) -> __T13 + 'static>, f_14: Rc<impl ::std::ops::Fn(T14) -> __T14 + 'static>, f_15: Rc<impl ::std::ops::Fn(T15) -> __T15 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>) -> Tuple16<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14, __T15>> {
       Rc::new(move |this: Self| -> Tuple16<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14, __T15>{
           match this {
@@ -2703,86 +2856,103 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType> Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _8,
       }
     }
+    /// Returns a borrow of the field _9
     pub fn _9(&self) -> &T9 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _9,
       }
     }
+    /// Returns a borrow of the field _10
     pub fn _10(&self) -> &T10 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _10,
       }
     }
+    /// Returns a borrow of the field _11
     pub fn _11(&self) -> &T11 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _11,
       }
     }
+    /// Returns a borrow of the field _12
     pub fn _12(&self) -> &T12 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _12,
       }
     }
+    /// Returns a borrow of the field _13
     pub fn _13(&self) -> &T13 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _13,
       }
     }
+    /// Returns a borrow of the field _14
     pub fn _14(&self) -> &T14 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _14,
       }
     }
+    /// Returns a borrow of the field _15
     pub fn _15(&self) -> &T15 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _15,
       }
     }
+    /// Returns a borrow of the field _16
     pub fn _16(&self) -> &T16 {
       match self {
         Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, } => _16,
@@ -2844,6 +3014,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType> Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType, __T9: DafnyType, __T10: DafnyType, __T11: DafnyType, __T12: DafnyType, __T13: DafnyType, __T14: DafnyType, __T15: DafnyType, __T16: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>, f_9: Rc<impl ::std::ops::Fn(T9) -> __T9 + 'static>, f_10: Rc<impl ::std::ops::Fn(T10) -> __T10 + 'static>, f_11: Rc<impl ::std::ops::Fn(T11) -> __T11 + 'static>, f_12: Rc<impl ::std::ops::Fn(T12) -> __T12 + 'static>, f_13: Rc<impl ::std::ops::Fn(T13) -> __T13 + 'static>, f_14: Rc<impl ::std::ops::Fn(T14) -> __T14 + 'static>, f_15: Rc<impl ::std::ops::Fn(T15) -> __T15 + 'static>, f_16: Rc<impl ::std::ops::Fn(T16) -> __T16 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>) -> Tuple17<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14, __T15, __T16>> {
       Rc::new(move |this: Self| -> Tuple17<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14, __T15, __T16>{
           match this {
@@ -2960,91 +3131,109 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType> Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _8,
       }
     }
+    /// Returns a borrow of the field _9
     pub fn _9(&self) -> &T9 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _9,
       }
     }
+    /// Returns a borrow of the field _10
     pub fn _10(&self) -> &T10 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _10,
       }
     }
+    /// Returns a borrow of the field _11
     pub fn _11(&self) -> &T11 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _11,
       }
     }
+    /// Returns a borrow of the field _12
     pub fn _12(&self) -> &T12 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _12,
       }
     }
+    /// Returns a borrow of the field _13
     pub fn _13(&self) -> &T13 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _13,
       }
     }
+    /// Returns a borrow of the field _14
     pub fn _14(&self) -> &T14 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _14,
       }
     }
+    /// Returns a borrow of the field _15
     pub fn _15(&self) -> &T15 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _15,
       }
     }
+    /// Returns a borrow of the field _16
     pub fn _16(&self) -> &T16 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _16,
       }
     }
+    /// Returns a borrow of the field _17
     pub fn _17(&self) -> &T17 {
       match self {
         Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, } => _17,
@@ -3108,6 +3297,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType> Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType, __T9: DafnyType, __T10: DafnyType, __T11: DafnyType, __T12: DafnyType, __T13: DafnyType, __T14: DafnyType, __T15: DafnyType, __T16: DafnyType, __T17: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>, f_9: Rc<impl ::std::ops::Fn(T9) -> __T9 + 'static>, f_10: Rc<impl ::std::ops::Fn(T10) -> __T10 + 'static>, f_11: Rc<impl ::std::ops::Fn(T11) -> __T11 + 'static>, f_12: Rc<impl ::std::ops::Fn(T12) -> __T12 + 'static>, f_13: Rc<impl ::std::ops::Fn(T13) -> __T13 + 'static>, f_14: Rc<impl ::std::ops::Fn(T14) -> __T14 + 'static>, f_15: Rc<impl ::std::ops::Fn(T15) -> __T15 + 'static>, f_16: Rc<impl ::std::ops::Fn(T16) -> __T16 + 'static>, f_17: Rc<impl ::std::ops::Fn(T17) -> __T17 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17>) -> Tuple18<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14, __T15, __T16, __T17>> {
       Rc::new(move |this: Self| -> Tuple18<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14, __T15, __T16, __T17>{
           match this {
@@ -3228,96 +3418,115 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType, T18: DafnyType> Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _8,
       }
     }
+    /// Returns a borrow of the field _9
     pub fn _9(&self) -> &T9 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _9,
       }
     }
+    /// Returns a borrow of the field _10
     pub fn _10(&self) -> &T10 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _10,
       }
     }
+    /// Returns a borrow of the field _11
     pub fn _11(&self) -> &T11 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _11,
       }
     }
+    /// Returns a borrow of the field _12
     pub fn _12(&self) -> &T12 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _12,
       }
     }
+    /// Returns a borrow of the field _13
     pub fn _13(&self) -> &T13 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _13,
       }
     }
+    /// Returns a borrow of the field _14
     pub fn _14(&self) -> &T14 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _14,
       }
     }
+    /// Returns a borrow of the field _15
     pub fn _15(&self) -> &T15 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _15,
       }
     }
+    /// Returns a borrow of the field _16
     pub fn _16(&self) -> &T16 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _16,
       }
     }
+    /// Returns a borrow of the field _17
     pub fn _17(&self) -> &T17 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _17,
       }
     }
+    /// Returns a borrow of the field _18
     pub fn _18(&self) -> &T18 {
       match self {
         Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, } => _18,
@@ -3383,6 +3592,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType, T18: DafnyType> Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType, __T9: DafnyType, __T10: DafnyType, __T11: DafnyType, __T12: DafnyType, __T13: DafnyType, __T14: DafnyType, __T15: DafnyType, __T16: DafnyType, __T17: DafnyType, __T18: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>, f_9: Rc<impl ::std::ops::Fn(T9) -> __T9 + 'static>, f_10: Rc<impl ::std::ops::Fn(T10) -> __T10 + 'static>, f_11: Rc<impl ::std::ops::Fn(T11) -> __T11 + 'static>, f_12: Rc<impl ::std::ops::Fn(T12) -> __T12 + 'static>, f_13: Rc<impl ::std::ops::Fn(T13) -> __T13 + 'static>, f_14: Rc<impl ::std::ops::Fn(T14) -> __T14 + 'static>, f_15: Rc<impl ::std::ops::Fn(T15) -> __T15 + 'static>, f_16: Rc<impl ::std::ops::Fn(T16) -> __T16 + 'static>, f_17: Rc<impl ::std::ops::Fn(T17) -> __T17 + 'static>, f_18: Rc<impl ::std::ops::Fn(T18) -> __T18 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18>) -> Tuple19<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14, __T15, __T16, __T17, __T18>> {
       Rc::new(move |this: Self| -> Tuple19<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14, __T15, __T16, __T17, __T18>{
           match this {
@@ -3507,101 +3717,121 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType, T18: DafnyType, T19: DafnyType> Tuple20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> {
+    /// Returns a borrow of the field _0
     pub fn _0(&self) -> &T0 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _0,
       }
     }
+    /// Returns a borrow of the field _1
     pub fn _1(&self) -> &T1 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _1,
       }
     }
+    /// Returns a borrow of the field _2
     pub fn _2(&self) -> &T2 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _2,
       }
     }
+    /// Returns a borrow of the field _3
     pub fn _3(&self) -> &T3 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _3,
       }
     }
+    /// Returns a borrow of the field _4
     pub fn _4(&self) -> &T4 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _4,
       }
     }
+    /// Returns a borrow of the field _5
     pub fn _5(&self) -> &T5 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _5,
       }
     }
+    /// Returns a borrow of the field _6
     pub fn _6(&self) -> &T6 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _6,
       }
     }
+    /// Returns a borrow of the field _7
     pub fn _7(&self) -> &T7 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _7,
       }
     }
+    /// Returns a borrow of the field _8
     pub fn _8(&self) -> &T8 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _8,
       }
     }
+    /// Returns a borrow of the field _9
     pub fn _9(&self) -> &T9 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _9,
       }
     }
+    /// Returns a borrow of the field _10
     pub fn _10(&self) -> &T10 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _10,
       }
     }
+    /// Returns a borrow of the field _11
     pub fn _11(&self) -> &T11 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _11,
       }
     }
+    /// Returns a borrow of the field _12
     pub fn _12(&self) -> &T12 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _12,
       }
     }
+    /// Returns a borrow of the field _13
     pub fn _13(&self) -> &T13 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _13,
       }
     }
+    /// Returns a borrow of the field _14
     pub fn _14(&self) -> &T14 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _14,
       }
     }
+    /// Returns a borrow of the field _15
     pub fn _15(&self) -> &T15 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _15,
       }
     }
+    /// Returns a borrow of the field _16
     pub fn _16(&self) -> &T16 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _16,
       }
     }
+    /// Returns a borrow of the field _17
     pub fn _17(&self) -> &T17 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _17,
       }
     }
+    /// Returns a borrow of the field _18
     pub fn _18(&self) -> &T18 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _18,
       }
     }
+    /// Returns a borrow of the field _19
     pub fn _19(&self) -> &T19 {
       match self {
         Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, } => _19,
@@ -3669,6 +3899,7 @@ pub mod _System {
   }
 
   impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType, T18: DafnyType, T19: DafnyType> Tuple20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> {
+    /// Given type parameter conversions, returns a lambda to convert this structure
     pub fn coerce<__T0: DafnyType, __T1: DafnyType, __T2: DafnyType, __T3: DafnyType, __T4: DafnyType, __T5: DafnyType, __T6: DafnyType, __T7: DafnyType, __T8: DafnyType, __T9: DafnyType, __T10: DafnyType, __T11: DafnyType, __T12: DafnyType, __T13: DafnyType, __T14: DafnyType, __T15: DafnyType, __T16: DafnyType, __T17: DafnyType, __T18: DafnyType, __T19: DafnyType>(f_0: Rc<impl ::std::ops::Fn(T0) -> __T0 + 'static>, f_1: Rc<impl ::std::ops::Fn(T1) -> __T1 + 'static>, f_2: Rc<impl ::std::ops::Fn(T2) -> __T2 + 'static>, f_3: Rc<impl ::std::ops::Fn(T3) -> __T3 + 'static>, f_4: Rc<impl ::std::ops::Fn(T4) -> __T4 + 'static>, f_5: Rc<impl ::std::ops::Fn(T5) -> __T5 + 'static>, f_6: Rc<impl ::std::ops::Fn(T6) -> __T6 + 'static>, f_7: Rc<impl ::std::ops::Fn(T7) -> __T7 + 'static>, f_8: Rc<impl ::std::ops::Fn(T8) -> __T8 + 'static>, f_9: Rc<impl ::std::ops::Fn(T9) -> __T9 + 'static>, f_10: Rc<impl ::std::ops::Fn(T10) -> __T10 + 'static>, f_11: Rc<impl ::std::ops::Fn(T11) -> __T11 + 'static>, f_12: Rc<impl ::std::ops::Fn(T12) -> __T12 + 'static>, f_13: Rc<impl ::std::ops::Fn(T13) -> __T13 + 'static>, f_14: Rc<impl ::std::ops::Fn(T14) -> __T14 + 'static>, f_15: Rc<impl ::std::ops::Fn(T15) -> __T15 + 'static>, f_16: Rc<impl ::std::ops::Fn(T16) -> __T16 + 'static>, f_17: Rc<impl ::std::ops::Fn(T17) -> __T17 + 'static>, f_18: Rc<impl ::std::ops::Fn(T18) -> __T18 + 'static>, f_19: Rc<impl ::std::ops::Fn(T19) -> __T19 + 'static>) -> Rc<impl ::std::ops::Fn(Tuple20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19>) -> Tuple20<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14, __T15, __T16, __T17, __T18, __T19>> {
       Rc::new(move |this: Self| -> Tuple20<__T0, __T1, __T2, __T3, __T4, __T5, __T6, __T7, __T8, __T9, __T10, __T11, __T12, __T13, __T14, __T15, __T16, __T17, __T18, __T19>{
           match this {

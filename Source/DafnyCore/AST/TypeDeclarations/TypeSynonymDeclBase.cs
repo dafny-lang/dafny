@@ -108,22 +108,23 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   }
 
   public string GetTriviaContainingDocstring() {
-    IOrigin openingBlock = null;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
+
     foreach (var token in OwnedTokens) {
-      if (token.val == "{") {
-        openingBlock = token;
+      if (token.val == "=") {
+        if ((token.Prev.TrailingTrivia + token.LeadingTrivia).Trim() is { } tentativeTrivia and not "") {
+          return tentativeTrivia;
+        }
       }
     }
 
-    if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
-      return openingBlock.Prev.TrailingTrivia;
+    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia2 and not "") {
+      return tentativeTrivia2;
     }
 
-    if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
-    }
-
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 
   public abstract override SymbolKind? Kind { get; }
