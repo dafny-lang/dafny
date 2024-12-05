@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
         CoreOptions.TypeEncoding.Arguments => 1,
         _ => 0
       };
-      fSetSelect = ModelFuncWrapper.MergeFunctions(this, new List<string> { "MapType0Select", "MapType1Select" }, 2);
+      fSetSelect = new ModelFuncWrapper(this, "Set#IsMember", 2, 0);
       fSeqLength = new ModelFuncWrapper(this, "Seq#Length", 1, 0);
       fSeqBuild = new ModelFuncWrapper(this, "Seq#Build", 2, 0);
       fSeqAppend = new ModelFuncWrapper(this, "Seq#Append", 2, 0);
