@@ -386,6 +386,10 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   public string GetTriviaContainingDocstring() {
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
+
     IOrigin lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
@@ -393,11 +397,25 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       }
     }
 
-    if (lastClosingParenthesis != null && lastClosingParenthesis.TrailingTrivia.Trim() != "") {
-      return lastClosingParenthesis.TrailingTrivia;
+    var tentativeTrivia = "";
+    if (lastClosingParenthesis != null) {
+      if (lastClosingParenthesis.pos < EndToken.pos) {
+        tentativeTrivia = (lastClosingParenthesis.TrailingTrivia + lastClosingParenthesis.Next.LeadingTrivia).Trim();
+      } else {
+        tentativeTrivia = lastClosingParenthesis.TrailingTrivia.Trim();
+      }
+
+      if (tentativeTrivia != "") {
+        return tentativeTrivia;
+      }
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
+    }
+
+    return null;
   }
 
   public override SymbolKind? Kind => SymbolKind.Method;
