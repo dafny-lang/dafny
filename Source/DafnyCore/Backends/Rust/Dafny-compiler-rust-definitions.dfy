@@ -44,14 +44,16 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
      (|i| == 3 && i[2] in "0123456789"))
   }
 
+  // Given a Dafny-expanded fully qualified name with # or ., where ' has been replaced by _k, ? by _q and _ by __
+  // detect if there are of the strings above
   predicate has_special(i: string) {
     if |i| == 0 then false
     else if i[0] == '.' then true
     else if i[0] == '#' then true // otherwise "escapeName("r#") becomes "r#""
     else if i[0] == '_' then
       if 2 <= |i| then
-        if i[1] != '_' then true
-        else has_special(i[2..])
+        if i[1] == '_' then has_special(i[2..])
+        else true
       else
         true
     else
@@ -95,6 +97,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
 
   predicate is_dafny_generated_id(i: string) {
     && |i| > 0 && i[0] == '_' && !has_special(i[1..])
+    && (i != "_self" && i != "_Self")
     && (|i| >= 2 ==> i[1] != 'T') // To avoid conflict with tuple builders _T<digits>
   }
 
@@ -108,21 +111,21 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   }
 
   function escapeIdent(i: string): string {
-    if is_tuple_numeric(i) then
+    if is_tuple_numeric(i) then // _42 remains the same
       i
-    else if is_tuple_builder(i) then
+    else if is_tuple_builder(i) then // ___hMake42 becomes _T42
       better_tuple_builder_name(i)
-    else if i == "self" || i == "Self" then
-      "r#_" + i
+    else if i == "self" || i == "Self" then // self becomes _self
+      "_" + i
     else if i in reserved_rust then
       "r#" + i
-    else if is_idiomatic_rust_id(i) then
+    else if is_idiomatic_rust_id(i) then // some__id becomes some_id
       idiomatic_rust(i)
-    else if is_dafny_generated_id(i) then
+    else if is_dafny_generated_id(i) then // _module remains _module
       i // Dafny-generated identifiers like "_module", cannot be written in Dafny itself
-    else
+    else // u16 becomes _u16, namespace.IsSomething_q becomes _namespace_dIsSomething_q
       var r := replaceDots(i);
-      "r#_" + r
+      "_" + r
   }
 
   // To be used when escaping variables
@@ -958,37 +961,66 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       if SurelyAssigned? then SurelyAssigned
       else if NotAssigned? then other
       else Unknown // It's not as simple. If there are are two paths leading to one being assigned, the other not,
-      // Rust won't be albe to figure out the rules
+      // Rust won't be able to figure out the rules
     }
   }
 
-  // What could be problematic is the presence of branches in the assignment
-  // and one branch where a value is not assigned at all.
-  // If return false, we don't know if it's assigned or not
+  /** Detects if a given variable can be detected to be surely assigned or surely unassigned by the Rust compiler */
   function DetectAssignmentStatus(stmts_remainder: seq<Statement>, dafny_name: VarName): AssignmentStatus {
     if |stmts_remainder| == 0 then NotAssigned else
     var stmt := stmts_remainder[0];
-    match stmt {
+    var tailAssigned := DetectAssignmentStatus(stmts_remainder[1..], dafny_name);
+    var stop := stmt.Return? || stmt.EarlyReturn? || stmt.JumpTailCallStart? || (stmt.DeclareVar? && stmt.name == dafny_name);
+    var thisAssign := match stmt {
       case Assign(Ident(assign_name), _) =>
-        if assign_name == dafny_name then SurelyAssigned else
-        DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+        if assign_name == dafny_name then SurelyAssigned else NotAssigned
       case If(cond, thn, els) =>
-        DetectAssignmentStatus(thn, dafny_name).Join(DetectAssignmentStatus(els, dafny_name))
+        DetectAssignmentStatus(thn, dafny_name)
+        .Join(DetectAssignmentStatus(els, dafny_name))
       case Call(on, callName, typeArgs, args, outs) =>
-        if outs.Some? && dafny_name in outs.value then
-          SurelyAssigned
-        else
-          DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+        if outs.Some? && dafny_name in outs.value then SurelyAssigned else NotAssigned
       case Labeled(_, stmts) =>
-        DetectAssignmentStatus(stmts, dafny_name).Then(DetectAssignmentStatus(stmts_remainder[1..], dafny_name))
+        DetectAssignmentStatus(stmts, dafny_name)
       case DeclareVar(name, _, _) =>
-        if name == dafny_name then
-          NotAssigned // Shadowed
-        else
-          DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+        NotAssigned // If it's the same name, it's shadowed
       case Return(_) | EarlyReturn() | JumpTailCallStart() => NotAssigned
-      case Print(_) => DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+      case Print(_) => NotAssigned
       case _ => Unknown
+    };
+    if stop then thisAssign else thisAssign.Then(tailAssigned)
+  } by method {
+    for i := 0 to |stmts_remainder|
+      invariant DetectAssignmentStatus(stmts_remainder, dafny_name) == DetectAssignmentStatus(stmts_remainder[i..], dafny_name)
+    {
+      assert stmts_remainder[i..][0] == stmts_remainder[i];
+      var stmt := stmts_remainder[i];
+      match stmt {
+        case Assign(Ident(assign_name), _) =>
+          if assign_name == dafny_name {
+            return SurelyAssigned;
+          }
+        case If(cond, thn, els) =>
+          var rec := DetectAssignmentStatus(thn, dafny_name);
+          if rec == Unknown { return Unknown; }
+          var rec2 := DetectAssignmentStatus(els, dafny_name);
+          if rec2 == Unknown { return Unknown; }
+          if rec != rec2 { return Unknown; }
+          if rec.SurelyAssigned? { return SurelyAssigned; }
+        case Call(on, callName, typeArgs, args, outs) =>
+          if outs.Some? && dafny_name in outs.value { return SurelyAssigned; }
+        case Labeled(_, stmts) =>
+          var rec := DetectAssignmentStatus(stmts, dafny_name);
+          if !rec.NotAssigned? { return rec; }
+        case DeclareVar(name, _, _) =>
+          if name == dafny_name { return NotAssigned; /* Shadowed */ }
+        case Return(_) | EarlyReturn() | JumpTailCallStart() =>
+          return NotAssigned;
+        case Print(_) =>
+        case _ =>
+          return Unknown;
+      }
+      assert DetectAssignmentStatus(stmts_remainder[i..][1..], dafny_name) == DetectAssignmentStatus(stmts_remainder[i+1..], dafny_name);
     }
+    return NotAssigned;
   }
 }
