@@ -874,7 +874,9 @@ namespace Microsoft.Dafny {
         r = rr;
       } else if (stmt is HideRevealStmt revealStmt) {
         // don't need to substitute s.Expr since it won't be used, only the s.ResolvedStatements are used.
-        var rr = new HideRevealStmt(revealStmt.RangeToken, revealStmt.Exprs, revealStmt.Mode);
+        var rr = revealStmt.Wildcard
+          ? new HideRevealStmt(revealStmt.RangeToken, revealStmt.Mode)
+          : new HideRevealStmt(revealStmt.RangeToken, revealStmt.Exprs, revealStmt.Mode);
         rr.LabeledAsserts.AddRange(revealStmt.LabeledAsserts);
         rr.ResolvedStatements.AddRange(revealStmt.ResolvedStatements.ConvertAll(SubstStmt));
         rr.OffsetMembers = revealStmt.OffsetMembers.ToList();

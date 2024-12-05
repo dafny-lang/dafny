@@ -16,7 +16,8 @@ This may produce "surprising" results for negative values.
 For example, -3 div 5 is -1 and -3 mod 5 is 2.
 Note this is consistent: -3 * -1 + 2 == 5 */
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.ModInternals {
 
   import opened GeneralInternals
   import opened Mul
@@ -26,7 +27,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
   import opened DivInternalsNonlinear
 
   /* Performs modulus recursively. */
-  function {:opaque} ModRecursive(x: int, d: int): int
+  function ModRecursive(x: int, d: int): int
     requires d > 0
     decreases if x < 0 then (d - x) else x
   {
@@ -76,7 +77,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     }
   }
 
-  lemma {:isolate_assertions} LemmaDivAddDenominator(n: int, x: int)
+  @IsolateAssertions
+  lemma LemmaDivAddDenominator(n: int, x: int)
     requires n > 0
     ensures (x + n) / n == x / n + 1
   {
@@ -96,7 +98,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     }
   }
 
-  lemma {:isolate_assertions} LemmaDivSubDenominator(n: int, x: int)
+  @IsolateAssertions
+  lemma LemmaDivSubDenominator(n: int, x: int)
     requires n > 0
     ensures (x - n) / n == x / n - 1
   {
@@ -116,7 +119,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     }
   }
 
-  lemma {:isolate_assertions} LemmaModAddDenominator(n: int, x: int)
+  @IsolateAssertions
+  lemma LemmaModAddDenominator(n: int, x: int)
     requires n > 0
     ensures (x + n) % n == x % n
   {
@@ -136,7 +140,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     }
   }
 
-  lemma {:isolate_assertions} LemmaModSubDenominator(n: int, x: int)
+  @IsolateAssertions
+  lemma LemmaModSubDenominator(n: int, x: int)
     requires n > 0
     ensures (x - n) % n == x % n
   {
@@ -193,7 +198,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
   }
 
   /* proves the quotient remainder theorem */
-  lemma {:isolate_assertions} LemmaQuotientAndRemainder(x: int, q: int, r: int, n: int)
+  @IsolateAssertions
+  lemma LemmaQuotientAndRemainder(x: int, q: int, r: int, n: int)
     requires n > 0
     requires 0 <= r < n
     requires x == q * n + r
@@ -262,7 +268,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     LemmaModAutoMinus(n);
   }
 
-  lemma {:resource_limit 2000000} LemmaModAutoMinus(n: int)
+  @ResourceLimit("2e6")
+  lemma LemmaModAutoMinus(n: int)
     requires n > 0
     ensures ModAutoMinus(n)
   {

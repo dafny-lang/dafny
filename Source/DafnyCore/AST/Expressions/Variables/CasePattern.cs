@@ -51,7 +51,7 @@ public class CasePattern<VT> : TokenNode
     }
   }
 
-  public CasePattern(IToken tok, string id, [Captured] List<CasePattern<VT>> arguments) {
+  public CasePattern(IOrigin tok, string id, [Captured] List<CasePattern<VT>> arguments) {
     Contract.Requires(tok != null);
     Contract.Requires(id != null);
     this.tok = tok;
@@ -59,7 +59,7 @@ public class CasePattern<VT> : TokenNode
     Arguments = arguments;
   }
 
-  public CasePattern(IToken tok, VT bv) {
+  public CasePattern(IOrigin tok, VT bv) {
     Contract.Requires(tok != null);
     Contract.Requires(bv != null);
     this.tok = tok;

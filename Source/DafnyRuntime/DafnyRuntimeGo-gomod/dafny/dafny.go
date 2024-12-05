@@ -3153,20 +3153,20 @@ type GoAtomicBox struct {
 	value interface{}
 }
 
-func (box GoAtomicBox) Get() interface{} {
+func (box *GoAtomicBox) Get() interface{} {
 	return box.value
 }
 
-func (box GoAtomicBox) Put(value interface{}) {
+func (box *GoAtomicBox) Put(value interface{}) {
 	box.value = value
 }
 
-func (box GoAtomicBox) String() string {
+func (box *GoAtomicBox) String() string {
 	return "dafny.GoAtomicBox"
 }
 
 func (CompanionStruct_AtomicBox_) Make(value interface{}) AtomicBox {
-	return GoAtomicBox{
+	return &GoAtomicBox{
 		value: value,
 	}
 }

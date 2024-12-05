@@ -144,7 +144,7 @@ namespace Microsoft.Dafny {
         return new ExpressionTranslator(BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, readsFrame, newModifiesFrame, stripLits);
       }
 
-      internal IToken GetToken(Expression expression) {
+      internal IOrigin GetToken(Expression expression) {
         return BoogieGenerator.GetToken(expression);
       }
 
@@ -239,7 +239,7 @@ namespace Microsoft.Dafny {
         return et;
       }
 
-      public Boogie.IdentifierExpr ReadsFrame(IToken tok) {
+      public Boogie.IdentifierExpr ReadsFrame(IOrigin tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
@@ -250,7 +250,7 @@ namespace Microsoft.Dafny {
         return Frame(tok, readsFrame);
       }
 
-      public Boogie.IdentifierExpr ModifiesFrame(IToken tok) {
+      public Boogie.IdentifierExpr ModifiesFrame(IOrigin tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
@@ -258,7 +258,7 @@ namespace Microsoft.Dafny {
         return Frame(tok, modifiesFrame);
       }
 
-      private Boogie.IdentifierExpr Frame(IToken tok, string frameName) {
+      private Boogie.IdentifierExpr Frame(IOrigin tok, string frameName) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
@@ -1501,7 +1501,7 @@ namespace Microsoft.Dafny {
 
             bool endsWithWinningTopComparison = N == oldArray.Length && N < newArray.Length;
             var allowNoChange = decreasesToExpr.AllowNoChange || endsWithWinningTopComparison;
-            List<IToken> toks = oldExprs.Zip(newExprs, (_, _) => (IToken)decreasesToExpr.RangeToken).ToList();
+            List<IOrigin> toks = oldExprs.Zip(newExprs, (_, _) => (IOrigin)decreasesToExpr.RangeToken).ToList();
             var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, null,
               newExprsDafny, oldExprsDafny, newExprs, oldExprs, null,
               null, allowNoChange, false);
@@ -1750,14 +1750,14 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         return args;
       }
 
-      public Boogie.Expr GetArrayIndexFieldName(IToken tok, List<Expression> indices) {
+      public Boogie.Expr GetArrayIndexFieldName(IOrigin tok, List<Expression> indices) {
         return BoogieGenerator.GetArrayIndexFieldName(tok, indices.ConvertAll(idx => {
           var e = TrExpr(idx);
           return BoogieGenerator.ConvertExpression(GetToken(idx), e, idx.Type, Type.Int);
         }));
       }
 
-      public Boogie.Expr BoxIfNecessary(IToken tok, Boogie.Expr e, Type fromType) {
+      public Boogie.Expr BoxIfNecessary(IOrigin tok, Boogie.Expr e, Type fromType) {
         Contract.Requires(tok != null);
         Contract.Requires(e != null);
         Contract.Requires(fromType != null);
@@ -1769,7 +1769,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       /// Translate like s[Box(elmt)], but try to avoid as many set functions as possible in the
       /// translation, because such functions can mess up triggering.
       /// </summary>
-      public Boogie.Expr TrInSet(IToken tok, Boogie.Expr elmt, Expression s, Type elmtType, bool aggressive, out bool performedRewrite) {
+      public Boogie.Expr TrInSet(IOrigin tok, Boogie.Expr elmt, Expression s, Type elmtType, bool aggressive, out bool performedRewrite) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
@@ -1787,7 +1787,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       /// This gives the caller the flexibility to pass in either "o, Box(o)" or "Unbox(bx), bx".
       /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
-      public Boogie.Expr TrInSet_Aux(IToken tok, Boogie.Expr elmt, Boogie.Expr elmtBox, Expression s, bool aggressive, out bool performedRewrite) {
+      public Boogie.Expr TrInSet_Aux(IOrigin tok, Boogie.Expr elmt, Boogie.Expr elmtBox, Expression s, bool aggressive, out bool performedRewrite) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(elmtBox != null);
@@ -1857,7 +1857,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       /// translation, because such functions can mess up triggering.
       /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
-      public Boogie.Expr TrInMultiSet(IToken tok, Boogie.Expr elmt, Expression s, Type elmtType, bool aggressive) {
+      public Boogie.Expr TrInMultiSet(IOrigin tok, Boogie.Expr elmt, Expression s, Type elmtType, bool aggressive) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
@@ -1867,7 +1867,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
         return TrInMultiSet_Aux(tok, elmt, elmtBox, s, aggressive);
       }
-      public Boogie.Expr TrInMultiSet_Aux(IToken tok, Boogie.Expr elmt, Boogie.Expr elmtBox, Expression s, bool aggressive) {
+      public Boogie.Expr TrInMultiSet_Aux(IOrigin tok, Boogie.Expr elmt, Boogie.Expr elmtBox, Expression s, bool aggressive) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
@@ -2070,12 +2070,12 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
       // --------------- help routines ---------------
 
-      public Boogie.Expr IsAlloced(IToken tok, Boogie.Expr e) {
+      public Boogie.Expr IsAlloced(IOrigin tok, Boogie.Expr e) {
         Contract.Requires(HeapExpr != null);
         return BoogieGenerator.IsAlloced(tok, HeapExpr, e);
       }
 
-      public Boogie.Expr GoodRef(IToken tok, Boogie.Expr e, Type type) {
+      public Boogie.Expr GoodRef(IOrigin tok, Boogie.Expr e, Type type) {
         Contract.Requires(tok != null);
         Contract.Requires(e != null);
         Contract.Requires(type != null);

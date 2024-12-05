@@ -117,7 +117,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.loader = loader;
     }
 
-    public Task<Program> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
+    public Task<ProgramParseResult> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
       return loader.ParseAsync(compilation, cancellationToken);
     }
 

@@ -19,7 +19,7 @@ module Std.Collections.Map {
     if x in m then Some(m[x]) else None
   }
 
-  function {:opaque} ToImap<X, Y>(m: map<X, Y>): (m': imap<X, Y>)
+  function ToImap<X, Y>(m: map<X, Y>): (m': imap<X, Y>)
     ensures forall x {:trigger m'[x]} :: x in m ==> x in m' && m'[x] == m[x]
     ensures forall x {:trigger x in m'} :: x in m' ==> x in m
   {
@@ -27,7 +27,7 @@ module Std.Collections.Map {
   }
 
   /* Remove all key-value pairs corresponding to the set of keys provided. */
-  function {:opaque} RemoveKeys<X, Y>(m: map<X, Y>, xs: set<X>): (m': map<X, Y>)
+  function RemoveKeys<X, Y>(m: map<X, Y>, xs: set<X>): (m': map<X, Y>)
     ensures forall x {:trigger m'[x]} :: x in m && x !in xs ==> x in m' && m'[x] == m[x]
     ensures forall x {:trigger x in m'} :: x in m' ==> x in m && x !in xs
     ensures m'.Keys == m.Keys - xs
@@ -36,7 +36,7 @@ module Std.Collections.Map {
   }
 
   /* Remove a key-value pair. Returns unmodified map if key is not found. */
-  function {:opaque} Remove<X, Y>(m: map<X, Y>, x: X): (m': map<X, Y>)
+  function Remove<X, Y>(m: map<X, Y>, x: X): (m': map<X, Y>)
     ensures m' == RemoveKeys(m, {x})
     ensures |m'.Keys| <= |m.Keys|
     ensures x in m ==> |m'| == |m| - 1
@@ -48,7 +48,7 @@ module Std.Collections.Map {
   }
 
   /* Keep all key-value pairs corresponding to the set of keys provided. */
-  function {:opaque} Restrict<X, Y>(m: map<X, Y>, xs: set<X>): (m': map<X, Y>)
+  function Restrict<X, Y>(m: map<X, Y>, xs: set<X>): (m': map<X, Y>)
     ensures m' == RemoveKeys(m, m.Keys - xs)
   {
     map x | x in xs && x in m :: m[x]
@@ -69,7 +69,7 @@ module Std.Collections.Map {
 
   /* Union of two maps. Does not require disjoint domains; on the intersection,
   values from the second map are chosen. */
-  function {:opaque} Union<X, Y>(m: map<X, Y>, m': map<X, Y>): (r: map<X, Y>)
+  function Union<X, Y>(m: map<X, Y>, m': map<X, Y>): (r: map<X, Y>)
     ensures r.Keys == m.Keys + m'.Keys
     ensures forall x {:trigger r[x]} :: x in m' ==> r[x] == m'[x]
     ensures forall x {:trigger r[x]} :: x in m && x !in m' ==> r[x] == m[x]
@@ -88,14 +88,14 @@ module Std.Collections.Map {
   }
 
   /* True iff a map is injective. */
-  ghost predicate {:opaque} Injective<X, Y>(m: map<X, Y>)
+  ghost predicate Injective<X, Y>(m: map<X, Y>)
   {
     forall x, x' {:trigger m[x], m[x']} :: x != x' && x in m && x' in m ==> m[x] != m[x']
   }
 
   /* Swaps map keys and values. Values are not required to be unique; no
   promises on which key is chosen on the intersection. */
-  ghost function {:opaque} Invert<X, Y>(m: map<X, Y>): map<Y, X>
+  ghost function Invert<X, Y>(m: map<X, Y>): map<Y, X>
   {
     map y | y in m.Values :: var x :| x in m.Keys && m[x] == y; x
   }
@@ -104,25 +104,23 @@ module Std.Collections.Map {
   lemma LemmaInvertIsInjective<X, Y>(m: map<X, Y>)
     ensures Injective(Invert(m))
   {
-    reveal Injective();
-    reveal Invert();
   }
 
   /* True iff a map contains all valid keys. */
-  ghost predicate {:opaque} Total<X(!new), Y>(m: map<X, Y>)
+  ghost predicate Total<X(!new), Y>(m: map<X, Y>)
   {
     forall i {:trigger m[i]}{:trigger i in m} :: i in m
   }
 
   /* True iff a map is monotonic. */
-  ghost predicate {:opaque} Monotonic(m: map<int, int>)
+  ghost predicate Monotonic(m: map<int, int>)
   {
     forall x, x' {:trigger m[x], m[x']} :: x in m && x' in m && x <= x' ==> m[x] <= m[x']
   }
 
   /* True iff a map is monotonic. Only considers keys greater than or
   equal to start. */
-  ghost predicate {:opaque} MonotonicFrom(m: map<int, int>, start: int)
+  ghost predicate MonotonicFrom(m: map<int, int>, start: int)
   {
     forall x, x' {:trigger m[x], m[x']} :: x in m && x' in m && start <= x <= x' ==> m[x] <= m[x']
   }

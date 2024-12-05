@@ -50,7 +50,7 @@ module {:extern "java.util"} JavaRest {
   import opened Interop
   
   class {:extern "Random" } JavaRandom {
-    constructor {:extern} () { }
+    constructor {:extern} ()
     
     method {:axiom} {:extern "nextInt"} Next(bound: Integer) returns (r: Integer)
       ensures 0 <= r.value && r.value < bound.value
