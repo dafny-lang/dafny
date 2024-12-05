@@ -1,4 +1,4 @@
-DecreasesTo3.dfy(5,31): Error: assertion might not hold
+DecreasesTo3.dfy(5,34): Error: assertion might not hold
  Asserted expression: (1 decreases to 0) && (0 decreases to 1)
 DecreasesTo3.dfy(9,11): Error: assertion might not hold
  Asserted expression: 0 decreases to 1
