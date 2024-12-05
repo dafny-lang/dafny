@@ -781,37 +781,66 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       if SurelyAssigned? then SurelyAssigned
       else if NotAssigned? then other
       else Unknown // It's not as simple. If there are are two paths leading to one being assigned, the other not,
-      // Rust won't be albe to figure out the rules
+      // Rust won't be able to figure out the rules
     }
   }
 
-  // What could be problematic is the presence of branches in the assignment
-  // and one branch where a value is not assigned at all.
-  // If return false, we don't know if it's assigned or not
+  /** Detects if a given variable can be detected to be surely assigned or surely unassigned by the Rust compiler */
   function DetectAssignmentStatus(stmts_remainder: seq<Statement>, dafny_name: VarName): AssignmentStatus {
     if |stmts_remainder| == 0 then NotAssigned else
     var stmt := stmts_remainder[0];
-    match stmt {
+    var tailAssigned := DetectAssignmentStatus(stmts_remainder[1..], dafny_name);
+    var stop := stmt.Return? || stmt.EarlyReturn? || stmt.JumpTailCallStart? || (stmt.DeclareVar? && stmt.name == dafny_name);
+    var thisAssign := match stmt {
       case Assign(Ident(assign_name), _) =>
-        if assign_name == dafny_name then SurelyAssigned else
-        DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+        if assign_name == dafny_name then SurelyAssigned else NotAssigned
       case If(cond, thn, els) =>
-        DetectAssignmentStatus(thn, dafny_name).Join(DetectAssignmentStatus(els, dafny_name))
+        DetectAssignmentStatus(thn, dafny_name)
+        .Join(DetectAssignmentStatus(els, dafny_name))
       case Call(on, callName, typeArgs, args, outs) =>
-        if outs.Some? && dafny_name in outs.value then
-          SurelyAssigned
-        else
-          DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+        if outs.Some? && dafny_name in outs.value then SurelyAssigned else NotAssigned
       case Labeled(_, stmts) =>
-        DetectAssignmentStatus(stmts, dafny_name).Then(DetectAssignmentStatus(stmts_remainder[1..], dafny_name))
+        DetectAssignmentStatus(stmts, dafny_name)
       case DeclareVar(name, _, _) =>
-        if name == dafny_name then
-          NotAssigned // Shadowed
-        else
-          DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+        NotAssigned // If it's the same name, it's shadowed
       case Return(_) | EarlyReturn() | JumpTailCallStart() => NotAssigned
-      case Print(_) => DetectAssignmentStatus(stmts_remainder[1..], dafny_name)
+      case Print(_) => NotAssigned
       case _ => Unknown
+    };
+    if stop then thisAssign else thisAssign.Then(tailAssigned)
+  } by method {
+    for i := 0 to |stmts_remainder|
+      invariant DetectAssignmentStatus(stmts_remainder, dafny_name) == DetectAssignmentStatus(stmts_remainder[i..], dafny_name)
+    {
+      assert stmts_remainder[i..][0] == stmts_remainder[i];
+      var stmt := stmts_remainder[i];
+      match stmt {
+        case Assign(Ident(assign_name), _) =>
+          if assign_name == dafny_name {
+            return SurelyAssigned;
+          }
+        case If(cond, thn, els) =>
+          var rec := DetectAssignmentStatus(thn, dafny_name);
+          if rec == Unknown { return Unknown; }
+          var rec2 := DetectAssignmentStatus(els, dafny_name);
+          if rec2 == Unknown { return Unknown; }
+          if rec != rec2 { return Unknown; }
+          if rec.SurelyAssigned? { return SurelyAssigned; }
+        case Call(on, callName, typeArgs, args, outs) =>
+          if outs.Some? && dafny_name in outs.value { return SurelyAssigned; }
+        case Labeled(_, stmts) =>
+          var rec := DetectAssignmentStatus(stmts, dafny_name);
+          if !rec.NotAssigned? { return rec; }
+        case DeclareVar(name, _, _) =>
+          if name == dafny_name { return NotAssigned; /* Shadowed */ }
+        case Return(_) | EarlyReturn() | JumpTailCallStart() =>
+          return NotAssigned;
+        case Print(_) =>
+        case _ =>
+          return Unknown;
+      }
+      assert DetectAssignmentStatus(stmts_remainder[i..][1..], dafny_name) == DetectAssignmentStatus(stmts_remainder[i+1..], dafny_name);
     }
+    return NotAssigned;
   }
 }
