@@ -1976,6 +1976,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    _ISelectContext GetSelectContext(TopLevelDecl decl) {
+      return decl is DatatypeDecl or NewtypeDecl ? SelectContext.create_SelectContextDatatype() :
+        decl is TraitDecl { IsReferenceTypeDecl: false} ?
+      SelectContext.create_SelectContextGeneralTrait() :
+      SelectContext.create_SelectContextClassOrObjectTrait();
+    }
+
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
       List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
       string additionalCustomParameter = null, bool internalAccess = false) {
@@ -2005,7 +2012,7 @@ namespace Microsoft.Dafny.Compilers {
             objExpr,
             Sequence<Rune>.UnicodeFromString(compileName),
             FieldMutabilityOf(member),
-            member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
+            GetSelectContext(member.EnclosingClass), GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
@@ -2050,7 +2057,7 @@ namespace Microsoft.Dafny.Compilers {
           objExpr,
           Sequence<Rune>.UnicodeFromString(compiledName),
           FieldMutabilityOf(member),
-          member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
+          GetSelectContext(member.EnclosingClass), GenType(expectedType)
         ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
           objExpr,
           Sequence<Rune>.UnicodeFromString(compiledName),
@@ -2083,7 +2090,7 @@ namespace Microsoft.Dafny.Compilers {
             objExpr,
             Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
             FieldMutabilityOf(member, isInternal: true),
-            member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
+            GetSelectContext(member.EnclosingClass), GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
@@ -2094,7 +2101,7 @@ namespace Microsoft.Dafny.Compilers {
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
             FieldMutabilityOf(member),
-            member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
+            GetSelectContext(member.EnclosingClass), GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
@@ -2376,7 +2383,7 @@ namespace Microsoft.Dafny.Compilers {
               sourceAST,
               Sequence<Rune>.UnicodeFromString(compileName),
               new FieldMutability_InternalClassConstantFieldOrDatatypeDestructor(),
-              true, GenType(dtor.Type)
+              GetSelectContext(ctor.EnclosingDatatype), GenType(dtor.Type)
             ));
           }
         }
@@ -2952,15 +2959,32 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IOrigin tok, ConcreteSyntaxTree wr) {
+      // This method needs to be implemented, but because we override EmitTypeTestExpr, it's never going to be called Still, we leave the body for completeness and maintenance. 
       if (GetExprBuilder(wr, out var builder)) {
-        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Is(
-          DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(localName)),
-          GenType(fromType),
-          GenType(toType)
-        ));
+        EmitTypeTestDAST(fromType, toType, builder,
+          (DAST.Expression)DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(localName)));
       } else {
         throw new InvalidOperationException();
       }
+    }
+
+    protected override void EmitTypeTestExpr(Expression expr, Type fromType, Type toType, IOrigin tok,
+      bool inLetExprBody, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
+      if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
+        var exprDAST = convert(expr);
+        EmitTypeTestDAST(fromType, toType, builder, exprDAST);
+      } else {
+        throw new InvalidOperationException();//TODO
+      }
+    }
+
+    private void EmitTypeTestDAST(Type fromType, Type toType, BuilderSyntaxTree<ExprContainer> builder, DAST.Expression exprDAST)
+    {
+      builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Is(
+        exprDAST,
+        GenType(fromType),
+        GenType(toType)
+      ));
     }
 
     protected override void EmitIsIntegerTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

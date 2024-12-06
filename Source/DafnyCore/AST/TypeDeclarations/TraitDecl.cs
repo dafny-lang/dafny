@@ -9,6 +9,8 @@ public class TraitDecl : ClassLikeDecl {
   public bool IsParent { set; get; }
   public override bool AcceptThis => true;
 
+  [FilledInDuringResolution] public List<TraitDecl> ChildrenTraitDecl = new();
+
   internal void SetUpAsReferenceType(bool isReferenceType) {
     // Note, it's important to set .NonNullTypeDecl first, before calling NewSelfSynonym(), since the latter will look at the former.
     Contract.Assert(NonNullTypeDecl == null); // SetUpAsReferenceType should be called only once

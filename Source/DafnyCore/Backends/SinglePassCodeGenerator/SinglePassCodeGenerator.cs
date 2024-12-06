@@ -1439,6 +1439,14 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract void EmitTypeTest(string localName, Type fromType, Type toType, IOrigin tok, ConcreteSyntaxTree wr);
 
+
+    protected virtual void EmitTypeTestExpr(Expression expr, Type fromType, Type toType, IOrigin tok,
+      bool inLetExprBody, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
+      var name = $"_is_{GetUniqueAstNumber(expr)}";
+      wr = CreateIIFE_ExprBody(name, fromType, tok, expr, inLetExprBody, Type.Bool, expr.tok, wr, ref wStmts);
+      EmitTypeTest(name, fromType, toType, tok, wr);
+    }
+
     /// <summary>
     /// Emit a conjunct that tests if the Dafny real number "source" is an integer, like:
     ///    "TestIsInteger(source) && "
@@ -2170,25 +2178,29 @@ namespace Microsoft.Dafny.Compilers {
           } else if (c is TraitDecl) {
             RedeclareInheritedMember(member, classWriter);
           } else if (member is ConstantField) {
-            var cf = (ConstantField)member;
-            var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
-            if (cf.Rhs == null && c is ClassLikeDecl) {
-              // create a backing field, since this constant field may be assigned in constructors
-              Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
-              classWriter.DeclareField(InternalFieldPrefix + cf.GetCompileName(Options), c, false, false, cfType, cf.tok, PlaceboValue(cfType, errorWr, cf.tok, true), cf);
-            }
-            var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
-            Contract.Assert(w != null);  // since the previous line asked for a body
-            if (cf.Rhs != null) {
-              EmitCallToInheritedConstRHS(cf, w);
-            } else if (!cf.IsStatic && c is ClassLikeDecl) {
-              var sw = EmitReturnExpr(w);
-              sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.tok, sw);
-              // get { return this._{0}; }
-              EmitThis(sw);
-              sw.Write(".{0}{1}", InternalFieldPrefix, cf.GetCompileName(Options));
-            } else {
-              EmitReturnExpr(PlaceboValue(cfType, errorWr, cf.tok, true), w);
+            if (canRedeclareMemberDefinedInTrait) {
+              var cf = (ConstantField)member;
+              var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
+              if (cf.Rhs == null && c is ClassLikeDecl) {
+                // create a backing field, since this constant field may be assigned in constructors
+                Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
+                classWriter.DeclareField(InternalFieldPrefix + cf.GetCompileName(Options), c, false, false, cfType,
+                  cf.tok, PlaceboValue(cfType, errorWr, cf.tok, true), cf);
+              }
+
+              var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
+              Contract.Assert(w != null); // since the previous line asked for a body
+              if (cf.Rhs != null) {
+                EmitCallToInheritedConstRHS(cf, w);
+              } else if (!cf.IsStatic && c is ClassLikeDecl) {
+                var sw = EmitReturnExpr(w);
+                sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.tok, sw);
+                // get { return this._{0}; }
+                EmitThis(sw);
+                sw.Write(".{0}{1}", InternalFieldPrefix, cf.GetCompileName(Options));
+              } else {
+                EmitReturnExpr(PlaceboValue(cfType, errorWr, cf.tok, true), w);
+              }
             }
           } else if (member is Field f) {
             var fType = f.Type.Subst(c.ParentFormalTypeParametersToActuals);
@@ -2280,7 +2292,7 @@ namespace Microsoft.Dafny.Compilers {
                 // that takes a parameter, because trait-equivalents in target languages don't allow implementations.
                 wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), new List<Formal>(), cf.Type, cf.tok, InstanceConstAreStatic(), true, cf, false, true);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
-                if (c is TraitDecl) {
+                if (c is TraitDecl && !InstanceMethodsCanOnlyCallOverridenTraitMethods) {
                   // also declare a function for the field in the interface
                   var wBodyInterface = CreateFunctionOrGetter(cf, IdName(cf), c, false, false, false, classWriter);
                   Contract.Assert(wBodyInterface == null);  // since the previous line said not to create a body
@@ -4850,9 +4862,7 @@ namespace Microsoft.Dafny.Compilers {
       //      Notes:
       //        - The constraint of a non-null reference type can be omitted in some cases, see note (c) above.
       if (fromType.IsTraitType || fromType.IsRefType) {
-        var name = $"_is_{GetUniqueAstNumber(expr)}";
-        wr = CreateIIFE_ExprBody(name, fromType, expr.tok, expr.E, inLetExprBody, Type.Bool, expr.tok, wr, ref wStmts);
-        EmitTypeTest(name, fromType, expr.ToType, expr.tok, wr);
+        EmitTypeTestExpr(expr.E, fromType, expr.ToType, expr.tok, inLetExprBody, wr, ref wStmts);
         return;
       }
 

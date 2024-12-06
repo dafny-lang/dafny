@@ -572,6 +572,7 @@ namespace DAST {
     bool IsPrimitiveInt();
     bool IsGeneralTrait();
     DAST._IType GetGeneralTraitType();
+    bool IsClassOrObjectTrait();
     bool IsDatatype();
     DAST._IType GetDatatypeType();
     bool Extends(DAST._IType other);
@@ -878,6 +879,19 @@ namespace DAST {
         {
           return _this;
         }
+      }
+    }
+    public bool IsClassOrObjectTrait() {
+      DAST._IType _source0 = this;
+      {
+        if (_source0.is_UserDefined) {
+          DAST._IResolvedType resolved0 = _source0.dtor_resolved;
+          DAST._IResolvedTypeBase _0_base = resolved0.dtor_kind;
+          return ((_0_base).is_Class) || (((_0_base).is_Trait) && (((_0_base).dtor_traitType).is_ObjectTrait));
+        }
+      }
+      {
+        return false;
       }
     }
     public bool IsDatatype() {
@@ -6458,6 +6472,108 @@ namespace DAST {
     }
   }
 
+  public interface _ISelectContext {
+    bool is_SelectContextDatatype { get; }
+    bool is_SelectContextGeneralTrait { get; }
+    bool is_SelectContextClassOrObjectTrait { get; }
+    _ISelectContext DowncastClone();
+  }
+  public abstract class SelectContext : _ISelectContext {
+    public SelectContext() {
+    }
+    private static readonly DAST._ISelectContext theDefault = create_SelectContextDatatype();
+    public static DAST._ISelectContext Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._ISelectContext> _TYPE = new Dafny.TypeDescriptor<DAST._ISelectContext>(DAST.SelectContext.Default());
+    public static Dafny.TypeDescriptor<DAST._ISelectContext> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _ISelectContext create_SelectContextDatatype() {
+      return new SelectContext_SelectContextDatatype();
+    }
+    public static _ISelectContext create_SelectContextGeneralTrait() {
+      return new SelectContext_SelectContextGeneralTrait();
+    }
+    public static _ISelectContext create_SelectContextClassOrObjectTrait() {
+      return new SelectContext_SelectContextClassOrObjectTrait();
+    }
+    public bool is_SelectContextDatatype { get { return this is SelectContext_SelectContextDatatype; } }
+    public bool is_SelectContextGeneralTrait { get { return this is SelectContext_SelectContextGeneralTrait; } }
+    public bool is_SelectContextClassOrObjectTrait { get { return this is SelectContext_SelectContextClassOrObjectTrait; } }
+    public static System.Collections.Generic.IEnumerable<_ISelectContext> AllSingletonConstructors {
+      get {
+        yield return SelectContext.create_SelectContextDatatype();
+        yield return SelectContext.create_SelectContextGeneralTrait();
+        yield return SelectContext.create_SelectContextClassOrObjectTrait();
+      }
+    }
+    public abstract _ISelectContext DowncastClone();
+  }
+  public class SelectContext_SelectContextDatatype : SelectContext {
+    public SelectContext_SelectContextDatatype() : base() {
+    }
+    public override _ISelectContext DowncastClone() {
+      if (this is _ISelectContext dt) { return dt; }
+      return new SelectContext_SelectContextDatatype();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.SelectContext_SelectContextDatatype;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.SelectContext.SelectContextDatatype";
+      return s;
+    }
+  }
+  public class SelectContext_SelectContextGeneralTrait : SelectContext {
+    public SelectContext_SelectContextGeneralTrait() : base() {
+    }
+    public override _ISelectContext DowncastClone() {
+      if (this is _ISelectContext dt) { return dt; }
+      return new SelectContext_SelectContextGeneralTrait();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.SelectContext_SelectContextGeneralTrait;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 1;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.SelectContext.SelectContextGeneralTrait";
+      return s;
+    }
+  }
+  public class SelectContext_SelectContextClassOrObjectTrait : SelectContext {
+    public SelectContext_SelectContextClassOrObjectTrait() : base() {
+    }
+    public override _ISelectContext DowncastClone() {
+      if (this is _ISelectContext dt) { return dt; }
+      return new SelectContext_SelectContextClassOrObjectTrait();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.SelectContext_SelectContextClassOrObjectTrait;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 2;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.SelectContext.SelectContextClassOrObjectTrait";
+      return s;
+    }
+  }
+
   public interface _IExpression {
     bool is_Literal { get; }
     bool is_Ident { get; }
@@ -6550,8 +6666,8 @@ namespace DAST {
     bool dtor_native { get; }
     Dafny.ISequence<Dafny.Rune> dtor_field { get; }
     DAST._IFieldMutability dtor_fieldMutability { get; }
-    bool dtor_isDatatype { get; }
-    DAST._IType dtor_fieldType { get; }
+    DAST._ISelectContext dtor_selectContext { get; }
+    DAST._IType dtor_isfieldType { get; }
     bool dtor_onDatatype { get; }
     bool dtor_isStatic { get; }
     bool dtor_isConstant { get; }
@@ -6562,6 +6678,7 @@ namespace DAST {
     Std.Wrappers._IOption<DAST._IExpression> dtor_low { get; }
     Std.Wrappers._IOption<DAST._IExpression> dtor_high { get; }
     BigInteger dtor_index { get; }
+    DAST._IType dtor_fieldType { get; }
     DAST._IExpression dtor_on { get; }
     DAST._ICallName dtor_callName { get; }
     Dafny.ISequence<DAST._IFormal> dtor_params { get; }
@@ -6583,6 +6700,7 @@ namespace DAST {
     bool dtor_is__forall { get; }
     DAST._IExpression dtor_lambda { get; }
     _IExpression DowncastClone();
+    bool IsThisUpcast();
   }
   public abstract class Expression : _IExpression {
     public Expression() {
@@ -6682,8 +6800,8 @@ namespace DAST {
     public static _IExpression create_MapItems(DAST._IExpression expr) {
       return new Expression_MapItems(expr);
     }
-    public static _IExpression create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, DAST._IFieldMutability fieldMutability, bool isDatatype, DAST._IType fieldType) {
-      return new Expression_Select(expr, field, fieldMutability, isDatatype, fieldType);
+    public static _IExpression create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, DAST._IFieldMutability fieldMutability, DAST._ISelectContext selectContext, DAST._IType isfieldType) {
+      return new Expression_Select(expr, field, fieldMutability, selectContext, isfieldType);
     }
     public static _IExpression create_SelectFn(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool onDatatype, bool isStatic, bool isConstant, Dafny.ISequence<DAST._IType> arguments) {
       return new Expression_SelectFn(expr, field, onDatatype, isStatic, isConstant, arguments);
@@ -7075,17 +7193,16 @@ namespace DAST {
         return ((Expression_Select)d)._fieldMutability;
       }
     }
-    public bool dtor_isDatatype {
+    public DAST._ISelectContext dtor_selectContext {
       get {
         var d = this;
-        return ((Expression_Select)d)._isDatatype;
+        return ((Expression_Select)d)._selectContext;
       }
     }
-    public DAST._IType dtor_fieldType {
+    public DAST._IType dtor_isfieldType {
       get {
         var d = this;
-        if (d is Expression_Select) { return ((Expression_Select)d)._fieldType; }
-        return ((Expression_TupleSelect)d)._fieldType;
+        return ((Expression_Select)d)._isfieldType;
       }
     }
     public bool dtor_onDatatype {
@@ -7146,6 +7263,12 @@ namespace DAST {
       get {
         var d = this;
         return ((Expression_TupleSelect)d)._index;
+      }
+    }
+    public DAST._IType dtor_fieldType {
+      get {
+        var d = this;
+        return ((Expression_TupleSelect)d)._fieldType;
       }
     }
     public DAST._IExpression dtor_on {
@@ -7277,6 +7400,9 @@ namespace DAST {
       }
     }
     public abstract _IExpression DowncastClone();
+    public bool IsThisUpcast() {
+      return (((this).is_Convert) && (((this).dtor_value).is_This)) && (((this).dtor_from).Extends((this).dtor_typ));
+    }
   }
   public class Expression_Literal : Expression {
     public readonly DAST._ILiteral _a0;
@@ -8199,22 +8325,22 @@ namespace DAST {
     public readonly DAST._IExpression _expr;
     public readonly Dafny.ISequence<Dafny.Rune> _field;
     public readonly DAST._IFieldMutability _fieldMutability;
-    public readonly bool _isDatatype;
-    public readonly DAST._IType _fieldType;
-    public Expression_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, DAST._IFieldMutability fieldMutability, bool isDatatype, DAST._IType fieldType) : base() {
+    public readonly DAST._ISelectContext _selectContext;
+    public readonly DAST._IType _isfieldType;
+    public Expression_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, DAST._IFieldMutability fieldMutability, DAST._ISelectContext selectContext, DAST._IType isfieldType) : base() {
       this._expr = expr;
       this._field = field;
       this._fieldMutability = fieldMutability;
-      this._isDatatype = isDatatype;
-      this._fieldType = fieldType;
+      this._selectContext = selectContext;
+      this._isfieldType = isfieldType;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_Select(_expr, _field, _fieldMutability, _isDatatype, _fieldType);
+      return new Expression_Select(_expr, _field, _fieldMutability, _selectContext, _isfieldType);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_Select;
-      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._field, oth._field) && object.Equals(this._fieldMutability, oth._fieldMutability) && this._isDatatype == oth._isDatatype && object.Equals(this._fieldType, oth._fieldType);
+      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._field, oth._field) && object.Equals(this._fieldMutability, oth._fieldMutability) && object.Equals(this._selectContext, oth._selectContext) && object.Equals(this._isfieldType, oth._isfieldType);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -8222,8 +8348,8 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._field));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fieldMutability));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isDatatype));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fieldType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._selectContext));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isfieldType));
       return (int) hash;
     }
     public override string ToString() {
@@ -8235,9 +8361,9 @@ namespace DAST {
       s += ", ";
       s += Dafny.Helpers.ToString(this._fieldMutability);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._isDatatype);
+      s += Dafny.Helpers.ToString(this._selectContext);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._fieldType);
+      s += Dafny.Helpers.ToString(this._isfieldType);
       s += ")";
       return s;
     }

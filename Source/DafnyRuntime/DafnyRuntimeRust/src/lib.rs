@@ -3954,6 +3954,15 @@ impl <T: ?Sized, U: ?Sized> UpcastBox<T> for Box<U>
     }
 }
 
+pub trait AnyRef {
+    fn as_any_ref(&self) -> &dyn Any;
+}
+
+impl <T: 'static> AnyRef for T {
+    fn as_any_ref(&self) -> &dyn Any {
+        self
+    }
+}
 
 #[macro_export]
 macro_rules! Extends {

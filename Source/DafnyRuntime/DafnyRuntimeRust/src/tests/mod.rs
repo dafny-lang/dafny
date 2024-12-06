@@ -925,6 +925,16 @@ mod tests {
         assert_eq!(resulting_message, message);
     }
 
+    /** Hierarchy implemented
+     * GeneralTraitSuper<T>
+     *  |                \____________________,
+     *  |                                     |
+     * GeneralTraitSuper<i32>                GeneralTraitSuperChild<T>
+     *  |                                     | (via i32)
+     * GeneralTrait                          CDatatype
+     *  |         |
+     * ADatatype  BDatatype
+     */
     
     trait _Downcast_GeneralTrait {
         fn _is(&self) -> bool;
@@ -936,11 +946,24 @@ mod tests {
         fn _is(&self) -> bool;
         fn _as(&self) -> ADatatype; // For trait objects, Object or Ptr instead of Box
     }
+    trait _Downcast_CDatatype {
+        fn _is(&self) -> bool;
+        fn _as(&self) -> CDatatype; // For trait objects, Object or Ptr instead of Box
+    }
 
     // Every general trait must declare how to clone a Box<dyn .> of itself
-    trait GeneralTraitSuper<T>: _Downcast_GeneralTrait + _Downcast_ADatatype {
+    trait GeneralTraitSuper<T>: _Downcast_GeneralTrait + AnyRef + _Downcast_GeneralTraitSuperChild<T> {
         fn _clone(&self) -> Box<dyn GeneralTraitSuper<T>>;
     }
+    trait GeneralTraitSuperChild<T>: GeneralTraitSuper<T> {
+        fn _clone(&self) -> Box<dyn GeneralTraitSuperChild<T>>;
+    }
+    
+    trait _Downcast_GeneralTraitSuperChild<T> {
+        fn _is(&self) -> bool;
+        fn _as(&self) -> Box<dyn GeneralTraitSuperChild<T>>; // For trait objects, Object or Ptr instead of Box
+    }
+
     impl <T> Clone for Box<dyn GeneralTraitSuper<T>> {
         fn clone(&self) -> Self {
             GeneralTraitSuper::_clone(self.as_ref())
@@ -973,15 +996,15 @@ mod tests {
             Box::new(self.clone()) as Box<dyn GeneralTrait>
         }
     }
-    impl _Downcast_ADatatype for ADatatype {
+    impl _Downcast_ADatatype for dyn Any {
         fn _is(&self) -> bool {
-            true
+            self.downcast_ref::<ADatatype>().is_some()
         }
         fn _as(&self) -> ADatatype {
-            self.clone()
+            self.downcast_ref::<ADatatype>().unwrap().clone() // Optimization: Could be unwrap_unchecked
         }
     }
-    impl _Downcast_GeneralTrait for ADatatype {
+    impl <T: GeneralTrait> _Downcast_GeneralTrait for T {
         fn _is(&self) -> bool {
             true
         }
@@ -994,6 +1017,14 @@ mod tests {
             Box::new(self.clone())
         }
     }
+    impl _Downcast_GeneralTraitSuperChild<i32> for ADatatype {
+        fn _is(&self) -> bool {
+            false
+        }
+        fn _as(&self) -> Box<dyn GeneralTraitSuperChild<i32>> {
+            panic!("cannot")
+        }
+    }
     impl UpcastBox<dyn GeneralTrait> for ADatatype {
         fn upcast(&self) -> ::std::boxed::Box<dyn GeneralTrait> {
             GeneralTrait::_clone(self)
@@ -1004,26 +1035,82 @@ mod tests {
             GeneralTraitSuper::<i32>::_clone(self)
         }
     }
+
+    #[derive(Clone, PartialEq, Debug)]
+    pub struct CDatatype { i: u32 }
+    impl _Downcast_CDatatype for dyn Any {
+        fn _is(&self) -> bool {
+            self.downcast_ref::<CDatatype>().is_some()
+        }
+        fn _as(&self) -> CDatatype {
+            self.downcast_ref::<CDatatype>().unwrap().clone() // Optimization: Could be unwrap_unchecked
+        }
+    }
+    impl UpcastBox<dyn GeneralTraitSuper<i32>> for CDatatype {
+        fn upcast(&self) -> ::std::boxed::Box<dyn GeneralTraitSuper<i32>> {
+            GeneralTraitSuper::<i32>::_clone(self)
+        }
+    }
+    impl UpcastBox<dyn GeneralTraitSuperChild<i32>> for CDatatype {
+        fn upcast(&self) -> ::std::boxed::Box<dyn GeneralTraitSuperChild<i32>> {
+            GeneralTraitSuperChild::<i32>::_clone(self)
+        }
+    }
+
+    impl GeneralTraitSuper<i32> for CDatatype {
+        fn _clone(&self) -> Box<dyn GeneralTraitSuper<i32>> {
+             Box::new(self.clone())
+        }
+    }
+    impl GeneralTraitSuperChild<i32> for CDatatype {
+        fn _clone(&self) -> Box<dyn GeneralTraitSuperChild<i32>> {
+            Box::new(self.clone())
+        }
+    }
+    impl _Downcast_GeneralTraitSuperChild<i32> for CDatatype {
+        fn _is(&self) -> bool {
+            true
+        }
+        fn _as(&self) -> Box<dyn GeneralTraitSuperChild<i32>> {
+            GeneralTraitSuperChild::<i32>::_clone(self)
+        }
+    }
+    impl _Downcast_GeneralTrait for CDatatype { // CDatatype does not extend general trait
+        fn _is(&self) -> bool {
+            false
+        }
+        fn _as(&self) -> Box<dyn GeneralTrait> {
+            panic!("CDatatype does not extend GeneralTrait")
+        }
+    }
     #[test]
     fn test_general_traits() {
         let x = ADatatype{i: 3};
         let gt = upcast_box::<ADatatype, dyn GeneralTrait>()(x.clone());
         let gts = upcast_box::<ADatatype, dyn GeneralTraitSuper<i32>>()(x.clone());
         let gtgts = upcast_box_box::<dyn GeneralTrait, dyn GeneralTraitSuper<i32>>()(gt.clone());
-        assert!(_Downcast_ADatatype::_is(AsRef::as_ref(&gt)));
-        assert!(_Downcast_ADatatype::_is(AsRef::as_ref(&gts)));
-        assert!(_Downcast_ADatatype::_is(AsRef::as_ref(&gtgts)));
+        assert!(_Downcast_ADatatype::_is(AnyRef::as_any_ref(AsRef::as_ref(&gt))));
+        assert!(_Downcast_ADatatype::_is(AnyRef::as_any_ref(AsRef::as_ref(&gts))));
+        assert!(_Downcast_ADatatype::_is(AnyRef::as_any_ref(AsRef::as_ref(&gtgts))));
         assert!(_Downcast_GeneralTrait::_is(AsRef::as_ref(&gts)));
         assert!(_Downcast_GeneralTrait::_is(AsRef::as_ref(&gtgts)));
-        assert_eq!(_Downcast_ADatatype::_as(AsRef::as_ref(&gt)), x);
-        assert_eq!(_Downcast_ADatatype::_as(AsRef::as_ref(&gts)), x);
-        assert_eq!(_Downcast_ADatatype::_as(AsRef::as_ref(&gtgts)), x);
+        assert_eq!(_Downcast_ADatatype::_as(AnyRef::as_any_ref(AsRef::as_ref(&gt))), x);
+        assert_eq!(_Downcast_ADatatype::_as(AnyRef::as_any_ref(AsRef::as_ref(&gts))), x);
+        assert_eq!(_Downcast_ADatatype::_as(AnyRef::as_any_ref(AsRef::as_ref(&gtgts))), x);
         let gtsgt = _Downcast_GeneralTrait::_as(AsRef::as_ref(&gts));
         let gtgtsgt = _Downcast_GeneralTrait::_as(AsRef::as_ref(&gtgts));
-        assert!(_Downcast_ADatatype::_is(AsRef::as_ref(&gtsgt)));
-        assert!(_Downcast_ADatatype::_is(AsRef::as_ref(&gtgtsgt)));
-        assert_eq!(_Downcast_ADatatype::_as(AsRef::as_ref(&gtsgt)), x);
-        assert_eq!(_Downcast_ADatatype::_as(AsRef::as_ref(&gtsgt)), x);
+        assert!(_Downcast_ADatatype::_is(AnyRef::as_any_ref(AsRef::as_ref(&gtsgt))));
+        assert!(_Downcast_ADatatype::_is(AnyRef::as_any_ref(AsRef::as_ref(&gtgtsgt))));
+        assert_eq!(_Downcast_ADatatype::_as(AnyRef::as_any_ref(AsRef::as_ref(&gtsgt))), x);
+        assert_eq!(_Downcast_ADatatype::_as(AnyRef::as_any_ref(AsRef::as_ref(&gtsgt))), x);
+        let xc = CDatatype{i: 3};
+        let gtc = upcast_box::<CDatatype, dyn GeneralTraitSuper<i32>>()(xc.clone());
+        let gcsc = upcast_box::<CDatatype, dyn GeneralTraitSuperChild<i32>>()(xc.clone());
+        let gtcsc = _Downcast_GeneralTraitSuperChild::<i32>::_as(AsRef::as_ref(&gtc));
+        let xc1 = _Downcast_CDatatype::_as(AnyRef::as_any_ref(AsRef::as_ref(&gcsc)));
+        let xc2 = _Downcast_CDatatype::_as(AnyRef::as_any_ref(AsRef::as_ref(&gtcsc)));
+        assert_eq!(xc, xc1);
+        assert_eq!(xc, xc2);
     }
     /*impl GeneralTrait for Rc<ADatatype> {
         fn _clone(&self) -> Box<dyn GeneralTrait> {

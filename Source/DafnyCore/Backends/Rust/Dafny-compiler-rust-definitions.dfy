@@ -291,6 +291,12 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     predicate IsSelf() {
       ThisTyped? && rSelfName == "self"
     }
+    predicate IsGeneralTrait() {
+      ThisTyped? && dafnyType.IsGeneralTrait()
+    }
+    predicate IsClassOrObjectTrait() {
+      ThisTyped? && dafnyType.IsClassOrObjectTrait()
+    }
   }
 
   datatype ExternAttribute =
@@ -742,7 +748,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.NoDoc, R.NoAttr,
       R.PRIV,
       R.Fn(
-        "_as_any", [], [R.Formal.selfBorrowed], Some(R.Borrowed(R.DynType(R.std.MSel("any").MSel("Any").AsType()))),
+        "_as_any", [], [R.Formal.selfBorrowed], Some(R.Borrowed(R.DynType(R.AnyTrait))),
         Some(R.self)))
 
   function UnaryOpsImpl(
@@ -855,7 +861,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   /*   
   pub trait _Downcast_BDatatype<T> {
     fn _is(&self) -> bool;
-    fn _as(&self) -> Rc<BDatatype<T>>;
+    fn _as(&self) -> Rc<BDatatype<T>> or ADatatype<T> or Box<dyn SuperTrait>;
   } */
   function DowncastTraitDeclFor(
     rTypeParamsDecls: seq<R.TypeParamDecl>,
@@ -889,40 +895,66 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   }
 
   /*
-  impl _Downcast_ADatatype for ADatatype {
+    impl _Downcast_TypeToDowncastTo for dyn Any {
     fn _is(&self) -> bool {
-      true
+        self.downcast_ref::<TypeToDowncastTo>().is_some()
     }
-    fn _as(&self) -> ADatatype {
-      self.clone()
-    }
-  }
-
-  impl _Downcast_BDatatype for ADatatype {
-    fn _is(&self) -> bool {
-      false
-    }
-    fn _as(&self) -> Rc<BDatatype> {
-      panic!("ADatatype is not a BDatatype")
+    fn _as(&self) -> TypeToDowncastTo { // Possibly wrapped with rc
+        self.downcast_ref::<TypeToDowncastTo>().unwrap().clone() // Optimization: Could be unwrap_unchecked
     }
   } */
   function DowncastImplFor(
     rTypeParamsDecls: seq<R.TypeParamDecl>,
-    typeToDowncastTo: R.Type,
-    forType: R.Type
+    datatypeType: R.Type
   ): Option<R.ModDecl> {
-    var downcast_type :- typeToDowncastTo.ToDowncast();
-    var forTypeRaw := if forType.IsRc() then forType.RcUnderlying() else forType;
-    var sameType := typeToDowncastTo == forType;
+    var downcast_type :- datatypeType.ToDowncast();
+    var isRc := datatypeType.IsRc();
+    var datatypeTypeRaw := if isRc then datatypeType.RcUnderlying() else datatypeType;
+    var isBody :=
+      R.self.Sel("downcast_ref").ApplyType([datatypeTypeRaw]).Apply0().Sel("is_some").Apply0();
     var asBody :=
-      if sameType then
-        var body := R.self.Clone();
-        if forType.IsRc() then
-          R.RcNew(body)
-        else
-          body
-      else
-        R.Identifier("panic!").Apply1(R.LiteralString(forTypeRaw.ToString("")+" is not a "+typeToDowncastTo.ToString(""), false, true));
+      R.self.Sel("downcast_ref").ApplyType([datatypeTypeRaw]).Apply0().Sel("unwrap").Apply0().Sel("clone").Apply0();
+    var asBody := if isRc then R.RcNew(asBody) else asBody;
+    Some(
+      R.ImplDecl(
+        R.ImplFor(
+          rTypeParamsDecls,
+          downcast_type,
+          R.DynType(R.AnyTrait),
+          [ R.FnDecl(
+              R.NoDoc, R.NoAttr,
+              R.PRIV,
+              R.Fn("_is", [], [R.Formal.selfBorrowed], Some(R.Bool), Some(isBody))),
+            R.FnDecl(
+              R.NoDoc, R.NoAttr,
+              R.PRIV,
+              R.Fn("_as", [], [R.Formal.selfBorrowed], Some(datatypeType), Some(asBody)))
+          ]))
+    )
+  }
+
+  /* 
+  impl _Downcast_SuperSubTrait for ADatatype {
+    fn _is(&self) -> bool {
+      true
+    }
+    fn _as(&self) -> Box<dyn SuperSubTrait> {
+      Box::new(self.clone())
+    }
+  }
+ */
+  function DowncastImplTraitFor(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    traitType: R.Type,
+    implementsTrait: bool,
+    datatypeType: R.Type
+  ): Option<R.ModDecl> {
+    var downcast_type :- traitType.ToDowncast();
+    var isRc := datatypeType.IsRc();
+    var forType := if isRc then datatypeType.RcUnderlying() else datatypeType;
+    var resultType := traitType;
+    var isBody := R.LiteralBool(implementsTrait);
+    var asBody := R.BoxNew(R.self.Clone());
     Some(
       R.ImplDecl(
         R.ImplFor(
@@ -932,19 +964,11 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
           [ R.FnDecl(
               R.NoDoc, R.NoAttr,
               R.PRIV,
-              R.Fn(
-                "_is", [],
-                [R.Formal.selfBorrowed],
-                Some(R.Bool),
-                Some(R.LiteralBool(sameType)))),
+              R.Fn("_is", [], [R.Formal.selfBorrowed], Some(R.Bool), Some(isBody))),
             R.FnDecl(
               R.NoDoc, R.NoAttr,
               R.PRIV,
-              R.Fn(
-                "_as", [],
-                [R.Formal.selfBorrowed],
-                Some(forType),
-                Some(asBody)))
+              R.Fn("_as", [], [R.Formal.selfBorrowed], Some(resultType), Some(asBody)))
           ]))
     )
   }

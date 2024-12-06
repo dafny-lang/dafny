@@ -157,6 +157,14 @@ module {:extern "DAST"} DAST {
       }
     }
 
+    predicate IsClassOrObjectTrait() {
+      match this {
+        case UserDefined(ResolvedType(_, _, base, _, _, _)) =>
+          base.Class? || (base.Trait? && base.traitType.ObjectTrait?)
+        case _ => false
+      }
+    }
+
     predicate IsDatatype() {
       match this {
         case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
@@ -414,6 +422,9 @@ module {:extern "DAST"} DAST {
     Submultiset() | ProperSubmultiset() | MultisetDisjoint() |
     Concat() |
     Passthrough(string)
+  
+  datatype SelectContext =
+    SelectContextDatatype | SelectContextGeneralTrait | SelectContextClassOrObjectTrait
 
   datatype Expression =
     Literal(Literal) |
@@ -445,7 +456,7 @@ module {:extern "DAST"} DAST {
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
     MapItems(expr: Expression) |
-    Select(expr: Expression, field: VarName, fieldMutability: FieldMutability, isDatatype: bool, fieldType: Type) |
+    Select(expr: Expression, field: VarName, fieldMutability: FieldMutability, selectContext: SelectContext, isfieldType: Type) |
     SelectFn(expr: Expression, field: VarName, onDatatype: bool, isStatic: bool, isConstant: bool, arguments: seq<Type>) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |
@@ -466,7 +477,11 @@ module {:extern "DAST"} DAST {
     ExactBoundedPool(of: Expression) |
     IntRange(elemType: Type, lo: Expression, hi: Expression, up: bool) |
     UnboundedIntRange(start: Expression, up: bool) |
-    Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression)
+    Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression) {
+    predicate IsThisUpcast() {
+      Convert? && value.This? && from.Extends(typ)
+    }
+  }
 
   // Since constant fields need to be set up in the constructor,
   // accessing constant fields is done in two ways:

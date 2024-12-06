@@ -595,7 +595,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         implBodyImplementingOtherTraits := implBodyImplementingOtherTraits - {otherTrait};
       }
-      var parents := [];
+      var parents: seq<R.Type> := [];
       var upcastImplemented := [];
       for i := 0 to |t.parents| {
         var parentTyp := t.parents[i];
@@ -610,30 +610,19 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         parents := parents + [parentTpe];
         var upcastTrait := if parentTyp.IsGeneralTrait() then "UpcastBox" else Upcast;
         parents := parents + [R.dafny_runtime.MSel(upcastTrait).AsType().Apply1(R.DynType(parentTpe))];
-        if parentTyp.IsGeneralTrait() {
-          /*impl UpcastBox<dyn GeneralTraitSuper> for Box<dyn GeneralTrait> {
-              fn upcast(&self) -> ::std::boxed::Box<dyn GeneralTraitSuper> {
-                GeneralTrait::<GeneralTraitSuper>::_clone(self.as_ref())
-              }
-            }*/
-          upcastImplemented := upcastImplemented + [
-            R.ImplDecl(
-              R.ImplFor(
-                rTypeParamsDecls,
-                R.dafny_runtime.MSel("UpcastBox").AsType().Apply1(R.DynType(parentTpe)),
-                R.Box(R.DynType(traitFullType)),
-                [ R.FnDecl(
-                    R.NoDoc, R.NoAttr,
-                    R.PRIV,
-                    R.Fn(
-                      "upcast",
-                      [], [R.Formal.selfBorrowed],
-                      Some(R.Box(R.DynType(parentTpe))),
-                      Some(parentTpeExpr.FSel("_clone").Apply1(R.self.Sel("as_ref").Apply0()))
-                    )
-                  )]))
-          ];
+      }
+      var downcastDefinition := [];
+      var instantiatedFullType := R.Box(R.DynType(traitFullType));
+      if |t.parents| > 0 { // We will need to downcast
+        var downcastDefinitionOpt := DowncastTraitDeclFor(rTypeParamsDecls, instantiatedFullType);
+        if downcastDefinitionOpt.None? {
+          var dummy := Error("Could not generate downcast definition for " + instantiatedFullType.ToString(""));
+        } else {
+          downcastDefinition := [downcastDefinitionOpt.value];
         }
+      } else if t.traitType.GeneralTrait? {
+        // Any top-most general trait must extend AnyRef so that we can perform downcasts to actual datatypes
+        parents := [R.dafny_runtime.MSel("AnyRef").AsType()] + parents;
       }
       s := [
         R.TraitDecl(
@@ -643,15 +632,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             parents,
             implBody
           ))];
-      if |t.parents| > 0 { // We will need to downcast
-        var instantiatedFullType := R.Box(R.DynType(traitFullType));
-        var downcastDefinitionOpt := DowncastTraitDeclFor(rTypeParamsDecls, instantiatedFullType);
-        if downcastDefinitionOpt.None? {
-          var dummy := Error("Could not generate downcast definition for " + instantiatedFullType.ToString(""));
-        } else {
-          s := s + [downcastDefinitionOpt.value];
-        }
-      }
+      s := s + downcastDefinition;
       if t.traitType.GeneralTrait? {
         s := s + [
           /*impl Clone for Box<dyn Test> {
@@ -1227,12 +1208,26 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         } else {
           s := s + [downcastDefinitionOpt.value];
         }
-        var downcastImplementationsOpt := DowncastImplFor(rTypeParamsDecls, fullType, fullType);
+        var downcastImplementationsOpt := DowncastImplFor(rTypeParamsDecls, fullType);
         if downcastImplementationsOpt.None? {
           var dummy := Error("Could not generate downcast implementation for " + fullType.ToString(""));
-          // TODO: Do all cousin types
         } else {
           s := s + [downcastImplementationsOpt.value];
+        }
+        for i := 0 to |c.superTraitTypes| {
+          var c := c.superTraitTypes[i];
+          if c.UserDefined? && c.resolved.kind.Trait? && |c.resolved.extendedTypes| == 0 {
+            continue; // No need to generate this Downcast implementation
+          }
+          var cType := GenType(c, GenTypeContext.default());
+          // TODO: Gather also all trait that traits know they extend but are not among the traits the datatype extends.
+          var isImplementing := true;
+          var downcastImplementationsOpt := DowncastImplTraitFor(rTypeParamsDecls, cType, isImplementing, fullType);
+          if downcastImplementationsOpt.None? {
+            var dummy := Error("Could not generate downcast implementation of "+cType.ToString("")+" for " + fullType.ToString(""));
+          } else {
+            s := s + [downcastImplementationsOpt.value];
+          }
         }
       }
 
@@ -2095,9 +2090,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             // General traits borrow their self, from a Box<dyn TraitName>
             // The underlying type is a Box<dyn TraitName>, self: Datatype or Rc<Datatype>
             // 'on' is going to return an owned version of this box.
-            onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
-            onExpr := FromGeneralBorrowToSelfBorrow(onExpr, recOwnership, env);
-            readIdents := readIdents + recIdents;
+
+            /*if on.IsThisUpcast() {
+              // Special case, in Rust, we don't need to upcast "self" because upcasted methods are automatically available
+              onExpr := R.self; // Already self borrow
+              readIdents := readIdents + {"self"};
+            } else {*/
+              onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
+              onExpr := FromGeneralBorrowToSelfBorrow(onExpr, recOwnership, env);
+              readIdents := readIdents + recIdents;
+            //}
           } else if base.Newtype? && IsNewtypeCopy(base.range) {
             // The self type of a newtype that is copy is also copy
             onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipOwned);
@@ -2109,7 +2111,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
           r := fullPath.ApplyType(onTypeExprs).FSel(escapeName(name.name)).ApplyType(typeExprs).Apply([onExpr] + argExprs);
         case _ => // Infix call on.name(args) or Companion::name(args)
-          var onExpr, _, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
+          var onExpr, recIdents, dummy;
+          /*if on.IsThisUpcast() {
+            // Special case, in Rust, we don't need to upcast "self" because upcasted methods are automatically available
+            onExpr := R.self; // Already self borrow
+            recIdents := {"self"};
+          } else {*/
+            onExpr, dummy, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
+          //}
           readIdents := readIdents + recIdents;
           var renderedName := GetMethodName(on, name);
           // Pointers in the role of "self" must be converted to borrowed versions.
@@ -3075,7 +3084,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           underlying
         else
           underlying.Clone() // Auto-borrow allows for implicit code
-      case _ => expr.Clone()
+      case _ =>
+        expr.Clone()
     }
     
     method GenExprConvertOther(
@@ -3119,7 +3129,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 }
               }
             }
-            newExpr := FromGeneralBorrowToSelfBorrow(expr, OwnershipBorrowed, env);
+            newExpr := FromGeneralBorrowToSelfBorrow(newExpr, OwnershipBorrowed, env);
+            if isDatatype {
+              newExpr := R.dafny_runtime.MSel("AnyRef").AsExpr().FSel("as_any_ref").Apply1(newExpr);
+            }
             r := toTpeRawDowncastOpt.value.FSel("_as").Apply1(newExpr);
             r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
             return;
@@ -3138,8 +3151,20 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if upcastConverter.Success? {
         var conversionLambda := upcastConverter.value;
         if exprOwnership == OwnershipBorrowed {
-          // we need the value to be owned for conversion
-          r := BorrowedToOwned(r, env);
+          if fromTyp.IsGeneralTrait() && r == R.Identifier("self") {
+            // The self in this case does not implement the clone method, we need to call _clone from the trait
+            // Similar to the code at the end of GenIdent()
+            var traitType := GenType(fromTyp, GenTypeContext.ForTraitParents());
+            var traitExpr := traitType.ToExpr();
+            if traitExpr.None? {
+              r := Error("Could not convert " + traitType.ToString("") + " to an expression");
+            } else {
+              r := traitExpr.value.FSel("_clone").Apply1(r);
+            }
+          } else {
+            // we need the value to be owned for conversion
+            r := BorrowedToOwned(r, env);
+          }
         }
         r := conversionLambda.Apply1(r);
         r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
@@ -3217,18 +3242,25 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         resultingOwnership := OwnershipBorrowedMut;
       } else if expectedOwnership == OwnershipOwned {
-        var needObjectFromRef :=
-          isSelf &&
-          match selfIdent.dafnyType {
-            case UserDefined(ResolvedType(_, _, base, attributes, _, _)) =>
-              base.Class? || (base.Trait? && base.traitType.ObjectTrait?)
-            case _ => false
-          };
+        var needObjectFromRef := isSelf && selfIdent.IsClassOrObjectTrait();
         if needObjectFromRef {
           r := R.dafny_runtime.MSel("Object").AsExpr().ApplyType([R.TIdentifier("_")]).FSel("from_ref").Apply([r]);
         } else {
           if !noNeedOfClone {
-            r := r.Clone(); // We don't transfer the ownership of an identifier
+            var needUnderscoreClone := isSelf && selfIdent.IsGeneralTrait();
+            if needUnderscoreClone {
+              // In the case when self: &Self and self is a general trait, self.Clone() == self so it's useless.
+              // What we need is to build self._clone(), and since _clone() can be ambiguous, we need the full trait type instead.
+              var traitType := GenType(selfIdent.dafnyType, GenTypeContext.ForTraitParents());
+              var traitExpr := traitType.ToExpr();
+              if traitExpr.None? {
+                r := Error("Could not convert " + traitType.ToString("") + " to an expression");
+              } else {
+                r := traitExpr.value.FSel("_clone").Apply1(r);
+              }
+            } else {
+              r := r.Clone(); // We don't transfer the ownership of an identifier
+            }
           }
         }
         resultingOwnership := OwnershipOwned;
@@ -3836,7 +3868,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := recIdents;
           return;
         }
-        case Select(on, field, fieldMutability, isDatatype, fieldType) => {
+        case Select(on, field, fieldMutability, selectContext, fieldType) => {
           if on.Companion? || on.ExternCompanion? {
             var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
 
@@ -3846,7 +3878,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;
             return;
-          } else if isDatatype {
+          } else if selectContext.SelectContextDatatype? {
             var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
             // onExpr.field()
             r := onExpr.Sel(escapeVar(field)).Apply0();
@@ -3861,6 +3893,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             var typ := GenType(fieldType, GenTypeContext.default());
             // All fields are returned as addresses for now until we have something more clever
             r, resultingOwnership := FromOwnership(r, originalMutability, expectedOwnership);
+            readIdents := recIdents;
+          } else if selectContext.SelectContextGeneralTrait? {
+            var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
+            r := onExpr;
+            if onExpr != R.self {
+              r := R.std.MSel("convert").MSel("AsRef").AsExpr().FSel("as_ref").Apply1(r);
+            }
+            r := r.Sel(escapeVar(field)).Apply0();
+            r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;
           } else {
             var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
@@ -4111,12 +4152,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         case Is(expr, fromTyp, toTyp) => {
-          var expr, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
           var fromTpe := GenType(fromTyp, GenTypeContext.default());
           var toTpe := GenType(toTyp, GenTypeContext.default());
           if fromTpe.IsObjectOrPointer() && toTpe.IsObjectOrPointer() {
+            var expr, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
             r := expr.Sel("is_instance_of").ApplyType([toTpe.ObjectOrPointerUnderlying()]).Apply0();
+            r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
+            readIdents := recIdents;
           } else {
+            var expr, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipBorrowed);
             var isDatatype := toTyp.IsDatatype();
             var isGeneralTrait := !isDatatype && toTyp.IsGeneralTrait();
             if isDatatype || isGeneralTrait { // TODO: Detect downcast/upcast
@@ -4126,6 +4170,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 var toTpeRaw := GenType(underlyingType,  GenTypeContext.default());
                 var toTpeRawDowncastOpt: Option<R.Expr> := toTpeRaw.ToDowncastExpr();
                 if toTpeRawDowncastOpt.Some? {
+                  expr := FromGeneralBorrowToSelfBorrow(expr, OwnershipBorrowed, env);
+                  if isDatatype {
+                    expr := R.dafny_runtime.MSel("AnyRef").AsExpr().FSel("as_any_ref").Apply1(expr);
+                  }
                   r := toTpeRawDowncastOpt.value.FSel("_is").Apply1(expr);
                   recOwned := OwnershipOwned();
                 } else {
@@ -4137,9 +4185,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             } else {
               r := Error("Source and/or target types of type test is/are not Object, Ptr, General trait or Datatype");
             }
+            r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
+            readIdents := recIdents;
           }
-          r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
-          readIdents := recIdents;
           return;
         }
         case BoolBoundedPool() => {
