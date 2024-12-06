@@ -247,11 +247,11 @@ public class CliCompilation {
 
     int done = 0;
 
-    var canVerifiesPerModule = canVerifies.ToList().GroupBy(c => c.ContainingModule).ToList();
+    var canVerifiesPerModule = canVerifies.GroupBy(c => c.ContainingModule);
     foreach (var canVerifiesForModule in canVerifiesPerModule.
                OrderBy(v => v.Key.Tok.pos)) {
-      var orderedCanVerifies = canVerifiesForModule.OrderBy(v => v.Tok.pos).ToList();
-      foreach (var canVerify in orderedCanVerifies) {
+      var toAwait = new List<ICanVerify>();
+      foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Tok.pos)) {
         var results = new CliCanVerifyState();
         canVerifyResults[canVerify] = results;
         if (line != null) {
@@ -259,12 +259,12 @@ public class CliCompilation {
         }
 
         var shouldVerify = await Compilation.VerifyLocation(canVerify.Tok.GetFilePosition(), results.TaskFilter, randomSeed);
-        if (!shouldVerify) {
-          canVerifies.ToList().Remove(canVerify);
+        if (shouldVerify) {
+          toAwait.Add(canVerify);
         }
       }
 
-      foreach (var canVerify in orderedCanVerifies) {
+      foreach (var canVerify in toAwait) {
         var results = canVerifyResults[canVerify];
         try {
           if (Options.Get(CommonOptionBag.ProgressOption) > CommonOptionBag.ProgressLevel.None) {
