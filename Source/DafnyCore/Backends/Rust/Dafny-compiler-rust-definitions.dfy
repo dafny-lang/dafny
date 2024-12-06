@@ -933,6 +933,41 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     )
   }
 
+  /*
+    impl  _Downcast_TraitNotImplemented
+    for CDatatype {
+      fn _is(&self) -> bool { false }
+      fn _as(&self) -> Box<dyn TraitNotImplemented> { panic!(); }
+    }
+   */
+  function DowncastNotImplFor(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    traitType: R.Type,
+    datatypeType: R.Type
+  ): Option<R.ModDecl> {
+    var downcast_type :- traitType.ToDowncast();
+    var isRc := datatypeType.IsRc();
+    var datatypeTypeRaw := if isRc then datatypeType.RcUnderlying() else datatypeType;
+    var isBody := R.LiteralBool(false);
+    var asBody := R.Identifier("panic!").Apply0();
+    Some(
+      R.ImplDecl(
+        R.ImplFor(
+          rTypeParamsDecls,
+          downcast_type,
+          datatypeTypeRaw,
+          [ R.FnDecl(
+              datatypeTypeRaw.ToString("") + " does not implement that trait", R.NoAttr,
+              R.PRIV,
+              R.Fn("_is", [], [R.Formal.selfBorrowed], Some(R.Bool), Some(isBody))),
+            R.FnDecl(
+              R.NoDoc, R.NoAttr,
+              R.PRIV,
+              R.Fn("_as", [], [R.Formal.selfBorrowed], Some(traitType), Some(asBody)))
+          ]))
+    )
+  }
+
   /* 
   impl _Downcast_SuperSubTrait for ADatatype {
     fn _is(&self) -> bool {

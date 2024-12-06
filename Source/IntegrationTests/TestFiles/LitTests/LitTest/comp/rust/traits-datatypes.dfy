@@ -39,6 +39,12 @@ datatype BDatatype extends DatatypeOps<int> = BDatatype(i: int) {
   function GetInt(): int { i }
 }
 
+datatype CDatatype extends SuperTrait = CDatatype(i: int) { // But not superSubTrait
+  function GetBool(): bool {
+    i % 2 == 0
+  }
+}
+
 method StaticWithGenerics<T>(c: bool, a: T, b: T) returns (t: T){
   if c {
     t := a;
@@ -151,8 +157,20 @@ method MainBDatatype() {
   var sxa := sx as BDatatype;
 }
 
+method MainCDatatype() {
+  var c := CDatatype(1);
+  var s := c as SuperTrait;
+  expect c.GetBool() == s.GetBool();
+  expect !(s is SuperSubTrait);
+  expect c is CDatatype;
+  expect !(s is ADatatype);
+  var d := s as CDatatype;
+  expect c == d;
+}
+
 method Main() {
   MainADatatype();
   MainBDatatype();
+  MainCDatatype();
   print "Main passed all the tests";
 }

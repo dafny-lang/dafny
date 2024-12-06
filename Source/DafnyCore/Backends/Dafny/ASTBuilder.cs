@@ -166,9 +166,9 @@ namespace Microsoft.Dafny.Compilers {
   interface TraitContainer : Container {
     void AddTrait(Trait item);
 
-    public TraitBuilder Trait(string name, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents,
-      ISequence<_IAttribute> attributes, string docString, _ITraitType traitType) {
-      return new TraitBuilder(this, name, docString, typeParams, parents, attributes, traitType);
+    public TraitBuilder Trait(string name, List<TypeArgDecl> typeParams, List<DAST.Type> parents,
+      ISequence<_IAttribute> attributes, string docString, _ITraitType traitType, List<DAST.Type> downcastableTraits) {
+      return new TraitBuilder(this, name, docString, typeParams, parents, attributes, traitType, downcastableTraits);
     }
   }
 
@@ -179,16 +179,18 @@ namespace Microsoft.Dafny.Compilers {
     private readonly List<DAST.Type> parents;
     readonly List<DAST.Method> body = new();
     private ISequence<_IAttribute> attributes;
-    private string docString;
-    private _ITraitType traitType;
+    private readonly string docString;
+    private readonly _ITraitType traitType;
+    private readonly List<DAST.Type> downcastableTraits;
 
-    public TraitBuilder(TraitContainer parent, string name, string docString, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents, ISequence<_IAttribute> attributes, _ITraitType traitType) {
+    public TraitBuilder(TraitContainer parent, string name, string docString, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents, ISequence<_IAttribute> attributes, _ITraitType traitType, List<DAST.Type> downcastableTraits) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
       this.attributes = attributes;
       this.docString = docString;
       this.traitType = traitType;
+      this.downcastableTraits = downcastableTraits;
       this.parents = parents;
     }
 
@@ -215,6 +217,7 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.TypeArgDecl>.FromArray(typeParams.ToArray()),
         traitType,
         Sequence<DAST.Type>.FromArray(parents.ToArray()),
+        Sequence<DAST.Type>.FromArray(downcastableTraits.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),
         attributes)
       );
@@ -341,9 +344,10 @@ namespace Microsoft.Dafny.Compilers {
   interface DatatypeContainer : Container {
     void AddDatatype(Datatype item);
 
-    public DatatypeBuilder Datatype(string name, string enclosingModule, List<DAST.TypeArgDecl> typeParams,
-      List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, string docString, List<DAST.Type> superTraitTypes) {
-      return new DatatypeBuilder(this, name, docString, enclosingModule, typeParams, ctors, isCo, attributes, superTraitTypes);
+    public DatatypeBuilder Datatype(string name, string enclosingModule, List<TypeArgDecl> typeParams,
+      List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, string docString,
+      List<DAST.Type> superTraitTypes, List<DAST.Type> superNegativeTraitTypes) {
+      return new DatatypeBuilder(this, name, docString, enclosingModule, typeParams, ctors, isCo, attributes, superTraitTypes, superNegativeTraitTypes);
     }
   }
 
@@ -355,11 +359,12 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<DAST.DatatypeCtor> ctors;
     readonly bool isCo;
     readonly List<DAST.Method> body = new();
-    private ISequence<_IAttribute> attributes;
-    private string docString;
-    private List<DAST.Type> superTraitTypes;
+    readonly ISequence<_IAttribute> attributes;
+    readonly string docString;
+    readonly List<DAST.Type> superTraitTypes;
+    readonly List<DAST.Type> superNegativeTraitTypes;
 
-    public DatatypeBuilder(DatatypeContainer parent, string name, string docString, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, List<DAST.Type> superTraitTypes) {
+    public DatatypeBuilder(DatatypeContainer parent, string name, string docString, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, List<DAST.Type> superTraitTypes, List<DAST.Type> superNegativeTraitTypes) {
       this.parent = parent;
       this.name = name;
       this.docString = docString;
@@ -369,6 +374,7 @@ namespace Microsoft.Dafny.Compilers {
       this.isCo = isCo;
       this.attributes = attributes;
       this.superTraitTypes = superTraitTypes;
+      this.superNegativeTraitTypes = superNegativeTraitTypes;
     }
 
     public void AddMethod(DAST.Method item) {
@@ -388,7 +394,8 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.DatatypeCtor>.FromArray(ctors.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),
         this.isCo, attributes,
-        Sequence<DAST.Type>.FromArray(superTraitTypes.ToArray())
+        Sequence<DAST.Type>.FromArray(superTraitTypes.ToArray()),
+          Sequence<DAST.Type>.FromArray(superNegativeTraitTypes.ToArray())
       ));
       return parent;
     }

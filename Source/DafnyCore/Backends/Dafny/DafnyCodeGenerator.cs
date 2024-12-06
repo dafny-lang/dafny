@@ -268,11 +268,86 @@ namespace Microsoft.Dafny.Compilers {
         var traitType = trait.IsReferenceTypeDecl
           ? DAST.TraitType.create_ObjectTrait()
           : TraitType.create_GeneralTrait();
-
-        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, parents, ParseAttributes(trait.Attributes), GetDocString(trait), traitType));
+        var downcastableTraits = DowncastableTraitsTypes(trait);
+        var downcastableTratitTypes = downcastableTraits.Select(GenType).ToList();
+        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, parents, ParseAttributes(trait.Attributes), GetDocString(trait), traitType, downcastableTratitTypes));
       } else {
         throw new InvalidOperationException();
       }
+    }
+
+    // Given a trait declaration, returns the list of traits that this trait can downcast to,
+    // using its type parameters.
+    private static List<Type> DowncastableTraitsTypes(TraitDecl trait) {
+      var downcastableTraits = new List<Type>();
+      foreach (var subTrait in trait.TraitDeclsCanBeDowncastedTo) {
+        // Recovers which of the parent traits of the subTraits is the current trait declaration
+        var parentTrait = subTrait.ParentTraits.FirstOrDefault(t => t.AsTraitType == trait);
+        if (parentTrait != null && CanDowncast(parentTrait, subTrait, out var downcastType)) {
+          downcastableTraits.Add(downcastType);
+        }
+      }
+
+      return downcastableTraits;
+    }
+
+    /// <summary>
+    /// Given an instantiated parent type of the given subTrait,
+    /// return true if it's possible to describe the trait subTrait from the parent's own type parameters.
+    /// and an instantiation of such type.
+    /// This makes it possible to downcast the trait at run-time.
+    /// For example:
+    ///
+    /// trait Sub extends Parent where trait Parent
+    ///  ===? true and Sub
+    /// trait Sub<A> extends Parent<AInt, A, A, Wrap<A>>   where trait Parent<X, Y, Z>
+    ///   ==> true and Sub<Y>  (could have been Sub<Z> too)
+    /// trait Sub<A, B, C> extends Parent<B, C, A>   where trait Parent<X, Y, Z>
+    ///   ==> true and Sub<Z, X, Y>
+    /// trait Sub<A> extends Parent<Wrap<A>>   where trait Parent<X>
+    ///   ==> false and null
+    /// trait Sub<A> extends Parent<Int>   where trait Parent<X>
+    ///   ==> false and null
+    /// </summary>
+    private static bool CanDowncast(Type parentTrait, TraitDecl subTrait, out Type downcastType) {
+      Contract.Requires(parentTrait.AsTraitType != null);
+      var parentTraitDecl = parentTrait.AsTraitType;
+      var canDowncast = false;
+      downcastType = null;
+      if (parentTrait is UserDefinedType { TypeArgs: var PT }) {
+        // Algorithm:
+        // trait Sub<TC1, ...TCn> extends Parent<PT1, ...PTn>   where trait Parent<TP1, ...TPn>
+        // Foreach type parameter in the parent TPi
+        //   if PTi is some TCj, store the mapping TCj => TPi. We need only to store the first of such mapping
+        //   If PTi is anything else, ok
+        // End of the loop: if not all children type parameters were found, cancel
+        // build the type Sub<TP...> by iterating on the type parameters TC.
+        Contract.Assert(parentTraitDecl.TypeArgs.Count == PT.Count);
+        var mapping = new Dictionary<TypeParameter, Type>();
+        for (var i = 0; i < parentTraitDecl.TypeArgs.Count; i++) {
+          var TP = parentTraitDecl.TypeArgs[i];
+          var maybeTc = PT[i];
+          if (maybeTc is UserDefinedType { ResolvedClass: TypeParameter maybeTc2 }) {
+            if (subTrait.TypeArgs.Contains(maybeTc2) && !mapping.ContainsKey(maybeTc2)) {
+              mapping.Add(maybeTc2, new UserDefinedType(TP));
+            }
+          }
+        }
+
+        var allTypeParametersCovered = subTrait.TypeArgs.TrueForAll(
+          tp => mapping.ContainsKey(tp));
+        if (allTypeParametersCovered) {
+
+          var typeArgs = subTrait.TypeArgs.Select(tp => mapping[tp]).ToList();
+
+          var subTraitTypeDowncastable =
+            new UserDefinedType(Token.NoToken, subTrait.Name, subTrait, typeArgs);
+          downcastType = subTraitTypeDowncastable;
+          canDowncast = true;
+        }
+      }
+
+      return canDowncast;
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
@@ -318,6 +393,8 @@ namespace Microsoft.Dafny.Compilers {
         var superClasses = dt.ParentTypeInformation.UniqueParentTraits();
         var superTraitTypes = superClasses.Select(GenType).ToList();
 
+        var superNegativeTraitTypes = GetNegativeTraitTypes(superClasses);
+
         var datatypeBuilder = builder.Datatype(
           dt.GetCompileName(Options),
           dt.EnclosingModuleDefinition.GetCompileName(Options),
@@ -326,13 +403,43 @@ namespace Microsoft.Dafny.Compilers {
           dt is CoDatatypeDecl,
           ParseAttributes(dt.Attributes),
           GetDocString(dt),
-          superTraitTypes
+          superTraitTypes,
+          superNegativeTraitTypes
         );
 
         return new ClassWriter(this, typeParams.Count > 0, datatypeBuilder);
       } else {
         throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
       }
+    }
+
+    // Given a list of super traits implemented by a datatype,
+    // find the list of all instantiated traits that the super traits can be downcasted to,
+    // but that are not in the super classes,
+    // and return them
+    private List<DAST.Type> GetNegativeTraitTypes(List<Type> superClasses) {
+      var superNegativeTraitTypes = new List<DAST.Type>();
+      var traitDeclsNegative = new HashSet<TraitDecl>();
+      var traitDeclsImplemented = superClasses.Select(t => t.AsTraitType)
+        .Where(t => t != null).ToHashSet();
+      foreach (var superClass in superClasses) {
+        if (superClass.AsTraitType is { } traitDecl) {
+          var downcastableTraitTypes = DowncastableTraitsTypes(traitDecl);
+          foreach (var downcastableTraitType in downcastableTraitTypes) {
+            if (downcastableTraitType is { AsTraitType: { } downcastTraitDecl } &&
+                !traitDeclsNegative.Contains(downcastTraitDecl) && !traitDeclsImplemented.Contains(downcastTraitDecl)) {
+              traitDeclsNegative.Add(downcastTraitDecl);
+              // downcastableTraitType is instantiated with the type parameters of traitDecl
+              var typeParametersInstantiation =
+                traitDecl.TypeArgs.Zip(superClass.TypeArgs).ToDictionary(kv => kv.Item1, kv => kv.Item2);
+              var typeForDatatype = downcastableTraitType.Subst(typeParametersInstantiation);
+              superNegativeTraitTypes.Add(GenType(typeForDatatype));
+            }
+          }
+        }
+      }
+
+      return superNegativeTraitTypes;
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
@@ -1978,7 +2085,7 @@ namespace Microsoft.Dafny.Compilers {
 
     _ISelectContext GetSelectContext(TopLevelDecl decl) {
       return decl is DatatypeDecl or NewtypeDecl ? SelectContext.create_SelectContextDatatype() :
-        decl is TraitDecl { IsReferenceTypeDecl: false} ?
+        decl is TraitDecl { IsReferenceTypeDecl: false } ?
       SelectContext.create_SelectContextGeneralTrait() :
       SelectContext.create_SelectContextClassOrObjectTrait();
     }
@@ -2978,8 +3085,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void EmitTypeTestDAST(Type fromType, Type toType, BuilderSyntaxTree<ExprContainer> builder, DAST.Expression exprDAST)
-    {
+    private void EmitTypeTestDAST(Type fromType, Type toType, BuilderSyntaxTree<ExprContainer> builder, DAST.Expression exprDAST) {
       builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Is(
         exprDAST,
         GenType(fromType),

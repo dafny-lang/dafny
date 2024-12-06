@@ -624,6 +624,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         // Any top-most general trait must extend AnyRef so that we can perform downcasts to actual datatypes
         parents := [R.dafny_runtime.MSel("AnyRef").AsType()] + parents;
       }
+      if |t.downcastableTraits| > 0 {
+        for i := 0 to |t.downcastableTraits| {
+          var downcastableTrait := GenType(t.downcastableTraits[i], GenTypeContext.ForTraitParents());
+          var downcastTraitOpt := downcastableTrait.ToDowncast();
+          if downcastTraitOpt.Some? {
+            parents := parents + [downcastTraitOpt.value];
+          } else {
+            var r := Error("Cannot convert "+downcastableTrait.ToString("")+" to its downcast version");
+          }
+        }
+      }
       s := [
         R.TraitDecl(
           R.Trait(
@@ -1213,6 +1224,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var dummy := Error("Could not generate downcast implementation for " + fullType.ToString(""));
         } else {
           s := s + [downcastImplementationsOpt.value];
+        }
+        for i := 0 to |c.superTraitNegativeTypes| {
+          var negativeTraitType := GenType(c.superTraitNegativeTypes[i], GenTypeContext.default());
+          var downcastDefinitionOpt := DowncastNotImplFor(rTypeParamsDecls, negativeTraitType, fullType);
+          if downcastDefinitionOpt.None? {
+            var dummy := Error("Could not generate negative downcast definition for " + fullType.ToString(""));
+          } else {
+            s := s + [downcastDefinitionOpt.value];
+          }
         }
         for i := 0 to |c.superTraitTypes| {
           var c := c.superTraitTypes[i];
@@ -2091,15 +2111,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             // The underlying type is a Box<dyn TraitName>, self: Datatype or Rc<Datatype>
             // 'on' is going to return an owned version of this box.
 
-            /*if on.IsThisUpcast() {
+            if on.IsThisUpcast() {
               // Special case, in Rust, we don't need to upcast "self" because upcasted methods are automatically available
               onExpr := R.self; // Already self borrow
               readIdents := readIdents + {"self"};
-            } else {*/
+            } else {
               onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
               onExpr := FromGeneralBorrowToSelfBorrow(onExpr, recOwnership, env);
               readIdents := readIdents + recIdents;
-            //}
+            }
           } else if base.Newtype? && IsNewtypeCopy(base.range) {
             // The self type of a newtype that is copy is also copy
             onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipOwned);
@@ -2112,13 +2132,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           r := fullPath.ApplyType(onTypeExprs).FSel(escapeName(name.name)).ApplyType(typeExprs).Apply([onExpr] + argExprs);
         case _ => // Infix call on.name(args) or Companion::name(args)
           var onExpr, recIdents, dummy;
-          /*if on.IsThisUpcast() {
+          if on.IsThisUpcast() {
             // Special case, in Rust, we don't need to upcast "self" because upcasted methods are automatically available
             onExpr := R.self; // Already self borrow
             recIdents := {"self"};
-          } else {*/
+          } else {
             onExpr, dummy, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
-          //}
+          }
           readIdents := readIdents + recIdents;
           var renderedName := GetMethodName(on, name);
           // Pointers in the role of "self" must be converted to borrowed versions.
@@ -3087,7 +3107,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       case _ =>
         expr.Clone()
     }
-    
+
     method GenExprConvertOther(
       expr: R.Expr,
       exprOwnership: Ownership,
@@ -3895,11 +3915,19 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             r, resultingOwnership := FromOwnership(r, originalMutability, expectedOwnership);
             readIdents := recIdents;
           } else if selectContext.SelectContextGeneralTrait? {
-            var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
-            r := onExpr;
-            if onExpr != R.self {
-              r := R.std.MSel("convert").MSel("AsRef").AsExpr().FSel("as_ref").Apply1(r);
+            var onOwned, recIdents;
+            readIdents := {};
+            if on.IsThisUpcast() {
+              // Special case, in Rust, we don't need to upcast "self" because upcasted methods are automatically available
+              r := R.self; // Already self borrow
+              recIdents := {"self"};
+            } else {
+              r, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
+              if r != R.self {
+                r := R.std.MSel("convert").MSel("AsRef").AsExpr().FSel("as_ref").Apply1(r);
+              }
             }
+            readIdents := readIdents + recIdents;
             r := r.Sel(escapeVar(field)).Apply0();
             r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;

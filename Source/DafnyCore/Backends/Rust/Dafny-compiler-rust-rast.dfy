@@ -749,7 +749,7 @@ module RAST
       if t.IsBoxDyn() then t.BoxDynUnderlying().ToDowncast() else // For general traits
       match t {
         case TypeFromPath(path) => Some(TypeFromPath(path.ToDowncast()))
-        case TypeApp(baseName, arguments) =>          
+        case TypeApp(baseName, arguments) =>
           var baseNameExpr :- baseName.ToDowncast();
           Some(baseNameExpr.Apply(arguments))
         case TIdentifier(name) =>
@@ -1122,13 +1122,13 @@ module RAST
     {
       arguments[0]
     }
-    
+
     /** Returns true if the type has the shape Box<dyn T>, so that one can extract T = .arguments[0].underlying
       * Useful to detect general traits */
     predicate IsBoxDyn() {
       this.TypeApp? && this.baseName == BoxType && |arguments| == 1 && arguments[0].DynType?
     }
-    
+
     function BoxDynUnderlying(): (t: Type)
       requires IsBoxDyn()
       ensures t < this

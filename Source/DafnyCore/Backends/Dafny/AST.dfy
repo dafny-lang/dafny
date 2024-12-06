@@ -301,6 +301,7 @@ module {:extern "DAST"} DAST {
     typeParams: seq<TypeArgDecl>,
     traitType: TraitType,
     parents: seq<Type>,
+    downcastableTraits: seq<Type>,
     body: seq<ClassItem>,
     attributes: seq<Attribute>)
 
@@ -313,7 +314,9 @@ module {:extern "DAST"} DAST {
     body: seq<ClassItem>,
     isCo: bool,
     attributes: seq<Attribute>,
-    superTraitTypes: seq<Type>)
+    superTraitTypes: seq<Type>,
+    superTraitNegativeTypes: seq<Type> // Traits that one or more superTraits know they can downcast to, but the datatype does not.
+  )
 
   datatype DatatypeDtor = DatatypeDtor(
     formal: Formal,
@@ -422,7 +425,7 @@ module {:extern "DAST"} DAST {
     Submultiset() | ProperSubmultiset() | MultisetDisjoint() |
     Concat() |
     Passthrough(string)
-  
+
   datatype SelectContext =
     SelectContextDatatype | SelectContextGeneralTrait | SelectContextClassOrObjectTrait
 
