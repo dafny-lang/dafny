@@ -622,7 +622,8 @@ public partial class BoogieGenerator {
   }
 
 
-  private void GenerateAndCheckGuesses(IOrigin tok, List<BoundVar> bvars, List<BoundedPool> bounds, Expression expr, Trigger triggers, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+  private void GenerateAndCheckGuesses(IOrigin tok, List<BoundVar> bvars, List<BoundedPool> bounds, Expression expr,
+    Attributes triggerAttributes, bool autoTriggerSearchFailed, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
     Contract.Requires(tok != null);
     Contract.Requires(bvars != null);
     Contract.Requires(bounds != null);
@@ -630,16 +631,18 @@ public partial class BoogieGenerator {
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
 
-    List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>> partialGuesses = GeneratePartialGuesses(bvars, expr);
+    List<(List<(BoundVar, Expression)>, Expression)> partialGuesses = GeneratePartialGuesses(bvars, expr);
     Bpl.Expr w = Bpl.Expr.False;
     foreach (var tup in partialGuesses) {
       var body = etran.TrExpr(tup.Item2);
       Bpl.Expr typeConstraints = Bpl.Expr.True;
       var undetermined = new List<BoundVar>();
+      var substMap = new Dictionary<IVariable, Expression>();
       foreach (var be in tup.Item1) {
         if (be.Item2 == null) {
           undetermined.Add(be.Item1);
         } else {
+          substMap.Add(be.Item1, be.Item2);
           typeConstraints = BplAnd(typeConstraints, MkIs(etran.TrExpr(be.Item2), be.Item1.Type));
         }
       }
@@ -648,19 +651,20 @@ public partial class BoogieGenerator {
         List<bool> freeOfAlloc = BoundedPool.HasBounds(bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
         var bvs = new List<Variable>();
         var typeAntecedent = etran.TrBoundVariables(undetermined, bvs, false, freeOfAlloc);
+        var triggers = TrTrigger(etran, triggerAttributes, tok, substMap, undetermined);
         body = new Bpl.ExistsExpr(tok, bvs, triggers, BplAnd(typeAntecedent, body));
       }
       w = BplOr(body, w);
     }
-    builder.Add(Assert(tok, w, new LetSuchThatExists(bvars, expr), builder.Context));
+    builder.Add(Assert(tok, w, new LetSuchThatExists(bvars, expr, autoTriggerSearchFailed), builder.Context));
   }
 
-  List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>> GeneratePartialGuesses(List<BoundVar> bvars, Expression expression) {
+  List<(List<(BoundVar, Expression)>, Expression)> GeneratePartialGuesses(List<BoundVar> bvars, Expression expression) {
     if (bvars.Count == 0) {
-      var tup = new Tuple<List<Tuple<BoundVar, Expression>>, Expression>(new List<Tuple<BoundVar, Expression>>(), expression);
-      return new List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>>() { tup };
+      var tup = (new List<(BoundVar, Expression)>(), expression);
+      return new() { tup };
     }
-    var result = new List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>>();
+    var result = new List<(List<(BoundVar, Expression)>, Expression)>();
     var x = bvars[0];
     var otherBvars = bvars.GetRange(1, bvars.Count - 1);
     foreach (var tup in GeneratePartialGuesses(otherBvars, expression)) {
@@ -670,21 +674,21 @@ public partial class BoogieGenerator {
         continue;
       }
       // one possible result is to quantify over all the variables
-      var vs = new List<Tuple<BoundVar, Expression>>() { new Tuple<BoundVar, Expression>(x, null) };
+      var vs = new List<(BoundVar, Expression)>() { (x, null) };
       vs.AddRange(tup.Item1);
-      result.Add(new Tuple<List<Tuple<BoundVar, Expression>>, Expression>(vs, tup.Item2));
+      result.Add((vs, tup.Item2));
       // other possibilities involve guessing a value for x
       foreach (var guess in GuessWitnesses(x, tup.Item2)) {
         var g = Substitute(tup.Item2, x, guess);
-        vs = new List<Tuple<BoundVar, Expression>>() { new Tuple<BoundVar, Expression>(x, guess) };
+        vs = new List<(BoundVar, Expression)>() { (x, guess) };
         AddRangeSubst(vs, tup.Item1, x, guess);
-        result.Add(new Tuple<List<Tuple<BoundVar, Expression>>, Expression>(vs, g));
+        result.Add((vs, g));
       }
     }
     return result;
   }
 
-  private void AddRangeSubst(List<Tuple<BoundVar, Expression>> vs, List<Tuple<BoundVar, Expression>> aa, IVariable v, Expression e) {
+  private void AddRangeSubst(List<(BoundVar, Expression)> vs, List<(BoundVar, Expression)> aa, IVariable v, Expression e) {
     Contract.Requires(vs != null);
     Contract.Requires(aa != null);
     Contract.Requires(v != null);
@@ -693,7 +697,7 @@ public partial class BoogieGenerator {
       if (be.Item2 == null) {
         vs.Add(be);
       } else {
-        vs.Add(new Tuple<BoundVar, Expression>(be.Item1, Substitute(be.Item2, v, e)));
+        vs.Add((be.Item1, Substitute(be.Item2, v, e)));
       }
     }
   }

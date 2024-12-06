@@ -182,10 +182,15 @@ class SplitPartTriggerWriter {
     }
 
     if (!CandidateTerms.Any() || !Candidates.Any()) {
-      errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
-        "Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. " +
-        $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
-        "For more information, see the section on quantifier instantiation rules in the reference manual.");
+      if (Attributes.Contains(Comprehension.Attributes, "_delayTriggerWarning")) {
+        // Just record the fact that no auto-trigger was found
+        Comprehension.Attributes = new Attributes("_noAutoTriggerFound", new List<Expression>(), Comprehension.Attributes);
+      } else {
+        errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
+          "Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. " +
+          $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
+          "For more information, see the section on quantifier instantiation rules in the reference manual.");
+      }
     } else if (!CouldSuppressLoops && !AllowsLoops) {
       errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
         "Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. " +

@@ -1529,7 +1529,8 @@ namespace Microsoft.Dafny {
           builder.Add(ifCmd);
 
           var bounds = lhsVars.ConvertAll(_ => (BoundedPool)new SpecialAllocIndependenceAllocatedBoundedPool());  // indicate "no alloc" (is this what we want?)
-          GenerateAndCheckGuesses(e.tok, lhsVars, bounds, e.RHSs[0], TrTrigger(etran, e.Attributes, e.tok), builder, etran);
+          GenerateAndCheckGuesses(e.tok, lhsVars, bounds, e.RHSs[0], e.Attributes, Attributes.Contains(e.Attributes, "_noAutoTriggerFound"),
+            builder, etran);
         }
         // assume typeAntecedent(b);
         builder.Add(TrAssumeCmd(e.tok, typeAntecedent));

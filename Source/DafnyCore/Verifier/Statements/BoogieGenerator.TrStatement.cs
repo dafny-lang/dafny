@@ -211,7 +211,8 @@ public partial class BoogieGenerator {
           }
         }
 
-        GenerateAndCheckGuesses(s.Tok, bvars, s.Bounds, Substitute(s.Expr, null, substMap), TrTrigger(etran, s.Attributes, s.Tok, substMap), builder, etran);
+        GenerateAndCheckGuesses(s.Tok, bvars, s.Bounds, Substitute(s.Expr, null, substMap), SubstituteAttributes(s.Attributes, substMap),
+          Attributes.Contains(s.Attributes, "_noAutoTriggerFound"), builder, etran);
       }
 
       // Mark off the simple variables as having definitely been assigned AND THEN havoc their values. By doing them

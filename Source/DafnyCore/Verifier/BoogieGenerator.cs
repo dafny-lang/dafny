@@ -4471,7 +4471,8 @@ namespace Microsoft.Dafny {
       return splits;
     }
 
-    Bpl.Trigger TrTrigger(ExpressionTranslator etran, Attributes attribs, IOrigin tok, Dictionary<IVariable, Expression> substMap = null) {
+    Bpl.Trigger TrTrigger(ExpressionTranslator etran, Attributes attribs, IOrigin tok, Dictionary<IVariable, Expression> substMap = null,
+      List<BoundVar> keepOnlyThoseTermsThatMentionTheseVariables = null) {
       Contract.Requires(etran != null);
       Contract.Requires(tok != null);
       var argsEtran = etran.WithNoLits();
@@ -4479,13 +4480,17 @@ namespace Microsoft.Dafny {
       foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger").Select(aa => aa.Args)) {
         List<Bpl.Expr> tt = new List<Bpl.Expr>();
         foreach (var arg in trigger) {
-          if (substMap == null) {
-            tt.Add(argsEtran.TrExpr(arg));
-          } else {
-            tt.Add(argsEtran.TrExpr(Substitute(arg, null, substMap)));
+          var term = substMap == null ? arg : Substitute(arg, null, substMap);
+          if (keepOnlyThoseTermsThatMentionTheseVariables == null ||
+              keepOnlyThoseTermsThatMentionTheseVariables.Exists(boundVariable =>
+                FreeVariablesUtil.ContainsFreeVariable(term, false, boundVariable))) {
+            tt.Add(argsEtran.TrExpr(term));
           }
         }
-        tr = new Bpl.Trigger(tok, true, tt, tr);
+
+        if (tt.Count != 0) {
+          tr = new Bpl.Trigger(tok, true, tt, tr);
+        }
       }
       return tr;
     }
@@ -4652,6 +4657,11 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new Substituter(receiverReplacement, substMap, typeMap ?? new Dictionary<TypeParameter, Type>(), oldLabel);
       return s.Substitute(expr);
+    }
+
+    public static Attributes SubstituteAttributes(Attributes attributes, Dictionary<IVariable, Expression> substMap) {
+      var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+      return s.SubstAttributes(attributes);
     }
 
     public static Expression InlineLet(LetExpr letExpr) {

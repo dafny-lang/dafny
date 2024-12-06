@@ -23,9 +23,9 @@ module SuchThat {
     case true =>
       assert exists w :: Q(w + 1); // warning: no trigger; error: assertion failure
     case true =>
-      assert var y :| Q(y + 1); F(y) == F(y); // warning: no trigger; error: cannot find witness
+      assert var y :| Q(y + 1); F(y) == F(y); // error: cannot find witness (with no-trigger hint)
     case true =>
-      var z :| Q(z + 2); // warning: no trigger; error: cannot find witnes
+      var z :| Q(z + 2); // warning: no trigger; error: cannot find witnes (with no-trigger hint)
   }
 
   method NoWarn() {
@@ -34,9 +34,9 @@ module SuchThat {
     case true =>
       assert exists w {:nowarn} :: Q(w + 1); // info: no trigger; error: assertion failure
     case true =>
-      assert var y {:nowarn} :| Q(y + 1); F(y) == F(y); // info: no trigger; error: cannot find witness
+      assert var y {:nowarn} :| Q(y + 1); F(y) == F(y); // error: cannot find witness (with no-trigger hint -- this hint is impervious to :nowarn)
     case true =>
-      var z {:nowarn} :| Q(z + 2); // error: info: no trigger; cannot find witness
+      var z {:nowarn} :| Q(z + 2); // error: info: no trigger; cannot find witness (with no-trigger hint)
   }
 
   method ManualTriggerThatWorks()
@@ -196,5 +196,49 @@ module GuardedIfCase {
       b := *;
     case w {:trigger} :| Q(w + 1) =>
       b := false;
+  }
+}
+
+module Hints {
+  predicate P(y: int)
+
+  method M0() returns (x: int) {
+    x :| 0 <= x; // all is good, because a trigger is found (through the witness guessed by Dafny)
+  }
+
+  method M1() returns (x: int) {
+    x :| 0 <= x && false; // error: cannot prove existence of x and there's no trigger, so error message contains hint
+  }
+
+  method M2() returns (x: int) {
+    x :| P(x); // error: cannot prove existence of x, but there is a trigger, so the error message contains no hint; trigger: P(x)
+  }
+
+  method M3(y: int) returns (x: int)
+    requires P(y)
+  {
+    x :| P(x); // trigger: P(x)
+  }
+
+  ghost function F0(): int {
+    var x :| 0 <= x; // all is good, because a trigger is found (through the witness guessed by Dafny)
+    x
+  }
+
+  ghost function F1(): int {
+    var x :| 0 <= x && false; // error: cannot prove existence of x and there's no trigger, so error message contains hint
+    x
+  }
+
+  ghost function F2(): int {
+    var x :| P(x); // error: cannot prove existence of x, but there is a trigger, so the error message contains no hint; trigger: P(x)
+    x
+  }
+
+  ghost function F3(y: int): int
+    requires P(y)
+  {
+    var x :| P(x); // trigger: P(x)
+    x
   }
 }

@@ -48,6 +48,8 @@ namespace Microsoft.Dafny.Triggers {
         // Note, trigger selection adds some attributes. These will remain in the following exists expression. So, Boogie translation needs
         // to look at letExpr.SuchThatExists.Attributes (not letExpr.Attributes) to find them.
         var existsExpr = new ExistsExpr(letExpr.tok, letExpr.RangeToken, letExpr.BoundVars.ToList(), null, letExpr.RHSs[0], letExpr.Attributes);
+        existsExpr.Attributes = new Attributes("_delayTriggerWarning", new List<Expression>(), existsExpr.Attributes);
+
         ActionsOnSelectedTriggers.Add(() => {
           letExpr.Attributes = existsExpr.Attributes;
         });
@@ -103,6 +105,7 @@ namespace Microsoft.Dafny.Triggers {
         var existsExpr = new ExistsExpr(assignSuchThatStmt.tok, assignSuchThatStmt.RangeToken, boundVars, null,
           substituterTo.Substitute(assignSuchThatStmt.Expr),
           substituterTo.SubstAttributes(assignSuchThatStmt.Attributes));
+        existsExpr.Attributes = new Attributes("_delayTriggerWarning", new List<Expression>(), existsExpr.Attributes);
 
         ActionsOnSelectedTriggers.Add(() => {
           var substituteFrom = new Substituter(null, substBoundVarToLocal, new Dictionary<TypeParameter, Type>());
