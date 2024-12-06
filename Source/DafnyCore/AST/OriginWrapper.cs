@@ -12,6 +12,7 @@ public abstract class OriginWrapper : IOrigin {
   }
 
   public abstract IOrigin WithVal(string newVal);
+  public virtual bool IsCopy => WrappedToken.IsCopy;
 
   public virtual int col {
     get { return WrappedToken.col; }

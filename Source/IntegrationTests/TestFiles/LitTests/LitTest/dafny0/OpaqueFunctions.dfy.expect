@@ -33,4 +33,4 @@ OpaqueFunctions.dfy(352,15): Error: assertion might not hold
 OpaqueFunctions.dfy(354,15): Error: assertion might not hold
 OpaqueFunctions.dfy(367,17): Error: assertion might not hold
 
-Dafny program verifier finished with 20 verified, 31 errors
+Dafny program verifier finished with 18 verified, 31 errors
