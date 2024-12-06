@@ -22,7 +22,12 @@ namespace Microsoft.Dafny.Compilers {
     public string internalFieldPrefix;
     public bool preventShadowing;
 
-    protected override bool InstanceMethodsAllowedToCallTraitMethods => false;
+    // In a language like Rust, trait methods with bodies don't need to be called by
+    // the class or datatype extending it with overriding functions or methods that call into the trait.
+    // However, if a method is declared in a trait A, and another trait B implements it,
+    // then any class or datatype extending that last trait B must also explicitly implement the first trait A
+    // by calling the trait implementation in B
+    protected override bool InstanceMethodsCanOnlyCallOverridenTraitMethods => true;
 
     public void Start() {
       if (items != null) {
@@ -198,10 +203,12 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is ClassContainer builder) {
         List<DAST.TypeArgDecl> typeParams = typeParameters.Select(tp => GenTypeArgDecl(tp)).ToList();
 
-        return new ClassWriter(this, typeParams.Count > 0, builder.Class(
+        var classWriter = new ClassWriter(this, typeParams.Count > 0, builder.Class(
           name, moduleName, typeParams, superClasses.Select(t => GenType(t)).ToList(),
           ParseAttributes(cls.Attributes), GetDocString(cls))
           );
+
+        return classWriter;
       } else {
         throw new InvalidOperationException();
       }
@@ -261,11 +268,86 @@ namespace Microsoft.Dafny.Compilers {
         var traitType = trait.IsReferenceTypeDecl
           ? DAST.TraitType.create_ObjectTrait()
           : TraitType.create_GeneralTrait();
-
-        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, parents, ParseAttributes(trait.Attributes), GetDocString(trait), traitType));
+        var downcastableTraits = DowncastableTraitsTypes(trait);
+        var downcastableTratitTypes = downcastableTraits.Select(GenType).ToList();
+        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, parents, ParseAttributes(trait.Attributes), GetDocString(trait), traitType, downcastableTratitTypes));
       } else {
         throw new InvalidOperationException();
       }
+    }
+
+    // Given a trait declaration, returns the list of traits that this trait can downcast to,
+    // using its type parameters.
+    private static List<Type> DowncastableTraitsTypes(TraitDecl trait) {
+      var downcastableTraits = new List<Type>();
+      foreach (var subTrait in trait.TraitDeclsCanBeDowncastedTo) {
+        // Recovers which of the parent traits of the subTraits is the current trait declaration
+        var parentTrait = subTrait.ParentTraits.FirstOrDefault(t => t.AsTraitType == trait);
+        if (parentTrait != null && CanDowncast(parentTrait, subTrait, out var downcastType)) {
+          downcastableTraits.Add(downcastType);
+        }
+      }
+
+      return downcastableTraits;
+    }
+
+    /// <summary>
+    /// Given an instantiated parent type of the given subTrait,
+    /// return true if it's possible to describe the trait subTrait from the parent's own type parameters.
+    /// and an instantiation of such type.
+    /// This makes it possible to downcast the trait at run-time.
+    /// For example:
+    ///
+    /// trait Sub extends Parent where trait Parent
+    ///  ===? true and Sub
+    /// trait Sub<A> extends Parent<AInt, A, A, Wrap<A>>   where trait Parent<X, Y, Z>
+    ///   ==> true and Sub<Y>  (could have been Sub<Z> too)
+    /// trait Sub<A, B, C> extends Parent<B, C, A>   where trait Parent<X, Y, Z>
+    ///   ==> true and Sub<Z, X, Y>
+    /// trait Sub<A> extends Parent<Wrap<A>>   where trait Parent<X>
+    ///   ==> false and null
+    /// trait Sub<A> extends Parent<Int>   where trait Parent<X>
+    ///   ==> false and null
+    /// </summary>
+    private static bool CanDowncast(Type parentTrait, TraitDecl subTrait, out Type downcastType) {
+      Contract.Requires(parentTrait.AsTraitType != null);
+      var parentTraitDecl = parentTrait.AsTraitType;
+      var canDowncast = false;
+      downcastType = null;
+      if (parentTrait is UserDefinedType { TypeArgs: var PT }) {
+        // Algorithm:
+        // trait Sub<TC1, ...TCn> extends Parent<PT1, ...PTn>   where trait Parent<TP1, ...TPn>
+        // Foreach type parameter in the parent TPi
+        //   if PTi is some TCj, store the mapping TCj => TPi. We need only to store the first of such mapping
+        //   If PTi is anything else, ok
+        // End of the loop: if not all children type parameters were found, cancel
+        // build the type Sub<TP...> by iterating on the type parameters TC.
+        Contract.Assert(parentTraitDecl.TypeArgs.Count == PT.Count);
+        var mapping = new Dictionary<TypeParameter, Type>();
+        for (var i = 0; i < parentTraitDecl.TypeArgs.Count; i++) {
+          var TP = parentTraitDecl.TypeArgs[i];
+          var maybeTc = PT[i];
+          if (maybeTc is UserDefinedType { ResolvedClass: TypeParameter maybeTc2 }) {
+            if (subTrait.TypeArgs.Contains(maybeTc2) && !mapping.ContainsKey(maybeTc2)) {
+              mapping.Add(maybeTc2, new UserDefinedType(TP));
+            }
+          }
+        }
+
+        var allTypeParametersCovered = subTrait.TypeArgs.TrueForAll(
+          tp => mapping.ContainsKey(tp));
+        if (allTypeParametersCovered) {
+
+          var typeArgs = subTrait.TypeArgs.Select(tp => mapping[tp]).ToList();
+
+          var subTraitTypeDowncastable =
+            new UserDefinedType(Token.NoToken, subTrait.Name, subTrait, typeArgs);
+          downcastType = subTraitTypeDowncastable;
+          canDowncast = true;
+        }
+      }
+
+      return canDowncast;
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
@@ -311,7 +393,9 @@ namespace Microsoft.Dafny.Compilers {
         var superClasses = dt.ParentTypeInformation.UniqueParentTraits();
         var superTraitTypes = superClasses.Select(GenType).ToList();
 
-        return new ClassWriter(this, typeParams.Count > 0, builder.Datatype(
+        var superNegativeTraitTypes = GetNegativeTraitTypes(superClasses);
+
+        var datatypeBuilder = builder.Datatype(
           dt.GetCompileName(Options),
           dt.EnclosingModuleDefinition.GetCompileName(Options),
           typeParams,
@@ -319,11 +403,43 @@ namespace Microsoft.Dafny.Compilers {
           dt is CoDatatypeDecl,
           ParseAttributes(dt.Attributes),
           GetDocString(dt),
-          superTraitTypes
-        ));
+          superTraitTypes,
+          superNegativeTraitTypes
+        );
+
+        return new ClassWriter(this, typeParams.Count > 0, datatypeBuilder);
       } else {
         throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
       }
+    }
+
+    // Given a list of super traits implemented by a datatype,
+    // find the list of all instantiated traits that the super traits can be downcasted to,
+    // but that are not in the super classes,
+    // and return them
+    private List<DAST.Type> GetNegativeTraitTypes(List<Type> superClasses) {
+      var superNegativeTraitTypes = new List<DAST.Type>();
+      var traitDeclsNegative = new HashSet<TraitDecl>();
+      var traitDeclsImplemented = superClasses.Select(t => t.AsTraitType)
+        .Where(t => t != null).ToHashSet();
+      foreach (var superClass in superClasses) {
+        if (superClass.AsTraitType is { } traitDecl) {
+          var downcastableTraitTypes = DowncastableTraitsTypes(traitDecl);
+          foreach (var downcastableTraitType in downcastableTraitTypes) {
+            if (downcastableTraitType is { AsTraitType: { } downcastTraitDecl } &&
+                !traitDeclsNegative.Contains(downcastTraitDecl) && !traitDeclsImplemented.Contains(downcastTraitDecl)) {
+              traitDeclsNegative.Add(downcastTraitDecl);
+              // downcastableTraitType is instantiated with the type parameters of traitDecl
+              var typeParametersInstantiation =
+                traitDecl.TypeArgs.Zip(superClass.TypeArgs).ToDictionary(kv => kv.Item1, kv => kv.Item2);
+              var typeForDatatype = downcastableTraitType.Subst(typeParametersInstantiation);
+              superNegativeTraitTypes.Add(GenType(typeForDatatype));
+            }
+          }
+        }
+      }
+
+      return superNegativeTraitTypes;
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
@@ -538,12 +654,7 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
-        if (m.IsStatic && this.hasTypeArgs) {
-          compiler.AddUnsupported(m.tok, "<i>Static methods with type arguments</i>");
-          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
-        }
-
-        var astTypeArgs = typeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg.Formal)).ToList();
+        var astTypeArgs = m.TypeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg)).ToList();
 
         var params_ = compiler.GenFormals(m.Ins);
 
@@ -604,12 +715,8 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
           List<Formal> formals, Type resultType, IOrigin tok, bool isStatic, bool createBody, MemberDecl member,
           bool forBodyInheritance, bool lookasideBody) {
-        if (isStatic && this.hasTypeArgs) {
-          compiler.AddUnsupported(tok, "<i>Static functions with type arguments</i>");
-          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
-        }
 
-        var astTypeArgs = typeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg.Formal)).ToList();
+        var astTypeArgs = (member is Function fun ? fun.TypeArgs : Enumerable.Empty<TypeParameter>()).Select(typeArg => compiler.GenTypeArgDecl(typeArg)).ToList();
 
         var params_ = compiler.GenFormals(formals);
 
@@ -1976,6 +2083,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    _ISelectContext GetSelectContext(TopLevelDecl decl) {
+      return decl is DatatypeDecl or NewtypeDecl ? SelectContext.create_SelectContextDatatype() :
+        decl is TraitDecl { IsReferenceTypeDecl: false } ?
+      SelectContext.create_SelectContextGeneralTrait() :
+      SelectContext.create_SelectContextClassOrObjectTrait();
+    }
+
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
       List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
       string additionalCustomParameter = null, bool internalAccess = false) {
@@ -2005,7 +2119,7 @@ namespace Microsoft.Dafny.Compilers {
             objExpr,
             Sequence<Rune>.UnicodeFromString(compileName),
             FieldMutabilityOf(member),
-            member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
+            GetSelectContext(member.EnclosingClass), GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
@@ -2050,7 +2164,7 @@ namespace Microsoft.Dafny.Compilers {
           objExpr,
           Sequence<Rune>.UnicodeFromString(compiledName),
           FieldMutabilityOf(member),
-          member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
+          GetSelectContext(member.EnclosingClass), GenType(expectedType)
         ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
           objExpr,
           Sequence<Rune>.UnicodeFromString(compiledName),
@@ -2083,7 +2197,7 @@ namespace Microsoft.Dafny.Compilers {
             objExpr,
             Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
             FieldMutabilityOf(member, isInternal: true),
-            member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
+            GetSelectContext(member.EnclosingClass), GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
@@ -2094,7 +2208,7 @@ namespace Microsoft.Dafny.Compilers {
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
             FieldMutabilityOf(member),
-            member.EnclosingClass is DatatypeDecl or NewtypeDecl, GenType(expectedType)
+            GetSelectContext(member.EnclosingClass), GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
@@ -2376,7 +2490,7 @@ namespace Microsoft.Dafny.Compilers {
               sourceAST,
               Sequence<Rune>.UnicodeFromString(compileName),
               new FieldMutability_InternalClassConstantFieldOrDatatypeDestructor(),
-              true, GenType(dtor.Type)
+              GetSelectContext(ctor.EnclosingDatatype), GenType(dtor.Type)
             ));
           }
         }
@@ -2952,15 +3066,31 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IOrigin tok, ConcreteSyntaxTree wr) {
+      // This method needs to be implemented, but because we override EmitTypeTestExpr, it's never going to be called Still, we leave the body for completeness and maintenance. 
       if (GetExprBuilder(wr, out var builder)) {
-        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Is(
-          DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(localName)),
-          GenType(fromType),
-          GenType(toType)
-        ));
+        EmitTypeTestDAST(fromType, toType, builder,
+          (DAST.Expression)DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(localName)));
       } else {
         throw new InvalidOperationException();
       }
+    }
+
+    protected override void EmitTypeTestExpr(Expression expr, Type fromType, Type toType, IOrigin tok,
+      bool inLetExprBody, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
+      if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
+        var exprDAST = convert(expr);
+        EmitTypeTestDAST(fromType, toType, builder, exprDAST);
+      } else {
+        throw new InvalidOperationException();//TODO
+      }
+    }
+
+    private void EmitTypeTestDAST(Type fromType, Type toType, BuilderSyntaxTree<ExprContainer> builder, DAST.Expression exprDAST) {
+      builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Is(
+        exprDAST,
+        GenType(fromType),
+        GenType(toType)
+      ));
     }
 
     protected override void EmitIsIntegerTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
