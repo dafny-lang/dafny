@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
     Version4,
   }
 
-  public record Options(IDictionary<Option, object> OptionArguments, IDictionary<Argument, object> Arguments);
+  public record Options(Dictionary<Option, object> OptionArguments, Dictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
@@ -67,12 +67,12 @@ namespace Microsoft.Dafny {
     }
 
     public T Get<T>(Argument<T> argument) {
-      return (T)Options.Arguments.GetOrCreate(argument, () => default(T));
+      return (T)Options.Arguments.GetOrDefault(argument, () => (object)default(T));
     }
 
 
     public T Get<T>(Option<T> option) {
-      return (T)Options.OptionArguments.GetOrCreate(option, () => default(T));
+      return (T)Options.OptionArguments.GetOrDefault(option, () => (object)default(T));
     }
 
     public object Get(Option option) {
