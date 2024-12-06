@@ -6,14 +6,14 @@ splitting-triggers-recovers-expressivity.dfy(26,10): Info: Selected triggers: {Q
  Rejected triggers: {P(i)} (may loop with "P(i + 1)")
 splitting-triggers-recovers-expressivity.dfy(33,11): Info: Selected triggers: {Q(j)}
  Rejected triggers: {P(j)} (may loop with "P(j + 1)")
-splitting-triggers-recovers-expressivity.dfy(44,10): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section quantifier instantiation rules in the reference manual.
+splitting-triggers-recovers-expressivity.dfy(44,10): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
 splitting-triggers-recovers-expressivity.dfy(44,10): Info: Part #0 is 'P(i) || !Q(i)'
  Selected triggers:
    {Q(i)}, {P(i)}
 splitting-triggers-recovers-expressivity.dfy(44,10): Info: Part #1 is 'P(i + 1)'
  Selected triggers: {Q(i)}
  Rejected triggers: {P(i)} (may loop with "P(i + 1)")
-splitting-triggers-recovers-expressivity.dfy(49,11): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section quantifier instantiation rules in the reference manual.
+splitting-triggers-recovers-expressivity.dfy(49,11): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
 splitting-triggers-recovers-expressivity.dfy(49,11): Info: Part #0 is 'j >= 0 ==> P(j)'
  Selected triggers:
    {Q(j)}, {P(j)}
