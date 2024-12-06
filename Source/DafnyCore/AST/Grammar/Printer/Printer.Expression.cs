@@ -31,9 +31,14 @@ namespace Microsoft.Dafny {
         while (true) {
           var ite = (ITEExpr)expr;
           wr.Write("if ");
-          PrintExpression(ite.Test, false);
+          if (options.DafnyPrintResolvedFile == null) {
+            PrintGuard(ite.IsBindingGuard, ite.Test);
+          } else {
+            PrintExpression(ite.Test, false);
+          }
           wr.WriteLine(" then");
-          PrintExtendedExpr(ite.Thn, indent + IndentAmount, true, false);
+          var thenBranch = options.DafnyPrintResolvedFile == null && ite.IsBindingGuard ? ((LetExpr)ite.Thn).Body : ite.Thn;
+          PrintExtendedExpr(thenBranch, indent + IndentAmount, true, false);
           expr = ite.Els;
           if (expr is ITEExpr) {
             Indent(indent); wr.Write("else ");
@@ -1150,9 +1155,14 @@ namespace Microsoft.Dafny {
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         wr.Write("if ");
-        PrintExpression(ite.Test, false);
+        if (options.DafnyPrintResolvedFile == null) {
+          PrintGuard(ite.IsBindingGuard, ite.Test);
+        } else {
+          PrintExpression(ite.Test, false);
+        }
         wr.Write(" then ");
-        PrintExpression(ite.Thn, false);
+        var thenBranch = options.DafnyPrintResolvedFile == null && ite.IsBindingGuard ? ((LetExpr)ite.Thn).Body : ite.Thn;
+        PrintExpression(thenBranch, false);
         wr.Write(" else ");
         PrintExpression(ite.Els, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
