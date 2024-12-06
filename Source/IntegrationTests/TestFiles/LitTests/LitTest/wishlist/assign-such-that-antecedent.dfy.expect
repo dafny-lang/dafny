@@ -1,4 +1,4 @@
-assign-such-that-antecedent.dfy(8,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+assign-such-that-antecedent.dfy(8,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 assign-such-that-antecedent.dfy(13,9): Error: assertion might not hold
 
 Dafny program verifier finished with 2 verified, 2 errors
