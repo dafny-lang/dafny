@@ -87,7 +87,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
 
-  protected TopLevelDeclWithMembers(RangeToken rangeOrigin, Name name, ModuleDefinition module,
+  protected TopLevelDeclWithMembers(IOrigin rangeOrigin, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
     bool isRefining, List<Type>/*?*/ traits = null)
     : base(rangeOrigin, name, module, typeArgs, attributes, isRefining) {
@@ -221,7 +221,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
             List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
             // create prefix predicate
-            extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.RangeToken, extraName, extremePredicate.HasStaticKeyword,
+            extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.Origin, extraName, extremePredicate.HasStaticKeyword,
               tyvars, k, formals,
               extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
               cloner.CloneSpecFrameExpr(extremePredicate.Reads),
@@ -248,7 +248,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
             var ens = extremeLemma is GreatestLemma
               ? new List<AttributedExpression>()
               : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
-            extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.RangeToken, extraName, extremeLemma.HasStaticKeyword,
+            extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.Origin, extraName, extremeLemma.HasStaticKeyword,
               extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
               req, cloner.CloneSpecFrameExpr(extremeLemma.Reads),
               cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,

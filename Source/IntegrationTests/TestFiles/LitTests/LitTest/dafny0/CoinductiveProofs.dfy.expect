@@ -25,10 +25,10 @@ CoinductiveProofs.dfy(163,10): Related location: this is the postcondition that 
 CoinductiveProofs.dfy(159,2): Related location: this proposition could not be proved
 CoinductiveProofs.dfy(203,0): Error: a postcondition could not be proved on this return path
 CoinductiveProofs.dfy(202,21): Related location: this is the postcondition that could not be proved
-CoinductiveProofs.dfy(4,23): Related location: this proposition could not be proved
+CoinductiveProofs.dfy(4,23): Related location: Could not prove: Cons
 CoinductiveProofs.dfy(209,0): Error: a postcondition could not be proved on this return path
 CoinductiveProofs.dfy(208,21): Related location: this is the postcondition that could not be proved
-CoinductiveProofs.dfy(4,23): Related location: this proposition could not be proved
+CoinductiveProofs.dfy(4,23): Related location: Could not prove: Cons
 
 Dafny program verifier finished with 23 verified, 12 errors
 Total resources used is 777634

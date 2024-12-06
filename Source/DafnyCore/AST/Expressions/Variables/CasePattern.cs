@@ -30,7 +30,7 @@ public class CasePattern<VT> : TokenNode
   }
 
   public CasePattern(Cloner cloner, CasePattern<VT> original) {
-    tok = cloner.Tok(original.tok);
+    tok = cloner.Origin(original.tok);
     Id = original.Id;
     if (original.Var != null) {
       Var = cloner.CloneIVariable(original.Var, false);

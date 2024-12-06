@@ -263,7 +263,7 @@ public class CoverageReporter {
           module.FullName
         });
 
-        var moduleRange = module.RangeToken.ToDafnyRange();
+        var moduleRange = module.Origin.ToDafnyRange();
         body.Last().AddRange(coverageLabels
           .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
           .Select(label => report.CoverageSpansForFile(sourceFile)

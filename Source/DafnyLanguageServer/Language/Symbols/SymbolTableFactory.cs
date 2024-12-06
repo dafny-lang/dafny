@@ -311,8 +311,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         RegisterLocation(
           moduleSymbol,
           moduleSymbol.Declaration.tok,
-          moduleSymbol.Declaration.tok.GetLspRange(),
-          moduleSymbol.Declaration.RangeToken.ToLspRange()
+          moduleSymbol.Declaration.NameNode.Origin.GetLspRange(),
+          moduleSymbol.Declaration.Origin.ToLspRange()
         );
         VisitChildren(moduleSymbol);
         return Unit.Value;
@@ -330,9 +330,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           typeSymbol,
-          typeSymbol.Declaration.tok,
-          typeSymbol.Declaration.tok.GetLspRange(),
-          new Range(typeSymbol.Declaration.RangeToken.StartToken.GetLspPosition(), typeSymbol.Declaration.RangeToken.EndToken.GetLspPosition())
+          typeSymbol.Declaration.Origin,
+          typeSymbol.Declaration.NameNode.Origin.GetLspRange(),
+          new Range(typeSymbol.Declaration.Origin.StartToken.GetLspPosition(), typeSymbol.Declaration.Origin.EndToken.GetLspPosition())
         );
         VisitChildren(typeSymbol);
         return Unit.Value;
@@ -342,9 +342,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           valueTypeSymbol,
-          valueTypeSymbol.Declaration.tok,
-          valueTypeSymbol.Declaration.tok.GetLspRange(),
-          new Range(valueTypeSymbol.Declaration.RangeToken.StartToken.GetLspPosition(), valueTypeSymbol.Declaration.RangeToken.EndToken.GetLspPosition())
+          valueTypeSymbol.Declaration.Origin,
+          valueTypeSymbol.Declaration.NameNode.Origin.GetLspRange(),
+          new Range(valueTypeSymbol.Declaration.Origin.StartToken.GetLspPosition(), valueTypeSymbol.Declaration.Origin.EndToken.GetLspPosition())
         );
         VisitChildren(valueTypeSymbol);
         return Unit.Value;
@@ -354,10 +354,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           fieldSymbol,
-          fieldSymbol.Declaration.tok,
-          fieldSymbol.Declaration.tok.GetLspRange(),
+          fieldSymbol.Declaration.Origin,
+          fieldSymbol.Declaration.NameNode.Origin.GetLspRange(),
           // BodyEndToken always returns Token.NoToken
-          fieldSymbol.Declaration.tok.GetLspRange()
+          fieldSymbol.Declaration.Origin.GetLspRange()
         );
         VisitChildren(fieldSymbol);
         return Unit.Value;
@@ -368,7 +368,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         RegisterLocation(
           functionSymbol,
           functionSymbol.Declaration.tok,
-          functionSymbol.Declaration.tok.GetLspRange(),
+          functionSymbol.Declaration.NameNode.Origin.GetLspRange(),
           GetDeclarationRange(functionSymbol.Declaration)
         );
         VisitChildren(functionSymbol);
@@ -380,7 +380,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         RegisterLocation(
           methodSymbol,
           methodSymbol.Declaration.tok,
-          methodSymbol.Declaration.tok.GetLspRange(),
+          methodSymbol.Declaration.NameNode.Origin.GetLspRange(),
           GetDeclarationRange(methodSymbol.Declaration)
         );
         VisitChildren(methodSymbol);
@@ -388,9 +388,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private static Range GetDeclarationRange(Declaration declaration) {
-        return declaration.RangeToken == RangeToken.NoToken
+        return declaration.Origin == RangeToken.NoToken
           ? declaration.tok.GetLspRange()
-          : new Range(declaration.RangeToken.StartToken.GetLspPosition(), declaration.RangeToken.EndToken.GetLspPosition());
+          : new Range(declaration.Origin.StartToken.GetLspPosition(), declaration.Origin.EndToken.GetLspPosition());
       }
 
       public Unit Visit(VariableSymbol variableSymbol) {
@@ -398,7 +398,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         RegisterLocation(
           variableSymbol,
           variableSymbol.Declaration.Tok,
-          variableSymbol.Declaration.Tok.GetLspRange(),
+          variableSymbol.Declaration.Origin.Center.GetLspRange(),
           variableSymbol.Declaration.Tok.GetLspRange()
         );
         VisitChildren(variableSymbol);
@@ -424,13 +424,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private void RegisterLocation(ILegacySymbol symbol, IOrigin token, Range name, Range declaration) {
-        if (token.Filepath != null) {
+      private void RegisterLocation(ILegacySymbol symbol, IOrigin origin, Range name, Range declaration) {
+        if (origin.Filepath != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           var locationsForUri =
-            Locations.GetValueOrDefault(token.Uri) ?? new Dictionary<ILegacySymbol, SymbolLocation>();
-          Locations = Locations.SetItem(token.Uri, locationsForUri);
-          locationsForUri.Add(symbol, new SymbolLocation(token.Uri, name, declaration));
+            Locations.GetValueOrDefault(origin.Uri) ?? new Dictionary<ILegacySymbol, SymbolLocation>();
+          Locations = Locations.SetItem(origin.Uri, locationsForUri);
+          locationsForUri.Add(symbol, new SymbolLocation(origin.Uri, name, declaration));
         }
       }
     }

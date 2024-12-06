@@ -39,19 +39,19 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     Wildcard = original.Wildcard;
     if (cloner.CloneResolvedFields) {
       OffsetMembers = original.OffsetMembers.ToList();
-      LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Tok(a.Tok), a.Name)).ToList();
+      LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Origin(a.Tok), a.Name)).ToList();
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
-  public HideRevealStmt(RangeToken rangeOrigin, HideRevealCmd.Modes mode)
+  public HideRevealStmt(IOrigin rangeOrigin, HideRevealCmd.Modes mode)
     : base(rangeOrigin) {
     Wildcard = true;
     this.Exprs = null;
     Mode = mode;
   }
 
-  public HideRevealStmt(RangeToken rangeOrigin, List<Expression> exprs, HideRevealCmd.Modes mode)
+  public HideRevealStmt(IOrigin rangeOrigin, List<Expression> exprs, HideRevealCmd.Modes mode)
     : base(rangeOrigin) {
     Contract.Requires(exprs != null);
     this.Exprs = exprs;
@@ -121,7 +121,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
 
               var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);
               if (revealCallee != null) {
-                var call = new CallStmt(RangeToken, new List<Expression>(),
+                var call = new CallStmt(Origin, new List<Expression>(),
                   revealCallee,
                   new List<ActualBinding>(), effectiveExpr.tok);
                 ResolvedStatements.Add(call);

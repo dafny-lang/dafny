@@ -47,7 +47,10 @@ public class Compilation : IDisposable {
   private readonly LazyConcurrentDictionary<ModuleDefinition,
     Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IVerificationTask>>>> translatedModules = new();
 
-  private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
+  /// <summary>
+  /// We use file positions as keys, because nodes are transformed throughout the compilation pipeline
+  /// </summary>
+  private readonly ConcurrentDictionary<FilePosition, Unit> verifyingOrVerifiedSymbols = new();
   private readonly LazyConcurrentDictionary<ICanVerify, IReadOnlyList<IVerificationTask>> tasksPerVerifiable = new();
 
   public DafnyOptions Options => Input.Options;
@@ -267,7 +270,9 @@ public class Compilation : IDisposable {
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
-  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
+  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, Func<IVerificationTask, bool>? taskFilter = null,
+    int? randomSeed = null,
+    bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
@@ -290,11 +295,11 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, _ => true, null, onlyPrepareVerificationForGutterTests);
+    return await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), randomSeed, onlyPrepareVerificationForGutterTests);
   }
 
-  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
-    int? randomSeed = 0,
+  private async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+    int? randomSeed = null,
     bool onlyPrepareVerificationForGutterTests = false) {
 
     var resolution = await Resolution;
@@ -307,7 +312,9 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    if (!onlyPrepareVerificationForGutterTests && (randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))) {
+    var key = canVerify.NavigationToken.GetFilePosition();
+
+    if (!onlyPrepareVerificationForGutterTests && randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(key, Unit.Default)) {
       return false;
     }
 
@@ -424,6 +431,7 @@ public class Compilation : IDisposable {
       return;
     }
 
+
     var canVerify = resolution.ResolvedProgram.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = tasksPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
@@ -431,7 +439,9 @@ public class Compilation : IDisposable {
       foreach (var view in implementations) {
         view.Cancel();
       }
-      verifyingOrVerifiedSymbols.TryRemove(canVerify, out _);
+
+      var key = canVerify.NavigationToken.GetFilePosition();
+      verifyingOrVerifiedSymbols.TryRemove(key, out _);
     }
   }
 

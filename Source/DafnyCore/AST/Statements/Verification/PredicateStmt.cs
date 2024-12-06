@@ -13,7 +13,7 @@ public abstract class PredicateStmt : Statement, ICanResolveNewAndOld {
     Expr = cloner.CloneExpr(original.Expr);
   }
 
-  protected PredicateStmt(RangeToken rangeOrigin, Expression expr, Attributes attrs)
+  protected PredicateStmt(IOrigin rangeOrigin, Expression expr, Attributes attrs)
     : base(rangeOrigin, attrs) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(expr != null);

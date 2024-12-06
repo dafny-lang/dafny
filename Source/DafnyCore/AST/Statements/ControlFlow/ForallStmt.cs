@@ -63,7 +63,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
     }
   }
 
-  public ForallStmt(RangeToken rangeOrigin, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
+  public ForallStmt(IOrigin rangeOrigin, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
     : base(rangeOrigin, attrs) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(boundVars));

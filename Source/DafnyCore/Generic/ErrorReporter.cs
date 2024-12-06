@@ -104,14 +104,14 @@ public abstract class ErrorReporter {
     Contract.Requires(s != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, ParseErrors.ErrorId.none, s.Tok, format, args);
+    Error(source, ParseErrors.ErrorId.none, s.Origin, format, args);
   }
 
   public void Error(MessageSource source, INode v, string format, params object[] args) {
     Contract.Requires(v != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, ParseErrors.ErrorId.none, v.Tok, format, args);
+    Error(source, ParseErrors.ErrorId.none, v.Origin, format, args);
   }
 
   public void Error(MessageSource source, Enum errorId, INode v, string format, params object[] args) {

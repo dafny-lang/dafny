@@ -1756,7 +1756,7 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // resolve as a FunctionCallExpr instead of as an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
+            var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, Token.NoToken, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
               PreTypeApplication_AtEnclosingClass = mse.PreTypeApplicationAtEnclosingClass,
               PreTypeApplication_JustFunction = mse.PreTypeApplicationJustMember
@@ -1810,7 +1810,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = resolver.Options.Get(Snippets.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
+                var tok = resolver.Options.Get(Snippets.ShowSnippets) ? e.Origin : e.tok;
                 e.MethodCallInfo = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return e.MethodCallInfo;
               } else {

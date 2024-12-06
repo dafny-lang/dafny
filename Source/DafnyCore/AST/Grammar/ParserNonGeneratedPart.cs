@@ -17,9 +17,9 @@ public partial class Parser {
     dummyExpr = new LiteralExpr(Token.NoToken);
     dummyRhs = new ExprRhs(dummyExpr);
     dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
-    dummyStmt = new ReturnStmt(Token.NoToken.ToRange(), null);
-    var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
-    dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
+    dummyStmt = new ReturnStmt(Token.NoToken, null);
+    var dummyBlockStmt = new BlockStmt(Token.NoToken, new List<Statement>());
+    dummyIfStmt = new IfStmt(Token.NoToken, false, null, dummyBlockStmt, null);
 
     theOptions = new DafnyOptions(options);
     theModule = new FileModuleDefinition(scanner.FirstToken);
@@ -660,21 +660,21 @@ public partial class Parser {
   /// </summary>
   class DeclModifierData {
     public bool IsReplaceable;
-    public IOrigin ReplaceableToken;
+    public Token ReplaceableToken;
     public bool IsAbstract;
-    public IOrigin AbstractToken;
+    public Token AbstractToken;
     public bool IsGhost;
-    public IOrigin GhostToken;
+    public Token GhostToken;
     public bool IsStatic;
-    public IOrigin StaticToken;
+    public Token StaticToken;
     public bool IsOpaque;
-    public IOrigin OpaqueToken;
-    public IOrigin FirstTokenExceptAttributes;
+    public Token OpaqueToken;
+    public Token FirstTokenExceptAttributes;
     public Attributes Attributes = null;
 
-    public IOrigin FirstToken {
+    public Token FirstToken {
       get {
-        IOrigin result = FirstTokenExceptAttributes;
+        Token result = FirstTokenExceptAttributes;
         foreach (var attr in Attributes.AsEnumerable()) {
           if (result == null || result.pos > attr.tok.pos) {
             result = attr.StartToken;
@@ -706,13 +706,13 @@ public partial class Parser {
   /// </summary>
   public void CheckNoAttributes(ref Attributes attrs) {
     if (attrs != null) {
-      SemErr(ErrorId.p_extra_attributes, attrs.RangeToken, "Attribute not expected here");
+      SemErr(ErrorId.p_extra_attributes, attrs.Origin, "Attribute not expected here");
       attrs = null;
     }
   }
 
   // Check that token has not been set, then set it.
-  public void CheckAndSetToken(ref IOrigin token) {
+  public void CheckAndSetToken(ref Token token) {
     if (token != null) {
       SemErr(ErrorId.p_duplicate_modifier, t, "Duplicate declaration modifier: " + t.val);
     }
@@ -720,7 +720,7 @@ public partial class Parser {
   }
 
   // Check that token has not been set, then set it, but just ignores if it was set already
-  public void CheckAndSetTokenOnce(ref IOrigin token) {
+  public void CheckAndSetTokenOnce(ref Token token) {
     if (token == null) {
       token = t;
     }

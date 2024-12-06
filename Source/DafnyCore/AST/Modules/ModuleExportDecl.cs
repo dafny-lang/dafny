@@ -26,7 +26,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
     Exports = original.Exports.Select(s => new ExportSignature(cloner, s)).ToList();
-    Extends = original.Extends.Select(cloner.Tok).ToList();
+    Extends = original.Extends.Select(cloner.Origin).ToList();
     ProvideAll = original.ProvideAll;
     RevealAll = original.RevealAll;
     IsRefining = original.IsRefining;
@@ -35,7 +35,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     SetupDefaultSignature();
   }
 
-  public ModuleExportDecl(DafnyOptions options, RangeToken rangeOrigin, Name name, ModuleDefinition parent,
+  public ModuleExportDecl(DafnyOptions options, IOrigin rangeOrigin, Name name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
     : base(options, rangeOrigin, name, parent, false, isRefining, cloneId) {

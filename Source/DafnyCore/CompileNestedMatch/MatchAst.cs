@@ -92,7 +92,7 @@ public abstract class MatchCase : TokenNode, IHasReferences {
     Contract.Invariant(cce.NonNullElements(Arguments));
   }
 
-  public MatchCase(IOrigin tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
+  protected MatchCase(IOrigin tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
@@ -142,7 +142,7 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     }
   }
 
-  public MatchStmt(RangeToken rangeOrigin, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(IOrigin rangeOrigin, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, MatchingContext context = null)
     : base(rangeOrigin) {
     Contract.Requires(rangeOrigin != null);
@@ -154,7 +154,7 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     Context = context is null ? new HoleCtx() : context;
   }
 
-  public MatchStmt(RangeToken rangeOrigin, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(IOrigin rangeOrigin, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
     : base(rangeOrigin, attrs) {
     Contract.Requires(rangeOrigin != null);
@@ -250,9 +250,9 @@ public class MatchCaseStmt : MatchCase {
   public override IEnumerable<INode> Children => body;
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public MatchCaseStmt(RangeToken rangeOrigin, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
-    : base(rangeOrigin.StartToken, ctor, arguments) {
-    RangeToken = rangeOrigin;
+  public MatchCaseStmt(IOrigin rangeOrigin, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+    : base(rangeOrigin, ctor, arguments) {
+    RangeOrigin = rangeOrigin;
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
