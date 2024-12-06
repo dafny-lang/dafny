@@ -84,11 +84,11 @@ namespace Microsoft.Dafny {
               for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
                 var other = dtor.CorrespondingFormals[i];
                 if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
-                  ReportError(other.tok,
+                  ReportError(other.Origin,
                     "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
                     rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
                 } else if (rolemodel.IsGhost != other.IsGhost) {
-                  ReportError(other.tok,
+                  ReportError(other.Origin,
                     "shared destructors must agree on whether or not they are ghost, but '{0}' is {1} in constructor '{2}' and {3} in constructor '{4}'",
                     rolemodel.Name,
                     rolemodel.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[0].Name,

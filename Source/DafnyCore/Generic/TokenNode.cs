@@ -12,6 +12,7 @@ class OriginWithComputedRange : OriginWrapper {
 
   public override Token StartToken => RangeToken.StartToken;
   public override Token EndToken => RangeToken.EndToken;
+  public override bool ContainsRange => true;
 
   public RangeToken RangeToken {
     get {

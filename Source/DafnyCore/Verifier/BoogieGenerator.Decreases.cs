@@ -81,7 +81,7 @@ public partial class BoogieGenerator {
       }
       oldExpressions.Add(e1);
       newExpressions.Add(e0direct);
-      toks.Add(new NestedOrigin(tok, e1.tok));
+      toks.Add(new NestedOrigin(tok, e1.Origin));
       callee.Add(etranCurrent.TrExpr(e0));
       caller.Add(etranCurrent.TrExpr(e1));
     }

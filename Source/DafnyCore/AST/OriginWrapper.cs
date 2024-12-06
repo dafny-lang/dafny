@@ -24,7 +24,7 @@ public abstract class OriginWrapper : IOrigin {
   public virtual Token Center => WrappedOrigin.Center;
   public virtual Token StartToken => WrappedOrigin.StartToken;
   public virtual Token EndToken => WrappedOrigin.EndToken;
-  public bool ContainsRange => WrappedOrigin.ContainsRange;
+  public virtual bool ContainsRange => WrappedOrigin.ContainsRange;
   public string ActualFilename => WrappedOrigin.ActualFilename;
 
   public virtual string Filepath => WrappedOrigin.Filepath;
