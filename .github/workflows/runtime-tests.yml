@@ -48,6 +48,7 @@ jobs:
           cd ./Source/DafnyCore
           make test
           make check-format
+          make check-extract
       - name: Test DafnyRuntime (C#, Rust)
         run: |
           cd ./Source/DafnyRuntime
