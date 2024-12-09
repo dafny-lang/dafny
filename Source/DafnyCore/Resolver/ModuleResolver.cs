@@ -2111,6 +2111,12 @@ namespace Microsoft.Dafny {
                 $"{cl.WhatKind} '{cl.Name}' is in a different module than trait '{trait.FullName}'. A {cl.WhatKind} may only extend a trait " +
                 "in the same module, unless the parent trait is annotated with {:termination false}.");
             }
+
+            if (cl is TraitDecl td) {
+              // If the parent trait's type parameters contain all the type parameters of this trait,
+              // it can be downcasted at run-time to cl trait. We record this dependency in td
+              trait.TraitDeclsCanBeDowncastedTo.Add(td);
+            }
           } else {
             reporter.Error(MessageSource.Resolver, parentTypeToken, $"a {cl.WhatKind} can only extend traits (found '{parentTrait}')");
           }

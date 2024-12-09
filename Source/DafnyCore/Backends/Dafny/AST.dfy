@@ -142,6 +142,67 @@ module {:extern "DAST"} DAST {
         case _ => false
       }
     }
+
+    function GetGeneralTraitType(): (r: Type)
+      requires IsGeneralTrait()
+      ensures r.UserDefined? && r.resolved.kind == ResolvedTypeBase.Trait(GeneralTrait)
+    {
+      match this {
+        case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.GetGeneralTraitType()
+            case _ => this
+          }
+      }
+    }
+
+    predicate IsClassOrObjectTrait() {
+      match this {
+        case UserDefined(ResolvedType(_, _, base, _, _, _)) =>
+          base.Class? || (base.Trait? && base.traitType.ObjectTrait?)
+        case _ => false
+      }
+    }
+
+    predicate IsDatatype() {
+      match this {
+        case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.IsDatatype()
+            case Datatype(_) => true
+            case _ => false
+          }
+        case _ => false
+      }
+    }
+
+    function GetDatatypeType(): (r: Type)
+      requires IsDatatype()
+      ensures r.UserDefined? && r.resolved.kind.Datatype?
+    {
+      match this {
+        case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.GetDatatypeType()
+            case _ => this
+          }
+      }
+    }
+
+    // Works well without diamond inheritance. If the case arise, we will need to memoize this function
+    // or ensure extendedTypes contains all supertypes.
+    predicate Extends(other: Type)
+      ensures this.Extends(other) ==> other < this
+    {
+      match this {
+        case UserDefined(ResolvedType(_, _, _, _, _, extendedTypes)) =>
+          other in extendedTypes || exists i | 0 <= i < |extendedTypes| :: extendedTypes[i].Extends(other)
+        case _ => false
+      }
+    }
   }
 
   datatype Variance =
@@ -240,6 +301,7 @@ module {:extern "DAST"} DAST {
     typeParams: seq<TypeArgDecl>,
     traitType: TraitType,
     parents: seq<Type>,
+    downcastableTraits: seq<Type>,
     body: seq<ClassItem>,
     attributes: seq<Attribute>)
 
@@ -252,7 +314,9 @@ module {:extern "DAST"} DAST {
     body: seq<ClassItem>,
     isCo: bool,
     attributes: seq<Attribute>,
-    superTraitTypes: seq<Type>)
+    superTraitTypes: seq<Type>,
+    superTraitNegativeTypes: seq<Type> // Traits that one or more superTraits know they can downcast to, but the datatype does not.
+  )
 
   datatype DatatypeDtor = DatatypeDtor(
     formal: Formal,
@@ -362,6 +426,9 @@ module {:extern "DAST"} DAST {
     Concat() |
     Passthrough(string)
 
+  datatype SelectContext =
+    SelectContextDatatype | SelectContextGeneralTrait | SelectContextClassOrObjectTrait
+
   datatype Expression =
     Literal(Literal) |
     Ident(name: VarName) |
@@ -392,7 +459,7 @@ module {:extern "DAST"} DAST {
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
     MapItems(expr: Expression) |
-    Select(expr: Expression, field: VarName, fieldMutability: FieldMutability, isDatatype: bool, fieldType: Type) |
+    Select(expr: Expression, field: VarName, fieldMutability: FieldMutability, selectContext: SelectContext, isfieldType: Type) |
     SelectFn(expr: Expression, field: VarName, onDatatype: bool, isStatic: bool, isConstant: bool, arguments: seq<Type>) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |
@@ -413,7 +480,11 @@ module {:extern "DAST"} DAST {
     ExactBoundedPool(of: Expression) |
     IntRange(elemType: Type, lo: Expression, hi: Expression, up: bool) |
     UnboundedIntRange(start: Expression, up: bool) |
-    Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression)
+    Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression) {
+    predicate IsThisUpcast() {
+      Convert? && value.This? && from.Extends(typ)
+    }
+  }
 
   // Since constant fields need to be set up in the constructor,
   // accessing constant fields is done in two ways:
