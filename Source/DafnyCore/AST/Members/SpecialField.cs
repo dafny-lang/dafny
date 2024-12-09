@@ -23,15 +23,15 @@ public class SpecialField : Field {
   public readonly ID SpecialId;
   public readonly object IdParam;
 
-  public SpecialField(RangeToken rangeOrigin, string name, ID specialId, object idParam,
+  public SpecialField(RangeToken rangeToken, string name, ID specialId, object idParam,
     bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : this(rangeOrigin, new Name(name), specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
+    : this(rangeToken, new Name(name), specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
   }
 
-  public SpecialField(RangeToken rangeOrigin, Name name, ID specialId, object idParam,
+  public SpecialField(RangeToken rangeToken, Name name, ID specialId, object idParam,
     bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(rangeOrigin, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
-    Contract.Requires(rangeOrigin != null);
+    : base(rangeToken, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(!isUserMutable || isMutable);
     Contract.Requires(type != null);
@@ -65,8 +65,8 @@ public class DatatypeDiscriminator : SpecialField {
     get { return "discriminator"; }
   }
 
-  public DatatypeDiscriminator(RangeToken rangeOrigin, Name name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
-    : base(rangeOrigin, name, specialId, idParam, false, isGhost, false, false, type, attributes) {
+  public DatatypeDiscriminator(RangeToken rangeToken, Name name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
+    : base(rangeToken, name, specialId, idParam, false, isGhost, false, false, type, attributes) {
   }
 }
 
@@ -81,9 +81,9 @@ public class DatatypeDestructor : SpecialField {
     Contract.Invariant(EnclosingCtors.Count == CorrespondingFormals.Count);
   }
 
-  public DatatypeDestructor(RangeToken rangeOrigin, DatatypeCtor enclosingCtor, Formal correspondingFormal, Name name, string compiledName, bool isGhost, Type type, Attributes attributes)
-    : base(rangeOrigin, name, SpecialField.ID.UseIdParam, compiledName, false, isGhost, false, false, type, attributes) {
-    Contract.Requires(rangeOrigin != null);
+  public DatatypeDestructor(RangeToken rangeToken, DatatypeCtor enclosingCtor, Formal correspondingFormal, Name name, string compiledName, bool isGhost, Type type, Attributes attributes)
+    : base(rangeToken, name, SpecialField.ID.UseIdParam, compiledName, false, isGhost, false, false, type, attributes) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(enclosingCtor != null);
     Contract.Requires(correspondingFormal != null);
     Contract.Requires(name != null);

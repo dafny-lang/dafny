@@ -99,14 +99,14 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
 
     if (Options.Get(Snippets.ShowSnippets)) {
-      if (tok is IOrigin dafnyTok) {
+      if (tok is IToken dafnyTok) {
         Snippets.WriteSourceCodeSnippet(Options, dafnyTok, tw);
       } else {
         ErrorWriteLine(tw, "No Dafny location information, so snippet can't be generated.");
       }
     }
 
-    if (tok is NestedOrigin nestedToken) {
+    if (tok is NestedToken nestedToken) {
       ReportBplError(nestedToken.Inner, "Related location", false, tw);
     }
   }

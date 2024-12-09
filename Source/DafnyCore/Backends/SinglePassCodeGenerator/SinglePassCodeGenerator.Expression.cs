@@ -736,7 +736,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private ConcreteSyntaxTree EmitAppliedLambda(ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts,
-      IOrigin token, Type resultType) {
+      IToken token, Type resultType) {
       EmitLambdaApply(output, out var lambdaApplyTarget, out _);
       return CreateLambda(new List<Type>(), token, new List<string>(), resultType, lambdaApplyTarget, wStmts);
     }
