@@ -3142,7 +3142,7 @@ namespace Microsoft.Dafny {
       bool tryToResolve = false;
       if (callee.Outs.Count != s.Lhs.Count) {
         if (isInitCall) {
-          reporter.Error(MessageSource.Resolver, s, "a method called as an initialization method must not have any result arguments");
+          reporter.Error(MessageSource.Resolver, s.MethodSelect, "a method called as an initialization method must not have any result arguments");
         } else {
           reporter.Error(MessageSource.Resolver, s,
             "the method returns {1} value{3} but is assigned to {0} variable{2} (all return values must be assigned)",
@@ -3866,7 +3866,7 @@ namespace Microsoft.Dafny {
               s.Kind = ForallStmt.BodyKind.Proof;
               // add the conclusion of the calc as a free postcondition
               var result = ((CalcStmt)s0).Result;
-              s.Ens.Add(new AttributedExpression(result));
+              s.Ens.Add(new AttributedExpression(result.Origin, result));
               reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(Options, result));
             } else {
               s.Kind = ForallStmt.BodyKind.Proof;
@@ -4413,7 +4413,7 @@ namespace Microsoft.Dafny {
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
               // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
               var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) { Type = rr.EType };
-              var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
+              var callLhs = new ExprDotName(rr.Path.Origin, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
               ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)

@@ -200,27 +200,27 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     var ens = Member_Init.Ens;
     foreach (var p in Ins) {
       // ensures this.x == x;
-      ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
+      ens.Add(new AttributedExpression(tok, new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
         new ExprDotName(p.tok, new ThisExpr(p.tok), p.Name, null), new IdentifierExpr(p.tok, p.Name))));
     }
     foreach (var p in OutsHistoryFields) {
       // ensures this.ys == [];
-      ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
+      ens.Add(new AttributedExpression(tok, new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
         new ExprDotName(p.tok, new ThisExpr(p.tok), p.Name, null), new SeqDisplayExpr(p.tok, new List<Expression>()))));
     }
     // ensures this.Valid();
-    var valid_call = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
-    ens.Add(new AttributedExpression(valid_call));
+    var validCall = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
+    ens.Add(new AttributedExpression(tok, validCall));
     AddConstructorFramePostconditions(tok, ens, resolver);
     // ensures this._new == {};
-    ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
+    ens.Add(new AttributedExpression(tok, new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
       new ExprDotName(tok, new ThisExpr(tok), "_new", null),
       new SetDisplayExpr(tok, true, new List<Expression>()))));
     // ensures this._decreases0 == old(DecreasesClause[0]) && ...;
     Contract.Assert(Decreases.Expressions.Count == DecreasesFields.Count);
     for (int i = 0; i < Decreases.Expressions.Count; i++) {
       var p = Decreases.Expressions[i];
-      ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
+      ens.Add(new AttributedExpression(tok, new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
         new ExprDotName(tok, new ThisExpr(tok), DecreasesFields[i].Name, null),
         new OldExpr(tok, p))));
     }
@@ -234,8 +234,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // ---------- here comes method MoveNext() ----------
     // requires this.Valid();
     var req = Member_MoveNext.Req;
-    valid_call = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
-    req.Add(new AttributedExpression(valid_call));
+    validCall = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
+    req.Add(new AttributedExpression(tok, validCall));
     // requires YieldRequires;
     req.AddRange(YieldRequires);
     // modifies this, this._modifies, this._new;
@@ -245,19 +245,19 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     mod.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), "_new", null), null));
     // ensures fresh(_new - old(_new));
     ens = Member_MoveNext.Ens;
-    ens.Add(new AttributedExpression(new FreshExpr(tok,
+    ens.Add(new AttributedExpression(tok, new FreshExpr(tok,
       new BinaryExpr(tok, BinaryExpr.Opcode.Sub,
         new ExprDotName(tok, new ThisExpr(tok), "_new", null),
         new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), "_new", null))))));
     // ensures null !in _new
-    ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.NotIn,
+    ens.Add(new AttributedExpression(tok, new BinaryExpr(tok, BinaryExpr.Opcode.NotIn,
       new LiteralExpr(tok),
       new ExprDotName(tok, new ThisExpr(tok), "_new", null))));
     // ensures more ==> this.Valid();
-    valid_call = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
-    ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
+    validCall = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
+    ens.Add(new AttributedExpression(tok, new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
       new IdentifierExpr(tok, "more"),
-      valid_call)));
+      validCall)));
     // ensures this.ys == if more then old(this.ys) + [this.y] else old(this.ys);
     Contract.Assert(OutsFields.Count == OutsHistoryFields.Count);
     for (int i = 0; i < OutsFields.Count; i++) {
@@ -269,17 +269,17 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
           new SeqDisplayExpr(tok, new List<Expression>() { new ExprDotName(tok, new ThisExpr(tok), y.Name, null) })),
         new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), ys.Name, null)));
       var eq = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new ExprDotName(tok, new ThisExpr(tok), ys.Name, null), ite);
-      ens.Add(new AttributedExpression(eq));
+      ens.Add(new AttributedExpression(tok, eq));
     }
     // ensures more ==> YieldEnsures;
     foreach (var ye in YieldEnsures) {
-      ens.Add(new AttributedExpression(
+      ens.Add(new AttributedExpression(tok, 
         new BinaryExpr(tok, BinaryExpr.Opcode.Imp, new IdentifierExpr(tok, "more"), ye.E)
       ));
     }
     // ensures !more ==> Ensures;
     foreach (var e in Ensures) {
-      ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
+      ens.Add(new AttributedExpression(tok, new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
         new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, new IdentifierExpr(tok, "more")),
         e.E)
       ));
@@ -313,7 +313,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
         frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
       }
     }
-    iteratorCtorEnsures.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
+    iteratorCtorEnsures.Add(new AttributedExpression(tok, new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
       new ExprDotName(tok, new ThisExpr(tok), "_reads", null),
       new OldExpr(tok, frameSet))));
 
@@ -330,7 +330,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
         frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
       }
     }
-    iteratorCtorEnsures.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
+    iteratorCtorEnsures.Add(new AttributedExpression(tok, new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
       new ExprDotName(tok, new ThisExpr(tok), "_modifies", null),
       new OldExpr(tok, frameSet))));
   }

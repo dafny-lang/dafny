@@ -350,7 +350,7 @@ namespace Microsoft.Dafny {
               s.Kind = ForallStmt.BodyKind.Proof;
               // add the conclusion of the calc as a free postcondition
               var result = ((CalcStmt)s0).Result;
-              s.Ens.Add(new AttributedExpression(result));
+              s.Ens.Add(new AttributedExpression(result.Origin, result));
               ReportInfo(s.Tok, "ensures " + Printer.ExprToString(resolver.Options, result));
             } else {
               s.Kind = ForallStmt.BodyKind.Proof;
@@ -580,7 +580,7 @@ namespace Microsoft.Dafny {
         }
 
         if (assign is AssignStatement updateStmt) {
-          ResolveUpdateStmt(updateStmt, resolutionContext, errorCountBeforeCheckingStmt);
+          ResolveAssignStmt(updateStmt, resolutionContext, errorCountBeforeCheckingStmt);
         } else if (assign is AssignOrReturnStmt assignOrReturnStmt) {
           ResolveAssignOrReturnStmt(assignOrReturnStmt, resolutionContext);
         } else {
@@ -613,7 +613,7 @@ namespace Microsoft.Dafny {
     /// errorCountBeforeCheckingStmt is passed in so that this method can determine if any resolution errors were found during
     /// LHS or RHS checking, because only if no errors were found is update.ResolvedStmt changed.
     /// </summary>
-    private void ResolveUpdateStmt(AssignStatement update, ResolutionContext resolutionContext,
+    private void ResolveAssignStmt(AssignStatement update, ResolutionContext resolutionContext,
       int errorCountBeforeCheckingStmt) {
       Contract.Requires(update != null);
       Contract.Requires(resolutionContext != null);
@@ -768,7 +768,7 @@ namespace Microsoft.Dafny {
       bool tryToResolve = false;
       if (callee.Outs.Count != s.Lhs.Count) {
         if (isInitCall) {
-          ReportError(s, "a method called as an initialization method must not have any result arguments");
+          ReportError(s.MethodSelect.Origin, "a method called as an initialization method must not have any result arguments");
         } else {
           ReportError(s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, callee.Outs.Count);
           tryToResolve = true;

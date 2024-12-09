@@ -943,7 +943,7 @@ namespace Microsoft.Dafny {
 
     protected AttributedExpression SubstMayBeFreeExpr(AttributedExpression expr) {
       Contract.Requires(expr != null);
-      var mfe = new AttributedExpression(Substitute(expr.E));
+      var mfe = new AttributedExpression(expr.Origin, Substitute(expr.E));
       mfe.Attributes = SubstAttributes(expr.Attributes);
       return mfe;
     }

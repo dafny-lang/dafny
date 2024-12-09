@@ -1296,23 +1296,25 @@ RequiresClause<.List<AttributedExpression> req, bool allowLabel.>
                    Token first = t;
                    Attributes attrs = null;
                    Expression e;
+                   Token keyword = t;
                  .)
   { Attribute<ref attrs> }
   [ IF(IsLabel(allowLabel))
     LabelName<out lbl> ":"
   ]
   Expression<out e, false, false>
-  OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
+  OldSemi       (. req.Add(new AttributedExpression(e.Origin.WithCenter(keyword), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
 EnsuresClause<.List<AttributedExpression> ens, bool allowLambda.>
 = "ensures"     (. Expression e;
                    Attributes attrs = null;
+                   Token keyword = t;
                  .)
   { Attribute<ref attrs> }
   Expression<out e, false, allowLambda>
-    OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
+    OldSemi       (. ens.Add(new AttributedExpression(e.Origin.WithCenter(keyword), e, attrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1357,9 +1359,10 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads, ref Attributes attrs,
 InvariantClause<. List<AttributedExpression> invariants.> =
   "invariant"                                   (. Attributes attrs = null;
                                                    Expression e;
+                                                   Token keyword = t;
                                                 .)
   { Attribute<ref attrs> }
-  Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
+  Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e.Origin.WithCenter(keyword), e, attrs)); .)
   OldSemi
   .
 
@@ -2314,7 +2317,8 @@ AssignStatement<out Statement/*!*/ s>
      Expression e;
      AssignmentRhs r;
      BlockStmt proof = null;
-     IOrigin x = Token.NoToken;
+     Token center = null;
+     Token byKeyword = null;
      Token endTok = Token.NoToken;
      Token startToken = Token.NoToken;
      Attributes attrs = null;
@@ -2326,22 +2330,22 @@ AssignStatement<out Statement/*!*/ s>
      ExprRhs exceptionRhs = null;
      Token endToken = Token.NoToken;
   .)
-( Lhs<out e>                       (. x = e.tok; startToken = e.StartToken; endToken = t; .)
+( Lhs<out e>                       (. center = e.Center; startToken = e.StartToken; endToken = t; .)
   ( 
                                    (. lhss.Add(e); .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
-    ( ":="                         (. x = t; .)
+    ( ":="                         (. center = t; .)
       Rhs<out r>                   (. rhss.Add(r); .)
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
-    | ":|"                         (. x = t; .)
+    | ":|"                         (. center = t; .)
       [ IF(la.kind == _assume)     /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
         "assume"                      (. var tok = t; .)
         { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out suchThat, false, true>
-    | ":-"                         (. x = t; .)
+    | ":-"                         (. center = t; .)
       [ IF(IsAssumeTypeKeyword(la))   /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
         ("expect"|"assert"|"assume")  (. var tok = t; .)
         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
@@ -2352,13 +2356,13 @@ AssignStatement<out Statement/*!*/ s>
       }
     )
     (
-      "by" BlockStmt<out proof, out _, out _>
+      "by" BlockStmt<out proof, out _, out _> (. byKeyword = t; .)
     | ";"
     )
   | ":"                            (. SemErr(ErrorId.p_invalid_colon, new RangeToken(startToken, t), "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
     (
-      "by" BlockStmt<out proof, out _, out _>
+      "by" BlockStmt<out proof, out _, out _> (. byKeyword = t; .)
     | ";"
     )                              (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeOrigin = new RangeToken(e.StartToken, endToken) }); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
@@ -2366,7 +2370,7 @@ AssignStatement<out Statement/*!*/ s>
                                       SemErr(ErrorId.p_missing_semicolon, new RangeToken(startToken, t), "missing semicolon at end of statement");
                                    .)   
   )
-| ":-"                             (. x = t; startToken = t; .)
+| ":-"                             (. center = t; startToken = t; .)
    [ IF(IsAssumeTypeKeyword(la))      /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
       ("expect"|"assert"|"assume")    (. var tok = t; .)
       { Attribute<ref tokenAttrs> }   (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
@@ -2376,25 +2380,27 @@ AssignStatement<out Statement/*!*/ s>
    { "," Rhs<out r>                (. rhss.Add(r); .)
    }
    (
-     "by" BlockStmt<out proof, out _, out _>
+     "by" BlockStmt<out proof, out _, out _> (. byKeyword = t; .)
    | ";"                           (. endTok = t; .)
    )                           
 )
-  (. var rangeToken = new RangeToken(startToken, t);
+  (. 
+     var assignmentOrigin = new RangeToken(startToken, t, center);
+     var byOrigin = new RangeToken(startToken, t, byKeyword);
      if (suchThat != null) {
-       s = new AssignSuchThatStmt(rangeToken, lhss, suchThat, suchThatAssume, null);
+       s = new AssignSuchThatStmt(assignmentOrigin, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionRhs != null) {
-       s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss);
+       s = new AssignOrReturnStmt(assignmentOrigin, lhss, exceptionRhs, keywordToken, rhss);
        if (proof != null) {
-         s = new BlockByProofStmt(rangeToken, proof, s);
+         s = new BlockByProofStmt(byOrigin, proof, s);
        }
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
-         s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
+         s = new BlockStmt(assignmentOrigin, new List<Statement>()); // error, give empty statement
        } else {
-         s = new AssignStatement(rangeToken, lhss, rhss);
+         s = new AssignStatement(assignmentOrigin, lhss, rhss);
          if (proof != null) {
-           s = new BlockByProofStmt(rangeToken, proof, s);
+           s = new BlockByProofStmt(byOrigin, proof, s);
          }
        }
      }
@@ -4376,9 +4382,7 @@ Suffix<ref Expression e>
            RangeOrigin = new RangeToken(startToken, id)
          };
          if (openParen != null) {
-           e = new ApplySuffix(openParen, atLabel, e, args, t) {
-             RangeOrigin = new RangeToken(startToken, t)
-           };
+           e = new ApplySuffix(new RangeToken(startToken, t, openParen), atLabel, e, args, t);
          } else {
            Contract.Assert(atLabel == null);
          }
@@ -4459,8 +4463,7 @@ Suffix<ref Expression e>
       .)
   | "("                                    (. Token openParen = t; var args = new List<ActualBinding>(); .)
     [ ActualBindings<args> ]
-    ")"                                    (. e = new ApplySuffix(openParen, null, e, args, t);
-                                              e.RangeOrigin = new RangeToken(startToken, t);
+    ")"                                    (. e = new ApplySuffix(new RangeToken(startToken, t, openParen), null, e, args, t);
                                            .)
   )
   .

@@ -5,24 +5,12 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 /// <summary>
-/// Parsed from ":="
+/// Parsed from ":=" or a call without results
 /// </summary>
 public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStatement>, ICanResolve {
   public readonly List<AssignmentRhs> Rhss;
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
-
-  public override IOrigin Tok {
-    get {
-      var firstRhs = Rhss.First();
-      if (firstRhs.StartToken != StartToken) {
-        // If there is an operator, use it as a token
-        return firstRhs.StartToken.Prev;
-      }
-
-      return firstRhs.Tok;
-    }
-  }
 
   [FilledInDuringResolution] public List<Statement> ResolvedStatements;
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();

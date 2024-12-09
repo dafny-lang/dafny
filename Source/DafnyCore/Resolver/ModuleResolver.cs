@@ -783,7 +783,7 @@ namespace Microsoft.Dafny {
       var fn = new ApplySuffix(tok, null,
         new ExprDotName(tok, receiver, f.Name, f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter))),
         new ActualBindings(f.Ins.ConvertAll(Expression.CreateIdentExpr)).ArgumentBindings, Token.NoToken);
-      var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
+      var post = new AttributedExpression(tok, new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       Specification<FrameExpression> reads;
       if (Options.Get(Method.ReadsClausesOnMethods)) {
         // If f.Reads is empty, replace it with an explicit `reads {}` so that we don't replace that
@@ -1696,7 +1696,7 @@ namespace Microsoft.Dafny {
             var subst = new ExtremeLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name),
               this.reporter, true);
             var post = subst.CloneExpr(p.E);
-            prefixLemma.Ens.Add(new AttributedExpression(post));
+            prefixLemma.Ens.Add(new AttributedExpression(post.Origin, post));
             foreach (var e in coConclusions) {
               if (e is FunctionCallExpr fce) {
                 GreatestPredicate predicate = (GreatestPredicate)fce.Function;
@@ -1723,7 +1723,7 @@ namespace Microsoft.Dafny {
             var subst = new ExtremeLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name),
               this.reporter, false);
             var pre = subst.CloneExpr(p.E);
-            prefixLemma.Req.Add(new AttributedExpression(pre, p.Label, null));
+            prefixLemma.Req.Add(new AttributedExpression(pre.Origin, pre, p.Label, null));
             foreach (var e in antecedents) {
               var fce = (FunctionCallExpr)e; // we expect "antecedents" to contain only FunctionCallExpr's
               LeastPredicate predicate = (LeastPredicate)fce.Function;

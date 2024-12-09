@@ -240,13 +240,13 @@ public class RunAllTestsMainMethod : IRewriter {
     mainMethod.Body = new BlockStmt(tok, mainMethodStatements);
   }
 
-  private BlockStmt PrintTestFailureStatement(IOrigin tok, Expression successVarExpr, Expression failureValueExpr) {
-    var failedPrintStmt = Statement.CreatePrintStmt(tok,
-      Expression.CreateStringLiteral(tok, "FAILED\n\t"),
+  private BlockStmt PrintTestFailureStatement(IOrigin origin, Expression successVarExpr, Expression failureValueExpr) {
+    var failedPrintStmt = Statement.CreatePrintStmt(origin,
+      Expression.CreateStringLiteral(origin, "FAILED\n\t"),
       failureValueExpr,
-      Expression.CreateStringLiteral(tok, "\n"));
+      Expression.CreateStringLiteral(origin, "\n"));
     var failSuiteStmt =
-      new SingleAssignStmt(tok, successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(tok, false)));
-    return new BlockStmt(tok, Util.List<Statement>(failedPrintStmt, failSuiteStmt));
+      new SingleAssignStmt(origin, successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(origin, false)));
+    return new BlockStmt(origin, Util.List<Statement>(failedPrintStmt, failSuiteStmt));
   }
 }

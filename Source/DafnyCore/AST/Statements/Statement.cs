@@ -138,30 +138,30 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// <summary>
   /// Create a resolved statement for an uninitialized local variable.
   /// </summary>
-  public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Type type) {
-    Contract.Requires(tok != null);
+  public static VarDeclStmt CreateLocalVariable(IOrigin origin, string name, Type type) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
-    var variable = new LocalVariable(tok, name, type, false);
+    var variable = new LocalVariable(origin, name, type, false);
     variable.type = type;
-    return new VarDeclStmt(tok, Util.Singleton(variable), null);
+    return new VarDeclStmt(origin, Util.Singleton(variable), null);
   }
 
   /// <summary>
   /// Create a resolved statement for a local variable with an initial value.
   /// </summary>
-  public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Expression value) {
-    Contract.Requires(tok != null);
+  public static VarDeclStmt CreateLocalVariable(IOrigin origin, string name, Expression value) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(value != null);
-    var variable = new LocalVariable(tok, name, value.Type, false);
+    var variable = new LocalVariable(origin, name, value.Type, false);
     variable.type = value.Type;
-    Expression variableExpr = new IdentifierExpr(tok, variable);
-    var variableUpdateStmt = new AssignStatement(tok, Util.Singleton(variableExpr),
+    Expression variableExpr = new IdentifierExpr(origin, variable);
+    var variableUpdateStmt = new AssignStatement(origin, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
-    var variableAssignStmt = new SingleAssignStmt(tok, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
+    var variableAssignStmt = new SingleAssignStmt(origin, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
     variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
-    return new VarDeclStmt(tok, Util.Singleton(variable), variableUpdateStmt);
+    return new VarDeclStmt(origin, Util.Singleton(variable), variableUpdateStmt);
   }
 
   public static PrintStmt CreatePrintStmt(IOrigin tok, params Expression[] exprs) {

@@ -498,7 +498,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       }
 
       if (Req.Any() || Ens.Any()) {
-        Req.Insert(0, new AttributedExpression(reqExpr));
+        Req.Insert(0, new AttributedExpression(reqExpr.Origin, reqExpr));
       }
     }
 

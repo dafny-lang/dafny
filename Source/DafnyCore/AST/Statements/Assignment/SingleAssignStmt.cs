@@ -20,22 +20,6 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
     Contract.Invariant(Rhs != null);
   }
 
-  public override IOrigin Tok {
-    get {
-      if (Rhs.StartToken.Prev is not null) {
-        var previous = Rhs.StartToken.Prev;
-        // If there was a single assignment, report on the operator.
-        var singleAssignment = previous.val == ":=";
-        // If there was an implicit return assignment, report on the return.
-        var implicitAssignment = previous.val == "return";
-        if (singleAssignment || implicitAssignment) {
-          return previous;
-        }
-      }
-      return Rhs.StartToken;
-    }
-  }
-
   public SingleAssignStmt Clone(Cloner cloner) {
     return new SingleAssignStmt(cloner, this);
   }

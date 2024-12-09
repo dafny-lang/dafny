@@ -118,7 +118,7 @@ public class AutoContractsRewriter : IRewriter {
           new BinaryExpr(tok, BinaryExpr.Opcode.In,
             new ThisExpr(tok),
             CreateUnresolvedThisRepr(tok)));
-        valid.Ens.Insert(0, new AttributedExpression(post));
+        valid.Ens.Insert(0, new AttributedExpression(tok, post));
         if (member.tok == cl.tok) {
           // We added this function above, so produce a hover text for the entire function signature
           AddHoverText(cl.tok, "{0}", Printer.FunctionSignatureToString(Reporter.Options, valid));
@@ -129,7 +129,7 @@ public class AutoContractsRewriter : IRewriter {
         var f = (Function)member;
         // requires Valid()
         var valid = CreateUnresolvedValidCall(tok);
-        f.Req.Insert(0, new AttributedExpression(valid));
+        f.Req.Insert(0, new AttributedExpression(tok, valid));
         var format = "requires {0}";
         var repr = CreateUnresolvedThisRepr(tok);
         if (f.Reads.Expressions.Count == 0) {
@@ -142,10 +142,10 @@ public class AutoContractsRewriter : IRewriter {
         var ctor = (Constructor)member;
         // ensures Valid();
         var valid = CreateUnresolvedValidCall(tok);
-        ctor.Ens.Insert(0, new AttributedExpression(valid));
+        ctor.Ens.Insert(0, new AttributedExpression(tok, valid));
         // ensures fresh(Repr);
         var freshness = new FreshExpr(tok, CreateUnresolvedThisRepr(tok));
-        ctor.Ens.Insert(1, new AttributedExpression(freshness));
+        ctor.Ens.Insert(1, new AttributedExpression(tok, freshness));
         var m0 = new ThisExpr(tok);
         AddHoverText(member.tok, "modifies {0}\nensures {1} && {2}", m0, valid, freshness);
       }
@@ -303,13 +303,13 @@ public class AutoContractsRewriter : IRewriter {
               valid = new OldExpr(tok, valid);
               valid.Type = Type.Bool;
             }
-            m.Req.Insert(0, new AttributedExpression(valid));
+            m.Req.Insert(0, new AttributedExpression(tok, valid));
             AddHoverText(member.tok, "requires {0}", valid);
           }
         } else if (m.RefinementBase == null) {
           // requires Valid()
           var valid = CreateResolvedValidCall(tok, implicitSelf, Valid, m);
-          m.Req.Insert(0, new AttributedExpression(valid));
+          m.Req.Insert(0, new AttributedExpression(tok, valid));
           var format = "requires {0}";
           if (m.Mod.Expressions.Count == 0) {
             // modifies Repr
@@ -318,7 +318,7 @@ public class AutoContractsRewriter : IRewriter {
             addStatementsToUpdateRepr = true;
           }
           // ensures Valid()
-          m.Ens.Insert(0, new AttributedExpression(valid));
+          m.Ens.Insert(0, new AttributedExpression(tok, valid));
           // ensures fresh(Repr - old(Repr));
           var e0 = new OldExpr(tok, Repr);
           e0.Type = Repr.Type;
@@ -327,7 +327,7 @@ public class AutoContractsRewriter : IRewriter {
           e1.Type = Repr.Type;
           var freshness = new FreshExpr(tok, e1);
           freshness.Type = Type.Bool;
-          m.Ens.Insert(1, new AttributedExpression(freshness));
+          m.Ens.Insert(1, new AttributedExpression(tok, freshness));
           AddHoverText(m.tok, format + "\nensures {0} && {2}", valid, Repr, freshness);
         } else {
           addStatementsToUpdateRepr = true;

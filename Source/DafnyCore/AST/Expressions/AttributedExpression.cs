@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
+public class AttributedExpression : RangeNode, IAttributeBearingDeclaration {
   public readonly Expression E;
   public readonly AssertLabel/*?*/ Label;
 
@@ -25,26 +25,24 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
 
   string IAttributeBearingDeclaration.WhatKind => "expression";
 
-  public override IOrigin Origin => E.Origin;
-
   public bool HasAttributes() {
     return Attributes != null;
   }
 
-  public AttributedExpression(Expression e)
-    : this(e, null) {
+  public AttributedExpression(IOrigin origin, Expression e)
+    : this(origin, e, null) {
     Contract.Requires(e != null);
   }
 
-  public AttributedExpression(Expression e, Attributes attrs) : this(e, null, attrs) {
+  public AttributedExpression(IOrigin origin, Expression e, Attributes attrs) : this(origin, e, null, attrs) {
   }
 
-  public AttributedExpression(Expression e, AssertLabel/*?*/ label, Attributes attrs) {
+  public AttributedExpression(IOrigin origin, Expression e, AssertLabel/*?*/ label, Attributes attrs) 
+   : base(origin) {
     Contract.Requires(e != null);
     E = e;
     Label = label;
     Attributes = attrs;
-    this.tok = e.Tok;
   }
 
   public void AddCustomizedErrorMessage(IOrigin tok, string s) {
