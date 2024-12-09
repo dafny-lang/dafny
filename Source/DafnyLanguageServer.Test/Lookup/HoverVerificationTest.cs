@@ -133,7 +133,7 @@ This is the only assertion in [batch](???) #??? of ??? in method `f`
 This is the only assertion in [batch](???) #??? of ??? in method `f`  
 [Batch](???) #??? resource usage: ??? RU"
       );
-      await AssertVerificationHoverMatches(documentItem, (0, 36),
+      await AssertVerificationHoverMatches(documentItem, (0, 29),
         @"**Verification performance metrics for method `f`**:
 
 - Total resource usage: ??? RU  
