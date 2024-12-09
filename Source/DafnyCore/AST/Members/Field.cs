@@ -21,16 +21,16 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override IEnumerable<INode> Children =>
     (Type?.Nodes ?? Enumerable.Empty<INode>()).Concat(this.Attributes.AsEnumerable());
 
-  public Field(RangeToken rangeToken, Name name, bool isGhost, Type type, Attributes attributes)
-    : this(rangeToken, name, false, isGhost, true, true, type, attributes) {
-    Contract.Requires(rangeToken != null);
+  public Field(RangeToken rangeOrigin, Name name, bool isGhost, Type type, Attributes attributes)
+    : this(rangeOrigin, name, false, isGhost, true, true, type, attributes) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
   }
 
-  public Field(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, false) {
-    Contract.Requires(rangeToken != null);
+  public Field(RangeToken rangeOrigin, Name name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+    : base(rangeOrigin, name, hasStaticKeyword, isGhost, attributes, false) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
     Contract.Requires(!isUserMutable || isMutable);
@@ -91,11 +91,21 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   }
 
   public string GetTriviaContainingDocstring() {
-    if (EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
+    foreach (var token in OwnedTokens) {
+      if (token.val == ":=") {
+        if ((token.Prev.TrailingTrivia + (token.LeadingTrivia ?? "")).Trim() is { } tentativeTrivia and not "") {
+          return tentativeTrivia;
+        }
+      }
+    }
+    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia2 and not "") {
+      return tentativeTrivia2;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 
   public override SymbolKind? Kind => SymbolKind.Field;

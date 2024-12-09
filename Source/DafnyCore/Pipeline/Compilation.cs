@@ -72,6 +72,7 @@ public class Compilation : IDisposable {
 
   public Task<IReadOnlyList<DafnyFile>> RootFiles { get; set; }
   public bool HasErrors { get; private set; }
+  public bool ShouldProcessSolverOptions { get; set; } = true;
 
   public Compilation(
     ILogger<Compilation> logger,
@@ -257,7 +258,7 @@ public class Compilation : IDisposable {
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
-    if (task.ScopeToken is RefinementToken refinementToken) {
+    if (task.ScopeToken is RefinementOrigin refinementToken) {
       prefix += "." + refinementToken.InheritingModule.Name;
     }
 
@@ -266,7 +267,9 @@ public class Compilation : IDisposable {
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
-  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
+  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, Func<IVerificationTask, bool>? taskFilter = null,
+    int? randomSeed = null,
+    bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
@@ -289,10 +292,10 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, _ => true, null, onlyPrepareVerificationForGutterTests);
+    return await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), randomSeed, onlyPrepareVerificationForGutterTests);
   }
 
-  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+  private async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
     int? randomSeed = 0,
     bool onlyPrepareVerificationForGutterTests = false) {
 
@@ -334,7 +337,7 @@ public class Compilation : IDisposable {
           var result = await verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
             cancellationSource.Token);
 
-          return result.GroupBy(t => ((IToken)t.ScopeToken).GetFilePosition()).ToDictionary(
+          return result.GroupBy(t => ((IOrigin)t.ScopeToken).GetFilePosition()).ToDictionary(
             g => g.Key,
             g => (IReadOnlyList<IVerificationTask>)g.ToList());
         });
@@ -365,7 +368,7 @@ public class Compilation : IDisposable {
       if (!onlyPrepareVerificationForGutterTests) {
         var groups = tasks.GroupBy(t =>
             // We unwrap so that we group on tokens as they are displayed to the user by Reporter.Info
-            TokenWrapper.Unwrap(BoogieGenerator.ToDafnyToken(true, t.Token))).
+            OriginWrapper.Unwrap(BoogieGenerator.ToDafnyToken(true, t.Token))).
           OrderBy(g => g.Key);
         foreach (var tokenTasks in groups) {
           var functions = tokenTasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).

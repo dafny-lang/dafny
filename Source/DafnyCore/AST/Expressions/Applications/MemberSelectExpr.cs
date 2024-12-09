@@ -214,7 +214,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
     }
   }
 
-  public MemberSelectExpr(IToken tok, Expression obj, string memberName)
+  public MemberSelectExpr(IOrigin tok, Expression obj, string memberName)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(obj != null);
@@ -226,7 +226,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
   /// <summary>
   /// Returns a resolved MemberSelectExpr for a field.
   /// </summary>
-  public MemberSelectExpr(IToken tok, Expression obj, Field field)
+  public MemberSelectExpr(IOrigin tok, Expression obj, Field field)
     : this(tok, obj, field.Name) {
     Contract.Requires(tok != null);
     Contract.Requires(obj != null);
@@ -297,5 +297,5 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
     return new[] { Member };
   }
 
-  public IToken NavigationToken => tok;
+  public IOrigin NavigationToken => tok;
 }

@@ -742,20 +742,19 @@ module Std.Collections.Seq {
   /* Applying a function to a sequence  is distributive over concatenation. That is, concatenating
      two sequences and then applying Map is the same as applying Map to each sequence separately,
      and then concatenating the two resulting sequences. */
-  @ResourceLimit("1e9")
-  lemma LemmaMapDistributesOverConcat<T,R>(f: (T ~> R), xs: seq<T>, ys: seq<T>)
-    requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
-    requires forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
+  lemma {:induction false} LemmaMapDistributesOverConcat<T,R>(f: (T ~> R), xs: seq<T>, ys: seq<T>)
+    requires X: forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
+    requires Y: forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Map(f, xs + ys) == Map(f, xs) + Map(f, ys)
   {
     if |xs| == 0 {
       assert xs + ys == ys;
     } else {
       calc {
-        Map(f, xs + ys);
+        Map(f, reveal X, Y; xs + ys);
         { assert (xs + ys)[0] == xs[0]; assert (xs + ys)[1..] == xs[1..] + ys; }
         Map(f, [xs[0]]) + Map(f, xs[1..] + ys);
-        Map(f, [xs[0]]) + Map(f, xs[1..]) + Map(f, ys);
+        Map(f, [xs[0]]) + Map(f, reveal X; xs[1..]) + Map(f, reveal Y; ys);
         {assert [(xs + ys)[0]] + xs[1..] + ys == xs + ys;}
         Map(f, xs) + Map(f, ys);
       }

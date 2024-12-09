@@ -26,7 +26,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
     };
     if (tok is RangeToken rangeToken1) {
       range["end"] = SerializePosition(rangeToken1.EndToken);
-    } else if (tok is BoogieRangeToken rangeToken2) {
+    } else if (tok is BoogieRangeOrigin rangeToken2) {
       range["end"] = SerializePosition(rangeToken2.EndToken);
     }
     return range;
@@ -35,7 +35,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
   private static JsonObject SerializeToken(Boogie.IToken tok) {
     return new JsonObject {
       ["filename"] = tok.filename,
-      ["uri"] = ((IToken)tok).Uri.AbsoluteUri,
+      ["uri"] = ((IOrigin)tok).Uri.AbsoluteUri,
       ["range"] = SerializeRange(tok)
     };
   }
@@ -61,7 +61,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
   }
 
   private static IEnumerable<JsonNode> SerializeInnerTokens(Boogie.IToken tok) {
-    while (tok is NestedToken nestedToken) {
+    while (tok is NestedOrigin nestedToken) {
       tok = nestedToken.Inner;
       var message = nestedToken.Message != null ? "Related location: " + nestedToken.Message : "Related location";
       yield return SerializeRelated(tok, null, message);
@@ -111,7 +111,7 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
 }
 
 public class JsonConsoleErrorReporter : BatchErrorReporter {
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorID, Dafny.IToken tok, string msg) {
+  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorID, Dafny.IOrigin tok, string msg) {
     if (base.MessageCore(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
       new DiagnosticMessageData(source, level, tok, level == ErrorLevel.Error ? "Error" : null, msg, null).WriteJsonTo(Options.OutputWriter);
       return true;
