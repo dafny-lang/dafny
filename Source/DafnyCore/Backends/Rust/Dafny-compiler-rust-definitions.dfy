@@ -44,14 +44,16 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
      (|i| == 3 && i[2] in "0123456789"))
   }
 
+  // Given a Dafny-expanded fully qualified name with # or ., where ' has been replaced by _k, ? by _q and _ by __
+  // detect if there are of the strings above
   predicate has_special(i: string) {
     if |i| == 0 then false
     else if i[0] == '.' then true
     else if i[0] == '#' then true // otherwise "escapeName("r#") becomes "r#""
     else if i[0] == '_' then
       if 2 <= |i| then
-        if i[1] != '_' then true
-        else has_special(i[2..])
+        if i[1] == '_' then has_special(i[2..])
+        else true
       else
         true
     else
@@ -95,6 +97,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
 
   predicate is_dafny_generated_id(i: string) {
     && |i| > 0 && i[0] == '_' && !has_special(i[1..])
+    && (i != "_self" && i != "_Self")
     && (|i| >= 2 ==> i[1] != 'T') // To avoid conflict with tuple builders _T<digits>
   }
 
@@ -108,21 +111,21 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   }
 
   function escapeIdent(i: string): string {
-    if is_tuple_numeric(i) then
+    if is_tuple_numeric(i) then // _42 remains the same
       i
-    else if is_tuple_builder(i) then
+    else if is_tuple_builder(i) then // ___hMake42 becomes _T42
       better_tuple_builder_name(i)
-    else if i == "self" || i == "Self" then
-      "r#_" + i
+    else if i == "self" || i == "Self" then // self becomes _self
+      "_" + i
     else if i in reserved_rust then
       "r#" + i
-    else if is_idiomatic_rust_id(i) then
+    else if is_idiomatic_rust_id(i) then // some__id becomes some_id
       idiomatic_rust(i)
-    else if is_dafny_generated_id(i) then
+    else if is_dafny_generated_id(i) then // _module remains _module
       i // Dafny-generated identifiers like "_module", cannot be written in Dafny itself
-    else
+    else // u16 becomes _u16, namespace.IsSomething_q becomes _namespace_dIsSomething_q
       var r := replaceDots(i);
-      "r#_" + r
+      "_" + r
   }
 
   // To be used when escaping variables
