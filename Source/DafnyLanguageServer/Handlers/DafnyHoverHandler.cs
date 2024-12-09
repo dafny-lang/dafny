@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       } else {
         // If we hover over a usage, display the information of the declaration
         symbol = declarationOrUsage as ISymbol;
-        if (symbol != null && !symbol.NavigationToken.ToRange().ToLspRange().Contains(request.Position)) {
+        if (symbol != null && !symbol.NavigationToken.ToLspRange().Contains(request.Position)) {
           symbol = null;
         }
       }

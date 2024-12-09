@@ -26,7 +26,7 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
     }
   }
 
-  public LoopStmt(RangeToken rangeOrigin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
+  protected LoopStmt(IOrigin rangeOrigin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
     : base(rangeOrigin) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(invariants));
@@ -37,7 +37,8 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
     this.Decreases = decreases;
     this.Mod = mod;
   }
-  public LoopStmt(RangeToken rangeOrigin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
+
+  protected LoopStmt(IOrigin rangeOrigin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
     : base(rangeOrigin, attrs) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(invariants));
@@ -85,5 +86,5 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
     }
   }
 
-  public IOrigin NavigationToken => Tok;
+  public IOrigin NavigationToken => Center;
 }

@@ -896,8 +896,8 @@ namespace Microsoft.Dafny {
 
     public static IOrigin ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
       if (boogieToken is BoogieRangeOrigin boogieRangeToken) {
-        if (!reportRanges && boogieRangeToken.Center is not null) {
-          return boogieRangeToken.Center;
+        if (!reportRanges && boogieRangeToken.Centerish is not null) {
+          return boogieRangeToken.Centerish;
         }
 
         return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
@@ -912,7 +912,7 @@ namespace Microsoft.Dafny {
       if (boogieToken == null) {
         return null;
       } else if (boogieToken is IOrigin dafnyToken) {
-        return dafnyToken;
+        return dafnyToken; // Do not return dafnyToken.center, because then BoogieGenerator loses RefinmentOrigin wrapping
       } else if (boogieToken is VCGeneration.TokenWrapper tokenWrapper) {
         return ToDafnyToken(reportRanges, tokenWrapper.Inner);
       } else if (boogieToken == Boogie.Token.NoToken) {

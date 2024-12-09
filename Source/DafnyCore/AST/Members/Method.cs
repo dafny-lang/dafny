@@ -131,7 +131,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.IsByMethod = original.IsByMethod;
   }
 
-  public Method(RangeToken rangeOrigin, Name name,
+  public Method(IOrigin rangeOrigin, Name name,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -498,7 +498,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       }
 
       if (Req.Any() || Ens.Any()) {
-        Req.Insert(0, new AttributedExpression(reqExpr));
+        Req.Insert(0, new AttributedExpression(reqExpr.Origin, reqExpr));
       }
     }
 

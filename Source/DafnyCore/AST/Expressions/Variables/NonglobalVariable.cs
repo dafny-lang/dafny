@@ -31,7 +31,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
       return name;
     }
   }
-  public string DafnyName => RangeToken == null || tok.line == 0 ? Name : RangeToken.PrintOriginal();
+  public string DafnyName => Origin == null || tok.line == 0 ? Name : Origin.PrintOriginal();
   public string DisplayName =>
     LocalVariable.DisplayNameHelper(this);
 
@@ -136,7 +136,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
     IsGhost = true;
   }
 
-  public IOrigin NavigationToken => tok;
+  public IOrigin NavigationToken => Center;
   public override IEnumerable<INode> Children => IsTypeExplicit ? new List<Node> { Type } : Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
   public SymbolKind? Kind => SymbolKind.Variable;

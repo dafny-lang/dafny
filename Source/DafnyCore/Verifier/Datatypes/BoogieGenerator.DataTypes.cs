@@ -165,7 +165,7 @@ namespace Microsoft.Dafny {
         (typeOfK, K) => {
           Func<string, List<TypeParameter>> renew = s =>
             Map(codecl.TypeArgs, tp =>
-              new TypeParameter(tp.RangeToken, tp.NameNode.Append("#" + s), tp.PositionalIndex, tp.Parent));
+              new TypeParameter(tp.Origin, tp.NameNode.Append("#" + s), tp.PositionalIndex, tp.Parent));
           List<TypeParameter> typaramsL = renew("l"), typaramsR = renew("r");
           var lvars = MkTyParamBinders(typaramsL, out var lexprs);
           var rvars = MkTyParamBinders(typaramsR, out var rexprs);

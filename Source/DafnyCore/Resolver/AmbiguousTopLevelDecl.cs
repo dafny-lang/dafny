@@ -42,7 +42,7 @@ public class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl>
   ISet<TopLevelDecl> IAmbiguousThing<TopLevelDecl>.Pool => pool;
 
   private AmbiguousTopLevelDecl(ModuleDefinition m, string name, ISet<TopLevelDecl> pool)
-    : base(pool.First().RangeToken, new Name(pool.First().RangeToken, name), m, new List<TypeParameter>(), null, false) {
+    : base(pool.First().Origin, new Name(pool.First().Origin, name), m, new List<TypeParameter>(), null, false) {
     Contract.Requires(name != null);
     Contract.Requires(pool != null && 2 <= pool.Count);
     this.pool = pool;

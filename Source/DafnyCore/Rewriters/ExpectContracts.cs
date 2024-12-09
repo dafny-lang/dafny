@@ -47,7 +47,7 @@ public class ExpectContracts : IRewriter {
       msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
-    return new ExpectStmt(expr.E.RangeToken, exprToCheck, msgExpr, null);
+    return new ExpectStmt(expr.E.Origin, exprToCheck, msgExpr, null);
   }
 
   /// <summary>
@@ -67,7 +67,7 @@ public class ExpectContracts : IRewriter {
       CreateContractExpectStatement(ens, "ensures"));
     var callStmtList = new List<Statement>() { callStmt };
     var bodyStatements = expectRequiresStmts.Concat(callStmtList).Concat(expectEnsuresStmts);
-    return new BlockStmt(callStmt.RangeToken, bodyStatements.ToList());
+    return new BlockStmt(callStmt.Origin, bodyStatements.ToList());
   }
 
   private bool ShouldGenerateWrapper(MemberDecl decl) {
@@ -119,14 +119,7 @@ public class ExpectContracts : IRewriter {
 
     var resultVar = origFunc.Result ?? new Formal(tok, "#result", newFunc.ResultType, false, false, null);
     var localExpr = Expression.CreateIdentExpr(resultVar);
-
-    var callRhs = new ExprRhs(callExpr);
-
-    var lhss = new List<Expression> { localExpr };
-    var rhss = new List<AssignmentRhs> { callRhs };
-
-    var callStmt = new SingleAssignStmt(decl.RangeToken, localExpr, callRhs);
-
+    var callStmt = new SingleAssignStmt(decl.Origin, localExpr, new ExprRhs(callExpr));
     var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
     newFunc.ByMethodBody = body;
@@ -151,7 +144,7 @@ public class ExpectContracts : IRewriter {
       newMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
     memberSelectExpr.TypeApplicationAtEnclosingClass =
       parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
-    var callStmt = new CallStmt(decl.RangeToken, outs, memberSelectExpr, args);
+    var callStmt = new CallStmt(decl.Origin, outs, memberSelectExpr, args);
 
     var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
     newMethod.Body = body;
@@ -172,7 +165,7 @@ public class ExpectContracts : IRewriter {
     };
     var fn = Expression.CreateResolvedCall(tok, receiver, f, f.Ins.ConvertAll(Expression.CreateIdentExpr),
       f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter)), systemModuleManager);
-    var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
+    var post = new AttributedExpression(tok, new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
       Type = Type.Bool
     });
     // If f.Reads is empty, replace it with an explicit `reads {}` so that we don't replace that
@@ -183,7 +176,7 @@ public class ExpectContracts : IRewriter {
       var emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
       reads.Expressions.Add(new FrameExpression(tok, emptySet, null));
     }
-    var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
+    var method = new Method(f.Origin, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
       f.Ins, new List<Formal>() { resultVar },
       f.Req, reads, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
       f.ByMethodBody, f.Attributes, null, true);

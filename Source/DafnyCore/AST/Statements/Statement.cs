@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
-  public override IOrigin Tok => PostLabelToken ?? StartToken;
+  public override IOrigin Tok => PostLabelToken ?? Origin;
   public IOrigin PostLabelToken { get; set; }
 
   public int ScopeDepth { get; set; }
@@ -26,7 +26,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     resolver.ResolveAttributes(this, resolutionContext);
   }
 
-  protected Statement(Cloner cloner, Statement original) : base(cloner.Tok(original.RangeToken)) {
+  protected Statement(Cloner cloner, Statement original) : base(cloner.Origin(original.Origin)) {
     cloner.AddStatementClone(original, this);
     this.Attributes = cloner.CloneAttributes(original.Attributes);
 
@@ -36,11 +36,11 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     }
   }
 
-  protected Statement(RangeToken rangeOrigin, Attributes attrs) : base(rangeOrigin) {
+  protected Statement(IOrigin rangeOrigin, Attributes attrs) : base(rangeOrigin) {
     this.Attributes = attrs;
   }
 
-  protected Statement(RangeToken rangeOrigin)
+  protected Statement(IOrigin rangeOrigin)
     : this(rangeOrigin, null) {
     Contract.Requires(rangeOrigin != null);
   }
@@ -138,36 +138,34 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// <summary>
   /// Create a resolved statement for an uninitialized local variable.
   /// </summary>
-  public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Type type) {
-    Contract.Requires(tok != null);
+  public static VarDeclStmt CreateLocalVariable(IOrigin origin, string name, Type type) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
-    var variable = new LocalVariable(tok.ToRange(), name, type, false);
+    var variable = new LocalVariable(origin, name, type, false);
     variable.type = type;
-    return new VarDeclStmt(tok.ToRange(), Util.Singleton(variable), null);
+    return new VarDeclStmt(origin, Util.Singleton(variable), null);
   }
 
   /// <summary>
   /// Create a resolved statement for a local variable with an initial value.
   /// </summary>
-  public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Expression value) {
-    Contract.Requires(tok != null);
+  public static VarDeclStmt CreateLocalVariable(IOrigin origin, string name, Expression value) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(value != null);
-    var rangeToken = new RangeToken(tok, tok);
-    var variable = new LocalVariable(rangeToken, name, value.Type, false);
+    var variable = new LocalVariable(origin, name, value.Type, false);
     variable.type = value.Type;
-    Expression variableExpr = new IdentifierExpr(tok, variable);
-    var variableUpdateStmt = new AssignStatement(rangeToken, Util.Singleton(variableExpr),
+    Expression variableExpr = new IdentifierExpr(origin, variable);
+    var variableUpdateStmt = new AssignStatement(origin, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
-    var variableAssignStmt = new SingleAssignStmt(rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
+    var variableAssignStmt = new SingleAssignStmt(origin, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
     variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
-    return new VarDeclStmt(rangeToken, Util.Singleton(variable), variableUpdateStmt);
+    return new VarDeclStmt(origin, Util.Singleton(variable), variableUpdateStmt);
   }
 
   public static PrintStmt CreatePrintStmt(IOrigin tok, params Expression[] exprs) {
-    var rangeToken = new RangeToken(tok, tok);
-    return new PrintStmt(rangeToken, exprs.ToList());
+    return new PrintStmt(tok, exprs.ToList());
   }
 
   public override string ToString() {

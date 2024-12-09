@@ -28,7 +28,7 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
        */
       TargetQId.Root = original.TargetQId.Root;
     }
-    Exports = original.Exports;
+    Exports = original.Exports.Select(cloner.Origin).ToList();
   }
 
   public AliasModuleDecl(DafnyOptions options, RangeToken rangeOrigin, ModuleQualifiedId path, Name name,
@@ -62,7 +62,7 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
   /// </summary>
   public override IOrigin NavigationToken => HasAlias ? base.NavigationToken : (TargetQId.Decl?.NavigationToken ?? base.NavigationToken);
 
-  private bool HasAlias => NameNode.RangeToken.IsSet();
+  private bool HasAlias => NameNode.Origin.IsSet();
 
   public override IOrigin Tok => HasAlias ? NameNode.StartToken : StartToken;
 

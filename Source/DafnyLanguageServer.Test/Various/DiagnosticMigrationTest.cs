@@ -54,12 +54,13 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ResolutionDiagnosticsAreKeptWhenNonEdgeCrossingChangesAreMade() {
-    var documentItem = CreateTestDocument(@"method GetConstant() returns (x: int) 
+    var documentItem = CreateTestDocument(@"
+method GetConstant() returns (x: int) 
   ensures x == 2 
   { 
     x := 1;
     return;
-  }");
+  }".TrimStart());
     client.OpenDocument(documentItem);
     var verificationDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(verificationDiagnostics);
@@ -101,7 +102,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     Assert.Equal(verificationDiagnostics.Length, resolutionDiagnostics.Length);
     Assert.Equal(IdeState.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
     Assert.Equal(verificationDiagnostics[0].RelatedInformation, resolutionDiagnostics[0].RelatedInformation);
-    Assert.Equal(new Range(4, 7, 4, 13), resolutionDiagnostics[0].Range);
+    Assert.Equal(new Range(4, 7, 4, 14), resolutionDiagnostics[0].Range);
   }
 
   [Fact]

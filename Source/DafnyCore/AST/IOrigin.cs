@@ -4,8 +4,15 @@ using System.IO;
 namespace Microsoft.Dafny;
 
 public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
-  public RangeToken To(IOrigin end) => new RangeToken(this, end);
 
+  public bool InclusiveEnd => EndToken != null;
+
+  bool IsMissingRange { get; }
+  bool IsInherited(ModuleDefinition d);
+  Token Center { get; }
+  Token StartToken { get; }
+  Token EndToken { get; }
+  public bool ContainsRange { get; }
   /*
   int kind { get; set; }
   int pos { get; set; }
@@ -18,8 +25,8 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
     set => throw new NotSupportedException();
   }
 
-  public string ActualFilename => Uri.LocalPath;
-  string Filepath => Uri.LocalPath;
+  public string ActualFilename => Uri?.LocalPath;
+  string Filepath => Uri?.LocalPath;
 
   Uri Uri { get; set; }
 

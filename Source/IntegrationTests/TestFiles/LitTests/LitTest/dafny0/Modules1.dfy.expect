@@ -1,6 +1,6 @@
 Modules1.dfy(131,14): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 Modules1.dfy(56,8): Error: decreases expression must be bounded below by 0
-Modules1.dfy(54,12): Related location: this proposition could not be proved
+Modules1.dfy(54,12): Related location: Could not prove: x
 Modules1.dfy(62,8): Error: decreases clause might not decrease
 Modules1.dfy(82,15): Error: assertion might not hold
 Modules1.dfy(95,15): Error: assertion might not hold

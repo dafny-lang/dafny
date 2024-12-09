@@ -9,6 +9,10 @@ namespace Microsoft.Dafny;
 /// Node that has a token that is used to navigate to this node
 /// </summary>
 public interface IHasNavigationToken : INode {
+  /// <summary>
+  /// For declarations, we could point to a Name,
+  /// but for references we can not, so we return an origin 
+  /// </summary>
   IOrigin NavigationToken { get; }
 }
 

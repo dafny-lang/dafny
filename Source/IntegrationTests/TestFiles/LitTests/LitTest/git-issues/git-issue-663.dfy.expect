@@ -54,22 +54,22 @@ git-issue-663.dfy(179,11): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(180,8): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(181,10): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(182,12): Warning: assume statement has no {:axiom} annotation
-git-issue-663.dfy(190,10): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+git-issue-663.dfy(190,2): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 git-issue-663.dfy(188,11): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(189,11): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(191,12): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(190,10): Warning: assume statement has no {:axiom} annotation
-git-issue-663.dfy(196,10): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+git-issue-663.dfy(196,2): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 git-issue-663.dfy(194,11): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(195,11): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(197,12): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(196,10): Warning: assume statement has no {:axiom} annotation
-git-issue-663.dfy(202,10): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
+git-issue-663.dfy(202,2): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 git-issue-663.dfy(200,11): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(201,8): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(202,10): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(203,12): Warning: assume statement has no {:axiom} annotation
-git-issue-663.dfy(208,10): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
+git-issue-663.dfy(208,2): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 git-issue-663.dfy(206,11): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(207,8): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(208,10): Warning: assume statement has no {:axiom} annotation
@@ -86,7 +86,7 @@ git-issue-663.dfy(223,12): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(222,10): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(229,11): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(229,11): Warning: assume statement has no {:axiom} annotation
-git-issue-663.dfy(233,10): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+git-issue-663.dfy(233,2): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 git-issue-663.dfy(232,11): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(234,12): Warning: assume statement has no {:axiom} annotation
 git-issue-663.dfy(233,10): Warning: assume statement has no {:axiom} annotation

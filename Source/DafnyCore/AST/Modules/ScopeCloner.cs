@@ -95,7 +95,7 @@ class ScopeCloner : DeepModuleSignatureCloner {
       var characteristics = TypeParameter.GetExplicitCharacteristics(d);
       var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
       // copy the newParent traits only if "d" is already an AbstractTypeDecl and is being export-revealed
-      var otd = new AbstractTypeDecl(Range(d.RangeToken), d.NameNode.Clone(this), newParent, characteristics, tps,
+      var otd = new AbstractTypeDecl(Origin(d.Origin), d.NameNode.Clone(this), newParent, characteristics, tps,
         new List<Type>(), // omit the newParent traits
         members, CloneAttributes(d.Attributes), d.IsRefining);
       based = otd;
@@ -114,7 +114,7 @@ class ScopeCloner : DeepModuleSignatureCloner {
     if (f is ConstantField { Rhs: not null } cf && !RevealedInScope(f)) {
       // We erase the RHS value. While we do that, we must also make sure the declaration does have a type, so instead of
       // cloning cf.Type, we assume "f" has been resolved and clone cf.Type.NormalizeExpandKeepConstraints().
-      return new ConstantField(Range(cf.RangeToken), cf.NameNode.Clone(this), null, cf.HasStaticKeyword, cf.IsGhost, cf.IsOpaque, CloneType(cf.Type.NormalizeExpandKeepConstraints()), CloneAttributes(cf.Attributes));
+      return new ConstantField(Origin(cf.Origin), cf.NameNode.Clone(this), null, cf.HasStaticKeyword, cf.IsGhost, cf.IsOpaque, CloneType(cf.Type.NormalizeExpandKeepConstraints()), CloneAttributes(cf.Attributes));
     }
     return base.CloneField(f);
   }
@@ -126,7 +126,7 @@ class ScopeCloner : DeepModuleSignatureCloner {
       Contract.Assert(basef.Body != null); // a function-by-method has a nonempty .Body
       if (RevealedInScope(f)) {
         // For an "export reveals", use an empty (but not absent) by-method part.
-        basef.ByMethodBody = new BlockStmt(basef.ByMethodBody.RangeToken, new List<Statement>());
+        basef.ByMethodBody = new BlockStmt(basef.ByMethodBody.Origin, new List<Statement>());
       } else {
         // For an "export provides", remove the by-method part altogether.
         basef.ByMethodTok = null;

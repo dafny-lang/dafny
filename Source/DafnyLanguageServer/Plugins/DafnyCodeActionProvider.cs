@@ -34,10 +34,10 @@ public abstract class DafnyCodeActionProvider {
 
   // When building DafnyCodeActionEdit (what DafnyCodeAction return),
   // use this to create ranges suitable for insertion
-  protected static RangeToken InsertBefore(IOrigin tok) {
+  protected static RangeToken InsertBefore(Token tok) {
     return new RangeToken(tok, null);
   }
-  protected static RangeToken InsertAfter(IOrigin tok) {
+  protected static RangeToken InsertAfter(Token tok) {
     return new RangeToken(new Token(tok.line, tok.col + tok.val.Length) {
       pos = tok.pos + tok.val.Length,
     }, null);
