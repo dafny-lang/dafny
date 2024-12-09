@@ -12,7 +12,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  public override IOrigin Tok {
+  public override IToken Tok {
     get {
       var firstRhs = Rhss.First();
       if (firstRhs.StartToken != StartToken) {
@@ -53,16 +53,16 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
     }
   }
 
-  public AssignStatement(RangeToken rangeOrigin, List<Expression> lhss, List<AssignmentRhs> rhss)
-    : base(rangeOrigin, lhss) {
+  public AssignStatement(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
+    : base(rangeToken, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = false;
   }
-  public AssignStatement(RangeToken rangeOrigin, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
-    : base(rangeOrigin, lhss) {
+  public AssignStatement(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
+    : base(rangeToken, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
@@ -96,7 +96,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
 
     base.Resolve(resolver, resolutionContext);
 
-    IOrigin firstEffectfulRhs = null;
+    IToken firstEffectfulRhs = null;
     MethodCallInformation methodCallInfo = null;
     ResolvedStatements = new();
     foreach (var rhs in Rhss) {

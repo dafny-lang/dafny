@@ -603,7 +603,7 @@ namespace Microsoft.Dafny {
       return new RangeToken(Tok(range.StartToken), Tok(range.EndToken));
     }
 
-    public virtual IOrigin Tok(IOrigin tok) {
+    public virtual IToken Tok(IToken tok) {
       Contract.Requires(tok != null);
       return tok;
     }

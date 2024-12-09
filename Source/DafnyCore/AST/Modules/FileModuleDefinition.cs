@@ -12,8 +12,8 @@ namespace Microsoft.Dafny;
 public class FileModuleDefinition : ModuleDefinition {
   public List<Include> Includes { get; } = new();
 
-  public FileModuleDefinition(IOrigin token) :
-    base(token.ToRange(), new Name("_module"), new List<IOrigin>(),
+  public FileModuleDefinition(IToken token) :
+    base(token.ToRange(), new Name("_module"), new List<IToken>(),
       ModuleKindEnum.Concrete, false, null, null, null) {
     {
     }

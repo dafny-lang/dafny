@@ -12,11 +12,11 @@ namespace Microsoft.Dafny;
 
 public interface INode {
   bool SingleFileToken { get; }
-  public IOrigin StartToken => RangeToken.StartToken;
-  public IOrigin EndToken => RangeToken.EndToken;
-  IEnumerable<IOrigin> OwnedTokens { get; }
+  public IToken StartToken => RangeToken.StartToken;
+  public IToken EndToken => RangeToken.EndToken;
+  IEnumerable<IToken> OwnedTokens { get; }
   RangeToken RangeToken { get; }
-  IOrigin Tok { get; }
+  IToken Tok { get; }
   IEnumerable<INode> Children { get; }
   IEnumerable<INode> PreResolveChildren { get; }
 }
@@ -33,13 +33,13 @@ public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
 
-  protected IReadOnlyList<IOrigin> OwnedTokensCache;
+  protected IReadOnlyList<IToken> OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
-  public IOrigin StartToken => RangeToken?.StartToken;
+  public IToken StartToken => RangeToken?.StartToken;
 
-  public IOrigin EndToken => RangeToken?.EndToken;
-  public abstract IOrigin Tok { get; }
+  public IToken EndToken => RangeToken?.EndToken;
+  public abstract IToken Tok { get; }
 
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
@@ -56,7 +56,7 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<INode> PreResolveChildren { get; }
 
-  public IEnumerable<IOrigin> CoveredTokens {
+  public IEnumerable<IToken> CoveredTokens {
     get {
       var token = StartToken;
       if (token == Token.NoToken) {
@@ -73,7 +73,7 @@ public abstract class Node : INode {
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
   /// </summary>
-  public IEnumerable<IOrigin> OwnedTokens {
+  public IEnumerable<IToken> OwnedTokens {
     get {
       if (OwnedTokensCache != null) {
         return OwnedTokensCache;
@@ -90,7 +90,7 @@ public abstract class Node : INode {
         ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
       );
 
-      var result = new List<IOrigin>();
+      var result = new List<IToken>();
       if (StartToken == null) {
         Contract.Assume(EndToken == null);
       } else {
@@ -189,18 +189,19 @@ public abstract class Node : INode {
   }
 
   // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
-  protected bool GetStartTriviaDocstring(out string trivia) {
+  protected string GetTriviaContainingDocstringFromStartTokenOrNull() {
     var matches = StartDocstringExtractor.Matches(StartToken.LeadingTrivia);
-    trivia = null;
     if (matches.Count > 0) {
-      trivia = matches[^1].Value;
-    } else if (StartToken.Prev is { val: "|" or "{" }) {
+      return matches[^1].Value;
+    }
+
+    if (StartToken.Prev is { val: "|" or "{" }) {
       matches = StartDocstringExtractor.Matches(StartToken.Prev.TrailingTrivia);
       if (matches.Count > 0) {
-        trivia = matches[^1].Value;
+        return matches[^1].Value;
       }
     }
-    return trivia is not ("" or null);
+    return null;
   }
 }
 
@@ -208,25 +209,25 @@ public abstract class TokenNode : Node {
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal IOrigin[] FormatTokens = null;
+  internal IToken[] FormatTokens = null;
 
-  protected RangeToken RangeOrigin = null;
+  protected RangeToken rangeToken = null;
 
-  public IOrigin tok = Token.NoToken;
+  public IToken tok = Token.NoToken;
 
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IOrigin Tok {
+  public override IToken Tok {
     get => tok;
   }
 
   public override RangeToken RangeToken {
     get {
-      if (RangeOrigin == null) {
+      if (rangeToken == null) {
 
         var startTok = tok;
         var endTok = tok;
 
-        void UpdateStartEndToken(IOrigin token1) {
+        void UpdateStartEndToken(IToken token1) {
           if (token1.Filepath != tok.Filepath) {
             return;
           }
@@ -262,20 +263,20 @@ public abstract class TokenNode : Node {
           }
         }
 
-        RangeOrigin = new RangeToken(startTok, endTok);
+        rangeToken = new RangeToken(startTok, endTok);
       }
 
-      return RangeOrigin;
+      return rangeToken;
     }
-    set => RangeOrigin = value;
+    set => rangeToken = value;
   }
 }
 
 public abstract class RangeNode : Node { // TODO merge into Node when TokenNode is gone.
 
-  public override IOrigin Tok => StartToken; // TODO rename to ReportingToken in separate PR
+  public override IToken Tok => StartToken; // TODO rename to ReportingToken in separate PR
 
-  public IOrigin tok => Tok; // TODO replace with Tok in separate PR
+  public IToken tok => Tok; // TODO replace with Tok in separate PR
 
   // TODO rename to Range in separate PR
   public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
@@ -284,7 +285,7 @@ public abstract class RangeNode : Node { // TODO merge into Node when TokenNode 
     RangeToken = cloner.Tok(original.RangeToken);
   }
 
-  protected RangeNode(RangeToken rangeOrigin) {
-    RangeToken = rangeOrigin;
+  protected RangeNode(RangeToken rangeToken) {
+    RangeToken = rangeToken;
   }
 }

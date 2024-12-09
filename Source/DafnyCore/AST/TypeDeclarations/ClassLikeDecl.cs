@@ -24,10 +24,10 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public ClassLikeDecl(RangeToken rangeOrigin, Name name, ModuleDefinition module,
+  public ClassLikeDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(rangeOrigin, name, module, typeArgs, members, attributes, isRefining, traits) {
-    Contract.Requires(rangeOrigin != null);
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -35,7 +35,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
-    IOrigin classToken = null;
+    IToken classToken = null;
     var parentTraitIndent = indentBefore + formatter.SpaceTab;
     var commaIndent = indentBefore;
     var extraIndent = 0;
@@ -78,22 +78,20 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public virtual string GetTriviaContainingDocstring() {
-    if (GetStartTriviaDocstring(out var triviaFound)) {
-      return triviaFound;
-    }
-
+    IToken candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
-        if ((token.Prev.TrailingTrivia + token.LeadingTrivia).Trim() is { } tentativeTrivia and not "") {
-          return tentativeTrivia;
+        candidate = token.Prev;
+        if (candidate.TrailingTrivia.Trim() != "") {
+          return candidate.TrailingTrivia;
         }
       }
     }
 
-    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia2 and not "") {
-      return tentativeTrivia2;
+    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
+      return EndToken.TrailingTrivia;
     }
 
-    return null;
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }

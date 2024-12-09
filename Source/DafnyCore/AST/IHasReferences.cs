@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 /// Node that has a token that is used to navigate to this node
 /// </summary>
 public interface IHasNavigationToken : INode {
-  IOrigin NavigationToken { get; }
+  IToken NavigationToken { get; }
 }
 
 public interface IHasReferences : IHasNavigationToken {

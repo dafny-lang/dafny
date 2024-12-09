@@ -22,13 +22,13 @@ public abstract class ConcreteSyntaxExpression : Expression {
     get => resolvedExpression;
     set {
       resolvedExpression = value;
-      if (RangeOrigin != null && resolvedExpression != null) {
-        resolvedExpression.RangeToken = RangeOrigin;
+      if (rangeToken != null && resolvedExpression != null) {
+        resolvedExpression.RangeToken = rangeToken;
       }
     }
   }  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
 
-  public ConcreteSyntaxExpression(IOrigin tok)
+  public ConcreteSyntaxExpression(IToken tok)
     : base(tok) {
   }
   public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<Node>() : new[] { ResolvedExpression };
