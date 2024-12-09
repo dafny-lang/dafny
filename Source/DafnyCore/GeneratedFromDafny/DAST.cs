@@ -1538,6 +1538,8 @@ namespace DAST {
   public interface _ITypeArgBound {
     bool is_SupportsEquality { get; }
     bool is_SupportsDefault { get; }
+    bool is_TraitBound { get; }
+    DAST._IType dtor_typ { get; }
     _ITypeArgBound DowncastClone();
   }
   public abstract class TypeArgBound : _ITypeArgBound {
@@ -1557,12 +1559,16 @@ namespace DAST {
     public static _ITypeArgBound create_SupportsDefault() {
       return new TypeArgBound_SupportsDefault();
     }
+    public static _ITypeArgBound create_TraitBound(DAST._IType typ) {
+      return new TypeArgBound_TraitBound(typ);
+    }
     public bool is_SupportsEquality { get { return this is TypeArgBound_SupportsEquality; } }
     public bool is_SupportsDefault { get { return this is TypeArgBound_SupportsDefault; } }
-    public static System.Collections.Generic.IEnumerable<_ITypeArgBound> AllSingletonConstructors {
+    public bool is_TraitBound { get { return this is TypeArgBound_TraitBound; } }
+    public DAST._IType dtor_typ {
       get {
-        yield return TypeArgBound.create_SupportsEquality();
-        yield return TypeArgBound.create_SupportsDefault();
+        var d = this;
+        return ((TypeArgBound_TraitBound)d)._typ;
       }
     }
     public abstract _ITypeArgBound DowncastClone();
@@ -1606,6 +1612,33 @@ namespace DAST {
     }
     public override string ToString() {
       string s = "DAST.TypeArgBound.SupportsDefault";
+      return s;
+    }
+  }
+  public class TypeArgBound_TraitBound : TypeArgBound {
+    public readonly DAST._IType _typ;
+    public TypeArgBound_TraitBound(DAST._IType typ) : base() {
+      this._typ = typ;
+    }
+    public override _ITypeArgBound DowncastClone() {
+      if (this is _ITypeArgBound dt) { return dt; }
+      return new TypeArgBound_TraitBound(_typ);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.TypeArgBound_TraitBound;
+      return oth != null && object.Equals(this._typ, oth._typ);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 2;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.TypeArgBound.TraitBound";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._typ);
+      s += ")";
       return s;
     }
   }
@@ -3990,6 +4023,7 @@ namespace DAST {
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
     Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams { get; }
     Dafny.ISequence<DAST._IFormal> dtor_params { get; }
+    Dafny.ISequence<DAST._IFormal> dtor_inheritedParams { get; }
     Dafny.ISequence<DAST._IStatement> dtor_body { get; }
     Dafny.ISequence<DAST._IType> dtor_outTypes { get; }
     Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> dtor_outVars { get; }
@@ -4006,10 +4040,11 @@ namespace DAST {
     public readonly Dafny.ISequence<Dafny.Rune> _name;
     public readonly Dafny.ISequence<DAST._ITypeArgDecl> _typeParams;
     public readonly Dafny.ISequence<DAST._IFormal> _params;
+    public readonly Dafny.ISequence<DAST._IFormal> _inheritedParams;
     public readonly Dafny.ISequence<DAST._IStatement> _body;
     public readonly Dafny.ISequence<DAST._IType> _outTypes;
     public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> _outVars;
-    public Method(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<DAST._IAttribute> attributes, bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
+    public Method(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<DAST._IAttribute> attributes, bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IFormal> inheritedParams, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
       this._docString = docString;
       this._attributes = attributes;
       this._isStatic = isStatic;
@@ -4020,17 +4055,18 @@ namespace DAST {
       this._name = name;
       this._typeParams = typeParams;
       this._params = @params;
+      this._inheritedParams = inheritedParams;
       this._body = body;
       this._outTypes = outTypes;
       this._outVars = outVars;
     }
     public _IMethod DowncastClone() {
       if (this is _IMethod dt) { return dt; }
-      return new Method(_docString, _attributes, _isStatic, _hasBody, _outVarsAreUninitFieldsToAssign, _wasFunction, _overridingPath, _name, _typeParams, _params, _body, _outTypes, _outVars);
+      return new Method(_docString, _attributes, _isStatic, _hasBody, _outVarsAreUninitFieldsToAssign, _wasFunction, _overridingPath, _name, _typeParams, _params, _inheritedParams, _body, _outTypes, _outVars);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Method;
-      return oth != null && object.Equals(this._docString, oth._docString) && object.Equals(this._attributes, oth._attributes) && this._isStatic == oth._isStatic && this._hasBody == oth._hasBody && this._outVarsAreUninitFieldsToAssign == oth._outVarsAreUninitFieldsToAssign && this._wasFunction == oth._wasFunction && object.Equals(this._overridingPath, oth._overridingPath) && object.Equals(this._name, oth._name) && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._params, oth._params) && object.Equals(this._body, oth._body) && object.Equals(this._outTypes, oth._outTypes) && object.Equals(this._outVars, oth._outVars);
+      return oth != null && object.Equals(this._docString, oth._docString) && object.Equals(this._attributes, oth._attributes) && this._isStatic == oth._isStatic && this._hasBody == oth._hasBody && this._outVarsAreUninitFieldsToAssign == oth._outVarsAreUninitFieldsToAssign && this._wasFunction == oth._wasFunction && object.Equals(this._overridingPath, oth._overridingPath) && object.Equals(this._name, oth._name) && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._params, oth._params) && object.Equals(this._inheritedParams, oth._inheritedParams) && object.Equals(this._body, oth._body) && object.Equals(this._outTypes, oth._outTypes) && object.Equals(this._outVars, oth._outVars);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -4045,6 +4081,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeParams));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._params));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._inheritedParams));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._outTypes));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._outVars));
@@ -4073,6 +4110,8 @@ namespace DAST {
       s += ", ";
       s += Dafny.Helpers.ToString(this._params);
       s += ", ";
+      s += Dafny.Helpers.ToString(this._inheritedParams);
+      s += ", ";
       s += Dafny.Helpers.ToString(this._body);
       s += ", ";
       s += Dafny.Helpers.ToString(this._outTypes);
@@ -4081,7 +4120,7 @@ namespace DAST {
       s += ")";
       return s;
     }
-    private static readonly DAST._IMethod theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._IAttribute>.Empty, false, false, false, false, Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>>.Default(), Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, Dafny.Sequence<DAST._IFormal>.Empty, Dafny.Sequence<DAST._IStatement>.Empty, Dafny.Sequence<DAST._IType>.Empty, Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>>.Default());
+    private static readonly DAST._IMethod theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._IAttribute>.Empty, false, false, false, false, Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>>.Default(), Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, Dafny.Sequence<DAST._IFormal>.Empty, Dafny.Sequence<DAST._IFormal>.Empty, Dafny.Sequence<DAST._IStatement>.Empty, Dafny.Sequence<DAST._IType>.Empty, Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>>.Default());
     public static DAST._IMethod Default() {
       return theDefault;
     }
@@ -4089,11 +4128,11 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._IMethod> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IMethod create(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<DAST._IAttribute> attributes, bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
-      return new Method(docString, attributes, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, name, typeParams, @params, body, outTypes, outVars);
+    public static _IMethod create(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<DAST._IAttribute> attributes, bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IFormal> inheritedParams, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
+      return new Method(docString, attributes, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, name, typeParams, @params, inheritedParams, body, outTypes, outVars);
     }
-    public static _IMethod create_Method(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<DAST._IAttribute> attributes, bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
-      return create(docString, attributes, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, name, typeParams, @params, body, outTypes, outVars);
+    public static _IMethod create_Method(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<DAST._IAttribute> attributes, bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IFormal> inheritedParams, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
+      return create(docString, attributes, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, name, typeParams, @params, inheritedParams, body, outTypes, outVars);
     }
     public bool is_Method { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_docString {
@@ -4146,6 +4185,11 @@ namespace DAST {
         return this._params;
       }
     }
+    public Dafny.ISequence<DAST._IFormal> dtor_inheritedParams {
+      get {
+        return this._inheritedParams;
+      }
+    }
     public Dafny.ISequence<DAST._IStatement> dtor_body {
       get {
         return this._body;
@@ -4166,50 +4210,63 @@ namespace DAST {
   public interface _ICallSignature {
     bool is_CallSignature { get; }
     Dafny.ISequence<DAST._IFormal> dtor_parameters { get; }
+    Dafny.ISequence<DAST._IFormal> dtor_inheritedParams { get; }
+    _ICallSignature DowncastClone();
   }
   public class CallSignature : _ICallSignature {
     public readonly Dafny.ISequence<DAST._IFormal> _parameters;
-    public CallSignature(Dafny.ISequence<DAST._IFormal> parameters) {
+    public readonly Dafny.ISequence<DAST._IFormal> _inheritedParams;
+    public CallSignature(Dafny.ISequence<DAST._IFormal> parameters, Dafny.ISequence<DAST._IFormal> inheritedParams) {
       this._parameters = parameters;
+      this._inheritedParams = inheritedParams;
     }
-    public static Dafny.ISequence<DAST._IFormal> DowncastClone(Dafny.ISequence<DAST._IFormal> _this) {
-      return _this;
+    public _ICallSignature DowncastClone() {
+      if (this is _ICallSignature dt) { return dt; }
+      return new CallSignature(_parameters, _inheritedParams);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.CallSignature;
-      return oth != null && object.Equals(this._parameters, oth._parameters);
+      return oth != null && object.Equals(this._parameters, oth._parameters) && object.Equals(this._inheritedParams, oth._inheritedParams);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._parameters));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._inheritedParams));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.CallSignature.CallSignature";
       s += "(";
       s += Dafny.Helpers.ToString(this._parameters);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._inheritedParams);
       s += ")";
       return s;
     }
-    private static readonly Dafny.ISequence<DAST._IFormal> theDefault = Dafny.Sequence<DAST._IFormal>.Empty;
-    public static Dafny.ISequence<DAST._IFormal> Default() {
+    private static readonly DAST._ICallSignature theDefault = create(Dafny.Sequence<DAST._IFormal>.Empty, Dafny.Sequence<DAST._IFormal>.Empty);
+    public static DAST._ICallSignature Default() {
       return theDefault;
     }
-    private static readonly Dafny.TypeDescriptor<Dafny.ISequence<DAST._IFormal>> _TYPE = new Dafny.TypeDescriptor<Dafny.ISequence<DAST._IFormal>>(Dafny.Sequence<DAST._IFormal>.Empty);
-    public static Dafny.TypeDescriptor<Dafny.ISequence<DAST._IFormal>> _TypeDescriptor() {
+    private static readonly Dafny.TypeDescriptor<DAST._ICallSignature> _TYPE = new Dafny.TypeDescriptor<DAST._ICallSignature>(DAST.CallSignature.Default());
+    public static Dafny.TypeDescriptor<DAST._ICallSignature> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _ICallSignature create(Dafny.ISequence<DAST._IFormal> parameters) {
-      return new CallSignature(parameters);
+    public static _ICallSignature create(Dafny.ISequence<DAST._IFormal> parameters, Dafny.ISequence<DAST._IFormal> inheritedParams) {
+      return new CallSignature(parameters, inheritedParams);
     }
-    public static _ICallSignature create_CallSignature(Dafny.ISequence<DAST._IFormal> parameters) {
-      return create(parameters);
+    public static _ICallSignature create_CallSignature(Dafny.ISequence<DAST._IFormal> parameters, Dafny.ISequence<DAST._IFormal> inheritedParams) {
+      return create(parameters, inheritedParams);
     }
     public bool is_CallSignature { get { return true; } }
     public Dafny.ISequence<DAST._IFormal> dtor_parameters {
       get {
         return this._parameters;
+      }
+    }
+    public Dafny.ISequence<DAST._IFormal> dtor_inheritedParams {
+      get {
+        return this._inheritedParams;
       }
     }
   }
@@ -4224,13 +4281,13 @@ namespace DAST {
     Std.Wrappers._IOption<DAST._IType> dtor_onType { get; }
     Std.Wrappers._IOption<DAST._IFormal> dtor_receiverArg { get; }
     bool dtor_receiverAsArgument { get; }
-    Dafny.ISequence<DAST._IFormal> dtor_signature { get; }
+    DAST._ICallSignature dtor_signature { get; }
     _ICallName DowncastClone();
   }
   public abstract class CallName : _ICallName {
     public CallName() {
     }
-    private static readonly DAST._ICallName theDefault = create_CallName(Dafny.Sequence<Dafny.Rune>.Empty, Std.Wrappers.Option<DAST._IType>.Default(), Std.Wrappers.Option<DAST._IFormal>.Default(), false, Dafny.Sequence<DAST._IFormal>.Empty);
+    private static readonly DAST._ICallName theDefault = create_CallName(Dafny.Sequence<Dafny.Rune>.Empty, Std.Wrappers.Option<DAST._IType>.Default(), Std.Wrappers.Option<DAST._IFormal>.Default(), false, DAST.CallSignature.Default());
     public static DAST._ICallName Default() {
       return theDefault;
     }
@@ -4238,7 +4295,7 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._ICallName> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _ICallName create_CallName(Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<DAST._IType> onType, Std.Wrappers._IOption<DAST._IFormal> receiverArg, bool receiverAsArgument, Dafny.ISequence<DAST._IFormal> signature) {
+    public static _ICallName create_CallName(Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<DAST._IType> onType, Std.Wrappers._IOption<DAST._IFormal> receiverArg, bool receiverAsArgument, DAST._ICallSignature signature) {
       return new CallName_CallName(name, onType, receiverArg, receiverAsArgument, signature);
     }
     public static _ICallName create_MapBuilderAdd() {
@@ -4282,7 +4339,7 @@ namespace DAST {
         return ((CallName_CallName)d)._receiverAsArgument;
       }
     }
-    public Dafny.ISequence<DAST._IFormal> dtor_signature {
+    public DAST._ICallSignature dtor_signature {
       get {
         var d = this;
         return ((CallName_CallName)d)._signature;
@@ -4295,8 +4352,8 @@ namespace DAST {
     public readonly Std.Wrappers._IOption<DAST._IType> _onType;
     public readonly Std.Wrappers._IOption<DAST._IFormal> _receiverArg;
     public readonly bool _receiverAsArgument;
-    public readonly Dafny.ISequence<DAST._IFormal> _signature;
-    public CallName_CallName(Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<DAST._IType> onType, Std.Wrappers._IOption<DAST._IFormal> receiverArg, bool receiverAsArgument, Dafny.ISequence<DAST._IFormal> signature) : base() {
+    public readonly DAST._ICallSignature _signature;
+    public CallName_CallName(Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<DAST._IType> onType, Std.Wrappers._IOption<DAST._IFormal> receiverArg, bool receiverAsArgument, DAST._ICallSignature signature) : base() {
       this._name = name;
       this._onType = onType;
       this._receiverArg = receiverArg;

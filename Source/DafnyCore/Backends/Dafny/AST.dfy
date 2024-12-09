@@ -215,6 +215,7 @@ module {:extern "DAST"} DAST {
   datatype TypeArgBound =
     | SupportsEquality
     | SupportsDefault
+    | TraitBound(typ: Type)
 
   datatype Primitive = Int | Real | String | Bool | Char | Native
 
@@ -367,11 +368,12 @@ module {:extern "DAST"} DAST {
     name: Name,
     typeParams: seq<TypeArgDecl>,
     params: seq<Formal>,
+    inheritedParams: seq<Formal>,
     body: seq<Statement>,
     outTypes: seq<Type>,
     outVars: Option<seq<VarName>>)
 
-  datatype CallSignature = CallSignature(parameters: seq<Formal>)
+  datatype CallSignature = CallSignature(parameters: seq<Formal>, inheritedParams: seq<Formal>)
 
   datatype CallName =
     CallName(name: Name, onType: Option<Type>, receiverArg: Option<Formal>, receiverAsArgument: bool, signature: CallSignature) |

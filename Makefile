@@ -37,20 +37,10 @@ test:
 # Run Dafny on an integration test case directly in the folder itself.
 # make test-run name=<part of the path> action="run ..."
 test-dafny:
-	name="$(name)"; \
-	files=$$(cd "${DIR}"/Source/IntegrationTests/TestFiles/LitTests/LitTest; find . -type f -wholename "*$$name*" | grep -E '\.dfy$$'); \
-	if [ -z "$files" ]; then \
-		echo "No files found matching pattern: $$name"; \
-		exit 1; \
-	else \
-	  count=$$(echo "$$files" | wc -l); \
-	  echo "$${files}"; \
-		echo "$$count test files found."; \
-		for file in $$files; do \
-			filedir=$$(dirname "$$file"); \
-			(cd "${DIR}/Source/IntegrationTests/TestFiles/LitTests/LitTest/$${filedir}"; dotnet run --project "${DIR}"/Source/Dafny -- $(action)  "$$(basename $$file)" ); \
-		done; \
-	fi
+	@name="$(name)" DIR="$(DIR)" action="$(action)" bash scripts/test-dafny.sh
+
+test-dafny-nobuild:
+	@name="$(name)" DIR="$(DIR)" action="$(action)" NO_BUILD="true" bash scripts/test-dafny.sh
 
 tests-verbose:
 	(cd "${DIR}"; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )

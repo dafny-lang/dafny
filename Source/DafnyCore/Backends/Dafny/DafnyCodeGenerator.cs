@@ -225,7 +225,7 @@ namespace Microsoft.Dafny.Compilers {
       return (Variance)Variance.create_Nonvariant();
     }
 
-    private static ISequence<_ITypeArgBound> GenTypeBounds(TypeParameter tp) {
+    private ISequence<_ITypeArgBound> GenTypeBounds(TypeParameter tp) {
       var characteristics = new List<_ITypeArgBound>();
       if (tp.Characteristics.AutoInit is Type.AutoInitInfo.CompilableValue) {
         characteristics.Add(DAST.TypeArgBound.create_SupportsDefault());
@@ -233,6 +233,11 @@ namespace Microsoft.Dafny.Compilers {
 
       if (tp.Characteristics.EqualitySupport is TypeParameter.EqualitySupportValue.Required or TypeParameter.EqualitySupportValue.InferredRequired) {
         characteristics.Add(DAST.TypeArgBound.create_SupportsEquality());
+      }
+
+      foreach (var typebound in tp.TypeBounds) {
+        var traitType = GenType(typebound);
+        characteristics.Add(DAST.TypeArgBound.create_TraitBound(traitType));
       }
 
       var bounds = Sequence<_ITypeArgBound>.FromArray(characteristics.ToArray());
@@ -337,8 +342,15 @@ namespace Microsoft.Dafny.Compilers {
         var allTypeParametersCovered = subTrait.TypeArgs.TrueForAll(
           tp => mapping.ContainsKey(tp));
         if (allTypeParametersCovered) {
-
+          // Now we need to make sure that type characteristics are compatible
           var typeArgs = subTrait.TypeArgs.Select(tp => mapping[tp]).ToList();
+          for (var i = 0; i < typeArgs.Count; i++) {
+            var downcastTypeParam = subTrait.TypeArgs[i];
+            var parentType = typeArgs[i];
+            if (!IsCompatibleWith(parentType, downcastTypeParam)) {
+              return false;
+            }
+          }
 
           var subTraitTypeDowncastable =
             new UserDefinedType(Token.NoToken, subTrait.Name, subTrait, typeArgs);
@@ -348,6 +360,12 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       return canDowncast;
+    }
+
+    private static bool IsCompatibleWith(Type type, TypeParameter typeParameter)
+    {
+      return (typeParameter.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified ||
+             type.SupportsEquality) && typeParameter.TypeBounds.TrueForAll(t => type.IsSubtypeOf(t, false, true));
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
@@ -640,6 +658,14 @@ namespace Microsoft.Dafny.Compilers {
       return false;
     }
 
+    [CanBeNull]
+    public MemberDecl GetTopMostOverriddenMemberDeclIfDifferent(MemberDecl member) {
+      while (member.OverriddenMember is { OverriddenMember: { } } upMember) {
+        member = upMember;
+      }
+      return member.OverriddenMember;
+    }
+
     private class ClassWriter : IClassWriter {
       private readonly DafnyCodeGenerator compiler;
       private readonly ClassLike builder;
@@ -656,7 +682,7 @@ namespace Microsoft.Dafny.Compilers {
         bool forBodyInheritance, bool lookasideBody) {
         var astTypeArgs = m.TypeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg)).ToList();
 
-        var params_ = compiler.GenFormals(m.Ins);
+        var params_ = compiler.GetParameters(m, out var inheritedParams, out var overriddenMethod);
 
         List<ISequence<Rune>> outVars = new();
         List<DAST.Type> outTypes = new();
@@ -667,10 +693,6 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        var overriddenMethod = m.OverriddenMethod;
-        while (overriddenMethod != null && overriddenMethod.OverriddenMethod != null) {
-          overriddenMethod = overriddenMethod.OverriddenMethod;
-        }
 
         var overridingTrait = overriddenMethod?.EnclosingClass;
         if (m is Constructor { EnclosingClass: TopLevelDeclWithMembers cm }) {
@@ -694,9 +716,8 @@ namespace Microsoft.Dafny.Compilers {
           compiler.GetDocString(m),
           attributes,
           m.GetCompileName(compiler.Options),
-          astTypeArgs, params_,
-          outTypes, outVars
-        );
+          astTypeArgs, params_, inheritedParams,
+          outTypes, outVars);
         methods.Add(builder);
 
         if (createBody) {
@@ -718,9 +739,19 @@ namespace Microsoft.Dafny.Compilers {
 
         var astTypeArgs = (member is Function fun ? fun.TypeArgs : Enumerable.Empty<TypeParameter>()).Select(typeArg => compiler.GenTypeArgDecl(typeArg)).ToList();
 
-        var params_ = compiler.GenFormals(formals);
+        Sequence<DAST.Formal> params_;
+        Sequence<DAST.Formal> inheritedParams;
+        MemberDecl overridingFunction;
+        if (member is Function fun2) {
+          params_ = compiler.GetParameters(fun2, out inheritedParams, out overridingFunction);
+        } else {
+          params_ = compiler.GenFormals(formals);
+          overridingFunction = compiler.GetTopMostOverriddenMemberDeclIfDifferent(member);
+          inheritedParams = params_;
+        }
 
-        var overridingTrait = member.OverriddenMember?.EnclosingClass;
+        var overridingTrait = overridingFunction?.EnclosingClass;
+
         var attributes = compiler.ParseAttributes(member.Attributes);
         var builder = this.builder.Method(
           isStatic, createBody, false, true,
@@ -728,11 +759,10 @@ namespace Microsoft.Dafny.Compilers {
           compiler.GetDocString(member),
           attributes,
           name,
-          astTypeArgs, params_,
+          astTypeArgs, params_, inheritedParams,
           new() {
             compiler.GenType(resultType)
-          }, null
-        );
+          }, null);
         methods.Add(builder);
 
         if (createBody) {
@@ -749,7 +779,7 @@ namespace Microsoft.Dafny.Compilers {
           return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
         }
 
-        var overridingTrait = member.OverriddenMember?.EnclosingClass;
+        var overridingTrait = compiler.GetTopMostOverriddenMemberDeclIfDifferent(member)?.EnclosingClass;
 
         var attributes = compiler.ParseAttributes(enclosingDecl.Attributes);
 
@@ -760,10 +790,10 @@ namespace Microsoft.Dafny.Compilers {
           attributes,
           name,
           new(), (Sequence<DAST.Formal>)Sequence<DAST.Formal>.Empty,
+          (Sequence<DAST.Formal>)Sequence<DAST.Formal>.Empty,
           new() {
             compiler.GenType(resultType)
-          }, null
-        );
+          }, null);
         methods.Add(builder);
 
         if (createBody) {
@@ -1115,8 +1145,8 @@ namespace Microsoft.Dafny.Compilers {
         if (s.Method == enclosingMethod && enclosingMethod.IsTailRecursive) {
           base.TrCallStmt(s, receiverReplacement, wr, wrStmts, wrStmtsAfterCall);
         } else {
-          var parameters = GenFormals(s.Method.Ins);
-          var callBuilder = stmtContainer.Builder.Call(parameters);
+          var signature = GetCallSignature(s.Method);;
+          var callBuilder = stmtContainer.Builder.Call(signature);
           base.TrCallStmt(s, receiverReplacement, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), wrStmts, wrStmtsAfterCall);
         }
       } else {
@@ -1143,17 +1173,37 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitCallToInheritedMethod(Method method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
-        var callBuilder = stmtContainer.Builder.Call(GenFormals(method.Ins));
+        var signature = GetCallSignature(method);
+        var callBuilder = stmtContainer.Builder.Call(signature);
         base.EmitCallToInheritedMethod(method, heir, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), wStmts, wStmtsAfterCall);
       } else {
         throw new InvalidOperationException("Cannot call inherited method in this context: " + currentBuilder);
       }
     }
 
+    private _ICallSignature GetCallSignature(MethodOrFunction method)
+    {
+      var parameters = GetParameters(method, out var inheritedParameters, out _);
+      var signature = DAST.CallSignature.create_CallSignature(parameters, inheritedParameters);
+      return signature;
+    }
+
+    private Sequence<DAST.Formal> GetParameters(MethodOrFunction method, out Sequence<DAST.Formal> inheritedParameters, out MemberDecl inheritedMethod)
+    {
+      var parameters = GenFormals(method.Ins);
+      inheritedMethod = GetTopMostOverriddenMemberDeclIfDifferent(method);
+      var oldThisContext = thisContext;
+      thisContext = null;
+      inheritedParameters = inheritedMethod is MethodOrFunction m ? GenFormals(m.Ins) : parameters;
+      thisContext = oldThisContext;
+      return parameters;
+    }
+
     protected override void EmitCallToInheritedFunction(Function f, [CanBeNull] TopLevelDeclWithMembers heir,
       ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<ExprContainer> exprContainer) {
-        var callBuilder = exprContainer.Builder.Call(GenFormals(f.Ins));
+        var signature = GetCallSignature(f);
+        var callBuilder = exprContainer.Builder.Call(signature);
         base.EmitCallToInheritedFunction(f, heir, new BuilderSyntaxTree<ExprContainer>(callBuilder, this));
       } else {
         throw new InvalidOperationException("Cannot call inherited function in this context: " + currentBuilder);
@@ -1175,7 +1225,8 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitCoercionIfNecessary(fromType, toType, e.tok, wr);
 
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
-        var callBuilder = builder.Builder.Call(GenFormals(e.Function.Ins));
+        var signature = GetCallSignature(e.Function);
+        var callBuilder = builder.Builder.Call(signature);
         base.CompileFunctionCallExpr(e, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), inLetExprBody, wStmts, tr, true);
       } else {
         throw new InvalidOperationException("Cannot call function in this context: " + currentBuilder);
@@ -2553,9 +2604,10 @@ namespace Microsoft.Dafny.Compilers {
         return wrRhs;
       }
 
-      var signature = Sequence<_IFormal>.FromArray(new[] {
+      var parameters = Sequence<_IFormal>.FromArray(new[] {
         new DAST.Formal(Sequence<Rune>.UnicodeFromString("_dummy_"), GenType(type), Sequence<DAST.Attribute>.Empty)
       });
+      var signature = CreateSignature(parameters);
       var c = builder.Builder.Call(signature);
       c.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString("is"),
         Option<_IType>.create_None(), Option<_IFormal>.create_None(), false, signature));
@@ -2662,7 +2714,8 @@ namespace Microsoft.Dafny.Compilers {
       if (GetExprConverter(wr, wStmts, out var exprBuilder, out var convert)) {
         if (bv.Type.IsDatatype && bv.Type.AsDatatype is { } datatypeDecl) {
 
-          var signature = Sequence<_IFormal>.FromArray(new _IFormal[] { });
+          var parameters = Sequence<_IFormal>.FromArray(new _IFormal[] { });
+          var signature = CreateSignature(parameters);
           var c = exprBuilder.Builder.Call(signature);
           c.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString("_AllSingletonConstructors"),
             Option<_IType>.create_None(), Option<_IFormal>.create_None(), false, signature));
@@ -3194,7 +3247,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody,
         ConcreteSyntaxTree wr) {
       if (GetStatementBuilder(wr, out var builder)) {
-        var stmtBuilder = new CallStmtBuilder(Sequence<_IFormal>.Empty);
+        var stmtBuilder = new CallStmtBuilder(CreateSignature(Sequence<_IFormal>.Empty));
         stmtBuilder.SetName((DAST.CallName)DAST.CallName.create_SetBuilderAdd());
         stmtBuilder.SetTypeArgs(new List<DAST.Type> { });
         stmtBuilder.SetOuts(new List<ISequence<Rune>> { }); ;
@@ -3205,6 +3258,11 @@ namespace Microsoft.Dafny.Compilers {
         AddUnsupported(elmt.tok, "<i>EmitSetBuilder_Add</i>");
       }
       //throw new InvalidOperationException();
+    }
+
+    private static _ICallSignature CreateSignature(ISequence<_IFormal> params_)
+    {
+      return CallSignature.create_CallSignature(params_, params_);
     }
 
     // Normally wStmt is a BuilderSyntaxTree<StatementContainer> but it might not while the compiler is being developed
@@ -3226,7 +3284,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, IOrigin tok, string collName, Expression term,
         bool inLetExprBody, ConcreteSyntaxTree wr) {
       if (GetStatementBuilder(wr, out var builder)) {
-        var stmtBuilder = new CallStmtBuilder(Sequence<_IFormal>.Empty);
+        var stmtBuilder = new CallStmtBuilder(CreateSignature(Sequence<_IFormal>.Empty));
         stmtBuilder.SetName((DAST.CallName)DAST.CallName.create_MapBuilderAdd());
         stmtBuilder.SetTypeArgs(new List<DAST.Type> { });
         stmtBuilder.SetOuts(new List<ISequence<Rune>> { }); ;
@@ -3308,7 +3366,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void GetCollectionBuilder_Build(CollectionType ct, IOrigin tok, string collName,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
       if (GetExprBuilder(wr, out var builder)) {
-        var callExpr = new CallExprBuilder(Sequence<_IFormal>.Empty);
+        var callExpr = new CallExprBuilder(CreateSignature(Sequence<_IFormal>.Empty));
         if (ct.IsMapType) {
           callExpr.SetName((DAST.CallName)DAST.CallName.create_MapBuilderBuild());
         } else {

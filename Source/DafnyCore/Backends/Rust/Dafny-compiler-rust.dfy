@@ -146,13 +146,26 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     method GenTypeParam(tp: TypeArgDecl) returns (typeArg: Type, typeParam: R.TypeParamDecl)
     {
       typeArg := TypeArg(tp.name);
-      var genTpConstraint := if SupportsEquality in tp.bounds then
-        [R.DafnyTypeEq]
-      else
-        [R.DafnyType];
-      if SupportsDefault in tp.bounds {
-        genTpConstraint := genTpConstraint + [R.DefaultTrait];
+      var supportsEquality := false;
+      var supportsDefault := false;
+      var genTpConstraint := [];
+      for i := 0 to |tp.bounds| {
+        var bound := tp.bounds[i];
+        match bound
+        case SupportsEquality() =>
+          supportsEquality := true;
+        case SupportsDefault() =>
+          supportsDefault := true;
+        case TraitBound(typ) =>
+          var tpe := GenType(typ, GenTypeContext.ForTraitParents());
+          var upcast_tpe := R.dafny_runtime.MSel("UpcastBox").AsType().Apply([R.DynType(tpe)]);
+          genTpConstraint := genTpConstraint + [upcast_tpe];
       }
+      if supportsDefault {
+        genTpConstraint := [R.DefaultTrait] + genTpConstraint;
+      }
+      var dafnyType := if supportsEquality then R.DafnyTypeEq else R.DafnyType;
+      genTpConstraint := [dafnyType] + genTpConstraint;
       typeParam := R.TypeParamDecl(escapeName(tp.name.id), genTpConstraint);
     }
 
@@ -255,6 +268,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       superTraitTypes: seq<Type>,
       traitBodies: map<seq<Ident>, seq<R.ImplMember>>,
       extern: ExternAttribute,
+      supportsEquality: bool,
       kind: string)
       returns (s: seq<R.ModDecl>)
       modifies this
@@ -319,8 +333,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               body := body + [
                 clone_trait(fullTraitPath),
                 print_trait,
-                hasher_trait,
-                eq_trait(fullTraitPath, fullTraitExpr),
+                hasher_trait(supportsEquality, pointerType),
+                eq_trait(fullTraitPath, fullTraitExpr, supportsEquality, pointerType),
                 as_any_trait
               ];
             } else {
@@ -513,6 +527,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         superTraitTypes,
         traitBodies,
         extern,
+        true,
         "class");
       s := s + superTraitImplementations;
     }
@@ -550,41 +565,32 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         // fn _clone(&self) -> Box<dyn Test>;
         implBody := implBody + [
           R.FnDecl(
-            R.NoDoc, R.NoAttr,
-            R.PRIV,
+            R.NoDoc, R.NoAttr, R.PRIV,
             R.Fn(
               "_clone", [], [R.Formal.selfBorrowed], Some(R.Box(R.DynType(traitFullType))),
               None
             )),
           R.FnDecl(
-            R.NoDoc, R.NoAttr,
-            R.PRIV,
+            R.NoDoc, R.NoAttr, R.PRIV,
             R.Fn(
               "_fmt_print", [], fmt_print_parameters, Some(fmt_print_result), None
-            )
-          ),
+            )),
           R.FnDecl(
-            R.NoDoc, R.NoAttr,
-            R.PRIV,
+            R.NoDoc, R.NoAttr, R.PRIV,
             R.Fn(
               "_hash", [], [R.Formal.selfBorrowed], Some(R.Type.U64), None
-            )
-          ),
+            )),
           R.FnDecl(
-            R.NoDoc, R.NoAttr,
-            R.PRIV,
+            R.NoDoc, R.NoAttr, R.PRIV,
             R.Fn(
               "_eq", [], [R.Formal.selfBorrowed, R.Formal("other", R.Borrowed(R.Box(R.DynType(traitFullType))))],
               Some(R.Bool), None
-            )
-          ),
+            )),
           R.FnDecl(
-            R.NoDoc, R.NoAttr,
-            R.PRIV,
+            R.NoDoc, R.NoAttr, R.PRIV,
             R.Fn(
-              "_as_any", [], [R.Formal.selfBorrowed], Some(R.Borrowed(R.DynType(R.std.MSel("any").MSel("Any").AsType()))), None
-            )
-          )
+              "_as_any", [], [R.Formal.selfBorrowed], Some(R.Borrowed(R.DynType(R.AnyTrait))), None
+            ))
         ];
       }
       while |implBodyImplementingOtherTraits| > 0 {
@@ -596,7 +602,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         implBodyImplementingOtherTraits := implBodyImplementingOtherTraits - {otherTrait};
       }
       var parents: seq<R.Type> := [];
-      var upcastImplemented := [];
+      var upcastImplemented: seq<R.ModDecl> := [];
+      var instantiatedFullType := R.Box(R.DynType(traitFullType)); // TODO: make the object version as well
+      if instantiatedFullType.IsBox() { // TODO: Make it work also for object traits
+        var upcastDynTrait := UpcastDynTraitFor(rTypeParamsDecls, instantiatedFullType, traitFullType, traitFullExpr);
+        upcastImplemented := upcastImplemented + [upcastDynTrait];
+      }
       for i := 0 to |t.parents| {
         var parentTyp := t.parents[i];
         var parentTpe := GenType(parentTyp, GenTypeContext.ForTraitParents());
@@ -610,9 +621,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         parents := parents + [parentTpe];
         var upcastTrait := if parentTyp.IsGeneralTrait() then "UpcastBox" else Upcast;
         parents := parents + [R.dafny_runtime.MSel(upcastTrait).AsType().Apply1(R.DynType(parentTpe))];
+        if parentTyp.IsGeneralTrait() {
+          var upcastDynTrait := UpcastDynTraitFor(rTypeParamsDecls, instantiatedFullType, parentTpe, parentTpeExpr);
+          upcastImplemented := upcastImplemented + [upcastDynTrait];
+        }
       }
       var downcastDefinition := [];
-      var instantiatedFullType := R.Box(R.DynType(traitFullType));
       if |t.parents| > 0 { // We will need to downcast
         var downcastDefinitionOpt := DowncastTraitDeclFor(rTypeParamsDecls, instantiatedFullType);
         if downcastDefinitionOpt.None? {
@@ -681,7 +695,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                  R.Fn("fmt_print", [], fmt_print_parameters,
                       Some(fmt_print_result),
                       Some(traitFullExpr.FSel("_fmt_print").Apply([R.self.Sel("as_ref").Apply0(), R.Identifier("_formatter"), R.Identifier("in_seq")]))
-                 ))])),
+                 ))]))];
+        s := s + [
           /*
           impl PartialEq for Box<dyn Test> {
             fn eq(&self, other: &Self) -> bool {
@@ -707,7 +722,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               rTypeParamsDecls,
               R.std.MSel("cmp").MSel("Eq").AsType(),
               R.Box(R.DynType(traitFullType)),
-              [])),
+              []))];
+          s := s + [
           /*
           impl Hash
             for Box<dyn Test> {
@@ -723,14 +739,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.Hash,
               R.Box(R.DynType(traitFullType)),
               [R.FnDecl(
-                 R.NoDoc, R.NoAttr,
-                 R.PRIV,
-                 R.Fn(
-                   "hash", hash_type_parameters,
-                   hash_parameters,
-                   None,
-                   Some(hash_function.Apply([R.Borrow(traitFullExpr.FSel("_hash").Apply1(R.self.Sel("as_ref").Apply0())), R.Identifier("_state")]))
-                 ))]))
+                R.NoDoc, R.NoAttr, R.PRIV,
+                R.Fn(
+                  "hash", hash_type_parameters,
+                  hash_parameters,
+                  None,
+                  Some(hash_function.Apply([R.Borrow(traitFullExpr.FSel("_hash").Apply1(R.self.Sel("as_ref").Apply0())), R.Identifier("_state")]))
+                ))]))
         ];
       }
       s := s + upcastImplemented;
@@ -954,28 +969,29 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    predicate TypeIsEq(t: Type)
+    predicate TypeIsEq(t: Type, typeParametersSupportingEquality: set<Ident>) // TODO: Take into account enclosing type parameters
       decreases t
     {
       match t
+      case UserDefined(ResolvedType(_, _, SynonymType(tpe), _, _, _)) => TypeIsEq(tpe, typeParametersSupportingEquality)
       case UserDefined(_) => true // ResolvedTypes are assumed to support equality
-      case Tuple(ts) => forall t <- ts :: TypeIsEq(t)
+      case Tuple(ts) => forall t <- ts :: TypeIsEq(t, typeParametersSupportingEquality)
       case Array(t, _) => true // Reference equality
-      case Seq(t) => TypeIsEq(t)
-      case Set(t) => TypeIsEq(t)
-      case Multiset(t) => TypeIsEq(t)
-      case Map(k, v) => TypeIsEq(k) && TypeIsEq(v)
-      case SetBuilder(t) => TypeIsEq(t)
-      case MapBuilder(k, v) => TypeIsEq(k) && TypeIsEq(v)
+      case Seq(t) => TypeIsEq(t, typeParametersSupportingEquality)
+      case Set(t) => true
+      case Multiset(t) => true
+      case Map(k, v) => TypeIsEq(v, typeParametersSupportingEquality)
+      case SetBuilder(t) => true // Irrelevant
+      case MapBuilder(k, v) => TypeIsEq(v, typeParametersSupportingEquality) // Irrelevant
       case Arrow(_, _) => false
       case Primitive(_) => true
       case Passthrough(_) => true // should be Rust primitive types
-      case TypeArg(i) => true // i(==) is asserted at the point of use by the verifier
+      case TypeArg(i) => i in typeParametersSupportingEquality // i(==) is asserted at the point of use by the verifier
       case Object() => true
     }
 
-    predicate DatatypeIsEq(c: Datatype) {
-      !c.isCo && forall ctor <- c.ctors, arg <- ctor.args :: TypeIsEq(arg.formal.typ)
+    predicate DatatypeIsEq(c: Datatype, typeParametersSupportingEquality: set<Ident>) {
+      !c.isCo && forall ctor <- c.ctors, arg <- ctor.args :: TypeIsEq(arg.formal.typ, typeParametersSupportingEquality)
     }
 
     function write(r: R.Expr, final: bool := false): R.Expr {
@@ -1188,8 +1204,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             )];
         }
       }
-
-      var cIsEq := DatatypeIsEq(c);
+      var typeParametersSupportingEquality: set<Ident> :=
+        set tp <- c.typeParams | SupportsEquality in tp.bounds :: tp.name;
+      var cIsEq := DatatypeIsEq(c, typeParametersSupportingEquality);
       var datatypeType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
 
       // Derive PartialEq when c supports equality / derive Clone in all cases
@@ -1468,6 +1485,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         c.superTraitTypes,
         traitBodies,
         extern,
+        cIsEq,
         "datatype");
       s := s + superTraitImplementations;
     }
@@ -1521,12 +1539,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var genTp := GenType(args[i], genTypeContext);
         s := s + [genTp];
       }
-    }
-
-    predicate IsRcWrapped(attributes: seq<Attribute>) {
-      (Attribute("auto-nongrowing-size", []) !in attributes &&
-       Attribute("rust_rc", ["false"]) !in attributes) ||
-      Attribute("rust_rc", ["true"]) in attributes
     }
 
     /** The type context is useful in the case when we need to generate a type
@@ -1722,14 +1734,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     }
 
     // Transform DAST formals to Rust formals
-    method GenParams(params: seq<Formal>, forLambda: bool := false) returns (s: seq<R.Formal>)
+    method GenParams(params: seq<Formal>, inheritedParams: seq<Formal> := params, forLambda: bool := false) returns (s: seq<R.Formal>)
       ensures |s| == |params|
     {
       s := [];
       for i := 0 to |params| invariant |s| == i && i <= |params| {
         var param := params[i];
+        var inheritedParam := if i < |inheritedParams| then inheritedParams[i] else param;
         var paramType := GenType(param.typ, GenTypeContext.default());
-        if (!paramType.CanReadWithoutClone() || forLambda) && AttributeOwned !in param.attributes {
+        var inheritedParamType := GenType(inheritedParam.typ, GenTypeContext.default());
+        if (!inheritedParamType.CanReadWithoutClone() || forLambda) && AttributeOwned !in param.attributes {
           paramType := R.Borrowed(paramType);
         }
         s := s + [R.Formal(escapeVar(param.name), paramType)];
@@ -1739,7 +1753,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     method GenMethod(m: Method, forTrait: bool, enclosingType: Type, enclosingTypeParams: seq<Type>) returns (s: R.ImplMember)
       modifies this
     {
-      var params: seq<R.Formal> := GenParams(m.params);
+      var params: seq<R.Formal> := GenParams(m.params, m.inheritedParams);
       var paramNames := [];
       var paramTypes := map[];
       for paramI := 0 to |m.params| {
@@ -1777,12 +1791,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           } else if selfId == "self" {
             if tpe.IsObjectOrPointer() { // For classes and traits
               tpe := R.SelfBorrowed;
-            } else { // For Rc-defined datatypes
-              if enclosingType.UserDefined? && enclosingType.resolved.kind.Datatype?
-                 && IsRcWrapped(enclosingType.resolved.attributes) {
-                tpe := R.Borrowed(R.Rc(R.SelfOwned));
-              } else if enclosingType.UserDefined? && enclosingType.resolved.kind.Newtype?
-                        && IsNewtypeCopy(enclosingType.resolved.kind.range) {
+            } else {
+              if enclosingType.UserDefined? && enclosingType.resolved.kind.Newtype?
+                        && IsNewtypeCopy(enclosingType.resolved.kind.range)
+                        && !forTrait {
                 tpe := R.TMetaData(
                   R.SelfOwned,
                   copySemantics := true,
@@ -3262,9 +3274,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         resultingOwnership := OwnershipBorrowedMut;
       } else if expectedOwnership == OwnershipOwned {
-        var needObjectFromRef := isSelf && selfIdent.IsClassOrObjectTrait();
-        if needObjectFromRef {
+        var needsObjectFromRef := isSelf && selfIdent.IsClassOrObjectTrait();
+        var needsRcWrapping := isSelf && selfIdent.IsRcWrappedDatatype();
+        if needsObjectFromRef {
           r := R.dafny_runtime.MSel("Object").AsExpr().ApplyType([R.TIdentifier("_")]).FSel("from_ref").Apply([r]);
+        } else if needsRcWrapping {
+          r := R.RcNew(r.Clone());
         } else {
           if !noNeedOfClone {
             var needUnderscoreClone := isSelf && selfIdent.IsGeneralTrait();
@@ -3329,18 +3344,20 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     {
       argExprs := [];
       readIdents := {};
-      var signature :=
-        if name.CallName? then
-          if name.receiverArg.Some? && name.receiverAsArgument then
-            [name.receiverArg.value] + name.signature.parameters
-          else
-            name.signature.parameters
-        else
-          [];
+      var borrowSignature;
+      if name.CallName? {
+        if name.receiverArg.Some? && name.receiverAsArgument {
+          borrowSignature := [name.receiverArg.value] + name.signature.inheritedParams;
+        } else {
+          borrowSignature := name.signature.inheritedParams;
+        }
+      } else {
+        borrowSignature := [];
+      }
       for i := 0 to |args| {
         var argOwnership := OwnershipBorrowed;
-        if i < |signature| {
-          var tpe := GenType(signature[i].typ, GenTypeContext.default());
+        if i < |borrowSignature| {
+          var tpe := GenType(borrowSignature[i].typ, GenTypeContext.default()); // Take the typ from the signature, but ownership from the trait.
           if tpe.CanReadWithoutClone() {
             argOwnership := OwnershipOwned;
           }
@@ -4067,7 +4084,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         case Lambda(paramsDafny, retType, body) => {
-          var params := GenParams(paramsDafny, true);
+          var params := GenParams(paramsDafny, forLambda := true);
           var paramNames := [];
           var paramTypesMap := map[];
           for i := 0 to |params| {

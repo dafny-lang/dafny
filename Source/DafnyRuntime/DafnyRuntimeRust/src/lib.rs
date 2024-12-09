@@ -3939,14 +3939,8 @@ impl <T: ?Sized> UpcastObject<T> for T {
 pub trait UpcastBox<T: ?Sized> {
     fn upcast(&self) -> Box<T>;
 }
+
 impl <T: ?Sized, U> UpcastBox<T> for Rc<U>
-  where U: UpcastBox<T>
-{
-    fn upcast(&self) -> Box<T> {
-        UpcastBox::upcast(AsRef::as_ref(self))
-    }
-}
-impl <T: ?Sized, U: ?Sized> UpcastBox<T> for Box<U>
   where U: UpcastBox<T>
 {
     fn upcast(&self) -> Box<T> {

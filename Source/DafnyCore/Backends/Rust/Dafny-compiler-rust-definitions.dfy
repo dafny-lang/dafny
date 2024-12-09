@@ -297,6 +297,25 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     predicate IsClassOrObjectTrait() {
       ThisTyped? && dafnyType.IsClassOrObjectTrait()
     }
+    predicate IsRcWrappedDatatype() {
+      ThisTyped? && IsRcWrappedDatatypeRec(dafnyType)      
+    }
+  }
+
+  predicate IsRcWrappedDatatypeRec(dafnyType: Type) {
+    match dafnyType {
+      case UserDefined(ResolvedType(_, _, Datatype(_), attributes, _, _)) => 
+        IsRcWrapped(attributes)
+      case UserDefined(ResolvedType(_, _, SynonymType(tpe), attributes, _, _)) => 
+        IsRcWrappedDatatypeRec(tpe)
+      case _ => false
+    }
+  }
+
+  predicate IsRcWrapped(attributes: seq<Attribute>) {
+    (Attribute("auto-nongrowing-size", []) !in attributes &&
+      Attribute("rust_rc", ["false"]) !in attributes) ||
+    Attribute("rust_rc", ["true"]) in attributes
   }
 
   datatype ExternAttribute =
@@ -684,37 +703,44 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       self.hash(&mut hasher);
       hasher.finish()
     } */
-  const hasher_trait :=
+  function hasher_trait(supportsEquality: bool, pointerType: PointerType): R.ImplMember {
     R.FnDecl(
       R.NoDoc, R.NoAttr,
       R.PRIV,
       R.Fn(
         "_hash", [], [R.Formal.selfBorrowed], Some(R.Type.U64),
         Some(
-          R.DeclareVar(R.MUT, "hasher", None, Some(R.std.MSel("hash").MSel("DefaultHasher").AsExpr().FSel("new").Apply0())).Then(
-            R.self.Sel("hash").Apply1(R.UnaryOp("&mut", R.Identifier("hasher"), Format.UnaryOpFormat.NoFormat)).Then(
-              R.Identifier("hasher").Sel("finish").Apply0()
+          if supportsEquality then
+            R.DeclareVar(R.MUT, "hasher", None, Some(R.std.MSel("hash").MSel("DefaultHasher").AsExpr().FSel("new").Apply0())).Then(
+              R.self.Sel("hash").Apply1(R.UnaryOp("&mut", R.Identifier("hasher"), Format.UnaryOpFormat.NoFormat)).Then(
+                R.Identifier("hasher").Sel("finish").Apply0()
+              )
             )
-          )
+          else
+            UnreachablePanicIfVerified(pointerType, "The type does not support equality")
         )))
+  }
 
   /** 
     fn _eq(&self, other: &Box<dyn Test>) -> bool {
       Test::_as_any(other.as_ref()).downcast_ref::<ADatatype>().map_or(false, |x| self == x)
     } */
-  function eq_trait(fullTraitPath: R.Type, fullTraitExpr: R.Expr): R.ImplMember {
+  function eq_trait(fullTraitPath: R.Type, fullTraitExpr: R.Expr, supportsEquality: bool, pointerType: PointerType): R.ImplMember {
     R.FnDecl(
       R.NoDoc, R.NoAttr,
       R.PRIV,
       R.Fn(
         "_eq", [], [R.Formal.selfBorrowed, R.Formal("other", R.Borrowed(R.Box(R.DynType(fullTraitPath))))], Some(R.Type.Bool),
         Some(
-          fullTraitExpr.FSel("_as_any").Apply1(R.Identifier("other").Sel("as_ref").Apply0()).Sel("downcast_ref").ApplyType([R.SelfOwned]).Apply0().Sel("map_or").Apply(
-            [
-              R.LiteralBool(false),
-              R.Lambda([R.Formal("x", R.RawType("_"))], None, R.BinaryOp("==", R.self, R.Identifier("x"), Format.BinaryOpFormat.NoFormat))
-            ]
-          )
+          if supportsEquality then
+            fullTraitExpr.FSel("_as_any").Apply1(R.Identifier("other").Sel("as_ref").Apply0()).Sel("downcast_ref").ApplyType([R.SelfOwned]).Apply0().Sel("map_or").Apply(
+              [
+                R.LiteralBool(false),
+                R.Lambda([R.Formal("x", R.RawType("_"))], None, R.BinaryOp("==", R.self, R.Identifier("x"), Format.BinaryOpFormat.NoFormat))
+              ]
+            )
+          else
+            UnreachablePanicIfVerified(pointerType, "The type does not support equality")
         )))
   }
 
@@ -1006,6 +1032,32 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
               R.Fn("_as", [], [R.Formal.selfBorrowed], Some(resultType), Some(asBody)))
           ]))
     )
+  }
+
+  /* 
+  impl UpcastBox<dyn SuperTrait> for Box<dyn SubTrait> {
+    fn upcast(&self) -> Box<dyn SuperTrait> {
+      SuperTrait::_clone(self.as_ref())
+    }
+  }
+   */
+   function UpcastDynTraitFor(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    forBoxedTraitType: R.Type,
+    superTraitType: R.Type,
+    superTraitExpr: R.Expr
+  ): R.ModDecl {
+    var superBoxedTraitType := R.Box(R.DynType(superTraitType));
+    var body := superTraitExpr.FSel("_clone").Apply1(R.self.Sel("as_ref").Apply0());
+      R.ImplDecl(
+        R.ImplFor(
+          rTypeParamsDecls,
+          R.dafny_runtime.MSel("UpcastBox").AsType().Apply([R.DynType(superTraitType)]),
+          forBoxedTraitType,
+          [ R.FnDecl(
+              R.NoDoc, R.NoAttr, R.PRIV,
+              R.Fn("upcast", [], [R.Formal.selfBorrowed], Some(superBoxedTraitType), Some(body)))
+          ]))
   }
 
   // Overapproximate but sound static analysis domain for assignment of a variable
