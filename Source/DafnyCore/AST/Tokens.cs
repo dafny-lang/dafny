@@ -113,6 +113,13 @@ public class Token : IOrigin {
 }
 
 public static class TokenExtensions {
+  public static IOrigin WithCenter(this IOrigin origin, Token center) {
+    return new RangeToken(origin.StartToken, origin.EndToken, center);
+  }
+
+  public static IOrigin WithEnd(this IOrigin origin, Token end) {
+    return new RangeToken(origin.StartToken, end, origin.Center);
+  }
 
   public static RangeToken SingleTokenRange(this Token token) {
     return new RangeToken(token, token);

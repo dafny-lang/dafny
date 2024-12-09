@@ -273,7 +273,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     }
     // ensures more ==> YieldEnsures;
     foreach (var ye in YieldEnsures) {
-      ens.Add(new AttributedExpression(tok, 
+      ens.Add(new AttributedExpression(tok,
         new BinaryExpr(tok, BinaryExpr.Opcode.Imp, new IdentifierExpr(tok, "more"), ye.E)
       ));
     }

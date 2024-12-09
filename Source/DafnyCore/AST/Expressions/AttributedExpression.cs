@@ -37,7 +37,7 @@ public class AttributedExpression : RangeNode, IAttributeBearingDeclaration {
   public AttributedExpression(IOrigin origin, Expression e, Attributes attrs) : this(origin, e, null, attrs) {
   }
 
-  public AttributedExpression(IOrigin origin, Expression e, AssertLabel/*?*/ label, Attributes attrs) 
+  public AttributedExpression(IOrigin origin, Expression e, AssertLabel/*?*/ label, Attributes attrs)
    : base(origin) {
     Contract.Requires(e != null);
     E = e;

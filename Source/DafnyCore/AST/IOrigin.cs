@@ -53,8 +53,4 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
   public IOrigin WithVal(string val);  // create a new token by setting the given val.
 
   bool IsCopy { get; }
-
-  public IOrigin WithCenter(Token center) {
-    return new RangeToken(StartToken, EndToken, center);
-  }
 }

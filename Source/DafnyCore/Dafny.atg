@@ -900,7 +900,7 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
     )
   }
   IdentType<out var id, out var originalId, out ty, false> 
-                                (. range = new RangeToken(startToken, ty.EndToken);
+                                (. range = new RangeToken(startToken, ty.EndToken, id);
                                    name = new Name(id);
                                 .)
   .
@@ -998,7 +998,7 @@ TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*
     Type<out ty>
     ParameterDefaultValue<true, out defaultValue>
   )
-  (. range = new RangeToken(beforeStartToken.Next, t);
+  (. range = new RangeToken(beforeStartToken.Next, t, nameToken);
      if (nameToken != null) {
        identName = new Name(nameToken);
        isNameOnly = nameonlyToken != null;
@@ -1421,16 +1421,14 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
     { Attribute<ref attrs> }
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Origin, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
-                        { RangeOrigin = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
-                    ); .)
+                 (. var formalRange = defaultValue != null ? range.WithEnd(defaultValue.EndToken) : range;
+                    formals.Add(new Formal(formalRange, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)); .)
     { ","
       { Attribute<ref attrs> }
       GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
       ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Origin, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
-                        { RangeOrigin = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
-                    ); .)
+                 (. var formalRange2 = defaultValue != null ? range.WithEnd(defaultValue.EndToken) : range;
+                    formals.Add(new Formal(formalRange2, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)); .)
     }
   ]
   ")"
@@ -1458,13 +1456,11 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
   .)
   "("
   [
-    TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
-            (. formals.Add(new Formal(name.Origin, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly) 
-                    { RangeOrigin = range });
+    TypeIdentOptional<out var origin, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
+            (. formals.Add(new Formal(origin, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly));
             .)
-    { "," TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
-            (. formals.Add(new Formal(name.Origin, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly) 
-                    { RangeOrigin = range });
+    { "," TypeIdentOptional<out origin, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
+            (. formals.Add(new Formal(origin, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly));
             .)
     }
   ]
@@ -2732,7 +2728,7 @@ WhileStmt<out Statement stmt>
     | /* go body-less */
     )
     (.
-      var rangeToken = new RangeToken(startToken, t);
+      var rangeToken = new RangeToken(startToken, t, x);
       if (guardEllipsis != null || bodyEllipsis != null) {
         if (mod != null) {
           SemErr(ErrorId.p_no_modifies_on_refining_loops, mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");

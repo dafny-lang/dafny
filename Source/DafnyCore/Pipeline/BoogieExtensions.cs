@@ -51,8 +51,18 @@ namespace Microsoft.Dafny {
       if (token is NestedOrigin nestedToken) {
         return GetLspRange(nestedToken.Outer, nameRange);
       }
-      var dafnyToken = BoogieGenerator.ToDafnyToken(!nameRange, token);
-      return GetLspRangeGeneric(dafnyToken.StartToken, dafnyToken.EndToken);
+      var origin = BoogieGenerator.ToDafnyToken(!nameRange, token);
+      return GetLspRange(origin);
+    }
+
+    /// <summary>
+    /// Gets the LSP range of the specified token.
+    /// </summary>
+    /// <param name="token">The token to get the range of.</param>
+    /// <param name="endToken">An optional other token to get the end of the range of.</param>
+    /// <returns>The LSP range of the token.</returns>
+    public static Range GetLspRange(this IOrigin origin) {
+      return GetLspRangeGeneric(origin.StartToken, origin.EndToken);
     }
 
     public static Position GetLspPosition(this DafnyPosition position) {
