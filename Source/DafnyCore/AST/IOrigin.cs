@@ -44,4 +44,6 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
   Token Prev { get; set; } // The previous token
 
   public IOrigin WithVal(string val);  // create a new token by setting the given val.
+
+  bool IsCopy { get; }
 }
