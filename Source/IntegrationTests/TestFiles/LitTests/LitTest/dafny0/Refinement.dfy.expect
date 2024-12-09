@@ -27,9 +27,9 @@ Refinement.dfy(78,14): Related location: this is the postcondition that could no
 Refinement.dfy(102,2): Error: a postcondition could not be proved on this return path
 Refinement.dfy(83,14): Related location: this is the postcondition that could not be proved
 Refinement.dfy(198,6): Error: assertion might not hold
-Refinement.dfy[IncorrectConcrete](122,18): Related location: this proposition could not be proved
+Refinement.dfy[IncorrectConcrete](122,18): Related location: Could not prove: Valid()
 Refinement.dfy(204,6): Error: assertion might not hold
-Refinement.dfy[IncorrectConcrete](131,18): Related location: this proposition could not be proved
+Refinement.dfy[IncorrectConcrete](131,18): Related location: Could not prove: Valid()
 Refinement.dfy(209,6): Error: assertion might not hold
 Refinement.dfy[IncorrectConcrete](137,23): Related location: this proposition could not be proved
 Refinement.dfy(253,6): Error: a postcondition could not be proved on this return path

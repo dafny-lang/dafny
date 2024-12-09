@@ -1303,7 +1303,7 @@ RequiresClause<.List<AttributedExpression> req, bool allowLabel.>
     LabelName<out lbl> ":"
   ]
   Expression<out e, false, false>
-  OldSemi       (. req.Add(new AttributedExpression(e.Origin.WithCenter(keyword), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
+  OldSemi       (. req.Add(new AttributedExpression(e.Origin.WithCenter(e.StartToken), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1314,7 +1314,7 @@ EnsuresClause<.List<AttributedExpression> ens, bool allowLambda.>
                  .)
   { Attribute<ref attrs> }
   Expression<out e, false, allowLambda>
-    OldSemi       (. ens.Add(new AttributedExpression(e.Origin.WithCenter(keyword), e, attrs)); .)
+    OldSemi       (. ens.Add(new AttributedExpression(e.Origin.WithCenter(e.StartToken), e, attrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1362,7 +1362,7 @@ InvariantClause<. List<AttributedExpression> invariants.> =
                                                    Token keyword = t;
                                                 .)
   { Attribute<ref attrs> }
-  Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e.Origin.WithCenter(keyword), e, attrs)); .)
+  Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e.Origin.WithCenter(e.StartToken), e, attrs)); .)
   OldSemi
   .
 

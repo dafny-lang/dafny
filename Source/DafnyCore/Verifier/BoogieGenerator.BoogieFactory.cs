@@ -899,7 +899,7 @@ namespace Microsoft.Dafny {
       if (boogieToken == null) {
         return null;
       } else if (boogieToken is IOrigin dafnyToken) {
-        return reportRanges ? dafnyToken : dafnyToken.Center;
+        return dafnyToken;
       } else if (boogieToken is VCGeneration.TokenWrapper tokenWrapper) {
         return ToDafnyToken(reportRanges, tokenWrapper.Inner);
       } else if (boogieToken == Boogie.Token.NoToken) {
