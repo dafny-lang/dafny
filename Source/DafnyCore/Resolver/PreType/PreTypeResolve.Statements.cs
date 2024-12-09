@@ -77,7 +77,7 @@ namespace Microsoft.Dafny {
       EnclosingStatementLabels.PopMarker();
     }
 
-    Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
+    Label/*?*/ ResolveDominatingLabelInExpr(IOrigin tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
       Contract.Requires(tok != null);
       Contract.Requires(expressionDescription != null);
       Contract.Requires(resolutionContext != null);
@@ -617,7 +617,7 @@ namespace Microsoft.Dafny {
       int errorCountBeforeCheckingStmt) {
       Contract.Requires(update != null);
       Contract.Requires(resolutionContext != null);
-      IToken firstEffectfulRhs = null;
+      IOrigin firstEffectfulRhs = null;
       MethodCallInformation methodCallInfo = null;
       update.ResolvedStatements = new();
       foreach (var rhs in update.Rhss) {
@@ -1051,7 +1051,7 @@ namespace Microsoft.Dafny {
       EnsureSupportsErrorHandling(s.Tok, failureSupportingType, expectExtract, s.KeywordToken?.Token.val);
     }
 
-    private void EnsureSupportsErrorHandling(IToken tok, TopLevelDeclWithMembers failureSupportingType, bool expectExtract, [CanBeNull] string keyword) {
+    private void EnsureSupportsErrorHandling(IOrigin tok, TopLevelDeclWithMembers failureSupportingType, bool expectExtract, [CanBeNull] string keyword) {
 
       var isFailure = failureSupportingType.Members.Find(x => x.Name == "IsFailure");
       var propagateFailure = failureSupportingType.Members.Find(x => x.Name == "PropagateFailure");
@@ -1156,7 +1156,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           string initCallName = null;
-          IToken initCallTok = null;
+          IOrigin initCallTok = null;
           // Resolve rr.Path and do one of three things:
           // * If rr.Path denotes a type, then set EType,initCallName to rr.Path,"_ctor", which sets up a call to the anonymous constructor.
           // * If the all-but-last components of rr.Path denote a type, then do EType,initCallName := allButLast(EType),last(EType)

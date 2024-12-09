@@ -59,7 +59,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     _ResolvedOp = resolvedOpcode;
   }
 
-  public UnaryOpExpr(IToken tok, Opcode op, Expression e)
+  public UnaryOpExpr(IOrigin tok, Opcode op, Expression e)
     : base(tok, e) {
     Contract.Requires(tok != null);
     Contract.Requires(e != null);

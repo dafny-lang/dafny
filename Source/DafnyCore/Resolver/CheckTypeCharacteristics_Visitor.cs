@@ -277,7 +277,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     return true;
   }
 
-  public void VisitType(IToken tok, Type type, bool inGhostContext) {
+  public void VisitType(IOrigin tok, Type type, bool inGhostContext) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);
     type = type.Normalize();  // we only do a .Normalize() here, because we want to stop at any type synonym or subset type
@@ -324,7 +324,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     }
   }
 
-  void CheckTypeInstantiation(IToken tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs, bool inGhostContext) {
+  void CheckTypeInstantiation(IOrigin tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs, bool inGhostContext) {
     Contract.Requires(tok != null);
     Contract.Requires(what != null);
     Contract.Requires(className != null);

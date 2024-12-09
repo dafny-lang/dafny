@@ -28,7 +28,7 @@ public class OldExpr : Expression, ICloneable<OldExpr>, ICanFormat {
   }
 
   [Captured]
-  public OldExpr(IToken tok, Expression expr, string at = null)
+  public OldExpr(IOrigin tok, Expression expr, string at = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(expr != null);

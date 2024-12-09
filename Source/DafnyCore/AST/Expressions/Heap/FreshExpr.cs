@@ -6,7 +6,7 @@ public class FreshExpr : UnaryOpExpr, ICloneable<FreshExpr> {
   public readonly string/*?*/ At;
   [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
 
-  public FreshExpr(IToken tok, Expression e, string at = null)
+  public FreshExpr(IOrigin tok, Expression e, string at = null)
     : base(tok, Opcode.Fresh, e) {
     Contract.Requires(tok != null);
     Contract.Requires(e != null);

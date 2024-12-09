@@ -300,7 +300,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         string deltaInformation = "";
         while (token != null) {
           var errorToken = token;
-          if (token is NestedToken nestedToken) {
+          if (token is NestedOrigin nestedToken) {
             errorToken = nestedToken.Outer;
             token = nestedToken.Inner;
           } else {
@@ -351,7 +351,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         information += MoreInformation(assertEnsuresCmd.Ensures.tok, currentlyHoveringPostcondition);
       } else {
         information += GetDescription(assertCmd?.Description);
-        if (assertCmd?.tok is NestedToken) {
+        if (assertCmd?.tok is NestedOrigin) {
           information += MoreInformation(assertCmd.tok, currentlyHoveringPostcondition);
         }
       }

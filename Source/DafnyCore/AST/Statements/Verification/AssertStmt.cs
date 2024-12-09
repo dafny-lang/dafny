@@ -25,17 +25,17 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     return assertFalse;
   }
 
-  public AssertStmt(RangeToken rangeToken, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
-    : base(rangeToken, expr, attrs) {
-    Contract.Requires(rangeToken != null);
+  public AssertStmt(RangeToken rangeOrigin, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
+    : base(rangeOrigin, expr, attrs) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(expr != null);
     Label = label;
   }
 
-  public void AddCustomizedErrorMessage(IToken tok, string s) {
+  public void AddCustomizedErrorMessage(IOrigin tok, string s) {
     var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
-    IToken openBrace = tok;
-    IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
+    IOrigin openBrace = tok;
+    IOrigin closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
 

@@ -4,7 +4,7 @@ namespace Microsoft.Dafny;
 
 public class ParensExpression : ConcreteSyntaxExpression, ICanFormat, ICloneable<ParensExpression> {
   public readonly Expression E;
-  public ParensExpression(IToken tok, Expression e)
+  public ParensExpression(IOrigin tok, Expression e)
     : base(tok) {
     E = e;
   }

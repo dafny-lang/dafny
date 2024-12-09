@@ -244,7 +244,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null, bool reportErrors = true) {
+    public void AddEqualityConstraint(PreType a, PreType b, IOrigin tok, string msgFormat, PreTypeConstraint baseError = null, bool reportErrors = true) {
       equalityConstraints.Enqueue(new EqualityConstraint(a, b, tok, msgFormat, baseError, reportErrors));
     }
 
@@ -262,11 +262,11 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString, PreTypeConstraint baseError = null, bool reportErrors = true) {
+    public void AddSubtypeConstraint(PreType super, PreType sub, IOrigin tok, string errorFormatString, PreTypeConstraint baseError = null, bool reportErrors = true) {
       unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatString, baseError, reportErrors));
     }
 
-    public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, Func<string> errorFormatStringProducer) {
+    public void AddSubtypeConstraint(PreType super, PreType sub, IOrigin tok, Func<string> errorFormatStringProducer) {
       unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatStringProducer));
     }
 
@@ -538,7 +538,7 @@ namespace Microsoft.Dafny {
       return anythingChanged;
     }
 
-    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction) {
+    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IOrigin tok, string errorFormatString, Action onProxyAction) {
       confirmations.Add(new Confirmation(
         () => ConfirmConstraint(check, preType, null),
         () => string.Format(errorFormatString, preType),
@@ -551,7 +551,7 @@ namespace Microsoft.Dafny {
         }));
     }
 
-    public void AddConfirmation(IToken tok, Func<bool> check, Func<string> errorMessage) {
+    public void AddConfirmation(IOrigin tok, Func<bool> check, Func<string> errorMessage) {
       confirmations.Add(new Confirmation(check, errorMessage,
         (ResolverPass reporter) => { reporter.ReportError(tok, errorMessage()); }));
     }
@@ -838,7 +838,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string TokToShortLocation(IToken tok) {
+    public static string TokToShortLocation(IOrigin tok) {
       return $"{System.IO.Path.GetFileName(tok.filename)}({tok.line},{tok.col - 1})";
     }
 

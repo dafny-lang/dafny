@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="node">The unknown node that is being visited.</param>
     /// <param name="token">The token associated with the unknown node.</param>
-    public abstract void VisitUnknown(object node, IToken token);
+    public abstract void VisitUnknown(object node, IOrigin token);
 
     public virtual void Visit(Program program) {
       foreach (var module in program.Modules()) {

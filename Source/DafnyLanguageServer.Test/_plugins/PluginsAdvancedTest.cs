@@ -58,7 +58,7 @@ namespace PluginsAdvancedTest {
                   if (!tested) {
                     var forceMessage = configuration.ForceName ? $" named {methodExtern.Name}_test" : "";
                     var token = configuration.ForceName && candidate != null
-                      ? new NestedToken(methodExtern.tok, candidate.tok, "You might want to just rename this method")
+                      ? new NestedOrigin(methodExtern.tok, candidate.tok, "You might want to just rename this method")
                       : methodExtern.tok;
                     Reporter.Error(MessageSource.Resolver, token,
                       $"Please declare a method {{:test}}{forceMessage} that will call {methodExtern.Name}{configuration.PluginUser}");

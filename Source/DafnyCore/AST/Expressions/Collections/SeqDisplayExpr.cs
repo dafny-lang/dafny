@@ -4,7 +4,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class SeqDisplayExpr : DisplayExpression, ICanFormat, ICloneable<SeqDisplayExpr> {
-  public SeqDisplayExpr(IToken tok, List<Expression> elements)
+  public SeqDisplayExpr(IOrigin tok, List<Expression> elements)
     : base(tok, elements) {
     Contract.Requires(cce.NonNullElements(elements));
     Contract.Requires(tok != null);

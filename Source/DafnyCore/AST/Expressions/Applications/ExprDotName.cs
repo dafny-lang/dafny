@@ -32,7 +32,7 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
     OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
   }
 
-  public ExprDotName(IToken tok, Expression obj, string suffixName, List<Type> optTypeArguments)
+  public ExprDotName(IOrigin tok, Expression obj, string suffixName, List<Type> optTypeArguments)
     : base(tok, obj) {
     Contract.Requires(tok != null);
     Contract.Requires(obj != null);

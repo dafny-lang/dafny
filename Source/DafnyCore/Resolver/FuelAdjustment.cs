@@ -32,7 +32,7 @@ public static class FuelAdjustment {
     }
   }
 
-  public static void CheckForFuelAdjustments(ErrorReporter reporter, IToken tok, Attributes attrs, ModuleDefinition currentModule) {
+  public static void CheckForFuelAdjustments(ErrorReporter reporter, IOrigin tok, Attributes attrs, ModuleDefinition currentModule) {
     List<List<Expression>> results = Attributes.FindAllExpressions(attrs, "fuel");
 
     if (results == null) {

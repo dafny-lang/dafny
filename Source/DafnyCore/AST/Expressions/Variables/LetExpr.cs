@@ -44,7 +44,7 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     }
   }
 
-  public LetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
+  public LetExpr(IOrigin tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
     : base(tok) {
     LHSs = lhss;
     RHSs = rhss;
@@ -53,7 +53,7 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     Attributes = attrs;
   }
 
-  public static LetExpr Havoc(IToken tok, Type type = null) {
+  public static LetExpr Havoc(IOrigin tok, Type type = null) {
     type ??= new InferredTypeProxy();
     var boundVar = new BoundVar(tok, "x", type);
     var casePatterns = new List<CasePattern<BoundVar>>() { new(tok, boundVar) };

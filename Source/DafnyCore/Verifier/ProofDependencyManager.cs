@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
     // condition.
     private const string idAttributeName = "id";
 
-    public void AddProofDependencyId(ICarriesAttributes boogieNode, IToken tok, ProofDependency dep) {
+    public void AddProofDependencyId(ICarriesAttributes boogieNode, IOrigin tok, ProofDependency dep) {
       var idString = GetProofDependencyId(dep);
       boogieNode.Attributes =
         new QKeyValue(tok, idAttributeName, new List<object>() { idString }, boogieNode.Attributes);

@@ -10,7 +10,7 @@ public abstract class UnaryExpr : Expression, ICanFormat {
     Contract.Invariant(E != null);
   }
 
-  public UnaryExpr(IToken tok, Expression e)
+  public UnaryExpr(IOrigin tok, Expression e)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(e != null);

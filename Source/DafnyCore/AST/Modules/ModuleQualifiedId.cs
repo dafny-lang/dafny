@@ -37,7 +37,7 @@ public class ModuleQualifiedId : Node, IHasReferences {
     return Path[0].Value;
   }
 
-  public IToken RootToken() {
+  public IOrigin RootToken() {
     return Path[0].StartToken;
   }
 
@@ -62,7 +62,7 @@ public class ModuleQualifiedId : Node, IHasReferences {
     }
   }
 
-  public override IToken Tok => Path.Last().Tok;
+  public override IOrigin Tok => Path.Last().Tok;
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Children;
 
@@ -71,7 +71,7 @@ public class ModuleQualifiedId : Node, IHasReferences {
     set => throw new NotSupportedException();
   }
 
-  public IToken NavigationToken => Path.Last().StartToken;
+  public IOrigin NavigationToken => Path.Last().StartToken;
 
   public IEnumerable<IHasNavigationToken> GetReferences() {
     // Normally the target should already have been resolved, but in certain conditions like an unused alias module decl,

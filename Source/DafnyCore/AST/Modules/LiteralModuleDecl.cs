@@ -42,14 +42,13 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     ModuleDef = newModuleDefinition;
     DefaultExport = original.DefaultExport;
     BodyStartTok = ModuleDef.BodyStartTok;
-    TokenWithTrailingDocString = ModuleDef.TokenWithTrailingDocString;
   }
 
   public LiteralModuleDecl(DafnyOptions options, ModuleDefinition module, ModuleDefinition parent, Guid cloneId)
     : base(options, module.RangeToken, module.NameNode, parent, false, false, cloneId) {
     ModuleDef = module;
     BodyStartTok = module.BodyStartTok;
-    TokenWithTrailingDocString = module.TokenWithTrailingDocString;
+    module.EnclosingLiteralModuleDecl = this;
   }
 
   public override object Dereference() { return ModuleDef; }
@@ -185,7 +184,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
     if (!parentBindings.BindName(Name, this, bindings)) {
       parentBindings.TryLookup(Name, out var otherModule);
-      resolver.Reporter.Error(MessageSource.Resolver, new NestedToken(tok, otherModule.tok), "Duplicate module name: {0}", Name);
+      resolver.Reporter.Error(MessageSource.Resolver, new NestedOrigin(tok, otherModule.tok), "Duplicate module name: {0}", Name);
     }
   }
 

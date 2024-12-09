@@ -66,7 +66,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
         this.cancellationToken = cancellationToken;
       }
 
-      public override void VisitUnknown(object node, IToken token) { }
+      public override void VisitUnknown(object node, IOrigin token) { }
 
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -90,7 +90,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       }
 
       private static Range GetRange(AssignStatement updateStatement) {
-        IToken startToken;
+        IOrigin startToken;
         if (updateStatement.Lhss.Count > 0) {
           startToken = updateStatement.Lhss[0].tok;
         } else if (updateStatement.ResolvedStatements.Count > 0) {
@@ -103,14 +103,14 @@ Send notifications that indicate which lines are ghost.".TrimStart());
         return CreateRange(startToken, updateStatement.RangeToken.EndToken);
       }
 
-      private static IToken GetStartTokenFromResolvedStatement(Statement resolvedStatement) {
+      private static IOrigin GetStartTokenFromResolvedStatement(Statement resolvedStatement) {
         return resolvedStatement switch {
           CallStmt callStatement => callStatement.MethodSelect.tok,
           _ => resolvedStatement.Tok
         };
       }
 
-      private static Range CreateRange(IToken startToken, IToken endToken) {
+      private static Range CreateRange(IOrigin startToken, IOrigin endToken) {
         var endPosition = endToken.GetLspPosition();
         return new Range(
           startToken.GetLspPosition(),

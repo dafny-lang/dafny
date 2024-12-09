@@ -42,7 +42,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath).EndsWith(FileName);
   public bool ImplicitFromCli;
 
-  public IToken StartingToken => ImplicitFromCli ? Token.Cli : new Token {
+  public IOrigin StartingToken => ImplicitFromCli ? Token.Cli : new Token {
     Uri = Uri,
     line = 1,
     col = 1
@@ -57,7 +57,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     Options = options ?? new Dictionary<string, object>();
   }
 
-  public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, IToken uriOrigin,
+  public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, IOrigin uriOrigin,
     bool defaultIncludes = true, bool serverNameCheck = true) {
     DafnyProject result;
     try {

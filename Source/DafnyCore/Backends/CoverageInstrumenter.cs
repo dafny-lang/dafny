@@ -7,14 +7,14 @@ namespace Microsoft.Dafny.Compilers;
 
 public class CoverageInstrumenter {
   private readonly SinglePassCodeGenerator codeGenerator;
-  private List<(IToken, string)>/*?*/ legend;  // non-null implies options.CoverageLegendFile is non-null
+  private List<(IOrigin, string)>/*?*/ legend;  // non-null implies options.CoverageLegendFile is non-null
   private string talliesFilePath;
 
   public CoverageInstrumenter(SinglePassCodeGenerator codeGenerator) {
     this.codeGenerator = codeGenerator;
     if (codeGenerator.Options?.CoverageLegendFile != null
         || codeGenerator.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
-      legend = new List<(IToken, string)>();
+      legend = new List<(IOrigin, string)>();
     }
 
     if (codeGenerator.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
@@ -26,7 +26,7 @@ public class CoverageInstrumenter {
     get => legend != null;
   }
 
-  public void Instrument(IToken tok, string description, ConcreteSyntaxTree wr) {
+  public void Instrument(IOrigin tok, string description, ConcreteSyntaxTree wr) {
     Contract.Requires(tok != null);
     Contract.Requires(description != null);
     Contract.Requires(wr != null || !IsRecording);
@@ -37,7 +37,7 @@ public class CoverageInstrumenter {
     }
   }
 
-  public void UnusedInstrumentationPoint(IToken tok, string description) {
+  public void UnusedInstrumentationPoint(IOrigin tok, string description) {
     Contract.Requires(tok != null);
     Contract.Requires(description != null);
     if (legend != null) {
@@ -45,7 +45,7 @@ public class CoverageInstrumenter {
     }
   }
 
-  public void InstrumentExpr(IToken tok, string description, bool resultValue, ConcreteSyntaxTree wr) {
+  public void InstrumentExpr(IOrigin tok, string description, bool resultValue, ConcreteSyntaxTree wr) {
     Contract.Requires(tok != null);
     Contract.Requires(description != null);
     Contract.Requires(wr != null || !IsRecording);

@@ -36,12 +36,12 @@ module WriteBytesToFile {
         var res := FileIO.WriteBytesToFile(outputDir + "/output_plain", bytes);
         expect res.Success?, "unexpected failure writing to output_plain: " + res.error;
       }
-      // Ensure that nonexistent parent directories are created as necessary
+        // Ensure that nonexistent parent directories are created as necessary
       {
         var res := FileIO.WriteBytesToFile(outputDir + "/foo/bar/output_nested", bytes);
         expect res.Success?, "unexpected failure writing to output_nested: " + res.error;
       }
-      // Ensure that file paths with .. are handled correctly
+        // Ensure that file paths with .. are handled correctly
       {
         var res := FileIO.WriteBytesToFile(outputDir + "/foo/bar/../output_up", bytes);
         expect res.Success?, "unexpected failure writing to output_up: " + res.error;

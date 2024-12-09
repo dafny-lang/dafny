@@ -218,7 +218,7 @@ Send notifications about the verification status of each line in the program.
   /// Called when the verifier starts verifying an implementation
   /// </summary>
   public void ReportVerifyImplementationRunning(IdeState state, Implementation implementation) {
-    var uri = ((IToken)implementation.tok).Uri;
+    var uri = ((IOrigin)implementation.tok).Uri;
     var tree = state.VerificationTrees[uri];
 
     lock (LockProcessing) {
@@ -249,7 +249,7 @@ Send notifications about the verification status of each line in the program.
     int implementationResourceCount,
     VcOutcome implementationOutcome) {
 
-    var uri = ((IToken)implementation.tok).Uri;
+    var uri = ((IOrigin)implementation.tok).Uri;
     var tree = state.VerificationTrees[uri];
 
     var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);
@@ -300,7 +300,7 @@ Send notifications about the verification status of each line in the program.
   /// Called when a split is finished to be verified
   /// </summary>
   public void ReportAssertionBatchResult(IdeState ideState, AssertionBatchResult batchResult) {
-    var uri = ((IToken)batchResult.Implementation.tok).Uri;
+    var uri = ((IOrigin)batchResult.Implementation.tok).Uri;
     var tree = ideState.VerificationTrees[uri];
 
     lock (LockProcessing) {
@@ -327,8 +327,8 @@ Send notifications about the verification status of each line in the program.
         implementationNode.AddAssertionBatchMetrics(result.VcNum, assertionBatchTime, assertionBatchResourceCount, result.CoveredElements.ToList());
 
         // Attaches the trace
-        void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
-          GutterVerificationStatus status, IToken? secondaryToken, string? assertDisplay = "",
+        void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IOrigin token,
+          GutterVerificationStatus status, IOrigin? secondaryToken, string? assertDisplay = "",
           string assertIdentifier = "") {
           if (token.Filepath != implementationNode.Filename) {
             return;
@@ -380,7 +380,7 @@ Send notifications about the verification status of each line in the program.
         foreach (var (assertCmd, outcome) in perAssertOutcome) {
           var status = GetNodeStatus(outcome);
           perAssertCounterExample.TryGetValue(assertCmd, out var counterexample);
-          IToken? secondaryToken = BoogieGenerator.ToDafnyToken(true, counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
+          IOrigin? secondaryToken = BoogieGenerator.ToDafnyToken(true, counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
             counterexample is CallCounterexample callCounterexample ? callCounterexample.FailingRequires.tok :
             null);
           if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
@@ -408,7 +408,7 @@ Send notifications about the verification status of each line in the program.
     Implementation implementation, out ImplementationVerificationTree? implementationTree, bool nameBased = false) {
     var targetMethodNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>().FirstOrDefault(
       node => node?.Position == implementation.tok.GetLspPosition() &&
-              node?.Uri == ((IToken)implementation.tok).Uri
+              node?.Uri == ((IOrigin)implementation.tok).Uri
       , null);
     if (nameBased) {
       implementationTree = targetMethodNode?.Children.OfType<ImplementationVerificationTree>().FirstOrDefault(

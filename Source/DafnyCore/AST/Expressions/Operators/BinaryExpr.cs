@@ -325,7 +325,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
     }
   }
 
-  public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
+  public BinaryExpr(IOrigin tok, Opcode op, Expression e0, Expression e1)
     :
     base(tok) {
     Contract.Requires(tok != null);
@@ -339,7 +339,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
   /// <summary>
   /// Returns a resolved binary expression
   /// </summary>
-  public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
+  public BinaryExpr(IOrigin tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
     : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
     ResolvedOp = rop;
     switch (rop) {

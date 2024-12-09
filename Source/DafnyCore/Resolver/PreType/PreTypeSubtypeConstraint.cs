@@ -19,7 +19,7 @@ namespace Microsoft.Dafny {
       return string.Format(ErrorFormatString, Super, Sub);
     }
 
-    public SubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString, PreTypeConstraint baseError = null, bool reportErrors = true)
+    public SubtypeConstraint(PreType super, PreType sub, IOrigin tok, string errorFormatString, PreTypeConstraint baseError = null, bool reportErrors = true)
       : base(tok, errorFormatString, baseError, reportErrors) {
       Contract.Assert(super != null);
       Contract.Assert(sub != null);
@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
       Sub = sub.Normalize();
     }
 
-    public SubtypeConstraint(PreType super, PreType sub, IToken tok, Func<string> errorFormatStringProducer, bool reportErrors = true)
+    public SubtypeConstraint(PreType super, PreType sub, IOrigin tok, Func<string> errorFormatStringProducer, bool reportErrors = true)
       : base(tok, errorFormatStringProducer, reportErrors) {
       Contract.Assert(super != null);
       Contract.Assert(sub != null);
@@ -109,7 +109,7 @@ namespace Microsoft.Dafny {
     /// For every co-variant parameters[i], constrain superArguments[i] :> subArguments[i].
     /// For every contra-variant parameters[i], constrain subArguments[i] :> superArguments[i].
     /// </summary>
-    static void ConstrainTypeArguments(List<TypeParameter> parameters, List<PreType> superArguments, List<PreType> subArguments, IToken tok,
+    static void ConstrainTypeArguments(List<TypeParameter> parameters, List<PreType> superArguments, List<PreType> subArguments, IOrigin tok,
       OptionalErrorPreTypeConstraint baseError, PreTypeConstraints constraints) {
       Contract.Requires(parameters.Count == superArguments.Count && superArguments.Count == subArguments.Count);
 
@@ -139,7 +139,7 @@ namespace Microsoft.Dafny {
     ///   - else if (pi is Co) == proxiesAreSupertypes, then a new proxy constrained by:  proxy :> ai
     ///   - else a new proxy constrained by:  ai :> proxy
     /// </summary>
-    static List<PreType> CreateProxiesForTypesAccordingToVariance(IToken tok, List<TypeParameter> parameters, List<PreType> arguments,
+    static List<PreType> CreateProxiesForTypesAccordingToVariance(IOrigin tok, List<TypeParameter> parameters, List<PreType> arguments,
       bool proxiesAreSupertypes, bool reportErrors, PreTypeConstraints state) {
       Contract.Requires(parameters.Count == arguments.Count);
 

@@ -14,7 +14,7 @@ public abstract class DisplayExpression : Expression {
     Elements = original.Elements.ConvertAll(cloner.CloneExpr);
   }
 
-  public DisplayExpression(IToken tok, List<Expression> elements)
+  public DisplayExpression(IOrigin tok, List<Expression> elements)
     : base(tok) {
     Contract.Requires(cce.NonNullElements(elements));
     Elements = elements;

@@ -72,7 +72,7 @@ public static class VerifyCommand {
       var verificationSummarized = ReportVerificationSummary(compilation, verificationResults);
       var proofDependenciesReported = ReportProofDependencies(compilation, resolution, verificationResults);
       var verificationResultsLogged = LogVerificationResults(compilation, resolution, verificationResults);
-      compilation.VerifyAllLazily(0).ToObservable().Subscribe(verificationResults);
+      compilation.VerifyAllLazily().ToObservable().Subscribe(verificationResults);
       await verificationSummarized;
       await verificationResultsLogged;
       await proofDependenciesReported;

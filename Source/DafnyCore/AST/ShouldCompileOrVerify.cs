@@ -53,8 +53,8 @@ public static class ShouldCompileOrVerify {
     return !declaration.Tok.FromIncludeDirective(compilation);
   }
 
-  public static bool FromIncludeDirective(this IToken token, CompilationData outerModule) {
-    if (token is RefinementToken) {
+  public static bool FromIncludeDirective(this IOrigin token, CompilationData outerModule) {
+    if (token is RefinementOrigin) {
       return false;
     }
 
@@ -70,7 +70,7 @@ public static class ShouldCompileOrVerify {
     return true;
   }
 
-  public static bool FromIncludeDirective(this IToken token, Program program) {
+  public static bool FromIncludeDirective(this IOrigin token, Program program) {
     return token.FromIncludeDirective(program.Compilation);
   }
 

@@ -14,4 +14,4 @@ Twostate-Functions.dfy(167,13): Error: function precondition could not be proved
 Twostate-Functions.dfy(183,15): Error: argument for parameter 'd' could not be proved to be allocated in the two-state function's previous state -- if you add 'new' before the parameter declaration, like 'new d: D', arguments can refer to expressions possibly unallocated in the previous state
 Twostate-Functions.dfy(186,13): Error: function precondition could not be proved
 
-Dafny program verifier finished with 25 verified, 13 errors
+Dafny program verifier finished with 18 verified, 13 errors

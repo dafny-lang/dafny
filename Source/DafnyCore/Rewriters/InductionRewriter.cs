@@ -92,7 +92,7 @@ public class InductionRewriter : IRewriter {
   /// variables. If there are any, then record them in an attribute {:_induction ...} added to "attributes".
   /// "body" is the condition that the induction would support.
   /// </summary>
-  void ComputeInductionVariables<TVarType>(IToken tok, List<TVarType> boundVars, Expression body,
+  void ComputeInductionVariables<TVarType>(IOrigin tok, List<TVarType> boundVars, Expression body,
     [CanBeNull] Method lemma, ref Attributes attributes) where TVarType : class, IVariable {
     Contract.Requires(tok != null);
     Contract.Requires(boundVars != null);
@@ -223,7 +223,7 @@ public class InductionRewriter : IRewriter {
   /// <summary>
   /// Report as tooltips the matching patterns selected for the induction hypothesis.
   /// </summary>
-  private void ReportInductionTriggers(IToken tok, [CanBeNull] Method lemma, Attributes attributes) {
+  private void ReportInductionTriggers(IOrigin tok, [CanBeNull] Method lemma, Attributes attributes) {
     foreach (var trigger in attributes.AsEnumerable().Where(attr => attr.Name == "_inductionTrigger")) {
       var ss = Printer.OneAttributeToString(Reporter.Options, trigger, "inductionTrigger");
       if (lemma is PrefixLemma) {
@@ -244,7 +244,7 @@ public class InductionRewriter : IRewriter {
   /// The selection between warning vs info is done by looking for a {:nowarn} attribute among "attributes".
   /// </summary>
   List<List<Expression>> ComputeInductionTriggers(List<Expression> inductionVariables, Expression body, ModuleDefinition moduleDefinition,
-    [CanBeNull] IToken errorToken, ref Attributes attributes) {
+    [CanBeNull] IOrigin errorToken, ref Attributes attributes) {
     Contract.Requires(inductionVariables.Count != 0);
 
     if (Attributes.Contains(attributes, "inductionTrigger")) {

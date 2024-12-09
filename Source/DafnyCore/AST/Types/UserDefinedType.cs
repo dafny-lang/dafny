@@ -42,14 +42,14 @@ public class UserDefinedType : NonProxyType, IHasReferences {
 
   [FilledInDuringResolution] public TopLevelDecl ResolvedClass;  // if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
 
-  public UserDefinedType(IToken tok, string name, List<Type> optTypeArgs)
+  public UserDefinedType(IOrigin tok, string name, List<Type> optTypeArgs)
     : this(tok, new NameSegment(tok, name, optTypeArgs)) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // this is what it means to be syntactically optional
   }
 
-  public UserDefinedType(IToken tok, Expression namePath) {
+  public UserDefinedType(IOrigin tok, Expression namePath) {
     Contract.Requires(tok != null);
     Contract.Requires(namePath is NameSegment || namePath is ExprDotName);
     this.tok = tok;
@@ -83,7 +83,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// If "typeArgs" is non-null, then its type parameters are used in constructing the returned type.
   /// If "typeArgs" is null, then the formal type parameters of "cd" are used.
   /// </summary>
-  public static UserDefinedType FromTopLevelDecl(IToken tok, TopLevelDecl cd, List<TypeParameter> typeArgs = null) {
+  public static UserDefinedType FromTopLevelDecl(IOrigin tok, TopLevelDecl cd, List<TypeParameter> typeArgs = null) {
     Contract.Requires(tok != null);
     Contract.Requires(cd != null);
     Contract.Assert((cd is ArrowTypeDecl) == ArrowType.IsArrowTypeName(cd.Name));
@@ -94,7 +94,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// <summary>
   /// Constructs a Type (in particular, a UserDefinedType) from a TopLevelDecl denoting a type declaration.
   /// </summary>
-  public static UserDefinedType FromTopLevelDecl(IToken tok, TopLevelDecl cd, List<Type> typeArguments) {
+  public static UserDefinedType FromTopLevelDecl(IOrigin tok, TopLevelDecl cd, List<Type> typeArguments) {
     if (cd is ArrowTypeDecl) {
       return new ArrowType(tok, (ArrowTypeDecl)cd, typeArguments);
     } else if (cd is ClassLikeDecl { IsReferenceTypeDecl: true }) {
@@ -147,7 +147,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// the FromTopLevelDecl method to create the UserDefinedType; that makes sure the right class
   /// and right name is used.
   /// </summary>
-  public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
+  public UserDefinedType(IOrigin tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(cd != null);
@@ -212,7 +212,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// <summary>
   /// This constructor constructs a resolved type parameter
   /// </summary>
-  public UserDefinedType(IToken tok, TypeParameter tp) {
+  public UserDefinedType(IOrigin tok, TypeParameter tp) {
     Contract.Requires(tok != null);
     Contract.Requires(tp != null);
     this.tok = tok;
@@ -522,7 +522,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
 
-  public IToken NavigationToken => tok;
+  public IOrigin NavigationToken => tok;
   public IEnumerable<IHasNavigationToken> GetReferences() {
     return new[] { ResolvedClass };
   }

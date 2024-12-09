@@ -65,7 +65,7 @@ public class TranslationRecord {
     // Only for TOML deserialization!
   }
 
-  public static void ReadValidateAndMerge(Program program, string filePath, IToken origin) {
+  public static void ReadValidateAndMerge(Program program, string filePath, IOrigin origin) {
     var pathForErrors = program.Options.GetPrintPath(filePath);
     try {
       using TextReader reader = new StreamReader(filePath);
@@ -94,7 +94,7 @@ public class TranslationRecord {
     writer.Write(textWriter.ToString());
   }
 
-  private bool Validate(Program dafnyProgram, string filePath, IToken origin) {
+  private bool Validate(Program dafnyProgram, string filePath, IOrigin origin) {
     var messagePrefix = $"cannot load {filePath}";
     if (!dafnyProgram.Options.UsingNewCli) {
       dafnyProgram.Reporter.Error(MessageSource.Project, origin,
@@ -132,7 +132,7 @@ public class TranslationRecord {
     return null;
   }
 
-  private void Merge(ErrorReporter reporter, TranslationRecord other, string filePath, IToken origin) {
+  private void Merge(ErrorReporter reporter, TranslationRecord other, string filePath, IOrigin origin) {
     // Assume both this and other have been Validate()-d already.
 
     var duplicateModules = OptionsByModule

@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class Label {
-  public readonly IToken Tok;
+  public readonly IOrigin Tok;
   public readonly string Name;
   string uniqueId = null;
 
@@ -13,7 +13,7 @@ public class Label {
     }
     return uniqueId;
   }
-  public Label(IToken tok, string/*?*/ label) {
+  public Label(IOrigin tok, string/*?*/ label) {
     Contract.Requires(tok != null);
     Tok = tok;
     Name = label;

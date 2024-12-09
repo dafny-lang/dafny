@@ -183,17 +183,12 @@ by IDEs and documentation generation tools to present information to users.
 
 In Dafny programs.
 * Documentation comments (a) either begin with `/**` or (b) begin with `//` or /*` in specific locations
-* Doc-comments may be associated with any declaration, including type definitions, export declarations, and datatype constructors.
-* They may be placed before or after the declaration. 
-   * If before, it must be a `/**` comment and may not have any blank or white-space lines between the comment
-     and the declaration.
-   * If after, any comments are placed after the signature (with no intervening lines), but before any
-     specifications or left-brace that starts a body, and may be `//` or `/**` or `/*` comments.
-   * If doc-comments are in both places, only the comments after the declaration are used.
-* Doc-comments after the declaration are preferred.
-* If the first of a series of single-line or multi-line comments is interpreted as a doc-string, then any subsequent comments
-  are appended to it, so long as there are no intervening lines, whether blank, all white-space or containing program text.
-* The extraction of the doc-string from a multiline comment follow these rules 
+* Documentation comments may be associated with any declaration, including type definitions, export declarations, and datatype constructors.
+* They may be placed before the declaration, between the declaration and the definition or after the definition. The priority of these comments is the following:
+   * If there is a comment starting with `/**` right before the definition, it's the documentation comment.
+   * Otherwise, if one or more comments appear between a declaration and its definition — which is uncommon in other programming languages — they are treated as documentation comments, regardless of whether they start with //, /**, or /*. This is because there is no other plausible reason for a comment to be placed in this position.
+   * Otherwise, if there is a single comment starting with `//` or `/**` or `/*` at the end of the definition, it's the documentation comment. In this case, multi-line documentation comments must be starting with `/*`
+* The extraction of the doc-string from a documentation comment follows the following rules 
   * On the first line, an optional `*` right after `/*` and an optional space are removed, if present
   * On other lines, the indentation space (with possibly one star in it) is removed, as if the content was supposed to align with A if the comment started with `/** A` for example.
 * The documentation string is interpreted as plain text, but it is possible to provide a user-written
@@ -203,40 +198,32 @@ In Dafny programs.
 Here are examples:
 <!-- %check-resolve -->
 ```dafny
-const c0 := 8
-/** docstring about c0 */
+/* Just a comment */
+const c0: int := 8 // docstring about c0
+// Just a comment
 
 /** docstring about c1 */
-const c1 := 8
+newtype c1 = x : int | x > 8 // Just a comment
 
-/** first line of docstring */
-const c2 := 8
-/** second line of docstring */
-
-const c3 := 8
-// docstring about c3
-// on two lines
-
-const c4 := 8
-
-// just a comment
-
+/* Just a comment */
+function c2(): (r: int) // Docstring about c2
+  ensures r > 0
+{ 8 } // Just a comment
 
 // just a comment
 const c5 := 8
-
 ```
 
 Datatype constructors may also have comments:
 <!-- %check-resolve -->
 ```dafny
-datatype T =  // Docstring for T
-  | A(x: int,
+datatype T // Docstring for T
+= | A(x: int,
       y: int) // Docstring for A
   | B()       /* Docstring for B */ |
     C()       // Docstring for C
 
-/** Docstring for T0*/
+/** Docstring for T0 */
 datatype T0 =
   | /** Docstring for A */
     A(x: int,
@@ -251,21 +238,23 @@ As can `export` declarations:
 <!-- %check-resolve -->
 ```dafny
 module M {
-const A: int
-const B: int
-const C: int
-const D: int
+  const A: int
+  const B: int
+  const C: int
+  const D: int
 
-export
-  // This is the eponymous export set intended for most clients
-  provides A, B, C
+  export
+    // This is the docstring of the eponymous export set intended for most clients
+    provides A, B, C
 
+  /** This is the docstring */
+  export AB provides A, B
 
-export Friends extends M
-  // This export set is for clients who need to know more of the
-  // details of the module's definitions.
-  reveals A
-  provides D
+  export Friends extends AB
+    // This is the docstring of the export set is for clients who need to know more of the
+    // details of the module's definitions.
+    reveals A
+    provides D
 }
 ```
 

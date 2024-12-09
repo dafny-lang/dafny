@@ -54,7 +54,7 @@ namespace Microsoft.Dafny {
     /// of resolving it. If that still doesn't resolve it, then report and error and return "false".
     /// Otherwise (that is, upon success), return "true".
     /// </summary>
-    bool InsistOnKnowingPreType(IToken tok, PreType preType) {
+    bool InsistOnKnowingPreType(IOrigin tok, PreType preType) {
       if (preType.Normalize() is PreTypeProxy) {
         Constraints.PartiallySolveTypeConstraints(null, true);
 
@@ -69,7 +69,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Resolve "pattern" and push onto "scope" all its bound variables.
     /// </summary>
-    public void ResolveExtendedPattern(IToken sourceExprToken, ExtendedPattern pattern, PreType preType, bool inDisjunctivePattern, ResolutionContext resolutionContext) {
+    public void ResolveExtendedPattern(IOrigin sourceExprToken, ExtendedPattern pattern, PreType preType, bool inDisjunctivePattern, ResolutionContext resolutionContext) {
       if (pattern is DisjunctivePattern dp) {
         foreach (var alt in dp.Alternatives) {
           ResolveExtendedPattern(sourceExprToken, alt, preType, true, resolutionContext);

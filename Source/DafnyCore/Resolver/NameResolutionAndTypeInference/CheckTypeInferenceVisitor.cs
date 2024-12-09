@@ -396,7 +396,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
 
   readonly ISet<TypeProxy> UnderspecifiedTypeProxies = new HashSet<TypeProxy>();
 
-  public bool CheckTypeIsDetermined(IToken tok, Type t, string what) {
+  public bool CheckTypeIsDetermined(IOrigin tok, Type t, string what) {
     Contract.Requires(tok != null);
     Contract.Requires(t != null);
     Contract.Requires(what != null);
@@ -415,7 +415,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     return t.TypeArgs.All(rg => CheckTypeIsDetermined(tok, rg, what));
   }
 
-  public void CheckTypeArgsContainNoOrdinal(IToken tok, Type t, TypeInferenceCheckingContext context) {
+  public void CheckTypeArgsContainNoOrdinal(IOrigin tok, Type t, TypeInferenceCheckingContext context) {
     Contract.Requires(tok != null);
     Contract.Requires(t != null);
     if (context.IsPrefixDeclaration) {
@@ -427,7 +427,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     }
   }
 
-  public void CheckContainsNoOrdinal(ResolutionErrors.ErrorId errorId, IToken tok, Type t, string errMsg) {
+  public void CheckContainsNoOrdinal(ResolutionErrors.ErrorId errorId, IOrigin tok, Type t, string errMsg) {
     Contract.Requires(tok != null);
     Contract.Requires(t != null);
     Contract.Requires(errMsg != null);

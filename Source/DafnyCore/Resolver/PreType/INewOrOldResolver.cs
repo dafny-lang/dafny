@@ -19,7 +19,7 @@ public interface INewOrOldResolver {
   void ResolveTypeRhs(TypeRhs typeRhs, Statement statement, ResolutionContext resolutionContext);
   void ResolveBlockStatement(BlockStmt blockS, ResolutionContext resolutionContext);
 
-  Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok,
+  Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IOrigin tok,
     string kind) where Thing : class;
 
   public void ScopePushAndReport(Scope<IVariable> scope, IVariable v, string kind) {

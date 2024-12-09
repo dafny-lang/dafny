@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class CallStmt : Statement, ICloneable<CallStmt> {
   // OverrideToken is required because MethodSelect.EndToken can be incorrect. Will remove once resolved expressions have correct ranges.
-  public override IToken Tok => overrideToken ?? MethodSelect.EndToken.Next;
+  public override IOrigin Tok => overrideToken ?? MethodSelect.EndToken.Next;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -25,7 +25,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
 
   public readonly List<Expression> Lhs;
   public readonly MemberSelectExpr MethodSelect;
-  private readonly IToken overrideToken;
+  private readonly IOrigin overrideToken;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   public Expression OriginalInitialLhs = null;
@@ -33,9 +33,9 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver => MethodSelect.Obj;
   public Method Method => (Method)MethodSelect.Member;
 
-  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IToken overrideToken = null)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public CallStmt(RangeToken rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IOrigin overrideToken = null)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
     Contract.Requires(memSel.Member is Method);
@@ -62,8 +62,8 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   /// This constructor is intended to be used when constructing a resolved CallStmt. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
-    : this(rangeToken, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
+  public CallStmt(RangeToken rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
+    : this(rangeOrigin, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 

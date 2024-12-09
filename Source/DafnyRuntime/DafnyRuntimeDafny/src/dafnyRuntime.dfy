@@ -222,9 +222,9 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       && storage.Repr <= Repr
       && this !in storage.Repr
       && storage.Valid()
-         // TODO: This is equivalent to the above four clauses
-         // but I believe it doesn't get unrolled enough.
-         // && ValidComponent(storage)
+      // TODO: This is equivalent to the above four clauses
+      // but I believe it doesn't get unrolled enough.
+      // && ValidComponent(storage)
       && 0 <= size <= storage.Length()
       && forall i | 0 <= i < size :: storage.values[i].Set?
     }

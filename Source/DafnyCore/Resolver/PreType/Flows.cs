@@ -28,7 +28,7 @@ record FlowContext(SystemModuleManager SystemModuleManager, ErrorReporter Report
 /// For more information about type refinements, flow, and the whole type inference process, see docs/dev/TypeSystemRefresh.md.
 /// </summary>
 abstract class Flow {
-  private readonly IToken tok;
+  private readonly IOrigin tok;
   private readonly string description;
   public bool HasError;
 
@@ -41,7 +41,7 @@ abstract class Flow {
   /// </summary>
   public abstract bool Update(FlowContext context);
 
-  protected Flow(IToken tok, string description) {
+  protected Flow(IOrigin tok, string description) {
     this.tok = tok;
     this.description = description;
   }
@@ -302,7 +302,7 @@ class FlowIntoVariable : Flow {
   protected readonly Type sink;
   protected readonly Expression source;
 
-  public FlowIntoVariable(IVariable variable, Expression source, IToken tok, string description = ":=")
+  public FlowIntoVariable(IVariable variable, Expression source, IOrigin tok, string description = ":=")
     : base(tok, description) {
     this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(variable.UnnormalizedType);
     this.source = source;
@@ -325,7 +325,7 @@ class FlowIntoVariableFromComputedType : Flow {
   protected readonly Type sink;
   private readonly System.Func<Type> getType;
 
-  public FlowIntoVariableFromComputedType(IVariable variable, System.Func<Type> getType, IToken tok, string description = ":=")
+  public FlowIntoVariableFromComputedType(IVariable variable, System.Func<Type> getType, IOrigin tok, string description = ":=")
     : base(tok, description) {
     this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(variable.UnnormalizedType);
     this.getType = getType;
@@ -346,7 +346,7 @@ class FlowIntoVariableFromComputedType : Flow {
 class FlowBetweenComputedTypes : Flow {
   private readonly System.Func<(Type, Type)> getTypes;
 
-  public FlowBetweenComputedTypes(System.Func<(Type, Type)> getTypes, IToken tok, string description)
+  public FlowBetweenComputedTypes(System.Func<(Type, Type)> getTypes, IOrigin tok, string description)
     : base(tok, description) {
     this.getTypes = getTypes;
   }
@@ -367,12 +367,12 @@ class FlowBetweenComputedTypes : Flow {
 abstract class FlowIntoExpr : Flow {
   private readonly Type sink;
 
-  protected FlowIntoExpr(Type sink, IToken tok, string description = "")
+  protected FlowIntoExpr(Type sink, IOrigin tok, string description = "")
     : base(tok, description) {
     this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(sink);
   }
 
-  protected FlowIntoExpr(Expression sink, IToken tok, string description = "")
+  protected FlowIntoExpr(Expression sink, IOrigin tok, string description = "")
     : base(sink.tok, description) {
     this.sink = sink.UnnormalizedType;
   }
@@ -394,7 +394,7 @@ abstract class FlowIntoExpr : Flow {
 class FlowFromType : FlowIntoExpr {
   private readonly Type source;
 
-  public FlowFromType(Type sink, Type source, IToken tok, string description = "")
+  public FlowFromType(Type sink, Type source, IOrigin tok, string description = "")
     : base(sink, tok, description) {
     this.source = source;
   }

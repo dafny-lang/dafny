@@ -87,7 +87,7 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   }
 
   public ICallable CwInner => (ICallable)inner;
-  public IToken Tok => CwInner.Tok;
+  public IOrigin Tok => CwInner.Tok;
   public IEnumerable<INode> Children => CwInner.Children;
   public IEnumerable<INode> PreResolveChildren => CwInner.PreResolveChildren;
 
@@ -103,9 +103,9 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   public bool AllowsAllocation => CwInner.AllowsAllocation;
 
   public bool SingleFileToken => CwInner.SingleFileToken;
-  public IEnumerable<IToken> OwnedTokens => CwInner.OwnedTokens;
+  public IEnumerable<IOrigin> OwnedTokens => CwInner.OwnedTokens;
   public RangeToken RangeToken => CwInner.RangeToken;
-  public IToken NavigationToken => CwInner.NavigationToken;
+  public IOrigin NavigationToken => CwInner.NavigationToken;
   public SymbolKind? Kind => CwInner.Kind;
   public string GetDescription(DafnyOptions options) {
     return CwInner.GetDescription(options);
@@ -152,7 +152,7 @@ public interface RedirectingTypeDecl : ICallable {
 
   string FullDafnyName { get; }
 
-  IToken tok { get; }
+  IOrigin tok { get; }
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }

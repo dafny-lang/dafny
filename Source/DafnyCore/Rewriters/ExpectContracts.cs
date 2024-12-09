@@ -106,7 +106,7 @@ public class ExpectContracts : IRewriter {
   }
 
   private MemberDecl GenerateFunctionWrapper(TopLevelDeclWithMembers parent, MemberDecl decl, Function origFunc,
-    string newName, IToken tok) {
+    string newName, IOrigin tok) {
     var newFunc = cloner.CloneFunction(origFunc);
     newFunc.NameNode.Value = newName;
 

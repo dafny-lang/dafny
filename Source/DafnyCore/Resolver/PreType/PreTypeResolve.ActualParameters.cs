@@ -18,7 +18,7 @@ namespace Microsoft.Dafny {
     /// "typeMap" is applied to the type of each formal.
     /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
     /// </summary>
-    internal void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext opts,
+    internal void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IOrigin callTok, object context, ResolutionContext opts,
       Dictionary<TypeParameter, PreType> typeMap, Expression/*?*/ receiver) {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);

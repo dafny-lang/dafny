@@ -48,34 +48,34 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
     return StripParens(e) is SeqDisplayExpr display && display.Elements.Count == 0;
   }
 
-  public LiteralExpr(IToken tok)
+  public LiteralExpr(IOrigin tok)
     : base(tok) {  // represents the Dafny literal "null"
     Contract.Requires(tok != null);
     this.Value = null;
   }
 
-  public LiteralExpr(IToken tok, BigInteger n)
+  public LiteralExpr(IOrigin tok, BigInteger n)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(0 <= n.Sign);
     this.Value = n;
   }
 
-  public LiteralExpr(IToken tok, BaseTypes.BigDec n)
+  public LiteralExpr(IOrigin tok, BaseTypes.BigDec n)
     : base(tok) {
     Contract.Requires(0 <= n.Mantissa.Sign);
     Contract.Requires(tok != null);
     this.Value = n;
   }
 
-  public LiteralExpr(IToken tok, int n)
+  public LiteralExpr(IOrigin tok, int n)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(0 <= n);
     this.Value = new BigInteger(n);
   }
 
-  public LiteralExpr(IToken tok, bool b)
+  public LiteralExpr(IOrigin tok, bool b)
     : base(tok) {
     Contract.Requires(tok != null);
     this.Value = b;
@@ -86,7 +86,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   /// two reasons:  both of these literals store a string in .Value, and string literals also carry an
   /// additional field.
   /// </summary>
-  protected LiteralExpr(IToken tok, string s)
+  protected LiteralExpr(IOrigin tok, string s)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(s != null);
@@ -103,7 +103,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
 }
 
 public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
-  public CharLiteralExpr(IToken tok, string s)
+  public CharLiteralExpr(IOrigin tok, string s)
     : base(tok, s) {
     Contract.Requires(s != null);
   }
@@ -118,7 +118,7 @@ public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
 
 public class StringLiteralExpr : LiteralExpr, ICloneable<StringLiteralExpr> {
   public readonly bool IsVerbatim;
-  public StringLiteralExpr(IToken tok, string s, bool isVerbatim)
+  public StringLiteralExpr(IOrigin tok, string s, bool isVerbatim)
     : base(tok, s) {
     Contract.Requires(s != null);
     IsVerbatim = isVerbatim;
@@ -148,7 +148,7 @@ public class NegationExpression : ConcreteSyntaxExpression, ICloneable<NegationE
     E = cloner.CloneExpr(original.E);
   }
 
-  public NegationExpression(IToken tok, Expression e)
+  public NegationExpression(IOrigin tok, Expression e)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(e != null);

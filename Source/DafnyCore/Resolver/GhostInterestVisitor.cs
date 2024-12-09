@@ -32,7 +32,7 @@ class GhostInterestVisitor {
     Contract.Requires(msgArgs != null);
     reporter.Error(MessageSource.Resolver, errorId, expr, msg, msgArgs);
   }
-  protected void Error(ErrorId errorId, IToken tok, string msg, params object[] msgArgs) {
+  protected void Error(ErrorId errorId, IOrigin tok, string msg, params object[] msgArgs) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);

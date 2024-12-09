@@ -22,7 +22,7 @@ public class BatchErrorReporter : ErrorReporter {
     };
   }
 
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
     if (ErrorsOnly && level != ErrorLevel.Error) {
       // discard the message
       return false;

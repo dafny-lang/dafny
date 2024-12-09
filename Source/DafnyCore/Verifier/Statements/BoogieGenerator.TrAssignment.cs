@@ -230,7 +230,7 @@ public partial class BoogieGenerator {
 
     i = 0;
     foreach (var lhs in lhss) {
-      IToken tok = lhs.tok;
+      IOrigin tok = lhs.tok;
       TrStmt_CheckWellformed(lhs, builder, locals, etran, true, true);
 
       if (lhs is IdentifierExpr) {
@@ -376,7 +376,7 @@ public partial class BoogieGenerator {
   /// which indicates that the result should always be a box.  Note that "lhsType" may refer to a formal type parameter that is not in
   /// scope; this is okay, since the purpose of "lhsType" is just to say whether or not the result should be boxed.
   /// </summary>
-  Bpl.Expr TrAssignmentRhs(IToken tok, Bpl.IdentifierExpr bGivenLhs, IVariable lhsVar, Type lhsType,
+  Bpl.Expr TrAssignmentRhs(IOrigin tok, Bpl.IdentifierExpr bGivenLhs, IVariable lhsVar, Type lhsType,
     AssignmentRhs rhs, Type rhsTypeConstraint,
     BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     Statement stmt) {

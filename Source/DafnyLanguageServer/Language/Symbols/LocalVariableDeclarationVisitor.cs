@@ -24,7 +24,7 @@ internal class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
     base.Visit(bodyExpression);
   }
 
-  public override void VisitUnknown(object node, IToken token) {
+  public override void VisitUnknown(object node, IOrigin token) {
     logger.LogTrace("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
       node.GetType(), token.GetDocumentFileName(), token.line, token.col);
   }

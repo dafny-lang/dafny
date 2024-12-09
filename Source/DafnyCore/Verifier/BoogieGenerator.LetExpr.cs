@@ -284,7 +284,7 @@ namespace Microsoft.Dafny {
     public Dictionary<LetExpr, LetSuchThatExprInfo> letSuchThatExprInfo = new();
 
     public class LetSuchThatExprInfo {
-      public readonly IToken Tok;
+      public readonly IOrigin Tok;
       public readonly int LetId;
       public readonly List<IVariable> FVs;
 
@@ -298,7 +298,7 @@ namespace Microsoft.Dafny {
       public readonly List<Label> UsesHeapAt;
       public readonly Type ThisType; // null if 'this' is not used
 
-      public LetSuchThatExprInfo(IToken tok, int uniqueLetId,
+      public LetSuchThatExprInfo(IOrigin tok, int uniqueLetId,
         List<IVariable> freeVariables, List<TypeParameter> freeTypeVars,
         bool usesHeap, bool usesOldHeap, ISet<Label> usesHeapAt, Type thisType, Declaration currentDeclaration) {
         Tok = tok;

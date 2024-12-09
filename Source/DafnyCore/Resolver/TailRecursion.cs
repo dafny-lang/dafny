@@ -308,7 +308,7 @@ class TailRecursion {
     expr.SubExpressions.ForEach(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
   }
 
-  TailRecursionStatus ConfirmTailCall(IToken tok, Method method, List<Type> typeApplication_JustMember, List<Expression> lhss, bool reportErrors) {
+  TailRecursionStatus ConfirmTailCall(IOrigin tok, Method method, List<Type> typeApplication_JustMember, List<Expression> lhss, bool reportErrors) {
     Contract.Requires(tok != null);
     Contract.Requires(method != null);
     Contract.Requires(typeApplication_JustMember != null);

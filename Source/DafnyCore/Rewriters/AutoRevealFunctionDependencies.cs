@@ -302,7 +302,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return finalExpr;
   }
 
-  public static HideRevealStmt BuildRevealStmt(Function func, IToken tok, ModuleDefinition rootModule) {
+  public static HideRevealStmt BuildRevealStmt(Function func, IOrigin tok, ModuleDefinition rootModule) {
     List<Type> args = new List<Type>();
     foreach (var _ in func.EnclosingClass.TypeArgs) {
       args.Add(new IntType());

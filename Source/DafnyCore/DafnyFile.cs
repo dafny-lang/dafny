@@ -25,7 +25,7 @@ public class DafnyFile {
   public DafnyOptions FileOptions { get; private set; }
   public Func<FileSnapshot> GetContent { get; set; }
   public Uri Uri { get; private set; }
-  public IToken? Origin { get; }
+  public IOrigin? Origin { get; }
 
   private static readonly Dictionary<Uri, Uri> ExternallyVisibleEmbeddedFiles = new();
 
@@ -40,7 +40,7 @@ public class DafnyFile {
   }
 
   public delegate IAsyncEnumerable<DafnyFile> HandleExtension(DafnyOptions options, IFileSystem
-    fileSystem, ErrorReporter reporter, Uri uri, IToken origin, bool asLibrary);
+    fileSystem, ErrorReporter reporter, Uri uri, IOrigin origin, bool asLibrary);
 
   private static readonly Dictionary<string, HandleExtension> ExtensionHandlers = new();
 
@@ -50,7 +50,7 @@ public class DafnyFile {
 
   public static async IAsyncEnumerable<DafnyFile> CreateAndValidate(IFileSystem fileSystem,
     ErrorReporter reporter,
-    DafnyOptions options, Uri uri, IToken? uriOrigin,
+    DafnyOptions options, Uri uri, IOrigin? uriOrigin,
     bool asLibrary = false, string? errorOnNotRecognized = null) {
 
     var embeddedFile = ExternallyVisibleEmbeddedFiles.GetValueOrDefault(uri);
@@ -115,7 +115,7 @@ public class DafnyFile {
   public static DafnyFile? HandleDafnyFile(IFileSystem fileSystem,
     ErrorReporter reporter,
     DafnyOptions options,
-    Uri uri, IToken origin, bool asLibrary = false, bool warnLibrary = true) {
+    Uri uri, IOrigin origin, bool asLibrary = false, bool warnLibrary = true) {
     string canonicalPath;
     string baseName;
     if (uri.IsFile) {
@@ -155,7 +155,7 @@ public class DafnyFile {
     };
   }
 
-  public static DafnyFile HandleStandardInput(DafnyOptions options, IToken origin) {
+  public static DafnyFile HandleStandardInput(DafnyOptions options, IOrigin origin) {
     return new DafnyFile(DafnyFileExtension, "<stdin>", "<stdin>",
       () => new FileSnapshot(options.Input, null), new Uri("stdin:///"), origin, options) {
       ShouldNotCompile = false,
@@ -166,7 +166,7 @@ public class DafnyFile {
   /// <summary>
   /// Technically only for C#, this is for backwards compatability
   /// </summary>
-  private static DafnyFile? HandleDll(DafnyOptions parseOptions, Uri uri, IToken origin) {
+  private static DafnyFile? HandleDll(DafnyOptions parseOptions, Uri uri, IOrigin origin) {
 
     string baseName;
     string canonicalPath;
@@ -200,7 +200,7 @@ public class DafnyFile {
   public static async IAsyncEnumerable<DafnyFile> HandleDooFile(IFileSystem fileSystem,
     ErrorReporter reporter,
     DafnyOptions options,
-    Uri uri, IToken origin, bool asLibrary) {
+    Uri uri, IOrigin origin, bool asLibrary) {
     DooFile dooFile;
     var filePath = uri.LocalPath;
 
@@ -250,7 +250,7 @@ public class DafnyFile {
   }
 
   protected DafnyFile(string extension, string canonicalPath, string baseName,
-    Func<FileSnapshot> getContent, Uri uri, IToken? origin, DafnyOptions fileOptions) {
+    Func<FileSnapshot> getContent, Uri uri, IOrigin? origin, DafnyOptions fileOptions) {
     Extension = extension;
     CanonicalPath = canonicalPath;
     BaseName = baseName;
