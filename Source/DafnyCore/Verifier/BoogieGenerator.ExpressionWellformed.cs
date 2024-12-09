@@ -401,7 +401,7 @@ namespace Microsoft.Dafny {
               CheckWellformed(e.E0, wfOptions, locals, builder, etran);
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
               Bpl.Expr inDomain = FunctionCall(selectExpr.tok, f, finite ? Predef.MapType : Predef.IMapType, seq);
-              inDomain = Bpl.Expr.Select(inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type));
+              inDomain = IsSetMember(GetToken(expr), inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type), finite);
               builder.Add(Assert(GetToken(expr), inDomain,
                 new ElementInDomain(e.Seq, e.E0), builder.Context, wfOptions.AssertKv));
             } else if (eSeqType is MultiSetType) {
