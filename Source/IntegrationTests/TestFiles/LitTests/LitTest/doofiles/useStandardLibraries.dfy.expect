@@ -1,5 +1,4 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 1 verified, 0 errors
 
-Dafny program verifier finished with 0 verified, 0 errors
-Wrappers.Option.Some(4)
+Dafny program verifier did not attempt verification

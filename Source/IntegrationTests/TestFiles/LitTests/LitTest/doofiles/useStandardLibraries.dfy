@@ -3,12 +3,12 @@
 // which led to duplicate definitions.
 
 // RUN: %build %s -t:lib --standard-libraries:true --output="%S/Output/useStandardLibraries.doo" &> "%t"
-// RUN: %run %S/Output/useStandardLibraries.doo &>> %t
+// RUN: %resolve %S/Output/useStandardLibraries.doo &>> %t
 // RUN: %diff "%s.expect" "%t"
 
 import opened Std.Wrappers
 import opened Std.Collections.Seq
 
 method Main() {
-  print IndexOfOption([1, 1, 2, 3, 5, 8, 13, 21], 5), "\n";
+  assert IndexOfOption([1, 1, 2, 3, 5, 8, 13, 21], 5) == Some(4);
 }
