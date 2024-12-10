@@ -2109,7 +2109,7 @@ namespace Microsoft.Dafny {
             } else {
               reporter.Error(MessageSource.Resolver, parentTypeToken,
                 $"{cl.WhatKind} '{cl.Name}' is in a different module than trait '{trait.FullName}'. A {cl.WhatKind} may only extend a trait " +
-                "in the same module, unless the parent trait is annotated with {:termination false}.");
+                "in the same module, unless the parent trait is annotated with {:termination false} or the {cl.WhatKind} with @AssumeTermination.");
             }
           } else {
             reporter.Error(MessageSource.Resolver, parentTypeToken, $"a {cl.WhatKind} can only extend traits (found '{parentTrait}')");
