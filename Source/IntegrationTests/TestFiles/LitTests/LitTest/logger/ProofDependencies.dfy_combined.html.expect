@@ -414,7 +414,7 @@ function {:testEntry} ObviouslyUnreachableMatchExpressionCaseFunction(t: T): (r:
   ensures r > 1 // alt: r > 0
 {
   match t {
-    case A => </span><span class="nc" id="400:15">1</span><span class="na" id="400:16"> // unreachable
+    case A => </span><span class="pc" id="400:15">1</span><span class="na" id="400:16"> // unreachable
     case B => </span><span class="fc" id="401:15">2
 </span><span class="na" id="402:1">  }
 }
