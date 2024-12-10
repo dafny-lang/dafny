@@ -302,6 +302,9 @@ namespace RAST {
     public static RAST._IType Hash { get {
       return (((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("hash"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Hash"))).AsType();
     } }
+    public static RAST._IType PartialEq { get {
+      return (((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("cmp"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("PartialEq"))).AsType();
+    } }
     public static RAST._IType DafnyInt { get {
       return ((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyInt"))).AsType();
     } }
@@ -6269,6 +6272,8 @@ namespace RAST {
     _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> RightParentheses(RAST._IExpr right);
     Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> RightMostIdentifier();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
+    RAST._IExpr And(RAST._IExpr rhs2);
+    RAST._IExpr Equals(RAST._IExpr rhs2);
     RAST._IExpr Then(RAST._IExpr rhs2);
     RAST._IExpr Sel(Dafny.ISequence<Dafny.Rune> name);
     RAST._IExpr FSel(Dafny.ISequence<Dafny.Rune> name);
@@ -7654,6 +7659,16 @@ namespace RAST {
         RAST._IExpr _128_r = _source0;
         return RAST.__default.AddIndent((_128_r).dtor_content, ind);
       }
+    }
+    public RAST._IExpr And(RAST._IExpr rhs2) {
+      if (object.Equals(this, RAST.Expr.create_LiteralBool(true))) {
+        return rhs2;
+      } else {
+        return RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&&"), this, rhs2, DAST.Format.BinaryOpFormat.create_NoFormat());
+      }
+    }
+    public RAST._IExpr Equals(RAST._IExpr rhs2) {
+      return RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="), this, rhs2, DAST.Format.BinaryOpFormat.create_NoFormat());
     }
     public RAST._IExpr Then(RAST._IExpr rhs2) {
       if ((this).is_StmtExpr) {

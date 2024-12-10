@@ -2890,26 +2890,8 @@ namespace Microsoft.Dafny {
         }
         foreach (var ctor in dt.Ctors) {
           foreach (var arg in ctor.Formals) {
-            var typeArg = arg.Type.AsTypeParameter;
-            if (typeArg != null) {
-              typeArg.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
-              thingsChanged = true;
-            } else {
-              var otherDt = arg.Type.AsIndDatatype;
-              if (otherDt != null && otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
-                var otherUdt = (UserDefinedType)arg.Type.NormalizeExpand();
-                var i = 0;
-                foreach (var otherTp in otherDt.TypeArgs) {
-                  if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
-                    var tp = otherUdt.TypeArgs[i].AsTypeParameter;
-                    if (tp != null) {
-                      tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
-                      thingsChanged = true;
-                    }
-                  }
-                }
-              }
-            }
+            var type = arg.Type;
+            DetermineEqualitySupportType(type, ref thingsChanged);
           }
         }
       }
@@ -2946,6 +2928,32 @@ namespace Microsoft.Dafny {
       // where equality support should be checked by looking at the type arguments.
       foreach (var dt in scc) {
         dt.EqualitySupport = IndDatatypeDecl.ES.ConsultTypeArguments;
+      }
+    }
+
+    private static void DetermineEqualitySupportType(Type type, ref bool thingsChanged)
+    {
+      if (type.AsTypeParameter is {} typeArg) {
+        typeArg.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+        thingsChanged = true;
+      } else if (type.AsMapType is {} typeMap) {
+        DetermineEqualitySupportType(typeMap.Range, ref thingsChanged);
+      } else if (type.AsIndDatatype is {} otherDt) {
+        if (otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
+          var otherUdt = (UserDefinedType)type.NormalizeExpand();
+          var i = 0;
+          foreach (var otherTp in otherDt.TypeArgs) {
+            if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+              var tp = otherUdt.TypeArgs[i].AsTypeParameter;
+              if (tp != null) {
+                tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+                thingsChanged = true;
+              }
+            }
+
+            i++;
+          }
+        }
       }
     }
 

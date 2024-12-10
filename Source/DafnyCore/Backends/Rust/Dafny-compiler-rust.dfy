@@ -969,12 +969,23 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    predicate TypeIsEq(t: Type, typeParametersSupportingEquality: set<Ident>) // TODO: Take into account enclosing type parameters
+    // Figure out if the type is always extending Eq
+    predicate TypeIsEq(t: Type, typeParametersSupportingEquality: set<Ident>)
       decreases t
     {
       match t
       case UserDefined(ResolvedType(_, _, SynonymType(tpe), _, _, _)) => TypeIsEq(tpe, typeParametersSupportingEquality)
-      case UserDefined(_) => true // ResolvedTypes are assumed to support equality
+      case UserDefined(ResolvedType(_, _, Class(), _, _, _)) => true
+      case UserDefined(ResolvedType(_, _, Trait(GeneralTrait), _, _, _)) => false
+      case UserDefined(ResolvedType(_, _, Trait(ObjectTrait), _, _, _)) => true
+      case UserDefined(ResolvedType(_, _, Newtype(tpe, _, _), _, _, _)) => TypeIsEq(tpe, typeParametersSupportingEquality)
+      case UserDefined(ResolvedType(_, typeParams, Datatype(equalitySupport, tps), _, _, _)) =>
+        !equalitySupport.Never? && 
+        (equalitySupport.Always? ||
+         (&& equalitySupport.ConsultTypeArguments?
+          && |tps| == |typeParams|
+          && forall i | 0 <= i < |tps| ::
+               (tps[i].necessaryForEqualitySupportOfSurroundingInductiveDatatype ==> TypeIsEq(typeParams[i], typeParametersSupportingEquality))))
       case Tuple(ts) => forall t <- ts :: TypeIsEq(t, typeParametersSupportingEquality)
       case Array(t, _) => true // Reference equality
       case Seq(t) => TypeIsEq(t, typeParametersSupportingEquality)
@@ -988,6 +999,27 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       case Passthrough(_) => true // should be Rust primitive types
       case TypeArg(i) => i in typeParametersSupportingEquality // i(==) is asserted at the point of use by the verifier
       case Object() => true
+    }
+
+    function Combine(s: seq<Option<set<Ident>>>): Option<set<Ident>> {
+      if |s| == 0 then Some({}) else
+      var idents :- s[|s|-1];
+      var remaining_idents :- Combine(s[0..|s|-1]);
+      Some(idents + remaining_idents)
+    } by method {
+      if |s| == 0 {
+        return Some({});
+      }
+      var result := {};
+      for i := 0 to |s|
+        invariant Some(result) == Combine(s[0..i]) 
+      {
+        if s[i].None? {
+          return None;
+        }
+        result := result + s[i].value;
+      }
+      return Some(result);
     }
 
     predicate DatatypeIsEq(c: Datatype, typeParametersSupportingEquality: set<Ident>) {
@@ -1016,7 +1048,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var typeParamsSeq, rTypeParams, rTypeParamsDecls := GenTypeParameters(c.typeParams);
       var datatypeName, extern := GetName(c.attributes, c.name, "datatypes");
       var ctors: seq<R.EnumCase> := [];
-      var variances := Std.Collections.Seq.Map((typeParamDecl: TypeArgDecl) => typeParamDecl.variance, c.typeParams);
+      var typeParamInfos := Std.Collections.Seq.Map((typeParamDecl: TypeArgDecl) => typeParamDecl.info, c.typeParams);
       var singletonConstructors := [];
       var usedTypeParams: set<string> := {};
       for i := 0 to |c.ctors| {
@@ -1071,7 +1103,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             ResolvedType(
               selfPath,
               typeParamsSeq,
-              ResolvedTypeBase.Datatype(variances),
+              ResolvedTypeBase.Datatype(c.equalitySupport, typeParamInfos),
               c.attributes, [], [])),
           typeParamsSeq);
       var implBody: seq<R.ImplMember> := implBodyRaw;
@@ -1172,7 +1204,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var rTypeArg := GenType(typeArg, GenTypeContext.default());
           types := types + [R.TypeApp(R.std.MSel("marker").MSel("PhantomData").AsType(), [rTypeArg])];
           // Coercion arguments
-          if typeI < |variances| && variances[typeI].Nonvariant? {
+          if typeI < |typeParamInfos| && typeParamInfos[typeI].variance.Nonvariant? {
             coerceTypes := coerceTypes + [rTypeArg];
             continue; // We ignore nonvariant arguments
           }
@@ -1206,7 +1238,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
       var typeParametersSupportingEquality: set<Ident> :=
         set tp <- c.typeParams | SupportsEquality in tp.bounds :: tp.name;
-      var cIsEq := DatatypeIsEq(c, typeParametersSupportingEquality);
+      var cIsAlwaysEq := DatatypeIsEq(c, typeParametersSupportingEquality);
       var datatypeType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
 
       // Derive PartialEq when c supports equality / derive Clone in all cases
@@ -1214,10 +1246,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         [R.EnumDecl(
            R.Enum(
              c.docString,
-             if cIsEq then
-               [R.RawAttribute("#[derive(PartialEq, Clone)]")]
-             else
-               [R.RawAttribute("#[derive(Clone)]")],
+             [R.RawAttribute("#[derive(Clone)]")],
              datatypeName,
              rTypeParamsDecls,
              ctors
@@ -1271,6 +1300,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var printImplBodyCases: seq<R.MatchCase> := [];
       var hashImplBodyCases: seq<R.MatchCase> := [];
       var coerceImplBodyCases: seq<R.MatchCase> := [];
+      var partialEqImplBodyCases: seq<R.MatchCase> := [];
 
       for i := 0 to |c.ctors| {
         var ctor := c.ctors[i];
@@ -1283,10 +1313,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         var printRhs := writeStr(ctorName + (if ctor.hasAnyArgs then "(" else ""));
         var hashRhs := InitEmptyExpr();
+        var partialEqRhs := R.LiteralBool(true);
         var coerceRhsArgs := [];
 
         var isNumeric := false;
         var ctorMatchInner := "";
+        var ctorMatchInner2 := "";
         for j := 0 to |ctor.args| {
           var dtor := ctor.args[j];
           var patternName := escapeVar(dtor.formal.name);
@@ -1304,6 +1336,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               hashRhs.Then(hash_function.Apply([R.Identifier(patternName), R.Identifier("_state")]));
 
           ctorMatchInner := ctorMatchInner + patternName + ", ";
+          ctorMatchInner2 := ctorMatchInner2 + patternName + ": " + "_2_" + patternName + ", ";
+          partialEqRhs :=
+            if formalType.Arrow? then
+              partialEqRhs.And(R.LiteralBool(false)) // No equality support for arrow
+            else
+              partialEqRhs.And(R.Identifier(patternName).Equals(R.Identifier("_2_"+patternName)));
 
           if (j > 0) {
             printRhs := printRhs.Then(writeStr(", "));
@@ -1313,13 +1351,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             if formalType.Arrow? then
               writeStr("<function>")
             else
-              R.UnaryOp("?",
-                        R.dafny_runtime.MSel("DafnyPrint").AsExpr().FSel("fmt_print").Apply(
-                          [
-                            R.Identifier(patternName),
-                            R.Identifier("_formatter"),
-                            R.LiteralBool(false)
-                          ]), Format.UnaryOpFormat.NoFormat)
+              R.UnaryOp(
+                "?",
+                R.dafny_runtime.MSel("DafnyPrint").AsExpr().FSel("fmt_print").Apply(
+                  [
+                    R.Identifier(patternName),
+                    R.Identifier("_formatter"),
+                    R.LiteralBool(false)
+                  ]), Format.UnaryOpFormat.NoFormat)
           );
 
           var coerceRhsArg: R.Expr;
@@ -1344,11 +1383,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         var coerceRhs := R.StructBuild(R.Identifier(datatypeName).FSel(escapeName(ctor.name)),
                                        coerceRhsArgs);
-
+        var pattern, pattern2;
         if isNumeric {
-          ctorMatch := ctorMatch + "(" + ctorMatchInner + ")";
+          pattern := ctorMatch + "(" + ctorMatchInner + ")";
+          pattern2 := ctorMatch + "(" + ctorMatchInner2 + ")";
         } else {
-          ctorMatch := ctorMatch + "{" + ctorMatchInner + "}";
+          pattern := ctorMatch + "{" + ctorMatchInner + "}";
+          pattern2 := ctorMatch + "{" + ctorMatchInner2 + "}";
         }
 
         if (ctor.hasAnyArgs) {
@@ -1358,18 +1399,27 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         printRhs := printRhs.Then(R.Identifier("Ok").Apply([R.Tuple([])]));
 
         printImplBodyCases := printImplBodyCases + [
-          R.MatchCase(R.RawPattern(datatypeName + "::" + ctorMatch),
+          R.MatchCase(R.RawPattern(datatypeName + "::" + pattern),
                       R.Block(printRhs))
         ];
         hashImplBodyCases := hashImplBodyCases + [
-          R.MatchCase(R.RawPattern(datatypeName + "::" + ctorMatch),
+          R.MatchCase(R.RawPattern(datatypeName + "::" + pattern),
                       R.Block(hashRhs))
+        ];
+        partialEqImplBodyCases := partialEqImplBodyCases + [
+          R.MatchCase(R.RawPattern("(" + datatypeName + "::" + pattern + ", " + datatypeName + "::" + pattern2 + ")"),
+                      R.Block(partialEqRhs))
         ];
         coerceImplBodyCases := coerceImplBodyCases + [
           R.MatchCase(R.RawPattern(datatypeName + "::" + ctorMatch),
                       R.Block(coerceRhs))
         ];
       }
+      partialEqImplBodyCases := partialEqImplBodyCases + [
+          R.MatchCase(
+            R.RawPattern("_"),
+            R.Block(R.LiteralBool(false)))
+        ];
 
       if |c.typeParams| > 0 && |unusedTypeParams| > 0 {
         var extraCases := [
@@ -1384,18 +1434,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var defaultConstrainedTypeParams := R.TypeParamDecl.AddConstraintsMultiple(
         rTypeParamsDecls, [R.DefaultTrait]
       );
-      var rTypeParamsDeclsWithEq := R.TypeParamDecl.AddConstraintsMultiple(
-        rTypeParamsDecls, [R.Eq]
-      );
-      var rTypeParamsDeclsWithHash := R.TypeParamDecl.AddConstraintsMultiple(
-        rTypeParamsDecls, [R.Hash]
-      );
       var printImplBody := R.Match(
         R.self,
         printImplBodyCases);
       var hashImplBody := R.Match(
         R.self,
         hashImplBodyCases
+      );
+      var eqImplBody := R.Match(
+        R.Tuple([R.self, R.Identifier("other")]),
+        partialEqImplBodyCases
       );
 
       // Implementation of Debug and Print traits
@@ -1422,25 +1470,25 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           SingletonsImpl(rTypeParamsDecls, datatypeType, instantiationType, singletonConstructors)];
       }
 
-      // Implementation of Eq when c supports equality
-      if cIsEq {
+      if c.equalitySupport.Always? || c.equalitySupport.ConsultTypeArguments? {
+        var rTypeParamsDeclsWithEq := rTypeParamsDecls;
+        var rTypeParamsDeclsWithHash := rTypeParamsDecls;
+        if c.equalitySupport.ConsultTypeArguments? {
+          for i := 0 to |rTypeParamsDecls| {
+            if c.typeParams[i].info.necessaryForEqualitySupportOfSurroundingInductiveDatatype {
+              rTypeParamsDeclsWithEq := rTypeParamsDeclsWithEq[i := rTypeParamsDeclsWithEq[i].AddConstraints([R.Eq, R.Hash])];
+              rTypeParamsDeclsWithHash := rTypeParamsDeclsWithHash[i := rTypeParamsDeclsWithHash[i].AddConstraints([R.Hash])];
+            }
+          }
+        }
+        s := s + EqImpl(rTypeParamsDeclsWithEq, datatypeType, rTypeParams, eqImplBody);
+        // Implementation of Hash trait
         s := s + [
-          R.ImplDecl(
-            R.ImplFor(
-              rTypeParamsDeclsWithEq,
-              R.Eq,
-              R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
-              []
-            )
-          )];
+          HashImpl(
+            rTypeParamsDeclsWithHash,
+            datatypeType,
+            hashImplBody)];
       }
-
-      // Implementation of Hash trait
-      s := s + [
-        HashImpl(
-          rTypeParamsDeclsWithHash,
-          R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
-          hashImplBody)];
 
       if |c.ctors| > 0 {
         var structName := R.Identifier(datatypeName).FSel(escapeName(c.ctors[0].name));
@@ -1453,10 +1501,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.std.MSel("default").MSel("Default").AsExpr().FSel("default").Apply0())
           ];
         }
-        var fullType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
 
         // Implementation of Default trait when c supports equality
-        if false && cIsEq { // We don't emit default because datatype defaults are broken.
+        if false && cIsAlwaysEq { // We don't emit default because datatype defaults are broken.
           // - There should be no default when an argument is a lambda
           // - There is no possiblity to define witness for datatypes so that we know if it's (0) or (00)
           // - General traits don't have defaults but can be wrapped in datatypes and datatypes are assumed to have default values always
@@ -1466,7 +1513,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           s := s +
           [ DefaultDatatypeImpl(
               rTypeParamsDecls,
-              fullType,
+              datatypeType,
               structName,
               structAssignments)];
         }
@@ -1475,7 +1522,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         s := s + [
           AsRefDatatypeImpl(
             rTypeParamsDecls,
-            fullType
+            datatypeType
           )];
       }
       var superTraitImplementations := GenTraitImplementations(
@@ -1485,7 +1532,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         c.superTraitTypes,
         traitBodies,
         extern,
-        cIsEq,
+        cIsAlwaysEq,
         "datatype");
       s := s + superTraitImplementations;
     }
@@ -1570,7 +1617,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             case Class() => {
               s := Object(s);
             }
-            case Datatype(_) => {
+            case Datatype(_, _) => {
               if IsRcWrapped(resolved.attributes) {
                 s := R.Rc(s);
               }
@@ -3039,25 +3086,27 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       else if SameTypesButDifferentTypeParameters(fromType, fromTpe, toType, toTpe) then
         var indices :=
           if fromType.UserDefined? && fromType.resolved.kind.Datatype? then
-            Std.Collections.Seq.Filter(i =>
-                                         if 0 <= i < |fromTpe.arguments| then
-                                           (0 <= i < |fromType.resolved.kind.variances| ==>
-                                              !fromType.resolved.kind.variances[i].Nonvariant?)
-                                         else
-                                           false
-                                      , seq(|fromTpe.arguments|, i => i))
+            Std.Collections.Seq.Filter(
+              i =>
+                  if 0 <= i < |fromTpe.arguments| then
+                    (0 <= i < |fromType.resolved.kind.info| ==>
+                      !fromType.resolved.kind.info[i].variance.Nonvariant?)
+                  else
+                    false
+              , seq(|fromTpe.arguments|, i => i))
           else
             seq(|fromTpe.arguments|, i => i);
-        var lambdas :- SeqResultToResultSeq(
-                         seq(|indices|, j requires 0 <= j < |indices| =>
-                           var i := indices[j];
-                           UpcastConversionLambda(
-                             fromType.resolved.typeArgs[i],
-                             fromTpe.arguments[i],
-                             toType.resolved.typeArgs[i],
-                             toTpe.arguments[i],
-                             typeParams
-                           )));
+        var lambdas :-
+          SeqResultToResultSeq(
+            seq(|indices|, j requires 0 <= j < |indices| =>
+              var i := indices[j];
+              UpcastConversionLambda(
+                fromType.resolved.typeArgs[i],
+                fromTpe.arguments[i],
+                toType.resolved.typeArgs[i],
+                toTpe.arguments[i],
+                typeParams
+              )));
         Success(R.ExprFromType(fromTpe.baseName).ApplyType(
                   seq(|fromTpe.arguments|, i requires 0 <= i < |fromTpe.arguments| =>
                     fromTpe.arguments[i])

@@ -171,7 +171,7 @@ module {:extern "DAST"} DAST {
           match typeKind {
             case SynonymType(typ) =>
               typ.IsDatatype()
-            case Datatype(_) => true
+            case Datatype(_, _) => true
             case _ => false
           }
         case _ => false
@@ -210,7 +210,10 @@ module {:extern "DAST"} DAST {
     | Covariant
     | Contravariant
 
-  datatype TypeArgDecl = TypeArgDecl(name: Ident, bounds: seq<TypeArgBound>, variance: Variance)
+  datatype TypeArgDecl = TypeArgDecl(
+    name: Ident,
+    bounds: seq<TypeArgBound>,
+    info: TypeParameterInfo)
 
   datatype TypeArgBound =
     | SupportsEquality
@@ -252,9 +255,14 @@ module {:extern "DAST"} DAST {
     | ObjectTrait()     // Traits that extend objects with --type-system-refresh, all traits otherwise
     | GeneralTrait()  // Traits that don't necessarily extend objects with --type-system-refresh
 
+  datatype TypeParameterInfo =
+    TypeParameterInfo(variance: Variance, necessaryForEqualitySupportOfSurroundingInductiveDatatype: bool)
+  
+  datatype EqualitySupport = Never | Always | ConsultTypeArguments
+
   datatype ResolvedTypeBase =
     | Class()
-    | Datatype(variances: seq<Variance>)
+    | Datatype(equalitySupport: EqualitySupport, info: seq<TypeParameterInfo>)
     | Trait(traitType: TraitType)
     | SynonymType(baseType: Type)
     | Newtype(baseType: Type, range: NewtypeRange, erase: bool)
@@ -314,6 +322,7 @@ module {:extern "DAST"} DAST {
     ctors: seq<DatatypeCtor>,
     body: seq<ClassItem>,
     isCo: bool,
+    equalitySupport: EqualitySupport,
     attributes: seq<Attribute>,
     superTraitTypes: seq<Type>,
     superTraitNegativeTypes: seq<Type> // Traits that one or more superTraits know they can downcast to, but the datatype does not.

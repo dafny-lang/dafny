@@ -1156,6 +1156,7 @@ module RAST
   const DafnyTypeEq := dafny_runtime.MSel("DafnyTypeEq").AsType()
   const Eq := std.MSel("cmp").MSel("Eq").AsType()
   const Hash := std.MSel("hash").MSel("Hash").AsType()
+  const PartialEq := std.MSel("cmp").MSel("PartialEq").AsType()
   const DafnyInt := dafny_runtime.MSel("DafnyInt").AsType()
 
   function SystemTuple(elements: seq<Expr>): Expr {
@@ -1871,6 +1872,13 @@ module RAST
         case r =>
           assert r.RawExpr?; AddIndent(r.content, ind)
       }
+    }
+    function And(rhs2: Expr): Expr {
+      if this == LiteralBool(true) then rhs2 else
+      BinaryOp("&&", this, rhs2, Format.BinaryOpFormat.NoFormat)
+    }
+    function Equals(rhs2: Expr): Expr {
+      BinaryOp("==", this, rhs2, Format.BinaryOpFormat.NoFormat)
     }
     function Then(rhs2: Expr): Expr {
       if this.StmtExpr? then

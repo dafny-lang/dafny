@@ -346,8 +346,8 @@ namespace Microsoft.Dafny.Compilers {
 
     public DatatypeBuilder Datatype(string name, string enclosingModule, List<TypeArgDecl> typeParams,
       List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, string docString,
-      List<DAST.Type> superTraitTypes, List<DAST.Type> superNegativeTraitTypes) {
-      return new DatatypeBuilder(this, name, docString, enclosingModule, typeParams, ctors, isCo, attributes, superTraitTypes, superNegativeTraitTypes);
+      List<DAST.Type> superTraitTypes, List<DAST.Type> superNegativeTraitTypes, _IEqualitySupport equalitySupport) {
+      return new DatatypeBuilder(this, name, docString, enclosingModule, typeParams, ctors, isCo, attributes, superTraitTypes, superNegativeTraitTypes, equalitySupport);
     }
   }
 
@@ -363,8 +363,9 @@ namespace Microsoft.Dafny.Compilers {
     readonly string docString;
     readonly List<DAST.Type> superTraitTypes;
     readonly List<DAST.Type> superNegativeTraitTypes;
+    private _IEqualitySupport equalitySupport;
 
-    public DatatypeBuilder(DatatypeContainer parent, string name, string docString, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, List<DAST.Type> superTraitTypes, List<DAST.Type> superNegativeTraitTypes) {
+    public DatatypeBuilder(DatatypeContainer parent, string name, string docString, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, List<DAST.Type> superTraitTypes, List<DAST.Type> superNegativeTraitTypes, _IEqualitySupport equalitySupport) {
       this.parent = parent;
       this.name = name;
       this.docString = docString;
@@ -375,6 +376,7 @@ namespace Microsoft.Dafny.Compilers {
       this.attributes = attributes;
       this.superTraitTypes = superTraitTypes;
       this.superNegativeTraitTypes = superNegativeTraitTypes;
+      this.equalitySupport = equalitySupport;
     }
 
     public void AddMethod(DAST.Method item) {
@@ -393,7 +395,7 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.TypeArgDecl>.FromArray(typeParams.ToArray()),
         Sequence<DAST.DatatypeCtor>.FromArray(ctors.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),
-        this.isCo, attributes,
+        this.isCo, equalitySupport, attributes,
         Sequence<DAST.Type>.FromArray(superTraitTypes.ToArray()),
           Sequence<DAST.Type>.FromArray(superNegativeTraitTypes.ToArray())
       ));

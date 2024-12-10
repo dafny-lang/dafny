@@ -214,6 +214,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private TypeParameterInfo GenTypeParameterInfo(TypeParameter tp) {
+      return (TypeParameterInfo)TypeParameterInfo.create_TypeParameterInfo(GenTypeVariance(tp),
+        tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype);
+    }
+
     private Variance GenTypeVariance(TypeParameter tp) {
       if (tp.Variance is TypeParameter.TPVariance.Co) {
         return (Variance)Variance.create_Covariant();
@@ -251,8 +256,11 @@ namespace Microsoft.Dafny.Compilers {
 
       name ??= tp.GetCompileName(Options);
 
+      var info = TypeParameterInfo.create_TypeParameterInfo(variance,
+        tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype);
+
       return (DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(
-        Sequence<Rune>.UnicodeFromString(name), bounds, variance);
+        Sequence<Rune>.UnicodeFromString(name), bounds, info);
     }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters,
@@ -413,6 +421,8 @@ namespace Microsoft.Dafny.Compilers {
 
         var superNegativeTraitTypes = GetNegativeTraitTypes(superClasses);
 
+        var equalitySupport = GenEqualitySupport(dt);
+
         var datatypeBuilder = builder.Datatype(
           dt.GetCompileName(Options),
           dt.EnclosingModuleDefinition.GetCompileName(Options),
@@ -422,8 +432,7 @@ namespace Microsoft.Dafny.Compilers {
           ParseAttributes(dt.Attributes),
           GetDocString(dt),
           superTraitTypes,
-          superNegativeTraitTypes
-        );
+          superNegativeTraitTypes, equalitySupport);
 
         return new ClassWriter(this, typeParams.Count > 0, datatypeBuilder);
       } else {
@@ -774,11 +783,6 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IOrigin tok,
           bool isStatic, bool isConst, bool createBody, MemberDecl member, bool forBodyInheritance) {
-        if (isStatic && this.hasTypeArgs) {
-          compiler.AddUnsupported(tok, "<i>Static fields with type arguments</i>");
-          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
-        }
-
         var overridingTrait = compiler.GetTopMostOverriddenMemberDeclIfDifferent(member)?.EnclosingClass;
 
         var attributes = compiler.ParseAttributes(enclosingDecl.Attributes);
@@ -1954,8 +1958,10 @@ namespace Microsoft.Dafny.Compilers {
           : TraitType.create_GeneralTrait();
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait(traitType);
       } else if (topLevel is DatatypeDecl dd) {
-        var variances = Sequence<Variance>.FromArray(dd.TypeArgs.Select(GenTypeVariance).ToArray());
-        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Datatype(variances);
+        var infos = Sequence<TypeParameterInfo>.FromArray(dd.TypeArgs.Select(GenTypeParameterInfo).ToArray());
+        var equalitySupport = GenEqualitySupport(dd);
+        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Datatype(
+          equalitySupport, infos);
       } else if (topLevel is ClassDecl) {
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Class();
       } else {
@@ -1968,6 +1974,17 @@ namespace Microsoft.Dafny.Compilers {
       DAST.Type baseType = (DAST.Type)DAST.Type.create_UserDefined(resolvedType);
 
       return baseType;
+    }
+
+    private static _IEqualitySupport GenEqualitySupport(DatatypeDecl dd)
+    {
+      return dd is IndDatatypeDecl indDecl ?
+        indDecl.EqualitySupport == IndDatatypeDecl.ES.Never ?
+          EqualitySupport.create_Never() :
+          indDecl.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments ?
+            EqualitySupport.create_ConsultTypeArguments() :
+            EqualitySupport.create_Never() :
+        EqualitySupport.create_Never();
     }
 
     private static Type EraseNewtypeLayers(TopLevelDecl topLevel) {

@@ -304,7 +304,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
 
   predicate IsRcWrappedDatatypeRec(dafnyType: Type) {
     match dafnyType {
-      case UserDefined(ResolvedType(_, _, Datatype(_), attributes, _, _)) => 
+      case UserDefined(ResolvedType(_, _, Datatype(_, _), attributes, _, _)) => 
         IsRcWrapped(attributes)
       case UserDefined(ResolvedType(_, _, SynonymType(tpe), attributes, _, _)) => 
         IsRcWrappedDatatypeRec(tpe)
@@ -616,6 +616,33 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
              Some(R.RawType("std::fmt::Result")),
              Some(printImplBody)))]
       ))
+  }
+
+  function EqImpl(rTypeParamsDeclsWithEq: seq<R.TypeParamDecl>, datatypeType: R.Type, rTypeParams: seq<R.Type>, eqImplBody: R.Expr): seq<R.ModDecl> {
+    [ R.ImplDecl(
+          R.ImplFor(
+            rTypeParamsDeclsWithEq,
+            R.PartialEq,
+            datatypeType,
+            [ R.FnDecl(
+                R.NoDoc, R.NoAttr, R.PRIV,
+                R.Fn(
+                  "eq",
+                  [],
+                  [R.Formal.selfBorrowed, R.Formal("other", R.SelfBorrowed)],
+                  Some(R.Bool),
+                  Some(eqImplBody)
+                )
+              )])),
+      R.ImplDecl(
+        R.ImplFor(
+          rTypeParamsDeclsWithEq,
+          R.Eq,
+          datatypeType,
+          []
+        )
+      )
+    ]
   }
 
   function CoerceImpl(
