@@ -1,6 +1,6 @@
 // RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 
-trait J
+trait J extends object
 {
   var x: int
 }

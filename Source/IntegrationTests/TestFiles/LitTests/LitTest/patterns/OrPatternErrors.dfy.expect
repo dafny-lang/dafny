@@ -1,6 +1,7 @@
-OrPatternErrors.dfy(9,13): Error: Disjunctive patterns may not bind variables
-OrPatternErrors.dfy(10,13): Error: Disjunctive patterns may not bind variables
-OrPatternErrors.dfy(16,13): Error: Disjunctive patterns are not allowed inside other patterns
-OrPatternErrors.dfy(17,13): Error: Disjunctive patterns are not allowed inside other patterns
-OrPatternErrors.dfy(18,13): Error: Disjunctive patterns are not allowed inside other patterns
-5 resolution/type errors detected in OrPatternErrors.dfy
+OrPatternErrors.dfy(9,11): Error: Disjunctive patterns may not bind variables
+OrPatternErrors.dfy(10,11): Error: Disjunctive patterns may not bind variables
+OrPatternErrors.dfy(10,11): Error: Duplicate parameter name: n
+OrPatternErrors.dfy(16,11): Error: Disjunctive patterns are not allowed inside other patterns
+OrPatternErrors.dfy(17,11): Error: Disjunctive patterns are not allowed inside other patterns
+OrPatternErrors.dfy(18,11): Error: Disjunctive patterns are not allowed inside other patterns
+6 resolution/type errors detected in OrPatternErrors.dfy

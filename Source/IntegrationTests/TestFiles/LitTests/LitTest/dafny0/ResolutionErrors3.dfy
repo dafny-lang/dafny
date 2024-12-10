@@ -204,8 +204,8 @@ module NonTypeVariableNames {
 
   method M(m: map<real,string>)
   {
-    assert X == X;  // error (x2): type name used as variable
-    assert Y == Y;  // error (x2): module name used as variable
+    assert X == X;  // error: type name used as variable
+    assert Y == Y;  // error: module name used as variable
     assert X in m;  // error (x2): type name used as variable
     assert Y in m;  // error (x2): module name used as variable
   }

@@ -1,6 +1,6 @@
 git-issue-1016.dfy(66,13): Error: arguments must have comparable types (got Option<State> and Option<Process>)
 git-issue-1016.dfy(82,13): Error: arguments must have comparable types (got Option<State> and Option<Process>)
 git-issue-1016.dfy(101,13): Error: arguments must have comparable types (got Option<State> and Option<Process>)
-git-issue-1016.dfy(117,13): Error: arguments must have comparable types (got Option<State> and Option<int>)
-git-issue-1016.dfy(129,13): Error: arguments must have comparable types (got Option<State> and Option<real>)
+git-issue-1016.dfy(115,9): Error: integer literal used as if it had type State
+git-issue-1016.dfy(127,9): Error: real literal used as if it had type State
 5 resolution/type errors detected in git-issue-1016.dfy

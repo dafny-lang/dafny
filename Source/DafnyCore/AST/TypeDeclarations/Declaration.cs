@@ -15,6 +15,10 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   public IOrigin BodyStartTok = Token.NoToken;
   public Name NameNode;
 
+  public string GetNameRelativeToModule() {
+    return this is ICallable iCallable ? iCallable.NameRelativeToModule : ToString();
+  }
+
   public override IOrigin Tok => NameNode.StartToken;
   public virtual IOrigin NavigationToken => NameNode.StartToken;
 

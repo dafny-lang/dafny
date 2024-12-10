@@ -4,5 +4,5 @@ TraitBasix.dfy(80,8): Error: class 'I0Child2' does not implement trait function 
 TraitBasix.dfy(91,24): Error: Type or type parameter is not declared in this scope: IX (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
 TraitBasix.dfy(101,16): Error: a trait is not allowed to declare a constructor
 TraitBasix.dfy(117,14): Error: new can be applied only to class types (got I1)
-TraitBasix.dfy(184,6): Error: RHS (of type B) not assignable to LHS (of type Tr?<int>) (non-variant type parameter 'X' would require int = real)
+TraitBasix.dfy(184,6): Error: RHS (of type B) not assignable to LHS (of type Tr<int>) (non-variant type parameter 'X' would require int = real)
 7 resolution/type errors detected in TraitBasix.dfy

@@ -48,5 +48,16 @@ GeneralNewtypeVerify.dfy(541,15): Related location
 GeneralNewtypeVerify.dfy(555,10): Error: trying witness 0: result of operation might violate newtype constraint for 'A'
 GeneralNewtypeVerify.dfy(560,24): Error: result of operation might violate newtype constraint for 'A'
 GeneralNewtypeVerify.dfy(561,30): Error: result of operation might violate newtype constraint for 'A'
+GeneralNewtypeVerify.dfy(578,32): Error: result of operation might violate newtype constraint for 'MyChar'
+GeneralNewtypeVerify.dfy(580,26): Error: value does not satisfy the subset constraints of 'MyChar'
+GeneralNewtypeVerify.dfy(582,35): Error: result of operation might violate newtype constraint for 'MyChar'
+GeneralNewtypeVerify.dfy(584,29): Error: value does not satisfy the subset constraints of 'MyChar'
+GeneralNewtypeVerify.dfy(590,32): Error: value does not satisfy the subset constraints of 'LowerCase'
+GeneralNewtypeVerify.dfy(596,26): Error: value does not satisfy the subset constraints of 'MyChar'
+GeneralNewtypeVerify.dfy(599,26): Error: result of operation might violate newtype constraint for 'MyString'
+GeneralNewtypeVerify.dfy(609,26): Error: result of operation might violate newtype constraint for 'MyString'
+GeneralNewtypeVerify.dfy(611,26): Error: result of operation might violate newtype constraint for 'MyString'
+GeneralNewtypeVerify.dfy(623,28): Error: result of operation might violate newtype constraint for 'LowerCase'
+GeneralNewtypeVerify.dfy(625,25): Error: result of operation might violate newtype constraint for 'MyChar'
 
-Dafny program verifier finished with 40 verified, 48 errors
+Dafny program verifier finished with 43 verified, 59 errors

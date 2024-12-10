@@ -235,7 +235,7 @@ method PrintMap(prefix: string, M: map<Number, Number>) {
     print sep;
     // pick smallest Number in s
     ghost var min := ThereIsASmallest(s);
-    var x :| x in s && forall y :: y in s ==> x.value <= y.value;
+    var x: Number :| x in s && forall y: Number :: y in s ==> x.value <= y.value;
     x.Print();
     print " := ";
     m[x].Print();

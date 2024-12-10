@@ -459,3 +459,39 @@ module Exhaustiveness {
     assert false;  // fine, since we never get here (which is known by the exhaustiveness property of datatypes)
   }
 }
+
+
+module TypeInferenceTests {
+  datatype Result<+T> = Success(value: T)
+
+  type MyReal = r: real | r != 0.7
+
+  method M(r: MyReal) {
+    var a := Success(r); // Result<MyReal>
+    var b := Result<MyReal>.Success(r); // Result<MyReal>
+    var c := Result<real>.Success(r); // Result<real>
+    var d := Result.Success(r); // Result<MyReal>
+
+    var u: Result; // Result<MyReal>
+    u := Success(r);
+    var v: Result<real>; // Result<real>
+    v := Success(r);
+    var w: Result<MyReal>; // Result<MyReal>
+    w := Success(r);
+
+    for i := 0 to 10 {
+      a, b, c, d, u, v, w := *, *, *, *, *, *, *;
+    }
+    if
+    case true =>
+      assert a.value != 0.7;
+      assert b.value != 0.7;
+      assert d.value != 0.7;
+      assert u.value != 0.7;
+      assert w.value != 0.7;
+    case true =>
+      assert c.value != 0.7; // error: the type of "c" is Result<real>
+    case true =>
+      assert v.value != 0.7; // error: the type of "c" is Result<real>
+  }
+}

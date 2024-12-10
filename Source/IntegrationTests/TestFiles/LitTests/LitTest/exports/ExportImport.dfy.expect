@@ -1,5 +1,5 @@
 ExportImport.dfy(34,17): Error: module BAO does not exist (position 1 in path B.BAO)
 ExportImport.dfy(39,18): Error: module BAO does not exist (position 1 in path B.BAO)
-ExportImport.dfy(48,18): Error: arguments must have comparable types (got DAO.T and bool)
-ExportImport.dfy(51,18): Error: arguments must have comparable types (got DAO.T and B.TT)
+ExportImport.dfy(48,21): Error: boolean literal used as if it had type T
+ExportImport.dfy(51,18): Error: arguments must have comparable types (got T and TT)
 4 resolution/type errors detected in ExportImport.dfy
