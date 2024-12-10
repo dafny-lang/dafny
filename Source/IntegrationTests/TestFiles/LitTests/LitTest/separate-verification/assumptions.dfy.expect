@@ -1,4 +1,4 @@
-TestAuditor.dfy(24,25): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+TestAuditor.dfy(24,10): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 TestAuditor.dfy(38,2): Warning: assume statement has no {:axiom} annotation
 TestAuditor.dfy(45,17): Warning: when a method is imported, meaning it has no body and an {:extern} annotation, Dafny can not guarantee that its implementation satisfies its post-conditions (its ensures clauses and outputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'.
 TestAuditor.dfy(50,17): Warning: when a method is exported, meaning it has a body and an {:extern} annotation, Dafny can not guarantee that it is called with arguments that satisfy its preconditions (its requires clauses and inputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'

@@ -160,8 +160,19 @@ public class ProofDependencyWarnings {
 
       manager.ProofDependenciesById.TryGetValue(partialAssert!.Id, out var assertDepProvenByFact);
 
-      var factAlreadyInByBlock = assertDepProvenByFact != null && (fact == assertDepProvenByFact || assertDepProvenByFact.Range.Intersects(fact.Range));
-      if (factAlreadyInByBlock) {
+
+      var factAlreadyInByBlock1 = assertDepProvenByFact != null && assertDepProvenByFact.Range.Contains(fact.Range);
+      if (factAlreadyInByBlock1) {
+        continue;
+      }
+      
+      var factAlreadyInByBlock2 = assertDepProvenByFact is ProofObligationDependency { ProofObligation: AssertStatementDescription assertStatementDescription } 
+                                  && assertStatementDescription.AssertStatement.Origin.Contains(fact.Range);
+      if (factAlreadyInByBlock2) {
+        continue;
+      }
+
+      if (fact == assertDepProvenByFact) {
         continue;
       }
 
