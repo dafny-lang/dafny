@@ -15,9 +15,9 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
     Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
   }
 
-  public BlockStmt(RangeToken rangeToken, [Captured] List<Statement> body)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public BlockStmt(RangeToken rangeOrigin, [Captured] List<Statement> body)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(body));
     Body = body;
   }
@@ -61,12 +61,12 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
       }
     }
 
-    foreach (var blockStmtBody in Body) {
-      if (blockStmtBody is not BlockStmt && OwnedTokens.Any()) {
-        formatter.SetIndentations(blockStmtBody.StartToken, innerBlockIndent, innerBlockIndent);
+    foreach (var childStatement in Body) {
+      if (childStatement is not BlockStmt or BlockByProofStmt && OwnedTokens.Any()) {
+        formatter.SetIndentations(childStatement.StartToken, innerBlockIndent, innerBlockIndent);
       }
 
-      formatter.Visit(blockStmtBody, indentBefore + formatter.SpaceTab);
+      formatter.Visit(childStatement, indentBefore + formatter.SpaceTab);
     }
 
     return false;

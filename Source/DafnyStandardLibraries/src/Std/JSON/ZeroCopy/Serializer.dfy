@@ -43,13 +43,13 @@ module Std.JSON.ZeroCopy.Serializer {
     return Success(writer.length);
   }
 
-  opaque function Text(js: JSON) : (wr: Writer)
+  function Text(js: JSON) : (wr: Writer)
     ensures wr.Bytes() == Spec.JSON(js)
   {
     JSON(js)
   }
 
-  opaque function JSON(js: JSON, writer: Writer := Writer.Empty) : (wr: Writer)
+  function JSON(js: JSON, writer: Writer := Writer.Empty) : (wr: Writer)
     ensures wr.Bytes() == writer.Bytes() + Spec.JSON(js)
   {
     Seq.LemmaConcatIsAssociative2(writer.Bytes(),js.before.Bytes(), Spec.Value(js.t), js.after.Bytes());
@@ -59,7 +59,8 @@ module Std.JSON.ZeroCopy.Serializer {
     .Append(js.after)
   }
 
-  opaque function {:isolate_assertions} Value(v: Grammar.Value, writer: Writer) : (wr: Writer)
+  @IsolateAssertions
+  function Value(v: Grammar.Value, writer: Writer) : (wr: Writer)
     decreases v, 4
     ensures wr.Bytes() == writer.Bytes() + Spec.Value(v)
   {
@@ -112,17 +113,20 @@ module Std.JSON.ZeroCopy.Serializer {
       wr
   }
 
-  opaque function String(str: jstring, writer: Writer) : (wr: Writer)
+  function String(str: jstring, writer: Writer) : (wr: Writer)
     decreases str, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.String(str)
   {
+    hide *;
+    reveal Writer.Append, Spec.String, Spec.View;
     writer
     .Append(str.lq)
     .Append(str.contents)
     .Append(str.rq)
   }
 
-  lemma {:isolate_assertions} NumberHelper1(num: jnumber, writer: Writer)
+  @IsolateAssertions
+  lemma NumberHelper1(num: jnumber, writer: Writer)
     ensures
       if num.exp.NonEmpty? then (
                                   if num.frac.NonEmpty? then
@@ -151,11 +155,14 @@ module Std.JSON.ZeroCopy.Serializer {
     }
   }
 
-  lemma {:isolate_assertions} NumberHelper2a(num: jnumber, writer: Writer)
+  @IsolateAssertions
+  lemma NumberHelper2a(num: jnumber, writer: Writer)
     ensures Spec.Number(num) == num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)
   {}
 
-  lemma {:isolate_assertions} {:resource_limit 10000000} NumberHelper2(num: jnumber, writer: Writer)
+  @IsolateAssertions
+  @ResourceLimit("10e6")
+  lemma NumberHelper2(num: jnumber, writer: Writer)
     ensures
       if num.exp.NonEmpty? then (
                                   if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() else writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
@@ -217,7 +224,8 @@ module Std.JSON.ZeroCopy.Serializer {
     }
   }
 
-  opaque function {:isolate_assertions} Number(num: jnumber, writer: Writer) : (wr: Writer)
+  @IsolateAssertions
+  function Number(num: jnumber, writer: Writer) : (wr: Writer)
     decreases num, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Number(num)
   {
@@ -266,7 +274,8 @@ module Std.JSON.ZeroCopy.Serializer {
   }
 
   // DISCUSS: Can't be opaque, due to the lambda
-  function {:isolate_assertions} StructuralView(st: Structural<View>, writer: Writer) : (wr: Writer)
+  @IsolateAssertions
+  function StructuralView(st: Structural<View>, writer: Writer) : (wr: Writer)
     ensures wr.Bytes() == writer.Bytes() + Spec.Structural(st, Spec.View)
   {
     writer.Append(st.before).Append(st.t).Append(st.after)
@@ -295,7 +304,7 @@ module Std.JSON.ZeroCopy.Serializer {
     }
   }
 
-  opaque function Object(obj: jobject, writer: Writer) : (wr: Writer)
+  function Object(obj: jobject, writer: Writer) : (wr: Writer)
     decreases obj, 3
     ensures wr.Bytes() == writer.Bytes() + Spec.Object(obj)
   {
@@ -304,7 +313,10 @@ module Std.JSON.ZeroCopy.Serializer {
     var wr := Members(obj, wr);
     var wr := StructuralView(obj.r, wr);
     Seq.LemmaConcatIsAssociative2(writer.Bytes(), Spec.Structural<View>(obj.l, Spec.View), Spec.ConcatBytes(obj.data, Spec.Member), Spec.Structural<View>(obj.r, Spec.View));
-    assert wr.Bytes() == writer.Bytes() + Spec.Bracketed(obj, Spec.Member);
+
+    assert wr.Bytes() == writer.Bytes() + Spec.Bracketed(obj, Spec.Member) by {
+      hide *;
+    }
     assert Spec.Bracketed(obj, Spec.Member) == Spec.Object(obj) by { BracketedToObject(obj); }
     wr
   }
@@ -324,7 +336,7 @@ module Std.JSON.ZeroCopy.Serializer {
     }
   }
 
-  opaque function Array(arr: jarray, writer: Writer) : (wr: Writer)
+  function Array(arr: jarray, writer: Writer) : (wr: Writer)
     decreases arr, 3
     ensures wr.Bytes() == writer.Bytes() + Spec.Array(arr)
   {
@@ -333,12 +345,13 @@ module Std.JSON.ZeroCopy.Serializer {
     var wr := Items(arr, wr);
     var wr := StructuralView(arr.r, wr);
     Seq.LemmaConcatIsAssociative2(writer.Bytes(), Spec.Structural<View>(arr.l, Spec.View), Spec.ConcatBytes(arr.data, Spec.Item), Spec.Structural<View>(arr.r, Spec.View));
+
     assert wr.Bytes() == writer.Bytes() + Spec.Bracketed(arr, Spec.Item);
     assert Spec.Bracketed(arr, Spec.Item) == Spec.Array(arr) by { BracketedToArray(arr); }
     wr
   }
 
-  opaque function Members(obj: jobject, writer: Writer) : (wr: Writer)
+  function Members(obj: jobject, writer: Writer) : (wr: Writer)
     decreases obj, 2
     ensures wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(obj.data, Spec.Member)
   {
@@ -348,7 +361,7 @@ module Std.JSON.ZeroCopy.Serializer {
     wr := MembersImpl(obj, writer);
   }
 
-  opaque function Items(arr: jarray, writer: Writer) : (wr: Writer)
+  function Items(arr: jarray, writer: Writer) : (wr: Writer)
     decreases arr, 2
     ensures wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(arr.data, Spec.Item)
   {
@@ -376,8 +389,8 @@ module Std.JSON.ZeroCopy.Serializer {
       SpecProperties.ConcatBytes_Linear(butLast, [last], Spec.Member);
       wr
   } // No by method block here, because the loop invariant in the method version
-    // needs to call MembersSpec and the termination checker gets confused by
-    // that.  Instead, see Members above. // DISCUSS
+  // needs to call MembersSpec and the termination checker gets confused by
+  // that.  Instead, see Members above. // DISCUSS
 
   // DISCUSS: Is there a way to avoid passing the ghost `v` around while
   // maintaining the termination argument?  Maybe the lambda for elements will be enough?
@@ -397,9 +410,10 @@ module Std.JSON.ZeroCopy.Serializer {
   }
 
 
-  ghost function {:isolate_assertions} SequenceSpec<T>(v: Value, items: seq<T>,
-                                                       spec: T -> bytes, impl: (Value, T, Writer) --> Writer,
-                                                       writer: Writer)
+  @IsolateAssertions
+  ghost function SequenceSpec<T>(v: Value, items: seq<T>,
+                                 spec: T -> bytes, impl: (Value, T, Writer) --> Writer,
+                                 writer: Writer)
     : (wr: Writer)
     requires SequenceSpecRequires(v, items, spec, impl, writer)
     decreases v, 1, items
@@ -443,8 +457,8 @@ module Std.JSON.ZeroCopy.Serializer {
       }
       wr
   } // No by method block here, because the loop invariant in the method version
-    // needs to call `SequenceSpec` and the termination checker gets confused by
-    // that.  Instead, see `Sequence`Items above. // DISCUSS
+  // needs to call `SequenceSpec` and the termination checker gets confused by
+  // that.  Instead, see `Sequence`Items above. // DISCUSS
 
 
   ghost function ItemsSpec(arr: jarray, items: seq<jitem>, writer: Writer) : (wr: Writer)
@@ -465,10 +479,11 @@ module Std.JSON.ZeroCopy.Serializer {
       SpecProperties.ConcatBytes_Linear(butLast, [last], Spec.Item);
       wr
   } // No by method block here, because the loop invariant in the method version
-    // needs to call ItemsSpec and the termination checker gets confused by
-    // that.  Instead, see Items above. // DISCUSS
+  // needs to call ItemsSpec and the termination checker gets confused by
+  // that.  Instead, see Items above. // DISCUSS
 
-  method {:resource_limit 10000000} MembersImpl(obj: jobject, writer: Writer) returns (wr: Writer)
+  @IsolateAssertions
+  method MembersImpl(obj: jobject, writer: Writer) returns (wr: Writer)
     decreases obj, 1
     ensures wr == MembersSpec(obj, obj.data, writer)
   {
@@ -485,7 +500,8 @@ module Std.JSON.ZeroCopy.Serializer {
     assert wr == MembersSpec(obj, members, writer);
   }
 
-  method {:isolate_assertions} ItemsImpl(arr: jarray, writer: Writer) returns (wr: Writer)
+  @IsolateAssertions
+  method ItemsImpl(arr: jarray, writer: Writer) returns (wr: Writer)
     decreases arr, 1
     ensures wr == ItemsSpec(arr, arr.data, writer)
   {
@@ -508,7 +524,7 @@ module Std.JSON.ZeroCopy.Serializer {
     ensures xs[..j][..i] == xs[..i]
   {}
 
-  opaque function Member(ghost obj: jobject, m: jmember, writer: Writer) : (wr: Writer)
+  function Member(ghost obj: jobject, m: jmember, writer: Writer) : (wr: Writer)
     requires m < obj
     decreases obj, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Member(m)
@@ -535,7 +551,7 @@ module Std.JSON.ZeroCopy.Serializer {
     wr
   }
 
-  opaque function Item(ghost arr: jarray, m: jitem, writer: Writer) : (wr: Writer)
+  function Item(ghost arr: jarray, m: jitem, writer: Writer) : (wr: Writer)
     requires m < arr
     decreases arr, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Item(m)

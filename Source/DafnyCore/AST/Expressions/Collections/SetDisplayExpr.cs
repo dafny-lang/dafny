@@ -5,7 +5,7 @@ namespace Microsoft.Dafny;
 
 public class SetDisplayExpr : DisplayExpression, ICanFormat, ICloneable<SetDisplayExpr> {
   public bool Finite;
-  public SetDisplayExpr(IToken tok, bool finite, List<Expression> elements)
+  public SetDisplayExpr(IOrigin tok, bool finite, List<Expression> elements)
     : base(tok, elements) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(elements));

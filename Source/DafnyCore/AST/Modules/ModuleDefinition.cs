@@ -12,7 +12,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public record PrefixNameModule(DafnyOptions Options, IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
+public record PrefixNameModule(DafnyOptions Options, IReadOnlyList<IOrigin> Parts, LiteralModuleDecl Module);
 
 public enum ModuleKindEnum {
   Concrete,
@@ -40,13 +40,12 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     OptionRegistry.RegisterOption(LegacyModuleNames, OptionScope.Translation);
   }
 
-  public IToken BodyStartTok = Token.NoToken;
-  public IToken TokenWithTrailingDocString = Token.NoToken;
+  public IOrigin BodyStartTok = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
   public Name NameNode; // (Last segment of the) module name
 
   public override bool SingleFileToken => !ResolvedPrefixNamedModules.Any();
-  public override IToken Tok => NameNode.StartToken;
+  public override IOrigin Tok => NameNode.StartToken;
 
   public string Name => NameNode.Value;
   public string FullDafnyName {
@@ -68,8 +67,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
       }
     }
   }
-  public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
-                                          // nested module declaration is outside its enclosing module
+  public readonly List<IOrigin> PrefixIds; // The qualified module name, except the last segment when a
+                                           // nested module declaration is outside its enclosing module
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public Attributes Attributes { get; set; }
   public string WhatKind => "module definition";
@@ -158,7 +157,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
+  public ModuleDefinition(RangeToken tok, Name name, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
     Implements implements, ModuleDefinition parent, Attributes attributes) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -417,7 +416,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     return TopLevelDecls.All(decl => decl.IsEssentiallyEmpty());
   }
 
-  public IToken NavigationToken => tok;
+  public IOrigin NavigationToken => tok;
   public override IEnumerable<INode> Children =>
     Attributes.AsEnumerable().
     Concat<Node>(DefaultClasses).
@@ -577,7 +576,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     return true;
   }
 
-  private static NameSegment TopLevelDeclToNameSegment(TopLevelDecl decl, IToken tok) {
+  private static NameSegment TopLevelDeclToNameSegment(TopLevelDecl decl, IOrigin tok) {
     var typeArgs = new List<Type>();
 
     foreach (var arg in decl.TypeArgs) {
@@ -642,7 +641,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
       var prefixNameModule = prefixNamedModules.First();
       var firstPartToken = prefixNameModule.Parts[0];
-      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), ModuleKindEnum.Concrete,
+      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IOrigin>(), ModuleKindEnum.Concrete,
         false, null, this, null);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 
@@ -764,7 +763,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
         anonymousImportCount++;
       } else if (toplevels.TryGetValue(d.Name, out var existingTopLevel)) {
-        resolver.reporter.Error(MessageSource.Resolver, new NestedToken(d.Tok, existingTopLevel.Tok),
+        resolver.reporter.Error(MessageSource.Resolver, new NestedOrigin(d.Tok, existingTopLevel.Tok),
           "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
@@ -1088,6 +1087,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   });
 
   public SymbolKind? Kind => SymbolKind.Namespace;
+  public LiteralModuleDecl EnclosingLiteralModuleDecl { get; set; }
+
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }

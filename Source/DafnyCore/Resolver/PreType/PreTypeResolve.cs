@@ -43,21 +43,21 @@ namespace Microsoft.Dafny {
       ReportError(expr.tok, msg, args);
     }
 
-    public void ReportError(IToken tok, string msg, params object[] args) {
+    public void ReportError(IOrigin tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
       resolver.Reporter.Error(MessageSource.Resolver, tok, msg, args);
     }
 
-    public void ReportWarning(IToken tok, string msg, params object[] args) {
+    public void ReportWarning(IOrigin tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
       resolver.Reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tok, msg, args);
     }
 
-    protected void ReportInfo(IToken tok, string msg, params object[] args) {
+    protected void ReportInfo(IOrigin tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
@@ -481,7 +481,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(r == Scope<IVariable>.PushResult.Success);
     }
 
-    public Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok, string kind) where Thing : class {
+    public Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IOrigin tok, string kind) where Thing : class {
       Contract.Requires(scope != null);
       Contract.Requires(name != null);
       Contract.Requires(thing != null);
@@ -501,19 +501,19 @@ namespace Microsoft.Dafny {
       return r;
     }
 
-    void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString) {
+    void AddSubtypeConstraint(PreType super, PreType sub, IOrigin tok, string errorFormatString) {
       Constraints.AddSubtypeConstraint(super, sub, tok, errorFormatString);
     }
 
-    void AddConfirmation(PreTypeConstraints.CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction = null) {
+    void AddConfirmation(PreTypeConstraints.CommonConfirmationBag check, PreType preType, IOrigin tok, string errorFormatString, Action onProxyAction = null) {
       Constraints.AddConfirmation(check, preType, tok, errorFormatString, onProxyAction);
     }
 
-    void AddComparableConstraint(PreType a, PreType b, IToken tok, bool allowBaseTypeCast, string errorFormatString) {
+    void AddComparableConstraint(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, string errorFormatString) {
       AddComparableConstraint(a, b, tok, allowBaseTypeCast, () => string.Format(errorFormatString, a, b));
     }
 
-    void AddComparableConstraint(PreType a, PreType b, IToken tok, bool allowBaseTypeCast, Func<string> errorMessage) {
+    void AddComparableConstraint(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, Func<string> errorMessage) {
       // A "comparable types" constraint involves a disjunction. This can get gnarly for inference, so the full disjunction
       // is checked post inference. The constraint can, however, be of use during inference, so we also add an approximate
       // constraint (which is set up NOT to generate any error messages by itself, since otherwise errors would be duplicated).
@@ -614,7 +614,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    bool ApproximateComparableConstraints(PreType a, PreType b, IToken tok, bool allowBaseTypeCast, string errorFormatString, bool reportErrors = true) {
+    bool ApproximateComparableConstraints(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, string errorFormatString, bool reportErrors = true) {
       // See CheckComparableTypes for the meaning of "comparable type".
       // To decide between these two possibilities, enough information must be available about A and/or B.
       var normalizedA = a.Normalize() as DPreType;
@@ -1021,6 +1021,10 @@ namespace Microsoft.Dafny {
 
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attributeHost.Attributes.AsEnumerable()) {
+        if (attr is UserSuppliedAtAttribute { Builtin: true } usaa) {
+          Contract.Assert(usaa.Arg.Type != null); // Already resolved
+          continue;
+        }
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             if (Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name is "revealedFunction" && arg is NameSegment nameSegment) {

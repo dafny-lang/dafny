@@ -61,6 +61,7 @@ namespace Microsoft.Dafny {
 
       IsTraitParent,
 
+      SetIsMember,
       SetCard,
       SetEmpty,
       SetUnionOne,
@@ -80,6 +81,8 @@ namespace Microsoft.Dafny {
       ISetSubset,
       ISetDisjoint,
 
+      MultiSetMultiplicity,
+      MultiSetUpdateMultiplicity,
       MultiSetCard,
       MultiSetEmpty,
       MultiSetUnionOne,
@@ -293,6 +296,9 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "IsTraitParent", Bpl.Type.Bool, args);
 
+        case BuiltinFunction.SetIsMember:
+          Contract.Assert(args.Length == 2);
+          return FunctionCall(tok, "Set#IsMember", Bpl.Type.Bool, args);
         case BuiltinFunction.SetCard:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "Set#Card", Bpl.Type.Int, args);
@@ -351,6 +357,12 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.ISetDisjoint:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "ISet#Disjoint", Bpl.Type.Bool, args);
+        case BuiltinFunction.MultiSetMultiplicity:
+          Contract.Assert(args.Length == 2);
+          return FunctionCall(tok, "MultiSet#Multiplicity", Bpl.Type.Int, args);
+        case BuiltinFunction.MultiSetUpdateMultiplicity:
+          Contract.Assert(args.Length == 3);
+          return FunctionCall(tok, "MultiSet#UpdateMultiplicity", Predef.MultiSetType, args);
         case BuiltinFunction.MultiSetCard:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "MultiSet#Card", Bpl.Type.Int, args);
@@ -603,15 +615,16 @@ namespace Microsoft.Dafny {
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, function, returnType)), aa);
     }
 
-    public Bpl.Expr ProperSubset(Bpl.IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
+    public Bpl.Expr ProperSubset(Bpl.IToken tok, Bpl.Expr e0, Bpl.Expr e1, bool isFinite) {
       Contract.Requires(tok != null);
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
+      var subsetOperator = isFinite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
       return Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.And,
-        FunctionCall(tok, BuiltinFunction.SetSubset, null, e0, e1),
-        Bpl.Expr.Not(FunctionCall(tok, BuiltinFunction.SetSubset, null, e1, e0)));
+        FunctionCall(tok, subsetOperator, null, e0, e1),
+        Bpl.Expr.Not(FunctionCall(tok, subsetOperator, null, e1, e0)));
     }
     public Bpl.Expr ProperMultiset(Bpl.IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
       Contract.Requires(tok != null);
@@ -881,17 +894,24 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public static IToken ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
-      if (boogieToken is BoogieRangeToken boogieRangeToken) {
+    public static IOrigin ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
+      if (boogieToken is BoogieRangeOrigin boogieRangeToken) {
         if (!reportRanges && boogieRangeToken.Center is not null) {
           return boogieRangeToken.Center;
         }
 
         return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
       }
+
+      if (boogieToken is NestedOrigin nestedToken) {
+        return new NestedOrigin(
+          ToDafnyToken(reportRanges, nestedToken.Outer),
+          ToDafnyToken(reportRanges, nestedToken.Inner));
+      }
+
       if (boogieToken == null) {
         return null;
-      } else if (boogieToken is IToken dafnyToken) {
+      } else if (boogieToken is IOrigin dafnyToken) {
         return dafnyToken;
       } else if (boogieToken is VCGeneration.TokenWrapper tokenWrapper) {
         return ToDafnyToken(reportRanges, tokenWrapper.Inner);

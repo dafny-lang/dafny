@@ -255,45 +255,6 @@ method TwoState_Main3()
   assert false;  // it is known that the forall's postcondition is contradictory, so this assert is fine
 }
 
-// ------- empty forall statement -----------------------------------------
-
-class EmptyForallStatement {
-  var emptyPar: int
-
-  method Empty_Parallel0()
-    modifies this
-    ensures emptyPar == 8
-  {
-    forall () {
-      this.emptyPar := 8;
-    }
-  }
-
-  ghost function EmptyPar_P(x: int): bool
-  lemma EmptyPar_Lemma(x: int)
-    ensures EmptyPar_P(x)
-
-  method Empty_Parallel1()
-    ensures EmptyPar_P(8)
-  {
-    forall {
-      EmptyPar_Lemma(8);
-    }
-  }
-
-  method Empty_Parallel2()
-  {
-    forall
-      ensures exists k :: EmptyPar_P(k)
-    {
-      var y := 8;
-      assume EmptyPar_P(y);
-    }
-    assert exists k :: EmptyPar_P(k);  // yes
-    assert EmptyPar_P(8);  // error: the forall statement's ensures clause does not promise this
-  }
-}
-
 // ---------------------------------------------------------------------
 // The following is an example that once didn't verify (because the forall statement that
 // induction inserts had caused the $Heap to be advanced, despite the fact that Th is a

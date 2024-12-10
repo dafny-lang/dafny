@@ -130,7 +130,8 @@ module MainTests {
     "\"" + Seq.Repeat('a', 100) + "\""
   ]
 
-  method {:test} Main() {
+  @Test
+  method Main() {
     ZeroCopyWrapper.TestStrings(VECTORS);
     AbstractSyntaxWrapper.TestStrings(VECTORS);
   }

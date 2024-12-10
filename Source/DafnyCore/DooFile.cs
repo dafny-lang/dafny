@@ -162,7 +162,7 @@ public class DooFile {
   /// <summary>
   /// Returns the options as specified by the DooFile
   /// </summary>
-  public DafnyOptions? Validate(ErrorReporter reporter, Uri file, DafnyOptions options, IToken origin) {
+  public DafnyOptions? Validate(ErrorReporter reporter, Uri file, DafnyOptions options, IOrigin origin) {
     if (!options.UsingNewCli) {
       reporter.Error(MessageSource.Project, origin,
         $"cannot load {options.GetPrintPath(file.LocalPath)}: .doo files cannot be used with the legacy CLI");
@@ -180,7 +180,7 @@ public class DooFile {
 
   public static DafnyOptions? CheckAndGetLibraryOptions(ErrorReporter reporter,
     Uri libraryFile,
-    DafnyOptions options, IToken origin,
+    DafnyOptions options, IOrigin origin,
     IDictionary<string, object> libraryOptions) {
     var result = new DafnyOptions(options);
     var success = true;

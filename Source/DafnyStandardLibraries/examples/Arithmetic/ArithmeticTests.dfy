@@ -7,7 +7,8 @@ module ArithmeticTests {
   import opened Std.Arithmetic.ModInternals
   import opened Std.Arithmetic.DivInternals
 
-  method {:test} TestMul() {
+  @Test
+  method TestMul() {
     for i := -10 to 10 {
       for j := -10 to 10 {
         expect MulRecursive(i, j) == i * j;
@@ -15,7 +16,9 @@ module ArithmeticTests {
     }
   }
 
-  method {:test} TestPowLog() {
+  @Test
+  @IsolateAssertions
+  method TestPowLog() {
     expect Pow(-4, 0) == 1;
     expect Pow(-2, 2) == 4;
     expect Pow(-2, 3) == -8;
@@ -25,13 +28,15 @@ module ArithmeticTests {
     expect Log(2, Pow2(5)) == 5;
   }
 
-  method {:test} TestDiv() {
+  @Test
+  method TestDiv() {
     expect DivRecursive(5, 3) == 1;
     expect DivRecursive(-3, 5) == -1;
     expect DivRecursive(-3, -5) == 1;
   }
 
-  method {:test} TestMod() {
+  @Test
+  method TestMod() {
     expect ModRecursive(5, 3) == 2;
     expect ModRecursive(-3, 5) == 2;
   }

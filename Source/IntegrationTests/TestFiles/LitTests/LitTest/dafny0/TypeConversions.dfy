@@ -87,14 +87,14 @@ method M3() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
   }
   assert 0 <= x && 0.0 <= r;
 }
-
-method M4() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
-  ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
+// M4 is checked quickly, but using bv67 instead of bv7 takes forever, and even bv23 takes 40 minutes. See numbers at bottom of this file.
+method M4() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, seven as bv67, w, seven, noll)
 {
   if {
     case true => even := noll as EvenInt;
-    //case true => even := b67 as EvenInt;  // error: bv67 may be odd  // disabled because it doesn't terminate with 4.4.2 Z3
-    case b67 as int % 2 == 0 => even := b67 as EvenInt;
+    case true => even := seven as EvenInt;  // error: "seven" may be odd
+    case seven as int % 2 == 0 => even := seven as EvenInt;
     case true => small := seven as SmallReal;
     case true =>
       even := small as EvenInt;  // error (x2): small may not even be an integer, let alone odd
@@ -124,3 +124,100 @@ method M5() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
 
 class Class { }
 type ClassSubset = c: Class | true // error: the witness guess "null" is not good enough
+
+
+/***
+  Conversions between integers and bitvectors and their corresponding operations is tough for Z3.
+  Given the template program program:
+
+      type BvType = bv67;
+
+      function {:bvbuiltin "bvurem"} BvMod(BvType, BvType): BvType;
+
+      function {:bvbuiltin "bv2int"} BvToNat(BvType): int;
+
+      procedure M4(b: BvType)
+      {
+        assume BvToNat(b) mod 2 == 0;
+        assert BvMod(b, 2bv67) == 0bv67;
+      }
+
+  which is an extract from method M4 above, and replacing the three occurrences of "67" with numbers starting
+  from "6", Z3 version 4.12.1 requires the following times:
+     
+      --------------- bv6 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.25s user 0.08s system 100% cpu 0.336 total
+      --------------- bv7 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.24s user 0.08s system 100% cpu 0.322 total
+      --------------- bv8 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.27s user 0.09s system 100% cpu 0.359 total
+      --------------- bv9 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.25s user 0.08s system 101% cpu 0.319 total
+      --------------- bv10 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.25s user 0.08s system 100% cpu 0.329 total
+      --------------- bv11 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.26s user 0.08s system 101% cpu 0.334 total
+      --------------- bv12 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.26s user 0.09s system 100% cpu 0.347 total
+      --------------- bv13 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.28s user 0.08s system 100% cpu 0.363 total
+      --------------- bv14 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.33s user 0.09s system 100% cpu 0.420 total
+      --------------- bv15 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.42s user 0.09s system 100% cpu 0.504 total
+      --------------- bv16 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.67s user 0.08s system 100% cpu 0.739 total
+      --------------- bv17 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  1.31s user 0.09s system 100% cpu 1.399 total
+      --------------- bv18 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.24s user 0.08s system 10% cpu 3.194 total
+      --------------- bv19 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.26s user 0.09s system 3% cpu 8.910 total
+      --------------- bv20 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.25s user 0.08s system 1% cpu 30.118 total
+      --------------- bv21 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.28s user 0.11s system 0% cpu 2:15.97 total
+      --------------- bv22 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.35s user 0.18s system 0% cpu 10:31.82 total
+      --------------- bv23 --------------
+
+      Boogie program verifier finished with 1 verified, 0 errors
+      boogied dd.bpl  0.45s user 0.44s system 0% cpu 39:51.32 total
+
+  This shows at least exponential growth.
+
+***/

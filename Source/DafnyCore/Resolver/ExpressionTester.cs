@@ -47,7 +47,7 @@ public class ExpressionTester {
     reporter?.Error(MessageSource.Resolver, errorId, e, msg, args);
   }
 
-  private void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+  private void ReportError(ErrorId errorId, IOrigin t, string msg, params object[] args) {
     reporter?.Error(MessageSource.Resolver, errorId, t, msg, args);
   }
 

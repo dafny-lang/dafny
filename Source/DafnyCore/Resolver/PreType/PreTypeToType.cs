@@ -133,7 +133,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       // Note that "TArgs" may contain types whose type arguments are InferredTypeProxy's; this happens if a type argument
       // in "TArgs" is given without its arguments
       Contract.Assert(datatypeValue.InferredTypeArgs.Count == 0 || datatypeValue.InferredTypeArgs.Count == datatypeValue.InferredPreTypeArgs.Count);
-      if (datatypeValue.InferredTypeArgs.Any(typeArg => typeArg is TypeProxy)) {
+      if (datatypeValue.InferredTypeArgs.Any(typeArg => typeArg is InferredTypeProxy)) {
         Contract.Assert(datatypeValue.InferredTypeArgs.All(typeArg => typeArg is InferredTypeProxy));
       }
       var datatypeDecl = datatypeValue.Ctor.EnclosingDatatype;

@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         this.cancellationToken = cancellationToken;
       }
 
-      public override void VisitUnknown(object node, IToken token) {
+      public override void VisitUnknown(object node, IOrigin token) {
         logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
@@ -241,7 +241,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           // abstract syntax tree). We just ignore such duplicates until more information is availabe in the AST.
           var range = token.GetLspRange();
 
-          var dafnyToken = (IToken)token;
+          var dafnyToken = (IOrigin)token;
           var symbolLookupForUri =
             SymbolLookup.GetValueOrDefault(dafnyToken.Uri) ?? new IntervalTree<Position, ILocalizableSymbol>();
           SymbolLookup = SymbolLookup.SetItem(dafnyToken.Uri, symbolLookupForUri);
@@ -424,7 +424,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private void RegisterLocation(ILegacySymbol symbol, IToken token, Range name, Range declaration) {
+      private void RegisterLocation(ILegacySymbol symbol, IOrigin token, Range name, Range declaration) {
         if (token.Filepath != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           var locationsForUri =
