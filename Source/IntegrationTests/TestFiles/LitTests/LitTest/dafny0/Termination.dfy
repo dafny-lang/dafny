@@ -514,7 +514,7 @@ datatype Tree = Empty | Node(root: int, left: Tree, right: Tree)
   }
 }
 
-lemma ExtEvensSumToEven(t: Tree)
+lemma {:induction false} ExtEvensSumToEven(t: Tree)
   requires forall u :: u in t.Elements() ==> u % 2 == 0
   ensures t.Sum() % 2 == 0
   // auto: decreases t
@@ -523,11 +523,11 @@ lemma ExtEvensSumToEven(t: Tree)
   case Empty =>
   case Node(x, left, right) =>
     assert x in t.Elements();
-    assert left.Sum() % 2 == 0;
-    assert right.Sum() % 2 == 0;
-    assert t.Sum() % 2 == 0;
+    assert left.Elements() <= t.Elements();
+    assert right.Elements() <= t.Elements();
+    ExtEvensSumToEven(left);
+    ExtEvensSumToEven(right);
 }
-
 // ------ attempts to use a decreases term whose "less" relation is "false"
 
 method LoopyInt(x: int) {
