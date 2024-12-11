@@ -16,7 +16,7 @@ module Std.Enumerators {
     ghost function StopFn(): Option<T> -> bool {
       StopWhenNone
     }
-    predicate StopWhenNone(r: Option<T>) {
+    ghost predicate StopWhenNone(r: Option<T>) {
       r.None?
     }
 
