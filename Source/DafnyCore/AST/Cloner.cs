@@ -337,7 +337,7 @@ namespace Microsoft.Dafny {
       } else if (attrs is UserSuppliedAttributes usa) {
         return new UserSuppliedAttributes(Origin(usa.tok), Origin(usa.OpenBrace), Origin(usa.CloseBrace),
           attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev)) {
-          Origin = Tok(usa.Origin)
+          Origin = Origin(usa.Origin)
         };
       } else if (attrs is UserSuppliedAtAttribute usaa) {
         var arg = CloneExpr(usaa.Arg);
@@ -346,12 +346,12 @@ namespace Microsoft.Dafny {
           arg.PreType = usaa.Arg.PreType;
         }
         return new UserSuppliedAtAttribute(Origin(usaa.tok), arg, CloneAttributes(usaa.Prev)) {
-          Origin = Tok(usaa.Origin),
+          Origin = Origin(usaa.Origin),
           Builtin = usaa.Builtin
         };
       } else {
         return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev)) {
-          Origin = Tok(attrs.Origin)
+          Origin = Origin(attrs.Origin)
         };
       }
     }
@@ -418,7 +418,7 @@ namespace Microsoft.Dafny {
       if (stmt == null) {
         return null;
       } else {
-        return new BlockStmt(Tok(stmt.Origin), stmt.Body.ConvertAll(stmt1 => CloneStmt(stmt1, false)));
+        return new BlockStmt(Origin(stmt.Origin), stmt.Body.ConvertAll(stmt1 => CloneStmt(stmt1, false)));
       }
     }
 
@@ -426,7 +426,7 @@ namespace Microsoft.Dafny {
       if (stmt == null) {
         return null;
       } else {
-        return new DividedBlockStmt(Tok(stmt.Origin), stmt.BodyInit.ConvertAll(stmt1 => CloneStmt(stmt1, false)),
+        return new DividedBlockStmt(Origin(stmt.Origin), stmt.BodyInit.ConvertAll(stmt1 => CloneStmt(stmt1, false)),
           stmt.SeparatorTok == null ? null : Origin(stmt.SeparatorTok), stmt.BodyProper.ConvertAll(stmt1 => CloneStmt(stmt1, false)));
       }
     }
@@ -461,7 +461,7 @@ namespace Microsoft.Dafny {
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       Contract.Assert(c.Arguments != null);
-      return new MatchCaseStmt(Tok(c.Origin), c.Ctor, c.FromBoundVar,
+      return new MatchCaseStmt(Origin(c.Origin), c.Ctor, c.FromBoundVar,
         c.Arguments.ConvertAll(v => CloneBoundVar(v, false)),
         c.Body.ConvertAll(stmt => CloneStmt(stmt, false)), CloneAttributes(c.Attributes));
     }
