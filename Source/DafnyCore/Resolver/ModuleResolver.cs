@@ -2111,6 +2111,12 @@ namespace Microsoft.Dafny {
                 $"{cl.WhatKind} '{cl.Name}' is in a different module than trait '{trait.FullName}'. A {cl.WhatKind} may only extend a trait " +
                 "in the same module, unless the parent trait is annotated with {:termination false}.");
             }
+
+            if (cl is TraitDecl td) {
+              // If the parent trait's type parameters contain all the type parameters of this trait,
+              // it can be downcasted at run-time to cl trait. We record this dependency in td
+              trait.TraitDeclsCanBeDowncastedTo.Add(td);
+            }
           } else {
             reporter.Error(MessageSource.Resolver, parentTypeToken, $"a {cl.WhatKind} can only extend traits (found '{parentTrait}')");
           }
@@ -2861,12 +2867,7 @@ namespace Microsoft.Dafny {
             return;  // we are done
           }
           foreach (var arg in ctor.Formals) {
-            var anotherIndDt = arg.Type.AsIndDatatype;
-            if (arg.IsGhost ||
-                (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
-                arg.Type.IsCoDatatype ||
-                arg.Type.IsArrowType) {
-              // arg.Type is known never to support equality
+            if(arg.IsGhost || SurelyDoesNotSupportEquality(arg.Type)) {
               MarkSCCAsNotSupportingEquality();
               return;  // we are done
             }
@@ -2884,26 +2885,8 @@ namespace Microsoft.Dafny {
         }
         foreach (var ctor in dt.Ctors) {
           foreach (var arg in ctor.Formals) {
-            var typeArg = arg.Type.AsTypeParameter;
-            if (typeArg != null) {
-              typeArg.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
-              thingsChanged = true;
-            } else {
-              var otherDt = arg.Type.AsIndDatatype;
-              if (otherDt != null && otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
-                var otherUdt = (UserDefinedType)arg.Type.NormalizeExpand();
-                var i = 0;
-                foreach (var otherTp in otherDt.TypeArgs) {
-                  if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
-                    var tp = otherUdt.TypeArgs[i].AsTypeParameter;
-                    if (tp != null) {
-                      tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
-                      thingsChanged = true;
-                    }
-                  }
-                }
-              }
-            }
+            var type = arg.Type;
+            DetermineEqualitySupportType(type, ref thingsChanged);
           }
         }
       }
@@ -2940,6 +2923,54 @@ namespace Microsoft.Dafny {
       // where equality support should be checked by looking at the type arguments.
       foreach (var dt in scc) {
         dt.EqualitySupport = IndDatatypeDecl.ES.ConsultTypeArguments;
+      }
+    }
+
+    private static bool SurelyDoesNotSupportEquality(Type type)
+    {
+      if (type.IsCoDatatype ||
+          type.IsArrowType) {
+        return true;
+      }
+
+      if (type.AsIndDatatype is { } anotherIndDt) {
+        if (anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) {
+          return true;
+        }
+        if(anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments &&
+           type.NormalizeExpand().TypeArgs.Zip(anotherIndDt.TypeArgs).ToList().Any(t => t.Second.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && SurelyDoesNotSupportEquality(t.First))){
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    private static void DetermineEqualitySupportType(Type type, ref bool thingsChanged)
+    {
+      if (type.AsTypeParameter is {} typeArg) {
+        typeArg.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+        thingsChanged = true;
+      } else if (type.AsMapType is {} typeMap) {
+        DetermineEqualitySupportType(typeMap.Range, ref thingsChanged);
+      } else if (type.AsSeqType is {} typeSeq) {
+        DetermineEqualitySupportType(typeSeq.Arg, ref thingsChanged);
+      } else if (type.AsIndDatatype is {} otherDt) {
+        if (otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
+          var otherUdt = (UserDefinedType)type.NormalizeExpand();
+          var i = 0;
+          foreach (var otherTp in otherDt.TypeArgs) {
+            if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+              var tp = otherUdt.TypeArgs[i].AsTypeParameter;
+              if (tp != null) {
+                tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+                thingsChanged = true;
+              }
+            }
+
+            i++;
+          }
+        }
       }
     }
 
