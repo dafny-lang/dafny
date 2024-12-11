@@ -2867,12 +2867,7 @@ namespace Microsoft.Dafny {
             return;  // we are done
           }
           foreach (var arg in ctor.Formals) {
-            var anotherIndDt = arg.Type.AsIndDatatype;
-            if (arg.IsGhost ||
-                (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
-                arg.Type.IsCoDatatype ||
-                arg.Type.IsArrowType) {
-              // arg.Type is known never to support equality
+            if(arg.IsGhost || SurelyDoesNotSupportEquality(arg.Type)) {
               MarkSCCAsNotSupportingEquality();
               return;  // we are done
             }
@@ -2931,6 +2926,26 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private static bool SurelyDoesNotSupportEquality(Type type)
+    {
+      if (type.IsCoDatatype ||
+          type.IsArrowType) {
+        return true;
+      }
+
+      if (type.AsIndDatatype is { } anotherIndDt) {
+        if (anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) {
+          return true;
+        }
+        if(anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments &&
+           type.NormalizeExpand().TypeArgs.Zip(anotherIndDt.TypeArgs).ToList().Any(t => t.Second.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && SurelyDoesNotSupportEquality(t.First))){
+          return true;
+        }
+      }
+
+      return false;
+    }
+
     private static void DetermineEqualitySupportType(Type type, ref bool thingsChanged)
     {
       if (type.AsTypeParameter is {} typeArg) {
@@ -2938,6 +2953,8 @@ namespace Microsoft.Dafny {
         thingsChanged = true;
       } else if (type.AsMapType is {} typeMap) {
         DetermineEqualitySupportType(typeMap.Range, ref thingsChanged);
+      } else if (type.AsSeqType is {} typeSeq) {
+        DetermineEqualitySupportType(typeSeq.Arg, ref thingsChanged);
       } else if (type.AsIndDatatype is {} otherDt) {
         if (otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
           var otherUdt = (UserDefinedType)type.NormalizeExpand();

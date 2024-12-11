@@ -576,6 +576,7 @@ namespace DAST {
     bool IsDatatype();
     DAST._IType GetDatatypeType();
     bool Extends(DAST._IType other);
+    DAST._IType RemoveSynonyms();
   }
   public abstract class Type : _IType {
     public Type() {
@@ -962,6 +963,104 @@ namespace DAST {
       }
       {
         return false;
+      }
+    }
+    public DAST._IType RemoveSynonyms() {
+      DAST._IType _source0 = this;
+      {
+        if (_source0.is_UserDefined) {
+          DAST._IResolvedType resolved0 = _source0.dtor_resolved;
+          Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _0_path = resolved0.dtor_path;
+          Dafny.ISequence<DAST._IType> _1_typeArgs = resolved0.dtor_typeArgs;
+          DAST._IResolvedTypeBase _2_typeKind = resolved0.dtor_kind;
+          Dafny.ISequence<DAST._IAttribute> _3_attributes = resolved0.dtor_attributes;
+          Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _4_properMethods = resolved0.dtor_properMethods;
+          Dafny.ISequence<DAST._IType> _5_extendedTypes = resolved0.dtor_extendedTypes;
+          DAST._IResolvedTypeBase _source1 = _2_typeKind;
+          {
+            if (_source1.is_SynonymType) {
+              DAST._IType _6_typ = _source1.dtor_baseType;
+              return (_6_typ).RemoveSynonyms();
+            }
+          }
+          {
+            Dafny.ISequence<DAST._IType> _7_newtypeArgs = ((System.Func<Dafny.ISequence<DAST._IType>>) (() => {
+              BigInteger dim10 = new BigInteger((_1_typeArgs).Count);
+              var arr10 = new DAST._IType[Dafny.Helpers.ToIntChecked(dim10, "array size exceeds memory limit")];
+              for (int i10 = 0; i10 < dim10; i10++) {
+                var _8_i = (BigInteger) i10;
+                arr10[(int)(_8_i)] = ((_1_typeArgs).Select(_8_i)).RemoveSynonyms();
+              }
+              return Dafny.Sequence<DAST._IType>.FromArray(arr10);
+            }))();
+            return DAST.Type.create_UserDefined(DAST.ResolvedType.create(_0_path, _7_newtypeArgs, _2_typeKind, _3_attributes, _4_properMethods, _5_extendedTypes));
+          }
+        }
+      }
+      {
+        if (_source0.is_Tuple) {
+          Dafny.ISequence<DAST._IType> _9_arguments = _source0.dtor_Tuple_a0;
+          return DAST.Type.create_Tuple(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_10_arguments) => ((System.Func<DAST._IType, DAST._IType>)((_11_t) => {
+  return (_11_t).RemoveSynonyms();
+})))(_9_arguments), _9_arguments));
+        }
+      }
+      {
+        if (_source0.is_Array) {
+          DAST._IType _12_element = _source0.dtor_element;
+          BigInteger _13_dims = _source0.dtor_dims;
+          return DAST.Type.create_Array((_12_element).RemoveSynonyms(), _13_dims);
+        }
+      }
+      {
+        if (_source0.is_Seq) {
+          DAST._IType _14_element = _source0.dtor_element;
+          return DAST.Type.create_Seq((_14_element).RemoveSynonyms());
+        }
+      }
+      {
+        if (_source0.is_Set) {
+          DAST._IType _15_element = _source0.dtor_element;
+          return DAST.Type.create_Set((_15_element).RemoveSynonyms());
+        }
+      }
+      {
+        if (_source0.is_Multiset) {
+          DAST._IType _16_element = _source0.dtor_element;
+          return DAST.Type.create_Multiset((_16_element).RemoveSynonyms());
+        }
+      }
+      {
+        if (_source0.is_Map) {
+          DAST._IType _17_key = _source0.dtor_key;
+          DAST._IType _18_value = _source0.dtor_value;
+          return DAST.Type.create_Map((_17_key).RemoveSynonyms(), (_18_value).RemoveSynonyms());
+        }
+      }
+      {
+        if (_source0.is_SetBuilder) {
+          DAST._IType _19_element = _source0.dtor_element;
+          return DAST.Type.create_SetBuilder((_19_element).RemoveSynonyms());
+        }
+      }
+      {
+        if (_source0.is_MapBuilder) {
+          DAST._IType _20_key = _source0.dtor_key;
+          DAST._IType _21_value = _source0.dtor_value;
+          return DAST.Type.create_MapBuilder((_20_key).RemoveSynonyms(), (_21_value).RemoveSynonyms());
+        }
+      }
+      {
+        if (_source0.is_Arrow) {
+          Dafny.ISequence<DAST._IType> _22_args = _source0.dtor_args;
+          DAST._IType _23_result = _source0.dtor_result;
+          return DAST.Type.create_Arrow(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_24_args) => ((System.Func<DAST._IType, DAST._IType>)((_25_t) => {
+  return (_25_t).RemoveSynonyms();
+})))(_22_args), _22_args), (_23_result).RemoveSynonyms());
+        }
+      }
+      {
+        return this;
       }
     }
   }

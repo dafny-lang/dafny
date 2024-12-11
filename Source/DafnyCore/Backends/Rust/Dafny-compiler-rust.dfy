@@ -2891,16 +2891,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       decreases fromTpe, toTpe // We unwrap newtypes
     {
       r := expr;
+      // For conversion purpose, synonyms are not desired
+      var fromTpe := fromTpe.RemoveSynonyms();
+      var toTpe := toTpe.RemoveSynonyms();
       if fromTpe == toTpe {
         r, resultingOwnership := FromOwnership(r, exprOwnership, expectedOwnership);
-        return;
-      }
-      if fromTpe.UserDefined? && fromTpe.resolved.kind.SynonymType? {
-        r, resultingOwnership := GenExprConvertTo(expr, exprOwnership, fromTpe.resolved.kind.baseType, toTpe, env, expectedOwnership);
-        return;
-      }
-      if toTpe.UserDefined? && toTpe.resolved.kind.SynonymType? {
-        r, resultingOwnership := GenExprConvertTo(expr, exprOwnership, fromTpe, toTpe.resolved.kind.baseType, env, expectedOwnership);
         return;
       }
       if NeedsUnwrappingConversion(fromTpe) {

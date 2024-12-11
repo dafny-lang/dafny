@@ -203,6 +203,41 @@ module {:extern "DAST"} DAST {
         case _ => false
       }
     }
+
+    function RemoveSynonyms(): Type {
+      match this {
+        case UserDefined(ResolvedType(path, typeArgs, typeKind, attributes, properMethods, extendedTypes)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.RemoveSynonyms()
+            case _ =>
+              var newtypeArgs := seq(|typeArgs|, i requires 0 <= i < |typeArgs| => typeArgs[i].RemoveSynonyms());
+              UserDefined(ResolvedType(path, newtypeArgs, typeKind, attributes, properMethods, extendedTypes))
+          }
+        case Tuple(arguments) =>
+          Type.Tuple(Std.Collections.Seq.Map(
+                       t requires t in arguments => t.RemoveSynonyms(), arguments))
+        case Array(element, dims) =>
+          Type.Array(element.RemoveSynonyms(), dims)
+        case Seq(element) =>
+          Type.Seq(element.RemoveSynonyms())
+        case Set(element) =>
+          Type.Set(element.RemoveSynonyms())
+        case Multiset(element) =>
+          Type.Multiset(element.RemoveSynonyms())
+        case Map(key, value) =>
+          Type.Map(key.RemoveSynonyms(), value.RemoveSynonyms())
+        case SetBuilder(element) =>
+          Type.SetBuilder(element.RemoveSynonyms())
+        case MapBuilder(key, value) =>
+          Type.MapBuilder(key.RemoveSynonyms(), value.RemoveSynonyms())
+        case Arrow(args: seq<Type>, result: Type) =>
+          Type.Arrow(Std.Collections.Seq.Map(
+                       t requires t in args => t.RemoveSynonyms(), args), result.RemoveSynonyms())
+        case Primitive(_) | Passthrough(_) | Object() | TypeArg(_) =>
+          this
+      }
+    }
   }
 
   datatype Variance =

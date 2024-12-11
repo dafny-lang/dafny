@@ -328,13 +328,13 @@ namespace FactorPathsOptimization {
         return ((_1_finalReplacement).Contains(_3_key)) && (!object.Equals(Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IPath>.Select(_1_finalReplacement,_3_key), _2_SelfPath));
       })))(finalReplacement, SelfPath), (this).dtor_keys);
       return ((System.Func<Dafny.ISequence<RAST._IModDecl>>) (() => {
-        BigInteger dim12 = new BigInteger((_0_toUse).Count);
-        var arr12 = new RAST._IModDecl[Dafny.Helpers.ToIntChecked(dim12, "array size exceeds memory limit")];
-        for (int i12 = 0; i12 < dim12; i12++) {
-          var _4_i = (BigInteger) i12;
-          arr12[(int)(_4_i)] = RAST.ModDecl.create_UseDecl(RAST.Use.create(RAST.Visibility.create_PUB(), (Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IPath>.Select(finalReplacement,(_0_toUse).Select(_4_i))).MSel((_0_toUse).Select(_4_i))));
+        BigInteger dim13 = new BigInteger((_0_toUse).Count);
+        var arr13 = new RAST._IModDecl[Dafny.Helpers.ToIntChecked(dim13, "array size exceeds memory limit")];
+        for (int i13 = 0; i13 < dim13; i13++) {
+          var _4_i = (BigInteger) i13;
+          arr13[(int)(_4_i)] = RAST.ModDecl.create_UseDecl(RAST.Use.create(RAST.Visibility.create_PUB(), (Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IPath>.Select(finalReplacement,(_0_toUse).Select(_4_i))).MSel((_0_toUse).Select(_4_i))));
         }
-        return Dafny.Sequence<RAST._IModDecl>.FromArray(arr12);
+        return Dafny.Sequence<RAST._IModDecl>.FromArray(arr13);
       }))();
     }
   }
