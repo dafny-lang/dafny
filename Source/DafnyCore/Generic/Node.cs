@@ -34,17 +34,10 @@ public abstract class Node : INode {
   protected IReadOnlyList<IToken> OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
-<<<<<<< HEAD
-  public IToken StartToken => RangeToken?.StartToken;
-
-  public IToken EndToken => RangeToken?.EndToken;
-  public abstract IToken Tok { get; }
-=======
   public IOrigin StartToken => Origin?.StartToken;
 
   public IOrigin EndToken => Origin?.EndToken;
   public abstract IOrigin Tok { get; }
->>>>>>> 579df1688d0925d887f1f53f45b6b9b07dfe8cca
 
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
@@ -208,93 +201,4 @@ public abstract class Node : INode {
     }
     return null;
   }
-<<<<<<< HEAD
 }
-
-public abstract class TokenNode : Node {
-  // Contains tokens that did not make it in the AST but are part of the expression,
-  // Enables ranges to be correct.
-  // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal IToken[] FormatTokens = null;
-
-  protected RangeToken rangeToken = null;
-
-  public IToken tok = Token.NoToken;
-
-  [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IToken Tok {
-    get => tok;
-  }
-
-  public override RangeToken RangeToken {
-    get {
-      if (rangeToken == null) {
-
-        var startTok = tok;
-        var endTok = tok;
-
-        void UpdateStartEndToken(IToken token1) {
-          if (token1.Filepath != tok.Filepath) {
-            return;
-          }
-
-          if (token1.pos < startTok.pos) {
-            startTok = token1;
-          }
-
-          if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
-            endTok = token1;
-          }
-        }
-
-        void UpdateStartEndTokRecursive(INode node) {
-          if (node is null) {
-            return;
-          }
-
-          if (node.RangeToken.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
-              node is DefaultValueExpression) {
-            // Ignore any auto-generated expressions.
-          } else {
-            UpdateStartEndToken(node.StartToken);
-            UpdateStartEndToken(node.EndToken);
-          }
-        }
-
-        PreResolveChildren.ForEach(UpdateStartEndTokRecursive);
-
-        if (FormatTokens != null) {
-          foreach (var token in FormatTokens) {
-            UpdateStartEndToken(token);
-          }
-        }
-
-        rangeToken = new RangeToken(startTok, endTok);
-      }
-
-      return rangeToken;
-    }
-    set => rangeToken = value;
-  }
-}
-
-public abstract class RangeNode : Node { // TODO merge into Node when TokenNode is gone.
-
-  public override IToken Tok => StartToken; // TODO rename to ReportingToken in separate PR
-
-  public IToken tok => Tok; // TODO replace with Tok in separate PR
-
-  // TODO rename to Range in separate PR
-  public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
-
-  protected RangeNode(Cloner cloner, RangeNode original) {
-    RangeToken = cloner.Tok(original.RangeToken);
-  }
-
-  protected RangeNode(RangeToken rangeToken) {
-    RangeToken = rangeToken;
-  }
-}
-=======
-}
->>>>>>> 579df1688d0925d887f1f53f45b6b9b07dfe8cca

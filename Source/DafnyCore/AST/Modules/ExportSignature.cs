@@ -46,13 +46,8 @@ public class ExportSignature : TokenNode, IHasReferences {
     Id = original.Id;
     Opaque = original.Opaque;
     ClassId = original.ClassId;
-<<<<<<< HEAD
-    ClassIdTok = cloner.Tok(original.ClassIdTok);
-    OwnedTokensCache = new List<IToken>() { Tok };
-=======
     ClassIdTok = cloner.Origin(original.ClassIdTok);
     OwnedTokensCache = new List<IOrigin>() { Tok };
->>>>>>> 579df1688d0925d887f1f53f45b6b9b07dfe8cca
   }
 
   public override string ToString() {
