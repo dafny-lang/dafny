@@ -1681,7 +1681,7 @@ namespace Microsoft.Dafny {
           arg.PreType = usaa.Arg.PreType;
         }
         return new UserSuppliedAtAttribute(Origin(usaa.tok), arg, MergeAttributes(prevAttrs, moreAttrs.Prev)) {
-          Origin = Tok(usaa.Origin),
+          Origin = Origin(usaa.Origin),
           Builtin = usaa.Builtin
         };
       } else {
