@@ -21,7 +21,7 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
     UsesOptionalBraces = original.UsesOptionalBraces;
   }
 
-  public AlternativeLoopStmt(RangeToken rangeOrigin,
+  public AlternativeLoopStmt(IOrigin rangeOrigin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     List<GuardedAlternative> alternatives, bool usesOptionalBraces)
     : base(rangeOrigin, invariants, decreases, mod) {
@@ -29,7 +29,7 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
     this.Alternatives = alternatives;
     this.UsesOptionalBraces = usesOptionalBraces;
   }
-  public AlternativeLoopStmt(RangeToken rangeOrigin,
+  public AlternativeLoopStmt(IOrigin rangeOrigin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
     : base(rangeOrigin, invariants, decreases, mod, attrs) {

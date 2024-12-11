@@ -28,6 +28,9 @@ public abstract class OriginWrapper : IOrigin {
     set => WrappedToken.Uri = value;
   }
 
+  public virtual IOrigin StartToken => WrappedToken.StartToken;
+  public virtual IOrigin EndToken => WrappedToken.EndToken;
+
   public bool IsValid {
     get { return WrappedToken.IsValid; }
   }

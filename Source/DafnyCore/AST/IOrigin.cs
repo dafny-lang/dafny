@@ -22,6 +22,9 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
   string Filepath => Uri.LocalPath;
 
   Uri Uri { get; set; }
+  
+  IOrigin StartToken { get; }
+  IOrigin EndToken { get; }
 
   /// <summary>
   /// TrailingTrivia contains everything after the token,

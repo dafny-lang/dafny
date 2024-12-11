@@ -7,13 +7,13 @@ public abstract class RangeNode : Node { // TODO merge into Node when TokenNode 
   public IOrigin tok => Tok; // TODO replace with Tok in separate PR
 
   // TODO rename to Range in separate PR
-  public override RangeToken Origin { get; set; } // TODO remove setter when TokenNode is gone.
+  public override IOrigin Origin { get; set; } // TODO remove setter when TokenNode is gone.
 
   protected RangeNode(Cloner cloner, RangeNode original) {
     Origin = cloner.Tok(original.Origin);
   }
 
-  protected RangeNode(RangeToken rangeOrigin) {
+  protected RangeNode(IOrigin rangeOrigin) {
     Origin = rangeOrigin;
   }
 }

@@ -36,11 +36,11 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     }
   }
 
-  protected Statement(RangeToken rangeOrigin, Attributes attrs) : base(rangeOrigin) {
+  protected Statement(IOrigin rangeOrigin, Attributes attrs) : base(rangeOrigin) {
     this.Attributes = attrs;
   }
 
-  protected Statement(RangeToken rangeOrigin)
+  protected Statement(IOrigin rangeOrigin)
     : this(rangeOrigin, null) {
     Contract.Requires(rangeOrigin != null);
   }

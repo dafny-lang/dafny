@@ -13,7 +13,7 @@ public interface INode {
   public IOrigin StartToken => Origin.StartToken;
   public IOrigin EndToken => Origin.EndToken;
   IEnumerable<IOrigin> OwnedTokens { get; }
-  RangeToken Origin { get; }
+  IOrigin Origin { get; }
   IOrigin Tok { get; }
   IEnumerable<INode> Children { get; }
   IEnumerable<INode> PreResolveChildren { get; }
@@ -128,7 +128,7 @@ public abstract class Node : INode {
     }
   }
 
-  public abstract RangeToken Origin { get; set; }
+  public abstract IOrigin Origin { get; set; }
 
   // <summary>
   // Returns all assumptions contained in this node or its descendants.

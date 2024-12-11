@@ -25,7 +25,7 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
 
   string IAttributeBearingDeclaration.WhatKind => "expression";
 
-  public override RangeToken Origin => E.Origin;
+  public override IOrigin Origin => E.Origin;
 
   public bool HasAttributes() {
     return Attributes != null;
