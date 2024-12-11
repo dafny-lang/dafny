@@ -61,7 +61,7 @@ public class ProofObligationDependency : ProofDependency {
       $"{ProofObligation.SuccessDescription}";
 
   public ProofObligationDependency(Microsoft.Boogie.IToken tok, ProofObligationDescription proofObligation) {
-    Range = tok as RangeToken ?? (proofObligation as AssertStatementDescription)?.AssertStatement.RangeToken ?? BoogieGenerator.ToDafnyToken(true, tok).ToRange();
+    Range = tok as RangeToken ?? (proofObligation as AssertStatementDescription)?.AssertStatement.Origin ?? BoogieGenerator.ToDafnyToken(true, tok).ToRange();
     ProofObligation = proofObligation;
   }
 }
@@ -74,8 +74,8 @@ public class AssumedProofObligationDependency : ProofDependency {
   public override string Description =>
       $"assumption that {ProofObligation.SuccessDescription}";
 
-  public AssumedProofObligationDependency(IToken tok, ProofObligationDescription proofObligation) {
-    Range = tok as RangeToken ?? (proofObligation as AssertStatementDescription)?.AssertStatement.RangeToken ?? new RangeToken(tok, tok);
+  public AssumedProofObligationDependency(IOrigin tok, ProofObligationDescription proofObligation) {
+    Range = tok as RangeToken ?? (proofObligation as AssertStatementDescription)?.AssertStatement.Origin ?? new RangeToken(tok, tok);
     ProofObligation = proofObligation;
   }
 }
@@ -88,7 +88,7 @@ public class RequiresDependency : ProofDependency {
   private IToken tok;
 
   public override RangeToken Range =>
-    tok as RangeToken ?? requires.RangeToken;
+    tok as RangeToken ?? requires.Origin;
 
   public override string Description =>
     $"requires clause";
@@ -106,7 +106,7 @@ public class EnsuresDependency : ProofDependency {
   private readonly IToken tok;
 
   public override RangeToken Range =>
-    tok as RangeToken ?? ensures.RangeToken;
+    tok as RangeToken ?? ensures.Origin;
 
   public override string Description =>
     "ensures clause";
@@ -158,7 +158,7 @@ public class CallDependency : ProofDependency {
   public readonly CallStmt call;
 
   public override RangeToken Range =>
-    call.RangeToken;
+    call.Origin;
 
   public override string Description =>
     $"call";
@@ -171,7 +171,7 @@ public class CallDependency : ProofDependency {
 // Represents the assumption of a predicate in an `assume` statement.
 public class AssumptionDependency : ProofDependency {
   public override RangeToken Range =>
-    Expr.RangeToken;
+    Expr.Origin;
 
   public override string Description =>
     comment ?? OriginalString();
@@ -194,7 +194,7 @@ public class InvariantDependency : ProofDependency {
   private readonly Expression invariant;
 
   public override RangeToken Range =>
-    invariant.RangeToken;
+    invariant.Origin;
 
   public override string Description =>
     $"loop invariant";
@@ -219,7 +219,7 @@ public class AssignmentDependency : ProofDependency {
 
 // Represents dependency of a proof on the definition of a specific function.
 public class FunctionDefinitionDependency : ProofDependency {
-  public override RangeToken Range => function.RangeToken;
+  public override RangeToken Range => function.Origin;
 
   public override string Description =>
     $"function definition for {function.Name}";

@@ -72,26 +72,26 @@ namespace Microsoft.Dafny {
   /// a module defined as "module Y refines X") according to the body of this module and
   /// the module used as a starting point for the refinement (here, "X"). In a nutshell,
   /// there are four kinds of transformations.
-  /// 
+  ///
   ///   0. "Y" can fill in some definitions that "X" omitted. For example, if "X" defines
   ///      an abstract type "type T", then "Y" can define "T" to be a particular type, like
   ///      "type T = int". As another example, if "X" omits the body of a function, then
   ///      "Y" can give it a body.
-  /// 
+  ///
   ///   1. "Y" can add definitions. For example, it can declare new types and it can add
   ///      members to existing types.
-  ///  
+  ///
   ///   2. "Y" can superimpose statements on an existing method body. The format for this
   ///      is something that confuses most people. One reason for the common confusion is
   ///      that in many other language situations, it's the original ("X") that says what
   ///      parts can be replaced. Here, it the refining module ("Y") that decides where to
   ///      "squeeze in" new statements. For example, if a method body in "X" is
-  /// 
+  ///
   ///          var i := 0;
   ///          while i != 10 {
   ///            i := i + 1;
   ///          }
-  /// 
+  ///
   ///      then the refining module can write
   ///
   ///          var j := 0;
@@ -111,7 +111,7 @@ namespace Microsoft.Dafny {
   ///
   ///      The result of combining the "oldStmt" and the "skeleton" is called the "Merge" of
   ///      the two. For the example above, the merge is:
-  /// 
+  ///
   ///          var j := 0;
   ///          var i := 0;
   ///          while i != 10
@@ -140,7 +140,7 @@ namespace Microsoft.Dafny {
   ///      some condition to be verified (for example, an added "return;" statement causes the
   ///      postcondition to be reverified, but only at the point of the "return;"), so the verifier
   ///      adds the necessary additional checks.
-  ///  
+  ///
   ///   3. Some modifiers and other decorations may be changed. For example, a "ghost var"
   ///      field can be changed to a "var" field, and vice versa. It may seem odd that a
   ///      refinement is allowed to change these (and in either direction!), but it's fine
@@ -154,7 +154,7 @@ namespace Microsoft.Dafny {
   ///
   ///      "Programming Language Features for Refinement"
   ///      Jason Koenig and K. Rustan M. Leino.
-  ///      In EPTCS, 2016. (Post-workshop proceedings of REFINE 2015.) 
+  ///      In EPTCS, 2016. (Post-workshop proceedings of REFINE 2015.)
   /// </summary>
   public class RefinementTransformer : IRewriter {
     RefinementCloner refinementCloner; // This cloner wraps things in a RefinementToken
@@ -502,13 +502,13 @@ namespace Microsoft.Dafny {
       }
       var byMethodBody = refinementCloner.CloneBlockStmt(previousFunction.ByMethodBody);
 
-      var range = newFunction.RangeToken;
+      var range = newFunction.Origin;
       var nameNode = newFunction.NameNode;
 
       if (previousFunction is Predicate) {
         return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result,
           req, reads, ens, decreases, body, bodyOrigin,
-          previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
+          previousFunction.ByMethodTok == null ? null : refinementCloner.Origin(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is LeastPredicate) {
         return new LeastPredicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, ((LeastPredicate)previousFunction).TypeOfK, tps, formals, result,
@@ -525,7 +525,7 @@ namespace Microsoft.Dafny {
       } else {
         return new Function(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
           req, reads, ens, decreases, body,
-          previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
+          previousFunction.ByMethodTok == null ? null : refinementCloner.Origin(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       }
     }
@@ -550,11 +550,11 @@ namespace Microsoft.Dafny {
 
       if (previousMethod is Constructor) {
         var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.Body);
-        return new Constructor(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsGhost, tps, ins,
+        return new Constructor(previousMethod.Origin.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsGhost, tps, ins,
           req, reads, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
-      var newRange = currentMethod.RangeToken.MakeRefined(moduleUnderConstruction);
+      var newRange = currentMethod.Origin.MakeRefined(moduleUnderConstruction);
       var newName = currentMethod.NameNode.Clone(refinementCloner);
       if (previousMethod is LeastLemma) {
         return new LeastLemma(newRange, newName, previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
@@ -628,7 +628,7 @@ namespace Microsoft.Dafny {
         prev.YieldEnsures.ConvertAll(refinementCloner.CloneAttributedExpr));
       yens.AddRange(nw.YieldEnsures);
 
-      return new IteratorDecl(nw.RangeToken.MakeRefined(moduleUnderConstruction),
+      return new IteratorDecl(nw.Origin.MakeRefined(moduleUnderConstruction),
         nw.NameNode, moduleUnderConstruction,
         nw.SignatureIsOmitted ? prev.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam) : nw.TypeArgs,
         nw.SignatureIsOmitted ? prev.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false)) : nw.Ins,
@@ -688,7 +688,7 @@ namespace Microsoft.Dafny {
               if ((!(origConst.Type is InferredTypeProxy) && newConst.Type is InferredTypeProxy) || (origConst.Rhs != null && newConst.Rhs == null)) {
                 var typ = newConst.Type is InferredTypeProxy ? refinementCloner.CloneType(origConst.Type) : newConst.Type;
                 var rhs = newConst.Rhs ?? origConst.Rhs;
-                nw.Members[index] = new ConstantField(newConst.RangeToken, newConst.NameNode, rhs, newConst.HasStaticKeyword, newConst.IsGhost, newConst.IsOpaque, typ, newConst.Attributes);
+                nw.Members[index] = new ConstantField(newConst.Origin, newConst.NameNode, rhs, newConst.HasStaticKeyword, newConst.IsGhost, newConst.IsOpaque, typ, newConst.Attributes);
               }
             }
 
@@ -757,6 +757,8 @@ namespace Microsoft.Dafny {
                 Error(ErrorId.ref_mismatched_refinement_body, nwMember, $"a refining {f.WhatKind} is not allowed to extend/change the body");
               }
               var newF = CloneFunction(f, prevFunction, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
+              newF.Origin = f.Origin;
+              newF.NameNode.Origin = f.NameNode.Origin;
               newF.RefinementBase = member;
               nw.Members[index] = newF;
             }
@@ -819,6 +821,8 @@ namespace Microsoft.Dafny {
                 }
               }
               var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
+              newM.Origin = m.Origin;
+              newM.NameNode.Origin = m.NameNode.Origin;
               newM.RefinementBase = member;
               nw.Members[index] = newM;
             }
@@ -960,15 +964,15 @@ namespace Microsoft.Dafny {
         }
         var bodyProper = MergeStmtList(sbsSkeleton.BodyProper, sbsOldStmt.BodyProper, out hoverText);
         if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.RangeToken.ToToken(), hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.Origin.ToToken(), hoverText);
         }
-        return new DividedBlockStmt(sbsSkeleton.RangeToken, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
+        return new DividedBlockStmt(sbsSkeleton.Origin, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
       } else {
         var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
         if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, skeleton.RangeToken.ToToken(), hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, skeleton.Origin.ToToken(), hoverText);
         }
-        return new BlockStmt(skeleton.RangeToken, body);
+        return new BlockStmt(skeleton.Origin, body);
       }
     }
 
@@ -1070,7 +1074,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new RangeToken(new BoogieGenerator.ForceCheckToken(skel.RangeToken.StartToken), skel.RangeToken.EndToken),
+                body.Add(new AssertStmt(new RangeToken(new BoogieGenerator.ForceCheckOrigin(skel.Origin.StartToken), skel.Origin.EndToken),
                   e, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
@@ -1087,7 +1091,7 @@ namespace Microsoft.Dafny {
                 var e = refinementCloner.CloneExpr(oldExpect.Expr);
                 var message = refinementCloner.CloneExpr(oldExpect.Message);
                 var attrs = refinementCloner.MergeAttributes(oldExpect.Attributes, skel.Attributes);
-                body.Add(new ExpectStmt(skel.RangeToken, e, message, attrs));
+                body.Add(new ExpectStmt(skel.Origin, e, message, attrs));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
@@ -1102,7 +1106,7 @@ namespace Microsoft.Dafny {
               } else {
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssumeStmt(skel.RangeToken, e, attrs));
+                body.Add(new AssumeStmt(skel.Origin, e, attrs));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
@@ -1118,7 +1122,7 @@ namespace Microsoft.Dafny {
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
                 var resultingElse = MergeElse(skel.Els, oldIf.Els);
                 var e = refinementCloner.CloneExpr(oldIf.Guard);
-                var r = new IfStmt(skel.RangeToken, oldIf.IsBindingGuard, e, resultingThen, resultingElse);
+                var r = new IfStmt(skel.Origin, oldIf.IsBindingGuard, e, resultingThen, resultingElse);
                 body.Add(r);
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(Reporter.Options, oldIf.IsBindingGuard, e));
                 i++; j++;
@@ -1164,14 +1168,14 @@ namespace Microsoft.Dafny {
                   // Note, it is important to call MergeBlockStmt here (rather than just setting "mbody" to "skel.Body"), even
                   // though we're passing in an empty block as its second argument. The reason for this is that MergeBlockStmt
                   // also sets ".ReverifyPost" to "true" for any "return" statements.
-                  mbody = MergeBlockStmt(skel.Body, new BlockStmt(oldModifyStmt.RangeToken, new List<Statement>()));
+                  mbody = MergeBlockStmt(skel.Body, new BlockStmt(oldModifyStmt.Origin, new List<Statement>()));
                 } else if (skel.Body == null) {
                   Error(ErrorId.ref_mismatched_statement_body, cur.Tok, "modify template must have a body if the inherited modify statement does");
                   mbody = null;
                 } else {
                   mbody = MergeBlockStmt(skel.Body, oldModifyStmt.Body);
                 }
-                body.Add(new ModifyStmt(skel.RangeToken, mod.Expressions, mod.Attributes, mbody));
+                body.Add(new ModifyStmt(skel.Origin, mod.Expressions, mod.Attributes, mbody));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.FrameExprListToString(Reporter.Options, mod.Expressions));
                 i++; j++;
               }
@@ -1216,8 +1220,8 @@ namespace Microsoft.Dafny {
               body.Add(cNew);
               i++; j++;
               if (addedAssert != null) {
-                var tok = new BoogieGenerator.ForceCheckToken(addedAssert.RangeToken.StartToken);
-                body.Add(new AssertStmt(new RangeToken(tok, addedAssert.RangeToken.EndToken), addedAssert, null, null));
+                var tok = new BoogieGenerator.ForceCheckOrigin(addedAssert.Origin.StartToken);
+                body.Add(new AssertStmt(new RangeToken(tok, addedAssert.Origin.EndToken), addedAssert, null, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1273,7 +1277,7 @@ namespace Microsoft.Dafny {
                 doMerge = true;
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
-                var tok = new RangeToken(addedAssert.RangeToken.StartToken, addedAssert.RangeToken.EndToken);
+                var tok = new RangeToken(addedAssert.Origin.StartToken, addedAssert.Origin.EndToken);
                 stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null));
               }
             }
@@ -1290,7 +1294,7 @@ namespace Microsoft.Dafny {
             var cNew = (IfStmt)cur;
             var cOld = oldS as IfStmt;
             if (cOld != null && cOld.Guard == null) {
-              var r = new IfStmt(cNew.RangeToken, cNew.IsBindingGuard, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
+              var r = new IfStmt(cNew.Origin, cNew.IsBindingGuard, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
               body.Add(r);
               i++; j++;
             } else {
@@ -1457,14 +1461,14 @@ namespace Microsoft.Dafny {
       if (cOld.Body == null && cNew.Body == null) {
         newBody = null;
       } else if (cOld.Body == null) {
-        newBody = MergeBlockStmt(cNew.Body, new BlockStmt(cOld.RangeToken, new List<Statement>()));
+        newBody = MergeBlockStmt(cNew.Body, new BlockStmt(cOld.Origin, new List<Statement>()));
       } else if (cNew.Body == null) {
         Error(ErrorId.ref_mismatched_while_body, cNew.Tok, "while template must have a body if the inherited while statement does");
         newBody = null;
       } else {
         newBody = MergeBlockStmt(cNew.Body, cOld.Body);
       }
-      return new RefinedWhileStmt(cNew.RangeToken, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), newBody);
+      return new RefinedWhileStmt(cNew.Origin, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), newBody);
     }
 
     Statement MergeElse(Statement skeleton, Statement oldStmt) {
@@ -1475,15 +1479,15 @@ namespace Microsoft.Dafny {
         return refinementCloner.CloneStmt(oldStmt, false);
       } else if (skeleton is IfStmt || skeleton is SkeletonStatement) {
         // wrap a block statement around the if statement
-        skeleton = new BlockStmt(skeleton.RangeToken, new List<Statement>() { skeleton });
+        skeleton = new BlockStmt(skeleton.Origin, new List<Statement>() { skeleton });
       }
 
       if (oldStmt == null) {
         // make it into an empty block statement
-        oldStmt = new BlockStmt(skeleton.RangeToken, new List<Statement>());
+        oldStmt = new BlockStmt(skeleton.Origin, new List<Statement>());
       } else if (oldStmt is IfStmt || oldStmt is SkeletonStatement) {
         // wrap a block statement around the if statement
-        oldStmt = new BlockStmt(skeleton.RangeToken, new List<Statement>() { oldStmt });
+        oldStmt = new BlockStmt(skeleton.Origin, new List<Statement>() { oldStmt });
       }
 
       Contract.Assert(skeleton is BlockStmt && oldStmt is BlockStmt);
@@ -1634,7 +1638,7 @@ namespace Microsoft.Dafny {
       return result;
     }
 
-    public override IToken Tok(IToken tok) {
+    public override IOrigin Origin(IOrigin tok) {
       if (wrapWithRefinementToken) {
         return new RefinementToken(tok, moduleUnderConstruction);
       }
@@ -1648,7 +1652,7 @@ namespace Microsoft.Dafny {
         // refining module, retain its name but not be default, unless the refining module has the same name
         ModuleExportDecl dex = d as ModuleExportDecl;
         if (dex.IsDefault && d.Name != newParent.Name) {
-          ddex = new ModuleExportDecl(ddex.Options, dex.RangeToken, d.NameNode, newParent, dex.Exports, dex.Extends,
+          ddex = new ModuleExportDecl(ddex.Options, dex.Origin, d.NameNode, newParent, dex.Exports, dex.Extends,
             dex.ProvideAll, dex.RevealAll, false, true, Guid.NewGuid());
         }
         ddex.SetupDefaultSignature();
@@ -1666,15 +1670,15 @@ namespace Microsoft.Dafny {
         return CloneAttributes(prevAttrs);
       } else if (moreAttrs is UserSuppliedAttributes) {
         var usa = (UserSuppliedAttributes)moreAttrs;
-        return new UserSuppliedAttributes(Tok(usa.tok), Tok(usa.OpenBrace), Tok(usa.CloseBrace), moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
+        return new UserSuppliedAttributes(Origin(usa.tok), Origin(usa.OpenBrace), Origin(usa.CloseBrace), moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
       } else if (moreAttrs is UserSuppliedAtAttribute usaa) {
         var arg = CloneExpr(usaa.Arg);
         if (usaa.Arg.Type != null) { // The attribute has already been expanded
           arg.Type = usaa.Arg.Type;
           arg.PreType = usaa.Arg.PreType;
         }
-        return new UserSuppliedAtAttribute(Tok(usaa.tok), arg, MergeAttributes(prevAttrs, moreAttrs.Prev)) {
-          RangeToken = Tok(usaa.RangeToken),
+        return new UserSuppliedAtAttribute(Origin(usaa.tok), arg, MergeAttributes(prevAttrs, moreAttrs.Prev)) {
+          Origin = Origin(usaa.Origin),
           Builtin = usaa.Builtin
         };
       } else {

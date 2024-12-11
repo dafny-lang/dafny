@@ -182,7 +182,7 @@ namespace Microsoft.Dafny {
               }
               formals.Add(produceLhs);
             }
-            s.HiddenUpdate = new AssignStatement(s.RangeToken, formals, s.Rhss, true);
+            s.HiddenUpdate = new AssignStatement(s.Origin, formals, s.Rhss, true);
             // resolving the update statement will check for return/yield statement specifics.
             ResolveStatement(s.HiddenUpdate, resolutionContext);
           }
@@ -656,7 +656,7 @@ namespace Microsoft.Dafny {
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
           for (var i = 0; i < update.Lhss.Count; i++) {
-            var a = new SingleAssignStmt(update.RangeToken, update.Lhss[i].Resolved, update.Rhss[i]);
+            var a = new SingleAssignStmt(update.Origin, update.Lhss[i].Resolved, update.Rhss[i]);
             update.ResolvedStatements.Add(a);
           }
         }
@@ -676,7 +676,7 @@ namespace Microsoft.Dafny {
             if (tr.CanAffectPreviouslyKnownExpressions) {
               ReportError(tr.Tok, "can only have initialization methods which modify at most 'this'.");
             } else if (ErrorCount == errorCountBeforeCheckingStmt) {
-              var a = new SingleAssignStmt(update.RangeToken, update.Lhss[0].Resolved, tr);
+              var a = new SingleAssignStmt(update.Origin, update.Lhss[0].Resolved, tr);
               update.ResolvedStatements.Add(a);
             }
           }
@@ -697,13 +697,13 @@ namespace Microsoft.Dafny {
               "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
               update.Lhss.Count, update.Rhss.Count);
           } else if (ErrorCount == errorCountBeforeCheckingStmt) {
-            var a = new SingleAssignStmt(update.RangeToken, update.Lhss[0].Resolved, update.Rhss[0]);
+            var a = new SingleAssignStmt(update.Origin, update.Lhss[0].Resolved, update.Rhss[0]);
             update.ResolvedStatements.Add(a);
           }
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // a call statement
           var resolvedLhss = update.Lhss.ConvertAll(ll => ll.Resolved);
-          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+          var a = new CallStmt(update.Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
@@ -971,9 +971,9 @@ namespace Microsoft.Dafny {
         }
       }
       var temp = resolver.FreshTempVarName("valueOrError", resolutionContext.CodeContext);
-      var lhss = new List<LocalVariable>() { new LocalVariable(s.RangeToken, temp, new InferredTypeProxy(), false) };
+      var lhss = new List<LocalVariable>() { new LocalVariable(s.Origin, temp, new InferredTypeProxy(), false) };
       // "var temp ;"
-      s.ResolvedStatements.Add(new VarDeclStmt(s.RangeToken, lhss, null));
+      s.ResolvedStatements.Add(new VarDeclStmt(s.Origin, lhss, null));
       var lhss2 = new List<Expression>() { new IdentifierExpr(s.Tok, temp) };
       for (int k = (expectExtract ? 1 : 0); k < s.Lhss.Count; ++k) {
         lhss2.Add(s.Lhss[k]);
@@ -991,7 +991,7 @@ namespace Microsoft.Dafny {
         }
       }
       // " temp, ... := MethodOrExpression, ...;"
-      var up = new AssignStatement(s.RangeToken, lhss2, rhss2);
+      var up = new AssignStatement(s.Origin, lhss2, rhss2);
       if (expectExtract) {
         up.OriginalInitialLhs = s.Lhss.Count == 0 ? null : s.Lhss[0];
       }
@@ -1023,14 +1023,14 @@ namespace Microsoft.Dafny {
 
         s.ResolvedStatements.Add(
           // "if temp.IsFailure()"
-          new IfStmt(s.RangeToken, false, resolver.VarDotMethod(s.Tok, temp, "IsFailure"),
+          new IfStmt(s.Origin, false, resolver.VarDotMethod(s.Tok, temp, "IsFailure"),
             // THEN: { out := temp.PropagateFailure(); return; }
-            new BlockStmt(s.RangeToken, new List<Statement>() {
-              new AssignStatement(s.RangeToken,
+            new BlockStmt(s.Origin, new List<Statement>() {
+              new AssignStatement(s.Origin,
                 new List<Expression>() { ident },
                 new List<AssignmentRhs>() {new ExprRhs(resolver.VarDotMethod(s.Tok, temp, "PropagateFailure"))}
               ),
-              new ReturnStmt(s.RangeToken, null),
+              new ReturnStmt(s.Origin, null),
             }),
             // ELSE: no else block
             null
@@ -1041,7 +1041,7 @@ namespace Microsoft.Dafny {
         // "y := temp.Extract();"
         var lhs = s.Lhss[0];
         s.ResolvedStatements.Add(
-          new AssignStatement(s.RangeToken,
+          new AssignStatement(s.Origin,
             new List<Expression>() { lhsExtract },
             new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(s.Tok, temp, "Extract")) }
           ));
@@ -1199,7 +1199,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
               var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
               if (methodSel.Member is Method) {
-                rr.InitCall = new CallStmt(stmt.RangeToken, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
+                rr.InitCall = new CallStmt(stmt.Origin, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
                 ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
               } else {
                 ReportError(initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);

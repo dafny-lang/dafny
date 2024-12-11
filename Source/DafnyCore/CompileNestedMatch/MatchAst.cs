@@ -250,9 +250,9 @@ public class MatchCaseStmt : MatchCase {
   public override IEnumerable<INode> Children => body;
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public MatchCaseStmt(RangeToken rangeToken, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
-    : base(rangeToken.StartToken, ctor, arguments) {
-    RangeToken = rangeToken;
+  public MatchCaseStmt(RangeToken rangeOrigin, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+    : base(rangeOrigin.StartToken, ctor, arguments) {
+    Origin = rangeOrigin;
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));

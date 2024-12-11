@@ -29,7 +29,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
 
   protected Declaration(Cloner cloner, Declaration original) : base(cloner, original) {
     NameNode = original.NameNode.Clone(cloner);
-    BodyStartTok = cloner.Tok(original.BodyStartTok);
+    BodyStartTok = cloner.Origin(original.BodyStartTok);
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 

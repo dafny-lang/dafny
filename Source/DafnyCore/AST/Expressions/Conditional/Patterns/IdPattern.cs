@@ -30,7 +30,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
     this.Arguments = new List<ExtendedPattern>();
   }
 
-  public IdPattern(Cloner cloner, IdPattern original) : base(cloner.Tok(original.Tok), original.IsGhost) {
+  public IdPattern(Cloner cloner, IdPattern original) : base(cloner.Origin(original.Tok), original.IsGhost) {
     Id = original.Id;
     Arguments = original.Arguments?.Select(cloner.CloneExtendedPattern).ToList();
     HasParenthesis = original.HasParenthesis;
@@ -104,7 +104,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
       }
 
       if (inStatementContext) {
-        var localVariable = new LocalVariable(RangeToken, Id, null, isGhost) {
+        var localVariable = new LocalVariable(Origin, Id, null, isGhost) {
           type = Type
         };
         BoundVar = localVariable;

@@ -237,16 +237,16 @@ axiom (forall v: Bv0 :: { $Is(v, TBitvector(0)) } $Is(v, TBitvector(0)));
 
 axiom (forall v: Set, t0: Ty :: { $Is(v, TSet(t0)) }
   $Is(v, TSet(t0)) <==>
-  (forall bx: Box :: { v[bx] }
-    v[bx] ==> $IsBox(bx, t0)));
+  (forall bx: Box :: { Set#IsMember(v, bx) }
+    Set#IsMember(v, bx) ==> $IsBox(bx, t0)));
 axiom (forall v: ISet, t0: Ty :: { $Is(v, TISet(t0)) }
   $Is(v, TISet(t0)) <==>
   (forall bx: Box :: { v[bx] }
     v[bx] ==> $IsBox(bx, t0)));
 axiom (forall v: MultiSet, t0: Ty :: { $Is(v, TMultiSet(t0)) }
   $Is(v, TMultiSet(t0)) <==>
-  (forall bx: Box :: { v[bx] }
-    0 < v[bx] ==> $IsBox(bx, t0)));
+  (forall bx: Box :: { MultiSet#Multiplicity(v, bx) }
+    0 < MultiSet#Multiplicity(v, bx) ==> $IsBox(bx, t0)));
 axiom (forall v: MultiSet, t0: Ty :: { $Is(v, TMultiSet(t0)) }
   $Is(v, TMultiSet(t0)) ==> $IsGoodMultiSet(v));
 axiom (forall v: Seq, t0: Ty :: { $Is(v, TSeq(t0)) }
@@ -259,8 +259,8 @@ axiom (forall v: Map, t0: Ty, t1: Ty ::
   { $Is(v, TMap(t0, t1)) }
   $Is(v, TMap(t0, t1))
      <==> (forall bx: Box ::
-      { Map#Elements(v)[bx] } { Map#Domain(v)[bx] }
-      Map#Domain(v)[bx] ==>
+      { Map#Elements(v)[bx] } { Set#IsMember(Map#Domain(v), bx) }
+      Set#IsMember(Map#Domain(v), bx) ==>
         $IsBox(Map#Elements(v)[bx], t1) &&
         $IsBox(bx, t0)));
 
@@ -296,16 +296,16 @@ axiom (forall v: Bv0, h: Heap :: { $IsAlloc(v, TBitvector(0), h) } $IsAlloc(v, T
 
 axiom (forall v: Set, t0: Ty, h: Heap :: { $IsAlloc(v, TSet(t0), h) }
   $IsAlloc(v, TSet(t0), h) <==>
-  (forall bx: Box :: { v[bx] }
-    v[bx] ==> $IsAllocBox(bx, t0, h)));
+  (forall bx: Box :: { Set#IsMember(v, bx) }
+    Set#IsMember(v, bx) ==> $IsAllocBox(bx, t0, h)));
 axiom (forall v: ISet, t0: Ty, h: Heap :: { $IsAlloc(v, TISet(t0), h) }
   $IsAlloc(v, TISet(t0), h) <==>
   (forall bx: Box :: { v[bx] }
     v[bx] ==> $IsAllocBox(bx, t0, h)));
 axiom (forall v: MultiSet, t0: Ty, h: Heap :: { $IsAlloc(v, TMultiSet(t0), h) }
   $IsAlloc(v, TMultiSet(t0), h) <==>
-  (forall bx: Box :: { v[bx] }
-    0 < v[bx] ==> $IsAllocBox(bx, t0, h)));
+  (forall bx: Box :: { MultiSet#Multiplicity(v, bx) }
+    0 < MultiSet#Multiplicity(v, bx) ==> $IsAllocBox(bx, t0, h)));
 axiom (forall v: Seq, t0: Ty, h: Heap :: { $IsAlloc(v, TSeq(t0), h) }
   $IsAlloc(v, TSeq(t0), h) <==>
   (forall i : int :: { Seq#Index(v, i) }
@@ -316,8 +316,8 @@ axiom (forall v: Map, t0: Ty, t1: Ty, h: Heap ::
   { $IsAlloc(v, TMap(t0, t1), h) }
   $IsAlloc(v, TMap(t0, t1), h)
      <==> (forall bx: Box ::
-      { Map#Elements(v)[bx] } { Map#Domain(v)[bx] }
-      Map#Domain(v)[bx] ==>
+      { Map#Elements(v)[bx] } { Set#IsMember(Map#Domain(v), bx) }
+      Set#IsMember(Map#Domain(v), bx) ==>
         $IsAllocBox(Map#Elements(v)[bx], t1, h) &&
         $IsAllocBox(bx, t0, h)));
 
@@ -367,8 +367,8 @@ axiom (forall a: ClassName, b: ClassName :: { TypeTuple(a,b) }
 type HandleType;
 
 function SetRef_to_SetBox(s: [ref]bool): Set;
-axiom (forall s: [ref]bool, bx: Box :: { SetRef_to_SetBox(s)[bx] }
-  SetRef_to_SetBox(s)[bx] == s[$Unbox(bx): ref]);
+axiom (forall s: [ref]bool, bx: Box :: { Set#IsMember(SetRef_to_SetBox(s), bx) }
+  Set#IsMember(SetRef_to_SetBox(s), bx) == s[$Unbox(bx): ref]);
 axiom (forall s: [ref]bool :: { SetRef_to_SetBox(s) }
   $Is(SetRef_to_SetBox(s), TSet(Tclass._System.object?())));
 
@@ -619,7 +619,7 @@ procedure $YieldHavoc(this: ref, rds: Set, nw: Set);
   modifies $Heap;
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
-            $o == this || rds[$Box($o)] || nw[$Box($o)] ==>
+            $o == this || Set#IsMember(rds, $Box($o)) || Set#IsMember(nw, $Box($o)) ==>
               read($Heap, $o, $f) == read(old($Heap), $o, $f));
   ensures $HeapSucc(old($Heap), $Heap);
 
@@ -628,7 +628,7 @@ procedure $IterHavoc0(this: ref, rds: Set, modi: Set);
   modifies $Heap;
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
-            rds[$Box($o)] && !modi[$Box($o)] && $o != this ==>
+            Set#IsMember(rds, $Box($o)) && !Set#IsMember(modi, $Box($o)) && $o != this ==>
               read($Heap, $o, $f) == read(old($Heap), $o, $f));
   ensures $HeapSucc(old($Heap), $Heap);
 
@@ -638,13 +638,13 @@ procedure $IterHavoc1(this: ref, modi: Set, nw: Set);
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
               read($Heap, $o, $f) == read(old($Heap), $o, $f) ||
-              $o == this || modi[$Box($o)] || nw[$Box($o)]);
+              $o == this || Set#IsMember(modi, $Box($o)) || Set#IsMember(nw, $Box($o)));
   ensures $HeapSucc(old($Heap), $Heap);
 
 procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: Field)
                         returns (s: Set);
-  ensures (forall bx: Box :: { s[bx] } s[bx] <==>
-              ($Unbox(read(newHeap, this, NW)) : Set)[bx] ||
+  ensures (forall bx: Box :: { Set#IsMember(s, bx) } Set#IsMember(s, bx) <==>
+              Set#IsMember($Unbox(read(newHeap, this, NW)) : Set, bx) ||
               ($Unbox(bx) != null && !$Unbox(read(prevHeap, $Unbox(bx):ref, alloc)) && $Unbox(read(newHeap, $Unbox(bx):ref, alloc))));
 
 // ---------------------------------------------------------------
@@ -655,97 +655,156 @@ procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: F
 // -- Axiomatization of sets -------------------------------------
 // ---------------------------------------------------------------
 
-type Set = [Box]bool;
 
-function Set#Card(Set): int;
+
+type Set;
+
+function Set#Card(s: Set) : int;
+
 axiom (forall s: Set :: { Set#Card(s) } 0 <= Set#Card(s));
 
-function Set#Empty(): Set;
-axiom (forall o: Box :: { Set#Empty()[o] } !Set#Empty()[o]);
-axiom (forall s: Set :: { Set#Card(s) }
-  (Set#Card(s) == 0 <==> s == Set#Empty()) &&
-  (Set#Card(s) != 0 ==> (exists x: Box :: s[x])));
+function Set#Empty() : Set;
 
-// the empty set could be of anything
-//axiom (forall t: Ty :: { $Is(Set#Empty() : [Box]bool, TSet(t)) } $Is(Set#Empty() : [Box]bool, TSet(t)));
+function Set#IsMember(s: Set, o: Box) : bool;
 
-function Set#Singleton(Box): Set;
-axiom (forall r: Box :: { Set#Singleton(r) } Set#Singleton(r)[r]);
-axiom (forall r: Box, o: Box :: { Set#Singleton(r)[o] } Set#Singleton(r)[o] <==> r == o);
-axiom (forall r: Box :: { Set#Card(Set#Singleton(r)) } Set#Card(Set#Singleton(r)) == 1);
+axiom (forall o: Box ::
+  { Set#IsMember(Set#Empty(), o) }
+  !Set#IsMember(Set#Empty(), o));
 
-function Set#UnionOne(Set, Box): Set;
-axiom (forall a: Set, x: Box, o: Box :: { Set#UnionOne(a,x)[o] }
-  Set#UnionOne(a,x)[o] <==> o == x || a[o]);
-axiom (forall a: Set, x: Box :: { Set#UnionOne(a, x) }
-  Set#UnionOne(a, x)[x]);
-axiom (forall a: Set, x: Box, y: Box :: { Set#UnionOne(a, x), a[y] }
-  a[y] ==> Set#UnionOne(a, x)[y]);
-axiom (forall a: Set, x: Box :: { Set#Card(Set#UnionOne(a, x)) }
-  a[x] ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a));
-axiom (forall a: Set, x: Box :: { Set#Card(Set#UnionOne(a, x)) }
-  !a[x] ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a) + 1);
+axiom (forall s: Set ::
+  { Set#Card(s) }
+  (Set#Card(s) == 0 <==> s == Set#Empty())
+     && (Set#Card(s) != 0
+       ==> (exists x: Box :: { Set#IsMember(s, x) } Set#IsMember(s, x))));
 
-function Set#Union(Set, Set): Set;
-axiom (forall a: Set, b: Set, o: Box :: { Set#Union(a,b)[o] }
-  Set#Union(a,b)[o] <==> a[o] || b[o]);
-axiom (forall a, b: Set, y: Box :: { Set#Union(a, b), a[y] }
-  a[y] ==> Set#Union(a, b)[y]);
-axiom (forall a, b: Set, y: Box :: { Set#Union(a, b), b[y] }
-  b[y] ==> Set#Union(a, b)[y]);
-axiom (forall a, b: Set :: { Set#Union(a, b) }
-  Set#Disjoint(a, b) ==>
-    Set#Difference(Set#Union(a, b), a) == b &&
-    Set#Difference(Set#Union(a, b), b) == a);
-// Follows from the general union axiom, but might be still worth including, because disjoint union is a common case:
-// axiom (forall a, b: Set :: { Set#Card(Set#Union(a, b)) }
-//   Set#Disjoint(a, b) ==>
-//     Set#Card(Set#Union(a, b)) == Set#Card(a) + Set#Card(b));
+function Set#UnionOne(s: Set, o: Box) : Set;
 
-function Set#Intersection(Set, Set): Set;
-axiom (forall a: Set, b: Set, o: Box :: { Set#Intersection(a,b)[o] }
-  Set#Intersection(a,b)[o] <==> a[o] && b[o]);
+axiom (forall a: Set, x: Box, o: Box ::
+  { Set#IsMember(Set#UnionOne(a, x), o) }
+  Set#IsMember(Set#UnionOne(a, x), o) <==> o == x || Set#IsMember(a, o));
 
-axiom (forall a, b: Set :: { Set#Union(Set#Union(a, b), b) }
+axiom (forall a: Set, x: Box ::
+  { Set#UnionOne(a, x) }
+  Set#IsMember(Set#UnionOne(a, x), x));
+
+axiom (forall a: Set, x: Box, y: Box ::
+  { Set#UnionOne(a, x), Set#IsMember(a, y) }
+  Set#IsMember(a, y) ==> Set#IsMember(Set#UnionOne(a, x), y));
+
+axiom (forall a: Set, x: Box ::
+  { Set#Card(Set#UnionOne(a, x)) }
+  Set#IsMember(a, x) ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a));
+
+axiom (forall a: Set, x: Box ::
+  { Set#Card(Set#UnionOne(a, x)) }
+  !Set#IsMember(a, x) ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a) + 1);
+
+function Set#Union(a: Set, b: Set) : Set;
+
+axiom (forall a: Set, b: Set, o: Box ::
+  { Set#IsMember(Set#Union(a, b), o) }
+  Set#IsMember(Set#Union(a, b), o) <==> Set#IsMember(a, o) || Set#IsMember(b, o));
+
+axiom (forall a: Set, b: Set, y: Box ::
+  { Set#Union(a, b), Set#IsMember(a, y) }
+  Set#IsMember(a, y) ==> Set#IsMember(Set#Union(a, b), y));
+
+axiom (forall a: Set, b: Set, y: Box ::
+  { Set#Union(a, b), Set#IsMember(b, y) }
+  Set#IsMember(b, y) ==> Set#IsMember(Set#Union(a, b), y));
+
+axiom (forall a: Set, b: Set ::
+  { Set#Union(a, b) }
+  Set#Disjoint(a, b)
+     ==> Set#Difference(Set#Union(a, b), a) == b
+       && Set#Difference(Set#Union(a, b), b) == a);
+
+function Set#Intersection(a: Set, b: Set) : Set;
+
+axiom (forall a: Set, b: Set, o: Box ::
+  { Set#IsMember(Set#Intersection(a, b), o) }
+  Set#IsMember(Set#Intersection(a, b), o)
+     <==> Set#IsMember(a, o) && Set#IsMember(b, o));
+
+axiom (forall a: Set, b: Set ::
+  { Set#Union(Set#Union(a, b), b) }
   Set#Union(Set#Union(a, b), b) == Set#Union(a, b));
-axiom (forall a, b: Set :: { Set#Union(a, Set#Union(a, b)) }
+
+axiom (forall a: Set, b: Set ::
+  { Set#Union(a, Set#Union(a, b)) }
   Set#Union(a, Set#Union(a, b)) == Set#Union(a, b));
-axiom (forall a, b: Set :: { Set#Intersection(Set#Intersection(a, b), b) }
+
+axiom (forall a: Set, b: Set ::
+  { Set#Intersection(Set#Intersection(a, b), b) }
   Set#Intersection(Set#Intersection(a, b), b) == Set#Intersection(a, b));
-axiom (forall a, b: Set :: { Set#Intersection(a, Set#Intersection(a, b)) }
+
+axiom (forall a: Set, b: Set ::
+  { Set#Intersection(a, Set#Intersection(a, b)) }
   Set#Intersection(a, Set#Intersection(a, b)) == Set#Intersection(a, b));
-axiom (forall a, b: Set :: { Set#Card(Set#Union(a, b)) }{ Set#Card(Set#Intersection(a, b)) }
-  Set#Card(Set#Union(a, b)) + Set#Card(Set#Intersection(a, b)) == Set#Card(a) + Set#Card(b));
 
-function Set#Difference(Set, Set): Set;
-axiom (forall a: Set, b: Set, o: Box :: { Set#Difference(a,b)[o] }
-  Set#Difference(a,b)[o] <==> a[o] && !b[o]);
-axiom (forall a, b: Set, y: Box :: { Set#Difference(a, b), b[y] }
-  b[y] ==> !Set#Difference(a, b)[y] );
-axiom (forall a, b: Set ::
+axiom (forall a: Set, b: Set ::
+  { Set#Card(Set#Union(a, b)) } { Set#Card(Set#Intersection(a, b)) }
+  Set#Card(Set#Union(a, b)) + Set#Card(Set#Intersection(a, b))
+     == Set#Card(a) + Set#Card(b));
+
+function Set#Difference(a: Set, b: Set) : Set;
+
+axiom (forall a: Set, b: Set, o: Box ::
+  { Set#IsMember(Set#Difference(a, b), o) }
+  Set#IsMember(Set#Difference(a, b), o)
+     <==> Set#IsMember(a, o) && !Set#IsMember(b, o));
+
+axiom (forall a: Set, b: Set, y: Box ::
+  { Set#Difference(a, b), Set#IsMember(b, y) }
+  Set#IsMember(b, y) ==> !Set#IsMember(Set#Difference(a, b), y));
+
+axiom (forall a: Set, b: Set ::
   { Set#Card(Set#Difference(a, b)) }
-  Set#Card(Set#Difference(a, b)) + Set#Card(Set#Difference(b, a))
-  + Set#Card(Set#Intersection(a, b))
-    == Set#Card(Set#Union(a, b)) &&
-  Set#Card(Set#Difference(a, b)) == Set#Card(a) - Set#Card(Set#Intersection(a, b)));
+  Set#Card(Set#Difference(a, b))
+         + Set#Card(Set#Difference(b, a))
+         + Set#Card(Set#Intersection(a, b))
+       == Set#Card(Set#Union(a, b))
+     && Set#Card(Set#Difference(a, b)) == Set#Card(a) - Set#Card(Set#Intersection(a, b)));
 
-function Set#Subset(Set, Set): bool;
-axiom (forall a: Set, b: Set :: { Set#Subset(a,b) }
-  Set#Subset(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] ==> b[o]));
-// axiom(forall a: Set, b: Set ::
-//   { Set#Subset(a,b), Set#Card(a), Set#Card(b) }  // very restrictive trigger
-//   Set#Subset(a,b) ==> Set#Card(a) <= Set#Card(b));
+function Set#Subset(a: Set, b: Set) : bool;
+
+axiom (forall a: Set, b: Set ::
+  { Set#Subset(a, b) }
+  Set#Subset(a, b)
+     <==> (forall o: Box ::
+      { Set#IsMember(a, o) } { Set#IsMember(b, o) }
+      Set#IsMember(a, o) ==> Set#IsMember(b, o)));
+
+function Set#Equal(a: Set, b: Set) : bool;
+
+axiom (forall a: Set, b: Set ::
+  { Set#Equal(a, b) }
+  Set#Equal(a, b)
+     <==> (forall o: Box ::
+      { Set#IsMember(a, o) } { Set#IsMember(b, o) }
+      Set#IsMember(a, o) <==> Set#IsMember(b, o)));
+
+axiom (forall a: Set, b: Set :: { Set#Equal(a, b) } Set#Equal(a, b) ==> a == b);
+
+function Set#Disjoint(a: Set, b: Set) : bool;
+
+axiom (forall a: Set, b: Set ::
+  { Set#Disjoint(a, b) }
+  Set#Disjoint(a, b)
+     <==> (forall o: Box ::
+      { Set#IsMember(a, o) } { Set#IsMember(b, o) }
+      !Set#IsMember(a, o) || !Set#IsMember(b, o)));
 
 
-function Set#Equal(Set, Set): bool;
-axiom (forall a: Set, b: Set :: { Set#Equal(a,b) }
-  Set#Equal(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] <==> b[o]));
-axiom (forall a: Set, b: Set :: { Set#Equal(a,b) }  // extensionality axiom for sets
-  Set#Equal(a,b) ==> a == b);
-
-function Set#Disjoint(Set, Set): bool;
-axiom (forall a: Set, b: Set :: { Set#Disjoint(a,b) }
-  Set#Disjoint(a,b) <==> (forall o: Box :: {a[o]} {b[o]} !a[o] || !b[o]));
+// FIXME: Finite-set comprehensions are translated into Boogie lambda expressions for Boogie maps and then converted,
+// using function Set#FromBoogieMap, to a set. The use of Boogie lambda expressions is convenient, since Boogie
+// performs lambda lifting on them. However, this is NOT right, because it allows ANY lambda to be converted
+// into a finite set. This should be fixed by doing the lambda lifting directly in Dafny and not use Boogie lambda
+// expressions.
+function Set#FromBoogieMap([Box]bool): Set;
+axiom (forall m: [Box]bool, bx: Box ::
+  { Set#IsMember(Set#FromBoogieMap(m), bx) }
+  Set#IsMember(Set#FromBoogieMap(m), bx) == m[bx]);
 
 // ---------------------------------------------------------------
 // -- Axiomatization of isets -------------------------------------
@@ -753,12 +812,13 @@ axiom (forall a: Set, b: Set :: { Set#Disjoint(a,b) }
 
 type ISet = [Box]bool;
 
-function ISet#Empty(): Set;
+function ISet#Empty(): ISet;
 axiom (forall o: Box :: { ISet#Empty()[o] } !ISet#Empty()[o]);
 
-// the empty set could be of anything
-//axiom (forall t: Ty :: { $Is(ISet#Empty() : [Box]bool, TISet(t)) } $Is(ISet#Empty() : [Box]bool, TISet(t)));
-
+function ISet#FromSet(Set): ISet;
+axiom (forall s: Set, bx: Box ::
+  { ISet#FromSet(s)[bx] }
+  ISet#FromSet(s)[bx] == Set#IsMember(s, bx));
 
 function ISet#UnionOne(ISet, Box): ISet;
 axiom (forall a: ISet, x: Box, o: Box :: { ISet#UnionOne(a,x)[o] }
@@ -773,7 +833,7 @@ axiom (forall a: ISet, b: ISet, o: Box :: { ISet#Union(a,b)[o] }
   ISet#Union(a,b)[o] <==> a[o] || b[o]);
 axiom (forall a, b: ISet, y: Box :: { ISet#Union(a, b), a[y] }
   a[y] ==> ISet#Union(a, b)[y]);
-axiom (forall a, b: Set, y: Box :: { ISet#Union(a, b), b[y] }
+axiom (forall a, b: ISet, y: Box :: { ISet#Union(a, b), b[y] }
   b[y] ==> ISet#Union(a, b)[y]);
 axiom (forall a, b: ISet :: { ISet#Union(a, b) }
   ISet#Disjoint(a, b) ==>
@@ -786,7 +846,7 @@ axiom (forall a: ISet, b: ISet, o: Box :: { ISet#Intersection(a,b)[o] }
 
 axiom (forall a, b: ISet :: { ISet#Union(ISet#Union(a, b), b) }
   ISet#Union(ISet#Union(a, b), b) == ISet#Union(a, b));
-axiom (forall a, b: Set :: { ISet#Union(a, ISet#Union(a, b)) }
+axiom (forall a, b: ISet :: { ISet#Union(a, ISet#Union(a, b)) }
   ISet#Union(a, ISet#Union(a, b)) == ISet#Union(a, b));
 axiom (forall a, b: ISet :: { ISet#Intersection(ISet#Intersection(a, b), b) }
   ISet#Intersection(ISet#Intersection(a, b), b) == ISet#Intersection(a, b));
@@ -818,141 +878,238 @@ axiom (forall a: ISet, b: ISet :: { ISet#Disjoint(a,b) }
 // -- Axiomatization of multisets --------------------------------
 // ---------------------------------------------------------------
 
-function Math#min(a: int, b: int): int;
+
+
+function Math#min(a: int, b: int) : int;
+
 axiom (forall a: int, b: int :: { Math#min(a, b) } a <= b <==> Math#min(a, b) == a);
+
 axiom (forall a: int, b: int :: { Math#min(a, b) } b <= a <==> Math#min(a, b) == b);
-axiom (forall a: int, b: int :: { Math#min(a, b) } Math#min(a, b) == a || Math#min(a, b) == b);
 
-function Math#clip(a: int): int;
+axiom (forall a: int, b: int ::
+  { Math#min(a, b) }
+  Math#min(a, b) == a || Math#min(a, b) == b);
+
+function Math#clip(a: int) : int;
+
 axiom (forall a: int :: { Math#clip(a) } 0 <= a ==> Math#clip(a) == a);
-axiom (forall a: int :: { Math#clip(a) } a < 0  ==> Math#clip(a) == 0);
 
-type MultiSet = [Box]int;
+axiom (forall a: int :: { Math#clip(a) } a < 0 ==> Math#clip(a) == 0);
 
-function $IsGoodMultiSet(ms: MultiSet): bool;
-// ints are non-negative, used after havocing, and for conversion from sequences to multisets.
-axiom (forall ms: MultiSet :: { $IsGoodMultiSet(ms) }
-  $IsGoodMultiSet(ms) <==>
-  (forall bx: Box :: { ms[bx] } 0 <= ms[bx] && ms[bx] <= MultiSet#Card(ms)));
 
-function MultiSet#Card(MultiSet): int;
+
+
+type MultiSet;
+
+function MultiSet#Multiplicity(m: MultiSet, o: Box) : int;
+
+function MultiSet#UpdateMultiplicity(m: MultiSet, o: Box, n: int) : MultiSet;
+
+axiom (forall m: MultiSet, o: Box, n: int, p: Box ::
+  { MultiSet#Multiplicity(MultiSet#UpdateMultiplicity(m, o, n), p) }
+  0 <= n
+     ==> (o == p ==> MultiSet#Multiplicity(MultiSet#UpdateMultiplicity(m, o, n), p) == n)
+       && (o != p
+         ==> MultiSet#Multiplicity(MultiSet#UpdateMultiplicity(m, o, n), p)
+           == MultiSet#Multiplicity(m, p)));
+
+function $IsGoodMultiSet(ms: MultiSet) : bool;
+
+axiom (forall ms: MultiSet ::
+  { $IsGoodMultiSet(ms) }
+  $IsGoodMultiSet(ms)
+     <==> (forall bx: Box ::
+      { MultiSet#Multiplicity(ms, bx) }
+      0 <= MultiSet#Multiplicity(ms, bx)
+         && MultiSet#Multiplicity(ms, bx) <= MultiSet#Card(ms)));
+
+function MultiSet#Card(m: MultiSet) : int;
+
 axiom (forall s: MultiSet :: { MultiSet#Card(s) } 0 <= MultiSet#Card(s));
-axiom (forall s: MultiSet, x: Box, n: int :: { MultiSet#Card(s[x := n]) }
-  0 <= n ==> MultiSet#Card(s[x := n]) == MultiSet#Card(s) - s[x] + n);
 
-function MultiSet#Empty(): MultiSet;
-axiom (forall o: Box :: { MultiSet#Empty()[o] } MultiSet#Empty()[o] == 0);
-axiom (forall s: MultiSet :: { MultiSet#Card(s) }
-  (MultiSet#Card(s) == 0 <==> s == MultiSet#Empty()) &&
-  (MultiSet#Card(s) != 0 ==> (exists x: Box :: 0 < s[x])));
+axiom (forall s: MultiSet, x: Box, n: int ::
+  { MultiSet#Card(MultiSet#UpdateMultiplicity(s, x, n)) }
+  0 <= n
+     ==> MultiSet#Card(MultiSet#UpdateMultiplicity(s, x, n))
+       == MultiSet#Card(s) - MultiSet#Multiplicity(s, x) + n);
 
-function MultiSet#Singleton(Box): MultiSet;
-axiom (forall r: Box, o: Box :: { MultiSet#Singleton(r)[o] } (MultiSet#Singleton(r)[o] == 1 <==> r == o) &&
-                                                            (MultiSet#Singleton(r)[o] == 0 <==> r != o));
-axiom (forall r: Box :: { MultiSet#Singleton(r) } MultiSet#Singleton(r) == MultiSet#UnionOne(MultiSet#Empty(), r));
+function MultiSet#Empty() : MultiSet;
 
-function MultiSet#UnionOne(MultiSet, Box): MultiSet;
-// pure containment axiom (in the original multiset or is the added element)
-axiom (forall a: MultiSet, x: Box, o: Box :: { MultiSet#UnionOne(a,x)[o] }
-  0 < MultiSet#UnionOne(a,x)[o] <==> o == x || 0 < a[o]);
-// union-ing increases count by one
-axiom (forall a: MultiSet, x: Box :: { MultiSet#UnionOne(a, x) }
-  MultiSet#UnionOne(a, x)[x] == a[x] + 1);
-// non-decreasing
-axiom (forall a: MultiSet, x: Box, y: Box :: { MultiSet#UnionOne(a, x), a[y] }
-  0 < a[y] ==> 0 < MultiSet#UnionOne(a, x)[y]);
-// other elements unchanged
-axiom (forall a: MultiSet, x: Box, y: Box :: { MultiSet#UnionOne(a, x), a[y] }
-  x != y ==> a[y] == MultiSet#UnionOne(a, x)[y]);
-axiom (forall a: MultiSet, x: Box :: { MultiSet#Card(MultiSet#UnionOne(a, x)) }
+axiom (forall o: Box ::
+  { MultiSet#Multiplicity(MultiSet#Empty(), o) }
+  MultiSet#Multiplicity(MultiSet#Empty(), o) == 0);
+
+axiom (forall s: MultiSet ::
+  { MultiSet#Card(s) }
+  (MultiSet#Card(s) == 0 <==> s == MultiSet#Empty())
+     && (MultiSet#Card(s) != 0
+       ==> (exists x: Box ::
+        { MultiSet#Multiplicity(s, x) }
+        0 < MultiSet#Multiplicity(s, x))));
+
+function MultiSet#Singleton(o: Box) : MultiSet;
+
+axiom (forall r: Box, o: Box ::
+  { MultiSet#Multiplicity(MultiSet#Singleton(r), o) }
+  (MultiSet#Multiplicity(MultiSet#Singleton(r), o) == 1 <==> r == o)
+     && (MultiSet#Multiplicity(MultiSet#Singleton(r), o) == 0 <==> r != o));
+
+axiom (forall r: Box ::
+  { MultiSet#Singleton(r) }
+  MultiSet#Singleton(r) == MultiSet#UnionOne(MultiSet#Empty(), r));
+
+function MultiSet#UnionOne(m: MultiSet, o: Box) : MultiSet;
+
+axiom (forall a: MultiSet, x: Box, o: Box ::
+  { MultiSet#Multiplicity(MultiSet#UnionOne(a, x), o) }
+  0 < MultiSet#Multiplicity(MultiSet#UnionOne(a, x), o)
+     <==> o == x || 0 < MultiSet#Multiplicity(a, o));
+
+axiom (forall a: MultiSet, x: Box ::
+  { MultiSet#UnionOne(a, x) }
+  MultiSet#Multiplicity(MultiSet#UnionOne(a, x), x)
+     == MultiSet#Multiplicity(a, x) + 1);
+
+axiom (forall a: MultiSet, x: Box, y: Box ::
+  { MultiSet#UnionOne(a, x), MultiSet#Multiplicity(a, y) }
+  0 < MultiSet#Multiplicity(a, y)
+     ==> 0 < MultiSet#Multiplicity(MultiSet#UnionOne(a, x), y));
+
+axiom (forall a: MultiSet, x: Box, y: Box ::
+  { MultiSet#UnionOne(a, x), MultiSet#Multiplicity(a, y) }
+  x != y
+     ==> MultiSet#Multiplicity(a, y) == MultiSet#Multiplicity(MultiSet#UnionOne(a, x), y));
+
+axiom (forall a: MultiSet, x: Box ::
+  { MultiSet#Card(MultiSet#UnionOne(a, x)) }
   MultiSet#Card(MultiSet#UnionOne(a, x)) == MultiSet#Card(a) + 1);
 
+function MultiSet#Union(a: MultiSet, b: MultiSet) : MultiSet;
 
-function MultiSet#Union(MultiSet, MultiSet): MultiSet;
-// union-ing is the sum of the contents
-axiom (forall a: MultiSet, b: MultiSet, o: Box :: { MultiSet#Union(a,b)[o] }
-  MultiSet#Union(a,b)[o] == a[o] + b[o]);
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Card(MultiSet#Union(a,b)) }
-  MultiSet#Card(MultiSet#Union(a,b)) == MultiSet#Card(a) + MultiSet#Card(b));
+axiom (forall a: MultiSet, b: MultiSet, o: Box ::
+  { MultiSet#Multiplicity(MultiSet#Union(a, b), o) }
+  MultiSet#Multiplicity(MultiSet#Union(a, b), o)
+     == MultiSet#Multiplicity(a, o) + MultiSet#Multiplicity(b, o));
 
-function MultiSet#Intersection(MultiSet, MultiSet): MultiSet;
-axiom (forall a: MultiSet, b: MultiSet, o: Box :: { MultiSet#Intersection(a,b)[o] }
-  MultiSet#Intersection(a,b)[o] == Math#min(a[o],  b[o]));
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Card(MultiSet#Union(a, b)) }
+  MultiSet#Card(MultiSet#Union(a, b)) == MultiSet#Card(a) + MultiSet#Card(b));
 
-// left and right pseudo-idempotence
-axiom (forall a, b: MultiSet :: { MultiSet#Intersection(MultiSet#Intersection(a, b), b) }
-  MultiSet#Intersection(MultiSet#Intersection(a, b), b) == MultiSet#Intersection(a, b));
-axiom (forall a, b: MultiSet :: { MultiSet#Intersection(a, MultiSet#Intersection(a, b)) }
-  MultiSet#Intersection(a, MultiSet#Intersection(a, b)) == MultiSet#Intersection(a, b));
+function MultiSet#Intersection(a: MultiSet, b: MultiSet) : MultiSet;
 
-// multiset difference, a - b. clip() makes it positive.
-function MultiSet#Difference(MultiSet, MultiSet): MultiSet;
-axiom (forall a: MultiSet, b: MultiSet, o: Box :: { MultiSet#Difference(a,b)[o] }
-  MultiSet#Difference(a,b)[o] == Math#clip(a[o] - b[o]));
-axiom (forall a, b: MultiSet, y: Box :: { MultiSet#Difference(a, b), b[y], a[y] }
-  a[y] <= b[y] ==> MultiSet#Difference(a, b)[y] == 0 );
-axiom (forall a, b: MultiSet ::
+axiom (forall a: MultiSet, b: MultiSet, o: Box ::
+  { MultiSet#Multiplicity(MultiSet#Intersection(a, b), o) }
+  MultiSet#Multiplicity(MultiSet#Intersection(a, b), o)
+     == Math#min(MultiSet#Multiplicity(a, o), MultiSet#Multiplicity(b, o)));
+
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Intersection(MultiSet#Intersection(a, b), b) }
+  MultiSet#Intersection(MultiSet#Intersection(a, b), b)
+     == MultiSet#Intersection(a, b));
+
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Intersection(a, MultiSet#Intersection(a, b)) }
+  MultiSet#Intersection(a, MultiSet#Intersection(a, b))
+     == MultiSet#Intersection(a, b));
+
+function MultiSet#Difference(a: MultiSet, b: MultiSet) : MultiSet;
+
+axiom (forall a: MultiSet, b: MultiSet, o: Box ::
+  { MultiSet#Multiplicity(MultiSet#Difference(a, b), o) }
+  MultiSet#Multiplicity(MultiSet#Difference(a, b), o)
+     == Math#clip(MultiSet#Multiplicity(a, o) - MultiSet#Multiplicity(b, o)));
+
+axiom (forall a: MultiSet, b: MultiSet, y: Box ::
+  { MultiSet#Difference(a, b), MultiSet#Multiplicity(b, y), MultiSet#Multiplicity(a, y) }
+  MultiSet#Multiplicity(a, y) <= MultiSet#Multiplicity(b, y)
+     ==> MultiSet#Multiplicity(MultiSet#Difference(a, b), y) == 0);
+
+axiom (forall a: MultiSet, b: MultiSet ::
   { MultiSet#Card(MultiSet#Difference(a, b)) }
-  MultiSet#Card(MultiSet#Difference(a, b)) + MultiSet#Card(MultiSet#Difference(b, a))
-  + 2 * MultiSet#Card(MultiSet#Intersection(a, b))
-    == MultiSet#Card(MultiSet#Union(a, b)) &&
-  MultiSet#Card(MultiSet#Difference(a, b)) == MultiSet#Card(a) - MultiSet#Card(MultiSet#Intersection(a, b)));
+  MultiSet#Card(MultiSet#Difference(a, b))
+         + MultiSet#Card(MultiSet#Difference(b, a))
+         + 2 * MultiSet#Card(MultiSet#Intersection(a, b))
+       == MultiSet#Card(MultiSet#Union(a, b))
+     && MultiSet#Card(MultiSet#Difference(a, b))
+       == MultiSet#Card(a) - MultiSet#Card(MultiSet#Intersection(a, b)));
 
-// multiset subset means a must have at most as many of each element as b
-function MultiSet#Subset(MultiSet, MultiSet): bool;
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Subset(a,b) }
-  MultiSet#Subset(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] <= b[o]));
+function MultiSet#Subset(a: MultiSet, b: MultiSet) : bool;
 
-function MultiSet#Equal(MultiSet, MultiSet): bool;
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Equal(a,b) }
-  MultiSet#Equal(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] == b[o]));
-// extensionality axiom for multisets
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Equal(a,b) }
-  MultiSet#Equal(a,b) ==> a == b);
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Subset(a, b) }
+  MultiSet#Subset(a, b)
+     <==> (forall o: Box ::
+      { MultiSet#Multiplicity(a, o) } { MultiSet#Multiplicity(b, o) }
+      MultiSet#Multiplicity(a, o) <= MultiSet#Multiplicity(b, o)));
 
-function MultiSet#Disjoint(MultiSet, MultiSet): bool;
-axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Disjoint(a,b) }
-  MultiSet#Disjoint(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] == 0 || b[o] == 0));
+function MultiSet#Equal(a: MultiSet, b: MultiSet) : bool;
 
-// conversion to a multiset. each element in the original set has duplicity 1.
-function MultiSet#FromSet(Set): MultiSet;
-axiom (forall s: Set, a: Box :: { MultiSet#FromSet(s)[a] }
-  (MultiSet#FromSet(s)[a] == 0 <==> !s[a]) &&
-  (MultiSet#FromSet(s)[a] == 1 <==> s[a]));
-axiom (forall s: Set :: { MultiSet#Card(MultiSet#FromSet(s)) }
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Equal(a, b) }
+  MultiSet#Equal(a, b)
+     <==> (forall o: Box ::
+      { MultiSet#Multiplicity(a, o) } { MultiSet#Multiplicity(b, o) }
+      MultiSet#Multiplicity(a, o) == MultiSet#Multiplicity(b, o)));
+
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Equal(a, b) }
+  MultiSet#Equal(a, b) ==> a == b);
+
+function MultiSet#Disjoint(a: MultiSet, b: MultiSet) : bool;
+
+axiom (forall a: MultiSet, b: MultiSet ::
+  { MultiSet#Disjoint(a, b) }
+  MultiSet#Disjoint(a, b)
+     <==> (forall o: Box ::
+      { MultiSet#Multiplicity(a, o) } { MultiSet#Multiplicity(b, o) }
+      MultiSet#Multiplicity(a, o) == 0 || MultiSet#Multiplicity(b, o) == 0));
+
+function MultiSet#FromSet(s: Set) : MultiSet;
+
+axiom (forall s: Set, a: Box ::
+  { MultiSet#Multiplicity(MultiSet#FromSet(s), a) }
+  (MultiSet#Multiplicity(MultiSet#FromSet(s), a) == 0 <==> !Set#IsMember(s, a))
+     && (MultiSet#Multiplicity(MultiSet#FromSet(s), a) == 1 <==> Set#IsMember(s, a)));
+
+axiom (forall s: Set ::
+  { MultiSet#Card(MultiSet#FromSet(s)) }
   MultiSet#Card(MultiSet#FromSet(s)) == Set#Card(s));
 
-// conversion to a multiset, from a sequence.
-function MultiSet#FromSeq(Seq): MultiSet uses {
-  axiom MultiSet#FromSeq(Seq#Empty(): Seq) == MultiSet#Empty(): MultiSet;
+function MultiSet#FromSeq(s: Seq) : MultiSet
+uses {
+axiom MultiSet#FromSeq(Seq#Empty()) == MultiSet#Empty();
 }
 
-// conversion produces a good map.
-axiom (forall s: Seq :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
-// cardinality axiom
+axiom (forall s: Seq :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)));
+
 axiom (forall s: Seq ::
   { MultiSet#Card(MultiSet#FromSeq(s)) }
-    MultiSet#Card(MultiSet#FromSeq(s)) == Seq#Length(s));
-// building axiom
+  MultiSet#Card(MultiSet#FromSeq(s)) == Seq#Length(s));
+
 axiom (forall s: Seq, v: Box ::
   { MultiSet#FromSeq(Seq#Build(s, v)) }
-    MultiSet#FromSeq(Seq#Build(s, v)) == MultiSet#UnionOne(MultiSet#FromSeq(s), v)
-  );
+  MultiSet#FromSeq(Seq#Build(s, v)) == MultiSet#UnionOne(MultiSet#FromSeq(s), v));
 
-// concatenation axiom
 axiom (forall a: Seq, b: Seq ::
   { MultiSet#FromSeq(Seq#Append(a, b)) }
-    MultiSet#FromSeq(Seq#Append(a, b)) == MultiSet#Union(MultiSet#FromSeq(a), MultiSet#FromSeq(b)) );
+  MultiSet#FromSeq(Seq#Append(a, b))
+     == MultiSet#Union(MultiSet#FromSeq(a), MultiSet#FromSeq(b)));
 
-// update axiom
 axiom (forall s: Seq, i: int, v: Box, x: Box ::
-  { MultiSet#FromSeq(Seq#Update(s, i, v))[x] }
-    0 <= i && i < Seq#Length(s) ==>
-    MultiSet#FromSeq(Seq#Update(s, i, v))[x] ==
-      MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s,i))), MultiSet#Singleton(v))[x] );
-  // i.e. MS(Update(s, i, v)) == MS(s) - {{s[i]}} + {{v}}
-axiom (forall s: Seq, x: Box :: { MultiSet#FromSeq(s)[x] }
-  (exists i : int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && x == Seq#Index(s,i)) <==> 0 < MultiSet#FromSeq(s)[x] );
+  { MultiSet#Multiplicity(MultiSet#FromSeq(Seq#Update(s, i, v)), x) }
+  0 <= i && i < Seq#Length(s)
+     ==> MultiSet#Multiplicity(MultiSet#FromSeq(Seq#Update(s, i, v)), x)
+       == MultiSet#Multiplicity(MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s, i))),
+          MultiSet#Singleton(v)),
+        x));
+
+axiom (forall s: Seq, x: Box ::
+  { MultiSet#Multiplicity(MultiSet#FromSeq(s), x) }
+  (exists i: int ::
+      { Seq#Index(s, i) }
+      0 <= i && i < Seq#Length(s) && x == Seq#Index(s, i))
+     <==> 0 < MultiSet#Multiplicity(MultiSet#FromSeq(s), x));
+
 
 // ---------------------------------------------------------------
 // -- Axiomatization of sequences --------------------------------
@@ -972,13 +1129,6 @@ axiom Seq#Length(Seq#Empty()) == 0;
 }
 
 axiom (forall s: Seq :: { Seq#Length(s) } Seq#Length(s) == 0 ==> s == Seq#Empty());
-// The following would be a nice fact to include, because it would enable verifying the
-// GenericPick.SeqPick* methods in Test/dafny0/SmallTests.dfy.  However, it substantially
-// slows down performance on some other tests, including running seemingly forever on
-// some.
-//  axiom (forall s: Seq :: { Seq#Length(s) }
-//    (Seq#Length(s) != 0 ==> (exists x: Box :: Seq#Contains(s, x)))
-//    );
 
 function Seq#Build(s: Seq, val: Box) : Seq;
 
@@ -1044,7 +1194,6 @@ axiom (forall s0: Seq, s1: Seq, x: Box ::
   Seq#Contains(Seq#Append(s0, s1), x)
      <==> Seq#Contains(s0, x) || Seq#Contains(s1, x));
 
-// needed to prove things like '4 in [2,3,4]', see method TestSequences0 in SmallTests.dfy
 axiom (forall s: Seq, v: Box, x: Box ::
   { Seq#Contains(Seq#Build(s, v), x) }
   Seq#Contains(Seq#Build(s, v), x) <==> v == x || Seq#Contains(s, x));
@@ -1073,7 +1222,6 @@ axiom (forall s0: Seq, s1: Seq ::
         { Seq#Index(s0, j) } { Seq#Index(s1, j) }
         0 <= j && j < Seq#Length(s0) ==> Seq#Index(s0, j) == Seq#Index(s1, j)));
 
-// extensionality axiom for sequences
 axiom (forall a: Seq, b: Seq :: { Seq#Equal(a, b) } Seq#Equal(a, b) ==> a == b);
 
 function Seq#SameUntil(s0: Seq, s1: Seq, n: int) : bool;
@@ -1117,7 +1265,6 @@ axiom (forall s: Seq, t: Seq, n: int ::
   n == Seq#Length(s)
      ==> Seq#Take(Seq#Append(s, t), n) == s && Seq#Drop(Seq#Append(s, t), n) == t);
 
-// Commutability of Take and Drop with Update.
 axiom (forall s: Seq, i: int, v: Box, n: int ::
   { Seq#Take(Seq#Update(s, i, v), n) }
   0 <= i && i < n && n <= Seq#Length(s)
@@ -1138,13 +1285,11 @@ axiom (forall s: Seq, i: int, v: Box, n: int ::
   0 <= i && i < n && n <= Seq#Length(s)
      ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
 
-// drop commutes with build.
 axiom (forall s: Seq, v: Box, n: int ::
   { Seq#Drop(Seq#Build(s, v), n) }
   0 <= n && n <= Seq#Length(s)
      ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v));
 
-// Additional axioms about common things
 axiom (forall s: Seq, n: int :: { Seq#Drop(s, n) } n == 0 ==> Seq#Drop(s, n) == s);
 
 axiom (forall s: Seq, n: int ::
@@ -1240,13 +1385,13 @@ axiom (forall m: Map ::
 
 axiom (forall m: Map ::
   { Map#Domain(m) }
-  m == Map#Empty() || (exists k: Box :: Map#Domain(m)[k]));
+  m == Map#Empty() || (exists k: Box :: Set#IsMember(Map#Domain(m), k)));
 axiom (forall m: Map ::
   { Map#Values(m) }
-  m == Map#Empty() || (exists v: Box :: Map#Values(m)[v]));
+  m == Map#Empty() || (exists v: Box :: Set#IsMember(Map#Values(m), v)));
 axiom (forall m: Map ::
   { Map#Items(m) }
-  m == Map#Empty() || (exists k, v: Box :: Map#Items(m)[$Box(#_System._tuple#2._#Make2(k, v))]));
+  m == Map#Empty() || (exists k, v: Box :: Set#IsMember(Map#Items(m), $Box(#_System._tuple#2._#Make2(k, v)))));
 
 axiom (forall m: Map ::
   { Set#Card(Map#Domain(m)) } { Map#Card(m) }
@@ -1259,25 +1404,21 @@ axiom (forall m: Map ::
   Set#Card(Map#Items(m)) == Map#Card(m));
 
 // The set of Values of a Map can be obtained by the function Map#Values, which is
-// defined as follows.  Remember, a Set is defined by membership (using Boogie's
-// square brackets) and Map#Card, so we need to define what these mean for the Set
-// returned by Map#Values.
+// defined as follows.  Remember, a Set is defined by Set#IsMember and Map#Card, so
+// we need to define what these mean for the Set returned by Map#Values.
 
 function Map#Values(Map) : Set;
 
-axiom (forall m: Map, v: Box :: { Map#Values(m)[v] }
-  Map#Values(m)[v] ==
-	(exists u: Box :: { Map#Domain(m)[u] } { Map#Elements(m)[u] }
-	  Map#Domain(m)[u] &&
+axiom (forall m: Map, v: Box :: { Set#IsMember(Map#Values(m), v) }
+  Set#IsMember(Map#Values(m), v) ==
+	(exists u: Box :: { Set#IsMember(Map#Domain(m), u) } { Map#Elements(m)[u] }
+	  Set#IsMember(Map#Domain(m), u) &&
     v == Map#Elements(m)[u]));
 
 // The set of Items--that is, (key,value) pairs--of a Map can be obtained by the
-// function Map#Items.  Again, we need to define membership of Set#Card for this
-// set.  Everywhere else in this axiomatization, Map is parameterized by types U V,
-// even though Dafny only ever instantiates U V with Box Box.  This makes the
-// axiomatization more generic.  Function Map#Items, however, returns a set of
-// pairs, and the axiomatization of pairs is Dafny specific.  Therefore, the
-// definition of Map#Items here is to be considered Dafny specific.  Also, note
+// function Map#Items.  Again, we need to define Set#IsMember and Set#Card for this
+// set. Function Map#Items returns a set of pairs, and the axiomatization of pairs is Dafny specific.
+// Therefore, the definition of Map#Items here is to be considered Dafny specific.  Also, note
 // that it relies on the two destructors for 2-tuples.
 
 function Map#Items(Map) : Set;
@@ -1286,29 +1427,29 @@ function #_System._tuple#2._#Make2(Box, Box) : DatatypeType;
 function _System.Tuple2._0(DatatypeType) : Box;
 function _System.Tuple2._1(DatatypeType) : Box;
 
-axiom (forall m: Map, item: Box :: { Map#Items(m)[item] }
-  Map#Items(m)[item] <==>
-    Map#Domain(m)[_System.Tuple2._0($Unbox(item))] &&
+axiom (forall m: Map, item: Box :: { Set#IsMember(Map#Items(m), item) }
+  Set#IsMember(Map#Items(m), item) <==>
+    Set#IsMember(Map#Domain(m), _System.Tuple2._0($Unbox(item))) &&
     Map#Elements(m)[_System.Tuple2._0($Unbox(item))] == _System.Tuple2._1($Unbox(item)));
 
 // Here are the operations that produce Map values.
 
 function Map#Empty(): Map;
 axiom (forall u: Box ::
-        { Map#Domain(Map#Empty(): Map)[u] }
-        !Map#Domain(Map#Empty(): Map)[u]);
+        { Set#IsMember(Map#Domain(Map#Empty(): Map), u) }
+        !Set#IsMember(Map#Domain(Map#Empty(): Map), u));
 
-function Map#Glue([Box]bool, [Box]Box, Ty): Map;
-axiom (forall a: [Box]bool, b: [Box]Box, t: Ty ::
+function Map#Glue(Set, [Box]Box, Ty): Map;
+axiom (forall a: Set, b: [Box]Box, t: Ty ::
   { Map#Domain(Map#Glue(a, b, t)) }
   Map#Domain(Map#Glue(a, b, t)) == a);
-axiom (forall a: [Box]bool, b: [Box]Box, t: Ty ::
+axiom (forall a: Set, b: [Box]Box, t: Ty ::
   { Map#Elements(Map#Glue(a, b, t)) }
   Map#Elements(Map#Glue(a, b, t)) == b);
-axiom (forall a: [Box]bool, b: [Box]Box, t0, t1: Ty ::
+axiom (forall a: Set, b: [Box]Box, t0, t1: Ty ::
   { Map#Glue(a, b, TMap(t0, t1)) }
   // In the following line, no trigger needed, since the quantifier only gets used in negative contexts
-  (forall bx: Box :: a[bx] ==> $IsBox(bx, t0) && $IsBox(b[bx], t1))
+  (forall bx: Box :: Set#IsMember(a, bx) ==> $IsBox(bx, t0) && $IsBox(b[bx], t1))
   ==>
   $Is(Map#Glue(a, b, TMap(t0, t1)), TMap(t0, t1)));
 
@@ -1320,15 +1461,15 @@ function Map#Build(Map, Box, Box): Map;
   Map#Domain(Map#Build(m, u, v))[u] && Map#Elements(Map#Build(m, u, v))[u] == v);*/
 
 axiom (forall m: Map, u: Box, u': Box, v: Box ::
-  { Map#Domain(Map#Build(m, u, v))[u'] } { Map#Elements(Map#Build(m, u, v))[u'] }
-  (u' == u ==> Map#Domain(Map#Build(m, u, v))[u'] &&
+  { Set#IsMember(Map#Domain(Map#Build(m, u, v)), u') } { Map#Elements(Map#Build(m, u, v))[u'] }
+  (u' == u ==> Set#IsMember(Map#Domain(Map#Build(m, u, v)), u') &&
                Map#Elements(Map#Build(m, u, v))[u'] == v) &&
-  (u' != u ==> Map#Domain(Map#Build(m, u, v))[u'] == Map#Domain(m)[u'] &&
+  (u' != u ==> Set#IsMember(Map#Domain(Map#Build(m, u, v)), u') == Set#IsMember(Map#Domain(m), u') &&
                Map#Elements(Map#Build(m, u, v))[u'] == Map#Elements(m)[u']));
 axiom (forall m: Map, u: Box, v: Box :: { Map#Card(Map#Build(m, u, v)) }
-  Map#Domain(m)[u] ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m));
+  Set#IsMember(Map#Domain(m), u) ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m));
 axiom (forall m: Map, u: Box, v: Box :: { Map#Card(Map#Build(m, u, v)) }
-  !Map#Domain(m)[u] ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m) + 1);
+  !Set#IsMember(Map#Domain(m), u) ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m) + 1);
 
 // Map operations
 function Map#Merge(Map, Map): Map;
@@ -1337,9 +1478,9 @@ axiom (forall m: Map, n: Map ::
   Map#Domain(Map#Merge(m, n)) == Set#Union(Map#Domain(m), Map#Domain(n)));
 axiom (forall m: Map, n: Map, u: Box ::
   { Map#Elements(Map#Merge(m, n))[u] }
-  Map#Domain(Map#Merge(m, n))[u] ==>
-    (!Map#Domain(n)[u] ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(m)[u]) &&
-    (Map#Domain(n)[u] ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(n)[u]));
+  Set#IsMember(Map#Domain(Map#Merge(m, n)), u) ==>
+    (!Set#IsMember(Map#Domain(n), u) ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(m)[u]) &&
+    (Set#IsMember(Map#Domain(n), u) ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(n)[u]));
 
 function Map#Subtract(Map, Set): Map;
 axiom (forall m: Map, s: Set ::
@@ -1347,15 +1488,15 @@ axiom (forall m: Map, s: Set ::
   Map#Domain(Map#Subtract(m, s)) == Set#Difference(Map#Domain(m), s));
 axiom (forall m: Map, s: Set, u: Box ::
   { Map#Elements(Map#Subtract(m, s))[u] }
-  Map#Domain(Map#Subtract(m, s))[u] ==>
+  Set#IsMember(Map#Domain(Map#Subtract(m, s)), u) ==>
     Map#Elements(Map#Subtract(m, s))[u] == Map#Elements(m)[u]);
 
 //equality for maps
 function Map#Equal(Map, Map): bool;
 axiom (forall m: Map, m': Map::
   { Map#Equal(m, m') }
-    Map#Equal(m, m') <==> (forall u : Box :: Map#Domain(m)[u] == Map#Domain(m')[u]) &&
-                          (forall u : Box :: Map#Domain(m)[u] ==> Map#Elements(m)[u] == Map#Elements(m')[u]));
+    Map#Equal(m, m') <==> (forall u : Box :: Set#IsMember(Map#Domain(m), u) == Set#IsMember(Map#Domain(m'), u)) &&
+                          (forall u : Box :: Set#IsMember(Map#Domain(m), u) ==> Map#Elements(m)[u] == Map#Elements(m')[u]));
 // extensionality
 axiom (forall m: Map, m': Map::
   { Map#Equal(m, m') }
@@ -1364,7 +1505,8 @@ axiom (forall m: Map, m': Map::
 function Map#Disjoint(Map, Map): bool;
 axiom (forall m: Map, m': Map ::
   { Map#Disjoint(m, m') }
-    Map#Disjoint(m, m') <==> (forall o: Box :: {Map#Domain(m)[o]} {Map#Domain(m')[o]} !Map#Domain(m)[o] || !Map#Domain(m')[o]));
+    Map#Disjoint(m, m') <==>
+    (forall o: Box :: {Set#IsMember(Map#Domain(m), o)} {Set#IsMember(Map#Domain(m'), o)} !Set#IsMember(Map#Domain(m), o) || !Set#IsMember(Map#Domain(m'), o)));
 
 // ---------------------------------------------------------------
 // -- Axiomatization of IMaps ------------------------------------
@@ -1374,7 +1516,7 @@ type IMap;
 
 // A IMap is defined by two functions, Map#Domain and Map#Elements.
 
-function IMap#Domain(IMap) : Set;
+function IMap#Domain(IMap) : ISet;
 
 function IMap#Elements(IMap) : [Box]Box;
 
@@ -1398,12 +1540,12 @@ axiom (forall m: IMap ::
   { IMap#Items(m) }
   m == IMap#Empty() <==> IMap#Items(m) == ISet#Empty());
 
-// The set of Values of a IMap can be obtained by the function IMap#Values, which is
-// defined as follows.  Remember, a ISet is defined by membership (using Boogie's
-// square brackets) so we need to define what these mean for the Set
-// returned by Map#Values.
+// The set of Values of an IMap can be obtained by the function IMap#Values, which is
+// defined as follows.  Remember, an ISet is defined by membership (using Boogie's
+// square brackets) so we need to define what these mean for the ISet
+// returned by IMap#Values.
 
-function IMap#Values(IMap) : Set;
+function IMap#Values(IMap) : ISet;
 
 axiom (forall m: IMap, v: Box :: { IMap#Values(m)[v] }
   IMap#Values(m)[v] ==
@@ -1412,15 +1554,12 @@ axiom (forall m: IMap, v: Box :: { IMap#Values(m)[v] }
     v == IMap#Elements(m)[u]));
 
 // The set of Items--that is, (key,value) pairs--of a Map can be obtained by the
-// function IMap#Items.
-// Everywhere else in this axiomatization, IMap is parameterized by types U V,
-// even though Dafny only ever instantiates U V with Box Box.  This makes the
-// axiomatization more generic.  Function IMap#Items, however, returns a set of
+// function IMap#Items. Function IMap#Items returns a set of
 // pairs, and the axiomatization of pairs is Dafny specific.  Therefore, the
 // definition of IMap#Items here is to be considered Dafny specific.  Also, note
 // that it relies on the two destructors for 2-tuples.
 
-function IMap#Items(IMap) : Set;
+function IMap#Items(IMap) : ISet;
 
 axiom (forall m: IMap, item: Box :: { IMap#Items(m)[item] }
   IMap#Items(m)[item] <==>
@@ -1445,7 +1584,7 @@ axiom (forall a: [Box]bool, b: [Box]Box, t0, t1: Ty ::
   // In the following line, no trigger needed, since the quantifier only gets used in negative contexts
   (forall bx: Box :: a[bx] ==> $IsBox(bx, t0) && $IsBox(b[bx], t1))
   ==>
-  $Is(Map#Glue(a, b, TIMap(t0, t1)), TIMap(t0, t1)));
+  $Is(IMap#Glue(a, b, TIMap(t0, t1)), TIMap(t0, t1)));
 
 //Build is used in displays
 function IMap#Build(IMap, Box, Box): IMap;
@@ -1475,7 +1614,7 @@ axiom (forall m: IMap, m': IMap::
 function IMap#Merge(IMap, IMap): IMap;
 axiom (forall m: IMap, n: IMap ::
   { IMap#Domain(IMap#Merge(m, n)) }
-  IMap#Domain(IMap#Merge(m, n)) == Set#Union(IMap#Domain(m), IMap#Domain(n)));
+  IMap#Domain(IMap#Merge(m, n)) == ISet#Union(IMap#Domain(m), IMap#Domain(n)));
 axiom (forall m: IMap, n: IMap, u: Box ::
   { IMap#Elements(IMap#Merge(m, n))[u] }
   IMap#Domain(IMap#Merge(m, n))[u] ==>
@@ -1485,7 +1624,7 @@ axiom (forall m: IMap, n: IMap, u: Box ::
 function IMap#Subtract(IMap, Set): IMap;
 axiom (forall m: IMap, s: Set ::
   { IMap#Domain(IMap#Subtract(m, s)) }
-  IMap#Domain(IMap#Subtract(m, s)) == Set#Difference(IMap#Domain(m), s));
+  IMap#Domain(IMap#Subtract(m, s)) == ISet#Difference(IMap#Domain(m), ISet#FromSet(s)));
 axiom (forall m: IMap, s: Set, u: Box ::
   { IMap#Elements(IMap#Subtract(m, s))[u] }
   IMap#Domain(IMap#Subtract(m, s))[u] ==>

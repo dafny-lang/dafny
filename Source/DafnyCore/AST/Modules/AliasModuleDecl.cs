@@ -62,7 +62,7 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
   /// </summary>
   public override IToken NavigationToken => HasAlias ? base.NavigationToken : (TargetQId.Decl?.NavigationToken ?? base.NavigationToken);
 
-  private bool HasAlias => NameNode.RangeToken.IsSet();
+  private bool HasAlias => NameNode.Origin.IsSet();
 
   public override IToken Tok => HasAlias ? NameNode.StartToken : StartToken;
 

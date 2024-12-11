@@ -8,6 +8,13 @@ ghost predicate IsFactor(p: pos, x: pos) {
   exists q :: p * q == x
 }
 
+lemma GetOtherFactor(p: pos, x: pos) returns (q: pos)
+  requires IsFactor(p, x)
+  ensures p * q == x
+{
+  q :| p * q == x;
+}
+
 ghost function Factors(x: pos): set<pos> {
   set p: pos | p <= x && IsFactor(p, x)
 }
@@ -88,11 +95,14 @@ lemma IsFactorGcdSecond(x: pos, y: pos)
 lemma IsFactorGcdLess(x: pos, y: pos)
   ensures forall p: pos :: IsFactor(p, x) && IsFactor(p, y) ==> p <= Gcd(x, y)
 {
+  hide IsFactor;
   IsFactorGcdFirst(x, y);
   IsFactorGcdSecond(x, y);
   forall p: pos | IsFactor(p, x) && IsFactor(p, y)
     ensures p <= Gcd(x, y)
   {
+    var qx := GetOtherFactor(p, x);
+    var qy := GetOtherFactor(p, y);
     reveal Gcd();
     assert p in Factors(x) * Factors(y);
   }

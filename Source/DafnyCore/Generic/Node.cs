@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
 using Action = System.Action;
 
@@ -12,11 +10,11 @@ namespace Microsoft.Dafny;
 
 public interface INode {
   bool SingleFileToken { get; }
-  public IToken StartToken => RangeToken.StartToken;
-  public IToken EndToken => RangeToken.EndToken;
-  IEnumerable<IToken> OwnedTokens { get; }
-  RangeToken RangeToken { get; }
-  IToken Tok { get; }
+  public IOrigin StartToken => Origin.StartToken;
+  public IOrigin EndToken => Origin.EndToken;
+  IEnumerable<IOrigin> OwnedTokens { get; }
+  RangeToken Origin { get; }
+  IOrigin Tok { get; }
   IEnumerable<INode> Children { get; }
   IEnumerable<INode> PreResolveChildren { get; }
 }
@@ -36,10 +34,17 @@ public abstract class Node : INode {
   protected IReadOnlyList<IToken> OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
+<<<<<<< HEAD
   public IToken StartToken => RangeToken?.StartToken;
 
   public IToken EndToken => RangeToken?.EndToken;
   public abstract IToken Tok { get; }
+=======
+  public IOrigin StartToken => Origin?.StartToken;
+
+  public IOrigin EndToken => Origin?.EndToken;
+  public abstract IOrigin Tok { get; }
+>>>>>>> 579df1688d0925d887f1f53f45b6b9b07dfe8cca
 
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
@@ -116,7 +121,7 @@ public abstract class Node : INode {
 
   /// <summary>
   // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
-  // Therefore, we have to find all the concrete children by unwrapping such nodes. 
+  // Therefore, we have to find all the concrete children by unwrapping such nodes.
   /// </summary>
   private static IEnumerable<INode> GetConcreteChildren(INode node) {
     foreach (var child in node.PreResolveChildren) {
@@ -130,7 +135,7 @@ public abstract class Node : INode {
     }
   }
 
-  public abstract RangeToken RangeToken { get; set; }
+  public abstract RangeToken Origin { get; set; }
 
   // <summary>
   // Returns all assumptions contained in this node or its descendants.
@@ -203,6 +208,7 @@ public abstract class Node : INode {
     }
     return null;
   }
+<<<<<<< HEAD
 }
 
 public abstract class TokenNode : Node {
@@ -289,3 +295,6 @@ public abstract class RangeNode : Node { // TODO merge into Node when TokenNode 
     RangeToken = rangeToken;
   }
 }
+=======
+}
+>>>>>>> 579df1688d0925d887f1f53f45b6b9b07dfe8cca

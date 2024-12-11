@@ -125,12 +125,19 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       }
     } else if (expr is DatatypeValue datatypeValue) {
       Contract.Assert(datatypeValue.InferredTypeArgs.Count == 0 || datatypeValue.InferredTypeArgs.Count == datatypeValue.InferredPreTypeArgs.Count);
-      if (datatypeValue.InferredTypeArgs.Count == 0) {
-        var datatypeDecl = datatypeValue.Ctor.EnclosingDatatype;
-        Contract.Assert(datatypeValue.InferredPreTypeArgs.Count == datatypeDecl.TypeArgs.Count);
-        for (var i = 0; i < datatypeDecl.TypeArgs.Count; i++) {
-          var formal = datatypeDecl.TypeArgs[i];
-          var actualPreType = datatypeValue.InferredPreTypeArgs[i];
+      if (datatypeValue.InferredTypeArgs.Any(typeArg => typeArg is InferredTypeProxy)) {
+        Contract.Assert(datatypeValue.InferredTypeArgs.All(typeArg => typeArg is InferredTypeProxy));
+      }
+      var datatypeDecl = datatypeValue.Ctor.EnclosingDatatype;
+      Contract.Assert(datatypeValue.InferredPreTypeArgs.Count == datatypeDecl.TypeArgs.Count);
+
+      for (var i = 0; i < datatypeDecl.TypeArgs.Count; i++) {
+        var formal = datatypeDecl.TypeArgs[i];
+        var actualPreType = datatypeValue.InferredPreTypeArgs[i];
+        if (i < datatypeValue.InferredTypeArgs.Count) {
+          var givenTypeOrProxy = datatypeValue.InferredTypeArgs[i];
+          PreType2TypeUtil.Combine(givenTypeOrProxy, actualPreType, givenTypeOrProxy is TypeProxy);
+        } else {
           datatypeValue.InferredTypeArgs.Add(PreType2TypeUtil.PreType2RefinableType(actualPreType, formal.Variance));
         }
       }

@@ -37,7 +37,7 @@ class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used
   ISet<MemberDecl> IAmbiguousThing<MemberDecl>.Pool => pool;
 
   private AmbiguousMemberDecl(ModuleDefinition m, string name, ISet<MemberDecl> pool)
-    : base(pool.First().RangeToken, new Name(pool.First().RangeToken, name), true, pool.First().IsGhost, null, false) {
+    : base(pool.First().Origin, new Name(pool.First().Origin, name), true, pool.First().IsGhost, null, false) {
     Contract.Requires(name != null);
     Contract.Requires(pool != null && 2 <= pool.Count);
     this.pool = pool;

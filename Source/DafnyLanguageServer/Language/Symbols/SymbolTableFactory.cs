@@ -312,7 +312,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           moduleSymbol,
           moduleSymbol.Declaration.tok,
           moduleSymbol.Declaration.tok.GetLspRange(),
-          moduleSymbol.Declaration.RangeToken.ToLspRange()
+          moduleSymbol.Declaration.Origin.ToLspRange()
         );
         VisitChildren(moduleSymbol);
         return Unit.Value;
@@ -332,7 +332,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           typeSymbol,
           typeSymbol.Declaration.tok,
           typeSymbol.Declaration.tok.GetLspRange(),
-          new Range(typeSymbol.Declaration.RangeToken.StartToken.GetLspPosition(), typeSymbol.Declaration.RangeToken.EndToken.GetLspPosition())
+          new Range(typeSymbol.Declaration.Origin.StartToken.GetLspPosition(), typeSymbol.Declaration.Origin.EndToken.GetLspPosition())
         );
         VisitChildren(typeSymbol);
         return Unit.Value;
@@ -344,7 +344,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           valueTypeSymbol,
           valueTypeSymbol.Declaration.tok,
           valueTypeSymbol.Declaration.tok.GetLspRange(),
-          new Range(valueTypeSymbol.Declaration.RangeToken.StartToken.GetLspPosition(), valueTypeSymbol.Declaration.RangeToken.EndToken.GetLspPosition())
+          new Range(valueTypeSymbol.Declaration.Origin.StartToken.GetLspPosition(), valueTypeSymbol.Declaration.Origin.EndToken.GetLspPosition())
         );
         VisitChildren(valueTypeSymbol);
         return Unit.Value;
@@ -388,9 +388,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private static Range GetDeclarationRange(Declaration declaration) {
-        return declaration.RangeToken == RangeToken.NoToken
+        return declaration.Origin == RangeToken.NoToken
           ? declaration.tok.GetLspRange()
-          : new Range(declaration.RangeToken.StartToken.GetLspPosition(), declaration.RangeToken.EndToken.GetLspPosition());
+          : new Range(declaration.Origin.StartToken.GetLspPosition(), declaration.Origin.EndToken.GetLspPosition());
       }
 
       public Unit Visit(VariableSymbol variableSymbol) {

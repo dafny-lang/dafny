@@ -103,9 +103,9 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   public bool AllowsAllocation => CwInner.AllowsAllocation;
 
   public bool SingleFileToken => CwInner.SingleFileToken;
-  public IEnumerable<IToken> OwnedTokens => CwInner.OwnedTokens;
-  public RangeToken RangeToken => CwInner.RangeToken;
-  public IToken NavigationToken => CwInner.NavigationToken;
+  public IEnumerable<IOrigin> OwnedTokens => CwInner.OwnedTokens;
+  public RangeToken Origin => CwInner.Origin;
+  public IOrigin NavigationToken => CwInner.NavigationToken;
   public SymbolKind? Kind => CwInner.Kind;
   public string GetDescription(DafnyOptions options) {
     return CwInner.GetDescription(options);

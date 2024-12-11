@@ -215,7 +215,7 @@ public class TypeParameter : TopLevelDecl {
     var cloner = new Cloner();
     return typeParameters.ConvertAll(tp => {
       var typeBounds = tp.TypeBounds.ConvertAll(cloner.CloneType);
-      return new TypeParameter(tp.RangeToken, tp.NameNode, tp.VarianceSyntax, tp.Characteristics, typeBounds);
+      return new TypeParameter(tp.Origin, tp.NameNode, tp.VarianceSyntax, tp.Characteristics, typeBounds);
     });
   }
 

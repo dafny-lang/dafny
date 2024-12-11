@@ -19,7 +19,7 @@ public class Program : TokenNode {
   public readonly string FullName;
   /// <summary>
   /// If this is a placeholder module, code generation will look for a unique module that replaces this one,
-  /// and use it to set this field. 
+  /// and use it to set this field.
   /// </summary>
   public Dictionary<ModuleDefinition, ModuleDefinition> Replacements = new();
 
@@ -50,7 +50,7 @@ public class Program : TokenNode {
   ///
   /// Instead we serialize the state of the program immediately after parsing.
   /// See also ProgramParser.ParseFiles().
-  /// 
+  ///
   /// This could be captured somewhere else, such as on the Program itself,
   /// if having this state here hampers reuse in the future,
   /// especially parallel processing.
@@ -114,8 +114,8 @@ public class Program : TokenNode {
     return GetFirstTokenForUri(Compilation.RootSourceUris[0]);
   }
 
-  public IToken GetFirstTokenForUri(Uri uri) {
-    return this.FindNodesInUris(uri).MinBy(n => n.RangeToken.StartToken.pos)?.StartToken;
+  public Token GetFirstTokenForUri(Uri uri) {
+    return (Token)OriginWrapper.Unwrap(this.FindNodesInUris(uri).MinBy(n => n.Origin.StartToken.pos)?.StartToken);
   }
 
   public override IEnumerable<INode> Children => new[] { DefaultModule };

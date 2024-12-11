@@ -347,7 +347,7 @@ public class CliCompilation {
     var parsedLine = int.Parse(linePart);
     line = parsedLine;
     return fileFiltered.Where(c =>
-        c.RangeToken.StartToken.line <= parsedLine && parsedLine <= c.RangeToken.EndToken.line).ToList();
+        c.Origin.StartToken.line <= parsedLine && parsedLine <= c.Origin.EndToken.line).ToList();
   }
 
   private bool KeepVerificationTask(IVerificationTask task, int line) {
