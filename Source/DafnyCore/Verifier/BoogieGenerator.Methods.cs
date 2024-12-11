@@ -604,7 +604,7 @@ namespace Microsoft.Dafny {
             Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
               var desc = new IsAllocated("default value", "in the two-state lemma's previous state", e);
-              builder.Add(Assert(e.RangeToken, wh, desc, builder.Context));
+              builder.Add(Assert(e.Origin, wh, desc, builder.Context));
             }
           }
         }
@@ -820,11 +820,11 @@ namespace Microsoft.Dafny {
       m.Outs.ForEach(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
       // translate the body
       TrStmt(m.Body, builder, localVariables, etran);
-      m.Outs.ForEach(p => CheckDefiniteAssignmentReturn(m.Body.RangeToken.EndToken, p, builder));
+      m.Outs.ForEach(p => CheckDefiniteAssignmentReturn(m.Body.Origin.EndToken, p, builder));
       if (m is { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun }) {
         AssumeCanCallForByMethodDecl(m, builder);
       }
-      var stmts = builder.Collect(m.Body.RangeToken.StartToken); // EndToken might make more sense, but it requires updating most of the regression tests.
+      var stmts = builder.Collect(m.Body.Origin.StartToken); // EndToken might make more sense, but it requires updating most of the regression tests.
       DefiniteAssignmentTrackers = beforeOutTrackers;
       return stmts;
     }
@@ -1495,7 +1495,7 @@ namespace Microsoft.Dafny {
           var constraint = allOverrideEns == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
-          builder.Add(Assert(m.RangeToken, s.E, new EnsuresStronger(constraint), builder.Context));
+          builder.Add(Assert(m.Origin, s.E, new EnsuresStronger(constraint), builder.Context));
         }
       }
     }
@@ -1524,7 +1524,7 @@ namespace Microsoft.Dafny {
           var constraint = allTraitReqs == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
-          builder.Add(Assert(m.RangeToken, s.E, new RequiresWeaker(constraint), builder.Context));
+          builder.Add(Assert(m.Origin, s.E, new RequiresWeaker(constraint), builder.Context));
         }
       }
     }
@@ -1564,7 +1564,7 @@ namespace Microsoft.Dafny {
           N = i;
           break;
         }
-        toks.Add(new NestedOrigin(original.RangeToken.StartToken, e1.tok));
+        toks.Add(new NestedOrigin(original.Origin.StartToken, e1.tok));
         calleeDafny.Add(e0);
         callerDafny.Add(e1);
         callee.Add(etran.TrExpr(e0));
@@ -1608,7 +1608,7 @@ namespace Microsoft.Dafny {
         calleeDecreases,
         true);
       var desc = new TraitDecreases(original.WhatKind, assertedExpr);
-      builder.Add(Assert(original.RangeToken, decrChk, desc, builder.Context));
+      builder.Add(Assert(original.Origin, decrChk, desc, builder.Context));
     }
 
     private void AddMethodOverrideFrameSubsetChk(Method m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables,
@@ -1654,7 +1654,7 @@ namespace Microsoft.Dafny {
       var q = new Boogie.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
         BplImp(BplAnd(ante, oInCallee), consequent2));
       var description = new TraitFrame(m.WhatKind, isModifies, classFrameExps, traitFrameExps);
-      builder.Add(Assert(m.RangeToken, q, description, builder.Context, kv));
+      builder.Add(Assert(m.Origin, q, description, builder.Context, kv));
     }
 
     // Return a way to know if an assertion should be converted to an assumption
@@ -1679,7 +1679,7 @@ namespace Microsoft.Dafny {
               new RangeToken(m.StartToken, assertStmt.EndToken) :
               assertOnlyKind == AssertStmt.AssertOnlyKind.After ?
               new RangeToken(assertStmt.StartToken, ifAfterLastToken)
-              : assertStmt.RangeToken;
+              : assertStmt.Origin;
           if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before && rangesOnly.Any(other => rangeToAdd.Intersects(other))) {
             // There are more precise ranges so we don't add this one
             return true;

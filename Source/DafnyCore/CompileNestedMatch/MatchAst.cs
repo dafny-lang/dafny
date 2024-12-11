@@ -252,7 +252,7 @@ public class MatchCaseStmt : MatchCase {
 
   public MatchCaseStmt(RangeToken rangeOrigin, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
     : base(rangeOrigin.StartToken, ctor, arguments) {
-    RangeToken = rangeOrigin;
+    Origin = rangeOrigin;
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));

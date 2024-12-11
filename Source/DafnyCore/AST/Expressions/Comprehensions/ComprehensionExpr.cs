@@ -65,7 +65,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     Term = term;
     Attributes = attrs;
     BodyStartTok = tok;
-    RangeToken = rangeOrigin;
+    Origin = rangeOrigin;
   }
 
   protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {
@@ -73,7 +73,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     Range = cloner.CloneExpr(original.Range);
     Attributes = cloner.CloneAttributes(original.Attributes);
     BodyStartTok = cloner.Tok(original.BodyStartTok);
-    RangeToken = cloner.Tok(original.RangeToken);
+    Origin = cloner.Tok(original.Origin);
     Term = cloner.CloneExpr(original.Term);
 
     if (cloner.CloneResolvedFields) {

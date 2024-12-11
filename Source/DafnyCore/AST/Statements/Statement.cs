@@ -26,7 +26,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     resolver.ResolveAttributes(this, resolutionContext);
   }
 
-  protected Statement(Cloner cloner, Statement original) : base(cloner.Tok(original.RangeToken)) {
+  protected Statement(Cloner cloner, Statement original) : base(cloner.Tok(original.Origin)) {
     cloner.AddStatementClone(original, this);
     this.Attributes = cloner.CloneAttributes(original.Attributes);
 

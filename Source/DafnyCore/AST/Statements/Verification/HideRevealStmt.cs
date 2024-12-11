@@ -121,7 +121,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
 
               var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);
               if (revealCallee != null) {
-                var call = new CallStmt(RangeToken, new List<Expression>(),
+                var call = new CallStmt(Origin, new List<Expression>(),
                   revealCallee,
                   new List<ActualBinding>(), effectiveExpr.tok);
                 ResolvedStatements.Add(call);

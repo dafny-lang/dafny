@@ -12,10 +12,10 @@ namespace Microsoft.Dafny;
 
 public interface INode {
   bool SingleFileToken { get; }
-  public IOrigin StartToken => RangeToken.StartToken;
-  public IOrigin EndToken => RangeToken.EndToken;
+  public IOrigin StartToken => Origin.StartToken;
+  public IOrigin EndToken => Origin.EndToken;
   IEnumerable<IOrigin> OwnedTokens { get; }
-  RangeToken RangeToken { get; }
+  RangeToken Origin { get; }
   IOrigin Tok { get; }
   IEnumerable<INode> Children { get; }
   IEnumerable<INode> PreResolveChildren { get; }
@@ -36,9 +36,9 @@ public abstract class Node : INode {
   protected IReadOnlyList<IOrigin> OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
-  public IOrigin StartToken => RangeToken?.StartToken;
+  public IOrigin StartToken => Origin?.StartToken;
 
-  public IOrigin EndToken => RangeToken?.EndToken;
+  public IOrigin EndToken => Origin?.EndToken;
   public abstract IOrigin Tok { get; }
 
   /// <summary>
@@ -130,7 +130,7 @@ public abstract class Node : INode {
     }
   }
 
-  public abstract RangeToken RangeToken { get; set; }
+  public abstract RangeToken Origin { get; set; }
 
   // <summary>
   // Returns all assumptions contained in this node or its descendants.
@@ -219,7 +219,7 @@ public abstract class TokenNode : Node {
     get => tok;
   }
 
-  public override RangeToken RangeToken {
+  public override RangeToken Origin {
     get {
       if (RangeOrigin == null) {
 
@@ -245,7 +245,7 @@ public abstract class TokenNode : Node {
             return;
           }
 
-          if (node.RangeToken.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
+          if (node.Origin.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {
@@ -278,13 +278,13 @@ public abstract class RangeNode : Node { // TODO merge into Node when TokenNode 
   public IOrigin tok => Tok; // TODO replace with Tok in separate PR
 
   // TODO rename to Range in separate PR
-  public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
+  public override RangeToken Origin { get; set; } // TODO remove setter when TokenNode is gone.
 
   protected RangeNode(Cloner cloner, RangeNode original) {
-    RangeToken = cloner.Tok(original.RangeToken);
+    Origin = cloner.Tok(original.Origin);
   }
 
   protected RangeNode(RangeToken rangeOrigin) {
-    RangeToken = rangeOrigin;
+    Origin = rangeOrigin;
   }
 }
