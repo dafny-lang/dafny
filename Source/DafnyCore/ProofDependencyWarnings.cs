@@ -165,8 +165,8 @@ public class ProofDependencyWarnings {
       if (factAlreadyInByBlock1) {
         continue;
       }
-      
-      var factAlreadyInByBlock2 = assertDepProvenByFact is ProofObligationDependency { ProofObligation: AssertStatementDescription assertStatementDescription } 
+
+      var factAlreadyInByBlock2 = assertDepProvenByFact is ProofObligationDependency { ProofObligation: AssertStatementDescription assertStatementDescription }
                                   && assertStatementDescription.AssertStatement.Origin.Contains(fact.Range);
       if (factAlreadyInByBlock2) {
         continue;
