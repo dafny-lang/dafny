@@ -431,7 +431,6 @@ public class Compilation : IDisposable {
       return;
     }
 
-
     var canVerify = resolution.ResolvedProgram.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = tasksPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)

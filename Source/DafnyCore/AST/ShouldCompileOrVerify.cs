@@ -35,8 +35,7 @@ public static class ShouldCompileOrVerify {
   }
 
   public static bool ShouldVerify(this INode declaration, CompilationData compilation) {
-    if (declaration.Tok == Token.NoToken) {
-      // TODO check warning on ==
+    if (ReferenceEquals(declaration.Tok, Token.NoToken)) {
       // Required for DefaultModuleDefinition.
       return true;
     }
