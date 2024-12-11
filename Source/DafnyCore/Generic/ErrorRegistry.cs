@@ -29,14 +29,14 @@ public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd) {
 /// <param name="Range">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
 /// <param name="Replacement"></param>
 public record DafnyCodeActionEdit(DafnyRange Range, string Replacement = "") {
-  public DafnyCodeActionEdit(RangeToken rangeToken, string replacement = "", bool includeTrailingWhitespace = false)
-    : this(rangeToken.ToDafnyRange(includeTrailingWhitespace), replacement) {
+  public DafnyCodeActionEdit(RangeToken rangeOrigin, string replacement = "", bool includeTrailingWhitespace = false)
+    : this(rangeOrigin.ToDafnyRange(includeTrailingWhitespace), replacement) {
   }
 }
 
 
 public delegate List<DafnyAction> ActionSignature(RangeToken range);
-public delegate bool TokenPredicate(IToken token);
+public delegate bool TokenPredicate(IOrigin token);
 
 public record DafnyAction(string Title, IReadOnlyList<DafnyCodeActionEdit> Edits);
 
@@ -86,7 +86,7 @@ public static class ErrorRegistry {
 
   public static RangeToken ExpandStart(RangeToken range, TokenPredicate pred, bool include) {
     var t = range.StartToken;
-    IToken p = null;
+    IOrigin p = null;
     while (!pred(t)) {
       p = t;
       t = t.Prev;
@@ -99,7 +99,7 @@ public static class ErrorRegistry {
 
   public static RangeToken ExpandEnd(RangeToken range, TokenPredicate pred, bool include) {
     var t = range.EndToken;
-    IToken p = null;
+    IOrigin p = null;
     while (!pred(t)) {
       p = t;
       t = t.Prev;

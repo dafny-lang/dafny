@@ -10,11 +10,16 @@ revealFunctions.dfy(81,18): Info: hidden functions: Obj
 revealFunctions.dfy(117,14): Info: hidden functions: Outer
 revealFunctions.dfy(118,14): Info: hidden functions: Inner
 revealFunctions.dfy(121,14): Info: hidden functions: Outer
+revealFunctions.dfy(131,10): Info: hidden functions: HideInFunction
+revealFunctions.dfy(134,10): Info: hidden functions: P
+revealFunctions.dfy(138,10): Info: hidden functions: P
 revealFunctions.dfy(15,12): Error: assertion might not hold
 revealFunctions.dfy(22,12): Error: assertion might not hold
 revealFunctions.dfy(49,21): Error: assertion might not hold
 revealFunctions.dfy(117,14): Error: assertion might not hold
 revealFunctions.dfy(118,14): Error: assertion might not hold
 revealFunctions.dfy(121,14): Error: assertion might not hold
+revealFunctions.dfy(134,10): Error: assertion might not hold
+revealFunctions.dfy(138,10): Error: assertion might not hold
 
-Dafny program verifier finished with 23 verified, 6 errors
+Dafny program verifier finished with 25 verified, 8 errors

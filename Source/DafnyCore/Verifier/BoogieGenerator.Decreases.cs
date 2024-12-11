@@ -32,7 +32,7 @@ public partial class BoogieGenerator {
   /// the check is:
   ///     allowance || (calleeDecreases LESS contextDecreases).
   /// </summary>
-  void CheckCallTermination(IToken tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
+  void CheckCallTermination(IOrigin tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
                             Expression allowance,
                             Expression receiverReplacement, Dictionary<IVariable, Expression> substMap,
                             Dictionary<IVariable, Expression> directSubstMap,
@@ -57,14 +57,14 @@ public partial class BoogieGenerator {
     }
 
     int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
-    var toks = new List<IToken>();
+    var toks = new List<IOrigin>();
     var callee = new List<Expr>();
     var caller = new List<Expr>();
     var oldExpressions = new List<Expression>();
     var newExpressions = new List<Expression>();
-    if (RefinementToken.IsInherited(tok, currentModule) && contextDecreases.All(e => !RefinementToken.IsInherited(e.tok, currentModule))) {
+    if (RefinementOrigin.IsInherited(tok, currentModule) && contextDecreases.All(e => !RefinementOrigin.IsInherited(e.tok, currentModule))) {
       // the call site is inherited but all the context decreases expressions are new
-      tok = new ForceCheckToken(tok);
+      tok = new ForceCheckOrigin(tok);
     }
     for (int i = 0; i < N; i++) {
       Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
@@ -81,7 +81,7 @@ public partial class BoogieGenerator {
       }
       oldExpressions.Add(e1);
       newExpressions.Add(e0direct);
-      toks.Add(new NestedToken(tok, e1.tok));
+      toks.Add(new NestedOrigin(tok, e1.tok));
       callee.Add(etranCurrent.TrExpr(e0));
       caller.Add(etranCurrent.TrExpr(e1));
     }
@@ -102,7 +102,7 @@ public partial class BoogieGenerator {
   /// If builder is non-null, then the check '0 ATMOST decr' is generated to builder.
   /// Requires all types in types0 and types1 to be non-proxy non-synonym types (that is, callers should invoke NormalizeExpand)
   /// </summary>
-  Bpl.Expr DecreasesCheck(List<IToken> toks, List<VarDeclStmt> prevGhostLocals,
+  Bpl.Expr DecreasesCheck(List<IOrigin> toks, List<VarDeclStmt> prevGhostLocals,
                           List<Expression> dafny0, List<Expression> dafny1, List<Bpl.Expr> ee0, List<Bpl.Expr> ee1,
                           BoogieStmtListBuilder builder, string suffixMsg, bool allowNoChange, bool includeLowerBound) {
     Contract.Requires(cce.NonNullElements(toks));
@@ -240,7 +240,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  void ComputeLessEq(IToken tok, Type ty0, Type ty1, Bpl.Expr e0, Bpl.Expr e1, out Bpl.Expr less, out Bpl.Expr atmost, out Bpl.Expr eq, bool includeLowerBound) {
+  void ComputeLessEq(IOrigin tok, Type ty0, Type ty1, Bpl.Expr e0, Bpl.Expr e1, out Bpl.Expr less, out Bpl.Expr atmost, out Bpl.Expr eq, bool includeLowerBound) {
     Contract.Requires(tok != null);
     Contract.Requires(ty0 != null);
     Contract.Requires(ty1 != null);
@@ -307,7 +307,7 @@ public partial class BoogieGenerator {
       less = Bpl.Expr.Gt(e0, e1);
       atmost = Bpl.Expr.Ge(e0, e1);
 
-    } else if ((ty0 is SetType && ((SetType)ty0).Finite) || (ty0 is MapType && ((MapType)ty0).Finite)) {
+    } else if (ty0 is SetType { Finite: true } || ty0 is MapType { Finite: true }) {
       Bpl.Expr b0, b1;
       if (ty0 is SetType) {
         b0 = e0;
@@ -318,7 +318,7 @@ public partial class BoogieGenerator {
         b1 = FunctionCall(tok, BuiltinFunction.MapDomain, Predef.MapType, e1);
       }
       eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, b0, b1);
-      less = ProperSubset(tok, b0, b1);
+      less = ProperSubset(tok, b0, b1, true);
       atmost = FunctionCall(tok, BuiltinFunction.SetSubset, null, b0, b1);
 
     } else if (ty0 is SetType || ty0 is MapType) {

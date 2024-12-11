@@ -23,10 +23,10 @@ class Info {
 
   public string Source; // information on where the entity is declared
 
-  public Info(bool register, DafnyDoc dd, string kind, IToken tok, string name, string fullname) : this(register, dd, kind, tok, name, fullname, fullname) {
+  public Info(bool register, DafnyDoc dd, string kind, IOrigin tok, string name, string fullname) : this(register, dd, kind, tok, name, fullname, fullname) {
   }
 
-  public Info(bool register, DafnyDoc dd, string kind, IToken tok, string name, string fullname, string id) {
+  public Info(bool register, DafnyDoc dd, string kind, IOrigin tok, string name, string fullname, string id) {
     this.Contents = null;
     this.Kind = kind;
     this.Name = name;
@@ -270,7 +270,7 @@ class DafnyDoc {
 
 
   /** Returns printable info about the file containing the given token and the last modification time of the file */
-  public string FileInfo(IToken tok) {
+  public string FileInfo(IOrigin tok) {
     if (tok != null) {
       return FileInfo(tok.ActualFilename);
     }

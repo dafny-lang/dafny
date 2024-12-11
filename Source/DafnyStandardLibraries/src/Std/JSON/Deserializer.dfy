@@ -67,7 +67,7 @@ module Std.JSON.Deserializer {
     assume {:axiom} false; // BUG Verification inconclusive
     Uint16StrConversion.ToNatBound(str);
     var hd := Uint16StrConversion.ToNat(str);
-    assert hd < 0x1_0000 by { reveal Pow(); }
+    assert hd < 0x1_0000;
     hd as uint16
   }
 
