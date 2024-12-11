@@ -1202,13 +1202,12 @@ namespace Microsoft.Dafny.Compilers {
       thisContext = oldThisContext;
       return parameters;
     }
-
-    protected override void EmitCallToInheritedFunction(Function f, [CanBeNull] TopLevelDeclWithMembers heir,
-      ConcreteSyntaxTree wr) {
+    
+    protected override ConcreteSyntaxTree StartCall(Function f, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<ExprContainer> exprContainer) {
         var signature = GetCallSignature(f);
         var callBuilder = exprContainer.Builder.Call(signature);
-        base.EmitCallToInheritedFunction(f, heir, new BuilderSyntaxTree<ExprContainer>(callBuilder, this));
+        return new BuilderSyntaxTree<ExprContainer>(callBuilder, this);
       } else {
         throw new InvalidOperationException("Cannot call inherited function in this context: " + currentBuilder);
       }

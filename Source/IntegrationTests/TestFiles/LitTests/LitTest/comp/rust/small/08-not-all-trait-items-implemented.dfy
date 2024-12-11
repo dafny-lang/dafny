@@ -19,6 +19,27 @@ datatype {:rust_rc false} Pong extends Reversible, SubReversible = Pong {
 }
 
 
+trait Singleton<G(!new)> {
+    function id():G       
+}
+
+
+trait A<G(!new),T(!new)> {
+    function g():Singleton<G>
+}
+
+
+trait F<V(!new)> extends A<int,V> {
+    function g():Singleton<int> { Zero }
+}
+
+datatype Zero extends Singleton<int> = Zero {
+  function id(): int { 0 }
+}
+
+datatype C extends F<int> = C {
+}
+
 method Main() {
   var x := Pong;
   expect x.reverse() is Ping;

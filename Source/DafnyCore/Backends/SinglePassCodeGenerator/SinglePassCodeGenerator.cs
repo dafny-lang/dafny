@@ -2478,6 +2478,10 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
+    protected virtual ConcreteSyntaxTree StartCall(Function f, ConcreteSyntaxTree wr) {
+      return wr;
+    }
+
     /// <summary>
     /// "heir" is the type declaration that inherits the function. Or, it can be "null" to indicate that the function is declared in
     /// the type itself, in which case the "call to inherited" is actually a call from the dynamically dispatched function to its implementation.
@@ -2502,6 +2506,8 @@ namespace Microsoft.Dafny.Compilers {
       // In a target language that requires type coercions, the function declared in "thisContext" has
       // the same signature as in "f.Original.EnclosingClass".
       wr = EmitCoercionIfNecessary(f.ResultType, f.Original.ResultType, f.tok, wr);
+
+      wr = StartCall(f, wr);
 
       var companionName = CompanionMemberIdName(f);
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
