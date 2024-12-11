@@ -61,7 +61,7 @@ namespace Microsoft.Dafny {
         verifiables = null;
       } else {
         var symbols = SymbolExtensions.GetSymbolDescendants(program.DefaultModule);
-        verifiables = symbols.OfType<ICanVerify>().Where(v => !v.RangeToken.IsCopy &&
+        verifiables = symbols.OfType<ICanVerify>().Where(v => !v.Origin.IsCopy &&
                                                               v.ContainingModule.ShouldVerify(program.Compilation) &&
                                                               v.ShouldVerify(program.Compilation) &&
                                                               v.ShouldVerify).ToList();

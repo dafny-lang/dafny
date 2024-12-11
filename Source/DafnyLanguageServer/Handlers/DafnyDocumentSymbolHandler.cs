@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return children;
       }
 
-      var range = symbol.RangeToken.ToLspRange();
+      var range = symbol.Origin.ToLspRange();
       return new DocumentSymbol[] {
         new() {
           Children = children,

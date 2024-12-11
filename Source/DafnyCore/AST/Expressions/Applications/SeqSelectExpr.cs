@@ -15,7 +15,7 @@ public class SeqSelectExpr : Expression, ICloneable<SeqSelectExpr> {
     Seq = cloner.CloneExpr(original.Seq);
     E0 = cloner.CloneExpr(original.E0);
     E1 = cloner.CloneExpr(original.E1);
-    CloseParen = cloner.Tok(original.CloseParen);
+    CloseParen = cloner.Origin(original.CloseParen);
   }
 
   [ContractInvariantMethod]
