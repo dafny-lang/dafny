@@ -2925,16 +2925,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static void DetermineEqualitySupportType(Type type, ref bool thingsChanged)
-    {
-      if (type.AsTypeParameter is {} typeArg) {
+    private static void DetermineEqualitySupportType(Type type, ref bool thingsChanged) {
+      if (type.AsTypeParameter is { } typeArg) {
         typeArg.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
         thingsChanged = true;
-      } else if (type.AsMapType is {} typeMap) {
+      } else if (type.AsMapType is { } typeMap) {
         DetermineEqualitySupportType(typeMap.Range, ref thingsChanged);
-      } else if (type.AsSeqType is {} typeSeq) {
+      } else if (type.AsSeqType is { } typeSeq) {
         DetermineEqualitySupportType(typeSeq.Arg, ref thingsChanged);
-      } else if (type.AsIndDatatype is {} otherDt) {
+      } else if (type.AsIndDatatype is { } otherDt) {
         if (otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
           var otherUdt = (UserDefinedType)type.NormalizeExpand();
           var i = 0;
