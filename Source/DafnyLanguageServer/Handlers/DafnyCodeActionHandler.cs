@@ -71,12 +71,12 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     var ideState = await projectManager.GetStateAfterResolutionAsync();
     var quickFixers = GetDafnyCodeActionProviders();
     var fixesWithId = GetFixesWithIds(quickFixers, ideState, request).ToArray();
-    var key = uri.ToString();
-    documentUriToDafnyCodeActions.AddOrUpdate(key, _ => fixesWithId, (_, _) => fixesWithId);
+
+    documentUriToDafnyCodeActions.AddOrUpdate(uri.ToString(), _ => fixesWithId, (_, _) => fixesWithId);
     var codeActions = fixesWithId.Select(fixWithId => {
       CommandOrCodeAction t = new CodeAction {
         Title = fixWithId.DafnyCodeAction.Title,
-        Data = new JArray(key, fixWithId.Id),
+        Data = new JArray(uri, fixWithId.Id),
         Diagnostics = fixWithId.DafnyCodeAction.Diagnostics,
         Kind = CodeActionKind.QuickFix
       };

@@ -44,7 +44,7 @@ public class ActualBindings : TokenNode {
 }
 
 public class ActualBinding : TokenNode {
-  public readonly IOrigin /*?*/ FormalParameterName;
+  public readonly IToken /*?*/ FormalParameterName;
   public readonly Expression Actual;
   public readonly bool IsGhost;
 
@@ -52,7 +52,7 @@ public class ActualBinding : TokenNode {
 
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public ActualBinding(IOrigin /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
+  public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
     Contract.Requires(actual != null);
     FormalParameterName = formalParameterName;
     Actual = actual;

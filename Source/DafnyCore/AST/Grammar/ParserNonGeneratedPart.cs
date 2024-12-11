@@ -33,7 +33,7 @@ public partial class Parser {
     return Attributes.Consume(ref attrs);
   }
 
-  bool IsReveal(IOrigin nextToken) => la.kind == _reveal || (la.kind == _hide && nextToken.kind is _star or _ident);
+  bool IsReveal(IToken nextToken) => la.kind == _reveal || (la.kind == _hide && nextToken.kind is _star or _ident);
 
   bool IsIdentifier(int kind) {
     return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
@@ -64,7 +64,7 @@ public partial class Parser {
     }
 
     scanner.ResetPeek();
-    IOrigin x = scanner.Peek();
+    IToken x = scanner.Peek();
     return la.kind == _comma && IsIdentifier(x.kind);
   }
 
@@ -72,7 +72,7 @@ public partial class Parser {
   // but ensures no whitespace between them.
   bool IsFromArrow() {
     scanner.ResetPeek();
-    IOrigin x = scanner.Peek();
+    IToken x = scanner.Peek();
     return la.kind == _openAngleBracket && x.kind == _minus
       && la.line == x.line && la.col == x.col - 1;
   }
@@ -82,7 +82,7 @@ public partial class Parser {
       return false;
     }
     scanner.ResetPeek();
-    IOrigin x = scanner.Peek();
+    IToken x = scanner.Peek();
     return (IsIdentifier(la.kind) || la.kind == _digits) && x.kind == _colon;
   }
 
@@ -92,7 +92,7 @@ public partial class Parser {
       return true;
     } else if (la.kind == _older) {
       // "older" is just a contextual keyword, so don't recognize it as a keyword if it must be an identifier
-      IOrigin x = scanner.Peek();
+      IToken x = scanner.Peek();
       return x.kind != _colon;
     }
     return false;
@@ -100,18 +100,18 @@ public partial class Parser {
 
   bool IsBinding() {
     scanner.ResetPeek();
-    IOrigin x = scanner.Peek();
+    IToken x = scanner.Peek();
     return (IsIdentifier(la.kind) || la.kind == _digits) && x.kind == _gets;
   }
 
   bool IsAlternative() {
-    IOrigin x = scanner.Peek();
+    IToken x = scanner.Peek();
     return (la.kind == _lbrace && x.kind == _case)
         || la.kind == _case;
   }
 
   bool IsParenIdentsColon() {
-    IOrigin x = la;
+    IToken x = la;
     if (x.kind != _openparen) {
       return false;
     }
@@ -130,7 +130,7 @@ public partial class Parser {
 
   bool IsPeekVar() {
     scanner.ResetPeek();
-    IOrigin x = scanner.Peek();
+    IToken x = scanner.Peek();
     return x.kind == _var;
   }
 
@@ -213,19 +213,19 @@ public partial class Parser {
   bool IsComma() {
     return la.val == ",";
   }
-  static bool IsEquivOp(IOrigin la) {
+  static bool IsEquivOp(IToken la) {
     return la.val == "<==>";
   }
-  static bool IsImpliesOp(IOrigin la) {
+  static bool IsImpliesOp(IToken la) {
     return la.val == "==>";
   }
-  static bool IsExpliesOp(IOrigin la) {
+  static bool IsExpliesOp(IToken la) {
     return la.val == "<==";
   }
-  static bool IsAndOp(IOrigin la) {
+  static bool IsAndOp(IToken la) {
     return la.val == "&&";
   }
-  static bool IsOrOp(IOrigin la) {
+  static bool IsOrOp(IToken la) {
     return la.val == "||";
   }
   bool IsBitwiseAndOp() {
@@ -308,7 +308,7 @@ public partial class Parser {
     return la.kind == _dot || la.kind == _lbracket || la.kind == _openparen;
   }
 
-  string UnwildIdent(IOrigin x, bool allowWildcardId) {
+  string UnwildIdent(IToken x, bool allowWildcardId) {
     if (x.val.StartsWith("_")) {
       if (allowWildcardId && x.val.Length == 1) {
         return "_v" + anonymousIds++;
@@ -393,7 +393,7 @@ public partial class Parser {
    */
   bool IsGenericInstantiation(bool inExpressionContext) {
     scanner.ResetPeek();
-    IOrigin pt = la;
+    IToken pt = la;
     if (!IsTypeList(ref pt)) {
       return false;
     }
@@ -485,7 +485,7 @@ public partial class Parser {
   // Indeed 'name' could be the last expression of an ensures clause, and the attribute
   // could belong to the next method declaration otherwise.
   bool IsAtCall() {
-    IOrigin pt = la;
+    IToken pt = la;
     if (pt.val != "@") {
       return false;
     }
@@ -504,7 +504,7 @@ public partial class Parser {
   /* Returns true if the next thing is of the form:
    *     "<" Type { "," Type } ">"
    */
-  bool IsTypeList(ref IOrigin pt) {
+  bool IsTypeList(ref IToken pt) {
     if (pt.kind != _openAngleBracket) {
       return false;
     }
@@ -515,7 +515,7 @@ public partial class Parser {
    *     [ "ghost" ] Type { "," [ "ghost" ] Type }
    * followed by an endBracketKind.
    */
-  bool IsTypeSequence(ref IOrigin pt, int endBracketKind) {
+  bool IsTypeSequence(ref IToken pt, int endBracketKind) {
     while (true) {
       if (pt.kind == _ghost) {
         pt = scanner.Peek();
@@ -537,7 +537,7 @@ public partial class Parser {
     }
   }
 
-  bool IsType(ref IOrigin pt) {
+  bool IsType(ref IToken pt) {
     if (!IsNonArrowType(ref pt)) {
       return false;
     }
@@ -551,7 +551,7 @@ public partial class Parser {
     return true;
   }
 
-  bool IsNonArrowType(ref IOrigin pt) {
+  bool IsNonArrowType(ref IToken pt) {
     switch (pt.kind) {
       case _bool:
       case _char:
@@ -625,7 +625,7 @@ public partial class Parser {
     }
   }
 
-  int StringToInt(string s, int defaultValue, string errString, IOrigin tok) {
+  int StringToInt(string s, int defaultValue, string errString, IToken tok) {
     Contract.Requires(s != null);
     Contract.Requires(errString != null);
     try {
@@ -660,21 +660,21 @@ public partial class Parser {
   /// </summary>
   class DeclModifierData {
     public bool IsReplaceable;
-    public IOrigin ReplaceableToken;
+    public IToken ReplaceableToken;
     public bool IsAbstract;
-    public IOrigin AbstractToken;
+    public IToken AbstractToken;
     public bool IsGhost;
-    public IOrigin GhostToken;
+    public IToken GhostToken;
     public bool IsStatic;
-    public IOrigin StaticToken;
+    public IToken StaticToken;
     public bool IsOpaque;
-    public IOrigin OpaqueToken;
-    public IOrigin FirstTokenExceptAttributes;
+    public IToken OpaqueToken;
+    public IToken FirstTokenExceptAttributes;
     public Attributes Attributes = null;
 
-    public IOrigin FirstToken {
+    public IToken FirstToken {
       get {
-        IOrigin result = FirstTokenExceptAttributes;
+        IToken result = FirstTokenExceptAttributes;
         foreach (var attr in Attributes.AsEnumerable()) {
           if (result == null || result.pos > attr.tok.pos) {
             result = attr.StartToken;
@@ -712,7 +712,7 @@ public partial class Parser {
   }
 
   // Check that token has not been set, then set it.
-  public void CheckAndSetToken(ref IOrigin token) {
+  public void CheckAndSetToken(ref IToken token) {
     if (token != null) {
       SemErr(ErrorId.p_duplicate_modifier, t, "Duplicate declaration modifier: " + t.val);
     }
@@ -720,7 +720,7 @@ public partial class Parser {
   }
 
   // Check that token has not been set, then set it, but just ignores if it was set already
-  public void CheckAndSetTokenOnce(ref IOrigin token) {
+  public void CheckAndSetTokenOnce(ref IToken token) {
     if (token == null) {
       token = t;
     }
@@ -742,7 +742,7 @@ public partial class Parser {
     Replaceable = 32
   };
 
-  bool CheckAttribute(Errors errors, IOrigin attr, RangeToken range) {
+  bool CheckAttribute(Errors errors, IToken attr, RangeToken range) {
     // attr is the identifier of the Attribute
     // range is from opening brace to closing brace
     if (attr.val == "ignore") {
@@ -754,11 +754,11 @@ public partial class Parser {
     return true;
   }
 
-  bool IsAssumeTypeKeyword(IOrigin la) {
+  bool IsAssumeTypeKeyword(IToken la) {
     return la.kind == _assume || la.kind == _assert || la.kind == _expect;
   }
 
-  Expression ProcessTupleArgs(List<ActualBinding> args, IOrigin lp) {
+  Expression ProcessTupleArgs(List<ActualBinding> args, IToken lp) {
     if (args.Count == 1 && !args[0].IsGhost) {
       if (args[0].FormalParameterName != null) {
         SemErr(ErrorId.p_no_parenthesized_binding, lp, "binding not allowed in parenthesized expression");

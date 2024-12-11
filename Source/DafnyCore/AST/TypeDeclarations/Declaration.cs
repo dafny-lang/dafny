@@ -12,11 +12,12 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Contract.Invariant(Name != null);
   }
 
-  public IOrigin BodyStartTok = Token.NoToken;
+  public IToken BodyStartTok = Token.NoToken;
+  public IToken TokenWithTrailingDocString = Token.NoToken;
   public Name NameNode;
 
-  public override IOrigin Tok => NameNode.StartToken;
-  public virtual IOrigin NavigationToken => NameNode.StartToken;
+  public override IToken Tok => NameNode.StartToken;
+  public virtual IToken NavigationToken => NameNode.StartToken;
 
   public string Name => NameNode.Value;
   public bool IsRefining;
@@ -32,8 +33,8 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  protected Declaration(RangeToken rangeOrigin, Name name, Attributes attributes, bool isRefining) : base(rangeOrigin) {
-    Contract.Requires(rangeOrigin != null);
+  protected Declaration(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     this.NameNode = name;
     this.Attributes = attributes;

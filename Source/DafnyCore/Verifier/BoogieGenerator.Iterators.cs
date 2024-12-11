@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh = FunctionContextHeight;
-        req.Add(Requires(iter.tok, true, null, etran.HeightContext(iter), null, null, null));
+        req.Add(FreeRequires(iter.tok, etran.HeightContext(iter), null));
       }
       mod.Add(etran.HeapCastToIdentifierExpr);
 
@@ -89,13 +89,14 @@ namespace Microsoft.Dafny {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
         foreach (var p in iter.Requires) {
+          req.Add(FreeRequires(p.E.tok, etran.CanCallAssumption(p.E), comment, true));
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
             p.Label.E = etran.Old.TrExpr(p.E);
           } else {
             foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
-              if (kind == MethodTranslationKind.Call && RefinementOrigin.IsInherited(s.Tok, currentModule)) {
+              if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.Tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
                 req.Add(Requires(s.Tok, s.IsOnlyFree, p.E, s.E, errorMessage, successMessage, comment));
@@ -107,8 +108,11 @@ namespace Microsoft.Dafny {
         }
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
+          var canCalls = etran.CanCallAssumption(p.E);
+          AddEnsures(ens, FreeEnsures(p.E.tok, canCalls, comment, true));
+
           foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
-            if (kind == MethodTranslationKind.Implementation && RefinementOrigin.IsInherited(s.Tok, currentModule)) {
+            if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
               ens.Add(Ensures(s.Tok, s.IsOnlyFree, p.E, s.E, null, null, comment));
@@ -175,7 +179,7 @@ namespace Microsoft.Dafny {
       }
 
       // Next, we assume about this.* whatever we said that the iterator constructor promises
-      foreach (var p in iter.Member_Init.Ens) {
+      foreach (var p in ConjunctsOf(iter.Member_Init.Ens)) {
         builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator ensures clause"));
       }
 
@@ -289,7 +293,7 @@ namespace Microsoft.Dafny {
 
       // add locals for the yield-history variables and the extra variables
       // Assume the precondition and postconditions of the iterator constructor method
-      foreach (var p in iter.Member_Init.Req) {
+      foreach (var p in ConjunctsOf(iter.Member_Init.Req)) {
         if (p.Label != null) {
           // don't include this precondition here
           Contract.Assert(p.Label.E != null);  // it should already have been recorded
@@ -297,7 +301,7 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator constructor requires clause"));
         }
       }
-      foreach (var p in iter.Member_Init.Ens) {
+      foreach (var p in ConjunctsOf(iter.Member_Init.Ens)) {
         // these postconditions are two-state predicates, but that's okay, because we haven't changed anything yet
         builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator constructor ensures clause"));
       }
@@ -377,7 +381,7 @@ namespace Microsoft.Dafny {
     ///   assume YieldRequires;
     ///   $_OldIterHeap := Heap;
     /// </summary>
-    void YieldHavoc(IOrigin tok, IteratorDecl iter, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void YieldHavoc(IToken tok, IteratorDecl iter, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(iter != null);
       Contract.Requires(builder != null);

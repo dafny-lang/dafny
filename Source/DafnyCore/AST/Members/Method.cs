@@ -30,7 +30,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public override IEnumerable<INode> PreResolveChildren => Children;
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
-  public readonly IOrigin SignatureEllipsis;
+  public readonly IToken SignatureEllipsis;
   public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
@@ -131,7 +131,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.IsByMethod = original.IsByMethod;
   }
 
-  public Method(RangeToken rangeOrigin, Name name,
+  public Method(RangeToken rangeToken, Name name,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -141,11 +141,11 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
-    Attributes attributes, IOrigin signatureEllipsis,
+    Attributes attributes, IToken signatureEllipsis,
     bool isByMethod = false)
-    : base(rangeOrigin, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
+    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
       typeArgs, ins, req, ens, decreases) {
-    Contract.Requires(rangeOrigin != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
@@ -386,36 +386,18 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   public string GetTriviaContainingDocstring() {
-    if (GetStartTriviaDocstring(out var triviaFound)) {
-      return triviaFound;
-    }
-
-    IOrigin lastClosingParenthesis = null;
+    IToken lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
         lastClosingParenthesis = token;
       }
     }
 
-    var tentativeTrivia = "";
-    if (lastClosingParenthesis != null) {
-      if (lastClosingParenthesis.pos < EndToken.pos) {
-        tentativeTrivia = (lastClosingParenthesis.TrailingTrivia + lastClosingParenthesis.Next.LeadingTrivia).Trim();
-      } else {
-        tentativeTrivia = lastClosingParenthesis.TrailingTrivia.Trim();
-      }
-
-      if (tentativeTrivia != "") {
-        return tentativeTrivia;
-      }
+    if (lastClosingParenthesis != null && lastClosingParenthesis.TrailingTrivia.Trim() != "") {
+      return lastClosingParenthesis.TrailingTrivia;
     }
 
-    tentativeTrivia = EndToken.TrailingTrivia.Trim();
-    if (tentativeTrivia != "") {
-      return tentativeTrivia;
-    }
-
-    return null;
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
   public override SymbolKind? Kind => SymbolKind.Method;

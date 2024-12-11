@@ -36,8 +36,8 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
-  public LocalVariable(RangeToken rangeOrigin, string name, Type type, bool isGhost)
-    : base(rangeOrigin) {
+  public LocalVariable(RangeToken rangeToken, string name, Type type, bool isGhost)
+    : base(rangeToken) {
     Contract.Requires(name != null);
     Contract.Requires(type != null);  // can be a proxy, though
 

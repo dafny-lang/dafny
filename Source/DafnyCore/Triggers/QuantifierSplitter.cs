@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.Triggers {
     internal static IEnumerable<Expression> SplitAndStitch(BinaryExpr pair, BinaryExpr.Opcode separator) {
       foreach (var e1 in SplitExpr(pair.E1, separator)) {
         // Notice the token. This makes triggers/splitting-picks-the-right-tokens.dfy possible
-        var nestedToken = new NestedOrigin(pair.tok, e1.tok);
+        var nestedToken = new NestedToken(pair.tok, e1.tok);
         yield return new BinaryExpr(nestedToken, pair.Op, pair.E0, e1) { ResolvedOp = pair.ResolvedOp, Type = pair.Type };
       }
     }

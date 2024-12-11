@@ -151,7 +151,7 @@ public class CliCompilation {
 
   public bool VerifiedAssertions { get; private set; }
 
-  public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed = null) {
+  public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed) {
     if (!Options.Get(CommonOptionBag.UnicodeCharacters) && Options.Backend is not CppBackend) {
       Compilation.Reporter.Deprecated(MessageSource.Verifier, "unicodeCharDeprecated", Token.Cli,
         "the option unicode-char has been deprecated.");
@@ -234,7 +234,7 @@ public class CliCompilation {
       yield break;
     }
 
-    var canVerifies = resolution.CanVerifies?.ToList();
+    var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
 
     if (canVerifies == null) {
       yield break;
@@ -247,24 +247,24 @@ public class CliCompilation {
 
     int done = 0;
 
-    var canVerifiesPerModule = canVerifies.GroupBy(c => c.ContainingModule);
+    var canVerifiesPerModule = canVerifies.ToList().GroupBy(c => c.ContainingModule).ToList();
     foreach (var canVerifiesForModule in canVerifiesPerModule.
                OrderBy(v => v.Key.Tok.pos)) {
-      var toAwait = new List<ICanVerify>();
-      foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Tok.pos)) {
+      var orderedCanVerifies = canVerifiesForModule.OrderBy(v => v.Tok.pos).ToList();
+      foreach (var canVerify in orderedCanVerifies) {
         var results = new CliCanVerifyState();
         canVerifyResults[canVerify] = results;
         if (line != null) {
           results.TaskFilter = t => KeepVerificationTask(t, line.Value);
         }
 
-        var shouldVerify = await Compilation.VerifyLocation(canVerify.Tok.GetFilePosition(), results.TaskFilter, randomSeed);
-        if (shouldVerify) {
-          toAwait.Add(canVerify);
+        var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
+        if (!shouldVerify) {
+          canVerifies.ToList().Remove(canVerify);
         }
       }
 
-      foreach (var canVerify in toAwait) {
+      foreach (var canVerify in orderedCanVerifies) {
         var results = canVerifyResults[canVerify];
         try {
           if (Options.Get(CommonOptionBag.ProgressOption) > CommonOptionBag.ProgressLevel.None) {

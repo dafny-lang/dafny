@@ -19,7 +19,7 @@ public class Program : TokenNode {
   public readonly string FullName;
   /// <summary>
   /// If this is a placeholder module, code generation will look for a unique module that replaces this one,
-  /// and use it to set this field. 
+  /// and use it to set this field.
   /// </summary>
   public Dictionary<ModuleDefinition, ModuleDefinition> Replacements = new();
 
@@ -50,7 +50,7 @@ public class Program : TokenNode {
   ///
   /// Instead we serialize the state of the program immediately after parsing.
   /// See also ProgramParser.ParseFiles().
-  /// 
+  ///
   /// This could be captured somewhere else, such as on the Program itself,
   /// if having this state here hampers reuse in the future,
   /// especially parallel processing.
@@ -110,7 +110,7 @@ public class Program : TokenNode {
 
   /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
   /// (skips included tokens)
-  public IOrigin GetStartOfFirstFileToken() {
+  public IToken GetStartOfFirstFileToken() {
     return GetFirstTokenForUri(Compilation.RootSourceUris[0]);
   }
 

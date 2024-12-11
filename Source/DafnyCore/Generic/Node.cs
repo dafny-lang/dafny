@@ -31,7 +31,7 @@ public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
 
-  protected IReadOnlyList<IOrigin> OwnedTokensCache;
+  protected IReadOnlyList<IToken> OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
   public IOrigin StartToken => Origin?.StartToken;
@@ -54,7 +54,7 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<INode> PreResolveChildren { get; }
 
-  public IEnumerable<IOrigin> CoveredTokens {
+  public IEnumerable<IToken> CoveredTokens {
     get {
       var token = StartToken;
       if (token == Token.NoToken) {
@@ -71,7 +71,7 @@ public abstract class Node : INode {
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
   /// </summary>
-  public IEnumerable<IOrigin> OwnedTokens {
+  public IEnumerable<IToken> OwnedTokens {
     get {
       if (OwnedTokensCache != null) {
         return OwnedTokensCache;
@@ -88,7 +88,7 @@ public abstract class Node : INode {
         ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
       );
 
-      var result = new List<IOrigin>();
+      var result = new List<IToken>();
       if (StartToken == null) {
         Contract.Assume(EndToken == null);
       } else {
@@ -114,7 +114,7 @@ public abstract class Node : INode {
 
   /// <summary>
   // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
-  // Therefore, we have to find all the concrete children by unwrapping such nodes. 
+  // Therefore, we have to find all the concrete children by unwrapping such nodes.
   /// </summary>
   private static IEnumerable<INode> GetConcreteChildren(INode node) {
     foreach (var child in node.PreResolveChildren) {
@@ -187,17 +187,18 @@ public abstract class Node : INode {
   }
 
   // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
-  protected bool GetStartTriviaDocstring(out string trivia) {
+  protected string GetTriviaContainingDocstringFromStartTokenOrNull() {
     var matches = StartDocstringExtractor.Matches(StartToken.LeadingTrivia);
-    trivia = null;
     if (matches.Count > 0) {
-      trivia = matches[^1].Value;
-    } else if (StartToken.Prev is { val: "|" or "{" }) {
+      return matches[^1].Value;
+    }
+
+    if (StartToken.Prev is { val: "|" or "{" }) {
       matches = StartDocstringExtractor.Matches(StartToken.Prev.TrailingTrivia);
       if (matches.Count > 0) {
-        trivia = matches[^1].Value;
+        return matches[^1].Value;
       }
     }
-    return trivia is not ("" or null);
+    return null;
   }
 }

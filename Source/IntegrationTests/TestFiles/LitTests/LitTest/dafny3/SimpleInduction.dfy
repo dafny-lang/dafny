@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation
+// RUN: %testDafnyForEachResolver "%s"
 
 
 /*
@@ -10,14 +10,14 @@
   */
 
 ghost function Fib(n: nat): nat
-  decreases n;
+  decreases n
 { if n < 2 then n else Fib(n-2) + Fib(n-1) }
 
 lemma FibLemma(n: nat)
-  ensures Fib(n) % 2 == 0 <==> n % 3 == 0;
-  decreases n;
+  ensures Fib(n) % 2 == 0 <==> n % 3 == 0
+  decreases n
 {
-  if (n < 2) {
+  if n < 2 {
   } else {
     FibLemma(n-2);
     FibLemma(n-1);
@@ -31,7 +31,7 @@ lemma FibLemma(n: nat)
 */
 
 lemma FibLemma_Alternative(n: nat)
-  ensures Fib(n) % 2 == 0 <==> n % 3 == 0;
+  ensures Fib(n) % 2 == 0 <==> n % 3 == 0
 {
   forall k | 0 <= k < n {
     FibLemma_Alternative(k);
@@ -39,7 +39,7 @@ lemma FibLemma_Alternative(n: nat)
 }
 
 lemma FibLemma_All()
-  ensures forall n :: 0 <= n ==> (Fib(n) % 2 == 0 <==> n % 3 == 0);
+  ensures forall n :: 0 <= n ==> (Fib(n) % 2 == 0 <==> n % 3 == 0)
 {
   forall n | 0 <= n {
     FibLemma(n);
@@ -59,7 +59,7 @@ lemma FibLemma_All()
 datatype List<T> = Nil | Cons(head: T, tail: List<T>)
 
 ghost function Append<T>(xs: List<T>, ys: List<T>): List<T>
-  decreases xs;
+  decreases xs
 {
   match xs
   case Nil => ys
@@ -69,8 +69,8 @@ ghost function Append<T>(xs: List<T>, ys: List<T>): List<T>
 // The {:induction false} attribute disables automatic induction tactic,
 // so we can make the proof explicit.
 lemma {:induction false} AppendIsAssociative(xs: List, ys: List, zs: List)
-  ensures Append(Append(xs, ys), zs) == Append(xs, Append(ys, zs));
-  decreases xs;
+  ensures Append(Append(xs, ys), zs) == Append(xs, Append(ys, zs))
+  decreases xs
 {
   match (xs) {
     case Nil =>
@@ -82,7 +82,6 @@ lemma {:induction false} AppendIsAssociative(xs: List, ys: List, zs: List)
 // Here the proof is fully automatic - the body of the method is empty,
 // yet still verifies.
 lemma AppendIsAssociative_Auto(xs: List, ys: List, zs: List)
-  ensures Append(Append(xs, ys), zs) == Append(xs, Append(ys, zs));
+  ensures Append(Append(xs, ys), zs) == Append(xs, Append(ys, zs))
 {
 }
-

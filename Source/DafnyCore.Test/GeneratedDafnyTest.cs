@@ -18,9 +18,4 @@ public class GeneratedDafnyTest {
   public void TestPathSimplification() {
     FactorPathsOptimizationTest.__default.TestApply();
   }
-
-  [Fact]
-  public void TestDefsCoverage() {
-    DefsCoverage.__default.Tests();
-  }
 }

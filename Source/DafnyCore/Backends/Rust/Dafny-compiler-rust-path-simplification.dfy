@@ -23,57 +23,52 @@ module FactorPathsOptimizationTest {
     ShouldBeEqual(
       apply(crate)(
         Mod(
-          NoDoc, NoAttr,
-          "onemodule", [
+          "onemodule", [], [
             StructDecl(
-              Struct(NoDoc, [], "test", [T_Decl],
+              Struct([], "test", [T_Decl],
                      NamedFields([Field(PUB, Formal("a", std_any_Any.AsType()))]))),
             //                                   ::std::any::Any ==> Any
-            ImplDecl(Impl([T_Decl], TIdentifier("test").Apply([T]), [])),
+            ImplDecl(Impl([T_Decl], TIdentifier("test").Apply([T]), "", [])),
             ImplDecl(
               ImplFor(
-                [T_Decl], std_any_Any.AsType(), crate.MSel("onemodule").MSel("test").AsType().Apply([T]), []))
+                [T_Decl], std_any_Any.AsType(), crate.MSel("onemodule").MSel("test").AsType().Apply([T]), "", []))
             //         ::std::any::Any ==> Any  crate::onemodule::test ==> test
           ])),
       Mod(
-        NoDoc, NoAttr,
-        "onemodule", [
+        "onemodule", [], [
           UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
           UseDecl(Use(PUB, std_any_Any)),
           StructDecl(
-            Struct(NoDoc, [], "test", [T_Decl_simp],
+            Struct([], "test", [T_Decl_simp],
                    NamedFields([Field(PUB, Formal("a", Any))]))),
-          ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), [])),
-          ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), []))
+          ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), "", [])),
+          ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
         ]));
     ShouldBeEqual(
       apply(crate)(
         Mod(
-          NoDoc, NoAttr,
-          "onemodule", [
+          "onemodule", [], [
             ImplDecl(
               ImplFor(
                 [T_Decl], dafny_runtime.MSel("UpcastObject").AsType().Apply([TIdentifier("x")]),
-                TIdentifier("test").Apply([T]), []))
+                TIdentifier("test").Apply([T]), "", []))
           ])),
       Mod(
-        NoDoc, NoAttr,
-        "onemodule", [
+        "onemodule", [], [
           UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
           UseDecl(Use(PUB, dafny_runtime.MSel("UpcastObject"))),
           ImplDecl(
             ImplFor(
               [T_Decl_simp], TIdentifier("UpcastObject").Apply([TIdentifier("x")]),
-              TIdentifier("test").Apply([T]), []))
+              TIdentifier("test").Apply([T]), "", []))
         ]));
     ShouldBeEqual(
       apply(crate)(
         Mod(
-          NoDoc, NoAttr,
-          "onemodule", [
+          "onemodule", [], [
             ConstDecl(
               Constant(
-                NoDoc, NoAttr,
+                [],
                 "dummy", std_any_Any.AsType(),
                 StmtExpr(
                   DeclareVar(
@@ -92,8 +87,7 @@ module FactorPathsOptimizationTest {
                     dafny_runtime.MSel("DafnyType").AsType()))))
           ])),
       Mod(
-        NoDoc, NoAttr,
-        "onemodule", [
+        "onemodule", [], [
           UseDecl(Use(PUB, std_any_Any)),
           UseDecl(Use(PUB, std_rc_Rc)),
           UseDecl(Use(PUB, std_default_Default)),
@@ -102,7 +96,7 @@ module FactorPathsOptimizationTest {
           UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
           ConstDecl(
             Constant(
-              NoDoc, NoAttr,
+              [],
               "dummy", TIdentifier("Any"),
               StmtExpr(
                 DeclareVar(
@@ -127,38 +121,34 @@ module FactorPathsOptimizationTest {
     ShouldBeEqual(
       apply(crate)(
         Mod(
-          NoDoc, NoAttr,
-          "onemodule", [
+          "onemodule", [], [
             TraitDecl(
-              Trait(
-                NoDoc, NoAttr, [],
-                TIdentifier("Something"), [], [])
+              Trait([], TIdentifier("Something"), [], [])
             ),
             ConstDecl(
               Constant(
-                NoDoc, NoAttr,
+                [],
                 "dummyExtern", crate.MSel("anothermodule").MSel("Something").AsType(),
                 RawExpr("nothing"))),
             ConstDecl(
               Constant(
-                NoDoc, NoAttr,
+                [],
                 "dummyIntern", crate.MSel("onemodule").MSel("Something").AsType(),
                 RawExpr("nothing")))
           ])),
       Mod(
-        NoDoc, NoAttr,
-        "onemodule", [
+        "onemodule", [], [
           TraitDecl(
-            Trait(NoDoc, NoAttr, [], TIdentifier("Something"), [], [])
+            Trait([], TIdentifier("Something"), [], [])
           ),
           ConstDecl(
             Constant(
-              NoDoc, NoAttr,
+              [],
               "dummyExtern", crate.MSel("anothermodule").MSel("Something").AsType(), // No simplification
               RawExpr("nothing"))),
           ConstDecl(
             Constant(
-              NoDoc, NoAttr,
+              [],
               "dummyIntern", TIdentifier("Something"),
               RawExpr("nothing")))
         ])

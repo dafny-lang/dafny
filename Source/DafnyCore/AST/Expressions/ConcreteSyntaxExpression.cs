@@ -28,7 +28,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
     }
   }  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
 
-  public ConcreteSyntaxExpression(IOrigin tok)
+  public ConcreteSyntaxExpression(IToken tok)
     : base(tok) {
   }
   public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<Node>() : new[] { ResolvedExpression };

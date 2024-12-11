@@ -73,10 +73,6 @@ jobs:
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeGo
           make all
-      - name: Test DafnyRuntimeGo-gomod
-        run: |
-          cd ./Source/DafnyRuntime/DafnyRuntimeGo-gomod
-          make all
       - name: Test DafnyRuntimeJava
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeJava

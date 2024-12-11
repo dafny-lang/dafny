@@ -31,7 +31,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
 
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
-  public IOrigin BodyStartTok = Token.NoToken;
+  public IToken BodyStartTok = Token.NoToken;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -54,7 +54,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     return BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
-  public ComprehensionExpr(IOrigin tok, RangeToken rangeOrigin, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+  public ComprehensionExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));
@@ -129,7 +129,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
               } else {
                 alreadyAligned = true;
                 formatter.SetAlign(assignOpIndent, token, out afterAssignIndent, out assignOpIndent);
-                assignOpIndent -= 1; // because "::" or ":=" has one more char than a comma 
+                assignOpIndent -= 1; // because "::" or ":=" has one more char than a comma
               }
             }
             break;

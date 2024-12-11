@@ -162,7 +162,7 @@ namespace DafnyPipeline.Test {
       ReportNotOwnedToken(programNotIndented, notOwnedToken, posToOwnerNode);
     }
 
-    private static void ReportNotOwnedToken(string programNotIndented, IOrigin notOwnedToken,
+    private static void ReportNotOwnedToken(string programNotIndented, IToken notOwnedToken,
       Dictionary<int, List<INode>> posToOwnerNode) {
       var nextOwnedToken = notOwnedToken.Next;
       while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
@@ -183,8 +183,8 @@ namespace DafnyPipeline.Test {
       );
     }
 
-    private static IOrigin? GetFirstNotOwnedToken(IOrigin firstToken, HashSet<int> tokensWithoutOwner) {
-      IOrigin? notOwnedToken = firstToken;
+    private static IToken? GetFirstNotOwnedToken(IToken firstToken, HashSet<int> tokensWithoutOwner) {
+      IToken? notOwnedToken = firstToken;
       while (notOwnedToken != null && !tokensWithoutOwner.Contains(notOwnedToken.pos)) {
         notOwnedToken = notOwnedToken.Next;
       }
@@ -192,7 +192,7 @@ namespace DafnyPipeline.Test {
       return notOwnedToken;
     }
 
-    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IOrigin firstToken,
+    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IToken firstToken,
       out Dictionary<int, List<INode>> posToOwnerNode) {
       HashSet<int> tokensWithoutOwner = new HashSet<int>();
       var posToOwnerNodeInner = new Dictionary<int, List<INode>>();

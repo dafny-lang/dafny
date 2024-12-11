@@ -6,9 +6,9 @@ using Microsoft.Dafny;
 
 public class ProjectFileOpener {
   private readonly IFileSystem fileSystem;
-  private readonly IOrigin origin;
+  private readonly IToken origin;
 
-  public ProjectFileOpener(IFileSystem fileSystem, IOrigin origin) {
+  public ProjectFileOpener(IFileSystem fileSystem, IToken origin) {
     this.fileSystem = fileSystem;
     this.origin = origin;
   }
