@@ -40,6 +40,10 @@ datatype Zero extends Singleton<int> = Zero {
 datatype C extends F<int> = C {
 }
 
+trait RequiresEquality<S(==),T> {
+}
+datatype TraitExtender<S> extends RequiresEquality<S,seq<S>> = TraitExtender {}
+
 method Main() {
   var x := Pong;
   expect x.reverse() is Ping;
