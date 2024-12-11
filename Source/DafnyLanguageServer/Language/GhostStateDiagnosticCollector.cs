@@ -85,7 +85,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       private static Range GetRange(Statement statement) {
         return statement switch {
           AssignStatement updateStatement => GetRange(updateStatement),
-          _ => CreateRange(statement.RangeToken.StartToken, statement.RangeToken.EndToken)
+          _ => CreateRange(statement.Origin.StartToken, statement.Origin.EndToken)
         };
       }
 
@@ -100,7 +100,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
         } else {
           startToken = updateStatement.Tok;
         }
-        return CreateRange(startToken, updateStatement.RangeToken.EndToken);
+        return CreateRange(startToken, updateStatement.Origin.EndToken);
       }
 
       private static IOrigin GetStartTokenFromResolvedStatement(Statement resolvedStatement) {

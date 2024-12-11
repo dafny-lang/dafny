@@ -126,7 +126,7 @@ public class MatchFlattener : IRewriter {
         return AssertStmt.CreateErrorAssert(nestedMatchStmt, NoCasesMessage);
       }
 
-      return new MatchStmt(nestedMatchStmt.RangeToken, nestedMatchStmt.Source, new List<MatchCaseStmt>(), nestedMatchStmt.UsesOptionalBraces, nestedMatchStmt.Attributes);
+      return new MatchStmt(nestedMatchStmt.Origin, nestedMatchStmt.Source, new List<MatchCaseStmt>(), nestedMatchStmt.UsesOptionalBraces, nestedMatchStmt.Attributes);
     }
 
     if (compiledMatch.Node is Statement statement) {
@@ -399,7 +399,7 @@ public class MatchFlattener : IRewriter {
         args.Add(literalExpr);
         c.Attributes = new Attributes("split", args, c.Attributes);
       }
-      var newMatchStmt = new MatchStmt(nestedMatchStmt.RangeToken, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
+      var newMatchStmt = new MatchStmt(nestedMatchStmt.Origin, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
       newMatchStmt.IsGhost |= mti.CodeContext.IsGhost;
       return new CaseBody(null, newMatchStmt);
     }
@@ -523,7 +523,7 @@ public class MatchFlattener : IRewriter {
     if (blocks.Count == 0) {
       if (defaultBlock?.Node is Statement stmt) {
         // Ensures the statements are wrapped in braces
-        return new CaseBody(null, BlockStmtOfCStmt(stmt.RangeToken, stmt));
+        return new CaseBody(null, BlockStmtOfCStmt(stmt.Origin, stmt));
       }
 
       return defaultBlock;
@@ -710,12 +710,12 @@ public class MatchFlattener : IRewriter {
         return stmtPath;
       }
 
-      var caseLocal = new LocalVariable(var.RangeToken, name, type, isGhost) {
+      var caseLocal = new LocalVariable(var.Origin, name, type, isGhost) {
         type = type
       };
-      var casePattern = new CasePattern<LocalVariable>(caseLocal.RangeToken.EndToken, caseLocal);
+      var casePattern = new CasePattern<LocalVariable>(caseLocal.Origin.EndToken, caseLocal);
       casePattern.AssembleExpr(new List<Type>());
-      var caseLet = new VarDeclPattern(caseLocal.RangeToken, casePattern, expr, false) {
+      var caseLet = new VarDeclPattern(caseLocal.Origin, casePattern, expr, false) {
         IsGhost = isGhost
       };
 

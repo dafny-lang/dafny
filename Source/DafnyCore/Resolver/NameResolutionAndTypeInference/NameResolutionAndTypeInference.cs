@@ -423,9 +423,9 @@ namespace Microsoft.Dafny {
       if (expr is ParensExpression) {
         var e = (ParensExpression)expr;
         ResolveExpression(e.E, resolutionContext);
-        var innerRange = e.E.RangeToken;
+        var innerRange = e.E.Origin;
         e.ResolvedExpression = e.E; // Overwrites the range, which is not suitable for ParensExpressions
-        e.E.RangeToken = innerRange;
+        e.E.Origin = innerRange;
         e.Type = e.E.Type;
 
       } else if (expr is ChainingExpression) {
@@ -2778,10 +2778,10 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in cl.Members) {
         Contract.Assert(VisibleInScope(member));
         if (member.HasUserAttribute("only", out var attribute)) {
-          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.RangeToken.ToToken(),
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.Origin.ToToken(),
             "Members with {:only} temporarily disable the verification of other members in the entire file");
           if (attribute.Args.Count >= 1) {
-            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].RangeToken.ToToken(),
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].Origin.ToToken(),
               "{:only} on members does not support arguments");
           }
         }
@@ -3577,7 +3577,7 @@ namespace Microsoft.Dafny {
               }
               formals.Add(produceLhs);
             }
-            s.HiddenUpdate = new AssignStatement(s.RangeToken, formals, s.Rhss, true);
+            s.HiddenUpdate = new AssignStatement(s.Origin, formals, s.Rhss, true);
             // resolving the update statement will check for return/yield statement specifics.
             ResolveStatement(s.HiddenUpdate, resolutionContext);
           }
@@ -4419,7 +4419,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
                 if (methodSel.Member is Method) {
-                  rr.InitCall = new CallStmt(stmt.RangeToken, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
+                  rr.InitCall = new CallStmt(stmt.Origin, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
                   ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
                 } else {
                   reporter.Error(MessageSource.Resolver, initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
@@ -5894,7 +5894,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = Options.Get(Snippets.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
+                var tok = Options.Get(Snippets.ShowSnippets) ? e.Origin.ToToken() : e.tok;
                 var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
