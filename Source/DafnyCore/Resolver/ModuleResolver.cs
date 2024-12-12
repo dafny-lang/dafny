@@ -2982,7 +2982,8 @@ namespace Microsoft.Dafny {
         }
       } else if (type.AsMapType is { } typeMap) {
         // A map type's Domain type is required to support equality (just like the argument type for sets and multisets), but
-        // it is optional for the map type's Range type to support equality. Thus, we need to determine the equality support for just the Range type.
+        // it is optional for the map type's Range type to support equality. Thus, we need to determine the equality support
+        // for just the Range type.
         DetermineEqualitySupportType(typeMap.Range, ref thingsChanged);
       } else if (type.AsSeqType is { } typeSeq) {
         // Like the Range type of a map, it is optional for a sequence type's argument type to support equality. So, we make a call
