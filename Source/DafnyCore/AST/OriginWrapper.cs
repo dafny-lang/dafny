@@ -20,7 +20,7 @@ public abstract class OriginWrapper : IOrigin {
   }
 
   public virtual bool InclusiveEnd => WrappedToken.InclusiveEnd;
-  public bool IncludesRange => WrappedToken.IncludesRange;
+  public virtual bool IncludesRange => WrappedToken.IncludesRange;
   public string ActualFilename => WrappedToken.ActualFilename;
 
   public virtual string Filepath => WrappedToken.Filepath;

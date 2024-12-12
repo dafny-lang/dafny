@@ -9,6 +9,7 @@ public class RangeToken : OriginWrapper {
   public override Token EndToken => endToken ?? StartToken;
 
   public override bool InclusiveEnd => endToken != null;
+  public override bool IncludesRange => true;
 
   public override bool Equals(object obj) {
     if (obj is RangeToken other) {

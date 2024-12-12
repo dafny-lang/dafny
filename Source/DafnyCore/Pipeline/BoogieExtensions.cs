@@ -62,10 +62,7 @@ namespace Microsoft.Dafny {
         return GetLspRange(nestedToken.Outer, nameRange);
       }
       var dafnyToken = BoogieGenerator.ToDafnyToken(!nameRange, token);
-      if (dafnyToken is RangeToken rangeToken) {
-        return GetLspRangeGeneric(rangeToken.StartToken, rangeToken.EndToken);
-      }
-      return GetLspRangeGeneric(token, token);
+      return GetLspRangeGeneric(dafnyToken.StartToken, dafnyToken.EndToken);
     }
 
     public static Position GetLspPosition(this DafnyPosition position) {

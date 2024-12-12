@@ -151,7 +151,7 @@ public static class TokenExtensions {
   public static bool IsSet(this IOrigin token) => token.Uri != null;
 
   public static string TokenToString(this IOrigin tok, DafnyOptions options) {
-    if (tok == Token.Cli) {
+    if (ReferenceEquals(tok, Token.Cli)) {
       return "CLI";
     }
 

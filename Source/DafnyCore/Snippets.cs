@@ -31,8 +31,8 @@ public class Snippets {
     var lineEndPos = lineStartPos + line.Length;
 
     var tokEndPos = tok.pos + tok.val.Length;
-    if (tok is RangeToken rangeToken) {
-      tokEndPos = rangeToken.EndToken.pos + rangeToken.EndToken.val.Length;
+if (tok.IncludesRange) {
+      tokEndPos = tok.EndToken.pos + tok.EndToken.val.Length;
     }
     var underlineLength = Math.Max(1, Math.Min(tokEndPos - tok.pos, lineEndPos - tok.pos));
     string underline = new string('^', underlineLength);

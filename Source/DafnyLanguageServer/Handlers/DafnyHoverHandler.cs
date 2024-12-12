@@ -311,8 +311,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
 
-          if (dafnyToken is RangeToken rangeToken && !hoveringPostcondition) {
-            var originalText = rangeToken.PrintOriginal();
+          if (dafnyToken.IncludesRange && !hoveringPostcondition) {
+            var originalText = dafnyToken.PrintOriginal();
             deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
 
