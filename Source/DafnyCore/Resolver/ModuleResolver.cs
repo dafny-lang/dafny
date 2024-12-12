@@ -2884,8 +2884,7 @@ namespace Microsoft.Dafny {
         }
         foreach (var ctor in dt.Ctors) {
           foreach (var arg in ctor.Formals) {
-            var type = arg.Type;
-            DetermineEqualitySupportType(type, ref thingsChanged);
+            DetermineEqualitySupportType(arg.Type, ref thingsChanged);
           }
         }
       }
@@ -2929,26 +2928,43 @@ namespace Microsoft.Dafny {
       if (type.AsTypeParameter is { } typeArg) {
         typeArg.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
         thingsChanged = true;
-      } else if (type.AsMapType is { } typeMap) {
-        DetermineEqualitySupportType(typeMap.Range, ref thingsChanged);
-      } else if (type.AsSeqType is { } typeSeq) {
-        DetermineEqualitySupportType(typeSeq.Arg, ref thingsChanged);
-      } else if (type.AsIndDatatype is { } otherDt) {
-        if (otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
-          var otherUdt = (UserDefinedType)type.NormalizeExpand();
-          var i = 0;
-          foreach (var otherTp in otherDt.TypeArgs) {
-            if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
-              var tp = otherUdt.TypeArgs[i].AsTypeParameter;
-              if (tp != null) {
-                tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
-                thingsChanged = true;
+      } else if (type.SupportsEquality) {
+        // nothing to do
+      } else if (type.Normalize() is UserDefinedType userDefinedType) {
+        if (userDefinedType.ResolvedClass is TypeSynonymDeclBase typeSynonymDecl) {
+          if (typeSynonymDecl.IsRevealedInScope(Type.GetScope())) {
+            DetermineEqualitySupportType(typeSynonymDecl.RhsWithArgument(userDefinedType.TypeArgs), ref thingsChanged);
+          }
+        } else if (userDefinedType.ResolvedClass is NewtypeDecl newtypeDecl) {
+          if (newtypeDecl.IsRevealedInScope(Type.GetScope())) {
+            DetermineEqualitySupportType(newtypeDecl.RhsWithArgument(userDefinedType.TypeArgs), ref thingsChanged);
+          }
+        } else if (userDefinedType.ResolvedClass is IndDatatypeDecl otherDt) {
+          if (otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {
+            // datatype is in a different SCC
+            var otherUdt = (UserDefinedType)type.NormalizeExpand();
+            var i = 0;
+            foreach (var otherTp in otherDt.TypeArgs) {
+              if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+                var tp = otherUdt.TypeArgs[i].AsTypeParameter;
+                if (tp != null) {
+                  tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+                  thingsChanged = true;
+                }
               }
-            }
 
-            i++;
+              i++;
+            }
           }
         }
+      } else if (type.AsMapType is { } typeMap) {
+        // A map type's Domain type is required to support equality (just like the argument type for sets and multisets), but
+        // it is optional for the map type's Range type to support equality. Thus, we need to determine the equality support for just the Range type.
+        DetermineEqualitySupportType(typeMap.Range, ref thingsChanged);
+      } else if (type.AsSeqType is { } typeSeq) {
+        // Like the Range type of a map, it is optional for a sequence type's argument type to support equality. So, we make a call
+        // to determine it.  
+        DetermineEqualitySupportType(typeSeq.Arg, ref thingsChanged);
       }
     }
 

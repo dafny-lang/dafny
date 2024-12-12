@@ -1,3 +1,9 @@
-git-issue-5972.dfy(19,9): Error: == can only be applied to expressions of types that support equality (got M<int, A>)
-git-issue-5972.dfy(37,9): Error: == can only be applied to expressions of types that support equality (got S<A>)
-2 resolution/type errors detected in git-issue-5972.dfy
+git-issue-5972.dfy(19,11): Error: == can only be applied to expressions of types that support equality (got M<int, A>)
+git-issue-5972.dfy(37,11): Error: == can only be applied to expressions of types that support equality (got S<A>)
+git-issue-5972.dfy(80,11): Error: == can only be applied to expressions of types that support equality (got M<int, A>)
+git-issue-5972.dfy(98,11): Error: == can only be applied to expressions of types that support equality (got S<A>)
+git-issue-5972.dfy(124,7): Error: type 'MyMap' declared as supporting equality, but the RHS type (map<T, U>) might not
+git-issue-5972.dfy(125,7): Error: type 'MySeq' declared as supporting equality, but the RHS type (seq<T>) might not
+git-issue-5972.dfy(202,11): Error: == can only be applied to expressions of types that support equality (got M<int, A>)
+git-issue-5972.dfy(220,11): Error: == can only be applied to expressions of types that support equality (got S<A>)
+8 resolution/type errors detected in git-issue-5972.dfy
