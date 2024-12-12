@@ -24,7 +24,6 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
 
   Uri Uri { get; set; }
 
-  Token Center { get; }
   Token StartToken { get; }
   Token EndToken { get; }
 

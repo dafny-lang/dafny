@@ -30,7 +30,6 @@ public abstract class OriginWrapper : IOrigin {
     set => WrappedToken.Uri = value;
   }
 
-  public virtual Token Center => WrappedToken.Center;
   public virtual Token StartToken => WrappedToken.StartToken;
   public virtual Token EndToken => WrappedToken.EndToken;
 

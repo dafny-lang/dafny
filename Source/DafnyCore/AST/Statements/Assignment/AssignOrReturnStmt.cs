@@ -296,18 +296,18 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     ResolvedStatements.Add(up);
 
     if (KeywordToken != null) {
-      var token = KeywordToken.Token;
-      var notFailureExpr = new UnaryOpExpr(token, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Tok, temp, "IsFailure"));
+      var keyword = KeywordToken.Token;
+      var notFailureExpr = new UnaryOpExpr(keyword, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Tok, temp, "IsFailure"));
       Statement ss = null;
-      if (token.val == "expect") {
+      if (keyword.val == "expect") {
         // "expect !temp.IsFailure(), temp"
-        ss = new ExpectStmt(new RangeToken(token.Center, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
-      } else if (token.val == "assume") {
-        ss = new AssumeStmt(new RangeToken(token.Center, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
-      } else if (token.val == "assert") {
-        ss = new AssertStmt(new RangeToken(token.Center, EndToken), notFailureExpr, null, KeywordToken.Attrs);
+        ss = new ExpectStmt(new RangeToken(keyword.StartToken, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
+      } else if (keyword.val == "assume") {
+        ss = new AssumeStmt(new RangeToken(keyword.StartToken, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
+      } else if (keyword.val == "assert") {
+        ss = new AssertStmt(new RangeToken(keyword.StartToken, EndToken), notFailureExpr, null, KeywordToken.Attrs);
       } else {
-        Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
+        Contract.Assert(false, $"Invalid token in :- statement: {keyword.val}");
       }
       ResolvedStatements.Add(ss);
     } else {

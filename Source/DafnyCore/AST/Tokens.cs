@@ -32,7 +32,6 @@ public class Token : IOrigin {
   public string ActualFilename => Filepath;
   public string Filepath => Uri?.LocalPath;
   public Uri Uri { get; set; }
-  public Token Center => this;
   public Token StartToken => this;
   public Token EndToken => this;
 
@@ -181,7 +180,7 @@ public class BoogieRangeOrigin : OriginWrapper {
   /// <summary>
   /// If only a single position is used to refer to this piece of code, this position is the best
   /// </summary>
-  public new IOrigin Center { get; }
+  public IOrigin Center { get; }
 
   // Used for range reporting
   public override string val => new(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
