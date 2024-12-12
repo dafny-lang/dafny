@@ -11,7 +11,7 @@ public class BoundVar : NonglobalVariable {
 
   public BoundVar(string name, Type type) : this(Token.NoToken, new Name(Token.NoToken, name), type) { }
   public BoundVar(IOrigin origin, string name, Type type) : this(origin, new Name(origin.StartToken, name), type) { }
-  
+
   public BoundVar(IOrigin tok, Name name, Type type)
     : base(tok, name, type, false) {
     Contract.Requires(tok != null);
