@@ -1891,7 +1891,7 @@ internal class Utils {
 
   public static void MakeQuantifierVarsForDims(List<Expression> dims, out List<BoundVar> vars, out List<Expression> varExprs, out Expression range) {
     var zero = new LiteralExpr(Token.NoToken, 0);
-    vars = dims.Select((_, i) => new BoundVar(Token.NoToken, "i" + i, Type.Int)).ToList();
+    vars = dims.Select((_, i) => new BoundVar("i" + i, Type.Int)).ToList();
 
     // can't assign to out-param immediately, since it's accessed in the lambda below
     var tempVarExprs = vars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();

@@ -990,7 +990,7 @@ namespace Microsoft.Dafny {
         } else {
           var pp = f.OverriddenFunction.Result;
           Contract.Assert(!pp.IsOld);
-          pOut = new Formal(pp.tok, pp.Name, f.ResultType, false, pp.IsGhost, null);
+          pOut = new Formal(pp.tok, pp.NameNode, f.ResultType, false, pp.IsGhost, null);
         }
         var varType = TrType(pOut.Type);
         var wh = GetWhereClause(pOut.tok, new Boogie.IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator), varType), pOut.Type, etran, NOALLOC);
