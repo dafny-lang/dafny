@@ -376,30 +376,29 @@ public class UserDefinedType : NonProxyType, IHasReferences {
 
   public override bool SupportsEquality {
     get {
-      if (ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true } or NewtypeDecl) {
+      if (ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true }) {
         return ResolvedClass.IsRevealedInScope(Type.GetScope());
       } else if (ResolvedClass is TraitDecl) {
         return false;
       } else if (ResolvedClass is CoDatatypeDecl) {
         return false;
-      } else if (ResolvedClass is IndDatatypeDecl) {
-        var dt = (IndDatatypeDecl)ResolvedClass;
-        Contract.Assume(dt.EqualitySupport != IndDatatypeDecl.ES.NotYetComputed);
+      } else if (ResolvedClass is NewtypeDecl nt) {
+        if (!nt.IsRevealedInScope(Type.GetScope())) {
+          return false;
+        }
+        if (nt.EqualitySupport == ITentativeEqualitySupportingDeclaration.ES.Never) {
+          return false;
+        }
+        return DoTypeArgsSupportEqualityFor(nt.TypeArgs);
+      } else if (ResolvedClass is IndDatatypeDecl dt) {
+        Contract.Assume(dt.EqualitySupport != ITentativeEqualitySupportingDeclaration.ES.NotYetComputed);
         if (!dt.IsRevealedInScope(Type.GetScope())) {
           return false;
         }
-        if (dt.EqualitySupport == IndDatatypeDecl.ES.Never) {
+        if (dt.EqualitySupport == ITentativeEqualitySupportingDeclaration.ES.Never) {
           return false;
         }
-        Contract.Assert(dt.TypeArgs.Count == TypeArgs.Count);
-        var i = 0;
-        foreach (var tp in dt.TypeArgs) {
-          if (tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && !TypeArgs[i].SupportsEquality) {
-            return false;
-          }
-          i++;
-        }
-        return true;
+        return DoTypeArgsSupportEqualityFor(dt.TypeArgs);
       } else if (ResolvedClass is TypeSynonymDeclBase) {
         var t = (TypeSynonymDeclBase)ResolvedClass;
         if (t.SupportsEquality) {
@@ -417,6 +416,18 @@ public class UserDefinedType : NonProxyType, IHasReferences {
       Contract.Assume(false);  // the SupportsEquality getter requires the Type to have been successfully resolved
       return true;
     }
+  }
+
+  private bool DoTypeArgsSupportEqualityFor(List<TypeParameter> typeParameters) {
+    Contract.Requires(typeParameters.Count == TypeArgs.Count);
+    var i = 0;
+    foreach (var tp in typeParameters) {
+      if (tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && !TypeArgs[i].SupportsEquality) {
+        return false;
+      }
+      i++;
+    }
+    return true;
   }
 
   public override bool PartiallySupportsEquality {

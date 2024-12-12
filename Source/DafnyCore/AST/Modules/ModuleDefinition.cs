@@ -482,11 +482,11 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     resolver.moduleInfo = ModuleResolver.MergeSignature(sig, resolver.ProgramResolver.SystemModuleManager.systemNameInfo);
     Type.PushScope(resolver.moduleInfo.VisibilityScope);
     ModuleResolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver.Reporter, resolver); // opened imports do not persist
-    var datatypeDependencies = new Graph<IndDatatypeDecl>();
+    var equalityDependencies = new Graph<ITentativeEqualitySupportingDeclaration>();
     var codatatypeDependencies = new Graph<CoDatatypeDecl>();
     var allDeclarations = AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
     int prevErrorCount = resolver.reporter.Count(ErrorLevel.Error);
-    resolver.ResolveTopLevelDecls_Signatures(this, sig, allDeclarations, datatypeDependencies, codatatypeDependencies);
+    resolver.ResolveTopLevelDecls_Signatures(this, sig, allDeclarations, equalityDependencies, codatatypeDependencies);
     Contract.Assert(resolver.AllTypeConstraints.Count == 0); // signature resolution does not add any type constraints
 
     resolver.scope.PushMarker();
@@ -495,7 +495,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     resolver.scope.PopMarker();
 
     if (resolver.reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-      resolver.ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies,
+      resolver.ResolveTopLevelDecls_Core(allDeclarations, equalityDependencies, codatatypeDependencies,
         exportSetName == null ? Name : $"{Name} export {exportSetName}", exportSetName != null);
     }
 

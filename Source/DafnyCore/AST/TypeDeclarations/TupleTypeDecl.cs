@@ -49,7 +49,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
         TypeParametersUsedInConstructionByGroundingCtor[i] = !argumentGhostness[i];
       }
     }
-    this.EqualitySupport = argumentGhostness.Contains(true) ? ES.Never : ES.ConsultTypeArguments;
+    this.EqualitySupport = argumentGhostness.Contains(true) ? ITentativeEqualitySupportingDeclaration.ES.Never : ITentativeEqualitySupportingDeclaration.ES.ConsultTypeArguments;
 
     // Resolve parent type information - not currently possible for tuples to have any parent traits
     ParentTypeInformation = new InheritanceInformationClass();

@@ -1,6 +1,3 @@
-// RUN: %exits-with 2 %baredafny verify %args "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-
 // RUN: %exits-with 2 %baredafny verify --type-system-refresh --general-newtypes %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 

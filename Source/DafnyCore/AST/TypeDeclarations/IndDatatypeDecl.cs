@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class IndDatatypeDecl : DatatypeDecl {
+public class IndDatatypeDecl : DatatypeDecl, ITentativeEqualitySupportingDeclaration {
   public override string WhatKind { get { return "datatype"; } }
   [FilledInDuringResolution] public DatatypeCtor GroundingCtor; // set during resolution (possibly to null)
 
@@ -29,8 +29,14 @@ public class IndDatatypeDecl : DatatypeDecl {
     }
   }
 
-  public enum ES { NotYetComputed, Never, ConsultTypeArguments }
-  public ES EqualitySupport = ES.NotYetComputed;
+  public ITentativeEqualitySupportingDeclaration.ES EqualitySupport { get; set; } = ITentativeEqualitySupportingDeclaration.ES.NotYetComputed;
+
+  List<TypeParameter> ITentativeEqualitySupportingDeclaration.TypeParameters {
+    get => TypeArgs;
+  }
+
+  ModuleDefinition ITentativeEqualitySupportingDeclaration.EnclosingModuleDefinition =>
+    EnclosingModuleDefinition;
 
   public IndDatatypeDecl(RangeToken rangeOrigin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)

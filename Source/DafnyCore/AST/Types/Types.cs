@@ -790,6 +790,17 @@ public abstract class Type : TokenNode {
       return udt?.ResolvedClass as IndDatatypeDecl;
     }
   }
+
+  public ITentativeEqualitySupportingDeclaration AsTentativeEqualitySupportingDeclaration {
+    get {
+      ITentativeEqualitySupportingDeclaration eqDecl = AsIndDatatype;
+      if (eqDecl == null) {
+        eqDecl = AsNewtype;
+      }
+
+      return eqDecl;
+    }
+  }
   public bool IsCoDatatype => AsCoDatatype != null;
 
   public CoDatatypeDecl AsCoDatatype {
