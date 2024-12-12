@@ -30,27 +30,21 @@ boogie: ${DIR}/boogie/Binaries/Boogie.exe
 tests:
 	(cd "${DIR}"; dotnet test Source/IntegrationTests)
 
-# make test name=<part of the path of an integration test>
+# make test name=<integration test filter>
+# make test name=<integration test filter> update=true                to update the test
+# make test name=<integration test filter>              build=false   don't build the solution
 test:
-	(cd "${DIR}"; [ -z "${name}" ] && echo "Syntax: make test name=<integration test filter>" && exit 1; dotnet test Source/IntegrationTests --filter "DisplayName~${name}")
+	(cd "${DIR}"; \
+	[ -z "${name}" ] && echo "Syntax: make test name=<integration test filter> [update=true] [build=false]" && exit 1; \
+	build_flag=$${build:-true}; \
+	update_flag=$${update:-false}; \
+	DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE=$$update_flag \
+	dotnet test Source/IntegrationTests $$( [ "$$build_flag" = "false" ] && echo "--no-build" ) --filter "DisplayName~${name}")
 
 # Run Dafny on an integration test case directly in the folder itself.
-# make test-run name=<part of the path> action="run ..."
+# make test-dafny name=<part of the path> action="run ..." [build=false]
 test-dafny:
-	name="$(name)"; \
-	files=$$(cd "${DIR}"/Source/IntegrationTests/TestFiles/LitTests/LitTest; find . -type f -wholename "*$$name*" | grep -E '\.dfy$$'); \
-	count=$$(echo "$$files" | wc -l); \
-  echo "$${files}"; \
-	if [ "$$count" -eq 0 ]; then \
-		echo "No files found matching pattern: $$name"; \
-		exit 1; \
-	else \
-		echo "$$count test files found."; \
-		for file in $$files; do \
-			filedir=$$(dirname "$$file"); \
-			(cd "${DIR}/Source/IntegrationTests/TestFiles/LitTests/LitTest/$${filedir}"; dotnet run --project "${DIR}"/Source/Dafny -- $(action)  "$$(basename $$file)" ); \
-		done; \
-	fi
+	@name="$(name)" DIR="$(DIR)" action="$(action)" NO_BUILD=$$( [ "${build}" = "false" ] && echo "true" || echo "false" ) bash scripts/test-dafny.sh
 
 tests-verbose:
 	(cd "${DIR}"; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )
