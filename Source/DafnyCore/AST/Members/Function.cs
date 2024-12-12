@@ -227,7 +227,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     Contract.Invariant(Decreases != null);
   }
 
-  public Function(RangeToken range, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
+  public Function(IOrigin range, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IOrigin/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,

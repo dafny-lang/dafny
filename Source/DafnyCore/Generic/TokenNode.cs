@@ -9,7 +9,7 @@ public abstract class TokenNode : Node {
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
   internal IOrigin[] FormatTokens = null;
 
-  protected RangeToken RangeOrigin = null;
+  protected IOrigin RangeOrigin = null;
 
   public IOrigin tok = Token.NoToken;
 
@@ -18,7 +18,7 @@ public abstract class TokenNode : Node {
     get => tok;
   }
 
-  public override RangeToken Origin {
+  public override IOrigin Origin {
     get {
       if (RangeOrigin == null) {
 

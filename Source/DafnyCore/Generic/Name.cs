@@ -28,7 +28,7 @@ public class Name : RangeNode {
     Value = original.Value;
   }
 
-  public Name(RangeToken range, string value) : base(range) {
+  public Name(IOrigin range, string value) : base(range) {
     this.Value = value;
   }
 

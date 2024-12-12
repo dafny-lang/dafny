@@ -1659,7 +1659,7 @@ namespace Microsoft.Dafny {
 
     // Return a way to know if an assertion should be converted to an assumption
     private void SetAssertionOnlyFilter(Node m) {
-      List<RangeToken> rangesOnly = new List<RangeToken>();
+      List<IOrigin> rangesOnly = new List<IOrigin>();
       m.Visit(node => {
         if (node is AssertStmt assertStmt &&
             assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {

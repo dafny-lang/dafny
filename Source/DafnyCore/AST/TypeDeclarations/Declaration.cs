@@ -32,7 +32,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  protected Declaration(RangeToken rangeOrigin, Name name, Attributes attributes, bool isRefining) : base(rangeOrigin) {
+  protected Declaration(IOrigin rangeOrigin, Name name, Attributes attributes, bool isRefining) : base(rangeOrigin) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     this.NameNode = name;

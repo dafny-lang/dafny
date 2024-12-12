@@ -11,7 +11,7 @@ public class Predicate : Function {
     Extension  // this predicate extends the definition of a predicate with a body in a module being refined
   }
   public readonly BodyOriginKind BodyOrigin;
-  public Predicate(RangeToken rangeOrigin, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
+  public Predicate(IOrigin rangeOrigin, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> ins,
     Formal result,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
