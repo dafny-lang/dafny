@@ -29,7 +29,7 @@ public class ArrowType : UserDefinedType {
   /// <summary>
   /// Constructs a(n unresolved) arrow type.
   /// </summary>
-  public ArrowType(IToken tok, List<Type> args, Type result)
+  public ArrowType(IOrigin tok, List<Type> args, Type result)
     : base(tok, ArrowTypeName(args.Count), Util.Snoc(args, result)) {
     Contract.Requires(tok != null);
     Contract.Requires(args != null);
@@ -38,7 +38,7 @@ public class ArrowType : UserDefinedType {
   /// <summary>
   /// Constructs and returns a resolved arrow type.
   /// </summary>
-  public ArrowType(IToken tok, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
+  public ArrowType(IOrigin tok, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
     : base(tok, ArrowTypeName(atd.Arity), atd, typeArgsAndResult) {
     Contract.Requires(tok != null);
     Contract.Requires(atd != null);
@@ -48,7 +48,7 @@ public class ArrowType : UserDefinedType {
   /// <summary>
   /// Constructs and returns a resolved arrow type.
   /// </summary>
-  public ArrowType(IToken tok, ArrowTypeDecl atd, List<Type> typeArgs, Type result)
+  public ArrowType(IOrigin tok, ArrowTypeDecl atd, List<Type> typeArgs, Type result)
     : this(tok, atd, Util.Snoc(typeArgs, result)) {
     Contract.Requires(tok != null);
     Contract.Requires(atd != null);

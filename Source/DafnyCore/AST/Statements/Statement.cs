@@ -6,8 +6,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
-  public override IToken Tok => PostLabelToken ?? StartToken;
-  public IToken PostLabelToken { get; set; }
+  public override IOrigin Tok => PostLabelToken ?? StartToken;
+  public IOrigin PostLabelToken { get; set; }
 
   public int ScopeDepth { get; set; }
   public LList<Label> Labels;  // mutable during resolution
@@ -36,13 +36,13 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     }
   }
 
-  protected Statement(RangeToken rangeToken, Attributes attrs) : base(rangeToken) {
+  protected Statement(RangeToken rangeOrigin, Attributes attrs) : base(rangeOrigin) {
     this.Attributes = attrs;
   }
 
-  protected Statement(RangeToken rangeToken)
-    : this(rangeToken, null) {
-    Contract.Requires(rangeToken != null);
+  protected Statement(RangeToken rangeOrigin)
+    : this(rangeOrigin, null) {
+    Contract.Requires(rangeOrigin != null);
   }
 
   /// <summary>
@@ -138,7 +138,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// <summary>
   /// Create a resolved statement for an uninitialized local variable.
   /// </summary>
-  public static VarDeclStmt CreateLocalVariable(IToken tok, string name, Type type) {
+  public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Type type) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
@@ -150,7 +150,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// <summary>
   /// Create a resolved statement for a local variable with an initial value.
   /// </summary>
-  public static VarDeclStmt CreateLocalVariable(IToken tok, string name, Expression value) {
+  public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Expression value) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(value != null);
@@ -165,7 +165,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     return new VarDeclStmt(rangeToken, Util.Singleton(variable), variableUpdateStmt);
   }
 
-  public static PrintStmt CreatePrintStmt(IToken tok, params Expression[] exprs) {
+  public static PrintStmt CreatePrintStmt(IOrigin tok, params Expression[] exprs) {
     var rangeToken = new RangeToken(tok, tok);
     return new PrintStmt(rangeToken, exprs.ToList());
   }

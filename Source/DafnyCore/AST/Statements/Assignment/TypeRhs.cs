@@ -99,7 +99,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     Contract.Invariant(!(ArrayDimensions == null && Bindings == null) || (Path == null && InitCall == null && ElementInit == null && InitDisplay == null));
   }
 
-  public TypeRhs(IToken tok, Type type, List<Expression> arrayDimensions, Expression elementInit)
+  public TypeRhs(IOrigin tok, Type type, List<Expression> arrayDimensions, Expression elementInit)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);
@@ -108,7 +108,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     ArrayDimensions = arrayDimensions;
     ElementInit = elementInit;
   }
-  public TypeRhs(IToken tok, Type type, Expression dim, List<Expression> initDisplay)
+  public TypeRhs(IOrigin tok, Type type, Expression dim, List<Expression> initDisplay)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);
@@ -118,13 +118,13 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     ArrayDimensions = new List<Expression> { dim };
     InitDisplay = initDisplay;
   }
-  public TypeRhs(IToken tok, Type type)
+  public TypeRhs(IOrigin tok, Type type)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);
     EType = type;
   }
-  public TypeRhs(IToken tok, Type path, List<ActualBinding> arguments)
+  public TypeRhs(IOrigin tok, Type path, List<ActualBinding> arguments)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(path != null);
@@ -176,7 +176,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     }
   }
 
-  public IToken Start => Tok;
+  public IOrigin Start => Tok;
 
   public override IEnumerable<INode> Children {
     get {

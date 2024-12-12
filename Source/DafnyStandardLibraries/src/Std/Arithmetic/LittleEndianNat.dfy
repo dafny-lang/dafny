@@ -32,7 +32,7 @@ abstract module Std.Arithmetic.LittleEndianNat {
   //////////////////////////////////////////////////////////////////////////////
 
   /* Converts a sequence to a nat beginning with the least significant position. */
-  opaque function ToNatRight(xs: seq<digit>): nat
+  function ToNatRight(xs: seq<digit>): nat
   {
     if |xs| == 0 then 0
     else
@@ -41,7 +41,7 @@ abstract module Std.Arithmetic.LittleEndianNat {
   }
 
   /* Converts a sequence to a nat beginning with the most significant position. */
-  opaque function ToNatLeft(xs: seq<digit>): nat
+  function ToNatLeft(xs: seq<digit>): nat
   {
     if |xs| == 0 then 0
     else
@@ -55,15 +55,13 @@ abstract module Std.Arithmetic.LittleEndianNat {
   lemma LemmaToNatLeftEqToNatRight(xs: seq<digit>)
     ensures ToNatRight(xs) == ToNatLeft(xs)
   {
-    reveal ToNatRight();
-    reveal ToNatLeft();
     if xs == [] {
     } else {
       if DropLast(xs) == [] {
         calc {
           ToNatLeft(xs);
           Last(xs) * Pow(BASE(), |xs| - 1);
-          { reveal Pow(); }
+          {  }
           Last(xs);
           First(xs);
           { assert ToNatRight(DropFirst(xs)) == 0; }
@@ -82,7 +80,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
           * Pow(BASE(), |xs| - 1);
           {
             assert DropFirst(DropLast(xs)) == DropLast(DropFirst(xs));
-            reveal Pow();
             LemmaMulProperties();
           }
           ToNatLeft(DropLast(DropFirst(xs))) * BASE() + First(xs) + Last(xs)
@@ -99,8 +96,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
   lemma LemmaToNatLeftEqToNatRightAuto()
     ensures forall xs: seq<digit> :: ToNatRight(xs) == ToNatLeft(xs)
   {
-    reveal ToNatRight();
-    reveal ToNatLeft();
     forall xs: seq<digit>
       ensures ToNatRight(xs) == ToNatLeft(xs)
     {
@@ -114,7 +109,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
     requires |xs| == 1
     ensures ToNatRight(xs) == First(xs)
   {
-    reveal ToNatRight();
     assert ToNatRight(DropFirst(xs)) == 0;
   }
 
@@ -127,11 +121,8 @@ abstract module Std.Arithmetic.LittleEndianNat {
     var xs1 := DropFirst(xs);
     calc {
       ToNatRight(xs);
-      { reveal ToNatRight(); }
       ToNatRight(xs1) * BASE() + First(xs);
-      { reveal ToNatRight(); }
       (ToNatRight([]) * BASE() + First(xs1)) * BASE() + First(xs);
-      { reveal ToNatRight(); }
       (0 * BASE() + First(xs1)) * BASE() + First(xs);
     }
   }
@@ -140,7 +131,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
   lemma LemmaSeqAppendZero(xs: seq<digit>)
     ensures ToNatRight(xs + [0]) == ToNatRight(xs)
   {
-    reveal ToNatLeft();
     LemmaToNatLeftEqToNatRightAuto();
     calc {
       ToNatRight(xs + [0]);
@@ -157,9 +147,7 @@ abstract module Std.Arithmetic.LittleEndianNat {
   lemma LemmaSeqNatBound(xs: seq<digit>)
     ensures ToNatRight(xs) < Pow(BASE(), |xs|)
   {
-    reveal Pow();
     if |xs| == 0 {
-      reveal ToNatRight();
     } else {
       var len' := |xs| - 1;
       var pow := Pow(BASE(), len');
@@ -167,7 +155,7 @@ abstract module Std.Arithmetic.LittleEndianNat {
         ToNatRight(xs);
          { LemmaToNatLeftEqToNatRight(xs); }
         ToNatLeft(xs);
-         { reveal ToNatLeft(); }
+         {  }
         ToNatLeft(DropLast(xs)) + Last(xs) * pow;
       <  {
            LemmaToNatLeftEqToNatRight(DropLast(xs));
@@ -192,8 +180,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
     requires 0 <= i <= |xs|
     ensures ToNatRight(xs[..i]) + ToNatRight(xs[i..]) * Pow(BASE(), i) == ToNatRight(xs)
   {
-    reveal ToNatRight();
-    reveal Pow();
     if i == 1 {
       assert ToNatRight(xs[..1]) == First(xs);
     } else if i > 1 {
@@ -221,7 +207,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
     requires Last(xs) < Last(ys)
     ensures ToNatRight(xs) < ToNatRight(ys)
   {
-    reveal ToNatLeft();
     LemmaToNatLeftEqToNatRightAuto();
     var len' := |xs| - 1;
     calc {
@@ -251,7 +236,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
       assert ys[..i] == ys;
     } else {
       if xs[i] == ys[i] {
-        reveal ToNatLeft();
         assert DropLast(xs[..i+1]) == xs[..i];
         assert DropLast(ys[..i+1]) == ys[..i];
 
@@ -262,7 +246,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
       } else {
         LemmaSeqMswInequality(ys[..i+1], xs[..i+1]);
       }
-      reveal ToNatRight();
       LemmaSeqPrefixNeq(xs, ys, i + 1);
     }
   }
@@ -287,7 +270,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
     }
     assert ToNatLeft(xs[..i]) == ToNatLeft(ys[..i]);
 
-    reveal ToNatLeft();
     assert xs[..i+1][..i] == xs[..i];
     assert ys[..i+1][..i] == ys[..i];
     LemmaPowPositiveAuto();
@@ -325,7 +307,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
       LemmaModEquivalenceAuto();
     } else {
       assert IsModEquivalent(ToNatRight(xs), First(xs), BASE()) by {
-        reveal ToNatRight();
         calc ==> {
           true;
           { LemmaModEquivalence(ToNatRight(xs), ToNatRight(DropFirst(xs)) * BASE() + First(xs), BASE()); }
@@ -344,7 +325,7 @@ abstract module Std.Arithmetic.LittleEndianNat {
   //////////////////////////////////////////////////////////////////////////////
 
   /* Converts a nat to a sequence. */
-  opaque function FromNat(n: nat): (xs: seq<digit>)
+  function FromNat(n: nat): (xs: seq<digit>)
   {
     if n == 0 then []
     else
@@ -357,7 +338,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
     ensures n == 0 ==> |FromNat(n)| == 0
     ensures n > 0 ==> |FromNat(n)| == Log(BASE(), n) + 1
   {
-    reveal FromNat();
     var digits := FromNat(n);
     if (n == 0) {
     } else {
@@ -382,7 +362,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
     requires Pow(BASE(), len) > n
     ensures |FromNat(n)| <= len
   {
-    reveal FromNat();
     if n == 0 {
     } else {
       calc {
@@ -392,7 +371,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
       <= {
            LemmaMultiplyDivideLtAuto();
            LemmaDivDecreasesAuto();
-           reveal Pow();
            LemmaFromNatLen(n / BASE(), len - 1);
          }
         len;
@@ -406,8 +384,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
     ensures ToNatRight(FromNat(n)) == n
     decreases n
   {
-    reveal ToNatRight();
-    reveal FromNat();
     if n == 0 {
     } else {
       calc {
@@ -453,7 +429,7 @@ abstract module Std.Arithmetic.LittleEndianNat {
   }
 
   /* Converts a nat to a sequence of a specified length. */
-  opaque function FromNatWithLen(n: nat, len: nat): (xs: seq<digit>)
+  function FromNatWithLen(n: nat, len: nat): (xs: seq<digit>)
     requires Pow(BASE(), len) > n
     ensures |xs| == len
     ensures ToNatRight(xs) == n
@@ -470,7 +446,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
     requires ToNatRight(xs) == 0
     ensures forall i :: 0 <= i < |xs| ==> xs[i] == 0
   {
-    reveal ToNatRight();
     if |xs| == 0 {
     } else {
       LemmaMulNonnegativeAuto();
@@ -500,8 +475,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
     ensures Pow(BASE(), |xs|) > ToNatRight(xs)
     ensures FromNatWithLen(ToNatRight(xs), |xs|) == xs
   {
-    reveal FromNat();
-    reveal ToNatRight();
     LemmaSeqNatBound(xs);
     if |xs| > 0 {
       calc {
@@ -521,7 +494,7 @@ abstract module Std.Arithmetic.LittleEndianNat {
   //////////////////////////////////////////////////////////////////////////////
 
   /* Adds two sequences. */
-  opaque function SeqAdd(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
+  function SeqAdd(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
     requires |xs| == |ys|
     ensures var (zs, cout) := SeqAdd(xs, ys);
             |zs| == |xs| && 0 <= cout <= 1
@@ -544,9 +517,7 @@ abstract module Std.Arithmetic.LittleEndianNat {
     requires SeqAdd(xs, ys) == (zs, cout)
     ensures ToNatRight(xs) + ToNatRight(ys) == ToNatRight(zs) + cout * Pow(BASE(), |xs|)
   {
-    reveal SeqAdd();
     if |xs| == 0 {
-      reveal ToNatRight();
     } else {
       var pow := Pow(BASE(), |xs| - 1);
       var (zs', cin) := SeqAdd(DropLast(xs), DropLast(ys));
@@ -554,7 +525,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
       var z := if sum < BASE() then sum else sum - BASE();
       assert sum == z + cout * BASE();
 
-      reveal ToNatLeft();
       LemmaToNatLeftEqToNatRightAuto();
       calc {
         ToNatRight(zs);
@@ -570,7 +540,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
         ToNatLeft(xs) + ToNatLeft(ys) - cout * BASE() * pow;
         {
           LemmaMulIsAssociative(cout, BASE(), pow);
-          reveal Pow();
         }
         ToNatLeft(xs) + ToNatLeft(ys) - cout * Pow(BASE(), |xs|);
         ToNatRight(xs) + ToNatRight(ys) - cout * Pow(BASE(), |xs|);
@@ -579,7 +548,7 @@ abstract module Std.Arithmetic.LittleEndianNat {
   }
 
   /* Subtracts two sequences. */
-  opaque function SeqSub(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
+  function SeqSub(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
     requires |xs| == |ys|
     ensures var (zs, cout) := SeqSub(xs, ys);
             |zs| == |xs| && 0 <= cout <= 1
@@ -602,9 +571,7 @@ abstract module Std.Arithmetic.LittleEndianNat {
     requires SeqSub(xs, ys) == (zs, cout)
     ensures ToNatRight(xs) - ToNatRight(ys) + cout * Pow(BASE(), |xs|) == ToNatRight(zs)
   {
-    reveal SeqSub();
     if |xs| == 0 {
-      reveal ToNatRight();
     } else {
       var pow := Pow(BASE(), |xs| - 1);
       var (zs', cin) := SeqSub(DropLast(xs), DropLast(ys));
@@ -613,7 +580,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
       else BASE() + Last(xs) - Last(ys) - cin;
       assert cout * BASE() + Last(xs) - cin - Last(ys) == z;
 
-      reveal ToNatLeft();
       LemmaToNatLeftEqToNatRightAuto();
       calc {
         ToNatRight(zs);
@@ -629,7 +595,6 @@ abstract module Std.Arithmetic.LittleEndianNat {
         ToNatLeft(xs) - ToNatLeft(ys) + cout * BASE() * pow;
         {
           LemmaMulIsAssociative(cout, BASE(), pow);
-          reveal Pow();
         }
         ToNatLeft(xs) - ToNatLeft(ys) + cout * Pow(BASE(), |xs|);
         ToNatRight(xs) - ToNatRight(ys) + cout * Pow(BASE(), |xs|);

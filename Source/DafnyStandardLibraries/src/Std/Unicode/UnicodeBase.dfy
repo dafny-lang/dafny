@@ -45,7 +45,7 @@ module Std.Unicode.Base {
     16  // Supplementary Private Use Area B
   }
 
-  opaque predicate IsInAssignedPlane(i: CodePoint) {
+  predicate IsInAssignedPlane(i: CodePoint) {
     var plane := (i >> 16) as bv8;
     plane in ASSIGNED_PLANES
   }

@@ -59,7 +59,7 @@ class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_
     }
   }
 
-  public Resolver_IdentifierExpr(IToken tok, TopLevelDecl decl, List<Type> typeArgs)
+  public Resolver_IdentifierExpr(IOrigin tok, TopLevelDecl decl, List<Type> typeArgs)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(decl != null);
@@ -69,7 +69,7 @@ class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_
     Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
     PreType = decl is ModuleDecl ? new PreTypePlaceholderModule() : new PreTypePlaceholderType();
   }
-  public Resolver_IdentifierExpr(IToken tok, TypeParameter tp)
+  public Resolver_IdentifierExpr(IOrigin tok, TypeParameter tp)
     : this(tok, tp, new List<Type>()) {
     Contract.Requires(tok != null);
     Contract.Requires(tp != null);
@@ -79,7 +79,7 @@ class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_
     return new[] { Decl };
   }
 
-  public IToken NavigationToken => tok;
+  public IOrigin NavigationToken => tok;
   public Resolver_IdentifierExpr Clone(Cloner cloner) {
     return new Resolver_IdentifierExpr(cloner, this);
   }

@@ -225,6 +225,16 @@ module PriorityQueue_extrinsic {
       Valid(t') &&
       Elements(t') == Elements(t) + multiset{x}
   {
+    var t' := Insert(t, x);
+    assert Valid(t') by {
+      if t == Leaf {
+        assert t' == Node(x, Leaf, Leaf);
+      } else if x < t.val {
+        assert t' == Node(x, Insert(t.right, t.val), t.left);
+      } else {
+        assert t' == Node(t.val, Insert(t.right, x), t.left);
+      }
+    }
   }
   function Min(t: T): int
     requires Elements(t) != multiset{}

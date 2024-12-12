@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 public class TypeParameter : TopLevelDecl {
   public interface ParentType {
     string FullName { get; }
-    IToken Tok { get; }
+    IOrigin Tok { get; }
   }
 
   public override string WhatKind => "type parameter";
@@ -186,19 +186,19 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  public TypeParameter(RangeToken rangeToken, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
+  public TypeParameter(RangeToken rangeOrigin, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
-    : base(rangeToken, name, null, new List<TypeParameter>(), null, false) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, null, new List<TypeParameter>(), null, false) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Characteristics = characteristics;
     VarianceSyntax = varianceS;
     TypeBounds = typeBounds;
   }
 
-  public TypeParameter(RangeToken rangeToken, Name name, TPVarianceSyntax varianceS)
-    : this(rangeToken, name, varianceS, new TypeParameterCharacteristics(false), new List<Type>()) {
-    Contract.Requires(rangeToken != null);
+  public TypeParameter(RangeToken rangeOrigin, Name name, TPVarianceSyntax varianceS)
+    : this(rangeOrigin, name, varianceS, new TypeParameterCharacteristics(false), new List<Type>()) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
   }
 
