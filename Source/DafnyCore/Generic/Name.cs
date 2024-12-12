@@ -32,7 +32,7 @@ public class Name : RangeNode {
     this.Value = value;
   }
 
-  public Name(IOrigin token) : this(new RangeToken(token, token), token.val) {
+  public Name(IOrigin token) : this(token, token.val) {
   }
 
   public Name(string value) : base(RangeToken.NoToken) {

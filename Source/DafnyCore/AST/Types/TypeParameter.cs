@@ -202,7 +202,7 @@ public class TypeParameter : TopLevelDecl {
     Contract.Requires(name != null);
   }
 
-  public TypeParameter(RangeToken tok, Name name, int positionalIndex, ParentType parent)
+  public TypeParameter(IOrigin tok, Name name, int positionalIndex, ParentType parent)
     : this(tok, name, TPVarianceSyntax.NonVariant_Strict) {
     PositionalIndex = positionalIndex;
     Parent = parent;

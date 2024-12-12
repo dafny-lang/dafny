@@ -596,14 +596,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual RangeToken Origin(RangeToken range) {
-      if (range == null) {
+    public virtual IOrigin Origin(IOrigin tok) {
+      if (tok == null) {
         return null;
       }
-      return new RangeToken(Origin(range.StartToken), Origin(range.EndToken));
-    }
 
-    public virtual IOrigin Origin(IOrigin tok) {
       Contract.Requires(tok != null);
       return tok;
     }

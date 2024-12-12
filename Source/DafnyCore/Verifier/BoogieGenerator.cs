@@ -4055,7 +4055,7 @@ namespace Microsoft.Dafny {
         : base(ToDafnyToken(false, expr.tok)) {
         Contract.Requires(expr != null);
         Contract.Requires(dafnyType != null);
-        Origin = ToDafnyToken(true, expr.tok).ToRange();
+        Origin = ToDafnyToken(true, expr.tok);
         Expr = expr;
         Type = dafnyType;  // resolve immediately
       }

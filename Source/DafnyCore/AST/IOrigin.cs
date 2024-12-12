@@ -4,8 +4,9 @@ using System.IO;
 namespace Microsoft.Dafny;
 
 public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
-  public RangeToken To(IOrigin end) => new RangeToken(this, end);
 
+  bool InclusiveEnd { get; }
+  bool IncludesRange { get; }
   /*
   int kind { get; set; }
   int pos { get; set; }
@@ -22,9 +23,10 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
   string Filepath => Uri.LocalPath;
 
   Uri Uri { get; set; }
-  
-  IOrigin StartToken { get; }
-  IOrigin EndToken { get; }
+
+  Token Center { get; }
+  Token StartToken { get; }
+  Token EndToken { get; }
 
   /// <summary>
   /// TrailingTrivia contains everything after the token,

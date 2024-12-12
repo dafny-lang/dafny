@@ -86,6 +86,10 @@ class QuantifiedVariableDomainCloner : Cloner {
   public static readonly QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
   private QuantifiedVariableDomainCloner() { }
   public override IOrigin Origin(IOrigin tok) {
+    if (tok == null) {
+      return null;
+    }
+
     return new QuantifiedVariableDomainOrigin(tok);
   }
 }
@@ -94,6 +98,10 @@ class QuantifiedVariableRangeCloner : Cloner {
   public static readonly QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
   private QuantifiedVariableRangeCloner() { }
   public override IOrigin Origin(IOrigin tok) {
+    if (tok == null) {
+      return null;
+    }
+
     return new QuantifiedVariableRangeOrigin(tok);
   }
 }

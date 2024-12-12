@@ -10,8 +10,8 @@ namespace Microsoft.Dafny;
 
 public interface INode {
   bool SingleFileToken { get; }
-  public IOrigin StartToken => Origin.StartToken;
-  public IOrigin EndToken => Origin.EndToken;
+  public Token StartToken => Origin.StartToken;
+  public Token EndToken => Origin.EndToken;
   IEnumerable<IOrigin> OwnedTokens { get; }
   IOrigin Origin { get; }
   IOrigin Tok { get; }
@@ -34,9 +34,9 @@ public abstract class Node : INode {
   protected IReadOnlyList<IOrigin> OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
-  public IOrigin StartToken => Origin?.StartToken;
+  public Token StartToken => Origin?.StartToken;
 
-  public IOrigin EndToken => Origin?.EndToken;
+  public Token EndToken => Origin?.EndToken;
   public abstract IOrigin Tok { get; }
 
   /// <summary>
@@ -54,7 +54,7 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<INode> PreResolveChildren { get; }
 
-  public IEnumerable<IOrigin> CoveredTokens {
+  public IEnumerable<Token> CoveredTokens {
     get {
       var token = StartToken;
       if (token == Token.NoToken) {

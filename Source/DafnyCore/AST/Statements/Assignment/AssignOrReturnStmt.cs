@@ -301,11 +301,11 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       Statement ss = null;
       if (token.val == "expect") {
         // "expect !temp.IsFailure(), temp"
-        ss = new ExpectStmt(new RangeToken(token, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
+        ss = new ExpectStmt(new RangeToken(token.Center, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
       } else if (token.val == "assume") {
-        ss = new AssumeStmt(new RangeToken(token, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
+        ss = new AssumeStmt(new RangeToken(token.Center, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
       } else if (token.val == "assert") {
-        ss = new AssertStmt(new RangeToken(token, EndToken), notFailureExpr, null, KeywordToken.Attrs);
+        ss = new AssertStmt(new RangeToken(token.Center, EndToken), notFailureExpr, null, KeywordToken.Attrs);
       } else {
         Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
       }

@@ -115,7 +115,7 @@ public class Program : TokenNode {
   }
 
   public Token GetFirstTokenForUri(Uri uri) {
-    return (Token)OriginWrapper.Unwrap(this.FindNodesInUris(uri).MinBy(n => n.Origin.StartToken.pos)?.StartToken);
+    return this.FindNodesInUris(uri).MinBy(n => n.Origin.StartToken.pos)?.StartToken;
   }
 
   public override IEnumerable<INode> Children => new[] { DefaultModule };
