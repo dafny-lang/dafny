@@ -31,7 +31,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
       return name;
     }
   }
-  public string DafnyName => RangeToken == null || tok.line == 0 ? Name : RangeToken.PrintOriginal();
+  public string DafnyName => Origin == null || tok.line == 0 ? Name : Origin.PrintOriginal();
   public string DisplayName =>
     LocalVariable.DisplayNameHelper(this);
 

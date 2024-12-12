@@ -7,12 +7,12 @@ public class NodeTests {
 
   class ConcreteNode : Node {
     public ConcreteNode(RangeToken rangeOrigin, IEnumerable<INode>? children = null) {
-      RangeToken = rangeOrigin;
+      Origin = rangeOrigin;
       Children = children ?? Enumerable.Empty<INode>();
     }
 
-    public override RangeToken RangeToken { get; set; }
-    public override IOrigin Tok => RangeToken.StartToken;
+    public override RangeToken Origin { get; set; }
+    public override IOrigin Tok => Origin.StartToken;
     public override IEnumerable<INode> Children { get; }
     public override IEnumerable<INode> PreResolveChildren => Children;
   }

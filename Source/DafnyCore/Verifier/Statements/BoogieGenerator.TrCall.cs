@@ -182,7 +182,7 @@ public partial class BoogieGenerator {
     var directSubstMap = new Dictionary<IVariable, Expression>();
     for (int i = 0; i < callee.Ins.Count; i++) {
       var formal = callee.Ins[i];
-      var local = new LocalVariable(formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
+      var local = new LocalVariable(formal.Origin, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
       local.type = local.SyntacticType;  // resolve local here
       var localName = local.AssignUniqueName(CurrentDeclaration.IdGenerator);
       var ie = new IdentifierExpr(local.Tok, localName);

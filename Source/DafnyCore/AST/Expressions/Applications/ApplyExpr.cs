@@ -23,7 +23,7 @@ public class ApplyExpr : Expression, ICloneable<ApplyExpr> {
   public ApplyExpr(Cloner cloner, ApplyExpr original) : base(cloner, original) {
     Function = cloner.CloneExpr(original.Function);
     Args = original.Args.ConvertAll(cloner.CloneExpr);
-    CloseParen = cloner.Tok(original.CloseParen);
+    CloseParen = cloner.Origin(original.CloseParen);
   }
 
   public ApplyExpr(IOrigin tok, Expression fn, List<Expression> args, IOrigin closeParen)

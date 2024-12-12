@@ -369,7 +369,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       if (node is not Program program) {
         return new Range(0, 0, -1, 0);
       }
-      var end = program.Files.FirstOrDefault(f => f.RangeToken.Uri == uri)?.EndToken ?? Token.NoToken;
+      var end = program.Files.FirstOrDefault(f => f.Origin.Uri == uri)?.EndToken ?? Token.NoToken;
       while (end.Next != null) {
         end = end.Next;
       }
