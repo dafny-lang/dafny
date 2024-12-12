@@ -119,8 +119,8 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
   public FunctionCallExpr(Cloner cloner, FunctionCallExpr original) : base(cloner, original) {
     Name = original.Name;
     Receiver = cloner.CloneExpr(original.Receiver);
-    OpenParen = original.OpenParen == null ? null : cloner.Tok(original.OpenParen);
-    CloseParen = original.CloseParen == null ? null : cloner.Tok(original.CloseParen);
+    OpenParen = original.OpenParen == null ? null : cloner.Origin(original.OpenParen);
+    CloseParen = original.CloseParen == null ? null : cloner.Origin(original.CloseParen);
     Bindings = new ActualBindings(cloner, original.Bindings);
     AtLabel = original.AtLabel;
 

@@ -71,7 +71,7 @@ public class FunctionCallToMethodCallRewriter : Cloner {
           funcCallExpr.Function.ByMethodDecl.Name);
         memberSelectExpr.Member = funcCallExpr.Function.ByMethodDecl;
         memberSelectExpr.TypeApplicationJustMember = funcCallExpr.TypeApplication_JustFunction;
-        newResolvedStmts.Add(new CallStmt(stmt.RangeToken,
+        newResolvedStmts.Add(new CallStmt(stmt.Origin,
           updateStmt.Lhss.Select(lhs => CloneExpr(lhs.Resolved)).ToList(), memberSelectExpr,
           funcCallExpr.Args.ConvertAll(e => CloneExpr(e.Resolved))));
       } else {

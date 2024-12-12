@@ -352,8 +352,8 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       foreach (var canVerify in verifiables) {
         if (canVerify.Tok.Uri == uri) {
           intervalTree.Add(
-            canVerify.RangeToken.StartToken.GetLspPosition(),
-            canVerify.RangeToken.EndToken.GetLspPosition(true),
+            canVerify.Origin.StartToken.GetLspPosition(),
+            canVerify.Origin.EndToken.GetLspPosition(true),
             canVerify.NavigationToken.GetLspPosition());
         }
       }
