@@ -175,7 +175,7 @@ public abstract class Expression : TokenNode {
   /// If there is just one expression in "expressions", then use the given token "tok" for the negation.
   /// Otherwise, use the token from each expression.
   /// </summary>
-  static IEnumerable<Expression> NegateEach(IToken tok, IEnumerable<Expression> expressions) {
+  static IEnumerable<Expression> NegateEach(IOrigin tok, IEnumerable<Expression> expressions) {
     var exprs = expressions.ToList();
     foreach (Expression e in exprs) {
       yield return Expression.CreateNot(exprs.Count == 1 ? tok : e.tok, e);
