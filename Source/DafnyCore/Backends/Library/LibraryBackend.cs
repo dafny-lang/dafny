@@ -85,13 +85,13 @@ public class LibraryBackend : ExecutableBackend {
       ZipFile.CreateFromDirectory(targetDirectory, DooPath);
     } catch (IOException) {
       if (File.Exists(DooPath)) {
-        await outputWriter.WriteLineAsync($"Failed to delete doo file at {DooPath}");
+        await outputWriter.WriteLineAsync($"Failed to delete doo file at {Options.GetPrintPath(DooPath)}");
       }
 
       throw;
     }
     if (Options.Verbose) {
-      await outputWriter.WriteLineAsync($"Wrote Dafny library to {DooPath}");
+      await outputWriter.WriteLineAsync($"Wrote Dafny library to {Options.GetPrintPath(DooPath)}");
     }
 
     return (true, null);
