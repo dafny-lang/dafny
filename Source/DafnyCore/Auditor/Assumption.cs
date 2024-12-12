@@ -64,6 +64,11 @@ public record AssumptionDescription(
     Mitigation: "Remove if possible.",
     MitigationIetf: "MUST remove [{:termination false}] or justify.",
     IsExplicit: false);
+  public static AssumptionDescription HasAssumeCrossModuleTerminationAttribute = new(
+    Issue: "Trait method calls may not terminate (uses [@AssumeCrossModuleTermination]).",
+    Mitigation: "Remove if possible.",
+    MitigationIetf: "MUST remove [@AssumeCrossModuleTermination] or justify.",
+    IsExplicit: false);
   public static AssumptionDescription ForallWithoutBody = new(
     Issue: "Definition contains [forall] statement with no body.",
     Mitigation: "Provide a body.",
