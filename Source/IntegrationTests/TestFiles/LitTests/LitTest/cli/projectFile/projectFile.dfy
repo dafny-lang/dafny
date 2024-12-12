@@ -53,6 +53,6 @@
 // RUN: ! %resolve --find-project %S/src/input.dfy &>> "%t"
 
 // RUN: echo '15' >> %t
-// RUN: ! %baredafny format --check "%S/dfyconfig.toml" &>> "%t"
+// RUN: ! %baredafny format --use-basename-for-filename --check "%S/dfyconfig.toml" &>> "%t"
 
 // RUN: %diff "%s.expect" "%t"
