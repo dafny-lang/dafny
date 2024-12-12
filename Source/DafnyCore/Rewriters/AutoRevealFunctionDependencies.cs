@@ -343,7 +343,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     List<Expression> expressionList = new List<Expression> {
       new ApplySuffix(tok, null,
         resolveExpr,
-        new List<ActualBinding>(), tok)
+        new List<ActualBinding>(), Token.NoToken)
     };
 
     var revealStmt = new HideRevealStmt(func.Origin, expressionList, HideRevealCmd.Modes.Reveal);

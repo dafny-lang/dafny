@@ -762,7 +762,7 @@ namespace Microsoft.Dafny {
           TypeApplicationJustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp)),
           Type = new InferredTypeProxy()
         };
-        var recursiveCall = new CallStmt(m.tok.ToRange(), new List<Expression>(), methodSel, recursiveCallArgs) {
+        var recursiveCall = new CallStmt(m.tok, new List<Expression>(), methodSel, recursiveCallArgs) {
           IsGhost = m.IsGhost
         };
 
@@ -990,7 +990,7 @@ namespace Microsoft.Dafny {
         } else {
           var pp = f.OverriddenFunction.Result;
           Contract.Assert(!pp.IsOld);
-          pOut = new Formal(pp.tok, pp.Name, f.ResultType, false, pp.IsGhost, null);
+          pOut = new Formal(pp.tok, pp.NameNode, f.ResultType, false, pp.IsGhost, null);
         }
         var varType = TrType(pOut.Type);
         var wh = GetWhereClause(pOut.tok, new Boogie.IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator), varType), pOut.Type, etran, NOALLOC);
@@ -1659,7 +1659,7 @@ namespace Microsoft.Dafny {
 
     // Return a way to know if an assertion should be converted to an assumption
     private void SetAssertionOnlyFilter(Node m) {
-      List<RangeToken> rangesOnly = new List<RangeToken>();
+      List<IOrigin> rangesOnly = new List<IOrigin>();
       m.Visit(node => {
         if (node is AssertStmt assertStmt &&
             assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {

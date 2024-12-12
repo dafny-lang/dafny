@@ -375,13 +375,13 @@ public class AutoContractsRewriter : IRewriter {
         nguard = Expression.CreateAnd(nguard, ng);
       }
       // Repr := Repr + ...;
-      Statement s = new SingleAssignStmt(tok.ToRange(), Repr, new ExprRhs(rhs));
+      Statement s = new SingleAssignStmt(tok, Repr, new ExprRhs(rhs));
       s.IsGhost = true;
       // wrap if statement around s
       e = Expression.CreateAnd(IsNotNull(tok, F), Expression.CreateNot(tok, nguard));
-      var thn = new BlockStmt(tok.ToRange(), new List<Statement>() { s });
+      var thn = new BlockStmt(tok, new List<Statement>() { s });
       thn.IsGhost = true;
-      s = new IfStmt(tok.ToRange(), false, e, thn, null);
+      s = new IfStmt(tok, false, e, thn, null);
       s.IsGhost = true;
       // finally, add s to the block
       block.AppendStmt(s);
@@ -464,7 +464,7 @@ public class AutoContractsRewriter : IRewriter {
   public static Expression CreateUnresolvedValidCall(IOrigin tok) {
     return new ApplySuffix(tok, null,
       new ExprDotName(tok, new ImplicitThisExpr(tok), "Valid", null),
-      new List<ActualBinding>(), tok);
+      new List<ActualBinding>(), Token.NoToken);
   }
 
   /// <summary>

@@ -35,7 +35,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     SetupDefaultSignature();
   }
 
-  public ModuleExportDecl(DafnyOptions options, RangeToken rangeOrigin, Name name, ModuleDefinition parent,
+  public ModuleExportDecl(DafnyOptions options, IOrigin rangeOrigin, Name name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
     : base(options, rangeOrigin, name, parent, false, isRefining, cloneId) {

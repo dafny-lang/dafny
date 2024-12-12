@@ -7,9 +7,9 @@ public abstract class TokenNode : Node {
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal IOrigin[] FormatTokens = null;
+  internal Token[] FormatTokens = null;
 
-  protected RangeToken RangeOrigin = null;
+  protected IOrigin RangeOrigin = null;
 
   public IOrigin tok = Token.NoToken;
 
@@ -18,14 +18,14 @@ public abstract class TokenNode : Node {
     get => tok;
   }
 
-  public override RangeToken Origin {
+  public override IOrigin Origin {
     get {
       if (RangeOrigin == null) {
 
-        var startTok = tok;
-        var endTok = tok;
+        var startTok = tok.StartToken;
+        var endTok = tok.EndToken;
 
-        void UpdateStartEndToken(IOrigin token1) {
+        void UpdateStartEndToken(Token token1) {
           if (token1.Filepath != tok.Filepath) {
             return;
           }

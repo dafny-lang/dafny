@@ -165,7 +165,7 @@ public class ProofDependencyWarnings {
         continue;
       }
 
-      RangeToken range = null;
+      IOrigin range = null;
       var factProvider = "";
       var factConsumer = "";
       var recommendation = "";

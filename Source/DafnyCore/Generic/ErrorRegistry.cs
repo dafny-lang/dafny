@@ -29,7 +29,7 @@ public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd) {
 /// <param name="Range">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
 /// <param name="Replacement"></param>
 public record DafnyCodeActionEdit(DafnyRange Range, string Replacement = "") {
-  public DafnyCodeActionEdit(RangeToken rangeOrigin, string replacement = "", bool includeTrailingWhitespace = false)
+  public DafnyCodeActionEdit(IOrigin rangeOrigin, string replacement = "", bool includeTrailingWhitespace = false)
     : this(rangeOrigin.ToDafnyRange(includeTrailingWhitespace), replacement) {
   }
 }
@@ -70,7 +70,7 @@ public static class ErrorRegistry {
     return new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) };
   }
 
-  public static DafnyAction OneAction(string title, RangeToken range, string newContent, bool includeTrailingWhitespace = false) {
+  public static DafnyAction OneAction(string title, IOrigin range, string newContent, bool includeTrailingWhitespace = false) {
     return new(title, new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) });
   }
 
@@ -86,7 +86,7 @@ public static class ErrorRegistry {
 
   public static RangeToken ExpandStart(RangeToken range, TokenPredicate pred, bool include) {
     var t = range.StartToken;
-    IOrigin p = null;
+    Token p = null;
     while (!pred(t)) {
       p = t;
       t = t.Prev;
@@ -99,7 +99,7 @@ public static class ErrorRegistry {
 
   public static RangeToken ExpandEnd(RangeToken range, TokenPredicate pred, bool include) {
     var t = range.EndToken;
-    IOrigin p = null;
+    Token p = null;
     while (!pred(t)) {
       p = t;
       t = t.Prev;

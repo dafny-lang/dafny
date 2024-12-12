@@ -11,7 +11,7 @@ public class ClonerTest {
     public DummyDecl(Cloner cloner, Declaration original) : base(cloner, original) {
     }
 
-    public DummyDecl(RangeToken rangeOrigin, Name name, Attributes attributes, bool isRefining) : base(rangeOrigin, name,
+    public DummyDecl(IOrigin rangeOrigin, Name name, Attributes attributes, bool isRefining) : base(rangeOrigin, name,
       attributes, isRefining) {
     }
 

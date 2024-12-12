@@ -6,10 +6,10 @@ namespace Microsoft.Dafny;
 
 public class CoverageSpan : IComparable<CoverageSpan> {
 
-  public readonly RangeToken Span;
+  public readonly IOrigin Span;
   public readonly CoverageLabel Label;
 
-  public CoverageSpan(RangeToken span, CoverageLabel label) {
+  public CoverageSpan(IOrigin span, CoverageLabel label) {
     Contract.Assert(span.Uri != null);
     Contract.Assert(span.StartToken != null);
     Contract.Assert(span.EndToken != null);

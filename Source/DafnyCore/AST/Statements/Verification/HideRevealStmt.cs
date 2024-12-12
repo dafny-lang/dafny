@@ -44,14 +44,14 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     }
   }
 
-  public HideRevealStmt(RangeToken rangeOrigin, HideRevealCmd.Modes mode)
+  public HideRevealStmt(IOrigin rangeOrigin, HideRevealCmd.Modes mode)
     : base(rangeOrigin) {
     Wildcard = true;
     this.Exprs = null;
     Mode = mode;
   }
 
-  public HideRevealStmt(RangeToken rangeOrigin, List<Expression> exprs, HideRevealCmd.Modes mode)
+  public HideRevealStmt(IOrigin rangeOrigin, List<Expression> exprs, HideRevealCmd.Modes mode)
     : base(rangeOrigin) {
     Contract.Requires(exprs != null);
     this.Exprs = exprs;

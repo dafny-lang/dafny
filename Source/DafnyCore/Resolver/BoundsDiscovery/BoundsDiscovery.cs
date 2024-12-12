@@ -151,7 +151,7 @@ namespace Microsoft.Dafny {
         var objUse = new IdentifierExpr(e.tok, objVar.Name) { Type = objVar.Type, Var = objVar };
         boundVarDecls.Add(objVar);
 
-        var collection = new ApplyExpr(e.tok, e, boundVarUses, e.tok) {
+        var collection = new ApplyExpr(e.tok, e, boundVarUses, Token.NoToken) {
           Type = collectionType
         };
         var resolvedOpcode = collectionType.ResolvedOpcodeForIn;

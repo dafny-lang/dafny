@@ -186,7 +186,7 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  public TypeParameter(RangeToken rangeOrigin, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
+  public TypeParameter(IOrigin rangeOrigin, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
     : base(rangeOrigin, name, null, new List<TypeParameter>(), null, false) {
     Contract.Requires(rangeOrigin != null);
@@ -196,13 +196,13 @@ public class TypeParameter : TopLevelDecl {
     TypeBounds = typeBounds;
   }
 
-  public TypeParameter(RangeToken rangeOrigin, Name name, TPVarianceSyntax varianceS)
+  public TypeParameter(IOrigin rangeOrigin, Name name, TPVarianceSyntax varianceS)
     : this(rangeOrigin, name, varianceS, new TypeParameterCharacteristics(false), new List<Type>()) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
   }
 
-  public TypeParameter(RangeToken tok, Name name, int positionalIndex, ParentType parent)
+  public TypeParameter(IOrigin tok, Name name, int positionalIndex, ParentType parent)
     : this(tok, name, TPVarianceSyntax.NonVariant_Strict) {
     PositionalIndex = positionalIndex;
     Parent = parent;

@@ -331,7 +331,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    { Attribute<ref dmod.Attributes> }            (. ApplyOptionsFromAttributes(dmod.Attributes); .)
    ModuleQualifiedName<out var names>
    (. var name = names[^1];
-      prefixIds = names.GetRange(0,names.Count-1).Select(n => n.StartToken).ToList();
+      prefixIds = names.GetRange(0,names.Count-1).Select(n => (IOrigin)n.StartToken).ToList();
    .)
 
    [ "refines" ModuleQualifiedName<out idRefined> (. implementationKind = ImplementationKind.Refinement; .)
@@ -450,7 +450,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
      Name name;
      if (exportId.val == "export" || exportId.val == parent.Name) {
        isDefault = true;
-       name = new Name(exportId.ToRange(), parent.Name);
+       name = new Name(exportId, parent.Name);
      } else {
        name = new Name(exportId);
      }
@@ -1253,7 +1253,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   ]
   (. var range = new RangeToken(dmod.FirstToken, t);
      if (isConstructor) {
-       m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken.ToRange(), "_ctor"), dmod.IsGhost, typeArgs, ins,
+       m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken, "_ctor"), dmod.IsGhost, typeArgs, ins,
                            req, new Specification<FrameExpression>(reads, readsAttrs), 
                            new Specification<FrameExpression>(mod, modAttrs), ens, 
                            new Specification<Expression>(dec, decAttrs), 
@@ -1418,14 +1418,14 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
     { Attribute<ref attrs> }
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
+                 (. formals.Add(new Formal(name.Tok, name, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
                         { Origin = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
                     ); .)
     { ","
       { Attribute<ref attrs> }
       GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
       ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
+                 (. formals.Add(new Formal(name.Tok, name, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
                         { Origin = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
                     ); .)
     }
@@ -1456,12 +1456,12 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
   "("
   [
     TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
-            (. formals.Add(new Formal(name.Tok, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly) 
+            (. formals.Add(new Formal(name.Tok, name, ty, true, isGhost, defaultValue, attributes, false, isNameOnly) 
                     { Origin = range }
                ); 
             .)
     { "," TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
-            (. formals.Add(new Formal(name.Tok, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly)
+            (. formals.Add(new Formal(name.Tok, name, ty, true, isGhost, defaultValue, attributes, false, isNameOnly)
                     { Origin = range }
                ); 
             .)
@@ -1481,7 +1481,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
      Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
      tok = Token.NoToken;
      ty = new BoolType();  /*keep compiler happy*/
-     IOrigin startToken = null;
+     Token startToken = null;
      List<Type> gt;
      List<Type> tupleArgTypes = null;
      List<Token> argumentGhostTokens = null;
@@ -1637,7 +1637,7 @@ TupleType<.out Type ty, out Token tok, out List<Type> tupleArgTypes, out List<To
 
 /*------------------------------------------------------------------------*/
 NamedType<.out Type ty, out Token tok, bool inExpressionContext.> =
-  (. Expression e; IOrigin startToken = null; .)
+  (. Expression e; Token startToken = null; .)
   NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; startToken = e.StartToken; .)
   { "."
     TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
@@ -1749,7 +1749,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          "("
            GIdentType<false, false, false, false, out var range2, out var resultName, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
-              result = new Formal(resultName.Tok, resultName.Value, ty, false, false, null, null, false)
+              result = new Formal(resultName.Tok, resultName, ty, false, false, null, null, false)
                 { Origin = range2 };
            .)
          ")"
@@ -2054,7 +2054,7 @@ PredicateResult<string name, out Formal result>
           if (ty is not BoolType) {
             SemErr(ErrorId.p_predicate_return_type_must_be_bool, new RangeToken(ty.StartToken, t), $"{name} return type should be bool, got {ty}");
           }
-          result = new Formal(nameId.Tok, nameId.Value, ty, false, false, null, attributes, false)
+          result = new Formal(nameId.Tok, nameId, ty, false, false, null, attributes, false)
             { Origin = range };
        .)
      ")"
@@ -2320,7 +2320,7 @@ AssignStatement<out Statement/*!*/ s>
      BlockStmt proof = null;
      IOrigin x = Token.NoToken;
      Token endTok = Token.NoToken;
-     IOrigin startToken = Token.NoToken;
+     Token startToken = Token.NoToken;
      Attributes attrs = null;
      Attributes tokenAttrs = null;
      AttributedToken suchThatAssume = null;
@@ -2416,7 +2416,7 @@ Rhs<out AssignmentRhs r>
      List<Expression> display = null;
      r = dummyRhs;  // to please compiler
      Attributes attrs = null;
-     IOrigin startToken = null;
+     Token startToken = null;
   .)
   ( IF(la.val == "new")
     "new"                              (. newToken = t; startToken = t; .)
@@ -2544,11 +2544,11 @@ VarDeclStatement<.out Statement/*!*/ s.>
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
          foreach (var lhs in lhss) {
-           lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name) { Origin = new RangeToken(lhs.Tok, lhs.Tok) } );
+           lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name) { Origin = new RangeToken(lhs.StartToken, lhs.EndToken) } );
          }
        } else { // not explicitly ghost, but with init - so auto-ghost
          foreach (var lhs in lhss) {
-           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name) { Origin = new RangeToken(lhs.Tok, lhs.Tok) } );
+           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name) { Origin = new RangeToken(lhs.StartToken, lhs.EndToken) } );
          }
        }
        var rangeToken = new RangeToken(startToken, t);
@@ -2845,11 +2845,11 @@ Guard<out Expression e>   /* null represents demonic-choice */
 BindingGuard<out Expression e, bool allowLambda>
 = (. var bvars = new List<BoundVar>();
      BoundVar bv;  
-     IOrigin x;
+     Token x;
      Attributes attrs = null;
      Expression body;
   .)
-  IdentTypeOptional<out bv>                    (. bvars.Add(bv); x = bv.tok; .)
+  IdentTypeOptional<out bv>                    (. bvars.Add(bv); x = bv.StartToken; .)
   { ","
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }
@@ -3202,7 +3202,7 @@ CalcStmt<out Statement s>
     /* now for the hint, which we build up as a possibly empty sequence of statements placed into one BlockStmt */
     (. var subhints = new List<Statement>();
        Token hintStart = la;  
-       IOrigin hintEnd = hintStart.Prev;
+       Token hintEnd = hintStart.Prev;
        Token t0, t1;
        BlockStmt subBlock; Statement subCalc;
     .)
@@ -3380,7 +3380,7 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
 LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); Token/*!*/ x = null;  Expression/*!*/ e1;
      Expression first;
-     IOrigin startToken = null;
+     Token startToken = null;
      Token/*!*/ firstOp = null;
      Token/*!*/ prefixOp = null;
      e0 = dummyExpr; /* mute the warning */
@@ -3422,7 +3422,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
      List<BinaryExpr.Opcode> ops = null;
      List<IOrigin> opLocs = null;
      List<Expression/*?*/> prefixLimits = null;
-     IOrigin startToken = null;
+     Token startToken = null;
      Expression k;
      int kind = 0;  // 0 ("uncommitted") indicates chain of ==, possibly with one !=
                     // 1 ("ascending")   indicates chain of ==, <, <=, possibly with one !=

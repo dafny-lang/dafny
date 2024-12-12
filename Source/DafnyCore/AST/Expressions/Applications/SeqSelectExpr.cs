@@ -8,14 +8,14 @@ public class SeqSelectExpr : Expression, ICloneable<SeqSelectExpr> {
   public readonly Expression Seq;
   public readonly Expression E0;
   public readonly Expression E1;
-  public readonly IOrigin CloseParen;
+  public readonly Token CloseParen;
 
   public SeqSelectExpr(Cloner cloner, SeqSelectExpr original) : base(cloner, original) {
     SelectOne = original.SelectOne;
     Seq = cloner.CloneExpr(original.Seq);
     E0 = cloner.CloneExpr(original.E0);
     E1 = cloner.CloneExpr(original.E1);
-    CloseParen = cloner.Origin(original.CloseParen);
+    CloseParen = original.CloseParen;
   }
 
   [ContractInvariantMethod]
@@ -24,7 +24,7 @@ public class SeqSelectExpr : Expression, ICloneable<SeqSelectExpr> {
     Contract.Invariant(!SelectOne || E1 == null);
   }
 
-  public SeqSelectExpr(IOrigin tok, bool selectOne, Expression seq, Expression e0, Expression e1, IOrigin closeParen)
+  public SeqSelectExpr(IOrigin tok, bool selectOne, Expression seq, Expression e0, Expression e1, Token closeParen)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(seq != null);

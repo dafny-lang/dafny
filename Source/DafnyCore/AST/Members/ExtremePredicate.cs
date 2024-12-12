@@ -19,7 +19,7 @@ public abstract class ExtremePredicate : Function {
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixPredicate });
   public override IEnumerable<INode> PreResolveChildren => base.Children;
 
-  public ExtremePredicate(RangeToken rangeOrigin, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
+  public ExtremePredicate(IOrigin rangeOrigin, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IOrigin signatureEllipsis)
@@ -52,7 +52,7 @@ public abstract class ExtremePredicate : Function {
 
 public class GreatestPredicate : ExtremePredicate {
   public override string WhatKind => "greatest predicate";
-  public GreatestPredicate(RangeToken rangeOrigin, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
+  public GreatestPredicate(IOrigin rangeOrigin, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IOrigin signatureEllipsis)
@@ -63,7 +63,7 @@ public class GreatestPredicate : ExtremePredicate {
 
 public class LeastPredicate : ExtremePredicate {
   public override string WhatKind => "least predicate";
-  public LeastPredicate(RangeToken rangeOrigin, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
+  public LeastPredicate(IOrigin rangeOrigin, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IOrigin signatureEllipsis)

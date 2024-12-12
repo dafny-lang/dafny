@@ -1077,7 +1077,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new RangeToken(new BoogieGenerator.ForceCheckOrigin(skel.Origin.StartToken), skel.Origin.EndToken),
+                body.Add(new AssertStmt(new BoogieGenerator.ForceCheckOrigin(skel.Origin),
                   e, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
@@ -1223,8 +1223,8 @@ namespace Microsoft.Dafny {
               body.Add(cNew);
               i++; j++;
               if (addedAssert != null) {
-                var tok = new BoogieGenerator.ForceCheckOrigin(addedAssert.Origin.StartToken);
-                body.Add(new AssertStmt(new RangeToken(tok, addedAssert.Origin.EndToken), addedAssert, null, null));
+                var tok = new BoogieGenerator.ForceCheckOrigin(addedAssert.Origin);
+                body.Add(new AssertStmt(tok, addedAssert, null, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1642,6 +1642,10 @@ namespace Microsoft.Dafny {
     }
 
     public override IOrigin Origin(IOrigin tok) {
+      if (tok == null) {
+        return null;
+      }
+
       if (wrapWithRefinementToken) {
         return new RefinementOrigin(tok, moduleUnderConstruction);
       }

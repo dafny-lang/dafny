@@ -6,12 +6,12 @@ namespace DafnyCore.Test;
 public class NodeTests {
 
   class ConcreteNode : Node {
-    public ConcreteNode(RangeToken rangeOrigin, IEnumerable<INode>? children = null) {
+    public ConcreteNode(IOrigin rangeOrigin, IEnumerable<INode>? children = null) {
       Origin = rangeOrigin;
       Children = children ?? Enumerable.Empty<INode>();
     }
 
-    public override RangeToken Origin { get; set; }
+    public override IOrigin Origin { get; set; }
     public override IOrigin Tok => Origin.StartToken;
     public override IEnumerable<INode> Children { get; }
     public override IEnumerable<INode> PreResolveChildren => Children;

@@ -315,14 +315,14 @@ public class RemoveShortCircuitingRewriter : Cloner {
       newStmtStack.Last().Add(updateStmt);
     }
     var thenStmt = new AssignStatement(
-      new RangeToken(thenToken, thenToken),
+      thenToken,
       new List<Expression> { identifierExpr },
       new List<AssignmentRhs> { new ExprRhs(thenExpr) });
     var elseStmt = elseExpr != null
-      ? new AssignStatement(new RangeToken(elseToken, elseToken), new List<Expression> { identifierExpr },
+      ? new AssignStatement(elseToken, new List<Expression> { identifierExpr },
         new List<AssignmentRhs> { new ExprRhs(elseExpr) })
       : null;
-    var ifStmt = new IfStmt(new RangeToken(original.StartToken, original.StartToken), false, testExpr,
+    var ifStmt = new IfStmt(original.StartToken, false, testExpr,
       new BlockStmt(thenStmt.Origin, new List<Statement> { thenStmt }), elseStmt);
     newStmtStack.Last().Add(ifStmt);
     return identifierExpr;

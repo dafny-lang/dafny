@@ -18,7 +18,7 @@ public abstract class ExtremeLemma : Method {
     TypeOfK = lemma.TypeOfK;
   }
 
-  public ExtremeLemma(RangeToken rangeOrigin, Name name,
+  public ExtremeLemma(IOrigin rangeOrigin, Name name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
@@ -48,7 +48,7 @@ public abstract class ExtremeLemma : Method {
 public class LeastLemma : ExtremeLemma {
   public override string WhatKind => "least lemma";
 
-  public LeastLemma(RangeToken rangeOrigin, Name name,
+  public LeastLemma(IOrigin rangeOrigin, Name name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
@@ -78,7 +78,7 @@ public class LeastLemma : ExtremeLemma {
 public class GreatestLemma : ExtremeLemma {
   public override string WhatKind => "greatest lemma";
 
-  public GreatestLemma(RangeToken rangeOrigin, Name name,
+  public GreatestLemma(IOrigin rangeOrigin, Name name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,

@@ -19,6 +19,8 @@ public abstract class OriginWrapper : IOrigin {
     set { WrappedToken.col = value; }
   }
 
+  public virtual bool InclusiveEnd => WrappedToken.InclusiveEnd;
+  public bool IncludesRange => WrappedToken.IncludesRange;
   public string ActualFilename => WrappedToken.ActualFilename;
 
   public virtual string Filepath => WrappedToken.Filepath;
@@ -27,6 +29,9 @@ public abstract class OriginWrapper : IOrigin {
     get => WrappedToken.Uri;
     set => WrappedToken.Uri = value;
   }
+
+  public virtual Token StartToken => WrappedToken.StartToken;
+  public virtual Token EndToken => WrappedToken.EndToken;
 
   public bool IsValid {
     get { return WrappedToken.IsValid; }
@@ -74,21 +79,5 @@ public abstract class OriginWrapper : IOrigin {
 
   public int CompareTo(Boogie.IToken other) {
     return WrappedToken.CompareTo(other);
-  }
-
-  /// <summary>
-  ///  Removes token wrappings from a given token, so that it returns the bare token
-  /// </summary>
-  public static IOrigin Unwrap(IOrigin token, bool includeRanges = false) {
-    if (token is OriginWrapper wrapper
-        && (includeRanges || token is not RangeToken)) {
-      return Unwrap(wrapper.WrappedToken);
-    }
-
-    if (token is RangeToken rangeToken) {
-      return new RangeToken(Unwrap(rangeToken.StartToken), Unwrap(rangeToken.EndToken));
-    }
-
-    return token;
   }
 }

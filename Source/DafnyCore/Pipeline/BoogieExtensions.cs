@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
     /// <param name="startToken">The token to get the range of.</param>
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range ToLspRange(this RangeToken range) {
+    public static Range ToLspRange(this IOrigin range) {
       return range.ToDafnyRange().ToLspRange();
     }
 
