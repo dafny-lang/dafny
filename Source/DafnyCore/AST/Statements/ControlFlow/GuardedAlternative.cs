@@ -21,7 +21,7 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
     Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
     Contract.Invariant(Body != null);
   }
-  public GuardedAlternative(IToken tok, bool isBindingGuard, Expression guard, List<Statement> body) {
+  public GuardedAlternative(IOrigin tok, bool isBindingGuard, Expression guard, List<Statement> body) {
     Contract.Requires(tok != null);
     Contract.Requires(guard != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
@@ -32,7 +32,7 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
     this.Body = body;
     this.Attributes = null;
   }
-  public GuardedAlternative(IToken tok, bool isBindingGuard, Expression guard, List<Statement> body, Attributes attrs) {
+  public GuardedAlternative(IOrigin tok, bool isBindingGuard, Expression guard, List<Statement> body, Attributes attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(guard != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));

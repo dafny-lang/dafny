@@ -240,7 +240,7 @@ public class RunAllTestsMainMethod : IRewriter {
     mainMethod.Body = new BlockStmt(tok.ToRange(), mainMethodStatements);
   }
 
-  private BlockStmt PrintTestFailureStatement(IToken tok, Expression successVarExpr, Expression failureValueExpr) {
+  private BlockStmt PrintTestFailureStatement(IOrigin tok, Expression successVarExpr, Expression failureValueExpr) {
     var failedPrintStmt = Statement.CreatePrintStmt(tok,
       Expression.CreateStringLiteral(tok, "FAILED\n\t"),
       failureValueExpr,

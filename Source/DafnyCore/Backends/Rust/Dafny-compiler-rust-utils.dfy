@@ -67,7 +67,7 @@ module DafnyCompilerRustUtils {
     {
       if !GatheringModule? then m2 else if !m2.GatheringModule? then this else
       GatheringModule(
-        R.Mod(existingMod.name, existingMod.attributes, existingMod.body + m2.existingMod.body),
+        R.Mod(existingMod.docString + m2.existingMod.docString, existingMod.attributes, existingMod.name, existingMod.body + m2.existingMod.body),
         MergeSeqMap(submodules, m2.submodules)
       )
     }
@@ -82,7 +82,7 @@ module DafnyCompilerRustUtils {
       else
         var enclosingModule := containingPath[0];
         SeqMap.Single(enclosingModule,
-                      GatheringModule(R.Mod(enclosingModule, [], []), Wrap(containingPath[1..], rawDecl)))
+                      GatheringModule(R.Mod("", [], enclosingModule, []), Wrap(containingPath[1..], rawDecl)))
     }
     function ToRust(): R.Mod {
       if ExternMod? then m else

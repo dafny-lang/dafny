@@ -306,7 +306,7 @@ public class Attributes : TokenNode, ICanFormat {
     var bindings = atAttribute.UserSuppliedPreResolveBindings;
 
     if (name == null) {
-      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, "Attribute not recognized: " + atAttribute.ToString());
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.Origin, "Attribute not recognized: " + atAttribute.ToString());
       return null;
     }
 
@@ -316,7 +316,7 @@ public class Attributes : TokenNode, ICanFormat {
     }
 
     if (!builtinSyntax.CanBeApplied(attributeHost)) {
-      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, UserSuppliedAtAttribute.AtName + atAttribute.UserSuppliedName + " attribute cannot be applied to " + attributeHost.WhatKind);
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.Origin, UserSuppliedAtAttribute.AtName + atAttribute.UserSuppliedName + " attribute cannot be applied to " + attributeHost.WhatKind);
     }
 
     var resolver = new ModuleResolver(new ProgramResolver(program), program.Options) {
@@ -614,7 +614,7 @@ public class Attributes : TokenNode, ICanFormat {
     // Verify that provided arguments are given literally
     foreach (var binding in bindings.ArgumentBindings) {
       if (binding.Actual is not LiteralExpr) {
-        program.Reporter.Error(MessageSource.Resolver, binding.Actual.RangeToken, $"Argument to attribute {attrName} must be a literal");
+        program.Reporter.Error(MessageSource.Resolver, binding.Actual.Origin, $"Argument to attribute {attrName} must be a literal");
       }
     }
   }
@@ -681,10 +681,10 @@ public static class AttributesExtensions {
 
 // {:..} Attributes parsed are built using this class
 public class UserSuppliedAttributes : Attributes {
-  public readonly IToken OpenBrace;
-  public readonly IToken CloseBrace;
+  public readonly IOrigin OpenBrace;
+  public readonly IOrigin CloseBrace;
   public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
-  public UserSuppliedAttributes(IToken tok, IToken openBrace, IToken closeBrace, List<Expression> args, Attributes prev)
+  public UserSuppliedAttributes(IOrigin tok, IOrigin openBrace, IOrigin closeBrace, List<Expression> args, Attributes prev)
     : base(tok.val, args, prev) {
     Contract.Requires(tok != null);
     Contract.Requires(openBrace != null);
@@ -699,10 +699,10 @@ public class UserSuppliedAttributes : Attributes {
 // @-Attributes parsed are built using this class
 public class UserSuppliedAtAttribute : Attributes {
   public static readonly string AtName = "@";
-  public readonly IToken AtSign;
+  public readonly IOrigin AtSign;
   public bool Builtin;  // set to true to indicate it was recognized as a builtin attribute
   // Otherwise it's a user-defined one and Arg needs to be fully resolved
-  public UserSuppliedAtAttribute(IToken tok, Expression arg, Attributes prev)
+  public UserSuppliedAtAttribute(IOrigin tok, Expression arg, Attributes prev)
     : base(AtName, new List<Expression>() { arg }, prev) {
     Contract.Requires(tok != null);
     this.tok = tok;

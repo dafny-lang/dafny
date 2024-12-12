@@ -102,10 +102,10 @@ class SplitPartTriggerWriter {
     } else {
       // make a copy of the expr
       if (expr is ForallExpr) {
-        expr = new ForallExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
+        expr = new ForallExpr(expr.tok, expr.Origin, expr.BoundVars, expr.Range, expr.Term,
           TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
       } else {
-        expr = new ExistsExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
+        expr = new ExistsExpr(expr.tok, expr.Origin, expr.BoundVars, expr.Range, expr.Term,
           TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
       }
     }

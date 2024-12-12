@@ -51,7 +51,7 @@ public partial class BoogieGenerator {
         var canCalls = etran.CanCallAssumption(ensures.E, new CanCallOptions(true, f));
         generator.AddEnsures(ens, generator.FreeEnsures(ensures.E.tok, canCalls, null, true));
         foreach (var s in splits) {
-          if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, generator.currentModule)) {
+          if (s.IsChecked && !RefinementOrigin.IsInherited(s.Tok, generator.currentModule)) {
             generator.AddEnsures(ens, generator.EnsuresWithDependencies(s.Tok, false, ensures.E, s.E, errorMessage, successMessage, null));
           }
         }

@@ -182,7 +182,7 @@ public partial class BoogieGenerator {
     var directSubstMap = new Dictionary<IVariable, Expression>();
     for (int i = 0; i < callee.Ins.Count; i++) {
       var formal = callee.Ins[i];
-      var local = new LocalVariable(formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
+      var local = new LocalVariable(formal.Origin, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
       local.type = local.SyntacticType;  // resolve local here
       var localName = local.AssignUniqueName(CurrentDeclaration.IdGenerator);
       var ie = new IdentifierExpr(local.Tok, localName);
@@ -350,7 +350,7 @@ public partial class BoogieGenerator {
     proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
     if (
       (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
-      (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+      (module != currentModule && RefinementOrigin.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
       // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
       // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
       // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,

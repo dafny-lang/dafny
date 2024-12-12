@@ -15,7 +15,7 @@ public class Formal : NonglobalVariable {
   public readonly bool IsOlder;
   public readonly string NameForCompilation;
 
-  public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
+  public Formal(IOrigin tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
     Attributes attributes = null,
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
     : base(tok, name, type, isGhost) {
@@ -52,7 +52,7 @@ public class Formal : NonglobalVariable {
 /// of each extreme lemma (for use in the extreme-method body only, not the specification).
 /// </summary>
 public class ImplicitFormal : Formal {
-  public ImplicitFormal(IToken tok, string name, Type type, bool inParam, bool isGhost)
+  public ImplicitFormal(IOrigin tok, string name, Type type, bool inParam, bool isGhost)
     : base(tok, name, type, inParam, isGhost, null, null) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -67,7 +67,7 @@ public class ImplicitFormal : Formal {
 /// implementation.
 /// </summary>
 public class ThisSurrogate : ImplicitFormal {
-  public ThisSurrogate(IToken tok, Type type)
+  public ThisSurrogate(IOrigin tok, Type type)
     : base(tok, "this", type, true, false) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);

@@ -230,7 +230,7 @@ public partial class BoogieGenerator {
 
     i = 0;
     foreach (var lhs in lhss) {
-      IToken tok = lhs.tok;
+      IOrigin tok = lhs.tok;
       TrStmt_CheckWellformed(lhs, builder, locals, etran, true, true);
 
       if (lhs is IdentifierExpr) {
@@ -241,7 +241,7 @@ public partial class BoogieGenerator {
         lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
           if (rhs != null) {
             var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, rhs);
-            proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.RangeToken));
+            proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.Origin));
             bldr.Add(cmd);
           }
 
@@ -274,7 +274,7 @@ public partial class BoogieGenerator {
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
               var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, rhs);
-              proofDependencies?.AddProofDependencyId(cmd, fse.tok, new AssignmentDependency(stmt.RangeToken));
+              proofDependencies?.AddProofDependencyId(cmd, fse.tok, new AssignmentDependency(stmt.Origin));
               bldr.Add(cmd);
             }
 
@@ -291,7 +291,7 @@ public partial class BoogieGenerator {
               Check_NewRestrictions(tok, fse.Obj, obj, fseField, rhs, bldr, et);
               var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
               var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
-              proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.RangeToken));
+              proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.Origin));
               bldr.Add(cmd);
               // assume $IsGoodHeap($Heap);
               bldr.Add(AssumeGoodHeap(tok, et));
@@ -321,7 +321,7 @@ public partial class BoogieGenerator {
           if (rhs != null) {
             var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
             var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
-            proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.RangeToken));
+            proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.Origin));
             bldr.Add(cmd);
             // assume $IsGoodHeap($Heap);
             bldr.Add(AssumeGoodHeap(tok, et));
@@ -346,7 +346,7 @@ public partial class BoogieGenerator {
           if (rhs != null) {
             var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
             var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
-            proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.RangeToken));
+            proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.Origin));
             bldr.Add(cmd);
             // assume $IsGoodHeap($Heap);
             bldr.Add(AssumeGoodHeap(tok, etran));
@@ -376,7 +376,7 @@ public partial class BoogieGenerator {
   /// which indicates that the result should always be a box.  Note that "lhsType" may refer to a formal type parameter that is not in
   /// scope; this is okay, since the purpose of "lhsType" is just to say whether or not the result should be boxed.
   /// </summary>
-  Bpl.Expr TrAssignmentRhs(IToken tok, Bpl.IdentifierExpr bGivenLhs, IVariable lhsVar, Type lhsType,
+  Bpl.Expr TrAssignmentRhs(IOrigin tok, Bpl.IdentifierExpr bGivenLhs, IVariable lhsVar, Type lhsType,
     AssignmentRhs rhs, Type rhsTypeConstraint,
     BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     Statement stmt) {
@@ -435,13 +435,13 @@ public partial class BoogieGenerator {
         Contract.Assert(bGivenLhs == bLhs);
         // box the RHS, then do the assignment
         var cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, AdaptBoxing(tok, bRhs, e.Expr.Type, lhsType));
-        proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
+        proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.Origin));
         builder.Add(cmd);
         return bGivenLhs;
       } else {
         // box from RHS type to tmp-var type, then do the assignment; then return LHS, boxed from tmp-var type to result type
         var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, AdaptBoxing(tok, bRhs, e.Expr.Type, rhsTypeConstraint));
-        proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
+        proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.Origin));
         builder.Add(cmd);
         return CondApplyBox(tok, bLhs, rhsTypeConstraint, lhsType);
       }
@@ -540,13 +540,13 @@ public partial class BoogieGenerator {
         Contract.Assert(bGivenLhs == bLhs);
         // box the RHS, then do the assignment
         var cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, nw, tRhs.Type, lhsType));
-        proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
+        proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.Origin));
         builder.Add(cmd);
         return bGivenLhs;
       } else {
         // do the assignment, then box the result
         var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, nw);
-        proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
+        proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.Origin));
         builder.Add(cmd);
         return CondApplyBox(tok, bLhs, tRhs.Type, lhsType);
       }

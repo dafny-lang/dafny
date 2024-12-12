@@ -104,7 +104,7 @@ public partial class BoogieGenerator {
         Expression dafnyRange = dafnyRangeBounds.Count == 1
           ? dafnyRangeBounds[0]
           : new BinaryExpr(stmt.tok, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
-        var dafnyAssertion = new ForallExpr(stmt.tok, stmt.RangeToken, new List<BoundVar> { indexVar },
+        var dafnyAssertion = new ForallExpr(stmt.tok, stmt.Origin, new List<BoundVar> { indexVar },
           dafnyRange, new TypeTestExpr(indexVar.tok, dIndex, indexVar.Type), null);
         builder.Add(Assert(tok, cre, new ForRangeAssignable(desc, dafnyAssertion), builder.Context));
       }
@@ -300,7 +300,7 @@ public partial class BoogieGenerator {
 
     // include a free invariant that says that all completed iterations so far have only decreased the termination metric
     if (initDecr != null) {
-      var toks = new List<IToken>();
+      var toks = new List<IOrigin>();
       var decrs = new List<Expr>();
       var decrsDafny = new List<Expression>();
       var initDecrsDafny = new List<Expression>();
@@ -358,7 +358,7 @@ public partial class BoogieGenerator {
         // time for the actual loop body
         bodyTr(loopBodyBuilder, updatedFrameEtran);
         // check definedness of decreases expressions
-        var toks = new List<IToken>();
+        var toks = new List<IOrigin>();
         var decrs = new List<Expr>();
         var decrsDafny = new List<Expression>();
         var initDecrsDafny = new List<Expression>();

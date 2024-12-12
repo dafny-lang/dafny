@@ -11,7 +11,7 @@ public class ClonerTest {
     public DummyDecl(Cloner cloner, Declaration original) : base(cloner, original) {
     }
 
-    public DummyDecl(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken, name,
+    public DummyDecl(RangeToken rangeOrigin, Name name, Attributes attributes, bool isRefining) : base(rangeOrigin, name,
       attributes, isRefining) {
     }
 
@@ -27,11 +27,11 @@ public class ClonerTest {
     var rangeToken = new RangeToken(Token.NoToken, Token.NoToken);
     var specificationFrame = new LiteralExpr(Microsoft.Dafny.Token.NoToken, 1);
     var formal1 = new Formal(Token.NoToken, "a", Microsoft.Dafny.Type.Bool, true, false, null) {
-      RangeToken = new RangeToken(tokenBodyStart, tokenBodyStart),
+      Origin = new RangeToken(tokenBodyStart, tokenBodyStart),
       IsTypeExplicit = true
     };
     var formal2 = new Formal(Token.NoToken, "b", Microsoft.Dafny.Type.Bool, true, false, null) {
-      RangeToken = new RangeToken(tokenBodyStart, tokenBodyStart),
+      Origin = new RangeToken(tokenBodyStart, tokenBodyStart),
       IsTypeExplicit = false
     };
     var dummyDecl = new Method(rangeToken, new Name(rangeToken, "hello"),
@@ -45,9 +45,9 @@ public class ClonerTest {
     var cloner = new Cloner();
     var dummyDecl2 = cloner.CloneMethod(dummyDecl);
     Assert.Equal(2, dummyDecl2.BodyStartTok.line);
-    Assert.Equal(2, dummyDecl2.Ins[0].RangeToken.StartToken.line);
+    Assert.Equal(2, dummyDecl2.Ins[0].Origin.StartToken.line);
     Assert.True(dummyDecl2.Ins[0].IsTypeExplicit);
-    Assert.Equal(2, dummyDecl2.Ins[1].RangeToken.StartToken.line);
+    Assert.Equal(2, dummyDecl2.Ins[1].Origin.StartToken.line);
     Assert.False(dummyDecl2.Ins[1].IsTypeExplicit);
   }
 }

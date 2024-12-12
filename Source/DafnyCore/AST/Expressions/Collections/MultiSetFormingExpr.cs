@@ -16,7 +16,7 @@ public class MultiSetFormingExpr : Expression, ICloneable<MultiSetFormingExpr> {
   }
 
   [Captured]
-  public MultiSetFormingExpr(IToken tok, Expression expr)
+  public MultiSetFormingExpr(IOrigin tok, Expression expr)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(expr != null);

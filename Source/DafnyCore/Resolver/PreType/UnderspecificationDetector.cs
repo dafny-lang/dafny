@@ -167,7 +167,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CheckPreType(PreType preType, UnderspecificationDetectorContext context, IToken tok, string whatIsBeingChecked) {
+    private void CheckPreType(PreType preType, UnderspecificationDetectorContext context, IOrigin tok, string whatIsBeingChecked) {
       var visitor = new DetectUnderspecificationVisitor(this, context);
       visitor.CheckPreTypeIsDetermined(tok, preType, whatIsBeingChecked);
     }
@@ -555,7 +555,7 @@ namespace Microsoft.Dafny {
     /// Check if "pt" is fully determined. If it is, return "true". If it is not, then
     /// report an error and return "false".
     /// </summary>
-    public bool CheckPreTypeIsDetermined(IToken tok, PreType pt, string whatIsBeingChecked, PreType origPreType = null) {
+    public bool CheckPreTypeIsDetermined(IOrigin tok, PreType pt, string whatIsBeingChecked, PreType origPreType = null) {
       Contract.Requires(tok != null);
       Contract.Requires(pt != null);
       Contract.Requires(whatIsBeingChecked != null);
@@ -579,7 +579,7 @@ namespace Microsoft.Dafny {
       return dp.Arguments.TrueForAll(tt => CheckPreTypeIsDetermined(tok, tt, whatIsBeingChecked, origPreType));
     }
 
-    public void CheckTypeArgsContainNoOrdinal(IToken tok, PreType preType) {
+    public void CheckTypeArgsContainNoOrdinal(IOrigin tok, PreType preType) {
       Contract.Requires(tok != null);
       Contract.Requires(preType != null);
       if (preType.Normalize() is DPreType dp) {
@@ -587,7 +587,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void CheckContainsNoOrdinal(IToken tok, PreType preType, string errMsg) {
+    public void CheckContainsNoOrdinal(IOrigin tok, PreType preType, string errMsg) {
       Contract.Requires(tok != null);
       Contract.Requires(preType != null);
       Contract.Requires(errMsg != null);

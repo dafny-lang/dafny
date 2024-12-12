@@ -110,7 +110,7 @@ public class ProgramParser {
 
   private DfyParseFileResult ParseFileWithErrorHandling(DafnyOptions options,
     Func<FileSnapshot> getSnapShot,
-    IToken origin,
+    IOrigin origin,
     Uri uri,
     CancellationToken cancellationToken) {
     var fileSnapshot = getSnapShot();
