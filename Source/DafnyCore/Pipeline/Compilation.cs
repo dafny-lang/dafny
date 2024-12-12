@@ -367,8 +367,11 @@ public class Compilation : IDisposable {
 
       if (!onlyPrepareVerificationForGutterTests) {
         var groups = tasks.GroupBy(t =>
-            // We unwrap so that we group on tokens as they are displayed to the user by Reporter.Info
-            BoogieGenerator.ToDafnyToken(true, t.Token).StartToken).
+          {
+            var dafnyToken = BoogieGenerator.ToDafnyToken(true, t.Token);
+            // We normalize so that we group on tokens as they are displayed to the user by Reporter.Info
+            return new RangeToken(dafnyToken.StartToken, dafnyToken.EndToken);
+          }).
           OrderBy(g => g.Key);
         foreach (var tokenTasks in groups) {
           var functions = tokenTasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
