@@ -19,6 +19,10 @@ public abstract class OriginWrapper : IOrigin {
     set { WrappedToken.col = value; }
   }
 
+  public virtual bool IsInherited(ModuleDefinition m) {
+    return WrappedToken.IsInherited(m);
+  }
+
   public virtual bool InclusiveEnd => WrappedToken.InclusiveEnd;
   public virtual bool IncludesRange => WrappedToken.IncludesRange;
   public string ActualFilename => WrappedToken.ActualFilename;

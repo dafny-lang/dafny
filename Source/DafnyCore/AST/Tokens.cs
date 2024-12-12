@@ -27,6 +27,10 @@ public class Token : IOrigin {
   public bool IsSourceToken => this != NoToken;
   public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
+  public bool IsInherited(ModuleDefinition m) {
+    return false;
+  }
+
   public bool InclusiveEnd => true;
   public bool IncludesRange => false;
   public string ActualFilename => Filepath;

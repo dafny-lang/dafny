@@ -3305,6 +3305,10 @@ namespace Microsoft.Dafny {
       public override IOrigin WithVal(string newVal) {
         return new ForceCheckOrigin(WrappedToken.WithVal(newVal));
       }
+
+      public override bool IsInherited(ModuleDefinition m) {
+        return false;
+      }
     }
 
     public Bpl.PredicateCmd Assert(IOrigin tok, Bpl.Expr condition, ProofObligationDescription description,
@@ -3321,7 +3325,7 @@ namespace Microsoft.Dafny {
       Bpl.PredicateCmd cmd;
       if (context.AssertMode == AssertMode.Assume
           || (assertionOnlyFilter != null && !assertionOnlyFilter(tok))
-          || (RefinementOrigin.IsInherited(refinesToken, currentModule) && codeContext is not { MustReverify: true })) {
+          || (refinesToken.IsInherited(currentModule) && codeContext is not { MustReverify: true })) {
         // produce an assume instead
         cmd = TrAssumeCmd(tok, condition, kv);
         proofDependencies?.AddProofDependencyId(cmd, tok, new AssumedProofObligationDependency(tok, description));
@@ -3345,7 +3349,7 @@ namespace Microsoft.Dafny {
       PredicateCmd cmd;
       if (context.AssertMode == AssertMode.Assume ||
           (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
-          (RefinementOrigin.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+          (refinesTok.IsInherited(currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
         cmd = TrAssumeCmd(tok, Bpl.Expr.True, kv);
       } else {
@@ -4564,7 +4568,7 @@ namespace Microsoft.Dafny {
 
     bool TrSplitNeedsTokenAdjustment(Expression expr) {
       Contract.Requires(expr != null);
-      return RefinementOrigin.IsInherited(expr.tok, currentModule) && (codeContext == null || !codeContext.MustReverify) && RefinementTransformer.ContainsChange(expr, currentModule);
+      return expr.tok.IsInherited(currentModule) && (codeContext == null || !codeContext.MustReverify) && RefinementTransformer.ContainsChange(expr, currentModule);
     }
 
     /// <summary>

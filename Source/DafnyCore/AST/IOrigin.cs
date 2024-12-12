@@ -5,6 +5,8 @@ namespace Microsoft.Dafny;
 
 public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
 
+  bool IsInherited(ModuleDefinition m);
+
   bool InclusiveEnd { get; }
   bool IncludesRange { get; }
   /*

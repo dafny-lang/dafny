@@ -95,7 +95,7 @@ namespace Microsoft.Dafny {
             p.Label.E = etran.Old.TrExpr(p.E);
           } else {
             foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
-              if (kind == MethodTranslationKind.Call && RefinementOrigin.IsInherited(s.Tok, currentModule)) {
+              if (kind == MethodTranslationKind.Call && s.Tok.IsInherited(currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
                 req.Add(Requires(s.Tok, s.IsOnlyFree, p.E, s.E, errorMessage, successMessage, comment));
@@ -108,7 +108,7 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
           foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
-            if (kind == MethodTranslationKind.Implementation && RefinementOrigin.IsInherited(s.Tok, currentModule)) {
+            if (kind == MethodTranslationKind.Implementation && s.Tok.IsInherited(currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
               ens.Add(Ensures(s.Tok, s.IsOnlyFree, p.E, s.E, null, null, comment));

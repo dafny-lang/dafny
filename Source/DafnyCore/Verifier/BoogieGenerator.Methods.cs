@@ -1836,7 +1836,7 @@ namespace Microsoft.Dafny {
           comment = null;
           foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
             var post = s.E;
-            if (kind == MethodTranslationKind.Implementation && RefinementOrigin.IsInherited(s.Tok, currentModule)) {
+            if (kind == MethodTranslationKind.Implementation && s.Tok.IsInherited(currentModule)) {
               // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
               post = BplImp(new Boogie.IdentifierExpr(s.E.tok, "$_reverifyPost", Boogie.Type.Bool), post);
             }
