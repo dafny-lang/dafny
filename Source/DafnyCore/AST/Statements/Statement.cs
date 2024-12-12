@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
-  public override IOrigin Tok => PostLabelToken ?? StartToken;
+  public override IOrigin Tok => PostLabelToken ?? Origin;
   public IOrigin PostLabelToken { get; set; }
 
   public int ScopeDepth { get; set; }
