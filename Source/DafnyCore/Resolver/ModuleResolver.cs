@@ -1669,7 +1669,7 @@ namespace Microsoft.Dafny {
         if (cycleErrorHasBeenReported.Contains(r)) {
           // An error has already been reported for this cycle, so don't report another.
           // Note, the representative, "r", may itself not be a const.
-        } else if (dd is NewtypeDecl or SubsetTypeDecl) {
+        } else if (dd is SubsetTypeDecl or NewtypeDecl) {
           ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
           cycleErrorHasBeenReported.Add(r);
         }
@@ -2928,8 +2928,6 @@ namespace Microsoft.Dafny {
       if (type.AsTypeParameter is { } typeArg) {
         typeArg.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
         thingsChanged = true;
-      } else if (type.SupportsEquality) {
-        // nothing to do
       } else if (type.Normalize() is UserDefinedType userDefinedType) {
         if (userDefinedType.ResolvedClass is TypeSynonymDeclBase typeSynonymDecl) {
           if (typeSynonymDecl.IsRevealedInScope(Type.GetScope())) {

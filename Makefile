@@ -34,12 +34,7 @@ tests:
 # make test name=<integration test filter> update=true                to update the test
 # make test name=<integration test filter>              build=false   don't build the solution
 test:
-	(cd "${DIR}"; \
-	[ -z "${name}" ] && echo "Syntax: make test name=<integration test filter> [update=true] [build=false]" && exit 1; \
-	build_flag=$${build:-true}; \
-	update_flag=$${update:-false}; \
-	DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE=$$update_flag \
-	dotnet test Source/IntegrationTests $$( [ "$$build_flag" = "false" ] && echo "--no-build" ) --filter "DisplayName~${name}")
+	@DIR="$(DIR)" name="$(name)" update="$(update)" build="$(build)" bash scripts/test.sh
 
 # Run Dafny on an integration test case directly in the folder itself.
 # make test-dafny name=<part of the path> action="run ..." [build=false]
