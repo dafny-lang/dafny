@@ -1,3 +1,4 @@
+// NONUNIFORM: Test is too complex for the uniform back-end testing mechanism
 // RUN: %build --target=lib "%S/Inputs/library.dfy" --standard-libraries=true --output %S/Outputs > %t
 // RUN: %run --standard-libraries=true %s --input "%S/Outputs.doo" >> %t
 //
