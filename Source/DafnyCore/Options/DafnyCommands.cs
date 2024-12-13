@@ -102,6 +102,7 @@ public static class DafnyCommands {
     CommonOptionBag.NewTypeInferenceDebug,
     Method.ReadsClausesOnMethods,
     CommonOptionBag.UseStandardLibraries,
+    CommonOptionBag.TranslateStandardLibrary,
     CommonOptionBag.LogLevelOption,
     CommonOptionBag.LogLocation
   });

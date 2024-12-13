@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -10,6 +11,7 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
@@ -176,9 +178,13 @@ public class Compilation : IDisposable {
     }
 
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+      if (Options.Backend is LibraryBackend) {
+        Options.Set(CommonOptionBag.TranslateStandardLibrary, false);
+      }
+
       // For now the standard libraries are still translated from scratch.
       // This breaks separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
-      var asLibrary = false;
+      var asLibrary = !Options.Get(CommonOptionBag.TranslateStandardLibrary);
 
       if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = Options.CompilerName ?? "notarget";

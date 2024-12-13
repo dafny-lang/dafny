@@ -366,6 +366,12 @@ Change the default opacity of functions.
 `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.".TrimStart()) {
   };
 
+  public static readonly Option<bool> TranslateStandardLibrary = new("--translate-standard-library", () => true,
+    @"Currently Dafny does not prevent separately built Dafny projects from each including the standard library,
+leading to conflicts. When combining such projects, please ensure that only one of them has --translate-standard-library set to true.
+When building a Dafny library (.doo file), this option will automatically be set to false. 
+");
+
   public static readonly Option<bool> UseStandardLibraries = new("--standard-libraries", () => false,
     @"
 Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
@@ -610,6 +616,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterGlobalOption(AllowDeprecation, OptionCompatibility.OptionLibraryImpliesLocalWarning);
     OptionRegistry.RegisterGlobalOption(WarnShadowing, OptionCompatibility.OptionLibraryImpliesLocalWarning);
     OptionRegistry.RegisterGlobalOption(UseStandardLibraries, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterOption(TranslateStandardLibrary, OptionScope.Cli);
     OptionRegistry.RegisterOption(WarnAsErrors, OptionScope.Cli);
     OptionRegistry.RegisterOption(ProgressOption, OptionScope.Cli);
     OptionRegistry.RegisterOption(LogLocation, OptionScope.Cli);
