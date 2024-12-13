@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           Detail = documentation,
           Range = range,
           Kind = symbol.Kind.Value,
-          SelectionRange = symbol.NavigationToken == Token.NoToken ? range : symbol.NavigationToken.ToRange().ToLspRange()
+          SelectionRange = symbol.NavigationToken == Token.NoToken ? range : symbol.NavigationToken.ToLspRange()
         }
       };
     }

@@ -66,8 +66,8 @@ public class ModuleQualifiedId : Node, IHasReferences {
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public override RangeToken Origin {
-    get => new(Path.First().StartToken, Path.Last().EndToken);
+  public override IOrigin Origin {
+    get => new RangeToken(Path.First().StartToken, Path.Last().EndToken);
     set => throw new NotSupportedException();
   }
 

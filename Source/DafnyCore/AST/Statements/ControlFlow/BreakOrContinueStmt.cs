@@ -31,7 +31,7 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
     }
   }
 
-  public BreakOrContinueStmt(RangeToken rangeOrigin, IOrigin targetLabel, bool isContinue, Attributes attributes = null)
+  public BreakOrContinueStmt(IOrigin rangeOrigin, IOrigin targetLabel, bool isContinue, Attributes attributes = null)
     : base(rangeOrigin, attributes) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(targetLabel != null);
@@ -43,7 +43,7 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
   /// For "isContinue == false", represents the statement "break ^breakAndContinueCount ;".
   /// For "isContinue == true", represents the statement "break ^(breakAndContinueCount - 1) continue;".
   /// </summary>
-  public BreakOrContinueStmt(RangeToken rangeOrigin, int breakAndContinueCount, bool isContinue, Attributes attributes = null)
+  public BreakOrContinueStmt(IOrigin rangeOrigin, int breakAndContinueCount, bool isContinue, Attributes attributes = null)
     : base(rangeOrigin, attributes) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(1 <= breakAndContinueCount);

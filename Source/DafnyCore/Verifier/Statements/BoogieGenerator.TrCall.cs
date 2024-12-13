@@ -350,7 +350,7 @@ public partial class BoogieGenerator {
     proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
     if (
       (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
-      (module != currentModule && RefinementOrigin.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+      (module != currentModule && tok.IsInherited(currentModule) && (codeContext == null || !codeContext.MustReverify))) {
       // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
       // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
       // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,
