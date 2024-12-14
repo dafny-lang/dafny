@@ -8,7 +8,8 @@ method M()
 {
   var r := new array<Pack<() ~> bool>>[1];
   r[0] := new Pack<() ~> bool>[1];
-  r[0][0] := Pack(() => false);
+  var p: Pack<() -> bool> := Pack(() => false); // see comments in Knot10.dfy
+  r[0][0] := p;
   var tf := Pack(() reads r, r[0], r[0][0].c.reads => 
                      if r[0][0].c.requires() then !r[0][0].c() else false
                    );
