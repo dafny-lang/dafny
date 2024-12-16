@@ -2941,6 +2941,9 @@ namespace Microsoft.Dafny {
       } else if (type.Normalize() is UserDefinedType userDefinedType) {
         if (userDefinedType.ResolvedClass is TypeSynonymDeclBase typeSynonymDecl) {
           if (typeSynonymDecl.IsRevealedInScope(Type.GetScope())) {
+            if (typeSynonymDecl.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Required) {
+              return; // It's guaranteed that this type synonym requires equality
+            }
             DetermineEqualitySupportType(typeSynonymDecl.RhsWithArgument(userDefinedType.TypeArgs), ref thingsChanged);
           }
         } else if (userDefinedType.ResolvedClass is NewtypeDecl newtypeDecl) {
