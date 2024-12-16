@@ -435,7 +435,7 @@ public class ExpressionTester {
       // calling "AsParentType"). Let's say the result is A<U> for some type expression U. If U contains all type parameters from T, then the
       // mapping from B<T> to A<U> is unique, which means the mapping from B<Y> to A<X> is unique.
       var B = udtTo.ResolvedClass;
-      var B_T = UserDefinedType.FromTopLevelDecl(B.tok, B);
+      var B_T = UserDefinedType.FromTopLevelDecl(B.Tok, B);
 
       var A = fromType.NormalizeExpand(); // important to NOT keep constraints here, since they won't be evident at run time
       Type A_U;

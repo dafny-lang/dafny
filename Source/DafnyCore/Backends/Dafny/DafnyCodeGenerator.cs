@@ -213,7 +213,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (tp.Variance is TypeParameter.TPVariance.Contra) {
-        AddUnsupported(tp.tok, "Contravariance");
+        AddUnsupported(tp.Tok, "Contravariance");
       }
       return (Variance)Variance.create_Nonvariant();
     }
@@ -269,7 +269,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      AddUnsupportedFeature(iter.tok, Feature.Iterators);
+      AddUnsupportedFeature(iter.Tok, Feature.Iterators);
       return wr;
     }
 
@@ -345,8 +345,8 @@ namespace Microsoft.Dafny.Compilers {
         Option<DAST.NewtypeConstraint> constraint;
         if (((RedirectingTypeDecl)nt).ConstraintIsCompilable) {
           // To check if something is compilable for a newtype, we need to convert the variable to the base type
-          var type = UserDefinedType.FromTopLevelDecl(nt.tok, (TopLevelDecl)nt);
-          var sourceFormal = new Formal(nt.tok, "_source", type, true, false, null);
+          var type = UserDefinedType.FromTopLevelDecl(nt.Tok, (TopLevelDecl)nt);
+          var sourceFormal = new Formal(nt.Tok, "_source", type, true, false, null);
           var statementBuffer = new StatementBuffer();
           var wStmt = new BuilderSyntaxTree<StatementContainer>(statementBuffer, this);
           GenerateIsMethodBody(nt, sourceFormal, wStmt);
@@ -539,7 +539,7 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
         if (m.IsStatic && this.hasTypeArgs) {
-          compiler.AddUnsupported(m.tok, "<i>Static methods with type arguments</i>");
+          compiler.AddUnsupported(m.Tok, "<i>Static methods with type arguments</i>");
           return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
         }
 
@@ -597,7 +597,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        compiler.AddUnsupportedFeature(m.tok, Feature.MethodSynthesis);
+        compiler.AddUnsupportedFeature(m.Tok, Feature.MethodSynthesis);
         return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
       }
 
@@ -1813,7 +1813,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private static Type EraseNewtypeLayers(TopLevelDecl topLevel) {
-      var topLevelType = UserDefinedType.FromTopLevelDecl(topLevel.tok, topLevel);
+      var topLevelType = UserDefinedType.FromTopLevelDecl(topLevel.Tok, topLevel);
       return topLevelType.NormalizeToAncestorType();
     }
 

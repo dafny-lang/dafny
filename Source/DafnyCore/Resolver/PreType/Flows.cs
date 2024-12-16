@@ -230,8 +230,8 @@ abstract class Flow {
     var bTypeSubstMap = TypeParameter.SubstitutionMap(bDecl.TypeArgs, b.TypeArgs);
     (bDecl as TopLevelDeclWithMembers)?.AddParentTypeParameterSubstitutions(bTypeSubstMap);
 
-    var aSubst = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.tok, commonSupertypeDecl).Subst(aTypeSubstMap);
-    var bSubst = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.tok, commonSupertypeDecl).Subst(bTypeSubstMap);
+    var aSubst = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.Tok, commonSupertypeDecl).Subst(aTypeSubstMap);
+    var bSubst = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.Tok, commonSupertypeDecl).Subst(bTypeSubstMap);
 
     var joinedTypeArgs = Joins(TypeParameter.Variances(commonSupertypeDecl.TypeArgs), aSubst.TypeArgs, bSubst.TypeArgs, context);
     if (joinedTypeArgs == null) {

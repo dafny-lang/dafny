@@ -124,12 +124,12 @@ public class InferDecreasesClause {
           break;
         case Function.CoCallClusterInvolvement.IsMutuallyRecursiveTarget:
           // prefix: decreases 0,
-          clbl.Decreases.Expressions.Insert(0, Expression.CreateIntLiteral(fn.tok, 0));
+          clbl.Decreases.Expressions.Insert(0, Expression.CreateIntLiteral(fn.Tok, 0));
           anyChangeToDecreases = true;
           break;
         case Function.CoCallClusterInvolvement.CoRecursiveTargetAllTheWay:
           // prefix: decreases 1,
-          clbl.Decreases.Expressions.Insert(0, Expression.CreateIntLiteral(fn.tok, 1));
+          clbl.Decreases.Expressions.Insert(0, Expression.CreateIntLiteral(fn.Tok, 1));
           anyChangeToDecreases = true;
           break;
         default:

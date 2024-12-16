@@ -73,17 +73,17 @@ public class InductionRewriter : IRewriter {
   void ComputeLemmaInduction(Method method) {
     Contract.Requires(method != null);
     if (method is { IsGhost: true, AllowsAllocation: false, Outs: { Count: 0 }, Body: not null } and not ExtremeLemma) {
-      Expression pre = Expression.CreateBoolLiteral(method.tok, true);
+      Expression pre = Expression.CreateBoolLiteral(method.Tok, true);
       foreach (var req in method.Req) {
         pre = Expression.CreateAnd(pre, req.E);
       }
 
-      Expression post = Expression.CreateBoolLiteral(method.tok, true);
+      Expression post = Expression.CreateBoolLiteral(method.Tok, true);
       foreach (var ens in method.Ens) {
         post = Expression.CreateAnd(post, ens.E);
       }
 
-      ComputeInductionVariables(method.tok, method.Ins, Expression.CreateImplies(pre, post), method, ref method.Attributes);
+      ComputeInductionVariables(method.Tok, method.Ins, Expression.CreateImplies(pre, post), method, ref method.Attributes);
     }
   }
 
@@ -169,7 +169,7 @@ public class InductionRewriter : IRewriter {
       // Next, look for matching patterns for the induction hypothesis.
       if (lemma != null) {
         var triggers = ComputeInductionTriggers(goodArguments, body, lemma.EnclosingClass.EnclosingModuleDefinition, tok, ref attributes);
-        ReportInductionTriggers(lemma.tok, lemma, attributes);
+        ReportInductionTriggers(lemma.Tok, lemma, attributes);
       }
 
       attributes = new Attributes("_induction", goodArguments, attributes);

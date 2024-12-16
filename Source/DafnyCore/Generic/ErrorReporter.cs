@@ -83,14 +83,14 @@ public abstract class ErrorReporter {
     Contract.Requires(d != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, ParseErrors.ErrorId.none, d.tok, format, args);
+    Error(source, ParseErrors.ErrorId.none, d.Tok, format, args);
   }
 
   public void Error(MessageSource source, Enum errorId, Declaration d, string msg, params object[] args) {
     Contract.Requires(d != null);
     Contract.Requires(msg != null);
     Contract.Requires(args != null);
-    Error(source, errorId, d.tok, msg, args);
+    Error(source, errorId, d.Tok, msg, args);
   }
 
   public void Error(MessageSource source, Enum errorId, Statement s, string format, params object[] args) {

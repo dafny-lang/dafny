@@ -95,16 +95,16 @@ public partial class BoogieGenerator {
         builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
         List<Expression> dafnyRangeBounds = new();
         if (lo != null) {
-          dafnyRangeBounds.Add(new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, lo, dIndex));
+          dafnyRangeBounds.Add(new BinaryExpr(stmt.Tok, BinaryExpr.Opcode.Le, lo, dIndex));
         }
         if (hi != null) {
-          dafnyRangeBounds.Add(new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, dIndex, hi));
+          dafnyRangeBounds.Add(new BinaryExpr(stmt.Tok, BinaryExpr.Opcode.Le, dIndex, hi));
         }
 
         Expression dafnyRange = dafnyRangeBounds.Count == 1
           ? dafnyRangeBounds[0]
-          : new BinaryExpr(stmt.tok, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
-        var dafnyAssertion = new ForallExpr(stmt.tok, stmt.Origin, new List<BoundVar> { indexVar },
+          : new BinaryExpr(stmt.Tok, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
+        var dafnyAssertion = new ForallExpr(stmt.Tok, stmt.Origin, new List<BoundVar> { indexVar },
           dafnyRange, new TypeTestExpr(indexVar.tok, dIndex, indexVar.Type), null);
         builder.Add(Assert(tok, cre, new ForRangeAssignable(desc, dafnyAssertion), builder.Context));
       }

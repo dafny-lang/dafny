@@ -451,9 +451,9 @@ namespace Microsoft.Dafny {
           List<Variable> bvs;
           List<Bpl.Expr> args;
           CreateBoundVariables(ctor.Formals, out bvs, out args);
-          Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, Predef.DatatypeType, args);
+          Bpl.Expr ct = FunctionCall(ctor.Tok, ctor.FullName, Predef.DatatypeType, args);
           // (exists args :: args-have-the-expected-types && ct(args) == expr)
-          Bpl.Expr q = Bpl.Expr.Binary(ctor.tok, BinaryOperator.Opcode.Eq, ct, expr);
+          Bpl.Expr q = Bpl.Expr.Binary(ctor.Tok, BinaryOperator.Opcode.Eq, ct, expr);
           if (bvs.Count != 0) {
             int i = 0;
             Bpl.Expr typeAntecedent = Bpl.Expr.True;
@@ -466,7 +466,7 @@ namespace Microsoft.Dafny {
               i++;
             }
             var trigger = BplTrigger(ct);  // this is probably never used, because this quantifier is not expected ever to appear in a context where it needs to be instantiated
-            q = new Bpl.ExistsExpr(ctor.tok, bvs, trigger, BplAnd(typeAntecedent, q));
+            q = new Bpl.ExistsExpr(ctor.Tok, bvs, trigger, BplAnd(typeAntecedent, q));
           }
           yield return q;
         }

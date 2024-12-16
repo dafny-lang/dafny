@@ -16,7 +16,7 @@ namespace Microsoft.Dafny {
     private readonly CompilationData compilation;
     // Don't perform linting on doo files in general, since the source has already been processed.
     internal override void PreResolve(ModuleDefinition moduleDefinition) {
-      if (moduleDefinition.tok.Uri != null && !moduleDefinition.ShouldVerify(compilation)) {
+      if (moduleDefinition.Tok.Uri != null && !moduleDefinition.ShouldVerify(compilation)) {
         return;
       }
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {

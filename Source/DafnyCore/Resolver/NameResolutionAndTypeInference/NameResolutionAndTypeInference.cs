@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
     void ResolveNamesAndInferTypesForOneDeclarationInitial(TopLevelDecl topd) {
       if (topd is NewtypeDecl newtypeDecl) {
         // this check can be done only after it has been determined that the redirected types do not involve cycles
-        AddXConstraint(newtypeDecl.tok, "NumericType", newtypeDecl.BaseType, "newtypes must be based on some numeric type (got {0})");
+        AddXConstraint(newtypeDecl.Tok, "NumericType", newtypeDecl.BaseType, "newtypes must be based on some numeric type (got {0})");
         // type check the constraint, if any
         if (newtypeDecl.Var != null) {
           Contract.Assert(object.ReferenceEquals(newtypeDecl.Var.Type.NormalizeExpand(true), newtypeDecl.BaseType.NormalizeExpand(true)));  // follows from NewtypeDecl invariant
@@ -361,10 +361,10 @@ namespace Microsoft.Dafny {
       var f = (Function)member;
       Expression receiver;
       if (f.IsStatic) {
-        receiver = new StaticReceiverExpr(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass, true);
+        receiver = new StaticReceiverExpr(f.Tok, (TopLevelDeclWithMembers)f.EnclosingClass, true);
       } else {
-        receiver = new ImplicitThisExpr(f.tok);
-        receiver.Type = GetThisType(f.tok, (TopLevelDeclWithMembers)member.EnclosingClass);
+        receiver = new ImplicitThisExpr(f.Tok);
+        receiver.Type = GetThisType(f.Tok, (TopLevelDeclWithMembers)member.EnclosingClass);
       }
 
       var typeApplication = new List<Type>();
@@ -376,7 +376,7 @@ namespace Microsoft.Dafny {
         typeApplication_JustForMember.Add(new IntType());
       }
 
-      var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
+      var rr = new MemberSelectExpr(f.Tok, receiver, f.Name);
       rr.Member = f;
       rr.TypeApplicationAtEnclosingClass = typeApplication;
       rr.TypeApplicationJustMember = typeApplication_JustForMember;
@@ -384,7 +384,7 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < f.Ins.Count; i++) {
         args.Add(new IntType());
       }
-      rr.Type = new ArrowType(f.tok, args, new IntType());
+      rr.Type = new ArrowType(f.Tok, args, new IntType());
       ((NameSegment)arg).ResolvedExpression = rr;
       arg.Type = rr.Type;
     }
@@ -1208,7 +1208,7 @@ namespace Microsoft.Dafny {
           if (r == Scope<TypeParameter>.PushResult.Duplicate) {
             reporter.Error(MessageSource.Resolver, ParseErrors.ErrorId.none, tp, "Duplicate type-parameter name: {0}", tp.Name);
           } else if (r == Scope<TypeParameter>.PushResult.Shadow) {
-            reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tp.tok, "Shadowed type-parameter name: {0}", tp.Name);
+            reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tp.Tok, "Shadowed type-parameter name: {0}", tp.Name);
           }
         }
       }
@@ -2756,7 +2756,7 @@ namespace Microsoft.Dafny {
           }
           ResolveExpression(constantField.Rhs, resolutionContext);
           scope.PopMarker();
-          AddAssignableConstraint(constantField.tok, constantField.Type, constantField.Rhs.Type,
+          AddAssignableConstraint(constantField.Tok, constantField.Type, constantField.Rhs.Type,
             "type for constant '" + constantField.Name + "' is '{0}', but its initialization value type is '{1}'");
           SolveAllTypeConstraints();
         }
@@ -2932,7 +2932,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentClass == null);
 
       if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
-        Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_iterators_are_not_deterministic, iter.tok,
+        Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_iterators_are_not_deterministic, iter.Tok,
           "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option");
       }
 
@@ -4206,10 +4206,10 @@ namespace Microsoft.Dafny {
                 if (caller != d) {
                 } else if (d is TypeSynonymDecl && !(d is SubsetTypeDecl)) {
                   // detect self-loops here, since they don't show up in the graph's SCC methods
-                  reporter.Error(MessageSource.Resolver, d.tok, "type-synonym cycle: {0} -> {0}", d.Name);
+                  reporter.Error(MessageSource.Resolver, d.Tok, "type-synonym cycle: {0} -> {0}", d.Name);
                 } else {
                   // detect self-loops here, since they don't show up in the graph's SCC methods
-                  reporter.Error(MessageSource.Resolver, d.tok, "recursive constraint dependency involving a {0}: {1} -> {1}", d.WhatKind, d.Name);
+                  reporter.Error(MessageSource.Resolver, d.Tok, "recursive constraint dependency involving a {0}: {1} -> {1}", d.WhatKind, d.Name);
                 }
               }
               t.ResolvedClass = d;

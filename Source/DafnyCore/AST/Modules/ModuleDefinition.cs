@@ -408,7 +408,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     return TopLevelDecls.All(decl => decl.IsEssentiallyEmpty());
   }
 
-  public IOrigin NavigationToken => tok;
+  public IOrigin NavigationToken => Tok;
   public override IEnumerable<INode> Children =>
     Attributes.AsEnumerable().
     Concat<Node>(DefaultClasses).
@@ -685,12 +685,12 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         var existingModuleIsFound = bindings.TryLookup(subDecl.Name, out var prevDecl);
         Contract.Assert(existingModuleIsFound);
         if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
-          resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok, "Duplicate name of import: {0}", subDecl.Name);
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.Tok, "Duplicate name of import: {0}", subDecl.Name);
         } else if (subDecl is AliasModuleDecl { Opened: true } importDecl && importDecl.TargetQId.Path.Count == 1 &&
                    importDecl.Name == importDecl.TargetQId.RootName()) {
           importDecl.ShadowsLiteralModule = true;
         } else {
-          resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok,
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.Tok,
             "Import declaration uses same name as a module in the same scope: {0}", subDecl.Name);
         }
       }
@@ -807,7 +807,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
           }
 
           if (toplevels.ContainsKey(m.Name)) {
-            resolver.reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
+            resolver.reporter.Error(MessageSource.Resolver, m.Tok, $"duplicate declaration for name {m.Name}");
           } else {
             toplevels.Add(m.Name, m);
           }

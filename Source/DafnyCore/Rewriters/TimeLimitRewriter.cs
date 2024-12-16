@@ -42,7 +42,7 @@ public class TimeLimitRewriter : IRewriter {
                       Expression newArg = new LiteralExpr(attr.Args[0].tok, value * current_limit);
                       member.Attributes = new Attributes("_" + name, new List<Expression>() { newArg }, attrs);
                       if (Attributes.Contains(attrs, name)) {
-                        ReportWarning(ErrorId.rw_timelimit_multiplier, member.tok, "timeLimitMultiplier annotation overrides " + name + " annotation");
+                        ReportWarning(ErrorId.rw_timelimit_multiplier, member.Tok, "timeLimitMultiplier annotation overrides " + name + " annotation");
                       }
                     }
                   }

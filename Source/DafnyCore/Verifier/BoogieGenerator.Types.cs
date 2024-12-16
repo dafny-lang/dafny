@@ -30,7 +30,7 @@ public partial class BoogieGenerator {
   private void AddArrowTypeAxioms(ArrowTypeDecl ad) {
     Contract.Requires(ad != null);
     var arity = ad.Arity;
-    var tok = ad.tok;
+    var tok = ad.Tok;
 
     // [Heap, Box, ..., Box]
     var map_args = Cons(Predef.HeapType, Map(Enumerable.Range(0, arity), i => Predef.BoxType));
@@ -141,9 +141,9 @@ public partial class BoogieGenerator {
         MapM(Enumerable.Range(0, arity), i => rhsargs.Add(BplFormalVar("bx" + i, Predef.BoxType, true, formals)));
 
         sink.AddTopLevelDeclaration(
-          new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<TypeVariable>(), formals,
+          new Bpl.Function(f.Tok, f.FullSanitizedName + "#canCall", new List<TypeVariable>(), formals,
             BplFormalVar(null, Bpl.Type.Bool, false), null,
-            InlineAttribute(f.tok)) {
+            InlineAttribute(f.Tok)) {
             Body = Bpl.Expr.True
           });
       };
@@ -468,7 +468,7 @@ public partial class BoogieGenerator {
 
   private string AddTyAxioms(TopLevelDecl td) {
     Contract.Requires(td != null);
-    IOrigin tok = td.tok;
+    IOrigin tok = td.Tok;
 
     // use the internal type synonym, if any
     if (!RevealedInScope(td) && td is RevealableTypeDecl revealableTypeDecl) {
@@ -512,9 +512,9 @@ public partial class BoogieGenerator {
             ==> $Box($Unbox(bx): DatatypeType) == bx
              && $Is($Unbox(bx): DatatypeType, List(T)));
     */
-    if (!ModeledAsBoxType(UserDefinedType.FromTopLevelDecl(td.tok, td))) {
+    if (!ModeledAsBoxType(UserDefinedType.FromTopLevelDecl(td.Tok, td))) {
       var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
-      var ty_repr = TrType(UserDefinedType.FromTopLevelDecl(td.tok, td));
+      var ty_repr = TrType(UserDefinedType.FromTopLevelDecl(td.Tok, td));
       var typeTerm = FunctionCall(tok, name, Predef.Ty, argExprs);
       AddBoxUnboxAxiom(tok, name, typeTerm, ty_repr, args);
     }
@@ -533,7 +533,7 @@ public partial class BoogieGenerator {
    *     axiom (forall t0: Ty :: { List(t0) } TagFamily(List(t0)) == tytagFamily$List);
    */
   private Axiom CreateTagAndCallingForTypeConstructor(TopLevelDecl td) {
-    IOrigin tok = td.tok;
+    IOrigin tok = td.Tok;
     var inner_name = GetClass(td).TypedIdent.Name;
     string name = "T" + inner_name;
 
@@ -978,7 +978,7 @@ public partial class BoogieGenerator {
 
     var baseType = dd.Var != null ? dd.Var.Type : ((NewtypeDecl)(object)dd).BaseType;
     var oBplType = TrType(baseType);
-    var c = new BoundVar(dd.tok, CurrentIdGenerator.FreshId("c"), baseType);
+    var c = new BoundVar(dd.Tok, CurrentIdGenerator.FreshId("c"), baseType);
     var o = BplBoundVar((dd.Var ?? c).AssignUniqueName((dd.IdGenerator)), oBplType, vars);
 
     Bpl.Expr body, is_o;
@@ -1005,12 +1005,12 @@ public partial class BoogieGenerator {
       // $Is(o, ..)
       is_o = MkIs(o, o_ty, ModeledAsBoxType(baseType));
       trigger = BplTrigger(is_o);
-      var etran = new ExpressionTranslator(this, Predef, NewOneHeapExpr(dd.tok), null);
+      var etran = new ExpressionTranslator(this, Predef, NewOneHeapExpr(dd.Tok), null);
       Bpl.Expr parentConstraint, constraint;
       if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
         // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
         parentConstraint = Bpl.Expr.True;
-        var udt = UserDefinedType.FromTopLevelDecl(dd.tok, dd);
+        var udt = UserDefinedType.FromTopLevelDecl(dd.Tok, dd);
         var substitutee = Expression.CreateIdentExpr(dd.Var ?? c);
         constraint = etran.TrExpr(ModuleResolver.GetImpliedTypeConstraint(substitutee, udt));
       } else {
@@ -1019,12 +1019,12 @@ public partial class BoogieGenerator {
           trigger.Next = BplTrigger(parentConstraint);
         }
         // conjoin the constraint
-        constraint = etran.TrExpr(dd.Constraint ?? Expression.CreateBoolLiteral(dd.tok, true));
+        constraint = etran.TrExpr(dd.Constraint ?? Expression.CreateBoolLiteral(dd.Tok, true));
       }
       body = BplIff(is_o, BplAnd(parentConstraint, constraint));
     }
 
-    var axiom = new Bpl.Axiom(dd.tok, BplForall(vars, trigger, body), comment);
+    var axiom = new Bpl.Axiom(dd.Tok, BplForall(vars, trigger, body), comment);
     AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
   }
 

@@ -275,7 +275,7 @@ namespace Microsoft.Dafny.Compilers {
               } else {
                 // let's compile the "then" branch
                 wr = EmitIf(out guardWriter, false, wr);
-                EmitExpr(Expression.CreateBoolLiteral(s.Thn.tok, true), false, guardWriter, wStmts);
+                EmitExpr(Expression.CreateBoolLiteral(s.Thn.Tok, true), false, guardWriter, wStmts);
                 Coverage.Instrument(s.Thn.Tok, "then branch", wr);
                 TrStmtList(s.Thn.Body, wr);
                 Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
@@ -331,7 +331,7 @@ namespace Microsoft.Dafny.Compilers {
               // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
               // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
               var wBody = CreateWhileLoop(out var guardWriter, wr);
-              EmitExpr(Expression.CreateBoolLiteral(s.Body.tok, true), false, guardWriter, wStmts);
+              EmitExpr(Expression.CreateBoolLiteral(s.Body.Tok, true), false, guardWriter, wStmts);
               EmitBreak(null, wBody);
               Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
             } else {
@@ -344,7 +344,7 @@ namespace Microsoft.Dafny.Compilers {
         case AlternativeLoopStmt loopStmt: {
             if (loopStmt.Alternatives.Count != 0) {
               var w = CreateWhileLoop(out var whileGuardWriter, wr);
-              EmitExpr(Expression.CreateBoolLiteral(loopStmt.tok, true), false, whileGuardWriter, wStmts);
+              EmitExpr(Expression.CreateBoolLiteral(loopStmt.Tok, true), false, whileGuardWriter, wStmts);
               w = EmitContinueLabel(loopStmt.Labels, w);
               foreach (var alternative in loopStmt.Alternatives) {
                 var thn = EmitIf(out var guardWriter, true, w);

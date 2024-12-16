@@ -205,8 +205,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     }
     foreach (var p in OutsHistoryFields) {
       // ensures this.ys == [];
-      ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
-        new ExprDotName(p.tok, new ThisExpr(p.tok), p.Name, null), new SeqDisplayExpr(p.tok, new List<Expression>()))));
+      ens.Add(new AttributedExpression(new BinaryExpr(p.Tok, BinaryExpr.Opcode.Eq,
+        new ExprDotName(p.Tok, new ThisExpr(p.Tok), p.Name, null), new SeqDisplayExpr(p.Tok, new List<Expression>()))));
     }
     // ensures this.Valid();
     var valid_call = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
@@ -455,7 +455,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // --- here comes method MoveNext
     var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"), false, false,
       new List<TypeParameter>(),
-      new List<Formal>(), new List<Formal>() { new Formal(tok, "more", Type.Bool, false, false, null) },
+      new List<Formal>(), new List<Formal>() { new Formal(Tok, "more", Type.Bool, false, false, null) },
       new List<AttributedExpression>(),
       new Specification<FrameExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
@@ -474,7 +474,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     Member_Valid = valid;
     Member_MoveNext = moveNext;
     if (members.TryGetValue(init.Name, out var member)) {
-      resolver.reporter.Error(MessageSource.Resolver, member.tok,
+      resolver.reporter.Error(MessageSource.Resolver, member.Tok,
         "member name '{0}' is already predefined for this iterator", init.Name);
     } else {
       members.Add(init.Name, init);
@@ -484,7 +484,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // If the name of the iterator is "Valid" or "MoveNext", one of the following will produce an error message.  That
     // error message may not be as clear as it could be, but the situation also seems unlikely to ever occur in practice.
     if (members.TryGetValue("Valid", out member)) {
-      resolver.reporter.Error(MessageSource.Resolver, member.tok,
+      resolver.reporter.Error(MessageSource.Resolver, member.Tok,
         "member name 'Valid' is already predefined for iterators");
     } else {
       members.Add(valid.Name, valid);
@@ -492,7 +492,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     }
 
     if (members.TryGetValue("MoveNext", out member)) {
-      resolver.reporter.Error(MessageSource.Resolver, member.tok,
+      resolver.reporter.Error(MessageSource.Resolver, member.Tok,
         "member name 'MoveNext' is already predefined for iterators");
     } else {
       members.Add(moveNext.Name, moveNext);

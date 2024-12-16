@@ -277,7 +277,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(iter.tok, Feature.Iterators);
+      throw new UnsupportedFeatureException(iter.Tok, Feature.Iterators);
     }
 
     protected bool IsRecursiveConstructor(DatatypeDecl dt, DatatypeCtor ctor) {
@@ -394,7 +394,7 @@ namespace Microsoft.Dafny.Compilers {
         owr.WriteLine("size_t seed = 0;");
         foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName);
+            owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Tok), arg.CompileName);
           }
         }
         owr.WriteLine("return seed;");
@@ -454,9 +454,9 @@ namespace Microsoft.Dafny.Compilers {
             if (!arg.IsGhost) {
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                 // Recursive destructor needs to use a pointer
-                owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName);
+                owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.Tok), arg.CompileName);
               } else {
-                owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName);
+                owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Tok), arg.CompileName);
               }
               argCount++;
             }
@@ -613,7 +613,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.WriteLine("typedef {0} {1};", nt_name_def, nt.Name);
         }
       } else {
-        throw new UnsupportedFeatureException(nt.tok, Feature.NonNativeNewtypes);
+        throw new UnsupportedFeatureException(nt.Tok, Feature.NonNativeNewtypes);
       }
       var className = "class_" + IdName(nt);
       var cw = CreateClass(nt.EnclosingModuleDefinition.GetCompileName(Options), className, nt, wr) as ClassWriter;
@@ -627,13 +627,13 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr(nt.Witness, witness, false, wStmts);
           witness.Write(".toNumber()");
         }
-        DeclareField(className, nt.TypeArgs, "Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w, wr);
+        DeclareField(className, nt.TypeArgs, "Witness", true, true, nt.BaseType, nt.Tok, witness.ToString(), w, wr);
       }
 
       GetNativeInfo(nt.NativeType.Sel, out var nt_name, out var literalSuffice, out var needsCastAfterArithmetic);
       var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt_name));
-      var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
-      var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
+      var udt = new UserDefinedType(nt.Tok, nt.Name, nt, new List<Type>());
+      var d = TypeInitializationValue(udt, wr, nt.Tok, false, false);
       wDefault.WriteLine("return {0};", d);
 
       return cw;
@@ -651,7 +651,7 @@ namespace Microsoft.Dafny.Compilers {
         templateDecl = DeclareTemplate(sst.Var.Type.TypeArgs);
       }
 
-      this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.tok));
+      this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.Tok));
 
       var className = "class_" + IdName(sst);
       var cw = CreateClass(sst.EnclosingModuleDefinition.GetCompileName(Options), className, sst, wr) as ClassWriter;
@@ -660,13 +660,13 @@ namespace Microsoft.Dafny.Compilers {
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         witness.Append(Expr(sst.Witness, false, w));
-        DeclareField(className, sst.TypeArgs, "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
+        DeclareField(className, sst.TypeArgs, "Witness", true, true, sst.Rhs, sst.Tok, witness.ToString(), w, wr);
       }
 
       var wDefault = w.NewBlock(String.Format("static {0}{1} get_Default()", IdName(sst), InstantiateTemplate(sst.TypeArgs)));
-      var udt = new UserDefinedType(sst.tok, sst.Name, sst,
+      var udt = new UserDefinedType(sst.Tok, sst.Name, sst,
         sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
-      var d = TypeInitializationValue(udt, wr, sst.tok, false, false);
+      var d = TypeInitializationValue(udt, wr, sst.Tok, false, false);
       wDefault.WriteLine("return {0};", d);
     }
 
@@ -731,7 +731,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        throw new UnsupportedFeatureException(m.tok, Feature.MethodSynthesis);
+        throw new UnsupportedFeatureException(m.Tok, Feature.MethodSynthesis);
       }
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation>/*?*/ typeArgs,
@@ -1128,7 +1128,7 @@ namespace Microsoft.Dafny.Compilers {
       if (compileTypeHint.AsStringLiteral() == "struct") {
         modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1};", DeclareTemplate(d.TypeArgs), d.Name);
       } else {
-        Error(GeneratorErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.tok, "Abstract type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
+        Error(GeneratorErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.Tok, "Abstract type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
       }
     }
 
@@ -1776,7 +1776,7 @@ namespace Microsoft.Dafny.Compilers {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else if (sf is DatatypeDestructor dtor2) {
           if (!(dtor2.EnclosingClass is IndDatatypeDecl)) {
-            UnsupportedFeatureError(dtor2.tok, Feature.Codatatypes,
+            UnsupportedFeatureError(dtor2.Tok, Feature.Codatatypes,
               String.Format("Unexpected use of a destructor {0} that isn't for an inductive datatype.  Panic!",
                 member.Name));
           }

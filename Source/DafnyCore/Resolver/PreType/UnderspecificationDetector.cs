@@ -130,7 +130,7 @@ namespace Microsoft.Dafny {
         if (field.Rhs != null) {
           CheckExpression(field.Rhs, context);
         }
-        CheckPreType(field.PreType, context, field.tok, "const");
+        CheckPreType(field.PreType, context, field.Tok, "const");
 
       } else if (member is Method method) {
         CheckParameterDefaultValues(method.Ins, context);

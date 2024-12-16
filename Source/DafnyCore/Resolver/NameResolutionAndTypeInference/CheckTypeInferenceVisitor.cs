@@ -28,14 +28,14 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     if (decl is NewtypeDecl newtypeDecl) {
       if (newtypeDecl.Var != null) {
         if (!IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, newtypeDecl.tok,
+          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, newtypeDecl.Tok,
             $"base type of {newtypeDecl.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{newtypeDecl.Var.Name}'");
         }
       }
 
     } else if (decl is SubsetTypeDecl subsetTypeDecl) {
       if (!IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
-        resolver.ReportError(ResolutionErrors.ErrorId.r_subset_type_base_undetermined, subsetTypeDecl.tok,
+        resolver.ReportError(ResolutionErrors.ErrorId.r_subset_type_base_undetermined, subsetTypeDecl.Tok,
           $"base type of {subsetTypeDecl.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{subsetTypeDecl.Var.Name}'");
       }
 
@@ -61,7 +61,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
   public override void VisitField(Field field) {
     if (field is ConstantField constantField) {
       resolver.PartiallySolveTypeConstraints(true);
-      CheckTypeIsDetermined(field.tok, field.Type, "const");
+      CheckTypeIsDetermined(field.Tok, field.Type, "const");
     }
 
     base.VisitField(field);

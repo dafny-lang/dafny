@@ -375,21 +375,21 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     if (formal.HasCompiledValue && (inGhostContext ? !actual.IsNonempty : !actual.HasCompilableValue)) {
       whatIsNeeded = "support auto-initialization";
       hint = tp == null ? "" :
-        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(0)', which says it can only be instantiated with a type that supports auto-initialization)", tp.Name, tp.tok.line, tp.WhatKind);
+        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(0)', which says it can only be instantiated with a type that supports auto-initialization)", tp.Name, tp.Tok.line, tp.WhatKind);
       errorId = RefinementErrors.ErrorId.ref_mismatched_type_characteristics_autoinit;
       return false;
     }
     if (formal.IsNonempty && !actual.IsNonempty) {
       whatIsNeeded = "be nonempty";
       hint = tp == null ? "" :
-        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(00)', which says it can only be instantiated with a nonempty type)", tp.Name, tp.tok.line, tp.WhatKind);
+        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(00)', which says it can only be instantiated with a nonempty type)", tp.Name, tp.Tok.line, tp.WhatKind);
       errorId = RefinementErrors.ErrorId.ref_mismatched_type_characteristics_nonempty;
       return false;
     }
     if (formal.ContainsNoReferenceTypes && actual.MayInvolveReferences) {
       whatIsNeeded = "contain no references";
       hint = tp == null ? "" :
-        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(!new)', which says it can only be instantiated with a type that contains no references)", tp.Name, tp.tok.line, tp.WhatKind);
+        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(!new)', which says it can only be instantiated with a type that contains no references)", tp.Name, tp.Tok.line, tp.WhatKind);
       errorId = RefinementErrors.ErrorId.ref_mismatched_type_characteristics_noreferences;
       return false;
     }
@@ -404,7 +404,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     var cl = (argType.Normalize() as UserDefinedType)?.ResolvedClass;
     var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as AbstractTypeDecl;
     if (tp != null) {
-      return string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.tok.line, tp.WhatKind);
+      return string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.Tok.line, tp.WhatKind);
     }
     return "";
   }

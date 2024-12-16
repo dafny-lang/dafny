@@ -26,7 +26,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(d != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      ReportError(d.tok, msg, args);
+      ReportError(d.Tok, msg, args);
     }
 
     protected void ReportError(Statement stmt, string msg, params object[] args) {
@@ -175,7 +175,7 @@ namespace Microsoft.Dafny {
           typeSynonymDecl.IsRevealedInScope(Type.GetScope())) {
         // Compute a pre-type for the non-instantiated ("raw") RHS type (that is, for the RHS of the type-synonym declaration with the
         // formal type parameters of the type-synonym declaration).
-        var rawRhsType = UserDefinedType.FromTopLevelDecl(typeSynonymDecl.tok, typeSynonymDecl);
+        var rawRhsType = UserDefinedType.FromTopLevelDecl(typeSynonymDecl.Tok, typeSynonymDecl);
         var preTypeArguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForBoth));
 
         // The printable pre-type is the original type synonym, but with preTypeArguments as arguments
@@ -874,15 +874,15 @@ namespace Microsoft.Dafny {
           nd.Var.PreType = nd.BasePreType;
         }
         var onProxyAction = () => {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, nd.tok,
+          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, nd.Tok,
             $"base type of {nd.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{nd.Var.Name}'");
         };
         if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
-          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.Tok,
             $"a newtype ('{nd.Name}') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got {{0}})",
             onProxyAction);
         } else {
-          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.Tok,
             $"a newtype ('{nd.Name}') must be based on some numeric type (got {{0}})", onProxyAction);
         }
         ResolveConstraintAndWitness(nd, true);
@@ -1003,7 +1003,7 @@ namespace Microsoft.Dafny {
           if (r == Scope<TypeParameter>.PushResult.Duplicate) {
             ReportError(tp, "Duplicate type-parameter name: {0}", tp.Name);
           } else if (r == Scope<TypeParameter>.PushResult.Shadow) {
-            ReportWarning(tp.tok, "Shadowed type-parameter name: {0}", tp.Name);
+            ReportWarning(tp.Tok, "Shadowed type-parameter name: {0}", tp.Name);
           }
         }
       }
@@ -1220,7 +1220,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentClass == null);
 
       if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
-        Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_iterators_are_not_deterministic, iter.tok,
+        Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_iterators_are_not_deterministic, iter.Tok,
           "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option");
       }
 
@@ -1384,7 +1384,7 @@ namespace Microsoft.Dafny {
       if (f.Body != null) {
         var prevErrorCount = ErrorCount;
         ResolveExpression(f.Body, new ResolutionContext(f, f is TwoStateFunction));
-        AddSubtypeConstraint(Type2PreType(f.ResultType), f.Body.PreType, f.tok, "Function body type mismatch (expected {0}, got {1})");
+        AddSubtypeConstraint(Type2PreType(f.ResultType), f.Body.PreType, f.Tok, "Function body type mismatch (expected {0}, got {1})");
         Constraints.SolveAllTypeConstraints($"body of {f.WhatKind} '{f.Name}'");
       }
 

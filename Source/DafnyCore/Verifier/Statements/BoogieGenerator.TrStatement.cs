@@ -131,7 +131,7 @@ public partial class BoogieGenerator {
         }
         builder.Add(TrAssumeCmdWithDependencies(yeEtran, stmt.Tok, p.E, "yield ensures clause"));
       }
-      YieldHavoc(iter.tok, iter, builder, etran);
+      YieldHavoc(iter.Tok, iter, builder, etran);
       builder.AddCaptureState(s);
 
     } else if (stmt is AssignSuchThatStmt) {
@@ -253,7 +253,7 @@ public partial class BoogieGenerator {
       var fields = Concat(cl.InheritedMembers, cl.Members).ConvertAll(member =>
         member is Field && !member.IsStatic && !member.IsInstanceIndependentConstant ? (Field)member : null);
       fields.RemoveAll(f => f == null);
-      var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
+      var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.Tok, new TypedIdent(f.Tok, SurrogateName(f), TrType(f.Type))));
       locals.AddRange(localSurrogates);
       var beforeTrackers = DefiniteAssignmentTrackers;
       fields.ForEach(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
@@ -392,7 +392,7 @@ public partial class BoogieGenerator {
       builder.Add(TrAssumeCmd(rhs.tok, MkIs(boogieTupleReference, pat.Expr.Type)));
 
       CheckCasePatternShape(pat, rhs, boogieTupleReference, rhs.tok, pat.Expr.Type, builder);
-      builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, varDeclPattern.tok, pat.Expr,
+      builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, varDeclPattern.Tok, pat.Expr,
         e => Expr.Eq(e, boogieTupleReference), "variable declaration"));
     } else if (stmt is TryRecoverStatement haltRecoveryStatement) {
       // try/recover statements are currently internal-only AST nodes that cannot be
@@ -688,17 +688,17 @@ public partial class BoogieGenerator {
     Contract.Requires(locals != null);
     Contract.Requires(etran != null);
     // Add all newly allocated objects to the set this._new
-    var updatedSet = locals.GetOrAdd(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), Predef.SetType)));
-    var updatedSetIE = new Bpl.IdentifierExpr(iter.tok, updatedSet);
+    var updatedSet = locals.GetOrAdd(new Bpl.LocalVariable(iter.Tok, new Bpl.TypedIdent(iter.Tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), Predef.SetType)));
+    var updatedSetIE = new Bpl.IdentifierExpr(iter.Tok, updatedSet);
     // call $iter_newUpdate := $IterCollectNewObjects(initHeap, $Heap, this, _new);
-    var th = new Bpl.IdentifierExpr(iter.tok, etran.This, Predef.RefType);
+    var th = new Bpl.IdentifierExpr(iter.Tok, etran.This, Predef.RefType);
     var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
-    Cmd cmd = Call(builder.Context, iter.tok, "$IterCollectNewObjects",
+    Cmd cmd = Call(builder.Context, iter.Tok, "$IterCollectNewObjects",
       new List<Bpl.Expr>() { initHeap, etran.HeapExpr, th, nwField },
       new List<Bpl.IdentifierExpr>() { updatedSetIE });
     builder.Add(cmd);
     // $Heap[this, _new] := $iter_newUpdate;
-    cmd = Bpl.Cmd.SimpleAssign(iter.tok, currentHeap, UpdateHeap(iter.tok, currentHeap, th, nwField, updatedSetIE));
+    cmd = Bpl.Cmd.SimpleAssign(iter.Tok, currentHeap, UpdateHeap(iter.Tok, currentHeap, th, nwField, updatedSetIE));
     builder.Add(cmd);
     // assume $IsGoodHeap($Heap)
     builder.Add(AssumeGoodHeap(tok, etran));

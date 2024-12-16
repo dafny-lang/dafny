@@ -55,26 +55,26 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
 
     if (Body is null && HasPostcondition && EnclosingClass.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
+      yield return new Assumption(this, Tok, AssumptionDescription.NoBody(IsGhost));
     }
 
     if (HasExternAttribute && HasPostcondition && !HasAxiomAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPostcondition);
+      yield return new Assumption(this, Tok, AssumptionDescription.ExternWithPostcondition);
     }
 
     if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
+      yield return new Assumption(this, Tok, AssumptionDescription.ExternWithPrecondition);
     }
 
     if (Attributes.Contains(Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
-      yield return new Assumption(this, tok, AssumptionDescription.HasAssumeConcurrentAttribute(false));
+      yield return new Assumption(this, Tok, AssumptionDescription.HasAssumeConcurrentAttribute(false));
     }
     if (Attributes.Contains(Mod.Attributes, Attributes.AssumeConcurrentAttributeName)) {
-      yield return new Assumption(this, tok, AssumptionDescription.HasAssumeConcurrentAttribute(true));
+      yield return new Assumption(this, Tok, AssumptionDescription.HasAssumeConcurrentAttribute(true));
     }
 
     if (AllowsNontermination) {
-      yield return new Assumption(this, tok, AssumptionDescription.MayNotTerminate);
+      yield return new Assumption(this, Tok, AssumptionDescription.MayNotTerminate);
     }
 
     foreach (var c in this.Descendants()) {
@@ -503,7 +503,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
 
     if (addedReveals.Any()) {
-      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, tok,
+      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Tok,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }

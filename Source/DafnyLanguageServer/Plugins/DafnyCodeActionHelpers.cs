@@ -148,7 +148,7 @@ public static class DafnyCodeActionHelpers {
         return false; // Outside of the current scope
       }
 
-      if (n is Method method && method.tok.Uri == documentUri && method.Body != null &&
+      if (n is Method method && method.Tok.Uri == documentUri && method.Body != null &&
           method.StartToken.line <= line && line <= method.EndToken.line &&
           GetMatchingEndToken(line, col, method.Body) is { } token) {
         tokenFound = token;
