@@ -72,7 +72,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
   }
 
-  public NestedMatchStmt(RangeToken rangeOrigin, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
+  public NestedMatchStmt(IOrigin rangeOrigin, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
     : base(rangeOrigin, attrs) {
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));

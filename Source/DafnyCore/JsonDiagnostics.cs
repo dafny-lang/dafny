@@ -24,10 +24,9 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
     var range = new JsonObject {
       ["start"] = SerializePosition(tok),
     };
-    if (tok is RangeToken rangeToken1) {
-      range["end"] = SerializePosition(rangeToken1.EndToken);
-    } else if (tok is BoogieRangeOrigin rangeToken2) {
-      range["end"] = SerializePosition(rangeToken2.EndToken);
+    var origin = BoogieGenerator.ToDafnyToken(true, tok);
+    if (origin.IncludesRange) {
+      range["end"] = SerializePosition(origin.EndToken);
     }
     return range;
   }

@@ -258,7 +258,7 @@ method {:testEntry} ObviouslyUnnecessaryRequiresMethod(x: nat) returns (r: nat)
   requires </span><span class="nc" id="241:12">x < 1</span><span class="na" id="241:17">0 // not required for the proof
 {
   // cause at least a little proof work to be necessary, for nat bounds
-  if (x > 5) { </span><span class="pc" id="244:16">r</span><span class="nc" id="244:17">eturn x </span><span class="pc" id="244:25">+</span><span class="nc" id="244:26"> 2;</span><span class="na" id="244:29"> } else { </span><span class="pc" id="244:39">r</span><span class="nc" id="244:40">eturn x </span><span class="pc" id="244:48">+</span><span class="nc" id="244:49"> 1;</span><span class="na" id="244:52"> }
+  if (x > 5) { </span><span class="pc" id="244:16">return x + 2;</span><span class="na" id="244:29"> } else { </span><span class="pc" id="244:39">return x + 1;</span><span class="na" id="244:52"> }
 </span><span class="nc" id="245:1">}
 
 </span><span class="na" id="247:1">// Code obviously not constrained by ensures clause.
@@ -317,8 +317,8 @@ method {:testEntry} MultiPartRedundantRequiresMethod(x: int) returns (r: int)
   requires </span><span class="pc" id="300:12">x == 1</span><span class="na" id="300:18">1 // implied by the previous two, but neither individually
   ensures </span><span class="pc" id="301:11">r == 1</span><span class="na" id="301:17">1
 {
-  </span><span class="pc" id="303:3">r</span><span class="nc" id="303:4">eturn x;
-}
+  </span><span class="pc" id="303:3">return x;
+</span><span class="nc" id="304:1">}
 
 </span><span class="na" id="306:1">// Contradiction between three different requires clauses, with at least one of
 // the three being partly in a separately-defined function (function and
@@ -338,8 +338,8 @@ method {:testEntry} MultiPartContradictoryRequiresMethod(x: int, y: int) returns
   requires </span><span class="nc" id="321:12">y != 1</span><span class="na" id="321:18">1 // contradicts the previous two
   ensures </span><span class="pc" id="322:11">r == 1</span><span class="na" id="322:17">1 // provable from first two preconditions, but shouldn't be covered
 {
-  </span><span class="pc" id="324:3">r</span><span class="nc" id="324:4">eturn x;
-}
+  </span><span class="pc" id="324:3">return x;
+</span><span class="nc" id="325:1">}
 
 </span><span class="na" id="327:1">function {:testEntry} ContradictoryEnsuresClauseFunc(x: int): (r: int)
   requires </span><span class="nc" id="328:12">x > 1

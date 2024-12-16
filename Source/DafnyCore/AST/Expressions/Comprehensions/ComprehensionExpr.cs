@@ -54,7 +54,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     return BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
-  public ComprehensionExpr(IOrigin tok, RangeToken rangeOrigin, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+  public ComprehensionExpr(IOrigin tok, IOrigin rangeOrigin, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));

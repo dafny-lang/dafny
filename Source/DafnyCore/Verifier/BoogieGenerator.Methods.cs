@@ -762,7 +762,7 @@ namespace Microsoft.Dafny {
           TypeApplicationJustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp)),
           Type = new InferredTypeProxy()
         };
-        var recursiveCall = new CallStmt(m.tok.ToRange(), new List<Expression>(), methodSel, recursiveCallArgs) {
+        var recursiveCall = new CallStmt(m.tok, new List<Expression>(), methodSel, recursiveCallArgs) {
           IsGhost = m.IsGhost
         };
 
@@ -993,7 +993,7 @@ namespace Microsoft.Dafny {
         } else {
           var pp = f.OverriddenFunction.Result;
           Contract.Assert(!pp.IsOld);
-          pOut = new Formal(pp.tok, pp.Name, f.ResultType, false, pp.IsGhost, null);
+          pOut = new Formal(pp.tok, pp.NameNode, f.ResultType, false, pp.IsGhost, null);
         }
         var varType = TrType(pOut.Type);
         var wh = GetWhereClause(pOut.tok, new Boogie.IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator), varType), pOut.Type, etran, NOALLOC);
@@ -1688,7 +1688,7 @@ namespace Microsoft.Dafny {
 
     // Return a way to know if an assertion should be converted to an assumption
     private void SetAssertionOnlyFilter(Node m) {
-      List<RangeToken> rangesOnly = new List<RangeToken>();
+      List<IOrigin> rangesOnly = new List<IOrigin>();
       m.Visit(node => {
         if (node is AssertStmt assertStmt &&
             assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {
@@ -1871,18 +1871,18 @@ namespace Microsoft.Dafny {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
           AddEnsures(ens, FreeEnsures(p.E.tok, etran.CanCallAssumption(p.E), comment, true));
           comment = null;
-          foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
-            var post = s.E;
-            if (kind == MethodTranslationKind.Implementation && RefinementOrigin.IsInherited(s.Tok, currentModule)) {
+          foreach (var split in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
+            var post = split.E;
+            if (kind == MethodTranslationKind.Implementation && split.Tok.IsInherited(currentModule)) {
               // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
-              post = BplImp(new Boogie.IdentifierExpr(s.E.tok, "$_reverifyPost", Boogie.Type.Bool), post);
+              post = BplImp(new Boogie.IdentifierExpr(split.E.tok, "$_reverifyPost", Boogie.Type.Bool), post);
             }
-            if (s.IsOnlyFree && bodyKind) {
+            if (split.IsOnlyFree && bodyKind) {
               // don't include in split -- it would be ignored, anyhow
-            } else if (s.IsOnlyChecked && !bodyKind) {
+            } else if (split.IsOnlyChecked && !bodyKind) {
               // don't include in split
             } else {
-              AddEnsures(ens, EnsuresWithDependencies(s.Tok, s.IsOnlyFree || this.assertionOnlyFilter != null, p.E, post, errorMessage, successMessage, null));
+              AddEnsures(ens, EnsuresWithDependencies(split.Tok, split.IsOnlyFree || this.assertionOnlyFilter != null, p.E, post, errorMessage, successMessage, null));
             }
           }
         }

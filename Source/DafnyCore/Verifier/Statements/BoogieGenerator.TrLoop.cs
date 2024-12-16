@@ -381,7 +381,7 @@ public partial class BoogieGenerator {
             loopBodyBuilder, " at end of loop iteration", false, false);
           var description = new
             Terminates(loop.InferredDecreases, prevGhostLocals, null, initDecrsDafny, theDecreases, false);
-          loopBodyBuilder.Add(Assert(loop.Tok, decrCheck, description, builder.Context));
+          loopBodyBuilder.Add(Assert(loop.NavigationToken, decrCheck, description, builder.Context));
         }
       }
     } else if (isBodyLessLoop) {
