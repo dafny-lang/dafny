@@ -40,7 +40,7 @@ public class CoverageReport {
   /// <summary>
   /// Assign a coverage label to the code indicated by the <param name="span"></param> range token.
   /// </summary>
-  public void LabelCode(RangeToken span, CoverageLabel label) {
+  public void LabelCode(IOrigin span, CoverageLabel label) {
     Contract.Assert(labelsByFile.ContainsKey(span.Uri));
     var labeledFile = labelsByFile[span.Uri];
     var coverageSpan = new CoverageSpan(span, label);

@@ -167,7 +167,7 @@
 // CHECK:       ProofDependencies.dfy\(417,13\)-\(417,17\): ensures clause
 // CHECK:       ProofDependencies.dfy\(420,7\)-\(420,15\): assignment \(or return\)
 // CHECK:     Unused by proof:
-// CHECK:       ProofDependencies.dfy\(428,7\)-\(428,7\): assumption that divisor is always non-zero.
+// CHECK:       ProofDependencies.dfy\(428,5\)-\(428,9\): assumption that divisor is always non-zero.
 // CHECK:       ProofDependencies.dfy\(428,5\)-\(429,13\): calc statement result
 //
 // CHECK: Results for M.GetX \(well-formedness\)

@@ -22,7 +22,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     Contract.Invariant(SyntacticType != null);
   }
 
-  public override IOrigin Tok => Origin.StartToken;
+  public override IOrigin Tok => Origin;
 
   public LocalVariable(Cloner cloner, LocalVariable original)
     : base(cloner, original) {
@@ -36,7 +36,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
-  public LocalVariable(RangeToken rangeOrigin, string name, Type type, bool isGhost)
+  public LocalVariable(IOrigin rangeOrigin, string name, Type type, bool isGhost)
     : base(rangeOrigin) {
     Contract.Requires(name != null);
     Contract.Requires(type != null);  // can be a proxy, though

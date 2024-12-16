@@ -11,7 +11,7 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
 
-  public AbstractTypeDecl(RangeToken rangeOrigin, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics,
+  public AbstractTypeDecl(IOrigin rangeOrigin, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics,
     List<TypeParameter> typeArgs, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
     : base(rangeOrigin, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
     Contract.Requires(rangeOrigin != null);

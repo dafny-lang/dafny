@@ -121,7 +121,7 @@ public partial class BoogieGenerator {
       foreach (var p in iter.YieldEnsures) {
         var ss = TrSplitExpr(builder.Context, p.E, yeEtran, true, out var splitHappened);
         foreach (var split in ss) {
-          if (RefinementOrigin.IsInherited(split.Tok, currentModule)) {
+          if (split.Tok.IsInherited(currentModule)) {
             // this postcondition was inherited into this module, so just ignore it
           } else if (split.IsChecked) {
             var yieldToken = new NestedOrigin(s.Tok, split.Tok);
@@ -796,7 +796,7 @@ public partial class BoogieGenerator {
   }
 
   public void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
-    RangeToken scopeRange = null, bool processLabels = true) {
+    IOrigin scopeRange = null, bool processLabels = true) {
     Contract.Requires(stmts != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
