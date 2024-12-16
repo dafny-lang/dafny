@@ -507,6 +507,16 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       return tentativeTrivia;
     }
 
+    // TODO this seems hard to maintain. What's the right way to do this?
+    tentativeTrivia = ResultType.EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
+    }
+    tentativeTrivia = ResultType.EndToken.Next.LeadingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
+    }
+
     return null;
   }
 
