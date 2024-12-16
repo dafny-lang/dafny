@@ -226,8 +226,8 @@ Dafny
                                    string basePath = parsedFile.Scheme == "stdin" ? "" : Path.GetDirectoryName(parsedFile.LocalPath);
                                    includedFile = Path.Combine(basePath, includedFile);
                                  }
-                                 var oneInclude = new Include(t, parsedFile, new Uri(Path.GetFullPath(includedFile)), theOptions);
-                                 oneInclude.Origin = new SourceOrigin(includeStartToken, t);
+                                 var oneInclude = new Include(new SourceOrigin(includeStartToken, t, t), 
+                                   parsedFile, new Uri(Path.GetFullPath(includedFile)), theOptions);
                                  theModule.Includes.Add(oneInclude);
                                }
                             .)
@@ -474,11 +474,10 @@ ExportSignature<bool opaque, out ExportSignature exsig>
   [ "."
     TypeNameOrCtorSuffix<out suffix>]
   (. if (suffix != null) {
-       exsig = new ExportSignature(prefix, prefix.val, suffix, suffix.val, opaque);
+       exsig = new ExportSignature(new SourceOrigin(startToken, t, prefix), prefix.val, suffix, suffix.val, opaque);
      } else {
-       exsig = new ExportSignature(prefix, prefix.val, opaque);
+       exsig = new ExportSignature(new SourceOrigin(startToken, t, prefix), prefix.val, opaque);
      }
-     exsig.Origin = new SourceOrigin(startToken, t);
   .)
   .
 
@@ -959,9 +958,7 @@ IdentTypeOptional<out BoundVar var>
      // disambiguate, it makes sense to force the colon to consider the ': type' here. Hence the semantic predicate.
      // Also a SetComprehension would be the wrong type in a slices-by-length construct.
   ]
-  (. var = new BoundVar(name.Tok, name.Value, ty) {
-       Origin = new SourceOrigin(name.StartToken, t)
-     }; .)
+  (. var = new BoundVar(new SourceOrigin(name.StartToken, t, name.Center), name.Value, ty); .)
   .
 
 TypeIdentOptional<out SourceOrigin/*!*/ range, out Name/*!*/ identName, out Type/*!*/ ty, 
@@ -1419,14 +1416,14 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(name.Tok, name, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
-                        { Origin = defaultValue != null ? new SourceOrigin(range.StartToken, defaultValue.EndToken) : range }
+                        { Origin = defaultValue != null ? new SourceOrigin(range.StartToken, defaultValue.EndToken, name.Center) : range }
                     ); .)
     { ","
       { Attribute<ref attrs> }
       GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
       ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(name.Tok, name, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
-                        { Origin = defaultValue != null ? new SourceOrigin(range.StartToken, defaultValue.EndToken) : range }
+                        { Origin = defaultValue != null ? new SourceOrigin(range.StartToken, defaultValue.EndToken, name.Center) : range }
                     ); .)
     }
   ]
@@ -3343,19 +3340,18 @@ ImpliesExpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, b
      */
     ( ImpliesOp                                               (. x = t; .)
       ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. var startToken = e0.StartToken;
-                                                                                   e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1);
-                                                                                   e0.Origin = new SourceOrigin(startToken, t); .)
+                                                                                   e0 = new BinaryExpr(new SourceOrigin(startToken, t, x), BinaryExpr.Opcode.Imp, e0, e1);
+                                                                                .)
     | ExpliesOp                                               (. x = t; .)
       LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. // The order of operands is reversed so that it can be turned into implication during resolution
                                                                  var startToken = e0.StartToken;
-                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
-                                                                 e0.Origin = new SourceOrigin(startToken, t); .)
+                                                                 e0 = new BinaryExpr(new SourceOrigin(startToken, t, x), BinaryExpr.Opcode.Exp, e1, e0);
+                                                              .)
       { IF(IsExpliesOp())  /* read a reverse implication as far as possible */
         ExpliesOp                                             (. x = t; .)
         LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>     (. //The order of operands is reversed so that it can be turned into implication during resolution
                                                                  startToken = e0.StartToken;
-                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
-                                                                 e0.Origin = new SourceOrigin(startToken, t);
+                                                                 e0 = new BinaryExpr(new SourceOrigin(startToken, t, x), BinaryExpr.Opcode.Exp, e1, e0);
                                                               .)
       }
       [ IF(IsImpliesOp()) ImpliesOp (. SemErr(ErrorId.p_ambiguous_implies, t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) 
@@ -3373,8 +3369,8 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
     ( ImpliesOp | ExpliesOp (. SemErr(ErrorId.p_ambiguous_implies_2, t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) )
     (. x = t; .)
     ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. var startToken = e0.StartToken;
-                                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); 
-                                                                                 e0.Origin = new SourceOrigin(startToken, t);.)
+                                                                                 e0 = new BinaryExpr(new SourceOrigin(startToken, t, x), BinaryExpr.Opcode.Imp, e0, e1);
+                                                                              .)
   ]
   .
 
@@ -4023,7 +4019,7 @@ EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
   | SetComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   | StmtInExpr<out s>
     Expression<out e, allowLemma, allowLambda, allowBitwiseOps>
-    (. e = new StmtExpr(s.Tok, s, e) { Origin = new SourceOrigin(s.StartToken, e.EndToken) }; .)
+    (. e = new StmtExpr(s.Origin, s, e); .)
   | LetExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | MapComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
@@ -4048,10 +4044,9 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
                        LHSs.Add(new CasePattern<BoundVar>(e.tok, v));
                      }
                      e0 = new LetExpr(e.tok, LHSs, new List<Expression>() {
-                       exists.Term }, e0, false) { Origin = exists.Origin};
+                       exists.Term }, e0, false);
                  }
-                 e = new ITEExpr(x, isBindingGuard, e, e0, e1);
-                 e.Origin = new SourceOrigin(x, t);
+                 e = new ITEExpr(new SourceOrigin(x, t), isBindingGuard, e, e0, e1);
                 .)
   .
 /*------------------------------------------------------------------------*/
@@ -4132,11 +4127,10 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
         var erange = new SourceOrigin(letRHSs[0].EndToken.Next, letRHSs[^1].EndToken);
         SemErr(ErrorId.p_elephant_has_one_rhs, erange, "':-' must have exactly one right-hand side");
       }
-      e = new LetOrFailExpr(x, lhs, rhs, e);
+      e = new LetOrFailExpr(new SourceOrigin(x, t), lhs, rhs, e);
     } else {
-      e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs);
+      e = new LetExpr(new SourceOrigin(x, t), letLHSs, letRHSs, e, exact, attrs);
     }
-    e.Origin = new SourceOrigin(x, t);
   .)
   .
 
@@ -4150,8 +4144,7 @@ LetExprWithoutLHS<out Expression e, bool allowLemma, bool allowLambda, bool allo
   Expression<out rhs, false, true>
   ";"
   Expression<out body, allowLemma, allowLambda, allowBitwiseOps>
-  (. e = new LetOrFailExpr(x, null, rhs, body);
-     e.Origin = new SourceOrigin(x, t);
+  (. e = new LetOrFailExpr(new SourceOrigin(x, t), null, rhs, body);
    .)
   .
 
@@ -4171,8 +4164,7 @@ MatchExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowB
           CaseExpression<out c, allowLemma, allowLambda, allowBitwiseOps> (. cases.Add(c); .)
         }
   )
-  (. e = new NestedMatchExpr(x, e, cases, usesOptionalBraces);
-     e.Origin = new SourceOrigin(x, t); .)
+  (. e = new NestedMatchExpr(new SourceOrigin(x, t), e, cases, usesOptionalBraces); .)
 .
 
 /*------------------------------------------------------------------------*/
@@ -4290,13 +4282,12 @@ NameSegment<out Expression e>
       AtCall<out atLabel, out openParen, out args> ]
   )
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
-  (. e = new NameSegment(id, id.val, typeArgs);
+  (. e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
      if (openParen != null) {
-       e = new ApplySuffix(openParen, atLabel, e, args, t);
+       e = new ApplySuffix(new SourceOrigin(id, t, openParen), atLabel, e, args, t);
      } else {
        Contract.Assert(atLabel == null);
      }
-     e.Origin = new SourceOrigin(id, t);
   .)
   .
 
@@ -4306,8 +4297,7 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
 = (. Token id;  List<Type> typeArgs; .)
   Ident<out id>
   OptGenericInstantiation<out typeArgs, inExpressionContext>
-  (. e = new NameSegment(id, id.val, typeArgs);
-     e.Origin = new SourceOrigin(id, t);
+  (. e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
   .)
   .
 
@@ -4362,10 +4352,10 @@ Suffix<ref Expression e>
         { "," MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create((IOrigin)id, id.val, v)); .)
         }
       ")"
-      (. e = new DatatypeUpdateExpr(x, e, updates) { Origin = new SourceOrigin(startToken, t)}; .)
+      (. e = new DatatypeUpdateExpr(new SourceOrigin(startToken, t, x), e, updates); .)
     | DotSuffix<out id, out x>                 (. if (x != null) {
                                                     // process id as a Suffix in its own right
-                                                    e = new ExprDotName(id, e, id.val, null) { Origin = new SourceOrigin(startToken, t)};
+                                                    e = new ExprDotName(new SourceOrigin(startToken, t, id), e, id.val, null);
                                                     id = x;  // move to the next Suffix
                                                   }
                                                   Token openParen = null;  List<Type> typeArgs = null;
@@ -4382,13 +4372,9 @@ Suffix<ref Expression e>
       | [ IF(IsAtCall())
           AtCall<out atLabel, out openParen, out args> ]
       )
-      (. e = new ExprDotName(id, e, id.val, typeArgs) {
-           Origin = new SourceOrigin(startToken, id)
-         };
+      (. e = new ExprDotName(new SourceOrigin(startToken, id, id), e, id.val, typeArgs);
          if (openParen != null) {
-           e = new ApplySuffix(openParen, atLabel, e, args, t) {
-             Origin = new SourceOrigin(startToken, t)
-           };
+           e = new ApplySuffix(new SourceOrigin(startToken, t, openParen), atLabel, e, args, t);
          } else {
            Contract.Assert(atLabel == null);
          }
@@ -4426,8 +4412,10 @@ Suffix<ref Expression e>
         ]
       )
     "]"
-      (. if (multipleIndices != null) {
-           e = new MultiSelectExpr(x, e, multipleIndices);
+      (. 
+         var origin = new SourceOrigin(startToken, t, x); 
+         if (multipleIndices != null) {
+           e = new MultiSelectExpr(origin, e, multipleIndices);
            // make sure an array class with this dimensionality exists
            SystemModuleModifiers.Add(b => b.ArrayType(multipleIndices.Count, new IntType(), true));
          } else {
@@ -4438,39 +4426,32 @@ Suffix<ref Expression e>
            Contract.Assert(anyDots || e0 != null);
            if (anyDots) {
              //Contract.Assert(e0 != null || e1 != null);
-             e = new SeqSelectExpr(x, false, e, e0, e1, t);
+             e = new SeqSelectExpr(origin, false, e, e0, e1, t);
            } else if (multipleLengths != null) {
              Expression prev = null;
              List<Expression> seqs = new List<Expression>();
               foreach (var len in multipleLengths) {
-                var end = prev == null ? len : new BinaryExpr(x, BinaryExpr.Opcode.Add, prev, len) {
-                  Origin = new SourceOrigin(prev.StartToken, len.EndToken)
-                };
-                seqs.Add(new SeqSelectExpr(x, false, e, prev, end, t) {
-                  Origin = new SourceOrigin(e.StartToken, t)
-                });
+                var end = prev == null ? len : new BinaryExpr(new SourceOrigin(prev.StartToken, len.EndToken, x), 
+                BinaryExpr.Opcode.Add, prev, len);
+                seqs.Add(new SeqSelectExpr(origin, false, e, prev, end, t));
                 prev = end;
               }
              if (takeRest) {
-               seqs.Add(new SeqSelectExpr(x, false, e, prev, null, t) {
-                 Origin = new SourceOrigin(e.StartToken, t)
-               });
+               seqs.Add(new SeqSelectExpr(origin, false, e, prev, null, t));
              }
-             e = new SeqDisplayExpr(x, seqs);
+             e = new SeqDisplayExpr(origin, seqs);
            } else if (e1 == null) {
              Contract.Assert(e0 != null);
-             e = new SeqSelectExpr(x, true, e, e0, null, t);
+             e = new SeqSelectExpr(origin, true, e, e0, null, t);
            } else {
              Contract.Assert(e0 != null);
-             e = new SeqUpdateExpr(x, e, e0, e1);
+             e = new SeqUpdateExpr(origin, e, e0, e1);
            }
          }
-         e.Origin = new SourceOrigin(startToken, t);
       .)
   | "("                                    (. Token openParen = t; var args = new List<ActualBinding>(); .)
     [ ActualBindings<args> ]
-    ")"                                    (. e = new ApplySuffix(openParen, null, e, args, t);
-                                              e.Origin = new SourceOrigin(startToken, t);
+    ")"                                    (. e = new ApplySuffix(new SourceOrigin(startToken, t, openParen), null, e, args, t);
                                            .)
   )
   .
@@ -4511,9 +4492,7 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
     // It's a forall statement. Parse it as part of a StmtExpr.
     ForallStatementEnsuresAndBody<out var forallStatement, x, bvars, attrs, range>
     Expression<out var expr, allowLemma, allowLambda>
-    (. q = new StmtExpr(forallStatement.Tok, forallStatement, expr) {
-         Origin = new SourceOrigin(forallStatement.StartToken, forallStatement.EndToken)
-       };
+    (. q = new StmtExpr(forallStatement.Origin, forallStatement, expr);
     .)
 
   | QSep
@@ -4626,10 +4605,9 @@ Attribute<ref Attributes attrs>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
   (. 
-     var rtok = new SourceOrigin(openBrace, t);
+     var rtok = new SourceOrigin(openBrace, t, x);
      if (!CheckAttribute(errors, x, rtok)) return;
-     attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
-     attrs.Origin = rtok;
+     attrs = new UserSuppliedAttributes(rtok, openBrace, closeBrace, args, attrs);
   .)
   .
 
@@ -4649,9 +4627,8 @@ AtAttribute<ref Attributes attrs>
   (. atToken = t; .)
   Expression<out arg, false, false, false>
   (. 
-     var rtok = new SourceOrigin(atToken, t);
-     attrs = new UserSuppliedAtAttribute(t, arg, attrs);
-     attrs.Origin = rtok;
+     var rtok = new SourceOrigin(atToken, t, t);
+     attrs = new UserSuppliedAtAttribute(rtok, arg, attrs);
   .)
   .
 

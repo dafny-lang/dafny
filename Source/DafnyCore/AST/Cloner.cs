@@ -272,7 +272,6 @@ namespace Microsoft.Dafny {
        : new Formal(Origin(formal.tok), new Name(this, formal.NameNode), CloneType(formal.Type), formal.InParam, formal.IsGhost,
          CloneExpr(formal.DefaultValue), CloneAttributes(formal.Attributes),
          formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation) {
-         Origin = formal.Origin,
          IsTypeExplicit = formal.IsTypeExplicit
        });
     }
@@ -336,9 +335,7 @@ namespace Microsoft.Dafny {
         return CloneAttributes(attrs.Prev);
       } else if (attrs is UserSuppliedAttributes usa) {
         return new UserSuppliedAttributes(Origin(usa.Tok), Origin(usa.OpenBrace), Origin(usa.CloseBrace),
-          attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev)) {
-          Origin = Origin(usa.Origin)
-        };
+          attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
       } else if (attrs is UserSuppliedAtAttribute usaa) {
         var arg = CloneExpr(usaa.Arg);
         if (usaa.Arg.Type != null) { // The attribute has already been expanded
@@ -346,7 +343,6 @@ namespace Microsoft.Dafny {
           arg.PreType = usaa.Arg.PreType;
         }
         return new UserSuppliedAtAttribute(Origin(usaa.tok), arg, CloneAttributes(usaa.Prev)) {
-          Origin = Origin(usaa.Origin),
           Builtin = usaa.Builtin
         };
       } else {

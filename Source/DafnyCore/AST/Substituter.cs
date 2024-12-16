@@ -62,7 +62,6 @@ namespace Microsoft.Dafny {
         } else {
           return new ParensExpression(expr.tok, receiverReplacement) {
             ResolvedExpression = receiverReplacement,
-            Origin = expr.Origin,
             Type = receiverReplacement.Type
           };
         }
@@ -393,14 +392,13 @@ namespace Microsoft.Dafny {
         Expression thn = Substitute(e.Thn);
         Expression els = Substitute(e.Els);
         if (test != e.Test || thn != e.Thn || els != e.Els) {
-          newExpr = new ITEExpr(expr.tok, e.IsBindingGuard, test, thn, els);
+          newExpr = new ITEExpr(expr.Tok, e.IsBindingGuard, test, thn, els);
         }
       } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
         Contract.Assert(concreteSyntaxExpression.ResolvedExpression != null);
         var resolvedExpression = Substitute(concreteSyntaxExpression.ResolvedExpression);
-        return new ParensExpression(expr.tok, resolvedExpression) {
+        return new ParensExpression(expr.Tok, resolvedExpression) {
           ResolvedExpression = resolvedExpression,
-          Origin = expr.Origin,
           Type = resolvedExpression.Type
         };
 
