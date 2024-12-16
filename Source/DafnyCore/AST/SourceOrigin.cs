@@ -23,11 +23,17 @@ public class SourceOrigin : IOrigin {
   public bool IncludesRange => true;
 
   public int CompareTo(IToken? other) {
-    throw new NotImplementedException();
+    if (other == null) {
+      return 1;
+    }
+    return Center.CompareTo(other);
   }
 
   public int CompareTo(IOrigin? other) {
-    throw new NotImplementedException();
+    if (other == null) {
+      return 1;
+    }
+    return Center.CompareTo(other.Center);
   }
 
   public override bool Equals(object? obj) {
