@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
@@ -348,7 +349,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
         resolver.reporter.Error(MessageSource.Resolver, p,
           "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
       } else {
-        var field = new SpecialField(p.Origin, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, false,
+        var field = new SpecialField(p.Origin, p.NameNode, SpecialField.ID.UseIdParam, p.CompileName, false, p.IsGhost, false,
           false, p.Type, null);
         field.EnclosingClass = this; // resolve here
         field.InheritVisibility(this);
@@ -364,7 +365,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
           "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
       } else {
         nonDuplicateOuts.Add(p);
-        var field = new SpecialField(p.Origin, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, true,
+        var field = new SpecialField(p.Origin, p.NameNode, SpecialField.ID.UseIdParam, p.CompileName, false, p.IsGhost, true,
           true, p.Type, null);
         field.EnclosingClass = this; // resolve here
         field.InheritVisibility(this);
@@ -375,17 +376,17 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     }
 
     foreach (var p in nonDuplicateOuts) {
-      var nm = p.Name + "s";
-      if (members.ContainsKey(nm)) {
+      var nm = p.NameNode.Append("s");
+      if (members.ContainsKey(nm.Value)) {
         resolver.reporter.Error(MessageSource.Resolver, p.tok,
           "Name of implicit yield-history variable '{0}' is already used by another member of the iterator",
           p.Name);
-        nm = p.Name + "*"; // bogus name, but at least it'll be unique
+        nm = p.NameNode.Append("*"); // bogus name, but at least it'll be unique
       }
 
       // we add some field to OutsHistoryFields, even if there was an error; the name of the field, in case of error, is not so important
       var tp = new SeqType(p.Type.NormalizeExpand());
-      var field = new SpecialField(p.Origin, nm, SpecialField.ID.UseIdParam, nm, true, true, false, tp, null);
+      var field = new SpecialField(p.Origin, nm, SpecialField.ID.UseIdParam, nm, false, true, true, false, tp, null);
       field.EnclosingClass = this; // resolve here
       field.InheritVisibility(this);
       OutsHistoryFields

@@ -75,7 +75,10 @@ public class SourceOrigin : IOrigin {
   public static IOrigin NoToken => Token.NoToken;
   private readonly Token? endToken;
 
-  public Token Center { get; set; }
+  public Token Center {
+    get;
+    set;
+  }
   public string TrailingTrivia { get; set; }
   public string LeadingTrivia { get; set; }
   public Token Next { get; set; }

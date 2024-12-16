@@ -64,7 +64,6 @@ public abstract class TokenNode : Node {
       return tok;
     }
     set {
-      value.Center = tok.Center;
       tok = value;
     }
   }
