@@ -26,7 +26,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
     }
   }
 
-  public SubsetTypeDecl(RangeToken rangeOrigin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
+  public SubsetTypeDecl(IOrigin rangeOrigin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
     BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
     Attributes attributes)
     : base(rangeOrigin, name, characteristics, typeArgs, module, id.Type, attributes) {

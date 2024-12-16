@@ -783,7 +783,7 @@ namespace Microsoft.Dafny {
       var fn = new ApplySuffix(tok, null,
         new ExprDotName(tok, receiver, f.Name, f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter))),
         new ActualBindings(f.Ins.ConvertAll(Expression.CreateIdentExpr)).ArgumentBindings,
-        tok);
+        Token.NoToken);
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       Specification<FrameExpression> reads;
       if (Options.Get(Method.ReadsClausesOnMethods)) {
@@ -3177,7 +3177,7 @@ namespace Microsoft.Dafny {
     }
 
     public Expression VarDotMethod(IOrigin tok, string varname, string methodname) {
-      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<ActualBinding>(), tok);
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<ActualBinding>(), Token.NoToken);
     }
 
     public Expression makeTemp(String prefix, AssignOrReturnStmt s, ResolutionContext resolutionContext, Expression ex) {
@@ -3356,7 +3356,7 @@ namespace Microsoft.Dafny {
     }
 
     internal Expression VarDotFunction(IOrigin tok, string varname, string functionname) {
-      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<ActualBinding>(), tok);
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<ActualBinding>(), Token.NoToken);
     }
 
     // TODO search for occurrences of "new LetExpr" which could benefit from this helper

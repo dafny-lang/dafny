@@ -269,7 +269,7 @@ namespace Microsoft.Dafny {
     public virtual Formal CloneFormal(Formal formal, bool isReference) {
       return (Formal)clones.GetOrCreate(formal, () => isReference
        ? formal
-       : new Formal(Origin(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
+       : new Formal(Origin(formal.tok), new Name(this, formal.NameNode), CloneType(formal.Type), formal.InParam, formal.IsGhost,
          CloneExpr(formal.DefaultValue), CloneAttributes(formal.Attributes),
          formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation) {
          Origin = formal.Origin,
@@ -283,7 +283,7 @@ namespace Microsoft.Dafny {
           return bv;
         }
 
-        var bvNew = new BoundVar(Origin(bv.tok), bv.Name, CloneType(bv.SyntacticType));
+        var bvNew = new BoundVar(Origin(bv.tok), new Name(this, bv.NameNode), CloneType(bv.SyntacticType));
         bvNew.IsGhost = bv.IsGhost;
         return bvNew;
       });
@@ -596,14 +596,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual RangeToken Origin(RangeToken range) {
-      if (range == null) {
+    public virtual IOrigin Origin(IOrigin tok) {
+      if (tok == null) {
         return null;
       }
-      return new RangeToken(Origin(range.StartToken), Origin(range.EndToken));
-    }
 
-    public virtual IOrigin Origin(IOrigin tok) {
       Contract.Requires(tok != null);
       return tok;
     }

@@ -20,7 +20,7 @@ public class MapComprehension : ComprehensionExpr, ICloneable<MapComprehension> 
     Finite = original.Finite;
   }
 
-  public MapComprehension(IOrigin tok, RangeToken rangeOrigin, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ termLeft, Expression termRight, Attributes attrs)
+  public MapComprehension(IOrigin tok, IOrigin rangeOrigin, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ termLeft, Expression termRight, Attributes attrs)
     : base(tok, rangeOrigin, bvars, range, termRight, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));
