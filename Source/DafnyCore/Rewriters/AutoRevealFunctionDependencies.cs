@@ -332,7 +332,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     rr.TypeApplicationJustMember = new List<Type>();
     rr.TypeApplicationAtEnclosingClass = args;
 
-    var call = new CallStmt(func.RangeToken, new List<Expression>(), rr, new List<ActualBinding>(),
+    var call = new CallStmt(func.Origin, new List<Expression>(), rr, new List<ActualBinding>(),
       func.Tok);
     call.IsGhost = true;
     call.Bindings.AcceptArgumentExpressionsAsExactParameterList(new List<Expression>());
@@ -343,10 +343,10 @@ public class AutoRevealFunctionDependencies : IRewriter {
     List<Expression> expressionList = new List<Expression> {
       new ApplySuffix(tok, null,
         resolveExpr,
-        new List<ActualBinding>(), tok)
+        new List<ActualBinding>(), Token.NoToken)
     };
 
-    var revealStmt = new HideRevealStmt(func.RangeToken, expressionList, HideRevealCmd.Modes.Reveal);
+    var revealStmt = new HideRevealStmt(func.Origin, expressionList, HideRevealCmd.Modes.Reveal);
     revealStmt.ResolvedStatements.Add(call);
     revealStmt.IsGhost = true;
 

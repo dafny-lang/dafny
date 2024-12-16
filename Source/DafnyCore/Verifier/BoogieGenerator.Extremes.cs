@@ -294,7 +294,7 @@ public partial class BoogieGenerator {
       Expression recursiveCallReceiver;
       List<Expression> recursiveCallArgs;
       pp.RecursiveCallParameters(pp.tok, pp.TypeArgs, pp.Ins, null, substMap, out recursiveCallReceiver, out recursiveCallArgs);
-      var ppCall = new FunctionCallExpr(pp.tok, pp.Name, recursiveCallReceiver, pp.tok, pp.tok, recursiveCallArgs);
+      var ppCall = new FunctionCallExpr(pp.tok, pp.Name, recursiveCallReceiver, pp.tok, Token.NoToken, recursiveCallArgs);
       ppCall.Function = pp;
       ppCall.Type = Type.Bool;
       ppCall.TypeApplication_AtEnclosingClass = pp.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
@@ -305,7 +305,7 @@ public partial class BoogieGenerator {
       if (pp.ExtremePred is GreatestPredicate) {
         // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
         var smaller = Expression.CreateLess(kprime, k);
-        limitCalls = new ForallExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+        limitCalls = new ForallExpr(pp.tok, pp.Origin, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
           Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
         };
@@ -318,7 +318,7 @@ public partial class BoogieGenerator {
           ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
           Type = Type.Bool
         };
-        limitCalls = new ExistsExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+        limitCalls = new ExistsExpr(pp.tok, pp.Origin, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
           Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
         };

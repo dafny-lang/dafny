@@ -102,8 +102,8 @@ public abstract class Expression : TokenNode {
 
   protected Expression(Cloner cloner, Expression original) {
 
-    tok = cloner.Tok(original.tok);
-    RangeToken = cloner.Range(original.RangeToken);
+    tok = cloner.Origin(original.tok);
+    Origin = cloner.Origin(original.Origin);
 
     if (cloner.CloneResolvedFields && original.Type != null) {
       Type = original.Type;
@@ -752,7 +752,7 @@ public abstract class Expression : TokenNode {
     Contract.Requires(function.Ins.Count == arguments.Count);
     Contract.Requires(function.TypeArgs.Count == typeArguments.Count);
 
-    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, arguments) {
+    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, Token.NoToken, arguments) {
       Function = function,
       Type = function.ResultType,
       TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs,
@@ -775,7 +775,7 @@ public abstract class Expression : TokenNode {
     };
 
     subst = TypeParameter.SubstitutionMap(call.Function.TypeArgs, call.TypeApplication_JustFunction);
-    return new ApplySuffix(call.tok, null, exprDotName, new ActualBindings(call.Args).ArgumentBindings, call.tok) {
+    return new ApplySuffix(call.tok, null, exprDotName, new ActualBindings(call.Args).ArgumentBindings, call.CloseParen) {
       ResolvedExpression = call,
       Type = call.Function.ResultType.Subst(subst)
     };
@@ -882,9 +882,9 @@ public abstract class Expression : TokenNode {
 
     QuantifierExpr q;
     if (forall) {
-      q = new ForallExpr(expr.tok, expr.RangeToken, newVars, expr.Range, body, expr.Attributes);
+      q = new ForallExpr(expr.tok, expr.Origin, newVars, expr.Range, body, expr.Attributes);
     } else {
-      q = new ExistsExpr(expr.tok, expr.RangeToken, newVars, expr.Range, body, expr.Attributes);
+      q = new ExistsExpr(expr.tok, expr.Origin, newVars, expr.Range, body, expr.Attributes);
     }
     q.Type = Type.Bool;
 

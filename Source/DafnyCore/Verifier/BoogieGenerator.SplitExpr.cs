@@ -482,7 +482,7 @@ namespace Microsoft.Dafny {
       var functionHeight = module.CallGraph.GetSCCRepresentativePredecessorCount(f);
 
       if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f)) {
-        if (RefinementOrigin.IsInherited(fexp.tok, currentModule) &&
+        if (fexp.tok.IsInherited(currentModule) &&
             f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
             (codeContext == null || !codeContext.MustReverify)) {
           // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything

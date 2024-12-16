@@ -319,7 +319,7 @@ namespace Microsoft.Dafny {
       }
 
       public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType,
-                             Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor,
+                             Bpl.TypeCtorDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeCtorDecl multiSetTypeCtor,
                              Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
                              Bpl.Function arrayLength, Bpl.Function realFloor,
                              Bpl.Function ORD_isLimit, Bpl.Function ORD_isSucc, Bpl.Function ORD_offset, Bpl.Function ORD_isNat,
@@ -374,9 +374,9 @@ namespace Microsoft.Dafny {
         Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new List<Bpl.Type>());
         this.RefType = refT;
         this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new List<Bpl.Type>());
-        this.SetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, setTypeCtor, new List<Bpl.Type> { });
-        this.ISetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, setTypeCtor, new List<Bpl.Type> { });
-        this.MultiSetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, multiSetTypeCtor, new List<Bpl.Type> { });
+        this.SetType = new Bpl.CtorType(Token.NoToken, setTypeCtor, new List<Bpl.Type> { });
+        this.ISetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, isetTypeCtor, new List<Bpl.Type> { });
+        this.MultiSetType = new Bpl.CtorType(Token.NoToken, multiSetTypeCtor, new List<Bpl.Type> { });
         this.SeqType = new Bpl.CtorType(Token.NoToken, seqTypeCtor, new List<Bpl.Type> { });
         this.MapType = new Bpl.CtorType(Token.NoToken, mapTypeCtor, new List<Bpl.Type> { });
         this.IMapType = new Bpl.CtorType(Token.NoToken, imapTypeCtor, new List<Bpl.Type> { });
@@ -425,9 +425,9 @@ namespace Microsoft.Dafny {
 
       Bpl.TypeCtorDecl charType = null;
       Bpl.TypeCtorDecl refType = null;
-      Bpl.TypeSynonymDecl setTypeCtor = null;
+      Bpl.TypeCtorDecl setTypeCtor = null;
       Bpl.TypeSynonymDecl isetTypeCtor = null;
-      Bpl.TypeSynonymDecl multiSetTypeCtor = null;
+      Bpl.TypeCtorDecl multiSetTypeCtor = null;
       Bpl.Function arrayLength = null;
       Bpl.Function realFloor = null;
       Bpl.Function ORDINAL_isLimit = null;
@@ -493,6 +493,10 @@ namespace Microsoft.Dafny {
             nameFamilyType = dt;
           } else if (dt.Name == "Box") {
             boxType = dt;
+          } else if (dt.Name == "Set") {
+            setTypeCtor = dt;
+          } else if (dt.Name == "MultiSet") {
+            multiSetTypeCtor = dt;
           } else if (dt.Name == "Map") {
             mapTypeCtor = dt;
           } else if (dt.Name == "IMap") {
@@ -500,11 +504,7 @@ namespace Microsoft.Dafny {
           }
         } else if (d is Bpl.TypeSynonymDecl) {
           Bpl.TypeSynonymDecl dt = (Bpl.TypeSynonymDecl)d;
-          if (dt.Name == "Set") {
-            setTypeCtor = dt;
-          } else if (dt.Name == "MultiSet") {
-            multiSetTypeCtor = dt;
-          } else if (dt.Name == "ISet") {
+          if (dt.Name == "ISet") {
             isetTypeCtor = dt;
           } else if (dt.Name == "Bv0") {
             bv0TypeDecl = dt;
@@ -1150,7 +1150,7 @@ namespace Microsoft.Dafny {
 
       type = type.NormalizeToAncestorType();
       if (type.AsSetType != null) {
-        var finite = type.AsSetType.Finite;
+        var finite = type.NormalizeToAncestorType().AsSetType.Finite;
         return FunctionCall(tok, finite ? BuiltinFunction.SetEqual : BuiltinFunction.ISetEqual, null, e0, e1);
       } else if (type.AsMapType != null) {
         var finite = type.AsMapType.Finite;
@@ -2264,10 +2264,10 @@ namespace Microsoft.Dafny {
           // say "reads set o :: allocated(o)", so it's hard to work around
           // this issue.
           disjunct = etran.IsAlloced(tok, o);
-        } else if (eType is SetType) {
+        } else if (eType is SetType setType) {
           // e[Box(o)]
           bool pr;
-          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, true, out pr);
+          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, setType.Finite, true, out pr);
         } else if (eType is MultiSetType) {
           // e[Box(o)] > 0
           disjunct = etran.TrInMultiSet_Aux(tok, o, boxO, e, true);
@@ -2447,7 +2447,7 @@ namespace Microsoft.Dafny {
 
       bv = new BoundVar(tok, CurrentIdGenerator.FreshId(prefix), iv.Type); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
       ie = new IdentifierExpr(tok, bv.Name);
-      bv.RangeToken = iv.RangeToken;
+      bv.Origin = iv.Origin;
       ie.Var = bv;  // resolve here
       ie.Type = bv.Type;  // resolve here
     }
@@ -2564,16 +2564,32 @@ namespace Microsoft.Dafny {
       if (isSetType) {
         description = "set element";
         obj = x;
-        antecedent = Bpl.Expr.SelectTok(e.tok, s, BoxIfNecessary(e.tok, x, type));
+        antecedent = IsSetMember(e.tok, s, BoxIfNecessary(e.tok, x, type), eType.NormalizeToAncestorType().AsSetType.Finite);
       } else if (isMultisetType) {
         description = "multiset element";
         obj = x;
-        antecedent = Boogie.Expr.Gt(Bpl.Expr.SelectTok(e.tok, s, BoxIfNecessary(e.tok, x, type)), Boogie.Expr.Literal(0));
+        antecedent = Boogie.Expr.Gt(MultisetMultiplicity(e.tok, s, BoxIfNecessary(e.tok, x, type)), Boogie.Expr.Literal(0));
       } else {
         description = "sequence element";
         obj = UnboxUnlessInherentlyBoxed(FunctionCall(e.tok, BuiltinFunction.SeqIndex, Predef.BoxType, s, x), type);
         antecedent = InSeqRange(e.tok, x, Type.Int, s, true, null, false);
       }
+    }
+
+    private Bpl.Expr IsSetMember(IToken tok, Bpl.Expr set, Bpl.Expr boxedElement, bool isFiniteSet) {
+      if (isFiniteSet) {
+        return FunctionCall(tok, BuiltinFunction.SetIsMember, null, set, boxedElement);
+      } else {
+        return Bpl.Expr.SelectTok(tok, set, boxedElement);
+      }
+    }
+
+    private Bpl.Expr MultisetMultiplicity(IToken tok, Bpl.Expr multiset, Bpl.Expr boxedElement) {
+      return FunctionCall(tok, BuiltinFunction.MultiSetMultiplicity, null, multiset, boxedElement);
+    }
+
+    private Bpl.Expr UpdateMultisetMultiplicity(IToken tok, Bpl.Expr multiset, Bpl.Expr boxedElement, Bpl.Expr newMultiplicity) {
+      return FunctionCall(tok, BuiltinFunction.MultiSetUpdateMultiplicity, null, multiset, boxedElement, newMultiplicity);
     }
 
     private Bpl.Function GetOrCreateTypeConstructor(TopLevelDecl td) {
@@ -3289,6 +3305,10 @@ namespace Microsoft.Dafny {
       public override IOrigin WithVal(string newVal) {
         return new ForceCheckOrigin(WrappedToken.WithVal(newVal));
       }
+
+      public override bool IsInherited(ModuleDefinition m) {
+        return false;
+      }
     }
 
     public Bpl.PredicateCmd Assert(IOrigin tok, Bpl.Expr condition, ProofObligationDescription description,
@@ -3305,7 +3325,7 @@ namespace Microsoft.Dafny {
       Bpl.PredicateCmd cmd;
       if (context.AssertMode == AssertMode.Assume
           || (assertionOnlyFilter != null && !assertionOnlyFilter(tok))
-          || (RefinementOrigin.IsInherited(refinesToken, currentModule) && codeContext is not { MustReverify: true })) {
+          || (refinesToken.IsInherited(currentModule) && codeContext is not { MustReverify: true })) {
         // produce an assume instead
         cmd = TrAssumeCmd(tok, condition, kv);
         proofDependencies?.AddProofDependencyId(cmd, tok, new AssumedProofObligationDependency(tok, description));
@@ -3329,7 +3349,7 @@ namespace Microsoft.Dafny {
       PredicateCmd cmd;
       if (context.AssertMode == AssertMode.Assume ||
           (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
-          (RefinementOrigin.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+          (refinesTok.IsInherited(currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
         cmd = TrAssumeCmd(tok, Bpl.Expr.True, kv);
       } else {
@@ -3396,7 +3416,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null && Predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
 
-      TrStmtList(new List<Statement> { block }, builder, locals, etran, introduceScope ? block.RangeToken : null, processLabels: false);
+      TrStmtList(new List<Statement> { block }, builder, locals, etran, introduceScope ? block.Origin : null, processLabels: false);
       return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"
     }
 
@@ -3501,7 +3521,7 @@ namespace Microsoft.Dafny {
       typeAntecedent = Bpl.Expr.True;
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (BoundVar bv in boundVars) {
-        LocalVariable local = new LocalVariable(bv.RangeToken, nameSuffix == null ? bv.Name : bv.Name + nameSuffix, bv.Type, bv.IsGhost);
+        LocalVariable local = new LocalVariable(bv.Origin, nameSuffix == null ? bv.Name : bv.Name + nameSuffix, bv.Type, bv.IsGhost);
         local.type = local.SyntacticType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -3546,7 +3566,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
-      var local = new LocalVariable(v.RangeToken, v.Name, v.Type, v.IsGhost);
+      var local = new LocalVariable(v.Origin, v.Name, v.Type, v.IsGhost);
       local.type = local.SyntacticType;  // resolve local here
       var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator));
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -4039,7 +4059,7 @@ namespace Microsoft.Dafny {
         : base(ToDafnyToken(false, expr.tok)) {
         Contract.Requires(expr != null);
         Contract.Requires(dafnyType != null);
-        RangeToken = ToDafnyToken(true, expr.tok).ToRange();
+        Origin = ToDafnyToken(true, expr.tok);
         Expr = expr;
         Type = dafnyType;  // resolve immediately
       }
@@ -4548,7 +4568,7 @@ namespace Microsoft.Dafny {
 
     bool TrSplitNeedsTokenAdjustment(Expression expr) {
       Contract.Requires(expr != null);
-      return RefinementOrigin.IsInherited(expr.tok, currentModule) && (codeContext == null || !codeContext.MustReverify) && RefinementTransformer.ContainsChange(expr, currentModule);
+      return expr.tok.IsInherited(currentModule) && (codeContext == null || !codeContext.MustReverify) && RefinementTransformer.ContainsChange(expr, currentModule);
     }
 
     /// <summary>

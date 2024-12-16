@@ -401,7 +401,7 @@ namespace Microsoft.Dafny {
               CheckWellformed(e.E0, wfOptions, locals, builder, etran);
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
               Bpl.Expr inDomain = FunctionCall(selectExpr.tok, f, finite ? Predef.MapType : Predef.IMapType, seq);
-              inDomain = Bpl.Expr.Select(inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type));
+              inDomain = IsSetMember(GetToken(expr), inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type), finite);
               builder.Add(Assert(GetToken(expr), inDomain,
                 new ElementInDomain(e.Seq, e.E0), builder.Context, wfOptions.AssertKv));
             } else if (eSeqType is MultiSetType) {
@@ -694,7 +694,7 @@ namespace Microsoft.Dafny {
                 // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
                 // to BVD what this variable stands for and display it as such to the user.
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
-                LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
+                LocalVariable local = new LocalVariable(p.Origin, "##" + p.Name, et, p.IsGhost);
                 local.type = local.SyntacticType;  // resolve local here
                 var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator)) {
                   Var = local

@@ -163,10 +163,8 @@ namespace Microsoft.Dafny {
       Action<Bpl.Type, Action<Tuple<List<Type>, List<Type>>, List<Bpl.Variable>, List<Bpl.Expr>, List<Bpl.Expr>,
         Bpl.Variable, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr>> CoAxHelper =
         (typeOfK, K) => {
-          Func<string, List<TypeParameter>> renew = s =>
-            Map(codecl.TypeArgs, tp =>
-              new TypeParameter(tp.RangeToken, tp.NameNode.Append("#" + s), tp.PositionalIndex, tp.Parent));
-          List<TypeParameter> typaramsL = renew("l"), typaramsR = renew("r");
+          List<TypeParameter> Renew(string s) => Map(codecl.TypeArgs, tp => new TypeParameter(tp.Origin, tp.NameNode.Append("#" + s), tp.PositionalIndex, tp.Parent));
+          List<TypeParameter> typaramsL = Renew("l"), typaramsR = Renew("r");
           var lvars = MkTyParamBinders(typaramsL, out var lexprs);
           var rvars = MkTyParamBinders(typaramsR, out var rexprs);
           Func<List<TypeParameter>, List<Type>> Types = l => Map(l, tp => (Type)new UserDefinedType(tp));
@@ -548,7 +546,7 @@ namespace Microsoft.Dafny {
             Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", Predef.DatatypeType));
             bvs.Add(dVar);
             Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            Bpl.Expr inSet = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+            var inSet = IsSetMember(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie), argType.NormalizeToAncestorType().AsSetType.Finite);
             Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
             var ct = FunctionCall(ctor.tok, ctor.FullName, Predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
@@ -563,12 +561,12 @@ namespace Microsoft.Dafny {
             Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", Predef.DatatypeType));
             bvs.Add(dVar);
             Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            var inMultiset = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
-            Bpl.Expr ante = Bpl.Expr.Gt(inMultiset, Bpl.Expr.Literal(0));
+            var multiplicity = MultisetMultiplicity(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+            Bpl.Expr ante = Bpl.Expr.Gt(multiplicity, Bpl.Expr.Literal(0));
             Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
             var ct = FunctionCall(ctor.tok, ctor.FullName, Predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-            var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inMultiset, ct });
+            var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { multiplicity, ct });
             q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, BplImp(ante, Bpl.Expr.Lt(lhs, rhs)));
             sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive multiset element rank"));
           } else if (argType is MapType) {
@@ -584,7 +582,7 @@ namespace Microsoft.Dafny {
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
               var domain = FunctionCall(arg.tok, f, finite ? Predef.MapType : Predef.IMapType,
                 args[i]);
-              var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+              var inDomain = IsSetMember(arg.tok, domain, FunctionCall(arg.tok, BuiltinFunction.Box, null, ie), finite);
               var lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
               var ct = FunctionCall(ctor.tok, ctor.FullName, Predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
@@ -603,7 +601,7 @@ namespace Microsoft.Dafny {
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
               var domain = FunctionCall(arg.tok, f, finite ? Predef.MapType : Predef.IMapType,
                 args[i]);
-              var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, ie);
+              var inDomain = IsSetMember(arg.tok, domain, ie, finite);
               var ef = finite ? BuiltinFunction.MapElements : BuiltinFunction.IMapElements;
               var element = FunctionCall(arg.tok, ef, finite ? Predef.MapType : Predef.IMapType,
                 args[i]);

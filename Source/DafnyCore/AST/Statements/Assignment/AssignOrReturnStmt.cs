@@ -53,7 +53,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     }
   }
 
-  public AssignOrReturnStmt(RangeToken rangeOrigin, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss)
+  public AssignOrReturnStmt(IOrigin rangeOrigin, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss)
     : base(rangeOrigin, lhss) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(lhss != null);
@@ -266,9 +266,9 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     ModuleResolver resolver, Method enclosingMethod) {
 
     var temp = resolver.FreshTempVarName("valueOrError", enclosingMethod);
-    var lhss = new List<LocalVariable>() { new LocalVariable(RangeToken, temp, new InferredTypeProxy(), false) };
+    var lhss = new List<LocalVariable>() { new LocalVariable(Origin, temp, new InferredTypeProxy(), false) };
     // "var temp ;"
-    ResolvedStatements.Add(new VarDeclStmt(RangeToken, lhss, null));
+    ResolvedStatements.Add(new VarDeclStmt(Origin, lhss, null));
     var lhss2 = new List<Expression>() { new IdentifierExpr(Tok, temp) };
     for (int k = (expectExtract ? 1 : 0); k < Lhss.Count; ++k) {
       lhss2.Add(Lhss[k]);
@@ -289,25 +289,25 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       }
     }
     // " temp, ... := MethodOrExpression, ...;"
-    var up = new AssignStatement(RangeToken, lhss2, rhss2);
+    var up = new AssignStatement(Origin, lhss2, rhss2);
     if (expectExtract) {
       up.OriginalInitialLhs = Lhss.Count == 0 ? null : Lhss[0];
     }
     ResolvedStatements.Add(up);
 
     if (KeywordToken != null) {
-      var token = KeywordToken.Token;
-      var notFailureExpr = new UnaryOpExpr(token, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Tok, temp, "IsFailure"));
+      var keyword = KeywordToken.Token;
+      var notFailureExpr = new UnaryOpExpr(keyword, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Tok, temp, "IsFailure"));
       Statement ss = null;
-      if (token.val == "expect") {
+      if (keyword.val == "expect") {
         // "expect !temp.IsFailure(), temp"
-        ss = new ExpectStmt(new RangeToken(token, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
-      } else if (token.val == "assume") {
-        ss = new AssumeStmt(new RangeToken(token, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
-      } else if (token.val == "assert") {
-        ss = new AssertStmt(new RangeToken(token, EndToken), notFailureExpr, null, KeywordToken.Attrs);
+        ss = new ExpectStmt(new RangeToken(keyword.StartToken, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
+      } else if (keyword.val == "assume") {
+        ss = new AssumeStmt(new RangeToken(keyword.StartToken, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
+      } else if (keyword.val == "assert") {
+        ss = new AssertStmt(new RangeToken(keyword.StartToken, EndToken), notFailureExpr, null, KeywordToken.Attrs);
       } else {
-        Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
+        Contract.Assert(false, $"Invalid token in :- statement: {keyword.val}");
       }
       ResolvedStatements.Add(ss);
     } else {
@@ -320,14 +320,14 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
       ResolvedStatements.Add(
         // "if temp.IsFailure()"
-        new IfStmt(RangeToken, false, resolver.VarDotMethod(Tok, temp, "IsFailure"),
+        new IfStmt(Origin, false, resolver.VarDotMethod(Tok, temp, "IsFailure"),
           // THEN: { out := temp.PropagateFailure(); return; }
-          new BlockStmt(RangeToken, new List<Statement>() {
-            new AssignStatement(RangeToken,
+          new BlockStmt(Origin, new List<Statement>() {
+            new AssignStatement(Origin,
               new List<Expression>() { ident },
               new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "PropagateFailure")) }
             ),
-            new ReturnStmt(RangeToken, null),
+            new ReturnStmt(Origin, null),
           }),
           // ELSE: no else block
           null
@@ -338,7 +338,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       // "y := temp.Extract();"
       var lhs = Lhss[0];
       ResolvedStatements.Add(
-        new AssignStatement(RangeToken,
+        new AssignStatement(Origin,
           new List<Expression>() { lhsExtract },
           new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "Extract")) }
         ));

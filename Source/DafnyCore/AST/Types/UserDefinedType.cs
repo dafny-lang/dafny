@@ -68,7 +68,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     this.NamePath = namePath;
   }
   public UserDefinedType(Cloner cloner, UserDefinedType original)
-    : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
+    : this(cloner.Origin(original.tok), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
       ResolvedClass = cloner.GetCloneIfAvailable(original.ResolvedClass);
       TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();

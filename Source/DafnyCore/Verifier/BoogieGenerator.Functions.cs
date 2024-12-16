@@ -813,7 +813,7 @@ public partial class BoogieGenerator {
 
         Bpl.Expr bx; var bxVar = BplBoundVar("$bx", Predef.BoxType, out bx);
         Bpl.Expr unboxBx = FunctionCall(f.tok, BuiltinFunction.Unbox, Predef.RefType, bx);
-        Bpl.Expr lhs = Bpl.Expr.SelectTok(f.tok, lhs_inner, bx);
+        Bpl.Expr lhs = IsSetMember(f.tok, lhs_inner, bx, true);
 
         var et = new ExpressionTranslator(this, Predef, h, f);
         var rhs = InRWClause_Aux(f.tok, unboxBx, bx, null, f.Reads.Expressions, false, et, selfExpr, rhs_dict);
