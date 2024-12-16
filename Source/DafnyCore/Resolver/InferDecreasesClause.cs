@@ -177,7 +177,7 @@ public class InferDecreasesClause {
           ResolvedOp = resolvedOpcode,
           Type = Type.Bool
         };
-        var s = new SetComprehension(e.tok, e.Origin, true, new List<BoundVar>() { bvDecl }, bvInE, bv,
+        var s = new SetComprehension(e.Origin, true, new List<BoundVar>() { bvDecl }, bvInE, bv,
           new Attributes("trigger", new List<Expression> { bvInE }, null)) {
           Type = resolver.SystemModuleManager.ObjectSetType(),
           Bounds = new List<BoundedPool>() { boundedPool }

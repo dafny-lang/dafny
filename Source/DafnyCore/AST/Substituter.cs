@@ -1067,19 +1067,19 @@ namespace Microsoft.Dafny {
       if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes ||
           newBounds != e.Bounds || !forceSubstituteOfBoundVars) {
         if (e is SetComprehension) {
-          newExpr = new SetComprehension(e.BodyStartTok, e.Origin, ((SetComprehension)e).Finite, newBoundVars,
+          newExpr = new SetComprehension(e.Origin, ((SetComprehension)e).Finite, newBoundVars,
             newRange, newTerm, newAttrs);
         } else if (e is MapComprehension) {
           var mc = (MapComprehension)e;
           var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
-          newExpr = new MapComprehension(e.BodyStartTok, e.Origin, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
+          newExpr = new MapComprehension(e.Origin, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
         } else if (expr is ForallExpr forallExpr) {
-          newExpr = new ForallExpr(expr.tok, e.Origin, newBoundVars, newRange, newTerm, newAttrs);
+          newExpr = new ForallExpr(e.Origin, newBoundVars, newRange, newTerm, newAttrs);
         } else if (expr is ExistsExpr existsExpr) {
-          newExpr = new ExistsExpr(expr.tok, e.Origin, newBoundVars, newRange, newTerm, newAttrs);
+          newExpr = new ExistsExpr(e.Origin, newBoundVars, newRange, newTerm, newAttrs);
         } else if (expr is LambdaExpr) {
           var l = (LambdaExpr)expr;
-          newExpr = new LambdaExpr(e.BodyStartTok, e.Origin, newBoundVars, newRange,
+          newExpr = new LambdaExpr(e.Origin, newBoundVars, newRange,
             SubstSpecFrameExpr(l.Reads), newTerm);
         } else {
           Contract.Assert(false); // unexpected ComprehensionExpr

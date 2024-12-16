@@ -41,7 +41,7 @@ public class Token : IOrigin {
 
   public Token Center {
     get => this;
-    set {} // TODO remove when Token no longer inherits from IOrigin 
+    set { } // TODO remove when Token no longer inherits from IOrigin 
   }
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos

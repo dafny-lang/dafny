@@ -275,7 +275,7 @@ public class InductionRewriter : IRewriter {
     }
 
     var substituter = new Substituter(receiverReplacement, substMap, new Dictionary<TypeParameter, Type>());
-    var quantifier = new ForallExpr(body.tok, body.Origin, boundVars, null, substituter.Substitute(body), null) {
+    var quantifier = new ForallExpr(body.tok, boundVars, null, substituter.Substitute(body), null) {
       Type = Type.Bool
     };
 

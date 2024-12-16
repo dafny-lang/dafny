@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Boogie;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -62,6 +63,9 @@ public abstract class TokenNode : Node {
 
       return tok;
     }
-    set => tok = value;
+    set {
+      value.Center = tok.Center;
+      tok = value;
+    }
   }
 }

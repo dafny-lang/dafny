@@ -23,7 +23,7 @@ public class SourceOrigin : OriginWrapper {
     return HashCode.Combine(StartToken.GetHashCode(), EndToken.GetHashCode());
   }
 
-  public SourceOrigin(Token startToken, Token? endToken, Token? center = null) : base(startToken) {
+  public SourceOrigin(Token startToken, Token? endToken, Token? center = null) : base(center ?? startToken) {
     this.endToken = endToken;
     this.Center = center ?? startToken;
   }
