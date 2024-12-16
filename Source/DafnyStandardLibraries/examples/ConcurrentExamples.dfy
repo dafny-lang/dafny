@@ -195,11 +195,15 @@ module ConcurrentExamples {
 
   @Test
   method TestString() {
+    // Note that using separate string literals
+    // helps make it more likely that we will use distinct values
+    // at runtime, and ensure we get the equality semantics correct
+    // even if we use reference types for strings.
     var mmap := new MutableMap(p6);
-    var b := mmap.HasKey("A");
+    var b := mmap.HasKey("Hello world");
     expect(!b);
-    mmap.Put("A", 0);
-    b := mmap.HasKey("A");
+    mmap.Put("Hello world", 0);
+    b := mmap.HasKey("Hello world");
     expect(b);
   }
 

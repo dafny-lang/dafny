@@ -65,40 +65,41 @@ func (_this *MutableMap) Ctor__() {
 func (_this *MutableMap) Keys() _dafny.Set {
   {
     _this.mu.Lock()
-    keys := _this.Internal.Keys()
-    _this.mu.Unlock()
-    return keys
+    defer _this.mu.Unlock()
+
+    return _this.Internal.Keys()
   }
 }
 func (_this *MutableMap) HasKey(k interface{}) bool {
   {
     _this.mu.Lock()
-    result := _this.Internal.Contains(k)
-    _this.mu.Unlock()
-    return result
+    defer _this.mu.Unlock()
+
+    return _this.Internal.Contains(k)
   }
 }
 func (_this *MutableMap) Values() _dafny.Set {
   {
     _this.mu.Lock()
-    values := _this.Internal.Values()
-    _this.mu.Unlock()
-    return values
+    defer _this.mu.Unlock()
+
+    return _this.Internal.Values()
   }
 }
 func (_this *MutableMap) Items() _dafny.Set {
   {
     _this.mu.Lock()
-    items := _this.Internal.Items()
-    _this.mu.Unlock()
-    return items
+    defer _this.mu.Unlock()
+
+    return _this.Internal.Items()
   }
 }
 func (_this *MutableMap) Get(k interface{}) Std_Wrappers.Option {
   {
     _this.mu.Lock()
+    defer _this.mu.Unlock()
+
     value, ok := _this.Internal.Find(k)
-    _this.mu.Unlock()
     if ok {
       return Std_Wrappers.Companion_Option_.Create_Some_(value)
     } else {
@@ -109,25 +110,27 @@ func (_this *MutableMap) Get(k interface{}) Std_Wrappers.Option {
 func (_this *MutableMap) Put(k interface{}, v interface{}) {
   {
     _this.mu.Lock()
+    defer _this.mu.Unlock()
+
     _this.Internal = _this.Internal.UpdateUnsafe(k, v)
-    _this.mu.Unlock()
   }
 }
 func (_this *MutableMap) Remove(k interface{}) {
   {
+    _this.mu.Lock()
+    defer _this.mu.Unlock()
+
     // This could be special-cased for a single remove to be a bit faster,
     // but it's still going to be O(n) so likely not worth it.
-    _this.mu.Lock()
     _this.Internal = _this.Internal.Subtract(_dafny.SetOf(k))
-    _this.mu.Unlock()
   }
 }
 func (_this *MutableMap) Size() _dafny.Int {
   {
     _this.mu.Lock()
-    c := _this.Internal.Cardinality()
-    _this.mu.Unlock()
-    return c
+    defer _this.mu.Unlock()
+
+    return _this.Internal.Cardinality()
   }
 }
 // End of class MutableMap
