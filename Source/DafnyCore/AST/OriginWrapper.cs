@@ -36,6 +36,10 @@ public abstract class OriginWrapper : IOrigin {
 
   public virtual Token StartToken => WrappedToken.StartToken;
   public virtual Token EndToken => WrappedToken.EndToken;
+  public virtual Token Center {
+    get => WrappedToken.Center;
+    set => WrappedToken.Center = value;
+  }
 
   public bool IsValid {
     get { return WrappedToken.IsValid; }

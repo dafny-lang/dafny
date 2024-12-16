@@ -28,6 +28,7 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
 
   Token StartToken { get; }
   Token EndToken { get; }
+  Token Center { get; set; }
 
   /// <summary>
   /// TrailingTrivia contains everything after the token,

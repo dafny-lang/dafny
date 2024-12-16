@@ -690,7 +690,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var boundVar = idPattern.BoundVar;
-        if (!boundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
+        if (!boundVar.Name.StartsWith(IdPattern.WildcardString)) {
           var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);
           valueWriter.Write(sourceName);
         }

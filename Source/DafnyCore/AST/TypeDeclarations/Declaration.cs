@@ -15,7 +15,6 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   public IOrigin BodyStartTok = Token.NoToken;
   public Name NameNode;
 
-  public override IOrigin Tok => NameNode.Origin;
   public virtual IOrigin NavigationToken => NameNode.Origin;
 
   public string Name => NameNode.Value;
@@ -38,6 +37,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     this.NameNode = name;
     this.Attributes = attributes;
     this.IsRefining = isRefining;
+    Origin.Center = NameNode.Center;
   }
 
   public bool HasAxiomAttribute =>

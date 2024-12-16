@@ -87,7 +87,6 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   }
 
   public ICallable CwInner => (ICallable)inner;
-  public IOrigin Tok => CwInner.Tok;
   public IEnumerable<INode> Children => CwInner.Children;
   public IEnumerable<INode> PreResolveChildren => CwInner.PreResolveChildren;
 

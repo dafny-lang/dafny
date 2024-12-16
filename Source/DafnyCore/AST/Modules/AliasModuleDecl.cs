@@ -39,6 +39,7 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
     Contract.Requires(exports.Count == 0 || path.Path.Count == 1);
     TargetQId = path;
     Exports = exports;
+    rangeOrigin.Center = HasAlias ? NameNode.StartToken : StartToken;
   }
 
   public override ModuleDefinition Dereference() { return Signature.ModuleDef; }
@@ -63,8 +64,6 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
   public override IOrigin NavigationToken => HasAlias ? base.NavigationToken : (TargetQId.Decl?.NavigationToken ?? base.NavigationToken);
 
   private bool HasAlias => NameNode.Origin.IsSet();
-
-  public override IOrigin Tok => HasAlias ? NameNode.StartToken : StartToken;
 
   public override SymbolKind? Kind => !HasAlias ? null : base.Kind;
 

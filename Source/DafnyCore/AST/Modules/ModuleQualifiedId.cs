@@ -62,12 +62,11 @@ public class ModuleQualifiedId : Node, IHasReferences {
     }
   }
 
-  public override IOrigin Tok => Path.Last().Tok;
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override IOrigin Origin {
-    get => new SourceOrigin(Path.First().StartToken, Path.Last().EndToken);
+    get => new SourceOrigin(Path.First().StartToken, Path.Last().EndToken, Path.Last().Center);
     set => throw new NotSupportedException();
   }
 

@@ -38,6 +38,10 @@ public class Token : IOrigin {
   public Uri Uri { get; set; }
   public Token StartToken => this;
   public Token EndToken => this;
+  public Token Center {
+    get => this;
+    set => throw new InvalidOperationException();
+  }
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos
 
@@ -184,7 +188,7 @@ public class BoogieRangeOrigin : OriginWrapper {
   /// <summary>
   /// If only a single position is used to refer to this piece of code, this position is the best
   /// </summary>
-  public IOrigin Center { get; }
+  public IOrigin Centerish { get; }
 
   // Used for range reporting
   public override string val => new(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
@@ -193,7 +197,7 @@ public class BoogieRangeOrigin : OriginWrapper {
     center ?? startTok) {
     StartToken = startTok;
     EndToken = endTok;
-    Center = center;
+    Centerish = center;
   }
 
   public override IOrigin WithVal(string newVal) {

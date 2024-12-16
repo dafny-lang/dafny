@@ -45,7 +45,6 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   public Name NameNode; // (Last segment of the) module name
 
   public override bool SingleFileToken => !ResolvedPrefixNamedModules.Any();
-  public override IOrigin Tok => NameNode.StartToken;
 
   public string Name => NameNode.Value;
   public string FullDafnyName {
@@ -172,6 +171,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     if (Name != "_System") {
       DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
     }
+    Origin.Center = NameNode.StartToken;
   }
 
   private VisibilityScope visibilityScope;
@@ -755,7 +755,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
         anonymousImportCount++;
       } else if (toplevels.TryGetValue(d.Name, out var existingTopLevel)) {
-        resolver.reporter.Error(MessageSource.Resolver, new NestedOrigin(d.Tok, existingTopLevel.Tok),
+        resolver.reporter.Error(MessageSource.Resolver, new NestedOrigin(d.Tok, existingTopLevel.Origin),
           "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;

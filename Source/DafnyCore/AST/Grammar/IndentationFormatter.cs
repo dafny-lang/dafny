@@ -28,8 +28,8 @@ public class IndentationFormatter : IIndentationFormatter {
       ReduceBlockiness = reduceBlockiness
     };
     foreach (var child in program.DefaultModuleDef.PreResolveChildren) {
-      var isPhysicalToken = child.Tok.line != 0;
-      if (isPhysicalToken && child.Tok.Uri != fileToFormat) {
+      var isPhysicalToken = child.Origin.line != 0;
+      if (isPhysicalToken && child.Origin.Uri != fileToFormat) {
         continue;
       }
       if (child is TopLevelDecl topLevelDecl) {

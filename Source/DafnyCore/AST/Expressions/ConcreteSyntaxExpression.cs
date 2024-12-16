@@ -22,9 +22,10 @@ public abstract class ConcreteSyntaxExpression : Expression {
     get => resolvedExpression;
     set {
       resolvedExpression = value;
-      if (RangeOrigin != null && resolvedExpression != null) {
-        resolvedExpression.Origin = RangeOrigin;
-      }
+      // TODO delete
+      // if (RangeOrigin != null && resolvedExpression != null) {
+      //   resolvedExpression.Origin = RangeOrigin;
+      // }
     }
   }  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
 

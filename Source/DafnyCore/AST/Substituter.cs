@@ -648,7 +648,7 @@ namespace Microsoft.Dafny {
         if (forceSubstitutionOfBoundVars || tt != bv.Type) {
           var newBv = cloneVt(pat, tt, bv);
           // update substMap to reflect the new BoundVar substitutions
-          var ie = new IdentifierExpr(newBv.Tok, newBv.Name) { Var = newBv, Type = newBv.Type };
+          var ie = new IdentifierExpr(newBv.Origin, newBv.Name) { Var = newBv, Type = newBv.Type };
           substMap.Add(bv, ie);
           var newPat = new CasePattern<VT>(pat.tok, newBv);
           newPat.AssembleExpr(null);

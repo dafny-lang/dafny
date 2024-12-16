@@ -156,7 +156,7 @@ Send notifications about the verification status of each line in the program.
   /// Also set the implementation priority depending on the last edited methods 
   /// </summary>
   public virtual void ReportImplementationsBeforeVerification(IdeState state, ICanVerify canVerify, Implementation[] implementations) {
-    var uri = canVerify.Tok.Uri;
+    var uri = canVerify.Origin.Uri;
     var tree = state.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(state.Program, uri);
 
     if (logger.IsEnabled(LogLevel.Debug)) {
@@ -167,7 +167,7 @@ Send notifications about the verification status of each line in the program.
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
     var canVerifyNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>()
-      .FirstOrDefault(t => t.Position == canVerify.Tok.GetLspPosition());
+      .FirstOrDefault(t => t.Position == canVerify.Origin.GetLspPosition());
     if (canVerifyNode == null) {
       return;
     }

@@ -111,14 +111,14 @@ public abstract class ErrorReporter {
     Contract.Requires(v != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, ParseErrors.ErrorId.none, v.Tok, format, args);
+    Error(source, ParseErrors.ErrorId.none, v.Origin, format, args);
   }
 
   public void Error(MessageSource source, Enum errorId, INode v, string format, params object[] args) {
     Contract.Requires(v != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, errorId, v.Tok, format, args);
+    Error(source, errorId, v.Origin, format, args);
   }
 
   public void Error(MessageSource source, Enum errorId, Expression e, string format, params object[] args) {

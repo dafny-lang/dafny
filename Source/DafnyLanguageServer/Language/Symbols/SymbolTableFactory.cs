@@ -397,9 +397,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           variableSymbol,
-          variableSymbol.Declaration.Tok,
-          variableSymbol.Declaration.Tok.GetLspRange(),
-          variableSymbol.Declaration.Tok.GetLspRange()
+          variableSymbol.Declaration.Origin,
+          variableSymbol.Declaration.Origin.GetLspRange(),
+          variableSymbol.Declaration.Origin.GetLspRange()
         );
         VisitChildren(variableSymbol);
         return Unit.Value;

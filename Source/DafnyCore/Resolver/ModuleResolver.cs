@@ -1950,7 +1950,7 @@ namespace Microsoft.Dafny {
       var startIndex = scc.IndexOf(start);
       Contract.Assert(0 <= startIndex);
       scc = Util.Concat(scc.GetRange(startIndex, scc.Count - startIndex), scc.GetRange(0, startIndex));
-      ReportCycleError(reporter, scc, c => c.Tok, c => c.NameRelativeToModule, msg);
+      ReportCycleError(reporter, scc, c => c.Origin, c => c.NameRelativeToModule, msg);
     }
 
     public static void ReportCycleError<X>(ErrorReporter reporter, List<X> cycle, Func<X, IOrigin> toTok, Func<X, string> toString, string msg) {
@@ -2987,7 +2987,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(scope != null);
       Contract.Requires(v != null);
       Contract.Requires(kind != null);
-      ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
+      ScopePushAndReport(scope, v.Name, v, v.Origin, kind);
     }
 
     public Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IOrigin tok, string kind) where Thing : class {
@@ -3459,13 +3459,13 @@ namespace Microsoft.Dafny {
         if (resolutionContext.IsGhost) {
           v.MakeGhost();
         }
-        ResolveType(v.Tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+        ResolveType(v.Origin, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         // Note, the following type constraint checks that the RHS type can be assigned to the new variable on the left. In particular, it
         // does not check that the entire RHS can be assigned to something of the type of the pattern on the left.  For example, consider
         // a type declared as "datatype Atom<T> = MakeAtom(T)", where T is a non-variant type argument.  Suppose the RHS has type Atom<nat>
         // and that the LHS is the pattern MakeAtom(x: int).  This is okay, despite the fact that Atom<nat> is not assignable to Atom<int>.
         // The reason is that the purpose of the pattern on the left is really just to provide a skeleton to introduce bound variables in.
-        EagerAddAssignableConstraint(v.Tok, v.Type, sourceType, "type of corresponding source/RHS ({1}) does not match type of bound variable ({0})");
+        EagerAddAssignableConstraint(v.Origin, v.Type, sourceType, "type of corresponding source/RHS ({1}) does not match type of bound variable ({0})");
         pat.AssembleExpr(null);
         return;
       }

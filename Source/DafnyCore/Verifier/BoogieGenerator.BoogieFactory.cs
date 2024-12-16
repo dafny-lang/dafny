@@ -896,8 +896,8 @@ namespace Microsoft.Dafny {
 
     public static IOrigin ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
       if (boogieToken is BoogieRangeOrigin boogieRangeToken) {
-        if (!reportRanges && boogieRangeToken.Center is not null) {
-          return boogieRangeToken.Center;
+        if (!reportRanges && boogieRangeToken.Centerish is not null) {
+          return boogieRangeToken.Centerish;
         }
 
         return new SourceOrigin(boogieRangeToken.StartToken, boogieRangeToken.EndToken);

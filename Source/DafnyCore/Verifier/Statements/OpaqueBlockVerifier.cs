@@ -57,7 +57,7 @@ public static class OpaqueBlockVerifier {
     }
 
     generator.PathAsideBlock(block.Tok, blockBuilder, builder);
-    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(v => new BoogieIdentifierExpr(v.Tok, v.UniqueName)).ToList()));
+    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(v => new BoogieIdentifierExpr(v.Origin, v.UniqueName)).ToList()));
 
     if (hasModifiesClause) {
       generator.ApplyModifiesEffect(block, etran, builder, block.Modifies, true, block.IsGhost);

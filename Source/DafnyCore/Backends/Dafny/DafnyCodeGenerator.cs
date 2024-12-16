@@ -2553,7 +2553,7 @@ namespace Microsoft.Dafny.Compilers {
           c.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString("_AllSingletonConstructors"),
             Option<_IType>.create_None(), Option<_IFormal>.create_None(), false, signature));
           var wrc = new BuilderSyntaxTree<ExprContainer>(c, this);
-          EmitTypeName_Companion(bv.Type, wrc, wr, bv.Tok, null);
+          EmitTypeName_Companion(bv.Type, wrc, wr, bv.Origin, null);
         } else {
           throw new InvalidOperationException("Datatype Bounded pool on non-datatype value");
         }

@@ -8,8 +8,6 @@ namespace Microsoft.Dafny;
 /// A CallStmt is always resolved.  It is typically produced as a resolved counterpart of the syntactic AST note ApplySuffix.
 /// </summary>
 public class CallStmt : Statement, ICloneable<CallStmt> {
-  // OverrideToken is required because MethodSelect.EndToken can be incorrect. Will remove once resolved expressions have correct ranges.
-  public override IOrigin Tok => overrideToken ?? MethodSelect.EndToken.Next;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -33,7 +31,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver => MethodSelect.Obj;
   public Method Method => (Method)MethodSelect.Member;
 
-  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IOrigin overrideToken = null)
+  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, Token overrideToken = null)
     : base(rangeOrigin) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhs));
@@ -44,6 +42,8 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     this.Lhs = lhs;
     this.MethodSelect = memSel;
     this.overrideToken = overrideToken;
+    // OverrideToken is required because MethodSelect.EndToken can be incorrect. Will remove once resolved expressions have correct ranges.
+    Origin.Center = overrideToken ?? MethodSelect.EndToken.Next;
     this.Bindings = new ActualBindings(args);
   }
 

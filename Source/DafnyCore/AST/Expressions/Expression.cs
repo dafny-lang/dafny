@@ -896,7 +896,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression CreateIdentExpr(IVariable v) {
     Contract.Requires(v != null);
-    return new IdentifierExpr(v.Tok, v.Name) {
+    return new IdentifierExpr(v.Origin, v.Name) {
       Var = v,
       type = v.Type
     };

@@ -160,7 +160,7 @@ namespace Microsoft.Dafny {
     }
 
     private void Error(ErrorId errorId, INode n, string msg, params object[] args) {
-      Reporter.Error(MessageSource.RefinementTransformer, errorId, n.Tok, msg, args);
+      Reporter.Error(MessageSource.RefinementTransformer, errorId, n.Origin, msg, args);
     }
 
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
@@ -180,7 +180,7 @@ namespace Microsoft.Dafny {
         // There is a refinement parent and it resolved OK
         var refinementTarget = m.Implements.Target;
         if (m.Implements.Kind == ImplementationKind.Refinement && refinementTarget.Def.ModuleKind == ModuleKindEnum.Replaceable) {
-          Reporter.Error(MessageSource.RefinementTransformer, "refineReplaceable", refinementTarget.Tok,
+          Reporter.Error(MessageSource.RefinementTransformer, "refineReplaceable", refinementTarget.Origin,
             "replaceable module cannot be refined");
 
           return;

@@ -12,18 +12,6 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  public override IOrigin Tok {
-    get {
-      var firstRhs = Rhss.First();
-      if (firstRhs.StartToken != StartToken) {
-        // If there is an operator, use it as a token
-        return firstRhs.StartToken.Prev;
-      }
-
-      return firstRhs.Tok;
-    }
-  }
-
   [FilledInDuringResolution] public List<Statement> ResolvedStatements;
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
@@ -181,7 +169,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
         foreach (var ll in Lhss) {
           resolvedLhss.Add(ll.Resolved);
         }
-        CallStmt a = new CallStmt(Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+        CallStmt a = new CallStmt(Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok.Center);
         a.OriginalInitialLhs = OriginalInitialLhs;
         ResolvedStatements.Add(a);
       }
