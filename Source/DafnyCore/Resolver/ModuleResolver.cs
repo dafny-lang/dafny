@@ -953,9 +953,9 @@ namespace Microsoft.Dafny {
     }
 
     public void ResolveTopLevelDecls_Signatures(ModuleDefinition def, ModuleSignature sig, List<TopLevelDecl> declarations,
-      Graph<IndDatatypeDecl> datatypeDependencies, Graph<CoDatatypeDecl> codatatypeDependencies) {
+      Graph<ITentativeEqualitySupportingDeclaration> equalityDependencies, Graph<CoDatatypeDecl> codatatypeDependencies) {
       Contract.Requires(declarations != null);
-      Contract.Requires(datatypeDependencies != null);
+      Contract.Requires(equalityDependencies != null);
       Contract.Requires(codatatypeDependencies != null);
       RevealAllInScope(declarations, def.VisibilityScope);
 
@@ -986,16 +986,17 @@ namespace Microsoft.Dafny {
               typeRedirectionDependencies.AddEdge(dd, s);
             }
           });
-        } else if (d is NewtypeDecl) {
-          var dd = (NewtypeDecl)d;
-          ResolveType(dd.tok, dd.BaseType, dd, ResolveTypeOptionEnum.DontInfer, null);
-          dd.BaseType.ForeachTypeComponent(ty => {
+        } else if (d is NewtypeDecl nt) {
+          ResolveType(nt.tok, nt.BaseType, nt, ResolveTypeOptionEnum.DontInfer, null);
+          nt.BaseType.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
-            if (s != null && s != dd) {
-              typeRedirectionDependencies.AddEdge(dd, s);
+            if (s != null && s != nt) {
+              typeRedirectionDependencies.AddEdge(nt, s);
             }
           });
-          ResolveClassMemberTypes(dd);
+          equalityDependencies.AddVertex(nt);
+          AddEqualityDependencyEdge(nt, nt.BaseType, equalityDependencies);
+          ResolveClassMemberTypes(nt);
         } else if (d is IteratorDecl) {
           ResolveIteratorSignature((IteratorDecl)d);
         } else if (d is ModuleDecl) {
@@ -1006,7 +1007,7 @@ namespace Microsoft.Dafny {
           }
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
-          ResolveCtorTypes(dd, datatypeDependencies, codatatypeDependencies);
+          ResolveCtorTypes(dd, equalityDependencies, codatatypeDependencies);
           ResolveClassMemberTypes(dd);
         } else {
           ResolveClassMemberTypes((TopLevelDeclWithMembers)d);
@@ -1115,11 +1116,11 @@ namespace Microsoft.Dafny {
     };
 
     public void ResolveTopLevelDecls_Core(List<TopLevelDecl> declarations,
-      Graph<IndDatatypeDecl> datatypeDependencies, Graph<CoDatatypeDecl> codatatypeDependencies,
+      Graph<ITentativeEqualitySupportingDeclaration> dependencies, Graph<CoDatatypeDecl> codatatypeDependencies,
       string moduleDescription, bool isAnExport) {
 
       Contract.Requires(declarations != null);
-      Contract.Requires(cce.NonNullElements(datatypeDependencies.GetVertices()));
+      Contract.Requires(cce.NonNullElements(dependencies.GetVertices()));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies.GetVertices()));
       Contract.Requires(AllTypeConstraints.Count == 0);
 
@@ -1284,11 +1285,11 @@ namespace Microsoft.Dafny {
 
       // Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) { // because SccStratosphereCheck depends on subset-type/newtype base types being successfully resolved
-        foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
-          if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
+        foreach (var dtd in dependencies.TopologicallySortedComponents()) {
+          if (dependencies.GetSCCRepresentative(dtd) == dtd) {
             // do the following check once per SCC, so call it on each SCC representative
-            SccStratosphereCheck(dtd, datatypeDependencies);
-            DetermineEqualitySupport(dtd, datatypeDependencies);
+            SccStratosphereCheck(dtd, dependencies);
+            DetermineEqualitySupport(dtd, dependencies);
           }
         }
       }
@@ -2689,7 +2690,7 @@ namespace Microsoft.Dafny {
     /// would still work if "dependencies" consisted of one large SCC containing all the inductive
     /// datatypes in the module.
     /// </summary>
-    void SccStratosphereCheck(IndDatatypeDecl startingPoint, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
+    void SccStratosphereCheck(ITentativeEqualitySupportingDeclaration startingPoint, Graph<ITentativeEqualitySupportingDeclaration/*!*/>/*!*/ dependencies) {
       Contract.Requires(startingPoint != null);
       Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
 
@@ -2697,13 +2698,16 @@ namespace Microsoft.Dafny {
       int totalCleared = 0;
       while (true) {
         int clearedThisRound = 0;
-        foreach (var dt in scc) {
-          if (dt.GroundingCtor != null) {
-            // previously cleared
-          } else if (ComputeGroundingCtor(dt)) {
-            Contract.Assert(dt.GroundingCtor != null);  // should have been set by the successful call to ComputeGroundingCtor)
-            clearedThisRound++;
-            totalCleared++;
+        foreach (var decl in scc) {
+          if (decl is IndDatatypeDecl dt) {
+            if (dt.GroundingCtor != null) {
+              // previously cleared
+            } else if (ComputeGroundingCtor(dt)) {
+              Contract.Assert(dt.GroundingCtor !=
+                              null); // should have been set by the successful call to ComputeGroundingCtor)
+              clearedThisRound++;
+              totalCleared++;
+            }
           }
         }
         if (totalCleared == scc.Count) {
@@ -2837,7 +2841,7 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    void DetermineEqualitySupport(IndDatatypeDecl startingPoint, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
+    void DetermineEqualitySupport(ITentativeEqualitySupportingDeclaration startingPoint, Graph<ITentativeEqualitySupportingDeclaration/*!*/>/*!*/ dependencies) {
       Contract.Requires(startingPoint != null);
       Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
 
@@ -2845,7 +2849,7 @@ namespace Microsoft.Dafny {
 
       void MarkSCCAsNotSupportingEquality() {
         foreach (var ddtt in scc) {
-          ddtt.EqualitySupport = IndDatatypeDecl.ES.Never;
+          ddtt.EqualitySupport = ITentativeEqualitySupportingDeclaration.ES.Never;
         }
       }
 
@@ -2853,75 +2857,91 @@ namespace Microsoft.Dafny {
       //   * a datatype in the SCC has a ghost constructor
       //   * a parameter of an inductive datatype in the SCC is ghost
       //   * the type of a parameter of an inductive datatype in the SCC does not support equality
-      foreach (var dt in scc) {
-        Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
-        foreach (var ctor in dt.Ctors) {
-          if (ctor.IsGhost) {
-            MarkSCCAsNotSupportingEquality();
-            return;  // we are done
-          }
-          foreach (var arg in ctor.Formals) {
-            var anotherIndDt = arg.Type.AsIndDatatype;
-            if (arg.IsGhost ||
-                (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
-                arg.Type.IsCoDatatype ||
-                arg.Type.IsArrowType) {
-              // arg.Type is known never to support equality
+      foreach (var decl in scc) {
+        Contract.Assume(decl.EqualitySupport == ITentativeEqualitySupportingDeclaration.ES.NotYetComputed);
+        if (decl is IndDatatypeDecl dt) {
+          foreach (var ctor in dt.Ctors) {
+            if (ctor.IsGhost) {
               MarkSCCAsNotSupportingEquality();
-              return;  // we are done
+              return; // we are done
+            }
+
+            foreach (var arg in ctor.Formals) {
+              var anotherIndDt = arg.Type.AsIndDatatype;
+              if (arg.IsGhost ||
+                  (anotherIndDt != null && anotherIndDt.EqualitySupport == ITentativeEqualitySupportingDeclaration.ES.Never) ||
+                  arg.Type.IsCoDatatype ||
+                  arg.Type.IsArrowType) {
+                // arg.Type is known never to support equality
+                MarkSCCAsNotSupportingEquality();
+                return; // we are done
+              }
             }
           }
+        } else if (decl is NewtypeDecl nt) {
+          // This is like a datatype with a single non-ghost constructor.
+        } else {
+          Contract.Assert(false, "TenativeEqualitySupportingDeclaration is either IndDatatypeDecl or NewtypeDecl");
         }
       }
 
       // Now for the more involved case:  we need to determine which type parameters determine equality support for each datatype in the SCC
       // We start by seeing where each datatype's type parameters are used in a place known to determine equality support.
       bool thingsChanged = false;
-      foreach (var dt in scc) {
-        if (dt.TypeArgs.Count == 0) {
-          // if the datatype has no type parameters, we certainly won't find any type parameters being used in the arguments types to the constructors
-          continue;
-        }
-        foreach (var ctor in dt.Ctors) {
-          foreach (var arg in ctor.Formals) {
-            var type = arg.Type;
-            DetermineEqualitySupportType(type, ref thingsChanged);
+      foreach (var decl in scc) {
+        if (decl is IndDatatypeDecl dt) {
+          if (dt.TypeArgs.Count == 0) {
+            // if the datatype has no type parameters, we certainly won't find any type parameters being used in the arguments types to the constructors
+            continue;
           }
+
+          foreach (var ctor in dt.Ctors) {
+            foreach (var arg in ctor.Formals) {
+              var type = arg.Type;
+              DetermineEqualitySupportType(type, ref thingsChanged);
+            }
+          }
+        } else if (decl is NewtypeDecl nt) {
+          if (nt.TypeArgs.Count == 0) {
+            // if the datatype has no type parameters, we certainly won't find any type parameters being used in the arguments types to the constructors
+            continue;
+          }
+          DetermineEqualitySupportType(nt.BaseType, ref thingsChanged);
+        } else {
+          Contract.Assert(false, "TenativeEqualitySupportingDeclaration is either IndDatatypeDecl or NewtypeDecl");
         }
       }
       // Then we propagate this information up through the SCC
       while (thingsChanged) {
         thingsChanged = false;
-        foreach (var dt in scc) {
-          if (dt.TypeArgs.Count == 0) {
-            // if the datatype has no type parameters, we certainly won't find any type parameters being used in the arguments types to the constructors
-            continue;
-          }
-          foreach (var ctor in dt.Ctors) {
-            foreach (var arg in ctor.Formals) {
-              var otherDt = arg.Type.AsIndDatatype;
-              if (otherDt != null && otherDt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed) { // otherDt lives in the same SCC
-                var otherUdt = (UserDefinedType)arg.Type.NormalizeExpand();
-                var i = 0;
-                foreach (var otherTp in otherDt.TypeArgs) {
-                  if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
-                    var tp = otherUdt.TypeArgs[i].AsTypeParameter;
-                    if (tp != null && !tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
-                      tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
-                      thingsChanged = true;
-                    }
-                  }
-                  i++;
-                }
+        foreach (var decl in scc) {
+          if (decl is IndDatatypeDecl dt) {
+            if (dt.TypeArgs.Count == 0) {
+              // if the datatype has no type parameters, we certainly won't find any type parameters being used in the arguments types to the constructors
+              continue;
+            }
+
+            foreach (var ctor in dt.Ctors) {
+              foreach (var arg in ctor.Formals) {
+                DetermineEqualityDependencies(arg.Type, ref thingsChanged);
               }
             }
+          } else if (decl is NewtypeDecl nt) {
+            if (nt.TypeArgs.Count == 0) {
+              // if the datatype has no type parameters, we certainly won't find any type parameters being used in the arguments types to the constructors
+              continue;
+            }
+
+            DetermineEqualityDependencies(nt.BaseType, ref thingsChanged);
+          } else {
+            Contract.Assert(false, "TenativeEqualitySupportingDeclaration is either IndDatatypeDecl or NewtypeDecl");
           }
         }
       }
       // Now that we have computed the .NecessaryForEqualitySupportOfSurroundingInductiveDatatype values, mark the datatypes as ones
       // where equality support should be checked by looking at the type arguments.
       foreach (var dt in scc) {
-        dt.EqualitySupport = IndDatatypeDecl.ES.ConsultTypeArguments;
+        dt.EqualitySupport = ITentativeEqualitySupportingDeclaration.ES.ConsultTypeArguments;
       }
     }
 
@@ -2933,8 +2953,10 @@ namespace Microsoft.Dafny {
         DetermineEqualitySupportType(typeMap.Range, ref thingsChanged);
       } else if (type.AsSeqType is { } typeSeq) {
         DetermineEqualitySupportType(typeSeq.Arg, ref thingsChanged);
+      } else if (type.AsNewtype is { } typeNew) {
+        DetermineEqualitySupportType(typeNew.BaseType, ref thingsChanged);
       } else if (type.AsIndDatatype is { } otherDt) {
-        if (otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
+        if (otherDt.EqualitySupport == ITentativeEqualitySupportingDeclaration.ES.ConsultTypeArguments) {  // datatype is in a different SCC
           var otherUdt = (UserDefinedType)type.NormalizeExpand();
           var i = 0;
           foreach (var otherTp in otherDt.TypeArgs) {
@@ -3109,6 +3131,23 @@ namespace Microsoft.Dafny {
         varUdt.TypeArgs = nnt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       }
       scope.PopMarker();
+    }
+
+    private static void DetermineEqualityDependencies(Type argType, ref bool thingsChanged) {
+      if (argType.AsTentativeEqualitySupportingDeclaration is { } decl && decl.EqualitySupport == ITentativeEqualitySupportingDeclaration.ES.NotYetComputed) { // otherDt lives in the same SCC
+        var otherUdt = (UserDefinedType)argType.NormalizeExpand();
+        var i = 0;
+        foreach (var otherTp in decl.TypeParameters) {
+          if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+            var tp = otherUdt.TypeArgs[i].AsTypeParameter;
+            if (tp != null && !tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+              tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+              thingsChanged = true;
+            }
+          }
+          i++;
+        }
+      }
     }
 
     // Like the ResolveTypeOptionEnum, but iff the case of AllowPrefixExtend, it also

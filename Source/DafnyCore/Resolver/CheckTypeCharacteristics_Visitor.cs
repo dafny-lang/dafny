@@ -406,6 +406,18 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     if (tp != null) {
       return string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.tok.line, tp.WhatKind);
     }
+
+    if (argType.AsTentativeEqualitySupportingDeclaration is { EqualitySupport: ITentativeEqualitySupportingDeclaration.ES.ConsultTypeArguments } decl && argType is { TypeArgs: var typeArgs }) {
+      var i = 0;
+      foreach (var tParam in decl.TypeParameters) {
+        if (tParam.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && !typeArgs[i].SupportsEquality) {
+          if (TypeEqualityErrorMessageHint(typeArgs[i]) is var message and not "") {
+            return message;
+          }
+        }
+        i++;
+      }
+    }
     return "";
   }
 }

@@ -2832,7 +2832,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
-    void ResolveCtorTypes(DatatypeDecl/*!*/ dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ coDependencies) {
+    void ResolveCtorTypes(DatatypeDecl/*!*/ dt, Graph<ITentativeEqualitySupportingDeclaration/*!*/>/*!*/ dependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ coDependencies) {
       Contract.Requires(dt != null);
       Contract.Requires(dependencies != null);
       Contract.Requires(coDependencies != null);
@@ -2849,7 +2849,7 @@ namespace Microsoft.Dafny {
           var idt = (IndDatatypeDecl)dt;
           dependencies.AddVertex(idt);
           foreach (Formal p in ctor.Formals) {
-            AddDatatypeDependencyEdge(idt, p.Type, dependencies);
+            AddEqualityDependencyEdge(idt, p.Type, dependencies);
           }
         } else {
           // The dependencies of interest among codatatypes are just the top-level types of parameters.
@@ -2874,17 +2874,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddDatatypeDependencyEdge(IndDatatypeDecl dt, Type tp, Graph<IndDatatypeDecl> dependencies) {
-      Contract.Requires(dt != null);
+    void AddEqualityDependencyEdge(ITentativeEqualitySupportingDeclaration decl, Type tp, Graph<ITentativeEqualitySupportingDeclaration> dependencies) {
+      Contract.Requires(decl != null);
       Contract.Requires(tp != null);
       Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
 
       tp = tp.NormalizeExpand();
-      var dependee = tp.AsIndDatatype;
-      if (dependee != null && dt.EnclosingModuleDefinition == dependee.EnclosingModuleDefinition) {
-        dependencies.AddEdge(dt, dependee);
+      if (tp.AsTentativeEqualitySupportingDeclaration is { } dependee && decl.EnclosingModuleDefinition == dependee.EnclosingModuleDefinition) {
+        dependencies.AddEdge(decl, dependee);
         foreach (var ta in ((UserDefinedType)tp).TypeArgs) {
-          AddDatatypeDependencyEdge(dt, ta, dependencies);
+          AddEqualityDependencyEdge(decl, ta, dependencies);
         }
       }
     }

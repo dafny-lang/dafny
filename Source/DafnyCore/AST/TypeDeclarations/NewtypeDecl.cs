@@ -5,7 +5,7 @@ using System.Numerics;
 
 namespace Microsoft.Dafny;
 
-public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl, IHasDocstring, ICanVerify {
+public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl, ITentativeEqualitySupportingDeclaration, IHasDocstring, ICanVerify {
   public override string WhatKind { get { return "newtype"; } }
   public override bool CanBeRevealed() { return true; }
   public PreType BasePreType;
@@ -96,16 +96,13 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public TypeParameter.EqualitySupportValue EqualitySupport {
-    get {
-      if (this.BaseType.SupportsEquality) {
-        return TypeParameter.EqualitySupportValue.Required;
-      } else {
-        return TypeParameter.EqualitySupportValue.Unspecified;
-      }
-    }
-  }
+  public ITentativeEqualitySupportingDeclaration.ES EqualitySupport { get; set; } = ITentativeEqualitySupportingDeclaration.ES.NotYetComputed;
 
+  List<TypeParameter> ITentativeEqualitySupportingDeclaration.TypeParameters {
+    get => TypeArgs;
+  }
+  ModuleDefinition ITentativeEqualitySupportingDeclaration.EnclosingModuleDefinition =>
+    EnclosingModuleDefinition;
   string RedirectingTypeDecl.Name { get { return Name; } }
   IOrigin RedirectingTypeDecl.tok { get { return tok; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
