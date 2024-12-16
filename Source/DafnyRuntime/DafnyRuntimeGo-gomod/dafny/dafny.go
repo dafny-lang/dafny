@@ -674,16 +674,6 @@ func (seq *LazySequence) Equals(other Sequence) bool {
 	return Companion_Sequence_.Equal(seq, other)
 }
 
-func (seq *ArraySequence) Equal(other Sequence) bool {
-	return Companion_Sequence_.Equal(seq, other)
-}
-func (seq *ConcatSequence) Equal(other Sequence) bool {
-	return Companion_Sequence_.Equal(seq, other)
-}
-func (seq *LazySequence) Equal(other Sequence) bool {
-	return Companion_Sequence_.Equal(seq, other)
-}
-
 func (seq *ArraySequence) EqualsGeneric(x interface{}) bool {
 	other, ok := x.(Sequence)
 	return ok && Companion_Sequence_.Equal(seq, other)
