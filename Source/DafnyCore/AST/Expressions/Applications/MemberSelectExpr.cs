@@ -297,5 +297,5 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
     return new[] { Member };
   }
 
-  public IOrigin NavigationToken => tok;
+  public IOrigin NavigationToken => Center;
 }

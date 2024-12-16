@@ -522,7 +522,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
 
-  public IOrigin NavigationToken => tok;
+  public IOrigin NavigationToken => Center;
   public IEnumerable<IHasNavigationToken> GetReferences() {
     return new[] { ResolvedClass };
   }

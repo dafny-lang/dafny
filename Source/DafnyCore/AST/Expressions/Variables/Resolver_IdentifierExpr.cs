@@ -79,7 +79,7 @@ class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_
     return new[] { Decl };
   }
 
-  public IOrigin NavigationToken => tok;
+  public IOrigin NavigationToken => Center;
   public Resolver_IdentifierExpr Clone(Cloner cloner) {
     return new Resolver_IdentifierExpr(cloner, this);
   }
