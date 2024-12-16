@@ -9,6 +9,7 @@ module ConcurrentExamples {
   const p3: (char, nat) -> bool := (_, _) => true
   const p4: (Copy, nat) -> bool := (_, _) => true
   // const p5: (object?, nat) -> bool := (_, _) => true
+  const p6: (string, nat) -> bool := (_, _) => true
 
 
   datatype Copy = A | B
@@ -189,6 +190,16 @@ module ConcurrentExamples {
     expect(!b);
     mmap.Put(A, 0);
     b := mmap.HasKey(A);
+    expect(b);
+  }
+
+  @Test
+  method TestString() {
+    var mmap := new MutableMap(p6);
+    var b := mmap.HasKey("A");
+    expect(!b);
+    mmap.Put("A", 0);
+    b := mmap.HasKey("A");
     expect(b);
   }
 
