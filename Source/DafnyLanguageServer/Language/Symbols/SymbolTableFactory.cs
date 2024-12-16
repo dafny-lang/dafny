@@ -388,7 +388,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private static Range GetDeclarationRange(Declaration declaration) {
-        return declaration.Origin == RangeToken.NoToken
+        return declaration.Origin == SourceOrigin.NoToken
           ? declaration.tok.GetLspRange()
           : new Range(declaration.Origin.StartToken.GetLspPosition(), declaration.Origin.EndToken.GetLspPosition());
       }

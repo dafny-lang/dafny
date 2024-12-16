@@ -199,8 +199,8 @@ namespace Microsoft.Dafny.Compilers {
               // }
               var e0Name = ProtectedFreshId("_e0");
               var e1Name = ProtectedFreshId("_e1");
-              var e0Var = new LocalVariable(new RangeToken(Token.NoToken, Token.NoToken), e0Name, e0.Type, false);
-              var e1Var = new LocalVariable(new RangeToken(Token.NoToken, Token.NoToken), e1Name, e0.Type, false);
+              var e0Var = new LocalVariable(new SourceOrigin(Token.NoToken, Token.NoToken), e0Name, e0.Type, false);
+              var e1Var = new LocalVariable(new SourceOrigin(Token.NoToken, Token.NoToken), e1Name, e0.Type, false);
               DeclareLocalVar(IdName(e0Var), null, e0.Tok, e0, false, wr);
               DeclareLocalVar(IdName(e1Var), null, e1.tok, e1, false, wr);
               var e0Ident = new IdentifierExpr(e0.tok, e0Name) {

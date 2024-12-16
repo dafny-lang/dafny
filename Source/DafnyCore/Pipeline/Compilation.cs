@@ -369,7 +369,7 @@ public class Compilation : IDisposable {
         var groups = tasks.GroupBy(t => {
           var dafnyToken = BoogieGenerator.ToDafnyToken(true, t.Token);
           // We normalize so that we group on tokens as they are displayed to the user by Reporter.Info
-          return new RangeToken(dafnyToken.StartToken, dafnyToken.EndToken);
+          return new SourceOrigin(dafnyToken.StartToken, dafnyToken.EndToken);
         }).
           OrderBy(g => g.Key);
         foreach (var tokenTasks in groups) {

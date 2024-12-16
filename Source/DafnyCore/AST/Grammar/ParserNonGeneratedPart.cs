@@ -742,7 +742,7 @@ public partial class Parser {
     Replaceable = 32
   };
 
-  bool CheckAttribute(Errors errors, IOrigin attr, RangeToken range) {
+  bool CheckAttribute(Errors errors, IOrigin attr, SourceOrigin range) {
     // attr is the identifier of the Attribute
     // range is from opening brace to closing brace
     if (attr.val == "ignore") {

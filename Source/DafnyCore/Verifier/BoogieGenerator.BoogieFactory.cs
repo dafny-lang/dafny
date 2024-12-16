@@ -900,7 +900,7 @@ namespace Microsoft.Dafny {
           return boogieRangeToken.Center;
         }
 
-        return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
+        return new SourceOrigin(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
       }
 
       if (boogieToken is NestedOrigin nestedToken) {

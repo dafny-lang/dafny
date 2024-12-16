@@ -1666,7 +1666,7 @@ namespace Microsoft.Dafny {
           var ifAfterLastToken = m.EndToken;
           if (rangesOnly.FindIndex(r => r.Contains(node.StartToken)) is var x && x >= 0) {
             if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before) {// Just shorten the previous range
-              rangesOnly[x] = new RangeToken(rangesOnly[x].StartToken, node.EndToken);
+              rangesOnly[x] = new SourceOrigin(rangesOnly[x].StartToken, node.EndToken);
               return true;
             }
 
@@ -1676,9 +1676,9 @@ namespace Microsoft.Dafny {
 
           var rangeToAdd =
             assertOnlyKind == AssertStmt.AssertOnlyKind.Before ?
-              new RangeToken(m.StartToken, assertStmt.EndToken) :
+              new SourceOrigin(m.StartToken, assertStmt.EndToken) :
               assertOnlyKind == AssertStmt.AssertOnlyKind.After ?
-              new RangeToken(assertStmt.StartToken, ifAfterLastToken)
+              new SourceOrigin(assertStmt.StartToken, ifAfterLastToken)
               : assertStmt.Origin;
           if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before && rangesOnly.Any(other => rangeToAdd.Intersects(other))) {
             // There are more precise ranges so we don't add this one

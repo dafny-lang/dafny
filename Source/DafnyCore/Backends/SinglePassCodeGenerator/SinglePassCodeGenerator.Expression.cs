@@ -546,7 +546,7 @@ namespace Microsoft.Dafny.Compilers {
             if (thisContext != null && (enclosingMethod is { IsTailRecursive: true } || enclosingFunction is { IsTailRecursive: true })) {
               var name = ProtectedFreshId("_this");
               var ty = ModuleResolver.GetThisType(e.tok, thisContext);
-              receiver = new LocalVariable(RangeToken.NoToken, name, ty, false) {
+              receiver = new LocalVariable(SourceOrigin.NoToken, name, ty, false) {
                 type = ty
               };
               var _this = new ThisExpr(thisContext);

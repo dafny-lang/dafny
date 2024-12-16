@@ -418,7 +418,7 @@ public partial class BoogieGenerator {
         .OfType<IdentifierExpr>();
     foreach (var ie in modifiedVars) {
       var prevName = $"prev_{ie.Name}";
-      var prevDecl = Statement.CreateLocalVariable(RangeToken.NoToken, prevName, ie);
+      var prevDecl = Statement.CreateLocalVariable(SourceOrigin.NoToken, prevName, ie);
       var prevRef = Expression.CreateIdentExpr(prevDecl.Locals[0]);
       olde = Substitute(olde, ie.Var, prevRef);
       prevGhostLocals.Add(prevDecl);

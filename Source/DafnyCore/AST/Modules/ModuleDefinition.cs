@@ -633,7 +633,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
       var prefixNameModule = prefixNamedModules.First();
       var firstPartToken = prefixNameModule.Parts[0];
-      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken, name), new List<IOrigin>(), ModuleKindEnum.Concrete,
+      var modDef = new ModuleDefinition(SourceOrigin.NoToken, new Name(firstPartToken, name), new List<IOrigin>(), ModuleKindEnum.Concrete,
         false, null, this, null);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 

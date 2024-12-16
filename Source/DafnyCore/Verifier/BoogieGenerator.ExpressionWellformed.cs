@@ -1648,7 +1648,7 @@ namespace Microsoft.Dafny {
         var contextReads = GetContextReadsFrames();
         var readsDescExpr = new ForallExpr(
           Token.NoToken,
-          RangeToken.NoToken,
+          SourceOrigin.NoToken,
           indexVars,
           indicesRange,
           Utils.MakeDafnyFrameCheck(contextReads, readsCall, null),
@@ -1707,7 +1707,7 @@ namespace Microsoft.Dafny {
         Token.NoToken
       );
       QuantifiedVar.ExtractSingleRange(quantifiedVars, out var boundVars, out var singleRange);
-      checkContext = check => new ForallExpr(Token.NoToken, RangeToken.NoToken, boundVars, singleRange, check, null);
+      checkContext = check => new ForallExpr(Token.NoToken, SourceOrigin.NoToken, boundVars, singleRange, check, null);
     }
   }
 }

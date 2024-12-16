@@ -615,7 +615,7 @@ public partial class BoogieGenerator {
     };
     Expression CheckContext(Expression check) => new ForallExpr(
       Token.NoToken,
-      RangeToken.NoToken,
+      SourceOrigin.NoToken,
       new() { bvar },
       bounds,
       check,

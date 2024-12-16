@@ -61,7 +61,7 @@ public abstract class TokenNode : Node {
           }
         }
 
-        RangeOrigin = new RangeToken(startTok, endTok);
+        RangeOrigin = new SourceOrigin(startTok, endTok);
       }
 
       return RangeOrigin;
