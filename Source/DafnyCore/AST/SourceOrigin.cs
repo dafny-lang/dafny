@@ -5,7 +5,7 @@ using System.Text;
 namespace Microsoft.Dafny;
 
 public class SourceOrigin : OriginWrapper {
-  public override Token StartToken => (Token)WrappedToken;
+  public override Token StartToken { get; }
 
   public override Token EndToken => endToken ?? StartToken;
 
@@ -25,7 +25,8 @@ public class SourceOrigin : OriginWrapper {
 
   public SourceOrigin(Token startToken, Token? endToken, Token? center = null) : base(center ?? startToken) {
     this.endToken = endToken;
-    this.Center = center ?? startToken;
+    StartToken = startToken;
+    Center = center ?? startToken;
   }
 
   public string PrintOriginal() {
