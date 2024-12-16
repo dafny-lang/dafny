@@ -32,7 +32,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   [FilledInDuringResolution] public bool TargetTypeCoversAllBitPatterns; // "target complete" -- indicates that any bit pattern that can fill the target type is a value of the newtype
 
-  public NewtypeDecl(IOrigin rangeOrigin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
+  public NewtypeDecl(RangeToken rangeOrigin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
     Type baseType,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
     : base(rangeOrigin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
@@ -47,7 +47,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     WitnessKind = witnessKind;
     this.NewSelfSynonym();
   }
-  public NewtypeDecl(IOrigin rangeOrigin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
+  public NewtypeDecl(RangeToken rangeOrigin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
     BoundVar bv, Expression constraint,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
     : base(rangeOrigin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
@@ -96,13 +96,21 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public TypeParameter.EqualitySupportValue EqualitySupport {
+  private IndDatatypeDecl.ES equalitySupport = IndDatatypeDecl.ES.NotYetComputed;
+
+  public IndDatatypeDecl.ES EqualitySupport {
     get {
-      if (this.BaseType.SupportsEquality) {
-        return TypeParameter.EqualitySupportValue.Required;
-      } else {
-        return TypeParameter.EqualitySupportValue.Unspecified;
+      if (equalitySupport == IndDatatypeDecl.ES.NotYetComputed) {
+        var thingsChanged = false;
+        if (ModuleResolver.SurelyNeverSupportEquality(BaseType)) {
+          equalitySupport = IndDatatypeDecl.ES.Never;
+        } else {
+          ModuleResolver.DetermineEqualitySupportType(BaseType, ref thingsChanged);
+          equalitySupport = IndDatatypeDecl.ES.ConsultTypeArguments;
+        }
       }
+
+      return equalitySupport;
     }
   }
 

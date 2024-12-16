@@ -783,7 +783,7 @@ namespace Microsoft.Dafny {
       var fn = new ApplySuffix(tok, null,
         new ExprDotName(tok, receiver, f.Name, f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter))),
         new ActualBindings(f.Ins.ConvertAll(Expression.CreateIdentExpr)).ArgumentBindings,
-        Token.NoToken);
+        tok);
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       Specification<FrameExpression> reads;
       if (Options.Get(Method.ReadsClausesOnMethods)) {
@@ -2867,7 +2867,8 @@ namespace Microsoft.Dafny {
             return;  // we are done
           }
           foreach (var arg in ctor.Formals) {
-            if(arg.IsGhost || SurelyDoesNotSupportEquality(arg.Type)) {
+            if (arg.IsGhost || SurelyNeverSupportEquality(arg.Type)) {
+              // arg.Type is known never to support equality
               MarkSCCAsNotSupportingEquality();
               return;  // we are done
             }
@@ -2885,8 +2886,7 @@ namespace Microsoft.Dafny {
         }
         foreach (var ctor in dt.Ctors) {
           foreach (var arg in ctor.Formals) {
-            var type = arg.Type;
-            DetermineEqualitySupportType(type, ref thingsChanged);
+            DetermineEqualitySupportType(arg.Type, ref thingsChanged);
           }
         }
       }
@@ -2926,51 +2926,59 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static bool SurelyDoesNotSupportEquality(Type type)
-    {
-      if (type.IsCoDatatype ||
-          type.IsArrowType) {
-        return true;
-      }
-
-      if (type.AsIndDatatype is { } anotherIndDt) {
-        if (anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) {
-          return true;
-        }
-        if(anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments &&
-           type.NormalizeExpand().TypeArgs.Zip(anotherIndDt.TypeArgs).ToList().Any(t => t.Second.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && SurelyDoesNotSupportEquality(t.First))){
-          return true;
-        }
-      }
-
-      return false;
+    // If returns true, the given type never supports equality
+    // If return false, then the type must support equality if type parameters support equality
+    // It is unsound for a type to make this function return false when there is no type parameter
+    // assignment that makes this type support equality
+    public static bool SurelyNeverSupportEquality(Type type) {
+      type = type.Normalize();
+      return
+        type.AsNewtype is { EqualitySupport: IndDatatypeDecl.ES.Never } ||
+        type.AsIndDatatype is { EqualitySupport: IndDatatypeDecl.ES.Never } ||
+        type.IsCoDatatype || type.IsArrowType ||
+        type.AsSeqType is { Arg: var argType } && SurelyNeverSupportEquality(argType) ||
+        type.AsMapType is { Range: var rangeType } && SurelyNeverSupportEquality(rangeType);
     }
 
-    private static void DetermineEqualitySupportType(Type type, ref bool thingsChanged)
-    {
-      if (type.AsTypeParameter is {} typeArg) {
+    public static void DetermineEqualitySupportType(Type type, ref bool thingsChanged) {
+      if (type.AsTypeParameter is { } typeArg) {
         typeArg.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
         thingsChanged = true;
-      } else if (type.AsMapType is {} typeMap) {
-        DetermineEqualitySupportType(typeMap.Range, ref thingsChanged);
-      } else if (type.AsSeqType is {} typeSeq) {
-        DetermineEqualitySupportType(typeSeq.Arg, ref thingsChanged);
-      } else if (type.AsIndDatatype is {} otherDt) {
-        if (otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
-          var otherUdt = (UserDefinedType)type.NormalizeExpand();
-          var i = 0;
-          foreach (var otherTp in otherDt.TypeArgs) {
-            if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
-              var tp = otherUdt.TypeArgs[i].AsTypeParameter;
-              if (tp != null) {
-                tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
-                thingsChanged = true;
+      } else if (type.Normalize() is UserDefinedType userDefinedType) {
+        if (userDefinedType.ResolvedClass is TypeSynonymDeclBase typeSynonymDecl) {
+          if (typeSynonymDecl.IsRevealedInScope(Type.GetScope())) {
+            DetermineEqualitySupportType(typeSynonymDecl.RhsWithArgument(userDefinedType.TypeArgs), ref thingsChanged);
+          }
+        } else if (userDefinedType.ResolvedClass is NewtypeDecl newtypeDecl) {
+          if (newtypeDecl.IsRevealedInScope(Type.GetScope())) {
+            DetermineEqualitySupportType(newtypeDecl.RhsWithArgument(userDefinedType.TypeArgs), ref thingsChanged);
+          }
+        } else if (userDefinedType.ResolvedClass is IndDatatypeDecl otherDt) {
+          if (otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {
+            // datatype is in a different SCC
+            var otherUdt = (UserDefinedType)type.NormalizeExpand();
+            var i = 0;
+            foreach (var otherTp in otherDt.TypeArgs) {
+              if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+                var tp = otherUdt.TypeArgs[i].AsTypeParameter;
+                if (tp != null) {
+                  tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+                  thingsChanged = true;
+                }
               }
-            }
 
-            i++;
+              i++;
+            }
           }
         }
+      } else if (type.AsMapType is { } typeMap) {
+        // A map type's Domain type is required to support equality (just like the argument type for sets and multisets), but
+        // it is optional for the map type's Range type to support equality. Thus, we need to determine the equality support for just the Range type.
+        DetermineEqualitySupportType(typeMap.Range, ref thingsChanged);
+      } else if (type.AsSeqType is { } typeSeq) {
+        // Like the Range type of a map, it is optional for a sequence type's argument type to support equality. So, we make a call
+        // to determine it.  
+        DetermineEqualitySupportType(typeSeq.Arg, ref thingsChanged);
       }
     }
 
@@ -3172,7 +3180,7 @@ namespace Microsoft.Dafny {
     }
 
     public Expression VarDotMethod(IOrigin tok, string varname, string methodname) {
-      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<ActualBinding>(), Token.NoToken);
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<ActualBinding>(), tok);
     }
 
     public Expression makeTemp(String prefix, AssignOrReturnStmt s, ResolutionContext resolutionContext, Expression ex) {
@@ -3351,7 +3359,7 @@ namespace Microsoft.Dafny {
     }
 
     internal Expression VarDotFunction(IOrigin tok, string varname, string functionname) {
-      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<ActualBinding>(), Token.NoToken);
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<ActualBinding>(), tok);
     }
 
     // TODO search for occurrences of "new LetExpr" which could benefit from this helper

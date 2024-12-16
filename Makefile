@@ -30,17 +30,16 @@ boogie: ${DIR}/boogie/Binaries/Boogie.exe
 tests:
 	(cd "${DIR}"; dotnet test Source/IntegrationTests)
 
-# make test name=<part of the path of an integration test>
+# make test name=<integration test filter>
+# make test name=<integration test filter> update=true                to update the test
+# make test name=<integration test filter>              build=false   don't build the solution
 test:
-	(cd "${DIR}"; [ -z "${name}" ] && echo "Syntax: make test name=<integration test filter>" && exit 1; dotnet test Source/IntegrationTests --filter "DisplayName~${name}")
+	@DIR="$(DIR)" name="$(name)" update="$(update)" build="$(build)" bash scripts/test.sh
 
 # Run Dafny on an integration test case directly in the folder itself.
-# make test-run name=<part of the path> action="run ..."
+# make test-dafny name=<part of the path> action="run ..." [build=false]
 test-dafny:
-	@name="$(name)" DIR="$(DIR)" action="$(action)" bash scripts/test-dafny.sh
-
-test-dafny-nobuild:
-	@name="$(name)" DIR="$(DIR)" action="$(action)" NO_BUILD="true" bash scripts/test-dafny.sh
+	@name="$(name)" DIR="$(DIR)" action="$(action)" NO_BUILD=$$( [ "${build}" = "false" ] && echo "true" || echo "false" ) bash scripts/test-dafny.sh
 
 tests-verbose:
 	(cd "${DIR}"; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )
