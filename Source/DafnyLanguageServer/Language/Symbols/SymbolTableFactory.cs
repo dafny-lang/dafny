@@ -310,8 +310,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           moduleSymbol,
-          moduleSymbol.Declaration.Tok,
-          moduleSymbol.Declaration.Tok.GetLspRange(),
+          moduleSymbol.Declaration.Origin,
+          moduleSymbol.Declaration.NavigationToken.GetLspRange(),
           moduleSymbol.Declaration.Origin.ToLspRange()
         );
         VisitChildren(moduleSymbol);
@@ -330,8 +330,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           typeSymbol,
-          typeSymbol.Declaration.Tok,
-          typeSymbol.Declaration.Tok.GetLspRange(),
+          typeSymbol.Declaration.Origin,
+          typeSymbol.Declaration.NavigationToken.GetLspRange(),
           new Range(typeSymbol.Declaration.Origin.StartToken.GetLspPosition(), typeSymbol.Declaration.Origin.EndToken.GetLspPosition())
         );
         VisitChildren(typeSymbol);
@@ -342,8 +342,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           valueTypeSymbol,
-          valueTypeSymbol.Declaration.Tok,
-          valueTypeSymbol.Declaration.Tok.GetLspRange(),
+          valueTypeSymbol.Declaration.Origin,
+          valueTypeSymbol.Declaration.NavigationToken.GetLspRange(),
           new Range(valueTypeSymbol.Declaration.Origin.StartToken.GetLspPosition(), valueTypeSymbol.Declaration.Origin.EndToken.GetLspPosition())
         );
         VisitChildren(valueTypeSymbol);
@@ -354,10 +354,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           fieldSymbol,
-          fieldSymbol.Declaration.Tok,
-          fieldSymbol.Declaration.Tok.GetLspRange(),
+          fieldSymbol.Declaration.Origin,
+          fieldSymbol.Declaration.NavigationToken.GetLspRange(),
           // BodyEndToken always returns Token.NoToken
-          fieldSymbol.Declaration.Tok.GetLspRange()
+          fieldSymbol.Declaration.Origin.GetLspRange()
         );
         VisitChildren(fieldSymbol);
         return Unit.Value;
@@ -367,8 +367,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           functionSymbol,
-          functionSymbol.Declaration.Tok,
-          functionSymbol.Declaration.Tok.GetLspRange(),
+          functionSymbol.Declaration.Origin,
+          functionSymbol.Declaration.NavigationToken.GetLspRange(),
           GetDeclarationRange(functionSymbol.Declaration)
         );
         VisitChildren(functionSymbol);
@@ -379,8 +379,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           methodSymbol,
-          methodSymbol.Declaration.Tok,
-          methodSymbol.Declaration.Tok.GetLspRange(),
+          methodSymbol.Declaration.Origin,
+          methodSymbol.Declaration.NavigationToken.GetLspRange(),
           GetDeclarationRange(methodSymbol.Declaration)
         );
         VisitChildren(methodSymbol);
@@ -398,7 +398,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         RegisterLocation(
           variableSymbol,
           variableSymbol.Declaration.Origin,
-          variableSymbol.Declaration.Origin.GetLspRange(),
+          variableSymbol.Declaration.NavigationToken.GetLspRange(),
           variableSymbol.Declaration.Origin.GetLspRange()
         );
         VisitChildren(variableSymbol);

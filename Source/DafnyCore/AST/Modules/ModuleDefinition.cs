@@ -408,7 +408,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     return TopLevelDecls.All(decl => decl.IsEssentiallyEmpty());
   }
 
-  public IOrigin NavigationToken => Tok;
+  public IOrigin NavigationToken => NameNode.Origin;
   public override IEnumerable<INode> Children =>
     Attributes.AsEnumerable().
     Concat<Node>(DefaultClasses).

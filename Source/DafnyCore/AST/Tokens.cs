@@ -38,9 +38,10 @@ public class Token : IOrigin {
   public Uri Uri { get; set; }
   public Token StartToken => this;
   public Token EndToken => this;
+
   public Token Center {
     get => this;
-    set => throw new InvalidOperationException();
+    set {} // TODO remove when Token no longer inherits from IOrigin 
   }
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos

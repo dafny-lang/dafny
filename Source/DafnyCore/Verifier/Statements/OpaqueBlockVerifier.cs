@@ -47,8 +47,8 @@ public static class OpaqueBlockVerifier {
       var context = new OpaqueBlockContext(codeContext, block);
       if (context is IMethodCodeContext methodCodeContext) {
         generator.CheckFrameSubset(
-          block.Tok, block.Modifies.Expressions,
-          null, null, etran, etran.ModifiesFrame(block.Tok), blockBuilder, new ModifyFrameSubset(
+          block.Origin, block.Modifies.Expressions,
+          null, null, etran, etran.ModifiesFrame(block.Origin), blockBuilder, new ModifyFrameSubset(
             "opaque block",
             block.Modifies.Expressions,
             methodCodeContext.Modifies.Expressions
@@ -56,7 +56,7 @@ public static class OpaqueBlockVerifier {
       }
     }
 
-    generator.PathAsideBlock(block.Tok, blockBuilder, builder);
+    generator.PathAsideBlock(block.Origin, blockBuilder, builder);
     builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(v => new BoogieIdentifierExpr(v.Origin, v.UniqueName)).ToList()));
 
     if (hasModifiesClause) {
@@ -74,7 +74,7 @@ public static class OpaqueBlockVerifier {
     BoogieGenerator.ExpressionTranslator bodyTranslator;
     if (hasModifiesClause) {
       string modifyFrameName = BoogieGenerator.FrameVariablePrefix + generator.CurrentIdGenerator.FreshId("opaque#");
-      generator.DefineFrame(block.Tok, etran.ModifiesFrame(block.Tok), block.Modifies.Expressions, blockBuilder, locals, modifyFrameName);
+      generator.DefineFrame(block.Origin, etran.ModifiesFrame(block.Origin), block.Modifies.Expressions, blockBuilder, locals, modifyFrameName);
       bodyTranslator = etran.WithModifiesFrame(modifyFrameName);
     } else {
       bodyTranslator = etran;
