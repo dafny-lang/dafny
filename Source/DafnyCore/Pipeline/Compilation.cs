@@ -183,7 +183,7 @@ public class Compilation : IDisposable {
       }
 
       // For now the standard libraries are still translated from scratch.
-      // This breaks separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
+      // This creates issues with separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
       var asLibrary = !Options.Get(CommonOptionBag.TranslateStandardLibrary);
 
       if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {

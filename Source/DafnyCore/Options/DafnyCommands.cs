@@ -59,7 +59,8 @@ public static class DafnyCommands {
     CommonOptionBag.AddCompileSuffix,
     CommonOptionBag.SystemModule,
     IExecutableBackend.TranslationRecords,
-    ModuleDefinition.LegacyModuleNames
+    ModuleDefinition.LegacyModuleNames,
+    CommonOptionBag.TranslateStandardLibrary,
   }.Concat(VerificationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ExecutionOptions = new Option[] {
@@ -102,7 +103,6 @@ public static class DafnyCommands {
     CommonOptionBag.NewTypeInferenceDebug,
     Method.ReadsClausesOnMethods,
     CommonOptionBag.UseStandardLibraries,
-    CommonOptionBag.TranslateStandardLibrary,
     CommonOptionBag.LogLevelOption,
     CommonOptionBag.LogLocation
   });

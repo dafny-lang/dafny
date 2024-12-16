@@ -367,9 +367,7 @@ Change the default opacity of functions.
   };
 
   public static readonly Option<bool> TranslateStandardLibrary = new("--translate-standard-library", () => true,
-    @"Currently Dafny does not prevent separately built Dafny projects from each including the standard library,
-leading to conflicts. When combining such projects, please ensure that only one of them has --translate-standard-library set to true.
-When building a Dafny library (.doo file), this option will automatically be set to false. 
+    @"When translating Dafny code to another language, Dafny will, for now, include the standard library as if these were source files. This causes conflicts when multiple such translated projects are combined. When combining such projects, please ensure that only one of them has --translate-standard-library set to true.
 ");
 
   public static readonly Option<bool> UseStandardLibraries = new("--standard-libraries", () => false,

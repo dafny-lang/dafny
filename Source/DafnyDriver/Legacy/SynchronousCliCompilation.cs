@@ -202,7 +202,7 @@ namespace Microsoft.Dafny {
         }
 
         // For now the standard libraries are still translated from scratch.
-        // This breaks separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
+        // This creates issues with separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
         var asLibrary = !options.Get(CommonOptionBag.TranslateStandardLibrary);
 
         var reporter = new ConsoleErrorReporter(options);
