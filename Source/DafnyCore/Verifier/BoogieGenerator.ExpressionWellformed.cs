@@ -1684,7 +1684,7 @@ namespace Microsoft.Dafny {
         //                nw[i0,i1,i2,...] == init.requires(i0,i1,i2,...));
         var dafnyInitApplication = new ApplyExpr(tok, init,
           bvs.ConvertAll(indexBv => (Expression)new BoogieWrapper(new Bpl.IdentifierExpr(indexBv.tok, indexBv), Type.Int)).ToList(),
-          tok) {
+          Token.NoToken) {
           Type = sourceType.Result
         };
         var canCall = etran.CanCallAssumption(dafnyInitApplication);

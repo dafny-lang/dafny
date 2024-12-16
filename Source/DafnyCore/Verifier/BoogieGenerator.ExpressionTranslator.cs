@@ -2250,14 +2250,14 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
           var dafnyInitApplication = new ApplyExpr(e.tok, e.Initializer,
             new List<Expression>() { new BoogieWrapper(index, Type.Int) },
-            e.tok) {
+            Token.NoToken) {
             Type = e.Initializer.Type.AsArrowType.Result
           };
           var canCall = CanCallAssumption(dafnyInitApplication);
 
           dafnyInitApplication = new ApplyExpr(e.tok, new BoogieWrapper(initF, e.Initializer.Type),
             new List<Expression>() { new BoogieWrapper(index, Type.Int) },
-            e.tok) {
+            Token.NoToken) {
             Type = e.Initializer.Type.AsArrowType.Result
           };
           var apply = TrExpr(dafnyInitApplication);
