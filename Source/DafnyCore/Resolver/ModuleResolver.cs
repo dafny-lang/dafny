@@ -2861,11 +2861,7 @@ namespace Microsoft.Dafny {
             return;  // we are done
           }
           foreach (var arg in ctor.Formals) {
-            var anotherIndDt = arg.Type.AsIndDatatype;
-            if (arg.IsGhost ||
-                (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
-                arg.Type.IsCoDatatype ||
-                arg.Type.IsArrowType) {
+            if (arg.IsGhost || SurelyNeverSupportEquality(arg.Type)) {
               // arg.Type is known never to support equality
               MarkSCCAsNotSupportingEquality();
               return;  // we are done
@@ -2924,7 +2920,21 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static void DetermineEqualitySupportType(Type type, ref bool thingsChanged) {
+    // If returns true, the given type never supports equality
+    // If return false, then the type must support equality if type parameters support equality
+    // It is unsound for a type to make this function return false when there is no type parameter
+    // assignment that amkes this type support equality
+    public static bool SurelyNeverSupportEquality(Type type) {
+      type = type.Normalize();
+      return
+        type.AsNewtype is { EqualitySupport: IndDatatypeDecl.ES.Never } ||
+        type.AsIndDatatype is { EqualitySupport: IndDatatypeDecl.ES.Never } ||
+        type.IsCoDatatype || type.IsArrowType ||
+        type.AsSeqType is { Arg: var argType } && SurelyNeverSupportEquality(argType) ||
+        type.AsMapType is { Range: var rangeType } && SurelyNeverSupportEquality(rangeType);
+    }
+
+    public static void DetermineEqualitySupportType(Type type, ref bool thingsChanged) {
       if (type.AsTypeParameter is { } typeArg) {
         typeArg.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
         thingsChanged = true;
