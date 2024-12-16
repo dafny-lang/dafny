@@ -105,7 +105,7 @@ Send notifications about the verification status of each line in the program.
                 member.Tok.Filepath,
                 member.Tok.Uri,
                 verificationTreeRange,
-                member.Tok.GetLspPosition(),
+                member.NavigationToken.GetLspPosition(),
                 Attributes.Contains(member.Attributes, "only"));
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {

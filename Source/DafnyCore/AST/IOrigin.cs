@@ -22,7 +22,7 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
   }
 
   public string ActualFilename => Uri.LocalPath;
-  string Filepath => Uri.LocalPath;
+  string Filepath => Uri?.LocalPath;
 
   Uri Uri { get; set; }
 

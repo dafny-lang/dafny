@@ -1,16 +1,34 @@
 #nullable enable
 using System;
 using System.Text;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class SourceOrigin : OriginWrapper {
-  public override Token StartToken { get; }
+public class SourceOrigin : IOrigin {
+  public Uri Uri {
+    get => Center.Uri;
+    set => throw new InvalidOperationException();
+  }
 
-  public override Token EndToken => endToken ?? StartToken;
+  public Token StartToken { get; }
 
-  public override bool InclusiveEnd => endToken != null;
-  public override bool IncludesRange => true;
+  public Token EndToken => endToken ?? StartToken;
+
+  public bool IsInherited(ModuleDefinition m) {
+    return false;
+  }
+
+  public bool InclusiveEnd => endToken != null;
+  public bool IncludesRange => true;
+
+  public int CompareTo(IToken? other) {
+    throw new NotImplementedException();
+  }
+
+  public int CompareTo(IOrigin? other) {
+    throw new NotImplementedException();
+  }
 
   public override bool Equals(object? obj) {
     if (obj is SourceOrigin other) {
@@ -23,7 +41,7 @@ public class SourceOrigin : OriginWrapper {
     return HashCode.Combine(StartToken.GetHashCode(), EndToken.GetHashCode());
   }
 
-  public SourceOrigin(Token startToken, Token? endToken, Token? center = null) : base(center ?? startToken) {
+  public SourceOrigin(Token startToken, Token? endToken, Token? center = null) {
     this.endToken = endToken;
     StartToken = startToken;
     Center = center ?? startToken;
@@ -51,11 +69,43 @@ public class SourceOrigin : OriginWrapper {
   public static IOrigin NoToken => Token.NoToken;
   private readonly Token? endToken;
 
-  public override Token Center { get; set; }
+  public Token Center { get; set; }
+  public string TrailingTrivia { get; set; }
+  public string LeadingTrivia { get; set; }
+  public Token Next { get; set; }
+  public Token Prev { get; set; }
 
-  public override IOrigin WithVal(string newVal) {
+  public IOrigin WithVal(string newVal) {
     throw new NotImplementedException();
   }
 
-  public override bool IsSourceToken => !ReferenceEquals(this, NoToken);
+  public bool IsCopy => false;
+
+  public bool IsSourceToken => !ReferenceEquals(this, NoToken);
+  public int kind {
+    get => Center.kind;
+    set => throw new NotImplementedException();
+  }
+
+  public int pos {
+    get => Center.pos;
+    set => throw new NotImplementedException();
+  }
+
+  public int col {
+    get => Center.col;
+    set => throw new NotImplementedException();
+  }
+
+  public int line {
+    get => Center.line;
+    set => throw new NotImplementedException();
+  }
+
+  public string val {
+    get => Center.val;
+    set => throw new InvalidOperationException();
+  }
+  
+  public bool IsValid => true;
 }
