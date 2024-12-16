@@ -112,6 +112,6 @@ public class SourceOrigin : IOrigin {
     get => Center.val;
     set => throw new InvalidOperationException();
   }
-  
+
   public bool IsValid => true;
 }
