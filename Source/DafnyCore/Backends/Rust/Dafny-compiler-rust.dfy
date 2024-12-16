@@ -94,7 +94,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var optExtern: ExternAttribute := ExtractExternMod(mod);
         var attributes := [];
         if HasAttribute(mod.attributes, "rust_cfg_test") {
-          attributes := [R.RawAttribute("#[cfg(test)]")];
+          attributes := [R.Attribute.CfgTest];
         }
         var body, allmodules := GenModuleBody(mod, mod.body.value, containingPath + [Ident.Ident(innerName)]);
         if optExtern.SimpleExtern? {
@@ -491,7 +491,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.TopFnDecl(
                 R.TopFn(
                   m.docString,
-                  [R.RawAttribute("#[test]")], R.PUB,
+                  [R.Attribute.Name("test")], R.PUB,
                   R.Fn(
                     fnName, [], [], None,
                     Some(R.Identifier("_default").FSel(fnName).Apply([])))
@@ -773,23 +773,38 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var newtypeName := escapeName(c.name);
       var resultingType := R.TypeApp(R.TIdentifier(newtypeName), rTypeParams);
       var attributes: string;
+      var deriveTraits := ["Clone"];
       if IsNewtypeCopy(c.range) {
-        attributes := "#[derive(Clone, PartialEq, Copy)]";
-      } else {
-        attributes := "#[derive(Clone, PartialEq)]";
+        deriveTraits := deriveTraits + ["Copy"];
       }
       s := [
         R.StructDecl(
           R.Struct(
             c.docString,
             [
-              R.RawAttribute(attributes),
-              R.RawAttribute("#[repr(transparent)]")
+              R.ApplyAttribute("derive", deriveTraits),
+              R.ApplyAttribute("repr", ["transparent"])
             ],
             newtypeName,
             rTypeParamsDecls,
             R.NamelessFields([R.NamelessField(R.PUB, wrappedType)])
           ))];
+      if c.equalitySupport.Always? || c.equalitySupport.ConsultTypeArguments? {
+        var consultTypeArguments := c.equalitySupport.ConsultTypeArguments?;
+        var eqImplBody :=
+          R.self.Sel("0").Equals(R.Identifier("other").Sel("0"));
+        var hashImplBody :=
+          hash_function.Apply([R.self.Sel("0"), R.Identifier("_state")]);
+        var impls := GenEqHashImpls(
+          c.typeParams,
+          rTypeParamsDecls,
+          rTypeParams,
+          consultTypeArguments,
+          resultingType,
+          eqImplBody,
+          hashImplBody);
+        s := s + impls;
+      }
 
       var fnBody;
 
@@ -969,63 +984,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    // Figure out if the type is always extending Eq
-    predicate TypeIsEq(t: Type, typeParametersSupportingEquality: set<Ident>)
-      decreases t
-    {
-      match t
-      case UserDefined(ResolvedType(_, _, SynonymType(tpe), _, _, _)) => TypeIsEq(tpe, typeParametersSupportingEquality)
-      case UserDefined(ResolvedType(_, _, Class(), _, _, _)) => true
-      case UserDefined(ResolvedType(_, _, Trait(GeneralTrait), _, _, _)) => false
-      case UserDefined(ResolvedType(_, _, Trait(ObjectTrait), _, _, _)) => true
-      case UserDefined(ResolvedType(_, _, Newtype(tpe, _, _), _, _, _)) => TypeIsEq(tpe, typeParametersSupportingEquality)
-      case UserDefined(ResolvedType(_, typeParams, Datatype(equalitySupport, tps), _, _, _)) =>
-        !equalitySupport.Never? && 
-        (equalitySupport.Always? ||
-         (&& equalitySupport.ConsultTypeArguments?
-          && |tps| == |typeParams|
-          && forall i | 0 <= i < |tps| ::
-               (tps[i].necessaryForEqualitySupportOfSurroundingInductiveDatatype ==> TypeIsEq(typeParams[i], typeParametersSupportingEquality))))
-      case Tuple(ts) => forall t <- ts :: TypeIsEq(t, typeParametersSupportingEquality)
-      case Array(t, _) => true // Reference equality
-      case Seq(t) => TypeIsEq(t, typeParametersSupportingEquality)
-      case Set(t) => true
-      case Multiset(t) => true
-      case Map(k, v) => TypeIsEq(v, typeParametersSupportingEquality)
-      case SetBuilder(t) => true // Irrelevant
-      case MapBuilder(k, v) => TypeIsEq(v, typeParametersSupportingEquality) // Irrelevant
-      case Arrow(_, _) => false
-      case Primitive(_) => true
-      case Passthrough(_) => true // should be Rust primitive types
-      case TypeArg(i) => i in typeParametersSupportingEquality // i(==) is asserted at the point of use by the verifier
-      case Object() => true
-    }
-
-    function Combine(s: seq<Option<set<Ident>>>): Option<set<Ident>> {
-      if |s| == 0 then Some({}) else
-      var idents :- s[|s|-1];
-      var remaining_idents :- Combine(s[0..|s|-1]);
-      Some(idents + remaining_idents)
-    } by method {
-      if |s| == 0 {
-        return Some({});
-      }
-      var result := {};
-      for i := 0 to |s|
-        invariant Some(result) == Combine(s[0..i]) 
-      {
-        if s[i].None? {
-          return None;
-        }
-        result := result + s[i].value;
-      }
-      return Some(result);
-    }
-
-    predicate DatatypeIsEq(c: Datatype, typeParametersSupportingEquality: set<Ident>) {
-      !c.isCo && forall ctor <- c.ctors, arg <- ctor.args :: TypeIsEq(arg.formal.typ, typeParametersSupportingEquality)
-    }
-
     function write(r: R.Expr, final: bool := false): R.Expr {
       var result :=
         R.Identifier("write!").Apply([
@@ -1039,6 +997,37 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     function writeStr(s: string, final: bool := false): R.Expr {
       write(R.LiteralString(s, binary := false, verbatim := false))
+    }
+
+    /** eqImplBody assumes the existence of borrowed "self" and borrowed "other" */
+    method GenEqHashImpls(
+      typeParamsDecls: seq<TypeArgDecl>,
+      rTypeParamsDecls: seq<R.TypeParamDecl>,
+      rTypeParams: seq<R.Type>,
+      consultTypeArguments: bool,
+      datatypeType: R.Type,
+      eqImplBody: R.Expr,
+      hashImplBody: R.Expr
+    ) returns (impls: seq<R.ModDecl>)
+      requires |typeParamsDecls| == |rTypeParamsDecls|
+    {
+      var rTypeParamsDeclsWithEq := rTypeParamsDecls;
+      var rTypeParamsDeclsWithHash := rTypeParamsDecls;
+      if consultTypeArguments {
+        for i := 0 to |rTypeParamsDecls| {
+          if typeParamsDecls[i].info.necessaryForEqualitySupportOfSurroundingInductiveDatatype {
+            rTypeParamsDeclsWithEq := rTypeParamsDeclsWithEq[i := rTypeParamsDeclsWithEq[i].AddConstraints([R.Eq, R.Hash])];
+            rTypeParamsDeclsWithHash := rTypeParamsDeclsWithHash[i := rTypeParamsDeclsWithHash[i].AddConstraints([R.Hash])];
+          }
+        }
+      }
+      impls := EqImpl(rTypeParamsDeclsWithEq, datatypeType, rTypeParams, eqImplBody);
+      // Implementation of Hash trait
+      impls := impls + [
+        HashImpl(
+          rTypeParamsDeclsWithHash,
+          datatypeType,
+          hashImplBody)];
     }
 
     method GenDatatype(c: Datatype, path: seq<Ident>) returns (s: seq<R.ModDecl>)
@@ -1236,9 +1225,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             )];
         }
       }
-      var typeParametersSupportingEquality: set<Ident> :=
-        set tp <- c.typeParams | SupportsEquality in tp.bounds :: tp.name;
-      var cIsAlwaysEq := DatatypeIsEq(c, typeParametersSupportingEquality);
+      var cIsAlwaysEq := c.equalitySupport.Always?;
       var datatypeType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
 
       // Derive PartialEq when c supports equality / derive Clone in all cases
@@ -1246,7 +1233,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         [R.EnumDecl(
            R.Enum(
              c.docString,
-             [R.RawAttribute("#[derive(Clone)]")],
+             [R.Attribute.DeriveClone],
              datatypeName,
              rTypeParamsDecls,
              ctors
@@ -1471,23 +1458,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
 
       if c.equalitySupport.Always? || c.equalitySupport.ConsultTypeArguments? {
-        var rTypeParamsDeclsWithEq := rTypeParamsDecls;
-        var rTypeParamsDeclsWithHash := rTypeParamsDecls;
-        if c.equalitySupport.ConsultTypeArguments? {
-          for i := 0 to |rTypeParamsDecls| {
-            if c.typeParams[i].info.necessaryForEqualitySupportOfSurroundingInductiveDatatype {
-              rTypeParamsDeclsWithEq := rTypeParamsDeclsWithEq[i := rTypeParamsDeclsWithEq[i].AddConstraints([R.Eq, R.Hash])];
-              rTypeParamsDeclsWithHash := rTypeParamsDeclsWithHash[i := rTypeParamsDeclsWithHash[i].AddConstraints([R.Hash])];
-            }
-          }
-        }
-        s := s + EqImpl(rTypeParamsDeclsWithEq, datatypeType, rTypeParams, eqImplBody);
-        // Implementation of Hash trait
-        s := s + [
-          HashImpl(
-            rTypeParamsDeclsWithHash,
-            datatypeType,
-            hashImplBody)];
+        var consultTypeArguments := c.equalitySupport.ConsultTypeArguments?;
+        var impls := GenEqHashImpls(
+          c.typeParams,
+          rTypeParamsDecls,
+          rTypeParams,
+          consultTypeArguments,
+          datatypeType,
+          eqImplBody,
+          hashImplBody);
+        s := s + impls;
       }
 
       if |c.ctors| > 0 {

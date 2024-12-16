@@ -392,10 +392,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       if (currentBuilder is DatatypeContainer builder) {
-        List<DAST.TypeArgDecl> typeParams = new();
-        foreach (var tp in dt.TypeArgs) {
-          typeParams.Add(GenTypeArgDecl(tp));
-        }
+        var typeParams = GenTypeParams(dt.TypeArgs);
 
         IEnumerable<DAST.DatatypeCtor> ctors =
           from ctor in dt.Ctors
@@ -438,6 +435,16 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
       }
+    }
+
+    private List<TypeArgDecl> GenTypeParams(List<TypeParameter> typePargs)
+    {
+      List<DAST.TypeArgDecl> typeParams = new();
+      foreach (var tp in typePargs) {
+        typeParams.Add(GenTypeArgDecl(tp));
+      }
+
+      return typeParams;
     }
 
     // Given a list of super traits implemented by a datatype,
@@ -501,9 +508,10 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           constraint = (Option<DAST.NewtypeConstraint>)Option<DAST.NewtypeConstraint>.create_None();
         }
+        var typeParams = GenTypeParams(nt.TypeArgs);
 
         return new ClassWriter(this, false, builder.Newtype(
-          nt.GetCompileName(Options), new(),
+          nt.GetCompileName(Options), typeParams,
           GenType(nt.BaseType), NativeTypeToNewtypeRange(nt, false),
             constraint, witnessStmts, witness, ParseAttributes(nt.Attributes), GetDocString(nt)));
       } else {

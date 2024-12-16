@@ -443,11 +443,31 @@ module RAST
       visibility.ToString() + fn.ToString(ind)
     }
   }
-  datatype Attribute = RawAttribute(content: string) {
+  datatype Attribute =
+    | ApplyAttribute(name: string, derived: seq<string>) {
+    static const DeriveClone :=
+      ApplyAttribute("derive", ["Clone"])
+    static const DeriveCloneAndCopy :=
+      ApplyAttribute("derive", ["Clone", "Copy"])
+    static const CfgTest :=
+      ApplyAttribute("cfg", ["test"])
+    static function Name(name: string): Attribute {
+      ApplyAttribute(name, [])
+    }
+    
+    function ToString(ind: string): string {
+      match this {
+        case ApplyAttribute(name, derived) =>
+          var arguments := if |derived| != 0 then
+            "("+SeqToString(derived, (derived: string) => derived)+")"
+            else "";
+          "#["+name+arguments+"]"
+      }
+    }
     static function ToStringMultiple(attributes: seq<Attribute>, ind: string): string {
       SeqToString(
         attributes,
-        (attribute: Attribute) => attribute.content + "\n" + ind)
+        (attribute: Attribute) => attribute.ToString(ind) + "\n" + ind)
     }
   }
 

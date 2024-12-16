@@ -272,13 +272,15 @@ module {:extern "DAST"} DAST {
     | NativeArrayIndex
     | BigInt
     | Bool
+    | Sequence
+    | Map
     | NoRange
   {
     predicate CanOverflow() {
       (U8? || I8? || U16? || I16? || U32? || I32? || U64? || I64? || U128? || I128?) && overflow
     }
     predicate HasArithmeticOperations() {
-      !Bool?// To change when newtypes will have sequences and sets as ranges.
+      !Bool? && !Map? && !Sequence?
     }
   }
 
@@ -379,7 +381,9 @@ module {:extern "DAST"} DAST {
       docString: string,
       typeParams: seq<TypeArgDecl>, base: Type,
       range: NewtypeRange, constraint: Option<NewtypeConstraint>,
-      witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>,
+      witnessStmts: seq<Statement>, witnessExpr: Option<Expression>,
+      equalitySupport: EqualitySupport,
+      attributes: seq<Attribute>,
       classItems: seq<ClassItem>)
 
   datatype NewtypeConstraint = NewtypeConstraint(variable: Formal, constraintStmts: seq<Statement>)
