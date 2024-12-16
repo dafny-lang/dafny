@@ -414,7 +414,7 @@ public class MatchFlattener : IRewriter {
     var cloner = new Cloner(false, true);
     if (bodyContainer.Node is Statement statement) {
       var body = UnboxStmt(statement).Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
-      newMatchCase = new MatchCaseStmt(tok.ToRange(), ctor, fromBoundVar, freshPatBV, body, bodyContainer.Attributes);
+      newMatchCase = new MatchCaseStmt(tok, ctor, fromBoundVar, freshPatBV, body, bodyContainer.Attributes);
     } else {
       var body = (Expression)(bodyContainer.Node);
       var attrs = bodyContainer.Attributes;
@@ -533,7 +533,7 @@ public class MatchFlattener : IRewriter {
     blocks = blocks.Skip(1).ToList();
 
     var tok = matchee.Tok;
-    var range = matchee.Tok.ToRange();
+    var range = matchee.Tok;
     var guard = new BinaryExpr(mti.Match.Tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1) {
       ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon,
       Type = Type.Bool
@@ -584,7 +584,7 @@ public class MatchFlattener : IRewriter {
 
   private CaseBody PackBody(IOrigin tok, PatternPath path) {
     if (path is StmtPatternPath br) {
-      return new CaseBody(tok, new BlockStmt(tok.ToRange(), br.Body.ToList()), br.Attributes);
+      return new CaseBody(tok, new BlockStmt(tok, br.Body.ToList()), br.Attributes);
     }
 
     if (path is ExprPatternPath) {
@@ -602,7 +602,7 @@ public class MatchFlattener : IRewriter {
     return new List<Statement>() { statement };
   }
 
-  private BlockStmt BlockStmtOfCStmt(RangeToken rangeOrigin, Statement stmt) {
+  private BlockStmt BlockStmtOfCStmt(IOrigin rangeOrigin, Statement stmt) {
     if (stmt is BlockStmt) {
       return (BlockStmt)stmt;
     }

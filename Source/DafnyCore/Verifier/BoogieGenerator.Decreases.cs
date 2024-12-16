@@ -62,7 +62,7 @@ public partial class BoogieGenerator {
     var caller = new List<Expr>();
     var oldExpressions = new List<Expression>();
     var newExpressions = new List<Expression>();
-    if (RefinementOrigin.IsInherited(tok, currentModule) && contextDecreases.All(e => !RefinementOrigin.IsInherited(e.tok, currentModule))) {
+    if (tok.IsInherited(currentModule) && contextDecreases.All(e => !e.tok.IsInherited(currentModule))) {
       // the call site is inherited but all the context decreases expressions are new
       tok = new ForceCheckOrigin(tok);
     }

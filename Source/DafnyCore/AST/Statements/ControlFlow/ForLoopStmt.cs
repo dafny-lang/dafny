@@ -20,7 +20,7 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
     GoingUp = original.GoingUp;
   }
 
-  public ForLoopStmt(RangeToken rangeOrigin, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
+  public ForLoopStmt(IOrigin rangeOrigin, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt /*?*/ body, Attributes attrs)
     : base(rangeOrigin, invariants, decreases, mod, body, attrs) {

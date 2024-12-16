@@ -21,7 +21,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     }
   }
 
-  protected OneBodyLoopStmt(RangeToken rangeOrigin,
+  protected OneBodyLoopStmt(IOrigin rangeOrigin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt /*?*/ body, Attributes/*?*/ attrs)
     : base(rangeOrigin, invariants, decreases, mod, attrs) {

@@ -55,12 +55,12 @@ public static class ErrorReporterExtensions {
   public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IOrigin token, string? message, bool usingSnippets) {
     var (tokenForMessage, inner, newMessage) = token is NestedOrigin nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
     var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
-    if (!usingSnippets && dafnyToken is RangeToken rangeToken) {
+    if (!usingSnippets && dafnyToken.IncludesRange) {
       if (message == PostConditionFailingMessage) {
-        var postcondition = rangeToken.PrintOriginal();
+        var postcondition = dafnyToken.PrintOriginal();
         message = $"this postcondition might not hold: {postcondition}";
       } else if (message == null || message == RelatedLocationMessage) {
-        message = FormatRelated(rangeToken.PrintOriginal());
+        message = FormatRelated(dafnyToken.PrintOriginal());
       }
     }
 

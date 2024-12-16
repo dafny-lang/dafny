@@ -42,7 +42,7 @@ abstract class ExtremeCloner : Cloner {
     foreach (var arg in e.Bindings.ArgumentBindings) {
       args.Add(CloneActualBinding(arg));
     }
-    var apply = new ApplySuffix(Origin(e.tok), e.AtTok == null ? null : Origin(e.AtTok), lhs, args, Origin(e.CloseParen));
+    var apply = new ApplySuffix(Origin(e.tok), e.AtTok == null ? null : Origin(e.AtTok), lhs, args, e.CloseParen);
     reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
     return apply;
   }
