@@ -510,10 +510,12 @@ namespace Microsoft.Dafny.Compilers {
         }
         var typeParams = GenTypeParams(nt.TypeArgs);
 
+        var equalitySupport = GenEqualitySupport(nt);
+
         return new ClassWriter(this, false, builder.Newtype(
           nt.GetCompileName(Options), typeParams,
           GenType(nt.BaseType), NativeTypeToNewtypeRange(nt, false),
-            constraint, witnessStmts, witness, ParseAttributes(nt.Attributes), GetDocString(nt)));
+            constraint, witnessStmts, witness, ParseAttributes(nt.Attributes), GetDocString(nt), equalitySupport));
       } else {
         throw new InvalidOperationException();
       }
@@ -1873,9 +1875,11 @@ namespace Microsoft.Dafny.Compilers {
         NativeType.Selection.UDoubleLong => NewtypeRange.create_U128(overflows),
         NativeType.Selection.DoubleLong => NewtypeRange.create_I128(overflows),
         _ =>
-          EraseNewtypeLayers(newtypeDecl) is BoolType
-            ? NewtypeRange.create_Bool()
-          : NewtypeRange.create_NoRange()
+          EraseNewtypeLayers(newtypeDecl) is { } resType ? 
+            resType is BoolType ? NewtypeRange.create_Bool() :
+              resType is MapType ? NewtypeRange.create_Map() :
+                resType is SeqType ? NewtypeRange.create_Sequence()
+              :NewtypeRange.create_NoRange() : NewtypeRange.create_NoRange()
       });
     }
 
@@ -1983,15 +1987,17 @@ namespace Microsoft.Dafny.Compilers {
       return baseType;
     }
 
-    private static _IEqualitySupport GenEqualitySupport(DatatypeDecl dd)
-    {
-      return dd is IndDatatypeDecl indDecl ?
-        indDecl.EqualitySupport == IndDatatypeDecl.ES.Never ?
-          EqualitySupport.create_Never() :
-          indDecl.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments ?
-            EqualitySupport.create_ConsultTypeArguments() :
-            EqualitySupport.create_Never() :
-        EqualitySupport.create_Never();
+    private static _IEqualitySupport GenEqualitySupport(Declaration decl) {
+      Contract.Requires(decl is IndDatatypeDecl or NewtypeDecl);
+      IndDatatypeDecl.ES equalitySupport =
+        decl is IndDatatypeDecl indDecl ? indDecl.EqualitySupport :
+        decl is NewtypeDecl nt ? nt.EqualitySupport : IndDatatypeDecl.ES.Never;
+      
+      return equalitySupport switch {
+        IndDatatypeDecl.ES.Never => EqualitySupport.create_Never(),
+        IndDatatypeDecl.ES.ConsultTypeArguments => EqualitySupport.create_ConsultTypeArguments(),
+        _ => throw new InvalidOperationException()
+      };
     }
 
     private static Type EraseNewtypeLayers(TopLevelDecl topLevel) {

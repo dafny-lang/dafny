@@ -242,7 +242,7 @@ namespace DafnyCompilerRustUtils {
         }
       } else {
         Dafny.ISequence<Dafny.Rune> _1_enclosingModule = (containingPath).Select(BigInteger.Zero);
-        return DafnyCompilerRustUtils.SeqMap<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule>.Single(_1_enclosingModule, DafnyCompilerRustUtils.GatheringModule.create_GatheringModule(RAST.Mod.create_Mod(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), _1_enclosingModule, Dafny.Sequence<RAST._IModDecl>.FromElements()), DafnyCompilerRustUtils.GatheringModule.Wrap((containingPath).Drop(BigInteger.One), rawDecl)));
+        return DafnyCompilerRustUtils.SeqMap<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule>.Single(_1_enclosingModule, DafnyCompilerRustUtils.GatheringModule.create_GatheringModule(RAST.Mod.create_Mod(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Dafny.Sequence<RAST._IAttribute>.FromElements(), _1_enclosingModule, Dafny.Sequence<RAST._IModDecl>.FromElements()), DafnyCompilerRustUtils.GatheringModule.Wrap((containingPath).Drop(BigInteger.One), rawDecl)));
       }
     }
     public RAST._IMod ToRust() {

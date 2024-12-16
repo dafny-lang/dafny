@@ -28,7 +28,7 @@ if [ "$build_flag" = "false" ]; then
   output_dir="${framework_dir}/TestFiles/LitTests/LitTest"
 
   # Find and copy all matching files to the output directory
-  files=$(cd "$lit_tests_dir" && find . -type f -wholename "*$name*")
+  files=$(cd "$lit_tests_dir" && find . -type f -regex '.*\.\(check\|dfy\|expect\)' -wholename "*$name*")
   if [ -z "$files" ]; then
     echo "No files found matching pattern: $name"
     exit 1
@@ -40,7 +40,7 @@ if [ "$build_flag" = "false" ]; then
   # Copy files
   echo "$files" | while IFS= read -r file; do
     echo "Copying $file to $output_dir"
-    cp "$lit_tests_dir/$file" "$output_dir/"
+    cp "$lit_tests_dir/$file" "$output_dir/$file"
   done
 fi
 

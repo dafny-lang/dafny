@@ -228,10 +228,11 @@ namespace Microsoft.Dafny.Compilers {
   interface NewtypeContainer : Container {
     void AddNewtype(Newtype item);
 
-    public NewtypeBuilder Newtype(string name, List<DAST.TypeArgDecl> typeParams,
-      DAST.Type baseType, NewtypeRange newtypeRange, Option<DAST.NewtypeConstraint> constraint, List<DAST.Statement> witnessStmts, DAST.Expression witness,
-      ISequence<_IAttribute> attributes, string docString) {
-      return new NewtypeBuilder(this, name, typeParams, newtypeRange, baseType, constraint, witnessStmts, witness, attributes, docString);
+    public NewtypeBuilder Newtype(string name, List<TypeArgDecl> typeParams,
+      DAST.Type baseType, NewtypeRange newtypeRange, Option<NewtypeConstraint> constraint,
+      List<DAST.Statement> witnessStmts, DAST.Expression witness,
+      ISequence<_IAttribute> attributes, string docString, _IEqualitySupport equalitySupport) {
+      return new NewtypeBuilder(this, name, typeParams, newtypeRange, baseType, constraint, witnessStmts, witness, attributes, docString, equalitySupport);
     }
   }
 
@@ -247,11 +248,12 @@ namespace Microsoft.Dafny.Compilers {
     private ISequence<_IAttribute> attributes;
     private readonly List<DAST._IMethod> methods;
     private string docString;
+    private _IEqualitySupport equalitySupport;
 
     public NewtypeBuilder(NewtypeContainer parent, string name, List<TypeArgDecl> typeParams,
       NewtypeRange newtypeRange, DAST.Type baseType, Option<DAST.NewtypeConstraint> constraint, List<DAST.Statement> statements,
       DAST.Expression witness,
-      ISequence<_IAttribute> attributes, string docString) {
+      ISequence<_IAttribute> attributes, string docString, _IEqualitySupport equalitySupport) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
@@ -262,6 +264,7 @@ namespace Microsoft.Dafny.Compilers {
       this.witness = witness;
       this.attributes = attributes;
       this.docString = docString;
+      this.equalitySupport = equalitySupport;
       this.methods = new();
     }
 
@@ -285,6 +288,7 @@ namespace Microsoft.Dafny.Compilers {
         this.witness == null
           ? Option<DAST._IExpression>.create_None()
           : Option<DAST._IExpression>.create_Some(this.witness),
+        equalitySupport,
         attributes,
         Sequence<DAST._IMethod>.FromArray(methods.ToArray())
       ));
