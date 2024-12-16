@@ -1669,7 +1669,7 @@ namespace Microsoft.Dafny {
         if (cycleErrorHasBeenReported.Contains(r)) {
           // An error has already been reported for this cycle, so don't report another.
           // Note, the representative, "r", may itself not be a const.
-        } else if (dd is SubsetTypeDecl or NewtypeDecl) {
+        } else if (dd is NewtypeDecl or SubsetTypeDecl) {
           ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
           cycleErrorHasBeenReported.Add(r);
         }
@@ -2923,7 +2923,7 @@ namespace Microsoft.Dafny {
     // If returns true, the given type never supports equality
     // If return false, then the type must support equality if type parameters support equality
     // It is unsound for a type to make this function return false when there is no type parameter
-    // assignment that amkes this type support equality
+    // assignment that makes this type support equality
     public static bool SurelyNeverSupportEquality(Type type) {
       type = type.Normalize();
       return
