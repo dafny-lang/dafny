@@ -186,7 +186,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         base.Visit(expressionDotName);
         if (typeResolver.TryGetTypeSymbol(expressionDotName.Lhs, out var leftHandSideType)) {
-          RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.tok, expressionDotName.SuffixName);
+          RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.Center, expressionDotName.SuffixName);
         }
       }
 
@@ -232,7 +232,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       private void RegisterDesignator(ILegacySymbol scope, AstElement node, Boogie.IToken token, string identifier) {
         var symbol = GetSymbolDeclarationByName(scope, identifier);
         if (symbol != null) {
-          if (token == Token.NoToken) {
+          if (ReferenceEquals(token, Token.NoToken)) {
             return;
           }
           // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializating a variable

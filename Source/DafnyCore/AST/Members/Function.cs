@@ -512,8 +512,8 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     if (tentativeTrivia != "") {
       return tentativeTrivia;
     }
-    tentativeTrivia = ResultType.EndToken.Next.LeadingTrivia.Trim();
-    if (tentativeTrivia != "") {
+    tentativeTrivia = ResultType.EndToken.Next?.LeadingTrivia.Trim();
+    if (!string.IsNullOrEmpty(tentativeTrivia)) {
       return tentativeTrivia;
     }
 
