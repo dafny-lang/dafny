@@ -2722,7 +2722,6 @@ namespace DAST {
 
   public interface _IEqualitySupport {
     bool is_Never { get; }
-    bool is_Always { get; }
     bool is_ConsultTypeArguments { get; }
     _IEqualitySupport DowncastClone();
   }
@@ -2740,19 +2739,14 @@ namespace DAST {
     public static _IEqualitySupport create_Never() {
       return new EqualitySupport_Never();
     }
-    public static _IEqualitySupport create_Always() {
-      return new EqualitySupport_Always();
-    }
     public static _IEqualitySupport create_ConsultTypeArguments() {
       return new EqualitySupport_ConsultTypeArguments();
     }
     public bool is_Never { get { return this is EqualitySupport_Never; } }
-    public bool is_Always { get { return this is EqualitySupport_Always; } }
     public bool is_ConsultTypeArguments { get { return this is EqualitySupport_ConsultTypeArguments; } }
     public static System.Collections.Generic.IEnumerable<_IEqualitySupport> AllSingletonConstructors {
       get {
         yield return EqualitySupport.create_Never();
-        yield return EqualitySupport.create_Always();
         yield return EqualitySupport.create_ConsultTypeArguments();
       }
     }
@@ -2779,27 +2773,6 @@ namespace DAST {
       return s;
     }
   }
-  public class EqualitySupport_Always : EqualitySupport {
-    public EqualitySupport_Always() : base() {
-    }
-    public override _IEqualitySupport DowncastClone() {
-      if (this is _IEqualitySupport dt) { return dt; }
-      return new EqualitySupport_Always();
-    }
-    public override bool Equals(object other) {
-      var oth = other as DAST.EqualitySupport_Always;
-      return oth != null;
-    }
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
-    }
-    public override string ToString() {
-      string s = "DAST.EqualitySupport.Always";
-      return s;
-    }
-  }
   public class EqualitySupport_ConsultTypeArguments : EqualitySupport {
     public EqualitySupport_ConsultTypeArguments() : base() {
     }
@@ -2813,7 +2786,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 2;
+      hash = ((hash << 5) + hash) + 1;
       return (int) hash;
     }
     public override string ToString() {
@@ -7076,6 +7049,8 @@ namespace DAST {
     DAST._IExpression dtor_elem { get; }
     Dafny.ISequence<DAST._IExpression> dtor_elements { get; }
     Dafny.ISequence<_System._ITuple2<DAST._IExpression, DAST._IExpression>> dtor_mapElems { get; }
+    DAST._IType dtor_domainType { get; }
+    DAST._IType dtor_rangeType { get; }
     DAST._IType dtor_keyType { get; }
     DAST._IType dtor_valueType { get; }
     DAST._IExpression dtor_expr { get; }
@@ -7188,8 +7163,8 @@ namespace DAST {
     public static _IExpression create_MultisetValue(Dafny.ISequence<DAST._IExpression> elements) {
       return new Expression_MultisetValue(elements);
     }
-    public static _IExpression create_MapValue(Dafny.ISequence<_System._ITuple2<DAST._IExpression, DAST._IExpression>> mapElems) {
-      return new Expression_MapValue(mapElems);
+    public static _IExpression create_MapValue(Dafny.ISequence<_System._ITuple2<DAST._IExpression, DAST._IExpression>> mapElems, DAST._IType domainType, DAST._IType rangeType) {
+      return new Expression_MapValue(mapElems, domainType, rangeType);
     }
     public static _IExpression create_MapBuilder(DAST._IType keyType, DAST._IType valueType) {
       return new Expression_MapBuilder(keyType, valueType);
@@ -7483,6 +7458,18 @@ namespace DAST {
       get {
         var d = this;
         return ((Expression_MapValue)d)._mapElems;
+      }
+    }
+    public DAST._IType dtor_domainType {
+      get {
+        var d = this;
+        return ((Expression_MapValue)d)._domainType;
+      }
+    }
+    public DAST._IType dtor_rangeType {
+      get {
+        var d = this;
+        return ((Expression_MapValue)d)._rangeType;
       }
     }
     public DAST._IType dtor_keyType {
@@ -8306,27 +8293,37 @@ namespace DAST {
   }
   public class Expression_MapValue : Expression {
     public readonly Dafny.ISequence<_System._ITuple2<DAST._IExpression, DAST._IExpression>> _mapElems;
-    public Expression_MapValue(Dafny.ISequence<_System._ITuple2<DAST._IExpression, DAST._IExpression>> mapElems) : base() {
+    public readonly DAST._IType _domainType;
+    public readonly DAST._IType _rangeType;
+    public Expression_MapValue(Dafny.ISequence<_System._ITuple2<DAST._IExpression, DAST._IExpression>> mapElems, DAST._IType domainType, DAST._IType rangeType) : base() {
       this._mapElems = mapElems;
+      this._domainType = domainType;
+      this._rangeType = rangeType;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_MapValue(_mapElems);
+      return new Expression_MapValue(_mapElems, _domainType, _rangeType);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_MapValue;
-      return oth != null && object.Equals(this._mapElems, oth._mapElems);
+      return oth != null && object.Equals(this._mapElems, oth._mapElems) && object.Equals(this._domainType, oth._domainType) && object.Equals(this._rangeType, oth._rangeType);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 15;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._mapElems));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._domainType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._rangeType));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.MapValue";
       s += "(";
       s += Dafny.Helpers.ToString(this._mapElems);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._domainType);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._rangeType);
       s += ")";
       return s;
     }

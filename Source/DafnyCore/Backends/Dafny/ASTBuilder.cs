@@ -1486,7 +1486,7 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<object> args = new();
     List<ISequence<Rune>> outs = null;
 
-    public  _ICallSignature Signature { get; }
+    public _ICallSignature Signature { get; }
 
     public CallExprBuilder(_ICallSignature signature) {
       Signature = signature;

@@ -370,8 +370,7 @@ namespace Microsoft.Dafny.Compilers {
       return canDowncast;
     }
 
-    private static bool IsCompatibleWith(Type type, TypeParameter typeParameter)
-    {
+    private static bool IsCompatibleWith(Type type, TypeParameter typeParameter) {
       return (typeParameter.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified ||
              type.SupportsEquality) && typeParameter.TypeBounds.TrueForAll(t => type.IsSubtypeOf(t, false, true));
     }
@@ -437,8 +436,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private List<TypeArgDecl> GenTypeParams(List<TypeParameter> typePargs)
-    {
+    private List<TypeArgDecl> GenTypeParams(List<TypeParameter> typePargs) {
       List<DAST.TypeArgDecl> typeParams = new();
       foreach (var tp in typePargs) {
         typeParams.Add(GenTypeArgDecl(tp));
@@ -508,10 +506,8 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           constraint = (Option<DAST.NewtypeConstraint>)Option<DAST.NewtypeConstraint>.create_None();
         }
-        var typeParams = GenTypeParams(nt.TypeArgs);
-
         var equalitySupport = GenEqualitySupport(nt);
-
+        var typeParams = GenTypeParams(nt.TypeArgs);
         return new ClassWriter(this, false, builder.Newtype(
           nt.GetCompileName(Options), typeParams,
           GenType(nt.BaseType), NativeTypeToNewtypeRange(nt, false),
@@ -1159,7 +1155,7 @@ namespace Microsoft.Dafny.Compilers {
         if (s.Method == enclosingMethod && enclosingMethod.IsTailRecursive) {
           base.TrCallStmt(s, receiverReplacement, wr, wrStmts, wrStmtsAfterCall);
         } else {
-          var signature = GetCallSignature(s.Method);;
+          var signature = GetCallSignature(s.Method); ;
           var callBuilder = stmtContainer.Builder.Call(signature);
           base.TrCallStmt(s, receiverReplacement, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), wrStmts, wrStmtsAfterCall);
         }
@@ -1195,15 +1191,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private _ICallSignature GetCallSignature(MethodOrFunction method)
-    {
+    private _ICallSignature GetCallSignature(MethodOrFunction method) {
       var parameters = GetParameters(method, out var inheritedParameters, out _);
       var signature = DAST.CallSignature.create_CallSignature(parameters, inheritedParameters);
       return signature;
     }
 
-    private Sequence<DAST.Formal> GetParameters(MethodOrFunction method, out Sequence<DAST.Formal> inheritedParameters, out MemberDecl inheritedMethod)
-    {
+    private Sequence<DAST.Formal> GetParameters(MethodOrFunction method, out Sequence<DAST.Formal> inheritedParameters, out MemberDecl inheritedMethod) {
       var parameters = GenFormals(method.Ins);
       inheritedMethod = GetTopMostOverriddenMemberDeclIfDifferent(method);
       var oldThisContext = thisContext;
@@ -1212,7 +1206,7 @@ namespace Microsoft.Dafny.Compilers {
       thisContext = oldThisContext;
       return parameters;
     }
-    
+
     protected override ConcreteSyntaxTree StartCall(Function f, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<ExprContainer> exprContainer) {
         var signature = GetCallSignature(f);
@@ -1875,11 +1869,11 @@ namespace Microsoft.Dafny.Compilers {
         NativeType.Selection.UDoubleLong => NewtypeRange.create_U128(overflows),
         NativeType.Selection.DoubleLong => NewtypeRange.create_I128(overflows),
         _ =>
-          EraseNewtypeLayers(newtypeDecl) is { } resType ? 
+          EraseNewtypeLayers(newtypeDecl) is { } resType ?
             resType is BoolType ? NewtypeRange.create_Bool() :
               resType is MapType ? NewtypeRange.create_Map() :
                 resType is SeqType ? NewtypeRange.create_Sequence()
-              :NewtypeRange.create_NoRange() : NewtypeRange.create_NoRange()
+              : NewtypeRange.create_NoRange() : NewtypeRange.create_NoRange()
       });
     }
 
@@ -1957,12 +1951,12 @@ namespace Microsoft.Dafny.Compilers {
 
       if (topLevel is NewtypeDecl newType) {
         var range = NativeTypeToNewtypeRange(newType, false);
-        var newtypeBase = newType.BaseType;
+        var newtypeBase = newType.RhsWithArgument(typeArgs);
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Newtype(
           GenType(newtypeBase), range, erasedIfNewtype);
       } else if (topLevel is TypeSynonymDecl typeSynonym) { // Also SubsetTypeDecl
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_SynonymType(
-          GenType(typeSynonym.Rhs.Subst(typeSynonym.TypeArgs.Zip(typeArgs).ToDictionary(kv => kv.Item1, kv => kv.Item2)).NormalizeExpand()));
+          GenType(typeSynonym.RhsWithArgument(typeArgs)));
       } else if (topLevel is TraitDecl traitDecl) {
         var traitType = traitDecl.IsReferenceTypeDecl
           ? TraitType.create_ObjectTrait()
@@ -1992,7 +1986,7 @@ namespace Microsoft.Dafny.Compilers {
       IndDatatypeDecl.ES equalitySupport =
         decl is IndDatatypeDecl indDecl ? indDecl.EqualitySupport :
         decl is NewtypeDecl nt ? nt.EqualitySupport : IndDatatypeDecl.ES.Never;
-      
+
       return equalitySupport switch {
         IndDatatypeDecl.ES.Never => EqualitySupport.create_Never(),
         IndDatatypeDecl.ES.ConsultTypeArguments => EqualitySupport.create_ConsultTypeArguments(),
@@ -3226,7 +3220,8 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_MapValue(
-          Sequence<_System.Tuple2<DAST.Expression, DAST.Expression>>.FromArray(elementsAST.ToArray())
+          Sequence<_System.Tuple2<DAST.Expression, DAST.Expression>>.FromArray(elementsAST.ToArray()),
+          GenType(mt.Domain), GenType(mt.Range)
         ));
       } else {
         throw new InvalidOperationException();
@@ -3290,8 +3285,7 @@ namespace Microsoft.Dafny.Compilers {
       //throw new InvalidOperationException();
     }
 
-    private static _ICallSignature CreateSignature(ISequence<_IFormal> params_)
-    {
+    private static _ICallSignature CreateSignature(ISequence<_IFormal> params_) {
       return CallSignature.create_CallSignature(params_, params_);
     }
 

@@ -295,7 +295,7 @@ module {:extern "DAST"} DAST {
   datatype TypeParameterInfo =
     TypeParameterInfo(variance: Variance, necessaryForEqualitySupportOfSurroundingInductiveDatatype: bool)
   
-  datatype EqualitySupport = Never | Always | ConsultTypeArguments
+  datatype EqualitySupport = Never | ConsultTypeArguments
 
   datatype ResolvedTypeBase =
     | Class()
@@ -495,7 +495,7 @@ module {:extern "DAST"} DAST {
     SeqValue(elements: seq<Expression>, typ: Type) |
     SetValue(elements: seq<Expression>) |
     MultisetValue(elements: seq<Expression>) |
-    MapValue(mapElems: seq<(Expression, Expression)>) |
+    MapValue(mapElems: seq<(Expression, Expression)>, domainType: Type, rangeType: Type) |
     MapBuilder(keyType: Type, valueType: Type) |
     SeqUpdate(expr: Expression, indexExpr: Expression, value: Expression) |
     MapUpdate(expr: Expression, indexExpr: Expression, value: Expression) |

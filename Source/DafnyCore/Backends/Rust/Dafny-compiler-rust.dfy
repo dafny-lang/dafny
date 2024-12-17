@@ -789,17 +789,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             rTypeParamsDecls,
             R.NamelessFields([R.NamelessField(R.PUB, wrappedType)])
           ))];
-      if c.equalitySupport.Always? || c.equalitySupport.ConsultTypeArguments? {
-        var consultTypeArguments := c.equalitySupport.ConsultTypeArguments?;
+      if c.equalitySupport.ConsultTypeArguments? {
         var eqImplBody :=
           R.self.Sel("0").Equals(R.Identifier("other").Sel("0"));
         var hashImplBody :=
-          hash_function.Apply([R.self.Sel("0"), R.Identifier("_state")]);
+          hash_function.Apply([R.Borrow(R.self.Sel("0")), R.Identifier("_state")]);
         var impls := GenEqHashImpls(
           c.typeParams,
           rTypeParamsDecls,
           rTypeParams,
-          consultTypeArguments,
           resultingType,
           eqImplBody,
           hashImplBody);
@@ -906,15 +904,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                      R.Block(
                        //"The newtype is marked as transparent",
                        R.std.MSel("mem").MSel("transmute").AsExpr().Apply1(R.Identifier("o")))))))]))];
-      var rTypeParamsDeclsWithHash := R.TypeParamDecl.AddConstraintsMultiple(
-        rTypeParamsDecls, [R.Hash]
-      );
-      s := s + [
-        HashImpl(
-          rTypeParamsDeclsWithHash,
-          resultingType,
-          hash_function.Apply([R.Borrow(R.Identifier("self").Sel("0")), R.Identifier("_state")])
-        )];
       if c.range.HasArithmeticOperations() {
         s := s + [
           OpsImpl('+', rTypeParamsDecls, resultingType, newtypeName),
@@ -1004,7 +993,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       typeParamsDecls: seq<TypeArgDecl>,
       rTypeParamsDecls: seq<R.TypeParamDecl>,
       rTypeParams: seq<R.Type>,
-      consultTypeArguments: bool,
       datatypeType: R.Type,
       eqImplBody: R.Expr,
       hashImplBody: R.Expr
@@ -1013,12 +1001,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     {
       var rTypeParamsDeclsWithEq := rTypeParamsDecls;
       var rTypeParamsDeclsWithHash := rTypeParamsDecls;
-      if consultTypeArguments {
-        for i := 0 to |rTypeParamsDecls| {
-          if typeParamsDecls[i].info.necessaryForEqualitySupportOfSurroundingInductiveDatatype {
-            rTypeParamsDeclsWithEq := rTypeParamsDeclsWithEq[i := rTypeParamsDeclsWithEq[i].AddConstraints([R.Eq, R.Hash])];
-            rTypeParamsDeclsWithHash := rTypeParamsDeclsWithHash[i := rTypeParamsDeclsWithHash[i].AddConstraints([R.Hash])];
-          }
+      for i := 0 to |rTypeParamsDecls| {
+        if typeParamsDecls[i].info.necessaryForEqualitySupportOfSurroundingInductiveDatatype {
+          rTypeParamsDeclsWithEq := rTypeParamsDeclsWithEq[i := rTypeParamsDeclsWithEq[i].AddConstraints([R.Eq, R.Hash])];
+          rTypeParamsDeclsWithHash := rTypeParamsDeclsWithHash[i := rTypeParamsDeclsWithHash[i].AddConstraints([R.Hash])];
         }
       }
       impls := EqImpl(rTypeParamsDeclsWithEq, datatypeType, rTypeParams, eqImplBody);
@@ -1225,7 +1211,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             )];
         }
       }
-      var cIsAlwaysEq := c.equalitySupport.Always?;
+      var cIsAlwaysEq := c.equalitySupport.ConsultTypeArguments? &&
+        forall t <- c.typeParams :: !t.info.necessaryForEqualitySupportOfSurroundingInductiveDatatype;
       var datatypeType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
 
       // Derive PartialEq when c supports equality / derive Clone in all cases
@@ -1457,13 +1444,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           SingletonsImpl(rTypeParamsDecls, datatypeType, instantiationType, singletonConstructors)];
       }
 
-      if c.equalitySupport.Always? || c.equalitySupport.ConsultTypeArguments? {
-        var consultTypeArguments := c.equalitySupport.ConsultTypeArguments?;
+      if c.equalitySupport.ConsultTypeArguments? {
         var impls := GenEqHashImpls(
           c.typeParams,
           rTypeParamsDecls,
           rTypeParams,
-          consultTypeArguments,
           datatypeType,
           eqImplBody,
           hashImplBody);
@@ -3199,7 +3184,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
         }
       } else {
-        r := Error("Source and/or target types of type test is/are not Object, Ptr, General trait or Datatype");
+        r := Error("Source and/or target types is/are not Object, Ptr, General trait or Datatype");
         r, resultingOwnership := FromOwned(r, expectedOwnership);
         return;
       }
@@ -3722,29 +3707,32 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
-        case MapValue(mapElems) => {
+        case MapValue(mapElems, rangeType, domainType) => {
           var generatedValues := [];
           readIdents := {};
-          var i := 0;
-          while i < |mapElems| {
+          for i := 0 to |mapElems| {
             var recursiveGenKey, _, recIdentsKey := GenExpr(mapElems[i].0, selfIdent, env, OwnershipOwned);
             var recursiveGenValue, _, recIdentsValue := GenExpr(mapElems[i].1, selfIdent, env, OwnershipOwned);
 
             generatedValues := generatedValues + [(recursiveGenKey, recursiveGenValue)];
             readIdents := readIdents + recIdentsKey + recIdentsValue;
-            i := i + 1;
           }
 
-          i := 0;
           var arguments := [];
-          while i < |generatedValues| {
+          for i := 0 to |generatedValues| {
             var genKey := generatedValues[i].0;
             var genValue := generatedValues[i].1;
 
             arguments := arguments + [R.BinaryOp("=>", genKey, genValue, DAST.Format.BinaryOpFormat.NoFormat())];
-            i := i + 1;
           }
           r := R.dafny_runtime.MSel("map!").AsExpr().Apply(arguments);
+          if |generatedValues| == 0 { // Rust cannot infer the type
+            var rangeTpe := GenType(rangeType, GenTypeContext.default());
+            var domainTpe := GenType(domainType, GenTypeContext.default());
+            r := R.TypeAscription(
+              r, R.dafny_runtime.MSel("Map").AsType().Apply([rangeTpe, domainTpe])
+            );
+          }
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
