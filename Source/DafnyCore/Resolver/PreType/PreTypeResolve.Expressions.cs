@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
                 var charPreType = CreatePreTypeProxy($"character in string literal");
                 Constraints.AddDefaultAdvice(charPreType, CommonAdvice.Target.Char);
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InCharFamily, charPreType, e.tok, "character literal used as if it had type {0}");
-                ResolveCollectionProducingExpr(PreType.TypeNameSeq, $"string literal \"{e.Value}\"", e, charPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily);
+                ResolveCollectionProducingExprKind(PreType.TypeNameSeq, $"string literal \"{e.Value}\"", e, charPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily);
               } else {
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
               }
@@ -767,7 +767,11 @@ namespace Microsoft.Dafny {
 
     private void ResolveCollectionProducingExpr(string typeName, string exprKindSuffix, Expression expr, PreType elementPreType,
       PreTypeConstraints.CommonConfirmationBag confirmationFamily) {
-      var exprKind = $"{typeName} {exprKindSuffix}";
+      ResolveCollectionProducingExprKind(typeName, $"{typeName} {exprKindSuffix}", expr, elementPreType, confirmationFamily);
+    }
+
+    private void ResolveCollectionProducingExprKind(string typeName, string exprKind, Expression expr, PreType elementPreType,
+      PreTypeConstraints.CommonConfirmationBag confirmationFamily) {
       SetupCollectionProducingExpr(typeName, exprKind, expr, elementPreType);
       AddConfirmation(confirmationFamily, expr.PreType, expr.tok, $"{exprKind} used as if it had type {{0}}");
     }
