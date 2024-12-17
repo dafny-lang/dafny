@@ -40,9 +40,9 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     this.IsRefining = isRefining;
     
     // TODO cleanup
-    if (Origin.Center != NameNode.Center) {
-      throw new Exception("Fail early");
-    }
+    // if (Origin.Center != NameNode.Center) {
+    //   throw new Exception("Fail early");
+    // }
   }
 
   public bool HasAxiomAttribute =>
