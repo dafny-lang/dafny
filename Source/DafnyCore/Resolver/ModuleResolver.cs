@@ -2923,9 +2923,9 @@ namespace Microsoft.Dafny {
     public static bool SurelyNeverSupportEqualityTypeParameters(IndDatatypeDecl.ES equalitySupport, List<TypeParameter> typeParams, List<Type> typeArgs) {
       return
         equalitySupport == IndDatatypeDecl.ES.Never ||
-        equalitySupport == IndDatatypeDecl.ES.ConsultTypeArguments &&
-        typeArgs.Zip(typeParams).Any(tt =>
-        tt.Item2.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && SurelyNeverSupportEquality(tt.Item1));
+        (equalitySupport == IndDatatypeDecl.ES.ConsultTypeArguments &&
+         typeArgs.Zip(typeParams).Any(tt =>
+           tt.Item2.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && SurelyNeverSupportEquality(tt.Item1)));
     }
 
     // If returns true, the given type never supports equality
