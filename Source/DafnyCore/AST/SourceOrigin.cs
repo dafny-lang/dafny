@@ -79,10 +79,25 @@ public class SourceOrigin : IOrigin {
     get;
     set;
   }
-  public string TrailingTrivia { get; set; }
-  public string LeadingTrivia { get; set; }
-  public Token Next { get; set; }
-  public Token Prev { get; set; }
+  public string TrailingTrivia {
+    get => Center.TrailingTrivia;
+    set => throw new InvalidOperationException();
+  }
+
+  public string LeadingTrivia {
+    get => Center.LeadingTrivia;
+    set => throw new InvalidOperationException();
+  }
+
+  public Token Next {
+    get => Center.Next;
+    set => throw new InvalidOperationException();
+  }
+
+  public Token Prev {
+    get => Center.Prev;
+    set => throw new InvalidOperationException();
+  }
 
   public IOrigin WithVal(string newVal) {
     throw new NotImplementedException();
