@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
                 var charPreType = CreatePreTypeProxy($"character in string literal");
                 Constraints.AddDefaultAdvice(charPreType, CommonAdvice.Target.Char);
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InCharFamily, charPreType, e.tok, "character literal used as if it had type {0}");
-                ResolveCollectionProducingExprKind(PreType.TypeNameSeq, $"string literal \"{e.Value}\"", e, charPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily);
+                ResolveCollectionProducingExpr(PreType.TypeNameSeq, $"string literal \"{e.Value}\"", e, charPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily, true);
               } else {
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
               }
@@ -766,13 +766,9 @@ namespace Microsoft.Dafny {
     }
 
     private void ResolveCollectionProducingExpr(string typeName, string exprKindSuffix, Expression expr, PreType elementPreType,
-      PreTypeConstraints.CommonConfirmationBag confirmationFamily) {
-      ResolveCollectionProducingExprKind(typeName, $"{typeName} {exprKindSuffix}", expr, elementPreType, confirmationFamily);
-    }
-
-    private void ResolveCollectionProducingExprKind(string typeName, string exprKind, Expression expr, PreType elementPreType,
-      PreTypeConstraints.CommonConfirmationBag confirmationFamily) {
-      SetupCollectionProducingExpr(typeName, exprKind, expr, elementPreType);
+      PreTypeConstraints.CommonConfirmationBag confirmationFamily, bool isStringType = false) {
+      var exprKind = isStringType ? exprKindSuffix : $"{typeName} {exprKindSuffix}";
+      SetupCollectionProducingExpr(typeName, isStringType, exprKind, expr, elementPreType);
       AddConfirmation(confirmationFamily, expr.PreType, expr.tok, $"{exprKind} used as if it had type {{0}}");
     }
 
@@ -782,15 +778,16 @@ namespace Microsoft.Dafny {
         finite ? PreTypeConstraints.CommonConfirmationBag.InMapFamily : PreTypeConstraints.CommonConfirmationBag.InImapFamily;
       var exprKind = $"{typeName} {exprKindSuffix}";
 
-      SetupCollectionProducingExpr(typeName, exprKind, expr, keyPreType, valuePreType);
+      SetupCollectionProducingExpr(typeName, false, exprKind, expr, keyPreType, valuePreType);
       AddConfirmation(confirmationFamily, expr.PreType, expr.tok, $"{exprKind} used as if it had type {{0}}");
     }
 
-    private void SetupCollectionProducingExpr(string typeName, string exprKind, Expression expr, PreType elementPreType, PreType valuePreType = null) {
+    private void SetupCollectionProducingExpr(string typeName, bool isStringType, string exprKind, Expression expr, PreType elementPreType, PreType valuePreType = null) {
       expr.PreType = CreatePreTypeProxy(exprKind);
 
       var arguments = valuePreType == null ? new List<PreType>() { elementPreType } : new List<PreType>() { elementPreType, valuePreType };
-      var defaultType = new DPreType(BuiltInTypeDecl(typeName), arguments);
+      var defaultType = new DPreType(BuiltInTypeDecl(typeName), arguments,
+        isStringType ? new DPreType(BuiltInTypeDecl(PreType.TypeNameString), new List<PreType>()) : null);
       Constraints.AddDefaultAdvice(expr.PreType, defaultType);
 
       Constraints.AddGuardedConstraint(() => {
@@ -2215,7 +2212,7 @@ namespace Microsoft.Dafny {
 
     void ResolveRangeSelectionExpr(IOrigin tok, PreType sourceCollectionPreType, Expression expr, Expression e0, Expression e1) {
       var resultElementPreType = CreatePreTypeProxy("index-range selection elements");
-      SetupCollectionProducingExpr(PreType.TypeNameSeq, "index-range selection", expr, resultElementPreType);
+      SetupCollectionProducingExpr(PreType.TypeNameSeq, false, "index-range selection", expr, resultElementPreType);
 
       if (e0 != null) {
         ConstrainToIntFamilyOrBitvector(e0.PreType, e0.tok,

@@ -40,6 +40,7 @@ namespace Microsoft.Dafny {
     public const string TypeNameImap = "imap";
     public const string TypeNameObjectQ = "object?";
     public const string TypeNameArray = "array";
+    public const string TypeNameString = "string";
 
     public static string SetTypeName(bool finite) => finite ? TypeNameSet : TypeNameIset;
     public static string MapTypeName(bool finite) => finite ? TypeNameMap : TypeNameImap;
