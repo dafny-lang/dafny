@@ -3398,7 +3398,6 @@ namespace Microsoft.Dafny {
       proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(tok, dafnyCondition));
       return ens;
     }
-    
     Bpl.Ensures FreeEnsures(IOrigin tok, Bpl.Expr condition, string comment, bool alwaysAssume = false) {
       var kv = alwaysAssume ? AlwaysAssumeAttribute(tok) : null;
       return Ensures(tok, true, null, condition, null, null, comment, kv);
@@ -3429,7 +3428,6 @@ namespace Microsoft.Dafny {
       proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(tok, dafnyCondition));
       return req;
     }
-    
     Bpl.Requires FreeRequires(IOrigin tok, Bpl.Expr bCondition, string comment, bool alwaysAssume = false) {
       var kv = alwaysAssume ? AlwaysAssumeAttribute(tok) : null;
       return Requires(tok, true, null, bCondition, null, null, comment, kv);
