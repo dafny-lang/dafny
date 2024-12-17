@@ -39,7 +39,6 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
     Contract.Requires(exports.Count == 0 || path.Path.Count == 1);
     TargetQId = path;
     Exports = exports;
-    rangeOrigin.Center = HasAlias ? NameNode.StartToken : StartToken;
   }
 
   public override ModuleDefinition Dereference() { return Signature.ModuleDef; }

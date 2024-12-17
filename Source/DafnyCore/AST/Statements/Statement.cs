@@ -37,7 +37,6 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   protected Statement(IOrigin rangeOrigin, Attributes attrs) : base(rangeOrigin) {
     this.Attributes = attrs;
-    Origin.Center = PostLabelToken ?? Origin.Center;
   }
 
   protected Statement(IOrigin rangeOrigin)

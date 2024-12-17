@@ -19,7 +19,6 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(expr != null);
     this.Message = message;
-    Origin.Center = StartToken == Expr.StartToken ? Expr.Center : Center;
   }
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions {

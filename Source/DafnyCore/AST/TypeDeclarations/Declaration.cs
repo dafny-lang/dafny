@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -37,7 +38,11 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     this.NameNode = name;
     this.Attributes = attributes;
     this.IsRefining = isRefining;
-    Origin.Center = NameNode.Center;
+    
+    // TODO cleanup
+    if (Origin.Center != NameNode.Center) {
+      throw new Exception("Fail early");
+    }
   }
 
   public bool HasAxiomAttribute =>

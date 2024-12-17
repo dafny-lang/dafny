@@ -42,8 +42,10 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     this.Lhs = lhs;
     this.MethodSelect = memSel;
     this.overrideToken = overrideToken;
+    
+    // TODO clean this up
     // OverrideToken is required because MethodSelect.EndToken can be incorrect. Will remove once resolved expressions have correct ranges.
-    Origin.Center = overrideToken ?? MethodSelect.EndToken.Next;
+    //Origin.Center = overrideToken ?? MethodSelect.EndToken.Next;
     this.Bindings = new ActualBindings(args);
   }
 

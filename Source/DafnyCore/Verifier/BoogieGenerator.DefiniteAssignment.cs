@@ -114,7 +114,7 @@ namespace Microsoft.Dafny {
           return new BoogieRangeOrigin(node.StartToken, node.EndToken, declarationOrUsage.NavigationToken);
         }
 
-        return new BoogieRangeOrigin(node.StartToken, node.EndToken, node.Origin);
+        return new BoogieRangeOrigin(node.StartToken, node.EndToken, node.Center);
       } else {
         // The commented line is what we want, but it changes what is translated.
         // Seems to relate to refinement and possibly RefinementToken.IsInherited and or ForceCheckToken

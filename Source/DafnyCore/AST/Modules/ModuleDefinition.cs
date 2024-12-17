@@ -171,7 +171,6 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     if (Name != "_System") {
       DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
     }
-    Origin.Center = NameNode.StartToken;
   }
 
   private VisibilityScope visibilityScope;
