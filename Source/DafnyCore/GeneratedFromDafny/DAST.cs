@@ -7055,6 +7055,8 @@ namespace DAST {
     DAST._IType dtor_valueType { get; }
     DAST._IExpression dtor_expr { get; }
     DAST._IExpression dtor_indexExpr { get; }
+    DAST._IType dtor_collectionType { get; }
+    DAST._IType dtor_exprType { get; }
     DAST._IType dtor_elemType { get; }
     DAST._IExpression dtor_ToMultiset_a0 { get; }
     DAST._IExpression dtor_cond { get; }
@@ -7066,7 +7068,6 @@ namespace DAST {
     DAST._IExpression dtor_left { get; }
     DAST._IExpression dtor_right { get; }
     DAST.Format._IBinaryOpFormat dtor_format2 { get; }
-    DAST._IType dtor_exprType { get; }
     BigInteger dtor_dim { get; }
     bool dtor_native { get; }
     Dafny.ISequence<Dafny.Rune> dtor_field { get; }
@@ -7169,11 +7170,11 @@ namespace DAST {
     public static _IExpression create_MapBuilder(DAST._IType keyType, DAST._IType valueType) {
       return new Expression_MapBuilder(keyType, valueType);
     }
-    public static _IExpression create_SeqUpdate(DAST._IExpression expr, DAST._IExpression indexExpr, DAST._IExpression @value) {
-      return new Expression_SeqUpdate(expr, indexExpr, @value);
+    public static _IExpression create_SeqUpdate(DAST._IExpression expr, DAST._IExpression indexExpr, DAST._IExpression @value, DAST._IType collectionType, DAST._IType exprType) {
+      return new Expression_SeqUpdate(expr, indexExpr, @value, collectionType, exprType);
     }
-    public static _IExpression create_MapUpdate(DAST._IExpression expr, DAST._IExpression indexExpr, DAST._IExpression @value) {
-      return new Expression_MapUpdate(expr, indexExpr, @value);
+    public static _IExpression create_MapUpdate(DAST._IExpression expr, DAST._IExpression indexExpr, DAST._IExpression @value, DAST._IType collectionType, DAST._IType exprType) {
+      return new Expression_MapUpdate(expr, indexExpr, @value, collectionType, exprType);
     }
     public static _IExpression create_SetBuilder(DAST._IType elemType) {
       return new Expression_SetBuilder(elemType);
@@ -7511,6 +7512,21 @@ namespace DAST {
         return ((Expression_MapUpdate)d)._indexExpr;
       }
     }
+    public DAST._IType dtor_collectionType {
+      get {
+        var d = this;
+        if (d is Expression_SeqUpdate) { return ((Expression_SeqUpdate)d)._collectionType; }
+        return ((Expression_MapUpdate)d)._collectionType;
+      }
+    }
+    public DAST._IType dtor_exprType {
+      get {
+        var d = this;
+        if (d is Expression_SeqUpdate) { return ((Expression_SeqUpdate)d)._exprType; }
+        if (d is Expression_MapUpdate) { return ((Expression_MapUpdate)d)._exprType; }
+        return ((Expression_ArrayLen)d)._exprType;
+      }
+    }
     public DAST._IType dtor_elemType {
       get {
         var d = this;
@@ -7577,12 +7593,6 @@ namespace DAST {
       get {
         var d = this;
         return ((Expression_BinOp)d)._format2;
-      }
-    }
-    public DAST._IType dtor_exprType {
-      get {
-        var d = this;
-        return ((Expression_ArrayLen)d)._exprType;
       }
     }
     public BigInteger dtor_dim {
@@ -8364,18 +8374,22 @@ namespace DAST {
     public readonly DAST._IExpression _expr;
     public readonly DAST._IExpression _indexExpr;
     public readonly DAST._IExpression _value;
-    public Expression_SeqUpdate(DAST._IExpression expr, DAST._IExpression indexExpr, DAST._IExpression @value) : base() {
+    public readonly DAST._IType _collectionType;
+    public readonly DAST._IType _exprType;
+    public Expression_SeqUpdate(DAST._IExpression expr, DAST._IExpression indexExpr, DAST._IExpression @value, DAST._IType collectionType, DAST._IType exprType) : base() {
       this._expr = expr;
       this._indexExpr = indexExpr;
       this._value = @value;
+      this._collectionType = collectionType;
+      this._exprType = exprType;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_SeqUpdate(_expr, _indexExpr, _value);
+      return new Expression_SeqUpdate(_expr, _indexExpr, _value, _collectionType, _exprType);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_SeqUpdate;
-      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._indexExpr, oth._indexExpr) && object.Equals(this._value, oth._value);
+      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._indexExpr, oth._indexExpr) && object.Equals(this._value, oth._value) && object.Equals(this._collectionType, oth._collectionType) && object.Equals(this._exprType, oth._exprType);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -8383,6 +8397,8 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._indexExpr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._collectionType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._exprType));
       return (int) hash;
     }
     public override string ToString() {
@@ -8393,6 +8409,10 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._indexExpr);
       s += ", ";
       s += Dafny.Helpers.ToString(this._value);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._collectionType);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._exprType);
       s += ")";
       return s;
     }
@@ -8401,18 +8421,22 @@ namespace DAST {
     public readonly DAST._IExpression _expr;
     public readonly DAST._IExpression _indexExpr;
     public readonly DAST._IExpression _value;
-    public Expression_MapUpdate(DAST._IExpression expr, DAST._IExpression indexExpr, DAST._IExpression @value) : base() {
+    public readonly DAST._IType _collectionType;
+    public readonly DAST._IType _exprType;
+    public Expression_MapUpdate(DAST._IExpression expr, DAST._IExpression indexExpr, DAST._IExpression @value, DAST._IType collectionType, DAST._IType exprType) : base() {
       this._expr = expr;
       this._indexExpr = indexExpr;
       this._value = @value;
+      this._collectionType = collectionType;
+      this._exprType = exprType;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_MapUpdate(_expr, _indexExpr, _value);
+      return new Expression_MapUpdate(_expr, _indexExpr, _value, _collectionType, _exprType);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_MapUpdate;
-      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._indexExpr, oth._indexExpr) && object.Equals(this._value, oth._value);
+      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._indexExpr, oth._indexExpr) && object.Equals(this._value, oth._value) && object.Equals(this._collectionType, oth._collectionType) && object.Equals(this._exprType, oth._exprType);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -8420,6 +8444,8 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._indexExpr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._collectionType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._exprType));
       return (int) hash;
     }
     public override string ToString() {
@@ -8430,6 +8456,10 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._indexExpr);
       s += ", ";
       s += Dafny.Helpers.ToString(this._value);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._collectionType);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._exprType);
       s += ")";
       return s;
     }

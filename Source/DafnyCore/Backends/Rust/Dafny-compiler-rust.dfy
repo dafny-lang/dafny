@@ -1385,7 +1385,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                       R.Block(partialEqRhs))
         ];
         coerceImplBodyCases := coerceImplBodyCases + [
-          R.MatchCase(R.RawPattern(datatypeName + "::" + ctorMatch),
+          R.MatchCase(R.RawPattern(datatypeName + "::" + pattern),
                       R.Block(coerceRhs))
         ];
       }
@@ -3184,7 +3184,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
         }
       } else {
-        r := Error("Source and/or target types is/are not Object, Ptr, General trait or Datatype");
+        r := Error("Conversion from " + fromTpeGen.ToString("") + " to " + toTpeGen.ToString("") + " not yet supported. Currently supported are Object, Ptr, General trait, Datatype or newtype");
         r, resultingOwnership := FromOwned(r, expectedOwnership);
         return;
       }
@@ -3736,21 +3736,25 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
-        case SeqUpdate(expr, index, value) => {
+        case SeqUpdate(expr, index, value, collectionType, exprType) => {
           var exprR, _, exprIdents := GenExpr(expr, selfIdent, env, OwnershipAutoBorrowed);
           var indexR, indexOwnership, indexIdents := GenExpr(index, selfIdent, env, OwnershipBorrowed);
           var valueR, valueOwnership, valueIdents := GenExpr(value, selfIdent, env, OwnershipBorrowed);
           r := exprR.Sel("update_index").Apply([indexR, valueR]);
-          r, resultingOwnership := FromOwned(r, expectedOwnership);
+          // if exprType is a newtype, autoderef will take care of calling this method
+          // However, we need to convert the result back to the newtype
+          r, resultingOwnership := GenExprConvertTo(r, OwnershipOwned, collectionType, exprType, env, expectedOwnership);
           readIdents := exprIdents + indexIdents + valueIdents;
           return;
         }
-        case MapUpdate(expr, index, value) => {
+        case MapUpdate(expr, index, value, collectionType, exprType) => {
           var exprR, _, exprIdents := GenExpr(expr, selfIdent, env, OwnershipAutoBorrowed);
           var indexR, indexOwnership, indexIdents := GenExpr(index, selfIdent, env, OwnershipBorrowed);
           var valueR, valueOwnership, valueIdents := GenExpr(value, selfIdent, env, OwnershipBorrowed);
           r := exprR.Sel("update_index").Apply([indexR, valueR]);
-          r, resultingOwnership := FromOwned(r, expectedOwnership);
+          // if exprType is a newtype, autoderef will take care of calling this method
+          // However, we need to convert the result back to the newtype
+          r, resultingOwnership := GenExprConvertTo(r, OwnershipOwned, collectionType, exprType, env, expectedOwnership);
           readIdents := exprIdents + indexIdents + valueIdents;
           return;
         }

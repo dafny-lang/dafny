@@ -2428,11 +2428,11 @@ namespace Microsoft.Dafny.Compilers {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         if (resultCollectionType.AsSeqType is { }) {
           builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_SeqUpdate(
-            convert(source), convert(index), convert(value)
+            convert(source), convert(index), convert(value), GenType(resultCollectionType), GenType(source.Type)
           ));
         } else if (resultCollectionType.AsMapType is { }) {
           builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_MapUpdate(
-            convert(source), convert(index), convert(value)
+            convert(source), convert(index), convert(value), GenType(resultCollectionType), GenType(source.Type)
           ));
         } else {
           AddUnsupported(source.tok, "<i>EmitIndexCollectionUpdate for " + resultCollectionType.ToString() + "</i>");

@@ -497,8 +497,8 @@ module {:extern "DAST"} DAST {
     MultisetValue(elements: seq<Expression>) |
     MapValue(mapElems: seq<(Expression, Expression)>, domainType: Type, rangeType: Type) |
     MapBuilder(keyType: Type, valueType: Type) |
-    SeqUpdate(expr: Expression, indexExpr: Expression, value: Expression) |
-    MapUpdate(expr: Expression, indexExpr: Expression, value: Expression) |
+    SeqUpdate(expr: Expression, indexExpr: Expression, value: Expression, collectionType: Type, exprType: Type) |
+    MapUpdate(expr: Expression, indexExpr: Expression, value: Expression, collectionType: Type, exprType: Type) |
     SetBuilder(elemType: Type) |
     ToMultiset(Expression) |
     This() |
