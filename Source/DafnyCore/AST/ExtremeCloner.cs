@@ -35,7 +35,7 @@ abstract class ExtremeCloner : Cloner {
     } else {
       var edn = (ExprDotName)e.Lhs;
       name = edn.SuffixName;
-      lhs = new ExprDotName(Origin(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
+      lhs = new ExprDotName(Origin(edn.tok), CloneExpr(edn.Lhs), new Name(name + "#"), edn.OptTypeArguments?.ConvertAll(CloneType));
     }
     var args = new List<ActualBinding>();
     args.Add(new ActualBinding(null, k));
@@ -59,7 +59,7 @@ abstract class ExtremeCloner : Cloner {
     foreach (var binding in e.Bindings.ArgumentBindings) {
       args.Add(CloneActualBinding(binding));
     }
-    var fexp = new FunctionCallExpr(Origin(e.tok), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
+    var fexp = new FunctionCallExpr(Origin(e.tok), e.NameNode.Append("#"), receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
     reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
     return fexp;
   }

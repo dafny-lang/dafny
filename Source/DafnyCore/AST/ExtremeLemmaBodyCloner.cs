@@ -69,7 +69,7 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
           lhsClone = new NameSegment(Origin(lhs.tok), lhs.Name + "#", lhs.OptTypeArguments?.ConvertAll(CloneType));
         } else {
           var lhs = (ExprDotName)apply.Lhs;
-          lhsClone = new ExprDotName(Origin(lhs.tok), CloneExpr(lhs.Lhs), lhs.SuffixName + "#", lhs.OptTypeArguments?.ConvertAll(CloneType));
+          lhsClone = new ExprDotName(Origin(lhs.tok), CloneExpr(lhs.Lhs), lhs.SuffixNameNode.Append("#"), lhs.OptTypeArguments?.ConvertAll(CloneType));
         }
 
         var args = new List<ActualBinding>();

@@ -188,5 +188,15 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     }
   }
 
-  public IEnumerable<ISymbol> ChildSymbols => ModuleDef.ChildSymbols;
+  public IEnumerable<ISymbol> ChildSymbols => ModuleDef.TopLevelDecls.SelectMany(decl => {
+    if (decl is DefaultClassDecl defaultClassDecl) {
+      return defaultClassDecl.Members;
+    }
+
+    if (decl is ISymbol symbol) {
+      return new[] { symbol };
+    }
+
+    return Enumerable.Empty<ISymbol>();
+  });
 }
