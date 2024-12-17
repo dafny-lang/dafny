@@ -22,7 +22,7 @@ internal class TriggersCollector {
 
   private T ReduceAnnotatedSubExpressions<T>(Expression expr, T seed, Func<TriggerAnnotation, T> map, Func<T, T, T> reduce) {
     return expr.SubExpressions.Select(e => map(Annotate(e)))
-      .Aggregate(seed, (acc, e) => reduce(acc, e));
+      .Aggregate(seed, reduce);
   }
 
   private List<TriggerTerm> CollectExportedCandidates(Expression expr) {
