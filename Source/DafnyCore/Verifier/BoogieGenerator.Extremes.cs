@@ -293,8 +293,8 @@ public partial class BoogieGenerator {
       substMap.Add(pp.K, kprime);
       Expression recursiveCallReceiver;
       List<Expression> recursiveCallArgs;
-      pp.RecursiveCallParameters(pp.tok, pp.TypeArgs, pp.Ins, null, substMap, out recursiveCallReceiver, out recursiveCallArgs);
-      var ppCall = new FunctionCallExpr(pp.tok, pp.Name, recursiveCallReceiver, pp.tok, Token.NoToken, recursiveCallArgs);
+      pp.RecursiveCallParameters(pp.Tok, pp.TypeArgs, pp.Ins, null, substMap, out recursiveCallReceiver, out recursiveCallArgs);
+      var ppCall = new FunctionCallExpr(pp.Tok, pp.NameNode, recursiveCallReceiver, pp.Tok, Token.NoToken, recursiveCallArgs);
       ppCall.Function = pp;
       ppCall.Type = Type.Bool;
       ppCall.TypeApplication_AtEnclosingClass = pp.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
