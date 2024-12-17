@@ -52,11 +52,10 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
     return expr.Resolved is IdentifierExpr identifierExpr && identifierExpr.Var == variable;
   }
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return Enumerable.Repeat(Var, 1);
+  public IEnumerable<Reference> GetReferences() {
+    return Enumerable.Repeat(new Reference(Tok, Var), 1);
   }
 
-  public IOrigin NavigationToken => tok;
   public override IEnumerable<INode> Children { get; } = Enumerable.Empty<Node>();
 }
 

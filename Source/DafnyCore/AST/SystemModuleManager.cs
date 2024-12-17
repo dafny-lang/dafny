@@ -302,7 +302,7 @@ public class SystemModuleManager {
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
         (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
-      var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, Token.NoToken, argExprs) {
+      var readsIS = new FunctionCallExpr(tok, new Name("reads"), new ImplicitThisExpr(tok), tok, Token.NoToken, argExprs) {
         Type = ObjectSetType(),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
@@ -378,7 +378,7 @@ public class SystemModuleManager {
       args.Add(new IdentifierExpr(tok, bv));
       bounds.Add(new SpecialAllocIndependenceAllocatedBoundedPool());
     }
-    var fn = new MemberSelectExpr(tok, f, member.Name) {
+    var fn = new MemberSelectExpr(tok, f, new Name(member.Name)) {
       Member = member,
       TypeApplicationAtEnclosingClass = f.Type.TypeArgs,
       TypeApplicationJustMember = new List<Type>(),
