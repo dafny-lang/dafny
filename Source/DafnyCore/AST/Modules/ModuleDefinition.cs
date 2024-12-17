@@ -27,7 +27,7 @@ public enum ImplementationKind {
 
 public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
-public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
+public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
 
   public static readonly Option<bool> LegacyModuleNames = new("--legacy-module-names",
     @"
@@ -1064,19 +1064,6 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   }
 
-  public IEnumerable<ISymbol> ChildSymbols => TopLevelDecls.SelectMany(decl => {
-    if (decl is DefaultClassDecl defaultClassDecl) {
-      return defaultClassDecl.Members.OfType<ISymbol>();
-    }
-
-    if (decl is ISymbol symbol) {
-      return new[] { symbol };
-    }
-
-    return Enumerable.Empty<ISymbol>();
-  });
-
-  public SymbolKind? Kind => SymbolKind.Namespace;
   public LiteralModuleDecl EnclosingLiteralModuleDecl { get; set; }
 
   public string GetDescription(DafnyOptions options) {
