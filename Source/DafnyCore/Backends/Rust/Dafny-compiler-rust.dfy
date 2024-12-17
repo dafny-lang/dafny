@@ -603,8 +603,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
       var parents: seq<R.Type> := [];
       var upcastImplemented: seq<R.ModDecl> := [];
-      var instantiatedFullType := R.Box(R.DynType(traitFullType)); // TODO: make the object version as well
-      if instantiatedFullType.IsBox() { // TODO: Make it work also for object traits
+      var instantiatedFullType := R.Box(R.DynType(traitFullType));
+      if t.traitType.GeneralTrait? { // TODO: Make it work also for object traits
         var upcastDynTrait := UpcastDynTraitFor(rTypeParamsDecls, instantiatedFullType, traitFullType, traitFullExpr);
         upcastImplemented := upcastImplemented + [upcastDynTrait];
       }

@@ -611,7 +611,7 @@ namespace DCOMP {
       _18_upcastImplemented = Dafny.Sequence<RAST._IModDecl>.FromElements();
       RAST._IType _19_instantiatedFullType;
       _19_instantiatedFullType = RAST.__default.Box(RAST.Type.create_DynType(_10_traitFullType));
-      if ((_19_instantiatedFullType).IsBox()) {
+      if (((t).dtor_traitType).is_GeneralTrait) {
         RAST._IModDecl _20_upcastDynTrait;
         _20_upcastDynTrait = Defs.__default.UpcastDynTraitFor(_1_rTypeParamsDecls, _19_instantiatedFullType, _10_traitFullType, _11_traitFullExpr);
         _18_upcastImplemented = Dafny.Sequence<RAST._IModDecl>.Concat(_18_upcastImplemented, Dafny.Sequence<RAST._IModDecl>.FromElements(_20_upcastDynTrait));
