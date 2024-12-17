@@ -1,4 +1,4 @@
-// RUN: %verify --allow-deprecation "%s" > "%t"
+// RUN: %verify --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Here is the usual definition of possibly infinite lists, along with a function Tail(s, n), which drops
@@ -14,13 +14,13 @@ ghost function Tail(s: Stream, n: nat): Stream
 }
 
 lemma Tail_Lemma0(s: Stream, n: nat)
-  requires s.Cons? && Tail(s, n).Cons?;
-  ensures Tail(s, n).tail == Tail(s.tail, n);
+  requires s.Cons? && Tail(s, n).Cons?
+  ensures Tail(s, n).tail == Tail(s.tail, n)
 {
 }
 lemma Tail_Lemma1(s: Stream, k: nat, n: nat)
-  requires k <= n;
-  ensures Tail(s, n).Cons? ==> Tail(s, k).Cons?;
+  requires k <= n
+  ensures Tail(s, n).Cons? ==> Tail(s, k).Cons?
   // Note, the contrapositive of this lemma says:  Tail(s, k) == Nil ==> Tail(s, n) == Nil
 {
   if k < n && Tail(s, n).Cons? {
@@ -28,8 +28,8 @@ lemma Tail_Lemma1(s: Stream, k: nat, n: nat)
   }
 }
 lemma Tail_Lemma2(s: Stream, n: nat)
-  requires s.Cons? && Tail(s.tail, n).Cons?;
-  ensures Tail(s, n).Cons?;
+  requires s.Cons? && Tail(s.tail, n).Cons?
+  ensures Tail(s, n).Cons?
 {
   if n != 0 {
     Tail_Lemma0(s, n-1);
@@ -52,7 +52,7 @@ ghost function AnInfiniteStream(): Stream<int>
   Cons(0, AnInfiniteStream())
 }
 greatest lemma Proposition0()
-  ensures IsNeverEndingStream(AnInfiniteStream());
+  ensures IsNeverEndingStream(AnInfiniteStream())
 {
 }
 
@@ -80,7 +80,7 @@ greatest predicate LowerThan(s: Stream<Tree>, n: nat)
 // LowerThan(s, h) implies LowerThan(s', h) for any suffix s' of s.
 
 lemma LowerThan_Lemma(s: Stream<Tree>, n: nat, h: nat)
-  ensures LowerThan(s, h) ==> LowerThan(Tail(s, n), h);
+  ensures LowerThan(s, h) ==> LowerThan(Tail(s, n), h)
 {
   Tail_Lemma1(s, 0, n);
   if n == 0 || Tail(s, n) == Nil {
@@ -117,7 +117,7 @@ ghost function SkinnyTree(): Tree
   Node(Cons(SkinnyTree(), Nil))
 }
 lemma Proposition1()
-  ensures IsFiniteSomewhere(SkinnyTree()) && !HasBoundedHeight(SkinnyTree());
+  ensures IsFiniteSomewhere(SkinnyTree()) && !HasBoundedHeight(SkinnyTree())
 {
   assert forall n {:induction} :: 0 <= n ==> !LowerThan(SkinnyTree().children, n);
 }
@@ -125,8 +125,8 @@ lemma Proposition1()
 // Any tree where all paths have bounded height are finite somewhere.
 
 lemma Theorem0(t: Tree)
-  requires HasBoundedHeight(t);
-  ensures IsFiniteSomewhere(t);
+  requires HasBoundedHeight(t)
+  ensures IsFiniteSomewhere(t)
 {
   var n :| 0 <= n && LowerThan(t.children, n);
   /*
@@ -137,8 +137,8 @@ lemma Theorem0(t: Tree)
   var k := FindNil(t.children, n);
 }
 lemma FindNil(s: Stream<Tree>, n: nat) returns (k: nat)
-  requires LowerThan(s, n);
-  ensures !InfiniteEverywhere#[k as ORDINAL](s);
+  requires LowerThan(s, n)
+  ensures !InfiniteEverywhere#[k as ORDINAL](s)
 {
   match s {
     case Nil => k := 1;
@@ -179,18 +179,18 @@ ghost function ATreeChildren(): Stream<Tree>
   Cons(Node(Nil), ATreeChildren())
 }
 lemma Proposition2()
-  ensures !HasFiniteHeightEverywhere_Bad(ATree());
+  ensures !HasFiniteHeightEverywhere_Bad(ATree())
 {
   Proposition2_Lemma0();
   Proposition2_Lemma1(ATreeChildren());
 }
 greatest lemma Proposition2_Lemma0()
-  ensures IsNeverEndingStream(ATreeChildren());
+  ensures IsNeverEndingStream(ATreeChildren())
 {
 }
 greatest lemma Proposition2_Lemma1(s: Stream<Tree>)
-  requires IsNeverEndingStream(s);
-  ensures InfiniteHeightSomewhere_Bad(s);
+  requires IsNeverEndingStream(s)
+  ensures InfiniteHeightSomewhere_Bad(s)
 {
   calc {
     InfiniteHeightSomewhere_Bad#[_k](s);
@@ -241,7 +241,7 @@ greatest predicate ValidPath(t: Tree, p: Stream<int>)
     ch.Cons? && ValidPath(ch.head, tail)
 }
 lemma ValidPath_Lemma(p: Stream<int>)
-  ensures ValidPath(Node(Nil), p) ==> p == Nil;
+  ensures ValidPath(Node(Nil), p) ==> p == Nil
 {
   if ValidPath(Node(Nil), p) {
     match p {
@@ -263,8 +263,8 @@ ghost predicate HasFiniteHeight(t: Tree)
 // From this definition, we can prove that any tree of bounded height is also of finite height.
 
 lemma Theorem1(t: Tree)
-  requires HasBoundedHeight(t);
-  ensures HasFiniteHeight(t);
+  requires HasBoundedHeight(t)
+  ensures HasFiniteHeight(t)
 {
   var n :| 0 <= n && LowerThan(t.children, n);
   forall p | ValidPath(t, p) {
@@ -272,9 +272,9 @@ lemma Theorem1(t: Tree)
   }
 }
 lemma Theorem1_Lemma(t: Tree, n: nat, p: Stream<int>)
-  requires LowerThan(t.children, n) && ValidPath(t, p);
-  ensures !IsNeverEndingStream(p);
-  decreases n;
+  requires LowerThan(t.children, n) && ValidPath(t, p)
+  ensures !IsNeverEndingStream(p)
+  decreases n
 {
   match p {
     case Nil =>
@@ -298,7 +298,7 @@ lemma Theorem1_Lemma(t: Tree, n: nat, p: Stream<int>)
 // Define SkinnyFiniteTree(n) to be a skinny (that is, of width 1) tree of height n.
 
 ghost function SkinnyFiniteTree(n: nat): Tree
-  ensures forall k: nat :: LowerThan(SkinnyFiniteTree(n).children, k) <==> n <= k;
+  ensures forall k: nat :: LowerThan(SkinnyFiniteTree(n).children, k) <==> n <= k
 {
   if n == 0 then Node(Nil) else Node(Cons(SkinnyFiniteTree(n-1), Nil))
 }
@@ -316,9 +316,9 @@ ghost function EverLongerSkinnyTrees(n: nat): Stream<Tree>
 }
 
 lemma EverLongerSkinnyTrees_Lemma(k: nat, n: nat)
-  ensures Tail(EverLongerSkinnyTrees(k), n).Cons?;
-  ensures Tail(EverLongerSkinnyTrees(k), n).head == SkinnyFiniteTree(k+n);
-  decreases n;
+  ensures Tail(EverLongerSkinnyTrees(k), n).Cons?
+  ensures Tail(EverLongerSkinnyTrees(k), n).head == SkinnyFiniteTree(k+n)
+  decreases n
 {
   if n == 0 {
   } else {
@@ -335,17 +335,17 @@ lemma EverLongerSkinnyTrees_Lemma(k: nat, n: nat)
 }
 
 lemma Proposition3()
-  ensures !HasBoundedHeight(FiniteUnboundedTree()) && HasFiniteHeight(FiniteUnboundedTree());
+  ensures !HasBoundedHeight(FiniteUnboundedTree()) && HasFiniteHeight(FiniteUnboundedTree())
 {
   Proposition3a();
   Proposition3b();
 }
 lemma Proposition3a()
-  ensures !HasBoundedHeight(FiniteUnboundedTree());
+  ensures !HasBoundedHeight(FiniteUnboundedTree())
 {
   var ch := FiniteUnboundedTree().children;
   forall n | 0 <= n
-    ensures !LowerThan(ch, n);
+    ensures !LowerThan(ch, n)
   {
     var cn := Tail(ch, n+1);
     EverLongerSkinnyTrees_Lemma(0, n+1);
@@ -355,11 +355,11 @@ lemma Proposition3a()
   }
 }
 lemma Proposition3b()
-  ensures HasFiniteHeight(FiniteUnboundedTree());
+  ensures HasFiniteHeight(FiniteUnboundedTree())
 {
   var t := FiniteUnboundedTree();
   forall p | ValidPath(t, p)
-    ensures !IsNeverEndingStream(p);
+    ensures !IsNeverEndingStream(p)
   {
     assert p.Cons?;
     var index := p.head;
@@ -473,14 +473,14 @@ ghost predicate HasFiniteHeight_Alt(t: Tree)
 // Stream<int> and CoOption<Number>, and then prove some lemmas about this correspondence.
 
 ghost function S2N(p: Stream<int>): CoOption<Number>
-  decreases 0;
+  decreases 0
 {
   match p
   case Nil => None
   case Cons(n, tail) => Some(S2N'(if n < 0 then 0 else n, tail))
 }
 ghost function S2N'(n: nat, tail: Stream<int>): Number
-  decreases n + 1;
+  decreases n + 1
 {
   if n <= 0 then Zero(S2N(tail)) else Succ(S2N'(n-1, tail))
 }
@@ -492,7 +492,7 @@ ghost function N2S(r: CoOption<Number>): Stream<int>
   case Some(num) => N2S'(0, num)
 }
 ghost function N2S'(n: nat, num: Number): Stream<int>
-  decreases num;
+  decreases num
 {
   match num
   case Zero(r) => Cons(n, N2S(r))
@@ -500,16 +500,16 @@ ghost function N2S'(n: nat, num: Number): Stream<int>
 }
 
 lemma Path_Lemma0(t: Tree, p: Stream<int>)
-  requires ValidPath(t, p);
-  ensures ValidPath_Alt(t, S2N(p));
+  requires ValidPath(t, p)
+  ensures ValidPath_Alt(t, S2N(p))
 {
   if ValidPath(t, p) {
     Path_Lemma0'(t, p);
   }
 }
 greatest lemma Path_Lemma0'(t: Tree, p: Stream<int>)
-  requires ValidPath(t, p);
-  ensures ValidPath_Alt(t, S2N(p));
+  requires ValidPath(t, p)
+  ensures ValidPath_Alt(t, S2N(p))
 {
   match p {
     case Nil =>
@@ -531,8 +531,8 @@ greatest lemma Path_Lemma0'(t: Tree, p: Stream<int>)
   }
 }
 greatest lemma Path_Lemma0''(tChildren: Stream<Tree>, n: nat, tail: Stream<int>)
-  requires var ch := Tail(tChildren, n); ch.Cons? && ValidPath(ch.head, tail);
-  ensures ValidPath_Alt'(tChildren, S2N'(n, tail));
+  requires var ch := Tail(tChildren, n); ch.Cons? && ValidPath(ch.head, tail)
+  ensures ValidPath_Alt'(tChildren, S2N'(n, tail))
 {
   Tail_Lemma1(tChildren, 0, n);
   match S2N'(n, tail) {
@@ -550,17 +550,17 @@ greatest lemma Path_Lemma0''(tChildren: Stream<Tree>, n: nat, tail: Stream<int>)
   }
 }
 lemma Path_Lemma1(t: Tree, r: CoOption<Number>)
-  requires ValidPath_Alt(t, r);
-  ensures ValidPath(t, N2S(r));
+  requires ValidPath_Alt(t, r)
+  ensures ValidPath(t, N2S(r))
 {
   if ValidPath_Alt(t, r) {
     Path_Lemma1'(t, r);
   }
 }
 greatest lemma Path_Lemma1'(t: Tree, r: CoOption<Number>)
-  requires ValidPath_Alt(t, r);
-  ensures ValidPath(t, N2S(r));
-  decreases 1;
+  requires ValidPath_Alt(t, r)
+  ensures ValidPath(t, N2S(r))
+  decreases 1
 {
   match r {
     case None =>
@@ -581,9 +581,9 @@ greatest lemma Path_Lemma1'(t: Tree, r: CoOption<Number>)
   }
 }
 greatest lemma Path_Lemma1''(s: Stream<Tree>, n: nat, num: Number)
-  requires ValidPath_Alt'(Tail(s, n), num);
-  ensures ValidPath(Node(s), N2S'(n, num));
-  decreases 0, num;
+  requires ValidPath_Alt'(Tail(s, n), num)
+  ensures ValidPath(Node(s), N2S'(n, num))
+  decreases 0, num
 {
   match num {
     case Succ(next) =>
@@ -601,15 +601,15 @@ greatest lemma Path_Lemma1''(s: Stream<Tree>, n: nat, num: Number)
   }
 }
 lemma Path_Lemma2(p: Stream<int>)
-  ensures IsNeverEndingStream(p) ==> InfinitePath(S2N(p));
+  ensures IsNeverEndingStream(p) ==> InfinitePath(S2N(p))
 {
   if IsNeverEndingStream(p) {
     Path_Lemma2'(p);
   }
 }
 greatest lemma Path_Lemma2'(p: Stream<int>)
-  requires IsNeverEndingStream(p);
-  ensures InfinitePath(S2N(p));
+  requires IsNeverEndingStream(p)
+  ensures InfinitePath(S2N(p))
 {
   match p {
   case Cons(n, tail) =>
@@ -633,7 +633,7 @@ greatest lemma Path_Lemma2''(p: Stream<int>, n: nat, tail: Stream<int>)
   Path_Lemma2'(tail);
 }
 lemma Path_Lemma3(r: CoOption<Number>)
-  ensures InfinitePath(r) ==> IsNeverEndingStream(N2S(r));
+  ensures InfinitePath(r) ==> IsNeverEndingStream(N2S(r))
 {
   if InfinitePath(r) {
     match r {
@@ -642,9 +642,9 @@ lemma Path_Lemma3(r: CoOption<Number>)
   }
 }
 greatest lemma Path_Lemma3'(n: nat, num: Number)
-  requires InfinitePath'(num);
-  ensures IsNeverEndingStream(N2S'(n, num));
-  decreases num;
+  requires InfinitePath'(num)
+  ensures IsNeverEndingStream(N2S'(n, num))
+  decreases num
 {
   match num {
     case Zero(r) =>
@@ -663,7 +663,7 @@ greatest lemma Path_Lemma3'(n: nat, num: Number)
 }
 
 lemma Theorem2(t: Tree)
-  ensures HasFiniteHeight(t) <==> HasFiniteHeight_Alt(t);
+  ensures HasFiniteHeight(t) <==> HasFiniteHeight_Alt(t)
 {
   if HasFiniteHeight_Alt(t) {
     forall p {
