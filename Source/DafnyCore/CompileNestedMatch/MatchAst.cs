@@ -101,9 +101,8 @@ public abstract class MatchCase : TokenNode, IHasReferences {
     Arguments = arguments;
   }
 
-  public IOrigin NavigationToken => tok;
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { Ctor };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Tok, Ctor) };
   }
 }
 

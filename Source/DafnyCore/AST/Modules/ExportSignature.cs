@@ -57,10 +57,9 @@ public class ExportSignature : TokenNode, IHasReferences {
     return Id;
   }
 
-  public IOrigin NavigationToken => Tok;
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { Decl };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Tok, Decl) };
   }
 }

@@ -522,9 +522,8 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
 
-  public IOrigin NavigationToken => Center;
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { ResolvedClass };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Center, ResolvedClass) };
   }
 
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { NamePath });

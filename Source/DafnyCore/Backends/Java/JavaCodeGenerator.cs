@@ -304,7 +304,7 @@ namespace Microsoft.Dafny.Compilers {
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeJava", wr);
       }
-      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+      if (Options.Get(CommonOptionBag.UseStandardLibraries) && Options.Get(CommonOptionBag.TranslateStandardLibrary)) {
         EmitRuntimeSource("DafnyStandardLibraries_java", wr);
       }
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");

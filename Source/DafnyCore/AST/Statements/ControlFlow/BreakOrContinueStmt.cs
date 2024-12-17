@@ -51,11 +51,9 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
     IsContinue = isContinue;
   }
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { TargetStmt }.OfType<IHasNavigationToken>();
+  public IEnumerable<Reference> GetReferences() {
+    return TargetStmt is IHasNavigationToken target ? new[] { new Reference(TargetLabel, target) } : Enumerable.Empty<Reference>();
   }
-
-  public IOrigin NavigationToken => Tok;
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,
