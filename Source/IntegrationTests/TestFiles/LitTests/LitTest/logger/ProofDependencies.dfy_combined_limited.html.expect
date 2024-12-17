@@ -343,11 +343,11 @@ method {:testEntry} MultiPartContradictoryRequiresMethod(x: int, y: int) returns
 
 </span><span class="na" id="327:1">function {:testEntry} ContradictoryEnsuresClauseFunc(x: int): (r: int)
   requires </span><span class="nc" id="328:12">x > 1
-</span><span class="na" id="329:1">  ensures  </span><span class="nc" id="329:12">r > x && r < 0
+</span><span class="na" id="329:1">  ensures  </span><span class="nc" id="329:12">r > x</span><span class="na" id="329:17"> && </span><span class="nc" id="329:21">r < 0
 
 </span><span class="na" id="331:1">method {:testEntry} ContradictoryEnsuresClauseMethod(x: int) returns (r: int)
   requires </span><span class="nc" id="332:12">x > 1
-</span><span class="na" id="333:1">  ensures  </span><span class="nc" id="333:12">r > x && r < 0
+</span><span class="na" id="333:1">  ensures  </span><span class="nc" id="333:12">r > x</span><span class="na" id="333:17"> && </span><span class="nc" id="333:21">r < 0
 
 </span><span class="na" id="335:1">// Call function that has contradictory ensures clauses.
 </span><span class="nc" id="336:1">function {:testEntry} CallContradictoryFunctionFunc(x: int): (r: int)
@@ -392,8 +392,8 @@ method {:testEntry} FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)
   ensures r > 0
 {
   if x < 0
-</span><span class="nc" id="378:1">  then x - 1 // unreachable
-</span><span class="na" id="379:1">  else x + 1
+  then </span><span class="nc" id="378:8">x - 1</span><span class="na" id="378:13"> // unreachable
+  else x + 1
 }
 
 method {:testEntry} ObviouslyUnreachableIfStatementBranchMethod(x: int) returns (r:int)
@@ -414,8 +414,8 @@ function {:testEntry} ObviouslyUnreachableMatchExpressionCaseFunction(t: T): (r:
   ensures r > 1 // alt: r > 0
 {
   match t {
-</span><span class="nc" id="400:1">    case A => 1 // unreachable
-</span><span class="na" id="401:1">    case B => 2
+    case A => </span><span class="nc" id="400:15">1</span><span class="na" id="400:16"> // unreachable
+    case B => 2
   }
 }
 

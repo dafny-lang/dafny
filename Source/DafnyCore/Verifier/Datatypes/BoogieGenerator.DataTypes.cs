@@ -826,7 +826,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(ctor.tok, true, null, etran.HeightContext(ctor.EnclosingDatatype), null, null, null));
+      req.Add(FreeRequires(ctor.tok, etran.HeightContext(ctor.EnclosingDatatype), null));
       var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
@@ -838,7 +838,7 @@ namespace Microsoft.Dafny {
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
       var locals = new Variables();
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
-      builder.Add(new CommentCmd($"AddWellformednessCheck for datatype constructor {ctor}"));
+      builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for datatype constructor {0}", ctor)));
       builder.AddCaptureState(ctor.tok, false, "initial state");
       IsAllocContext = new IsAllocContext(options, true);
 

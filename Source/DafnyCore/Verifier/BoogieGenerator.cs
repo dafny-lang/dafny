@@ -1445,6 +1445,11 @@ namespace Microsoft.Dafny {
       return new QKeyValue(tok, "inline", new List<object>(), next);
     }
 
+    public static Bpl.QKeyValue AlwaysAssumeAttribute(Bpl.IToken tok, Bpl.QKeyValue next = null) {
+      Contract.Requires(tok != null);
+      return new QKeyValue(tok, "always_assume", new List<object>(), next);
+    }
+
     class Specialization {
       public readonly List<Formal/*!*/> Formals;
       public readonly List<Expression/*!*/> ReplacementExprs;
@@ -1559,13 +1564,16 @@ namespace Microsoft.Dafny {
       return (olderParameterCount, olderCondition);
     }
 
-    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran) {
+    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran, bool strict = false) {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
       Contract.Requires(VisibleInScope(f));
       if (InVerificationScope(f)) {
-        return
-          Bpl.Expr.Le(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+        if (strict) {
+          return Bpl.Expr.Lt(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+        } else {
+          return Bpl.Expr.Le(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+        }
       } else {
         return Bpl.Expr.True;
       }
@@ -2092,13 +2100,16 @@ namespace Microsoft.Dafny {
                           ProofObligationDescription desc,
                           Bpl.QKeyValue kv) {
       CheckFrameSubset(tok, calleeFrame, receiverReplacement, substMap, etran, enclosingFrame,
-        (t, e, d, q) => builder.Add(Assert(t, e, d, builder.Context, q)), desc, kv);
+        (t, e, d, q) => builder.Add(Assert(t, e, d, builder.Context, q)),
+        (t, e) => builder.Add(TrAssumeCmd(t, e)),
+        desc, kv);
     }
 
     void CheckFrameSubset(IOrigin tok, List<FrameExpression> calleeFrame,
                           Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/> substMap,
                           ExpressionTranslator/*!*/ etran, Boogie.IdentifierExpr /*!*/ enclosingFrame,
                           Action<IOrigin, Bpl.Expr, ProofObligationDescription, Bpl.QKeyValue> makeAssert,
+                          Action<IOrigin, Bpl.Expr> makeAssume,
                           ProofObligationDescription desc,
                           Bpl.QKeyValue kv) {
       Contract.Requires(tok != null);
@@ -2107,6 +2118,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(makeAssert != null);
       Contract.Requires(Predef != null);
+
+      foreach (var frameExpression in calleeFrame) {
+        var e = substMap != null ? Substitute(frameExpression.E, receiverReplacement, substMap) : frameExpression.E;
+        makeAssume(frameExpression.tok, etran.CanCallAssumption(e));
+      }
 
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> enclosingFrame[o,f]);
       var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", Predef.RefType));
@@ -3174,7 +3190,7 @@ namespace Microsoft.Dafny {
         if (e is Bpl.NAryExpr { Fun: Bpl.TypeCoercion } coerce) {
           Contract.Assert(coerce.Args.Count == 1);
           Contract.Assert(Bpl.Type.Equals(((Bpl.TypeCoercion)coerce.Fun).Type, TrType(fromType)));
-          if (coerce.Args[0] is Bpl.NAryExpr { Fun: Bpl.FunctionCall { FunctionName: "$Unbox" } } call) {
+          if (coerce.Args[0] is Bpl.NAryExpr { Fun: Bpl.FunctionCall { FunctionName: UnboxFunctionName } } call) {
             Contract.Assert(call.Args.Count == 1);
             return call.Args[0];
           }
@@ -3227,7 +3243,7 @@ namespace Microsoft.Dafny {
     public Bpl.Expr ApplyBox(Bpl.IToken tok, Bpl.Expr e) {
       Contract.Assert(tok != null);
       Contract.Assert(e != null);
-      if (e.Type == Predef.BoxType || e is NAryExpr { Fun.FunctionName: "$Box" }) {
+      if (e.Type == Predef.BoxType || e is NAryExpr { Fun.FunctionName: BoxFunctionName }) {
         return e;
       }
       return FunctionCall(tok, BuiltinFunction.Box, null, e);
@@ -3236,7 +3252,6 @@ namespace Microsoft.Dafny {
     /// <summary>
     ///   If the expression is boxed, but the type is not boxed, this unboxes it.
     ///   For lambda functions.
-    /// KRML: The name of this method is really confusing. It seems it should be named something like UnboxUnlessInherentlyBoxed.
     /// </summary>
     public Bpl.Expr UnboxUnlessInherentlyBoxed(Bpl.Expr e, Type t) {
       if (!ModeledAsBoxType(t)) {
@@ -3283,6 +3298,17 @@ namespace Microsoft.Dafny {
       var res = t.IsTypeParameter || (t.IsTraitType && !t.IsRefType) || t.IsAbstractType || t.IsInternalTypeSynonym;
       Contract.Assert(t.IsArrowType ? !res : true);
       return res;
+    }
+
+    /// <summary>
+    /// This method returns "expr" are stripping off any type coercions and box/unbox functions.
+    /// </summary>
+    public static Boogie.Expr StripBoxAdjustments(Boogie.Expr expr) {
+      while (expr is Boogie.NAryExpr { Fun: Boogie.FunctionCall { FunctionName: BoxFunctionName or UnboxFunctionName } or Boogie.TypeCoercion } nAryExpr) {
+        Contract.Assert(nAryExpr.Args.Count == 1);
+        expr = nAryExpr.Args[0];
+      }
+      return expr;
     }
 
     // ----- Statement ----------------------------------------------------------------------------
@@ -3372,14 +3398,20 @@ namespace Microsoft.Dafny {
       proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(tok, dafnyCondition));
       return ens;
     }
+    
+    Bpl.Ensures FreeEnsures(IOrigin tok, Bpl.Expr condition, string comment, bool alwaysAssume = false) {
+      var kv = alwaysAssume ? AlwaysAssumeAttribute(tok) : null;
+      return Ensures(tok, true, null, condition, null, null, comment, kv);
+    }
 
-    Bpl.Ensures Ensures(IOrigin tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
+
+    Bpl.Ensures Ensures(IOrigin tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment, QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var unwrappedToken = ForceCheckOrigin.Unwrap(tok);
-      Bpl.Ensures ens = new Bpl.Ensures(unwrappedToken, free, condition, comment);
+      Bpl.Ensures ens = new Bpl.Ensures(unwrappedToken, free, condition, comment, kv);
       var description = new EnsuresDescription(dafnyCondition, errorMessage, successMessage);
       ens.Description = description;
       if (!free) {
@@ -3397,12 +3429,17 @@ namespace Microsoft.Dafny {
       proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(tok, dafnyCondition));
       return req;
     }
+    
+    Bpl.Requires FreeRequires(IOrigin tok, Bpl.Expr bCondition, string comment, bool alwaysAssume = false) {
+      var kv = alwaysAssume ? AlwaysAssumeAttribute(tok) : null;
+      return Requires(tok, true, null, bCondition, null, null, comment, kv);
+    }
 
-    Bpl.Requires Requires(IOrigin tok, bool free, Expression dafnyCondition, Bpl.Expr bCondition, string errorMessage, string successMessage, string comment) {
+    Bpl.Requires Requires(IOrigin tok, bool free, Expression dafnyCondition, Bpl.Expr bCondition, string errorMessage, string successMessage, string comment, QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(bCondition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
-      Bpl.Requires req = new Bpl.Requires(ForceCheckOrigin.Unwrap(tok), free, bCondition, comment);
+      Bpl.Requires req = new Bpl.Requires(ForceCheckOrigin.Unwrap(tok), free, bCondition, comment, kv);
       req.Description = new RequiresDescription(dafnyCondition, errorMessage, successMessage);
       return req;
     }
@@ -4469,6 +4506,22 @@ namespace Microsoft.Dafny {
       return dafnyOptions.DisableNLarith;
     }
 
+    /// <summary>
+    /// Return the conjuncts of "attributedExpressions".
+    /// </summary>
+    public static IEnumerable<AttributedExpression> ConjunctsOf(List<AttributedExpression> attributedExpressions) {
+      foreach (var attrExpr in attributedExpressions) {
+        if (attrExpr.Label != null) {
+          // don't mess with labeled expressions
+          yield return attrExpr;
+        } else {
+          foreach (var conjunct in Expression.ConjunctsWithLetsOnOutside(attrExpr.E)) {
+            yield return new AttributedExpression(conjunct, attrExpr.Attributes);
+          }
+        }
+      }
+    }
+
     List<SplitExprInfo> /*!*/ TrSplitExpr(BodyTranslationContext context, Expression expr, ExpressionTranslator etran, bool applyInduction,
       out bool splitHappened) {
       Contract.Requires(expr != null);
@@ -4499,11 +4552,13 @@ namespace Microsoft.Dafny {
       foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger").Select(aa => aa.Args)) {
         List<Bpl.Expr> tt = new List<Bpl.Expr>();
         foreach (var arg in trigger) {
+          Bpl.Expr term;
           if (substMap == null) {
-            tt.Add(argsEtran.TrExpr(arg));
+            term = argsEtran.TrExpr(arg);
           } else {
-            tt.Add(argsEtran.TrExpr(Substitute(arg, null, substMap)));
+            term = argsEtran.TrExpr(Substitute(arg, null, substMap));
           }
+          tt.Add(StripBoxAdjustments(term));
         }
         tr = new Bpl.Trigger(tok, true, tt, tr);
       }
@@ -4538,11 +4593,13 @@ namespace Microsoft.Dafny {
       foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger")) {
         List<Bpl.Expr> tt = new List<Bpl.Expr>();
         foreach (var arg in trigger.Args) {
+          Bpl.Expr term;
           if (substMap == null) {
-            tt.Add(argsEtran.TrExpr(arg));
+            term = argsEtran.TrExpr(arg);
           } else {
-            tt.Add(argsEtran.TrExpr(Substitute(arg, null, substMap, typeMap)));
+            term = argsEtran.TrExpr(Substitute(arg, null, substMap, typeMap));
           }
+          tt.Add(StripBoxAdjustments(term));
         }
         if (useHeapAsQuantifier) {
           tt.Add(FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, argsEtran.HeapExpr));

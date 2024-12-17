@@ -343,11 +343,11 @@ method {:testEntry} MultiPartContradictoryRequiresMethod(x: int, y: int) returns
 
 </span><span class="na" id="327:1">function {:testEntry} ContradictoryEnsuresClauseFunc(x: int): (r: int)
   requires </span><span class="nc" id="328:12">x > 1
-</span><span class="na" id="329:1">  ensures  </span><span class="nc" id="329:12">r > x && r < 0
+</span><span class="na" id="329:1">  ensures  </span><span class="nc" id="329:12">r > x</span><span class="na" id="329:17"> && </span><span class="nc" id="329:21">r < 0
 
 </span><span class="na" id="331:1">method {:testEntry} ContradictoryEnsuresClauseMethod(x: int) returns (r: int)
   requires </span><span class="nc" id="332:12">x > 1
-</span><span class="na" id="333:1">  ensures  </span><span class="nc" id="333:12">r > x && r < 0
+</span><span class="na" id="333:1">  ensures  </span><span class="nc" id="333:12">r > x</span><span class="na" id="333:17"> && </span><span class="nc" id="333:21">r < 0
 
 </span><span class="na" id="335:1">// Call function that has contradictory ensures clauses.
 function {:testEntry} CallContradictoryFunctionFunc(x: int): (r: int)

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
-using Dafny;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
+using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny {
@@ -20,6 +20,14 @@ namespace Microsoft.Dafny {
         // Not only does one need to be careful not to mention HeapExpr in contracts (in particular, in ObjectInvariant()
         // below), but also, the debugger may invoke HeapExpr and that will cause an increment as well.
         get { Statistics_HeapUses++; return _the_heap_expr; }
+      }
+
+      public Boogie.Expr HeapExprForArrow(Type arrowType) {
+        if (arrowType.IsArrowTypeWithoutReadEffects) {
+          return BoogieGenerator.NewOneHeapExpr(arrowType.tok);
+        } else {
+          return HeapExpr;
+        }
       }
 
       /// <summary>
@@ -38,7 +46,7 @@ namespace Microsoft.Dafny {
       public readonly string This;
       public readonly string readsFrame; // the name of the context's frame variable for reading state.
                                          // May be null to indicate the context's reads frame is * and doesn't require any reads checks.
-      public readonly IFrameScope scope; // lambda, function or predicate 
+      public readonly IFrameScope scope; // lambda, function or predicate
       public readonly string modifiesFrame; // the name of the context's frame variable for writing state.
       readonly Function applyLimited_CurrentFunction;
       internal readonly FuelSetting layerInterCluster;
@@ -120,7 +128,6 @@ namespace Microsoft.Dafny {
         old.oldEtran = old;
         this.oldEtran = old;
       }
-
       public ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.Expr heap, IFrameScope scope, string thisVar)
         : this(boogieGenerator, predef, heap, thisVar, null, new FuelSetting(boogieGenerator, 1), null, scope, "$_ReadsFrame", "$_ModifiesFrame", false) {
         Contract.Requires(boogieGenerator != null);
@@ -659,7 +666,7 @@ namespace Microsoft.Dafny {
 
               var applied = FunctionCall(GetToken(applyExpr), BoogieGenerator.Apply(arity), Predef.BoxType,
                 Concat(Map(tt.TypeArgs, BoogieGenerator.TypeToTy),
-                  Cons(HeapExpr, Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
+                  Cons(HeapExprForArrow(e.Function.Type), Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
 
               return BoogieGenerator.UnboxUnlessInherentlyBoxed(applied, tt.Result);
             }
@@ -737,7 +744,12 @@ namespace Microsoft.Dafny {
           case SeqConstructionExpr constructionExpr: {
               var e = constructionExpr;
               var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg.NormalizeExpand();
-              return FunctionCall(GetToken(constructionExpr), "Seq#Create", Predef.SeqType, BoogieGenerator.TypeToTy(eType), HeapExpr, TrExpr(e.N), TrExpr(e.Initializer));
+              var initalizerHeap = e.Initializer.Type.IsArrowType ? HeapExprForArrow(e.Initializer.Type) : HeapExpr;
+              return FunctionCall(GetToken(constructionExpr), "Seq#Create", Predef.SeqType,
+                BoogieGenerator.TypeToTy(eType),
+                initalizerHeap,
+                TrExpr(e.N),
+                TrExpr(e.Initializer));
             }
           case MultiSetFormingExpr formingExpr: {
               MultiSetFormingExpr e = formingExpr;
@@ -1566,8 +1578,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           return new KeyValuePair<IVariable, Expression>(bv, new BoogieWrapper(unboxy, bv.Type));
         }).ToDictionary(x => x.Key, x => x.Value);
         var su = new Substituter(null, subst, new Dictionary<TypeParameter, Type>());
-
-        var et = new ExpressionTranslator(this, heap);
+        var et = this.HeapExpr != null
+          ? new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpr, this.scope)
+          : new ExpressionTranslator(this, heap);
         var lvars = new List<Boogie.Variable>();
         var ly = BplBoundVar(varNameGen.FreshId("#ly#"), Predef.LayerType, lvars);
         et = et.WithLayer(ly);
@@ -1576,9 +1589,13 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         ebody = BoogieGenerator.BoxIfNotNormallyBoxed(ebody.tok, ebody, e.Body.Type);
 
         var isBoxes = BplAnd(ves.Zip(e.BoundVars, (ve, bv) => BoogieGenerator.MkIsBox(ve, bv.Type)));
-        var reqbody = e.Range == null
-          ? isBoxes
-          : BplAnd(isBoxes, et.TrExpr(BoogieGenerator.Substitute(e.Range, null, subst)));
+        Bpl.Expr reqbody;
+        if (e.Range == null) {
+          reqbody = isBoxes;
+        } else {
+          var range = BoogieGenerator.Substitute(e.Range, null, subst);
+          reqbody = BplAnd(isBoxes, BplImp(et.CanCallAssumption(range), et.TrExpr(range)));
+        }
 
         var rdvars = new List<Boogie.Variable>();
         var o = BplBoundVar(varNameGen.FreshId("#o#"), Predef.RefType, rdvars);
@@ -2103,7 +2120,21 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         return BoogieGenerator.GetWhereClause(tok, e, type, this, ISALLOC);
       }
 
-      public Expr CanCallAssumption(Expression expr) {
+      public Expression MakeAllowance(FunctionCallExpr e, CanCallOptions cco = null) {
+        Expression allowance = Expression.CreateBoolLiteral(e.tok, true);
+        if (!e.Function.IsStatic) {
+          allowance = Expression.CreateAnd(allowance, Expression.CreateEq(e.Receiver, new ThisExpr(e.Function), e.Receiver.Type));
+        }
+        var formals = cco == null ? e.Function.Ins : cco.EnclosingFunction.Ins;
+        for (int i = 0; i < e.Args.Count; i++) {
+          Expression ee = e.Args[i];
+          Formal ff = formals[i];
+          allowance = Expression.CreateAnd(allowance, Expression.CreateEq(ee, Expression.CreateIdentExpr(ff), ff.Type));
+        }
+        return allowance;
+      }
+
+      public Expr CanCallAssumption(Expression expr, CanCallOptions cco = null) {
         Contract.Requires(expr != null);
         Contract.Requires(this != null);
         Contract.Requires(BoogieGenerator.Predef != null);
@@ -2113,17 +2144,17 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           return Boogie.Expr.True;
         } else if (expr is DisplayExpression) {
           DisplayExpression e = (DisplayExpression)expr;
-          return CanCallAssumption(e.Elements);
+          return CanCallAssumption(e.Elements, cco);
         } else if (expr is MapDisplayExpr) {
           MapDisplayExpr e = (MapDisplayExpr)expr;
           List<Expression> l = new List<Expression>();
           foreach (ExpressionPair p in e.Elements) {
             l.Add(p.A); l.Add(p.B);
           }
-          return CanCallAssumption(l);
+          return CanCallAssumption(l, cco);
         } else if (expr is MemberSelectExpr) {
           MemberSelectExpr e = (MemberSelectExpr)expr;
-          var r = CanCallAssumption(e.Obj);
+          var r = CanCallAssumption(e.Obj, cco);
           if (e.Member is DatatypeDestructor) {
             var dtor = (DatatypeDestructor)e.Member;
             if (dtor.EnclosingCtors.Count == dtor.EnclosingCtors[0].EnclosingDatatype.Ctors.Count) {
@@ -2136,77 +2167,135 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           return r;
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr e = (SeqSelectExpr)expr;
-          Boogie.Expr total = CanCallAssumption(e.Seq);
+          Boogie.Expr total = CanCallAssumption(e.Seq, cco);
           if (e.E0 != null) {
-            total = BplAnd(total, CanCallAssumption(e.E0));
+            total = BplAnd(total, CanCallAssumption(e.E0, cco));
           }
           if (e.E1 != null) {
-            total = BplAnd(total, CanCallAssumption(e.E1));
+            total = BplAnd(total, CanCallAssumption(e.E1, cco));
           }
           return total;
         } else if (expr is MultiSelectExpr) {
           MultiSelectExpr e = (MultiSelectExpr)expr;
-          Boogie.Expr total = CanCallAssumption(e.Array);
+          Boogie.Expr total = CanCallAssumption(e.Array, cco);
           foreach (Expression idx in e.Indices) {
-            total = BplAnd(total, CanCallAssumption(idx));
+            total = BplAnd(total, CanCallAssumption(idx, cco));
           }
           return total;
         } else if (expr is SeqUpdateExpr) {
           SeqUpdateExpr e = (SeqUpdateExpr)expr;
-          Boogie.Expr total = CanCallAssumption(e.Seq);
-          total = BplAnd(total, CanCallAssumption(e.Index));
-          total = BplAnd(total, CanCallAssumption(e.Value));
+          Boogie.Expr total = CanCallAssumption(e.Seq, cco);
+          total = BplAnd(total, CanCallAssumption(e.Index, cco));
+          total = BplAnd(total, CanCallAssumption(e.Value, cco));
           return total;
+
         } else if (expr is ApplyExpr) {
           ApplyExpr e = (ApplyExpr)expr;
+
+          Func<Expression, Boogie.Expr> TrArg = arg => {
+            Boogie.Expr inner = TrExpr(arg);
+            if (ModeledAsBoxType(arg.Type)) {
+              return inner;
+            } else {
+              return BoogieGenerator.FunctionCall(arg.tok, BuiltinFunction.Box, null, inner);
+            }
+          };
+
+          var args = Concat(
+            Map(e.Function.Type.AsArrowType.TypeArgs, BoogieGenerator.TypeToTy),
+            Cons(HeapExpr,
+              Cons(TrExpr(e.Function),
+                e.Args.ConvertAll(arg => TrArg(arg)))));
+
+          var requiresk = FunctionCall(e.tok, Requires(e.Args.Count), Boogie.Type.Bool, args);
           return BplAnd(
-            Cons(CanCallAssumption(e.Function),
-              e.Args.ConvertAll(ee => CanCallAssumption(ee))));
+            BplAnd(
+              Cons(CanCallAssumption(e.Function, cco),
+                e.Args.ConvertAll(ee => CanCallAssumption(ee, cco)))),
+            requiresk);
+
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
-          Boogie.Expr r = CanCallAssumption(e.Receiver);
-          r = BplAnd(r, CanCallAssumption(e.Args));
+          Boogie.Expr r = CanCallAssumption(e.Receiver, cco);
+          r = BplAnd(r, CanCallAssumption(e.Args, cco));
           if (!(e.Function is SpecialFunction)) {
-            // get to assume canCall
             Boogie.IdentifierExpr canCallFuncID = new Boogie.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Boogie.Type.Bool);
             List<Boogie.Expr> args = FunctionInvocationArguments(e, null, null);
             Boogie.Expr canCallFuncAppl = new Boogie.NAryExpr(BoogieGenerator.GetToken(expr), new Boogie.FunctionCall(canCallFuncID), args);
-            r = BplAnd(r, canCallFuncAppl);
+            var add = cco != null && cco.MakeAllowance(e.Function) ? Boogie.Expr.Or(TrExpr(MakeAllowance(e, cco)), canCallFuncAppl) : canCallFuncAppl;
+            r = BplAnd(r, add);
           }
           return r;
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;
-          return CanCallAssumption(dtv.Arguments);
+          return CanCallAssumption(dtv.Arguments, cco);
         } else if (expr is SeqConstructionExpr) {
           var e = (SeqConstructionExpr)expr;
-          return BplAnd(CanCallAssumption(e.N), CanCallAssumption(e.Initializer));
+          // CanCallAssumption[[ seq(n, init) ]] =
+          //     CanCallAssumption[[ n ]] &&
+          //     CanCallAssumption[[ init ]] &&
+          //     var initF := init; // necessary, in order to use init(i) in trigger, since it may contain quantifiers
+          //     (forall i: int
+          //         { initF(i) }
+          //         0 <= i < n ==>
+          //             CanCallAssumption[[ init(i) ]])
+
+          var varNameGen = BoogieGenerator.CurrentIdGenerator.NestedFreshIdGenerator("seqinit$");
+          var indexVar = new Bpl.BoundVariable(e.tok, new Bpl.TypedIdent(e.tok, varNameGen.FreshId("#i"), Bpl.Type.Int));
+          var index = new Bpl.IdentifierExpr(e.tok, indexVar);
+          var indexRange = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), index), Bpl.Expr.Lt(index, TrExpr(e.N)));
+          var initFVar = new Bpl.BoundVariable(e.tok, new Bpl.TypedIdent(e.tok, varNameGen.FreshId("#f"), Predef.HandleType));
+
+          var initF = new Bpl.IdentifierExpr(e.tok, initFVar);
+
+          var dafnyInitApplication = new ApplyExpr(e.tok, e.Initializer,
+            new List<Expression>() { new BoogieWrapper(index, Type.Int) },
+            Token.NoToken) {
+            Type = e.Initializer.Type.AsArrowType.Result
+          };
+          var canCall = CanCallAssumption(dafnyInitApplication);
+
+          dafnyInitApplication = new ApplyExpr(e.tok, new BoogieWrapper(initF, e.Initializer.Type),
+            new List<Expression>() { new BoogieWrapper(index, Type.Int) },
+            Token.NoToken) {
+            Type = e.Initializer.Type.AsArrowType.Result
+          };
+          var apply = TrExpr(dafnyInitApplication);
+
+          var tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { apply });
+          var ccaInit = new Bpl.ForallExpr(e.tok, new List<Bpl.Variable>() { indexVar }, tr, BplImp(indexRange, canCall));
+          var rhsAppliedToIndex = new Bpl.LetExpr(e.tok, new List<Variable>() { initFVar },
+            new List<Expr>() { TrExpr(e.Initializer) }, null, ccaInit);
+
+          return BplAnd(BplAnd(CanCallAssumption(e.N, cco), CanCallAssumption(e.Initializer, cco)), rhsAppliedToIndex);
+
         } else if (expr is MultiSetFormingExpr) {
           MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
-          return CanCallAssumption(e.E);
+          return CanCallAssumption(e.E, cco);
         } else if (expr is OldExpr) {
           var e = (OldExpr)expr;
-          return OldAt(e.AtLabel).CanCallAssumption(e.E);
+          return OldAt(e.AtLabel).CanCallAssumption(e.E, cco);
         } else if (expr is UnchangedExpr) {
           var e = (UnchangedExpr)expr;
           Boogie.Expr be = Boogie.Expr.True;
           foreach (var fe in e.Frame) {
-            be = BplAnd(be, CanCallAssumption(fe.E));
+            be = BplAnd(be, CanCallAssumption(fe.E, cco));
           }
           return be;
         } else if (expr is UnaryExpr) {
           var e = (UnaryExpr)expr;
-          return CanCallAssumption(e.E);
+          return CanCallAssumption(e.E, cco);
         } else if (expr is BinaryExpr) {
           // The short-circuiting boolean operators &&, ||, and ==> end up duplicating their
           // left argument. Therefore, we first try to re-associate the expression to make
           // left arguments smaller.
           if (BoogieGenerator.ReAssociateToTheRight(ref expr)) {
-            return CanCallAssumption(expr);
+            return CanCallAssumption(expr, cco);
           }
           var e = (BinaryExpr)expr;
 
-          Boogie.Expr t0 = CanCallAssumption(e.E0);
-          Boogie.Expr t1 = CanCallAssumption(e.E1);
+          Boogie.Expr t0 = CanCallAssumption(e.E0, cco);
+          Boogie.Expr t1 = CanCallAssumption(e.E1, cco);
           switch (e.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.And:
             case BinaryExpr.ResolvedOpcode.Imp:
@@ -2218,13 +2307,15 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             case BinaryExpr.ResolvedOpcode.EqCommon:
             case BinaryExpr.ResolvedOpcode.NeqCommon: {
                 Boogie.Expr r = Boogie.Expr.True;
-                if (e.E0 is { Type: { AsDatatype: { } dt0 }, Resolved: not DatatypeValue }) {
-                  var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt0.FullSanitizedName, Boogie.Type.Bool));
-                  r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E0) }));
-                }
-                if (e.E1 is { Type: { AsDatatype: { } dt1 }, Resolved: not DatatypeValue }) {
-                  var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt1.FullSanitizedName, Boogie.Type.Bool));
-                  r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E1) }));
+                if (cco is not { SkipIsA: true }) {
+                  if (e.E0 is { Type: { AsDatatype: { } dt0 }, Resolved: not DatatypeValue }) {
+                    var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt0.FullSanitizedName, Boogie.Type.Bool));
+                    r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E0) }));
+                  }
+                  if (e.E1 is { Type: { AsDatatype: { } dt1 }, Resolved: not DatatypeValue }) {
+                    var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt1.FullSanitizedName, Boogie.Type.Bool));
+                    r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E1) }));
+                  }
                 }
                 return BplAnd(r, BplAnd(t0, t1));
               }
@@ -2261,10 +2352,11 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           return BplAnd(t0, t1);
         } else if (expr is TernaryExpr) {
           var e = (TernaryExpr)expr;
-          return BplAnd(CanCallAssumption(e.E0), BplAnd(CanCallAssumption(e.E1), CanCallAssumption(e.E2)));
+          return BplAnd(CanCallAssumption(e.E0, cco), BplAnd(CanCallAssumption(e.E1, cco), CanCallAssumption(e.E2, cco)));
 
         } else if (expr is LetExpr letExpr) {
-          return LetCanCallAssumption(letExpr);
+          return LetCanCallAssumption(letExpr, cco);
+
         } else if (expr is LambdaExpr) {
           var e = (LambdaExpr)expr;
 
@@ -2272,7 +2364,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           var varNameGen = BoogieGenerator.CurrentIdGenerator.NestedFreshIdGenerator("$l#");
 
           Boogie.Expr heap; var hVar = BplBoundVar(varNameGen.FreshId("#heap#"), BoogieGenerator.Predef.HeapType, out heap);
-          var et = new ExpressionTranslator(this, heap);
+          var et = this.HeapExpr != null
+            ? new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpr, this.scope)
+            : new ExpressionTranslator(this, heap);
 
           Dictionary<IVariable, Expression> subst = new Dictionary<IVariable, Expression>();
           foreach (var bv in e.BoundVars) {
@@ -2282,10 +2376,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             subst[bv] = new BoogieWrapper(ve, bv.Type);
           }
 
-          var canCall = et.CanCallAssumption(Substitute(e.Body, null, subst));
+          var canCall = et.CanCallAssumption(Substitute(e.Body, null, subst), cco);
           if (e.Range != null) {
             var range = Substitute(e.Range, null, subst);
-            canCall = BplAnd(CanCallAssumption(range), BplImp(TrExpr(range), canCall));
+            canCall = BplAnd(CanCallAssumption(range, cco), BplImp(TrExpr(range), canCall));
           }
 
           // It's important to add the heap last to "bvarsAndAntecedents", because the heap may occur in the antecedents of
@@ -2301,16 +2395,16 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           if (e is QuantifierExpr q && q.SplitQuantifier != null) {
-            return CanCallAssumption(q.SplitQuantifierExpression);
+            return CanCallAssumption(q.SplitQuantifierExpression, cco);
           }
 
           // Determine the CanCall's for the range and term
-          var canCall = CanCallAssumption(e.Term);
+          var canCall = CanCallAssumption(e.Term, cco);
           if (e.Range != null) {
-            canCall = BplAnd(CanCallAssumption(e.Range), BplImp(TrExpr(e.Range), canCall));
+            canCall = BplAnd(CanCallAssumption(e.Range, cco), BplImp(TrExpr(e.Range), canCall));
           }
           if (expr is MapComprehension mc && mc.IsGeneralMapComprehension) {
-            canCall = BplAnd(canCall, CanCallAssumption(mc.TermLeft));
+            canCall = BplAnd(canCall, CanCallAssumption(mc.TermLeft, cco));
 
             // The translation of "map x,y | R(x,y) :: F(x,y) := G(x,y)" makes use of projection
             // functions project_x,project_y.  These are functions defined here by the following axiom:
@@ -2350,42 +2444,42 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
         } else if (expr is StmtExpr) {
           var e = (StmtExpr)expr;
-          return CanCallAssumption(e.E);
+          return CanCallAssumption(e.E, cco);
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
-          Boogie.Expr total = CanCallAssumption(e.Test);
+          Boogie.Expr total = CanCallAssumption(e.Test, cco);
           Boogie.Expr test = TrExpr(e.Test);
-          total = BplAnd(total, BplImp(test, CanCallAssumption(e.Thn)));
-          total = BplAnd(total, BplImp(Boogie.Expr.Not(test), CanCallAssumption(e.Els)));
+          total = BplAnd(total, BplImp(test, CanCallAssumption(e.Thn, cco)));
+          total = BplAnd(total, BplImp(Boogie.Expr.Not(test), CanCallAssumption(e.Els, cco)));
           return total;
         } else if (expr is ConcreteSyntaxExpression) {
           var e = (ConcreteSyntaxExpression)expr;
-          return CanCallAssumption(e.ResolvedExpression);
+          return CanCallAssumption(e.ResolvedExpression, cco);
         } else if (expr is NestedMatchExpr nestedMatchExpr) {
-          return CanCallAssumption(nestedMatchExpr.Flattened);
+          return CanCallAssumption(nestedMatchExpr.Flattened, cco);
         } else if (expr is BoogieFunctionCall) {
           var e = (BoogieFunctionCall)expr;
-          return CanCallAssumption(e.Args);
+          return CanCallAssumption(e.Args, cco);
         } else if (expr is MatchExpr) {
           var e = (MatchExpr)expr;
           var ite = DesugarMatchExpr(e);
-          return CanCallAssumption(ite);
+          return CanCallAssumption(ite, cco);
         } else if (expr is BoxingCastExpr) {
           var e = (BoxingCastExpr)expr;
-          return CanCallAssumption(e.E);
+          return CanCallAssumption(e.E, cco);
         } else if (expr is UnboxingCastExpr) {
           var e = (UnboxingCastExpr)expr;
-          return CanCallAssumption(e.E);
+          return CanCallAssumption(e.E, cco);
         } else if (expr is DecreasesToExpr decreasesToExpr) {
-          var oldCanCall = CanCallAssumption(decreasesToExpr.OldExpressions.ToList());
-          var newCanCall = CanCallAssumption(decreasesToExpr.NewExpressions.ToList());
+          var oldCanCall = CanCallAssumption(decreasesToExpr.OldExpressions.ToList(), cco);
+          var newCanCall = CanCallAssumption(decreasesToExpr.NewExpressions.ToList(), cco);
           return BplAnd(oldCanCall, newCanCall);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
       }
 
-      public Expr /*!*/ CanCallAssumption(List<Expression> exprs /*!*/ /*!*/) {
+      public Expr CanCallAssumption(List<Expression> exprs, CanCallOptions cco) {
         Contract.Requires(this != null);
         Contract.Requires(exprs != null);
         Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
@@ -2393,9 +2487,29 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         Boogie.Expr total = Boogie.Expr.True;
         foreach (Expression e in exprs) {
           Contract.Assert(e != null);
-          total = BplAnd(total, CanCallAssumption(e));
+          total = BplAnd(total, CanCallAssumption(e, cco));
         }
         return total;
+      }
+    }
+
+    public class CanCallOptions {
+      public bool SkipIsA;
+
+      public readonly Function EnclosingFunction; // self-call allowance is applied to the enclosing function
+      public readonly bool SelfCallAllowanceAlsoForOverride;
+
+      public bool MakeAllowance(Function f) {
+        return f == EnclosingFunction || (SelfCallAllowanceAlsoForOverride && f == EnclosingFunction.OverriddenFunction);
+      }
+
+      public CanCallOptions(bool skipIsA, Function enclosingFunction, bool selfCallAllowanceAlsoForOverride = false) {
+        Contract.Assert(!selfCallAllowanceAlsoForOverride ||
+                        (enclosingFunction.OverriddenFunction != null &&
+                         enclosingFunction.Ins.Count == enclosingFunction.OverriddenFunction.Ins.Count));
+        this.SkipIsA = skipIsA;
+        this.EnclosingFunction = enclosingFunction;
+        this.SelfCallAllowanceAlsoForOverride = selfCallAllowanceAlsoForOverride;
       }
     }
   }
