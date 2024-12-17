@@ -201,7 +201,7 @@ public class OrdinalSubtractionIsNatural : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new ExprDotName(rhs.tok, rhs, "IsNat", null);
+    return new ExprDotName(rhs.tok, rhs, new Name("IsNat"), null);
   }
 }
 
@@ -226,8 +226,8 @@ public class OrdinalSubtractionUnderflow : ProofObligationDescription {
     return new BinaryExpr(
       rhs.tok,
       BinaryExpr.Opcode.Le,
-      new ExprDotName(rhs.tok, rhs, "Offset", null),
-      new ExprDotName(lhs.tok, lhs, "Offset", null)
+      new ExprDotName(rhs.tok, rhs, new Name("Offset"), null),
+      new ExprDotName(lhs.tok, lhs, new Name("Offset"), null)
     );
   }
 }
@@ -394,7 +394,7 @@ public class IsInteger : ProofObligationDescription {
       expr.tok,
       BinaryExpr.Opcode.Eq,
       expr,
-      new ConversionExpr(expr.tok, new ExprDotName(expr.tok, expr, "Floor", null), Type.Real)
+      new ConversionExpr(expr.tok, new ExprDotName(expr.tok, expr, new Name("Floor"), null), Type.Real)
     );
   }
 }
@@ -1174,7 +1174,7 @@ public class PatternShapeIsValid : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new ExprDotName(Token.NoToken, expr, ctorName + "?", null);
+    return new ExprDotName(Token.NoToken, expr, new Name(ctorName + "?"), null);
   }
 }
 
@@ -1283,7 +1283,7 @@ public class IndicesInDomain : ProofObligationDescription {
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
     Utils.MakeQuantifierVarsForDims(dims, out var indexVars, out var indexVarExprs, out var indicesRange);
-    var precond = new FunctionCallExpr(Token.NoToken, "requires", init, Token.NoToken, Token.NoToken, new ActualBindings(indexVarExprs));
+    var precond = new FunctionCallExpr("requires", init, Token.NoToken, Token.NoToken, new ActualBindings(indexVarExprs));
     return new ForallExpr(Token.NoToken, indexVars, indicesRange, precond, null);
   }
 }
@@ -1557,7 +1557,7 @@ public class InRange : ProofObligationDescription {
   public override Expression GetAssertedExpr(DafnyOptions options) {
     if (sequence.Type is SeqType || sequence.Type.IsArrayType) {
       Expression bound = sequence.Type.IsArrayType ?
-          new MemberSelectExpr(sequence.tok, sequence, "Length" + (dimension >= 0 ? "" + dimension : ""))
+          new MemberSelectExpr(sequence.tok, sequence, new Name("Length" + (dimension >= 0 ? "" + dimension : "")))
         : new UnaryOpExpr(sequence.tok, UnaryOpExpr.Opcode.Cardinality, sequence);
       return new ChainingExpression(sequence.tok, new List<Expression>() {
         new LiteralExpr(sequence.tok, 0),
@@ -1802,7 +1802,7 @@ public class AssignmentShrinks : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    var receiverDotField = new ExprDotName(Token.NoToken, receiver, fieldName, null);
+    var receiverDotField = new ExprDotName(Token.NoToken, receiver, new Name(fieldName), null);
     return new BinaryExpr(
       Token.NoToken,
       BinaryExpr.Opcode.And,
@@ -1833,7 +1833,7 @@ public class ConcurrentFrameEmpty : ProofObligationDescription {
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
     var bvars = decl.Ins.Select(formal => new BoundVar(formal.Tok, formal.Name, formal.Type)).ToList();
-    var func = new ExprDotName(Token.NoToken, new NameSegment(Token.NoToken, decl.Name, null), frameName, null);
+    var func = new ExprDotName(Token.NoToken, new NameSegment(Token.NoToken, decl.Name, null), new Name(frameName), null);
     var args = bvars.Select(bvar => new IdentifierExpr(Token.NoToken, bvar) as Expression).ToList();
     var call = new ApplyExpr(Token.NoToken, func, args, Token.NoToken);
     var isEmpty = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, call,
@@ -1915,7 +1915,7 @@ internal class Utils {
 
   internal static Expression MakeIsOneCtorAssertion(Expression root, List<DatatypeCtor> ctors) {
     return ctors
-      .Select(ctor => new ExprDotName(Token.NoToken, root, ctor.Name + "?", null) as Expression)
+      .Select(ctor => new ExprDotName(Token.NoToken, root, ctor.NameNode.Append("?"), null) as Expression)
       .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, e0, e1));
   }
 

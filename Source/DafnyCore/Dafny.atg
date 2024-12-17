@@ -1639,7 +1639,7 @@ NamedType<.out Type ty, out Token tok, bool inExpressionContext.> =
   { "."
     TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
     OptGenericInstantiation<out typeArgs, inExpressionContext>
-    (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
+    (. e = new ExprDotName(tok, e, new Name(tok), typeArgs); .)
   }
   (. ty = new UserDefinedType(e.tok, e);
      ty.Origin = new SourceOrigin(startToken, t);
@@ -4349,7 +4349,7 @@ Suffix<ref Expression e>
       (. e = new DatatypeUpdateExpr(new SourceOrigin(startToken, t, x), e, updates); .)
     | DotSuffix<out id, out x>                 (. if (x != null) {
                                                     // process id as a Suffix in its own right
-                                                    e = new ExprDotName(new SourceOrigin(startToken, t, id), e, id.val, null);
+                                                    e = new ExprDotName(new SourceOrigin(startToken, t, id), e, new Name(id), null);
                                                     id = x;  // move to the next Suffix
                                                   }
                                                   Token openParen = null;  List<Type> typeArgs = null;
@@ -4366,7 +4366,7 @@ Suffix<ref Expression e>
       | [ IF(IsAtCall())
           AtCall<out atLabel, out openParen, out args> ]
       )
-      (. e = new ExprDotName(new SourceOrigin(startToken, id, id), e, id.val, typeArgs);
+      (. e = new ExprDotName(new SourceOrigin(startToken, id, id), e, new Name(id), typeArgs);
          if (openParen != null) {
            e = new ApplySuffix(new SourceOrigin(startToken, t, openParen), atLabel, e, args, t);
          } else {
