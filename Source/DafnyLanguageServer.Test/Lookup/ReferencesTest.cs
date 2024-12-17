@@ -36,8 +36,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
         source, out var cleanSource, out var explicitPositions, out var expectedRangesArray);
       var expectedRanges = new HashSet<Range>(expectedRangesArray);
 
-      var positionsFromRanges = expectedRangesArray.SelectMany(r => new[] { 
-        r.Start, 
+      var positionsFromRanges = expectedRangesArray.SelectMany(r => new[] {
+        r.Start,
         new Position(r.End.Line, r.End.Character-1) });
       var allPositions = explicitPositions.Concat(positionsFromRanges);
 
