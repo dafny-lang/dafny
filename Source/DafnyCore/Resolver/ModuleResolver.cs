@@ -2920,15 +2920,27 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static bool SurelyNeverSupportEqualityTypeParameters(IndDatatypeDecl.ES equalitySupport, List<TypeParameter> typeParams, List<Type> typeArgs) {
+      return
+        equalitySupport == IndDatatypeDecl.ES.Never ||
+        equalitySupport == IndDatatypeDecl.ES.ConsultTypeArguments &&
+        typeArgs.Zip(typeParams).Any(tt =>
+        tt.Item2.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && SurelyNeverSupportEquality(tt.Item1));
+    }
+
     // If returns true, the given type never supports equality
     // If return false, then the type must support equality if type parameters support equality
     // It is unsound for a type to make this function return false when there is no type parameter
     // assignment that makes this type support equality
     public static bool SurelyNeverSupportEquality(Type type) {
-      type = type.Normalize();
+      type = type.NormalizeExpand();
       return
-        type.AsNewtype is { EqualitySupport: IndDatatypeDecl.ES.Never } ||
-        type.AsIndDatatype is { EqualitySupport: IndDatatypeDecl.ES.Never } ||
+        type.AsNewtype is { EqualitySupport: var equalitySupport, TypeArgs: var typeParams }
+        && SurelyNeverSupportEqualityTypeParameters(equalitySupport, typeParams, type.TypeArgs)
+        ||
+        type.AsIndDatatype is { EqualitySupport: var equalitySupport2, TypeArgs: var typeParams2 }
+        && SurelyNeverSupportEqualityTypeParameters(equalitySupport2, typeParams2, type.TypeArgs)
+        ||
         type.IsCoDatatype || type.IsArrowType ||
         type.AsSeqType is { Arg: var argType } && SurelyNeverSupportEquality(argType) ||
         type.AsMapType is { Range: var rangeType } && SurelyNeverSupportEquality(rangeType);
