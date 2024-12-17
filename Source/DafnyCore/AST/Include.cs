@@ -18,6 +18,8 @@ public class Include : TokenNode, IComparable {
     this.CanonicalPath = DafnyFile.Canonicalize(theFilename.LocalPath).LocalPath;
   }
 
+  public IOrigin PathOrigin => new SourceOrigin(Center, EndToken);
+
   public int CompareTo(object obj) {
     if (obj is Include include) {
       return CanonicalPath.CompareTo(include.CanonicalPath);
