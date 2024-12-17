@@ -138,7 +138,7 @@ public class RunAllTestsMainMethod : IRewriter {
           var tryBodyStatements = new List<Statement>();
 
           var receiverExpr = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)method.EnclosingClass, true);
-          var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.Name) {
+          var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.NameNode) {
             Member = method,
             TypeApplicationJustMember = new List<Type>(),
             TypeApplicationAtEnclosingClass = new List<Type>()
@@ -186,7 +186,7 @@ public class RunAllTestsMainMethod : IRewriter {
 
           if (resultVarExpr?.Type is UserDefinedType udt && udt.ResolvedClass is TopLevelDeclWithMembers resultClass) {
             var failureGuardExpr =
-              new FunctionCallExpr(tok, "IsFailure", resultVarExpr, tok, Token.NoToken, new List<Expression>());
+              new FunctionCallExpr(tok, new Name("IsFailure"), resultVarExpr, tok, Token.NoToken, new List<Expression>());
             var isFailureMember = resultClass.Members.First(m => m.Name == "IsFailure");
             failureGuardExpr.Function = (Function)isFailureMember;
             failureGuardExpr.Type = Type.Bool;
