@@ -144,9 +144,7 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
   }
 
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return Enumerable.Repeat(Function, 1);
+  public IEnumerable<Reference> GetReferences() {
+    return Enumerable.Repeat(new Reference(Tok, Function), 1);
   }
-
-  public IOrigin NavigationToken => tok;
 }

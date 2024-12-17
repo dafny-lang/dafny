@@ -293,9 +293,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
 
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { Member };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Tok, Member) };
   }
-
-  public IOrigin NavigationToken => tok;
 }
