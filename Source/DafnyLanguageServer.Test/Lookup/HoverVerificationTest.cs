@@ -240,7 +240,7 @@ method f(x: int) {
 
 No assertions."
       );
-      await AssertVerificationHoverMatches(documentItem, (0, 10),
+      await AssertVerificationHoverMatches(documentItem, (0, 9),
         "```dafny\nx: int\n```");
     }
 
