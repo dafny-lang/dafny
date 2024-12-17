@@ -100,7 +100,7 @@ namespace Microsoft.Dafny {
           var substMap = new Dictionary<IVariable, Expression>();
           foreach (var v in FreeVariablesUtil.ComputeFreeVariables(options, assertStmt.Expr)) {
             if (v is LocalVariable) {
-              var vcopy = new LocalVariable(stmt.RangeToken, string.Format("##{0}#{1}", name, v.Name), v.Type,
+              var vcopy = new LocalVariable(stmt.Origin, string.Format("##{0}#{1}", name, v.Name), v.Type,
                 v.IsGhost);
               vcopy.type = vcopy.SyntacticType; // resolve local here
               IdentifierExpr ie = new IdentifierExpr(vcopy.Tok,
@@ -145,7 +145,7 @@ namespace Microsoft.Dafny {
 
     private bool TrAssertCondition(PredicateStmt stmt,
       ExpressionTranslator etran, BoogieStmtListBuilder proofBuilder) {
-      IToken enclosingToken = null;
+      IOrigin enclosingToken = null;
       if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
         enclosingToken = stmt.Tok;
       }
@@ -153,14 +153,14 @@ namespace Microsoft.Dafny {
       var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
       var splits = TrSplitExpr(proofBuilder.Context, stmt.Expr, etran, true, out var splitHappened);
       if (!splitHappened) {
-        var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
+        var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedOrigin(enclosingToken, GetToken(stmt.Expr));
         var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
         proofBuilder.Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok, proofBuilder.Context,
           etran.TrAttributes(stmt.Attributes, null)));
       } else {
         foreach (var split in splits) {
           if (split.IsChecked) {
-            var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
+            var tok = enclosingToken == null ? split.E.tok : new NestedOrigin(enclosingToken, split.Tok);
             var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
             proofBuilder.Add(AssertAndForget(proofBuilder.Context, ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
               etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split

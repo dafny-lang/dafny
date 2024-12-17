@@ -7,8 +7,8 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
   public override string WhatKind => "exists expression";
   protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
 
-  public ExistsExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok, rangeToken, bvars, range, term, attrs) {
+  public ExistsExpr(IOrigin tok, IOrigin rangeOrigin, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    : base(tok, rangeOrigin, bvars, range, term, attrs) {
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(tok != null);
     Contract.Requires(term != null);
@@ -60,7 +60,7 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
     var range = Range == null ? null : s.Substitute(Range);
     var term = s.Substitute(Term);
     var attrs = s.SubstAttributes(Attributes);
-    var ex = new ExistsExpr(tok, RangeToken, bvars, range, term, attrs);
+    var ex = new ExistsExpr(tok, Origin, bvars, range, term, attrs);
     ex.Type = Type.Bool;
     ex.Bounds = s.SubstituteBoundedPoolList(Bounds);
     return ex;

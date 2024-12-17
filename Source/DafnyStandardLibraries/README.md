@@ -27,8 +27,10 @@ These libraries are verified ahead of time before adding them to the Dafny tooli
 so switching on this option by itself does not incur any additional verification burden for your Dafny code.
 
 When using this option with commands like `dafny translate`, `dafny build`, or `dafny run`,
-the contents of the standard libraries will be automatically included in the translated source code as well.
-We do not yet provide any separately-compiled artifacts with this code.
+the contents of the standard libraries will be automatically included in the translated source code as well. 
+This causes conflicts when multiple such translated projects are combined. When combining such projects, please ensure that only one of them has `--translate-standard-library` set to true. 
+
+To combine multiple Dafny projects that were separately built, and were  
 
 Some libraries are dependent on target language utilities, such as `FileIO`.
 When `--standard-libraries` is on,

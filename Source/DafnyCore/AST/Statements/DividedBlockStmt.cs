@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
    */
 public class DividedBlockStmt : BlockStmt, ICloneable<DividedBlockStmt> {
   public readonly List<Statement> BodyInit;  // first part of Body's statements
-  public readonly IToken SeparatorTok;  // token that separates the two parts, if any
+  public readonly IOrigin SeparatorTok;  // token that separates the two parts, if any
   public readonly List<Statement> BodyProper;  // second part of Body's statements
 
   public new DividedBlockStmt Clone(Cloner cloner) {
@@ -22,9 +22,9 @@ public class DividedBlockStmt : BlockStmt, ICloneable<DividedBlockStmt> {
     SeparatorTok = original.SeparatorTok;
   }
 
-  public DividedBlockStmt(RangeToken rangeToken, List<Statement> bodyInit, IToken/*?*/ separatorTok, List<Statement> bodyProper)
-    : base(rangeToken, Util.Concat(bodyInit, bodyProper)) {
-    Contract.Requires(rangeToken != null);
+  public DividedBlockStmt(IOrigin rangeOrigin, List<Statement> bodyInit, IOrigin/*?*/ separatorTok, List<Statement> bodyProper)
+    : base(rangeOrigin, Util.Concat(bodyInit, bodyProper)) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(bodyInit));
     Contract.Requires(cce.NonNullElements(bodyProper));
     this.BodyInit = bodyInit;

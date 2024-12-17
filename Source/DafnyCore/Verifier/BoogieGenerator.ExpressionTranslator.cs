@@ -144,7 +144,7 @@ namespace Microsoft.Dafny {
         return new ExpressionTranslator(BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, readsFrame, newModifiesFrame, stripLits);
       }
 
-      internal IToken GetToken(Expression expression) {
+      internal IOrigin GetToken(Expression expression) {
         return BoogieGenerator.GetToken(expression);
       }
 
@@ -239,7 +239,7 @@ namespace Microsoft.Dafny {
         return et;
       }
 
-      public Boogie.IdentifierExpr ReadsFrame(IToken tok) {
+      public Boogie.IdentifierExpr ReadsFrame(IOrigin tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
@@ -250,7 +250,7 @@ namespace Microsoft.Dafny {
         return Frame(tok, readsFrame);
       }
 
-      public Boogie.IdentifierExpr ModifiesFrame(IToken tok) {
+      public Boogie.IdentifierExpr ModifiesFrame(IOrigin tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
@@ -258,7 +258,7 @@ namespace Microsoft.Dafny {
         return Frame(tok, modifiesFrame);
       }
 
-      private Boogie.IdentifierExpr Frame(IToken tok, string frameName) {
+      private Boogie.IdentifierExpr Frame(IOrigin tok, string frameName) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
@@ -568,7 +568,7 @@ namespace Microsoft.Dafny {
                   x = BoogieGenerator.FunctionCall(GetToken(selectExpr), f, finite ? Predef.MapType : Predef.IMapType, seq);
                   x = Boogie.Expr.Select(x, BoxIfNecessary(GetToken(e), e0, domainType));
                 } else if (seqType is MultiSetType) {
-                  x = Boogie.Expr.SelectTok(GetToken(selectExpr), TrExpr(e.Seq), BoxIfNecessary(GetToken(selectExpr), e0, domainType));
+                  x = BoogieGenerator.MultisetMultiplicity(GetToken(selectExpr), TrExpr(e.Seq), BoxIfNecessary(GetToken(selectExpr), e0, domainType));
                 } else { Contract.Assert(false); x = null; }
                 if (!ModeledAsBoxType(elmtType) && !(seqType is MultiSetType)) {
                   x = BoogieGenerator.FunctionCall(GetToken(selectExpr), BuiltinFunction.Unbox, elType, x);
@@ -614,7 +614,7 @@ namespace Microsoft.Dafny {
                 Type elmtType = cce.NonNull((MultiSetType)seqType).Arg;
                 Boogie.Expr index = BoxIfNecessary(GetToken(updateExpr), TrExpr(e.Index), elmtType);
                 Boogie.Expr val = TrExpr(e.Value);
-                return Boogie.Expr.StoreTok(GetToken(updateExpr), seq, index, val);
+                return BoogieGenerator.UpdateMultisetMultiplicity(GetToken(updateExpr), seq, index, val);
               } else {
                 Contract.Assert(false);
                 throw new cce.UnreachableException();
@@ -789,14 +789,14 @@ namespace Microsoft.Dafny {
                 case UnaryOpExpr.ResolvedOpcode.Fresh:
                   var freshLabel = ((FreshExpr)e).AtLabel;
                   var eeType = e.E.Type.NormalizeToAncestorType();
-                  if (eeType is SetType) {
+                  if (eeType is SetType setType) {
                     // generate:  (forall $o: ref :: { $o != null } X[Box($o)] ==> $o != null) &&
                     //            (forall $o: ref :: { X[Box($o)] } X[Box($o)] ==> !old($Heap)[$o,alloc])
                     // OR, if X[Box($o)] is rewritten into smaller parts, use the less good trigger old($Heap)[$o,alloc]
                     Boogie.Variable oVar = new Boogie.BoundVariable(GetToken(opExpr), new Boogie.TypedIdent(GetToken(opExpr), "$o", Predef.RefType));
                     Boogie.Expr o = new Boogie.IdentifierExpr(GetToken(opExpr), oVar);
                     Boogie.Expr oNotNull = Boogie.Expr.Neq(o, Predef.Null);
-                    Boogie.Expr oInSet = TrInSet(GetToken(opExpr), o, e.E, ((SetType)eeType).Arg, true, out var performedInSetRewrite);
+                    Boogie.Expr oInSet = TrInSet(GetToken(opExpr), o, e.E, setType.Arg, setType.Finite, true, out var performedInSetRewrite);
                     Boogie.Expr oNotFresh = OldAt(freshLabel).IsAlloced(GetToken(opExpr), o);
                     Boogie.Expr oIsFresh = Boogie.Expr.Not(oNotFresh);
                     Boogie.Expr notNullBody = BplImp(oInSet, oNotNull);
@@ -869,9 +869,9 @@ namespace Microsoft.Dafny {
               int bvWidth = e0Type.IsBitVectorType ? e0Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
               Boogie.Expr e0 = TrExpr(e.E0);
               if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
-                return TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false, out var pr);  // let TrInSet translate e.E1
+                return TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, e.E1.Type.NormalizeToAncestorType().AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
-                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false, out var pr);  // let TrInSet translate e.E1
+                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, e.E1.Type.NormalizeToAncestorType().AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
                 return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
                 return TrInMultiSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false); // let TrInMultiSet translate e.E1
@@ -1136,7 +1136,7 @@ namespace Microsoft.Dafny {
                   return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, BoogieGenerator.TypeSpecificEqual(GetToken(binaryExpr), e.E0.Type, e0, e1));
 
                 case BinaryExpr.ResolvedOpcode.ProperSubset: {
-                    return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e0, e1);
+                    return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e0, e1, e.E0.Type.NormalizeToAncestorType().AsSetType.Finite);
                   }
                 case BinaryExpr.ResolvedOpcode.Subset: {
                     bool finite = e.E1.Type.NormalizeToAncestorType().AsSetType.Finite;
@@ -1149,7 +1149,7 @@ namespace Microsoft.Dafny {
                     return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, null, e1, e0);
                   }
                 case BinaryExpr.ResolvedOpcode.ProperSuperset:
-                  return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e1, e0);
+                  return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e1, e0, e.E0.Type.NormalizeToAncestorType().AsSetType.Finite);
                 case BinaryExpr.ResolvedOpcode.Disjoint: {
                     bool finite = e.E1.Type.NormalizeToAncestorType().AsSetType.Finite;
                     var f = finite ? BuiltinFunction.SetDisjoint : BuiltinFunction.ISetDisjoint;
@@ -1223,14 +1223,18 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.InMap: {
                     bool finite = e.E1.Type.NormalizeToAncestorType().AsMapType.Finite;
                     var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-                    return Boogie.Expr.SelectTok(GetToken(binaryExpr), BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? Predef.MapType : Predef.IMapType, e1),
-                      BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
+                    return BoogieGenerator.IsSetMember(GetToken(binaryExpr),
+                      BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? Predef.MapType : Predef.IMapType, e1),
+                      BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type),
+                      finite);
                   }
                 case BinaryExpr.ResolvedOpcode.NotInMap: {
                     bool finite = e.E1.Type.NormalizeToAncestorType().AsMapType.Finite;
                     var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-                    Boogie.Expr inMap = Boogie.Expr.SelectTok(GetToken(binaryExpr), BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? Predef.MapType : Predef.IMapType, e1),
-                      BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
+                    Boogie.Expr inMap = BoogieGenerator.IsSetMember(GetToken(binaryExpr),
+                      BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? Predef.MapType : Predef.IMapType, e1),
+                      BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type),
+                      finite);
                     return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, inMap);
                   }
                 case BinaryExpr.ResolvedOpcode.MapMerge: {
@@ -1338,9 +1342,12 @@ namespace Microsoft.Dafny {
               List<bool> freeOfAlloc = BoundedPool.HasBounds(e.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
 
               // Translate "set xs | R :: T" into:
-              //     lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
+              //     Set#FromBoogieMap(lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T)))
               // or if "T" is "xs", then:
-              //     lambda y: BoxType :: CorrectType(y) && R[xs := Unbox(y)]
+              //     Set#FromBoogieMap(lambda y: BoxType :: CorrectType(y) && R[xs := Unbox(y)])
+              // where Set#FromBoogieMap is omitted for iset.
+              // FIXME: This is not a good translation, see comment in PreludeCore.bpl. It should be changed to not use a Boogie lambda expression
+              // but to instead do the lambda lifting here.
               var yVar = new Boogie.BoundVariable(GetToken(comprehension), new Boogie.TypedIdent(GetToken(comprehension), BoogieGenerator.CurrentIdGenerator.FreshId("$y#"), Predef.BoxType));
               Boogie.Expr y = new Boogie.IdentifierExpr(GetToken(comprehension), yVar);
               Boogie.Expr lbody;
@@ -1366,7 +1373,10 @@ namespace Microsoft.Dafny {
                 lbody = new Boogie.ExistsExpr(GetToken(comprehension), bvars, triggers, ebody);
               }
               Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
-              return new Boogie.LambdaExpr(GetToken(comprehension), new List<TypeVariable>(), new List<Variable> { yVar }, kv, lbody);
+              var lambda = new Boogie.LambdaExpr(GetToken(comprehension), new List<TypeVariable>(), new List<Variable> { yVar }, kv, lbody);
+              return comprehension.Type.NormalizeToAncestorType().AsSetType.Finite
+                ? FunctionCall(GetToken(comprehension), "Set#FromBoogieMap", Predef.SetType, lambda)
+                : lambda;
             }
           case MapComprehension comprehension: {
               var e = comprehension;
@@ -1442,9 +1452,11 @@ namespace Microsoft.Dafny {
                 values = new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), new List<Variable> { wVar }, kv, BoxIfNecessary(GetToken(comprehension), ebody, e.Term.Type));
               }
 
-              bool finite = e.Finite;
-              var f = finite ? BuiltinFunction.MapGlue : BuiltinFunction.IMapGlue;
-              return BoogieGenerator.FunctionCall(GetToken(e), f, null, keys, values, BoogieGenerator.TypeToTy(comprehension.Type));
+              return BoogieGenerator.FunctionCall(GetToken(e),
+                e.Finite ? BuiltinFunction.MapGlue : BuiltinFunction.IMapGlue,
+                null,
+                e.Finite ? FunctionCall(GetToken(comprehension), "Set#FromBoogieMap", Predef.SetType, keys) : keys,
+                values, BoogieGenerator.TypeToTy(comprehension.Type));
             }
           case LambdaExpr lambdaExpr: {
               var e = lambdaExpr;
@@ -1501,7 +1513,7 @@ namespace Microsoft.Dafny {
 
             bool endsWithWinningTopComparison = N == oldArray.Length && N < newArray.Length;
             var allowNoChange = decreasesToExpr.AllowNoChange || endsWithWinningTopComparison;
-            List<IToken> toks = oldExprs.Zip(newExprs, (_, _) => (IToken)decreasesToExpr.RangeToken).ToList();
+            List<IOrigin> toks = oldExprs.Zip(newExprs, (_, _) => (IOrigin)decreasesToExpr.Origin).ToList();
             var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, null,
               newExprsDafny, oldExprsDafny, newExprs, oldExprs, null,
               null, allowNoChange, false);
@@ -1750,14 +1762,14 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         return args;
       }
 
-      public Boogie.Expr GetArrayIndexFieldName(IToken tok, List<Expression> indices) {
+      public Boogie.Expr GetArrayIndexFieldName(IOrigin tok, List<Expression> indices) {
         return BoogieGenerator.GetArrayIndexFieldName(tok, indices.ConvertAll(idx => {
           var e = TrExpr(idx);
           return BoogieGenerator.ConvertExpression(GetToken(idx), e, idx.Type, Type.Int);
         }));
       }
 
-      public Boogie.Expr BoxIfNecessary(IToken tok, Boogie.Expr e, Type fromType) {
+      public Boogie.Expr BoxIfNecessary(IOrigin tok, Boogie.Expr e, Type fromType) {
         Contract.Requires(tok != null);
         Contract.Requires(e != null);
         Contract.Requires(fromType != null);
@@ -1769,7 +1781,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       /// Translate like s[Box(elmt)], but try to avoid as many set functions as possible in the
       /// translation, because such functions can mess up triggering.
       /// </summary>
-      public Boogie.Expr TrInSet(IToken tok, Boogie.Expr elmt, Expression s, Type elmtType, bool aggressive, out bool performedRewrite) {
+      public Boogie.Expr TrInSet(IOrigin tok, Boogie.Expr elmt, Expression s, Type elmtType, bool isFiniteSet, bool aggressive, out bool performedRewrite) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
@@ -1777,7 +1789,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
 
         var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
-        var r = TrInSet_Aux(tok, elmt, elmtBox, s, aggressive, out performedRewrite);
+        var r = TrInSet_Aux(tok, elmt, elmtBox, s, isFiniteSet, aggressive, out performedRewrite);
         Contract.Assert(performedRewrite == RewriteInExpr(s, aggressive)); // sanity check
         return r;
       }
@@ -1787,7 +1799,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       /// This gives the caller the flexibility to pass in either "o, Box(o)" or "Unbox(bx), bx".
       /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
-      public Boogie.Expr TrInSet_Aux(IToken tok, Boogie.Expr elmt, Boogie.Expr elmtBox, Expression s, bool aggressive, out bool performedRewrite) {
+      public Boogie.Expr TrInSet_Aux(IOrigin tok, Boogie.Expr elmt, Boogie.Expr elmtBox, Expression s, bool isFiniteSet, bool aggressive, out bool performedRewrite) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(elmtBox != null);
@@ -1801,11 +1813,17 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Union:
-              return BplOr(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr));
+              return BplOr(
+                TrInSet_Aux(tok, elmt, elmtBox, bin.E0, isFiniteSet, aggressive, out pr),
+                TrInSet_Aux(tok, elmt, elmtBox, bin.E1, isFiniteSet, aggressive, out pr));
             case BinaryExpr.ResolvedOpcode.Intersection:
-              return BplAnd(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr));
+              return BplAnd(
+                TrInSet_Aux(tok, elmt, elmtBox, bin.E0, isFiniteSet, aggressive, out pr),
+                TrInSet_Aux(tok, elmt, elmtBox, bin.E1, isFiniteSet, aggressive, out pr));
             case BinaryExpr.ResolvedOpcode.SetDifference:
-              return BplAnd(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), Boogie.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr)));
+              return BplAnd(
+                TrInSet_Aux(tok, elmt, elmtBox, bin.E0, isFiniteSet, aggressive, out pr),
+                Boogie.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1, isFiniteSet, aggressive, out pr)));
             default:
               break;
           }
@@ -1849,7 +1867,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           }
         }
         performedRewrite = false;
-        return Boogie.Expr.SelectTok(tok, TrExpr(s), elmtBox);
+        return BoogieGenerator.IsSetMember(tok, TrExpr(s), elmtBox, isFiniteSet);
       }
 
       /// <summary>
@@ -1857,7 +1875,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       /// translation, because such functions can mess up triggering.
       /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
-      public Boogie.Expr TrInMultiSet(IToken tok, Boogie.Expr elmt, Expression s, Type elmtType, bool aggressive) {
+      public Boogie.Expr TrInMultiSet(IOrigin tok, Boogie.Expr elmt, Expression s, Type elmtType, bool aggressive) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
@@ -1867,7 +1885,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
         return TrInMultiSet_Aux(tok, elmt, elmtBox, s, aggressive);
       }
-      public Boogie.Expr TrInMultiSet_Aux(IToken tok, Boogie.Expr elmt, Boogie.Expr elmtBox, Expression s, bool aggressive) {
+      public Boogie.Expr TrInMultiSet_Aux(IOrigin tok, Boogie.Expr elmt, Boogie.Expr elmtBox, Expression s, bool aggressive) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
@@ -1903,7 +1921,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             return disjunction;
           }
         }
-        var result = Boogie.Expr.Gt(Boogie.Expr.SelectTok(tok, TrExpr(s), elmtBox), Boogie.Expr.Literal(0));
+        var result = Boogie.Expr.Gt(BoogieGenerator.MultisetMultiplicity(tok, TrExpr(s), elmtBox), Boogie.Expr.Literal(0));
         result.tok = tok;
         return result;
       }
@@ -2070,12 +2088,12 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
       // --------------- help routines ---------------
 
-      public Boogie.Expr IsAlloced(IToken tok, Boogie.Expr e) {
+      public Boogie.Expr IsAlloced(IOrigin tok, Boogie.Expr e) {
         Contract.Requires(HeapExpr != null);
         return BoogieGenerator.IsAlloced(tok, HeapExpr, e);
       }
 
-      public Boogie.Expr GoodRef(IToken tok, Boogie.Expr e, Type type) {
+      public Boogie.Expr GoodRef(IOrigin tok, Boogie.Expr e, Type type) {
         Contract.Requires(tok != null);
         Contract.Requires(e != null);
         Contract.Requires(type != null);

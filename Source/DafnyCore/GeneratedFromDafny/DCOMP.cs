@@ -83,7 +83,7 @@ namespace DCOMP {
         } else if ((_4_optExtern).is_UnsupportedExtern) {
           (this).error = Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some((_4_optExtern).dtor_reason);
         }
-        s = DafnyCompilerRustUtils.GatheringModule.MergeSeqMap(DafnyCompilerRustUtils.GatheringModule.Wrap(Defs.__default.ContainingPathToRust(_2_containingPath), RAST.Mod.create_Mod(_3_modName, _5_attributes, _6_body)), _7_allmodules);
+        s = DafnyCompilerRustUtils.GatheringModule.MergeSeqMap(DafnyCompilerRustUtils.GatheringModule.Wrap(Defs.__default.ContainingPathToRust(_2_containingPath), RAST.Mod.create_Mod((mod).dtor_docString, _5_attributes, _3_modName, _6_body)), _7_allmodules);
       }
       return s;
     }
@@ -333,7 +333,7 @@ namespace DCOMP {
                   }
                 }
                 if ((_7_traitType).is_GeneralTrait) {
-                  _11_body = Dafny.Sequence<RAST._IImplMember>.Concat(_11_body, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_clone"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.Box(RAST.Type.create_DynType(_12_fullTraitPath))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.__default.BoxNew(((RAST.__default.self).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("clone"))).Apply0()))))));
+                  _11_body = Dafny.Sequence<RAST._IImplMember>.Concat(_11_body, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.__default.NoDoc, RAST.__default.NoAttr, RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_clone"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.Box(RAST.Type.create_DynType(_12_fullTraitPath))), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.__default.BoxNew(((RAST.__default.self).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("clone"))).Apply0()))))));
                 } else {
                   if (((kind).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("datatype"))) || ((kind).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("newtype")))) {
                     RAST._IExpr _15_dummy;
@@ -352,7 +352,7 @@ namespace DCOMP {
                   Dafny.ISequence<Dafny.Rune> _rhs1 = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("UpcastStructBoxFn!");
                   _17_upcastTraitToImplement = _rhs0;
                   _18_upcastTraitFn = _rhs1;
-                  s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(rTypeParamsDecls, (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("UpcastBox"))).AsType()).Apply1(RAST.Type.create_DynType(_12_fullTraitPath)), RAST.Type.create_TypeApp(_1_genSelfPath, rTypeParams), Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("upcast"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.Box(RAST.Type.create_DynType(_12_fullTraitPath))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some((((_2_genPathExpr).ApplyType(rTypeParams)).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_clone"))).Apply1(RAST.__default.self)))))))));
+                  s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(rTypeParamsDecls, (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("UpcastBox"))).AsType()).Apply1(RAST.Type.create_DynType(_12_fullTraitPath)), RAST.Type.create_TypeApp(_1_genSelfPath, rTypeParams), Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.__default.NoDoc, RAST.__default.NoAttr, RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("upcast"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.Box(RAST.Type.create_DynType(_12_fullTraitPath))), Std.Wrappers.Option<RAST._IExpr>.create_Some((((_2_genPathExpr).ApplyType(rTypeParams)).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_clone"))).Apply1(RAST.__default.self)))))))));
                 } else {
                   s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(rTypeParamsDecls, (((RAST.__default.dafny__runtime).MSel((this).Upcast)).AsType()).Apply(Dafny.Sequence<RAST._IType>.FromElements(RAST.Type.create_DynType(_12_fullTraitPath))), RAST.Type.create_TypeApp(_1_genSelfPath, rTypeParams), Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_ImplMemberMacro((((RAST.__default.dafny__runtime).MSel((this).UpcastFnMacro)).AsExpr()).Apply1(RAST.Expr.create_ExprFromType(RAST.Type.create_DynType(_12_fullTraitPath)))))))));
                 }
@@ -437,7 +437,7 @@ namespace DCOMP {
       _16_className = _out9;
       _17_extern = _out10;
       RAST._IStruct _18_struct;
-      _18_struct = RAST.Struct.create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), _16_className, _2_rTypeParamsDecls, RAST.Fields.create_NamedFields(_4_fields));
+      _18_struct = RAST.Struct.create((c).dtor_docString, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), _16_className, _2_rTypeParamsDecls, RAST.Fields.create_NamedFields(_4_fields));
       s = Dafny.Sequence<RAST._IModDecl>.FromElements();
       if ((_17_extern).is_NoExtern) {
         s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_StructDecl(_18_struct)));
@@ -450,7 +450,7 @@ namespace DCOMP {
       _19_implBody = _out11;
       _20_traitBodies = _out12;
       if (((_17_extern).is_NoExtern) && (!(_16_className).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_default")))) {
-        _19_implBody = Dafny.Sequence<RAST._IImplMember>.Concat(Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PUB(), RAST.Fn.create((this).allocate__fn, Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(), Std.Wrappers.Option<RAST._IType>.create_Some((this).Object(RAST.__default.SelfOwned)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(((((RAST.__default.dafny__runtime).MSel((this).allocate)).AsExpr()).ApplyType1(RAST.__default.SelfOwned)).Apply0())))), _19_implBody);
+        _19_implBody = Dafny.Sequence<RAST._IImplMember>.Concat(Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Allocates an UNINITIALIZED instance. Only the Dafny compiler should use that."), RAST.__default.NoAttr, RAST.Visibility.create_PUB(), RAST.Fn.create((this).allocate__fn, Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(), Std.Wrappers.Option<RAST._IType>.create_Some((this).Object(RAST.__default.SelfOwned)), Std.Wrappers.Option<RAST._IExpr>.create_Some(((((RAST.__default.dafny__runtime).MSel((this).allocate)).AsExpr()).ApplyType1(RAST.__default.SelfOwned)).Apply0())))), _19_implBody);
       }
       RAST._IType _21_selfTypeForImpl = RAST.Type.Default();
       if (((_17_extern).is_NoExtern) || ((_17_extern).is_UnsupportedExtern)) {
@@ -480,7 +480,7 @@ namespace DCOMP {
           if (((this).HasAttribute((_25_m).dtor_attributes, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("test"))) && ((new BigInteger(((_25_m).dtor_params).Count)).Sign == 0)) {
             Dafny.ISequence<Dafny.Rune> _27_fnName;
             _27_fnName = Defs.__default.escapeName((_25_m).dtor_name);
-            _23_testMethods = Dafny.Sequence<RAST._IModDecl>.Concat(_23_testMethods, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_TopFnDecl(RAST.TopFnDecl.create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#[test]")), RAST.Visibility.create_PUB(), RAST.Fn.create(_27_fnName, Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(), Std.Wrappers.Option<RAST._IType>.create_None(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(((RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_default"))).FSel(_27_fnName)).Apply(Dafny.Sequence<RAST._IExpr>.FromElements())))))));
+            _23_testMethods = Dafny.Sequence<RAST._IModDecl>.Concat(_23_testMethods, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_TopFnDecl(RAST.TopFnDecl.create((_25_m).dtor_docString, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#[test]")), RAST.Visibility.create_PUB(), RAST.Fn.create(_27_fnName, Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(), Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(((RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_default"))).FSel(_27_fnName)).Apply(Dafny.Sequence<RAST._IExpr>.FromElements())))))));
           }
         }
         s = Dafny.Sequence<RAST._IModDecl>.Concat(s, _23_testMethods);
@@ -551,7 +551,7 @@ namespace DCOMP {
       _12_implBody = _out3;
       _13___v5 = _out4;
       if (((t).dtor_traitType).is_GeneralTrait) {
-        _12_implBody = Dafny.Sequence<RAST._IImplMember>.Concat(_12_implBody, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_clone"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.Box(RAST.Type.create_DynType(_10_traitFulltype))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_None()))));
+        _12_implBody = Dafny.Sequence<RAST._IImplMember>.Concat(_12_implBody, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.__default.NoDoc, RAST.__default.NoAttr, RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_clone"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.Box(RAST.Type.create_DynType(_10_traitFulltype))), Std.Wrappers.Option<RAST._IExpr>.create_None()))));
       }
       Dafny.ISequence<RAST._IType> _14_parents;
       _14_parents = Dafny.Sequence<RAST._IType>.FromElements();
@@ -574,12 +574,12 @@ namespace DCOMP {
         }
         _14_parents = Dafny.Sequence<RAST._IType>.Concat(_14_parents, Dafny.Sequence<RAST._IType>.FromElements((((RAST.__default.dafny__runtime).MSel(_19_upcastTrait)).AsType()).Apply1(RAST.Type.create_DynType(_18_parentTpe))));
         if ((_17_parentTyp).IsGeneralTrait()) {
-          _15_upcastImplemented = Dafny.Sequence<RAST._IModDecl>.Concat(_15_upcastImplemented, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_1_rTypeParamsDecls, (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("UpcastBox"))).AsType()).Apply1(RAST.Type.create_DynType(_18_parentTpe)), RAST.__default.Box(RAST.Type.create_DynType(_10_traitFulltype)), Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("upcast"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.Box(RAST.Type.create_DynType(_18_parentTpe))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(((_11_traitFullExpr).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_clone"))).Apply1(((RAST.__default.self).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_ref"))).Apply0())))))))));
+          _15_upcastImplemented = Dafny.Sequence<RAST._IModDecl>.Concat(_15_upcastImplemented, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_1_rTypeParamsDecls, (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("UpcastBox"))).AsType()).Apply1(RAST.Type.create_DynType(_18_parentTpe)), RAST.__default.Box(RAST.Type.create_DynType(_10_traitFulltype)), Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.__default.NoDoc, RAST.__default.NoAttr, RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("upcast"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.Box(RAST.Type.create_DynType(_18_parentTpe))), Std.Wrappers.Option<RAST._IExpr>.create_Some(((_11_traitFullExpr).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_clone"))).Apply1(((RAST.__default.self).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_ref"))).Apply0())))))))));
         }
       }
-      s = Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_TraitDecl(RAST.Trait.create(_1_rTypeParamsDecls, _10_traitFulltype, _14_parents, _12_implBody)));
+      s = Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_TraitDecl(RAST.Trait.create((t).dtor_docString, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), _1_rTypeParamsDecls, _10_traitFulltype, _14_parents, _12_implBody)));
       if (((t).dtor_traitType).is_GeneralTrait) {
-        s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_1_rTypeParamsDecls, (((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("clone"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Clone"))).AsType(), RAST.__default.Box(RAST.Type.create_DynType(_10_traitFulltype)), Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("clone"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.SelfOwned), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(((_11_traitFullExpr).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_clone"))).Apply1(((RAST.__default.self).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_ref"))).Apply0())))))))));
+        s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_1_rTypeParamsDecls, (((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("clone"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Clone"))).AsType(), RAST.__default.Box(RAST.Type.create_DynType(_10_traitFulltype)), Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.__default.NoDoc, RAST.__default.NoAttr, RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("clone"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.SelfOwned), Std.Wrappers.Option<RAST._IExpr>.create_Some(((_11_traitFullExpr).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_clone"))).Apply1(((RAST.__default.self).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_ref"))).Apply0())))))))));
       }
       s = Dafny.Sequence<RAST._IModDecl>.Concat(s, _15_upcastImplemented);
       return s;
@@ -621,7 +621,7 @@ namespace DCOMP {
       } else {
         _9_attributes = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#[derive(Clone, PartialEq)]");
       }
-      s = Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_StructDecl(RAST.Struct.create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(_9_attributes, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#[repr(transparent)]")), _7_newtypeName, _2_rTypeParamsDecls, RAST.Fields.create_NamelessFields(Dafny.Sequence<RAST._INamelessField>.FromElements(RAST.NamelessField.create(RAST.Visibility.create_PUB(), _4_wrappedType))))));
+      s = Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_StructDecl(RAST.Struct.create((c).dtor_docString, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(_9_attributes, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#[repr(transparent)]")), _7_newtypeName, _2_rTypeParamsDecls, RAST.Fields.create_NamelessFields(Dafny.Sequence<RAST._INamelessField>.FromElements(RAST.NamelessField.create(RAST.Visibility.create_PUB(), _4_wrappedType))))));
       RAST._IExpr _10_fnBody = RAST.Expr.Default();
       Std.Wrappers._IOption<DAST._IExpression> _source0 = (c).dtor_witnessExpr;
       {
@@ -652,7 +652,7 @@ namespace DCOMP {
       }
     after_match0: ;
       RAST._IImplMember _16_body;
-      _16_body = RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("default"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.SelfOwned), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(_10_fnBody)));
+      _16_body = RAST.ImplMember.create_FnDecl(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("An element of "), _7_newtypeName), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("default"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.SelfOwned), Std.Wrappers.Option<RAST._IExpr>.create_Some(_10_fnBody)));
       Std.Wrappers._IOption<DAST._INewtypeConstraint> _source1 = (c).dtor_constraint;
       {
         if (_source1.is_None) {
@@ -677,13 +677,13 @@ namespace DCOMP {
         Dafny.ISequence<RAST._IFormal> _out10;
         _out10 = (this).GenParams(Dafny.Sequence<DAST._IFormal>.FromElements(_17_formal), false);
         _22_rFormals = _out10;
-        s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_Impl(_2_rTypeParamsDecls, _8_resultingType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PUB(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("is"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), _22_rFormals, Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_Bool()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(_19_rStmts))))))));
+        s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_Impl(_2_rTypeParamsDecls, _8_resultingType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Constraint check"), RAST.__default.NoAttr, RAST.Visibility.create_PUB(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("is"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), _22_rFormals, Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_Bool()), Std.Wrappers.Option<RAST._IExpr>.create_Some(_19_rStmts))))))));
       }
     after_match1: ;
       s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_2_rTypeParamsDecls, RAST.__default.DefaultTrait, _8_resultingType, Dafny.Sequence<RAST._IImplMember>.FromElements(_16_body)))));
-      s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_2_rTypeParamsDecls, RAST.__default.DafnyPrint, _8_resultingType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fmt_print"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed, RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_formatter"), RAST.Type.create_BorrowedMut((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fmt"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Formatter"))).AsType())), RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("in_seq"), RAST.Type.create_Bool())), Std.Wrappers.Option<RAST._IType>.create_Some((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fmt"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Result"))).AsType()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(((((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyPrint"))).AsExpr()).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fmt_print"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(RAST.__default.Borrow((RAST.__default.self).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("0"))), RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_formatter")), RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("in_seq"))))))))))));
-      s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_2_rTypeParamsDecls, (((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ops"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Deref"))).AsType(), _8_resultingType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_TypeDeclMember(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Target"), _4_wrappedType), RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("deref"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_Borrowed(((RAST.Path.create_Self()).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Target"))).AsType())), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.__default.Borrow((RAST.__default.self).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("0")))))))))));
-      s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_Impl(_2_rTypeParamsDecls, _8_resultingType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PUB(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_from_ref"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("o"), RAST.Type.create_Borrowed(_4_wrappedType))), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_Borrowed((RAST.Path.create_Self()).AsType())), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.__default.Unsafe(RAST.Expr.create_Block(((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("mem"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("transmute"))).AsExpr()).Apply1(RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("o")))))))))))));
+      s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_2_rTypeParamsDecls, RAST.__default.DafnyPrint, _8_resultingType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("For Dafny print statements"), RAST.__default.NoAttr, RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fmt_print"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed, RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_formatter"), RAST.Type.create_BorrowedMut((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fmt"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Formatter"))).AsType())), RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("in_seq"), RAST.Type.create_Bool())), Std.Wrappers.Option<RAST._IType>.create_Some((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fmt"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Result"))).AsType()), Std.Wrappers.Option<RAST._IExpr>.create_Some(((((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyPrint"))).AsExpr()).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fmt_print"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(RAST.__default.Borrow((RAST.__default.self).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("0"))), RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_formatter")), RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("in_seq"))))))))))));
+      s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_2_rTypeParamsDecls, (((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ops"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Deref"))).AsType(), _8_resultingType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_TypeDeclMember(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Target"), _4_wrappedType), RAST.ImplMember.create_FnDecl(RAST.__default.NoDoc, RAST.__default.NoAttr, RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("deref"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_Borrowed(((RAST.Path.create_Self()).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Target"))).AsType())), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.__default.Borrow((RAST.__default.self).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("0")))))))))));
+      s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_Impl(_2_rTypeParamsDecls, _8_resultingType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("SAFETY: The newtype is marked as transparent"), RAST.__default.NoAttr, RAST.Visibility.create_PUB(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_from_ref"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("o"), RAST.Type.create_Borrowed(_4_wrappedType))), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_Borrowed((RAST.Path.create_Self()).AsType())), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.__default.Unsafe(RAST.Expr.create_Block(((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("mem"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("transmute"))).AsExpr()).Apply1(RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("o")))))))))))));
       Dafny.ISequence<RAST._ITypeParamDecl> _23_rTypeParamsDeclsWithHash;
       _23_rTypeParamsDeclsWithHash = RAST.TypeParamDecl.AddConstraintsMultiple(_2_rTypeParamsDecls, Dafny.Sequence<RAST._IType>.FromElements(RAST.__default.Hash));
       s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(Defs.__default.HashImpl(_23_rTypeParamsDeclsWithHash, _8_resultingType, (((RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"))).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("0"))).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("hash"))).Apply1(RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_state"))))));
@@ -727,7 +727,7 @@ namespace DCOMP {
       RAST._IType _out3;
       _out3 = (this).GenType((c).dtor_base, Defs.GenTypeContext.@default());
       _4_resultingType = _out3;
-      s = Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_TypeDecl(RAST.TypeSynonym.create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), _3_synonymTypeName, _2_rTypeParamsDecls, _4_resultingType)));
+      s = Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_TypeDecl(RAST.TypeSynonym.create((c).dtor_docString, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), _3_synonymTypeName, _2_rTypeParamsDecls, _4_resultingType)));
       Dafny.ISequence<RAST._ITypeParamDecl> _5_defaultConstrainedTypeParams;
       _5_defaultConstrainedTypeParams = RAST.TypeParamDecl.AddConstraintsMultiple(_2_rTypeParamsDecls, Dafny.Sequence<RAST._IType>.FromElements(RAST.__default.DefaultTrait));
       Std.Wrappers._IOption<DAST._IExpression> _source0 = (c).dtor_witnessExpr;
@@ -757,7 +757,7 @@ namespace DCOMP {
             _12___v11 = _out9;
             Dafny.ISequence<Dafny.Rune> _13_constantName;
             _13_constantName = Defs.__default.escapeName(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_init_"), ((c).dtor_name)));
-            s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_TopFnDecl(RAST.TopFnDecl.create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), RAST.Visibility.create_PUB(), RAST.Fn.create(_13_constantName, _5_defaultConstrainedTypeParams, Dafny.Sequence<RAST._IFormal>.FromElements(), Std.Wrappers.Option<RAST._IType>.create_Some(_4_resultingType), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some((_7_rStmts).Then(_10_rExpr)))))));
+            s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_TopFnDecl(RAST.TopFnDecl.create(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("An element of "), _3_synonymTypeName), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), RAST.Visibility.create_PUB(), RAST.Fn.create(_13_constantName, _5_defaultConstrainedTypeParams, Dafny.Sequence<RAST._IFormal>.FromElements(), Std.Wrappers.Option<RAST._IType>.create_Some(_4_resultingType), Std.Wrappers.Option<RAST._IExpr>.create_Some((_7_rStmts).Then(_10_rExpr)))))));
           }
           goto after_match0;
         }
@@ -949,7 +949,7 @@ namespace DCOMP {
         if (_13_isNumeric) {
           _19_namedFields = (_19_namedFields).ToNamelessFields();
         }
-        _5_ctors = Dafny.Sequence<RAST._IEnumCase>.Concat(_5_ctors, Dafny.Sequence<RAST._IEnumCase>.FromElements(RAST.EnumCase.create(Defs.__default.escapeName((_11_ctor).dtor_name), _19_namedFields)));
+        _5_ctors = Dafny.Sequence<RAST._IEnumCase>.Concat(_5_ctors, Dafny.Sequence<RAST._IEnumCase>.FromElements(RAST.EnumCase.create((_11_ctor).dtor_docString, Defs.__default.escapeName((_11_ctor).dtor_name), _19_namedFields)));
       }
       Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _20_unusedTypeParams;
       _20_unusedTypeParams = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(Dafny.Helpers.Id<Func<Dafny.ISequence<RAST._ITypeParamDecl>, Dafny.ISet<Dafny.ISequence<Dafny.Rune>>>>((_21_rTypeParamsDecls) => ((System.Func<Dafny.ISet<Dafny.ISequence<Dafny.Rune>>>)(() => {
@@ -1046,7 +1046,7 @@ namespace DCOMP {
             }
             RAST._IExpr _46_methodBody;
             _46_methodBody = RAST.Expr.create_Match(RAST.__default.self, _34_cases);
-            _26_implBody = Dafny.Sequence<RAST._IImplMember>.Concat(_26_implBody, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PUB(), RAST.Fn.create(_32_callName, Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_Borrowed(_33_formalType)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(_46_methodBody)))));
+            _26_implBody = Dafny.Sequence<RAST._IImplMember>.Concat(_26_implBody, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl((((new BigInteger(((c).dtor_ctors).Count)) == (BigInteger.One)) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Returns a borrow of the field "), _32_callName)) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Gets the field "), _32_callName), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" for all enum members which have it")))), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), RAST.Visibility.create_PUB(), RAST.Fn.create(_32_callName, Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_Borrowed(_33_formalType)), Std.Wrappers.Option<RAST._IExpr>.create_Some(_46_methodBody)))));
           }
         }
       }
@@ -1112,14 +1112,14 @@ namespace DCOMP {
         }
       after_2_0: ;
         if ((new BigInteger((_20_unusedTypeParams).Count)).Sign == 1) {
-          _5_ctors = Dafny.Sequence<RAST._IEnumCase>.Concat(_5_ctors, Dafny.Sequence<RAST._IEnumCase>.FromElements(RAST.EnumCase.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_PhantomVariant"), RAST.Fields.create_NamelessFields(Std.Collections.Seq.__default.Map<RAST._IType, RAST._INamelessField>(((System.Func<RAST._IType, RAST._INamelessField>)((_66_tpe) => {
+          _5_ctors = Dafny.Sequence<RAST._IEnumCase>.Concat(_5_ctors, Dafny.Sequence<RAST._IEnumCase>.FromElements(RAST.EnumCase.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_PhantomVariant"), RAST.Fields.create_NamelessFields(Std.Collections.Seq.__default.Map<RAST._IType, RAST._INamelessField>(((System.Func<RAST._IType, RAST._INamelessField>)((_66_tpe) => {
   return RAST.NamelessField.create(RAST.Visibility.create_PRIV(), _66_tpe);
 })), _53_types)))));
         }
       }
       bool _67_cIsEq;
       _67_cIsEq = (this).DatatypeIsEq(c);
-      s = Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_EnumDecl(RAST.Enum.create(((_67_cIsEq) ? (Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#[derive(PartialEq, Clone)]"))) : (Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#[derive(Clone)]")))), _3_datatypeName, _2_rTypeParamsDecls, _5_ctors)), RAST.ModDecl.create_ImplDecl(RAST.Impl.create_Impl(_2_rTypeParamsDecls, RAST.Type.create_TypeApp(RAST.Type.create_TIdentifier(_3_datatypeName), _1_rTypeParams), _26_implBody)));
+      s = Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_EnumDecl(RAST.Enum.create((c).dtor_docString, ((_67_cIsEq) ? (Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#[derive(PartialEq, Clone)]"))) : (Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#[derive(Clone)]")))), _3_datatypeName, _2_rTypeParamsDecls, _5_ctors)), RAST.ModDecl.create_ImplDecl(RAST.Impl.create_Impl(_2_rTypeParamsDecls, RAST.Type.create_TypeApp(RAST.Type.create_TIdentifier(_3_datatypeName), _1_rTypeParams), _26_implBody)));
       Dafny.ISequence<RAST._IMatchCase> _68_printImplBodyCases;
       _68_printImplBodyCases = Dafny.Sequence<RAST._IMatchCase>.FromElements();
       Dafny.ISequence<RAST._IMatchCase> _69_hashImplBodyCases;
@@ -1262,20 +1262,18 @@ namespace DCOMP {
           _104_dtor = ((((c).dtor_ctors).Select(BigInteger.Zero)).dtor_args).Select(_103_i);
           _102_structAssignments = Dafny.Sequence<RAST._IAssignIdentifier>.Concat(_102_structAssignments, Dafny.Sequence<RAST._IAssignIdentifier>.FromElements(RAST.AssignIdentifier.create(Defs.__default.escapeVar(((_104_dtor).dtor_formal).dtor_name), (((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("default"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Default"))).AsExpr()).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("default"))).Apply0())));
         }
-        Dafny.ISequence<RAST._ITypeParamDecl> _105_defaultConstrainedTypeParams;
-        _105_defaultConstrainedTypeParams = RAST.TypeParamDecl.AddConstraintsMultiple(_2_rTypeParamsDecls, Dafny.Sequence<RAST._IType>.FromElements(RAST.__default.DefaultTrait));
-        RAST._IType _106_fullType;
-        _106_fullType = RAST.Type.create_TypeApp(RAST.Type.create_TIdentifier(_3_datatypeName), _1_rTypeParams);
+        RAST._IType _105_fullType;
+        _105_fullType = RAST.Type.create_TypeApp(RAST.Type.create_TIdentifier(_3_datatypeName), _1_rTypeParams);
         if (_67_cIsEq) {
-          s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_105_defaultConstrainedTypeParams, RAST.__default.DefaultTrait, _106_fullType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("default"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(), Std.Wrappers.Option<RAST._IType>.create_Some(_106_fullType), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.Expr.create_StructBuild(_101_structName, _102_structAssignments)))))))));
+          s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(Defs.__default.DefaultDatatypeImpl(_2_rTypeParamsDecls, _105_fullType, _101_structName, _102_structAssignments)));
         }
-        s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_2_rTypeParamsDecls, ((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("convert"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("AsRef"))).AsType()).Apply1(_106_fullType), _106_fullType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_ref"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.SelfBorrowed), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.__default.self))))))));
+        s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(Defs.__default.AsRefDatatypeImpl(_2_rTypeParamsDecls, _105_fullType)));
       }
-      Dafny.ISequence<RAST._IModDecl> _107_superTraitImplementations;
+      Dafny.ISequence<RAST._IModDecl> _106_superTraitImplementations;
       Dafny.ISequence<RAST._IModDecl> _out16;
       _out16 = (this).GenTraitImplementations(path, _1_rTypeParams, _2_rTypeParamsDecls, (c).dtor_superTraitTypes, _25_traitBodies, _4_extern, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("datatype"));
-      _107_superTraitImplementations = _out16;
-      s = Dafny.Sequence<RAST._IModDecl>.Concat(s, _107_superTraitImplementations);
+      _106_superTraitImplementations = _out16;
+      s = Dafny.Sequence<RAST._IModDecl>.Concat(s, _106_superTraitImplementations);
       return s;
     }
     public RAST._IPath GenPath(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> p, bool escape)
@@ -1969,7 +1967,7 @@ namespace DCOMP {
         {
         }
       after_match1: ;
-        _32_env = Defs.Environment.create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat(_34_preAssignNames, _1_paramNames), Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IType>.Merge(_35_preAssignTypes, _2_paramTypes));
+        _32_env = Defs.Environment.create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat(_34_preAssignNames, _1_paramNames), Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IType>.Merge(_35_preAssignTypes, _2_paramTypes), Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements());
         RAST._IExpr _50_body;
         Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _51___v20;
         Defs._IEnvironment _52___v21;
@@ -1982,10 +1980,10 @@ namespace DCOMP {
         _52___v21 = _out8;
         _31_fBody = Std.Wrappers.Option<RAST._IExpr>.create_Some((_33_preBody).Then(_50_body));
       } else {
-        _32_env = Defs.Environment.create(_1_paramNames, _2_paramTypes);
+        _32_env = Defs.Environment.create(_1_paramNames, _2_paramTypes, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements());
         _31_fBody = Std.Wrappers.Option<RAST._IExpr>.create_None();
       }
-      s = RAST.ImplMember.create_FnDecl(_21_visibility, RAST.Fn.create(_7_fnName, _25_typeParams, _0_params, Std.Wrappers.Option<RAST._IType>.create_Some((((new BigInteger((_18_retTypeArgs).Count)) == (BigInteger.One)) ? ((_18_retTypeArgs).Select(BigInteger.Zero)) : (RAST.Type.create_TupleType(_18_retTypeArgs)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), _31_fBody));
+      s = RAST.ImplMember.create_FnDecl((m).dtor_docString, RAST.__default.NoAttr, _21_visibility, RAST.Fn.create(_7_fnName, _25_typeParams, _0_params, Std.Wrappers.Option<RAST._IType>.create_Some((((new BigInteger((_18_retTypeArgs).Count)) == (BigInteger.One)) ? ((_18_retTypeArgs).Select(BigInteger.Zero)) : (RAST.Type.create_TupleType(_18_retTypeArgs)))), _31_fBody));
       return s;
     }
     public void GenStmts(Dafny.ISequence<DAST._IStatement> stmts, Defs._ISelfInfo selfIdent, Defs._IEnvironment env, bool isLast, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> earlyReturn, out RAST._IExpr generated, out Dafny.ISet<Dafny.ISequence<Dafny.Rune>> readIdents, out Defs._IEnvironment newEnv)
@@ -2000,78 +1998,144 @@ namespace DCOMP {
       BigInteger _1_i;
       _1_i = BigInteger.Zero;
       newEnv = env;
-      Dafny.ISequence<DAST._IStatement> _2_stmts;
-      _2_stmts = stmts;
-      while ((_1_i) < (new BigInteger((_2_stmts).Count))) {
-        DAST._IStatement _3_stmt;
-        _3_stmt = (_2_stmts).Select(_1_i);
-        DAST._IStatement _source0 = _3_stmt;
-        {
-          if (_source0.is_DeclareVar) {
-            Dafny.ISequence<Dafny.Rune> _4_name = _source0.dtor_name;
-            DAST._IType _5_optType = _source0.dtor_typ;
-            Std.Wrappers._IOption<DAST._IExpression> maybeValue0 = _source0.dtor_maybeValue;
-            if (maybeValue0.is_None) {
-              if (((_1_i) + (BigInteger.One)) < (new BigInteger((_2_stmts).Count))) {
-                DAST._IStatement _source1 = (_2_stmts).Select((_1_i) + (BigInteger.One));
-                {
-                  if (_source1.is_Assign) {
-                    DAST._IAssignLhs lhs0 = _source1.dtor_lhs;
-                    if (lhs0.is_Ident) {
-                      Dafny.ISequence<Dafny.Rune> _6_name2 = lhs0.dtor_ident;
-                      DAST._IExpression _7_rhs = _source1.dtor_value;
-                      if (object.Equals(_6_name2, _4_name)) {
-                        _2_stmts = Dafny.Sequence<DAST._IStatement>.Concat(Dafny.Sequence<DAST._IStatement>.Concat((_2_stmts).Subsequence(BigInteger.Zero, _1_i), Dafny.Sequence<DAST._IStatement>.FromElements(DAST.Statement.create_DeclareVar(_4_name, _5_optType, Std.Wrappers.Option<DAST._IExpression>.create_Some(_7_rhs)))), (_2_stmts).Drop((_1_i) + (new BigInteger(2))));
-                        _3_stmt = (_2_stmts).Select(_1_i);
-                      }
-                      goto after_match1;
-                    }
-                  }
-                }
-                {
-                }
-              after_match1: ;
+      while ((_1_i) < (new BigInteger((stmts).Count))) {
+        DAST._IStatement _2_stmt;
+        _2_stmt = (stmts).Select(_1_i);
+        if (((((((_2_stmt).is_DeclareVar) && (((_2_stmt).dtor_maybeValue).is_None)) && (((_1_i) + (BigInteger.One)) < (new BigInteger((stmts).Count)))) && (((stmts).Select((_1_i) + (BigInteger.One))).is_Assign)) && ((((stmts).Select((_1_i) + (BigInteger.One))).dtor_lhs).is_Ident)) && (object.Equals((((stmts).Select((_1_i) + (BigInteger.One))).dtor_lhs).dtor_ident, (_2_stmt).dtor_name))) {
+          Dafny.ISequence<Dafny.Rune> _3_name;
+          _3_name = (_2_stmt).dtor_name;
+          DAST._IType _4_typ;
+          _4_typ = (_2_stmt).dtor_typ;
+          RAST._IExpr _5_stmtExpr;
+          Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _6_recIdents;
+          Defs._IEnvironment _7_newEnv2;
+          RAST._IExpr _out0;
+          Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out1;
+          Defs._IEnvironment _out2;
+          (this).GenDeclareVarAssign(_3_name, _4_typ, ((stmts).Select((_1_i) + (BigInteger.One))).dtor_value, selfIdent, newEnv, out _out0, out _out1, out _out2);
+          _5_stmtExpr = _out0;
+          _6_recIdents = _out1;
+          _7_newEnv2 = _out2;
+          newEnv = _7_newEnv2;
+          readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_6_recIdents, _0_declarations));
+          _0_declarations = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(_0_declarations, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(Defs.__default.escapeVar(_3_name)));
+          generated = (generated).Then(_5_stmtExpr);
+          _1_i = (_1_i) + (new BigInteger(2));
+        } else {
+          DAST._IStatement _source0 = _2_stmt;
+          {
+            if (_source0.is_DeclareVar) {
+              Dafny.ISequence<Dafny.Rune> _8_name = _source0.dtor_name;
+              DAST._IType _9_optType = _source0.dtor_typ;
+              Std.Wrappers._IOption<DAST._IExpression> maybeValue0 = _source0.dtor_maybeValue;
+              if (maybeValue0.is_None) {
+                Defs._IAssignmentStatus _10_laterAssignmentStatus;
+                _10_laterAssignmentStatus = Defs.__default.DetectAssignmentStatus((stmts).Drop((_1_i) + (BigInteger.One)), _8_name);
+                newEnv = (newEnv).AddAssignmentStatus(Defs.__default.escapeVar(_8_name), _10_laterAssignmentStatus);
+                goto after_match0;
               }
-              goto after_match0;
             }
           }
-        }
-        {
-        }
-      after_match0: ;
-        RAST._IExpr _8_stmtExpr;
-        Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _9_recIdents;
-        Defs._IEnvironment _10_newEnv2;
-        RAST._IExpr _out0;
-        Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out1;
-        Defs._IEnvironment _out2;
-        (this).GenStmt(_3_stmt, selfIdent, newEnv, (isLast) && ((_1_i) == ((new BigInteger((_2_stmts).Count)) - (BigInteger.One))), earlyReturn, out _out0, out _out1, out _out2);
-        _8_stmtExpr = _out0;
-        _9_recIdents = _out1;
-        _10_newEnv2 = _out2;
-        newEnv = _10_newEnv2;
-        DAST._IStatement _source2 = _3_stmt;
-        {
-          if (_source2.is_DeclareVar) {
-            Dafny.ISequence<Dafny.Rune> _11_name = _source2.dtor_name;
-            {
-              _0_declarations = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(_0_declarations, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(Defs.__default.escapeVar(_11_name)));
+          {
+            if (_source0.is_DeclareVar) {
+              Dafny.ISequence<Dafny.Rune> _11_name = _source0.dtor_name;
+              DAST._IType _12_optType = _source0.dtor_typ;
+              Std.Wrappers._IOption<DAST._IExpression> maybeValue1 = _source0.dtor_maybeValue;
+              if (maybeValue1.is_Some) {
+                DAST._IExpression value0 = maybeValue1.dtor_value;
+                if (value0.is_InitializationValue) {
+                  DAST._IType _13_typ = value0.dtor_typ;
+                  RAST._IType _14_tpe;
+                  RAST._IType _out3;
+                  _out3 = (this).GenType(_13_typ, Defs.GenTypeContext.@default());
+                  _14_tpe = _out3;
+                  Dafny.ISequence<Dafny.Rune> _15_varName;
+                  _15_varName = Defs.__default.escapeVar(_11_name);
+                  Defs._IAssignmentStatus _16_laterAssignmentStatus;
+                  _16_laterAssignmentStatus = Defs.__default.DetectAssignmentStatus((stmts).Drop((_1_i) + (BigInteger.One)), _11_name);
+                  newEnv = (newEnv).AddAssignmentStatus(_15_varName, _16_laterAssignmentStatus);
+                  goto after_match0;
+                }
+              }
             }
-            goto after_match2;
           }
-        }
-        {
-        }
-      after_match2: ;
-        readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_9_recIdents, _0_declarations));
-        generated = (generated).Then(_8_stmtExpr);
-        _1_i = (_1_i) + (BigInteger.One);
-        if ((_8_stmtExpr).is_Return) {
-          goto after_0;
+          {
+          }
+        after_match0: ;
+          RAST._IExpr _17_stmtExpr;
+          Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _18_recIdents;
+          Defs._IEnvironment _19_newEnv2;
+          RAST._IExpr _out4;
+          Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out5;
+          Defs._IEnvironment _out6;
+          (this).GenStmt(_2_stmt, selfIdent, newEnv, (isLast) && ((_1_i) == ((new BigInteger((stmts).Count)) - (BigInteger.One))), earlyReturn, out _out4, out _out5, out _out6);
+          _17_stmtExpr = _out4;
+          _18_recIdents = _out5;
+          _19_newEnv2 = _out6;
+          newEnv = _19_newEnv2;
+          DAST._IStatement _source1 = _2_stmt;
+          {
+            if (_source1.is_DeclareVar) {
+              Dafny.ISequence<Dafny.Rune> _20_name = _source1.dtor_name;
+              {
+                _0_declarations = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(_0_declarations, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(Defs.__default.escapeVar(_20_name)));
+              }
+              goto after_match1;
+            }
+          }
+          {
+          }
+        after_match1: ;
+          readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_18_recIdents, _0_declarations));
+          generated = (generated).Then(_17_stmtExpr);
+          if ((_17_stmtExpr).is_Return) {
+            goto after_0;
+          }
+          _1_i = (_1_i) + (BigInteger.One);
         }
       continue_0: ;
       }
     after_0: ;
+    }
+    public void GenDeclareVarAssign(Dafny.ISequence<Dafny.Rune> name, DAST._IType typ, DAST._IExpression rhs, Defs._ISelfInfo selfIdent, Defs._IEnvironment env, out RAST._IExpr generated, out Dafny.ISet<Dafny.ISequence<Dafny.Rune>> readIdents, out Defs._IEnvironment newEnv)
+    {
+      generated = RAST.Expr.Default();
+      readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Empty;
+      newEnv = Defs.Environment.Default();
+      RAST._IType _0_tpe;
+      RAST._IType _out0;
+      _out0 = (this).GenType(typ, Defs.GenTypeContext.@default());
+      _0_tpe = _out0;
+      Dafny.ISequence<Dafny.Rune> _1_varName;
+      _1_varName = Defs.__default.escapeVar(name);
+      RAST._IExpr _2_exprRhs = RAST.Expr.Default();
+      if (((rhs).is_InitializationValue) && ((_0_tpe).IsObjectOrPointer())) {
+        readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements();
+        if ((rhs).is_NewUninitArray) {
+          _0_tpe = (_0_tpe).TypeAtInitialization();
+        } else {
+          _0_tpe = _0_tpe;
+        }
+        _2_exprRhs = (_0_tpe).ToNullExpr();
+      } else {
+        RAST._IExpr _3_expr = RAST.Expr.Default();
+        Defs._IOwnership _4_exprOwnership = Defs.Ownership.Default();
+        RAST._IExpr _out1;
+        Defs._IOwnership _out2;
+        Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out3;
+        (this).GenExpr(rhs, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out1, out _out2, out _out3);
+        _3_expr = _out1;
+        _4_exprOwnership = _out2;
+        readIdents = _out3;
+        if ((rhs).is_NewUninitArray) {
+          _0_tpe = (_0_tpe).TypeAtInitialization();
+        } else {
+          _0_tpe = _0_tpe;
+        }
+        _2_exprRhs = _3_expr;
+      }
+      generated = RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), _1_varName, Std.Wrappers.Option<RAST._IType>.create_Some(_0_tpe), Std.Wrappers.Option<RAST._IExpr>.create_Some(_2_exprRhs));
+      newEnv = (env).AddAssigned(_1_varName, _0_tpe);
     }
     public void GenAssignLhs(DAST._IAssignLhs lhs, RAST._IExpr rhs, Defs._ISelfInfo selfIdent, Defs._IEnvironment env, out RAST._IExpr generated, out bool needsIIFE, out Dafny.ISet<Dafny.ISequence<Dafny.Rune>> readIdents, out Defs._IEnvironment newEnv)
     {
@@ -2206,14 +2270,14 @@ namespace DCOMP {
           BigInteger _hi0 = new BigInteger((_12_indices).Count);
           for (BigInteger _18_i = BigInteger.Zero; _18_i < _hi0; _18_i++) {
             RAST._IExpr _19_idx;
-            Defs._IOwnership _20___v30;
+            Defs._IOwnership _20___v29;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _21_recIdentsIdx;
             RAST._IExpr _out6;
             Defs._IOwnership _out7;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out8;
             (this).GenExpr((_12_indices).Select(_18_i), selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out6, out _out7, out _out8);
             _19_idx = _out6;
-            _20___v30 = _out7;
+            _20___v29 = _out7;
             _21_recIdentsIdx = _out8;
             Dafny.ISequence<Dafny.Rune> _22_varName;
             _22_varName = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("__idx"), Std.Strings.__default.OfNat(_18_i));
@@ -2315,14 +2379,14 @@ namespace DCOMP {
       }
       {
         RAST._IExpr _12_onExpr;
-        Defs._IOwnership _13___v35;
+        Defs._IOwnership _13___v34;
         Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _14_recIdents;
         RAST._IExpr _out18;
         Defs._IOwnership _out19;
         Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out20;
         (this).GenExpr(@on, selfIdent, env, Defs.Ownership.create_OwnershipAutoBorrowed(), out _out18, out _out19, out _out20);
         _12_onExpr = _out18;
-        _13___v35 = _out19;
+        _13___v34 = _out19;
         _14_recIdents = _out20;
         readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _14_recIdents);
         Dafny.ISequence<Dafny.Rune> _15_renderedName;
@@ -2402,15 +2466,15 @@ namespace DCOMP {
               _5_isAssignedVar = Defs.__default.AddAssignedPrefix(_3_fieldName);
               if (((newEnv).dtor_names).Contains(_5_isAssignedVar)) {
                 RAST._IExpr _6_rhs;
-                Defs._IOwnership _7___v45;
-                Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _8___v46;
+                Defs._IOwnership _7___v44;
+                Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _8___v45;
                 RAST._IExpr _out1;
                 Defs._IOwnership _out2;
                 Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out3;
                 (this).GenExpr(DAST.Expression.create_InitializationValue(((_2_field).dtor_formal).dtor_typ), selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out1, out _out2, out _out3);
                 _6_rhs = _out1;
-                _7___v45 = _out2;
-                _8___v46 = _out3;
+                _7___v44 = _out2;
+                _8___v45 = _out3;
                 readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_5_isAssignedVar));
                 Dafny.ISequence<Dafny.Rune> _9_update__if__uninit;
                 if ((_2_field).dtor_isConstant) {
@@ -2443,33 +2507,23 @@ namespace DCOMP {
               bool _15_hasCopySemantics;
               _15_hasCopySemantics = (_13_tpe).CanReadWithoutClone();
               if (((_12_expression).is_InitializationValue) && (!(_15_hasCopySemantics))) {
-                generated = RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), _14_varName, Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(((((RAST.__default.MaybePlaceboPath).AsExpr()).ApplyType1(_13_tpe)).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("new"))).Apply0()));
+                if ((env).IsAssignmentStatusKnown(_14_varName)) {
+                  generated = RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), _14_varName, Std.Wrappers.Option<RAST._IType>.create_Some(_13_tpe), Std.Wrappers.Option<RAST._IExpr>.create_None());
+                } else {
+                  generated = RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), _14_varName, Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(((((RAST.__default.MaybePlaceboPath).AsExpr()).ApplyType1(_13_tpe)).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("new"))).Apply0()));
+                  _13_tpe = RAST.__default.MaybePlaceboType(_13_tpe);
+                }
                 readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements();
-                newEnv = (env).AddAssigned(_14_varName, RAST.__default.MaybePlaceboType(_13_tpe));
-              } else {
-                RAST._IExpr _16_expr = RAST.Expr.Default();
-                Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _17_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Empty;
-                if (((_12_expression).is_InitializationValue) && ((_13_tpe).IsObjectOrPointer())) {
-                  _16_expr = (_13_tpe).ToNullExpr();
-                  _17_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements();
-                } else {
-                  Defs._IOwnership _18_exprOwnership = Defs.Ownership.Default();
-                  RAST._IExpr _out5;
-                  Defs._IOwnership _out6;
-                  Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out7;
-                  (this).GenExpr(_12_expression, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out5, out _out6, out _out7);
-                  _16_expr = _out5;
-                  _18_exprOwnership = _out6;
-                  _17_recIdents = _out7;
-                }
-                readIdents = _17_recIdents;
-                if ((_12_expression).is_NewUninitArray) {
-                  _13_tpe = (_13_tpe).TypeAtInitialization();
-                } else {
-                  _13_tpe = _13_tpe;
-                }
-                generated = RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), _14_varName, Std.Wrappers.Option<RAST._IType>.create_Some(_13_tpe), Std.Wrappers.Option<RAST._IExpr>.create_Some(_16_expr));
                 newEnv = (env).AddAssigned(_14_varName, _13_tpe);
+              } else {
+                RAST._IExpr _out5;
+                Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out6;
+                Defs._IEnvironment _out7;
+                (this).GenDeclareVarAssign(_10_name, _11_typ, _12_expression, selfIdent, env, out _out5, out _out6, out _out7);
+                generated = _out5;
+                readIdents = _out6;
+                newEnv = _out7;
+                return ;
               }
             }
             goto after_match0;
@@ -2478,20 +2532,32 @@ namespace DCOMP {
       }
       {
         if (_source0.is_DeclareVar) {
-          Dafny.ISequence<Dafny.Rune> _19_name = _source0.dtor_name;
-          DAST._IType _20_typ = _source0.dtor_typ;
+          Dafny.ISequence<Dafny.Rune> _16_name = _source0.dtor_name;
+          DAST._IType _17_typ = _source0.dtor_typ;
           Std.Wrappers._IOption<DAST._IExpression> maybeValue1 = _source0.dtor_maybeValue;
           if (maybeValue1.is_None) {
             {
-              DAST._IStatement _21_newStmt;
-              _21_newStmt = DAST.Statement.create_DeclareVar(_19_name, _20_typ, Std.Wrappers.Option<DAST._IExpression>.create_Some(DAST.Expression.create_InitializationValue(_20_typ)));
-              RAST._IExpr _out8;
-              Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out9;
-              Defs._IEnvironment _out10;
-              (this).GenStmt(_21_newStmt, selfIdent, env, isLast, earlyReturn, out _out8, out _out9, out _out10);
-              generated = _out8;
-              readIdents = _out9;
-              newEnv = _out10;
+              Dafny.ISequence<Dafny.Rune> _18_varName;
+              _18_varName = Defs.__default.escapeVar(_16_name);
+              if ((env).IsAssignmentStatusKnown(_18_varName)) {
+                RAST._IType _19_tpe;
+                RAST._IType _out8;
+                _out8 = (this).GenType(_17_typ, Defs.GenTypeContext.@default());
+                _19_tpe = _out8;
+                generated = RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), _18_varName, Std.Wrappers.Option<RAST._IType>.create_Some(_19_tpe), Std.Wrappers.Option<RAST._IExpr>.create_None());
+                readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements();
+                newEnv = (env).AddAssigned(_18_varName, _19_tpe);
+              } else {
+                DAST._IStatement _20_newStmt;
+                _20_newStmt = DAST.Statement.create_DeclareVar(_16_name, _17_typ, Std.Wrappers.Option<DAST._IExpression>.create_Some(DAST.Expression.create_InitializationValue(_17_typ)));
+                RAST._IExpr _out9;
+                Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out10;
+                Defs._IEnvironment _out11;
+                (this).GenStmt(_20_newStmt, selfIdent, env, isLast, earlyReturn, out _out9, out _out10, out _out11);
+                generated = _out9;
+                readIdents = _out10;
+                newEnv = _out11;
+              }
             }
             goto after_match0;
           }
@@ -2499,124 +2565,124 @@ namespace DCOMP {
       }
       {
         if (_source0.is_Assign) {
-          DAST._IAssignLhs _22_lhs = _source0.dtor_lhs;
-          DAST._IExpression _23_expression = _source0.dtor_value;
+          DAST._IAssignLhs _21_lhs = _source0.dtor_lhs;
+          DAST._IExpression _22_expression = _source0.dtor_value;
           {
-            RAST._IExpr _24_exprGen;
-            Defs._IOwnership _25___v47;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _26_exprIdents;
-            RAST._IExpr _out11;
-            Defs._IOwnership _out12;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out13;
-            (this).GenExpr(_23_expression, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out11, out _out12, out _out13);
-            _24_exprGen = _out11;
-            _25___v47 = _out12;
-            _26_exprIdents = _out13;
-            if ((_22_lhs).is_Ident) {
-              Dafny.ISequence<Dafny.Rune> _27_rustId;
-              _27_rustId = Defs.__default.escapeVar((_22_lhs).dtor_ident);
-              Std.Wrappers._IOption<RAST._IType> _28_tpe;
-              _28_tpe = (env).GetType(_27_rustId);
-              if (((_28_tpe).is_Some) && ((((_28_tpe).dtor_value).ExtractMaybePlacebo()).is_Some)) {
-                _24_exprGen = RAST.__default.MaybePlacebo(_24_exprGen);
+            RAST._IExpr _23_exprGen;
+            Defs._IOwnership _24___v46;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _25_exprIdents;
+            RAST._IExpr _out12;
+            Defs._IOwnership _out13;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out14;
+            (this).GenExpr(_22_expression, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out12, out _out13, out _out14);
+            _23_exprGen = _out12;
+            _24___v46 = _out13;
+            _25_exprIdents = _out14;
+            if ((_21_lhs).is_Ident) {
+              Dafny.ISequence<Dafny.Rune> _26_rustId;
+              _26_rustId = Defs.__default.escapeVar((_21_lhs).dtor_ident);
+              Std.Wrappers._IOption<RAST._IType> _27_tpe;
+              _27_tpe = (env).GetType(_26_rustId);
+              if (((_27_tpe).is_Some) && ((((_27_tpe).dtor_value).ExtractMaybePlacebo()).is_Some)) {
+                _23_exprGen = RAST.__default.MaybePlacebo(_23_exprGen);
               }
             }
-            if (((_22_lhs).is_Index) && (((_22_lhs).dtor_expr).is_Ident)) {
-              Dafny.ISequence<Dafny.Rune> _29_rustId;
-              _29_rustId = Defs.__default.escapeVar(((_22_lhs).dtor_expr).dtor_name);
-              Std.Wrappers._IOption<RAST._IType> _30_tpe;
-              _30_tpe = (env).GetType(_29_rustId);
-              if (((_30_tpe).is_Some) && ((((_30_tpe).dtor_value).ExtractMaybeUninitArrayElement()).is_Some)) {
-                _24_exprGen = RAST.__default.MaybeUninitNew(_24_exprGen);
+            if (((_21_lhs).is_Index) && (((_21_lhs).dtor_expr).is_Ident)) {
+              Dafny.ISequence<Dafny.Rune> _28_rustId;
+              _28_rustId = Defs.__default.escapeVar(((_21_lhs).dtor_expr).dtor_name);
+              Std.Wrappers._IOption<RAST._IType> _29_tpe;
+              _29_tpe = (env).GetType(_28_rustId);
+              if (((_29_tpe).is_Some) && ((((_29_tpe).dtor_value).ExtractMaybeUninitArrayElement()).is_Some)) {
+                _23_exprGen = RAST.__default.MaybeUninitNew(_23_exprGen);
               }
             }
-            RAST._IExpr _31_lhsGen;
-            bool _32_needsIIFE;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _33_recIdents;
-            Defs._IEnvironment _34_resEnv;
-            RAST._IExpr _out14;
-            bool _out15;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out16;
-            Defs._IEnvironment _out17;
-            (this).GenAssignLhs(_22_lhs, _24_exprGen, selfIdent, env, out _out14, out _out15, out _out16, out _out17);
-            _31_lhsGen = _out14;
-            _32_needsIIFE = _out15;
-            _33_recIdents = _out16;
-            _34_resEnv = _out17;
-            generated = _31_lhsGen;
-            newEnv = _34_resEnv;
-            if (_32_needsIIFE) {
+            RAST._IExpr _30_lhsGen;
+            bool _31_needsIIFE;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _32_recIdents;
+            Defs._IEnvironment _33_resEnv;
+            RAST._IExpr _out15;
+            bool _out16;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out17;
+            Defs._IEnvironment _out18;
+            (this).GenAssignLhs(_21_lhs, _23_exprGen, selfIdent, env, out _out15, out _out16, out _out17, out _out18);
+            _30_lhsGen = _out15;
+            _31_needsIIFE = _out16;
+            _32_recIdents = _out17;
+            _33_resEnv = _out18;
+            generated = _30_lhsGen;
+            newEnv = _33_resEnv;
+            if (_31_needsIIFE) {
               generated = RAST.Expr.create_Block(generated);
             }
-            readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(_33_recIdents, _26_exprIdents);
+            readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(_32_recIdents, _25_exprIdents);
           }
           goto after_match0;
         }
       }
       {
         if (_source0.is_If) {
-          DAST._IExpression _35_cond = _source0.dtor_cond;
-          Dafny.ISequence<DAST._IStatement> _36_thnDafny = _source0.dtor_thn;
-          Dafny.ISequence<DAST._IStatement> _37_elsDafny = _source0.dtor_els;
+          DAST._IExpression _34_cond = _source0.dtor_cond;
+          Dafny.ISequence<DAST._IStatement> _35_thnDafny = _source0.dtor_thn;
+          Dafny.ISequence<DAST._IStatement> _36_elsDafny = _source0.dtor_els;
           {
-            RAST._IExpr _38_cond;
-            Defs._IOwnership _39___v48;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _40_recIdents;
-            RAST._IExpr _out18;
-            Defs._IOwnership _out19;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out20;
-            (this).GenExpr(_35_cond, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out18, out _out19, out _out20);
-            _38_cond = _out18;
-            _39___v48 = _out19;
-            _40_recIdents = _out20;
-            Dafny.ISequence<Dafny.Rune> _41_condString;
-            _41_condString = (_38_cond)._ToString(Defs.__default.IND);
-            readIdents = _40_recIdents;
-            RAST._IExpr _42_thn;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _43_thnIdents;
-            Defs._IEnvironment _44_thnEnv;
-            RAST._IExpr _out21;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out22;
-            Defs._IEnvironment _out23;
-            (this).GenStmts(_36_thnDafny, selfIdent, env, isLast, earlyReturn, out _out21, out _out22, out _out23);
-            _42_thn = _out21;
-            _43_thnIdents = _out22;
-            _44_thnEnv = _out23;
-            readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _43_thnIdents);
-            RAST._IExpr _45_els;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _46_elsIdents;
-            Defs._IEnvironment _47_elsEnv;
-            RAST._IExpr _out24;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out25;
-            Defs._IEnvironment _out26;
-            (this).GenStmts(_37_elsDafny, selfIdent, env, isLast, earlyReturn, out _out24, out _out25, out _out26);
-            _45_els = _out24;
-            _46_elsIdents = _out25;
-            _47_elsEnv = _out26;
-            readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _46_elsIdents);
+            RAST._IExpr _37_cond;
+            Defs._IOwnership _38___v47;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _39_recIdents;
+            RAST._IExpr _out19;
+            Defs._IOwnership _out20;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out21;
+            (this).GenExpr(_34_cond, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out19, out _out20, out _out21);
+            _37_cond = _out19;
+            _38___v47 = _out20;
+            _39_recIdents = _out21;
+            Dafny.ISequence<Dafny.Rune> _40_condString;
+            _40_condString = (_37_cond)._ToString(Defs.__default.IND);
+            readIdents = _39_recIdents;
+            RAST._IExpr _41_thn;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _42_thnIdents;
+            Defs._IEnvironment _43_thnEnv;
+            RAST._IExpr _out22;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out23;
+            Defs._IEnvironment _out24;
+            (this).GenStmts(_35_thnDafny, selfIdent, env, isLast, earlyReturn, out _out22, out _out23, out _out24);
+            _41_thn = _out22;
+            _42_thnIdents = _out23;
+            _43_thnEnv = _out24;
+            readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _42_thnIdents);
+            RAST._IExpr _44_els;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _45_elsIdents;
+            Defs._IEnvironment _46_elsEnv;
+            RAST._IExpr _out25;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out26;
+            Defs._IEnvironment _out27;
+            (this).GenStmts(_36_elsDafny, selfIdent, env, isLast, earlyReturn, out _out25, out _out26, out _out27);
+            _44_els = _out25;
+            _45_elsIdents = _out26;
+            _46_elsEnv = _out27;
+            readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _45_elsIdents);
             newEnv = env;
-            generated = RAST.Expr.create_IfExpr(_38_cond, _42_thn, _45_els);
+            generated = RAST.Expr.create_IfExpr(_37_cond, _41_thn, _44_els);
           }
           goto after_match0;
         }
       }
       {
         if (_source0.is_Labeled) {
-          Dafny.ISequence<Dafny.Rune> _48_lbl = _source0.dtor_lbl;
-          Dafny.ISequence<DAST._IStatement> _49_body = _source0.dtor_body;
+          Dafny.ISequence<Dafny.Rune> _47_lbl = _source0.dtor_lbl;
+          Dafny.ISequence<DAST._IStatement> _48_body = _source0.dtor_body;
           {
-            RAST._IExpr _50_body;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _51_bodyIdents;
-            Defs._IEnvironment _52_env2;
-            RAST._IExpr _out27;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out28;
-            Defs._IEnvironment _out29;
-            (this).GenStmts(_49_body, selfIdent, env, isLast, earlyReturn, out _out27, out _out28, out _out29);
-            _50_body = _out27;
-            _51_bodyIdents = _out28;
-            _52_env2 = _out29;
-            readIdents = _51_bodyIdents;
-            generated = RAST.Expr.create_Labelled(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("label_"), _48_lbl), RAST.Expr.create_Loop(Std.Wrappers.Option<RAST._IExpr>.create_None(), RAST.Expr.create_StmtExpr(_50_body, RAST.Expr.create_Break(Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None()))));
+            RAST._IExpr _49_body;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _50_bodyIdents;
+            Defs._IEnvironment _51_env2;
+            RAST._IExpr _out28;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out29;
+            Defs._IEnvironment _out30;
+            (this).GenStmts(_48_body, selfIdent, env, isLast, earlyReturn, out _out28, out _out29, out _out30);
+            _49_body = _out28;
+            _50_bodyIdents = _out29;
+            _51_env2 = _out30;
+            readIdents = _50_bodyIdents;
+            generated = RAST.Expr.create_Labelled(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("label_"), _47_lbl), RAST.Expr.create_Loop(Std.Wrappers.Option<RAST._IExpr>.create_None(), RAST.Expr.create_StmtExpr(_49_body, RAST.Expr.create_Break(Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None()))));
             newEnv = env;
           }
           goto after_match0;
@@ -2624,91 +2690,91 @@ namespace DCOMP {
       }
       {
         if (_source0.is_While) {
-          DAST._IExpression _53_cond = _source0.dtor_cond;
-          Dafny.ISequence<DAST._IStatement> _54_body = _source0.dtor_body;
+          DAST._IExpression _52_cond = _source0.dtor_cond;
+          Dafny.ISequence<DAST._IStatement> _53_body = _source0.dtor_body;
           {
-            RAST._IExpr _55_cond;
-            Defs._IOwnership _56___v49;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _57_recIdents;
-            RAST._IExpr _out30;
-            Defs._IOwnership _out31;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out32;
-            (this).GenExpr(_53_cond, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out30, out _out31, out _out32);
-            _55_cond = _out30;
-            _56___v49 = _out31;
-            _57_recIdents = _out32;
-            readIdents = _57_recIdents;
-            RAST._IExpr _58_bodyExpr;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _59_bodyIdents;
-            Defs._IEnvironment _60_bodyEnv;
-            RAST._IExpr _out33;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out34;
-            Defs._IEnvironment _out35;
-            (this).GenStmts(_54_body, selfIdent, env, false, earlyReturn, out _out33, out _out34, out _out35);
-            _58_bodyExpr = _out33;
-            _59_bodyIdents = _out34;
-            _60_bodyEnv = _out35;
+            RAST._IExpr _54_cond;
+            Defs._IOwnership _55___v48;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _56_recIdents;
+            RAST._IExpr _out31;
+            Defs._IOwnership _out32;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out33;
+            (this).GenExpr(_52_cond, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out31, out _out32, out _out33);
+            _54_cond = _out31;
+            _55___v48 = _out32;
+            _56_recIdents = _out33;
+            readIdents = _56_recIdents;
+            RAST._IExpr _57_bodyExpr;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _58_bodyIdents;
+            Defs._IEnvironment _59_bodyEnv;
+            RAST._IExpr _out34;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out35;
+            Defs._IEnvironment _out36;
+            (this).GenStmts(_53_body, selfIdent, env, false, earlyReturn, out _out34, out _out35, out _out36);
+            _57_bodyExpr = _out34;
+            _58_bodyIdents = _out35;
+            _59_bodyEnv = _out36;
             newEnv = env;
-            readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _59_bodyIdents);
-            generated = RAST.Expr.create_Loop(Std.Wrappers.Option<RAST._IExpr>.create_Some(_55_cond), _58_bodyExpr);
+            readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _58_bodyIdents);
+            generated = RAST.Expr.create_Loop(Std.Wrappers.Option<RAST._IExpr>.create_Some(_54_cond), _57_bodyExpr);
           }
           goto after_match0;
         }
       }
       {
         if (_source0.is_Foreach) {
-          Dafny.ISequence<Dafny.Rune> _61_boundName = _source0.dtor_boundName;
-          DAST._IType _62_boundType = _source0.dtor_boundType;
-          DAST._IExpression _63_overExpr = _source0.dtor_over;
-          Dafny.ISequence<DAST._IStatement> _64_body = _source0.dtor_body;
+          Dafny.ISequence<Dafny.Rune> _60_boundName = _source0.dtor_boundName;
+          DAST._IType _61_boundType = _source0.dtor_boundType;
+          DAST._IExpression _62_overExpr = _source0.dtor_over;
+          Dafny.ISequence<DAST._IStatement> _63_body = _source0.dtor_body;
           {
-            RAST._IExpr _65_over;
-            Defs._IOwnership _66___v50;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _67_recIdents;
-            RAST._IExpr _out36;
-            Defs._IOwnership _out37;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out38;
-            (this).GenExpr(_63_overExpr, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out36, out _out37, out _out38);
-            _65_over = _out36;
-            _66___v50 = _out37;
-            _67_recIdents = _out38;
-            if (((_63_overExpr).is_MapBoundedPool) || ((_63_overExpr).is_SetBoundedPool)) {
-              _65_over = ((_65_over).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("cloned"))).Apply0();
+            RAST._IExpr _64_over;
+            Defs._IOwnership _65___v49;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _66_recIdents;
+            RAST._IExpr _out37;
+            Defs._IOwnership _out38;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out39;
+            (this).GenExpr(_62_overExpr, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out37, out _out38, out _out39);
+            _64_over = _out37;
+            _65___v49 = _out38;
+            _66_recIdents = _out39;
+            if (((_62_overExpr).is_MapBoundedPool) || ((_62_overExpr).is_SetBoundedPool)) {
+              _64_over = ((_64_over).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("cloned"))).Apply0();
             }
-            RAST._IType _68_boundTpe;
-            RAST._IType _out39;
-            _out39 = (this).GenType(_62_boundType, Defs.GenTypeContext.@default());
-            _68_boundTpe = _out39;
-            readIdents = _67_recIdents;
-            Dafny.ISequence<Dafny.Rune> _69_boundRName;
-            _69_boundRName = Defs.__default.escapeVar(_61_boundName);
-            RAST._IExpr _70_bodyExpr;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _71_bodyIdents;
-            Defs._IEnvironment _72_bodyEnv;
-            RAST._IExpr _out40;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out41;
-            Defs._IEnvironment _out42;
-            (this).GenStmts(_64_body, selfIdent, (env).AddAssigned(_69_boundRName, _68_boundTpe), false, earlyReturn, out _out40, out _out41, out _out42);
-            _70_bodyExpr = _out40;
-            _71_bodyIdents = _out41;
-            _72_bodyEnv = _out42;
-            readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _71_bodyIdents), Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_69_boundRName));
+            RAST._IType _67_boundTpe;
+            RAST._IType _out40;
+            _out40 = (this).GenType(_61_boundType, Defs.GenTypeContext.@default());
+            _67_boundTpe = _out40;
+            readIdents = _66_recIdents;
+            Dafny.ISequence<Dafny.Rune> _68_boundRName;
+            _68_boundRName = Defs.__default.escapeVar(_60_boundName);
+            RAST._IExpr _69_bodyExpr;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _70_bodyIdents;
+            Defs._IEnvironment _71_bodyEnv;
+            RAST._IExpr _out41;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out42;
+            Defs._IEnvironment _out43;
+            (this).GenStmts(_63_body, selfIdent, (env).AddAssigned(_68_boundRName, _67_boundTpe), false, earlyReturn, out _out41, out _out42, out _out43);
+            _69_bodyExpr = _out41;
+            _70_bodyIdents = _out42;
+            _71_bodyEnv = _out43;
+            readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _70_bodyIdents), Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_68_boundRName));
             newEnv = env;
-            generated = RAST.Expr.create_For(_69_boundRName, _65_over, _70_bodyExpr);
+            generated = RAST.Expr.create_For(_68_boundRName, _64_over, _69_bodyExpr);
           }
           goto after_match0;
         }
       }
       {
         if (_source0.is_Break) {
-          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _73_toLabel = _source0.dtor_toLabel;
+          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _72_toLabel = _source0.dtor_toLabel;
           {
-            Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _source1 = _73_toLabel;
+            Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _source1 = _72_toLabel;
             {
               if (_source1.is_Some) {
-                Dafny.ISequence<Dafny.Rune> _74_lbl = _source1.dtor_value;
+                Dafny.ISequence<Dafny.Rune> _73_lbl = _source1.dtor_value;
                 {
-                  generated = RAST.Expr.create_Break(Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("label_"), _74_lbl)));
+                  generated = RAST.Expr.create_Break(Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("label_"), _73_lbl)));
                 }
                 goto after_match1;
               }
@@ -2727,72 +2793,72 @@ namespace DCOMP {
       }
       {
         if (_source0.is_TailRecursive) {
-          Dafny.ISequence<DAST._IStatement> _75_body = _source0.dtor_body;
+          Dafny.ISequence<DAST._IStatement> _74_body = _source0.dtor_body;
           {
             generated = (this).InitEmptyExpr();
-            Defs._IEnvironment _76_oldEnv;
-            _76_oldEnv = env;
+            Defs._IEnvironment _75_oldEnv;
+            _75_oldEnv = env;
             if (!object.Equals(selfIdent, Defs.SelfInfo.create_NoSelf())) {
-              RAST._IExpr _77_selfClone;
-              Defs._IOwnership _78___v51;
-              Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _79___v52;
-              RAST._IExpr _out43;
-              Defs._IOwnership _out44;
-              Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out45;
-              (this).GenIdent((selfIdent).dtor_rSelfName, selfIdent, Defs.Environment.Empty(), Defs.Ownership.create_OwnershipOwned(), out _out43, out _out44, out _out45);
-              _77_selfClone = _out43;
-              _78___v51 = _out44;
-              _79___v52 = _out45;
-              generated = (generated).Then(RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this"), Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(_77_selfClone)));
-              if (((_76_oldEnv).dtor_names).Contains((selfIdent).dtor_rSelfName)) {
-                _76_oldEnv = (_76_oldEnv).RemoveAssigned((selfIdent).dtor_rSelfName);
+              RAST._IExpr _76_selfClone;
+              Defs._IOwnership _77___v50;
+              Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _78___v51;
+              RAST._IExpr _out44;
+              Defs._IOwnership _out45;
+              Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out46;
+              (this).GenIdent((selfIdent).dtor_rSelfName, selfIdent, Defs.Environment.Empty(), Defs.Ownership.create_OwnershipOwned(), out _out44, out _out45, out _out46);
+              _76_selfClone = _out44;
+              _77___v50 = _out45;
+              _78___v51 = _out46;
+              generated = (generated).Then(RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this"), Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(_76_selfClone)));
+              if (((_75_oldEnv).dtor_names).Contains((selfIdent).dtor_rSelfName)) {
+                _75_oldEnv = (_75_oldEnv).RemoveAssigned((selfIdent).dtor_rSelfName);
               }
             }
-            RAST._IExpr _80_loopBegin;
-            _80_loopBegin = RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""));
+            RAST._IExpr _79_loopBegin;
+            _79_loopBegin = RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""));
             newEnv = env;
-            BigInteger _hi1 = new BigInteger(((_76_oldEnv).dtor_names).Count);
-            for (BigInteger _81_paramI = BigInteger.Zero; _81_paramI < _hi1; _81_paramI++) {
-              Dafny.ISequence<Dafny.Rune> _82_param;
-              _82_param = ((_76_oldEnv).dtor_names).Select(_81_paramI);
-              if ((_82_param).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_accumulator"))) {
+            BigInteger _hi1 = new BigInteger(((_75_oldEnv).dtor_names).Count);
+            for (BigInteger _80_paramI = BigInteger.Zero; _80_paramI < _hi1; _80_paramI++) {
+              Dafny.ISequence<Dafny.Rune> _81_param;
+              _81_param = ((_75_oldEnv).dtor_names).Select(_80_paramI);
+              if ((_81_param).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_accumulator"))) {
                 goto continue_4_0;
               }
-              RAST._IExpr _83_paramInit;
-              Defs._IOwnership _84___v53;
-              Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _85___v54;
-              RAST._IExpr _out46;
-              Defs._IOwnership _out47;
-              Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out48;
-              (this).GenIdent(_82_param, selfIdent, _76_oldEnv, Defs.Ownership.create_OwnershipOwned(), out _out46, out _out47, out _out48);
-              _83_paramInit = _out46;
-              _84___v53 = _out47;
-              _85___v54 = _out48;
-              Dafny.ISequence<Dafny.Rune> _86_recVar;
-              _86_recVar = Dafny.Sequence<Dafny.Rune>.Concat(Defs.__default.TailRecursionPrefix, Std.Strings.__default.OfNat(_81_paramI));
-              generated = (generated).Then(RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), _86_recVar, Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(_83_paramInit)));
-              if (((_76_oldEnv).dtor_types).Contains(_82_param)) {
-                RAST._IType _87_declaredType;
-                _87_declaredType = (Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IType>.Select((_76_oldEnv).dtor_types,_82_param)).ToOwned();
-                newEnv = (newEnv).AddAssigned(_82_param, _87_declaredType);
-                newEnv = (newEnv).AddAssigned(_86_recVar, _87_declaredType);
+              RAST._IExpr _82_paramInit;
+              Defs._IOwnership _83___v52;
+              Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _84___v53;
+              RAST._IExpr _out47;
+              Defs._IOwnership _out48;
+              Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out49;
+              (this).GenIdent(_81_param, selfIdent, _75_oldEnv, Defs.Ownership.create_OwnershipOwned(), out _out47, out _out48, out _out49);
+              _82_paramInit = _out47;
+              _83___v52 = _out48;
+              _84___v53 = _out49;
+              Dafny.ISequence<Dafny.Rune> _85_recVar;
+              _85_recVar = Dafny.Sequence<Dafny.Rune>.Concat(Defs.__default.TailRecursionPrefix, Std.Strings.__default.OfNat(_80_paramI));
+              generated = (generated).Then(RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), _85_recVar, Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(_82_paramInit)));
+              if (((_75_oldEnv).dtor_types).Contains(_81_param)) {
+                RAST._IType _86_declaredType;
+                _86_declaredType = (Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IType>.Select((_75_oldEnv).dtor_types,_81_param)).ToOwned();
+                newEnv = (newEnv).AddAssigned(_81_param, _86_declaredType);
+                newEnv = (newEnv).AddAssigned(_85_recVar, _86_declaredType);
               }
-              _80_loopBegin = (_80_loopBegin).Then(RAST.Expr.create_DeclareVar(RAST.DeclareType.create_CONST(), _82_param, Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.Expr.create_Identifier(_86_recVar))));
+              _79_loopBegin = (_79_loopBegin).Then(RAST.Expr.create_DeclareVar(RAST.DeclareType.create_CONST(), _81_param, Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.Expr.create_Identifier(_85_recVar))));
             continue_4_0: ;
             }
           after_4_0: ;
-            RAST._IExpr _88_bodyExpr;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _89_bodyIdents;
-            Defs._IEnvironment _90_bodyEnv;
-            RAST._IExpr _out49;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out50;
-            Defs._IEnvironment _out51;
-            (this).GenStmts(_75_body, ((!object.Equals(selfIdent, Defs.SelfInfo.create_NoSelf())) ? (Defs.SelfInfo.create_ThisTyped(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this"), (selfIdent).dtor_dafnyType)) : (Defs.SelfInfo.create_NoSelf())), newEnv, false, earlyReturn, out _out49, out _out50, out _out51);
-            _88_bodyExpr = _out49;
-            _89_bodyIdents = _out50;
-            _90_bodyEnv = _out51;
-            readIdents = _89_bodyIdents;
-            generated = (generated).Then(RAST.Expr.create_Labelled(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("TAIL_CALL_START"), RAST.Expr.create_Loop(Std.Wrappers.Option<RAST._IExpr>.create_None(), (_80_loopBegin).Then(_88_bodyExpr))));
+            RAST._IExpr _87_bodyExpr;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _88_bodyIdents;
+            Defs._IEnvironment _89_bodyEnv;
+            RAST._IExpr _out50;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out51;
+            Defs._IEnvironment _out52;
+            (this).GenStmts(_74_body, ((!object.Equals(selfIdent, Defs.SelfInfo.create_NoSelf())) ? (Defs.SelfInfo.create_ThisTyped(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this"), (selfIdent).dtor_dafnyType)) : (Defs.SelfInfo.create_NoSelf())), newEnv, false, earlyReturn, out _out50, out _out51, out _out52);
+            _87_bodyExpr = _out50;
+            _88_bodyIdents = _out51;
+            _89_bodyEnv = _out52;
+            readIdents = _88_bodyIdents;
+            generated = (generated).Then(RAST.Expr.create_Labelled(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("TAIL_CALL_START"), RAST.Expr.create_Loop(Std.Wrappers.Option<RAST._IExpr>.create_None(), (_79_loopBegin).Then(_87_bodyExpr))));
           }
           goto after_match0;
         }
@@ -2809,43 +2875,44 @@ namespace DCOMP {
       }
       {
         if (_source0.is_Call) {
-          DAST._IExpression _91_on = _source0.dtor_on;
-          DAST._ICallName _92_name = _source0.dtor_callName;
-          Dafny.ISequence<DAST._IType> _93_typeArgs = _source0.dtor_typeArgs;
-          Dafny.ISequence<DAST._IExpression> _94_args = _source0.dtor_args;
-          Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> _95_maybeOutVars = _source0.dtor_outs;
+          DAST._IExpression _90_on = _source0.dtor_on;
+          DAST._ICallName _91_name = _source0.dtor_callName;
+          Dafny.ISequence<DAST._IType> _92_typeArgs = _source0.dtor_typeArgs;
+          Dafny.ISequence<DAST._IExpression> _93_args = _source0.dtor_args;
+          Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> _94_maybeOutVars = _source0.dtor_outs;
           {
-            RAST._IExpr _out52;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out53;
-            (this).GenOwnedCallPart(_91_on, selfIdent, _92_name, _93_typeArgs, _94_args, env, out _out52, out _out53);
-            generated = _out52;
-            readIdents = _out53;
-            if (((_95_maybeOutVars).is_Some) && ((new BigInteger(((_95_maybeOutVars).dtor_value).Count)) == (BigInteger.One))) {
-              Dafny.ISequence<Dafny.Rune> _96_outVar;
-              _96_outVar = Defs.__default.escapeVar(((_95_maybeOutVars).dtor_value).Select(BigInteger.Zero));
-              if (!((env).CanReadWithoutClone(_96_outVar))) {
+            RAST._IExpr _out53;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out54;
+            (this).GenOwnedCallPart(_90_on, selfIdent, _91_name, _92_typeArgs, _93_args, env, out _out53, out _out54);
+            generated = _out53;
+            readIdents = _out54;
+            newEnv = env;
+            if (((_94_maybeOutVars).is_Some) && ((new BigInteger(((_94_maybeOutVars).dtor_value).Count)) == (BigInteger.One))) {
+              Dafny.ISequence<Dafny.Rune> _95_outVar;
+              _95_outVar = Defs.__default.escapeVar(((_94_maybeOutVars).dtor_value).Select(BigInteger.Zero));
+              if ((env).IsMaybePlacebo(_95_outVar)) {
                 generated = RAST.__default.MaybePlacebo(generated);
               }
-              generated = RAST.__default.AssignVar(_96_outVar, generated);
-            } else if (((_95_maybeOutVars).is_None) || ((new BigInteger(((_95_maybeOutVars).dtor_value).Count)).Sign == 0)) {
+              generated = RAST.__default.AssignVar(_95_outVar, generated);
+            } else if (((_94_maybeOutVars).is_None) || ((new BigInteger(((_94_maybeOutVars).dtor_value).Count)).Sign == 0)) {
             } else {
-              Dafny.ISequence<Dafny.Rune> _97_tmpVar;
-              _97_tmpVar = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_x");
-              RAST._IExpr _98_tmpId;
-              _98_tmpId = RAST.Expr.create_Identifier(_97_tmpVar);
-              generated = RAST.Expr.create_DeclareVar(RAST.DeclareType.create_CONST(), _97_tmpVar, Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(generated));
-              Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _99_outVars;
-              _99_outVars = (_95_maybeOutVars).dtor_value;
-              BigInteger _hi2 = new BigInteger((_99_outVars).Count);
-              for (BigInteger _100_outI = BigInteger.Zero; _100_outI < _hi2; _100_outI++) {
-                Dafny.ISequence<Dafny.Rune> _101_outVar;
-                _101_outVar = Defs.__default.escapeVar((_99_outVars).Select(_100_outI));
-                RAST._IExpr _102_rhs;
-                _102_rhs = (_98_tmpId).Sel(Std.Strings.__default.OfNat(_100_outI));
-                if (!((env).CanReadWithoutClone(_101_outVar))) {
-                  _102_rhs = RAST.__default.MaybePlacebo(_102_rhs);
+              Dafny.ISequence<Dafny.Rune> _96_tmpVar;
+              _96_tmpVar = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_x");
+              RAST._IExpr _97_tmpId;
+              _97_tmpId = RAST.Expr.create_Identifier(_96_tmpVar);
+              generated = RAST.Expr.create_DeclareVar(RAST.DeclareType.create_CONST(), _96_tmpVar, Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(generated));
+              Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _98_outVars;
+              _98_outVars = (_94_maybeOutVars).dtor_value;
+              BigInteger _hi2 = new BigInteger((_98_outVars).Count);
+              for (BigInteger _99_outI = BigInteger.Zero; _99_outI < _hi2; _99_outI++) {
+                Dafny.ISequence<Dafny.Rune> _100_outVar;
+                _100_outVar = Defs.__default.escapeVar((_98_outVars).Select(_99_outI));
+                RAST._IExpr _101_rhs;
+                _101_rhs = (_97_tmpId).Sel(Std.Strings.__default.OfNat(_99_outI));
+                if ((env).IsMaybePlacebo(_100_outVar)) {
+                  _101_rhs = RAST.__default.MaybePlacebo(_101_rhs);
                 }
-                generated = (generated).Then(RAST.__default.AssignVar(_101_outVar, _102_rhs));
+                generated = (generated).Then(RAST.__default.AssignVar(_100_outVar, _101_rhs));
               }
             }
             newEnv = env;
@@ -2855,23 +2922,23 @@ namespace DCOMP {
       }
       {
         if (_source0.is_Return) {
-          DAST._IExpression _103_exprDafny = _source0.dtor_expr;
+          DAST._IExpression _102_exprDafny = _source0.dtor_expr;
           {
-            RAST._IExpr _104_expr;
-            Defs._IOwnership _105___v55;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _106_recIdents;
-            RAST._IExpr _out54;
-            Defs._IOwnership _out55;
-            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out56;
-            (this).GenExpr(_103_exprDafny, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out54, out _out55, out _out56);
-            _104_expr = _out54;
-            _105___v55 = _out55;
-            _106_recIdents = _out56;
-            readIdents = _106_recIdents;
+            RAST._IExpr _103_expr;
+            Defs._IOwnership _104___v54;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _105_recIdents;
+            RAST._IExpr _out55;
+            Defs._IOwnership _out56;
+            Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out57;
+            (this).GenExpr(_102_exprDafny, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out55, out _out56, out _out57);
+            _103_expr = _out55;
+            _104___v54 = _out56;
+            _105_recIdents = _out57;
+            readIdents = _105_recIdents;
             if (isLast) {
-              generated = _104_expr;
+              generated = _103_expr;
             } else {
-              generated = RAST.Expr.create_Return(Std.Wrappers.Option<RAST._IExpr>.create_Some(_104_expr));
+              generated = RAST.Expr.create_Return(Std.Wrappers.Option<RAST._IExpr>.create_Some(_103_expr));
             }
             newEnv = env;
           }
@@ -2889,27 +2956,27 @@ namespace DCOMP {
               }
             }
             {
-              Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _107_rustIdents = _source2.dtor_value;
-              Dafny.ISequence<RAST._IExpr> _108_tupleArgs;
-              _108_tupleArgs = Dafny.Sequence<RAST._IExpr>.FromElements();
-              BigInteger _hi3 = new BigInteger((_107_rustIdents).Count);
-              for (BigInteger _109_i = BigInteger.Zero; _109_i < _hi3; _109_i++) {
-                RAST._IExpr _110_rIdent;
-                Defs._IOwnership _111___v56;
-                Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _112___v57;
-                RAST._IExpr _out57;
-                Defs._IOwnership _out58;
-                Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out59;
-                (this).GenIdent((_107_rustIdents).Select(_109_i), selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out57, out _out58, out _out59);
-                _110_rIdent = _out57;
-                _111___v56 = _out58;
-                _112___v57 = _out59;
-                _108_tupleArgs = Dafny.Sequence<RAST._IExpr>.Concat(_108_tupleArgs, Dafny.Sequence<RAST._IExpr>.FromElements(_110_rIdent));
+              Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _106_rustIdents = _source2.dtor_value;
+              Dafny.ISequence<RAST._IExpr> _107_tupleArgs;
+              _107_tupleArgs = Dafny.Sequence<RAST._IExpr>.FromElements();
+              BigInteger _hi3 = new BigInteger((_106_rustIdents).Count);
+              for (BigInteger _108_i = BigInteger.Zero; _108_i < _hi3; _108_i++) {
+                RAST._IExpr _109_rIdent;
+                Defs._IOwnership _110___v55;
+                Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _111___v56;
+                RAST._IExpr _out58;
+                Defs._IOwnership _out59;
+                Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out60;
+                (this).GenIdent((_106_rustIdents).Select(_108_i), selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out58, out _out59, out _out60);
+                _109_rIdent = _out58;
+                _110___v55 = _out59;
+                _111___v56 = _out60;
+                _107_tupleArgs = Dafny.Sequence<RAST._IExpr>.Concat(_107_tupleArgs, Dafny.Sequence<RAST._IExpr>.FromElements(_109_rIdent));
               }
-              if ((new BigInteger((_108_tupleArgs).Count)) == (BigInteger.One)) {
-                generated = RAST.Expr.create_Return(Std.Wrappers.Option<RAST._IExpr>.create_Some((_108_tupleArgs).Select(BigInteger.Zero)));
+              if ((new BigInteger((_107_tupleArgs).Count)) == (BigInteger.One)) {
+                generated = RAST.Expr.create_Return(Std.Wrappers.Option<RAST._IExpr>.create_Some((_107_tupleArgs).Select(BigInteger.Zero)));
               } else {
-                generated = RAST.Expr.create_Return(Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.Expr.create_Tuple(_108_tupleArgs)));
+                generated = RAST.Expr.create_Return(Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.Expr.create_Tuple(_107_tupleArgs)));
               }
             }
           after_match2: ;
@@ -2930,20 +2997,20 @@ namespace DCOMP {
         }
       }
       {
-        DAST._IExpression _113_e = _source0.dtor_Print_a0;
+        DAST._IExpression _112_e = _source0.dtor_Print_a0;
         {
-          RAST._IExpr _114_printedExpr;
-          Defs._IOwnership _115_recOwnership;
-          Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _116_recIdents;
-          RAST._IExpr _out60;
-          Defs._IOwnership _out61;
-          Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out62;
-          (this).GenExpr(_113_e, selfIdent, env, Defs.Ownership.create_OwnershipBorrowed(), out _out60, out _out61, out _out62);
-          _114_printedExpr = _out60;
-          _115_recOwnership = _out61;
-          _116_recIdents = _out62;
-          generated = (RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("print!"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(RAST.Expr.create_LiteralString(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{}"), false, false), (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyPrintWrapper"))).AsExpr()).Apply1(_114_printedExpr)));
-          readIdents = _116_recIdents;
+          RAST._IExpr _113_printedExpr;
+          Defs._IOwnership _114_recOwnership;
+          Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _115_recIdents;
+          RAST._IExpr _out61;
+          Defs._IOwnership _out62;
+          Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out63;
+          (this).GenExpr(_112_e, selfIdent, env, Defs.Ownership.create_OwnershipBorrowed(), out _out61, out _out62, out _out63);
+          _113_printedExpr = _out61;
+          _114_recOwnership = _out62;
+          _115_recIdents = _out63;
+          generated = (RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("print!"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(RAST.Expr.create_LiteralString(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{}"), false, false), (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyPrintWrapper"))).AsExpr()).Apply1(_113_printedExpr)));
+          readIdents = _115_recIdents;
           newEnv = env;
         }
       }
@@ -3299,24 +3366,24 @@ namespace DCOMP {
         _10_expectedRightOwnership = Defs.Ownership.create_OwnershipOwned();
       }
       RAST._IExpr _11_left;
-      Defs._IOwnership _12___v58;
+      Defs._IOwnership _12___v57;
       Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _13_recIdentsL;
       RAST._IExpr _out0;
       Defs._IOwnership _out1;
       Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out2;
       (this).GenExpr(_4_lExpr, selfIdent, env, _9_expectedLeftOwnership, out _out0, out _out1, out _out2);
       _11_left = _out0;
-      _12___v58 = _out1;
+      _12___v57 = _out1;
       _13_recIdentsL = _out2;
       RAST._IExpr _14_right;
-      Defs._IOwnership _15___v59;
+      Defs._IOwnership _15___v58;
       Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _16_recIdentsR;
       RAST._IExpr _out3;
       Defs._IOwnership _out4;
       Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out5;
       (this).GenExpr(_5_rExpr, selfIdent, env, _10_expectedRightOwnership, out _out3, out _out4, out _out5);
       _14_right = _out3;
-      _15___v59 = _out4;
+      _15___v58 = _out4;
       _16_recIdentsR = _out5;
       DAST._IBinOp _source0 = _0_op;
       {
@@ -4331,14 +4398,14 @@ namespace DCOMP {
           }
         }
         RAST._IExpr _4_argExpr;
-        Defs._IOwnership _5___v76;
+        Defs._IOwnership _5___v75;
         Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _6_argIdents;
         RAST._IExpr _out1;
         Defs._IOwnership _out2;
         Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out3;
         (this).GenExpr((args).Select(_1_i), selfIdent, env, _2_argOwnership, out _out1, out _out2, out _out3);
         _4_argExpr = _out1;
-        _5___v76 = _out2;
+        _5___v75 = _out2;
         _6_argIdents = _out3;
         argExprs = Dafny.Sequence<RAST._IExpr>.Concat(argExprs, Dafny.Sequence<RAST._IExpr>.FromElements(_4_argExpr));
         readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _6_argIdents);
@@ -4536,14 +4603,14 @@ namespace DCOMP {
             BigInteger _hi1 = new BigInteger((_9_values).Count);
             for (BigInteger _11_i = BigInteger.Zero; _11_i < _hi1; _11_i++) {
               RAST._IExpr _12_recursiveGen;
-              Defs._IOwnership _13___v86;
+              Defs._IOwnership _13___v85;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _14_recIdents;
               RAST._IExpr _out16;
               Defs._IOwnership _out17;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out18;
               (this).GenExpr((_9_values).Select(_11_i), selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out16, out _out17, out _out18);
               _12_recursiveGen = _out16;
-              _13___v86 = _out17;
+              _13___v85 = _out17;
               _14_recIdents = _out18;
               _10_exprs = Dafny.Sequence<RAST._IExpr>.Concat(_10_exprs, Dafny.Sequence<RAST._IExpr>.FromElements(_12_recursiveGen));
               readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _14_recIdents);
@@ -4592,14 +4659,14 @@ namespace DCOMP {
             BigInteger _hi3 = new BigInteger((_17_args).Count);
             for (BigInteger _22_i = BigInteger.Zero; _22_i < _hi3; _22_i++) {
               RAST._IExpr _23_recursiveGen;
-              Defs._IOwnership _24___v87;
+              Defs._IOwnership _24___v86;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _25_recIdents;
               RAST._IExpr _out23;
               Defs._IOwnership _out24;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out25;
               (this).GenExpr((_17_args).Select(_22_i), selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out23, out _out24, out _out25);
               _23_recursiveGen = _out23;
-              _24___v87 = _out24;
+              _24___v86 = _out24;
               _25_recIdents = _out25;
               _21_arguments = Dafny.Sequence<RAST._IExpr>.Concat(_21_arguments, Dafny.Sequence<RAST._IExpr>.FromElements(_23_recursiveGen));
               readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _25_recIdents);
@@ -4637,14 +4704,14 @@ namespace DCOMP {
               BigInteger _hi4 = new BigInteger((_26_dims).Count);
               for (BigInteger _30_i = BigInteger.Zero; _30_i < _hi4; _30_i++) {
                 RAST._IExpr _31_recursiveGen;
-                Defs._IOwnership _32___v88;
+                Defs._IOwnership _32___v87;
                 Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _33_recIdents;
                 RAST._IExpr _out30;
                 Defs._IOwnership _out31;
                 Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out32;
                 (this).GenExpr((_26_dims).Select(_30_i), selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out30, out _out31, out _out32);
                 _31_recursiveGen = _out30;
-                _32___v88 = _out31;
+                _32___v87 = _out31;
                 _33_recIdents = _out32;
                 _29_dimExprs = Dafny.Sequence<RAST._IExpr>.Concat(_29_dimExprs, Dafny.Sequence<RAST._IExpr>.FromElements(RAST.__default.IntoUsize(_31_recursiveGen)));
                 readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _33_recIdents);
@@ -4671,14 +4738,14 @@ namespace DCOMP {
           DAST._IExpression _35_underlying = _source0.dtor_value;
           {
             RAST._IExpr _36_recursiveGen;
-            Defs._IOwnership _37___v89;
+            Defs._IOwnership _37___v88;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _38_recIdents;
             RAST._IExpr _out35;
             Defs._IOwnership _out36;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out37;
             (this).GenExpr(_35_underlying, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out35, out _out36, out _out37);
             _36_recursiveGen = _out35;
-            _37___v89 = _out36;
+            _37___v88 = _out36;
             _38_recIdents = _out37;
             r = (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("int!"))).AsExpr()).Apply1(_36_recursiveGen);
             readIdents = _38_recIdents;
@@ -4701,14 +4768,14 @@ namespace DCOMP {
             _out40 = (this).GenType(_40_typ, Defs.GenTypeContext.@default());
             _41_tpe = _out40;
             RAST._IExpr _42_recursiveGen;
-            Defs._IOwnership _43___v90;
+            Defs._IOwnership _43___v89;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _44_recIdents;
             RAST._IExpr _out41;
             Defs._IOwnership _out42;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out43;
             (this).GenExpr(_39_underlying, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out41, out _out42, out _out43);
             _42_recursiveGen = _out41;
-            _43___v90 = _out42;
+            _43___v89 = _out42;
             _44_recIdents = _out43;
             readIdents = _44_recIdents;
             if ((_41_tpe).IsObjectOrPointer()) {
@@ -4774,14 +4841,14 @@ namespace DCOMP {
               DAST._IExpression _58_value = _let_tmp_rhs0.dtor__1;
               if (_50_isCo) {
                 RAST._IExpr _59_recursiveGen;
-                Defs._IOwnership _60___v91;
+                Defs._IOwnership _60___v90;
                 Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _61_recIdents;
                 RAST._IExpr _out50;
                 Defs._IOwnership _out51;
                 Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out52;
                 (this).GenExpr(_58_value, selfIdent, Defs.Environment.Empty(), Defs.Ownership.create_OwnershipOwned(), out _out50, out _out51, out _out52);
                 _59_recursiveGen = _out50;
-                _60___v91 = _out51;
+                _60___v90 = _out51;
                 _61_recIdents = _out52;
                 readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _61_recIdents);
                 RAST._IExpr _62_allReadCloned;
@@ -4804,14 +4871,14 @@ namespace DCOMP {
                 _55_assignments = Dafny.Sequence<RAST._IAssignIdentifier>.Concat(_55_assignments, Dafny.Sequence<RAST._IAssignIdentifier>.FromElements(RAST.AssignIdentifier.create(Defs.__default.escapeVar(_57_name), _64_wasAssigned)));
               } else {
                 RAST._IExpr _65_recursiveGen;
-                Defs._IOwnership _66___v92;
+                Defs._IOwnership _66___v91;
                 Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _67_recIdents;
                 RAST._IExpr _out53;
                 Defs._IOwnership _out54;
                 Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out55;
                 (this).GenExpr(_58_value, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out53, out _out54, out _out55);
                 _65_recursiveGen = _out53;
-                _66___v92 = _out54;
+                _66___v91 = _out54;
                 _67_recIdents = _out55;
                 _55_assignments = Dafny.Sequence<RAST._IAssignIdentifier>.Concat(_55_assignments, Dafny.Sequence<RAST._IAssignIdentifier>.FromElements(RAST.AssignIdentifier.create(Defs.__default.escapeVar(_57_name), _65_recursiveGen)));
                 readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _67_recIdents);
@@ -4851,24 +4918,24 @@ namespace DCOMP {
           DAST._IExpression _69_expr = _source0.dtor_elem;
           {
             RAST._IExpr _70_recursiveGen;
-            Defs._IOwnership _71___v96;
+            Defs._IOwnership _71___v95;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _72_recIdents;
             RAST._IExpr _out61;
             Defs._IOwnership _out62;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out63;
             (this).GenExpr(_69_expr, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out61, out _out62, out _out63);
             _70_recursiveGen = _out61;
-            _71___v96 = _out62;
+            _71___v95 = _out62;
             _72_recIdents = _out63;
             RAST._IExpr _73_lengthGen;
-            Defs._IOwnership _74___v97;
+            Defs._IOwnership _74___v96;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _75_lengthIdents;
             RAST._IExpr _out64;
             Defs._IOwnership _out65;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out66;
             (this).GenExpr(_68_length, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out64, out _out65, out _out66);
             _73_lengthGen = _out64;
-            _74___v97 = _out65;
+            _74___v96 = _out65;
             _75_lengthIdents = _out66;
             r = RAST.Expr.create_DeclareVar(RAST.DeclareType.create_CONST(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_initializer"), Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(_70_recursiveGen));
             RAST._IExpr _76_range;
@@ -4907,14 +4974,14 @@ namespace DCOMP {
             _82_args = Dafny.Sequence<RAST._IExpr>.FromElements();
             while ((_81_i) < (new BigInteger((_78_exprs).Count))) {
               RAST._IExpr _83_recursiveGen;
-              Defs._IOwnership _84___v98;
+              Defs._IOwnership _84___v97;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _85_recIdents;
               RAST._IExpr _out70;
               Defs._IOwnership _out71;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out72;
               (this).GenExpr((_78_exprs).Select(_81_i), selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out70, out _out71, out _out72);
               _83_recursiveGen = _out70;
-              _84___v98 = _out71;
+              _84___v97 = _out71;
               _85_recIdents = _out72;
               readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _85_recIdents);
               _82_args = Dafny.Sequence<RAST._IExpr>.Concat(_82_args, Dafny.Sequence<RAST._IExpr>.FromElements(_83_recursiveGen));
@@ -4945,14 +5012,14 @@ namespace DCOMP {
             _88_i = BigInteger.Zero;
             while ((_88_i) < (new BigInteger((_86_exprs).Count))) {
               RAST._IExpr _89_recursiveGen;
-              Defs._IOwnership _90___v99;
+              Defs._IOwnership _90___v98;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _91_recIdents;
               RAST._IExpr _out75;
               Defs._IOwnership _out76;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out77;
               (this).GenExpr((_86_exprs).Select(_88_i), selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out75, out _out76, out _out77);
               _89_recursiveGen = _out75;
-              _90___v99 = _out76;
+              _90___v98 = _out76;
               _91_recIdents = _out77;
               _87_generatedValues = Dafny.Sequence<RAST._IExpr>.Concat(_87_generatedValues, Dafny.Sequence<RAST._IExpr>.FromElements(_89_recursiveGen));
               readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _91_recIdents);
@@ -4980,14 +5047,14 @@ namespace DCOMP {
             _94_i = BigInteger.Zero;
             while ((_94_i) < (new BigInteger((_92_exprs).Count))) {
               RAST._IExpr _95_recursiveGen;
-              Defs._IOwnership _96___v100;
+              Defs._IOwnership _96___v99;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _97_recIdents;
               RAST._IExpr _out80;
               Defs._IOwnership _out81;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out82;
               (this).GenExpr((_92_exprs).Select(_94_i), selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out80, out _out81, out _out82);
               _95_recursiveGen = _out80;
-              _96___v100 = _out81;
+              _96___v99 = _out81;
               _97_recIdents = _out82;
               _93_generatedValues = Dafny.Sequence<RAST._IExpr>.Concat(_93_generatedValues, Dafny.Sequence<RAST._IExpr>.FromElements(_95_recursiveGen));
               readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _97_recIdents);
@@ -5009,14 +5076,14 @@ namespace DCOMP {
           DAST._IExpression _98_expr = _source0.dtor_ToMultiset_a0;
           {
             RAST._IExpr _99_recursiveGen;
-            Defs._IOwnership _100___v101;
+            Defs._IOwnership _100___v100;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _101_recIdents;
             RAST._IExpr _out85;
             Defs._IOwnership _out86;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out87;
             (this).GenExpr(_98_expr, selfIdent, env, Defs.Ownership.create_OwnershipAutoBorrowed(), out _out85, out _out86, out _out87);
             _99_recursiveGen = _out85;
-            _100___v101 = _out86;
+            _100___v100 = _out86;
             _101_recIdents = _out87;
             r = ((_99_recursiveGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_dafny_multiset"))).Apply0();
             readIdents = _101_recIdents;
@@ -5041,24 +5108,24 @@ namespace DCOMP {
             _104_i = BigInteger.Zero;
             while ((_104_i) < (new BigInteger((_102_mapElems).Count))) {
               RAST._IExpr _105_recursiveGenKey;
-              Defs._IOwnership _106___v102;
+              Defs._IOwnership _106___v101;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _107_recIdentsKey;
               RAST._IExpr _out90;
               Defs._IOwnership _out91;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out92;
               (this).GenExpr(((_102_mapElems).Select(_104_i)).dtor__0, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out90, out _out91, out _out92);
               _105_recursiveGenKey = _out90;
-              _106___v102 = _out91;
+              _106___v101 = _out91;
               _107_recIdentsKey = _out92;
               RAST._IExpr _108_recursiveGenValue;
-              Defs._IOwnership _109___v103;
+              Defs._IOwnership _109___v102;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _110_recIdentsValue;
               RAST._IExpr _out93;
               Defs._IOwnership _out94;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out95;
               (this).GenExpr(((_102_mapElems).Select(_104_i)).dtor__1, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out93, out _out94, out _out95);
               _108_recursiveGenValue = _out93;
-              _109___v103 = _out94;
+              _109___v102 = _out94;
               _110_recIdentsValue = _out95;
               _103_generatedValues = Dafny.Sequence<_System._ITuple2<RAST._IExpr, RAST._IExpr>>.Concat(_103_generatedValues, Dafny.Sequence<_System._ITuple2<RAST._IExpr, RAST._IExpr>>.FromElements(_System.Tuple2<RAST._IExpr, RAST._IExpr>.create(_105_recursiveGenKey, _108_recursiveGenValue)));
               readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _107_recIdentsKey), _110_recIdentsValue);
@@ -5093,14 +5160,14 @@ namespace DCOMP {
           DAST._IExpression _116_value = _source0.dtor_value;
           {
             RAST._IExpr _117_exprR;
-            Defs._IOwnership _118___v104;
+            Defs._IOwnership _118___v103;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _119_exprIdents;
             RAST._IExpr _out98;
             Defs._IOwnership _out99;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out100;
             (this).GenExpr(_114_expr, selfIdent, env, Defs.Ownership.create_OwnershipAutoBorrowed(), out _out98, out _out99, out _out100);
             _117_exprR = _out98;
-            _118___v104 = _out99;
+            _118___v103 = _out99;
             _119_exprIdents = _out100;
             RAST._IExpr _120_indexR;
             Defs._IOwnership _121_indexOwnership;
@@ -5141,14 +5208,14 @@ namespace DCOMP {
           DAST._IExpression _128_value = _source0.dtor_value;
           {
             RAST._IExpr _129_exprR;
-            Defs._IOwnership _130___v105;
+            Defs._IOwnership _130___v104;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _131_exprIdents;
             RAST._IExpr _out109;
             Defs._IOwnership _out110;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out111;
             (this).GenExpr(_126_expr, selfIdent, env, Defs.Ownership.create_OwnershipAutoBorrowed(), out _out109, out _out110, out _out111);
             _129_exprR = _out109;
-            _130___v105 = _out110;
+            _130___v104 = _out110;
             _131_exprIdents = _out111;
             RAST._IExpr _132_indexR;
             Defs._IOwnership _133_indexOwnership;
@@ -5229,14 +5296,14 @@ namespace DCOMP {
           DAST._IExpression _143_f = _source0.dtor_els;
           {
             RAST._IExpr _144_cond;
-            Defs._IOwnership _145___v106;
+            Defs._IOwnership _145___v105;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _146_recIdentsCond;
             RAST._IExpr _out126;
             Defs._IOwnership _out127;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out128;
             (this).GenExpr(_141_cond, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out126, out _out127, out _out128);
             _144_cond = _out126;
-            _145___v106 = _out127;
+            _145___v105 = _out127;
             _146_recIdentsCond = _out128;
             RAST._IExpr _147_fExpr;
             Defs._IOwnership _148_fOwned;
@@ -5249,14 +5316,14 @@ namespace DCOMP {
             _148_fOwned = _out130;
             _149_recIdentsF = _out131;
             RAST._IExpr _150_tExpr;
-            Defs._IOwnership _151___v107;
+            Defs._IOwnership _151___v106;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _152_recIdentsT;
             RAST._IExpr _out132;
             Defs._IOwnership _out133;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out134;
             (this).GenExpr(_142_t, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out132, out _out133, out _out134);
             _150_tExpr = _out132;
-            _151___v107 = _out133;
+            _151___v106 = _out133;
             _152_recIdentsT = _out134;
             r = RAST.Expr.create_IfExpr(_144_cond, _150_tExpr, _147_fExpr);
             RAST._IExpr _out135;
@@ -5278,14 +5345,14 @@ namespace DCOMP {
             DAST.Format._IUnaryOpFormat _154_format = _source0.dtor_format1;
             {
               RAST._IExpr _155_recursiveGen;
-              Defs._IOwnership _156___v108;
+              Defs._IOwnership _156___v107;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _157_recIdents;
               RAST._IExpr _out137;
               Defs._IOwnership _out138;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out139;
               (this).GenExpr(_153_e, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out137, out _out138, out _out139);
               _155_recursiveGen = _out137;
-              _156___v108 = _out138;
+              _156___v107 = _out138;
               _157_recIdents = _out139;
               r = RAST.Expr.create_UnaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"), _155_recursiveGen, _154_format);
               RAST._IExpr _out140;
@@ -5308,14 +5375,14 @@ namespace DCOMP {
             DAST.Format._IUnaryOpFormat _159_format = _source0.dtor_format1;
             {
               RAST._IExpr _160_recursiveGen;
-              Defs._IOwnership _161___v109;
+              Defs._IOwnership _161___v108;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _162_recIdents;
               RAST._IExpr _out142;
               Defs._IOwnership _out143;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out144;
               (this).GenExpr(_158_e, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out142, out _out143, out _out144);
               _160_recursiveGen = _out142;
-              _161___v109 = _out143;
+              _161___v108 = _out143;
               _162_recIdents = _out144;
               r = RAST.Expr.create_UnaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"), _160_recursiveGen, _159_format);
               RAST._IExpr _out145;
@@ -5380,14 +5447,14 @@ namespace DCOMP {
           bool _171_native = _source0.dtor_native;
           {
             RAST._IExpr _172_recursiveGen;
-            Defs._IOwnership _173___v114;
+            Defs._IOwnership _173___v113;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _174_recIdents;
             RAST._IExpr _out155;
             Defs._IOwnership _out156;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out157;
             (this).GenExpr(_168_expr, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out155, out _out156, out _out157);
             _172_recursiveGen = _out155;
-            _173___v114 = _out156;
+            _173___v113 = _out156;
             _174_recIdents = _out157;
             RAST._IType _175_arrayType;
             RAST._IType _out158;
@@ -5429,14 +5496,14 @@ namespace DCOMP {
           DAST._IExpression _177_expr = _source0.dtor_expr;
           {
             RAST._IExpr _178_recursiveGen;
-            Defs._IOwnership _179___v115;
+            Defs._IOwnership _179___v114;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _180_recIdents;
             RAST._IExpr _out162;
             Defs._IOwnership _out163;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out164;
             (this).GenExpr(_177_expr, selfIdent, env, Defs.Ownership.create_OwnershipAutoBorrowed(), out _out162, out _out163, out _out164);
             _178_recursiveGen = _out162;
-            _179___v115 = _out163;
+            _179___v114 = _out163;
             _180_recIdents = _out164;
             readIdents = _180_recIdents;
             r = ((_178_recursiveGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("keys"))).Apply0();
@@ -5455,14 +5522,14 @@ namespace DCOMP {
           DAST._IExpression _181_expr = _source0.dtor_expr;
           {
             RAST._IExpr _182_recursiveGen;
-            Defs._IOwnership _183___v116;
+            Defs._IOwnership _183___v115;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _184_recIdents;
             RAST._IExpr _out167;
             Defs._IOwnership _out168;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out169;
             (this).GenExpr(_181_expr, selfIdent, env, Defs.Ownership.create_OwnershipAutoBorrowed(), out _out167, out _out168, out _out169);
             _182_recursiveGen = _out167;
-            _183___v116 = _out168;
+            _183___v115 = _out168;
             _184_recIdents = _out169;
             readIdents = _184_recIdents;
             r = ((_182_recursiveGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("values"))).Apply0();
@@ -5481,14 +5548,14 @@ namespace DCOMP {
           DAST._IExpression _185_expr = _source0.dtor_expr;
           {
             RAST._IExpr _186_recursiveGen;
-            Defs._IOwnership _187___v117;
+            Defs._IOwnership _187___v116;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _188_recIdents;
             RAST._IExpr _out172;
             Defs._IOwnership _out173;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out174;
             (this).GenExpr(_185_expr, selfIdent, env, Defs.Ownership.create_OwnershipAutoBorrowed(), out _out172, out _out173, out _out174);
             _186_recursiveGen = _out172;
-            _187___v117 = _out173;
+            _187___v116 = _out173;
             _188_recIdents = _out174;
             readIdents = _188_recIdents;
             r = ((_186_recursiveGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("items"))).Apply0();
@@ -5560,15 +5627,15 @@ namespace DCOMP {
               Dafny.ISequence<Dafny.Rune> _209_name = _let_tmp_rhs1.dtor__0;
               RAST._IType _210_ty = _let_tmp_rhs1.dtor__1;
               RAST._IExpr _211_rIdent;
-              Defs._IOwnership _212___v118;
-              Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _213___v119;
+              Defs._IOwnership _212___v117;
+              Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _213___v118;
               RAST._IExpr _out181;
               Defs._IOwnership _out182;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out183;
               (this).GenIdent(_209_name, selfIdent, _199_lEnv, (((!(_193_isConstant)) && ((_210_ty).CanReadWithoutClone())) ? (Defs.Ownership.create_OwnershipOwned()) : (Defs.Ownership.create_OwnershipBorrowed())), out _out181, out _out182, out _out183);
               _211_rIdent = _out181;
-              _212___v118 = _out182;
-              _213___v119 = _out183;
+              _212___v117 = _out182;
+              _213___v118 = _out183;
               _207_onExprArgs = Dafny.Sequence<RAST._IExpr>.Concat(_207_onExprArgs, Dafny.Sequence<RAST._IExpr>.FromElements(_211_rIdent));
             }
             _206_body = (_206_body).Apply(_207_onExprArgs);
@@ -5859,14 +5926,14 @@ namespace DCOMP {
                 DAST._IExpression _258_l = _source5.dtor_value;
                 {
                   RAST._IExpr _259_lExpr;
-                  Defs._IOwnership _260___v122;
+                  Defs._IOwnership _260___v121;
                   Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _261_recIdentsL;
                   RAST._IExpr _out217;
                   Defs._IOwnership _out218;
                   Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out219;
                   (this).GenExpr(_258_l, selfIdent, env, Defs.Ownership.create_OwnershipBorrowed(), out _out217, out _out218, out _out219);
                   _259_lExpr = _out217;
-                  _260___v122 = _out218;
+                  _260___v121 = _out218;
                   _261_recIdentsL = _out219;
                   _257_arguments = Dafny.Sequence<RAST._IExpr>.Concat(_257_arguments, Dafny.Sequence<RAST._IExpr>.FromElements(_259_lExpr));
                   readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _261_recIdentsL);
@@ -5883,14 +5950,14 @@ namespace DCOMP {
                 DAST._IExpression _262_h = _source6.dtor_value;
                 {
                   RAST._IExpr _263_hExpr;
-                  Defs._IOwnership _264___v123;
+                  Defs._IOwnership _264___v122;
                   Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _265_recIdentsH;
                   RAST._IExpr _out220;
                   Defs._IOwnership _out221;
                   Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out222;
                   (this).GenExpr(_262_h, selfIdent, env, Defs.Ownership.create_OwnershipBorrowed(), out _out220, out _out221, out _out222);
                   _263_hExpr = _out220;
-                  _264___v123 = _out221;
+                  _264___v122 = _out221;
                   _265_recIdentsH = _out222;
                   _257_arguments = Dafny.Sequence<RAST._IExpr>.Concat(_257_arguments, Dafny.Sequence<RAST._IExpr>.FromElements(_263_hExpr));
                   readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _265_recIdentsH);
@@ -6017,17 +6084,17 @@ namespace DCOMP {
               _284_paramTypesMap = Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IType>.Update(_284_paramTypesMap, _286_name, ((_282_params).Select(_285_i)).dtor_tpe);
             }
             Defs._IEnvironment _287_subEnv;
-            _287_subEnv = ((env).ToOwned()).merge(Defs.Environment.create(_283_paramNames, _284_paramTypesMap));
+            _287_subEnv = ((env).ToOwned()).merge(Defs.Environment.create(_283_paramNames, _284_paramTypesMap, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements()));
             RAST._IExpr _288_recursiveGen;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _289_recIdents;
-            Defs._IEnvironment _290___v125;
+            Defs._IEnvironment _290___v124;
             RAST._IExpr _out235;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out236;
             Defs._IEnvironment _out237;
             (this).GenStmts(_281_body, ((!object.Equals(selfIdent, Defs.SelfInfo.create_NoSelf())) ? (Defs.SelfInfo.create_ThisTyped(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this"), (selfIdent).dtor_dafnyType)) : (Defs.SelfInfo.create_NoSelf())), _287_subEnv, true, Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>>.create_None(), out _out235, out _out236, out _out237);
             _288_recursiveGen = _out235;
             _289_recIdents = _out236;
-            _290___v125 = _out237;
+            _290___v124 = _out237;
             readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements();
             _289_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_289_recIdents, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>, Dafny.ISet<Dafny.ISequence<Dafny.Rune>>>>((_291_paramNames) => ((System.Func<Dafny.ISet<Dafny.ISequence<Dafny.Rune>>>)(() => {
               var _coll0 = new System.Collections.Generic.List<Dafny.ISequence<Dafny.Rune>>();
@@ -6053,15 +6120,15 @@ namespace DCOMP {
             after__ASSIGN_SUCH_THAT_1: ;
               if ((!object.Equals(selfIdent, Defs.SelfInfo.create_NoSelf())) && ((_294_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
                 RAST._IExpr _295_selfCloned;
-                Defs._IOwnership _296___v126;
-                Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _297___v127;
+                Defs._IOwnership _296___v125;
+                Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _297___v126;
                 RAST._IExpr _out238;
                 Defs._IOwnership _out239;
                 Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out240;
                 (this).GenIdent(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"), selfIdent, Defs.Environment.Empty(), Defs.Ownership.create_OwnershipOwned(), out _out238, out _out239, out _out240);
                 _295_selfCloned = _out238;
-                _296___v126 = _out239;
-                _297___v127 = _out240;
+                _296___v125 = _out239;
+                _297___v126 = _out240;
                 _293_allReadCloned = (_293_allReadCloned).Then(RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this"), Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(_295_selfCloned)));
               } else if (!((_283_paramNames).Contains(_294_next))) {
                 RAST._IExpr _298_copy;
@@ -6123,20 +6190,20 @@ namespace DCOMP {
               _out245 = (this).GenType((((_300_values).Select(_311_i)).dtor__0).dtor_typ, Defs.GenTypeContext.@default());
               _312_typeGen = _out245;
               RAST._IExpr _313_valueGen;
-              Defs._IOwnership _314___v128;
+              Defs._IOwnership _314___v127;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _315_recIdents;
               RAST._IExpr _out246;
               Defs._IOwnership _out247;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out248;
               (this).GenExpr(((_300_values).Select(_311_i)).dtor__1, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out246, out _out247, out _out248);
               _313_valueGen = _out246;
-              _314___v128 = _out247;
+              _314___v127 = _out247;
               _315_recIdents = _out248;
               r = (r).Then(RAST.Expr.create_DeclareVar(RAST.DeclareType.create_CONST(), Defs.__default.escapeVar((((_300_values).Select(_311_i)).dtor__0).dtor_name), Std.Wrappers.Option<RAST._IType>.create_Some(_312_typeGen), Std.Wrappers.Option<RAST._IExpr>.create_Some(_313_valueGen)));
               readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _315_recIdents);
             }
             Defs._IEnvironment _316_newEnv;
-            _316_newEnv = Defs.Environment.create(_303_paramNames, _306_paramTypes);
+            _316_newEnv = Defs.Environment.create(_303_paramNames, _306_paramTypes, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements());
             RAST._IExpr _317_recGen;
             Defs._IOwnership _318_recOwned;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _319_recIdents;
@@ -6167,14 +6234,14 @@ namespace DCOMP {
           DAST._IExpression _323_iifeBody = _source0.dtor_iifeBody;
           {
             RAST._IExpr _324_valueGen;
-            Defs._IOwnership _325___v129;
+            Defs._IOwnership _325___v128;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _326_recIdents;
             RAST._IExpr _out254;
             Defs._IOwnership _out255;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out256;
             (this).GenExpr(_322_value, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out254, out _out255, out _out256);
             _324_valueGen = _out254;
-            _325___v129 = _out255;
+            _325___v128 = _out255;
             _326_recIdents = _out256;
             readIdents = _326_recIdents;
             RAST._IType _327_valueTypeGen;
@@ -6184,14 +6251,14 @@ namespace DCOMP {
             Dafny.ISequence<Dafny.Rune> _328_iifeVar;
             _328_iifeVar = Defs.__default.escapeVar(_320_name);
             RAST._IExpr _329_bodyGen;
-            Defs._IOwnership _330___v130;
+            Defs._IOwnership _330___v129;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _331_bodyIdents;
             RAST._IExpr _out258;
             Defs._IOwnership _out259;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out260;
             (this).GenExpr(_323_iifeBody, selfIdent, (env).AddAssigned(_328_iifeVar, _327_valueTypeGen), Defs.Ownership.create_OwnershipOwned(), out _out258, out _out259, out _out260);
             _329_bodyGen = _out258;
-            _330___v130 = _out259;
+            _330___v129 = _out259;
             _331_bodyIdents = _out260;
             readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_331_bodyIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_328_iifeVar)));
             r = RAST.Expr.create_Block((RAST.Expr.create_DeclareVar(RAST.DeclareType.create_CONST(), _328_iifeVar, Std.Wrappers.Option<RAST._IType>.create_Some(_327_valueTypeGen), Std.Wrappers.Option<RAST._IExpr>.create_Some(_324_valueGen))).Then(_329_bodyGen));
@@ -6211,14 +6278,14 @@ namespace DCOMP {
           Dafny.ISequence<DAST._IExpression> _333_args = _source0.dtor_args;
           {
             RAST._IExpr _334_funcExpr;
-            Defs._IOwnership _335___v131;
+            Defs._IOwnership _335___v130;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _336_recIdents;
             RAST._IExpr _out263;
             Defs._IOwnership _out264;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out265;
             (this).GenExpr(_332_func, selfIdent, env, Defs.Ownership.create_OwnershipBorrowed(), out _out263, out _out264, out _out265);
             _334_funcExpr = _out263;
-            _335___v131 = _out264;
+            _335___v130 = _out264;
             _336_recIdents = _out265;
             readIdents = _336_recIdents;
             Dafny.ISequence<RAST._IExpr> _337_rArgs;
@@ -6256,14 +6323,14 @@ namespace DCOMP {
           Dafny.ISequence<Dafny.Rune> _344_variant = _source0.dtor_variant;
           {
             RAST._IExpr _345_exprGen;
-            Defs._IOwnership _346___v132;
+            Defs._IOwnership _346___v131;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _347_recIdents;
             RAST._IExpr _out271;
             Defs._IOwnership _out272;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out273;
             (this).GenExpr(_342_on, selfIdent, env, Defs.Ownership.create_OwnershipBorrowed(), out _out271, out _out272, out _out273);
             _345_exprGen = _out271;
-            _346___v132 = _out272;
+            _346___v131 = _out272;
             _347_recIdents = _out273;
             RAST._IExpr _348_variantExprPath;
             RAST._IExpr _out274;
@@ -6344,14 +6411,14 @@ namespace DCOMP {
           DAST._IExpression _357_of = _source0.dtor_of;
           {
             RAST._IExpr _358_exprGen;
-            Defs._IOwnership _359___v133;
+            Defs._IOwnership _359___v132;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _360_recIdents;
             RAST._IExpr _out287;
             Defs._IOwnership _out288;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out289;
             (this).GenExpr(_357_of, selfIdent, env, Defs.Ownership.create_OwnershipBorrowed(), out _out287, out _out288, out _out289);
             _358_exprGen = _out287;
-            _359___v133 = _out288;
+            _359___v132 = _out288;
             _360_recIdents = _out289;
             r = ((_358_exprGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("iter"))).Apply0();
             RAST._IExpr _out290;
@@ -6371,14 +6438,14 @@ namespace DCOMP {
           bool _362_includeDuplicates = _source0.dtor_includeDuplicates;
           {
             RAST._IExpr _363_exprGen;
-            Defs._IOwnership _364___v134;
+            Defs._IOwnership _364___v133;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _365_recIdents;
             RAST._IExpr _out292;
             Defs._IOwnership _out293;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out294;
             (this).GenExpr(_361_of, selfIdent, env, Defs.Ownership.create_OwnershipBorrowed(), out _out292, out _out293, out _out294);
             _363_exprGen = _out292;
-            _364___v134 = _out293;
+            _364___v133 = _out293;
             _365_recIdents = _out294;
             r = ((_363_exprGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("iter"))).Apply0();
             if (!(_362_includeDuplicates)) {
@@ -6401,14 +6468,14 @@ namespace DCOMP {
           bool _367_includeDuplicates = _source0.dtor_includeDuplicates;
           {
             RAST._IExpr _368_exprGen;
-            Defs._IOwnership _369___v135;
+            Defs._IOwnership _369___v134;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _370_recIdents;
             RAST._IExpr _out297;
             Defs._IOwnership _out298;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out299;
             (this).GenExpr(_366_of, selfIdent, env, Defs.Ownership.create_OwnershipBorrowed(), out _out297, out _out298, out _out299);
             _368_exprGen = _out297;
-            _369___v135 = _out298;
+            _369___v134 = _out298;
             _370_recIdents = _out299;
             r = ((_368_exprGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("iter"))).Apply0();
             if (!(_367_includeDuplicates)) {
@@ -6430,14 +6497,14 @@ namespace DCOMP {
           DAST._IExpression _371_of = _source0.dtor_of;
           {
             RAST._IExpr _372_exprGen;
-            Defs._IOwnership _373___v136;
+            Defs._IOwnership _373___v135;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _374_recIdents;
             RAST._IExpr _out302;
             Defs._IOwnership _out303;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out304;
             (this).GenExpr(_371_of, selfIdent, env, Defs.Ownership.create_OwnershipBorrowed(), out _out302, out _out303, out _out304);
             _372_exprGen = _out302;
-            _373___v136 = _out303;
+            _373___v135 = _out303;
             _374_recIdents = _out304;
             r = ((((_372_exprGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("keys"))).Apply0()).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("iter"))).Apply0();
             readIdents = _374_recIdents;
@@ -6455,14 +6522,14 @@ namespace DCOMP {
           DAST._IExpression _375_of = _source0.dtor_of;
           {
             RAST._IExpr _376_exprGen;
-            Defs._IOwnership _377___v137;
+            Defs._IOwnership _377___v136;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _378_recIdents;
             RAST._IExpr _out307;
             Defs._IOwnership _out308;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out309;
             (this).GenExpr(_375_of, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out307, out _out308, out _out309);
             _376_exprGen = _out307;
-            _377___v137 = _out308;
+            _377___v136 = _out308;
             _378_recIdents = _out309;
             r = ((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("iter"))).AsExpr()).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("once"))).Apply1(_376_exprGen);
             readIdents = _378_recIdents;
@@ -6483,24 +6550,24 @@ namespace DCOMP {
           bool _382_up = _source0.dtor_up;
           {
             RAST._IExpr _383_lo;
-            Defs._IOwnership _384___v138;
+            Defs._IOwnership _384___v137;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _385_recIdentsLo;
             RAST._IExpr _out312;
             Defs._IOwnership _out313;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out314;
             (this).GenExpr(_380_lo, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out312, out _out313, out _out314);
             _383_lo = _out312;
-            _384___v138 = _out313;
+            _384___v137 = _out313;
             _385_recIdentsLo = _out314;
             RAST._IExpr _386_hi;
-            Defs._IOwnership _387___v139;
+            Defs._IOwnership _387___v138;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _388_recIdentsHi;
             RAST._IExpr _out315;
             Defs._IOwnership _out316;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out317;
             (this).GenExpr(_381_hi, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out315, out _out316, out _out317);
             _386_hi = _out315;
-            _387___v139 = _out316;
+            _387___v138 = _out316;
             _388_recIdentsHi = _out317;
             if (_382_up) {
               r = (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("integer_range"))).AsExpr()).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(_383_lo, _386_hi));
@@ -6531,14 +6598,14 @@ namespace DCOMP {
           bool _391_up = _source0.dtor_up;
           {
             RAST._IExpr _392_start;
-            Defs._IOwnership _393___v140;
+            Defs._IOwnership _393___v139;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _394_recIdentStart;
             RAST._IExpr _out321;
             Defs._IOwnership _out322;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out323;
             (this).GenExpr(_390_start, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out321, out _out322, out _out323);
             _392_start = _out321;
-            _393___v140 = _out322;
+            _393___v139 = _out322;
             _394_recIdentStart = _out323;
             if (_391_up) {
               r = (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("integer_range_unbounded"))).AsExpr()).Apply1(_392_start);
@@ -6612,14 +6679,14 @@ namespace DCOMP {
           _out333 = (this).GenType(_401_elemType, Defs.GenTypeContext.@default());
           _405_tpe = _out333;
           RAST._IExpr _406_collectionGen;
-          Defs._IOwnership _407___v141;
+          Defs._IOwnership _407___v140;
           Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _408_recIdents;
           RAST._IExpr _out334;
           Defs._IOwnership _out335;
           Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out336;
           (this).GenExpr(_402_collection, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out334, out _out335, out _out336);
           _406_collectionGen = _out334;
-          _407___v141 = _out335;
+          _407___v140 = _out335;
           _408_recIdents = _out336;
           Dafny.ISequence<DAST._IAttribute> _409_extraAttributes;
           _409_extraAttributes = Dafny.Sequence<DAST._IAttribute>.FromElements();
@@ -6642,14 +6709,14 @@ namespace DCOMP {
             Dafny.ISequence<DAST._IFormal> _417_dt__update_hparams_h0 = _411_newFormals;
             _415_newLambda = DAST.Expression.create_Lambda(_417_dt__update_hparams_h0, (_416_dt__update__tmp_h1).dtor_retType, (_416_dt__update__tmp_h1).dtor_body);
             RAST._IExpr _418_lambdaGen;
-            Defs._IOwnership _419___v142;
+            Defs._IOwnership _419___v141;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _420_recLambdaIdents;
             RAST._IExpr _out337;
             Defs._IOwnership _out338;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out339;
             (this).GenExpr(_415_newLambda, selfIdent, env, Defs.Ownership.create_OwnershipOwned(), out _out337, out _out338, out _out339);
             _418_lambdaGen = _out337;
-            _419___v142 = _out338;
+            _419___v141 = _out338;
             _420_recLambdaIdents = _out339;
             Dafny.ISequence<Dafny.Rune> _421_fn;
             if (_403_is__forall) {
@@ -6712,7 +6779,7 @@ namespace DCOMP {
         _0_externUseDecls = Dafny.Sequence<RAST._IModDecl>.Concat(_0_externUseDecls, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_UseDecl(RAST.Use.create(RAST.Visibility.create_PUB(), ((RAST.__default.crate).MSel(_3_externalMod)).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))))));
       }
       if (!(_0_externUseDecls).Equals(Dafny.Sequence<RAST._IModDecl>.FromElements())) {
-        s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(s, (RAST.Mod.create_Mod(Defs.__default.DAFNY__EXTERN__MODULE, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), _0_externUseDecls))._ToString(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"));
+        s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(s, (RAST.Mod.create_Mod(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Flattens all imported externs so that they can be accessed from this module"), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), Defs.__default.DAFNY__EXTERN__MODULE, _0_externUseDecls))._ToString(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"));
       }
       DafnyCompilerRustUtils._ISeqMap<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule> _5_allModules;
       _5_allModules = DafnyCompilerRustUtils.SeqMap<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule>.Empty();
@@ -6756,15 +6823,15 @@ namespace DCOMP {
   "));
       }
       RAST._IExpr _0_call;
-      Defs._IOwnership _1___v143;
-      Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _2___v144;
+      Defs._IOwnership _1___v142;
+      Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _2___v143;
       RAST._IExpr _out0;
       Defs._IOwnership _out1;
       Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out2;
       (this).GenExpr(companion, Defs.SelfInfo.create_NoSelf(), Defs.Environment.Empty(), Defs.Ownership.create_OwnershipOwned(), out _out0, out _out1, out _out2);
       _0_call = _out0;
-      _1___v143 = _out1;
-      _2___v144 = _out2;
+      _1___v142 = _out1;
+      _2___v143 = _out2;
       _0_call = (_0_call).FSel(mainMethodName);
       if (hasArgs) {
         _0_call = (_0_call).Apply1(RAST.__default.Borrow(RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("dafny_args"))));

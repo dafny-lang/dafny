@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -10,6 +11,7 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
@@ -176,9 +178,13 @@ public class Compilation : IDisposable {
     }
 
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+      if (Options.Backend is LibraryBackend) {
+        Options.Set(CommonOptionBag.TranslateStandardLibrary, false);
+      }
+
       // For now the standard libraries are still translated from scratch.
-      // This breaks separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
-      var asLibrary = false;
+      // This creates issues with separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
+      var asLibrary = !Options.Get(CommonOptionBag.TranslateStandardLibrary);
 
       if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = Options.CompilerName ?? "notarget";
@@ -258,7 +264,7 @@ public class Compilation : IDisposable {
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
-    if (task.ScopeToken is RefinementToken refinementToken) {
+    if (task.ScopeToken is RefinementOrigin refinementToken) {
       prefix += "." + refinementToken.InheritingModule.Name;
     }
 
@@ -267,7 +273,9 @@ public class Compilation : IDisposable {
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
-  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
+  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, Func<IVerificationTask, bool>? taskFilter = null,
+    int? randomSeed = null,
+    bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
@@ -290,10 +298,10 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, _ => true, null, onlyPrepareVerificationForGutterTests);
+    return await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), randomSeed, onlyPrepareVerificationForGutterTests);
   }
 
-  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+  private async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
     int? randomSeed = 0,
     bool onlyPrepareVerificationForGutterTests = false) {
 
@@ -335,7 +343,7 @@ public class Compilation : IDisposable {
           var result = await verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
             cancellationSource.Token);
 
-          return result.GroupBy(t => ((IToken)t.ScopeToken).GetFilePosition()).ToDictionary(
+          return result.GroupBy(t => ((IOrigin)t.ScopeToken).GetFilePosition()).ToDictionary(
             g => g.Key,
             g => (IReadOnlyList<IVerificationTask>)g.ToList());
         });
@@ -364,9 +372,11 @@ public class Compilation : IDisposable {
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
-        var groups = tasks.GroupBy(t =>
-            // We unwrap so that we group on tokens as they are displayed to the user by Reporter.Info
-            TokenWrapper.Unwrap(BoogieGenerator.ToDafnyToken(true, t.Token))).
+        var groups = tasks.GroupBy(t => {
+          var dafnyToken = BoogieGenerator.ToDafnyToken(true, t.Token);
+          // We normalize so that we group on tokens as they are displayed to the user by Reporter.Info
+          return new RangeToken(dafnyToken.StartToken, dafnyToken.EndToken);
+        }).
           OrderBy(g => g.Key);
         foreach (var tokenTasks in groups) {
           var functions = tokenTasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).

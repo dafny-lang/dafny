@@ -10,8 +10,8 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, IFrameScope
 
   public readonly Specification<FrameExpression> Reads;
 
-  public LambdaExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression requires, Specification<FrameExpression> reads, Expression body)
-    : base(tok, rangeToken, bvars, requires, body, null) {
+  public LambdaExpr(IOrigin tok, IOrigin rangeOrigin, List<BoundVar> bvars, Expression requires, Specification<FrameExpression> reads, Expression body)
+    : base(tok, rangeOrigin, bvars, requires, body, null) {
     Contract.Requires(reads != null);
     Reads = reads;
   }

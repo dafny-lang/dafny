@@ -15,7 +15,7 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
   public override IEnumerable<INode> PreResolveChildren =>
     Lhss.Concat<Node>(new List<Node>() { Expr });
 
-  public override IToken Tok {
+  public override IOrigin Tok {
     get {
       var result = Expr.StartToken.Prev;
       if (char.IsLetter(result.val[0])) {
@@ -58,9 +58,9 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
   /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
   /// </summary>
-  public AssignSuchThatStmt(RangeToken rangeToken, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
-    : base(rangeToken, lhss, attrs) {
-    Contract.Requires(rangeToken != null);
+  public AssignSuchThatStmt(IOrigin rangeOrigin, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
+    : base(rangeOrigin, lhss, attrs) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(lhss.Count != 0);
     Contract.Requires(expr != null);

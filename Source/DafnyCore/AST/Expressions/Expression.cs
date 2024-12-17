@@ -93,7 +93,7 @@ public abstract class Expression : TokenNode {
     }
 #endif
 
-  public Expression(IToken tok) {
+  public Expression(IOrigin tok) {
     Contract.Requires(tok != null);
     Contract.Ensures(type == null);  // we would have liked to have written Type==null, but that's not admissible or provable
 
@@ -102,8 +102,8 @@ public abstract class Expression : TokenNode {
 
   protected Expression(Cloner cloner, Expression original) {
 
-    tok = cloner.Tok(original.tok);
-    RangeToken = cloner.Range(original.RangeToken);
+    tok = cloner.Origin(original.tok);
+    Origin = cloner.Origin(original.Origin);
 
     if (cloner.CloneResolvedFields && original.Type != null) {
       Type = original.Type;
@@ -397,7 +397,7 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a resolved expression of the form "n" when n is nonnegative
   /// </summary>
-  public static LiteralExpr CreateIntLiteralNonnegative(IToken tok, int n, Type ty = null) {
+  public static LiteralExpr CreateIntLiteralNonnegative(IOrigin tok, int n, Type ty = null) {
     Contract.Requires(tok != null);
     Contract.Requires(0 <= n);
     var nn = new LiteralExpr(tok, n);
@@ -408,7 +408,7 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a resolved expression of the form "n"
   /// </summary>
-  public static Expression CreateIntLiteral(IToken tok, int n, Type ty = null) {
+  public static Expression CreateIntLiteral(IOrigin tok, int n, Type ty = null) {
     Contract.Requires(tok != null);
     Contract.Requires(n != int.MinValue);
     if (0 <= n) {
@@ -421,7 +421,7 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a resolved expression of the form "x"
   /// </summary>
-  public static Expression CreateRealLiteral(IToken tok, BaseTypes.BigDec x) {
+  public static Expression CreateRealLiteral(IOrigin tok, BaseTypes.BigDec x) {
     Contract.Requires(tok != null);
     var nn = new LiteralExpr(tok, x);
     nn.Type = Type.Real;
@@ -431,7 +431,7 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a resolved expression of the form "n", for either type "int" or type "ORDINAL".
   /// </summary>
-  public static Expression CreateNatLiteral(IToken tok, int n, Type ty) {
+  public static Expression CreateNatLiteral(IOrigin tok, int n, Type ty) {
     Contract.Requires(tok != null);
     Contract.Requires(0 <= n);
     Contract.Requires(ty.IsNumericBased(Type.NumericPersuasion.Int) || ty is BigOrdinalType);
@@ -443,7 +443,7 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a resolved expression for a bool b
   /// </summary>
-  public static LiteralExpr CreateBoolLiteral(IToken tok, bool b) {
+  public static LiteralExpr CreateBoolLiteral(IOrigin tok, bool b) {
     Contract.Requires(tok != null);
     var lit = new LiteralExpr(tok, b) {
       Type = Type.Bool
@@ -454,7 +454,7 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a resolved expression for a string s
   /// </summary>
-  public static LiteralExpr CreateStringLiteral(IToken tok, string s) {
+  public static LiteralExpr CreateStringLiteral(IOrigin tok, string s) {
     Contract.Requires(tok != null);
     Contract.Requires(s != null);
     var lit = new StringLiteralExpr(tok, s, true) {
@@ -548,11 +548,11 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a resolved ParensExpression around a given resolved expression "e".
   /// </summary>
-  public static Expression CreateParensExpression(IToken tok, Expression e) {
+  public static Expression CreateParensExpression(IOrigin tok, Expression e) {
     return new ParensExpression(tok, e) { Type = e.Type, ResolvedExpression = e };
   }
 
-  public static Expression CreateNot(IToken tok, Expression e) {
+  public static Expression CreateNot(IOrigin tok, Expression e) {
     Contract.Requires(tok != null);
     Contract.Requires(e != null && e.Type != null && e.Type.IsBoolType);
 
@@ -747,12 +747,12 @@ public abstract class Expression : TokenNode {
   /// enables resolving a syntactic clone of this resolved expression.
   /// Expects "receiver" and each of the "arguments" to be a resolved expression.
   /// </summary>
-  public static Expression CreateResolvedCall(IToken tok, Expression receiver, Function function, List<Expression> arguments,
+  public static Expression CreateResolvedCall(IOrigin tok, Expression receiver, Function function, List<Expression> arguments,
     List<Type> typeArguments, SystemModuleManager systemModuleManager) {
     Contract.Requires(function.Ins.Count == arguments.Count);
     Contract.Requires(function.TypeArgs.Count == typeArguments.Count);
 
-    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, arguments) {
+    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, Token.NoToken, arguments) {
       Function = function,
       Type = function.ResultType,
       TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs,
@@ -775,7 +775,7 @@ public abstract class Expression : TokenNode {
     };
 
     subst = TypeParameter.SubstitutionMap(call.Function.TypeArgs, call.TypeApplication_JustFunction);
-    return new ApplySuffix(call.tok, null, exprDotName, new ActualBindings(call.Args).ArgumentBindings, call.tok) {
+    return new ApplySuffix(call.tok, null, exprDotName, new ActualBindings(call.Args).ArgumentBindings, call.CloseParen) {
       ResolvedExpression = call,
       Type = call.Function.ResultType.Subst(subst)
     };
@@ -785,7 +785,7 @@ public abstract class Expression : TokenNode {
   /// Create a resolved field-selection expression.
   /// Expects "receiver" to be a resolved expression.
   /// </summary>
-  public static Expression CreateFieldSelect(IToken tok, Expression receiver, Field field) {
+  public static Expression CreateFieldSelect(IOrigin tok, Expression receiver, Field field) {
     var memberSelectExpr = new MemberSelectExpr(tok, receiver, field);
     return WrapResolvedMemberSelect(memberSelectExpr);
   }
@@ -834,7 +834,7 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a match expression with a resolved type
   /// </summary>
-  public static Expression CreateMatch(IToken tok, Expression src, List<MatchCaseExpr> cases, Type type) {
+  public static Expression CreateMatch(IOrigin tok, Expression src, List<MatchCaseExpr> cases, Type type) {
     MatchExpr e = new MatchExpr(tok, src, cases, false);
     e.Type = type;  // resolve here
 
@@ -844,7 +844,7 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a let expression with a resolved type and fresh variables
   /// </summary>
-  public static Expression CreateLet(IToken tok, List<CasePattern<BoundVar>> LHSs, List<Expression> RHSs, Expression body, bool exact) {
+  public static Expression CreateLet(IOrigin tok, List<CasePattern<BoundVar>> LHSs, List<Expression> RHSs, Expression body, bool exact) {
     Contract.Requires(tok != null);
     Contract.Requires(LHSs != null && RHSs != null);
     Contract.Requires(LHSs.Count == RHSs.Count);
@@ -882,9 +882,9 @@ public abstract class Expression : TokenNode {
 
     QuantifierExpr q;
     if (forall) {
-      q = new ForallExpr(expr.tok, expr.RangeToken, newVars, expr.Range, body, expr.Attributes);
+      q = new ForallExpr(expr.tok, expr.Origin, newVars, expr.Range, body, expr.Attributes);
     } else {
-      q = new ExistsExpr(expr.tok, expr.RangeToken, newVars, expr.Range, body, expr.Attributes);
+      q = new ExistsExpr(expr.tok, expr.Origin, newVars, expr.Range, body, expr.Attributes);
     }
     q.Type = Type.Bool;
 
@@ -934,7 +934,7 @@ public abstract class Expression : TokenNode {
   public override IEnumerable<INode> Children => SubExpressions;
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public static Expression CreateAssigned(IToken tok, IdentifierExpr inner) {
+  public static Expression CreateAssigned(IOrigin tok, IdentifierExpr inner) {
     return new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Assigned, inner) {
       Type = Type.Bool
     };

@@ -1129,7 +1129,7 @@ an expression that decreases with every loop iteration or recursive call.
 There are two conditions that Dafny needs to verify when using a `decreases`
 expression: that the expression actually gets smaller and that it is bounded.
 Many times, an integral value (natural or plain integer) is the quantity that
-decreases, but other things that can be used as well. (See the reference for
+decreases, but other things can be used as well. (See the reference for
 details.) In the case of integers, the bound is assumed to be zero. For
 example, the following is a proper use of `decreases` on a loop (with its own
 keyword, of course):

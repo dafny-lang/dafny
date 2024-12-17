@@ -32,10 +32,10 @@ public class IndDatatypeDecl : DatatypeDecl {
   public enum ES { NotYetComputed, Never, ConsultTypeArguments }
   public ES EqualitySupport = ES.NotYetComputed;
 
-  public IndDatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public IndDatatypeDecl(IOrigin rangeOrigin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, ctors, parentTraits, members, attributes, isRefining) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, module, typeArgs, ctors, parentTraits, members, attributes, isRefining) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

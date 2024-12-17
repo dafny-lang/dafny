@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// Class "BreakStmt" represents both "break" and "continue" statements.
 /// </summary>
 public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOrContinueStmt> {
-  public readonly IToken TargetLabel;
+  public readonly IOrigin TargetLabel;
   public readonly bool IsContinue;
   public string Kind => IsContinue ? "continue" : "break";
   public readonly int BreakAndContinueCount;
@@ -31,9 +31,9 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
     }
   }
 
-  public BreakOrContinueStmt(RangeToken rangeToken, IToken targetLabel, bool isContinue, Attributes attributes = null)
-    : base(rangeToken, attributes) {
-    Contract.Requires(rangeToken != null);
+  public BreakOrContinueStmt(IOrigin rangeOrigin, IOrigin targetLabel, bool isContinue, Attributes attributes = null)
+    : base(rangeOrigin, attributes) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(targetLabel != null);
     TargetLabel = targetLabel;
     IsContinue = isContinue;
@@ -43,9 +43,9 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
   /// For "isContinue == false", represents the statement "break ^breakAndContinueCount ;".
   /// For "isContinue == true", represents the statement "break ^(breakAndContinueCount - 1) continue;".
   /// </summary>
-  public BreakOrContinueStmt(RangeToken rangeToken, int breakAndContinueCount, bool isContinue, Attributes attributes = null)
-    : base(rangeToken, attributes) {
-    Contract.Requires(rangeToken != null);
+  public BreakOrContinueStmt(IOrigin rangeOrigin, int breakAndContinueCount, bool isContinue, Attributes attributes = null)
+    : base(rangeOrigin, attributes) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(1 <= breakAndContinueCount);
     BreakAndContinueCount = breakAndContinueCount;
     IsContinue = isContinue;
@@ -55,7 +55,7 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
     return new[] { TargetStmt }.OfType<IHasNavigationToken>();
   }
 
-  public IToken NavigationToken => Tok;
+  public IOrigin NavigationToken => Tok;
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,

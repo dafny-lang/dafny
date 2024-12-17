@@ -14,7 +14,7 @@ public class ActualBindings : TokenNode {
 
   public ActualBindings(Cloner cloner, ActualBindings original) {
     ArgumentBindings = original.ArgumentBindings.Select(actualBinding => new ActualBinding(
-      actualBinding.FormalParameterName == null ? null : cloner.Tok((IToken)actualBinding.FormalParameterName),
+      actualBinding.FormalParameterName == null ? null : cloner.Origin((IOrigin)actualBinding.FormalParameterName),
       cloner.CloneExpr(actualBinding.Actual))).ToList();
     if (cloner.CloneResolvedFields) {
       arguments = original.Arguments?.Select(cloner.CloneExpr).ToList();
@@ -44,7 +44,7 @@ public class ActualBindings : TokenNode {
 }
 
 public class ActualBinding : TokenNode {
-  public readonly IToken /*?*/ FormalParameterName;
+  public readonly IOrigin /*?*/ FormalParameterName;
   public readonly Expression Actual;
   public readonly bool IsGhost;
 
@@ -52,7 +52,7 @@ public class ActualBinding : TokenNode {
 
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
+  public ActualBinding(IOrigin /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
     Contract.Requires(actual != null);
     FormalParameterName = formalParameterName;
     Actual = actual;

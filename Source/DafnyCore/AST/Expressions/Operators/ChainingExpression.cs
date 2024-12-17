@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingExpression>, ICanFormat {
   public readonly List<Expression> Operands;
   public readonly List<BinaryExpr.Opcode> Operators;
-  public readonly List<IToken> OperatorLocs;
+  public readonly List<IOrigin> OperatorLocs;
   public readonly List<Expression/*?*/> PrefixLimits;
   public readonly Expression E;
 
@@ -19,12 +19,12 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
   public ChainingExpression(Cloner cloner, ChainingExpression original) : base(cloner, original) {
     Operands = original.Operands.Select(cloner.CloneExpr).ToList();
     Operators = original.Operators;
-    OperatorLocs = original.OperatorLocs.Select(cloner.Tok).ToList();
+    OperatorLocs = original.OperatorLocs.Select(cloner.Origin).ToList();
     PrefixLimits = original.PrefixLimits.Select(cloner.CloneExpr).ToList();
     E = ComputeDesugaring(Operands, Operators, OperatorLocs, PrefixLimits);
   }
 
-  public ChainingExpression(IToken tok, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IToken> operatorLocs, List<Expression/*?*/> prefixLimits)
+  public ChainingExpression(IOrigin tok, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IOrigin> operatorLocs, List<Expression/*?*/> prefixLimits)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(operands != null);
@@ -44,7 +44,7 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
     E = ComputeDesugaring(operands, operators, operatorLocs, prefixLimits);
   }
 
-  private static Expression ComputeDesugaring(List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IToken> operatorLocs, List<Expression> prefixLimits) {
+  private static Expression ComputeDesugaring(List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IOrigin> operatorLocs, List<Expression> prefixLimits) {
     Expression desugaring;
     // Compute the desugaring
     if (operators[0] == BinaryExpr.Opcode.Disjoint) {

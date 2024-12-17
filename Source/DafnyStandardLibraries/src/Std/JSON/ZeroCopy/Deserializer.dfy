@@ -711,11 +711,14 @@ module Std.JSON.ZeroCopy.Deserializer {
     function String(cs: FreshCursor): (pr: ParseResult<jstring>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.String)
     {
+      var origCs := cs;
       var SP(lq, cs) :- Quote(cs);
       var contents :- StringBody(cs);
       var SP(contents, cs) := contents.Split();
       var SP(rq, cs) :- Quote(cs);
-      Success(SP(Grammar.JString(lq, contents, rq), cs))
+      var result := SP(Grammar.JString(lq, contents, rq), cs);
+      assert result.StrictlySplitFrom?(origCs, Spec.String);
+      Success(result)
     }
   }
 
@@ -770,7 +773,7 @@ module Std.JSON.ZeroCopy.Deserializer {
     }
 
     @IsolateAssertions
-    @ResourceLimit("100e6")
+    @ResourceLimit("1e9")
     function Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, exp => Spec.Maybe(exp, Spec.Exp))
     {

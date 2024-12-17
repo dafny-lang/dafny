@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       } else {
         // If we hover over a usage, display the information of the declaration
         symbol = declarationOrUsage as ISymbol;
-        if (symbol != null && !symbol.NavigationToken.ToRange().ToLspRange().Contains(request.Position)) {
+        if (symbol != null && !symbol.NavigationToken.ToLspRange().Contains(request.Position)) {
           symbol = null;
         }
       }
@@ -300,7 +300,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         string deltaInformation = "";
         while (token != null) {
           var errorToken = token;
-          if (token is NestedToken nestedToken) {
+          if (token is NestedOrigin nestedToken) {
             errorToken = nestedToken.Outer;
             token = nestedToken.Inner;
           } else {
@@ -311,8 +311,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
 
-          if (dafnyToken is RangeToken rangeToken && !hoveringPostcondition) {
-            var originalText = rangeToken.PrintOriginal();
+          if (dafnyToken.IncludesRange && !hoveringPostcondition) {
+            var originalText = dafnyToken.PrintOriginal();
             deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
 
@@ -351,7 +351,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         information += MoreInformation(assertEnsuresCmd.Ensures.tok, currentlyHoveringPostcondition);
       } else {
         information += GetDescription(assertCmd?.Description);
-        if (assertCmd?.tok is NestedToken) {
+        if (assertCmd?.tok is NestedOrigin) {
           information += MoreInformation(assertCmd.tok, currentlyHoveringPostcondition);
         }
       }

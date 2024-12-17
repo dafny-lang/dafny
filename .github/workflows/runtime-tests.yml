@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [ master, main-* ]
   merge_group:
-
+  
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -25,6 +25,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+      # The Windows image was recently updated with a .NET 9 CLI which made CI fail, 
+      # We added a global.json to force it to use any .NET CLI with 8 as a major version
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      # If we do not also install .NET 6 as well, then our doc-tests fail for an unknown reason
+      # Failing run: https://github.com/dafny-lang/dafny/actions/runs/12276984671/job/34255376460
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 6.0.x
       - name: Set up JDK 18
         uses: actions/setup-java@v4
         with:
@@ -48,6 +60,7 @@ jobs:
           cd ./Source/DafnyCore
           make test
           make check-format
+          make check-extract
       - name: Test DafnyRuntime (C#, Rust)
         run: |
           cd ./Source/DafnyRuntime
@@ -59,6 +72,10 @@ jobs:
       - name: Test DafnyRuntimeGo
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeGo
+          make all
+      - name: Test DafnyRuntimeGo-gomod
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeGo-gomod
           make all
       - name: Test DafnyRuntimeJava
         run: |

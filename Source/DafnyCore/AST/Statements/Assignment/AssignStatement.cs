@@ -12,7 +12,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  public override IToken Tok {
+  public override IOrigin Tok {
     get {
       var firstRhs = Rhss.First();
       if (firstRhs.StartToken != StartToken) {
@@ -53,16 +53,16 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
     }
   }
 
-  public AssignStatement(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
-    : base(rangeToken, lhss) {
+  public AssignStatement(IOrigin rangeOrigin, List<Expression> lhss, List<AssignmentRhs> rhss)
+    : base(rangeOrigin, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = false;
   }
-  public AssignStatement(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
-    : base(rangeToken, lhss) {
+  public AssignStatement(IOrigin rangeOrigin, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
+    : base(rangeOrigin, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
@@ -96,7 +96,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
 
     base.Resolve(resolver, resolutionContext);
 
-    IToken firstEffectfulRhs = null;
+    IOrigin firstEffectfulRhs = null;
     MethodCallInformation methodCallInfo = null;
     ResolvedStatements = new();
     foreach (var rhs in Rhss) {
@@ -136,7 +136,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
       } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
         // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
         for (int i = 0; i < Lhss.Count; i++) {
-          var a = new SingleAssignStmt(RangeToken, Lhss[i].Resolved, Rhss[i]);
+          var a = new SingleAssignStmt(Origin, Lhss[i].Resolved, Rhss[i]);
           ResolvedStatements.Add(a);
         }
       }
@@ -156,7 +156,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
           if (tr.CanAffectPreviouslyKnownExpressions) {
             resolver.Reporter.Error(MessageSource.Resolver, tr.Tok, "can only have initialization methods which modify at most 'this'.");
           } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
-            var a = new SingleAssignStmt(RangeToken, Lhss[0].Resolved, tr);
+            var a = new SingleAssignStmt(Origin, Lhss[0].Resolved, tr);
             ResolvedStatements.Add(a);
           }
         }
@@ -172,7 +172,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
           Contract.Assert(2 <= Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
           resolver.Reporter.Error(MessageSource.Resolver, Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
         } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
-          var a = new SingleAssignStmt(RangeToken, Lhss[0].Resolved, Rhss[0]);
+          var a = new SingleAssignStmt(Origin, Lhss[0].Resolved, Rhss[0]);
           ResolvedStatements.Add(a);
         }
       } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
@@ -181,7 +181,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
         foreach (var ll in Lhss) {
           resolvedLhss.Add(ll.Resolved);
         }
-        CallStmt a = new CallStmt(RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+        CallStmt a = new CallStmt(Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
         a.OriginalInitialLhs = OriginalInitialLhs;
         ResolvedStatements.Add(a);
       }
