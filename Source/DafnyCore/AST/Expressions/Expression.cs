@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 public abstract class Expression : TokenNode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(tok != null);
+    Contract.Invariant(Tok != null);
   }
 
   [System.Diagnostics.Contracts.Pure]

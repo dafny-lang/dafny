@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 public class UserDefinedType : NonProxyType, IHasReferences {
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(tok != null);
+    Contract.Invariant(Tok != null);
     Contract.Invariant(Name != null);
     Contract.Invariant(cce.NonNullElements(TypeArgs));
     Contract.Invariant(NamePath is NameSegment or ExprDotName);
@@ -281,7 +281,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
         return this;
       } else {
         // Note, even if t.NamePath is non-null, we don't care to keep that syntactic part of the expression in what we return here
-        return new UserDefinedType(tok, Name, resolvedClass, newArgs);
+        return new UserDefinedType(Tok, Name, resolvedClass, newArgs);
       }
     } else {
       // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
@@ -291,7 +291,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   }
 
   public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new UserDefinedType(tok, Name, ResolvedClass, arguments);
+    return new UserDefinedType(Tok, Name, ResolvedClass, arguments);
   }
 
   /// <summary>
