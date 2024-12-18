@@ -1651,10 +1651,9 @@ NamedType<.out Type ty, out Token tok, bool inExpressionContext.> =
   { "."
     TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
     OptGenericInstantiation<out typeArgs, inExpressionContext>
-    (. e = new ExprDotName(tok, e, new Name(tok), typeArgs); .)
+    (. e = new ExprDotName(new SourceOrigin(startToken, tok, tok), e, new Name(tok), typeArgs); .)
   }
-  (. ty = new UserDefinedType(e.tok, e);
-     ty.Origin = new SourceOrigin(startToken, t);
+  (. ty = new UserDefinedType(e.Origin, e);
    .)
   .
 
@@ -2563,14 +2562,16 @@ VarDeclStatement<.out Statement/*!*/ s.>
          }
        }
        var rangeToken = new SourceOrigin(startToken, t);
-       var updateOrigin = new SourceOrigin(assignTok, t);
        if (suchThat != null) {
+         var updateOrigin = new SourceOrigin(assignTok, t);
          assignment = new AssignSuchThatStmt(updateOrigin, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionRhs != null) {
+         var updateOrigin = new SourceOrigin(assignTok, t);
          assignment = new AssignOrReturnStmt(updateOrigin, lhsExprs, exceptionRhs, keywordToken, rhss);
        } else if (rhss.Count == 0) {
          assignment = null;
        } else {
+         var updateOrigin = new SourceOrigin(assignTok, t);
          assignment = new AssignStatement(updateOrigin, lhsExprs, rhss);
        }
        s = new VarDeclStmt(rangeToken, lhss, assignment);
