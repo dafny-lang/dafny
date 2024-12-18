@@ -306,7 +306,7 @@ public class Attributes : TokenNode, ICanFormat {
     var bindings = atAttribute.UserSuppliedPreResolveBindings;
 
     if (name == null) {
-      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, "Attribute not recognized: " + atAttribute.ToString());
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.Origin, "Attribute not recognized: " + atAttribute.ToString());
       return null;
     }
 
@@ -316,7 +316,7 @@ public class Attributes : TokenNode, ICanFormat {
     }
 
     if (!builtinSyntax.CanBeApplied(attributeHost)) {
-      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, UserSuppliedAtAttribute.AtName + atAttribute.UserSuppliedName + " attribute cannot be applied to " + attributeHost.WhatKind);
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.Origin, UserSuppliedAtAttribute.AtName + atAttribute.UserSuppliedName + " attribute cannot be applied to " + attributeHost.WhatKind);
     }
 
     var resolver = new ModuleResolver(new ProgramResolver(program), program.Options) {
@@ -333,6 +333,9 @@ public class Attributes : TokenNode, ICanFormat {
     atAttribute.Arg.PreType = new DPreType(intDecl, new List<PreType>(), null);
 
     switch (name) {
+      case "AssumeCrossModuleTermination": {
+          return A("AssumeCrossModuleTermination");
+        }
       case "AutoContracts": {
           return A("autocontracts");
         }
@@ -478,6 +481,8 @@ public class Attributes : TokenNode, ICanFormat {
   // This list could be obtained from parsing and resolving a .Dfy file
   // but for now it's good enough.
   public static readonly List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = new() {
+    BuiltIn("AssumeCrossModuleTermination")
+      .Filter(attributeHost => attributeHost is ClassDecl or TraitDecl),
     BuiltIn("AutoContracts")
       .Filter(attributeHost => attributeHost is ClassDecl),
     BuiltIn("AutoRequires")
@@ -614,7 +619,7 @@ public class Attributes : TokenNode, ICanFormat {
     // Verify that provided arguments are given literally
     foreach (var binding in bindings.ArgumentBindings) {
       if (binding.Actual is not LiteralExpr) {
-        program.Reporter.Error(MessageSource.Resolver, binding.Actual.RangeToken, $"Argument to attribute {attrName} must be a literal");
+        program.Reporter.Error(MessageSource.Resolver, binding.Actual.Origin, $"Argument to attribute {attrName} must be a literal");
       }
     }
   }

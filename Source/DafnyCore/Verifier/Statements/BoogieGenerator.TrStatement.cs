@@ -121,7 +121,7 @@ public partial class BoogieGenerator {
       foreach (var p in iter.YieldEnsures) {
         var ss = TrSplitExpr(builder.Context, p.E, yeEtran, true, out var splitHappened);
         foreach (var split in ss) {
-          if (RefinementOrigin.IsInherited(split.Tok, currentModule)) {
+          if (split.Tok.IsInherited(currentModule)) {
             // this postcondition was inherited into this module, so just ignore it
           } else if (split.IsChecked) {
             var yieldToken = new NestedOrigin(s.Tok, split.Tok);
@@ -266,7 +266,7 @@ public partial class BoogieGenerator {
 
       // The "new;" translates into an allocation of "this"
       AddComment(builder, stmt, "new;");
-      fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken.EndToken, f, true, builder));
+      fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.Origin.EndToken, f, true, builder));
       DefiniteAssignmentTrackers = beforeTrackers;
       var th = new ThisExpr(cl);
       var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
@@ -290,7 +290,7 @@ public partial class BoogieGenerator {
       BlockByProofStmtVerifier.EmitBoogie(this, blockByProof, builder, locals, etran, codeContext);
     } else if (stmt is BlockStmt blockStmt) {
       var previousTrackers = DefiniteAssignmentTrackers;
-      TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.RangeToken);
+      TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.Origin);
       DefiniteAssignmentTrackers = previousTrackers;
     } else if (stmt is IfStmt ifStmt) {
       IfStatementVerifier.EmitBoogie(this, ifStmt, builder, locals, etran);
@@ -666,7 +666,7 @@ public partial class BoogieGenerator {
         b.Add(TrAssumeCmdWithDependencies(etran, alternative.Guard.tok, alternative.Guard, "alternative guard"));
       }
       var prevDefiniteAssignmentTrackers = DefiniteAssignmentTrackers;
-      TrStmtList(alternative.Body, b, locals, etran, alternative.RangeToken);
+      TrStmtList(alternative.Body, b, locals, etran, alternative.Origin);
       DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
       Bpl.StmtList thn = b.Collect(alternative.Tok);
       elsIf = new Bpl.IfCmd(alternative.Tok, null, thn, elsIf, els);
@@ -796,7 +796,7 @@ public partial class BoogieGenerator {
   }
 
   public void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
-    RangeToken scopeRange = null, bool processLabels = true) {
+    IOrigin scopeRange = null, bool processLabels = true) {
     Contract.Requires(stmts != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);

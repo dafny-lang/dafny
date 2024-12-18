@@ -647,7 +647,7 @@ namespace Microsoft.Dafny {
                 var mem = recv as MemberSelectExpr;
                 var fn = mem == null ? null : mem.Member as Function;
                 if (fn != null) {
-                  return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.tok, e.CloseParen, e.Args) {
+                  return TrExpr(new FunctionCallExpr(e.tok, fn.NameNode, mem.Obj, e.tok, e.CloseParen, e.Args) {
                     Function = fn,
                     Type = e.Type,
                     TypeApplication_AtEnclosingClass = mem.TypeApplicationAtEnclosingClass,
@@ -1514,7 +1514,7 @@ namespace Microsoft.Dafny {
 
             bool endsWithWinningTopComparison = N == oldArray.Length && N < newArray.Length;
             var allowNoChange = decreasesToExpr.AllowNoChange || endsWithWinningTopComparison;
-            List<IOrigin> toks = oldExprs.Zip(newExprs, (_, _) => (IOrigin)decreasesToExpr.RangeToken).ToList();
+            List<IOrigin> toks = oldExprs.Zip(newExprs, (_, _) => (IOrigin)decreasesToExpr.Origin).ToList();
             var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, null,
               newExprsDafny, oldExprsDafny, newExprs, oldExprs, null,
               null, allowNoChange, false);

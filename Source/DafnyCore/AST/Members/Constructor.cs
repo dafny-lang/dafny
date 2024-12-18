@@ -34,7 +34,7 @@ public class Constructor : Method {
       }
     }
   }
-  public Constructor(RangeToken rangeOrigin, Name name,
+  public Constructor(IOrigin rangeOrigin, Name name,
     bool isGhost,
     List<TypeParameter> typeArgs,
     List<Formal> ins,

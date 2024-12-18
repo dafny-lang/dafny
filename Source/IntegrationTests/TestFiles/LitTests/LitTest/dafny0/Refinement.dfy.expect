@@ -18,7 +18,7 @@ Refinement.dfy(276,7): Warning: the ... refinement feature in statements is depr
 Refinement.dfy(233,4): Warning: this loop has no body (loop frame: i)
 Refinement.dfy(15,4): Error: a postcondition could not be proved on this return path
 Refinement.dfy(14,16): Related location: this is the postcondition that could not be proved
-Refinement.dfy[B](15,4): Error: a postcondition could not be proved on this return path
+Refinement.dfy(15,4): Error: a postcondition could not be proved on this return path
 Refinement.dfy(33,19): Related location: this is the postcondition that could not be proved
 Refinement.dfy(69,15): Error: assertion might not hold
 Refinement.dfy(80,16): Error: assertion might not hold

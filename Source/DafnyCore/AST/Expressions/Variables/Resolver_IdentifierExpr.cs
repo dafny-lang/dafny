@@ -75,11 +75,10 @@ class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_
     Contract.Requires(tp != null);
   }
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { Decl };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Tok, Decl) };
   }
 
-  public IOrigin NavigationToken => tok;
   public Resolver_IdentifierExpr Clone(Cloner cloner) {
     return new Resolver_IdentifierExpr(cloner, this);
   }

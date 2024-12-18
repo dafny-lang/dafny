@@ -47,7 +47,7 @@ public class ExpectContracts : IRewriter {
       msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
-    return new ExpectStmt(expr.E.RangeToken, exprToCheck, msgExpr, null);
+    return new ExpectStmt(expr.E.Origin, exprToCheck, msgExpr, null);
   }
 
   /// <summary>
@@ -67,7 +67,7 @@ public class ExpectContracts : IRewriter {
       CreateContractExpectStatement(ens, "ensures"));
     var callStmtList = new List<Statement>() { callStmt };
     var bodyStatements = expectRequiresStmts.Concat(callStmtList).Concat(expectEnsuresStmts);
-    return new BlockStmt(callStmt.RangeToken, bodyStatements.ToList());
+    return new BlockStmt(callStmt.Origin, bodyStatements.ToList());
   }
 
   private bool ShouldGenerateWrapper(MemberDecl decl) {
@@ -125,7 +125,7 @@ public class ExpectContracts : IRewriter {
     var lhss = new List<Expression> { localExpr };
     var rhss = new List<AssignmentRhs> { callRhs };
 
-    var callStmt = new SingleAssignStmt(decl.RangeToken, localExpr, callRhs);
+    var callStmt = new SingleAssignStmt(decl.Origin, localExpr, callRhs);
 
     var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
@@ -145,13 +145,13 @@ public class ExpectContracts : IRewriter {
     var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
     var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
     var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.tok);
-    var memberSelectExpr = new MemberSelectExpr(decl.tok, receiver, origMethod.Name);
+    var memberSelectExpr = new MemberSelectExpr(decl.Tok, receiver, origMethod.NameNode);
     memberSelectExpr.Member = origMethod;
     memberSelectExpr.TypeApplicationJustMember =
       newMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
     memberSelectExpr.TypeApplicationAtEnclosingClass =
       parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
-    var callStmt = new CallStmt(decl.RangeToken, outs, memberSelectExpr, args);
+    var callStmt = new CallStmt(decl.Origin, outs, memberSelectExpr, args);
 
     var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
     newMethod.Body = body;
@@ -183,7 +183,7 @@ public class ExpectContracts : IRewriter {
       var emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
       reads.Expressions.Add(new FrameExpression(tok, emptySet, null));
     }
-    var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
+    var method = new Method(f.Origin, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
       f.Ins, new List<Formal>() { resultVar },
       f.Req, reads, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
       f.ByMethodBody, f.Attributes, null, true);
@@ -315,7 +315,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
         var newTarget = NewRedirections[f];
         var resolved = (FunctionCallExpr)fce.Resolved;
         resolved.Function = (Function)newTarget;
-        resolved.Name = newTarget.Name;
+        resolved.NameNode = newTarget.NameNode;
         CalledWrappers.Add(newTarget);
       }
     }
@@ -330,7 +330,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
         var newTarget = NewRedirections[m];
         var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
         resolved.Member = newTarget;
-        resolved.MemberName = newTarget.Name;
+        resolved.MemberNameNode = newTarget.NameNode;
         CalledWrappers.Add(newTarget);
       }
     }

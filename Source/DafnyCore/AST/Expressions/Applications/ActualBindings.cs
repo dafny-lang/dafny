@@ -14,7 +14,7 @@ public class ActualBindings : TokenNode {
 
   public ActualBindings(Cloner cloner, ActualBindings original) {
     ArgumentBindings = original.ArgumentBindings.Select(actualBinding => new ActualBinding(
-      actualBinding.FormalParameterName == null ? null : cloner.Tok((IOrigin)actualBinding.FormalParameterName),
+      actualBinding.FormalParameterName == null ? null : cloner.Origin((IOrigin)actualBinding.FormalParameterName),
       cloner.CloneExpr(actualBinding.Actual))).ToList();
     if (cloner.CloneResolvedFields) {
       arguments = original.Arguments?.Select(cloner.CloneExpr).ToList();

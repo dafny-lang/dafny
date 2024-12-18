@@ -29,7 +29,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
   [FilledInDuringResolution] public Method Member_MoveNext;  // created during registration phase of resolution;
   public readonly LocalVariable YieldCountVariable;
 
-  public IteratorDecl(RangeToken rangeOrigin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public IteratorDecl(IOrigin rangeOrigin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     List<Formal> ins, List<Formal> outs,
     Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
     List<AttributedExpression> requires,
@@ -201,12 +201,12 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     foreach (var p in Ins) {
       // ensures this.x == x;
       ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
-        new ExprDotName(p.tok, new ThisExpr(p.tok), p.Name, null), new IdentifierExpr(p.tok, p.Name))));
+        new ExprDotName(p.tok, new ThisExpr(p.tok), p.NameNode, null), new IdentifierExpr(p.tok, p.Name))));
     }
     foreach (var p in OutsHistoryFields) {
       // ensures this.ys == [];
       ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
-        new ExprDotName(p.tok, new ThisExpr(p.tok), p.Name, null), new SeqDisplayExpr(p.tok, new List<Expression>()))));
+        new ExprDotName(p.tok, new ThisExpr(p.tok), p.NameNode, null), new SeqDisplayExpr(p.tok, new List<Expression>()))));
     }
     // ensures this.Valid();
     var valid_call = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
@@ -214,22 +214,22 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     AddConstructorFramePostconditions(tok, ens, resolver);
     // ensures this._new == {};
     ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
-      new ExprDotName(tok, new ThisExpr(tok), "_new", null),
+      new ExprDotName(tok, new ThisExpr(tok), new Name("_new"), null),
       new SetDisplayExpr(tok, true, new List<Expression>()))));
     // ensures this._decreases0 == old(DecreasesClause[0]) && ...;
     Contract.Assert(Decreases.Expressions.Count == DecreasesFields.Count);
     for (int i = 0; i < Decreases.Expressions.Count; i++) {
       var p = Decreases.Expressions[i];
       ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
-        new ExprDotName(tok, new ThisExpr(tok), DecreasesFields[i].Name, null),
+        new ExprDotName(tok, new ThisExpr(tok), DecreasesFields[i].NameNode, null),
         new OldExpr(tok, p))));
     }
 
     // ---------- here comes predicate Valid() ----------
     var reads = Member_Valid.Reads;
     reads.Expressions.Add(new FrameExpression(tok, new ThisExpr(tok), null));  // reads this;
-    reads.Expressions.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), "_reads", null), null));  // reads this._reads;
-    reads.Expressions.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), "_new", null), null));  // reads this._new;
+    reads.Expressions.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), new Name("_reads"), null), null));  // reads this._reads;
+    reads.Expressions.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), new Name("_new"), null), null));  // reads this._new;
 
     // ---------- here comes method MoveNext() ----------
     // requires this.Valid();
@@ -241,18 +241,18 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // modifies this, this._modifies, this._new;
     var mod = Member_MoveNext.Mod.Expressions;
     mod.Add(new FrameExpression(tok, new ThisExpr(tok), null));
-    mod.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), "_modifies", null), null));
-    mod.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), "_new", null), null));
+    mod.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), new Name("_modifies"), null), null));
+    mod.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), new Name("_new"), null), null));
     // ensures fresh(_new - old(_new));
     ens = Member_MoveNext.Ens;
     ens.Add(new AttributedExpression(new FreshExpr(tok,
       new BinaryExpr(tok, BinaryExpr.Opcode.Sub,
-        new ExprDotName(tok, new ThisExpr(tok), "_new", null),
-        new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), "_new", null))))));
+        new ExprDotName(tok, new ThisExpr(tok), new Name("_new"), null),
+        new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), new Name("_new"), null))))));
     // ensures null !in _new
     ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.NotIn,
       new LiteralExpr(tok),
-      new ExprDotName(tok, new ThisExpr(tok), "_new", null))));
+      new ExprDotName(tok, new ThisExpr(tok), new Name("_new"), null))));
     // ensures more ==> this.Valid();
     valid_call = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
     ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
@@ -265,10 +265,10 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       var ys = OutsHistoryFields[i];
       var ite = new ITEExpr(tok, false, new IdentifierExpr(tok, "more"),
         new BinaryExpr(tok, BinaryExpr.Opcode.Add,
-          new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), ys.Name, null)),
-          new SeqDisplayExpr(tok, new List<Expression>() { new ExprDotName(tok, new ThisExpr(tok), y.Name, null) })),
-        new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), ys.Name, null)));
-      var eq = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new ExprDotName(tok, new ThisExpr(tok), ys.Name, null), ite);
+          new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), ys.NameNode, null)),
+          new SeqDisplayExpr(tok, new List<Expression>() { new ExprDotName(tok, new ThisExpr(tok), y.NameNode, null) })),
+        new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), ys.NameNode, null)));
+      var eq = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new ExprDotName(tok, new ThisExpr(tok), ys.NameNode, null), ite);
       ens.Add(new AttributedExpression(eq));
     }
     // ensures more ==> YieldEnsures;
@@ -288,7 +288,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     Contract.Assert(Decreases.Expressions.Count == DecreasesFields.Count);
     for (int i = 0; i < Decreases.Expressions.Count; i++) {
       var p = Decreases.Expressions[i];
-      Member_MoveNext.Decreases.Expressions.Add(new ExprDotName(p.tok, new ThisExpr(p.tok), DecreasesFields[i].Name, null));
+      Member_MoveNext.Decreases.Expressions.Add(new ExprDotName(p.tok, new ThisExpr(p.tok), DecreasesFields[i].NameNode, null));
     }
     Member_MoveNext.Decreases.Attributes = Decreases.Attributes;
   }
@@ -314,7 +314,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       }
     }
     iteratorCtorEnsures.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
-      new ExprDotName(tok, new ThisExpr(tok), "_reads", null),
+      new ExprDotName(tok, new ThisExpr(tok), new Name("_reads"), null),
       new OldExpr(tok, frameSet))));
 
     // ensures this._modifies == old(ModifiesClause)
@@ -331,12 +331,12 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       }
     }
     iteratorCtorEnsures.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
-      new ExprDotName(tok, new ThisExpr(tok), "_modifies", null),
+      new ExprDotName(tok, new ThisExpr(tok), new Name("_modifies"), null),
       new OldExpr(tok, frameSet))));
   }
 
   public void Resolve(ModuleResolver resolver) {
-    var rangeToken = RangeToken.MakeAutoGenerated();
+    var rangeToken = Origin.MakeAutoGenerated();
 
     // register the names of the implicit members
     var members = new Dictionary<string, MemberDecl>();
@@ -348,7 +348,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
         resolver.reporter.Error(MessageSource.Resolver, p,
           "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
       } else {
-        var field = new SpecialField(p.RangeToken, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, false,
+        var field = new SpecialField(p.Origin, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, false,
           false, p.Type, null);
         field.EnclosingClass = this; // resolve here
         field.InheritVisibility(this);
@@ -364,7 +364,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
           "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
       } else {
         nonDuplicateOuts.Add(p);
-        var field = new SpecialField(p.RangeToken, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, true,
+        var field = new SpecialField(p.Origin, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, true,
           true, p.Type, null);
         field.EnclosingClass = this; // resolve here
         field.InheritVisibility(this);
@@ -385,7 +385,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
 
       // we add some field to OutsHistoryFields, even if there was an error; the name of the field, in case of error, is not so important
       var tp = new SeqType(p.Type.NormalizeExpand());
-      var field = new SpecialField(p.RangeToken, nm, SpecialField.ID.UseIdParam, nm, true, true, false, tp, null);
+      var field = new SpecialField(p.Origin, nm, SpecialField.ID.UseIdParam, nm, true, true, false, tp, null);
       field.EnclosingClass = this; // resolve here
       field.InheritVisibility(this);
       OutsHistoryFields
@@ -401,11 +401,11 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       Members.Add(f);
     });
     // add the additional special variables as fields
-    Member_Reads = new SpecialField(RangeToken, "_reads", SpecialField.ID.Reads, null, true, false, false,
+    Member_Reads = new SpecialField(Origin, "_reads", SpecialField.ID.Reads, null, true, false, false,
       resolver.SystemModuleManager.ObjectSetType(), null);
-    Member_Modifies = new SpecialField(RangeToken, "_modifies", SpecialField.ID.Modifies, null, true, false,
+    Member_Modifies = new SpecialField(Origin, "_modifies", SpecialField.ID.Modifies, null, true, false,
       false, resolver.SystemModuleManager.ObjectSetType(), null);
-    Member_New = new SpecialField(RangeToken, "_new", SpecialField.ID.New, null, true, true, true,
+    Member_New = new SpecialField(Origin, "_new", SpecialField.ID.New, null, true, true, true,
       resolver.SystemModuleManager.ObjectSetType(), null);
     foreach (var field in new List<Field>() { Member_Reads, Member_Modifies, Member_New }) {
       field.EnclosingClass = this; // resolve here
@@ -420,7 +420,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     var i = 0;
     foreach (var p in Decreases.Expressions) {
       var nm = "_decreases" + i;
-      var field = new SpecialField(p.RangeToken, nm, SpecialField.ID.UseIdParam, nm, true, false, false,
+      var field = new SpecialField(p.Origin, nm, SpecialField.ID.UseIdParam, nm, true, false, false,
         new InferredTypeProxy(), null);
       field.EnclosingClass = this; // resolve here
       field.InheritVisibility(this);
@@ -434,7 +434,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // saying is that the Method/Predicate does not take any type parameters over and beyond what the enclosing type (namely, the
     // iterator type) does.
     // --- here comes the constructor
-    var init = new Constructor(rangeToken, new Name(NameNode.RangeToken, "_ctor"), false,
+    var init = new Constructor(rangeToken, new Name(NameNode.Origin, "_ctor"), false,
       new List<TypeParameter>(), Ins,
       new List<AttributedExpression>(),
       new Specification<FrameExpression>(),
@@ -443,7 +443,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       new Specification<Expression>(new List<Expression>(), null),
       null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes predicate Valid()
-    var valid = new Predicate(rangeToken, new Name(NameNode.RangeToken, "Valid"), false, true, false,
+    var valid = new Predicate(rangeToken, new Name(NameNode.Origin, "Valid"), false, true, false,
       new List<TypeParameter>(),
       new List<Formal>(),
       null,
@@ -453,7 +453,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       new Specification<Expression>(new List<Expression>(), null),
       null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes method MoveNext
-    var moveNext = new Method(rangeToken, new Name(NameNode.RangeToken, "MoveNext"), false, false,
+    var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"), false, false,
       new List<TypeParameter>(),
       new List<Formal>(), new List<Formal>() { new Formal(tok, "more", Type.Bool, false, false, null) },
       new List<AttributedExpression>(),

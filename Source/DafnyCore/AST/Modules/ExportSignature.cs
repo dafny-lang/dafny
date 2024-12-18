@@ -42,11 +42,11 @@ public class ExportSignature : TokenNode, IHasReferences {
   }
 
   public ExportSignature(Cloner cloner, ExportSignature original) {
-    tok = cloner.Tok(original.Tok);
+    tok = cloner.Origin(original.Tok);
     Id = original.Id;
     Opaque = original.Opaque;
     ClassId = original.ClassId;
-    ClassIdTok = cloner.Tok(original.ClassIdTok);
+    ClassIdTok = cloner.Origin(original.ClassIdTok);
     OwnedTokensCache = new List<IOrigin>() { Tok };
   }
 
@@ -57,10 +57,9 @@ public class ExportSignature : TokenNode, IHasReferences {
     return Id;
   }
 
-  public IOrigin NavigationToken => Tok;
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { Decl };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Tok, Decl) };
   }
 }

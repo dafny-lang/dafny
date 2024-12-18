@@ -151,7 +151,7 @@ namespace Microsoft.Dafny {
         var objUse = new IdentifierExpr(e.tok, objVar.Name) { Type = objVar.Type, Var = objVar };
         boundVarDecls.Add(objVar);
 
-        var collection = new ApplyExpr(e.tok, e, boundVarUses, e.tok) {
+        var collection = new ApplyExpr(e.tok, e, boundVarUses, Token.NoToken) {
           Type = collectionType
         };
         var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
@@ -162,7 +162,7 @@ namespace Microsoft.Dafny {
         };
 
         var attributes = new Attributes("_reads", new List<Expression>(), null);
-        return new SetComprehension(e.tok, e.RangeToken, true, boundVarDecls, inCollection, objUse, attributes) {
+        return new SetComprehension(e.tok, e.Origin, true, boundVarDecls, inCollection, objUse, attributes) {
           Type = new SetType(true, elementType)
         };
       }

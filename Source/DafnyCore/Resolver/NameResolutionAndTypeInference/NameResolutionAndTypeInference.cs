@@ -376,7 +376,7 @@ namespace Microsoft.Dafny {
         typeApplication_JustForMember.Add(new IntType());
       }
 
-      var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
+      var rr = new MemberSelectExpr(f.Tok, receiver, f.NameNode);
       rr.Member = f;
       rr.TypeApplicationAtEnclosingClass = typeApplication;
       rr.TypeApplicationJustMember = typeApplication_JustForMember;
@@ -423,9 +423,9 @@ namespace Microsoft.Dafny {
       if (expr is ParensExpression) {
         var e = (ParensExpression)expr;
         ResolveExpression(e.E, resolutionContext);
-        var innerRange = e.E.RangeToken;
+        var innerRange = e.E.Origin;
         e.ResolvedExpression = e.E; // Overwrites the range, which is not suitable for ParensExpressions
-        e.E.RangeToken = innerRange;
+        e.E.Origin = innerRange;
         e.Type = e.E.Type;
 
       } else if (expr is ChainingExpression) {
@@ -2777,6 +2777,14 @@ namespace Microsoft.Dafny {
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
         Contract.Assert(VisibleInScope(member));
+        if (member.HasUserAttribute("only", out var attribute)) {
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.Origin.ToToken(),
+            "Members with {:only} temporarily disable the verification of other members in the entire file");
+          if (attribute.Args.Count >= 1) {
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].Origin.ToToken(),
+              "{:only} on members does not support arguments");
+          }
+        }
         if (member is Field) {
           var resolutionContext = new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false);
           scope.PushMarker();
@@ -3563,13 +3571,13 @@ namespace Microsoft.Dafny {
                 Contract.Assert(f.Type != null);
                 produceLhs = ident;
               } else {
-                var yieldIdent = new MemberSelectExpr(f.tok, new ImplicitThisExpr(f.tok), f.Name);
+                var yieldIdent = new MemberSelectExpr(f.tok, new ImplicitThisExpr(f.NameNode.Origin), f.NameNode);
                 ResolveExpression(yieldIdent, resolutionContext);
                 produceLhs = yieldIdent;
               }
               formals.Add(produceLhs);
             }
-            s.HiddenUpdate = new AssignStatement(s.RangeToken, formals, s.Rhss, true);
+            s.HiddenUpdate = new AssignStatement(s.Origin, formals, s.Rhss, true);
             // resolving the update statement will check for return/yield statement specifics.
             ResolveStatement(s.HiddenUpdate, resolutionContext);
           }
@@ -4264,7 +4272,7 @@ namespace Microsoft.Dafny {
           // extend defaultTypeArguments, if needed
           for (int i = defaultTypeArguments.Count; i < n; i++) {
             var parentToken = option.Parent.Tok;
-            var tp = new TypeParameter(parentToken.ToRange(), new Name(parentToken.ToRange(), "_T" + i), i, option.Parent);
+            var tp = new TypeParameter(parentToken, new Name(parentToken, "_T" + i), i, option.Parent);
             if (option.Parent is IteratorDecl) {
               tp.Characteristics.AutoInit = Type.AutoInitInfo.CompilableValue;
             }
@@ -4405,13 +4413,13 @@ namespace Microsoft.Dafny {
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
               // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
               var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) { Type = rr.EType };
-              var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
+              var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, new Name(initCallName), ret == null ? null : ret.LastComponent.OptTypeArguments);
               ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
                 if (methodSel.Member is Method) {
-                  rr.InitCall = new CallStmt(stmt.RangeToken, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
+                  rr.InitCall = new CallStmt(stmt.Origin, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
                   ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
                 } else {
                   reporter.Error(MessageSource.Resolver, initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
@@ -5158,7 +5166,7 @@ namespace Microsoft.Dafny {
           if (rhsBindings.TryGetValue(f.Name, out var info)) {
             ctorArg = info.Item2 ?? info.Item3;
           } else {
-            ctorArg = new ExprDotName(tok, d, f.Name, null);
+            ctorArg = new ExprDotName(tok, d, f.NameNode, null);
           }
           var bindingName = new Token(tok.line, tok.col) {
             Uri = tok.Uri,
@@ -5174,7 +5182,7 @@ namespace Microsoft.Dafny {
           body = ctor_call;
         } else {
           // body = if d.crc? then ctor_call else body
-          var guard = new ExprDotName(tok, d, crc.QueryField.Name, null);
+          var guard = new ExprDotName(tok, d, crc.QueryField.NameNode, null);
           body = new ITEExpr(tok, false, guard, ctor_call, body);
         }
       }
@@ -5282,7 +5290,7 @@ namespace Microsoft.Dafny {
 
         var token = expr.tok;
         var receiver = GetReceiver(currentClass, member, token);
-        r = ResolveExprDotCall(token, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+        r = ResolveExprDotCall(token, new Name(expr.Origin, expr.Name), receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out var pair)) {
         // ----- 2. datatype constructor
         if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
@@ -5335,7 +5343,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           var receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
-          r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+          r = ResolveExprDotCall(expr.tok, new Name(expr.Origin, expr.Name), receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
         }
 
       } else if (!isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
@@ -5647,7 +5655,7 @@ namespace Microsoft.Dafny {
           } else {
             var receiver = new StaticReceiverExpr(expr.Lhs.tok, (TopLevelDeclWithMembers)member.EnclosingClass, false);
             receiver.ContainerExpression = expr.Lhs;
-            r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
           ReportUnresolvedIdentifierError(expr.tok, name, resolutionContext);
@@ -5688,7 +5696,7 @@ namespace Microsoft.Dafny {
             }
             var receiver = new StaticReceiverExpr(expr.Lhs.tok, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false);
             receiver.ContainerExpression = expr.Lhs;
-            r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
         if (r == null) {
@@ -5702,10 +5710,10 @@ namespace Microsoft.Dafny {
           if (!member.IsStatic) {
             receiver = expr.Lhs;
             AddAssignableConstraint(expr.tok, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
-            r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           } else {
             receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
-            r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
       }
@@ -5752,7 +5760,7 @@ namespace Microsoft.Dafny {
       );
     }
 
-    Expression ResolveExprDotCall(IOrigin tok, Expression receiver, Type receiverTypeBound/*?*/,
+    Expression ResolveExprDotCall(IOrigin tok, Name name, Expression receiver, Type receiverTypeBound/*?*/,
       MemberDecl member, List<ActualBinding> args, List<Type> optTypeArguments, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
@@ -5760,7 +5768,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(member != null);
       Contract.Requires(resolutionContext != null && resolutionContext.CodeContext != null);
 
-      var rr = new MemberSelectExpr(tok, receiver, member.Name);
+      var rr = new MemberSelectExpr(tok, receiver, name);
       rr.Member = member;
 
       // Now, fill in rr.Type.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
@@ -5884,7 +5892,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = Options.Get(Snippets.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
+                var tok = Options.Get(Snippets.ShowSnippets) ? e.Origin.ToToken() : e.tok;
                 var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
@@ -5907,7 +5915,7 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.Tok, callee.Name, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
+            var rr = new FunctionCallExpr(e.Lhs.Tok, mse.MemberNameNode, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
               TypeApplication_AtEnclosingClass = mse.TypeApplicationAtEnclosingClass,
               TypeApplication_JustFunction = mse.TypeApplicationJustMember

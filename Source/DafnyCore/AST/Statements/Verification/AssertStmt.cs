@@ -12,7 +12,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   public AssertStmt(Cloner cloner, AssertStmt original) : base(cloner, original) {
-    Label = original.Label == null ? null : new AssertLabel(cloner.Tok(original.Label.Tok), original.Label.Name);
+    Label = original.Label == null ? null : new AssertLabel(cloner.Origin(original.Label.Tok), original.Label.Name);
   }
 
   public static AssertStmt CreateErrorAssert(INode node, string message, Expression guard = null) {
@@ -20,12 +20,12 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     errorMessage.Type = new SeqType(Type.Char);
     var attr = new Attributes("error", new List<Expression> { errorMessage }, null);
     guard ??= Expression.CreateBoolLiteral(node.Tok, false);
-    var assertFalse = new AssertStmt(node.RangeToken, guard, null, attr);
+    var assertFalse = new AssertStmt(node.Origin, guard, null, attr);
     assertFalse.IsGhost = true;
     return assertFalse;
   }
 
-  public AssertStmt(RangeToken rangeOrigin, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
+  public AssertStmt(IOrigin rangeOrigin, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
     : base(rangeOrigin, expr, attrs) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(expr != null);
@@ -67,12 +67,12 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     }
 
     if (this.HasUserAttribute("only", out var attribute)) {
-      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.RangeToken.ToToken(),
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.Origin.ToToken(),
         "Assertion with {:only} temporarily transforms other assertions into assumptions");
       if (attribute.Args.Count >= 1
           && attribute.Args[0] is LiteralExpr { Value: string value }
           && value != "before" && value != "after") {
-        resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_before_after.ToString(), attribute.Args[0].RangeToken.ToToken(),
+        resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_before_after.ToString(), attribute.Args[0].Origin.ToToken(),
           "{:only} only accepts \"before\" or \"after\" as an optional argument");
       }
     }

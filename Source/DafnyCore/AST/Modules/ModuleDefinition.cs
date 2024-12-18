@@ -27,7 +27,7 @@ public enum ImplementationKind {
 
 public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
-public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
+public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
 
   public static readonly Option<bool> LegacyModuleNames = new("--legacy-module-names",
     @"
@@ -127,7 +127,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   public ModuleDefinition(Cloner cloner, ModuleDefinition original) : base(cloner, original) {
     NameNode = original.NameNode;
-    PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
+    PrefixIds = original.PrefixIds.Select(cloner.Origin).ToList();
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     ModuleKind = original.ModuleKind;
@@ -157,7 +157,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  public ModuleDefinition(RangeToken tok, Name name, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
+  public ModuleDefinition(IOrigin tok, Name name, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
     Implements implements, ModuleDefinition parent, Attributes attributes) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -641,7 +641,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
       var prefixNameModule = prefixNamedModules.First();
       var firstPartToken = prefixNameModule.Parts[0];
-      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IOrigin>(), ModuleKindEnum.Concrete,
+      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken, name), new List<IOrigin>(), ModuleKindEnum.Concrete,
         false, null, this, null);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 
@@ -853,7 +853,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
             // create and add the query "method" (field, really)
             var queryName = ctor.NameNode.Append("?");
-            var query = new DatatypeDiscriminator(ctor.RangeToken, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.GetCompileName(resolver.Options),
+            var query = new DatatypeDiscriminator(ctor.Origin, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.GetCompileName(resolver.Options),
               ctor.IsGhost, Type.Bool, null);
             query.InheritVisibility(dt);
             query.EnclosingClass = dt; // resolve here
@@ -904,7 +904,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
               dtor.AddAnotherEnclosingCtor(ctor, formal);
             } else {
               // either the destructor has no explicit name, or this constructor declared another destructor with this name, or no previous destructor had this name
-              dtor = new DatatypeDestructor(formal.RangeToken, ctor, formal, new Name(formal.RangeToken, formal.Name), "dtor_" + formal.CompileName,
+              dtor = new DatatypeDestructor(formal.Origin, ctor, formal, formal.NameNode, "dtor_" + formal.CompileName,
                 formal.IsGhost, formal.Type, null);
               dtor.InheritVisibility(dt);
               dtor.EnclosingClass = dt; // resolve here
@@ -1074,19 +1074,6 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   }
 
-  public IEnumerable<ISymbol> ChildSymbols => TopLevelDecls.SelectMany(decl => {
-    if (decl is DefaultClassDecl defaultClassDecl) {
-      return defaultClassDecl.Members.OfType<ISymbol>();
-    }
-
-    if (decl is ISymbol symbol) {
-      return new[] { symbol };
-    }
-
-    return Enumerable.Empty<ISymbol>();
-  });
-
-  public SymbolKind? Kind => SymbolKind.Namespace;
   public LiteralModuleDecl EnclosingLiteralModuleDecl { get; set; }
 
   public string GetDescription(DafnyOptions options) {

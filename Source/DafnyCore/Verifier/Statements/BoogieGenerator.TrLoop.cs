@@ -104,7 +104,7 @@ public partial class BoogieGenerator {
         Expression dafnyRange = dafnyRangeBounds.Count == 1
           ? dafnyRangeBounds[0]
           : new BinaryExpr(stmt.tok, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
-        var dafnyAssertion = new ForallExpr(stmt.tok, stmt.RangeToken, new List<BoundVar> { indexVar },
+        var dafnyAssertion = new ForallExpr(stmt.tok, stmt.Origin, new List<BoundVar> { indexVar },
           dafnyRange, new TypeTestExpr(indexVar.tok, dIndex, indexVar.Type), null);
         builder.Add(Assert(tok, cre, new ForRangeAssignable(desc, dafnyAssertion), builder.Context));
       }
@@ -374,7 +374,7 @@ public partial class BoogieGenerator {
             loopBodyBuilder, " at end of loop iteration", false, false);
           var description = new
             Terminates(loop.InferredDecreases, prevGhostLocals, null, initDecrsDafny, theDecreases, false);
-          loopBodyBuilder.Add(Assert(loop.Tok, decrCheck, description, builder.Context));
+          loopBodyBuilder.Add(Assert(loop.NavigationToken, decrCheck, description, builder.Context));
         }
       }
     } else if (isBodyLessLoop) {
