@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -11,7 +12,13 @@ public abstract class TokenNode : Node {
 
   protected IOrigin RangeOrigin = null;
 
-  public IOrigin tok = Token.NoToken;
+  protected IOrigin _tok = Token.NoToken;
+
+  public IOrigin tok => Tok;
+
+  public void SetTok(IOrigin newTok) {
+    _tok = newTok;
+  }
 
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
   public override IOrigin Tok {

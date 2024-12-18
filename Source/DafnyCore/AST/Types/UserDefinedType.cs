@@ -52,7 +52,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   public UserDefinedType(IOrigin tok, Expression namePath) {
     Contract.Requires(tok != null);
     Contract.Requires(namePath is NameSegment || namePath is ExprDotName);
-    this.tok = tok;
+    this._tok = tok;
     if (namePath is NameSegment) {
       var n = (NameSegment)namePath;
       this.Name = n.Name;
@@ -160,7 +160,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
     Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
     Contract.Assert(cd is not ArrowTypeDecl || this is ArrowType);
-    this.tok = tok;
+    this._tok = tok;
     this.Name = name;
     this.ResolvedClass = cd;
     this.TypeArgs = typeArgs;
@@ -215,7 +215,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   public UserDefinedType(IOrigin tok, TypeParameter tp) {
     Contract.Requires(tok != null);
     Contract.Requires(tp != null);
-    this.tok = tok;
+    this._tok = tok;
     this.Name = tp.Name;
     this.TypeArgs = new List<Type>();
     this.ResolvedClass = tp;

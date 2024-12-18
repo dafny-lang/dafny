@@ -16,7 +16,7 @@ public abstract class ExtendedPattern : TokenNode {
 
   public ExtendedPattern(IOrigin tok, bool isGhost = false) {
     Contract.Requires(tok != null);
-    this.tok = tok;
+    this._tok = tok;
     this.IsGhost = isGhost;
   }
 

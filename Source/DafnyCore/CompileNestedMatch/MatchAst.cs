@@ -96,7 +96,7 @@ public abstract class MatchCase : TokenNode, IHasReferences {
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
-    this.tok = tok;
+    this._tok = tok;
     Ctor = ctor;
     Arguments = arguments;
   }
