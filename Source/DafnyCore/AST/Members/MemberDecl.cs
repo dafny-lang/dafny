@@ -154,7 +154,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
       if (substMap.TryGetValue(inFormal, out inE)) {
         arguments.Add(inE);
       } else {
-        var ie = new IdentifierExpr(inFormal.tok, inFormal.Name);
+        var ie = new IdentifierExpr(inFormal.Tok, inFormal.Name);
         ie.Var = inFormal;  // resolve here
         ie.Type = inFormal.Type;  // resolve here
         arguments.Add(ie);

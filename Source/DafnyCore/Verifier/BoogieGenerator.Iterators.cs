@@ -158,8 +158,8 @@ namespace Microsoft.Dafny {
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
         CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran.WithReadsFrame(etran.readsFrame, null));
-        builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
+        builder.Add(new Bpl.AssumeCmd(e.Tok, etran.CanCallAssumption(e)));
+        CheckSubrange(e.Tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
       }
       // check well-formedness of the preconditions, and then assume each one of them
       var wfOptions = new WFOptions();
@@ -176,7 +176,7 @@ namespace Microsoft.Dafny {
 
       // Next, we assume about this.* whatever we said that the iterator constructor promises
       foreach (var p in iter.Member_Init.Ens) {
-        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator ensures clause"));
+        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.Tok, p.E, "iterator ensures clause"));
       }
 
       // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
@@ -294,12 +294,12 @@ namespace Microsoft.Dafny {
           // don't include this precondition here
           Contract.Assert(p.Label.E != null);  // it should already have been recorded
         } else {
-          builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator constructor requires clause"));
+          builder.Add(TrAssumeCmdWithDependencies(etran, p.E.Tok, p.E, "iterator constructor requires clause"));
         }
       }
       foreach (var p in iter.Member_Init.Ens) {
         // these postconditions are two-state predicates, but that's okay, because we haven't changed anything yet
-        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator constructor ensures clause"));
+        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.Tok, p.E, "iterator constructor ensures clause"));
       }
       // add the _yieldCount variable, and assume its initial value to be 0
       yieldCountVariable = (Bpl.LocalVariable)localVariables.GetOrAdd(new Bpl.LocalVariable(iter.Tok,

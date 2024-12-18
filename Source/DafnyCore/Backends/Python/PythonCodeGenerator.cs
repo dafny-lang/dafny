@@ -353,7 +353,7 @@ namespace Microsoft.Dafny.Compilers {
         var typeDescriptorUses = wTypeDescriptors.ToString();
 
         var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
-        var arguments = nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok));
+        var arguments = nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.Tok));
         wDefault.Write("return lambda: ");
         EmitDatatypeValue(dt, groundingCtor, dt is CoDatatypeDecl, typeDescriptorUses, arguments, wDefault, false);
         wDefault.WriteLine();
@@ -495,7 +495,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
 
       if (declWithConstraints.ConstraintIsCompilable) {
-        var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints);
+        var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.Tok, (TopLevelDecl)declWithConstraints);
 
         wr.Write($"def {IsMethodName}(");
 
@@ -504,7 +504,7 @@ namespace Microsoft.Dafny.Compilers {
           FormatDefaultTypeParameterValue);
         wr.Write(sep);
 
-        var sourceFormal = new Formal(declWithConstraints.tok, "_source", type, true, false, null);
+        var sourceFormal = new Formal(declWithConstraints.Tok, "_source", type, true, false, null);
         var wrBody = wr.NewBlockPy($"{IdName(sourceFormal)}):");
         GenerateIsMethodBody(declWithConstraints, sourceFormal, wrBody);
       }
@@ -695,7 +695,7 @@ namespace Microsoft.Dafny.Compilers {
         UserDefinedType udt => udt.ResolvedClass switch {
           TypeParameter tp => TypeParameterDescriptor(tp),
           ClassLikeDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
-          DatatypeDecl => DatatypeDescriptor(udt, udt.TypeArgs, udt.tok),
+          DatatypeDecl => DatatypeDescriptor(udt, udt.TypeArgs, udt.Tok),
           NewtypeDecl or SubsetTypeDecl => CustomDescriptor(udt),
           _ => throw new cce.UnreachableException()
         },
@@ -713,7 +713,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       string CustomDescriptor(UserDefinedType userDefinedType) {
-        return $"{TypeName_UDT(FullTypeName(userDefinedType), userDefinedType, wr, userDefinedType.tok)}.default";
+        return $"{TypeName_UDT(FullTypeName(userDefinedType), userDefinedType, wr, userDefinedType.Tok)}.default";
       }
 
       string DatatypeDescriptor(UserDefinedType udt, List<Type> typeArgs, IOrigin tok) {
@@ -780,7 +780,7 @@ namespace Microsoft.Dafny.Compilers {
           return $"{DafnyRuntimeModule}.BigRational";
         case UserDefinedType udt: {
             var s = FullTypeName(udt, member);
-            return TypeName_UDT(s, udt, wr, udt.tok);
+            return TypeName_UDT(s, udt, wr, udt.Tok);
           }
         case CollectionType:
           return TypeHelperName(xType);
@@ -836,7 +836,7 @@ namespace Microsoft.Dafny.Compilers {
               case SubsetTypeDecl td:
                 switch (td.WitnessKind) {
                   case SubsetTypeDecl.WKind.Compiled:
-                    return TypeName_UDT(FullName(cl), udt, wr, udt.tok) + ".default()";
+                    return TypeName_UDT(FullName(cl), udt, wr, udt.Tok) + ".default()";
                   case SubsetTypeDecl.WKind.Special:
                     if (ArrowType.IsPartialArrowTypeName(td.Name)) {
                       return "None";
@@ -860,7 +860,7 @@ namespace Microsoft.Dafny.Compilers {
 
               case NewtypeDecl td:
                 if (td.Witness != null) {
-                  return TypeName_UDT(FullName(cl), udt, wr, udt.tok) + ".default()";
+                  return TypeName_UDT(FullName(cl), udt, wr, udt.Tok) + ".default()";
                 } else {
                   return TypeInitializationValue(td.ConcreteBaseType(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
                 }
@@ -904,7 +904,7 @@ namespace Microsoft.Dafny.Compilers {
         if ((udt.ResolvedClass is DatatypeDecl dt && DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) ||
             udt.ResolvedClass is SubsetTypeDecl or NewtypeDecl) {
           var s = FullTypeName(udt, member);
-          return TypeName_UDT(s, udt, wr, udt.tok);
+          return TypeName_UDT(s, udt, wr, udt.Tok);
         }
       }
       return TypeName(type, wr, tok, member);
@@ -1145,7 +1145,7 @@ namespace Microsoft.Dafny.Compilers {
           TrStringLiteral(str, StringLiteralWrapper(wr));
           break;
         case StaticReceiverExpr:
-          wr.Write(TypeName(e.Type, wr, e.tok));
+          wr.Write(TypeName(e.Type, wr, e.Tok));
           break;
         default:
           switch (e.Value) {
@@ -1867,14 +1867,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      EmitLiteralExpr(wr, new LiteralExpr(source.tok, lo) { Type = Type.Int });
+      EmitLiteralExpr(wr, new LiteralExpr(source.Tok, lo) { Type = Type.Int });
       wr.Write(" <= ");
       EmitExpr(source, false, wr.ForkInParens(), wStmts);
       wr.Write(" and ");
 
       EmitExpr(source, false, wr.ForkInParens(), wStmts);
       wr.Write(" < ");
-      EmitLiteralExpr(wr, new LiteralExpr(source.tok, hi) { Type = Type.Int });
+      EmitLiteralExpr(wr, new LiteralExpr(source.Tok, hi) { Type = Type.Int });
       wr.Write(" and ");
     }
 

@@ -303,7 +303,7 @@ class TailRecursion {
     Contract.Requires(enclosingMethod != null);
 
     if (expr is FunctionCallExpr fce && fce.Function.ByMethodDecl == enclosingMethod) {
-      reporter.Error(MessageSource.Resolver, expr.tok, "a recursive call in this context is not recognized as a tail call");
+      reporter.Error(MessageSource.Resolver, expr.Tok, "a recursive call in this context is not recognized as a tail call");
     }
     expr.SubExpressions.ForEach(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
   }

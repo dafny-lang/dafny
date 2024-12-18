@@ -101,11 +101,11 @@ public partial class BoogieGenerator {
           var e = formal.DefaultValue;
           generator.CheckWellformed(e, wfo, locals, builder,
             etran.WithReadsFrame(etran.readsFrame, null)); // No frame scope for default values
-          builder.Add(new AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-          generator.CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
+          builder.Add(new AssumeCmd(e.Tok, etran.CanCallAssumption(e)));
+          generator.CheckSubrange(e.Tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
 
           if (formal.IsOld) {
-            Expr wh = generator.GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+            Expr wh = generator.GetWhereClause(e.Tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
               var desc = new IsAllocated("default value", "in the two-state function's previous state", e);
               builder.Add(generator.Assert(generator.GetToken(e), wh, desc, builder.Context));
@@ -304,7 +304,7 @@ public partial class BoogieGenerator {
       }
 
       foreach (var p in f.Ins) {
-        args.Add(new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), generator.TrType(p.Type)));
+        args.Add(new Bpl.IdentifierExpr(p.Tok, p.AssignUniqueName(f.IdGenerator), generator.TrType(p.Type)));
       }
 
       Bpl.IdentifierExpr funcID = new Bpl.IdentifierExpr(f.Tok, f.FullSanitizedName, generator.TrType(f.ResultType));
@@ -314,9 +314,9 @@ public partial class BoogieGenerator {
       if (wh != null) {
         postCheckBuilder.Add(TrAssumeCmd(f.Tok, wh));
         if (f.Result != null) {
-          var resultVarId = new Bpl.IdentifierExpr(f.Result.tok, f.Result.AssignUniqueName(f.IdGenerator), generator.TrType(f.Result.Type));
-          wh = generator.GetWhereClause(f.Result.tok, resultVarId, f.Result.Type, etran, NOALLOC);
-          postCheckBuilder.Add(TrAssumeCmd(f.Result.tok, wh));
+          var resultVarId = new Bpl.IdentifierExpr(f.Result.Tok, f.Result.AssignUniqueName(f.IdGenerator), generator.TrType(f.Result.Type));
+          wh = generator.GetWhereClause(f.Result.Tok, resultVarId, f.Result.Type, etran, NOALLOC);
+          postCheckBuilder.Add(TrAssumeCmd(f.Result.Tok, wh));
         }
       }
       // Now for the ensures clauses
@@ -362,7 +362,7 @@ public partial class BoogieGenerator {
         Contract.Assert(!p.IsOld);
         Bpl.Type varType = generator.TrType(p.Type);
         // Note, this variable should NOT have a "where" clause, because it gets assumed already at the beginning of the CheckWellformed procedure
-        outParams.Add(new Bpl.Formal(p.tok, new TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType), true));
+        outParams.Add(new Bpl.Formal(p.Tok, new TypedIdent(p.Tok, p.AssignUniqueName(f.IdGenerator), varType), true));
       }
 
       return outParams;
@@ -393,11 +393,11 @@ public partial class BoogieGenerator {
 
       foreach (Formal parameter in f.Ins) {
         Bpl.Type varType = generator.TrType(parameter.Type);
-        Expr wh = generator.GetWhereClause(parameter.tok,
-          new Bpl.IdentifierExpr(parameter.tok, parameter.AssignUniqueName(f.IdGenerator), varType), parameter.Type,
+        Expr wh = generator.GetWhereClause(parameter.Tok,
+          new Bpl.IdentifierExpr(parameter.Tok, parameter.AssignUniqueName(f.IdGenerator), varType), parameter.Type,
           parameter.IsOld ? etran.Old : etran, f is TwoStateFunction ? ISALLOC : NOALLOC);
-        inParams.Add(new Bpl.Formal(parameter.tok,
-          new TypedIdent(parameter.tok, parameter.AssignUniqueName(f.IdGenerator), varType, wh), true));
+        inParams.Add(new Bpl.Formal(parameter.Tok,
+          new TypedIdent(parameter.Tok, parameter.AssignUniqueName(f.IdGenerator), varType, wh), true));
       }
 
       return inParams;

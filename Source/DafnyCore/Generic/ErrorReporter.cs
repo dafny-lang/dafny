@@ -125,14 +125,14 @@ public abstract class ErrorReporter {
     Contract.Requires(e != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, errorId, e.tok, format, args);
+    Error(source, errorId, e.Tok, format, args);
   }
 
   public void Error(MessageSource source, Expression e, string format, params object[] args) {
     Contract.Requires(e != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, ParseErrors.ErrorId.none, e.tok, format, args);
+    Error(source, ParseErrors.ErrorId.none, e.Tok, format, args);
   }
 
   public void Warning(MessageSource source, Enum errorId, IOrigin tok, string format, params object[] args) {

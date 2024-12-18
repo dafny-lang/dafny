@@ -116,9 +116,9 @@ public partial class BoogieGenerator {
     //     Note that k is not added to bvs or coArgs.
     foreach (var p in pp.Ins) {
       bool is_k = p == pp.Ins[0];
-      var bv = new Bpl.BoundVariable(p.tok,
-        new Bpl.TypedIdent(p.tok, p.AssignUniqueName(pp.IdGenerator), TrType(p.Type)));
-      var formal = new Bpl.IdentifierExpr(p.tok, bv);
+      var bv = new Bpl.BoundVariable(p.Tok,
+        new Bpl.TypedIdent(p.Tok, p.AssignUniqueName(pp.IdGenerator), TrType(p.Type)));
+      var formal = new Bpl.IdentifierExpr(p.Tok, bv);
       if (!is_k) {
         coArgs.Add(formal);
       }
@@ -126,14 +126,14 @@ public partial class BoogieGenerator {
       prefixArgs.Add(formal);
       prefixArgsLimited.Add(formal);
       if (is_k) {
-        m = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, "_m", TrType(p.Type)));
+        m = new Bpl.BoundVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "_m", TrType(p.Type)));
         mId = new Bpl.IdentifierExpr(m.tok, m);
         prefixArgsLimitedM.Add(mId);
       } else {
         prefixArgsLimitedM.Add(formal);
       }
 
-      var wh = GetWhereClause(p.tok, formal, p.Type, etran, NOALLOC);
+      var wh = GetWhereClause(p.Tok, formal, p.Type, etran, NOALLOC);
       if (is_k) {
         // add the formal _k
         k = bv;
@@ -266,7 +266,7 @@ public partial class BoogieGenerator {
     var paramMap = new Dictionary<IVariable, Expression>();
     for (int i = 0; i < pp.ExtremePred.Ins.Count; i++) {
       var replacement = pp.Ins[i + 1];  // the +1 is to skip pp's _k parameter
-      var param = new IdentifierExpr(replacement.tok, replacement.Name);
+      var param = new IdentifierExpr(replacement.Tok, replacement.Name);
       param.Var = replacement;  // resolve here
       param.Type = replacement.Type;  // resolve here
       paramMap.Add(pp.ExtremePred.Ins[i], param);
@@ -314,7 +314,7 @@ public partial class BoogieGenerator {
         // Here, instead of using the usual ORD#Less, we use the semantically equivalent ORD#LessThanLimit, because this
         // allows us to write a good trigger for a targeted monotonicity axiom.  That axiom, in turn, makes the
         // automatic verification more powerful for least lemmas that have more than one focal-predicate term.
-        var smaller = new BinaryExpr(kprime.tok, BinaryExpr.Opcode.Lt, kprime, k) {
+        var smaller = new BinaryExpr(kprime.Tok, BinaryExpr.Opcode.Lt, kprime, k) {
           ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
           Type = Type.Bool
         };

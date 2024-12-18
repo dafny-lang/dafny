@@ -68,7 +68,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     this.NamePath = namePath;
   }
   public UserDefinedType(Cloner cloner, UserDefinedType original)
-    : this(cloner.Origin(original.tok), cloner.CloneExpr(original.NamePath)) {
+    : this(cloner.Origin(original.Tok), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
       ResolvedClass = cloner.GetCloneIfAvailable(original.ResolvedClass);
       TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
@@ -179,14 +179,14 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(udtNullableType != null);
     Contract.Requires(udtNullableType.ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true });
     var cl = (ClassLikeDecl)udtNullableType.ResolvedClass;
-    return new UserDefinedType(udtNullableType.tok, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
+    return new UserDefinedType(udtNullableType.Tok, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
   }
 
   public static UserDefinedType CreateNullableType(UserDefinedType udtNonNullType) {
     Contract.Requires(udtNonNullType != null);
     Contract.Requires(udtNonNullType.ResolvedClass is NonNullTypeDecl);
     var nntd = (NonNullTypeDecl)udtNonNullType.ResolvedClass;
-    return new UserDefinedType(udtNonNullType.tok, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
+    return new UserDefinedType(udtNonNullType.Tok, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
   }
 
   public static UserDefinedType CreateNonNullTypeIfReferenceType(UserDefinedType classLikeType) {

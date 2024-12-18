@@ -142,7 +142,7 @@ abstract class Flow {
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var typeArgs = Joins(TypeParameter.Variances(udtA.ResolvedClass.TypeArgs), a.TypeArgs, b.TypeArgs, context);
         if (typeArgs != null) {
-          return UserDefinedType.FromTopLevelDecl(udtA.tok, udtA.ResolvedClass, typeArgs);
+          return UserDefinedType.FromTopLevelDecl(udtA.Tok, udtA.ResolvedClass, typeArgs);
         }
       }
       return null;
@@ -217,7 +217,7 @@ abstract class Flow {
       if (typeArgs == null) {
         return null;
       }
-      return new ArrowType(aa.tok, (ArrowTypeDecl)aa.ResolvedClass, typeArgs);
+      return new ArrowType(aa.Tok, (ArrowTypeDecl)aa.ResolvedClass, typeArgs);
     }
 
     // Convert a and b to their common supertype
@@ -237,7 +237,7 @@ abstract class Flow {
     if (joinedTypeArgs == null) {
       return null;
     }
-    var result = UserDefinedType.FromTopLevelDecl(a.tok, commonSupertypeDecl, joinedTypeArgs);
+    var result = UserDefinedType.FromTopLevelDecl(a.Tok, commonSupertypeDecl, joinedTypeArgs);
     return abNonNullTypes && result.IsRefType ? UserDefinedType.CreateNonNullType(result) : result;
   }
 
@@ -373,7 +373,7 @@ abstract class FlowIntoExpr : Flow {
   }
 
   protected FlowIntoExpr(Expression sink, IOrigin tok, string description = "")
-    : base(sink.tok, description) {
+    : base(sink.Tok, description) {
     this.sink = sink.UnnormalizedType;
   }
 
@@ -400,7 +400,7 @@ class FlowFromType : FlowIntoExpr {
   }
 
   public FlowFromType(Expression sink, Type source, string description = "")
-    : base(sink, sink.tok, description) {
+    : base(sink, sink.Tok, description) {
     this.source = source;
   }
 
@@ -414,7 +414,7 @@ class FlowFromTypeArgument : FlowIntoExpr {
   private readonly int argumentIndex;
 
   public FlowFromTypeArgument(Expression sink, Type source, int argumentIndex)
-    : base(sink, sink.tok) {
+    : base(sink, sink.Tok) {
     Contract.Requires(0 <= argumentIndex);
     this.source = source;
     this.argumentIndex = argumentIndex;
@@ -432,7 +432,7 @@ class FlowFromTypeArgumentOfComputedSource : FlowIntoExpr {
   private readonly int argumentIndex;
 
   public FlowFromTypeArgumentOfComputedSource(Expression sink, System.Func<Type> getType, int argumentIndex)
-    : base(sink, sink.tok) {
+    : base(sink, sink.Tok) {
     Contract.Requires(0 <= argumentIndex);
     this.getType = getType;
     this.argumentIndex = argumentIndex;
@@ -449,7 +449,7 @@ class FlowFromComputedType : FlowIntoExpr {
   private readonly System.Func<Type> getType;
 
   public FlowFromComputedType(Expression sink, System.Func<Type> getType, string description = "")
-    : base(sink, sink.tok, description) {
+    : base(sink, sink.Tok, description) {
     this.getType = getType;
   }
 
@@ -462,7 +462,7 @@ class FlowFromComputedTypeIgnoreHeadTypes : FlowIntoExpr {
   private readonly System.Func<Type> getType;
 
   public FlowFromComputedTypeIgnoreHeadTypes(Expression sink, System.Func<Type> getType, string description = "")
-    : base(sink.Type.NormalizeToAncestorType(), sink.tok, description) {
+    : base(sink.Type.NormalizeToAncestorType(), sink.Tok, description) {
     this.getType = getType;
   }
 
@@ -475,7 +475,7 @@ class FlowBetweenExpressions : FlowIntoExpr {
   private readonly Expression source;
 
   public FlowBetweenExpressions(Expression sink, Expression source, string description = "")
-    : base(sink, sink.tok, description) {
+    : base(sink, sink.Tok, description) {
     this.source = source;
   }
 

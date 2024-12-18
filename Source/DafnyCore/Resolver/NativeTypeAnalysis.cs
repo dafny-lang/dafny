@@ -139,7 +139,7 @@ class NativeTypeAnalysis {
         // Get the NativeType for "s"
         var nativeType = ModuleResolver.NativeTypes.Find(nativeType => nativeType.Name == s);
         if (nativeType == null) {
-          reporter.Error(MessageSource.Resolver, arg.tok, ":nativeType '{0}' not known", s);
+          reporter.Error(MessageSource.Resolver, arg.Tok, ":nativeType '{0}' not known", s);
           return false;
         }
         choices.Add(nativeType);

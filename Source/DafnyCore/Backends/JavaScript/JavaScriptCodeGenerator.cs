@@ -543,7 +543,7 @@ namespace Microsoft.Dafny.Compilers {
           wDefault.Write(DefaultValue(innerType, wDefault, dt.Tok));
         } else {
           var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
-          var arguments = nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok));
+          var arguments = nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.Tok));
           EmitDatatypeValue(dt, groundingCtor, dt is CoDatatypeDecl, typeDescriptors, arguments, wDefault);
         }
         wDefault.WriteLine(";");
@@ -622,7 +622,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
 
       if (declWithConstraints.ConstraintIsCompilable) {
-        var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints);
+        var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.Tok, (TopLevelDecl)declWithConstraints);
 
         wr.Write($"static {IsMethodName}(");
 
@@ -631,7 +631,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(", ");
         }
 
-        var sourceFormal = new Formal(declWithConstraints.tok, "_source", type, true, false, null);
+        var sourceFormal = new Formal(declWithConstraints.Tok, "_source", type, true, false, null);
         var wrBody = wr.NewBlock($"{IdName(sourceFormal)})");
         GenerateIsMethodBody(declWithConstraints, sourceFormal, wrBody);
       }
@@ -647,7 +647,7 @@ namespace Microsoft.Dafny.Compilers {
         var wStmts = w.Fork();
         sw.Append(Expr(sst.Witness, false, wStmts));
         DeclareField("Witness", true, true, sst.Rhs, sst.Tok, sw.ToString(), w);
-        d = TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
+        d = TypeName_UDT(FullTypeName(udt), udt, wr, udt.Tok) + ".Witness";
       } else {
         d = TypeInitializationValue(udt, wr, sst.Tok, false, false);
       }
@@ -842,7 +842,7 @@ namespace Microsoft.Dafny.Compilers {
           var dt = (DatatypeDecl)cl;
           var w = new ConcreteSyntaxTree();
           w.Write("{0}.Rtd(", dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt));
-          EmitTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs, true), udt.tok, w, true);
+          EmitTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs, true), udt.Tok, w, true);
           w.Write(")");
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
@@ -850,7 +850,7 @@ namespace Microsoft.Dafny.Compilers {
           return "_dafny.Rtd_ref/*not used*/";
         } else {
           Contract.Assert(cl is NewtypeDecl || cl is SubsetTypeDecl);
-          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok);
+          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.Tok);
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
@@ -934,7 +934,7 @@ namespace Microsoft.Dafny.Compilers {
         return "Array";
       } else if (xType is UserDefinedType udt) {
         var s = FullTypeName(udt, member);
-        return TypeName_UDT(s, udt, wr, udt.tok);
+        return TypeName_UDT(s, udt, wr, udt.Tok);
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
         return DafnySetClass;
@@ -991,7 +991,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(cl != null);
       if (cl is TypeParameter) {
         if (constructTypeParameterDefaultsFromTypeDescriptors) {
-          return string.Format("{0}.Default", TypeDescriptor(udt, wr, udt.tok));
+          return string.Format("{0}.Default", TypeDescriptor(udt, wr, udt.Tok));
         } else {
           return FormatDefaultTypeParameterValue((TypeParameter)udt.ResolvedClass);
         }
@@ -1000,7 +1000,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
+          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.Tok) + ".Witness";
         } else if (td.NativeType != null) {
           return "0";
         } else {
@@ -1009,7 +1009,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Default";
+          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.Tok) + ".Default";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -1071,7 +1071,7 @@ namespace Microsoft.Dafny.Compilers {
         if ((udt.ResolvedClass is DatatypeDecl dt && DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) ||
             udt.ResolvedClass is SubsetTypeDecl or NewtypeDecl) {
           var s = FullTypeName(udt, member);
-          return TypeName_UDT(s, udt, wr, udt.tok);
+          return TypeName_UDT(s, udt, wr, udt.Tok);
         }
       }
 
@@ -1393,7 +1393,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
-        wr.Write(TypeName(e.Type, wr, e.tok));
+        wr.Write(TypeName(e.Type, wr, e.Tok));
       } else if (e.Value == null) {
         wr.Write("null");
       } else if (e.Value is bool) {
@@ -2500,14 +2500,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      EmitLiteralExpr(wr.ForkInParens(), new LiteralExpr(source.tok, lo) { Type = Type.Int });
+      EmitLiteralExpr(wr.ForkInParens(), new LiteralExpr(source.Tok, lo) { Type = Type.Int });
       wr.Write(".isLessThanOrEqualTo");
       EmitExpr(source, false, wr.ForkInParens(), wStmts);
       wr.Write(" && ");
 
       EmitExpr(source, false, wr.ForkInParens(), wStmts);
       wr.Write(".isLessThan");
-      EmitLiteralExpr(wr.ForkInParens(), new LiteralExpr(source.tok, hi) { Type = Type.Int });
+      EmitLiteralExpr(wr.ForkInParens(), new LiteralExpr(source.Tok, hi) { Type = Type.Int });
       wr.Write(" && ");
     }
 

@@ -133,28 +133,28 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(LambdaExpr lambdaExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(lambdaExpression, lambdaExpression.tok, () => base.Visit(lambdaExpression));
+        ProcessNestedScope(lambdaExpression, lambdaExpression.Tok, () => base.Visit(lambdaExpression));
       }
       public override void Visit(ForallExpr forallExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(forallExpression, forallExpression.tok, () => base.Visit(forallExpression));
+        ProcessNestedScope(forallExpression, forallExpression.Tok, () => base.Visit(forallExpression));
       }
       public override void Visit(ExistsExpr existsExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(existsExpression, existsExpression.tok, () => base.Visit(existsExpression));
+        ProcessNestedScope(existsExpression, existsExpression.Tok, () => base.Visit(existsExpression));
       }
       public override void Visit(SetComprehension setComprehension) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(setComprehension, setComprehension.tok, () => base.Visit(setComprehension));
+        ProcessNestedScope(setComprehension, setComprehension.Tok, () => base.Visit(setComprehension));
       }
       public override void Visit(MapComprehension mapComprehension) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(mapComprehension, mapComprehension.tok, () => base.Visit(mapComprehension));
+        ProcessNestedScope(mapComprehension, mapComprehension.Tok, () => base.Visit(mapComprehension));
       }
 
       public override void Visit(LetExpr letExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(letExpression, letExpression.tok, () => base.Visit(letExpression));
+        ProcessNestedScope(letExpression, letExpression.Tok, () => base.Visit(letExpression));
       }
 
       public override void Visit(Field field) {
@@ -165,14 +165,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(Formal formal) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, formal, formal.tok, formal.Name);
+        RegisterDesignator(currentScope, formal, formal.Tok, formal.Name);
         RegisterTypeDesignator(currentScope, formal.Type);
         base.Visit(formal);
       }
 
       public override void Visit(NonglobalVariable variable) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, variable, variable.tok, variable.Name);
+        RegisterDesignator(currentScope, variable, variable.Tok, variable.Name);
         RegisterTypeDesignator(currentScope, variable.Type);
         base.Visit(variable);
       }
@@ -186,13 +186,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         base.Visit(expressionDotName);
         if (typeResolver.TryGetTypeSymbol(expressionDotName.Lhs, out var leftHandSideType)) {
-          RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.tok, expressionDotName.SuffixName);
+          RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.Tok, expressionDotName.SuffixName);
         }
       }
 
       public override void Visit(NameSegment nameSegment) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, nameSegment, nameSegment.tok, nameSegment.Name);
+        RegisterDesignator(currentScope, nameSegment, nameSegment.Tok, nameSegment.Name);
       }
 
       public override void Visit(TypeRhs typeRhs) {
@@ -203,12 +203,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(FrameExpression frameExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, frameExpression, frameExpression.tok, frameExpression.FieldName);
+        RegisterDesignator(currentScope, frameExpression, frameExpression.Tok, frameExpression.FieldName);
       }
 
       public override void Visit(IdentifierExpr identifierExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, identifierExpression, identifierExpression.tok, identifierExpression.Name);
+        RegisterDesignator(currentScope, identifierExpression, identifierExpression.Tok, identifierExpression.Name);
         base.Visit(identifierExpression);
       }
 
@@ -225,7 +225,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         //      The "typeRhs" only points to the "new" keyword with its token.
         //      Find an alternative to get the type designator without requiring the resolver.
         if (type is UserDefinedType userDefinedType) {
-          RegisterDesignator(scope, type, userDefinedType.NamePath.tok, userDefinedType.Name);
+          RegisterDesignator(scope, type, userDefinedType.NamePath.Tok, userDefinedType.Name);
         }
       }
 

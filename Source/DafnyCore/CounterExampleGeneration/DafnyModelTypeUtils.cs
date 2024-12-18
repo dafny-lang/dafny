@@ -49,7 +49,7 @@ namespace Microsoft.Dafny {
       if (newType is not UserDefinedType newUserType) {
         return newType;
       }
-      return new UserDefinedType(newUserType.tok, newUserType.Name,
+      return new UserDefinedType(newUserType.Tok, newUserType.Name,
         newUserType.TypeArgs);
     }
 

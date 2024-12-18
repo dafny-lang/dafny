@@ -500,7 +500,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           break;
         default:
           if (expression != null) {
-            VisitUnknown(expression, expression.tok);
+            VisitUnknown(expression, expression.Tok);
           }
 
           break;

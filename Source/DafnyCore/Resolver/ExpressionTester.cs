@@ -345,7 +345,7 @@ public class ExpressionTester {
     } else if (expr is MatchExpr matchExpr) {
       var mc = FirstCaseThatDependsOnGhostCtor(matchExpr.Cases);
       if (mc != null) {
-        ReportError(ErrorId.r_match_not_compilable, mc.tok, "match expression is not compilable, because it depends on a ghost constructor");
+        ReportError(ErrorId.r_match_not_compilable, mc.Tok, "match expression is not compilable, because it depends on a ghost constructor");
         isCompilable = false;
       }
       // other conditions are checked below

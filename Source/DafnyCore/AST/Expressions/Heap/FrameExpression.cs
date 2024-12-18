@@ -36,7 +36,7 @@ public class FrameExpression : TokenNode, IHasReferences {
   }
 
   public FrameExpression(Cloner cloner, FrameExpression original) {
-    this._tok = cloner.Origin(original.tok);
+    this._tok = cloner.Origin(original.Tok);
     OriginalExpression = cloner.CloneExpr(original.OriginalExpression);
     FieldName = original.FieldName;
 

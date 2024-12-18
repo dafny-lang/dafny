@@ -71,7 +71,7 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
     }
 
     var errorCount = resolver.reporter.Count(ErrorLevel.Error);
-    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.tok, Source.Type).NormalizeExpand();
+    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.Tok, Source.Type).NormalizeExpand();
     if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
     }

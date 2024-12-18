@@ -16,7 +16,7 @@ public partial class Parser {
     // initialize readonly fields
     dummyExpr = new LiteralExpr(Token.NoToken);
     dummyRhs = new ExprRhs(dummyExpr);
-    dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
+    dummyFrameExpr = new FrameExpression(dummyExpr.Tok, dummyExpr, null);
     dummyStmt = new ReturnStmt(Token.NoToken, null);
     var dummyBlockStmt = new BlockStmt(Token.NoToken, new List<Statement>());
     dummyIfStmt = new IfStmt(Token.NoToken, false, null, dummyBlockStmt, null);
@@ -676,7 +676,7 @@ public partial class Parser {
       get {
         Token result = FirstTokenExceptAttributes;
         foreach (var attr in Attributes.AsEnumerable()) {
-          if (result == null || result.pos > attr.tok.pos) {
+          if (result == null || result.pos > attr.Tok.pos) {
             result = attr.StartToken;
           }
         }
@@ -794,10 +794,10 @@ public partial class Parser {
   public void ApplyOptionsFromAttributes(Attributes attrs) {
     var overrides = attrs.AsEnumerable().Where(a => a.Name == "options" || a is UserSuppliedAtAttribute { UserSuppliedName: "Options" })
       .Reverse().Select(a =>
-        (token: a.tok,
+        (token: a.Tok,
          options: UserSuppliedAtAttribute.GetUserSuppliedArguments(a).Select(arg => {
            if (arg is not LiteralExpr { Value: string optStr }) {
-             SemErr(ErrorId.p_literal_string_required, arg.tok, "argument to :options attribute must be a literal string");
+             SemErr(ErrorId.p_literal_string_required, arg.Tok, "argument to :options attribute must be a literal string");
              return null;
            }
            return optStr;

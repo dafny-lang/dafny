@@ -241,7 +241,7 @@ public class CsharpSynthesizer {
     wr.Write("(");
     for (int i = 0; i < applySuffix.Args.Count; i++) {
       var arg = applySuffix.Args[i];
-      var typeName = codeGenerator.TypeName(arg.Type, wr, arg.tok);
+      var typeName = codeGenerator.TypeName(arg.Type, wr, arg.Tok);
       var bound = GetBound(arg);
       if (bound != null) {
         wr.Format($"{typeName} {bound.Item1.GetOrCreateCompileName(codeGenerator.currentIdGenerator)}");
@@ -272,7 +272,7 @@ public class CsharpSynthesizer {
     var tmpId = codeGenerator.idGenerator.FreshId("tmp");
     for (int i = 0; i < forallExpr.BoundVars.Count; i++) {
       var boundVar = forallExpr.BoundVars[i];
-      var varType = codeGenerator.TypeName(boundVar.Type, wr, boundVar.tok);
+      var varType = codeGenerator.TypeName(boundVar.Type, wr, boundVar.Tok);
       bounds[boundVar] = $"It.Is<{varType}>(x => {matcherName}.Match(x))";
       declarations.Add($"var {boundVar.GetOrCreateCompileName(codeGenerator.currentIdGenerator)} = ({varType}) {tmpId}[{i}];");
     }

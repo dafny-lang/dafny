@@ -263,7 +263,7 @@ public class ProgramParser {
   }
 
   private DafnyFile IncludeToDafnyFile(ErrorReporter errorReporter, Include include) {
-    return DafnyFile.HandleDafnyFile(fileSystem, errorReporter, include.ParseOptions, include.IncludedFilename, include.tok, false);
+    return DafnyFile.HandleDafnyFile(fileSystem, errorReporter, include.ParseOptions, include.IncludedFilename, include.Tok, false);
   }
 
   ///<summary>

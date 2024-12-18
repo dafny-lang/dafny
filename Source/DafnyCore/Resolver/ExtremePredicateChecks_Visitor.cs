@@ -18,7 +18,7 @@ class ExtremePredicateChecks_Visitor : FindFriendlyCalls_Visitor {
         if (!(context is LeastPredicate ? e.Function is LeastPredicate : e.Function is GreatestPredicate)) {
           reporter.Error(MessageSource.Resolver, e, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
         } else if (context.KNat != ((ExtremePredicate)e.Function).KNat) {
-          KNatMismatchError(e.tok, context.Name, context.TypeOfK, ((ExtremePredicate)e.Function).TypeOfK);
+          KNatMismatchError(e.Tok, context.Name, context.TypeOfK, ((ExtremePredicate)e.Function).TypeOfK);
         } else if (cp != CallingPosition.Positive) {
           var msg = $"a {context.WhatKind} can be called recursively only in positive positions";
           if (ContinuityIsImportant && cp == CallingPosition.Neither) {
@@ -32,7 +32,7 @@ class ExtremePredicateChecks_Visitor : FindFriendlyCalls_Visitor {
           reporter.Error(MessageSource.Resolver, e, msg);
         } else {
           e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
-          reporter.Info(MessageSource.Resolver, e.tok, e.Function.Name + "#[_k - 1]");
+          reporter.Info(MessageSource.Resolver, e.Tok, e.Function.Name + "#[_k - 1]");
         }
       }
       // do the sub-parts with cp := Neither

@@ -47,7 +47,7 @@ public class OpaqueMemberRewriter : IRewriter {
       receiver = new StaticReceiverExpr(f.Tok, (TopLevelDeclWithMembers)f.EnclosingClass, true);
     } else {
       receiver = new ImplicitThisExpr(f.Tok);
-      //receiver.Type = GetThisType(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
+      //receiver.Type = GetThisType(expr.Tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
     }
     var typeApplication = new List<Type>();
     var typeApplication_JustForMember = new List<Type>();

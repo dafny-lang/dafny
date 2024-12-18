@@ -378,7 +378,7 @@ namespace Microsoft.Dafny {
 
       List<Bpl.Variable> argTypes = new List<Bpl.Variable>();
       foreach (Formal arg in ctor.Formals) {
-        Bpl.Variable a = new Bpl.Formal(arg.tok, new Bpl.TypedIdent(arg.tok, Bpl.TypedIdent.NoName, TrType(arg.Type)),
+        Bpl.Variable a = new Bpl.Formal(arg.Tok, new Bpl.TypedIdent(arg.Tok, Bpl.TypedIdent.NoName, TrType(arg.Type)),
           true);
         argTypes.Add(a);
       }
@@ -498,8 +498,8 @@ namespace Microsoft.Dafny {
             Bpl.Expr lhs = FunctionCall(ctor.Tok, arg.Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank,
               null, args[i]);
             /* CHECK
-              Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
-                argType.IsDatatype ? args[i] : FunctionCall(ctor.tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
+              Bpl.Expr lhs = FunctionCall(ctor.Tok, BuiltinFunction.DtRank, null,
+                argType.IsDatatype ? args[i] : FunctionCall(ctor.Tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
               */
             Bpl.Expr ct = FunctionCall(ctor.Tok, ctor.FullName, Predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.Tok, BuiltinFunction.DtRank, null, ct);
@@ -512,15 +512,15 @@ namespace Microsoft.Dafny {
             // axiom (forall params, i: int {#dt.ctor(params)} :: 0 <= i && i < |arg| ==> DtRank(Unbox(Seq#Index(arg,i))) < DtRank(#dt.ctor(params)));
             {
               CreateBoundVariables(ctor.Formals, out bvs, out args);
-              Bpl.Variable iVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "i", Bpl.Type.Int));
+              Bpl.Variable iVar = new Bpl.BoundVariable(arg.Tok, new Bpl.TypedIdent(arg.Tok, "i", Bpl.Type.Int));
               bvs.Add(iVar);
-              Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, iVar);
+              Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.Tok, iVar);
               Bpl.Expr ante = BplAnd(
                 Bpl.Expr.Le(Bpl.Expr.Literal(0), ie),
-                Bpl.Expr.Lt(ie, FunctionCall(arg.tok, BuiltinFunction.SeqLength, null, args[i])));
-              var seqIndex = FunctionCall(arg.tok, BuiltinFunction.SeqIndex, Predef.DatatypeType, args[i], ie);
+                Bpl.Expr.Lt(ie, FunctionCall(arg.Tok, BuiltinFunction.SeqLength, null, args[i])));
+              var seqIndex = FunctionCall(arg.Tok, BuiltinFunction.SeqIndex, Predef.DatatypeType, args[i], ie);
               Bpl.Expr lhs = FunctionCall(ctor.Tok, BuiltinFunction.DtRank, null,
-                FunctionCall(arg.tok, BuiltinFunction.Unbox, Predef.DatatypeType, seqIndex));
+                FunctionCall(arg.Tok, BuiltinFunction.Unbox, Predef.DatatypeType, seqIndex));
               var ct = FunctionCall(ctor.Tok, ctor.FullName, Predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.Tok, BuiltinFunction.DtRank, null, ct);
               q = new Bpl.ForallExpr(ctor.Tok, bvs, new Trigger(lhs.tok, true, new List<Bpl.Expr> { seqIndex, ct }),
@@ -543,10 +543,10 @@ namespace Microsoft.Dafny {
             // that is:
             // axiom (forall params, d: Datatype {arg[Box(d)], #dt.ctor(params)} :: arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
             CreateBoundVariables(ctor.Formals, out bvs, out args);
-            Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", Predef.DatatypeType));
+            Bpl.Variable dVar = new Bpl.BoundVariable(arg.Tok, new Bpl.TypedIdent(arg.Tok, "d", Predef.DatatypeType));
             bvs.Add(dVar);
-            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            var inSet = IsSetMember(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie), argType.NormalizeToAncestorType().AsSetType.Finite);
+            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.Tok, dVar);
+            var inSet = IsSetMember(arg.Tok, args[i], FunctionCall(arg.Tok, BuiltinFunction.Box, null, ie), argType.NormalizeToAncestorType().AsSetType.Finite);
             Bpl.Expr lhs = FunctionCall(ctor.Tok, BuiltinFunction.DtRank, null, ie);
             var ct = FunctionCall(ctor.Tok, ctor.FullName, Predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.Tok, BuiltinFunction.DtRank, null, ct);
@@ -558,10 +558,10 @@ namespace Microsoft.Dafny {
             // that is:
             // axiom (forall params, d: Datatype {arg[Box(d)], #dt.ctor(params)} :: 0 < arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
             CreateBoundVariables(ctor.Formals, out bvs, out args);
-            Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", Predef.DatatypeType));
+            Bpl.Variable dVar = new Bpl.BoundVariable(arg.Tok, new Bpl.TypedIdent(arg.Tok, "d", Predef.DatatypeType));
             bvs.Add(dVar);
-            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            var multiplicity = MultisetMultiplicity(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.Tok, dVar);
+            var multiplicity = MultisetMultiplicity(arg.Tok, args[i], FunctionCall(arg.Tok, BuiltinFunction.Box, null, ie));
             Bpl.Expr ante = Bpl.Expr.Gt(multiplicity, Bpl.Expr.Literal(0));
             Bpl.Expr lhs = FunctionCall(ctor.Tok, BuiltinFunction.DtRank, null, ie);
             var ct = FunctionCall(ctor.Tok, ctor.FullName, Predef.DatatypeType, args);
@@ -576,13 +576,13 @@ namespace Microsoft.Dafny {
               //   { Map#Domain(arg)[$Box(d)], #dt.ctor(params) }
               //   Map#Domain(arg)[$Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
               CreateBoundVariables(ctor.Formals, out bvs, out args);
-              var dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", Predef.DatatypeType));
+              var dVar = new Bpl.BoundVariable(arg.Tok, new Bpl.TypedIdent(arg.Tok, "d", Predef.DatatypeType));
               bvs.Add(dVar);
-              var ie = new Bpl.IdentifierExpr(arg.tok, dVar);
+              var ie = new Bpl.IdentifierExpr(arg.Tok, dVar);
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              var domain = FunctionCall(arg.tok, f, finite ? Predef.MapType : Predef.IMapType,
+              var domain = FunctionCall(arg.Tok, f, finite ? Predef.MapType : Predef.IMapType,
                 args[i]);
-              var inDomain = IsSetMember(arg.tok, domain, FunctionCall(arg.tok, BuiltinFunction.Box, null, ie), finite);
+              var inDomain = IsSetMember(arg.Tok, domain, FunctionCall(arg.Tok, BuiltinFunction.Box, null, ie), finite);
               var lhs = FunctionCall(ctor.Tok, BuiltinFunction.DtRank, null, ie);
               var ct = FunctionCall(ctor.Tok, ctor.FullName, Predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.Tok, BuiltinFunction.DtRank, null, ct);
@@ -595,18 +595,18 @@ namespace Microsoft.Dafny {
               //   { Map#Elements(arg)[bx], #dt.ctor(params) }
               //   Map#Domain(arg)[bx] ==> DtRank($Unbox(Map#Elements(arg)[bx]): DatatypeType) < DtRank(#dt.ctor(params)));
               CreateBoundVariables(ctor.Formals, out bvs, out args);
-              var bxVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "bx", Predef.BoxType));
+              var bxVar = new Bpl.BoundVariable(arg.Tok, new Bpl.TypedIdent(arg.Tok, "bx", Predef.BoxType));
               bvs.Add(bxVar);
-              var ie = new Bpl.IdentifierExpr(arg.tok, bxVar);
+              var ie = new Bpl.IdentifierExpr(arg.Tok, bxVar);
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              var domain = FunctionCall(arg.tok, f, finite ? Predef.MapType : Predef.IMapType,
+              var domain = FunctionCall(arg.Tok, f, finite ? Predef.MapType : Predef.IMapType,
                 args[i]);
-              var inDomain = IsSetMember(arg.tok, domain, ie, finite);
+              var inDomain = IsSetMember(arg.Tok, domain, ie, finite);
               var ef = finite ? BuiltinFunction.MapElements : BuiltinFunction.IMapElements;
-              var element = FunctionCall(arg.tok, ef, finite ? Predef.MapType : Predef.IMapType,
+              var element = FunctionCall(arg.Tok, ef, finite ? Predef.MapType : Predef.IMapType,
                 args[i]);
-              var elmt = Bpl.Expr.SelectTok(arg.tok, element, ie);
-              var unboxElmt = FunctionCall(arg.tok, BuiltinFunction.Unbox, Predef.DatatypeType, elmt);
+              var elmt = Bpl.Expr.SelectTok(arg.Tok, element, ie);
+              var unboxElmt = FunctionCall(arg.Tok, BuiltinFunction.Unbox, Predef.DatatypeType, elmt);
               var lhs = FunctionCall(ctor.Tok, BuiltinFunction.DtRank, null, unboxElmt);
               var ct = FunctionCall(ctor.Tok, ctor.FullName, Predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.Tok, BuiltinFunction.DtRank, null, ct);
@@ -819,8 +819,8 @@ namespace Microsoft.Dafny {
       List<Variable> inParams = MkTyParamFormals(GetTypeParams(ctor.EnclosingDatatype), true);
       foreach (var p in ctor.Formals) {
         Bpl.Type varType = TrType(p.Type);
-        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(ctor.IdGenerator), varType), p.Type, etran, NOALLOC);
-        inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(ctor.IdGenerator), varType, wh), true));
+        Bpl.Expr wh = GetWhereClause(p.Tok, new Bpl.IdentifierExpr(p.Tok, p.AssignUniqueName(ctor.IdGenerator), varType), p.Type, etran, NOALLOC);
+        inParams.Add(new Bpl.Formal(p.Tok, new Bpl.TypedIdent(p.Tok, p.AssignUniqueName(ctor.IdGenerator), varType, wh), true));
       }
 
       // the procedure itself
@@ -849,8 +849,8 @@ namespace Microsoft.Dafny {
         var e = formal.DefaultValue;
         CheckWellformedWithResult(e, new WFOptions(null, true,
             false, true), locals, builder, etran, (returnBuilder, result) => {
-              builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-              CheckSubrange(result.tok, etran.TrExpr(result), e.Type, formal.Type, e, returnBuilder);
+              builder.Add(new Bpl.AssumeCmd(e.Tok, etran.CanCallAssumption(e)));
+              CheckSubrange(result.Tok, etran.TrExpr(result), e.Type, formal.Type, e, returnBuilder);
             });
       }
 

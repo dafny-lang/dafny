@@ -39,7 +39,7 @@ public class TimeLimitRewriter : IRewriter {
                         current_limit = Reporter.Options.TimeLimit > 0 ? Reporter.Options.TimeLimit : 10;  // Default to 10 seconds
                         name = "timeLimit";
                       }
-                      Expression newArg = new LiteralExpr(attr.Args[0].tok, value * current_limit);
+                      Expression newArg = new LiteralExpr(attr.Args[0].Tok, value * current_limit);
                       member.Attributes = new Attributes("_" + name, new List<Expression>() { newArg }, attrs);
                       if (Attributes.Contains(attrs, name)) {
                         ReportWarning(ErrorId.rw_timelimit_multiplier, member.Tok, "timeLimitMultiplier annotation overrides " + name + " annotation");

@@ -30,7 +30,7 @@ class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
       Expression prefix = null;
       foreach (Expression guardConjunct in Expression.Conjuncts(guard)) {
         Expression guess = null;
-        var neutralValue = Expression.CreateIntLiteral(guardConjunct.tok, -1);
+        var neutralValue = Expression.CreateIntLiteral(guardConjunct.Tok, -1);
         if (guardConjunct is BinaryExpr bin) {
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Lt:
@@ -142,19 +142,19 @@ class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
               break;
           }
           if (bin.E0.Type.AsSetType != null) {
-            neutralValue = new SetDisplayExpr(bin.tok, bin.E0.Type.AsSetType.Finite, new List<Expression>()) {
+            neutralValue = new SetDisplayExpr(bin.Tok, bin.E0.Type.AsSetType.Finite, new List<Expression>()) {
               Type = bin.E0.Type.NormalizeExpand()
             };
           } else if (bin.E0.Type.AsMultiSetType != null) {
-            neutralValue = new MultiSetDisplayExpr(bin.tok, new List<Expression>()) {
+            neutralValue = new MultiSetDisplayExpr(bin.Tok, new List<Expression>()) {
               Type = bin.E0.Type.NormalizeExpand()
             };
           } else if (bin.E0.Type.AsSeqType != null) {
-            neutralValue = new SeqDisplayExpr(bin.tok, new List<Expression>()) {
+            neutralValue = new SeqDisplayExpr(bin.Tok, new List<Expression>()) {
               Type = bin.E0.Type.NormalizeExpand()
             };
           } else if (bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-            neutralValue = Expression.CreateRealLiteral(bin.tok, BaseTypes.BigDec.FromInt(-1));
+            neutralValue = Expression.CreateRealLiteral(bin.Tok, BaseTypes.BigDec.FromInt(-1));
           }
         }
         if (guess != null) {

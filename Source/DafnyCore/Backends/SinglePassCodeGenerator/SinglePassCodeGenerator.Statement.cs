@@ -202,19 +202,19 @@ namespace Microsoft.Dafny.Compilers {
               var e0Var = new LocalVariable(new SourceOrigin(Token.NoToken, Token.NoToken), e0Name, e0.Type, false);
               var e1Var = new LocalVariable(new SourceOrigin(Token.NoToken, Token.NoToken), e1Name, e0.Type, false);
               DeclareLocalVar(IdName(e0Var), null, e0.Tok, e0, false, wr);
-              DeclareLocalVar(IdName(e1Var), null, e1.tok, e1, false, wr);
-              var e0Ident = new IdentifierExpr(e0.tok, e0Name) {
+              DeclareLocalVar(IdName(e1Var), null, e1.Tok, e1, false, wr);
+              var e0Ident = new IdentifierExpr(e0.Tok, e0Name) {
                 Type = e0.Type,
                 Var = e0Var
               };
-              var e1Ident = new IdentifierExpr(e1.tok, e0Name) {
+              var e1Ident = new IdentifierExpr(e1.Tok, e0Name) {
                 Type = e1.Type,
                 Var = e1Var
               };
 
               ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
               var negated = new UnaryOpExpr(expectStmt.Tok, UnaryOpExpr.Opcode.Not,
-                new BinaryExpr(expectStmt.Expr.tok, BinaryExpr.Opcode.Eq,
+                new BinaryExpr(expectStmt.Expr.Tok, BinaryExpr.Opcode.Eq,
                   e0Ident,
                   e1Ident) {
                   ResolvedOp = resolvedOp,
@@ -223,11 +223,11 @@ namespace Microsoft.Dafny.Compilers {
                 Type = Type.Bool
               };
               EmitExpr(negated, false, guardWriter, wStmts);
-              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e0.tok, @"\nLeft:\n", false) {
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e0.Tok, @"\nLeft:\n", false) {
                 Type = new SeqType(new CharType())
               });
               EmitPrintStmt(bodyWriter, e0Ident);
-              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e1.tok, @"\nRight:\n", false) {
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e1.Tok, @"\nRight:\n", false) {
                 Type = new SeqType(new CharType())
               });
               EmitPrintStmt(bodyWriter, e1Ident);
@@ -370,7 +370,7 @@ namespace Microsoft.Dafny.Compilers {
               // introduce a variable to hold the value of the end-expression
               endVarName = ProtectedFreshId(s.GoingUp ? "_hi" : "_lo");
               wStmts = wr.Fork();
-              EmitExpr(s.End, false, DeclareLocalVar(endVarName, s.End.Type, s.End.tok, wr), wStmts);
+              EmitExpr(s.End, false, DeclareLocalVar(endVarName, s.End.Type, s.End.Tok, wr), wStmts);
             }
             var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
             EmitExpr(s.Start, false, startExprWriter, wStmts);
@@ -440,22 +440,22 @@ namespace Microsoft.Dafny.Compilers {
               if (s0.Lhs is MemberSelectExpr) {
                 var lhs = (MemberSelectExpr)s0.Lhs;
                 L = 2;
-                tupleTypeArgs = TypeArgumentName(lhs.Obj.Type, wr, lhs.tok);
+                tupleTypeArgs = TypeArgumentName(lhs.Obj.Type, wr, lhs.Tok);
                 tupleTypeArgsList = new List<Type> { lhs.Obj.Type };
               } else if (s0.Lhs is SeqSelectExpr) {
                 var lhs = (SeqSelectExpr)s0.Lhs;
                 L = 3;
                 // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
-                tupleTypeArgs = TypeArgumentName(lhs.Seq.Type, wr, lhs.tok) + IntSelect;
+                tupleTypeArgs = TypeArgumentName(lhs.Seq.Type, wr, lhs.Tok) + IntSelect;
                 tupleTypeArgsList = new List<Type> { lhs.Seq.Type, null };
               } else {
                 var lhs = (MultiSelectExpr)s0.Lhs;
                 L = 2 + lhs.Indices.Count;
                 if (8 < L) {
-                  Error(ErrorId.c_no_assignments_to_seven_d_arrays, lhs.tok, "compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements", wr);
+                  Error(ErrorId.c_no_assignments_to_seven_d_arrays, lhs.Tok, "compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements", wr);
                   return;
                 }
-                tupleTypeArgs = TypeArgumentName(lhs.Array.Type, wr, lhs.tok);
+                tupleTypeArgs = TypeArgumentName(lhs.Array.Type, wr, lhs.Tok);
                 tupleTypeArgsList = new List<Type> { lhs.Array.Type };
                 for (int i = 0; i < lhs.Indices.Count; i++) {
                   // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
@@ -464,7 +464,7 @@ namespace Microsoft.Dafny.Compilers {
                 }
 
               }
-              tupleTypeArgs += "," + TypeArgumentName(rhs.Type, wr, rhs.tok);
+              tupleTypeArgs += "," + TypeArgumentName(rhs.Type, wr, rhs.Tok);
               tupleTypeArgsList.Add(rhs.Type);
 
               // declare and construct "ingredients"
@@ -576,7 +576,7 @@ namespace Microsoft.Dafny.Compilers {
       // }
       if (s.Cases.Count != 0) {
         string source = ProtectedFreshId("_source");
-        DeclareLocalVar(source, s.Source.Type, s.Source.tok, s.Source, false, wr);
+        DeclareLocalVar(source, s.Source.Type, s.Source.Tok, s.Source, false, wr);
 
         int i = 0;
         var sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
@@ -641,7 +641,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitAbsurd(null, output);
       } else {
         string sourceName = ProtectedFreshId("_source");
-        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, inLetExprBody, output);
+        DeclareLocalVar(sourceName, match.Source.Type, match.Source.Tok, match.Source, inLetExprBody, output);
 
         var label = preventCaseFallThrough ? ProtectedFreshId("match") : null;
         if (label != null) {

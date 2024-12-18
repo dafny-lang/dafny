@@ -96,13 +96,13 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
 
     } else if (stmt is ForallStmt) {
       var s = (ForallStmt)stmt;
-      s.BoundVars.ForEach(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
-      s.BoundVars.ForEach(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.Type, context));
+      s.BoundVars.ForEach(bv => CheckTypeIsDetermined(bv.Tok, bv.Type, "bound variable"));
+      s.BoundVars.ForEach(bv => CheckTypeArgsContainNoOrdinal(bv.Tok, bv.Type, context));
 
     } else if (stmt is AssignSuchThatStmt) {
       var s = (AssignSuchThatStmt)stmt;
       foreach (var lhs in s.Lhss) {
-        CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.Type, context);
+        CheckTypeArgsContainNoOrdinal(lhs.Tok, lhs.Type, context);
       }
     }
 
@@ -117,20 +117,20 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         var absN = n < 0 ? -n : n;
         // For bitvectors, check that the magnitude fits the width
         if (e.Type.IsBitVectorType && ConstantFolder.MaxBv(e.Type.AsBitVectorType.Width) < absN) {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_literal_too_large_for_bitvector, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
+          resolver.ReportError(ResolutionErrors.ErrorId.r_literal_too_large_for_bitvector, e.Tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
         }
         // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
         // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
-        if (n < 0 || e.tok.val == "-0") {
-          Contract.Assert(e.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
-          resolver.ReportError(ResolutionErrors.ErrorId.r_no_unary_minus_in_case_patterns, e.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
+        if (n < 0 || e.Tok.val == "-0") {
+          Contract.Assert(e.Tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
+          resolver.ReportError(ResolutionErrors.ErrorId.r_no_unary_minus_in_case_patterns, e.Tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
         }
       }
 
       if (expr is StaticReceiverExpr stexpr) {
         foreach (Type t in stexpr.Type.TypeArgs) {
           if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
-            resolver.ReportError(ResolutionErrors.ErrorId.r_type_parameter_undetermined, stexpr.tok, "type of type parameter could not be determined; please specify the type explicitly");
+            resolver.ReportError(ResolutionErrors.ErrorId.r_type_parameter_undetermined, stexpr.Tok, "type of type parameter could not be determined; please specify the type explicitly");
           }
         }
       }
@@ -139,10 +139,10 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       var e = (ComprehensionExpr)expr;
       foreach (var bv in e.BoundVars) {
         if (!IsDetermined(bv.Type.Normalize())) {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_bound_variable_undetermined, bv.tok,
+          resolver.ReportError(ResolutionErrors.ErrorId.r_bound_variable_undetermined, bv.Tok,
             $"type of bound variable '{bv.Name}' could not be determined; please specify the type explicitly");
         } else if (context.IsExtremePredicate) {
-          CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.tok, bv.Type, $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL");
+          CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.Tok, bv.Type, $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL");
         }
       }
 
@@ -150,7 +150,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         var binBody = ((ExistsExpr)e).Term as BinaryExpr;
         if (binBody != null && binBody.Op == BinaryExpr.Opcode.Imp) {  // check Op, not ResolvedOp, in order to distinguish ==> and <==
           // apply the wisdom of Claude Marche: issue a warning here
-          resolver.ReportWarning(ResolutionErrors.ErrorId.r_exists_quantifier_warning, e.tok,
+          resolver.ReportWarning(ResolutionErrors.ErrorId.r_exists_quantifier_warning, e.Tok,
             "the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; " +
             "if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning");
         }
@@ -172,10 +172,10 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
             continue;
           }
           if (!IsDetermined(p.Normalize())) {
-            resolver.ReportError(ResolutionErrors.ErrorId.r_type_parameter_not_determined, e.tok,
+            resolver.ReportError(ResolutionErrors.ErrorId.r_type_parameter_not_determined, e.Tok,
               $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
           } else if (!context.IsPrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
-            CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_type_parameter_may_not_be_ORDINAL, e.tok, p,
+            CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_type_parameter_may_not_be_ORDINAL, e.Tok, p,
               $"type parameter '{tp.Name}' (passed in as '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' is not allowed to use ORDINAL");
           }
           i++;
@@ -192,10 +192,10 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           var hint = e.Name.StartsWith(HideRevealStmt.RevealLemmaPrefix)
             ? ". If you are making an opaque function, make sure that the function can be called."
             : "";
-          resolver.ReportError(ResolutionErrors.ErrorId.r_function_type_parameter_undetermined, e.tok,
+          resolver.ReportError(ResolutionErrors.ErrorId.r_function_type_parameter_undetermined, e.Tok,
             $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
         } else if (!context.IsPrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
-          CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_function_type_parameter_may_not_be_ORDINAL, e.tok, p,
+          CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_function_type_parameter_may_not_be_ORDINAL, e.Tok, p,
             $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");
         }
         i++;
@@ -205,18 +205,18 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       foreach (var p in e.LHSs) {
         foreach (var x in p.Vars) {
           if (!IsDetermined(x.Type.Normalize())) {
-            resolver.ReportError(ResolutionErrors.ErrorId.r_bound_variable_type_undetermined, x.tok, $"the type of the bound variable '{x.Name}' could not be determined");
+            resolver.ReportError(ResolutionErrors.ErrorId.r_bound_variable_type_undetermined, x.Tok, $"the type of the bound variable '{x.Name}' could not be determined");
           } else {
-            CheckTypeArgsContainNoOrdinal(x.tok, x.Type, context);
+            CheckTypeArgsContainNoOrdinal(x.Tok, x.Type, context);
           }
         }
       }
     } else if (expr is IdentifierExpr) {
       // by specializing for IdentifierExpr, error messages will be clearer
-      CheckTypeIsDetermined(expr.tok, expr.Type, "variable");
+      CheckTypeIsDetermined(expr.Tok, expr.Type, "variable");
     } else if (expr is ConversionExpr) {
       var e = (ConversionExpr)expr;
-      CheckTypeIsDetermined(e.tok, e.ToType, "as-expression");
+      CheckTypeIsDetermined(e.Tok, e.ToType, "as-expression");
 
       // In the resolver refresh, the restrictions on "as" are checked as a post-inference confirmation. But in the
       // legacy resolver, the restrictions on "as" are checked here.
@@ -227,7 +227,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           if (fromType.IsSubtypeOf(e.ToType, false, true) || e.ToType.IsSubtypeOf(fromType, false, true)) {
             // looks good
           } else {
-            resolver.ReportError(ResolutionErrors.ErrorId.r_never_succeeding_type_cast, e.tok,
+            resolver.ReportError(ResolutionErrors.ErrorId.r_never_succeeding_type_cast, e.Tok,
               "a type cast to a reference type ({0}) must be from a compatible type (got {1}); this cast could never succeed",
               e.ToType, fromType);
           }
@@ -235,7 +235,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       }
     } else if (expr is TypeTestExpr) {
       var e = (TypeTestExpr)expr;
-      CheckTypeIsDetermined(e.tok, e.ToType, "is-expression");
+      CheckTypeIsDetermined(e.Tok, e.ToType, "is-expression");
 
       // In the resolver refresh, the restrictions on "is" are checked as a post-inference confirmation. But in the
       // legacy resolver, the restrictions on "is" are checked here.
@@ -244,20 +244,20 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         if (fromType.IsSubtypeOf(e.ToType, false, true)) {
           // This test is allowed and it always returns true
         } else if (!e.ToType.IsSubtypeOf(fromType, false, true)) {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_never_succeeding_type_test, e.tok,
+          resolver.ReportError(ResolutionErrors.ErrorId.r_never_succeeding_type_test, e.Tok,
             "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
         } else if (resolver.Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy && (fromType.IsTraitType || fromType.Equals(e.ToType))) {
           // it's fine
         } else if (!e.ToType.IsRefType && !e.ToType.IsTraitType) {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_unsupported_type_test, e.tok,
+          resolver.ReportError(ResolutionErrors.ErrorId.r_unsupported_type_test, e.Tok,
             "a non-trivial type test is allowed only for reference types (tried to test if '{1}' is a '{0}')", e.ToType, fromType);
         }
       }
-    } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
+    } else if (CheckTypeIsDetermined(expr.Tok, expr.Type, "expression")) {
       if (expr is UnaryOpExpr uop) {
         // The CheckTypeInference_Visitor has already visited uop.E, but uop.E's may be undetermined. If that happened,
         // then an error has already been reported.
-        if (CheckTypeIsDetermined(uop.E.tok, uop.E.Type, "expression")) {
+        if (CheckTypeIsDetermined(uop.E.Tok, uop.E.Type, "expression")) {
           uop.ResolveOp(); // Force resolution eagerly at this point to catch potential bugs
         }
       } else if (expr is BinaryExpr) {
@@ -300,12 +300,12 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
                     var possiblyNullTypeDecl = (ClassLikeDecl)possiblyNullUdf.ResolvedClass;
                     Contract.Assert(nonNullTypeDecl.TypeArgs.Count == possiblyNullTypeDecl.TypeArgs.Count);
                     Contract.Assert(nonNullTypeDecl.TypeArgs.Count == nntUdf.TypeArgs.Count);
-                    var ty = new UserDefinedType(nntUdf.tok, possiblyNullUdf.Name, possiblyNullTypeDecl, nntUdf.TypeArgs);
+                    var ty = new UserDefinedType(nntUdf.Tok, possiblyNullUdf.Name, possiblyNullTypeDecl, nntUdf.TypeArgs);
 
                     hint = $" (to make it possible for {name} to have the value 'null', declare its type to be '{ty}')";
                   }
                   var b = sense ? "false" : "true";
-                  resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_null_test, e.tok,
+                  resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_null_test, e.Tok,
                     $"the type of the other operand is a non-null type, so this comparison with 'null' will always return '{b}'{hint}");
                 }
                 break;
@@ -323,7 +323,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
                 if (((CollectionType)ty).Arg.IsNonNullRefType) {
                   var non = sense ? "" : "non-";
                   var b = sense ? "false" : "true";
-                  resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_null_inclusion_test, e.tok,
+                  resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_null_inclusion_test, e.Tok,
                     $"the type of the other operand is a {what} of non-null elements, so the {non}inclusion test of 'null' will always return '{b}'");
                 }
                 break;
@@ -334,7 +334,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
                 var ty = other.Type.NormalizeExpand();
                 if (((MapType)ty).Domain.IsNonNullRefType) {
                   var b = sense ? "false" : "true";
-                  resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_map_null_inclusion_test, e.tok,
+                  resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_map_null_inclusion_test, e.Tok,
                     $"the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{b}'");
                 }
                 break;
@@ -352,24 +352,24 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             var d = (BaseTypes.BigDec)lit.Value;
             Contract.Assert(!d.IsNegative);
-            resolved = new LiteralExpr(e.tok, -d);
+            resolved = new LiteralExpr(e.Tok, -d);
           } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
             var n = (BigInteger)lit.Value;
             Contract.Assert(0 <= n);
-            resolved = new LiteralExpr(e.tok, -n);
+            resolved = new LiteralExpr(e.Tok, -n);
           }
         }
         if (resolved == null) {
           // Treat all other expressions "-e" as "0 - e"
           Expression zero;
           if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-            zero = new LiteralExpr(e.tok, BaseTypes.BigDec.ZERO);
+            zero = new LiteralExpr(e.Tok, BaseTypes.BigDec.ZERO);
           } else {
             Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.NormalizeToAncestorType().IsBitVectorType);
-            zero = new LiteralExpr(e.tok, 0);
+            zero = new LiteralExpr(e.Tok, 0);
           }
           zero.Type = expr.Type;
-          resolved = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E) { ResolvedOp = BinaryExpr.ResolvedOpcode.Sub };
+          resolved = new BinaryExpr(e.Tok, BinaryExpr.Opcode.Sub, zero, e.E) { ResolvedOp = BinaryExpr.ResolvedOpcode.Sub };
         }
         resolved.Type = expr.Type;
         e.ResolvedExpression = resolved;
