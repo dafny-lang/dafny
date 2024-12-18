@@ -98,7 +98,7 @@ public class ProofDependencyWarnings {
     var unusedDependencies =
       potentialDependencies
         .Except(usedDependencies)
-        .OrderBy(dep => dep.Range)
+        .OrderBy(dep => dep.Range.Center)
         .ThenBy(dep => dep.Description).ToList();
 
     foreach (var unusedDependency in unusedDependencies) {

@@ -5,7 +5,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class SourceOrigin : IOrigin {
+public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public Uri Uri {
     get => Center.Uri;
     set => throw new InvalidOperationException();
@@ -22,18 +22,9 @@ public class SourceOrigin : IOrigin {
   public bool InclusiveEnd => endToken != null;
   public bool IncludesRange => true;
 
-  public int CompareTo(IToken? other) {
-    if (other == null) {
-      return 1;
-    }
-    return Center.CompareTo(other);
-  }
 
-  public int CompareTo(IOrigin? other) {
-    if (other == null) {
-      return 1;
-    }
-    return Center.CompareTo(other.Center);
+  public int CompareTo(IToken? other) {
+    throw new NotImplementedException();
   }
 
   public override bool Equals(object? obj) {
@@ -131,4 +122,8 @@ public class SourceOrigin : IOrigin {
   }
 
   public bool IsValid => true;
+
+  public int CompareTo(SourceOrigin? other) {
+    throw new NotImplementedException();
+  }
 }

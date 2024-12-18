@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Microsoft.Dafny;
 
-public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
+public interface IOrigin : Microsoft.Boogie.IToken {
 
   bool IsInherited(ModuleDefinition m);
 

@@ -4,7 +4,7 @@
 method M1() {
   assert (1 decreases to 0) && (0 decreases to 1); // error: second conjunct doesn't hold
 }
-
+-
 method M2() {
   assert 0 decreases to 1; // error
 }
