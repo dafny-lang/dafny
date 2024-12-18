@@ -192,7 +192,7 @@ public static class VerifyCommand {
           completed.Result, batchReporter);
       }
 
-      foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
+      foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token.Center)) {
         compilation.Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
           diagnostic.Message);
       }

@@ -2337,7 +2337,7 @@ AssignStatement<out Statement/*!*/ s>
      ExprRhs exceptionRhs = null;
      Token endToken = Token.NoToken;
   .)
-( Lhs<out e>                       (. operatorToken = e.StartToken; startToken = e.StartToken; endToken = t; .)
+( Lhs<out e>                       (. operatorToken = e.Center; startToken = e.StartToken; endToken = t; .)
   ( 
                                    (. lhss.Add(e); .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
@@ -2452,7 +2452,7 @@ Rhs<out AssignmentRhs r>
   | Expression<out e, false, true>     (. r = new ExprRhs(e); startToken = e.StartToken; .)
   )
   { Attribute<ref attrs> }             (. r.Attributes = attrs;
-                                          r.Origin = new SourceOrigin(startToken ?? t, t); .)
+                                          r.Origin = new SourceOrigin(startToken ?? t, t, r.Center); .)
   .
 
 /*------------------------------------------------------------------------*/
