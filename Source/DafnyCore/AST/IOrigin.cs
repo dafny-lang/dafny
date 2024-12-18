@@ -24,7 +24,7 @@ public interface IOrigin : Microsoft.Boogie.IToken {
   public string ActualFilename => Uri.LocalPath;
   string Filepath => Uri?.LocalPath;
 
-  Uri Uri { get; set; }
+  Uri Uri { get; }
 
   Token StartToken { get; }
   Token EndToken { get; }
