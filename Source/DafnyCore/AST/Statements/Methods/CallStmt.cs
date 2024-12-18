@@ -95,7 +95,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     this.Lhs = lhs;
     this.MethodSelect = memSel;
     this.overrideToken = overrideToken;
-    
+
     this.Bindings = new ActualBindings(args);
   }
 

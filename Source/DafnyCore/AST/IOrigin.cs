@@ -28,8 +28,8 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
 
   Token StartToken { get; }
   Token EndToken { get; }
-  Token Center { 
-    get; 
+  Token Center {
+    get;
   }
 
   /// <summary>

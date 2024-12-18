@@ -16,7 +16,7 @@ public abstract class TokenNode : Node {
   public void SetTok(IOrigin newTok) {
     tok = newTok;
   }
-  
+
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
   public IOrigin Tok => tok;
 

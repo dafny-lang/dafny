@@ -368,7 +368,7 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
       ModuleName<out var name>
       ":"
       QualifiedModuleExport<out var namePath, out idExports>
-          (. submodule = new AbstractModuleDecl(theOptions, new SourceOrigin(startToken, t), new ModuleQualifiedId(namePath),
+          (. submodule = new AbstractModuleDecl(theOptions, new SourceOrigin(startToken, t, name.Center), new ModuleQualifiedId(namePath),
                                                name, parent, opened, idExports, Guid.NewGuid()); .)
     | IF(lookAhead == _singleeq)
       ModuleName<out var name>

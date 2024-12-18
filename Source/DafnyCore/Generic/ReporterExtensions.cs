@@ -55,7 +55,7 @@ public static class ErrorReporterExtensions {
   public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IOrigin token, string? message, bool usingSnippets) {
     var (tokenForMessage, inner, newMessage) = token is NestedOrigin nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
     var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
-    
+
     // TODO
     // dafny0/CoPrefix needs this turned off
     // if (!usingSnippets && dafnyToken.IncludesRange) {
