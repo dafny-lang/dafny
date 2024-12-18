@@ -15,6 +15,11 @@ class OverrideCenter : OriginWrapper {
     throw new System.NotImplementedException();
   }
 
+  public override int col {
+    get => Center.col;
+    set => throw new System.NotImplementedException();
+  }
+
   public override int line {
     get => Center.line;
     set => throw new System.NotImplementedException();

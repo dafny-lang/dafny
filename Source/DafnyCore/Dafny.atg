@@ -900,7 +900,7 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
     )
   }
   IdentType<out var id, out var originalId, out ty, false> 
-                                (. range = new SourceOrigin(startToken, ty.EndToken);
+                                (. range = new SourceOrigin(startToken, ty.EndToken, id);
                                    name = new Name(id);
                                 .)
   .
@@ -996,7 +996,7 @@ TypeIdentOptional<out SourceOrigin/*!*/ range, out Name/*!*/ identName, out Type
     Type<out ty>
     ParameterDefaultValue<true, out defaultValue>
   )
-  (. range = new SourceOrigin(beforeStartToken.Next, t);
+  (. range = new SourceOrigin(beforeStartToken.Next, t, nameToken);
      if (nameToken != null) {
        identName = new Name(nameToken);
        isNameOnly = nameonlyToken != null;
@@ -1416,16 +1416,19 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
     { Attribute<ref attrs> }
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
-                        { Origin = defaultValue != null ? new SourceOrigin(range.StartToken, defaultValue.EndToken, name.Center) : range }
-                    ); .)
+                 (. var origin = defaultValue == null ? range 
+                      : new SourceOrigin(range.StartToken, defaultValue.EndToken, name.Center);
+                    formals.Add(new Formal(origin, name, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder));
+                 .)
     { ","
       { Attribute<ref attrs> }
       GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
       ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
-                        { Origin = defaultValue != null ? new SourceOrigin(range.StartToken, defaultValue.EndToken, name.Center) : range }
-                    ); .)
+      
+                 (. var origin2 = defaultValue == null ? range 
+                      : new SourceOrigin(range.StartToken, defaultValue.EndToken, name.Center);
+                    formals.Add(new Formal(origin2, name, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)); 
+                 .)
     }
   ]
   ")"
@@ -1454,13 +1457,11 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
   "("
   [
     TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
-            (. formals.Add(new Formal(name.Tok, name, ty, true, isGhost, defaultValue, attributes, false, isNameOnly) 
-                    { Origin = range }
+            (. formals.Add(new Formal(range, name, ty, true, isGhost, defaultValue, attributes, false, isNameOnly)
                ); 
             .)
     { "," TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
-            (. formals.Add(new Formal(name.Tok, name, ty, true, isGhost, defaultValue, attributes, false, isNameOnly)
-                    { Origin = range }
+            (. formals.Add(new Formal(range, name, ty, true, isGhost, defaultValue, attributes, false, isNameOnly)
                ); 
             .)
     }
@@ -1757,8 +1758,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          "("
            GIdentType<false, false, false, false, out var range2, out var resultName, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
-              result = new Formal(resultName.Tok, resultName, ty, false, false, null, null, false)
-                { Origin = range2 };
+              result = new Formal(range2, resultName, ty, false, false, null, null, false);
            .)
          ")"
          | Type<out returnType>
@@ -2062,8 +2062,7 @@ PredicateResult<string name, out Formal result>
           if (ty is not BoolType) {
             SemErr(ErrorId.p_predicate_return_type_must_be_bool, new SourceOrigin(ty.StartToken, t), $"{name} return type should be bool, got {ty}");
           }
-          result = new Formal(nameId.Tok, nameId, ty, false, false, null, attributes, false)
-            { Origin = range };
+          result = new Formal(range, nameId, ty, false, false, null, attributes, false);
        .)
      ")"
      | Type<out returnType> (. SemErr(ErrorId.p_no_return_type_for_predicate, new SourceOrigin(returnType.StartToken, t), $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
