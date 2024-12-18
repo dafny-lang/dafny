@@ -30,13 +30,13 @@ public class FrameExpression : TokenNode, IHasReferences {
     Contract.Requires(tok != null);
     Contract.Requires(e != null);
     Contract.Requires(!(e is WildcardExpr) || fieldName == null);
-    this._tok = tok;
+    this.tok = tok;
     OriginalExpression = e;
     FieldName = fieldName;
   }
 
   public FrameExpression(Cloner cloner, FrameExpression original) {
-    this._tok = cloner.Origin(original.Tok);
+    this.tok = cloner.Origin(original.Tok);
     OriginalExpression = cloner.CloneExpr(original.OriginalExpression);
     FieldName = original.FieldName;
 

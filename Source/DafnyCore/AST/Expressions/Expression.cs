@@ -97,12 +97,12 @@ public abstract class Expression : TokenNode {
     Contract.Requires(tok != null);
     Contract.Ensures(type == null);  // we would have liked to have written Type==null, but that's not admissible or provable
 
-    this._tok = tok;
+    this.tok = tok;
   }
 
   protected Expression(Cloner cloner, Expression original) {
 
-    _tok = cloner.Origin(original.Tok);
+    tok = cloner.Origin(original.Tok);
     Origin = cloner.Origin(original.Origin);
 
     if (cloner.CloneResolvedFields && original.Type != null) {

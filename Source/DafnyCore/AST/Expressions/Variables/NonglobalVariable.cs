@@ -12,7 +12,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
     Contract.Requires(tok != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
-    this._tok = tok;
+    this.tok = tok;
     this.NameNode = nameNode;
     IsTypeExplicit = type != null;
     this.type = type ?? new InferredTypeProxy();

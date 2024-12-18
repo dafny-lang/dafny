@@ -12,14 +12,14 @@ public abstract class TokenNode : Node {
 
   protected IOrigin RangeOrigin = null;
 
-  protected IOrigin _tok = Token.NoToken;
+  protected IOrigin tok = Token.NoToken;
 
   public void SetTok(IOrigin newTok) {
-    _tok = newTok;
+    tok = newTok;
   }
 
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IOrigin Tok => _tok;
+  public override IOrigin Tok => tok;
 
   public override IOrigin Origin {
     get {
