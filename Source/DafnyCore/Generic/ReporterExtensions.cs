@@ -55,14 +55,17 @@ public static class ErrorReporterExtensions {
   public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IOrigin token, string? message, bool usingSnippets) {
     var (tokenForMessage, inner, newMessage) = token is NestedOrigin nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
     var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
-    if (!usingSnippets && dafnyToken.IncludesRange) {
-      if (message == PostConditionFailingMessage) {
-        var postcondition = dafnyToken.PrintOriginal();
-        message = $"this postcondition might not hold: {postcondition}";
-      } else if (message == null || message == RelatedLocationMessage) {
-        message = FormatRelated(dafnyToken.PrintOriginal());
-      }
-    }
+    
+    // TODO
+    // dafny0/CoPrefix needs this turned off
+    // if (!usingSnippets && dafnyToken.IncludesRange) {
+    //   if (message == PostConditionFailingMessage) {
+    //     var postcondition = dafnyToken.PrintOriginal();
+    //     message = $"this postcondition might not hold: {postcondition}";
+    //   } else if (message == null|| message == RelatedLocationMessage*/) {
+    //     message = FormatRelated(dafnyToken.PrintOriginal());
+    //   }
+    // }
 
     message ??= "this proposition could not be proved";
 
