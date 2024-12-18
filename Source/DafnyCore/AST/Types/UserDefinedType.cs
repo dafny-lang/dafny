@@ -376,7 +376,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
 
   public override bool SupportsEquality {
     get {
-      if (ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true } or NewtypeDecl) {
+      if (ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true }) {
         return ResolvedClass.IsRevealedInScope(Type.GetScope());
       } else if (ResolvedClass is TraitDecl) {
         return false;
@@ -400,6 +400,12 @@ public class UserDefinedType : NonProxyType, IHasReferences {
           i++;
         }
         return true;
+      } else if (ResolvedClass is NewtypeDecl newtypeDecl) {
+        if (newtypeDecl.IsRevealedInScope(Type.GetScope())) {
+          return newtypeDecl.RhsWithArgument(TypeArgs).SupportsEquality;
+        } else {
+          return false;
+        }
       } else if (ResolvedClass is TypeSynonymDeclBase) {
         var t = (TypeSynonymDeclBase)ResolvedClass;
         if (t.SupportsEquality) {
