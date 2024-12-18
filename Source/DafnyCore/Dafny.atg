@@ -4634,7 +4634,7 @@ AtAttribute<ref Attributes attrs>
   (. atToken = t; .)
   Expression<out arg, false, false, false>
   (. 
-     var rtok = new SourceOrigin(atToken, t, t);
+     var rtok = new SourceOrigin(atToken, t, atToken);
      attrs = new UserSuppliedAtAttribute(rtok, arg, attrs);
   .)
   .

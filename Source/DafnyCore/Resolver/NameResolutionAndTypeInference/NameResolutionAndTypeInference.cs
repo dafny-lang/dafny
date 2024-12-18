@@ -3327,7 +3327,7 @@ namespace Microsoft.Dafny {
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
           AddAssignableConstraint(
-            callTok, formal.Type.Subst(typeMap), b.Actual.Type,
+            callTok /* should be b.Actual.Origin */, formal.Type.Subst(typeMap), b.Actual.Type,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the

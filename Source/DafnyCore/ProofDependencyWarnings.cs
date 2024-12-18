@@ -93,7 +93,7 @@ public class ProofDependencyWarnings {
     var usedDependencies =
       coveredElements
         .Select(manager.GetFullIdDependency)
-        .OrderBy(dep => dep.Range)
+        .OrderBy(dep => dep.Range.Center)
         .ThenBy(dep => dep.Description);
     var unusedDependencies =
       potentialDependencies
@@ -109,13 +109,16 @@ public class ProofDependencyWarnings {
             if (obligation.ProofObligation is AssertStatementDescription) {
               message += ". (Use the `{:contradiction}` attribute on the `assert` statement to silence.)";
             }
-            reporter.Warning(MessageSource.Verifier, "", obligation.Range, message);
+            reporter.Warning(MessageSource.Verifier, "",
+              // OverrideCenter used to prevent changes in reporting
+              new OverrideCenter(obligation.Range, obligation.Range.StartToken), message);
           }
         }
 
         if (unusedDependency is EnsuresDependency ensures) {
           if (ShouldWarnVacuous(scopeName, ensures)) {
-            reporter.Warning(MessageSource.Verifier, "", ensures.Range,
+            // OverrideCenter used to prevent changes in reporting
+            reporter.Warning(MessageSource.Verifier, "", new OverrideCenter(ensures.Range, ensures.Range.StartToken),
               $"ensures clause proved using contradictory assumptions");
           }
         }
@@ -123,12 +126,17 @@ public class ProofDependencyWarnings {
 
       if (options.Get(CommonOptionBag.WarnRedundantAssumptions) || options.Get(CommonOptionBag.AnalyzeProofs)) {
         if (unusedDependency is RequiresDependency requires) {
-          reporter.Warning(MessageSource.Verifier, "", requires.Range, $"unnecessary requires clause");
+          reporter.Warning(MessageSource.Verifier, "",
+            // OverrideCenter used to prevent changes in reporting
+            new OverrideCenter(requires.Range, requires.Range.StartToken),
+            $"unnecessary requires clause");
         }
 
         if (unusedDependency is AssumptionDependency assumption) {
           if (ShouldWarnUnused(assumption)) {
-            reporter.Warning(MessageSource.Verifier, "", assumption.Range,
+            reporter.Warning(MessageSource.Verifier, "",
+              // OverrideCenter used to prevent changes in reporting
+              new OverrideCenter(assumption.Range, assumption.Range.StartToken),
               $"unnecessary (or partly unnecessary) {assumption.Description}");
           }
         }
