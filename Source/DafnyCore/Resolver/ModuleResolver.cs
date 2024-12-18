@@ -781,7 +781,7 @@ namespace Microsoft.Dafny {
       var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
       var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
       var fn = new ApplySuffix(tok, null,
-        new ExprDotName(tok, receiver, f.NameNode, f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter))),
+        new ExprDotName(tok, receiver, f.NameNode, f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.Tok, typeParameter))),
         new ActualBindings(f.Ins.ConvertAll(Expression.CreateIdentExpr)).ArgumentBindings,
         Token.NoToken);
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
@@ -1757,7 +1757,7 @@ namespace Microsoft.Dafny {
           Expression kk;
           Statement els;
           if (k.Type.IsBigOrdinalType) {
-            kk = new MemberSelectExpr(k.tok, new IdentifierExpr(k.tok, k.Name), new Name("Offset"));
+            kk = new MemberSelectExpr(k.Tok, new IdentifierExpr(k.Tok, k.Name), new Name("Offset"));
             // As an "else" branch, we add recursive calls for the limit case.  When automatic induction is on,
             // this get handled automatically, but we still want it in the case when automatic induction has been
             // turned off.

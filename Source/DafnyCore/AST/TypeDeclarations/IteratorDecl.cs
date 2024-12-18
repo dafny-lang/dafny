@@ -200,13 +200,13 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     var ens = Member_Init.Ens;
     foreach (var p in Ins) {
       // ensures this.x == x;
-      ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
-        new ExprDotName(p.tok, new ThisExpr(p.tok), p.NameNode, null), new IdentifierExpr(p.tok, p.Name))));
+      ens.Add(new AttributedExpression(new BinaryExpr(p.Tok, BinaryExpr.Opcode.Eq,
+        new ExprDotName(p.Tok, new ThisExpr(p.Tok), p.NameNode, null), new IdentifierExpr(p.Tok, p.Name))));
     }
     foreach (var p in OutsHistoryFields) {
       // ensures this.ys == [];
-      ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
-        new ExprDotName(p.tok, new ThisExpr(p.tok), p.NameNode, null), new SeqDisplayExpr(p.tok, new List<Expression>()))));
+      ens.Add(new AttributedExpression(new BinaryExpr(p.Tok, BinaryExpr.Opcode.Eq,
+        new ExprDotName(p.Tok, new ThisExpr(p.Tok), p.NameNode, null), new SeqDisplayExpr(p.Tok, new List<Expression>()))));
     }
     // ensures this.Valid();
     var valid_call = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
@@ -288,7 +288,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     Contract.Assert(Decreases.Expressions.Count == DecreasesFields.Count);
     for (int i = 0; i < Decreases.Expressions.Count; i++) {
       var p = Decreases.Expressions[i];
-      Member_MoveNext.Decreases.Expressions.Add(new ExprDotName(p.tok, new ThisExpr(p.tok), DecreasesFields[i].NameNode, null));
+      Member_MoveNext.Decreases.Expressions.Add(new ExprDotName(p.Tok, new ThisExpr(p.Tok), DecreasesFields[i].NameNode, null));
     }
     Member_MoveNext.Decreases.Attributes = Decreases.Attributes;
   }

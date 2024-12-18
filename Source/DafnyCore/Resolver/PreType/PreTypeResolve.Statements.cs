@@ -176,7 +176,7 @@ namespace Microsoft.Dafny {
                 ident.PreType = Type2PreType(ident.Var.Type);
                 produceLhs = ident;
               } else {
-                var yieldIdent = new ExprDotName(f.tok, new ImplicitThisExpr(f.tok), new Name(f.Name), null);
+                var yieldIdent = new ExprDotName(f.Tok, new ImplicitThisExpr(f.Tok), new Name(f.Name), null);
                 ResolveExpression(yieldIdent, resolutionContext);
                 produceLhs = yieldIdent;
               }
@@ -942,7 +942,7 @@ namespace Microsoft.Dafny {
         if (lhsResolved is MemberSelectExpr lexr) {
           Expression id = Expression.AsThis(lexr.Obj) != null ? lexr.Obj : resolver.makeTemp("recv", s, resolutionContext, lexr.Obj);
           var lex = lhsExtract as ExprDotName; // might be just a NameSegment
-          lhsExtract = new ExprDotName(lexr.tok, id, lexr.MemberNameNode, lex?.OptTypeArguments);
+          lhsExtract = new ExprDotName(lexr.Tok, id, lexr.MemberNameNode, lex?.OptTypeArguments);
         } else if (lhsResolved is SeqSelectExpr lseq) {
           if (!lseq.SelectOne || lseq.E0 == null) {
             ReportError(s.Tok, "Element ranges not allowed as l-values");
@@ -1193,7 +1193,7 @@ namespace Microsoft.Dafny {
               Type = rr.EType,
               PreType = rr.PreType
             };
-            var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, new Name(initCallName), ret?.LastComponent.OptTypeArguments);
+            var callLhs = new ExprDotName(((UserDefinedType)rr.EType).Tok, lhs, new Name(initCallName), ret?.LastComponent.OptTypeArguments);
             ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
             if (prevErrorCount == ErrorCount) {
               Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)

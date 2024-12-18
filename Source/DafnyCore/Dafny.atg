@@ -4363,7 +4363,7 @@ Suffix<ref Expression e>
       (. e = new DatatypeUpdateExpr(x, e, updates) { Origin = new SourceOrigin(startToken, t)}; .)
     | DotSuffix<out id, out x>                 (. if (x != null) {
                                                     // process id as a Suffix in its own right
-                                                    e = new ExprDotName(id, e, new Name(id), null) { Origin = new RangeToken(startToken, t)};
+                                                    e = new ExprDotName(id, e, new Name(id), null) { Origin = new SourceOrigin(startToken, t)};
                                                     id = x;  // move to the next Suffix
                                                   }
                                                   Token openParen = null;  List<Type> typeArgs = null;
@@ -4381,7 +4381,7 @@ Suffix<ref Expression e>
           AtCall<out atLabel, out openParen, out args> ]
       )
       (. e = new ExprDotName(id, e, new Name(id), typeArgs) {
-           Origin = new RangeToken(startToken, id)
+           Origin = new SourceOrigin(startToken, id)
          };
          if (openParen != null) {
            e = new ApplySuffix(openParen, atLabel, e, args, t) {

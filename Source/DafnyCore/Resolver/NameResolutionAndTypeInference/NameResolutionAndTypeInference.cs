@@ -3571,7 +3571,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(f.Type != null);
                 produceLhs = ident;
               } else {
-                var yieldIdent = new MemberSelectExpr(f.tok, new ImplicitThisExpr(f.NameNode.Origin), f.NameNode);
+                var yieldIdent = new MemberSelectExpr(f.Tok, new ImplicitThisExpr(f.NameNode.Origin), f.NameNode);
                 ResolveExpression(yieldIdent, resolutionContext);
                 produceLhs = yieldIdent;
               }
@@ -4413,7 +4413,7 @@ namespace Microsoft.Dafny {
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
               // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
               var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) { Type = rr.EType };
-              var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, new Name(initCallName), ret == null ? null : ret.LastComponent.OptTypeArguments);
+              var callLhs = new ExprDotName(((UserDefinedType)rr.EType).Tok, lhs, new Name(initCallName), ret == null ? null : ret.LastComponent.OptTypeArguments);
               ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
@@ -5344,8 +5344,8 @@ namespace Microsoft.Dafny {
             return null;
           }
         } else {
-          var receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
-          r = ResolveExprDotCall(expr.tok, new Name(expr.Origin, expr.Name), receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+          var receiver = new StaticReceiverExpr(expr.Tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
+          r = ResolveExprDotCall(expr.Tok, new Name(expr.Origin, expr.Name), receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
         }
 
       } else if (!isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
@@ -5657,7 +5657,7 @@ namespace Microsoft.Dafny {
           } else {
             var receiver = new StaticReceiverExpr(expr.Lhs.Tok, (TopLevelDeclWithMembers)member.EnclosingClass, false);
             receiver.ContainerExpression = expr.Lhs;
-            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.Tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
           ReportUnresolvedIdentifierError(expr.Tok, name, resolutionContext);
@@ -5698,7 +5698,7 @@ namespace Microsoft.Dafny {
             }
             var receiver = new StaticReceiverExpr(expr.Lhs.Tok, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false);
             receiver.ContainerExpression = expr.Lhs;
-            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.Tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
         if (r == null) {
@@ -5711,11 +5711,11 @@ namespace Microsoft.Dafny {
           Expression receiver;
           if (!member.IsStatic) {
             receiver = expr.Lhs;
-            AddAssignableConstraint(expr.tok, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
-            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            AddAssignableConstraint(expr.Tok, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
+            r = ResolveExprDotCall(expr.Tok, expr.SuffixNameNode, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           } else {
-            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
-            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            receiver = new StaticReceiverExpr(expr.Tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
+            r = ResolveExprDotCall(expr.Tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
       }
@@ -5917,7 +5917,7 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.Tok, mse.MemberNameNode, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
+            var rr = new FunctionCallExpr(e.Lhs.Tok, mse.MemberNameNode, mse.Obj, e.Tok, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
               TypeApplication_AtEnclosingClass = mse.TypeApplicationAtEnclosingClass,
               TypeApplication_JustFunction = mse.TypeApplicationJustMember

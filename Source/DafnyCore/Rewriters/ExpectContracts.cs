@@ -144,7 +144,7 @@ public class ExpectContracts : IRewriter {
 
     var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
     var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
-    var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.tok);
+    var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.Tok);
     var memberSelectExpr = new MemberSelectExpr(decl.Tok, receiver, origMethod.NameNode);
     memberSelectExpr.Member = origMethod;
     memberSelectExpr.TypeApplicationJustMember =
