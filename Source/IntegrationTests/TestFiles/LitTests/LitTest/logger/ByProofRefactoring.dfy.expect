@@ -1,5 +1,5 @@
 ByProofRefactoring.dfy(11,0): Info: Consider hiding this function, which is unused by the proof: P
-ByProofRefactoring.dfy(18,2): Info: This fact was only used to prove the precondtion of the method call ByProofRefactoring.dfy(19,3). Consider moving it into a by-proof.
+ByProofRefactoring.dfy(18,2): Info: This fact was only used to prove the precondition of the method call ByProofRefactoring.dfy(19,3). Consider moving it into a by-proof.
 ByProofRefactoring.dfy(31,2): Info: This fact was only used to prove the assertion ByProofRefactoring.dfy(32,3)-(32,13). Consider moving it into a by-proof.
 ByProofRefactoring.dfy(44,0): Info: Consider hiding this function, which is unused by the proof: P
 ByProofRefactoring.dfy(43,11): Info: This requires clause was only used to prove the assertion ByProofRefactoring.dfy(45,3)-(45,13). Consider labelling it and revealing it in a by-proof.

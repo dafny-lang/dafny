@@ -4612,7 +4612,8 @@ Attribute<ref Attributes attrs>
   "}"                         (. closeBrace = t; .)
   (. 
      var rtok = new SourceOrigin(openBrace, t, x);
-     if (!CheckAttribute(errors, x, rtok)) return;
+     var rtok2 = new SourceOrigin(openBrace, t, /* change to x */ openBrace);
+     if (!CheckAttribute(errors, x, rtok2)) return;
      attrs = new UserSuppliedAttributes(rtok, openBrace, closeBrace, args, attrs);
   .)
   .
