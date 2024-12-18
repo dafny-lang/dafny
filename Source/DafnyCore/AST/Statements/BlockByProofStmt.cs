@@ -9,7 +9,7 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint,
 
   public Statement Body { get; }
   public BlockStmt Proof { get; }
-  public BlockByProofStmt(RangeToken range, BlockStmt proof, Statement body) : base(range) {
+  public BlockByProofStmt(IOrigin range, BlockStmt proof, Statement body) : base(range) {
     Proof = proof;
     Body = body;
   }

@@ -7,7 +7,7 @@ public class TypeDeclSynonymInfo {
 
   public TypeDeclSynonymInfo(TopLevelDecl d) {
     var thisType = UserDefinedType.FromTopLevelDecl(d.Tok, d);
-    SelfSynonymDecl = new InternalTypeSynonymDecl(d.RangeToken, d.NameNode, TypeParameter.GetExplicitCharacteristics(d),
+    SelfSynonymDecl = new InternalTypeSynonymDecl(d.Origin, d.NameNode, TypeParameter.GetExplicitCharacteristics(d),
       d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
     SelfSynonymDecl.InheritVisibility(d, false);
   }

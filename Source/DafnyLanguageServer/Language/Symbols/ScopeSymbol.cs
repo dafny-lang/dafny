@@ -12,8 +12,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public ScopeSymbol(ILegacySymbol? scope, INode region) : base(scope, string.Empty) {
       Node = region;
-      BodyStartToken = region.RangeToken.StartToken;
-      BodyEndToken = region.RangeToken.EndToken;
+      BodyStartToken = region.Origin.StartToken;
+      BodyEndToken = region.Origin.EndToken;
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

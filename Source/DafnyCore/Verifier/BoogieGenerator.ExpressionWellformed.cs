@@ -614,7 +614,7 @@ namespace Microsoft.Dafny {
             if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
               var dPrecond = new ApplyExpr(
                 Token.NoToken,
-                new ExprDotName(Token.NoToken, unwrappedFunc, "requires", null),
+                new ExprDotName(Token.NoToken, unwrappedFunc, new Name("requires"), null),
                 e.Args,
                 Token.NoToken);
 
@@ -634,7 +634,7 @@ namespace Microsoft.Dafny {
 
               var readsCall = new ApplyExpr(
                 Token.NoToken,
-                new ExprDotName(Token.NoToken, unwrappedFunc, "reads", null),
+                new ExprDotName(Token.NoToken, unwrappedFunc, new Name("reads"), null),
                 e.Args,
                 Token.NoToken
               );
@@ -694,7 +694,7 @@ namespace Microsoft.Dafny {
                 // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
                 // to BVD what this variable stands for and display it as such to the user.
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
-                LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
+                LocalVariable local = new LocalVariable(p.Origin, "##" + p.Name, et, p.IsGhost);
                 local.type = local.SyntacticType;  // resolve local here
                 var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator)) {
                   Var = local
@@ -798,7 +798,7 @@ namespace Microsoft.Dafny {
                     default:
                       var readsCall = new ApplyExpr(
                         Token.NoToken,
-                        new ExprDotName(Token.NoToken, e.Receiver.Resolved, "reads", null),
+                        new ExprDotName(Token.NoToken, e.Receiver.Resolved, new Name("reads"), null),
                         e.Args,
                         Token.NoToken
                       );
@@ -1640,7 +1640,7 @@ namespace Microsoft.Dafny {
         Utils.MakeQuantifierVarsForDims(dims, out var indexVars, out var indexVarExprs, out var indicesRange);
         var readsCall = new ApplyExpr(
           Token.NoToken,
-          new ExprDotName(Token.NoToken, unwrappedFunc, "reads", null),
+          new ExprDotName(Token.NoToken, unwrappedFunc, new Name("reads"), null),
           indexVarExprs,
           Token.NoToken
         );

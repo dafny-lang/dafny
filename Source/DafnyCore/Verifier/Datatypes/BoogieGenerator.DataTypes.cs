@@ -163,10 +163,8 @@ namespace Microsoft.Dafny {
       Action<Bpl.Type, Action<Tuple<List<Type>, List<Type>>, List<Bpl.Variable>, List<Bpl.Expr>, List<Bpl.Expr>,
         Bpl.Variable, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr>> CoAxHelper =
         (typeOfK, K) => {
-          Func<string, List<TypeParameter>> renew = s =>
-            Map(codecl.TypeArgs, tp =>
-              new TypeParameter(tp.RangeToken, tp.NameNode.Append("#" + s), tp.PositionalIndex, tp.Parent));
-          List<TypeParameter> typaramsL = renew("l"), typaramsR = renew("r");
+          List<TypeParameter> Renew(string s) => Map(codecl.TypeArgs, tp => new TypeParameter(tp.Origin, tp.NameNode.Append("#" + s), tp.PositionalIndex, tp.Parent));
+          List<TypeParameter> typaramsL = Renew("l"), typaramsR = Renew("r");
           var lvars = MkTyParamBinders(typaramsL, out var lexprs);
           var rvars = MkTyParamBinders(typaramsR, out var rexprs);
           Func<List<TypeParameter>, List<Type>> Types = l => Map(l, tp => (Type)new UserDefinedType(tp));

@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
@@ -131,7 +133,10 @@ public class CsharpBackend : ExecutableBackend {
 
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) == ".dll") {
-        File.Copy(otherFileName, Path.Combine(dllFolder, Path.GetFileName(otherFileName)), true);
+        var destination = Path.Combine(dllFolder, Path.GetFileName(otherFileName));
+        if (Path.GetFullPath(otherFileName) != Path.GetFullPath(destination)) {
+          File.Copy(otherFileName, destination, true);
+        }
       }
     }
 

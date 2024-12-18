@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -10,6 +11,7 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
@@ -176,9 +178,13 @@ public class Compilation : IDisposable {
     }
 
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+      if (Options.Backend is LibraryBackend) {
+        Options.Set(CommonOptionBag.TranslateStandardLibrary, false);
+      }
+
       // For now the standard libraries are still translated from scratch.
-      // This breaks separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
-      var asLibrary = false;
+      // This creates issues with separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
+      var asLibrary = !Options.Get(CommonOptionBag.TranslateStandardLibrary);
 
       if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = Options.CompilerName ?? "notarget";
@@ -366,9 +372,11 @@ public class Compilation : IDisposable {
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
-        var groups = tasks.GroupBy(t =>
-            // We unwrap so that we group on tokens as they are displayed to the user by Reporter.Info
-            OriginWrapper.Unwrap(BoogieGenerator.ToDafnyToken(true, t.Token))).
+        var groups = tasks.GroupBy(t => {
+          var dafnyToken = BoogieGenerator.ToDafnyToken(true, t.Token);
+          // We normalize so that we group on tokens as they are displayed to the user by Reporter.Info
+          return new RangeToken(dafnyToken.StartToken, dafnyToken.EndToken);
+        }).
           OrderBy(g => g.Key);
         foreach (var tokenTasks in groups) {
           var functions = tokenTasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
