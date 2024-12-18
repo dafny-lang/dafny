@@ -238,7 +238,8 @@ namespace Microsoft.Dafny.Compilers {
               var negated = new UnaryOpExpr(expectStmt.Tok, UnaryOpExpr.Opcode.Not, expectStmt.Expr) { Type = Type.Bool };
               EmitExpr(negated, false, guardWriter, wStmts);
 
-              EmitHalt(expectStmt.Tok, expectStmt.Message, bodyWriter);
+              // TODO change to .Origin and change the Center of an expectStmt to be the expect keyword
+              EmitHalt(expectStmt.StartToken, expectStmt.Message, bodyWriter);
             }
 
             break;
