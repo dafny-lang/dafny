@@ -9,14 +9,14 @@ DTypes.dfy(64,13): Warning: the type of the other operand is a non-null type, so
 DTypes.dfy(18,13): Error: assertion might not hold
 DTypes.dfy(56,17): Error: assertion might not hold
 DTypes.dfy(121,11): Error: assertion might not hold
-DTypes.dfy(93,29): Related location: Could not prove: Branch(Tree<T>, Tree<T>)
+DTypes.dfy(93,29): Related location: this proposition could not be proved
 DTypes.dfy(127,11): Error: assertion might not hold
-DTypes.dfy(93,19): Related location: Could not prove: Leaf(T)
+DTypes.dfy(93,19): Related location: this proposition could not be proved
 DTypes.dfy(137,11): Error: assertion might not hold
-DTypes.dfy(132,4): Related location: Could not prove: forall t: Tree<T> {:induction} :: 2 <= LeafCount(t)
-DTypes.dfy(93,19): Related location: Could not prove: Leaf(T)
+DTypes.dfy(132,4): Related location: this proposition could not be proved
+DTypes.dfy(93,19): Related location: this proposition could not be proved
 DTypes.dfy(156,11): Error: assertion might not hold
 DTypes.dfy(179,2): Error: a postcondition could not be proved on this return path
-DTypes.dfy(178,14): Related location: this postcondition might not hold: a != b as object
+DTypes.dfy(178,14): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 20 verified, 7 errors
