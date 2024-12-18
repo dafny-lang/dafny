@@ -77,7 +77,6 @@ public class SourceOrigin : IOrigin {
 
   public Token Center {
     get;
-    set;
   }
   public string TrailingTrivia {
     get => Center.TrailingTrivia;
