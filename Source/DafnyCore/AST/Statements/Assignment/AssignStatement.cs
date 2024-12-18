@@ -158,7 +158,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
         // must be a single TypeRhs
         if (Lhss.Count != 1) {
           Contract.Assert(2 <= Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-          resolver.Reporter.Error(MessageSource.Resolver, Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
+          resolver.Reporter.Error(MessageSource.Resolver, Lhss[1].Tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
         } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
           var a = new SingleAssignStmt(Origin, Lhss[0].Resolved, Rhss[0]);
           ResolvedStatements.Add(a);

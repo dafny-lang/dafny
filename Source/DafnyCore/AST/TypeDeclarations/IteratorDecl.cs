@@ -201,8 +201,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     var ens = Member_Init.Ens;
     foreach (var p in Ins) {
       // ensures this.x == x;
-      ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
-        new ExprDotName(p.tok, new ThisExpr(p.tok), p.NameNode, null), new IdentifierExpr(p.tok, p.Name))));
+      ens.Add(new AttributedExpression(new BinaryExpr(p.Tok, BinaryExpr.Opcode.Eq,
+        new ExprDotName(p.Tok, new ThisExpr(p.Tok), p.NameNode, null), new IdentifierExpr(p.Tok, p.Name))));
     }
     foreach (var p in OutsHistoryFields) {
       // ensures this.ys == [];
@@ -289,7 +289,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     Contract.Assert(Decreases.Expressions.Count == DecreasesFields.Count);
     for (int i = 0; i < Decreases.Expressions.Count; i++) {
       var p = Decreases.Expressions[i];
-      Member_MoveNext.Decreases.Expressions.Add(new ExprDotName(p.tok, new ThisExpr(p.tok), DecreasesFields[i].NameNode, null));
+      Member_MoveNext.Decreases.Expressions.Add(new ExprDotName(p.Tok, new ThisExpr(p.Tok), DecreasesFields[i].NameNode, null));
     }
     Member_MoveNext.Decreases.Attributes = Decreases.Attributes;
   }
@@ -306,12 +306,12 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     Expression frameSet = new SetDisplayExpr(tok, true, modSetSingletons);
     foreach (var fr in Reads.Expressions) {
       if (fr.FieldName != null) {
-        resolver.reporter.Error(MessageSource.Resolver, fr.tok,
+        resolver.reporter.Error(MessageSource.Resolver, fr.Tok,
           "sorry, a reads clause for an iterator is not allowed to designate specific fields");
       } else if (fr.E.Type != null ? fr.E.Type.IsRefType : fr.E.PreType.IsRefType) {
         modSetSingletons.Add(fr.E);
       } else {
-        frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
+        frameSet = new BinaryExpr(fr.Tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
       }
     }
     iteratorCtorEnsures.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
@@ -323,12 +323,12 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     frameSet = new SetDisplayExpr(tok, true, modSetSingletons);
     foreach (var fr in Modifies.Expressions) {
       if (fr.FieldName != null) {
-        resolver.reporter.Error(MessageSource.Resolver, fr.tok,
+        resolver.reporter.Error(MessageSource.Resolver, fr.Tok,
           "sorry, a modifies clause for an iterator is not allowed to designate specific fields");
       } else if (fr.E.Type != null ? fr.E.Type.IsRefType : fr.E.PreType.IsRefType) {
         modSetSingletons.Add(fr.E);
       } else {
-        frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
+        frameSet = new BinaryExpr(fr.Tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
       }
     }
     iteratorCtorEnsures.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
@@ -378,7 +378,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     foreach (var p in nonDuplicateOuts) {
       var nm = p.NameNode.Append("s");
       if (members.ContainsKey(nm.Value)) {
-        resolver.reporter.Error(MessageSource.Resolver, p.tok,
+        resolver.reporter.Error(MessageSource.Resolver, p.Tok,
           "Name of implicit yield-history variable '{0}' is already used by another member of the iterator",
           p.Name);
         nm = p.NameNode.Append("*"); // bogus name, but at least it'll be unique

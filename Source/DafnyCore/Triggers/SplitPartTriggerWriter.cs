@@ -85,8 +85,8 @@ class SplitPartTriggerWriter {
           if (triggersCollector.IsTriggerKiller(sub) && (!triggersCollector.IsPotentialTriggerCandidate(sub))) {
             var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
             if (entry == null) {
-              var newBv = new BoundVar(sub.tok, "_t#" + substMap.Count, sub.Type);
-              var ie = new IdentifierExpr(sub.tok, newBv.Name) { Var = newBv, Type = newBv.Type };
+              var newBv = new BoundVar(sub.Tok, "_t#" + substMap.Count, sub.Type);
+              var ie = new IdentifierExpr(sub.Tok, newBv.Name) { Var = newBv, Type = newBv.Type };
               substMap.Add(new Tuple<Expression, IdentifierExpr>(sub, ie));
             }
           }
@@ -102,10 +102,10 @@ class SplitPartTriggerWriter {
     } else {
       // make a copy of the expr
       if (expr is ForallExpr) {
-        expr = new ForallExpr(expr.tok, expr.BoundVars, expr.Range, expr.Term,
+        expr = new ForallExpr(expr.Tok, expr.BoundVars, expr.Range, expr.Term,
           TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
       } else {
-        expr = new ExistsExpr(expr.tok, expr.BoundVars, expr.Range, expr.Term,
+        expr = new ExistsExpr(expr.Tok, expr.BoundVars, expr.Range, expr.Term,
           TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
       }
     }

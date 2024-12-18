@@ -237,7 +237,7 @@ namespace Microsoft.Dafny {
         return new MapType(this, mapType);
       } else if (t is ArrowType) {
         var tt = (ArrowType)t;
-        return new ArrowType(Origin(tt.tok), tt.Args.ConvertAll(CloneType), CloneType(tt.Result));
+        return new ArrowType(Origin(tt.Tok), tt.Args.ConvertAll(CloneType), CloneType(tt.Result));
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
 #if TEST_TYPE_SYNONYM_TRANSPARENCY
@@ -269,7 +269,7 @@ namespace Microsoft.Dafny {
     public virtual Formal CloneFormal(Formal formal, bool isReference) {
       return (Formal)clones.GetOrCreate(formal, () => isReference
        ? formal
-       : new Formal(Origin(formal.tok), new Name(this, formal.NameNode), CloneType(formal.Type), formal.InParam, formal.IsGhost,
+       : new Formal(Origin(formal.Tok), new Name(this, formal.NameNode), CloneType(formal.Type), formal.InParam, formal.IsGhost,
          CloneExpr(formal.DefaultValue), CloneAttributes(formal.Attributes),
          formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation) {
          IsTypeExplicit = formal.IsTypeExplicit
@@ -282,7 +282,7 @@ namespace Microsoft.Dafny {
           return bv;
         }
 
-        var bvNew = new BoundVar(Origin(bv.tok), new Name(this, bv.NameNode), CloneType(bv.SyntacticType));
+        var bvNew = new BoundVar(Origin(bv.Tok), new Name(this, bv.NameNode), CloneType(bv.SyntacticType));
         bvNew.IsGhost = bv.IsGhost;
         return bvNew;
       });
@@ -342,7 +342,7 @@ namespace Microsoft.Dafny {
           arg.Type = usaa.Arg.Type;
           arg.PreType = usaa.Arg.PreType;
         }
-        return new UserSuppliedAtAttribute(Origin(usaa.tok), arg, CloneAttributes(usaa.Prev)) {
+        return new UserSuppliedAtAttribute(Origin(usaa.Tok), arg, CloneAttributes(usaa.Prev)) {
           Builtin = usaa.Builtin
         };
       } else {
@@ -380,7 +380,7 @@ namespace Microsoft.Dafny {
     public MatchCaseExpr CloneMatchCaseExpr(MatchCaseExpr c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Arguments != null);
-      return new MatchCaseExpr(Origin(c.tok), c.Ctor, c.FromBoundVar,
+      return new MatchCaseExpr(Origin(c.Tok), c.Ctor, c.FromBoundVar,
         c.Arguments.ConvertAll(bv => CloneBoundVar(bv, false)), CloneExpr(c.Body), CloneAttributes(c.Attributes));
     }
 
@@ -613,7 +613,7 @@ namespace Microsoft.Dafny {
   public class ClonerKeepParensExpressions : Cloner {
     public override Expression CloneExpr(Expression expr) {
       if (expr is ParensExpression parensExpression) {
-        return new ParensExpression(Origin(parensExpression.tok), CloneExpr(parensExpression.E));
+        return new ParensExpression(Origin(parensExpression.Tok), CloneExpr(parensExpression.E));
       }
 
       return base.CloneExpr(expr);

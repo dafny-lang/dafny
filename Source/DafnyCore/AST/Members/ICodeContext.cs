@@ -150,8 +150,8 @@ public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
 
   string FullDafnyName { get; }
+  IOrigin Tok { get; }
 
-  IOrigin tok { get; }
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }

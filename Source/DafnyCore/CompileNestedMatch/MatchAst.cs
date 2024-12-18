@@ -87,7 +87,7 @@ public abstract class MatchCase : TokenNode, IHasReferences {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(tok != null);
+    Contract.Invariant(Tok != null);
     Contract.Invariant(Ctor != null);
     Contract.Invariant(cce.NonNullElements(Arguments));
   }

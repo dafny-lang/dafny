@@ -1345,7 +1345,7 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads, ref Attributes attrs,
   { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
   (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
-       SemErr(ErrorId.p_reads_star_must_be_alone, reads.First(fe => fe.E is WildcardExpr).tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
+       SemErr(ErrorId.p_reads_star_must_be_alone, reads.First(fe => fe.E is WildcardExpr).Tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
      }
   .)
   OldSemi
@@ -1964,7 +1964,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isGhost) {
        foreach (var formal in formals) {
          if (formal.IsGhost) {
-           IOrigin t = formal.tok;
+           IOrigin t = formal.Tok;
            IOrigin ghostToken = null;
            while (t != null && t.val != "," && t.val != "(") {
             if (t.val == "ghost") {
@@ -1973,7 +1973,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
             }
             t = t.Prev;
            }
-           SemErr(ErrorId.p_no_ghost_formal, ghostToken ?? formal.tok, "formal cannot be declared 'ghost' in this context");
+           SemErr(ErrorId.p_no_ghost_formal, ghostToken ?? formal.Tok, "formal cannot be declared 'ghost' in this context");
          }
        }
      }
@@ -2079,7 +2079,7 @@ PossiblyWildExpression<out Expression e, bool allowLambda, bool allowWild>
    */
   ( "*"                        (. e = new WildcardExpr(t);
                                   if (!allowWild) {
-                                    SemErr(ErrorId.p_no_wild_expression, e.tok, "A '*' expression is not allowed here");
+                                    SemErr(ErrorId.p_no_wild_expression, e.Tok, "A '*' expression is not allowed here");
                                   }
                                .)
   | Expression<out e, false, allowLambda>
@@ -2116,7 +2116,7 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
      IOrigin feTok = null;
      fe = dummyFrameExpr;
   .)
-  ( Expression<out e, allowLemma, allowLambda>   (. feTok = e.tok; .)
+  ( Expression<out e, allowLemma, allowLambda>   (. feTok = e.Tok; .)
     [ FrameField<out id>        (. fieldName = id.val;  feTok = id; .)
     ]                           (. fe = new FrameExpression(feTok, e, fieldName); .)
   |
@@ -2586,7 +2586,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
     CasePatternLocal<out pat, isGhost>
     ( ":="
     | { Attribute<ref attrs> }
-      ":|"                          (.  SemErr(ErrorId.p_no_patterns_and_such_that, pat.tok, "LHS of assign-such-that expression must be variables, not general patterns"); .)
+      ":|"                          (.  SemErr(ErrorId.p_no_patterns_and_such_that, pat.Tok, "LHS of assign-such-that expression must be variables, not general patterns"); .)
     )
     Expression<out e, false, true>
 
@@ -2745,7 +2745,7 @@ WhileStmt<out Statement stmt>
       var rangeToken = new SourceOrigin(startToken, t);
       if (guardEllipsis != null || bodyEllipsis != null) {
         if (mod != null) {
-          SemErr(ErrorId.p_no_modifies_on_refining_loops, mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
+          SemErr(ErrorId.p_no_modifies_on_refining_loops, mod[0].E.Tok, "'modifies' clauses are not allowed on refining loops");
         }
         if (body == null && !isDirtyLoop) {
           body = new BlockStmt(rangeToken, new List<Statement>());
@@ -2839,7 +2839,7 @@ DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.
   { "," PossiblyWildExpression<out e, allowLambda, allowWildcard> (. decreases.Add(e); .)
   }
   (. if (allowWildcard && decreases.Count > 1 && decreases.Exists(e => e is WildcardExpr)) {
-       SemErr(ErrorId.p_no_decreases_expressions_with_star, e.tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
+       SemErr(ErrorId.p_no_decreases_expressions_with_star, e.Tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
      }
   .)
   .
@@ -2898,8 +2898,8 @@ SingleExtendedPattern<.out ExtendedPattern pat.>
       ]
      ")"
                                            (. pat = new IdPattern(id, id.val, arguments, false, true); .)
-  | PossiblyNegatedLiteralExpr<out lit>    (. pat = new LitPattern(lit.tok, lit); .)
-  | IdentTypeOptional<out bv>              (. pat = new IdPattern(bv.tok, bv.Name, bv.SyntacticType, null); .)
+  | PossiblyNegatedLiteralExpr<out lit>    (. pat = new LitPattern(lit.Tok, lit); .)
+  | IdentTypeOptional<out bv>              (. pat = new IdPattern(bv.Tok, bv.Name, bv.SyntacticType, null); .)
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
     if (pat == null) {
@@ -3833,7 +3833,7 @@ ParensExpression<out Expression e>
              SemErr(ErrorId.p_binding_in_decreases_to, binding.FormalParameterName,
                $"bindings are not allowed in `{decreasesToToken.val} to` expressions.");
            } else if (binding.IsGhost) {
-             SemErr(ErrorId.p_ghost_in_decreases_to, binding.Actual.tok, // we don't have the token of "ghost" :(
+             SemErr(ErrorId.p_ghost_in_decreases_to, binding.Actual.Tok, // we don't have the token of "ghost" :(
                $"'ghost' components are not allowed in `{decreasesToToken.val} to` expressions.");
            }
          }
@@ -4048,9 +4048,9 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
                      var exists = (ExistsExpr) e;
                      var LHSs = new List<CasePattern<BoundVar>>();
                      foreach (var v in exists.BoundVars) {
-                       LHSs.Add(new CasePattern<BoundVar>(e.tok, v));
+                       LHSs.Add(new CasePattern<BoundVar>(e.Tok, v));
                      }
-                     e0 = new LetExpr(e.tok, LHSs, new List<Expression>() {
+                     e0 = new LetExpr(e.Tok, LHSs, new List<Expression>() {
                        exists.Term }, e0, false);
                  }
                  e = new ITEExpr(new SourceOrigin(x, t), isBindingGuard, e, e0, e1);
@@ -4104,7 +4104,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
       ":|"                          (. exact = false;
                                        foreach (var lhs in letLHSs) {
                                          if (lhs.Arguments != null) {
-                                           SemErr(ErrorId.p_no_patterns_in_let_such_that, lhs.tok, "LHS of let-such-that expression must be variables, not general patterns");
+                                           SemErr(ErrorId.p_no_patterns_in_let_such_that, lhs.Tok, "LHS of let-such-that expression must be variables, not general patterns");
                                          }
                                        }
                                     .)
@@ -4218,7 +4218,7 @@ CasePattern<.out CasePattern<BoundVar> pat.>
                                           // later if resolution finds the CasePattern to denote a parameter-less constructor), because this
                                           // (in particular, bv.IsGhost) is the place where a LetExpr records whether or not the "ghost"
                                           // keyword was used in the declaration.
-                                          pat = new CasePattern<BoundVar>(bv.tok, bv);
+                                          pat = new CasePattern<BoundVar>(bv.Tok, bv);
                                        .)
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
@@ -4559,7 +4559,7 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
     "|"
     Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
   ]
-  (. qvar = new QuantifiedVar(bv.tok, bv.Name, bv.SyntacticType, domain, range); .)
+  (. qvar = new QuantifiedVar(bv.Tok, bv.Name, bv.SyntacticType, domain, range); .)
   .
 
 /*------------------------------------------------------------------------*/

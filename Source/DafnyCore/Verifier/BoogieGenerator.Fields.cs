@@ -146,7 +146,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(fse.Member != null && fse.Member is Field && ((Field)(fse.Member)).IsMutable);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      return new Bpl.IdentifierExpr(fse.tok, GetField((Field)fse.Member));
+      return new Bpl.IdentifierExpr(fse.Tok, GetField((Field)fse.Member));
     }
 
     void AddWellformednessCheck(ConstantField decl) {
@@ -215,8 +215,8 @@ namespace Microsoft.Dafny {
 
       // check well-formedness of the RHS expression
       CheckWellformed(decl.Rhs, new WFOptions(null, true), locals, builder, etran);
-      builder.Add(new Bpl.AssumeCmd(decl.Rhs.tok, etran.CanCallAssumption(decl.Rhs)));
-      CheckSubrange(decl.Rhs.tok, etran.TrExpr(decl.Rhs), decl.Rhs.Type, decl.Type, decl.Rhs, builder);
+      builder.Add(new Bpl.AssumeCmd(decl.Rhs.Tok, etran.CanCallAssumption(decl.Rhs)));
+      CheckSubrange(decl.Rhs.Tok, etran.TrExpr(decl.Rhs), decl.Rhs.Type, decl.Type, decl.Rhs, builder);
 
       if (EmitImplementation(decl.Attributes)) {
         // emit the impl only when there are proof obligations.

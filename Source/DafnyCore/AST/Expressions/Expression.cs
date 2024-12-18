@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 public abstract class Expression : TokenNode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(tok != null);
+    Contract.Invariant(Tok != null);
   }
 
   [System.Diagnostics.Contracts.Pure]
@@ -163,7 +163,7 @@ public abstract class Expression : TokenNode {
     expr = StripParens(expr);
     if (expr is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
       foreach (Expression e in Disjuncts(unary.E)) {
-        yield return Expression.CreateNot(e.tok, e);
+        yield return Expression.CreateNot(e.Tok, e);
       }
       yield break;
 
@@ -190,7 +190,7 @@ public abstract class Expression : TokenNode {
     expr = StripParens(expr);
     if (expr is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
       foreach (Expression e in Conjuncts(unary.E)) {
-        yield return Expression.CreateNot(e.tok, e);
+        yield return Expression.CreateNot(e.Tok, e);
       }
       yield break;
 
@@ -205,7 +205,7 @@ public abstract class Expression : TokenNode {
         yield break;
       } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
         foreach (Expression e in Conjuncts(bin.E0)) {
-          yield return Expression.CreateNot(e.tok, e);
+          yield return Expression.CreateNot(e.Tok, e);
         }
         foreach (Expression e in Conjuncts(bin.E1)) {
           yield return e;
@@ -227,7 +227,7 @@ public abstract class Expression : TokenNode {
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
+    var s = new BinaryExpr(e0.Tok, BinaryExpr.Opcode.Add, e0, e1);
     s.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;  // resolve here
     s.Type = e0.Type.NormalizeExpand();  // resolve here
     return s;
@@ -243,7 +243,7 @@ public abstract class Expression : TokenNode {
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Mul, e0, e1);
+    var s = new BinaryExpr(e0.Tok, BinaryExpr.Opcode.Mul, e0, e1);
     s.ResolvedOp = BinaryExpr.ResolvedOpcode.Mul;  // resolve here
     s.Type = e0.Type.NormalizeExpand();  // resolve here
     return s;
@@ -279,7 +279,7 @@ public abstract class Expression : TokenNode {
 
   private static Expression CastIfNeeded(Expression expr, Type toType) {
     if (!expr.Type.Equals(toType)) {
-      var cast = new ConversionExpr(expr.tok, expr, toType);
+      var cast = new ConversionExpr(expr.Tok, expr, toType);
       cast.Type = toType;
       return cast;
     } else {
@@ -300,7 +300,7 @@ public abstract class Expression : TokenNode {
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
       (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
+    var s = new BinaryExpr(e0.Tok, BinaryExpr.Opcode.Sub, e0, e1);
     s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
     s.Type = e0.Type.NormalizeExpand();  // resolve here (and it's important to remove any constraints)
     return s;
@@ -320,7 +320,7 @@ public abstract class Expression : TokenNode {
     if (LiteralExpr.IsEmptySet(e0) || LiteralExpr.IsEmptySet(e1)) {
       return e0;
     }
-    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
+    var s = new BinaryExpr(e0.Tok, BinaryExpr.Opcode.Sub, e0, e1) {
       ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference,
       Type = e0.Type.NormalizeExpand() // important to remove any constraints
     };
@@ -341,7 +341,7 @@ public abstract class Expression : TokenNode {
     if (LiteralExpr.IsEmptyMultiset(e0) || LiteralExpr.IsEmptyMultiset(e1)) {
       return e0;
     }
-    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
+    var s = new BinaryExpr(e0.Tok, BinaryExpr.Opcode.Sub, e0, e1) {
       ResolvedOp = BinaryExpr.ResolvedOpcode.MultiSetDifference,
       Type = e0.Type.NormalizeExpand() // important to remove any constraints
     };
@@ -356,7 +356,7 @@ public abstract class Expression : TokenNode {
     Contract.Requires(e.Type != null);
     Contract.Requires(e.Type.AsSetType != null || e.Type.AsMultiSetType != null || e.Type.AsSeqType != null);
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var s = new UnaryOpExpr(e.tok, UnaryOpExpr.Opcode.Cardinality, e) {
+    var s = new UnaryOpExpr(e.Tok, UnaryOpExpr.Opcode.Cardinality, e) {
       Type = systemModuleManager.Nat()
     };
     return s;
@@ -374,7 +374,7 @@ public abstract class Expression : TokenNode {
     if (n == 0) {
       return e;
     }
-    var nn = CreateIntLiteral(e.tok, n);
+    var nn = CreateIntLiteral(e.Tok, n);
     return CreateAdd(e, nn);
   }
 
@@ -389,7 +389,7 @@ public abstract class Expression : TokenNode {
     if (n == 0) {
       return e;
     }
-    var nn = CreateIntLiteralNonnegative(e.tok, n, ty);
+    var nn = CreateIntLiteralNonnegative(e.Tok, n, ty);
     return CreateSubtract(e, nn);
   }
 
@@ -597,7 +597,7 @@ public abstract class Expression : TokenNode {
           break;
       }
       if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {
-        return new BinaryExpr(bin.tok, BinaryExpr.ResolvedOp2SyntacticOp(negatedOp), bin.E0, bin.E1) {
+        return new BinaryExpr(bin.Tok, BinaryExpr.ResolvedOp2SyntacticOp(negatedOp), bin.E0, bin.E1) {
           ResolvedOp = negatedOp,
           Type = bin.Type
         };
@@ -623,7 +623,7 @@ public abstract class Expression : TokenNode {
       (e0.Type.IsCharType && e1.Type.IsCharType) ||
       (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1) {
+    return new BinaryExpr(e0.Tok, BinaryExpr.Opcode.Lt, e0, e1) {
       ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LtChar : BinaryExpr.ResolvedOpcode.Lt,
       Type = Type.Bool
     };
@@ -643,7 +643,7 @@ public abstract class Expression : TokenNode {
       (e0.Type.IsCharType && e1.Type.IsCharType) ||
       (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1) {
+    return new BinaryExpr(e0.Tok, BinaryExpr.Opcode.Le, e0, e1) {
       ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LeChar : BinaryExpr.ResolvedOpcode.Le,
       Type = Type.Bool
     };
@@ -653,7 +653,7 @@ public abstract class Expression : TokenNode {
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);
     Contract.Requires(ty != null);
-    var eq = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Eq, e0, e1);
+    var eq = new BinaryExpr(e0.Tok, BinaryExpr.Opcode.Eq, e0, e1);
     if (ty is SetType) {
       eq.ResolvedOp = BinaryExpr.ResolvedOpcode.SetEq;
     } else if (ty is SeqType) {
@@ -682,7 +682,7 @@ public abstract class Expression : TokenNode {
     } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
       return a;
     } else {
-      var and = new BinaryExpr(a.tok, BinaryExpr.Opcode.And, a, b);
+      var and = new BinaryExpr(a.Tok, BinaryExpr.Opcode.And, a, b);
       and.ResolvedOp = BinaryExpr.ResolvedOpcode.And;  // resolve here
       and.Type = Type.Bool;  // resolve here
       return and;
@@ -700,7 +700,7 @@ public abstract class Expression : TokenNode {
     if (allowSimplification && (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b))) {
       return b;
     } else {
-      var imp = new BinaryExpr(a.tok, BinaryExpr.Opcode.Imp, a, b);
+      var imp = new BinaryExpr(a.Tok, BinaryExpr.Opcode.Imp, a, b);
       imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  // resolve here
       imp.Type = Type.Bool;  // resolve here
       return imp;
@@ -720,7 +720,7 @@ public abstract class Expression : TokenNode {
     } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
       return b;
     } else {
-      var or = new BinaryExpr(a.tok, BinaryExpr.Opcode.Or, a, b);
+      var or = new BinaryExpr(a.Tok, BinaryExpr.Opcode.Or, a, b);
       or.ResolvedOp = BinaryExpr.ResolvedOpcode.Or;  // resolve here
       or.Type = Type.Bool;  // resolve here
       return or;
@@ -736,7 +736,7 @@ public abstract class Expression : TokenNode {
     Contract.Requires(e1 != null);
     Contract.Requires(test.Type.IsBoolType && e0.Type.Equals(e1.Type));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var ite = new ITEExpr(test.tok, false, test, e0, e1);
+    var ite = new ITEExpr(test.Tok, false, test, e0, e1);
     ite.Type = e0.type;  // resolve here
     return ite;
   }
@@ -774,7 +774,7 @@ public abstract class Expression : TokenNode {
     };
 
     subst = TypeParameter.SubstitutionMap(call.Function.TypeArgs, call.TypeApplication_JustFunction);
-    return new ApplySuffix(call.tok, null, exprDotName, new ActualBindings(call.Args).ArgumentBindings, call.CloseParen) {
+    return new ApplySuffix(call.Tok, null, exprDotName, new ActualBindings(call.Args).ArgumentBindings, call.CloseParen) {
       ResolvedExpression = call,
       Type = call.Function.ResultType.Subst(subst)
     };
@@ -824,7 +824,7 @@ public abstract class Expression : TokenNode {
     var newVars = old_case.Arguments.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
     new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, new_body);
 
-    var new_case = new MatchCaseExpr(old_case.tok, old_case.Ctor, old_case.FromBoundVar, newVars, new_body, old_case.Attributes);
+    var new_case = new MatchCaseExpr(old_case.Tok, old_case.Ctor, old_case.FromBoundVar, newVars, new_body, old_case.Attributes);
 
     new_case.Ctor = old_case.Ctor; // resolve here
     return new_case;
@@ -911,7 +911,7 @@ public abstract class Expression : TokenNode {
     }
 
     for (int i = 0; i < oldVars.Count; i++) {
-      var id = new IdentifierExpr(newVars[i].tok, newVars[i].Name);
+      var id = new IdentifierExpr(newVars[i].Tok, newVars[i].Name);
       id.Var = newVars[i];    // Resolve here manually
       id.Type = newVars[i].Type;  // Resolve here manually
       substMap.Add(oldVars[i], id);

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -10,8 +11,12 @@ public abstract class TokenNode : Node {
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
   internal Token[] FormatTokens = null;
 
-  public IOrigin tok = Token.NoToken;
+  protected IOrigin tok = Token.NoToken;
 
+  public void SetTok(IOrigin newTok) {
+    tok = newTok;
+  }
+  
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
   public IOrigin Tok => tok;
 
@@ -19,11 +24,11 @@ public abstract class TokenNode : Node {
     get {
       if (Tok is Token tokenOrigin) {
 
-        var startTok = tok.StartToken;
-        var endTok = tok.EndToken;
+        var startTok = Tok.StartToken;
+        var endTok = Tok.EndToken;
 
         void UpdateStartEndToken(Token token1) {
-          if (token1.Filepath != tok.Filepath) {
+          if (token1.Filepath != Tok.Filepath) {
             return;
           }
 
@@ -41,7 +46,7 @@ public abstract class TokenNode : Node {
             return;
           }
 
-          if (node.Origin.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
+          if (node.Origin.Filepath != Tok.Filepath || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {

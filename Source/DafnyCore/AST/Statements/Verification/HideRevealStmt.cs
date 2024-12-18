@@ -62,7 +62,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
   public static string SingleName(Expression e) {
     Contract.Requires(e != null);
     if (e is NameSegment || e is LiteralExpr) {
-      return e.tok.val;
+      return e.Tok.val;
     } else {
       return null;
     }

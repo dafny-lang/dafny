@@ -182,11 +182,11 @@ namespace Microsoft.Dafny.Triggers {
         foreach (var group in groups) {
           SplitPartTriggerWriter q = group.Quantifier;
           if (q.Comprehension is ForallExpr forallExpr) {
-            IOrigin tok = forallExpr.tok is NestedOrigin nestedToken ? nestedToken.Outer : forallExpr.tok;
+            IOrigin tok = forallExpr.Tok is NestedOrigin nestedToken ? nestedToken.Outer : forallExpr.Tok;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.And, group.Expressions);
             q.Comprehension = new ForallExpr(tok, forallExpr.BoundVars, forallExpr.Range, expr, TriggerUtils.CopyAttributes(forallExpr.Attributes)) { Type = forallExpr.Type, Bounds = forallExpr.Bounds };
           } else if (q.Comprehension is ExistsExpr existsExpr) {
-            IOrigin tok = existsExpr.tok is NestedOrigin nestedToken ? nestedToken.Outer : existsExpr.tok;
+            IOrigin tok = existsExpr.Tok is NestedOrigin nestedToken ? nestedToken.Outer : existsExpr.Tok;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.Or, group.Expressions);
             q.Comprehension = new ExistsExpr(tok, existsExpr.BoundVars, existsExpr.Range, expr, TriggerUtils.CopyAttributes(existsExpr.Attributes)) { Type = existsExpr.Type, Bounds = existsExpr.Bounds };
           }
