@@ -145,8 +145,6 @@ module M0 {
    * SCC at height 0:
    *   Cl
    * SCC at height 0:
-   *   Tr
-   * SCC at height 0:
    *   Tr.F
    */
   trait Tr<X> {
@@ -155,9 +153,6 @@ module M0 {
       15
     }
   }
-  /*-- non-null type
-  type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
-  */
 
   class Cl<Y> extends Tr<Y> {
     lemma M()
@@ -188,7 +183,7 @@ module M1 {
     ghost var x: (int, int) := c.w;
   }
 
-  trait Tr<X(0)> {
+  trait Tr<X(0)> extends object {
     var w: X
   }
   /*-- non-null type
@@ -208,8 +203,6 @@ module M2 {
    * SCC at height 0:
    *   Cl
    * SCC at height 0:
-   *   Tr
-   * SCC at height 0:
    *   Tr.F
    */
   lemma M(c: Cl<int>)
@@ -226,13 +219,65 @@ module M2 {
       15
     }
   }
-  /*-- non-null type
-  type {:axiom} Tr(==)<X, W> = c: Tr?<X, W> | c != null /*special witness*/
-  */
 
   class Cl<Y> extends Tr<(Y, Y), real> { }
   /*-- non-null type
   type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+}
+
+module M3 {
+  /* CALL GRAPH for module M3:
+   * SCC at height 1:
+   *   M
+   * SCC at height 0:
+   *   Cl
+   * SCC at height 0:
+   *   Tr.w
+   */
+  lemma M(c: Cl<int>)
+    decreases c
+  {
+    ghost var x: (int, int) := c.w;
+  }
+
+  trait Tr<X(0)> {
+    const w: X
+  }
+
+  class Cl<Y(0)> extends Tr<(Y, Y)> { }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y(0)> = c: Cl?<Y> | c != null /*special witness*/
+  */
+}
+
+module M4 {
+  /* CALL GRAPH for module M4:
+   * SCC at height 1:
+   *   M
+   * SCC at height 0:
+   *   Cl
+   * SCC at height 0:
+   *   Tr
+   * SCC at height 0:
+   *   Tr.w
+   */
+  lemma M(c: Cl<int>)
+    decreases c
+  {
+    ghost var x: (int, int) := c.w;
+  }
+
+  trait Tr<X(0)> extends object {
+    const w: X
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X(0)> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class Cl<Y(0)> extends Tr<(Y, Y)> { }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y(0)> = c: Cl?<Y> | c != null /*special witness*/
   */
 }
 
@@ -243,10 +288,6 @@ module P0 {
    * SCC at height 0:
    *   Cl
    * SCC at height 0:
-   *   Tr
-   * SCC at height 0:
-   *   TrX
-   * SCC at height 0:
    *   TrX.F
    */
   trait TrX<X> {
@@ -255,14 +296,8 @@ module P0 {
       15
     }
   }
-  /*-- non-null type
-  type {:axiom} TrX(==)<X> = c: TrX?<X> | c != null /*special witness*/
-  */
 
   trait Tr<X> extends TrX<X> { }
-  /*-- non-null type
-  type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
-  */
 
   class Cl<Y> extends Tr<Y> {
     lemma M()
@@ -295,7 +330,7 @@ module P1 {
     ghost var x: (int, int) := c.w;
   }
 
-  trait TrX<X(0)> {
+  trait TrX<X(0)> extends object {
     var w: X
   }
   /*-- non-null type
@@ -320,10 +355,6 @@ module P2 {
    * SCC at height 0:
    *   Cl
    * SCC at height 0:
-   *   Tr
-   * SCC at height 0:
-   *   TrX
-   * SCC at height 0:
    *   TrX.F
    */
   lemma M(c: Cl<int>)
@@ -340,14 +371,8 @@ module P2 {
       15
     }
   }
-  /*-- non-null type
-  type {:axiom} TrX(==)<X, W> = c: TrX?<X, W> | c != null /*special witness*/
-  */
 
   trait Tr<X, W> extends TrX<X, W> { }
-  /*-- non-null type
-  type {:axiom} Tr(==)<X, W> = c: Tr?<X, W> | c != null /*special witness*/
-  */
 
   class Cl<Y> extends Tr<(Y, Y), real> { }
   /*-- non-null type
@@ -355,4 +380,4 @@ module P2 {
   */
 }
 
-Dafny program verifier finished with 6 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors

@@ -260,6 +260,9 @@ namespace Microsoft.Dafny {
       } else if (t is TypeRefinementWrapper typeRefinementWrapper) {
         // don't bother keeping TypeRefinementWrapper wrappers
         return CloneType(typeRefinementWrapper.T);
+      } else if (t is BottomTypePlaceholder bottomTypePlaceholder) {
+        // don't bother keeping BottomTypePlaceholder wrappers
+        return CloneType(bottomTypePlaceholder.T);
       } else {
         Contract.Assert(false); // unexpected type (e.g., no other type proxies are expected at this time)
         return null; // to please compiler

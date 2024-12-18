@@ -364,6 +364,7 @@ namespace Microsoft.Dafny {
         if (expr is UnaryOpExpr uop) {
           var resolvedOp = (uop.Op, PreTypeResolver.AncestorName(uop.E.PreType)) switch {
             (UnaryOpExpr.Opcode.Not, PreType.TypeNameBool) => UnaryOpExpr.ResolvedOpcode.BoolNot,
+            (UnaryOpExpr.Opcode.Not, _) => UnaryOpExpr.ResolvedOpcode.BVNot,
             (UnaryOpExpr.Opcode.Cardinality, PreType.TypeNameSet) => UnaryOpExpr.ResolvedOpcode.SetCard,
             (UnaryOpExpr.Opcode.Cardinality, PreType.TypeNameSeq) => UnaryOpExpr.ResolvedOpcode.SeqLength,
             (UnaryOpExpr.Opcode.Cardinality, PreType.TypeNameMultiset) => UnaryOpExpr.ResolvedOpcode.MultiSetCard,
@@ -371,8 +372,10 @@ namespace Microsoft.Dafny {
             (UnaryOpExpr.Opcode.Fresh, _) => UnaryOpExpr.ResolvedOpcode.Fresh,
             (UnaryOpExpr.Opcode.Allocated, _) => UnaryOpExpr.ResolvedOpcode.Allocated,
             (UnaryOpExpr.Opcode.Lit, _) => UnaryOpExpr.ResolvedOpcode.Lit,
+            (UnaryOpExpr.Opcode.Assigned, _) => UnaryOpExpr.ResolvedOpcode.Assigned,
             _ => UnaryOpExpr.ResolvedOpcode.YetUndetermined // Unreachable
           };
+          Contract.Assert(resolvedOp != UnaryOpExpr.ResolvedOpcode.YetUndetermined);
           if (uop.Op == UnaryOpExpr.Opcode.Not && PreTypeResolver.IsBitvectorName(familyDeclName)) {
             resolvedOp = UnaryOpExpr.ResolvedOpcode.BVNot;
           }

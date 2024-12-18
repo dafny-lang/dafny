@@ -174,7 +174,7 @@ module {:options "--function-syntax:4"} TestModule {
     ensures true
 
 
-  trait T1<TR> extends T3 /** A special trait */ {
+  trait T1<TR> extends object, T3 /** A special trait */ {
     const one := 1
     var count: int
   }

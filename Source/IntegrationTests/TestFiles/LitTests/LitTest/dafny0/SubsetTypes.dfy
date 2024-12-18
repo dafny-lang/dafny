@@ -46,9 +46,9 @@ module AssignmentToNat {
   method Q(x: int) {
     var f := Pf;
     var g := Pg;
-    var a := f(x);  // error
+    var a := f(x);  // error: x may be negative
     var id := (u: int) => u;
-    g := id;  // error
+    g := id;
   }
 
   ghost function Id(x: int): nat
