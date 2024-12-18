@@ -1254,7 +1254,7 @@ namespace Microsoft.Dafny {
           receiver.Type = ModuleResolver.GetThisType(expr.Tok, currentClass);
           receiver.PreType = Type2PreType(receiver.Type);
         }
-        r = ResolveExprDotCall(expr.Tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+        r = ResolveExprDotCall(expr.tok, new Name(expr.Origin, expr.Name), receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
 
       } else if (isLastNameSegment && resolver.moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
@@ -1306,7 +1306,7 @@ namespace Microsoft.Dafny {
         } else {
           var receiver = new StaticReceiverExpr(expr.Tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
           receiver.PreType = Type2PreType(receiver.Type);
-          r = ResolveExprDotCall(expr.Tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+          r = ResolveExprDotCall(expr.tok, new Name(expr.Origin, expr.Name), receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
         }
 
       } else if (!isLastNameSegment && resolver.moduleInfo.Ctors.TryGetValue(name, out pair)) {
@@ -1531,7 +1531,7 @@ namespace Microsoft.Dafny {
           } else {
             var receiver = new StaticReceiverExpr(expr.Tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
             receiver.PreType = Type2PreType(receiver.Type);
-            r = ResolveExprDotCall(expr.Tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
           ReportUnresolvedIdentifierError(expr.Tok, name, resolutionContext);
@@ -1572,7 +1572,7 @@ namespace Microsoft.Dafny {
             }
             var receiver = new StaticReceiverExpr(expr.Lhs.Tok, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false);
             receiver.PreType = Type2PreType(receiver.Type);
-            r = ResolveExprDotCall(expr.Tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
         if (r == null) {
@@ -1588,14 +1588,14 @@ namespace Microsoft.Dafny {
             var receiver = expr.Lhs;
             AddSubtypeConstraint(tentativeReceiverPreType, receiver.PreType, expr.Tok,
               $"receiver type ({{1}}) does not have a member named '{name}'");
-            r = ResolveExprDotCall(expr.Tok, receiver, tentativeReceiverPreType, member, args, expr.OptTypeArguments,
+            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, tentativeReceiverPreType, member, args, expr.OptTypeArguments,
               resolutionContext, allowMethodCall);
           } else {
             var receiver = new StaticReceiverExpr(expr.Tok, new InferredTypeProxy(), true) {
               PreType = tentativeReceiverPreType.SansPrintablePreType(),
               ObjectToDiscard = lhs
             };
-            r = ResolveExprDotCall(expr.Tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext,
+            r = ResolveExprDotCall(expr.tok, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext,
               allowMethodCall);
           }
         }
@@ -1612,7 +1612,7 @@ namespace Microsoft.Dafny {
       return rWithArgs;
     }
 
-    Expression ResolveExprDotCall(IOrigin tok, Expression receiver, DPreType receiverPreTypeBound/*?*/,
+    Expression ResolveExprDotCall(IOrigin tok, Name name, Expression receiver, DPreType receiverPreTypeBound/*?*/,
       MemberDecl member, List<ActualBinding> args, List<Type> optTypeArguments, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
@@ -1624,7 +1624,7 @@ namespace Microsoft.Dafny {
 
       receiverPreTypeBound ??= (DPreType)receiver.PreType.Normalize();
 
-      var rr = new MemberSelectExpr(tok, receiver, member.Name);
+      var rr = new MemberSelectExpr(tok, receiver, name);
       rr.Member = member;
 
       // Now, fill in rr.PreType.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
@@ -1756,7 +1756,7 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // resolve as a FunctionCallExpr instead of as an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.Tok, callee.Name, mse.Obj, e.Tok, e.CloseParen, e.Bindings, atLabel) {
+            var rr = new FunctionCallExpr(e.Lhs.tok, mse.MemberNameNode, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
               PreTypeApplication_AtEnclosingClass = mse.PreTypeApplicationAtEnclosingClass,
               PreTypeApplication_JustFunction = mse.PreTypeApplicationJustMember
@@ -1968,7 +1968,7 @@ namespace Microsoft.Dafny {
           if (rhsBindings.TryGetValue(f.Name, out var info)) {
             ctorArg = info.Item2 ?? info.Item3;
           } else {
-            ctorArg = new ExprDotName(tok, d, f.Name, null);
+            ctorArg = new ExprDotName(tok, d, new Name(f.Name), null);
           }
           var bindingName = new Token(tok.line, tok.col) {
             Uri = tok.Uri,
@@ -1983,7 +1983,7 @@ namespace Microsoft.Dafny {
           body = ctorCall;
         } else {
           // body := if d.crc? then ctor_call else body
-          var guard = new ExprDotName(tok, d, crc.QueryField.Name, null);
+          var guard = new ExprDotName(tok, d, new Name(crc.QueryField.Name), null);
           body = new ITEExpr(tok, false, guard, ctorCall, body);
         }
       }

@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
         } else {
           function = e.Function;
         }
-        return new FunctionCallExpr(e.Tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel) {
+        return new FunctionCallExpr(e.tok, e.NameNode, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel) {
           Function = function,
           Type = e.Type.Subst(typeMap),
           TypeApplication_AtEnclosingClass = SubstituteTypeList(typeApplicationAtEnclosingClass), // resolve here

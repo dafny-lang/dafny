@@ -64,8 +64,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
 
   public IEnumerable<Reference> GetReferences() {
     return LegalSourceConstructors == null ? Enumerable.Empty<Reference>()
-      : Updates.Zip(LegalSourceConstructors).Select(t =>
-        new Reference(t.First.Item1, t.Second.Formals.Find(f => f.Name == t.First.Item2)));
+      : Updates.Zip(LegalSourceConstructors).Select(t => new Reference(t.First.Item1, t.Second));
   }
 
   public override IEnumerable<Expression> PreResolveSubExpressions {

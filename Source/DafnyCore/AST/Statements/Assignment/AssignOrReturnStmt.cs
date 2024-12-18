@@ -207,7 +207,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       if (lhsResolved is MemberSelectExpr lexr) {
         Expression id = Expression.AsThis(lexr.Obj) != null ? lexr.Obj : resolver.makeTemp("recv", this, resolutionContext, lexr.Obj);
         var lex = lhsExtract as ExprDotName; // might be just a NameSegment
-        lhsExtract = new ExprDotName(lexr.Tok, id, lexr.MemberName, lex == null ? null : lex.OptTypeArguments);
+        lhsExtract = new ExprDotName(lexr.tok, id, lexr.MemberNameNode, lex == null ? null : lex.OptTypeArguments);
       } else if (lhsResolved is SeqSelectExpr lseq) {
         if (!lseq.SelectOne || lseq.E0 == null) {
           resolver.Reporter.Error(MessageSource.Resolver, Tok,

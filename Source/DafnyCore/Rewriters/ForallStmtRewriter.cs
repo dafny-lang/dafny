@@ -107,7 +107,7 @@ public class ForallStmtRewriter : IRewriter {
         switch (lhs) {
           case MemberSelectExpr memberSelect:
             Fi = memberSelect.Obj;
-            lhsBuilder = e => new MemberSelectExpr(memberSelect.Tok, e, memberSelect.MemberName) {
+            lhsBuilder = e => new MemberSelectExpr(memberSelect.tok, e, memberSelect.MemberNameNode) {
               Member = memberSelect.Member,
               TypeApplicationAtEnclosingClass = memberSelect.TypeApplicationAtEnclosingClass,
               TypeApplicationJustMember = memberSelect.TypeApplicationJustMember,

@@ -458,12 +458,12 @@ public class AutoContractsRewriter : IRewriter {
   }
 
   private static Expression CreateUnresolvedThisRepr(IOrigin tok) {
-    return new ExprDotName(tok, new ImplicitThisExpr(tok), "Repr", null);
+    return new ExprDotName(tok, new ImplicitThisExpr(tok), new Name("Repr"), null);
   }
 
   public static Expression CreateUnresolvedValidCall(IOrigin tok) {
     return new ApplySuffix(tok, null,
-      new ExprDotName(tok, new ImplicitThisExpr(tok), "Valid", null),
+      new ExprDotName(tok, new ImplicitThisExpr(tok), new Name("Valid"), null),
       new List<ActualBinding>(), Token.NoToken);
   }
 
@@ -484,7 +484,7 @@ public class AutoContractsRewriter : IRewriter {
 
   public static Expression CreateResolvedFieldSelect(IOrigin tok, Expression receiver, Field field) {
     var memberSelectExpr = new MemberSelectExpr(tok, receiver, field);
-    return new ExprDotName(tok, receiver, field.Name, null) {
+    return new ExprDotName(tok, receiver, new Name(field.Name), null) {
       ResolvedExpression = memberSelectExpr,
       Type = memberSelectExpr.Type
     };
