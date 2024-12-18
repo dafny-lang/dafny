@@ -755,8 +755,8 @@ namespace Microsoft.Dafny {
         }
 
         // Generate a CallStmt to be used as the body of the 'forall' statement.
-        m.RecursiveCallParameters(m.tok, m.TypeArgs, m.Ins, receiverSubst, substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
-        var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name) {
+        m.RecursiveCallParameters(m.Tok, m.TypeArgs, m.Ins, receiverSubst, substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
+        var methodSel = new MemberSelectExpr(m.Tok, recursiveCallReceiver, m.NameNode) {
           Member = m,
           TypeApplicationAtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp)),
           TypeApplicationJustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp)),

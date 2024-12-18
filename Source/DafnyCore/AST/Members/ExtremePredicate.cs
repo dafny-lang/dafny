@@ -40,7 +40,7 @@ public abstract class ExtremePredicate : Function {
 
     var args = new List<Expression>() { depth };
     args.AddRange(fexp.Args);
-    var prefixPredCall = new FunctionCallExpr(fexp.Tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, fexp.CloseParen, args);
+    var prefixPredCall = new FunctionCallExpr(fexp.Tok, PrefixPredicate.NameNode, fexp.Receiver, fexp.OpenParen, fexp.CloseParen, args);
     prefixPredCall.Function = this.PrefixPredicate;  // resolve here
     prefixPredCall.TypeApplication_AtEnclosingClass = fexp.TypeApplication_AtEnclosingClass;  // resolve here
     prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;  // resolve here

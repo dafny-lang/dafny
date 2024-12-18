@@ -617,7 +617,7 @@ namespace Microsoft.Dafny {
             if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
               var dPrecond = new ApplyExpr(
                 Token.NoToken,
-                new ExprDotName(Token.NoToken, unwrappedFunc, "requires", null),
+                new ExprDotName(Token.NoToken, unwrappedFunc, new Name("requires"), null),
                 e.Args,
                 Token.NoToken);
 
@@ -637,7 +637,7 @@ namespace Microsoft.Dafny {
 
               var readsCall = new ApplyExpr(
                 Token.NoToken,
-                new ExprDotName(Token.NoToken, unwrappedFunc, "reads", null),
+                new ExprDotName(Token.NoToken, unwrappedFunc, new Name("reads"), null),
                 e.Args,
                 Token.NoToken
               );
@@ -801,7 +801,7 @@ namespace Microsoft.Dafny {
                     default:
                       var readsCall = new ApplyExpr(
                         Token.NoToken,
-                        new ExprDotName(Token.NoToken, e.Receiver.Resolved, "reads", null),
+                        new ExprDotName(Token.NoToken, e.Receiver.Resolved, new Name("reads"), null),
                         e.Args,
                         Token.NoToken
                       );
@@ -1646,7 +1646,7 @@ namespace Microsoft.Dafny {
         Utils.MakeQuantifierVarsForDims(dims, out var indexVars, out var indexVarExprs, out var indicesRange);
         var readsCall = new ApplyExpr(
           Token.NoToken,
-          new ExprDotName(Token.NoToken, unwrappedFunc, "reads", null),
+          new ExprDotName(Token.NoToken, unwrappedFunc, new Name("reads"), null),
           indexVarExprs,
           Token.NoToken
         );

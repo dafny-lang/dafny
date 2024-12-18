@@ -123,7 +123,7 @@ namespace Microsoft.Dafny {
         if (newObj != mse.Obj ||
             newTypeApplicationAtEnclosingClass != mse.TypeApplicationAtEnclosingClass ||
             newTypeApplicationJustMember != mse.TypeApplicationJustMember) {
-          var fseNew = new MemberSelectExpr(mse.tok, newObj, mse.MemberName) {
+          var fseNew = new MemberSelectExpr(mse.tok, newObj, mse.MemberNameNode) {
             Member = mse.Member,
             TypeApplicationAtEnclosingClass = newTypeApplicationAtEnclosingClass,
             TypeApplicationJustMember = newTypeApplicationJustMember,
@@ -165,7 +165,7 @@ namespace Microsoft.Dafny {
         if (receiver != e.Receiver || newArgs != e.Args ||
             newTypeApplicationAtEnclosingClass != e.TypeApplication_AtEnclosingClass ||
             newTypeApplicationJustFunction != e.TypeApplication_JustFunction) {
-          var newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel ?? oldHeapLabel) {
+          var newFce = new FunctionCallExpr(expr.tok, e.NameNode, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel ?? oldHeapLabel) {
             Function = e.Function, // resolve on the fly (and set newFce.Type below, at end)
             CoCall = e.CoCall, // also copy the co-call status
             CoCallHint = e.CoCallHint, // and any co-call hint

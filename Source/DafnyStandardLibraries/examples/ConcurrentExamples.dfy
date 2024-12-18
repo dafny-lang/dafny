@@ -9,6 +9,7 @@ module ConcurrentExamples {
   const p3: (char, nat) -> bool := (_, _) => true
   const p4: (Copy, nat) -> bool := (_, _) => true
   // const p5: (object?, nat) -> bool := (_, _) => true
+  const p6: (string, nat) -> bool := (_, _) => true
 
 
   datatype Copy = A | B
@@ -189,6 +190,20 @@ module ConcurrentExamples {
     expect(!b);
     mmap.Put(A, 0);
     b := mmap.HasKey(A);
+    expect(b);
+  }
+
+  @Test
+  method TestString() {
+    // Note that using separate string literals
+    // helps make it more likely that we will use distinct values
+    // at runtime, and ensure we get the equality semantics correct
+    // even if we use reference types for strings.
+    var mmap := new MutableMap(p6);
+    var b := mmap.HasKey("Hello world");
+    expect(!b);
+    mmap.Put("Hello world", 0);
+    b := mmap.HasKey("Hello world");
     expect(b);
   }
 

@@ -145,7 +145,7 @@ public class ExpectContracts : IRewriter {
     var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
     var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
     var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.tok);
-    var memberSelectExpr = new MemberSelectExpr(decl.tok, receiver, origMethod.Name);
+    var memberSelectExpr = new MemberSelectExpr(decl.Tok, receiver, origMethod.NameNode);
     memberSelectExpr.Member = origMethod;
     memberSelectExpr.TypeApplicationJustMember =
       newMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
@@ -315,7 +315,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
         var newTarget = NewRedirections[f];
         var resolved = (FunctionCallExpr)fce.Resolved;
         resolved.Function = (Function)newTarget;
-        resolved.Name = newTarget.Name;
+        resolved.NameNode = newTarget.NameNode;
         CalledWrappers.Add(newTarget);
       }
     }
@@ -330,7 +330,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
         var newTarget = NewRedirections[m];
         var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
         resolved.Member = newTarget;
-        resolved.MemberName = newTarget.Name;
+        resolved.MemberNameNode = newTarget.NameNode;
         CalledWrappers.Add(newTarget);
       }
     }

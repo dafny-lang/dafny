@@ -15,7 +15,7 @@ TypeInstantiations.dfy(57,15): Error: type parameters are not allowed to be rena
 TypeInstantiations.dfy(34,11): Error: to be a refinement of abstract type 'M0.C' declared with (==), datatype 'M1.C' must support equality
 TypeInstantiations.dfy(35,7): Error: to be a refinement of abstract type 'M0.D' declared with (==), type synonym 'M1.D' must support equality
 TypeInstantiations.dfy(36,13): Error: to be a refinement of abstract type 'M0.E' declared with (==), codatatype 'M1.E' must support equality
-TypeInstantiations.dfy(48,7): Error: to be a refinement of abstract type 'M0.N' declared with (==), type synonym 'M1.N' must support equality
+TypeInstantiations.dfy(48,7): Error: to be a refinement of abstract type 'M0.N' declared with (==), type synonym 'M1.N' must support equality (perhaps try declaring type parameter 'U' on line 48 as 'U(==)', which says it can only be instantiated with a type that supports equality)
 TypeInstantiations.dfy(69,29): Error: RHS (of type List<int>) not assignable to LHS (of type MyList.List<real>) (non-variant type parameter would require real = int)
 TypeInstantiations.dfy(81,8): Error: the type of this variable is underspecified
 TypeInstantiations.dfy(82,8): Error: the type of this variable is underspecified

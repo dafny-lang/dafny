@@ -1313,7 +1313,7 @@ public partial class BoogieGenerator {
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         boundsCheck = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, bound));
-        var intExpr = new ExprDotName(expr.tok, expr, "Floor", null);
+        var intExpr = new ExprDotName(expr.tok, expr, new Name("Floor"), null);
         dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.And,
           new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, new LiteralExpr(expr.tok, 0), intExpr),
           new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, intExpr, dafnyBound)
@@ -1322,7 +1322,7 @@ public partial class BoogieGenerator {
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, o);
         boundsCheck = Bpl.Expr.Lt(oi, bound);
-        var intExpr = new ExprDotName(expr.tok, expr, "Offset", null);
+        var intExpr = new ExprDotName(expr.tok, expr, new Name("Offset"), null);
         dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.And,
           new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, new LiteralExpr(expr.tok, 0), intExpr),
           new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, intExpr, dafnyBound)
@@ -1343,7 +1343,7 @@ public partial class BoogieGenerator {
         PutSourceIntoLocal();
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, oi);
-        Expression intExpr = new ExprDotName(expr.tok, expr, "Floor", null);
+        Expression intExpr = new ExprDotName(expr.tok, expr, new Name("Floor"), null);
         var dafnyBoundsCheck = Utils.MakeCharBoundsCheck(options, intExpr);
         builder.Add(Assert(tok, boundsCheck, new ConversionFit("real value", toType, dafnyBoundsCheck, errorMsgPrefix), builder.Context));
       } else if (fromType.IsBitVectorType) {
@@ -1368,7 +1368,7 @@ public partial class BoogieGenerator {
         var bound = Bpl.Expr.Literal(toBound);
         var boundsCheck = Bpl.Expr.Lt(oi, bound);
         var dafnyBound = new BinaryExpr(expr.tok, BinaryExpr.Opcode.LeftShift, Expression.CreateIntLiteral(expr.tok, 1), Expression.CreateIntLiteral(expr.tok, toWidth));
-        var offset = new ExprDotName(expr.tok, expr, "Offset", null);
+        var offset = new ExprDotName(expr.tok, expr, new Name("Offset"), null);
         var dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, offset, dafnyBound);
         builder.Add(Assert(tok, boundsCheck, new ConversionFit("ORDINAL value", toType, dafnyBoundsCheck, errorMsgPrefix), builder.Context));
       }
@@ -1384,7 +1384,7 @@ public partial class BoogieGenerator {
         PutSourceIntoLocal();
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), oi);
-        var intExpr = new ExprDotName(expr.tok, expr, "Floor", null);
+        var intExpr = new ExprDotName(expr.tok, expr, new Name("Floor"), null);
         var desc = new ConversionPositive("real", toType, intExpr, errorMsgPrefix);
         builder.Add(Assert(tok, boundsCheck, desc, builder.Context));
       }

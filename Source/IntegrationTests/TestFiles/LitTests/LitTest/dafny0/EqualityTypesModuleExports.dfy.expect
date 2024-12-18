@@ -20,8 +20,8 @@ EqualityTypesModuleExports.dfy(13,23): Error: set argument type must support equ
 EqualityTypesModuleExports.dfy(32,15): Error: type parameter (X) passed to function Fib must support equality (got Y) (perhaps try declaring type parameter 'Y' on line 26 as 'Y(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(32,23): Error: set argument type must support equality (got Y) (perhaps try declaring type parameter 'Y' on line 26 as 'Y(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(34,13): Error: set argument type must support equality (got GG) (perhaps try declaring type parameter 'GG' on line 21 as 'GG(==)', which says it can only be instantiated with a type that supports equality)
-EqualityTypesModuleExports.dfy(84,7): Error: type 'Syn4' declared as supporting equality, but the RHS type ((real, A)) might not
-EqualityTypesModuleExports.dfy(92,7): Error: type 'Subset4' declared as supporting equality, but the RHS type ((A, int)) might not
+EqualityTypesModuleExports.dfy(84,7): Error: type 'Syn4' declared as supporting equality, but the RHS type ((real, A)) might not (perhaps try declaring type parameter 'A' on line 84 as 'A(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypesModuleExports.dfy(92,7): Error: type 'Subset4' declared as supporting equality, but the RHS type ((A, int)) might not (perhaps try declaring type parameter 'A' on line 92 as 'A(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(149,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co -> SubsetCo
 EqualityTypesModuleExports.dfy(162,11): Error: type parameter (A) passed to type MyClass must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(163,11): Error: type parameter (A) passed to type Dt must support equality (got Noeq)
@@ -47,8 +47,8 @@ EqualityTypesModuleExports.dfy(287,7): Error: == can only be applied to expressi
 EqualityTypesModuleExports.dfy(290,7): Error: == can only be applied to expressions of types that support equality (got WWW0.ZT)
 EqualityTypesModuleExports.dfy(293,7): Error: == can only be applied to expressions of types that support equality (got WWW0.WT)
 EqualityTypesModuleExports.dfy(318,7): Error: type 'A' declared as supporting equality, but the RHS type (QQQ1.Syn<int>) might not
-EqualityTypesModuleExports.dfy(333,7): Error: type 'ExportedType' declared as supporting equality, but the RHS type (PrivateType<A>) might not
-EqualityTypesModuleExports.dfy(381,4): Error: == can only be applied to expressions of types that support equality (got List<A>)
+EqualityTypesModuleExports.dfy(333,7): Error: type 'ExportedType' declared as supporting equality, but the RHS type (PrivateType<A>) might not (perhaps try declaring type parameter 'A' on line 333 as 'A(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypesModuleExports.dfy(381,4): Error: == can only be applied to expressions of types that support equality (got List<A>) (perhaps try declaring type parameter 'A' on line 379 as 'A(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(401,9): Warning: this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)
 EqualityTypesModuleExports.dfy(444,7): Error: type 'Synonym' declared as being nonempty, but the RHS type (Empty) may be empty
 EqualityTypesModuleExports.dfy(445,7): Error: type 'AnotherSynonym' declared as being nonempty, but the RHS type (Empty) may be empty

@@ -97,7 +97,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       ImportsNotFromDafnyModules.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
 
-      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+      if (Options.Get(CommonOptionBag.UseStandardLibraries) && Options.Get(CommonOptionBag.TranslateStandardLibrary)) {
         EmitRuntimeSource("DafnyStandardLibraries_go", wr);
       }
 
