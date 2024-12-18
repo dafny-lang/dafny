@@ -2100,8 +2100,8 @@ namespace Microsoft.Dafny {
           if (trait != null) {
             // disallowing inheritance in multi module case
             bool termination = true;
-            if (cl.EnclosingModuleDefinition == trait.EnclosingModuleDefinition || 
-                trait.IsObjectTrait || 
+            if (cl.EnclosingModuleDefinition == trait.EnclosingModuleDefinition ||
+                trait.IsObjectTrait ||
                 (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination) ||
                 Attributes.Contains(cl.Attributes, "AssumeCrossModuleTermination")) {
               // all is good (or the user takes responsibility for the lack of termination checking)

@@ -185,7 +185,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     foreach (var a in base.Assumptions(this)) {
       yield return a;
     }
-    
+
     foreach (var a in Members.SelectMany(m => m.Assumptions(this))) {
       yield return a;
     }
