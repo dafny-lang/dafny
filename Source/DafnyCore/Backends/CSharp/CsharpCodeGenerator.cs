@@ -97,7 +97,7 @@ namespace Microsoft.Dafny.Compilers {
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeCsharp", wr, false);
       }
-      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+      if (Options.Get(CommonOptionBag.UseStandardLibraries) && Options.Get(CommonOptionBag.TranslateStandardLibrary)) {
         EmitRuntimeSource("DafnyStandardLibraries_cs", wr, false);
       }
 

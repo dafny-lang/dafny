@@ -48,10 +48,9 @@ public class FrameExpression : TokenNode, IHasReferences {
     }
   }
 
-  public IOrigin NavigationToken => tok;
   public override IEnumerable<INode> Children => new[] { E };
   public override IEnumerable<INode> PreResolveChildren => Children;
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { Field }.Where(x => x != null);
+  public IEnumerable<Reference> GetReferences() {
+    return Field == null ? Enumerable.Empty<Reference>() : new[] { new Reference(Tok, Field) };
   }
 }
