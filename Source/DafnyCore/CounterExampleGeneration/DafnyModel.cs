@@ -73,7 +73,7 @@ namespace Microsoft.Dafny {
       fMapEmpty = new ModelFuncWrapper(this, "Map#Empty", 0, 0);
       fIs = new ModelFuncWrapper(this, "$Is", 2, tyArgMultiplier);
       fIsBox = new ModelFuncWrapper(this, "$IsBox", 2, 0);
-      fBox = new ModelFuncWrapper(this, "$Box", 1, tyArgMultiplier);
+      fBox = new ModelFuncWrapper(this, BoogieGenerator.BoxFunctionName, 1, tyArgMultiplier);
       fDim = new ModelFuncWrapper(this, "FDim", 1, 0);
       fIndexField = new ModelFuncWrapper(this, "IndexField", 1, 0);
       fMultiIndexField = new ModelFuncWrapper(this, "MultiIndexField", 2, 0);
@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
       fU2Int = new ModelFuncWrapper(this, "U_2_int", 1, 0);
       fTag = new ModelFuncWrapper(this, "Tag", 1, 0);
       fBv = new ModelFuncWrapper(this, "TBitvector", 1, 0);
-      fUnbox = new ModelFuncWrapper(this, "$Unbox", 2, 0);
+      fUnbox = new ModelFuncWrapper(this, BoogieGenerator.UnboxFunctionName, 2, 0);
       fLs = new ModelFuncWrapper(this, "$LS", 1, 0);
       fLz = new ModelFuncWrapper(this, "$LZ", 0, 0);
       InitDataTypes();

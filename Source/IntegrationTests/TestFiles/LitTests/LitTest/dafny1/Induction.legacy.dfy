@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /induction:3 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class IntegerInduction {
@@ -9,13 +9,13 @@ class IntegerInduction {
   //   SumOfCubes(n) == Gauss(n) * Gauss(n)
 
   ghost function SumOfCubes(n: int): int
-    requires 0 <= n;
+    requires 0 <= n
   {
     if n == 0 then 0 else SumOfCubes(n-1) + n*n*n
   }
 
   ghost function Gauss(n: int): int
-    requires 0 <= n;
+    requires 0 <= n
   {
     if n == 0 then 0 else Gauss(n-1) + n
   }
@@ -23,39 +23,39 @@ class IntegerInduction {
   // Here is one proof.  It uses a lemma, which is proved separately.
 
   lemma Theorem0(n: int)
-    requires 0 <= n;
-    ensures SumOfCubes(n) == Gauss(n) * Gauss(n);
+    requires 0 <= n
+    ensures SumOfCubes(n) == Gauss(n) * Gauss(n)
   {
-    if (n != 0) {
+    if n != 0 {
       Theorem0(n-1);
       Lemma(n-1);
     }
   }
 
   lemma Lemma(n: int)
-    requires 0 <= n;
-    ensures 2 * Gauss(n) == n*(n+1);
+    requires 0 <= n
+    ensures 2 * Gauss(n) == n*(n+1)
   {
-    if (n != 0) { Lemma(n-1); }
+    if n != 0 { Lemma(n-1); }
   }
 
   // Here is another proof.  It states the lemma as part of the theorem, and
   // thus proves the two together.
 
   lemma Theorem1(n: int)
-    requires 0 <= n;
-    ensures SumOfCubes(n) == Gauss(n) * Gauss(n);
-    ensures 2 * Gauss(n) == n*(n+1);
+    requires 0 <= n
+    ensures SumOfCubes(n) == Gauss(n) * Gauss(n)
+    ensures 2 * Gauss(n) == n*(n+1)
   {
-    if (n != 0) {
+    if n != 0 {
       Theorem1(n-1);
     }
   }
 
   lemma DoItAllInOneGo()
-    ensures (forall n {:split false} :: 0 <= n ==> // WISH reenable quantifier splitting here. This will only work once we generate induction hypotheses at the Dafny level.
+    ensures forall n {:induction} {:split false} :: 0 <= n ==> // WISH reenable quantifier splitting here. This will only work once we generate induction hypotheses at the Dafny level.
                 SumOfCubes(n) == Gauss(n) * Gauss(n) &&
-                2 * Gauss(n) == n*(n+1));
+                2 * Gauss(n) == n*(n+1)
   {
   }
 
@@ -64,15 +64,15 @@ class IntegerInduction {
   // Dafny's ghost-method induction tactic).
 
   lemma Lemma_Auto(n: int)
-    requires 0 <= n;
-    ensures 2 * Gauss(n) == n*(n+1);
+    requires 0 <= n
+    ensures 2 * Gauss(n) == n*(n+1)
   {
   }
 
   lemma Theorem1_Auto(n: int)
-    requires 0 <= n;
-    ensures SumOfCubes(n) == Gauss(n) * Gauss(n);
-    ensures 2 * Gauss(n) == n*(n+1);
+    requires 0 <= n
+    ensures SumOfCubes(n) == Gauss(n) * Gauss(n)
+    ensures 2 * Gauss(n) == n*(n+1)
   {
   }
 
@@ -80,37 +80,37 @@ class IntegerInduction {
   // prove the lemma.
 
   lemma Theorem2(n: int)
-    requires 0 <= n;
-    ensures SumOfCubes(n) == Gauss(n) * Gauss(n);
+    requires 0 <= n
+    ensures SumOfCubes(n) == Gauss(n) * Gauss(n)
   {
-    if (n != 0) {
+    if n != 0 {
       Theorem2(n-1);
 
-      assert (forall m :: 0 <= m ==> 2 * Gauss(m) == m*(m+1));
+      assert forall m {:induction} :: 0 <= m ==> 2 * Gauss(m) == m*(m+1);
     }
   }
 
   lemma M(n: int)
-    requires 0 <= n;
+    requires 0 <= n
   {
-    assume (forall k :: 0 <= k && k < n ==> 2 * Gauss(k) == k*(k+1));  // manually assume the induction hypothesis
+    assume forall k :: 0 <= k && k < n ==> 2 * Gauss(k) == k*(k+1);  // manually assume the induction hypothesis
     assert 2 * Gauss(n) == n*(n+1);
   }
 
   // Another way to prove the lemma is to supply a postcondition on the Gauss function
 
   lemma Theorem3(n: int)
-    requires 0 <= n;
-    ensures SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n);
+    requires 0 <= n
+    ensures SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n)
   {
-    if (n != 0) {
+    if n != 0 {
       Theorem3(n-1);
     }
   }
 
   ghost function GaussWithPost(n: int): int
-    requires 0 <= n;
-    ensures 2 * GaussWithPost(n) == n*(n+1);
+    requires 0 <= n
+    ensures 2 * GaussWithPost(n) == n*(n+1)
   {
     if n == 0 then 0 else GaussWithPost(n-1) + n
   }
@@ -118,19 +118,19 @@ class IntegerInduction {
   // Finally, with the postcondition of GaussWithPost, one can prove the entire theorem by induction
 
   lemma Theorem4()
-    ensures (forall n :: 0 <= n ==>
-        SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n));
+    ensures forall n {:induction} :: 0 <= n ==>
+        SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n)
   {
     // look ma, no hints!
   }
 
   lemma Theorem5(n: int)
-    requires 0 <= n;
-    ensures SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n);
+    requires 0 <= n
+    ensures SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n)
   {
     // the postcondition is a simple consequence of these quantified versions of the theorem:
-    if (*) {
-      assert (forall m :: 0 <= m ==> SumOfCubes(m) == GaussWithPost(m) * GaussWithPost(m));
+    if * {
+      assert forall m {:induction} :: 0 <= m ==> SumOfCubes(m) == GaussWithPost(m) * GaussWithPost(m);
     } else {
       Theorem4();
     }
@@ -149,10 +149,10 @@ class IntegerInduction {
   // The example uses an attribute that requests induction on just "j".  However, the proof also
   // goes through by applying induction on both bound variables.
   function IsSorted(s: seq<int>): bool //WISH remove autotriggers false
-    ensures IsSorted(s) ==> (forall i,j {:induction j} {:autotriggers false} :: 0 <= i < j < |s| ==> s[i] <= s[j]);
-    ensures (forall i,j :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j]) ==> IsSorted(s);
+    ensures IsSorted(s) ==> forall i,j {:induction j} {:autotriggers false} :: 0 <= i < j < |s| ==> s[i] <= s[j]
+    ensures (forall i,j :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j]) ==> IsSorted(s)
   {
-    (forall i {:nowarn} {:matchinglooprewrite false}:: 1 <= i && i < |s| ==> s[i-1] <= s[i])
+    forall i {:nowarn} {:matchinglooprewrite false} :: 1 <= i && i < |s| ==> s[i-1] <= s[i]
   }
 }
 
@@ -167,9 +167,9 @@ class DatatypeInduction<T> {
   }
 
   method Theorem0(tree: Tree<T>)
-    ensures 1 <= LeafCount(tree);
+    ensures 1 <= LeafCount(tree)
   {
-    assert (forall t: Tree<T> :: 1 <= LeafCount(t));
+    assert forall t: Tree<T> {:induction} :: 1 <= LeafCount(t);
   }
 
   // see also Test/dafny0/DTypes.dfy for more variations of this example
@@ -182,7 +182,7 @@ class DatatypeInduction<T> {
   }
   method RegressionTest(tree: Tree<T>)
     // the translation of the following line once crashed Dafny
-    requires forall y :: 0 <= OccurrenceCount(tree, y);
+    requires forall y :: 0 <= OccurrenceCount(tree, y)
   {
   }
 
@@ -195,7 +195,7 @@ class DatatypeInduction<T> {
 datatype D = Nothing | Something(D)
 
 ghost function FooD(n: nat, d: D): int
-  ensures 10 <= FooD(n, d);
+  ensures 10 <= FooD(n, d)
 {
   match d
   case Nothing =>
