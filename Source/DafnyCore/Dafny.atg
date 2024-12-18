@@ -3025,7 +3025,7 @@ ExpectStmt<out Statement/*!*/ s>
        s = new ExpectStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), m, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new ExpectStmt(new SourceOrigin(startToken, t, e.Center), e, m, attrs);
+       s = new ExpectStmt(new SourceOrigin(startToken, t, startToken), e, m, attrs);
      }
   .)
   .
