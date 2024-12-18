@@ -1484,15 +1484,16 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
      List<Type> tupleArgTypes = null;
      List<Token> argumentGhostTokens = null;
   .)
-  ( "bool"                          (. tok = t; startToken = t; .)
-  | "char"                          (. tok = t; startToken = t;  ty = new CharType(); .)
-  | "int"                           (. tok = t; startToken = t;  ty = new IntType(); .)
+  ( "bool"                          (. tok = t; startToken = t; ty.Origin = t; .)
+  | "char"                          (. tok = t; startToken = t;  ty = new CharType(); ty.Origin = t; .)
+  | "int"                           (. tok = t; startToken = t;  ty = new IntType(); ty.Origin = t; .)
   | "nat"                           (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "real"                          (. tok = t; startToken = t;  ty = new RealType(); .)
-  | "ORDINAL"                       (. tok = t; startToken = t;  ty = new BigOrdinalType(); .)
+  | "real"                          (. tok = t; startToken = t;  ty = new RealType(); ty.Origin = t; .)
+  | "ORDINAL"                       (. tok = t; startToken = t;  ty = new BigOrdinalType(); ty.Origin = t; .)
   | bvToken                         (. tok = t; startToken = t;
                                        int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide", startToken);
                                        ty = new BitvectorType(theOptions, w);
+                                       ty.Origin = t;
                                     .)
   | "set"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1501,6 +1502,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "set type expects only one type argument");
                                        }
                                        ty = new SetType(true, gt != null ?gt[0] : null);
+                                       ty.Origin = new SourceOrigin(startToken, t);
                                     .)
   | "iset"                          (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1509,6 +1511,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "iset type expects only one type argument");
                                        }
                                        ty = new SetType(false, gt != null ? gt[0] : null);
+                                       ty.Origin = new SourceOrigin(startToken, t);
                                     .)
   | "multiset"                      (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1517,6 +1520,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "multiset type expects only one type argument");
                                        }
                                        ty = new MultiSetType(gt != null ? gt[0] : null);
+                                       ty.Origin = new SourceOrigin(startToken, t);
                                     .)
   | "seq"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1525,10 +1529,15 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "seq type expects only one type argument");
                                        }
                                        ty = new SeqType(gt != null ? gt[0] : null);
+                                       ty.Origin = new SourceOrigin(startToken, t);
                                     .)
-  | "string"                        (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "object"                        (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "object?"                       (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); .)
+  | "string"                        (. tok = t; startToken = t;  
+                                       ty = new UserDefinedType(tok, tok.val, null); 
+                                       ty.Origin = new SourceOrigin(startToken, t); .)
+  | "object"                        (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); 
+                                       ty.Origin = new SourceOrigin(startToken, t); .)
+  | "object?"                       (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); 
+                                       ty.Origin = new SourceOrigin(startToken, t); .)
   | "map"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt == null) {
@@ -1540,6 +1549,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                        } else {
                                          ty = new MapType(true, gt[0], gt[1]);
                                        }
+                                       ty.Origin = new SourceOrigin(startToken, t);
                                     .)
   | "imap"                          (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1552,6 +1562,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                        } else {
                                          ty = new MapType(false, gt[0], gt[1]);
                                        }
+                                       ty.Origin = new SourceOrigin(startToken, t);
                                     .)
   | arrayToken                      (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1562,12 +1573,12 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions", startToken);
                                        (ty, var bMod) = SystemModuleManager.ArrayType(tok, dims, gt, true, q);
                                        SystemModuleModifiers.Add(bMod);
+                                       ty.Origin = new SourceOrigin(startToken, t);
                                     .)
   | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
   )
   (. startToken = startToken ?? ty.StartToken ?? tok;
-     ty.Origin = new SourceOrigin(startToken, t);
   .)
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
        Type t2;
@@ -1598,7 +1609,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
            ty = new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), gt);
          }
        }
-       ty.Origin = new SourceOrigin(startToken, t);
+       ty.Origin = new SourceOrigin(startToken, t, tok);
     .)
   ]
   .
