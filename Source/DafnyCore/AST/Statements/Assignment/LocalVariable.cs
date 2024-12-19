@@ -22,8 +22,6 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     Contract.Invariant(SyntacticType != null);
   }
 
-  public override IOrigin Tok => Origin;
-
   public LocalVariable(Cloner cloner, LocalVariable original)
     : base(cloner, original) {
     name = original.Name;

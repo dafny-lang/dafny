@@ -24,14 +24,12 @@ public class ClonerTest {
   [Fact]
   public void ClonerKeepsBodyStartTok() {
     var tokenBodyStart = new Token() { line = 2 };
-    var rangeToken = new RangeToken(Token.NoToken, Token.NoToken);
+    var rangeToken = new SourceOrigin(Token.NoToken, Token.NoToken);
     var specificationFrame = new LiteralExpr(Microsoft.Dafny.Token.NoToken, 1);
-    var formal1 = new Formal(Token.NoToken, "a", Microsoft.Dafny.Type.Bool, true, false, null) {
-      Origin = new RangeToken(tokenBodyStart, tokenBodyStart),
+    var formal1 = new Formal(new SourceOrigin(tokenBodyStart, tokenBodyStart), "a", Microsoft.Dafny.Type.Bool, true, false, null) {
       IsTypeExplicit = true
     };
-    var formal2 = new Formal(Token.NoToken, "b", Microsoft.Dafny.Type.Bool, true, false, null) {
-      Origin = new RangeToken(tokenBodyStart, tokenBodyStart),
+    var formal2 = new Formal(new SourceOrigin(tokenBodyStart, tokenBodyStart), "b", Microsoft.Dafny.Type.Bool, true, false, null) {
       IsTypeExplicit = false
     };
     var dummyDecl = new Method(rangeToken, new Name(rangeToken, "hello"),

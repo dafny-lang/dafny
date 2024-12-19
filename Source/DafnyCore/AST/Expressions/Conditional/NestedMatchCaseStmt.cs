@@ -9,8 +9,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
   public readonly List<Statement> Body;
   public Attributes Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "match statement case";
-  public NestedMatchCaseStmt(IOrigin rangeOrigin, ExtendedPattern pat, List<Statement> body) : base(rangeOrigin.StartToken, pat) {
-    Origin = rangeOrigin;
+  public NestedMatchCaseStmt(IOrigin rangeOrigin, ExtendedPattern pat, List<Statement> body) : base(rangeOrigin, pat) {
     Contract.Requires(body != null);
     this.Body = body;
     this.Attributes = null;
@@ -21,7 +20,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     this.Attributes = attrs;
   }
 
-  private NestedMatchCaseStmt(Cloner cloner, NestedMatchCaseStmt original) : base(original.tok, original.Pat) {
+  private NestedMatchCaseStmt(Cloner cloner, NestedMatchCaseStmt original) : base(original.Tok, original.Pat) {
     this.Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     this.Attributes = cloner.CloneAttributes(original.Attributes);
   }

@@ -38,7 +38,7 @@ public class BitvectorOptimizationVisitor : BottomUpVisitor {
     var width = new BigInteger(originalType.Width);
     var intermediateType = new BitvectorType(options, (int)width.GetBitLength());
     systemModuleManager.Bitwidths.Add(intermediateType.Width);
-    var newExpr = new ConversionExpr(expr.tok, expr, intermediateType, "when converting shift amount to a bit vector, the ");
+    var newExpr = new ConversionExpr(expr.Tok, expr, intermediateType, "when converting shift amount to a bit vector, the ");
     newExpr.Type = intermediateType;
     return newExpr;
   }

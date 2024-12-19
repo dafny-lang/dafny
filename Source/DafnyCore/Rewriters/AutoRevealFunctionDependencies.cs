@@ -333,7 +333,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     rr.TypeApplicationAtEnclosingClass = args;
 
     var call = new CallStmt(func.Origin, new List<Expression>(), rr, new List<ActualBinding>(),
-      func.Tok);
+      func.Center);
     call.IsGhost = true;
     call.Bindings.AcceptArgumentExpressionsAsExactParameterList(new List<Expression>());
 
@@ -358,7 +358,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     var topLevelDeclsList = accessibleMember.AccessPath;
     var nameList = topLevelDeclsList.Where(decl => decl.Name != "_default").ToList();
 
-    nameList.Add(new NameSegment(func.tok, func.Name, new List<Type>()));
+    nameList.Add(new NameSegment(func.Tok, func.Name, new List<Type>()));
 
     Expression nameSeed = nameList[0];
     var resolveExpr = nameList.Skip(1)

@@ -4,12 +4,62 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+class OverrideCenter : OriginWrapper {
+  public OverrideCenter(IOrigin wrappedToken, Token newCenter) : base(wrappedToken) {
+    this.Center = newCenter;
+  }
+
+  public override Token Center { get; }
+
+  public override IOrigin WithVal(string newVal) {
+    throw new System.NotImplementedException();
+  }
+
+  public override int col {
+    get => Center.col;
+    set => throw new System.NotImplementedException();
+  }
+
+  public override int line {
+    get => Center.line;
+    set => throw new System.NotImplementedException();
+  }
+
+  public override int pos {
+    get => Center.pos;
+    set => throw new System.NotImplementedException();
+  }
+
+  public override string val {
+    get => Center.val;
+    set => throw new System.NotImplementedException();
+  }
+
+  public override string LeadingTrivia {
+    get => Center.LeadingTrivia;
+    set => throw new System.NotImplementedException();
+  }
+
+  public override string TrailingTrivia {
+    get => Center.TrailingTrivia;
+    set => throw new System.NotImplementedException();
+  }
+
+  public override Token Next {
+    get => Center.Next;
+    set => throw new System.NotImplementedException();
+  }
+
+  public override Token Prev {
+    get => Center.Prev;
+    set => throw new System.NotImplementedException();
+  }
+}
+
 /// <summary>
 /// A CallStmt is always resolved.  It is typically produced as a resolved counterpart of the syntactic AST note ApplySuffix.
 /// </summary>
 public class CallStmt : Statement, ICloneable<CallStmt> {
-  // OverrideToken is required because MethodSelect.EndToken can be incorrect. Will remove once resolved expressions have correct ranges.
-  public override IOrigin Tok => overrideToken ?? MethodSelect.EndToken.Next;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -33,8 +83,9 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver => MethodSelect.Obj;
   public Method Method => (Method)MethodSelect.Member;
 
-  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IOrigin overrideToken = null)
-    : base(rangeOrigin) {
+  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, Token overrideToken = null)
+    : base(
+      /* TODO remove */ new OverrideCenter(rangeOrigin, overrideToken ?? memSel.EndToken.Next)) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
@@ -44,6 +95,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     this.Lhs = lhs;
     this.MethodSelect = memSel;
     this.overrideToken = overrideToken;
+
     this.Bindings = new ActualBindings(args);
   }
 

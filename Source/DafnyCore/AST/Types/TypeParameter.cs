@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 public class TypeParameter : TopLevelDecl {
   public interface ParentType {
     string FullName { get; }
-    IOrigin Tok { get; }
+    IOrigin Origin { get; }
   }
 
   public override string WhatKind => "type parameter";
@@ -126,7 +126,7 @@ public class TypeParameter : TopLevelDecl {
 
   public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
   public struct TypeParameterCharacteristics {
-    public RangeToken RangeToken = null;
+    public SourceOrigin SourceOrigin = null;
     public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
     public Type.AutoInitInfo AutoInit;
     public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;

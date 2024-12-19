@@ -170,7 +170,7 @@ public class FirstPass {
       } else {
         message = $"Found a {{:{TestGenerationOptions.TestInlineAttribute}}}-annotated declaration that is neither a method nor a function";
       }
-      diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, InlinedMethodNotReachableWarning, toInline.Tok, message,
+      diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, InlinedMethodNotReachableWarning, toInline.Origin, message,
         ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
       result = false;
     }

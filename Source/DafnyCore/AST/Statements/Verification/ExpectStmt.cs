@@ -10,8 +10,6 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
     return new ExpectStmt(cloner, this);
   }
 
-  public override IOrigin Tok => StartToken == Expr.StartToken ? Expr.Tok : base.Tok; // TODO move up to PredicateStmt?
-
   public ExpectStmt(Cloner cloner, ExpectStmt original) : base(cloner, original) {
     Message = cloner.CloneExpr(original.Message);
   }

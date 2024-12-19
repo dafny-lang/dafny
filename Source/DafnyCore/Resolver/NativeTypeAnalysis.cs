@@ -52,12 +52,12 @@ class NativeTypeAnalysis {
         if (nativeTypeChoices is { Count: 1 }) {
           Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
           if (dd.TargetTypeCoversAllBitPatterns) {
-            reporter.Info(MessageSource.Resolver, dd.tok,
+            reporter.Info(MessageSource.Resolver, dd.Tok,
               $"newtype {dd.Name} is target-complete for {{:nativeType \"{dd.NativeType.Name}\"}}");
           }
         } else {
           var targetComplete = dd.TargetTypeCoversAllBitPatterns ? "target-complete " : "";
-          reporter.Info(MessageSource.Resolver, dd.tok,
+          reporter.Info(MessageSource.Resolver, dd.Tok,
             $"newtype {dd.Name} resolves as {targetComplete}{{:nativeType \"{dd.NativeType.Name}\"}} (detected range: {detectedRange})");
         }
 
@@ -139,7 +139,7 @@ class NativeTypeAnalysis {
         // Get the NativeType for "s"
         var nativeType = ModuleResolver.NativeTypes.Find(nativeType => nativeType.Name == s);
         if (nativeType == null) {
-          reporter.Error(MessageSource.Resolver, arg.tok, ":nativeType '{0}' not known", s);
+          reporter.Error(MessageSource.Resolver, arg.Tok, ":nativeType '{0}' not known", s);
           return false;
         }
         choices.Add(nativeType);
