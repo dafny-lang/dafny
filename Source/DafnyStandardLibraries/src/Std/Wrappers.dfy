@@ -176,10 +176,11 @@ module Std.Wrappers {
        returning an Outcome<>. Example:
       `:- Need(5 == |mySet|, "The set MUST have 5 elements.")`
     */
-    static function Need(condition: bool, error: E): (result: Outcome<E>)
-    {
-      if condition then Pass else Fail(error)
-    }
+    // TODO: Doesn't work on Rust??
+    // static function Need(condition: bool, error: E): (result: Outcome<E>)
+    // {
+    //   if condition then Pass else Fail(error)
+    // }
   }
 
   // A special case of Outcome that is just used for Need below, and

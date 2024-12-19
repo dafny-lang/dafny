@@ -105,86 +105,86 @@ module Std.Aggregators {
     {}
   }
 
-  class Folder<T, R> extends Accumulator<T> {
+  // class Folder<T, R> extends Accumulator<T> {
 
-    ghost const init: R
-    const f: (R, T) -> R
-    var value: R
+  //   ghost const init: R
+  //   const f: (R, T) -> R
+  //   var value: R
 
-    constructor(init: R, f: (R, T) -> R) 
-      ensures Valid()
-      ensures fresh(Repr)
-    {
-      this.init := init;
-      this.f := f;
-      this.value := init;
-      this.Repr := {this};
-      this.history := [];
-      new;
-      reveal Seq.FoldLeft();
-      assert value == Seq.FoldLeft(f, init, Consumed());
-    }
+  //   constructor(init: R, f: (R, T) -> R) 
+  //     ensures Valid()
+  //     ensures fresh(Repr)
+  //   {
+  //     this.init := init;
+  //     this.f := f;
+  //     this.value := init;
+  //     this.Repr := {this};
+  //     this.history := [];
+  //     new;
+  //     reveal Seq.FoldLeft();
+  //     assert value == Seq.FoldLeft(f, init, Consumed());
+  //   }
 
-    ghost predicate Valid() 
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
-      ensures Valid() ==> 
-        && CanProduce(history)
-      decreases height, 0
-    {
-      && this in Repr
-      && value == Seq.FoldLeft(f, init, Consumed())
-    }
+  //   ghost predicate Valid() 
+  //     reads this, Repr 
+  //     ensures Valid() ==> this in Repr 
+  //     ensures Valid() ==> 
+  //       && CanProduce(history)
+  //     decreases height, 0
+  //   {
+  //     && this in Repr
+  //     && value == Seq.FoldLeft(f, init, Consumed())
+  //   }
 
-    ghost predicate CanConsume(history: seq<(T, ())>, next: T)
-      decreases height
-    {
-      true
-    }
-    ghost predicate CanProduce(history: seq<(T, ())>)
-      decreases height
-    {
-      true
-    }
+  //   ghost predicate CanConsume(history: seq<(T, ())>, next: T)
+  //     decreases height
+  //   {
+  //     true
+  //   }
+  //   ghost predicate CanProduce(history: seq<(T, ())>)
+  //     decreases height
+  //   {
+  //     true
+  //   }
 
-    method Invoke(t: T) returns (r: ()) 
-      requires Requires(t)
-      reads Reads(t)
-      modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
-      ensures Ensures(t, r)
-    {
-      value := f(value, t);
-      r := ();
-      Update(t, ());
+  //   method Invoke(t: T) returns (r: ()) 
+  //     requires Requires(t)
+  //     reads Reads(t)
+  //     modifies Modifies(t)
+  //     decreases Decreases(t).Ordinal()
+  //     ensures Ensures(t, r)
+  //   {
+  //     value := f(value, t);
+  //     r := ();
+  //     Update(t, ());
 
-      assert old(value) == Seq.FoldLeft(f, init, old(Consumed()));
-      assert Consumed() == old(Consumed()) + [t];
-      reveal Seq.FoldLeft();
-      Seq.FoldLeftNewRightElement(f, init, old(Consumed()), t);
-      assert value == Seq.FoldLeft(f, init, Consumed());
-      assert Valid();
-    }
+  //     assert old(value) == Seq.FoldLeft(f, init, old(Consumed()));
+  //     assert Consumed() == old(Consumed()) + [t];
+  //     reveal Seq.FoldLeft();
+  //     Seq.FoldLeftNewRightElement(f, init, old(Consumed()), t);
+  //     assert value == Seq.FoldLeft(f, init, Consumed());
+  //     assert Valid();
+  //   }
 
-    method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, ()>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
-      reads Reads(t)
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
-    }
+  //   method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, ()>)
+  //     requires Valid()
+  //     requires eventuallyStopsProof.Action() == this
+  //     requires eventuallyStopsProof.FixedInput() == t
+  //     requires eventuallyStopsProof.StopFn() == stop
+  //     requires forall i <- Consumed() :: i == t
+  //     reads Reads(t)
+  //     modifies Repr
+  //     decreases Repr
+  //     ensures Valid()
+  //   {
+  //     DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
+  //   }
 
-    lemma CanConsumeAll(history: seq<(T, ())>, next: T) 
-      requires Action().CanProduce(history)
-      ensures Action().CanConsume(history, next) 
-    {}
-  }
+  //   lemma CanConsumeAll(history: seq<(T, ())>, next: T) 
+  //     requires Action().CanProduce(history)
+  //     ensures Action().CanConsume(history, next) 
+  //   {}
+  // }
 
   // TODO: This is also a Folder([], (x, y) => x + [y])
   class Collector<T> extends Accumulator<T> {

@@ -355,70 +355,72 @@ module Std.Enumerators {
     }
   }
 
-  class FunctionalEnumerator<S, T> extends Action<(), Option<T>> {
 
-    const stepFn: S -> Option<(S, T)>
-    var state: S
+  // TODO: doesn't compile to Rust yet
+  // class FunctionalEnumerator<S, T> extends Action<(), Option<T>> {
 
-    ghost predicate Valid() 
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
-      ensures Valid() ==> CanProduce(history)
-      decreases height, 0
-    {
-      this in Repr
-    }
+  //   const stepFn: S -> Option<(S, T)>
+  //   var state: S
 
-    constructor(state: S, stepFn: S -> Option<(S, T)>) {
-      this.state := state;
-      this.stepFn := stepFn;
-    }
+  //   ghost predicate Valid() 
+  //     reads this, Repr 
+  //     ensures Valid() ==> this in Repr 
+  //     ensures Valid() ==> CanProduce(history)
+  //     decreases height, 0
+  //   {
+  //     this in Repr
+  //   }
 
-    ghost predicate CanConsume(history: seq<((), Option<T>)>, next: ())
-      decreases height
-    {
-      true
-    }
-    ghost predicate CanProduce(history: seq<((), Option<T>)>)
-      decreases height
-    {
-      true
-    }
+  //   constructor(state: S, stepFn: S -> Option<(S, T)>) {
+  //     this.state := state;
+  //     this.stepFn := stepFn;
+  //   }
 
-    method Invoke(t: ()) returns (r: Option<T>) 
-      requires Requires(t)
-      reads Reads(t)
-      modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
-      ensures Ensures(t, r)
-    {
-      var next := stepFn(state);
-      match next {
-        case Some(result) => {
-          var (newState, result') := result;
-          state := newState;
-          r := Some(result');
-        }
-        case None => {
-          r := None;
-        }
-      }
-      Update(t, r);
-      assert Valid();
-    }
+  //   ghost predicate CanConsume(history: seq<((), Option<T>)>, next: ())
+  //     decreases height
+  //   {
+  //     true
+  //   }
+  //   ghost predicate CanProduce(history: seq<((), Option<T>)>)
+  //     decreases height
+  //   {
+  //     true
+  //   }
 
-    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<T>>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
-      reads Reads(t)
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
-    }
-  }
+  //   method Invoke(t: ()) returns (r: Option<T>) 
+  //     requires Requires(t)
+  //     reads Reads(t)
+  //     modifies Modifies(t)
+  //     decreases Decreases(t).Ordinal()
+  //     ensures Ensures(t, r)
+  //   {
+  //     var next := stepFn(state);
+  //     match next {
+  //       case Some(result) => {
+  //         var (newState, result') := result;
+  //         state := newState;
+  //         r := Some(result');
+  //       }
+  //       case None => {
+  //         r := None;
+  //       }
+  //     }
+  //     Update(t, r);
+  //     assert Valid();
+  //   }
+
+  //   method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<T>>)
+  //     requires Valid()
+  //     requires eventuallyStopsProof.Action() == this
+  //     requires eventuallyStopsProof.FixedInput() == t
+  //     requires eventuallyStopsProof.StopFn() == stop
+  //     requires forall i <- Consumed() :: i == t
+  //     reads Reads(t)
+  //     modifies Repr
+  //     decreases Repr
+  //     ensures Valid()
+  //   {
+  //     DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
+  //   }
+  // }
 }
