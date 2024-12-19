@@ -101,7 +101,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
 
     var errorCount = resolver.Reporter.Count(ErrorLevel.Error);
-    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.tok, Source.Type).NormalizeExpand();
+    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.Tok, Source.Type).NormalizeExpand();
     CheckLinearNestedMatchStmt(sourceType, resolutionContext, resolver);
     if (resolver.Reporter.Count(ErrorLevel.Error) != errorCount) {
       return;

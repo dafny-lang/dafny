@@ -73,7 +73,7 @@ method><".TrimStart(), out var source, out var positions,
       var documentItem = await CreateOpenAndWaitForResolve(source);
       var position = positions[0];
       var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
-      Assert.Empty(completionList);
+      Assert.Single(completionList);
     }
 
     [Fact]

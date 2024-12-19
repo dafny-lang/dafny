@@ -39,6 +39,11 @@ public class Token : IOrigin {
   public Token StartToken => this;
   public Token EndToken => this;
 
+  public Token Center {
+    get => this;
+    set { } // TODO remove when Token no longer inherits from IOrigin 
+  }
+
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos
 
   /// <summary>
@@ -63,7 +68,7 @@ public class Token : IOrigin {
 
   public bool IsValid => this.ActualFilename != null;
 
-  public RangeToken To(Token end) => new(this, end);
+  public SourceOrigin To(Token end) => new(this, end);
 
   public IOrigin WithVal(string newVal) {
     return new Token {
@@ -149,7 +154,7 @@ public static class TokenExtensions {
   }
 
   public static string PrintOriginal(this IOrigin origin) {
-    return new RangeToken(origin.StartToken, origin.EndToken).PrintOriginal();
+    return new SourceOrigin(origin.StartToken, origin.EndToken).PrintOriginal();
   }
 
   public static bool IsSet(this IOrigin token) => token.Uri != null;
@@ -184,7 +189,7 @@ public class BoogieRangeOrigin : OriginWrapper {
   /// <summary>
   /// If only a single position is used to refer to this piece of code, this position is the best
   /// </summary>
-  public IOrigin Center { get; }
+  public IOrigin Centerish { get; }
 
   // Used for range reporting
   public override string val => new(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
@@ -193,7 +198,7 @@ public class BoogieRangeOrigin : OriginWrapper {
     center ?? startTok) {
     StartToken = startTok;
     EndToken = endTok;
-    Center = center;
+    Centerish = center;
   }
 
   public override IOrigin WithVal(string newVal) {

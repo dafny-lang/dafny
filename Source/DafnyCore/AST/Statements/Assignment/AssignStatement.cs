@@ -12,18 +12,6 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  public override IOrigin Tok {
-    get {
-      var firstRhs = Rhss.First();
-      if (firstRhs.StartToken != StartToken) {
-        // If there is an operator, use it as a token
-        return firstRhs.StartToken.Prev;
-      }
-
-      return firstRhs.Tok;
-    }
-  }
-
   [FilledInDuringResolution] public List<Statement> ResolvedStatements;
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
@@ -170,7 +158,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
         // must be a single TypeRhs
         if (Lhss.Count != 1) {
           Contract.Assert(2 <= Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-          resolver.Reporter.Error(MessageSource.Resolver, Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
+          resolver.Reporter.Error(MessageSource.Resolver, Lhss[1].Tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
         } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
           var a = new SingleAssignStmt(Origin, Lhss[0].Resolved, Rhss[0]);
           ResolvedStatements.Add(a);
@@ -181,7 +169,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
         foreach (var ll in Lhss) {
           resolvedLhss.Add(ll.Resolved);
         }
-        CallStmt a = new CallStmt(Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+        CallStmt a = new CallStmt(Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok.Center);
         a.OriginalInitialLhs = OriginalInitialLhs;
         ResolvedStatements.Add(a);
       }

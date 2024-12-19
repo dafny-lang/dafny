@@ -20,22 +20,6 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
     Contract.Invariant(Rhs != null);
   }
 
-  public override IOrigin Tok {
-    get {
-      if (Rhs.StartToken.Prev is not null) {
-        var previous = Rhs.StartToken.Prev;
-        // If there was a single assignment, report on the operator.
-        var singleAssignment = previous.val == ":=";
-        // If there was an implicit return assignment, report on the return.
-        var implicitAssignment = previous.val == "return";
-        if (singleAssignment || implicitAssignment) {
-          return previous;
-        }
-      }
-      return Rhs.StartToken;
-    }
-  }
-
   public SingleAssignStmt Clone(Cloner cloner) {
     return new SingleAssignStmt(cloner, this);
   }
@@ -172,7 +156,7 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
     if (gk == NonGhostKind.IsGhost) {
       IsGhost = true;
       if (proofContext != null && !(lhs is IdentifierExpr)) {
-        reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_heap_update_in_proof, lhs.tok, $"{proofContext} is not allowed to make heap updates");
+        reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_heap_update_in_proof, lhs.Tok, $"{proofContext} is not allowed to make heap updates");
       }
       if (Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
         tRhs.InitCall.ResolveGhostness(resolver, reporter, true, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
