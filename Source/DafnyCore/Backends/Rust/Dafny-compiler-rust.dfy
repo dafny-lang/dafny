@@ -2920,24 +2920,32 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership)
+      requires exprOwnership != OwnershipAutoBorrowed
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
     {
       r := expr;
+      resultingOwnership := exprOwnership;
       var fromTpeGen := GenType(fromTpe, GenTypeContext.default());
       var toTpeGen := GenType(toTpe, GenTypeContext.default());
       var upcastConverter := UpcastConversionLambda(fromTpe, fromTpeGen, toTpe, toTpeGen, map[]);
       if upcastConverter.Success? {
         var conversionLambda := upcastConverter.value;
-        if exprOwnership == OwnershipBorrowed {
+        if resultingOwnership == OwnershipBorrowed {
           // we need the value to be owned for conversion
           r := BorrowedToOwned(r, env);
+          resultingOwnership := OwnershipOwned;
         }
         r := conversionLambda.Apply1(r);
-        r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
+        r, resultingOwnership := FromOwnership(r, resultingOwnership, expectedOwnership);
       } else if IsDowncastConversion(fromTpeGen, toTpeGen) {
         assert toTpeGen.IsObjectOrPointer();
         toTpeGen := toTpeGen.ObjectOrPointerUnderlying();
+        if resultingOwnership == OwnershipBorrowed {
+          // we need the value to be owned for conversion
+          r := BorrowedToOwned(r, env);
+          resultingOwnership := OwnershipOwned;
+        }
         r := R.dafny_runtime
         .MSel(downcast).AsExpr().Apply([r, R.ExprFromType(toTpeGen)]);
         r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
