@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --standard-libraries --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=false --general-newtypes=false --standard-libraries --relax-definite-assignment
 
 import opened Std.Wrappers
 

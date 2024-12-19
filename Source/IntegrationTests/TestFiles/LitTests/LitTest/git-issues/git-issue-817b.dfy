@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Result<T> = Failure(msg: string) | Success(value: T) {

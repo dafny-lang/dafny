@@ -1,5 +1,5 @@
 // NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4174
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --type-system-refresh=false --general-newtypes=false --relax-definite-assignment
 
 method Main() {
   Literals();

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --show-hints "%s" > "%t"
+// RUN: %exits-with 4 %verify --show-hints --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Option<V> = Some(value: V) | None

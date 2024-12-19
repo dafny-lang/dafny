@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify --allow-deprecation "%s" > "%t"
+// RUN: %exits-with 2 %verify --allow-deprecation --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Array<T>

@@ -1,4 +1,4 @@
-// RUN: %verify --show-hints "%s" > "%t"
+// RUN: %verify --show-hints --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Testing constant folding of real operations

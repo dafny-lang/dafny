@@ -1,4 +1,4 @@
-// RUN: %verify --relax-definite-assignment "%s" > "%t"
+// RUN: %verify --relax-definite-assignment --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Lines marked PRE-FIX were problems before this bug was fixed

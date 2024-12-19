@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %build "%s" > "%t"
+// RUN: %exits-with 2 %build --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
