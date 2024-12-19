@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -11,22 +12,24 @@ public abstract class TokenNode : Node {
 
   protected IOrigin RangeOrigin = null;
 
-  public IOrigin tok = Token.NoToken;
+  protected IOrigin tok = Token.NoToken;
+
+  public void SetTok(IOrigin newTok) {
+    tok = newTok;
+  }
 
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IOrigin Tok {
-    get => tok;
-  }
+  public override IOrigin Tok => tok;
 
   public override IOrigin Origin {
     get {
       if (RangeOrigin == null) {
 
-        var startTok = tok.StartToken;
-        var endTok = tok.EndToken;
+        var startTok = Tok.StartToken;
+        var endTok = Tok.EndToken;
 
         void UpdateStartEndToken(Token token1) {
-          if (token1.Filepath != tok.Filepath) {
+          if (token1.Filepath != Tok.Filepath) {
             return;
           }
 
@@ -44,7 +47,7 @@ public abstract class TokenNode : Node {
             return;
           }
 
-          if (node.Origin.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
+          if (node.Origin.Filepath != Tok.Filepath || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {
@@ -61,7 +64,7 @@ public abstract class TokenNode : Node {
           }
         }
 
-        RangeOrigin = new RangeToken(startTok, endTok);
+        RangeOrigin = new SourceOrigin(startTok, endTok);
       }
 
       return RangeOrigin;

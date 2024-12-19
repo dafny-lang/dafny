@@ -226,7 +226,7 @@ namespace Microsoft.Dafny {
       // detect cycles in the extend
       var cycleError = false;
       foreach (var cycle in exportDependencies.AllCycles()) {
-        ReportCycleError(reporter, cycle, m => m.tok, m => m.Name, "module export contains a cycle");
+        ReportCycleError(reporter, cycle, m => m.Tok, m => m.Name, "module export contains a cycle");
         cycleError = true;
       }
 
@@ -261,7 +261,7 @@ namespace Microsoft.Dafny {
           // export-set name there.  If the export-set name happens to coincide with some other top-level declaration,
           // then an error will already have been produced ("duplicate name of top-level declaration").
           if (GetClassMembers((DefaultClassDecl)defaultClass)?.TryGetValue(exportDecl.Name, out var member) == true) {
-            reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, exportDecl.tok,
+            reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, exportDecl.Tok,
               "this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
           }
         }
@@ -367,7 +367,7 @@ namespace Microsoft.Dafny {
           if (defaultExport == null) {
             defaultExport = exportDecl;
           } else {
-            reporter.Error(MessageSource.Resolver, m.tok, "more than one default export set declared in module {0}",
+            reporter.Error(MessageSource.Resolver, m.Tok, "more than one default export set declared in module {0}",
               m.Name);
           }
         }
@@ -438,7 +438,7 @@ namespace Microsoft.Dafny {
           // Such inference should not be done for provided declarations, since different views of the module
           // would then get different inferred properties.
           decl.Attributes = new Attributes("_provided", new List<Expression>(), decl.Attributes);
-          reporter.Info(MessageSource.Resolver, decl.tok, "{:_provided}");
+          reporter.Info(MessageSource.Resolver, decl.Tok, "{:_provided}");
         }
       }
 
@@ -562,7 +562,7 @@ namespace Microsoft.Dafny {
         reporter = (BatchErrorReporter)((ErrorReporterWrapper)reporter).WrappedReporter;
 
         if (wasError) {
-          reporter.Error(MessageSource.Resolver, exportDecl.tok, "This export set is not consistent: {0}", exportDecl.Name);
+          reporter.Error(MessageSource.Resolver, exportDecl.Tok, "This export set is not consistent: {0}", exportDecl.Name);
         } else {
           exportDecl.EffectiveModule = exportView;
         }
@@ -728,8 +728,8 @@ namespace Microsoft.Dafny {
             // if both are type synonyms for "int".
             var scope = Type.GetScope();
             if (sameNameSymbolInImporter.IsVisibleInScope(scope) && kv.Value.IsVisibleInScope(scope)) {
-              var dType = UserDefinedType.FromTopLevelDecl(sameNameSymbolInImporter.tok, sameNameSymbolInImporter);
-              var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
+              var dType = UserDefinedType.FromTopLevelDecl(sameNameSymbolInImporter.Tok, sameNameSymbolInImporter);
+              var vType = UserDefinedType.FromTopLevelDecl(kv.Value.Tok, kv.Value);
               unambiguous = dType.Equals(vType, true);
             }
           }
@@ -781,7 +781,7 @@ namespace Microsoft.Dafny {
       var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
       var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
       var fn = new ApplySuffix(tok, null,
-        new ExprDotName(tok, receiver, f.NameNode, f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter))),
+        new ExprDotName(tok, receiver, f.NameNode, f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.Tok, typeParameter))),
         new ActualBindings(f.Ins.ConvertAll(Expression.CreateIdentExpr)).ArgumentBindings,
         Token.NoToken);
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
@@ -818,7 +818,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(moduleSignatures != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var module = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IOrigin>(), ModuleKindEnum.Abstract, true, null, null, null);
+      var module = new ModuleDefinition(SourceOrigin.NoToken, new Name(name + ".Abs"), new List<IOrigin>(), ModuleKindEnum.Abstract, true, null, null, null);
       module.Height = height;
       foreach (var kv in origin.TopLevels) {
         if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
@@ -979,7 +979,7 @@ namespace Microsoft.Dafny {
         ResolveTypeParameters(d.TypeArgs, true, d);
         if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
-          ResolveType(dd.tok, dd.Rhs, dd, ResolveTypeOptionEnum.AllowPrefix, dd.TypeArgs);
+          ResolveType(dd.Tok, dd.Rhs, dd, ResolveTypeOptionEnum.AllowPrefix, dd.TypeArgs);
           dd.Rhs.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
             if (s != null && s != dd) {
@@ -988,7 +988,7 @@ namespace Microsoft.Dafny {
           });
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
-          ResolveType(dd.tok, dd.BaseType, dd, ResolveTypeOptionEnum.DontInfer, null);
+          ResolveType(dd.Tok, dd.BaseType, dd, ResolveTypeOptionEnum.DontInfer, null);
           dd.BaseType.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
             if (s != null && s != dd) {
@@ -1024,14 +1024,14 @@ namespace Microsoft.Dafny {
       }
       // Check for cycles among parent traits
       foreach (var cycle in parentRelation.AllCycles()) {
-        ReportCycleError(reporter, cycle, m => m.tok, m => m.Name, "trait definitions contain a cycle");
+        ReportCycleError(reporter, cycle, m => m.Tok, m => m.Name, "trait definitions contain a cycle");
       }
       if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
         // check that only reference types (classes and some traits) inherit from 'object'
         foreach (TopLevelDecl d in declarations.Where(d => d is TopLevelDeclWithMembers and not ClassLikeDecl)) {
           var nonReferenceTypeDecl = (TopLevelDeclWithMembers)d;
           foreach (var parentType in nonReferenceTypeDecl.ParentTraits.Where(t => t.IsRefType)) {
-            reporter.Error(MessageSource.Resolver, parentType is UserDefinedType parentUdt ? parentUdt.tok : nonReferenceTypeDecl.tok,
+            reporter.Error(MessageSource.Resolver, parentType is UserDefinedType parentUdt ? parentUdt.Tok : nonReferenceTypeDecl.Tok,
               $"{nonReferenceTypeDecl.WhatKind} is not allowed to extend '{parentType}', because it is a reference type");
             break; // one error message per "decl" is enough
           }
@@ -1043,34 +1043,34 @@ namespace Microsoft.Dafny {
 
       // perform acyclicity test on type synonyms
       foreach (var cycle in typeRedirectionDependencies.AllCycles()) {
-        ReportCycleError(reporter, cycle, rtd => rtd.tok, rtd => rtd.Name, "cycle among redirecting types (newtypes, subset types, type synonyms)");
+        ReportCycleError(reporter, cycle, rtd => rtd.Tok, rtd => rtd.Name, "cycle among redirecting types (newtypes, subset types, type synonyms)");
       }
     }
 
     private void ResolveAllTypeParameterBounds(List<TopLevelDecl> declarations) {
       foreach (var decl in declarations) {
         allTypeParameters.PushMarker();
-        ResolveTypeParameterBounds(decl.tok, decl.TypeArgs, decl as ICodeContext ?? new NoContext(decl.EnclosingModuleDefinition));
+        ResolveTypeParameterBounds(decl.Tok, decl.TypeArgs, decl as ICodeContext ?? new NoContext(decl.EnclosingModuleDefinition));
         if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           foreach (var member in topLevelDeclWithMembers.Members) {
             if (member is Function function) {
               var ec = reporter.Count(ErrorLevel.Error);
               allTypeParameters.PushMarker();
-              ResolveTypeParameterBounds(function.tok, function.TypeArgs, function);
+              ResolveTypeParameterBounds(function.Tok, function.TypeArgs, function);
               allTypeParameters.PopMarker();
               if (reporter.Count(ErrorLevel.Error) == ec && function is ExtremePredicate { PrefixPredicate: { } prefixPredicate }) {
                 allTypeParameters.PushMarker();
-                ResolveTypeParameterBounds(prefixPredicate.tok, prefixPredicate.TypeArgs, prefixPredicate);
+                ResolveTypeParameterBounds(prefixPredicate.Tok, prefixPredicate.TypeArgs, prefixPredicate);
                 allTypeParameters.PopMarker();
               }
             } else if (member is Method m) {
               var ec = reporter.Count(ErrorLevel.Error);
               allTypeParameters.PushMarker();
-              ResolveTypeParameterBounds(m.tok, m.TypeArgs, m);
+              ResolveTypeParameterBounds(m.Tok, m.TypeArgs, m);
               allTypeParameters.PopMarker();
               if (reporter.Count(ErrorLevel.Error) == ec && m is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
                 allTypeParameters.PushMarker();
-                ResolveTypeParameterBounds(prefixLemma.tok, prefixLemma.TypeArgs, prefixLemma);
+                ResolveTypeParameterBounds(prefixLemma.Tok, prefixLemma.TypeArgs, prefixLemma);
                 allTypeParameters.PopMarker();
               }
             }
@@ -1218,7 +1218,7 @@ namespace Microsoft.Dafny {
         foreach (var declaration in ModuleDefinition.AllCallables(declarations)) {
           if (declaration is Method { IsLemmaLike: false, Reads: { Expressions: var readsExpressions } } method &&
               !readsExpressions.Any()) {
-            var star = new FrameExpression(method.tok, new WildcardExpr(method.tok) { Type = SystemModuleManager.ObjectSetType() }, null);
+            var star = new FrameExpression(method.Tok, new WildcardExpr(method.Tok) { Type = SystemModuleManager.ObjectSetType() }, null);
             readsExpressions.Add(star);
           }
         }
@@ -1275,8 +1275,8 @@ namespace Microsoft.Dafny {
       // we search for such type declarations and give error messages if something is found.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (var dtd in declarations.ConvertAll(decl => decl as IndDatatypeDecl).Where(dtd => dtd != null && dtd.Ctors.Count != 0)) {
-          if (AreThereAnyObviousSignsOfEmptiness(UserDefinedType.FromTopLevelDecl(dtd.tok, dtd), new HashSet<IndDatatypeDecl>())) {
-            reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.r_empty_cyclic_datatype, dtd.tok,
+          if (AreThereAnyObviousSignsOfEmptiness(UserDefinedType.FromTopLevelDecl(dtd.Tok, dtd), new HashSet<IndDatatypeDecl>())) {
+            reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.r_empty_cyclic_datatype, dtd.Tok,
               $"because of cyclic dependencies among constructor argument types, no instances of datatype '{dtd.Name}' can be constructed");
           }
         }
@@ -1337,7 +1337,7 @@ namespace Microsoft.Dafny {
               foreach (var c in coCandidates) {
                 c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.Yes;
                 c.EnclosingCoConstructor.IsCoCall = true;
-                reporter.Info(MessageSource.Resolver, c.CandidateCall.tok, "co-recursive call");
+                reporter.Info(MessageSource.Resolver, c.CandidateCall.Tok, "co-recursive call");
               }
               // Finally, fill in the CoClusterTarget field
               // Start by setting all the CoClusterTarget fields to CoRecursiveTargetAllTheWay.
@@ -1385,7 +1385,7 @@ namespace Microsoft.Dafny {
                 fn.Decreases.Expressions.ForEach(e => ExtremePredicateChecks(e, fn, CallingPosition.Positive));
                 fn.Reads.Expressions.ForEach(e => ExtremePredicateChecks(e.E, fn, CallingPosition.Positive));
                 if (fn.Ens.Count != 0) {
-                  reporter.Error(MessageSource.Resolver, fn.Ens[0].E.tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
+                  reporter.Error(MessageSource.Resolver, fn.Ens[0].E.Tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
                 }
                 if (fn.Body != null) {
                   ExtremePredicateChecks(fn.Body, fn, CallingPosition.Positive);
@@ -1435,7 +1435,7 @@ namespace Microsoft.Dafny {
             // This check should be moved to the resolver once we have a language construct to indicate the type is imported
             // Instead of the extern attribute
             Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_constructorless_class_forbidden,
-              classDecl.tok,
+              classDecl.Tok,
               "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option");
           }
         }
@@ -1447,7 +1447,7 @@ namespace Microsoft.Dafny {
           if (d is ClassLikeDecl) {
             foreach (var tp in d.TypeArgs) {
               if (tp.Variance != TypeParameter.TPVariance.Non) {
-                reporter.Error(MessageSource.Resolver, tp.tok, "{0} declarations only support non-variant type parameters", d.WhatKind);
+                reporter.Error(MessageSource.Resolver, tp.Tok, "{0} declarations only support non-variant type parameters", d.WhatKind);
               }
             }
           } else if (d is TypeSynonymDecl) {
@@ -1570,7 +1570,7 @@ namespace Microsoft.Dafny {
             }
             // go through inherited members...
             if (fieldWithoutKnownInitializer != null) {
-              reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' with fields without known initializers, like '{1}' of type '{2}', must declare a constructor",
+              reporter.Error(MessageSource.Resolver, cl.Tok, "class '{0}' with fields without known initializers, like '{1}' of type '{2}', must declare a constructor",
                 cl.Name, fieldWithoutKnownInitializer.Name, fieldWithoutKnownInitializer.Type.Subst(cl.ParentFormalTypeParametersToActuals));
             }
           }
@@ -1692,7 +1692,7 @@ namespace Microsoft.Dafny {
           foreach (var p in com.Ens) {
             var coConclusions = new HashSet<Expression>();
             CollectFriendlyCallsInExtremeLemmaSpecification(p.E, true, coConclusions, true, com);
-            var subst = new ExtremeLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name),
+            var subst = new ExtremeLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.Tok, k.Name),
               this.reporter, true);
             var post = subst.CloneExpr(p.E);
             prefixLemma.Ens.Add(new AttributedExpression(post));
@@ -1719,7 +1719,7 @@ namespace Microsoft.Dafny {
           foreach (var p in com.Req) {
             var antecedents = new HashSet<Expression>();
             CollectFriendlyCallsInExtremeLemmaSpecification(p.E, true, antecedents, false, com);
-            var subst = new ExtremeLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name),
+            var subst = new ExtremeLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.Tok, k.Name),
               this.reporter, false);
             var pre = subst.CloneExpr(p.E);
             prefixLemma.Req.Add(new AttributedExpression(pre, p.Label, null));
@@ -1740,24 +1740,24 @@ namespace Microsoft.Dafny {
 
         var focalCount = focalPredicates.Count + focalCodatatypeEquality.Count;
         if (focalCount == 0) {
-          reporter.Info(MessageSource.Resolver, com.tok, $"{com.PrefixLemma.Name} has no focal predicates");
+          reporter.Info(MessageSource.Resolver, com.Tok, $"{com.PrefixLemma.Name} has no focal predicates");
         } else {
           var predicates = Util.Comma(focalPredicates, p => p.Name);
           var equalities = Util.Comma(focalCodatatypeEquality, decl => $"{decl.Name}.==");
           var focals = predicates + (predicates.Length != 0 && equalities.Length != 0 ? ", " : "") + equalities;
-          reporter.Info(MessageSource.Resolver, com.tok, $"{com.PrefixLemma.Name} with focal predicate{Util.Plural(focalCount)} {focals}");
+          reporter.Info(MessageSource.Resolver, com.Tok, $"{com.PrefixLemma.Name} with focal predicate{Util.Plural(focalCount)} {focals}");
         }
         // Compute the statement body of the prefix lemma
         Contract.Assume(prefixLemma.Body == null); // this is not supposed to have been filled in before
         if (com.Body != null) {
-          var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name),
-            new LiteralExpr(com.tok, 1));
+          var kMinusOne = new BinaryExpr(com.Tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.Tok, k.Name),
+            new LiteralExpr(com.Tok, 1));
           var subst = new ExtremeLemmaBodyCloner(com, kMinusOne, focalPredicates, focalCodatatypeEquality, this.reporter);
           var mainBody = subst.CloneBlockStmt(com.Body);
           Expression kk;
           Statement els;
           if (k.Type.IsBigOrdinalType) {
-            kk = new MemberSelectExpr(k.tok, new IdentifierExpr(k.tok, k.Name), new Name("Offset"));
+            kk = new MemberSelectExpr(k.Tok, new IdentifierExpr(k.Tok, k.Name), new Name("Offset"));
             // As an "else" branch, we add recursive calls for the limit case.  When automatic induction is on,
             // this get handled automatically, but we still want it in the case when automatic induction has been
             // turned off.
@@ -1765,9 +1765,9 @@ namespace Microsoft.Dafny {
             //       pp(k', params);
             //     }
             Contract.Assume(SystemModuleManager.ORDINAL_Offset != null); // should have been filled in earlier
-            var kId = new IdentifierExpr(com.tok, k);
-            var kprimeVar = new BoundVar(com.tok, "_k'", Type.BigOrdinal);
-            var kprime = new IdentifierExpr(com.tok, kprimeVar);
+            var kId = new IdentifierExpr(com.Tok, k);
+            var kprimeVar = new BoundVar(com.Tok, "_k'", Type.BigOrdinal);
+            var kprime = new IdentifierExpr(com.Tok, kprimeVar);
             var smaller = Expression.CreateLess(kprime, kId);
 
             var bvs = new List<BoundVar>(); // the following loop populates bvs with k', params
@@ -1777,20 +1777,20 @@ namespace Microsoft.Dafny {
                 bvs.Add(kprimeVar);
                 substMap.Add(k, kprime);
               } else {
-                var bv = new BoundVar(inFormal.tok, inFormal.Name, inFormal.Type);
+                var bv = new BoundVar(inFormal.Tok, inFormal.Name, inFormal.Type);
                 bvs.Add(bv);
-                substMap.Add(inFormal, new IdentifierExpr(com.tok, bv));
+                substMap.Add(inFormal, new IdentifierExpr(com.Tok, bv));
               }
             }
 
-            prefixLemma.RecursiveCallParameters(com.tok, prefixLemma.TypeArgs, prefixLemma.Ins, null,
+            prefixLemma.RecursiveCallParameters(com.Tok, prefixLemma.TypeArgs, prefixLemma.Ins, null,
               substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
             var methodSel = new MemberSelectExpr(com.Tok, recursiveCallReceiver, prefixLemma.NameNode);
             methodSel.Member = prefixLemma; // resolve here
             methodSel.TypeApplicationAtEnclosingClass =
-              prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
+              prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.Tok, tp));
             methodSel.TypeApplicationJustMember =
-              prefixLemma.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
+              prefixLemma.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.Tok, tp));
             methodSel.Type = new InferredTypeProxy();
             var recursiveCall = new CallStmt(com.Origin, new List<Expression>(), methodSel,
               recursiveCallArgs.ConvertAll(e => new ActualBinding(null, e)));
@@ -1810,11 +1810,11 @@ namespace Microsoft.Dafny {
               new List<AttributedExpression>(), forallBody);
             els = new BlockStmt(mainBody.Origin, new List<Statement>() { forallStmt });
           } else {
-            kk = new IdentifierExpr(k.tok, k.Name);
+            kk = new IdentifierExpr(k.Tok, k.Name);
             els = null;
           }
 
-          var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), kk);
+          var kPositive = new BinaryExpr(com.Tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.Tok, 0), kk);
           var condBody = new IfStmt(mainBody.Origin, false, kPositive, mainBody, els);
           prefixLemma.Body = new BlockStmt(mainBody.Origin, new List<Statement>() { condBody });
         }
@@ -1840,10 +1840,10 @@ namespace Microsoft.Dafny {
       var statik = f.IsStatic ? "static " : "";
 
       if (f.IsGhost && !f.Type.IsNonempty) {
-        reporter.Error(MessageSource.Resolver, f.tok,
+        reporter.Error(MessageSource.Resolver, f.Tok,
           $"{statik}ghost const field '{f.Name}' of type '{f.Type}' (which may be empty) must give a defining value{hint}");
       } else if (!f.IsGhost && !f.Type.HasCompilableValue) {
-        reporter.Error(MessageSource.Resolver, f.tok,
+        reporter.Error(MessageSource.Resolver, f.Tok,
           $"{statik}non-ghost const field '{f.Name}' of type '{f.Type}' (which does not have a default compiled value) must give a defining value{hint}");
       }
     }
@@ -1865,10 +1865,10 @@ namespace Microsoft.Dafny {
             var readsClausesOnMethodsEnabled = Options.Get(Method.ReadsClausesOnMethods);
             foreach (FrameExpression fe in method.Reads.Expressions) {
               if (method.IsLemmaLike) {
-                reporter.Error(MessageSource.Resolver, fe.tok,
+                reporter.Error(MessageSource.Resolver, fe.Tok,
                   "{0}s are not allowed to have reads clauses (they are allowed to read all memory locations)", method.WhatKind);
               } else if (!readsClausesOnMethodsEnabled) {
-                reporter.Error(MessageSource.Resolver, fe.tok,
+                reporter.Error(MessageSource.Resolver, fe.Tok,
                   "reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`");
               } else if (method.IsGhost) {
                 DisallowNonGhostFieldSpecifiers(fe);
@@ -1878,7 +1878,7 @@ namespace Microsoft.Dafny {
             // check that any modifies clause is used correctly
             foreach (FrameExpression fe in method.Mod.Expressions) {
               if (method.IsLemmaLike) {
-                reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", method.WhatKind);
+                reporter.Error(MessageSource.Resolver, fe.Tok, "{0}s are not allowed to have modifies clauses", method.WhatKind);
               } else if (method.IsGhost) {
                 DisallowNonGhostFieldSpecifiers(fe);
               }
@@ -1922,7 +1922,7 @@ namespace Microsoft.Dafny {
     void CheckForUnnecessaryEqualitySupportDeclarations(MemberDecl member, List<TypeParameter> typeParameters) {
       if (member.IsGhost) {
         foreach (var p in typeParameters.Where(p => p.SupportsEquality)) {
-          reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, p.tok,
+          reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, p.Tok,
             $"type parameter {p.Name} of ghost {member.WhatKind} {member.Name} is declared (==), which is unnecessary because the {member.WhatKind} doesn't contain any compiled code");
         }
       }
@@ -1975,7 +1975,7 @@ namespace Microsoft.Dafny {
         // parameters are not allowed to be marked 'older'
         foreach (var formal in f.Ins) {
           if (formal.IsOlder) {
-            reporter.Error(MessageSource.Resolver, formal.tok, "only predicates and two-state predicates are allowed 'older' parameters");
+            reporter.Error(MessageSource.Resolver, formal.Tok, "only predicates and two-state predicates are allowed 'older' parameters");
           }
         }
       }
@@ -2092,9 +2092,9 @@ namespace Microsoft.Dafny {
       ResolveTypeParameters(cl.TypeArgs, false, cl);
       foreach (var parentTrait in cl.ParentTraits) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
-        ResolveType(cl.tok, parentTrait, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
+        ResolveType(cl.Tok, parentTrait, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
         if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
-          var parentTypeToken = parentTrait is UserDefinedType parentTraitUdt ? parentTraitUdt.tok : cl.tok;
+          var parentTypeToken = parentTrait is UserDefinedType parentTraitUdt ? parentTraitUdt.Tok : cl.Tok;
 
           var trait = parentTrait.UseInternalSynonym().IsInternalTypeSynonym ? null : (parentTrait as UserDefinedType)?.AsParentTraitDecl();
           if (trait != null) {
@@ -2208,7 +2208,7 @@ namespace Microsoft.Dafny {
           if (!group.GetRange(0, i).Exists(pair => pair.Item1.Equals(group[i].Item1))) {
             var via0 = group[0].Item2.Count == 0 ? "" : " (via " + Util.Comma(group[0].Item2, traitDecl => traitDecl.Name) + ")";
             var via1 = group[i].Item2.Count == 0 ? "" : " (via " + Util.Comma(group[i].Item2, traitDecl => traitDecl.Name) + ")";
-            reporter.Error(MessageSource.Resolver, cl.tok,
+            reporter.Error(MessageSource.Resolver, cl.Tok,
               "duplicate trait parents with the same head type must also have the same type arguments; got {0}{1} and {2}{3}",
               ty, via0, group[i].Item1, via1);
           }
@@ -2267,7 +2267,7 @@ namespace Microsoft.Dafny {
         } else {
           // "prevMember" and "inheritedMember" refer to different members (with the same name)
           membersWithErrors.Add(inheritedMember.Name);
-          reporter.Error(MessageSource.Resolver, cl.tok,
+          reporter.Error(MessageSource.Resolver, cl.Tok,
             $"{cl.WhatKindAndName} inherits a member named '{inheritedMember.Name}' from both " +
             $"{prevMember.EnclosingClass.WhatKindAndName} and {inheritedMember.EnclosingClass.WhatKindAndName}");
         }
@@ -2308,7 +2308,7 @@ namespace Microsoft.Dafny {
         new Formal(Token.NoToken, "w", argumentType, true, false, null)
       };
       var resultType = new BitvectorType(Options, width);
-      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, ProgramResolver.SystemModuleManager.SystemModule, false, false,
+      var rotateMember = new SpecialFunction(SourceOrigin.NoToken, name, ProgramResolver.SystemModuleManager.SystemModule, false, false,
         new List<TypeParameter>(), formals, resultType,
         new List<AttributedExpression>(), new Specification<FrameExpression>(), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null) {
@@ -2332,12 +2332,12 @@ namespace Microsoft.Dafny {
         if (member is Field) {
           if (member is ConstantField) {
             var m = (ConstantField)member;
-            ResolveType(member.tok, ((Field)member).Type, m, ResolveTypeOptionEnum.DontInfer, null);
+            ResolveType(member.Tok, ((Field)member).Type, m, ResolveTypeOptionEnum.DontInfer, null);
           } else {
             // In the following, we pass in a NoContext, because any cycle formed by a redirecting-type constraints would have to
             // dereference the heap, and such constraints are not allowed to dereference the heap so an error will be produced
             // even if we don't detect this cycle.
-            ResolveType(member.tok, ((Field)member).Type, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
+            ResolveType(member.Tok, ((Field)member).Type, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -2420,7 +2420,7 @@ namespace Microsoft.Dafny {
             } else if (member is Lemma && Attributes.Contains(member.Attributes, "opaque_reveal")) {
               // reveal lemmas do not need to be reimplemented
             } else if (!suppressNoImplErrorsForTheseMembers.Contains(member.Name)) {
-              reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
+              reporter.Error(MessageSource.Resolver, cl.Tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
             }
           }
           continue;
@@ -2433,21 +2433,21 @@ namespace Microsoft.Dafny {
         var traitMember = member.OverriddenMember;
         var trait = traitMember.EnclosingClass;
         if (trait is not TraitDecl) {
-          reporter.Error(MessageSource.Resolver, member.tok,
+          reporter.Error(MessageSource.Resolver, member.Tok,
             $"{traitMember.WhatKindAndName} is inherited from {trait.WhatKindAndName} and is not allowed to be re-declared in {cl.WhatKindAndName}");
         } else if (traitMember.IsStatic) {
-          reporter.Error(MessageSource.Resolver, member.tok,
+          reporter.Error(MessageSource.Resolver, member.Tok,
             $"static {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
         } else if (member.IsStatic) {
-          reporter.Error(MessageSource.Resolver, member.tok,
+          reporter.Error(MessageSource.Resolver, member.Tok,
             $"static member '{member.Name}' overrides non-static member in trait '{trait.Name}'");
         } else if (traitMember is Field) {
           // The class is not allowed to do anything with the field other than silently inherit it.
-          reporter.Error(MessageSource.Resolver, member.tok,
+          reporter.Error(MessageSource.Resolver, member.Tok,
             $"{traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
         } else if ((traitMember as Function)?.Body != null || (traitMember as Method)?.Body != null) {
           // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
-          reporter.Error(MessageSource.Resolver, member.tok,
+          reporter.Error(MessageSource.Resolver, member.Tok,
             $"fully defined {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
         } else if (member is Method != traitMember is Method ||
                    member is Lemma != traitMember is Lemma ||
@@ -2458,13 +2458,13 @@ namespace Microsoft.Dafny {
                    member is TwoStateFunction != traitMember is TwoStateFunction ||
                    member is LeastPredicate != traitMember is LeastPredicate ||
                    member is GreatestPredicate != traitMember is GreatestPredicate) {
-          reporter.Error(MessageSource.Resolver, member.tok,
+          reporter.Error(MessageSource.Resolver, member.Tok,
             $"{traitMember.WhatKindAndName} in '{trait.Name}' can only be overridden by a {traitMember.WhatKind} (got {member.WhatKind})");
         } else if (member.IsGhost != traitMember.IsGhost) {
-          reporter.Error(MessageSource.Resolver, member.tok,
+          reporter.Error(MessageSource.Resolver, member.Tok,
             $"overridden {traitMember.WhatKindAndName} in '{cl.Name}' has different ghost/compiled status than in trait '{trait.Name}'");
         } else if (!member.IsOpaque && traitMember.IsOpaque) {
-          reporter.Error(MessageSource.Resolver, member.tok,
+          reporter.Error(MessageSource.Resolver, member.Tok,
             $"overridden {traitMember.WhatKindAndName} in '{cl.Name}' must be 'opaque' since the member is 'opaque' in trait '{trait.Name}'");
         } else {
           // Copy trait member's extern attribute onto class member if class does not provide one
@@ -2483,7 +2483,7 @@ namespace Microsoft.Dafny {
             var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
             var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
             if (classMethodAllowsNonTermination && !traitMethodAllowsNonTermination) {
-              reporter.Error(MessageSource.Resolver, classMethod.tok,
+              reporter.Error(MessageSource.Resolver, classMethod.Tok,
                 $"not allowed to override a terminating method with a possibly non-terminating method ('{classMethod.Name}')");
             }
 
@@ -2506,13 +2506,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(old != null);
       Contract.Requires(classTypeMap != null);
 
-      var typeMap = CheckOverride_TypeParameters(nw.tok, old.TypeArgs, nw.TypeArgs, nw.Name, "function", classTypeMap);
+      var typeMap = CheckOverride_TypeParameters(nw.Tok, old.TypeArgs, nw.TypeArgs, nw.Name, "function", classTypeMap);
       if (nw is ExtremePredicate nwFix && old is ExtremePredicate oldFix && nwFix.KNat != oldFix.KNat) {
         reporter.Error(MessageSource.Resolver, nw,
           "the type of special parameter '_k' of {0} '{1}' ({2}) must be the same as in the overridden {0} ({3})",
           nw.WhatKind, nw.Name, nwFix.KNat ? "nat" : "ORDINAL", oldFix.KNat ? "nat" : "ORDINAL");
       }
-      CheckOverride_ResolvedParameters(nw.tok, old.Ins, nw.Ins, nw.Name, "function", "parameter", typeMap);
+      CheckOverride_ResolvedParameters(nw.Tok, old.Ins, nw.Ins, nw.Name, "function", "parameter", typeMap);
       var oldResultType = old.ResultType.Subst(typeMap);
       if (!nw.ResultType.Equals(oldResultType, true)) {
         reporter.Error(MessageSource.Resolver, nw, "the result type of function '{0}' ({1}) differs from that in the overridden function ({2})",
@@ -2524,14 +2524,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(nw != null);
       Contract.Requires(old != null);
       Contract.Requires(classTypeMap != null);
-      var typeMap = CheckOverride_TypeParameters(nw.tok, old.TypeArgs, nw.TypeArgs, nw.Name, "method", classTypeMap);
+      var typeMap = CheckOverride_TypeParameters(nw.Tok, old.TypeArgs, nw.TypeArgs, nw.Name, "method", classTypeMap);
       if (nw is ExtremeLemma nwFix && old is ExtremeLemma oldFix && nwFix.KNat != oldFix.KNat) {
         reporter.Error(MessageSource.Resolver, nw,
           "the type of special parameter '_k' of {0} '{1}' ({2}) must be the same as in the overridden {0} ({3})",
           nw.WhatKind, nw.Name, nwFix.KNat ? "nat" : "ORDINAL", oldFix.KNat ? "nat" : "ORDINAL");
       }
-      CheckOverride_ResolvedParameters(nw.tok, old.Ins, nw.Ins, nw.Name, "method", "in-parameter", typeMap);
-      CheckOverride_ResolvedParameters(nw.tok, old.Outs, nw.Outs, nw.Name, "method", "out-parameter", typeMap);
+      CheckOverride_ResolvedParameters(nw.Tok, old.Ins, nw.Ins, nw.Name, "method", "in-parameter", typeMap);
+      CheckOverride_ResolvedParameters(nw.Tok, old.Outs, nw.Outs, nw.Name, "method", "out-parameter", typeMap);
     }
 
     private Dictionary<TypeParameter, Type> CheckOverride_TypeParameters(IOrigin tok, List<TypeParameter> old, List<TypeParameter> nw,
@@ -2552,25 +2552,25 @@ namespace Microsoft.Dafny {
           var n = nw[i];
           typeMap.Add(o, new UserDefinedType(tok, n));
           if (checkNames && o.Name != n.Name) { // if checkNames is false, then just treat the parameters positionally.
-            reporter.Error(MessageSource.Resolver, n.tok,
+            reporter.Error(MessageSource.Resolver, n.Tok,
               $"type parameters in this {thing} override are not allowed to be renamed from the names given in the the {thing} it overrides" +
               $" (expected '{o.Name}', got '{n.Name}')");
           } else {
             // Check type characteristics
             if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired &&
                 o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
-              reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality",
+              reporter.Error(MessageSource.Resolver, n.Tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality",
                 n.Name);
             }
             if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
-              reporter.Error(MessageSource.Resolver, n.tok,
+              reporter.Error(MessageSource.Resolver, n.Tok,
                 "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
             } else if (o.Characteristics.IsNonempty != n.Characteristics.IsNonempty) {
-              reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty",
+              reporter.Error(MessageSource.Resolver, n.Tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty",
                 n.Name);
             }
             if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
-              reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement",
+              reporter.Error(MessageSource.Resolver, n.Tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement",
                 n.Name);
             }
           }
@@ -2578,7 +2578,7 @@ namespace Microsoft.Dafny {
         for (var i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
-          CheckOverride_TypeBounds(n.tok, o, n, name, thing, typeMap);
+          CheckOverride_TypeBounds(n.Tok, o, n, name, thing, typeMap);
         }
       }
       return typeMap;
@@ -2619,27 +2619,27 @@ namespace Microsoft.Dafny {
           var o = old[i];
           var n = nw[i];
           if (!o.IsGhost && n.IsGhost) {
-            reporter.Error(MessageSource.Resolver, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from non-ghost to ghost",
+            reporter.Error(MessageSource.Resolver, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from non-ghost to ghost",
               parameterKind, n.Name, thing, name);
           } else if (o.IsGhost && !n.IsGhost) {
-            reporter.Error(MessageSource.Resolver, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from ghost to non-ghost",
+            reporter.Error(MessageSource.Resolver, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from ghost to non-ghost",
               parameterKind, n.Name, thing, name);
           } else if (!o.IsOld && n.IsOld) {
-            reporter.Error(MessageSource.Resolver, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from new to non-new",
+            reporter.Error(MessageSource.Resolver, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from new to non-new",
               parameterKind, n.Name, thing, name);
           } else if (o.IsOld && !n.IsOld) {
-            reporter.Error(MessageSource.Resolver, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from non-new to new",
+            reporter.Error(MessageSource.Resolver, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from non-new to new",
               parameterKind, n.Name, thing, name);
           } else if (!o.IsOlder && n.IsOlder) {
-            reporter.Error(MessageSource.Resolver, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from non-older to older",
+            reporter.Error(MessageSource.Resolver, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from non-older to older",
               parameterKind, n.Name, thing, name);
           } else if (o.IsOlder && !n.IsOlder) {
-            reporter.Error(MessageSource.Resolver, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from older to non-older",
+            reporter.Error(MessageSource.Resolver, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from older to non-older",
               parameterKind, n.Name, thing, name);
           } else {
             var oo = o.Type.Subst(typeMap);
             if (!n.Type.Equals(oo, true)) {
-              reporter.Error(MessageSource.Resolver, n.tok,
+              reporter.Error(MessageSource.Resolver, n.Tok,
                 "the type of {0} '{1}' is different from the type of the corresponding {0} in trait {2} ('{3}' instead of '{4}')",
                 parameterKind, n.Name, thing, n.Type, oo);
             }
@@ -3066,13 +3066,13 @@ namespace Microsoft.Dafny {
       var option = f.TypeArgs.Count == 0 ? new ResolveTypeOption(f) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       foreach (Formal p in f.Ins) {
         ScopePushAndReport(scope, p, "parameter");
-        ResolveType(p.tok, p.Type, f, option, f.TypeArgs);
+        ResolveType(p.Tok, p.Type, f, option, f.TypeArgs);
       }
       if (f.Result != null) {
         ScopePushAndReport(scope, f.Result, "parameter/return");
-        ResolveType(f.Result.tok, f.Result.Type, f, option, f.TypeArgs);
+        ResolveType(f.Result.Tok, f.Result.Type, f, option, f.TypeArgs);
       } else {
-        ResolveType(f.tok, f.ResultType, f, option, f.TypeArgs);
+        ResolveType(f.Tok, f.ResultType, f, option, f.TypeArgs);
       }
       scope.PopMarker();
     }
@@ -3102,12 +3102,12 @@ namespace Microsoft.Dafny {
       // resolve in-parameters
       foreach (Formal p in m.Ins) {
         ScopePushAndReport(scope, p, "parameter");
-        ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
+        ResolveType(p.Tok, p.Type, m, option, m.TypeArgs);
       }
       // resolve out-parameters
       foreach (Formal p in m.Outs) {
         ScopePushAndReport(scope, p, "parameter");
-        ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
+        ResolveType(p.Tok, p.Type, m, option, m.TypeArgs);
       }
       scope.PopMarker();
     }
@@ -3126,18 +3126,18 @@ namespace Microsoft.Dafny {
       // resolve the types of the parameters
       var prevErrorCount = reporter.Count(ErrorLevel.Error);
       foreach (var p in iter.Ins) {
-        ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
+        ResolveType(p.Tok, p.Type, iter, option, iter.TypeArgs);
       }
       foreach (var p in iter.Outs) {
-        ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
+        ResolveType(p.Tok, p.Type, iter, option, iter.TypeArgs);
         if (!p.Type.KnownToHaveToAValue(p.IsGhost)) {
-          reporter.Error(MessageSource.Resolver, p.tok, "type of yield-parameter must support auto-initialization (got '{0}')", p.Type);
+          reporter.Error(MessageSource.Resolver, p.Tok, "type of yield-parameter must support auto-initialization (got '{0}')", p.Type);
         }
       }
       // resolve the types of the added fields (in case some of these types would cause the addition of default type arguments)
       if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
         foreach (var p in iter.OutsHistoryFields) {
-          ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
+          ResolveType(p.Tok, p.Type, iter, option, iter.TypeArgs);
         }
       }
       if (iter.TypeArgs.Count != iter.NonNullTypeDecl.TypeArgs.Count) {
@@ -3318,7 +3318,7 @@ namespace Microsoft.Dafny {
 
       lhs = lhs.Resolved;
       if (lhs is IdentifierExpr idExpr && !localsAllowedInUpdates.Contains(idExpr.Var)) {
-        reporter.Error(MessageSource.Resolver, lhs.tok, "{0} is not allowed to update a variable it doesn't declare", where);
+        reporter.Error(MessageSource.Resolver, lhs.Tok, "{0} is not allowed to update a variable it doesn't declare", where);
       }
     }
 
@@ -3393,26 +3393,26 @@ namespace Microsoft.Dafny {
       var temp = FreshTempVarName("valueOrError", resolutionContext.CodeContext);
       var tempType = new InferredTypeProxy();
       // "var temp := E;"
-      expr.ResolvedExpression = LetVarIn(expr.tok, temp, tempType, expr.Rhs,
+      expr.ResolvedExpression = LetVarIn(expr.Tok, temp, tempType, expr.Rhs,
         // "if temp.IsFailure()"
-        new ITEExpr(expr.tok, false, VarDotFunction(expr.tok, temp, "IsFailure"),
+        new ITEExpr(expr.Tok, false, VarDotFunction(expr.Tok, temp, "IsFailure"),
           // "then temp.PropagateFailure()"
-          VarDotFunction(expr.tok, temp, "PropagateFailure"),
+          VarDotFunction(expr.Tok, temp, "PropagateFailure"),
           // "else"
           expr.Lhs == null
             // "F"
             ? expr.Body
             // "var x: T := temp.Extract(); F"
-            : LetPatIn(expr.tok, expr.Lhs, VarDotFunction(expr.tok, temp, "Extract"), expr.Body)));
+            : LetPatIn(expr.Tok, expr.Lhs, VarDotFunction(expr.Tok, temp, "Extract"), expr.Body)));
 
       ResolveExpression(expr.ResolvedExpression, resolutionContext);
       expr.Type = expr.ResolvedExpression.Type;
       bool expectExtract = (expr.Lhs != null);
-      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract, null);
+      EnsureSupportsErrorHandling(expr.Tok, PartiallyResolveTypeForMemberSelection(expr.Tok, tempType), expectExtract, null);
     }
 
     public static Type SelectAppropriateArrowTypeForFunction(Function function, Dictionary<TypeParameter, Type> subst, SystemModuleManager systemModuleManager) {
-      return SelectAppropriateArrowType(function.tok,
+      return SelectAppropriateArrowType(function.Tok,
         function.Ins.ConvertAll(formal => formal.Type.Subst(subst)),
         function.ResultType.Subst(subst),
         function.Reads.Expressions.Count != 0, function.Req.Count != 0,
@@ -3444,8 +3444,8 @@ namespace Microsoft.Dafny {
     public void ConstrainToIntegerType(Expression expr, bool allowBitVector, string errFormat) {
       Contract.Requires(expr != null);
       Contract.Requires(errFormat != null);
-      var err = new TypeConstraint.ErrorMsgWithToken(expr.tok, errFormat, expr.Type);
-      ConstrainToIntegerType(expr.tok, expr.Type, allowBitVector, err);
+      var err = new TypeConstraint.ErrorMsgWithToken(expr.Tok, errFormat, expr.Type);
+      ConstrainToIntegerType(expr.Tok, expr.Type, allowBitVector, err);
     }
 
     /// <summary>
@@ -3523,14 +3523,14 @@ namespace Microsoft.Dafny {
           foreach (var xt in dtd.TypeArgs) {
             typeArgs.Add(new InferredTypeProxy());
           }
-          udt = new UserDefinedType(pat.tok, dtd.Name, dtd, typeArgs);
-          ConstrainSubtypeRelation(udt, sourceType, pat.tok, "type of RHS ({0}) does not match type of bound variable '{1}'", sourceType, pat.Id);
+          udt = new UserDefinedType(pat.Tok, dtd.Name, dtd, typeArgs);
+          ConstrainSubtypeRelation(udt, sourceType, pat.Tok, "type of RHS ({0}) does not match type of bound variable '{1}'", sourceType, pat.Id);
         }
       }
       if (dtd == null && ctor == null) {
-        reporter.Error(MessageSource.Resolver, pat.tok, "to use a pattern, the type of the source/RHS expression must be a datatype (instead found {0})", sourceType);
+        reporter.Error(MessageSource.Resolver, pat.Tok, "to use a pattern, the type of the source/RHS expression must be a datatype (instead found {0})", sourceType);
       } else if (ctor == null) {
-        reporter.Error(MessageSource.Resolver, pat.tok, "constructor {0} does not exist in datatype {1}", pat.Id, dtd.Name);
+        reporter.Error(MessageSource.Resolver, pat.Tok, "constructor {0} does not exist in datatype {1}", pat.Id, dtd.Name);
       } else {
         if (pat.Arguments == null) {
           if (ctor.Formals.Count == 0) {
@@ -3540,7 +3540,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           if (ctor.Formals.Count != pat.Arguments.Count) {
-            reporter.Error(MessageSource.Resolver, pat.tok, "pattern for constructor {0} has wrong number of formals (found {1}, expected {2})", pat.Id, pat.Arguments.Count, ctor.Formals.Count);
+            reporter.Error(MessageSource.Resolver, pat.Tok, "pattern for constructor {0} has wrong number of formals (found {1}, expected {2})", pat.Id, pat.Arguments.Count, ctor.Formals.Count);
           }
         }
         // build the type-parameter substitution map for this use of the datatype
@@ -3650,7 +3650,7 @@ namespace Microsoft.Dafny {
         Expression CombineConstraints(Type baseType, BoundVar boundVar, Expression constraint) {
           var c = GetImpliedTypeConstraint(e, baseType);
           if (boundVar != null) {
-            var ee = new ConversionExpr(e.tok, e, boundVar.Type) { Type = boundVar.Type };
+            var ee = new ConversionExpr(e.Tok, e, boundVar.Type) { Type = boundVar.Type };
             var substMap = new Dictionary<IVariable, Expression> { { boundVar, ee } };
             var typeMap = TypeParameter.SubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
             var substituter = new Substituter(null, substMap, typeMap);
@@ -3666,7 +3666,7 @@ namespace Microsoft.Dafny {
           return CombineConstraints(subsetTypeDecl.RhsWithArgument(udt.TypeArgs), subsetTypeDecl.Var, subsetTypeDecl.Constraint);
         }
       }
-      return Expression.CreateBoolLiteral(e.tok, true);
+      return Expression.CreateBoolLiteral(e.Tok, true);
     }
 
     /// <summary>

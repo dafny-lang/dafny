@@ -123,7 +123,7 @@ public class Auditor : IRewriter {
     if (reportFileName is null && reportFormat is null) {
       foreach (var (_, assumptions) in report.AllAssumptions()) {
         foreach (var assumption in assumptions) {
-          Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, assumption.tok, assumption.Warning());
+          Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, assumption.Tok, assumption.Warning());
         }
       }
     } else {

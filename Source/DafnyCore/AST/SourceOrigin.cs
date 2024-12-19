@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Microsoft.Dafny;
 
-public class RangeToken : OriginWrapper {
+public class SourceOrigin : OriginWrapper {
   public override Token StartToken => (Token)WrappedToken;
 
   public override Token EndToken => endToken ?? StartToken;
@@ -12,7 +12,7 @@ public class RangeToken : OriginWrapper {
   public override bool IncludesRange => true;
 
   public override bool Equals(object obj) {
-    if (obj is RangeToken other) {
+    if (obj is SourceOrigin other) {
       return StartToken.Equals(other.StartToken) && EndToken.Equals(other.EndToken);
     }
     return false;
@@ -22,7 +22,7 @@ public class RangeToken : OriginWrapper {
     return HashCode.Combine(StartToken.GetHashCode(), EndToken.GetHashCode());
   }
 
-  public RangeToken(Token startToken, Token endToken) : base(startToken) {
+  public SourceOrigin(Token startToken, Token endToken) : base(startToken) {
     this.endToken = endToken;
   }
 

@@ -132,7 +132,7 @@ public class ProgramResolver {
 
     // check for cycles in the import graph
     foreach (var cycle in dependencies.AllCycles()) {
-      ModuleResolver.ReportCycleError(Reporter, cycle, m => m.tok,
+      ModuleResolver.ReportCycleError(Reporter, cycle, m => m.Tok,
         m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
         "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
     }
@@ -161,7 +161,7 @@ public class ProgramResolver {
       var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
       systemModuleResolver.allTypeParameters.PushMarker();
       systemModuleResolver.ResolveTypeParameters(d.TypeArgs, true, d);
-      systemModuleResolver.ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
+      systemModuleResolver.ResolveType(d.Tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
       systemModuleResolver.allTypeParameters.PopMarker();
     }
 
@@ -205,9 +205,9 @@ public class ProgramResolver {
 
       string compileName = m.GetCompileName(Options);
       if (compileNameMap.TryGetValue(compileName, out var priorModDef)) {
-        Reporter.Error(MessageSource.Resolver, m.tok,
+        Reporter.Error(MessageSource.Resolver, m.Tok,
           "modules '{0}' and '{1}' both have CompileName '{2}'",
-          priorModDef.tok.val, m.tok.val, compileName);
+          priorModDef.Tok.val, m.Tok.val, compileName);
       } else {
         compileNameMap.Add(compileName, m);
       }
@@ -292,7 +292,7 @@ public class ProgramResolver {
       var subBindings = bindings.SubBindings(moduleDecl.Name);
       ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
       if (module.ModuleKind == ModuleKindEnum.Concrete && (moduleDecl as AbstractModuleDecl)?.QId.Root != null) {
-        Reporter.Error(MessageSource.Resolver, moduleDecl.tok,
+        Reporter.Error(MessageSource.Resolver, moduleDecl.Tok,
           "The abstract import named {0} (using :) may only be used in an abstract or replaceable module declaration",
           moduleDecl.Name);
       }
@@ -319,7 +319,7 @@ public class ProgramResolver {
       if (!bindings.ResolveQualifiedModuleIdRootAbstract(abstractDecl, abstractDecl.QId, out var root)) {
         //if (!bindings.TryLookupFilter(abs.QId.rootToken(), out root,
         //  m => abs != m && (((abs.EnclosingModuleDefinition == m.EnclosingModuleDefinition) && (abs.Exports.Count == 0)) || m is LiteralModuleDecl)))
-        Reporter.Error(MessageSource.Resolver, abstractDecl.tok, ModuleNotFoundErrorMessage(0, abstractDecl.QId.Path));
+        Reporter.Error(MessageSource.Resolver, abstractDecl.Tok, ModuleNotFoundErrorMessage(0, abstractDecl.QId.Path));
       } else {
         abstractDecl.QId.Root = root;
         declarationPointers.AddOrUpdate(root, v => abstractDecl.QId.Root = v, Util.Concat);

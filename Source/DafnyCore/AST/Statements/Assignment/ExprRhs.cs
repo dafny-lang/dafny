@@ -18,7 +18,7 @@ public class ExprRhs : AssignmentRhs, ICloneable<ExprRhs> {
   }
 
   public ExprRhs(Expression expr, Attributes attrs = null)
-    : base(expr.tok, attrs) {
+    : base(expr.Tok, attrs) {
     Contract.Requires(expr != null);
     Expr = expr;
   }

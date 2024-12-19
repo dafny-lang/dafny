@@ -62,10 +62,10 @@ Send notifications about the verification status of each line in the program.
                 "datatype",
                 ctor.Name,
                 ctor.GetCompileName(options),
-                ctor.tok.Filepath,
+                ctor.Tok.Filepath,
                 ctor.Tok.Uri,
                 verificationTreeRange,
-                ctor.tok.GetLspPosition(),
+                ctor.Tok.GetLspPosition(),
                 Attributes.Contains(ctor.Attributes, "only")
                 );
               AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -75,7 +75,7 @@ Send notifications about the verification status of each line in the program.
 
         if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           foreach (var member in topLevelDeclWithMembers.Members) {
-            var memberWasNotIncluded = member.tok.Uri != rootVerificationTree.Uri;
+            var memberWasNotIncluded = member.Tok.Uri != rootVerificationTree.Uri;
             if (memberWasNotIncluded) {
               continue;
             }
@@ -90,10 +90,10 @@ Send notifications about the verification status of each line in the program.
                 "constant",
                 member.Name,
                 member.GetCompileName(options),
-                member.tok.Filepath,
+                member.Tok.Filepath,
                 member.Tok.Uri,
                 verificationTreeRange,
-                member.tok.GetLspPosition(),
+                member.Tok.GetLspPosition(),
                 Attributes.Contains(member.Attributes, "only"));
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             } else if (member is Method or Function) {
@@ -102,10 +102,10 @@ Send notifications about the verification status of each line in the program.
                 (member is Method ? "method" : "function"),
                 member.Name,
                 member.GetCompileName(options),
-                member.tok.Filepath,
+                member.Tok.Filepath,
                 member.Tok.Uri,
                 verificationTreeRange,
-                member.tok.GetLspPosition(),
+                member.Tok.GetLspPosition(),
                 Attributes.Contains(member.Attributes, "only"));
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {
@@ -114,7 +114,7 @@ Send notifications about the verification status of each line in the program.
                   "by method part of function",
                   member.Name,
                   member.GetCompileName(options) + "_by_method",
-                  member.tok.Filepath,
+                  member.Tok.Filepath,
                   member.Tok.Uri,
                   verificationTreeRangeByMethod,
                   function.ByMethodTok.GetLspPosition(),
@@ -126,7 +126,7 @@ Send notifications about the verification status of each line in the program.
         }
 
         if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
-          if (subsetTypeDecl.tok.Uri != rootVerificationTree.Uri) {
+          if (subsetTypeDecl.Tok.Uri != rootVerificationTree.Uri) {
             continue;
           }
 
@@ -135,10 +135,10 @@ Send notifications about the verification status of each line in the program.
             $"subset type",
             subsetTypeDecl.Name,
             subsetTypeDecl.GetCompileName(options),
-            subsetTypeDecl.tok.Filepath,
+            subsetTypeDecl.Tok.Filepath,
             subsetTypeDecl.Tok.Uri,
             verificationTreeRange,
-            subsetTypeDecl.tok.GetLspPosition(),
+            subsetTypeDecl.Tok.GetLspPosition(),
             Attributes.Contains(subsetTypeDecl.Attributes, "only"));
           AddAndPossiblyMigrateVerificationTree(verificationTree);
         }

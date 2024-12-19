@@ -19,7 +19,7 @@ namespace PluginsDafnyCodeActionTest {
       var token = ((Program)input.Program).GetStartOfFirstFileToken();
       return new DafnyCodeAction[] {
         new InstantDafnyCodeAction("Insert file header", new DafnyCodeActionEdit[] {
-          new DafnyCodeActionEdit(new RangeToken(token, token).ToDafnyRange(), "/*First comment*/")
+          new DafnyCodeActionEdit(new SourceOrigin(token, token).ToDafnyRange(), "/*First comment*/")
         })
       };
     }

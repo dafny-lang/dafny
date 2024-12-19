@@ -25,7 +25,7 @@ public class ForallExpr : QuantifierExpr, ICloneable<ForallExpr> {
     if (Range == null) {
       return Term;
     }
-    var body = new BinaryExpr(Term.tok, BinaryExpr.Opcode.Imp, Range, Term);
+    var body = new BinaryExpr(Term.Tok, BinaryExpr.Opcode.Imp, Range, Term);
     body.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;
     body.Type = Term.Type;
     return body;

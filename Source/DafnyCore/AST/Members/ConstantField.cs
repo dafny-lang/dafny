@@ -14,7 +14,7 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
 
   public ConstantField(IOrigin rangeOrigin, Name name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
     : base(rangeOrigin, name, ID.UseIdParam, NonglobalVariable.SanitizeName(name.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
-    Contract.Requires(tok != null);
+    Contract.Requires(Tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
     this.Rhs = rhs;
@@ -67,7 +67,7 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
     Rhs = Rewriter.AddRevealStmtsToExpression(Rhs, addedReveals);
 
     if (addedReveals.Any()) {
-      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, tok,
+      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Tok,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
     }
   }
