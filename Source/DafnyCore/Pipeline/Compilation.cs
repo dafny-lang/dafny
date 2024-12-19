@@ -377,11 +377,12 @@ public class Compilation : IDisposable {
           // We normalize so that we group on tokens as they are displayed to the user by Reporter.Info
           return new SourceOrigin(dafnyToken.StartToken, dafnyToken.EndToken, dafnyToken.Center);
         }).
-          OrderBy(g => g.Key);
+          OrderBy(g => g.Key.Center);
+        // TODO merge intersecting groups
         foreach (var tokenTasks in groups) {
           var functions = tokenTasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
             OfType<FromDafnyNode>().Select(n => n.Node).
-            OfType<Function>()).Distinct().OrderBy(f => f.Tok);
+            OfType<Function>()).Distinct().OrderBy(f => f.Origin.Center);
           var hiddenFunctions = string.Join(", ", functions.Select(f => f.FullDafnyName));
           if (!string.IsNullOrEmpty(hiddenFunctions)) {
             Reporter.Info(MessageSource.Verifier, tokenTasks.Key, $"hidden functions: {hiddenFunctions}");
