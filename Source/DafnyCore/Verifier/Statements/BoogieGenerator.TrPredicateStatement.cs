@@ -153,7 +153,8 @@ namespace Microsoft.Dafny {
       var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
       var splits = TrSplitExpr(proofBuilder.Context, stmt.Expr, etran, true, out var splitHappened);
       if (!splitHappened) {
-        var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedOrigin(enclosingToken, GetToken(stmt.Expr));
+        var innerToken = new OverrideCenter(stmt.Origin, GetToken(stmt.Expr).Center);
+        var tok = enclosingToken == null ? (IOrigin)innerToken : new NestedOrigin(enclosingToken, innerToken);
         var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
         proofBuilder.Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok, proofBuilder.Context,
           etran.TrAttributes(stmt.Attributes, null)));
