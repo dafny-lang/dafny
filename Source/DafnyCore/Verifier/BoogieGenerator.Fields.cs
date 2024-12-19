@@ -189,10 +189,9 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(decl.tok, true, null, etran.HeightContext(decl), null, null, null));
-
+      req.Add(FreeRequires(decl.tok, etran.HeightContext(decl), null));
       foreach (var typeBoundAxiom in TypeBoundAxioms(decl.tok, decl.EnclosingClass.TypeArgs)) {
-        req.Add(Requires(decl.tok, true, null, typeBoundAxiom, null, null, null));
+        req.Add(FreeRequires(decl.tok, typeBoundAxiom, null));
       }
 
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);

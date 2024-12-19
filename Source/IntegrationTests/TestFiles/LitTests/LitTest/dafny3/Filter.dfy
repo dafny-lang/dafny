@@ -221,7 +221,7 @@ lemma FS_Pong<T>(s: Stream<T>, P: Predicate, x: T, k: nat)
     }
   } else {
     assert fs == Filter(s.tail, P);  // reminder of where we are
-    //FS_Pong(s.tail, h, x, k-1);
+    FS_Pong(s.tail, P, x, k-1);
   }
 }
 
