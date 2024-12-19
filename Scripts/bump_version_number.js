@@ -68,6 +68,10 @@ async function synchronizeRepositoryWithNewVersionNumber() {
     if(file.endsWith("NoGood.dtr")) {
       continue;
     }
+    //#     Except for WrongDafnyVersion.dtr as well. 
+    if(file.endsWith("WrongDafnyVersion.dtr")) {
+      continue;
+    }
     await replaceInFile(/dafny_version = "\d+\.\d+\.\d+/, `dafny_version = "${version}`,
       `${TestDirectory}/${file}`);
   }

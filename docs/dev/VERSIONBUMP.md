@@ -33,6 +33,7 @@ perform the following:
   * Search for `dafny_version = ` in checked-in `.dtr` files of the `<TestDirectory>`
    and update the version number.
     Except for the file NoGood.dtr which is not valid.
+    Except for WrongDafnyVersion.dtr as well.
   * Update `comp/separate-compilation/translation-records/InvalidFormat.dfy.expect` by updating the version number after `by Dafny ` 
 * In `Source/DafnyRuntime/DafnyRuntimeJava/build.gradle`, search for `version = ` and update the version number
 * In `Source/DafnyRuntime/DafnyRuntimePython/pyproject.toml`, search for `version = ` and update the version number
