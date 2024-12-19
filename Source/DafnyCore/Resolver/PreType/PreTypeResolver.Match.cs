@@ -21,7 +21,7 @@ namespace Microsoft.Dafny {
         ResolveAttributes(mc, resolutionContext, false);
 
         scope.PushMarker();
-        ResolveExtendedPattern(stmt.Source.tok, mc.Pat, stmt.Source.PreType, false, resolutionContext);
+        ResolveExtendedPattern(stmt.Source.Tok, mc.Pat, stmt.Source.PreType, false, resolutionContext);
 
         DominatingStatementLabels.PushMarker();
         mc.Body.ForEach(ss => ResolveStatementWithLabels(ss, resolutionContext));
@@ -39,10 +39,10 @@ namespace Microsoft.Dafny {
         ResolveAttributes(mc, resolutionContext, false);
 
         scope.PushMarker();
-        ResolveExtendedPattern(expr.Source.tok, mc.Pat, expr.Source.PreType, false, resolutionContext);
+        ResolveExtendedPattern(expr.Source.Tok, mc.Pat, expr.Source.PreType, false, resolutionContext);
 
         ResolveExpression(mc.Body, resolutionContext);
-        AddSubtypeConstraint(expr.PreType, mc.Body.PreType, mc.Body.tok,
+        AddSubtypeConstraint(expr.PreType, mc.Body.PreType, mc.Body.Tok,
           "type of case bodies do not agree (found {1}, previous types {0})");
 
         scope.PopMarker();
@@ -80,7 +80,7 @@ namespace Microsoft.Dafny {
       if (pattern is LitPattern litPattern) {
         var lit = litPattern.OptimisticallyDesugaredLit;
         ResolveExpression(lit, resolutionContext);
-        AddSubtypeConstraint(preType, lit.PreType, litPattern.tok,
+        AddSubtypeConstraint(preType, lit.PreType, litPattern.Tok,
           "literal pattern (of type {1}) cannot be used with source type {0}");
         return;
       }

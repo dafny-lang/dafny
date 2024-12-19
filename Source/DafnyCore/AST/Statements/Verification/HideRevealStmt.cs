@@ -62,7 +62,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
   public static string SingleName(Expression e) {
     Contract.Requires(e != null);
     if (e is NameSegment || e is LiteralExpr) {
-      return e.tok.val;
+      return e.Tok.val;
     } else {
       return null;
     }
@@ -123,7 +123,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
               if (revealCallee != null) {
                 var call = new CallStmt(Origin, new List<Expression>(),
                   revealCallee,
-                  new List<ActualBinding>(), effectiveExpr.tok);
+                  new List<ActualBinding>(), effectiveExpr.Tok);
                 ResolvedStatements.Add(call);
               }
             } else {

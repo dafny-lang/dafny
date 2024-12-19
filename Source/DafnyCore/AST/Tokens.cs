@@ -63,7 +63,7 @@ public class Token : IOrigin {
 
   public bool IsValid => this.ActualFilename != null;
 
-  public RangeToken To(Token end) => new(this, end);
+  public SourceOrigin To(Token end) => new(this, end);
 
   public IOrigin WithVal(string newVal) {
     return new Token {
@@ -149,7 +149,7 @@ public static class TokenExtensions {
   }
 
   public static string PrintOriginal(this IOrigin origin) {
-    return new RangeToken(origin.StartToken, origin.EndToken).PrintOriginal();
+    return new SourceOrigin(origin.StartToken, origin.EndToken).PrintOriginal();
   }
 
   public static bool IsSet(this IOrigin token) => token.Uri != null;

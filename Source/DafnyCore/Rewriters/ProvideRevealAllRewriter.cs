@@ -33,7 +33,7 @@ public class ProvideRevealAllRewriter : IRewriter {
             }
 
             if (newt is not DefaultClassDecl) {
-              me.Exports.Add(new ExportSignature(newt.tok, newt.Name, !revealAll || !newt.CanBeRevealed()));
+              me.Exports.Add(new ExportSignature(newt.Tok, newt.Name, !revealAll || !newt.CanBeRevealed()));
             }
 
             if (newt is TopLevelDeclWithMembers cl) {
@@ -43,13 +43,13 @@ public class ProvideRevealAllRewriter : IRewriter {
                 var opaque = !revealAll || !mem.CanBeRevealed();
                 if (newt is DefaultClassDecl) {
                   // add everything from the default class
-                  me.Exports.Add(new ExportSignature(mem.tok, mem.Name, opaque));
+                  me.Exports.Add(new ExportSignature(mem.Tok, mem.Name, opaque));
                 } else if (mem is Constructor && !newtIsRevealed) {
                   // "provides *" does not pick up class constructors, unless the class is to be revealed
                 } else if (opaque && mem is Field field && !(mem is ConstantField) && !newtIsRevealed) {
                   // "provides *" does not pick up mutable fields, unless the class is to be revealed
                 } else {
-                  me.Exports.Add(new ExportSignature(cl.tok, cl.Name, mem.tok, mem.Name, opaque));
+                  me.Exports.Add(new ExportSignature(cl.Tok, cl.Name, mem.Tok, mem.Name, opaque));
                 }
               }
             }

@@ -13,7 +13,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
   public readonly string Name;
   [FilledInDuringResolution] public IVariable Var;
 
-  public string DafnyName => tok.line > 0 ? Origin.PrintOriginal() : Name;
+  public string DafnyName => Tok.line > 0 ? Origin.PrintOriginal() : Name;
 
   public IdentifierExpr(IOrigin tok, string name)
     : base(tok) {

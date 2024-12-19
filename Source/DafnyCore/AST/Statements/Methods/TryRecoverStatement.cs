@@ -29,7 +29,7 @@ public class TryRecoverStatement : Statement, ICloneable<TryRecoverStatement> {
   }
 
   public TryRecoverStatement(Statement tryBody, IVariable haltMessageVar, Statement recoverBody)
-    : base(new RangeToken(tryBody.StartToken, recoverBody.EndToken)) {
+    : base(new SourceOrigin(tryBody.StartToken, recoverBody.EndToken)) {
     Contract.Requires(tryBody != null);
     Contract.Requires(haltMessageVar != null);
     Contract.Requires(recoverBody != null);

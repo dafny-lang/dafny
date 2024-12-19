@@ -171,8 +171,8 @@ namespace DafnyTestGeneration {
           type = DafnyModelTypeUtils.ReplaceType(type,
             _ => true,
             type => DafnyInfo.GetSupersetType(type) != null && type.Name.StartsWith("_System") ?
-              new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs) :
-              new UserDefinedType(type.tok, type.Name, type.TypeArgs));
+              new UserDefinedType(type.Tok, type.Name[8..], type.TypeArgs) :
+              new UserDefinedType(type.Tok, type.Name, type.TypeArgs));
         } else {
           type = null;
         }
@@ -248,7 +248,7 @@ namespace DafnyTestGeneration {
         asType = DafnyModelTypeUtils.ReplaceType(asType,
           type => DafnyInfo.GetSupersetType(type) != null &&
                   type.Name.StartsWith("_System"),
-          type => new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs));
+          type => new UserDefinedType(type.Tok, type.Name[8..], type.TypeArgs));
       }
       if (mockedVarId.ContainsKey(variable)) {
         return mockedVarId[variable];
@@ -260,7 +260,7 @@ namespace DafnyTestGeneration {
       variableType = DafnyModelTypeUtils.ReplaceType(variableType,
         type => DafnyInfo.GetSupersetType(type) != null &&
                 type.Name.StartsWith("_System"),
-        type => new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs));
+        type => new UserDefinedType(type.Tok, type.Name[8..], type.TypeArgs));
       if (variableType.ToString() == defaultType.ToString() &&
           variableType.ToString() != variable.Type.ToString()) {
         return GetADefaultTypeValue(variable);

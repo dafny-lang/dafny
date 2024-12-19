@@ -69,10 +69,10 @@ namespace Microsoft.Dafny {
       currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
-      var etran = new ExpressionTranslator(this, Predef, iter.tok, iter);
+      var etran = new ExpressionTranslator(this, Predef, iter.Tok, iter);
 
       var inParams = new List<Bpl.Variable>();
-      GenerateMethodParametersChoose(iter.tok, iter, kind,
+      GenerateMethodParametersChoose(iter.Tok, iter, kind,
         true, true, false, etran, inParams, out var outParams);
 
       var req = new List<Bpl.Requires>();
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh = FunctionContextHeight;
-        req.Add(Requires(iter.tok, true, null, etran.HeightContext(iter), null, null, null));
+        req.Add(Requires(iter.Tok, true, null, etran.HeightContext(iter), null, null, null));
       }
       mod.Add(etran.HeapCastToIdentifierExpr);
 
@@ -116,13 +116,13 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.tok, iter.Modifies.Expressions, false, iter.AllowsAllocation, etran.Old, etran, etran.Old)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.Tok, iter.Modifies.Expressions, false, iter.AllowsAllocation, etran.Old, etran, etran.Old)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
         }
       }
 
       var name = MethodName(iter, kind);
-      var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(),
+      var proc = new Bpl.Procedure(iter.Tok, name, new List<Bpl.TypeVariable>(),
         inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
       AddVerboseNameAttribute(proc, iter.FullDafnyName, kind);
 
@@ -147,7 +147,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(proc.OutParams.Count == 0);
 
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
-      var etran = new ExpressionTranslator(this, Predef, iter.tok, iter);
+      var etran = new ExpressionTranslator(this, Predef, iter.Tok, iter);
       // Don't do reads checks since iterator reads clauses mean something else.
       // See comment inside GenerateIteratorImplPrelude().
       etran = etran.WithReadsFrame(null);
@@ -158,8 +158,8 @@ namespace Microsoft.Dafny {
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
         CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran.WithReadsFrame(etran.readsFrame, null));
-        builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
+        builder.Add(new Bpl.AssumeCmd(e.Tok, etran.CanCallAssumption(e)));
+        CheckSubrange(e.Tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
       }
       // check well-formedness of the preconditions, and then assume each one of them
       var wfOptions = new WFOptions();
@@ -176,14 +176,14 @@ namespace Microsoft.Dafny {
 
       // Next, we assume about this.* whatever we said that the iterator constructor promises
       foreach (var p in iter.Member_Init.Ens) {
-        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator ensures clause"));
+        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.Tok, p.E, "iterator ensures clause"));
       }
 
       // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
       var th = new ThisExpr(iter);  // resolve here
-      var rds = new MemberSelectExpr(iter.tok, th, iter.Member_Reads);
-      var mod = new MemberSelectExpr(iter.tok, th, iter.Member_Modifies);
-      builder.Add(Call(builder.Context, iter.tok, "$IterHavoc0",
+      var rds = new MemberSelectExpr(iter.Tok, th, iter.Member_Reads);
+      var mod = new MemberSelectExpr(iter.Tok, th, iter.Member_Modifies);
+      builder.Add(Call(builder.Context, iter.Tok, "$IterHavoc0",
         new List<Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod) },
         new List<Bpl.IdentifierExpr>()));
 
@@ -194,7 +194,7 @@ namespace Microsoft.Dafny {
       validCall.TypeApplication_AtEnclosingClass = iter.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));  // resolve here
       validCall.TypeApplication_JustFunction = new List<Type>(); // resolved here
 
-      builder.Add(TrAssumeCmd(iter.tok, etran.TrExpr(validCall)));
+      builder.Add(TrAssumeCmd(iter.Tok, etran.TrExpr(validCall)));
 
       // check well-formedness of the user-defined part of the yield-requires
       foreach (var p in iter.YieldRequires) {
@@ -202,46 +202,46 @@ namespace Microsoft.Dafny {
       }
 
       // save the heap (representing the state where yield-requires holds):  $_OldIterHeap := Heap;
-      var oldIterHeap = localVariables.GetOrAdd(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", Predef.HeapType)));
-      builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, oldIterHeap), etran.HeapExpr));
+      var oldIterHeap = localVariables.GetOrAdd(new Bpl.LocalVariable(iter.Tok, new Bpl.TypedIdent(iter.Tok, "$_OldIterHeap", Predef.HeapType)));
+      builder.Add(Bpl.Cmd.SimpleAssign(iter.Tok, new Bpl.IdentifierExpr(iter.Tok, oldIterHeap), etran.HeapExpr));
       // simulate a modifies this, this._modifies, this._new;
-      var nw = new MemberSelectExpr(iter.tok, th, iter.Member_New);
-      builder.Add(Call(builder.Context, iter.tok, "$IterHavoc1",
+      var nw = new MemberSelectExpr(iter.Tok, th, iter.Member_New);
+      builder.Add(Call(builder.Context, iter.Tok, "$IterHavoc1",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(mod), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
       // assume the implicit postconditions promised by MoveNext:
       // assume fresh(_new - old(_new));
-      var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", Predef.HeapType), iter);
-      var old_nw = new OldExpr(iter.tok, nw);
+      var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.Tok, "$_OldIterHeap", Predef.HeapType), iter);
+      var old_nw = new OldExpr(iter.Tok, nw);
       old_nw.Type = nw.Type;  // resolve here
-      var setDiff = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub, nw, old_nw);
+      var setDiff = new BinaryExpr(iter.Tok, BinaryExpr.Opcode.Sub, nw, old_nw);
       setDiff.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference; setDiff.Type = nw.Type;  // resolve here
-      Expression cond = new FreshExpr(iter.tok, setDiff);
+      Expression cond = new FreshExpr(iter.Tok, setDiff);
       cond.Type = Type.Bool;  // resolve here
-      builder.Add(TrAssumeCmd(iter.tok, yeEtran.TrExpr(cond)));
+      builder.Add(TrAssumeCmd(iter.Tok, yeEtran.TrExpr(cond)));
 
       // check wellformedness of postconditions
       var yeBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
       var endBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
       // In the yield-ensures case:  assume this.Valid();
-      yeBuilder.Add(TrAssumeCmdWithDependencies(yeEtran, iter.tok, validCall, "iterator validity"));
+      yeBuilder.Add(TrAssumeCmdWithDependencies(yeEtran, iter.Tok, validCall, "iterator validity"));
       Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
       for (int i = 0; i < iter.OutsFields.Count; i++) {
         var y = iter.OutsFields[i];
         var ys = iter.OutsHistoryFields[i];
-        var thisY = new MemberSelectExpr(iter.tok, th, y);
-        var thisYs = new MemberSelectExpr(iter.tok, th, ys);
-        var oldThisYs = new OldExpr(iter.tok, thisYs);
+        var thisY = new MemberSelectExpr(iter.Tok, th, y);
+        var thisYs = new MemberSelectExpr(iter.Tok, th, ys);
+        var oldThisYs = new OldExpr(iter.Tok, thisYs);
         oldThisYs.Type = thisYs.Type;  // resolve here
-        var singleton = new SeqDisplayExpr(iter.tok, new List<Expression>() { thisY });
+        var singleton = new SeqDisplayExpr(iter.Tok, new List<Expression>() { thisY });
         singleton.Type = thisYs.Type;  // resolve here
-        var concat = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Add, oldThisYs, singleton);
+        var concat = new BinaryExpr(iter.Tok, BinaryExpr.Opcode.Add, oldThisYs, singleton);
         concat.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat; concat.Type = oldThisYs.Type;  // resolve here
 
         // In the yield-ensures case:  assume this.ys == old(this.ys) + [this.y];
-        yeBuilder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(concat))));
+        yeBuilder.Add(TrAssumeCmd(iter.Tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(concat))));
         // In the ensures case:  assume this.ys == old(this.ys);
-        endBuilder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(oldThisYs))));
+        endBuilder.Add(TrAssumeCmd(iter.Tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(oldThisYs))));
       }
 
       foreach (var p in iter.YieldEnsures) {
@@ -250,9 +250,9 @@ namespace Microsoft.Dafny {
       foreach (var p in iter.Ensures) {
         CheckWellformedAndAssume(p.E, wfOptions, localVariables, endBuilder, yeEtran, "iterator ensures clause");
       }
-      builder.Add(new Bpl.IfCmd(iter.tok, null, yeBuilder.Collect(iter.tok), null, endBuilder.Collect(iter.tok)));
+      builder.Add(new Bpl.IfCmd(iter.Tok, null, yeBuilder.Collect(iter.Tok), null, endBuilder.Collect(iter.Tok)));
 
-      Bpl.StmtList stmts = builder.Collect(iter.tok);
+      Bpl.StmtList stmts = builder.Collect(iter.Tok);
 
       if (EmitImplementation(iter.Attributes)) {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
@@ -280,7 +280,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(proc.OutParams.Count == 0);
 
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(iter.ContainsHide));
-      var etran = new ExpressionTranslator(this, Predef, iter.tok, iter);
+      var etran = new ExpressionTranslator(this, Predef, iter.Tok, iter);
       // Don't do reads checks since iterator reads clauses mean something else.
       // See comment inside GenerateIteratorImplPrelude().
       etran = etran.WithReadsFrame(null);
@@ -294,27 +294,27 @@ namespace Microsoft.Dafny {
           // don't include this precondition here
           Contract.Assert(p.Label.E != null);  // it should already have been recorded
         } else {
-          builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator constructor requires clause"));
+          builder.Add(TrAssumeCmdWithDependencies(etran, p.E.Tok, p.E, "iterator constructor requires clause"));
         }
       }
       foreach (var p in iter.Member_Init.Ens) {
         // these postconditions are two-state predicates, but that's okay, because we haven't changed anything yet
-        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator constructor ensures clause"));
+        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.Tok, p.E, "iterator constructor ensures clause"));
       }
       // add the _yieldCount variable, and assume its initial value to be 0
-      yieldCountVariable = (Bpl.LocalVariable)localVariables.GetOrAdd(new Bpl.LocalVariable(iter.tok,
-        new Bpl.TypedIdent(iter.tok, iter.YieldCountVariable.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(iter.YieldCountVariable.Type))));
+      yieldCountVariable = (Bpl.LocalVariable)localVariables.GetOrAdd(new Bpl.LocalVariable(iter.Tok,
+        new Bpl.TypedIdent(iter.Tok, iter.YieldCountVariable.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(iter.YieldCountVariable.Type))));
       yieldCountVariable.TypedIdent.WhereExpr = YieldCountAssumption(iter, etran);  // by doing this after setting "yieldCountVariable", the variable can be used by YieldCountAssumption
-      builder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable), Bpl.Expr.Literal(0))));
+      builder.Add(TrAssumeCmd(iter.Tok, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.Tok, yieldCountVariable), Bpl.Expr.Literal(0))));
       // add a variable $_OldIterHeap
-      var oih = new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", Predef.HeapType);
+      var oih = new Bpl.IdentifierExpr(iter.Tok, "$_OldIterHeap", Predef.HeapType);
       Bpl.Expr wh = BplAnd(
-        FunctionCall(iter.tok, BuiltinFunction.IsGoodHeap, null, oih),
+        FunctionCall(iter.Tok, BuiltinFunction.IsGoodHeap, null, oih),
         HeapSucc(oih, etran.HeapExpr));
-      localVariables.GetOrAdd(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", Predef.HeapType, wh)));
+      localVariables.GetOrAdd(new Bpl.LocalVariable(iter.Tok, new Bpl.TypedIdent(iter.Tok, "$_OldIterHeap", Predef.HeapType, wh)));
 
       // do an initial YieldHavoc
-      YieldHavoc(iter.tok, iter, builder, etran);
+      YieldHavoc(iter.Tok, iter, builder, etran);
 
       // translate the body of the iterator
       var stmts = TrStmt2StmtList(builder, iter.Body, localVariables, etran);
@@ -338,11 +338,11 @@ namespace Microsoft.Dafny {
       Bpl.Expr wh = Bpl.Expr.True;
       foreach (var ys in iter.OutsHistoryFields) {
         // add the conjunct:  _yieldCount == |this.ys|
-        wh = BplAnd(wh, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable),
-          FunctionCall(iter.tok, BuiltinFunction.SeqLength, null,
-            ApplyUnbox(iter.tok, ReadHeap(iter.tok, etran.HeapExpr,
-              new Bpl.IdentifierExpr(iter.tok, etran.This, Predef.RefType),
-              new Bpl.IdentifierExpr(iter.tok, GetField(ys))), TrType(ys.Type)))));
+        wh = BplAnd(wh, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.Tok, yieldCountVariable),
+          FunctionCall(iter.Tok, BuiltinFunction.SeqLength, null,
+            ApplyUnbox(iter.Tok, ReadHeap(iter.Tok, etran.HeapExpr,
+              new Bpl.IdentifierExpr(iter.Tok, etran.This, Predef.RefType),
+              new Bpl.IdentifierExpr(iter.Tok, GetField(ys))), TrType(ys.Type)))));
       }
       return wh;
     }
@@ -359,15 +359,15 @@ namespace Microsoft.Dafny {
       // set up the information used to verify the method's modifies clause
       var iteratorFrame = new List<FrameExpression>();
       var th = new ThisExpr(iter);
-      iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
+      iteratorFrame.Add(new FrameExpression(iter.Tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
       // Note we explicitly do NOT use iter.Reads, because reads clauses on iterators
       // mean something different from reads clauses on functions or methods:
       // the memory locations that are not havoced by a yield statement.
       // Look for the references to the YieldHavoc, IterHavoc0 and IterHavoc1 DafnyPrelude.bpl functions for details.
       Contract.Assert(etran.readsFrame == null);
-      DefineFrame(iter.tok, etran.ModifiesFrame(iter.tok), iteratorFrame, builder, localVariables, null);
-      builder.AddCaptureState(iter.tok, false, "initial state");
+      DefineFrame(iter.Tok, etran.ModifiesFrame(iter.Tok), iteratorFrame, builder, localVariables, null);
+      builder.AddCaptureState(iter.Tok, false, "initial state");
     }
 
     /// <summary>

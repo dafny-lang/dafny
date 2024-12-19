@@ -62,7 +62,7 @@ public partial class BoogieGenerator {
     var caller = new List<Expr>();
     var oldExpressions = new List<Expression>();
     var newExpressions = new List<Expression>();
-    if (tok.IsInherited(currentModule) && contextDecreases.All(e => !e.tok.IsInherited(currentModule))) {
+    if (tok.IsInherited(currentModule) && contextDecreases.All(e => !e.Tok.IsInherited(currentModule))) {
       // the call site is inherited but all the context decreases expressions are new
       tok = new ForceCheckOrigin(tok);
     }
@@ -71,7 +71,7 @@ public partial class BoogieGenerator {
       Expression e0direct = Substitute(calleeDecreases[i], receiverReplacement, directSubstMap, typeMap);
       Expression e1 = contextDecreases[i];
       if (oldCaller) {
-        e1 = new OldExpr(e1.tok, e1) {
+        e1 = new OldExpr(e1.Tok, e1) {
           Type = e1.Type // To ensure that e1 stays resolved
         };
       }
@@ -81,7 +81,7 @@ public partial class BoogieGenerator {
       }
       oldExpressions.Add(e1);
       newExpressions.Add(e0direct);
-      toks.Add(new NestedOrigin(tok, e1.tok));
+      toks.Add(new NestedOrigin(tok, e1.Tok));
       callee.Add(etranCurrent.TrExpr(e0));
       caller.Add(etranCurrent.TrExpr(e1));
     }
@@ -151,11 +151,11 @@ public partial class BoogieGenerator {
         string zeroStr = null;
         if (dafny0[k].Type.NormalizeExpandKeepConstraints().IsNumericBased(Type.NumericPersuasion.Int)) {
           zero = Bpl.Expr.Literal(0);
-          dafnyZero = Expression.CreateIntLiteral(dafny0[k].tok, 0);
+          dafnyZero = Expression.CreateIntLiteral(dafny0[k].Tok, 0);
           zeroStr = "0";
         } else if (dafny0[k].Type.NormalizeExpandKeepConstraints().IsNumericBased(Type.NumericPersuasion.Real)) {
           zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
-          dafnyZero = Expression.CreateRealLiteral(dafny0[k].tok, BigDec.ZERO);
+          dafnyZero = Expression.CreateRealLiteral(dafny0[k].Tok, BigDec.ZERO);
           zeroStr = "0.0";
         }
         if (zero != null) {

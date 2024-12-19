@@ -17,7 +17,7 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
   }
 
   internal AssignmentRhs(Cloner cloner, AssignmentRhs original) {
-    tok = cloner.Origin(original.tok);
+    tok = cloner.Origin(original.Tok);
     Attributes = cloner.CloneAttributes(original.Attributes);
     Origin = cloner.Origin(original.RangeOrigin);
   }
