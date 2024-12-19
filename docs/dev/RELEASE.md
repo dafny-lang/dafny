@@ -22,25 +22,9 @@
    repository is in a good state, create and check out a new release
    branch, update `Source/Directory.Build.props` and `RELEASE_NOTES.md`.
 
-1. If the version number has changed, you need to perform several steps.
-   1. Ensure that all `.doo` files use
-   the new version. With `<TestDirectory>` being `Source/IntegrationTests/TestFiles/LitTests/LitTest`,
-   do the following
-   `maxe exe` - to ensure you have the right version number.
-   `make -C Source/DafnyStandardLibraries update-binary`.
-   `maxe exe` - to ensure the right libraries are used
-   `Dafny.exe build -t:lib <TestDirectory>/pythonmodule/multimodule/dafnysource/helloworld.dfy -o <TestDirectory>/pythonmodule/multimodule/PythonModule1.doo`
-   `Dafny.exe build -t:lib <TestDirectory>/pythonmodule/nestedmodule/dafnysource/SomeNestedModule.dfy -o <TestDirectory>/pythonmodule/nestedmodule/SomeNestedModule.doo`
-   `Dafny.exe build -t:lib <TestDirectory>/gomodule/multimodule/dafnysource/helloworld.dfy -o <TestDirectory>/gomodule/multimodule/test.doo`
-   2. Search for `dafny_version = ` in `.dtr` files of the `<TestDirectory>`
-   and update the version number.
-   Then, look for `version = ` in `Source/DafnyRuntime/DafnyRuntimeJava/build.gradle`
-   and `Source/DafnyRuntime/DafnyRuntimePython/pyproject.toml`
-   and update the version there too.
-   2. Search for `by Dafny ` in  `comp/separate-compilation/translation-records/InvalidFormat.dfy.expect`
-   and update the version there too.
-   3. Search for `DafnyRuntime-` followed by a version number in `DafnyPipeline.csproj` and `DafnyRuntime.csproj`
-   and update the version number too.
+1. You don't need to update the version number as the patch number
+   is already set for the next release. However, if you wish to change the
+   minor or major version, see [VERSIONBUMP.md](VERSIONBUMP.md)
 
 1. Prepare a release commit containing the changes from the last two
    steps and push it.
@@ -65,15 +49,14 @@
    on multiple platforms. Again you can watch for this workflow at
    <https://github.com/dafny-lang/dafny/actions>.
 
-1. Create a pull request to merge the newly created branch into the source branch (the
-   script will give you a link to do so).  Get it approved and merged.
-
-1. Check out the source branch and run `./Scripts/prepare_release.py
+1. We are going to merge the release branch into master to take into account
+   any fix that was implemented there, and also update the version number.
+   With the release branch checked out, run `./Scripts/prepare_release.py
    $NEXT_VER set-next version` to set the version number for the next
    release, where `$NEXT_VER` is `$VER` with the patch incremented.
-   Create a new pull request for this change. Repeat the steps starting
-   with 'If the version number has changed' above. Get it approved and
-   merged.
+   Then follow the instructions [VERSIONBUMP.md](VERSIONBUMP.md) to keep Dafny
+   up-to-date with the new version number.
+   Create a new pull request for this change, have it approved and merged.
 
 1. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`
    to create a new release of the VSCode plugin.
