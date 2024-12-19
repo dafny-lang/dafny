@@ -7,6 +7,8 @@ public interface IOrigin : Microsoft.Boogie.IToken {
 
   bool IsInherited(ModuleDefinition m);
 
+  int Length => EndToken.pos - StartToken.pos;
+
   bool InclusiveEnd { get; }
   bool IncludesRange { get; }
   /*
