@@ -25,6 +25,7 @@ const versionFile = "Source/Directory.Build.props";
 // Change the working directory to Dafny
 process.chdir(__dirname + "/..");
 const prefixLinkedComment = "//# ";
+var existingVersion = "";
 //# Assuming `<TestDirectory>` to be `Source/IntegrationTests/TestFiles/LitTests/LitTest`,
 //# perform the following:
 const TestDirectory = "Source/IntegrationTests/TestFiles/LitTests/LitTest";
@@ -36,8 +37,9 @@ if(testMode) {
 }
 
 async function synchronizeRepositoryWithNewVersionNumber() {
+  existingVersion = await getVersionNumber();
   if(version === false) {
-    version = await getVersionNumber();
+    version = existingVersion;
   } else {
     await bumpVersionNumber(version);
   }
@@ -77,22 +79,22 @@ async function synchronizeRepositoryWithNewVersionNumber() {
   }
 
   //# * In `Source/DafnyRuntime/DafnyRuntimeJava/build.gradle`, search for `version = ` and update the version number
-  await replaceInFile(/version = '\d+\.\d+\.\d+/, `version = '${version}`,
-    `Source/DafnyRuntime/DafnyRuntimeJava/build.gradle`);
+  await replaceInFile(/version = '(\d+\.\d+\.\d+)/, `version = '${version}`,
+    `Source/DafnyRuntime/DafnyRuntimeJava/build.gradle`, existingVersion);
   
   //# * In `Source/DafnyRuntime/DafnyRuntimePython/pyproject.toml`, search for `version = ` and update the version number
-  await replaceInFile(/version = "\d+\.\d+\.\d+"/, `version = "${version}"`,
-    `Source/DafnyRuntime/DafnyRuntimePython/pyproject.toml`);
+  await replaceInFile(/version = "(\d+\.\d+\.\d+)"/, `version = "${version}"`,
+    `Source/DafnyRuntime/DafnyRuntimePython/pyproject.toml`, existingVersion);
 
   //#   * Update `comp/separate-compilation/translation-records/InvalidFormat.dfy.expect` by updating the version number after `by Dafny `
   await replaceInFile(/by Dafny \d+\.\d+\.\d+/, `by Dafny ${version}`,
     `${TestDirectory}/comp/separate-compilation/translation-records/InvalidFormat.dfy.expect`);
 
   //# * Update the Dafny runtime version number by searching for `DafnyRuntime-` and updating the version right afterwards, in the files `DafnyPipeline.csproj` and `DafnyRuntime.csproj`
-  await replaceInFile(/DafnyRuntime-\d+\.\d+\.\d+\.jar/, `DafnyRuntime-${version}.jar`,
-    `Source/DafnyPipeline/DafnyPipeline.csproj`);
-  await replaceInFile(/DafnyRuntime-\d+\.\d+\.\d+\.jar/, `DafnyRuntime-${version}.jar`,
-    `Source/DafnyRuntime/DafnyRuntime.csproj`);
+  await replaceInFile(/DafnyRuntime-(\d+\.\d+\.\d+)\.jar/, `DafnyRuntime-${version}.jar`,
+    `Source/DafnyPipeline/DafnyPipeline.csproj`, existingVersion);
+  await replaceInFile(/DafnyRuntime-(\d+\.\d+\.\d+)\.jar/, `DafnyRuntime-${version}.jar`,
+    `Source/DafnyRuntime/DafnyRuntime.csproj`, existingVersion);
 }
 
 // Returns the current version number
@@ -199,7 +201,7 @@ function executeWithTimeout(command, timeout) {
 }
 
 // Find the regex in the given file, and replaces it with the given replacement.
-async function replaceInFile(regex, replacement, fileName) {
+async function replaceInFile(regex, replacement, fileName, testExistingVersion = null) {
   var fileContent = await fs.promises.readFile(fileName, 'utf-8');
   // Replace "Dafny \d.\d.\d" by the new version
   var previous = fileContent.match(regex);
@@ -208,6 +210,9 @@ async function replaceInFile(regex, replacement, fileName) {
   }
   var newContent = fileContent.replace(regex, replacement);
   if(testMode) {
+    if(testExistingVersion != null) {
+      assert_eq(previous[1], testExistingVersion);
+    }
     console.log(`Would have replaced ${previous[0]} with ${replacement} in ${fileName}`);
     if(newContent == fileContent) {
       throw "Error in replaceInFile, replacement did not do anything";
