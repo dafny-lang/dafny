@@ -8,11 +8,13 @@
    * has the intended branch checked out (usually `master`,
      but may be another mainline branch such as `main-3.x`).
 
-1. Select a version number `$VER` (e.g., "3.0.0" or "3.0.0-alpha"). 
-   The `major`.`minor`.`patch` numbers may already have been
-   incremented since the last release, so they do not necessarily need
-   to be updated. However, you may want to increment them further
-   depending the types of changes that are in the release.
+1. Get the version number from `Source/Directory.Build.props`.
+   It should look like "3.0.0" (or "3.0.0-alpha"). It's referred to as
+   `$VER` in the following. 
+   The `major`.`minor`.`patch` numbers should already have been
+   incremented since the last release, so they do not need
+   to be updated. However, you may want to increment the minor
+   or major version depending the types of changes that are in the release.
 
 1. Run `Scripts/prepare_release.py $VER prepare --source-branch <this
    branch>` (`--source-branch` is optional and defaults to 'master')
@@ -20,10 +22,25 @@
    repository is in a good state, create and check out a new release
    branch, update `Source/Directory.Build.props` and `RELEASE_NOTES.md`.
 
-1. Ensure that all `.doo` files use the new version. Start by running
-   `make -C Source/DafnyStandardLibraries update-binary`. Then search
-   for any `.doo` files outside of `Source/DafnyStandardLibraries` and
-   re-build them manually. Note: this is currently way too manual!
+1. If the version number has changed, you need to perform several steps.
+   1. Ensure that all `.doo` files use
+   the new version. With `<TestDirectory>` being `Source/IntegrationTests/TestFiles/LitTests/LitTest`,
+   do the following
+   `maxe exe` - to ensure you have the right version number.
+   `make -C Source/DafnyStandardLibraries update-binary`.
+   `maxe exe` - to ensure the right libraries are used
+   `Dafny.exe build -t:lib <TestDirectory>/pythonmodule/multimodule/dafnysource/helloworld.dfy -o <TestDirectory>/pythonmodule/multimodule/PythonModule1.doo`
+   `Dafny.exe build -t:lib <TestDirectory>/pythonmodule/nestedmodule/dafnysource/SomeNestedModule.dfy -o <TestDirectory>/pythonmodule/nestedmodule/SomeNestedModule.doo`
+   `Dafny.exe build -t:lib <TestDirectory>/gomodule/multimodule/dafnysource/helloworld.dfy -o <TestDirectory>/gomodule/multimodule/test.doo`
+   2. Search for `dafny_version = ` in `.dtr` files of the `<TestDirectory>`
+   and update the version number.
+   Then, look for `version = ` in `Source/DafnyRuntime/DafnyRuntimeJava/build.gradle`
+   and `Source/DafnyRuntime/DafnyRuntimePython/pyproject.toml`
+   and update the version there too.
+   2. Search for `by Dafny ` in  `comp/separate-compilation/translation-records/InvalidFormat.dfy.expect`
+   and update the version there too.
+   3. Search for `DafnyRuntime-` followed by a version number in `DafnyPipeline.csproj` and `DafnyRuntime.csproj`
+   and update the version number too.
 
 1. Prepare a release commit containing the changes from the last two
    steps and push it.
@@ -54,7 +71,8 @@
 1. Check out the source branch and run `./Scripts/prepare_release.py
    $NEXT_VER set-next version` to set the version number for the next
    release, where `$NEXT_VER` is `$VER` with the patch incremented.
-   Create a new pull request for this change. Get it approved and
+   Create a new pull request for this change. Repeat the steps starting
+   with 'If the version number has changed' above. Get it approved and
    merged.
 
 1. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`
