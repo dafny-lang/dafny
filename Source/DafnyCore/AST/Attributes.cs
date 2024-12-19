@@ -333,6 +333,9 @@ public class Attributes : TokenNode, ICanFormat {
     atAttribute.Arg.PreType = new DPreType(intDecl, new List<PreType>(), null);
 
     switch (name) {
+      case "AssumeCrossModuleTermination": {
+          return A("AssumeCrossModuleTermination");
+        }
       case "AutoContracts": {
           return A("autocontracts");
         }
@@ -478,6 +481,8 @@ public class Attributes : TokenNode, ICanFormat {
   // This list could be obtained from parsing and resolving a .Dfy file
   // but for now it's good enough.
   public static readonly List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = new() {
+    BuiltIn("AssumeCrossModuleTermination")
+      .Filter(attributeHost => attributeHost is ClassDecl or TraitDecl),
     BuiltIn("AutoContracts")
       .Filter(attributeHost => attributeHost is ClassDecl),
     BuiltIn("AutoRequires")

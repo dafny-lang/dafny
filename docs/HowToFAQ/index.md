@@ -69,7 +69,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Are there functional alternatives to recursive calls that are more efficient or use less stack space?"](FAQRecursiveCalls)
 - ["How do I read a file as a string?"](FAQReadFile)
 - ["Can I ask dafny to not check termination of a function?"](FAQNoTermCheck)
-- ["What does {:termination false} do on trait? It looks like it is required if I want to extend traits from other modules."](FAQTerminationFalse)
+- ["What do {:termination false} and @AssumeCrossModuleTermination do? It looks one of them is required if I want to extend traits from other modules."](FAQTerminationFalse)
 - ["How do I make Dafny termination checking happy with this pattern of mutual recursion?"](FAQMutualRecursion)
 - ["Can it be proved that a class instance is not an instance of a trait?"](FAQTypeReasoning)
 - ["Is there a nice way to turn a set into a seq?"](FAQSetToSeq)
