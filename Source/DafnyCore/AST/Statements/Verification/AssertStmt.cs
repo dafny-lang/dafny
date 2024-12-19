@@ -67,12 +67,12 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     }
 
     if (this.HasUserAttribute("only", out var attribute)) {
-      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.Origin.ToToken(),
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.Origin,
         "Assertion with {:only} temporarily transforms other assertions into assumptions");
       if (attribute.Args.Count >= 1
           && attribute.Args[0] is LiteralExpr { Value: string value }
           && value != "before" && value != "after") {
-        resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_before_after.ToString(), attribute.Args[0].Origin.ToToken(),
+        resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_before_after.ToString(), attribute.Args[0].Origin,
           "{:only} only accepts \"before\" or \"after\" as an optional argument");
       }
     }

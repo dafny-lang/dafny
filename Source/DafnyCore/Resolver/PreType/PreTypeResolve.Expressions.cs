@@ -1812,7 +1812,7 @@ namespace Microsoft.Dafny {
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
                 // TODO simplify to e.Origin
-                var tok = resolver.Options.Get(Snippets.ShowSnippets) ? e.Origin.ToToken() : e.Tok;
+                var tok = resolver.Options.Get(Snippets.ShowSnippets) ? e.Origin : e.Tok;
                 e.MethodCallInfo = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return e.MethodCallInfo;
               } else {
