@@ -2943,8 +2943,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         if resultingOwnership == OwnershipBorrowed {
           // we need the value to be owned for conversion
           r := BorrowedToOwned(r, env);
-          resultingOwnership := OwnershipOwned;
         }
+        resultingOwnership := OwnershipOwned;
         r := R.dafny_runtime
         .MSel(downcast).AsExpr().Apply([r, R.ExprFromType(toTpeGen)]);
         r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
