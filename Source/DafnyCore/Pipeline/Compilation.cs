@@ -372,20 +372,15 @@ public class Compilation : IDisposable {
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
-        var groups = tasks.GroupBy(t => {
-          var dafnyToken = BoogieGenerator.ToDafnyToken(true, t.Token);
-          // We normalize so that we group on tokens as they are displayed to the user by Reporter.Info
-          return new SourceOrigin(dafnyToken.StartToken, dafnyToken.EndToken, dafnyToken.Center);
-        }).
-          OrderBy(g => g.Key.Center);
-        // TODO merge intersecting groups
+        var groups = GroupOverlappingRanges(tasks).
+          OrderBy(g => g.Group.StartToken);
         foreach (var tokenTasks in groups) {
-          var functions = tokenTasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
+          var functions = tokenTasks.Tasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
             OfType<FromDafnyNode>().Select(n => n.Node).
             OfType<Function>()).Distinct().OrderBy(f => f.Origin.Center);
           var hiddenFunctions = string.Join(", ", functions.Select(f => f.FullDafnyName));
           if (!string.IsNullOrEmpty(hiddenFunctions)) {
-            Reporter.Info(MessageSource.Verifier, tokenTasks.Key, $"hidden functions: {hiddenFunctions}");
+            Reporter.Info(MessageSource.Verifier, tokenTasks.Group, $"hidden functions: {hiddenFunctions}");
           }
         }
 
@@ -400,6 +395,37 @@ public class Compilation : IDisposable {
     finally {
       verificationTickets.Enqueue(Unit.Default);
     }
+  }
+
+
+  public static IEnumerable<(IOrigin Group, List<IVerificationTask> Tasks)> GroupOverlappingRanges(IReadOnlyList<IVerificationTask> ranges) {
+    if (!ranges.Any()) {
+      return Enumerable.Empty<(IOrigin Group, List<IVerificationTask> Tasks)>();
+    }
+    var sortedTasks = ranges.OrderBy(r =>
+      BoogieGenerator.ToDafnyToken(true, r.Token).StartToken).ToList();
+    var groups = new List<(IOrigin Group, List<IVerificationTask> Tasks)>();
+    var currentGroup = new List<IVerificationTask> { sortedTasks[0] };
+    var currentGroupRange = BoogieGenerator.ToDafnyToken(true, currentGroup[0].Token);
+
+    for (int i = 1; i < sortedTasks.Count; i++) {
+      var currentTask = sortedTasks[i];
+      var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token);
+      bool overlapsWithGroup = currentGroupRange.Intersects(currentTaskRange);
+      if (currentTaskRange.EndToken.pos > currentGroupRange.EndToken.pos) {
+        currentGroupRange = new SourceOrigin(currentTaskRange.StartToken, currentTaskRange.EndToken);
+      }
+
+      if (overlapsWithGroup) {
+        currentGroup.Add(currentTask);
+      } else {
+        groups.Add((currentGroupRange, currentGroup));
+        currentGroup = new List<IVerificationTask> { currentTask };
+      }
+    }
+
+    groups.Add((currentGroupRange, currentGroup)); // Add the last group
+    return groups;
   }
 
   private void VerifyTask(ICanVerify canVerify, IVerificationTask task) {
