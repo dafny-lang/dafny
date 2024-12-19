@@ -37,4 +37,9 @@ public class TryRecoverStatement : Statement, ICloneable<TryRecoverStatement> {
     HaltMessageVar = haltMessageVar;
     RecoverBody = recoverBody;
   }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable, ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    throw new System.NotSupportedException("This type is only created after resolution");
+  }
 }

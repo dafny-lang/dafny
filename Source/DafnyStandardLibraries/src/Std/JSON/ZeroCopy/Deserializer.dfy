@@ -31,14 +31,14 @@ module Std.JSON.ZeroCopy.Deserializer {
     // BUG(https://github.com/dafny-lang/dafny/issues/2179)
     const SpecView := (v: Vs.View) => Spec.View(v)
 
-    opaque function Get(cs: FreshCursor, err: JSONError): (pr: ParseResult<jchar>)
+    function Get(cs: FreshCursor, err: JSONError): (pr: ParseResult<jchar>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecView)
     {
       var cs :- cs.Get(err);
       Success(cs.Split())
     }
 
-    opaque function WS(cs: FreshCursor): (sp: Split<jblanks>)
+    function WS(cs: FreshCursor): (sp: Split<jblanks>)
       ensures sp.SplitFrom?(cs, SpecView)
       ensures sp.cs.SuffixOf?(cs)
       ensures !cs.BOF? ==> sp.cs.StrictSuffixOf?(cs)
@@ -46,7 +46,6 @@ module Std.JSON.ZeroCopy.Deserializer {
     {
       cs.SkipWhile(Blank?).Split()
     } by method {
-      reveal WS();
       var point' := cs.point;
       var end := cs.end;
       while point' < end && Blank?(cs.s[point'])
@@ -59,7 +58,9 @@ module Std.JSON.ZeroCopy.Deserializer {
       return Cursor(cs.s, cs.beg, point', cs.end).Split();
     }
 
-    opaque function {:isolate_assertions} {:resource_limit 1000000000} Structural<T>(cs: FreshCursor, parser: Parser<T>)
+    @IsolateAssertions
+    @ResourceLimit("1000e6")
+    function Structural<T>(cs: FreshCursor, parser: Parser<T>)
       : (pr: ParseResult<Structural<T>>)
       requires forall cs :: parser.fn.requires(cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, st => Spec.Structural(st, parser.spec))
@@ -72,7 +73,8 @@ module Std.JSON.ZeroCopy.Deserializer {
 
     type jopt = v: Vs.View | v.Length() <= 1 witness Vs.View.OfBytes([])
 
-    function {:resource_limit 100000000} TryStructural(cs: FreshCursor)
+    @ResourceLimit("100e6")
+    function TryStructural(cs: FreshCursor)
       : (sp: Split<Structural<jopt>>)
       ensures sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView))
     {
@@ -145,7 +147,7 @@ module Std.JSON.ZeroCopy.Deserializer {
       Spec.ConcatBytes(ts, SuffixedElementSpec)
     }
 
-    opaque function Open(cs: FreshCursor)
+    function Open(cs: FreshCursor)
       : (pr: ParseResult<jopen>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecViewOpen)
     {
@@ -153,7 +155,7 @@ module Std.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     }
 
-    opaque function Close(cs: FreshCursor)
+    function Close(cs: FreshCursor)
       : (pr: ParseResult<jclose>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecViewClose)
     {
@@ -161,10 +163,10 @@ module Std.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     }
 
-    opaque function BracketedFromParts(ghost cs: Cursor,
-                                       open: Split<Structural<jopen>>,
-                                       elems: Split<seq<TSuffixedElement>>,
-                                       close: Split<Structural<jclose>>)
+    function BracketedFromParts(ghost cs: Cursor,
+                                open: Split<Structural<jopen>>,
+                                elems: Split<seq<TSuffixedElement>>,
+                                close: Split<Structural<jclose>>)
       : (sp: Split<TBracketed>)
       requires Grammar.NoTrailingSuffix(elems.t)
       requires open.StrictlySplitFrom?(cs, c => Spec.Structural(c, SpecView))
@@ -190,11 +192,11 @@ module Std.JSON.ZeroCopy.Deserializer {
       sp
     }
 
-    opaque function AppendWithSuffix(ghost cs0: FreshCursor,
-                                     ghost json: ValueParser,
-                                     elems: Split<seq<TSuffixedElement>>,
-                                     elem: Split<TElement>,
-                                     sep: Split<Structural<jcomma>>)
+    function AppendWithSuffix(ghost cs0: FreshCursor,
+                              ghost json: ValueParser,
+                              elems: Split<seq<TSuffixedElement>>,
+                              elem: Split<TElement>,
+                              sep: Split<Structural<jcomma>>)
       : (elems': Split<seq<TSuffixedElement>>)
       requires elems.cs.StrictlySplitFrom?(json.cs)
       requires elems.SplitFrom?(cs0, SuffixedElementsSpec)
@@ -244,11 +246,14 @@ module Std.JSON.ZeroCopy.Deserializer {
       elems'
     }
 
-    opaque function {:resource_limit 10000000} {:isolate_assertions} AppendLast(ghost cs0: FreshCursor,
-                                                                                ghost json: ValueParser,
-                                                                                elems: Split<seq<TSuffixedElement>>,
-                                                                                elem: Split<TElement>,
-                                                                                sep: Split<Structural<jclose>>)
+    @ResourceLimit("10e6")
+    @IsolateAssertions
+    function AppendLast(
+      ghost cs0: FreshCursor,
+      ghost json: ValueParser,
+      elems: Split<seq<TSuffixedElement>>,
+      elem: Split<TElement>,
+      sep: Split<Structural<jclose>>)
       : (elems': Split<seq<TSuffixedElement>>)
       requires elems.cs.StrictlySplitFrom?(json.cs)
       requires elems.SplitFrom?(cs0, SuffixedElementsSpec)
@@ -280,7 +285,9 @@ module Std.JSON.ZeroCopy.Deserializer {
       elems'
     }
 
-    lemma {:resource_limit "10e6"} {:isolate_assertions} AboutTryStructural(cs: FreshCursor)
+    @ResourceLimit("10e6")
+    @IsolateAssertions
+    lemma AboutTryStructural(cs: FreshCursor)
       ensures
         var sp := Core.TryStructural(cs);
         var s0 := sp.t.t.Peek();
@@ -291,14 +298,17 @@ module Std.JSON.ZeroCopy.Deserializer {
     {
     }
 
-    lemma {:isolate_assertions} AboutLists<T>(xs: seq<T>, i: uint32)
+    @IsolateAssertions
+    lemma AboutLists<T>(xs: seq<T>, i: uint32)
       requires 0 <= (i as int) < |xs|
       ensures xs[(i as int)..(i as int)+1] == [xs[i as int]]
     {}
 
     // The implementation and proof of this function is more painful than
     // expected due to the tail recursion.
-    opaque function {:isolate_assertions} {:tailrecursion} Elements(
+    @IsolateAssertions
+    @TailRecursion
+    function Elements(
       ghost cs0: FreshCursor,
       json: ValueParser,
       open: Split<Structural<jopen>>,
@@ -419,7 +429,8 @@ module Std.JSON.ZeroCopy.Deserializer {
       }
     }
 
-    opaque function {:isolate_assertions} Bracketed(cs: FreshCursor, json: ValueParser)
+    @IsolateAssertions
+    function Bracketed(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<TBracketed>)
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, BracketedSpec)
@@ -476,13 +487,15 @@ module Std.JSON.ZeroCopy.Deserializer {
       case OtherError(err) => err
     }
 
-    opaque function {:isolate_assertions} {:resource_limit 10000000} JSON(cs: Cursors.FreshCursor) : (pr: DeserializationResult<Cursors.Split<JSON>>)
+    @IsolateAssertions
+    @ResourceLimit("10e6")
+    function JSON(cs: Cursors.FreshCursor) : (pr: DeserializationResult<Cursors.Split<JSON>>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.JSON)
     {
       Core.Structural(cs, Parsers.Parser(Values.Value, Spec.Value)).MapFailure(LiftCursorError)
     }
 
-    opaque function Text(v: View) : (jsr: DeserializationResult<JSON>)
+    function Text(v: View) : (jsr: DeserializationResult<JSON>)
       ensures jsr.Success? ==> v.Bytes() == Spec.JSON(jsr.value)
     {
       var SP(text, cs) :- JSON(Cursors.Cursor.OfView(v));
@@ -493,7 +506,7 @@ module Std.JSON.ZeroCopy.Deserializer {
       Success(text)
     }
 
-    opaque function OfBytes(bs: bytes) : (jsr: DeserializationResult<JSON>)
+    function OfBytes(bs: bytes) : (jsr: DeserializationResult<JSON>)
       ensures jsr.Success? ==> bs == Spec.JSON(jsr.value)
     {
       :- Need(|bs| < TWO_TO_THE_32, Errors.IntOverflow);
@@ -514,7 +527,8 @@ module Std.JSON.ZeroCopy.Deserializer {
     import opened Utils.Cursors
     import opened Core
 
-    opaque function {:isolate_assertions} Value(cs: FreshCursor) : (pr: ParseResult<Value>)
+    @IsolateAssertions
+    function Value(cs: FreshCursor) : (pr: ParseResult<Value>)
       decreases cs.Length(), 1
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Value)
     {
@@ -626,7 +640,7 @@ module Std.JSON.ZeroCopy.Deserializer {
         Success(sp)
     }
 
-    opaque function ValueParser(cs: FreshCursor) : (p: ValueParser)
+    function ValueParser(cs: FreshCursor) : (p: ValueParser)
       decreases cs.Length(), 0
       ensures cs.SplitFrom?(p.cs)
     {
@@ -643,7 +657,7 @@ module Std.JSON.ZeroCopy.Deserializer {
     import opened Core
     import opened Utils.Cursors
 
-    opaque function Constant(cs: FreshCursor, expected: bytes) : (pr: ParseResult<Vs.View>)
+    function Constant(cs: FreshCursor, expected: bytes) : (pr: ParseResult<Vs.View>)
       requires |expected| < TWO_TO_THE_32
       ensures pr.Success? ==> pr.value.t.Bytes() == expected
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, _ => expected)
@@ -663,12 +677,11 @@ module Std.JSON.ZeroCopy.Deserializer {
     import opened Utils.Parsers
     import opened Core
 
-    opaque function StringBody(cs: Cursor): (pr: CursorResult<JSONError>)
+    function StringBody(cs: Cursor): (pr: CursorResult<JSONError>)
       ensures pr.Success? ==> pr.value.AdvancedFrom?(cs)
     {
       cs.SkipWhileLexer(Strings.StringBody, StringBodyLexerStart)
     } by method {
-      reveal StringBody();
       var escaped := false;
       for point' := cs.point to cs.end
         // BUG(https://github.com/dafny-lang/dafny/issues/4847)
@@ -694,14 +707,18 @@ module Std.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     }
 
-    opaque function {:resource_limit 10000000} String(cs: FreshCursor): (pr: ParseResult<jstring>)
+    @ResourceLimit("10e6")
+    function String(cs: FreshCursor): (pr: ParseResult<jstring>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.String)
     {
+      var origCs := cs;
       var SP(lq, cs) :- Quote(cs);
       var contents :- StringBody(cs);
       var SP(contents, cs) := contents.Split();
       var SP(rq, cs) :- Quote(cs);
-      Success(SP(Grammar.JString(lq, contents, rq), cs))
+      var result := SP(Grammar.JString(lq, contents, rq), cs);
+      assert result.StrictlySplitFrom?(origCs, Spec.String);
+      Success(result)
     }
   }
 
@@ -712,13 +729,13 @@ module Std.JSON.ZeroCopy.Deserializer {
     import opened Utils.Cursors
     import opened Core
 
-    opaque function Digits(cs: FreshCursor) : (sp: Split<jdigits>)
+    function Digits(cs: FreshCursor) : (sp: Split<jdigits>)
       ensures sp.SplitFrom?(cs, SpecView)
     {
       cs.SkipWhile(Digit?).Split()
     }
 
-    opaque function NonEmptyDigits(cs: FreshCursor) : (pr: ParseResult<jnum>)
+    function NonEmptyDigits(cs: FreshCursor) : (pr: ParseResult<jnum>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecView)
     {
       var sp := Digits(cs);
@@ -728,26 +745,26 @@ module Std.JSON.ZeroCopy.Deserializer {
         Success(sp)
     }
 
-    opaque function NonZeroInt(cs: FreshCursor) : (pr: ParseResult<jint>)
+    function NonZeroInt(cs: FreshCursor) : (pr: ParseResult<jint>)
       requires cs.Peek() != '0' as opt_byte
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecView)
     {
       NonEmptyDigits(cs)
     }
 
-    opaque function OptionalMinus(cs: FreshCursor) : (sp: Split<jminus>)
+    function OptionalMinus(cs: FreshCursor) : (sp: Split<jminus>)
       ensures sp.SplitFrom?(cs, SpecView)
     {
       cs.SkipIf(c => c == '-' as byte).Split()
     }
 
-    opaque function OptionalSign(cs: FreshCursor) : (sp: Split<jsign>)
+    function OptionalSign(cs: FreshCursor) : (sp: Split<jsign>)
       ensures sp.SplitFrom?(cs, SpecView)
     {
       cs.SkipIf(c => c == '-' as byte || c == '+' as byte).Split()
     }
 
-    opaque function TrimmedInt(cs: FreshCursor) : (pr: ParseResult<jint>)
+    function TrimmedInt(cs: FreshCursor) : (pr: ParseResult<jint>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecView)
     {
       var sp := cs.SkipIf(c => c == '0' as byte).Split();
@@ -755,7 +772,9 @@ module Std.JSON.ZeroCopy.Deserializer {
       else Success(sp)
     }
 
-    opaque function {:isolate_assertions} {:resource_limit 100000000} Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
+    @IsolateAssertions
+    @ResourceLimit("1e9")
+    function Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, exp => Spec.Maybe(exp, Spec.Exp))
     {
       var SP(e, cs) :=
@@ -769,7 +788,7 @@ module Std.JSON.ZeroCopy.Deserializer {
         Success(SP(NonEmpty(JExp(e, sign, num)), cs))
     }
 
-    opaque function Frac(cs: FreshCursor) : (pr: ParseResult<Maybe<jfrac>>)
+    function Frac(cs: FreshCursor) : (pr: ParseResult<Maybe<jfrac>>)
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, frac => Spec.Maybe(frac, Spec.Frac))
     {
       var SP(period, cs) :=
@@ -781,7 +800,7 @@ module Std.JSON.ZeroCopy.Deserializer {
         Success(SP(NonEmpty(JFrac(period, num)), cs))
     }
 
-    opaque function NumberFromParts(
+    function NumberFromParts(
       ghost cs: Cursor,
       minus: Split<jminus>, num: Split<jint>,
       frac: Split<Maybe<jfrac>>, exp: Split<Maybe<jexp>>
@@ -809,7 +828,7 @@ module Std.JSON.ZeroCopy.Deserializer {
       sp
     }
 
-    opaque function Number(cs: FreshCursor) : (pr: ParseResult<jnumber>)
+    function Number(cs: FreshCursor) : (pr: ParseResult<jnumber>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Number)
     {
       var minus := OptionalMinus(cs);
@@ -833,7 +852,7 @@ module Std.JSON.ZeroCopy.Deserializer {
       Spec.Value(t)
     }
 
-    opaque function Element(cs: FreshCursor, json: ValueParser) : (pr: ParseResult<TElement>)
+    function Element(cs: FreshCursor, json: ValueParser) : (pr: ParseResult<TElement>)
     {
       json.fn(cs)
     }
@@ -842,7 +861,8 @@ module Std.JSON.ZeroCopy.Deserializer {
   module Arrays refines Sequences {
     import opened Params = ArrayParams
 
-    lemma {:isolate_assertions} BracketedToArray(arr: jarray)
+    @IsolateAssertions
+    lemma BracketedToArray(arr: jarray)
       ensures Spec.Bracketed(arr, SuffixedElementSpec) == Spec.Array(arr)
     {
       var rItem := (d: jitem) requires d < arr => Spec.Item(d);
@@ -857,7 +877,8 @@ module Std.JSON.ZeroCopy.Deserializer {
       }
     }
 
-    opaque function {:isolate_assertions} Array(cs: FreshCursor, json: ValueParser)
+    @IsolateAssertions
+    function Array(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<jarray>)
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Array)
@@ -885,8 +906,8 @@ module Std.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     }
 
-    opaque function KeyValueFromParts(ghost cs: Cursor, k: Split<jstring>,
-                                      colon: Split<Structural<jcolon>>, v: Split<Value>)
+    function KeyValueFromParts(ghost cs: Cursor, k: Split<jstring>,
+                               colon: Split<Structural<jcolon>>, v: Split<Value>)
       : (sp: Split<jKeyValue>)
       requires k.StrictlySplitFrom?(cs, Spec.String)
       requires colon.StrictlySplitFrom?(k.cs, c => Spec.Structural(c, SpecView))
@@ -911,7 +932,8 @@ module Std.JSON.ZeroCopy.Deserializer {
       Spec.KeyValue(t)
     }
 
-    opaque function {:isolate_assertions} Element(cs: FreshCursor, json: ValueParser)
+    @IsolateAssertions
+    function Element(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<TElement>)
     {
       var k :- Strings.String(cs);
@@ -957,7 +979,8 @@ module Std.JSON.ZeroCopy.Deserializer {
   module Objects refines Sequences {
     import opened Params = ObjectParams
 
-    lemma {:isolate_assertions} BracketedToObject(obj: jobject)
+    @IsolateAssertions
+    lemma BracketedToObject(obj: jobject)
       ensures Spec.Bracketed(obj, SuffixedElementSpec) == Spec.Object(obj)
     {
       var rMember := (d: jmember) requires d < obj => Spec.Member(d);
@@ -974,7 +997,9 @@ module Std.JSON.ZeroCopy.Deserializer {
       }
     }
 
-    opaque function {:isolate_assertions} {:resource_limit 10000000} Object(cs: FreshCursor, json: ValueParser)
+    @IsolateAssertions
+    @ResourceLimit("10e6")
+    function Object(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<jobject>)
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Object)

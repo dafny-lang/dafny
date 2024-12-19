@@ -110,11 +110,11 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
 
   }
   public Expression Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
-  public IToken /*?*/ ByMethodTok; // null iff ByMethodBody is null
+  public IOrigin /*?*/ ByMethodTok; // null iff ByMethodBody is null
   public BlockStmt /*?*/ ByMethodBody;
   [FilledInDuringResolution] public Method /*?*/ ByMethodDecl; // if ByMethodBody is non-null
   public bool SignatureIsOmitted => SignatureEllipsis != null; // is "false" for all Function objects that survive into resolution
-  public readonly IToken SignatureEllipsis;
+  public readonly IOrigin SignatureEllipsis;
   public Function OverriddenFunction;
   public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
@@ -227,11 +227,11 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     Contract.Invariant(Decreases != null);
   }
 
-  public Function(RangeToken range, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
+  public Function(IOrigin range, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-    Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
-    Attributes attributes, IToken/*?*/ signatureEllipsis)
+    Expression/*?*/ body, IOrigin/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
+    Attributes attributes, IOrigin/*?*/ signatureEllipsis)
     : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null, typeArgs, ins, req, ens, decreases) {
 
     Contract.Requires(tok != null);
@@ -337,7 +337,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     if (BodyStartTok.line > 0) {
       formatter.SetDelimiterIndentedRegions(BodyStartTok, indentBefore);
     }
-
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
     formatter.SetFormalsIndentation(Ins);
     if (Result is { } outFormal) {
       formatter.SetTypeIndentation(outFormal.SyntacticType);
@@ -483,17 +483,30 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   }
 
   public string GetTriviaContainingDocstring() {
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
 
     var endTokenDefinition =
-      OwnedTokens.LastOrDefault(token => token.val == ")" || token.pos == ResultType.EndToken.pos)
-      ?? EndToken;
-    if (endTokenDefinition.TrailingTrivia.Trim() != "") {
-      return endTokenDefinition.TrailingTrivia;
+      OwnedTokens.LastOrDefault(token => token.val == ")" || token.pos == ResultType.EndToken.pos);
+    var tentativeTrivia = "";
+    if (endTokenDefinition != null) {
+      if (endTokenDefinition.pos < this.EndToken.pos) { // All comments are docstring
+        tentativeTrivia = (endTokenDefinition.TrailingTrivia + endTokenDefinition.Next.LeadingTrivia).Trim();
+      } else {
+        // Comments at the end of bodiless functions
+        tentativeTrivia = endTokenDefinition.TrailingTrivia.Trim();
+      }
+      if (tentativeTrivia != "") {
+        return tentativeTrivia;
+      }
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return StartToken.LeadingTrivia;
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
     }
+
     return null;
   }
 

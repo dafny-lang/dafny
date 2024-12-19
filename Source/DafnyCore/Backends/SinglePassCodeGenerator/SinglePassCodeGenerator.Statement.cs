@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.Compilers {
 
             break;
           }
-        case BreakStmt breakStmt: {
+        case BreakOrContinueStmt breakStmt: {
             var s = breakStmt;
             var label = s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator);
             if (s.IsContinue) {
@@ -171,7 +171,7 @@ namespace Microsoft.Dafny.Compilers {
                 && stmtUpdate == assignOrReturnStmt) {
               // Wrap this UpdateStmt with a VarDecl containing this Local that we haven't emitted yet.
               stmts[innerExtractIndex] =
-                new VarDeclStmt(enclosingVarDecl.RangeToken,
+                new VarDeclStmt(enclosingVarDecl.Origin,
                   new List<LocalVariable>() { locals[0] },
                   (AssignStatement)stmts[innerExtractIndex]);
             }

@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -10,6 +11,7 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
@@ -72,6 +74,7 @@ public class Compilation : IDisposable {
 
   public Task<IReadOnlyList<DafnyFile>> RootFiles { get; set; }
   public bool HasErrors { get; private set; }
+  public bool ShouldProcessSolverOptions { get; set; } = true;
 
   public Compilation(
     ILogger<Compilation> logger,
@@ -175,9 +178,13 @@ public class Compilation : IDisposable {
     }
 
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+      if (Options.Backend is LibraryBackend) {
+        Options.Set(CommonOptionBag.TranslateStandardLibrary, false);
+      }
+
       // For now the standard libraries are still translated from scratch.
-      // This breaks separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
-      var asLibrary = false;
+      // This creates issues with separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
+      var asLibrary = !Options.Get(CommonOptionBag.TranslateStandardLibrary);
 
       if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = Options.CompilerName ?? "notarget";
@@ -223,13 +230,14 @@ public class Compilation : IDisposable {
       return null;
     }
 
-    transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
+    var parseResult = await documentLoader.ParseAsync(this, cancellationSource.Token);
+    transformedProgram = parseResult.Program;
     transformedProgram.HasParseErrors = HasErrors;
 
     var cloner = new Cloner(true);
     programAfterParsing = new Program(cloner, transformedProgram);
 
-    updates.OnNext(new FinishedParsing(programAfterParsing));
+    updates.OnNext(new FinishedParsing(parseResult with { Program = programAfterParsing }));
     logger.LogDebug(
       $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
     return programAfterParsing;
@@ -256,7 +264,7 @@ public class Compilation : IDisposable {
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
-    if (task.ScopeToken is RefinementToken refinementToken) {
+    if (task.ScopeToken is RefinementOrigin refinementToken) {
       prefix += "." + refinementToken.InheritingModule.Name;
     }
 
@@ -265,7 +273,9 @@ public class Compilation : IDisposable {
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
-  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
+  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, Func<IVerificationTask, bool>? taskFilter = null,
+    int? randomSeed = null,
+    bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
@@ -288,10 +298,10 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, _ => true, null, onlyPrepareVerificationForGutterTests);
+    return await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), randomSeed, onlyPrepareVerificationForGutterTests);
   }
 
-  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+  private async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
     int? randomSeed = 0,
     bool onlyPrepareVerificationForGutterTests = false) {
 
@@ -333,7 +343,7 @@ public class Compilation : IDisposable {
           var result = await verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
             cancellationSource.Token);
 
-          return result.GroupBy(t => ((IToken)t.ScopeToken).GetFilePosition()).ToDictionary(
+          return result.GroupBy(t => ((IOrigin)t.ScopeToken).GetFilePosition()).ToDictionary(
             g => g.Key,
             g => (IReadOnlyList<IVerificationTask>)g.ToList());
         });
@@ -355,15 +365,31 @@ public class Compilation : IDisposable {
         return result;
       });
       if (updated || randomSeed != null) {
-        updates.OnNext(new CanVerifyPartsIdentified(canVerify,
-          tasksPerVerifiable[canVerify].ToList()));
+        updates.OnNext(new CanVerifyPartsIdentified(canVerify, tasks));
       }
 
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
+        var groups = tasks.GroupBy(t => {
+          var dafnyToken = BoogieGenerator.ToDafnyToken(true, t.Token);
+          // We normalize so that we group on tokens as they are displayed to the user by Reporter.Info
+          return new RangeToken(dafnyToken.StartToken, dafnyToken.EndToken);
+        }).
+          OrderBy(g => g.Key);
+        foreach (var tokenTasks in groups) {
+          var functions = tokenTasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
+            OfType<FromDafnyNode>().Select(n => n.Node).
+            OfType<Function>()).Distinct().OrderBy(f => f.tok);
+          var hiddenFunctions = string.Join(", ", functions.Select(f => f.FullDafnyName));
+          if (!string.IsNullOrEmpty(hiddenFunctions)) {
+            Reporter.Info(MessageSource.Verifier, tokenTasks.Key, $"hidden functions: {hiddenFunctions}");
+          }
+        }
+
         foreach (var task in tasks.Where(taskFilter)) {
+
           var seededTask = randomSeed == null ? task : task.FromSeed(randomSeed.Value);
           VerifyTask(canVerify, seededTask);
         }

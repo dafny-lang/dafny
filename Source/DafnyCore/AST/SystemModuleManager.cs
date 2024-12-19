@@ -30,7 +30,7 @@ public class SystemModuleManager {
   public ModuleSignature systemNameInfo;
 
   public int MaxNonGhostTupleSizeUsed { get; private set; }
-  public IToken MaxNonGhostTupleSizeToken { get; private set; }
+  public IOrigin MaxNonGhostTupleSizeToken { get; private set; }
 
   private byte[] hash;
 
@@ -87,7 +87,7 @@ public class SystemModuleManager {
   }
 
   public SystemModuleManager(DafnyOptions options) {
-    SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
+    SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IOrigin>(),
       ModuleKindEnum.Concrete, false, null, null, null);
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
@@ -238,7 +238,7 @@ public class SystemModuleManager {
     return result;
   }
 
-  public static (UserDefinedType type, Action<SystemModuleManager> ModifyBuiltins) ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
+  public static (UserDefinedType type, Action<SystemModuleManager> ModifyBuiltins) ArrayType(IOrigin tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
     Contract.Requires(tok != null);
     Contract.Requires(1 <= dims);
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // ideally, it is 1, but more will generate an error later, and null means it will be filled in automatically
@@ -291,7 +291,7 @@ public class SystemModuleManager {
       return;
     }
 
-    IToken tok = Token.NoToken;
+    IOrigin tok = Token.NoToken;
     var tps = Util.Map(Enumerable.Range(0, arity + 1),
       x => x < arity
         ? new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
@@ -302,7 +302,7 @@ public class SystemModuleManager {
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
         (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
-      var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, tok, argExprs) {
+      var readsIS = new FunctionCallExpr(tok, new Name("reads"), new ImplicitThisExpr(tok), tok, Token.NoToken, argExprs) {
         Type = ObjectSetType(),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
@@ -333,7 +333,7 @@ public class SystemModuleManager {
     var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
     var partialArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
       new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-      id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
+      id, ArrowSubtypeConstraint(tok, tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)partialArrow).ConstraintIsCompilable = false;
     PartialArrowTypeDecls.Add(arity, partialArrow);
     SystemModule.SourceDecls.Add(partialArrow);
@@ -348,7 +348,7 @@ public class SystemModuleManager {
     id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
     var totalArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
       new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-      id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
+      id, ArrowSubtypeConstraint(tok, tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)totalArrow).ConstraintIsCompilable = false;
     TotalArrowTypeDecls.Add(arity, totalArrow);
     SystemModule.SourceDecls.Add(totalArrow);
@@ -360,7 +360,7 @@ public class SystemModuleManager {
   /// the built-in total-arrow type (if "total", in which case "member" is expected to denote the "requires" member).
   /// The given "id" is expected to be already resolved.
   /// </summary>
-  private Expression ArrowSubtypeConstraint(IToken tok, RangeToken rangeToken, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
+  private Expression ArrowSubtypeConstraint(IOrigin tok, IOrigin rangeOrigin, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
     Contract.Requires(tok != null);
     Contract.Requires(id != null);
     Contract.Requires(member != null);
@@ -378,13 +378,13 @@ public class SystemModuleManager {
       args.Add(new IdentifierExpr(tok, bv));
       bounds.Add(new SpecialAllocIndependenceAllocatedBoundedPool());
     }
-    var fn = new MemberSelectExpr(tok, f, member.Name) {
+    var fn = new MemberSelectExpr(tok, f, new Name(member.Name)) {
       Member = member,
       TypeApplicationAtEnclosingClass = f.Type.TypeArgs,
       TypeApplicationJustMember = new List<Type>(),
       Type = GetTypeOfFunction(member, tps.ConvertAll(tp => (Type)new UserDefinedType(tp)), new List<Type>())
     };
-    Expression body = new ApplyExpr(tok, fn, args, tok);
+    Expression body = new ApplyExpr(tok, fn, args, Token.NoToken);
     body.Type = member.ResultType;  // resolve here
     if (!total) {
       Expression emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
@@ -392,7 +392,7 @@ public class SystemModuleManager {
       body = Expression.CreateEq(body, emptySet, member.ResultType);
     }
     if (tps.Count > 1) {
-      body = new ForallExpr(tok, rangeToken, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
+      body = new ForallExpr(tok, rangeOrigin, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
     }
     return body;
   }
@@ -413,7 +413,7 @@ public class SystemModuleManager {
     return new ArrowType(f.tok, atd, f.Ins.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
   }
 
-  public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {
+  public TupleTypeDecl TupleType(IOrigin tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {
     Contract.Requires(tok != null);
     Contract.Requires(0 <= dims);
     Contract.Requires(argumentGhostness == null || argumentGhostness.Count == dims);

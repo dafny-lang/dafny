@@ -138,7 +138,7 @@ public class RunAllTestsMainMethod : IRewriter {
           var tryBodyStatements = new List<Statement>();
 
           var receiverExpr = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)method.EnclosingClass, true);
-          var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.Name) {
+          var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.NameNode) {
             Member = method,
             TypeApplicationJustMember = new List<Type>(),
             TypeApplicationAtEnclosingClass = new List<Type>()
@@ -178,15 +178,15 @@ public class RunAllTestsMainMethod : IRewriter {
               }
           }
 
-          var callStmt = new CallStmt(tok.ToRange(), lhss, methodSelectExpr, new List<Expression>());
+          var callStmt = new CallStmt(tok, lhss, methodSelectExpr, new List<Expression>());
           tryBodyStatements.Add(callStmt);
 
           Statement passedStmt = Statement.CreatePrintStmt(tok, Expression.CreateStringLiteral(tok, "PASSED\n"));
-          var passedBlock = new BlockStmt(tok.ToRange(), Util.Singleton(passedStmt));
+          var passedBlock = new BlockStmt(tok, Util.Singleton(passedStmt));
 
           if (resultVarExpr?.Type is UserDefinedType udt && udt.ResolvedClass is TopLevelDeclWithMembers resultClass) {
             var failureGuardExpr =
-              new FunctionCallExpr(tok, "IsFailure", resultVarExpr, tok, tok, new List<Expression>());
+              new FunctionCallExpr(tok, new Name("IsFailure"), resultVarExpr, tok, Token.NoToken, new List<Expression>());
             var isFailureMember = resultClass.Members.First(m => m.Name == "IsFailure");
             failureGuardExpr.Function = (Function)isFailureMember;
             failureGuardExpr.Type = Type.Bool;
@@ -194,12 +194,12 @@ public class RunAllTestsMainMethod : IRewriter {
             failureGuardExpr.TypeApplication_AtEnclosingClass = new List<Type>();
 
             var failedBlock = PrintTestFailureStatement(tok, successVarExpr, resultVarExpr);
-            tryBodyStatements.Add(new IfStmt(tok.ToRange(), false, failureGuardExpr, failedBlock, passedBlock));
+            tryBodyStatements.Add(new IfStmt(tok, false, failureGuardExpr, failedBlock, passedBlock));
           } else { // Result is not a failure type
             tryBodyStatements.Add(passedBlock);
           }
 
-          var tryBody = new BlockStmt(tok.ToRange(), tryBodyStatements);
+          var tryBody = new BlockStmt(tok, tryBodyStatements);
 
           // Wrap the code above with:
           //
@@ -210,7 +210,7 @@ public class RunAllTestsMainMethod : IRewriter {
           //   success := false;
           // }
           //
-          var haltMessageVar = new LocalVariable(tok.ToRange(), "haltMessage", seqCharType, false) {
+          var haltMessageVar = new LocalVariable(tok, "haltMessage", seqCharType, false) {
             type = seqCharType
           };
           var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
@@ -229,7 +229,7 @@ public class RunAllTestsMainMethod : IRewriter {
     //
     // expect success, "Test failures occurred: see above.\n";
     // 
-    Statement expectSuccess = new ExpectStmt(tok.ToRange(), successVarExpr,
+    Statement expectSuccess = new ExpectStmt(tok, successVarExpr,
       Expression.CreateStringLiteral(tok, "Test failures occurred: see above.\n"), null);
     mainMethodStatements.Add(expectSuccess);
 
@@ -237,16 +237,16 @@ public class RunAllTestsMainMethod : IRewriter {
     // than the Method we added in PreResolve).
     var hasMain = Compilers.SinglePassCodeGenerator.HasMain(program, out var mainMethod);
     Contract.Assert(hasMain);
-    mainMethod.Body = new BlockStmt(tok.ToRange(), mainMethodStatements);
+    mainMethod.Body = new BlockStmt(tok, mainMethodStatements);
   }
 
-  private BlockStmt PrintTestFailureStatement(IToken tok, Expression successVarExpr, Expression failureValueExpr) {
+  private BlockStmt PrintTestFailureStatement(IOrigin tok, Expression successVarExpr, Expression failureValueExpr) {
     var failedPrintStmt = Statement.CreatePrintStmt(tok,
       Expression.CreateStringLiteral(tok, "FAILED\n\t"),
       failureValueExpr,
       Expression.CreateStringLiteral(tok, "\n"));
     var failSuiteStmt =
-      new SingleAssignStmt(tok.ToRange(), successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(tok, false)));
-    return new BlockStmt(tok.ToRange(), Util.List<Statement>(failedPrintStmt, failSuiteStmt));
+      new SingleAssignStmt(tok, successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(tok, false)));
+    return new BlockStmt(tok, Util.List<Statement>(failedPrintStmt, failSuiteStmt));
   }
 }

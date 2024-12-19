@@ -37,7 +37,7 @@ public class CliCompilation {
     if (options.DafnyProject == null) {
       var firstFile = options.CliRootSourceUris.FirstOrDefault();
       var uri = firstFile ?? new Uri(Directory.GetCurrentDirectory());
-      options.DafnyProject = new DafnyProject(uri, null, new HashSet<string>() { uri.LocalPath }, new HashSet<string>(),
+      options.DafnyProject = new DafnyProject(null, uri, null, new HashSet<string>() { uri.LocalPath }, new HashSet<string>(),
         new Dictionary<string, object>()) {
         ImplicitFromCli = true
       };
@@ -127,7 +127,7 @@ public class CliCompilation {
           dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
-          var programName = finishedParsing.Program.Name;
+          var programName = finishedParsing.ParseResult.Program.Name;
           Options.OutputWriter.WriteLine($"{errorCount} parse errors detected in {programName}");
         }
       } else if (ev is FinishedResolution finishedResolution) {
@@ -151,7 +151,7 @@ public class CliCompilation {
 
   public bool VerifiedAssertions { get; private set; }
 
-  public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed) {
+  public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed = null) {
     if (!Options.Get(CommonOptionBag.UnicodeCharacters) && Options.Backend is not CppBackend) {
       Compilation.Reporter.Deprecated(MessageSource.Verifier, "unicodeCharDeprecated", Token.Cli,
         "the option unicode-char has been deprecated.");
@@ -198,7 +198,7 @@ public class CliCompilation {
             var result = origin switch {
               PathOrigin pathOrigin => $"{OriginDescription(pathOrigin.Inner, false)}" +
                                        $"after executing lines {string.Join(", ", pathOrigin.BranchTokens.Select(b => b.line))}",
-              RemainingAssertionsOrigin remainingAssertions => $"{OriginDescription(remainingAssertions.Origin, false)}remaining assertions",
+              RemainingAssertionsOrigin remainingAssertions => OriginDescription(remainingAssertions.Origin, false) + (outer ? "remaining assertions" : ""),
               IsolatedAssertionOrigin isolateOrigin => $"{OriginDescription(isolateOrigin.Origin, false)}assertion at line {isolateOrigin.line}",
               JumpOrigin returnOrigin => $"{OriginDescription(returnOrigin.Origin, false)}{JumpOriginKind(returnOrigin)} at line {returnOrigin.line}",
               AfterSplitOrigin splitOrigin => $"{OriginDescription(splitOrigin.Inner, false)}assertions after split_here at line {splitOrigin.line}",
@@ -234,7 +234,7 @@ public class CliCompilation {
       yield break;
     }
 
-    var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
+    var canVerifies = resolution.CanVerifies?.ToList();
 
     if (canVerifies == null) {
       yield break;
@@ -247,24 +247,24 @@ public class CliCompilation {
 
     int done = 0;
 
-    var canVerifiesPerModule = canVerifies.ToList().GroupBy(c => c.ContainingModule).ToList();
+    var canVerifiesPerModule = canVerifies.GroupBy(c => c.ContainingModule);
     foreach (var canVerifiesForModule in canVerifiesPerModule.
                OrderBy(v => v.Key.Tok.pos)) {
-      var orderedCanVerifies = canVerifiesForModule.OrderBy(v => v.Tok.pos).ToList();
-      foreach (var canVerify in orderedCanVerifies) {
+      var toAwait = new List<ICanVerify>();
+      foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Tok.pos)) {
         var results = new CliCanVerifyState();
         canVerifyResults[canVerify] = results;
         if (line != null) {
           results.TaskFilter = t => KeepVerificationTask(t, line.Value);
         }
 
-        var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
-        if (!shouldVerify) {
-          canVerifies.ToList().Remove(canVerify);
+        var shouldVerify = await Compilation.VerifyLocation(canVerify.Tok.GetFilePosition(), results.TaskFilter, randomSeed);
+        if (shouldVerify) {
+          toAwait.Add(canVerify);
         }
       }
 
-      foreach (var canVerify in orderedCanVerifies) {
+      foreach (var canVerify in toAwait) {
         var results = canVerifyResults[canVerify];
         try {
           if (Options.Get(CommonOptionBag.ProgressOption) > CommonOptionBag.ProgressLevel.None) {
@@ -347,7 +347,7 @@ public class CliCompilation {
     var parsedLine = int.Parse(linePart);
     line = parsedLine;
     return fileFiltered.Where(c =>
-        c.RangeToken.StartToken.line <= parsedLine && parsedLine <= c.RangeToken.EndToken.line).ToList();
+        c.Origin.StartToken.line <= parsedLine && parsedLine <= c.Origin.EndToken.line).ToList();
   }
 
   private bool KeepVerificationTask(IVerificationTask task, int line) {

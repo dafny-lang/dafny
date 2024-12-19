@@ -5,10 +5,11 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionCallExpr> {
-  public string Name;
+  public Name NameNode;
+  public string Name => NameNode.Value;
   public readonly Expression Receiver;
-  public readonly IToken OpenParen;  // can be null if Args.Count == 0
-  public readonly IToken CloseParen;
+  public readonly IOrigin OpenParen;  // can be null if Args.Count == 0
+  public readonly Token CloseParen;
   public readonly Label/*?*/ AtLabel;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
@@ -74,7 +75,13 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
 
   [FilledInDuringResolution] public Function Function;
 
-  public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
+  public FunctionCallExpr(string fn, Expression receiver, IOrigin openParen, Token closeParen,
+    [Captured] ActualBindings bindings, Label /*?*/ atLabel = null)
+    : this(Token.NoToken, new Name(Token.NoToken, fn), receiver, openParen, closeParen, bindings,
+      atLabel) {
+  }
+
+  public FunctionCallExpr(IOrigin tok, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
     : this(tok, fn, receiver, openParen, closeParen, new ActualBindings(args), atLabel) {
     Contract.Requires(tok != null);
     Contract.Requires(fn != null);
@@ -84,7 +91,7 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
     Contract.Ensures(type == null);
   }
 
-  public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
+  public FunctionCallExpr(IOrigin tok, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(fn != null);
@@ -93,7 +100,7 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
     Contract.Requires(openParen != null);
     Contract.Ensures(type == null);
 
-    this.Name = fn;
+    this.NameNode = fn;
     this.Receiver = receiver;
     this.OpenParen = openParen;
     this.CloseParen = closeParen;
@@ -106,7 +113,7 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
   /// This constructor is intended to be used when constructing a resolved FunctionCallExpr. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<Expression> args,
+  public FunctionCallExpr(IOrigin tok, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] List<Expression> args,
     Label /*?*/ atLabel = null)
     : this(tok, fn, receiver, openParen, closeParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
@@ -117,10 +124,10 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
   }
 
   public FunctionCallExpr(Cloner cloner, FunctionCallExpr original) : base(cloner, original) {
-    Name = original.Name;
+    NameNode = new Name(cloner, original.NameNode);
     Receiver = cloner.CloneExpr(original.Receiver);
-    OpenParen = original.OpenParen == null ? null : cloner.Tok(original.OpenParen);
-    CloseParen = original.CloseParen == null ? null : cloner.Tok(original.CloseParen);
+    OpenParen = original.OpenParen == null ? null : cloner.Origin(original.OpenParen);
+    CloseParen = original.CloseParen;
     Bindings = new ActualBindings(cloner, original.Bindings);
     AtLabel = original.AtLabel;
 
@@ -144,9 +151,7 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
   }
 
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return Enumerable.Repeat(Function, 1);
+  public IEnumerable<Reference> GetReferences() {
+    return Enumerable.Repeat(new Reference(NameNode.Origin, Function), 1);
   }
-
-  public IToken NavigationToken => tok;
 }

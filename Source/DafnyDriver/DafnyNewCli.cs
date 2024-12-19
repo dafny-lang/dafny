@@ -273,7 +273,7 @@ public static class DafnyNewCli {
   private static async IAsyncEnumerable<DafnyFile> HandleDafnyProject(IFileSystem fileSystem, DafnyOptions options,
     ErrorReporter reporter,
     Uri uri,
-    IToken uriOrigin,
+    IOrigin uriOrigin,
     bool asLibrary) {
     if (!asLibrary) {
       reporter.Error(MessageSource.Project, uriOrigin, "Using a Dafny project file as a source file is not supported.");
@@ -303,7 +303,8 @@ public static class DafnyNewCli {
       dependencyOptions.Compile = true;
       dependencyOptions.RunAfterCompile = false;
       var libraryBackend = new LibraryBackend(dependencyOptions);
-      dependencyOptions.CompilerName = libraryBackend.TargetId;
+      dependencyOptions.Backend = libraryBackend;
+      dependencyOptions.CompilerName = dependencyOptions.Backend.TargetId;
 
       dependencyOptions.DafnyProject = dependencyProject;
       dependencyOptions.CliRootSourceUris.Clear();

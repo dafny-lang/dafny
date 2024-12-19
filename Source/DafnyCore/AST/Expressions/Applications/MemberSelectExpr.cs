@@ -6,7 +6,8 @@ namespace Microsoft.Dafny;
 
 public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSelectExpr> {
   public readonly Expression Obj;
-  public string MemberName;
+  public Name MemberNameNode;
+  public string MemberName => MemberNameNode.Value;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
   [FilledInDuringResolution] public Label /*?*/ AtLabel;  // non-null for a two-state selection
   [FilledInDuringResolution] public bool InCompiledContext;
@@ -203,7 +204,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
 
   public MemberSelectExpr(Cloner cloner, MemberSelectExpr original) : base(cloner, original) {
     Obj = cloner.CloneExpr(original.Obj);
-    MemberName = original.MemberName;
+    MemberNameNode = new Name(cloner, original.MemberNameNode);
 
     if (cloner.CloneResolvedFields) {
       Member = cloner.CloneMember(original.Member, true);
@@ -214,20 +215,20 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
     }
   }
 
-  public MemberSelectExpr(IToken tok, Expression obj, string memberName)
+  public MemberSelectExpr(IOrigin tok, Expression obj, Name memberName)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(obj != null);
     Contract.Requires(memberName != null);
     this.Obj = obj;
-    this.MemberName = memberName;
+    this.MemberNameNode = memberName;
   }
 
   /// <summary>
   /// Returns a resolved MemberSelectExpr for a field.
   /// </summary>
-  public MemberSelectExpr(IToken tok, Expression obj, Field field)
-    : this(tok, obj, field.Name) {
+  public MemberSelectExpr(IOrigin tok, Expression obj, Field field)
+    : this(tok, obj, new Name(field.Name)) {
     Contract.Requires(tok != null);
     Contract.Requires(obj != null);
     Contract.Requires(field != null);
@@ -293,9 +294,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
 
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { Member };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Tok, Member) };
   }
-
-  public IToken NavigationToken => tok;
 }

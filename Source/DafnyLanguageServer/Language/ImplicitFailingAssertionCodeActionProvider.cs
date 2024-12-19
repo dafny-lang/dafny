@@ -25,7 +25,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
   }
 
   protected static List<INode>? FindInnermostNodeIntersecting(INode node, Range range) {
-    if (node.StartToken.line > 0 && !node.RangeToken.ToLspRange().Intersects(range)) {
+    if (node.StartToken.line > 0 && !node.Origin.ToLspRange().Intersects(range)) {
       return null;
     }
 
@@ -72,7 +72,8 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         var node = nodesTillFailure[i];
         var nextNode = i < nodesTillFailure.Count - 1 ? nodesTillFailure[i + 1] : null;
         if (node is Statement or LetExpr &&
-            node is not AssignStatement && nextNode is not VarDeclStmt && nextNode is not AssignSuchThatStmt) {
+            ((node is AssignStatement or AssignSuchThatStmt && nextNode is not VarDeclStmt) ||
+            (node is not AssignStatement && nextNode is not VarDeclStmt && nextNode is not AssignSuchThatStmt))) {
           insertionNode = node;
           break;
         }

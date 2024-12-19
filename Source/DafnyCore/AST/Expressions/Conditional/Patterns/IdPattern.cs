@@ -30,7 +30,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
     this.Arguments = new List<ExtendedPattern>();
   }
 
-  public IdPattern(Cloner cloner, IdPattern original) : base(cloner.Tok(original.Tok), original.IsGhost) {
+  public IdPattern(Cloner cloner, IdPattern original) : base(cloner.Origin(original.Tok), original.IsGhost) {
     Id = original.Id;
     Arguments = original.Arguments?.Select(cloner.CloneExtendedPattern).ToList();
     HasParenthesis = original.HasParenthesis;
@@ -40,7 +40,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
     }
   }
 
-  public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(tok, isGhost) {
+  public IdPattern(IOrigin tok, String id, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(tok, isGhost) {
     Contract.Requires(id != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
     HasParenthesis = hasParenthesis;
@@ -49,7 +49,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
     this.Arguments = arguments;
   }
 
-  public IdPattern(IToken tok, String id, Type type, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
+  public IdPattern(IOrigin tok, String id, Type type, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
     Contract.Requires(id != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
     this.Id = id;
@@ -104,7 +104,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
       }
 
       if (inStatementContext) {
-        var localVariable = new LocalVariable(RangeToken, Id, null, isGhost) {
+        var localVariable = new LocalVariable(Origin, Id, null, isGhost) {
           type = Type
         };
         BoundVar = localVariable;
@@ -130,11 +130,9 @@ public class IdPattern : ExtendedPattern, IHasReferences {
     }
   }
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new ISymbol[] { Ctor }.Where(x => x != null);
+  public IEnumerable<Reference> GetReferences() {
+    return Ctor == null ? Enumerable.Empty<Reference>() : new[] { new Reference(StartToken, Ctor) };
   }
-
-  public IToken NavigationToken => Tok;
 
   public void CheckLinearVarPattern(Type type, ResolutionContext resolutionContext, ModuleResolver resolver) {
     if (Arguments != null) {

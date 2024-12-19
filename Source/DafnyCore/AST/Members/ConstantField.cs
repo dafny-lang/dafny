@@ -12,8 +12,8 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
 
   public override bool IsOpaque { get; }
 
-  public ConstantField(RangeToken rangeToken, Name name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
-    : base(rangeToken, name, ID.UseIdParam, NonglobalVariable.SanitizeName(name.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
+  public ConstantField(IOrigin rangeOrigin, Name name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
+    : base(rangeOrigin, name, ID.UseIdParam, NonglobalVariable.SanitizeName(name.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
@@ -51,7 +51,8 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
   }
   public bool AllowsAllocation => true;
 
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+  public override IEnumerable<INode> Children =>
+    base.Children.Concat(new[] { Rhs }.Where(x => x != null));
   public override SymbolKind? Kind => SymbolKind.Constant;
 
   public override IEnumerable<INode> PreResolveChildren => Children;

@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class CallStmt : Statement, ICloneable<CallStmt> {
   // OverrideToken is required because MethodSelect.EndToken can be incorrect. Will remove once resolved expressions have correct ranges.
-  public override IToken Tok => overrideToken ?? MethodSelect.EndToken.Next;
+  public override IOrigin Tok => overrideToken ?? MethodSelect.EndToken.Next;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -25,7 +25,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
 
   public readonly List<Expression> Lhs;
   public readonly MemberSelectExpr MethodSelect;
-  private readonly IToken overrideToken;
+  private readonly IOrigin overrideToken;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   public Expression OriginalInitialLhs = null;
@@ -33,9 +33,9 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver => MethodSelect.Obj;
   public Method Method => (Method)MethodSelect.Member;
 
-  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IToken overrideToken = null)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IOrigin overrideToken = null)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
     Contract.Requires(memSel.Member is Method);
@@ -62,8 +62,8 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   /// This constructor is intended to be used when constructing a resolved CallStmt. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
-    : this(rangeToken, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
+  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
+    : this(rangeOrigin, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 
@@ -76,6 +76,67 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
       yield return MethodSelect;
       foreach (var ee in Args) {
         yield return ee;
+      }
+    }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    var callee = this.Method;
+    Contract.Assert(callee != null);  // follows from the invariant of CallStmt
+    this.IsGhost = callee.IsGhost;
+    if (proofContext != null && !callee.IsLemmaLike) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_calls_in_proof, this,
+        $"in {proofContext}, calls are allowed only to lemmas");
+    } else if (mustBeErasable) {
+      if (!this.IsGhost) {
+        reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_only_ghost_calls, this,
+          "only ghost methods can be called from this context");
+      }
+    } else {
+      int j;
+      if (!callee.IsGhost) {
+        // check in-parameters
+        ExpressionTester.CheckIsCompilable(resolver, reporter, this.Receiver, codeContext);
+        j = 0;
+        foreach (var e in this.Args) {
+          Contract.Assume(j < callee.Ins.Count);  // this should have already been checked by the resolver
+          if (!callee.Ins[j].IsGhost) {
+            ExpressionTester.CheckIsCompilable(resolver, reporter, e, codeContext);
+          }
+          j++;
+        }
+      }
+      j = 0;
+      foreach (var e in this.Lhs) {
+        var resolvedLhs = e.Resolved;
+        if (callee.IsGhost || callee.Outs[j].IsGhost) {
+          // LHS must denote a ghost
+          if (resolvedLhs is IdentifierExpr) {
+            var ll = (IdentifierExpr)resolvedLhs;
+            if (!ll.Var.IsGhost) {
+              if (ll is AutoGhostIdentifierExpr && ll.Var is LocalVariable) {
+                // the variable was actually declared in this statement, so auto-declare it as ghost
+                ((LocalVariable)ll.Var).MakeGhost();
+              } else {
+                reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_out_parameter_must_be_ghost, this,
+                  "actual out-parameter{0} is required to be a ghost variable", this.Lhs.Count == 1 ? "" : " " + j);
+              }
+            }
+          } else if (resolvedLhs is MemberSelectExpr) {
+            var ll = (MemberSelectExpr)resolvedLhs;
+            if (!ll.Member.IsGhost) {
+              reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_out_parameter_must_be_ghost_field, this,
+                "actual out-parameter{0} is required to be a ghost field", this.Lhs.Count == 1 ? "" : " " + j);
+            }
+          } else {
+            // this is an array update, and arrays are always non-ghost
+            reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_out_parameter_must_be_ghost, this,
+              "actual out-parameter{0} is required to be a ghost variable", this.Lhs.Count == 1 ? "" : " " + j);
+          }
+        }
+        j++;
       }
     }
   }

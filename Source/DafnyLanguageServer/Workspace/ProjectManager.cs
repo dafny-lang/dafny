@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reactive.Concurrency;
@@ -333,7 +334,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NavigationToken.GetFilePosition()).ToList();
     if (GutterIconTesting) {
       foreach (var canVerify in orderedVerifiableLocations) {
-        await compilation.VerifyLocation(canVerify, true);
+        await compilation.VerifyLocation(canVerify, onlyPrepareVerificationForGutterTests: true);
       }
 
       logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
@@ -351,8 +352,8 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       foreach (var canVerify in verifiables) {
         if (canVerify.Tok.Uri == uri) {
           intervalTree.Add(
-            canVerify.RangeToken.StartToken.GetLspPosition(),
-            canVerify.RangeToken.EndToken.GetLspPosition(true),
+            canVerify.Origin.StartToken.GetLspPosition(),
+            canVerify.Origin.EndToken.GetLspPosition(true),
             canVerify.NavigationToken.GetLspPosition());
         }
       }

@@ -34,16 +34,16 @@ public abstract class ErrorReporter {
 
   public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
-  public bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+  public bool Message(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
     return MessageCore(source, level, errorId, tok, msg);
   }
 
-  protected abstract bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg);
+  protected abstract bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg);
 
-  public void Error(MessageSource source, IToken tok, string msg) {
+  public void Error(MessageSource source, IOrigin tok, string msg) {
     Error(source, ParseErrors.ErrorId.none, tok, msg);
   }
-  public virtual void Error(MessageSource source, string errorId, IToken tok, string msg) {
+  public virtual void Error(MessageSource source, string errorId, IOrigin tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Message(source, ErrorLevel.Error, errorId, tok, msg);
@@ -59,21 +59,21 @@ public abstract class ErrorReporter {
     Error(source, errorId, tok, msg);
   }
 
-  public void Error(MessageSource source, IToken tok, string format, params object[] args) {
+  public void Error(MessageSource source, IOrigin tok, string format, params object[] args) {
     Contract.Requires(tok != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
     Error(source, ParseErrors.ErrorId.none, tok, format, args);
   }
 
-  public void Error(MessageSource source, Enum errorId, IToken tok, string format, params object[] args) {
+  public void Error(MessageSource source, Enum errorId, IOrigin tok, string format, params object[] args) {
     Contract.Requires(tok != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
     Error(source, errorId.ToString(), tok, string.Format(format, args));
   }
 
-  public void Error(MessageSource source, Enum errorId, IToken tok, string msg) {
+  public void Error(MessageSource source, Enum errorId, IOrigin tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Error(source, errorId.ToString(), tok, msg);
@@ -135,26 +135,26 @@ public abstract class ErrorReporter {
     Error(source, ParseErrors.ErrorId.none, e.tok, format, args);
   }
 
-  public void Warning(MessageSource source, Enum errorId, IToken tok, string format, params object[] args) {
+  public void Warning(MessageSource source, Enum errorId, IOrigin tok, string format, params object[] args) {
     Contract.Requires(tok != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
     Warning(source, errorId, tok, String.Format(format, args));
   }
 
-  public void Warning(MessageSource source, Enum errorId, IToken tok, string msg) {
+  public void Warning(MessageSource source, Enum errorId, IOrigin tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Message(source, ErrorLevel.Warning, errorId.ToString(), tok, msg);
   }
 
-  public void Warning(MessageSource source, string errorId, IToken tok, string msg) {
+  public void Warning(MessageSource source, string errorId, IOrigin tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Message(source, ErrorLevel.Warning, errorId, tok, msg);
   }
 
-  public void Deprecated(MessageSource source, string errorId, IToken tok, string msg) {
+  public void Deprecated(MessageSource source, string errorId, IOrigin tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     if (Options.DeprecationNoise != 0) {
@@ -164,7 +164,7 @@ public abstract class ErrorReporter {
     }
   }
 
-  public void Deprecated(MessageSource source, Enum errorId, IToken tok, string msg) {
+  public void Deprecated(MessageSource source, Enum errorId, IOrigin tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     if (Options.DeprecationNoise != 0) {
@@ -174,7 +174,7 @@ public abstract class ErrorReporter {
     }
   }
 
-  public void Deprecated(MessageSource source, Enum errorId, IToken tok, string format, params object[] args) {
+  public void Deprecated(MessageSource source, Enum errorId, IOrigin tok, string format, params object[] args) {
     Contract.Requires(tok != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
@@ -183,20 +183,20 @@ public abstract class ErrorReporter {
     }
   }
 
-  public void Info(MessageSource source, IToken tok, string msg, object errorId = null) {
+  public void Info(MessageSource source, IOrigin tok, string msg, object errorId = null) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Message(source, ErrorLevel.Info, errorId?.ToString(), tok, msg);
   }
 
-  public void Info(MessageSource source, IToken tok, string msg, params object[] args) {
+  public void Info(MessageSource source, IOrigin tok, string msg, params object[] args) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Contract.Requires(args != null);
     Info(source, tok, String.Format(msg, args));
   }
 
-  public string ErrorToString(ErrorLevel header, IToken tok, string msg) {
+  public string ErrorToString(ErrorLevel header, IOrigin tok, string msg) {
     return $"{tok.TokenToString(Options)}: {header.ToString()}: {msg}";
   }
 }

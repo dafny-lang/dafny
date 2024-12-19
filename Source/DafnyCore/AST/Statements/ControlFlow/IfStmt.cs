@@ -26,27 +26,27 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Els = cloner.CloneStmt(original.Els, false);
   }
 
-  public IfStmt(RangeToken rangeToken, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public IfStmt(IOrigin rangeOrigin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
-    this.IsBindingGuard = isBindingGuard;
-    this.Guard = guard;
-    this.Thn = thn;
-    this.Els = els;
+    IsBindingGuard = isBindingGuard;
+    Guard = guard;
+    Thn = thn;
+    Els = els;
   }
-  public IfStmt(RangeToken rangeToken, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
-    : base(rangeToken, attrs) {
-    Contract.Requires(rangeToken != null);
+  public IfStmt(IOrigin rangeOrigin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
+    : base(rangeOrigin, attrs) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
-    this.IsBindingGuard = isBindingGuard;
-    this.Guard = guard;
-    this.Thn = thn;
-    this.Els = els;
+    IsBindingGuard = isBindingGuard;
+    Guard = guard;
+    Thn = thn;
+    Els = els;
   }
   public override IEnumerable<Statement> SubStatements {
     get {
@@ -116,6 +116,26 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
       resolver.DominatingStatementLabels.PushMarker();
       resolver.ResolveStatement(Els, resolutionContext);
       resolver.DominatingStatementLabels.PopMarker();
+    }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable || (Guard != null && ExpressionTester.UsesSpecFeatures(Guard));
+    if (!mustBeErasable && IsGhost) {
+      reporter.Info(MessageSource.Resolver, Tok, "ghost if");
+    }
+    Thn.ResolveGhostness(resolver, reporter, IsGhost, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
+    if (Els != null) {
+      Els.ResolveGhostness(resolver, reporter, IsGhost, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
+    }
+    // if both branches were all ghost, then we can mark the enclosing statement as ghost as well
+    IsGhost = IsGhost || (Thn.IsGhost && (Els == null || Els.IsGhost));
+    if (!IsGhost && Guard != null) {
+      // If there were features in the guard that are treated differently in ghost and non-ghost
+      // contexts, make sure they get treated for non-ghost use.
+      ExpressionTester.CheckIsCompilable(resolver, reporter, Guard, codeContext);
     }
   }
 }

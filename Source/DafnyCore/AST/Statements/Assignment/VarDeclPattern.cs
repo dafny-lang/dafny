@@ -18,8 +18,8 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern>, ICanFormat 
     HasGhostModifier = original.HasGhostModifier;
   }
 
-  public VarDeclPattern(RangeToken rangeToken, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
-    : base(rangeToken) {
+  public VarDeclPattern(IOrigin rangeOrigin, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
+    : base(rangeOrigin) {
     LHS = lhs;
     RHS = rhs;
     HasGhostModifier = hasGhostModifier;
@@ -47,5 +47,29 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern>, ICanFormat 
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, true);
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    if (mustBeErasable) {
+      foreach (var local in LocalVars) {
+        local.MakeGhost();
+      }
+    }
+    if (HasGhostModifier || mustBeErasable) {
+      IsGhost = LocalVars.All(v => v.IsGhost);
+    } else {
+      var spec = ExpressionTester.UsesSpecFeatures(RHS);
+      if (spec) {
+        foreach (var local in LocalVars) {
+          local.MakeGhost();
+        }
+      } else {
+        ExpressionTester.CheckIsCompilable(resolver, reporter, RHS, codeContext);
+      }
+      IsGhost = spec;
+    }
   }
 }

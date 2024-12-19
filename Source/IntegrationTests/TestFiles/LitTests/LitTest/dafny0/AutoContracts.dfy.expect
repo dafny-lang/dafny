@@ -248,13 +248,13 @@ module OneModule {
       data < 20
     }
 
-    lemma /*{:_induction this}*/ L()
+    lemma L()
       requires Valid()
       ensures data < 100
     {
     }
 
-    twostate lemma /*{:_induction this}*/ TL()
+    twostate lemma TL()
       requires old(Valid())
       ensures old(data) <= data
     {
@@ -593,4 +593,4 @@ AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this ret
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy[N1](65,20): Related location: this proposition could not be proved
 
-Dafny program verifier finished with 37 verified, 9 errors
+Dafny program verifier finished with 36 verified, 9 errors

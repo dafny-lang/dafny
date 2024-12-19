@@ -20,9 +20,9 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
     EnclosingModuleDefinition = parent;
   }
 
-  protected TopLevelDecl(RangeToken rangeToken, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, attributes, isRefining) {
-    Contract.Requires(rangeToken != null);
+  protected TopLevelDecl(IOrigin rangeOrigin, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
+    : base(rangeOrigin, name, attributes, isRefining) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     EnclosingModuleDefinition = enclosingModule;

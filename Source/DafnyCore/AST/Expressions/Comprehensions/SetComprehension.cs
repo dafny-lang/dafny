@@ -27,8 +27,8 @@ public class SetComprehension : ComprehensionExpr, ICloneable<SetComprehension> 
     Finite = original.Finite;
   }
 
-  public SetComprehension(IToken tok, RangeToken rangeToken, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
-    : base(tok, rangeToken, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
+  public SetComprehension(IOrigin tok, IOrigin rangeOrigin, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
+    : base(tok, rangeOrigin, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(1 <= bvars.Count);

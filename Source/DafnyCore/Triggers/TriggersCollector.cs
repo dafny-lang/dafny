@@ -22,7 +22,7 @@ internal class TriggersCollector {
 
   private T ReduceAnnotatedSubExpressions<T>(Expression expr, T seed, Func<TriggerAnnotation, T> map, Func<T, T, T> reduce) {
     return expr.SubExpressions.Select(e => map(Annotate(e)))
-      .Aggregate(seed, (acc, e) => reduce(acc, e));
+      .Aggregate(seed, reduce);
   }
 
   private List<TriggerTerm> CollectExportedCandidates(Expression expr) {
@@ -101,6 +101,7 @@ internal class TriggersCollector {
         expr is DisplayExpression ||
         expr is MapDisplayExpr ||
         expr is DatatypeValue ||
+        expr is TernaryExpr ||
         TranslateToFunctionCall(expr)) {
       return true;
     } else if (expr is BinaryExpr) {

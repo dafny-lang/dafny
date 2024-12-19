@@ -10,15 +10,15 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
     return new ExpectStmt(cloner, this);
   }
 
-  public override IToken Tok => StartToken == Expr.StartToken ? Expr.Tok : base.Tok; // TODO move up to PredicateStmt?
+  public override IOrigin Tok => StartToken == Expr.StartToken ? Expr.Tok : base.Tok; // TODO move up to PredicateStmt?
 
   public ExpectStmt(Cloner cloner, ExpectStmt original) : base(cloner, original) {
     Message = cloner.CloneExpr(original.Message);
   }
 
-  public ExpectStmt(RangeToken rangeToken, Expression expr, Expression message, Attributes attrs)
-    : base(rangeToken, expr, attrs) {
-    Contract.Requires(rangeToken != null);
+  public ExpectStmt(IOrigin rangeOrigin, Expression expr, Expression message, Attributes attrs)
+    : base(rangeOrigin, expr, attrs) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(expr != null);
     this.Message = message;
   }
@@ -43,5 +43,20 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
       Message = new StringLiteralExpr(Tok, "expectation violation", false);
     }
     resolver.ResolveExpression(Message, context);
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = false;
+    if (mustBeErasable) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_expect_statement_is_not_ghost, this,
+        "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+    } else {
+      ExpressionTester.CheckIsCompilable(resolver, reporter, Expr, codeContext);
+      // If not provided, the message is populated with a default value in resolution
+      Contract.Assert(Message != null);
+      ExpressionTester.CheckIsCompilable(resolver, reporter, Message, codeContext);
+    }
   }
 }

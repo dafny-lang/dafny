@@ -22,8 +22,8 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
     Assign = (ConcreteAssignStatement)cloner.CloneStmt(original.Assign, false);
   }
 
-  public VarDeclStmt(RangeToken rangeToken, List<LocalVariable> locals, ConcreteAssignStatement assign)
-    : base(rangeToken) {
+  public VarDeclStmt(IOrigin rangeOrigin, List<LocalVariable> locals, ConcreteAssignStatement assign)
+    : base(rangeOrigin) {
     Contract.Requires(locals != null);
     Contract.Requires(locals.Count != 0);
 
@@ -52,5 +52,39 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var result = formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, false);
     return Assign != null ? formatter.SetIndentUpdateStmt(Assign, indentBefore, true) : result;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    if (mustBeErasable) {
+      foreach (var local in Locals) {
+        // a local variable in a specification-only context might as well be ghost
+        local.MakeGhost();
+      }
+    }
+    if (Assign != null) {
+      Assign.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
+    }
+    IsGhost = (Assign == null || Assign.IsGhost) && Locals.All(v => v.IsGhost);
+
+    // Check on "assumption" variables
+    foreach (var local in Locals) {
+      if (Attributes.Contains(local.Attributes, "assumption")) {
+        if (allowAssumptionVariables) {
+          if (!local.Type.IsBoolType) {
+            reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_assumption_var_must_be_bool, local.Tok,
+              "assumption variable must be of type 'bool'");
+          }
+          if (!local.IsGhost) {
+            reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_assumption_var_must_be_ghost, local.Tok,
+              "assumption variable must be ghost");
+          }
+        } else {
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_assumption_var_must_be_in_method, local.Tok,
+            "assumption variable can only be declared in a method");
+        }
+      }
+    }
   }
 }

@@ -16,9 +16,9 @@ public class ModifyStmt : Statement, ICloneable<ModifyStmt>, ICanFormat {
     Body = cloner.CloneBlockStmt(original.Body);
   }
 
-  public ModifyStmt(RangeToken rangeToken, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public ModifyStmt(IOrigin rangeOrigin, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(mod != null);
     Mod = new Specification<FrameExpression>(mod, attrs);
     Body = body;
@@ -75,5 +75,22 @@ public class ModifyStmt : Statement, ICloneable<ModifyStmt>, ICanFormat {
     }
 
     return true;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    if (proofContext != null) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_modify_forbidden_in_proof, this, $"a modify statement is not allowed in {proofContext}");
+    }
+
+    IsGhost = mustBeErasable;
+    if (IsGhost) {
+      Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
+    }
+    if (Body != null) {
+      Body.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables,
+        inConstructorInitializationPhase);
+    }
   }
 }

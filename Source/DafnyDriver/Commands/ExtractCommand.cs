@@ -15,6 +15,7 @@ public static class ExtractCommand {
     var result = new Command("extract", "Can be used to generate DafnyPrelude.bpl. Uses the ':extract_boogie_name' attribute to rename symbols. Turns lemmas into universally quantified axioms, as opposed to verify which turns them into Boogie procedures. When translating Dafny expressions to Boogie ones, no well-formedness checks are created.");
 
     result.IsHidden = true;
+    result.AddArgument(SourceModule);
     result.AddArgument(Target);
     result.AddArgument(DafnyCommands.FilesArgument);
     foreach (var option in ExtractOptions) {
@@ -23,6 +24,8 @@ public static class ExtractCommand {
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => HandleExtraction(options));
     return result;
   }
+
+  private static readonly Argument<string> SourceModule = new("The name of the module to be extracted.");
 
   private static readonly Argument<FileInfo> Target = new("The path of the extracted file.");
 
@@ -44,13 +47,15 @@ public static class ExtractCommand {
       return await compilation.GetAndReportExitCode();
     }
 
+    var sourceModuleName = options.Get(SourceModule);
     var outputPath = options.Get(Target).FullName;
     using var engine = ExecutionEngine.CreateWithoutSharedCache(options);
     try {
-      var extractedProgram = BoogieExtractor.Extract(resolution.ResolvedProgram);
+      var extractedProgram = BoogieExtractor.Extract(resolution.ResolvedProgram, sourceModuleName);
       engine.PrintBplFile(outputPath, extractedProgram, true, pretty: true);
     } catch (ExtractorError extractorError) {
-      await options.OutputWriter.WriteLineAsync($"Boogie axiom extraction error: {extractorError.Message}");
+      var tok = extractorError.Tok;
+      await options.OutputWriter.WriteLineAsync($"{tok.filename}({tok.line},{tok.col}): Boogie axiom extraction error: {extractorError.Message}");
       return 1;
     }
 

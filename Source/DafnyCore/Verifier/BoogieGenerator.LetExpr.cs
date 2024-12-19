@@ -197,7 +197,7 @@ namespace Microsoft.Dafny {
 
             // now that we've declared the functions and axioms, let's prepare the let-such-that desugaring
             {
-              var etran = new ExpressionTranslator(BoogieGenerator, predef, e.tok, null);
+              var etran = new ExpressionTranslator(BoogieGenerator, Predef, e.tok, null);
               var rhss = new List<Expression>();
               foreach (var bv in e.BoundVars) {
                 var args = info.SkolemFunctionArgs(bv, BoogieGenerator, etran);
@@ -233,7 +233,7 @@ namespace Microsoft.Dafny {
 
       private void AddLetSuchThenCanCallAxiom(LetExpr e, LetSuchThatExprInfo info, Bpl.Function canCallFunction) {
         var etranCC =
-          new ExpressionTranslator(BoogieGenerator, predef, info.HeapExpr(BoogieGenerator, false), info.HeapExpr(BoogieGenerator, true), null);
+          new ExpressionTranslator(BoogieGenerator, Predef, info.HeapExpr(BoogieGenerator, false), info.HeapExpr(BoogieGenerator, true), null);
         Bpl.Expr typeAntecedents; // later ignored
         List<Variable> gg = info.GAsVars(BoogieGenerator, false, out typeAntecedents, etranCC);
         var gExprs = new List<Bpl.Expr>();
@@ -283,7 +283,7 @@ namespace Microsoft.Dafny {
     public Dictionary<LetExpr, LetSuchThatExprInfo> letSuchThatExprInfo = new();
 
     public class LetSuchThatExprInfo {
-      public readonly IToken Tok;
+      public readonly IOrigin Tok;
       public readonly int LetId;
       public readonly List<IVariable> FVs;
 
@@ -297,7 +297,7 @@ namespace Microsoft.Dafny {
       public readonly List<Label> UsesHeapAt;
       public readonly Type ThisType; // null if 'this' is not used
 
-      public LetSuchThatExprInfo(IToken tok, int uniqueLetId,
+      public LetSuchThatExprInfo(IOrigin tok, int uniqueLetId,
         List<IVariable> freeVariables, List<TypeParameter> freeTypeVars,
         bool usesHeap, bool usesOldHeap, ISet<Label> usesHeapAt, Type thisType, Declaration currentDeclaration) {
         Tok = tok;

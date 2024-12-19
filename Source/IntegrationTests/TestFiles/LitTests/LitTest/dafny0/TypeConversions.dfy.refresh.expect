@@ -318,14 +318,16 @@ method M3()
 }
 
 method M4()
-    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
-  ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, seven as bv67, w, seven, noll)
 {
   if {
     case true =>
       even := noll as EvenInt;
-    case b67 as int % 2 == 0 =>
-      even := b67 as EvenInt;
+    case true =>
+      even := seven as EvenInt;
+    case seven as int % 2 == 0 =>
+      even := seven as EvenInt;
     case true =>
       small := seven as SmallReal;
     case true =>
@@ -388,6 +390,7 @@ TypeConversions.dfy(62,28): Error: value to be converted might not fit in bv7
 TypeConversions.dfy(72,29): Error: value to be converted might not fit in bv0
 TypeConversions.dfy(73,27): Error: value to be converted might not fit in bv0
 TypeConversions.dfy(74,31): Error: value to be converted might not fit in bv0
+TypeConversions.dfy(96,31): Error: result of operation might violate newtype constraint for 'EvenInt'
 TypeConversions.dfy(100,20): Error: result of operation might violate newtype constraint for 'EvenInt'
 TypeConversions.dfy(100,20): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 TypeConversions.dfy(102,20): Error: result of operation might violate newtype constraint for 'EvenInt'
@@ -395,4 +398,4 @@ TypeConversions.dfy(115,28): Error: value to be converted might not fit in bv7
 TypeConversions.dfy(116,27): Error: value to be converted might not fit in bv0
 TypeConversions.dfy(126,5): Error: trying witness null: value of expression (of type 'Class?') is not known to be an instance of type 'Class', because it might be null
 
-Dafny program verifier finished with 3 verified, 17 errors
+Dafny program verifier finished with 3 verified, 18 errors

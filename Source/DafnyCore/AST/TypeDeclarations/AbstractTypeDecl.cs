@@ -11,10 +11,10 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
 
-  public AbstractTypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics,
+  public AbstractTypeDecl(IOrigin rangeOrigin, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics,
     List<TypeParameter> typeArgs, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeArgs != null);
@@ -30,6 +30,7 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
     var typeArgumentIndent = indent2;
     var commaIndent = indent2;
     var rightIndent = indent2;
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
     foreach (var token in OwnedTokens) {
       switch (token.val) {
         case "type": {
@@ -87,21 +88,29 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
   }
 
   public string GetTriviaContainingDocstring() {
-    IToken openingBlock = null;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
+    IOrigin openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
         openingBlock = token;
       }
     }
 
-    if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
-      return openingBlock.Prev.TrailingTrivia;
+    var tentativeTrivia = "";
+    if (openingBlock != null) {
+      tentativeTrivia = (openingBlock.Prev.TrailingTrivia + openingBlock.LeadingTrivia).Trim();
+      if (tentativeTrivia != "") {
+        return tentativeTrivia;
+      }
     }
 
-    if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 }

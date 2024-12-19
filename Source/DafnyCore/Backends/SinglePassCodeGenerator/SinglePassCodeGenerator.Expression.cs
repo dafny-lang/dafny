@@ -19,6 +19,10 @@ using static Microsoft.Dafny.GeneratorErrors;
 namespace Microsoft.Dafny.Compilers {
   public abstract partial class SinglePassCodeGenerator {
 
+    public virtual Type GetRuntimeType(Type tpe) {
+      return tpe.GetRuntimeType();
+    }
+
     public virtual void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts) {
       switch (expr) {
@@ -287,8 +291,8 @@ namespace Microsoft.Dafny.Compilers {
           }
         case ConversionExpr conversionExpr: {
             var e = conversionExpr;
-            var fromType = e.E.Type.GetRuntimeType();
-            var toType = e.ToType.GetRuntimeType();
+            var fromType = GetRuntimeType(e.E.Type);
+            var toType = GetRuntimeType(e.ToType);
             Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
                             toType.IsRefType == fromType.IsRefType ||
                             (fromType.IsTypeParameter && toType.IsTraitType));
@@ -615,7 +619,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(negated ? " != " : " == ");
         wr.Write(sign.ToString());
       } else {
-        CompileBinOp(binary.ResolvedOp, binary.E0.Type, binary.E1.Type, binary.tok, binary.Type.GetRuntimeType(),
+        CompileBinOp(binary.ResolvedOp, binary.E0.Type, binary.E1.Type, binary.tok, GetRuntimeType(binary.Type),
           out var opString,
           out var preOpString,
           out var postOpString,
@@ -732,7 +736,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private ConcreteSyntaxTree EmitAppliedLambda(ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts,
-      IToken token, Type resultType) {
+      IOrigin token, Type resultType) {
       EmitLambdaApply(output, out var lambdaApplyTarget, out _);
       return CreateLambda(new List<Type>(), token, new List<string>(), resultType, lambdaApplyTarget, wStmts);
     }

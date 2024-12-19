@@ -25,7 +25,15 @@ jobs:
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     runs-on: ubuntu-latest
 
-    steps:
+    steps: 
+    # The Windows image was recently updated with a .NET 9 CLI which made CI fail, 
+    # We added a global.json to force it to use any .NET CLI with 8 as a major version
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    # If we do not also install .NET 6 as well, then our doc-tests fail for an unknown reason
+    # Failing run: https://github.com/dafny-lang/dafny/actions/runs/12276984671/job/34255376460
     - name: Setup dotnet
       uses: actions/setup-dotnet@v4
       with:

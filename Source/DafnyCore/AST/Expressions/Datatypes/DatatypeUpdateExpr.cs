@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 
 public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, ICloneable<DatatypeUpdateExpr> {
   public readonly Expression Root;
-  public readonly List<Tuple<IToken, string, Expression>> Updates;
+  public readonly List<Tuple<IOrigin, string, Expression>> Updates;
   [FilledInDuringResolution] public List<MemberDecl> Members;
   [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
   [FilledInDuringResolution] public bool InCompiledContext;
@@ -19,7 +19,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
 
   public DatatypeUpdateExpr(Cloner cloner, DatatypeUpdateExpr original) : base(cloner, original) {
     Root = cloner.CloneExpr(original.Root);
-    Updates = original.Updates.Select(t => Tuple.Create<IToken, string, Expression>(cloner.Tok((IToken)t.Item1), t.Item2, cloner.CloneExpr(t.Item3)))
+    Updates = original.Updates.Select(t => Tuple.Create(cloner.Origin(t.Item1), t.Item2, cloner.CloneExpr(t.Item3)))
       .ToList();
 
     if (cloner.CloneResolvedFields) {
@@ -34,7 +34,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
     }
   }
 
-  public DatatypeUpdateExpr(IToken tok, Expression root, List<Tuple<IToken, string, Expression>> updates)
+  public DatatypeUpdateExpr(IOrigin tok, Expression root, List<Tuple<IOrigin, string, Expression>> updates)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(root != null);
@@ -62,11 +62,11 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
     }
   }
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return (IEnumerable<ISymbol>)LegalSourceConstructors ?? Array.Empty<ISymbol>();
+  public IEnumerable<Reference> GetReferences() {
+    return LegalSourceConstructors == null ? Enumerable.Empty<Reference>()
+      : Updates.Zip(LegalSourceConstructors).Select(t =>
+        new Reference(t.First.Item1, t.Second.Formals.Find(f => f.Name == t.First.Item2)));
   }
-
-  public IToken NavigationToken => tok;
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
     get {

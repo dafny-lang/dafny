@@ -94,11 +94,11 @@ namespace Microsoft.Dafny {
             // don't include this precondition here, but record it for later use
             p.Label.E = etran.Old.TrExpr(p.E);
           } else {
-            foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
-              if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.Tok, currentModule)) {
+            foreach (var split in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
+              if (kind == MethodTranslationKind.Call && split.Tok.IsInherited(currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
-                req.Add(Requires(s.Tok, s.IsOnlyFree, p.E, s.E, errorMessage, successMessage, comment));
+                req.Add(Requires(split.Tok, split.IsOnlyFree, p.E, split.E, errorMessage, successMessage, comment));
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
@@ -107,11 +107,11 @@ namespace Microsoft.Dafny {
         }
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
-          foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
-            if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
+          foreach (var split in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
+            if (kind == MethodTranslationKind.Implementation && split.Tok.IsInherited(currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
-              ens.Add(Ensures(s.Tok, s.IsOnlyFree, p.E, s.E, null, null, comment));
+              ens.Add(Ensures(split.Tok, split.IsOnlyFree, p.E, split.E, null, null, comment));
               comment = null;
             }
           }
@@ -188,7 +188,7 @@ namespace Microsoft.Dafny {
         new List<Bpl.IdentifierExpr>()));
 
       // assume the automatic yield-requires precondition (which is always well-formed):  this.Valid()
-      var validCall = new FunctionCallExpr(iter.tok, "Valid", th, iter.tok, iter.tok, new List<Expression>());
+      var validCall = new FunctionCallExpr(iter.Tok, new Name("Valid"), th, iter.Tok, Token.NoToken, new List<Expression>());
       validCall.Function = iter.Member_Valid;  // resolve here
       validCall.Type = Type.Bool;  // resolve here
       validCall.TypeApplication_AtEnclosingClass = iter.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));  // resolve here
@@ -377,7 +377,7 @@ namespace Microsoft.Dafny {
     ///   assume YieldRequires;
     ///   $_OldIterHeap := Heap;
     /// </summary>
-    void YieldHavoc(IToken tok, IteratorDecl iter, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void YieldHavoc(IOrigin tok, IteratorDecl iter, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(iter != null);
       Contract.Requires(builder != null);

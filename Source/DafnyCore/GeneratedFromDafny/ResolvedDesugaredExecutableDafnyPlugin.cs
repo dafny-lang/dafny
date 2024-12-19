@@ -26,7 +26,7 @@ namespace ResolvedDesugaredExecutableDafnyPlugin {
       s = _out0;
       return s;
     }
-    public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> fullName)
+    public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(DAST._IExpression fullName)
     {
       Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
       s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");

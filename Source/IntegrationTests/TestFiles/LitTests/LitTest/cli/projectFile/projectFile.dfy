@@ -52,4 +52,7 @@
 // A project file can be found from an input file
 // RUN: ! %resolve --find-project %S/src/input.dfy &>> "%t"
 
+// RUN: echo '15' >> %t
+// RUN: ! %baredafny format --use-basename-for-filename --check "%S/dfyconfig.toml" &>> "%t"
+
 // RUN: %diff "%s.expect" "%t"

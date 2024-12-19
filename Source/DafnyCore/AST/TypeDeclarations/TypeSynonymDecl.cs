@@ -6,8 +6,8 @@ namespace Microsoft.Dafny;
 public class TypeSynonymDecl : TypeSynonymDeclBase, RevealableTypeDecl {
   public override string WhatKind => "type synonym";
 
-  public TypeSynonymDecl(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(rangeToken, name, characteristics, typeArgs, module, rhs, attributes) {
+  public TypeSynonymDecl(IOrigin rangeOrigin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
+    : base(rangeOrigin, name, characteristics, typeArgs, module, rhs, attributes) {
     this.NewSelfSynonym();
   }
   public TopLevelDecl AsTopLevelDecl => this;
@@ -20,8 +20,8 @@ public class TypeSynonymDecl : TypeSynonymDeclBase, RevealableTypeDecl {
 
 public class InternalTypeSynonymDecl : TypeSynonymDeclBase {
   public override string WhatKind { get { return "export-provided type"; } }
-  public InternalTypeSynonymDecl(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(rangeToken, name, characteristics, typeArgs, module, rhs, attributes) {
+  public InternalTypeSynonymDecl(IOrigin rangeOrigin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
+    : base(rangeOrigin, name, characteristics, typeArgs, module, rhs, attributes) {
   }
 
   public override SymbolKind? Kind => SymbolKind.Class;

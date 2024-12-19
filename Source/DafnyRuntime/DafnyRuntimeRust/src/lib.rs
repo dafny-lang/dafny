@@ -200,7 +200,7 @@ pub mod dafny_runtime_conversions {
         DafnyMap::<K, V>::from_hashmap(map, converter_k, converter_v)
     }
 
-    // --unicode-chars:true
+    // --unicode-char:true
     pub mod unicode_chars_true {
         use crate::Sequence;
 
@@ -216,7 +216,7 @@ pub mod dafny_runtime_conversions {
         }
     }
 
-    // --unicode-chars:false
+    // --unicode-char:false
     pub mod unicode_chars_false {
         use crate::Sequence;
 
@@ -3893,6 +3893,17 @@ pub fn upcast<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Ptr<A>) -> Ptr<B>>
     Rc::new(|x: Ptr<A>| read!(x).upcast())
 }
 
+pub fn upcast_box<A, B: ?Sized>() -> Rc<impl Fn(A) -> Box<B>>
+  where A: UpcastBox<B>
+{
+    Rc::new(|x: A| UpcastBox::upcast(&x))
+}
+pub fn upcast_box_box<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Box<A>) -> Box<B>>
+  where Box<A>: UpcastBox<B>
+{
+    Rc::new(|x: Box<A>| UpcastBox::upcast(&x))
+}
+
 pub fn upcast_id<A>() -> Rc<impl Fn(A) -> A>
 {
     Rc::new(|x: A| x)
@@ -3923,7 +3934,6 @@ pub trait Upcast<T: ?Sized> {
 pub trait UpcastObject<T: ?Sized> {
     fn upcast(&self) -> Object<T>;
 }
-
 impl <T: ?Sized> Upcast<T> for T {
     fn upcast(&self) -> Ptr<T> {
         Ptr::from_raw_nonnull(self as *const T as *mut T)
@@ -3934,6 +3944,12 @@ impl <T: ?Sized> UpcastObject<T> for T {
         Object::from_ref(self)
     }
 }
+
+// For general traits
+pub trait UpcastBox<T: ?Sized> {
+    fn upcast(&self) -> Box<T>;
+}
+
 
 #[macro_export]
 macro_rules! Extends {
@@ -3959,8 +3975,6 @@ macro_rules! UpcastObjectFn {
         }
     };
 }
-
-
 
 // It works only when there is no type parameters for $A...
 #[macro_export]

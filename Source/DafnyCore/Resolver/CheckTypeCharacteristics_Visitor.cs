@@ -277,7 +277,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     return true;
   }
 
-  public void VisitType(IToken tok, Type type, bool inGhostContext) {
+  public void VisitType(IOrigin tok, Type type, bool inGhostContext) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);
     type = type.Normalize();  // we only do a .Normalize() here, because we want to stop at any type synonym or subset type
@@ -324,7 +324,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     }
   }
 
-  void CheckTypeInstantiation(IToken tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs, bool inGhostContext) {
+  void CheckTypeInstantiation(IOrigin tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs, bool inGhostContext) {
     Contract.Requires(tok != null);
     Contract.Requires(what != null);
     Contract.Requires(className != null);
@@ -399,12 +399,39 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     return true;
   }
 
-  static string TypeEqualityErrorMessageHint(Type argType) {
+  public static string TypeEqualityErrorMessageHint(Type argType) {
     Contract.Requires(argType != null);
-    var cl = (argType.Normalize() as UserDefinedType)?.ResolvedClass;
+    argType = argType.Normalize();
+    var cl = (argType as UserDefinedType)?.ResolvedClass;
     var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as AbstractTypeDecl;
     if (tp != null) {
       return string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.tok.line, tp.WhatKind);
+    }
+
+    var typeArgs = argType.TypeArgs;
+
+    if (argType.AsSeqType != null && typeArgs.Count >= 1) {
+      if (TypeEqualityErrorMessageHint(typeArgs[0]) is var messageSeq and not "") {
+        return messageSeq;
+      }
+    }
+    if (argType.AsMapType != null &&
+        typeArgs.Count >= 2 &&
+        TypeEqualityErrorMessageHint(typeArgs[1]) is var messageMap and not "") {
+      return messageMap;
+    }
+    if (argType.AsIndDatatype is { EqualitySupport: IndDatatypeDecl.ES.ConsultTypeArguments } decl) {
+      var i = 0;
+      foreach (var tParam in decl.TypeArgs) {
+        if (tParam.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && i < typeArgs.Count && !typeArgs[i].SupportsEquality && TypeEqualityErrorMessageHint(typeArgs[i]) is var message and not "") {
+          return message;
+        }
+        i++;
+      }
+    }
+
+    if (argType.AsNewtype is { } newTypeDecl) {
+      return TypeEqualityErrorMessageHint(newTypeDecl.RhsWithArgument(argType.TypeArgs));
     }
     return "";
   }

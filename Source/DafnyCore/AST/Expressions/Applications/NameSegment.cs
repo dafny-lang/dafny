@@ -6,8 +6,9 @@ namespace Microsoft.Dafny;
 
 public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, ICanFormat {
   public readonly string Name;
+  public Name NameNode => new Name(Origin, Name);
   public readonly List<Type> OptTypeArguments;
-  public NameSegment(IToken tok, string name, List<Type> optTypeArguments)
+  public NameSegment(IOrigin tok, string name, List<Type> optTypeArguments)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);

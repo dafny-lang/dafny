@@ -21,17 +21,17 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
     UsesOptionalBraces = original.UsesOptionalBraces;
   }
 
-  public AlternativeStmt(RangeToken rangeToken, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
-    : base(rangeToken) {
+  public AlternativeStmt(IOrigin rangeOrigin, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
+    : base(rangeOrigin) {
     Contract.Requires(alternatives != null);
-    this.Alternatives = alternatives;
-    this.UsesOptionalBraces = usesOptionalBraces;
+    Alternatives = alternatives;
+    UsesOptionalBraces = usesOptionalBraces;
   }
-  public AlternativeStmt(RangeToken rangeToken, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(rangeToken, attrs) {
+  public AlternativeStmt(IOrigin rangeOrigin, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
+    : base(rangeOrigin, attrs) {
     Contract.Requires(alternatives != null);
-    this.Alternatives = alternatives;
-    this.UsesOptionalBraces = usesOptionalBraces;
+    Alternatives = alternatives;
+    UsesOptionalBraces = usesOptionalBraces;
   }
   public override IEnumerable<Statement> SubStatements {
     get {
@@ -100,6 +100,27 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
     }
     if (loopToCatchBreaks != null) {
       resolver.LoopStack.RemoveAt(resolver.LoopStack.Count - 1);  // pop
+    }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable || Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
+    if (!mustBeErasable && IsGhost) {
+      resolver.Reporter.Info(MessageSource.Resolver, Tok, "ghost if");
+    }
+
+    Alternatives.ForEach(alt => alt.Body.ForEach(ss =>
+      ss.ResolveGhostness(resolver, reporter, IsGhost, codeContext, proofContext,
+        allowAssumptionVariables, inConstructorInitializationPhase)));
+    IsGhost = IsGhost || Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
+    if (!IsGhost) {
+      // If there were features in the guards that are treated differently in ghost and non-ghost
+      // contexts, make sure they get treated for non-ghost use.
+      foreach (var alt in Alternatives) {
+        ExpressionTester.CheckIsCompilable(resolver, reporter, alt.Guard, codeContext);
+      }
     }
   }
 }

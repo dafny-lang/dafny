@@ -1,6 +1,6 @@
 module {:extract_boogie} Sequences {
   export
-    provides Lists, Boxes
+    provides Boxes
     provides Seq, Length, AboutLength
     provides Empty, LengthEmpty0, LengthEmpty1
     provides Index, Append, IndexAppend
@@ -14,6 +14,10 @@ module {:extract_boogie} Sequences {
     provides TakeContains, DropContains, AppendTakeDrop
     provides DropNothing, TakeNothing, DropDrop
     provides TakeUpdate0, TakeUpdate1, DropUpdate0, DropUpdate1, DropBuild
+  // For friends, we also export the fact that a sequence is represented as a list.
+  export Friends extends Sequences
+    reveals Seq, Empty, Length, Index, Append, Build, Update
+    provides Lists, TailContains
 
   import opened Lists
   import opened Boxes
@@ -301,13 +305,37 @@ module {:extract_boogie} Sequences {
     exists i :: 0 <= i < Length(s) && Index(s, i) == val
   }
 
+  lemma TailContains(s: Seq, val: Box)
+    requires s.Cons?
+    ensures Contains(s, val) <==> s.head == val || Contains(s.tail, val)
+  {
+    if Contains(s, val) {
+      var i :| 0 <= i < Length(s) && Index(s, i) == val;
+      if i != 0 {
+        var j := i - 1;
+        assert Index(s, i) == Index(s.tail, j);
+        assert 0 <= j < Length(s.tail) && Index(s.tail, j) == val;
+      }
+    }
+
+    if !Contains(s, val) {
+      assert forall i :: 0 <= i < Length(s) ==> Index(s, i) != val;
+      assert s.head == Index(s, 0) != val;
+      forall j | 0 <= j < Length(s.tail)
+        ensures Index(s.tail, j) != val
+      {
+        assert Index(s.tail, j) == Index(s, j + 1);
+      }
+    }
+  }
+
   // boogie:
   // axiom (forall s: Seq, x: Box :: { Seq#Contains(s,x) }
   //   Seq#Contains(s,x) <==>
   //     (exists i: int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && Seq#Index(s,i) == x));
   lemma {:extract_pattern Contains(s, x)} SeqContainsItsElements(s: Seq, x: Box)
     ensures Contains(s, x) <==>
-            exists i: int {:extract_pattern Index(s, i)} :: 0 <= i < Length(s) && Index(s, i) == x
+            exists i {:extract_pattern Index(s, i)} :: 0 <= i < Length(s) && Index(s, i) == x
   {
   }
 
@@ -408,7 +436,7 @@ module {:extract_boogie} Sequences {
   //       0 <= i && i < n && i < Seq#Length(s) && Seq#Index(s, i) == x));
   lemma {:extract_pattern Contains(Take(s, n), x)} TakeContains(s: Seq, n: int, x: Box)
     ensures Contains(Take(s, n), x) <==>
-            exists i: int {:extract_pattern Index(s, i)} :: 0 <= i < n && i < Length(s) && Index(s, i) == x
+            exists i {:extract_pattern Index(s, i)} :: 0 <= i < n && i < Length(s) && Index(s, i) == x
   {
     if
     case n < 0 =>
@@ -460,7 +488,7 @@ module {:extract_boogie} Sequences {
   //       0 <= n && n <= i && i < Seq#Length(s) && Seq#Index(s, i) == x));
   lemma {:extract_pattern Contains(Drop(s, n), x)} DropContains(s: Seq, n: int, x: Box)
     ensures Contains(Drop(s, n), x) <==>
-            exists i: int {:extract_pattern Index(s, i)} :: 0 <= n <= i < Length(s) && Index(s, i) == x
+            exists i {:extract_pattern Index(s, i)} :: 0 <= n <= i < Length(s) && Index(s, i) == x
   {
     if 0 <= n <= s.Length() {
       var (prefix, suffix) := s.Split(n);
@@ -527,7 +555,7 @@ module {:extract_boogie} Sequences {
   lemma {:extract_pattern Equal(s0, s1)} AboutEqual(s0: Seq, s1: Seq)
     ensures Equal(s0, s1) <==>
             && Length(s0) == Length(s1)
-            && forall j: int {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} ::
+            && forall j {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} ::
                  0 <= j < Length(s0) ==> Index(s0, j) == Index(s1, j)
   {
     if Length(s0) == Length(s1) && forall j :: 0 <= j < Length(s0) ==> Index(s0, j) == Index(s1, j) {
@@ -574,7 +602,7 @@ module {:extract_boogie} Sequences {
   //         0 <= j && j < n ==> Seq#Index(s0,j) == Seq#Index(s1,j)));
   lemma {:extract_pattern SameUntil(s0, s1, n)} AboutSameUntil(s0: Seq, s1: Seq, n: int)
     ensures SameUntil(s0, s1, n) <==>
-            forall j: int {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} ::
+            forall j {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} ::
               0 <= j < n ==> Index(s0, j) == Index(s1, j)
   {
   }
@@ -607,7 +635,7 @@ module {:extract_boogie} Sequences {
   //   0 <= j && j < n && j < Seq#Length(s) ==>
   //     Seq#Index(Seq#Take(s,n), j) == Seq#Index(s, j));
   lemma {:extract_attribute "weight", 25} {:extract_pattern Index(Take(s, n), j)} {:extract_pattern Index(s, j), Take(s, n)}
-  IndexTake(s: Seq, n: int, j: int)
+    IndexTake(s: Seq, n: int, j: int)
     requires 0 <= j < n && j < Length(s)
     ensures Index(Take(s, n), j) == Index(s, j)
   {

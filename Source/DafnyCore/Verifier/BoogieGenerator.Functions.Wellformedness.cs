@@ -49,7 +49,7 @@ public partial class BoogieGenerator {
         bool splitHappened /*we actually don't care*/ = generator.TrSplitExpr(context, ensures.E, splits, true, functionHeight, true, etran);
         var (errorMessage, successMessage) = generator.CustomErrorMessage(ensures.Attributes);
         foreach (var s in splits) {
-          if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, generator.currentModule)) {
+          if (s.IsChecked && !s.Tok.IsInherited(generator.currentModule)) {
             generator.AddEnsures(ens, generator.EnsuresWithDependencies(s.Tok, false, ensures.E, s.E, errorMessage, successMessage, null));
           }
         }
@@ -313,6 +313,11 @@ public partial class BoogieGenerator {
       var wh = generator.GetWhereClause(f.tok, funcAppl, f.ResultType, etran, NOALLOC);
       if (wh != null) {
         postCheckBuilder.Add(TrAssumeCmd(f.tok, wh));
+        if (f.Result != null) {
+          var resultVarId = new Bpl.IdentifierExpr(f.Result.tok, f.Result.AssignUniqueName(f.IdGenerator), generator.TrType(f.Result.Type));
+          wh = generator.GetWhereClause(f.Result.tok, resultVarId, f.Result.Type, etran, NOALLOC);
+          postCheckBuilder.Add(TrAssumeCmd(f.Result.tok, wh));
+        }
       }
       // Now for the ensures clauses
       foreach (AttributedExpression p in f.Ens) {
@@ -356,10 +361,8 @@ public partial class BoogieGenerator {
         Formal p = f.Result;
         Contract.Assert(!p.IsOld);
         Bpl.Type varType = generator.TrType(p.Type);
-        Expr wh = generator.GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType),
-          p.Type, etran, NOALLOC);
-        outParams.Add(new Bpl.Formal(p.tok, new TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh),
-          true));
+        // Note, this variable should NOT have a "where" clause, because it gets assumed already at the beginning of the CheckWellformed procedure
+        outParams.Add(new Bpl.Formal(p.tok, new TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType), true));
       }
 
       return outParams;

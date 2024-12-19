@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         this.cancellationToken = cancellationToken;
       }
 
-      public override void VisitUnknown(object node, IToken token) {
+      public override void VisitUnknown(object node, IOrigin token) {
         logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
@@ -241,7 +241,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           // abstract syntax tree). We just ignore such duplicates until more information is availabe in the AST.
           var range = token.GetLspRange();
 
-          var dafnyToken = (IToken)token;
+          var dafnyToken = (IOrigin)token;
           var symbolLookupForUri =
             SymbolLookup.GetValueOrDefault(dafnyToken.Uri) ?? new IntervalTree<Position, ILocalizableSymbol>();
           SymbolLookup = SymbolLookup.SetItem(dafnyToken.Uri, symbolLookupForUri);
@@ -312,7 +312,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           moduleSymbol,
           moduleSymbol.Declaration.tok,
           moduleSymbol.Declaration.tok.GetLspRange(),
-          moduleSymbol.Declaration.RangeToken.ToLspRange()
+          moduleSymbol.Declaration.Origin.ToLspRange()
         );
         VisitChildren(moduleSymbol);
         return Unit.Value;
@@ -332,7 +332,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           typeSymbol,
           typeSymbol.Declaration.tok,
           typeSymbol.Declaration.tok.GetLspRange(),
-          new Range(typeSymbol.Declaration.RangeToken.StartToken.GetLspPosition(), typeSymbol.Declaration.RangeToken.EndToken.GetLspPosition())
+          new Range(typeSymbol.Declaration.Origin.StartToken.GetLspPosition(), typeSymbol.Declaration.Origin.EndToken.GetLspPosition())
         );
         VisitChildren(typeSymbol);
         return Unit.Value;
@@ -344,7 +344,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           valueTypeSymbol,
           valueTypeSymbol.Declaration.tok,
           valueTypeSymbol.Declaration.tok.GetLspRange(),
-          new Range(valueTypeSymbol.Declaration.RangeToken.StartToken.GetLspPosition(), valueTypeSymbol.Declaration.RangeToken.EndToken.GetLspPosition())
+          new Range(valueTypeSymbol.Declaration.Origin.StartToken.GetLspPosition(), valueTypeSymbol.Declaration.Origin.EndToken.GetLspPosition())
         );
         VisitChildren(valueTypeSymbol);
         return Unit.Value;
@@ -388,9 +388,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private static Range GetDeclarationRange(Declaration declaration) {
-        return declaration.RangeToken == RangeToken.NoToken
+        return declaration.Origin == RangeToken.NoToken
           ? declaration.tok.GetLspRange()
-          : new Range(declaration.RangeToken.StartToken.GetLspPosition(), declaration.RangeToken.EndToken.GetLspPosition());
+          : new Range(declaration.Origin.StartToken.GetLspPosition(), declaration.Origin.EndToken.GetLspPosition());
       }
 
       public Unit Visit(VariableSymbol variableSymbol) {
@@ -424,7 +424,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private void RegisterLocation(ILegacySymbol symbol, IToken token, Range name, Range declaration) {
+      private void RegisterLocation(ILegacySymbol symbol, IOrigin token, Range name, Range declaration) {
         if (token.Filepath != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           var locationsForUri =

@@ -223,7 +223,8 @@ module MiscLemma {
     var buffer = new TextBuffer("");
     foreach (var midPart in sourceParts) {
       for (var midIndex = 0; midIndex < midPart.Length; midIndex += stepSize) {
-        var part = midPart.Substring(midIndex, Math.Min(midPart.Length, midIndex + stepSize) - midIndex);
+        var length = Math.Min(midPart.Length, midIndex + stepSize) - midIndex;
+        var part = midPart.Substring(midIndex, length);
         var cursorIndex = index + part.Length;
 
         var position = buffer.FromIndex(index);
@@ -234,8 +235,9 @@ module MiscLemma {
         ApplyChange(ref document, new Range(position, position), part);
 
         await WaitUntilResolutionFinished(document);
-        var completionItems = await RequestCompletionAsync(document, new Position(0, midIndex + stepSize));
-        var hover = await RequestHover(document, new Position(0, midIndex + stepSize));
+        var position2 = buffer.FromIndex(midIndex + length);
+        var completionItems = await RequestCompletionAsync(document, position2);
+        var hover = await RequestHover(document, position2);
         index = cursorIndex;
       }
     }

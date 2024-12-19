@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 public class TypeParameter : TopLevelDecl {
   public interface ParentType {
     string FullName { get; }
-    IToken Tok { get; }
+    IOrigin Tok { get; }
   }
 
   public override string WhatKind => "type parameter";
@@ -186,23 +186,23 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  public TypeParameter(RangeToken rangeToken, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
+  public TypeParameter(IOrigin rangeOrigin, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
-    : base(rangeToken, name, null, new List<TypeParameter>(), null, false) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, null, new List<TypeParameter>(), null, false) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Characteristics = characteristics;
     VarianceSyntax = varianceS;
     TypeBounds = typeBounds;
   }
 
-  public TypeParameter(RangeToken rangeToken, Name name, TPVarianceSyntax varianceS)
-    : this(rangeToken, name, varianceS, new TypeParameterCharacteristics(false), new List<Type>()) {
-    Contract.Requires(rangeToken != null);
+  public TypeParameter(IOrigin rangeOrigin, Name name, TPVarianceSyntax varianceS)
+    : this(rangeOrigin, name, varianceS, new TypeParameterCharacteristics(false), new List<Type>()) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
   }
 
-  public TypeParameter(RangeToken tok, Name name, int positionalIndex, ParentType parent)
+  public TypeParameter(IOrigin tok, Name name, int positionalIndex, ParentType parent)
     : this(tok, name, TPVarianceSyntax.NonVariant_Strict) {
     PositionalIndex = positionalIndex;
     Parent = parent;
@@ -215,7 +215,7 @@ public class TypeParameter : TopLevelDecl {
     var cloner = new Cloner();
     return typeParameters.ConvertAll(tp => {
       var typeBounds = tp.TypeBounds.ConvertAll(cloner.CloneType);
-      return new TypeParameter(tp.RangeToken, tp.NameNode, tp.VarianceSyntax, tp.Characteristics, typeBounds);
+      return new TypeParameter(tp.Origin, tp.NameNode, tp.VarianceSyntax, tp.Characteristics, typeBounds);
     });
   }
 

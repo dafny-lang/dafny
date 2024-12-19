@@ -96,6 +96,7 @@ public class ParseErrors {
     p_no_decreases_expressions_with_star,
     p_assert_needs_by_or_semicolon,
     p_deprecated_forall_with_no_bound_variables,
+    p_deprecated_forall_statement_with_parentheses_around_bound_variables,
     p_forall_with_ensures_must_have_body,
     p_deprecated_modify_statement_with_block,
     p_calc_operator_must_be_transitive,
@@ -142,6 +143,7 @@ public class ParseErrors {
     p_general_traits_full,
     p_decreases_without_to,
     p_binding_in_decreases_to,
+    p_ghost_in_decreases_to,
   }
 
   static ParseErrors() {
@@ -455,7 +457,7 @@ The currently defined type characteristics are designated by `==` (equality - su
 ".TrimStart(), range =>
     range.Prev.val == "," ?
       new List<DafnyAction> {
-      OneAction("remove comma", range.Prev.ToRange(), ""),
+      OneAction("remove comma", range.Prev, ""),
       OneAction("insert '=='", range, "==" + range.PrintOriginal()),
       OneAction("insert '0'", range, "0" + range.PrintOriginal()),
       OneAction("insert '00'", range, "00" + range.PrintOriginal()),

@@ -30,7 +30,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public override IEnumerable<INode> PreResolveChildren => Children;
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
-  public readonly IToken SignatureEllipsis;
+  public readonly IOrigin SignatureEllipsis;
   public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
@@ -131,7 +131,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.IsByMethod = original.IsByMethod;
   }
 
-  public Method(RangeToken rangeToken, Name name,
+  public Method(IOrigin rangeOrigin, Name name,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -141,11 +141,11 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
-    Attributes attributes, IToken signatureEllipsis,
+    Attributes attributes, IOrigin signatureEllipsis,
     bool isByMethod = false)
-    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
+    : base(rangeOrigin, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
       typeArgs, ins, req, ens, decreases) {
-    Contract.Requires(rangeToken != null);
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
@@ -222,6 +222,8 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     if (BodyStartTok.line > 0) {
       formatter.SetDelimiterIndentedRegions(BodyStartTok, indentBefore);
     }
+
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
 
     formatter.SetFormalsIndentation(Ins);
     formatter.SetFormalsIndentation(Outs);
@@ -384,18 +386,36 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   public string GetTriviaContainingDocstring() {
-    IToken lastClosingParenthesis = null;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
+
+    IOrigin lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
         lastClosingParenthesis = token;
       }
     }
 
-    if (lastClosingParenthesis != null && lastClosingParenthesis.TrailingTrivia.Trim() != "") {
-      return lastClosingParenthesis.TrailingTrivia;
+    var tentativeTrivia = "";
+    if (lastClosingParenthesis != null) {
+      if (lastClosingParenthesis.pos < EndToken.pos) {
+        tentativeTrivia = (lastClosingParenthesis.TrailingTrivia + lastClosingParenthesis.Next.LeadingTrivia).Trim();
+      } else {
+        tentativeTrivia = lastClosingParenthesis.TrailingTrivia.Trim();
+      }
+
+      if (tentativeTrivia != "") {
+        return tentativeTrivia;
+      }
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
+    }
+
+    return null;
   }
 
   public override SymbolKind? Kind => SymbolKind.Method;

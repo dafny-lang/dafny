@@ -409,7 +409,7 @@ namespace DafnyServer {
         set { SymbolType = (Type)Enum.Parse(typeof(Type), value, true); }
       }
 
-      public IToken StartToken {
+      public IOrigin StartToken {
         set {
           Line = value.line;
           Position = value.pos;
@@ -417,7 +417,7 @@ namespace DafnyServer {
         }
       }
 
-      public IToken EndToken {
+      public IOrigin EndToken {
         set {
           EndLine = value.line;
           EndPosition = value.pos;
@@ -454,7 +454,7 @@ namespace DafnyServer {
       [DataMember(Name = "ReferencedName")]
       public string ReferencedName { get; set; }
 
-      public IToken StartToken {
+      public IOrigin StartToken {
         set {
           Line = value.line;
           Position = value.pos;

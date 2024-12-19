@@ -82,7 +82,7 @@ namespace ExpressionOptimization {
                   return _3_e;
                 } else {
                   RAST._IType _12_tpe = (_11_tpeExpr).dtor_tpe;
-                  if ((((((((((((_12_tpe).is_U8) || ((_12_tpe).is_U16)) || ((_12_tpe).is_U32)) || ((_12_tpe).is_U64)) || ((_12_tpe).is_U128)) || ((_12_tpe).is_I8)) || ((_12_tpe).is_I16)) || ((_12_tpe).is_I32)) || ((_12_tpe).is_I64)) || ((_12_tpe).is_I128)) || ((_12_tpe).is_USIZE)) {
+                  if ((_12_tpe).IsAutoSize()) {
                     RAST._IExpr _source2 = _10_expr;
                     {
                       if (_source2.is_Call) {

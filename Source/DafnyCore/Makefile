@@ -30,5 +30,7 @@ check-format:
 	$(DAFNY) format . --check
 
 extract:
-	(cd Prelude; make; cd ..)
-	cp Prelude/DafnyPrelude.bpl .
+	(cd Prelude; make update; cd ..)
+
+check-extract:
+	(cd Prelude; make check; cd ..)
