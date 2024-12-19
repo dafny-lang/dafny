@@ -4210,8 +4210,8 @@ namespace DCOMP {
         _1_toTpeGen = (_1_toTpeGen).ObjectOrPointerUnderlying();
         if (object.Equals(resultingOwnership, Defs.Ownership.create_OwnershipBorrowed())) {
           r = (this).BorrowedToOwned(r, env);
+          resultingOwnership = Defs.Ownership.create_OwnershipOwned();
         }
-        resultingOwnership = Defs.Ownership.create_OwnershipOwned();
         r = (((RAST.__default.dafny__runtime).MSel((this).downcast)).AsExpr()).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(r, RAST.Expr.create_ExprFromType(_1_toTpeGen)));
         RAST._IExpr _out4;
         Defs._IOwnership _out5;
