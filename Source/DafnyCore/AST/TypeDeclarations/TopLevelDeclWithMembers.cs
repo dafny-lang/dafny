@@ -182,7 +182,17 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
-    return Members.SelectMany(m => m.Assumptions(this));
+    foreach (var a in base.Assumptions(this)) {
+      yield return a;
+    }
+
+    foreach (var a in Members.SelectMany(m => m.Assumptions(this))) {
+      yield return a;
+    }
+
+    if (Attributes.Contains(Attributes, "AssumeCrossModuleTermination")) {
+      yield return new Assumption(this, tok, AssumptionDescription.HasAssumeCrossModuleTerminationAttribute);
+    }
   }
 
   public void RegisterMembers(ModuleResolver resolver, Dictionary<string, MemberDecl> members) {

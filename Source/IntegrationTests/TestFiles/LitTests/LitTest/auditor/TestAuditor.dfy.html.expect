@@ -33,6 +33,8 @@
 <script src="https://unpkg.com/sorttable@1.0.2/sorttable.js" crossorigin></script>
 <table>
 <tr><th>Name</th><th>Compiled</th><th>Explicit Assumption</th><th>Extern</th><th>Issue</th><th>Mitigation</th></tr>
+<tr><td>B.ClassExtendingTraitFromOtherModule</td><td>True</td><td>False</td><td>False</td><td>Trait method calls may not terminate (uses <code>@AssumeCrossModuleTermination</code>).</td><td>Remove if possible.</td></tr>
+<tr><td>B.TraitExtendingTraitFromOtherModule</td><td>True</td><td>False</td><td>False</td><td>Trait method calls may not terminate (uses <code>@AssumeCrossModuleTermination</code>).</td><td>Remove if possible.</td></tr>
 <tr><td>MinusBv8NoBody</td><td>False</td><td>False</td><td>False</td><td>Ghost declaration has no body and has an ensures clause.</td><td>Provide a body or add <code>{:axiom}</code>.</td></tr>
 <tr><td>LeftShiftBV128</td><td>False</td><td>True</td><td>False</td><td>Declaration has explicit <code>{:axiom}</code> attribute.</td><td>Provide a proof or test.</td></tr>
 <tr><td>MinusBv8Assume</td><td>False</td><td>False</td><td>False</td><td>Definition has <code>assume</code> statement in body.</td><td>Replace with <code>assert</code> and prove or add <code>{:axiom}</code>.</td></tr>
