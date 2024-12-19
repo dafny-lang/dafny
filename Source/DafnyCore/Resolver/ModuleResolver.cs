@@ -2100,7 +2100,10 @@ namespace Microsoft.Dafny {
           if (trait != null) {
             // disallowing inheritance in multi module case
             bool termination = true;
-            if (cl.EnclosingModuleDefinition == trait.EnclosingModuleDefinition || trait.IsObjectTrait || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
+            if (cl.EnclosingModuleDefinition == trait.EnclosingModuleDefinition ||
+                trait.IsObjectTrait ||
+                (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination) ||
+                Attributes.Contains(cl.Attributes, "AssumeCrossModuleTermination")) {
               // all is good (or the user takes responsibility for the lack of termination checking)
               if (!cl.ParentTraitHeads.Contains(trait)) {
                 cl.ParentTraitHeads.Add(trait);
@@ -2109,7 +2112,7 @@ namespace Microsoft.Dafny {
             } else {
               reporter.Error(MessageSource.Resolver, parentTypeToken,
                 $"{cl.WhatKind} '{cl.Name}' is in a different module than trait '{trait.FullName}'. A {cl.WhatKind} may only extend a trait " +
-                "in the same module, unless the parent trait is annotated with {:termination false}.");
+                $"in the same module, unless the parent trait is annotated with {{:termination false}} or the {cl.WhatKind} with @AssumeCrossModuleTermination.");
             }
           } else {
             reporter.Error(MessageSource.Resolver, parentTypeToken, $"a {cl.WhatKind} can only extend traits (found '{parentTrait}')");
