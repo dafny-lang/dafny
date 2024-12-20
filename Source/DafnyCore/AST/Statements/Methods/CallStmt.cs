@@ -100,7 +100,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, Token overrideToken = null)
     : base(
       /* it would be better if the correct rangeOrigin was passed in,
-       then the parameter overrideToken would become obsolete */ 
+       then the parameter overrideToken would become obsolete */
       new OverrideCenter(rangeOrigin, overrideToken ?? memSel.EndToken.Next)) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhs));
