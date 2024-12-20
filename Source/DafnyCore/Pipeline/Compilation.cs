@@ -412,15 +412,16 @@ public class Compilation : IDisposable {
       var currentTask = sortedTasks[i];
       var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token);
       bool overlapsWithGroup = currentGroupRange.Intersects(currentTaskRange);
-      if (currentTaskRange.EndToken.pos > currentGroupRange.EndToken.pos) {
-        currentGroupRange = new SourceOrigin(currentTaskRange.StartToken, currentTaskRange.EndToken);
-      }
 
       if (overlapsWithGroup) {
+        if (currentTaskRange.EndToken.pos > currentGroupRange.EndToken.pos) {
+          currentGroupRange = new SourceOrigin(currentGroupRange.StartToken, currentTaskRange.EndToken, currentGroupRange.Center);
+        }
         currentGroup.Add(currentTask);
       } else {
         groups.Add((currentGroupRange, currentGroup));
         currentGroup = new List<IVerificationTask> { currentTask };
+        currentGroupRange = currentTaskRange;
       }
     }
 
