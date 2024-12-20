@@ -1,4 +1,4 @@
-git-issue-4055.dfy(12,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-4055.dfy(12,11): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
 git-issue-4055.dfy(7,9): Error: assertion might not hold
 git-issue-4055.dfy(18,9): Error: assertion might not hold
 
