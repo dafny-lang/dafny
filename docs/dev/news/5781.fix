@@ -1,2 +1,0 @@
-Fixed a bug that caused "hide *" and "reveal *" not to work when used in statement expressions, 
-after a variable assignment occurred in the same expression.
