@@ -507,7 +507,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       return tentativeTrivia;
     }
 
-    // TODO this seems hard to maintain. What's the right way to do this?
+    // Comments after the type, but before the clauses
     tentativeTrivia = ResultType.EndToken.TrailingTrivia.Trim();
     if (tentativeTrivia != "") {
       return tentativeTrivia;
