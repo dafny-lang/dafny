@@ -5,7 +5,6 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-[DebuggerDisplay("Bound<{name}>")]
 public class BoundVar : NonglobalVariable {
   public override bool IsMutable => false;
 

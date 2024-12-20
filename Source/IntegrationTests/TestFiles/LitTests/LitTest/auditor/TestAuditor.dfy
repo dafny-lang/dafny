@@ -163,3 +163,16 @@ method {:extern} {:axiom} GenerateBytesWithAxiom(i: int32) returns (res: seq<uin
 
 function {:extern} {:axiom} ExternFunctionWithAxiom(i: int32): (res: int32)
   ensures res != i
+
+module A {
+  trait T {}
+}
+module B {
+  import opened A
+
+  @AssumeCrossModuleTermination
+  class ClassExtendingTraitFromOtherModule extends T {}
+
+  @AssumeCrossModuleTermination
+  trait TraitExtendingTraitFromOtherModule extends T {}
+}

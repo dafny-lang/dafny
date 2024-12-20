@@ -10,6 +10,8 @@ TestAuditor.dfy(143,2): Warning: this loop has no body (loop frame: i)
 TestAuditor.dfy(93,10): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 TestAuditor.dfy(95,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 TestAuditor.dfy(139,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TestAuditor.dfy(174,8): Warning: ClassExtendingTraitFromOtherModule: Trait method calls may not terminate (uses `@AssumeCrossModuleTermination`). Possible mitigation: Remove if possible.
+TestAuditor.dfy(177,8): Warning: TraitExtendingTraitFromOtherModule: Trait method calls may not terminate (uses `@AssumeCrossModuleTermination`). Possible mitigation: Remove if possible.
 TestAuditor.dfy(22,6): Warning: MinusBv8NoBody: Ghost declaration has no body and has an ensures clause. Possible mitigation: Provide a body or add `{:axiom}`.
 TestAuditor.dfy(27,15): Warning: LeftShiftBV128: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
 TestAuditor.dfy(38,2): Warning: MinusBv8Assume: Definition has `assume` statement in body. Possible mitigation: Replace with `assert` and prove or add `{:axiom}`.
@@ -32,6 +34,6 @@ TestAuditor.dfy(154,15): Warning: MethodOnly: Member has explicit temporary `{:o
 TestAuditor.dfy(160,26): Warning: GenerateBytesWithAxiom: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
 TestAuditor.dfy(164,28): Warning: ExternFunctionWithAxiom: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
 TestAuditor.dfy(89,27): Warning: T: Trait method calls may not terminate (uses `{:termination false}`). Possible mitigation: Remove if possible.
-Dafny auditor completed with 22 findings
+Dafny auditor completed with 24 findings
 
 Dafny program verifier did not attempt verification
