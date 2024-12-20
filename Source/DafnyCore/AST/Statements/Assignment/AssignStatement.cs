@@ -124,7 +124,8 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
       } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
         // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
         for (int i = 0; i < Lhss.Count; i++) {
-          var a = new SingleAssignStmt(new OverrideCenter(Origin, Rhss[i].Center), Lhss[i].Resolved, Rhss[i]);
+          var origin = Lhss.Count > 1 ? new OverrideCenter(Origin, Rhss[i].Center) : Origin;
+          var a = new SingleAssignStmt(origin, Lhss[i].Resolved, Rhss[i]);
           ResolvedStatements.Add(a);
         }
       }
