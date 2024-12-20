@@ -539,19 +539,19 @@ public class Compilation : IDisposable {
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, task.ScopeToken,
+    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, canVerify.NavigationToken,
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
-  public static void ReportDiagnosticsInResult(DafnyOptions options, string name, Boogie.IToken token,
+  public static void ReportDiagnosticsInResult(DafnyOptions options, string name, IOrigin token,
     uint timeLimit,
     VerificationRunResult result,
     ErrorReporter errorReporter) {
     var outcome = GetOutcome(result.Outcome);
     result.CounterExamples.Sort(new CounterexampleComparer());
-    foreach (var counterExample in result.CounterExamples) //.OrderBy(d => d.GetLocation()))
+    foreach (var counterExample in result.CounterExamples)
     {
       var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
       if (options.ShowProofObligationExpressions) {
