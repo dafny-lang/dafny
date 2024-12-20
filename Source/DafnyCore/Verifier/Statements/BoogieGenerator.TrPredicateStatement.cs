@@ -145,23 +145,26 @@ namespace Microsoft.Dafny {
 
     private bool TrAssertCondition(PredicateStmt stmt,
       ExpressionTranslator etran, BoogieStmtListBuilder proofBuilder) {
-      IOrigin enclosingToken = null;
-      if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
-        enclosingToken = stmt.Tok;
-      }
 
       var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
       var splits = TrSplitExpr(proofBuilder.Context, stmt.Expr, etran, true, out var splitHappened);
       if (!splitHappened) {
-        var innerToken = new OverrideCenter(stmt.Origin, GetToken(stmt.Expr).Center);
-        var tok = enclosingToken == null ? (IOrigin)innerToken : new NestedOrigin(enclosingToken, innerToken);
+        IOrigin origin;
+        if (stmt.Origin is NestedOrigin) {
+          // For assert ... statements, we don't want to use the override center
+          // This logic won't be needed anymore once we stop using OverrideCenter.
+          origin = stmt.Origin;
+        } else {
+          origin = new OverrideCenter(stmt.Origin, GetToken(stmt.Expr).Center);
+        }
+
         var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
-        proofBuilder.Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok, proofBuilder.Context,
+        proofBuilder.Add(Assert(origin, etran.TrExpr(stmt.Expr), desc, stmt.Tok, proofBuilder.Context,
           etran.TrAttributes(stmt.Attributes, null)));
       } else {
         foreach (var split in splits) {
           if (split.IsChecked) {
-            var tok = enclosingToken == null ? split.E.tok : new NestedOrigin(enclosingToken, split.Tok);
+            var tok = split.E.tok;
             var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
             proofBuilder.Add(AssertAndForget(proofBuilder.Context, ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
               etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
