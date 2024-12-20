@@ -612,7 +612,7 @@ public class Attributes : TokenNode, ICanFormat {
     UserSuppliedAtAttribute attrs, ActualBindings bindings, ModuleResolver resolver) {
     var resolutionContext = new ResolutionContext(new NoContext(program.DefaultModuleDef), false); ;
     var typeMap = new Dictionary<TypeParameter, Type>();
-    resolver.ResolveActualParameters(bindings, formals.ToList(), attrs.tok,
+    resolver.ResolveActualParameters(bindings, formals.ToList(), attrs.Tok,
       attrs, resolutionContext, typeMap, null);
     resolver.FillInDefaultValueExpressions();
     resolver.SolveAllTypeConstraints();

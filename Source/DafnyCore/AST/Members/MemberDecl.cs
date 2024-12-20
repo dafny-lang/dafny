@@ -122,7 +122,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
       yield return a;
     }
     if (this.HasUserAttribute("only", out _)) {
-      yield return new Assumption(decl, tok, AssumptionDescription.MemberOnly);
+      yield return new Assumption(decl, Tok, AssumptionDescription.MemberOnly);
     }
   }
 
@@ -154,7 +154,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
       if (substMap.TryGetValue(inFormal, out inE)) {
         arguments.Add(inE);
       } else {
-        var ie = new IdentifierExpr(inFormal.tok, inFormal.Name);
+        var ie = new IdentifierExpr(inFormal.Tok, inFormal.Name);
         ie.Var = inFormal;  // resolve here
         ie.Type = inFormal.Type;  // resolve here
         arguments.Add(ie);

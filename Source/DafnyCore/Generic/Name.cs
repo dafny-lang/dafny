@@ -35,7 +35,7 @@ public class Name : RangeNode {
   public Name(IOrigin token) : this(token, token.val) {
   }
 
-  public Name(string value) : base(RangeToken.NoToken) {
+  public Name(string value) : base(SourceOrigin.NoToken) {
     this.Value = value;
   }
 

@@ -34,7 +34,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
   }
 
   private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
-    : base(RangeToken.NoToken, new Name(SystemModuleManager.TupleTypeName(argumentGhostness)), systemModule, typeArgs,
+    : base(SourceOrigin.NoToken, new Name(SystemModuleManager.TupleTypeName(argumentGhostness)), systemModule, typeArgs,
       CreateConstructors(typeArgs, argumentGhostness),
       new List<Type>(), new List<MemberDecl>(), attributes, false) {
     Contract.Requires(systemModule != null);
@@ -58,7 +58,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
     Contract.Requires(0 <= dims);
     var ts = new List<TypeParameter>();
     for (int i = 0; i < dims; i++) {
-      var tp = new TypeParameter(RangeToken.NoToken, new Name("T" + i), TypeParameter.TPVarianceSyntax.Covariant_Strict);
+      var tp = new TypeParameter(SourceOrigin.NoToken, new Name("T" + i), TypeParameter.TPVarianceSyntax.Covariant_Strict);
       tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
       ts.Add(tp);
     }
@@ -87,7 +87,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
       formals.Add(f);
     }
     string ctorName = SystemModuleManager.TupleTypeCtorName(typeArgs.Count);
-    var ctor = new DatatypeCtor(RangeToken.NoToken, new Name(ctorName), false, formals, null);
+    var ctor = new DatatypeCtor(SourceOrigin.NoToken, new Name(ctorName), false, formals, null);
     return new List<DatatypeCtor>() { ctor };
   }
 

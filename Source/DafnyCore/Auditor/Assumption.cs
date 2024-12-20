@@ -111,7 +111,7 @@ public record AssumptionDescription(
     IsExplicit: true
   );
 }
-public record Assumption(Declaration decl, IOrigin tok, AssumptionDescription desc) {
+public record Assumption(Declaration decl, IOrigin Tok, AssumptionDescription desc) {
   public string Warning() {
     var tickIssue = UpdateVerbatim(desc.Issue, "`", "`");
     var tickMitigation = UpdateVerbatim(desc.Mitigation, "`", "`");
