@@ -881,9 +881,9 @@ public abstract class Expression : TokenNode {
 
     QuantifierExpr q;
     if (forall) {
-      q = new ForallExpr(expr.tok, newVars, expr.Range, body, expr.Attributes);
+      q = new ForallExpr(expr.Origin, newVars, expr.Range, body, expr.Attributes);
     } else {
-      q = new ExistsExpr(expr.tok, newVars, expr.Range, body, expr.Attributes);
+      q = new ExistsExpr(expr.Origin, newVars, expr.Range, body, expr.Attributes);
     }
     q.Type = Type.Bool;
 
