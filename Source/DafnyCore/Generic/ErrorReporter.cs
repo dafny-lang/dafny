@@ -197,11 +197,6 @@ public abstract class ErrorReporter {
   }
 
   public string ErrorToString(ErrorLevel header, IOrigin tok, string msg) {
-    /*
-     * I would prefer to use tok.Center here,
-     * but RefinementOrigin overrides Filepath
-     * and doing tok.Center here loses that override
-     */
     return $"{tok.TokenToString(Options)}: {header.ToString()}: {msg}";
   }
 }

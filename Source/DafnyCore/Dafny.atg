@@ -374,7 +374,6 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
       ModuleName<out var name>
       "="
       QualifiedModuleExport<out var namePath, out idExports>
-          /* TODO should the center be the '=' ? */
           (. submodule = new AliasModuleDecl(theOptions, new SourceOrigin(startToken, t, name.Center), new ModuleQualifiedId(namePath),
                                                name, parent, opened, idExports, Guid.NewGuid()); .)
     |
@@ -2551,12 +2550,10 @@ VarDeclStatement<.out Statement/*!*/ s.>
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
          foreach (var lhs in lhss) {
-         // TODO replace lhs.Center with lhs.NameNode.Origin
            lhsExprs.Add(new IdentifierExpr(lhs.Center, lhs.Name));
          }
        } else { // not explicitly ghost, but with init - so auto-ghost
          foreach (var lhs in lhss) {
-         // TODO replace lhs.Center with lhs.NameNode.Origin
            lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Center, lhs.Name) );
          }
        }

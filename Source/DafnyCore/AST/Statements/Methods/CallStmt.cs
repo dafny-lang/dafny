@@ -4,6 +4,21 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// This class temporarily exists to retain old behavior
+/// When it comes to where errors are reported.
+///
+/// For function calls, the following location is used to report precondition failures:
+/// 
+/// someFunction(x, y);
+/// ^           ^
+/// old     future
+///
+/// For assertions, when the condition does not hold
+/// assert P(x)
+/// ^       ^
+/// future  old
+/// </summary>
 class OverrideCenter : OriginWrapper {
   public OverrideCenter(IOrigin wrappedToken, Token newCenter) : base(wrappedToken) {
     this.Center = newCenter;
@@ -75,7 +90,6 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
 
   public readonly List<Expression> Lhs;
   public readonly MemberSelectExpr MethodSelect;
-  private readonly IOrigin overrideToken;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   public Expression OriginalInitialLhs = null;
@@ -85,7 +99,9 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
 
   public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, Token overrideToken = null)
     : base(
-      /* TODO remove */ new OverrideCenter(rangeOrigin, overrideToken ?? memSel.EndToken.Next)) {
+      /* it would be better if the correct rangeOrigin was passed in,
+       then the parameter overrideToken would become obsolete */ 
+      new OverrideCenter(rangeOrigin, overrideToken ?? memSel.EndToken.Next)) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
@@ -94,7 +110,6 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
 
     this.Lhs = lhs;
     this.MethodSelect = memSel;
-    this.overrideToken = overrideToken;
 
     this.Bindings = new ActualBindings(args);
   }
@@ -107,7 +122,6 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     MethodSelect = (MemberSelectExpr)cloner.CloneExpr(original.MethodSelect);
     Lhs = original.Lhs.Select(cloner.CloneExpr).ToList();
     Bindings = new ActualBindings(cloner, original.Bindings);
-    overrideToken = original.overrideToken;
   }
 
   /// <summary>

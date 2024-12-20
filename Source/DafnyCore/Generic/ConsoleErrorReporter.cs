@@ -32,8 +32,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       Console.ForegroundColor = ColorForLevel(level);
     }
     var errorLine = ErrorToString(level, tok, msg);
-
-
+    
     if (Options.Verbose && !String.IsNullOrEmpty(errorId) && errorId != "none") {
       errorLine += " (ID: " + errorId + ")\n";
       var info = ErrorRegistry.GetDetail(errorId);
