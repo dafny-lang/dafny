@@ -607,8 +607,8 @@ namespace Microsoft.Dafny {
             while (unwrappedFunc is ConcreteSyntaxExpression { ResolvedExpression: not null } cse) {
               unwrappedFunc = cse.ResolvedExpression;
             }
-            if (unwrappedFunc is IdentifierExpr identifierExpr) {
-              unwrappedFunc = new IdentifierExpr(identifierExpr.Tok, identifierExpr.DafnyName);
+            if (unwrappedFunc is IdentifierExpr { Tok: var tok, DafnyName: var dafnyName }) {
+              unwrappedFunc = new IdentifierExpr(tok, dafnyName);
             }
 
             if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
@@ -1623,8 +1623,8 @@ namespace Microsoft.Dafny {
         while (unwrappedFunc is ConcreteSyntaxExpression { ResolvedExpression: not null } cse) {
           unwrappedFunc = cse.ResolvedExpression;
         }
-        if (unwrappedFunc is IdentifierExpr identifierExpr) {
-          unwrappedFunc = new IdentifierExpr(identifierExpr.Tok, identifierExpr.DafnyName);
+        if (unwrappedFunc is IdentifierExpr { Tok: var tok, DafnyName: var dafnyName }) {
+          unwrappedFunc = new IdentifierExpr(tok, dafnyName);
         }
         // check read effects
         Type objset = program.SystemModuleManager.ObjectSetType();
