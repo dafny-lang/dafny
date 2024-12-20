@@ -1,30 +1,38 @@
 #nullable enable
 using System;
+using System.Collections;
 using System.Text;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
 public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
-  public Uri Uri {
-    get => Center.Uri;
-    set => throw new InvalidOperationException();
-  }
+  public Uri Uri => Center.Uri;
 
   public Token StartToken { get; }
 
   public Token EndToken => endToken ?? StartToken;
 
-  public bool IsInherited(ModuleDefinition m) {
-    return false;
-  }
-
   public bool InclusiveEnd => endToken != null;
   public bool IncludesRange => true;
 
+  public SourceOrigin(Token startToken, Token? endToken, Token? center = null) {
+    this.endToken = endToken;
+    StartToken = startToken;
+    Center = center ?? startToken;
+  }
 
   public int CompareTo(IToken? other) {
-    throw new NotImplementedException();
+    if (other is IOrigin otherOrigin) {
+      int result = StartToken.CompareTo(otherOrigin.StartToken);
+      if (result == 0) {
+        result = EndToken.CompareTo(otherOrigin.EndToken);
+      }
+
+      return result;
+    }
+
+    return 1;
   }
 
   public override bool Equals(object? obj) {
@@ -38,10 +46,8 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
     return HashCode.Combine(StartToken.GetHashCode(), EndToken.GetHashCode());
   }
 
-  public SourceOrigin(Token startToken, Token? endToken, Token? center = null) {
-    this.endToken = endToken;
-    StartToken = startToken;
-    Center = center ?? startToken;
+  public bool IsInherited(ModuleDefinition m) {
+    return false;
   }
 
   public string PrintOriginal() {

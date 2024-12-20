@@ -551,8 +551,7 @@ public class Compilation : IDisposable {
     ErrorReporter errorReporter) {
     var outcome = GetOutcome(result.Outcome);
     result.CounterExamples.Sort(new CounterexampleComparer());
-    foreach (var counterExample in result.CounterExamples)
-    {
+    foreach (var counterExample in result.CounterExamples) {
       var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
       if (options.ShowProofObligationExpressions) {
         AddAssertedExprToCounterExampleErrorInfo(options, counterExample, errorInformation);
