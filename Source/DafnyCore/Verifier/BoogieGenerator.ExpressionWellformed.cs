@@ -1623,8 +1623,8 @@ namespace Microsoft.Dafny {
         while (unwrappedFunc is ConcreteSyntaxExpression { ResolvedExpression: not null } cse) {
           unwrappedFunc = cse.ResolvedExpression;
         }
-        if (unwrappedFunc is IdentifierExpr { Tok: var tok, DafnyName: var dafnyName }) {
-          unwrappedFunc = new IdentifierExpr(tok, dafnyName);
+        if (unwrappedFunc is IdentifierExpr { Tok: var tok2, DafnyName: var dafnyName }) {
+          unwrappedFunc = new IdentifierExpr(tok2, dafnyName);
         }
         // check read effects
         Type objset = program.SystemModuleManager.ObjectSetType();

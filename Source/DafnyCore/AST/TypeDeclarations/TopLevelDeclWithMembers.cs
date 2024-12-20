@@ -191,7 +191,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
 
     if (Attributes.Contains(Attributes, "AssumeCrossModuleTermination")) {
-      yield return new Assumption(this, tok, AssumptionDescription.HasAssumeCrossModuleTerminationAttribute);
+      yield return new Assumption(this, Tok, AssumptionDescription.HasAssumeCrossModuleTerminationAttribute);
     }
   }
 
