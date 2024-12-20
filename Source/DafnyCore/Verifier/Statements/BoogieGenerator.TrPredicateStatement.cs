@@ -151,7 +151,9 @@ namespace Microsoft.Dafny {
       if (!splitHappened) {
         IOrigin origin;
         if (stmt.Origin is NestedOrigin) {
+          // The OverrideCenter should move the center from the start of the assertion to the center of the expr. 
           // For assert ... statements, we don't want to use the override center
+          // Because that's the location of what was filled in for the ...
           // This logic won't be needed anymore once we stop using OverrideCenter.
           origin = stmt.Origin;
         } else {
