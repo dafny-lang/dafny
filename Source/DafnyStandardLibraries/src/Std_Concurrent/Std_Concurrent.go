@@ -10,11 +10,15 @@ type Dummy__ struct{}
 
 // Definition of class MutableMap
 type MutableMap struct {
-  // Default implementation
+  // Default implementation - synchronized Dafny map<K, V>,
+  // which is just a list of key-value pairs
+  // with O(n) lookup.
   mu sync.Mutex
   dafnyInternal _dafny.Map
 
   // Optimized for seq<bytes>
+  // The Dafny byte sequences are converted to Go strings,
+  // which are comparable and hence can be used as map keys.
   goInternal sync.Map
 
   // Switch to control which is active
@@ -69,12 +73,14 @@ func (_this *MutableMap) Ctor__(bytesKeys bool) {
     _this.bytesKeys = bytesKeys
   }
 }
+
 func dafnyBytesToString(b interface{}) string {
   return string(_dafny.ToByteArray(b.(_dafny.Sequence)))
 }
 func dafnyBytesFromString(b interface{}) _dafny.Sequence {
   return _dafny.SeqOfBytes([]byte(b.(string)))
 }
+
 func (_this *MutableMap) Keys() _dafny.Set {
   {
     if _this.bytesKeys {

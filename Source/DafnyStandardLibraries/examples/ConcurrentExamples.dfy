@@ -232,8 +232,22 @@ module ConcurrentExamples {
     b := mmap.HasKey(dataCopy);
     expect(b);
 
+    var data2: bytes := [0x5, 0x6];
+    mmap.Put(data2, 1);
+
     var keys := mmap.Keys();
-    expect keys == {data};
+    expect keys == {data, data2};
+    var values := mmap.Values();
+    expect values == {0, 1};
+    var items := mmap.Items();
+    expect items == {(data, 0), (data2, 1)};
+    var size := mmap.Size();
+    expect size == 2;
+
+    assert p7(data, 0);
+    mmap.Remove(data);
+    items := mmap.Items();
+    expect items == {(data2, 1)};
   }
 
   // does not work everywhere
