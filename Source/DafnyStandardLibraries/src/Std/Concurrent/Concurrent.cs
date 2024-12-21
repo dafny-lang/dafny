@@ -6,11 +6,11 @@ namespace Std.Concurrent {
 
         private ConcurrentDictionary<K, V> map;
 
-        public MutableMap(bool bytesKeys) {
+        public MutableMap() {
             map = new ConcurrentDictionary<K, V>();
         }
 
-        public void __ctor() { }
+        public void __ctor(bool bytesKeys) { }
 
         public Dafny.ISet<K> Keys() {
             return Dafny.Set<K>.FromCollection(map.Keys);
