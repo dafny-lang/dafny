@@ -79,4 +79,4 @@ Information and instructions for potential contributors are provided [here](CONT
 
 Dafny itself is licensed under the MIT license. (See `LICENSE.txt` in the root
 directory for details.) The subdirectory `Source/Dafny/Coco` contains third
-party material; see `Source/Dafny/Coco/LICENSE.txt` for more details.
+party material; see `Source/DafnyCore/Coco/LICENSE.txt` for more details.
