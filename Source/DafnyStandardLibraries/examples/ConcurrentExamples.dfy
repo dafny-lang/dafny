@@ -2,15 +2,16 @@ module ConcurrentExamples {
 
   import opened Std.Concurrent
   import opened Std.Wrappers
+  import opened Std.BoundedInts
   import opened Helpers
 
   const p1: nat -> bool := _ => true
   const p2: (nat, nat) -> bool := (_, _) => true
   const p3: (char, nat) -> bool := (_, _) => true
   const p4: (Copy, nat) -> bool := (_, _) => true
-  // const p5: (object?, nat) -> bool := (_, _) => true
+  const p5: (object?, nat) -> bool := (_, _) => true
   const p6: (string, nat) -> bool := (_, _) => true
-
+  const p7: (bytes, nat) -> bool := (_, _) => true
 
   datatype Copy = A | B
 
@@ -207,14 +208,41 @@ module ConcurrentExamples {
     expect(b);
   }
 
-  // does not work everywhere
-  // @Test method TestObject() {
-  //   var mmap := new MutableMap(p5);
-  //   var b := mmap.HasKey(null);
-  //   expect(!b);
-  //   mmap.Put(null, 0);
-  //   b := mmap.HasKey(null);
-  //   expect(b);
-  // }
+  @Test
+  method TestBytes() {
+    var mmap := new MutableMap(p7);
+    var data: bytes := [0x1, 0x2, 0x3, 0x4];
+    var b := mmap.HasKey(data);
+    expect(!b);
+    mmap.Put(data, 0);
+    var dataCopy: bytes := [0x1, 0x2, 0x3, 0x4];
+    b := mmap.HasKey(dataCopy);
+    expect(b);
+  }
+
+  // TODO: Needs much deeper testing since every method implementation is different
+  @Test
+  method TestBytesOptimized() {
+    var mmap := new MutableMap(p7, true);
+    var data: bytes := [0x1, 0x2, 0x3, 0x4];
+    var b := mmap.HasKey(data);
+    expect(!b);
+    mmap.Put(data, 0);
+    var dataCopy: bytes := [0x1, 0x2] + [0x3, 0x4];
+    b := mmap.HasKey(dataCopy);
+    expect(b);
+
+    var keys := mmap.Keys();
+    expect keys == {data};
+  }
+
+  @Test method TestObject() {
+    var mmap := new MutableMap(p5);
+    var b := mmap.HasKey(null);
+    expect(!b);
+    mmap.Put(null, 0);
+    b := mmap.HasKey(null);
+    expect(b);
+  }
 
 }

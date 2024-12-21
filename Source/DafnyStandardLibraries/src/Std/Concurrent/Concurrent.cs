@@ -6,7 +6,7 @@ namespace Std.Concurrent {
 
         private ConcurrentDictionary<K, V> map;
 
-        public MutableMap() {
+        public MutableMap(bool bytesKeys) {
             map = new ConcurrentDictionary<K, V>();
         }
 

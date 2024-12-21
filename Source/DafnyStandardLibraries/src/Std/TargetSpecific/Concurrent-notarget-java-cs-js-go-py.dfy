@@ -72,7 +72,7 @@ replaceable module Std.Concurrent {
     // Invariant on key-value pairs this map may hold
     ghost const inv: (K, V) -> bool
 
-    constructor (ghost inv: (K, V) -> bool)
+    constructor (ghost inv: (K, V) -> bool, bytesKeys: bool := false)
       ensures this.inv == inv
 
     method Keys() returns (keys: set<K>)
