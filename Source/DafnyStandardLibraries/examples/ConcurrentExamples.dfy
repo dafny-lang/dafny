@@ -220,7 +220,6 @@ module ConcurrentExamples {
     expect(b);
   }
 
-  // TODO: Needs much deeper testing since every method implementation is different
   @Test
   method TestBytesOptimized() {
     var mmap := new MutableMap(p7, true);
