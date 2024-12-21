@@ -123,7 +123,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
               if (revealCallee != null) {
                 var call = new CallStmt(Origin, new List<Expression>(),
                   revealCallee,
-                  new List<ActualBinding>(), effectiveExpr.Tok);
+                  new List<ActualBinding>(), effectiveExpr.Center);
                 ResolvedStatements.Add(call);
               }
             } else {

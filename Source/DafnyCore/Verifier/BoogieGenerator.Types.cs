@@ -1543,7 +1543,7 @@ public partial class BoogieGenerator {
         }
       }
     }
-    PathAsideBlock(decl.Tok, witnessCheckBuilder, builder);
+    PathAsideBlock(decl.Origin, witnessCheckBuilder, builder);
 
     var s0 = builderInitializationArea.Collect(decl.Tok);
     var s1 = builder.Collect(decl.Tok);
@@ -1598,7 +1598,7 @@ public partial class BoogieGenerator {
       });
     }
 
-    PathAsideBlock(decl.Tok, constraintCheckBuilder, builder);
+    PathAsideBlock(decl.Origin, constraintCheckBuilder, builder);
     return builderInitializationArea;
   }
 }

@@ -132,7 +132,7 @@ public class PartialState {
     Expression expression = GetCompactConjunction(constraintsAsExpressions);
 
     if (constraintsAsExpressions.Count > 0 && boundVars.Count > 0) {
-      expression = new ExistsExpr(Token.NoToken, SourceOrigin.NoToken, boundVars, null, expression, null);
+      expression = new ExistsExpr(Token.NoToken, boundVars, null, expression, null);
     }
 
     if ((LoopGuards.Count != 0 && !IsLoopEntryState) || LoopGuards.Count > 1) {

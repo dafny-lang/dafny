@@ -4,17 +4,17 @@ ProofDependencies.dfy(186,4): Warning: proved using contradictory assumptions: a
 ProofDependencies.dfy(191,11): Warning: unnecessary (or partly unnecessary) assume statement
 ProofDependencies.dfy(193,4): Warning: proved using contradictory assumptions: assertion always holds. (Use the `{:contradiction}` attribute on the `assert` statement to silence.)
 ProofDependencies.dfy(202,2): Warning: proved using contradictory assumptions: assertion always holds. (Use the `{:contradiction}` attribute on the `assert` statement to silence.)
-ProofDependencies.dfy(203,4): Warning: proved using contradictory assumptions: value always satisfies the subset constraints of 'nat'
+ProofDependencies.dfy(203,2): Warning: proved using contradictory assumptions: value always satisfies the subset constraints of 'nat'
 ProofDependencies.dfy(209,10): Warning: ensures clause proved using contradictory assumptions
 ProofDependencies.dfy(211,2): Warning: proved using contradictory assumptions: assertion always holds. (Use the `{:contradiction}` attribute on the `assert` statement to silence.)
-ProofDependencies.dfy(212,11): Warning: proved using contradictory assumptions: value always satisfies the subset constraints of 'nat'
+ProofDependencies.dfy(212,9): Warning: proved using contradictory assumptions: value always satisfies the subset constraints of 'nat'
 ProofDependencies.dfy(226,11): Warning: unnecessary requires clause
 ProofDependencies.dfy(241,11): Warning: unnecessary requires clause
 ProofDependencies.dfy(298,11): Warning: unnecessary requires clause
 ProofDependencies.dfy(299,11): Warning: unnecessary requires clause
 ProofDependencies.dfy(321,11): Warning: unnecessary requires clause
 ProofDependencies.dfy(346,10): Warning: ensures clause proved using contradictory assumptions
-ProofDependencies.dfy(354,11): Warning: unnecessary requires clause
+ProofDependencies.dfy(354,23): Warning: unnecessary requires clause
 ProofDependencies.dfy(363,9): Warning: unnecessary (or partly unnecessary) assert statement
 
 Dafny program verifier finished with 32 verified, 0 errors

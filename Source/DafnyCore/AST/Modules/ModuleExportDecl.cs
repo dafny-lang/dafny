@@ -103,10 +103,10 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     }
 
     var tentativeTrivia = "";
-    if (Tok.pos < EndToken.pos) {
-      tentativeTrivia = (Tok.TrailingTrivia + Tok.Next.LeadingTrivia).Trim();
+    if (Center.pos < EndToken.pos) {
+      tentativeTrivia = (Center.TrailingTrivia + Center.Next?.LeadingTrivia).Trim();
     } else {
-      tentativeTrivia = Tok.TrailingTrivia.Trim();
+      tentativeTrivia = Center.TrailingTrivia.Trim();
     }
     if (tentativeTrivia != "") {
       return tentativeTrivia;

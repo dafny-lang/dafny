@@ -145,7 +145,6 @@ public class CoverageReporter {
           var precedingToken = new Token(line, col - 1);
           precedingToken.Uri = uri;
           var rangeToken = new SourceOrigin(lastEndToken, precedingToken);
-          rangeToken.Uri = uri;
           report.LabelCode(rangeToken, lastLabel);
           lastLabel = FromHtmlClass(span.Groups[1].Value);
           lastEndToken = nextToken;

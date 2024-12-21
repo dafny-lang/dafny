@@ -115,7 +115,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
 
   string RedirectingTypeDecl.Name { get { return Name; } }
-  IOrigin INode.Tok { get { return Tok; } }
+  IOrigin RedirectingTypeDecl.Tok { get { return Tok; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }

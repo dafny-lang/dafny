@@ -424,7 +424,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
       var initialMemberIndent = declWithMembers.Tok.line == 0 ? indent : indent2;
       foreach (var member in declWithMembers.PreResolveChildren) {
-        if (member.Tok.FromIncludeDirective(program)) {
+        if (member.Origin.FromIncludeDirective(program)) {
           continue;
         }
 

@@ -22,14 +22,14 @@ public class MatchStmtVerifier {
     generator.TrStmt_CheckWellformed(stmt.Source, builder, locals, etran, true);
     Expr source = etran.TrExpr(stmt.Source);
     var b = new BoogieStmtListBuilder(generator, generator.Options, builder.Context);
-    b.Add(BoogieGenerator.TrAssumeCmd(stmt.Tok, Expr.False));
-    StmtList els = b.Collect(stmt.Tok);
+    b.Add(BoogieGenerator.TrAssumeCmd(stmt.Origin, Expr.False));
+    StmtList els = b.Collect(stmt.Origin);
     IfCmd ifCmd = null;
     foreach (var missingCtor in stmt.MissingCases) {
       // havoc all bound variables
       b = new BoogieStmtListBuilder(generator, generator.Options, builder.Context);
       var newLocals = new Variables();
-      Expr r = generator.CtorInvocation(stmt.Tok, missingCtor, etran, newLocals, b);
+      Expr r = generator.CtorInvocation(stmt.Origin, missingCtor, etran, newLocals, b);
       locals.AddRange(newLocals.Values);
 
       if (newLocals.Count != 0) {
@@ -37,15 +37,15 @@ public class MatchStmtVerifier {
         foreach (Variable local in newLocals.Values) {
           havocIds.Add(new IdentifierExpr(local.tok, local));
         }
-        builder.Add(new HavocCmd(stmt.Tok, havocIds));
+        builder.Add(new HavocCmd(stmt.Origin, havocIds));
       }
       String missingStr = stmt.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles()
         .ToString();
       var desc = new MatchIsComplete("statement", missingStr);
-      b.Add(generator.Assert(stmt.Tok, Expr.False, desc, builder.Context));
+      b.Add(generator.Assert(stmt.Origin, Expr.False, desc, builder.Context));
 
       Expr guard = Expr.Eq(source, r);
-      ifCmd = new IfCmd(stmt.Tok, guard, b.Collect(stmt.Tok), ifCmd, els);
+      ifCmd = new IfCmd(stmt.Origin, guard, b.Collect(stmt.Origin), ifCmd, els);
       els = null;
     }
     for (int i = stmt.Cases.Count; 0 <= --i;) {

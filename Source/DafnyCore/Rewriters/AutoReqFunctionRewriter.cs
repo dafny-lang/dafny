@@ -344,7 +344,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       //reqs.AddRange(generateAutoReqs(e.Range));
       var auto_reqs = GenerateAutoReqs(e.Term);
       if (auto_reqs.Count > 0) {
-        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.Tok, e.Origin, e.BoundVars, e.Range, Andify(e.Term.Tok, auto_reqs), e.Attributes), true));
+        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.Tok, e.BoundVars, e.Range, Andify(e.Term.Tok, auto_reqs), e.Attributes), true));
       }
     } else if (expr is MapComprehension) {
       var e = (MapComprehension)expr;
@@ -357,7 +357,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       }
       auto_reqs.AddRange(GenerateAutoReqs(e.Term));
       if (auto_reqs.Count > 0) {
-        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.Tok, e.Origin, e.BoundVars, e.Range, Andify(e.Term.Tok, auto_reqs), e.Attributes), true));
+        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.Tok, e.BoundVars, e.Range, Andify(e.Term.Tok, auto_reqs), e.Attributes), true));
       }
     } else if (expr is StmtExpr) {
       var e = (StmtExpr)expr;

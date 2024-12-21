@@ -55,14 +55,18 @@ public static class ErrorReporterExtensions {
   public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IOrigin token, string? message, bool usingSnippets) {
     var (tokenForMessage, inner, newMessage) = token is NestedOrigin nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
     var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
-    if (!usingSnippets && dafnyToken.IncludesRange) {
-      if (message == PostConditionFailingMessage) {
-        var postcondition = dafnyToken.PrintOriginal();
-        message = $"this postcondition might not hold: {postcondition}";
-      } else if (message == null || message == RelatedLocationMessage) {
-        message = FormatRelated(dafnyToken.PrintOriginal());
-      }
-    }
+
+    // Turning this on changes many regression tests, in a way that might be considered good,
+    // but it should be turned on in a separate PR
+    // There seem to be no LSP tests for this behavior, so turning it off did not affect those.
+    // if (!usingSnippets && dafnyToken.IncludesRange) {
+    //   if (message == PostConditionFailingMessage) {
+    //     var postcondition = dafnyToken.PrintOriginal();
+    //     message = $"this postcondition might not hold: {postcondition}";
+    //   } else if (message == null|| message == RelatedLocationMessage*/) {
+    //     message = FormatRelated(dafnyToken.PrintOriginal());
+    //   }
+    // }
 
     message ??= "this proposition could not be proved";
 

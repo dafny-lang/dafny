@@ -464,7 +464,7 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(v.PreType != null);
       }
-      ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
+      ScopePushAndReport(scope, v.Name, v, v.Origin, kind);
     }
 
     void ScopePushExpectSuccess(IVariable v, string kind, bool assignPreType = true) {
@@ -477,7 +477,7 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(v.PreType != null);
       }
-      var r = ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
+      var r = ScopePushAndReport(scope, v.Name, v, v.Origin, kind);
       Contract.Assert(r == Scope<IVariable>.PushResult.Success);
     }
 
@@ -1148,7 +1148,7 @@ namespace Microsoft.Dafny {
 
       foreach (var cycle in dependencies.AllCycles()) {
         var cy = Util.Comma(" -> ", cycle, v => v.Name) + " -> " + cycle[0].Name;
-        ReportError(cycle[0].Tok, $"default-value expressions for parameters contain a cycle: {cy}");
+        ReportError(cycle[0].Origin, $"default-value expressions for parameters contain a cycle: {cy}");
       }
     }
 

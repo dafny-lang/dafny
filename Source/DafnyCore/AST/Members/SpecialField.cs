@@ -25,7 +25,7 @@ public class SpecialField : Field {
 
   public SpecialField(IOrigin rangeOrigin, string name, ID specialId, object idParam,
     bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : this(rangeOrigin, new Name(name), specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
+    : this(rangeOrigin, new Name(rangeOrigin, name), specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
   }
 
   public SpecialField(IOrigin rangeOrigin, Name name, ID specialId, object idParam,

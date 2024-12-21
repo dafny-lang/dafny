@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -10,8 +11,6 @@ public abstract class TokenNode : Node {
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
   internal Token[] FormatTokens = null;
 
-  protected IOrigin RangeOrigin = null;
-
   protected IOrigin tok = Token.NoToken;
 
   public void SetTok(IOrigin newTok) {
@@ -19,11 +18,11 @@ public abstract class TokenNode : Node {
   }
 
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IOrigin Tok => tok;
+  public IOrigin Tok => tok;
 
   public override IOrigin Origin {
     get {
-      if (RangeOrigin == null) {
+      if (Tok is Token tokenOrigin) {
 
         var startTok = Tok.StartToken;
         var endTok = Tok.EndToken;
@@ -64,11 +63,13 @@ public abstract class TokenNode : Node {
           }
         }
 
-        RangeOrigin = new SourceOrigin(startTok, endTok);
+        tok = new SourceOrigin(startTok, endTok, tokenOrigin);
       }
 
-      return RangeOrigin;
+      return tok;
     }
-    set => RangeOrigin = value;
+    set {
+      tok = value;
+    }
   }
 }

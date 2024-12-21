@@ -1296,9 +1296,9 @@ namespace Microsoft.Dafny {
       foreach (var arg in formals) {
         Contract.Assert(arg != null);
         var nm = varNameGen.FreshId(string.Format("#{0}#", bvs.Count));
-        Bpl.Variable bv = new Bpl.BoundVariable(arg.Tok, new Bpl.TypedIdent(arg.Tok, nm, TrType(arg.Type)));
+        Bpl.Variable bv = new Bpl.BoundVariable(arg.Origin, new Bpl.TypedIdent(arg.Origin, nm, TrType(arg.Type)));
         bvs.Add(bv);
-        args.Add(new Bpl.IdentifierExpr(arg.Tok, bv));
+        args.Add(new Bpl.IdentifierExpr(arg.Origin, bv));
       }
     }
 
@@ -3575,8 +3575,8 @@ namespace Microsoft.Dafny {
       var bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(local.Type)));
       locals.GetOrAdd(bvar);
       var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
-      builder.Add(new Bpl.HavocCmd(v.Tok, new List<Bpl.IdentifierExpr> { bIe }));
-      var wh = GetWhereClause(v.Tok, bIe, local.Type, etran, ISALLOC);
+      builder.Add(new Bpl.HavocCmd(v.Origin, new List<Bpl.IdentifierExpr> { bIe }));
+      var wh = GetWhereClause(v.Origin, bIe, local.Type, etran, ISALLOC);
       return wh ?? Bpl.Expr.True;
     }
 
@@ -4827,7 +4827,7 @@ public enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like
 class FromDafnyNode : VCGeneration.TokenWrapper {
   public INode Node { get; }
 
-  public FromDafnyNode(INode node) : base(node.Tok) {
+  public FromDafnyNode(INode node) : base(node.Origin) {
     this.Node = node;
   }
 }

@@ -3,9 +3,11 @@ using System.IO;
 
 namespace Microsoft.Dafny;
 
-public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
+public interface IOrigin : Microsoft.Boogie.IToken {
 
   bool IsInherited(ModuleDefinition m);
+
+  int Length => EndToken.pos - StartToken.pos;
 
   bool InclusiveEnd { get; }
   bool IncludesRange { get; }
@@ -22,12 +24,15 @@ public interface IOrigin : Microsoft.Boogie.IToken, IComparable<IOrigin> {
   }
 
   public string ActualFilename => Uri.LocalPath;
-  string Filepath => Uri.LocalPath;
+  string Filepath => Uri?.LocalPath;
 
-  Uri Uri { get; set; }
+  Uri Uri { get; }
 
   Token StartToken { get; }
   Token EndToken { get; }
+  Token Center {
+    get;
+  }
 
   /// <summary>
   /// TrailingTrivia contains everything after the token,

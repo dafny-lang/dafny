@@ -102,8 +102,7 @@ public class CoverageInstrumenter {
         var label = tally == 0 ? CoverageLabel.NotCovered : CoverageLabel.FullyCovered;
         // For now we only identify branches at the line granularity,
         // which matches what `dafny generate-tests ... --coverage-report` does as well.
-        var rangeToken = new SourceOrigin(new Token(token.line, 1), new Token(token.line + 1, 0));
-        rangeToken.Uri = token.Uri;
+        var rangeToken = new SourceOrigin(new Token(token.line, 1) { Uri = token.Uri }, new Token(token.line + 1, 0));
         coverageReport.LabelCode(rangeToken, label);
       }
     }

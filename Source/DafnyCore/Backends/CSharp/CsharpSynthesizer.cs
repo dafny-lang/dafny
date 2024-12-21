@@ -101,7 +101,7 @@ public class CsharpSynthesizer {
     objectToMockName = method.Outs.ToDictionary(o => (IVariable)o,
       o => codeGenerator.idGenerator.FreshId(o.CompileName + "Mock"));
     foreach (var (obj, mockName) in objectToMockName) {
-      var typeName = codeGenerator.TypeName(obj.Type, wr, obj.Tok);
+      var typeName = codeGenerator.TypeName(obj.Type, wr, obj.Origin);
       // Mocking a trait works only so long as no trait member is accessed
       if ((method.Outs.First().Type is UserDefinedType userDefinedType) &&
           userDefinedType.IsTraitType) {

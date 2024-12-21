@@ -30,7 +30,7 @@ namespace DafnyServer {
 
     private void AddMethods(ModuleDefinition module, List<SymbolInformation> information) {
       foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
-                 Where(e => e != null && !e.Tok.FromIncludeDirective(_dafnyProgram))) {
+                 Where(e => e != null && !e.Origin.FromIncludeDirective(_dafnyProgram))) {
 
         if (clbl is Predicate) {
           var predicate = clbl as Predicate;
@@ -255,7 +255,7 @@ namespace DafnyServer {
 
       foreach (var module in _dafnyProgram.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
-                   Where(e => !e.Tok.FromIncludeDirective(_dafnyProgram))) {
+                   Where(e => !e.Origin.FromIncludeDirective(_dafnyProgram))) {
           if (!(clbl is Method)) {
             continue;
           }
@@ -274,7 +274,7 @@ namespace DafnyServer {
 
       foreach (var module in _dafnyProgram.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
-                   Where(e => !e.Tok.FromIncludeDirective(_dafnyProgram))) {
+                   Where(e => !e.Origin.FromIncludeDirective(_dafnyProgram))) {
           if (!(clbl is Method)) {
             continue;
           }

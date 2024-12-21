@@ -383,7 +383,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     base.VisitExtendedPattern(pattern, context);
 
     if (pattern is IdPattern { BoundVar: { } bv }) {
-      CheckTypeIsDetermined(bv.Tok, bv.Type, "bound variable");
+      CheckTypeIsDetermined(bv.Origin, bv.Type, "bound variable");
     }
   }
 

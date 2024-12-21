@@ -188,7 +188,7 @@ public class InductionRewriter : IRewriter {
     foreach (IVariable n in boundVars) {
       if (!(n.Type.IsTypeParameter || n.Type.IsAbstractType || n.Type.IsInternalTypeSynonym || n.Type.IsArrowType) &&
           (args != null || InductionHeuristic.VarOccursInArgumentToRecursiveFunction(Reporter.Options, body, n))) {
-        inductionVariables.Add(new IdentifierExpr(n.Tok, n));
+        inductionVariables.Add(new IdentifierExpr(n.Origin, n));
       }
     }
 
@@ -275,7 +275,7 @@ public class InductionRewriter : IRewriter {
     }
 
     var substituter = new Substituter(receiverReplacement, substMap, new Dictionary<TypeParameter, Type>());
-    var quantifier = new ForallExpr(body.Tok, body.Origin, boundVars, null, substituter.Substitute(body), null) {
+    var quantifier = new ForallExpr(body.Tok, boundVars, null, substituter.Substitute(body), null) {
       Type = Type.Bool
     };
 

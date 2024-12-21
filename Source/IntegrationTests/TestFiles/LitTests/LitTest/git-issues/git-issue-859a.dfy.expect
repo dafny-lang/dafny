@@ -1,6 +1,6 @@
 git-issue-859a.dfy(34,4): Error: The Extract member may not be ghost unless the initial LHS is ghost
 git-issue-859a.dfy(44,7): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
-git-issue-859a.dfy(55,4): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
+git-issue-859a.dfy(55,7): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 git-issue-859a.dfy(82,10): Error: Member 'IsFailure' in type 'NotFunctionsAtAll' (used indirectly via a :- statement) is expected to be a function
 git-issue-859a.dfy(82,10): Error: Member 'PropagateFailure' in type 'NotFunctionsAtAll' (used indirectly via a :- statement) is expected to be a function
 git-issue-859a.dfy(82,10): Error: Member 'Extract' in type 'NotFunctionsAtAll' (used indirectly via a :- statement) is expected to be a function
