@@ -10,7 +10,7 @@ namespace Std.Concurrent {
             map = new ConcurrentDictionary<K, V>();
         }
 
-        public void __ctor() { }
+        public void __ctor(bool bytesKeys) { }
 
         public Dafny.ISet<K> Keys() {
             return Dafny.Set<K>.FromCollection(map.Keys);

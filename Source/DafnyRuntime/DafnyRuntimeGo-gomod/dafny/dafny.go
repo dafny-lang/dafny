@@ -802,7 +802,7 @@ type Array interface {
 /***** newArray *****/
 
 // Multiply the numbers in "dims" and return the product as an "int".
-// If the produce doesn't fit in an "int", panic with the message that the
+// If the product doesn't fit in an "int", panic with the message that the
 // array-size limit has been exceeded.
 // It is expected that len(dims) is at least 1 and that each number in
 // dims is non-negative.
