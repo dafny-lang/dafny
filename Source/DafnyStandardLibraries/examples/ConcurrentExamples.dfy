@@ -226,6 +226,9 @@ module ConcurrentExamples {
     var data: bytes := [0x1, 0x2, 0x3, 0x4];
     var b := mmap.HasKey(data);
     expect(!b);
+    var value := mmap.Get(data);
+    expect(value == None);
+
     mmap.Put(data, 0);
     var dataCopy: bytes := [0x1, 0x2] + [0x3, 0x4];
     b := mmap.HasKey(dataCopy);
@@ -233,6 +236,8 @@ module ConcurrentExamples {
 
     var data2: bytes := [0x5, 0x6];
     mmap.Put(data2, 1);
+    value := mmap.Get(data2);
+    expect(value == Some(1));
 
     var keys := mmap.Keys();
     expect keys == {data, data2};
