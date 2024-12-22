@@ -37,11 +37,11 @@ namespace Std.Concurrent {
         }
 
         public _IOption<V> Get(K k) {
-            var v = map[k];
-            if (v is null) {
-                return Option<V>.create_None();
-            } else {
+            V v;
+            if (map.TryGetValue(k, out v)) {
                 return Option<V>.create_Some(v);
+            } else {
+                return Option<V>.create_None();
             }
         }
 
