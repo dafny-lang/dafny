@@ -38,7 +38,7 @@ public class TraitDecl : ClassLikeDecl {
     if (Attributes.Find(Attributes, "termination") is { } ta &&
         ta.Args.Count == 1 && Expression.IsBoolLiteral(ta.Args[0], out var termCheck) &&
         termCheck == false) {
-      yield return new Assumption(this, tok, AssumptionDescription.HasTerminationFalseAttribute);
+      yield return new Assumption(this, Tok, AssumptionDescription.HasTerminationFalseAttribute);
     }
   }
 }

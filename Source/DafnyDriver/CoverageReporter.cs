@@ -144,7 +144,7 @@ public class CoverageReporter {
           nextToken.Uri = uri;
           var precedingToken = new Token(line, col - 1);
           precedingToken.Uri = uri;
-          var rangeToken = new RangeToken(lastEndToken, precedingToken);
+          var rangeToken = new SourceOrigin(lastEndToken, precedingToken);
           rangeToken.Uri = uri;
           report.LabelCode(rangeToken, lastLabel);
           lastLabel = FromHtmlClass(span.Groups[1].Value);
@@ -154,7 +154,7 @@ public class CoverageReporter {
 
       var lastToken = new Token(source.Count(c => c == '\n') + 2, 0);
       lastToken.Uri = uri;
-      var lastRangeToken = new RangeToken(lastEndToken, lastToken);
+      var lastRangeToken = new SourceOrigin(lastEndToken, lastToken);
       report.LabelCode(lastRangeToken, lastLabel);
     }
     return report;

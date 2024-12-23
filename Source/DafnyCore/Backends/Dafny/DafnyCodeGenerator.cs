@@ -213,7 +213,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (tp.Variance is TypeParameter.TPVariance.Contra) {
-        AddUnsupported(tp.tok, "Contravariance");
+        AddUnsupported(tp.Tok, "Contravariance");
       }
       return (Variance)Variance.create_Nonvariant();
     }
@@ -269,7 +269,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      AddUnsupportedFeature(iter.tok, Feature.Iterators);
+      AddUnsupportedFeature(iter.Tok, Feature.Iterators);
       return wr;
     }
 
@@ -334,7 +334,7 @@ namespace Microsoft.Dafny.Compilers {
         if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
           EmitExpr(
             nt.Witness, false,
-            EmitCoercionIfNecessary(nt.Witness.Type, nt.BaseType, nt.Witness.tok,
+            EmitCoercionIfNecessary(nt.Witness.Type, nt.BaseType, nt.Witness.Tok,
               WrBuffer(out var buf)),
             new BuilderSyntaxTree<StatementContainer>(statementBuf, this)
           );
@@ -345,8 +345,8 @@ namespace Microsoft.Dafny.Compilers {
         Option<DAST.NewtypeConstraint> constraint;
         if (((RedirectingTypeDecl)nt).ConstraintIsCompilable) {
           // To check if something is compilable for a newtype, we need to convert the variable to the base type
-          var type = UserDefinedType.FromTopLevelDecl(nt.tok, (TopLevelDecl)nt);
-          var sourceFormal = new Formal(nt.tok, "_source", type, true, false, null);
+          var type = UserDefinedType.FromTopLevelDecl(nt.Tok, (TopLevelDecl)nt);
+          var sourceFormal = new Formal(nt.Tok, "_source", type, true, false, null);
           var statementBuffer = new StatementBuffer();
           var wStmt = new BuilderSyntaxTree<StatementContainer>(statementBuffer, this);
           GenerateIsMethodBody(nt, sourceFormal, wStmt);
@@ -437,7 +437,7 @@ namespace Microsoft.Dafny.Compilers {
         return (DAST.Type)DAST.Type.create_Map(GenType(keyType), GenType(valueType));
       } else {
         var why = "<i>Type name for " + xType + " (" + typ.GetType() + ")</i>";
-        AddUnsupported(typ.tok, why);
+        AddUnsupported(typ.Tok, why);
         return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString($"<b>Unsupported: {why}</b>"));
       }
     }
@@ -455,7 +455,7 @@ namespace Microsoft.Dafny.Compilers {
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         EmitExpr(
           sst.Witness, false,
-          EmitCoercionIfNecessary(sst.Witness.Type, erasedType, sst.Witness.tok,
+          EmitCoercionIfNecessary(sst.Witness.Type, erasedType, sst.Witness.Tok,
             WrBuffer(out var buf)),
           new BuilderSyntaxTree<StatementContainer>(statementBuf, this)
         );
@@ -539,7 +539,7 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
         if (m.IsStatic && this.hasTypeArgs) {
-          compiler.AddUnsupported(m.tok, "<i>Static methods with type arguments</i>");
+          compiler.AddUnsupported(m.Tok, "<i>Static methods with type arguments</i>");
           return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
         }
 
@@ -597,7 +597,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        compiler.AddUnsupportedFeature(m.tok, Feature.MethodSynthesis);
+        compiler.AddUnsupportedFeature(m.Tok, Feature.MethodSynthesis);
         return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
       }
 
@@ -802,7 +802,7 @@ namespace Microsoft.Dafny.Compilers {
               DAST.Expression.create_Convert(
               ConvertExpression(newType.Witness, new BuilderSyntaxTree<StatementContainer>(bufStmt, this)),
                   GenType(newType.BaseType),
-              GenType(UserDefinedType.FromTopLevelDecl(newType.Witness.tok, newType))
+              GenType(UserDefinedType.FromTopLevelDecl(newType.Witness.Tok, newType))
               ));
             bufferedInitializationStmts = Option<List<DAST.Statement>>.create_Some(bufStmt.PopAll());
           } else if (type.AsSubsetType != null && type.AsSubsetType.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -1065,7 +1065,7 @@ namespace Microsoft.Dafny.Compilers {
         toType = toType.Subst(thisContext.ParentFormalTypeParametersToActuals);
         fromType = fromType.Subst(thisContext.ParentFormalTypeParametersToActuals);
       }
-      wr = EmitCoercionIfNecessary(fromType, toType, e.tok, wr);
+      wr = EmitCoercionIfNecessary(fromType, toType, e.Tok, wr);
 
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
         var callBuilder = builder.Builder.Call(GenFormals(e.Function.Ins));
@@ -1157,7 +1157,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitCoercionIfNecessary(
           ll.Seq.Type,
           ll.Seq.Type.IsNonNullRefType || !ll.Seq.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Seq.Type.NormalizeExpand()),
-          ll.tok, WrBuffer(out var sourceBuf)
+          ll.Tok, WrBuffer(out var sourceBuf)
         ),
         wStmts
       );
@@ -1185,7 +1185,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ILvalue MultiSelectLvalue(MultiSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(ll.tok, Feature.MultiDimensionalArrays);
+      throw new UnsupportedFeatureException(ll.Tok, Feature.MultiDimensionalArrays);
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
@@ -1497,12 +1497,12 @@ namespace Microsoft.Dafny.Compilers {
           // Non-null types don't have a special target class, so we just do the non-null constraint check here.
           return EmitNullTest(false, wr);
         case NewtypeDecl { TargetTypeCoversAllBitPatterns: true }: {
-            EmitLiteralExpr(wr, Expression.CreateBoolLiteral(declWithConstraints.tok, true));
+            EmitLiteralExpr(wr, Expression.CreateBoolLiteral(declWithConstraints.Tok, true));
             return new BuilderSyntaxTree<ExprContainer>(new ExprBuffer(null), this);
           }
         default: {
             // in mind that type parameters are not accessible in static methods in some target languages).
-            var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints, typeArguments);
+            var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.Tok, (TopLevelDecl)declWithConstraints, typeArguments);
             return EmitCallToIsMethod(declWithConstraints, type, wr);
           }
       }
@@ -1625,7 +1625,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
         bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      AddUnsupportedFeature(e0.tok, Feature.BitvectorRotateFunctions);
+      AddUnsupportedFeature(e0.Tok, Feature.BitvectorRotateFunctions);
     }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
@@ -1655,7 +1655,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null) {
-      AddUnsupported(udt.tok, "<i>FullTypeName</i>");
+      AddUnsupported(udt.Tok, "<i>FullTypeName</i>");
       return "FullTypeName";
     }
 
@@ -1813,7 +1813,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private static Type EraseNewtypeLayers(TopLevelDecl topLevel) {
-      var topLevelType = UserDefinedType.FromTopLevelDecl(topLevel.tok, topLevel);
+      var topLevelType = UserDefinedType.FromTopLevelDecl(topLevel.Tok, topLevel);
       return topLevelType.NormalizeToAncestorType();
     }
 
@@ -1971,7 +1971,7 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField.ID.Items:
           break;
         default:
-          AddUnsupported(receiverType.tok, "<i>Special field: " + id + "</i>");
+          AddUnsupported(receiverType.Tok, "<i>Special field: " + id + "</i>");
           break;
       }
     }
@@ -2180,7 +2180,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var indexBuf = new ExprBuffer(null);
-      var indexWr = EmitCoercionIfNecessary(index.Type.NormalizeExpand(), indexType, source.tok, new BuilderSyntaxTree<ExprContainer>(indexBuf, this));
+      var indexWr = EmitCoercionIfNecessary(index.Type.NormalizeExpand(), indexType, source.Tok, new BuilderSyntaxTree<ExprContainer>(indexBuf, this));
       EmitExpr(index, inLetExprBody, indexWr, wStmts);
 
       if (GetExprBuilder(wr, out var builder)) {
@@ -2246,7 +2246,7 @@ namespace Microsoft.Dafny.Compilers {
             convert(source), convert(index), convert(value)
           ));
         } else {
-          AddUnsupported(source.tok, "<i>EmitIndexCollectionUpdate for " + resultCollectionType.ToString() + "</i>");
+          AddUnsupported(source.Tok, "<i>EmitIndexCollectionUpdate for " + resultCollectionType.ToString() + "</i>");
         }
       } else {
         throw new InvalidOperationException();
@@ -2271,7 +2271,7 @@ namespace Microsoft.Dafny.Compilers {
       DAST.Expression loExpr = null;
       if (lo != null) {
         var loBuf = new ExprBuffer(null);
-        var loWr = EmitCoercionIfNecessary(lo.Type.NormalizeExpand(), Type.Int, source.tok, new BuilderSyntaxTree<ExprContainer>(loBuf, this));
+        var loWr = EmitCoercionIfNecessary(lo.Type.NormalizeExpand(), Type.Int, source.Tok, new BuilderSyntaxTree<ExprContainer>(loBuf, this));
         EmitExpr(lo, inLetExprBody, loWr, wStmts);
         loExpr = loBuf.Finish();
       }
@@ -2279,7 +2279,7 @@ namespace Microsoft.Dafny.Compilers {
       DAST.Expression hiExpr = null;
       if (hi != null) {
         var hiBuf = new ExprBuffer(null);
-        var loWr = EmitCoercionIfNecessary(hi.Type.NormalizeExpand(), Type.Int, source.tok, new BuilderSyntaxTree<ExprContainer>(hiBuf, this));
+        var loWr = EmitCoercionIfNecessary(hi.Type.NormalizeExpand(), Type.Int, source.Tok, new BuilderSyntaxTree<ExprContainer>(hiBuf, this));
         EmitExpr(hi, inLetExprBody, loWr, wStmts);
         hiExpr = hiBuf.Finish();
       }
@@ -2300,7 +2300,7 @@ namespace Microsoft.Dafny.Compilers {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         var size = expr.N;
         if (size.Type.AsNewtype is { }) {
-          size = new ConversionExpr(expr.N.tok, size, new IntType());
+          size = new ConversionExpr(expr.N.Tok, size, new IntType());
         }
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_SeqConstruct(
           convert(size),
@@ -2317,7 +2317,7 @@ namespace Microsoft.Dafny.Compilers {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_ToMultiset(
           convert(expr.E)));
       } else {
-        AddUnsupportedFeature(expr.tok, Feature.Multisets);
+        AddUnsupportedFeature(expr.Tok, Feature.Multisets);
       }
     }
 
@@ -2430,8 +2430,8 @@ namespace Microsoft.Dafny.Compilers {
 
         var statementBuf = new NoStatementBuffer();
         ConcreteSyntaxTree sNoStmt = new BuilderSyntaxTree<StatementContainer>(statementBuf, this);
-        CreateIIFE(GetCompileNameNotProtected(subsetTypeDecl.Var), subsetTypeDecl.Var.Type, subsetTypeDecl.Var.tok,
-        Type.Bool, constraint.tok, wr, ref sNoStmt, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody);
+        CreateIIFE(GetCompileNameNotProtected(subsetTypeDecl.Var), subsetTypeDecl.Var.Type, subsetTypeDecl.Var.Tok,
+        Type.Bool, constraint.Tok, wr, ref sNoStmt, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody);
         if (!GetExprBuilder(wrBody, out var wrBodyBuilder)) {
           throw new InvalidOperationException();
         }
@@ -2447,7 +2447,7 @@ namespace Microsoft.Dafny.Compilers {
         Option<_IType>.create_None(), Option<_IFormal>.create_None(), false, signature));
       var wrc = new BuilderSyntaxTree<ExprContainer>(c, this);
       EmitTypeName_Companion(type, wrc,
-        wr, declWithConstraints.tok, null);
+        wr, declWithConstraints.Tok, null);
       return wrc;
     }
 
@@ -2520,7 +2520,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSubSetBoundedPool(Expression of, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      AddUnsupported(of.tok, "<i>EmitSubSetBoundedPool</i>");
+      AddUnsupported(of.Tok, "<i>EmitSubSetBoundedPool</i>");
     }
 
     protected override void EmitMapBoundedPool(Expression map, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -2619,7 +2619,7 @@ namespace Microsoft.Dafny.Compilers {
             }
         }
       } else {
-        AddUnsupported(expr.tok, "<i>UnaryExpr " + op + " without expr container</i>");
+        AddUnsupported(expr.Tok, "<i>UnaryExpr " + op + " without expr container</i>");
       }
     }
 
@@ -3024,7 +3024,7 @@ namespace Microsoft.Dafny.Compilers {
       if (GetStatementBuilder(wr, out var builder)) {
         var eType = e.Type.AsSetType;
         if (eType == null) {// dafny0/GeneralNewtypeCollections
-          AddUnsupportedFeature(e.tok, Feature.NonNativeNewtypes);
+          AddUnsupportedFeature(e.Tok, Feature.NonNativeNewtypes);
         }
         var elemType = GenType(eType.Arg);
         var setBuilderType = DAST.Type.create_SetBuilder(elemType);
@@ -3056,7 +3056,7 @@ namespace Microsoft.Dafny.Compilers {
               )
             ));
       } else {
-        AddUnsupported(e.tok, "<i>EmitMapBuilder_New (non-statement)</i>");
+        AddUnsupported(e.Tok, "<i>EmitMapBuilder_New (non-statement)</i>");
       }
       //throw new InvalidOperationException();
     }
@@ -3072,7 +3072,7 @@ namespace Microsoft.Dafny.Compilers {
         stmtBuilder.AddExpr(ConvertExpression(elmt, builder));
         builder.Builder.AddBuildable(stmtBuilder);
       } else {
-        AddUnsupported(elmt.tok, "<i>EmitSetBuilder_Add</i>");
+        AddUnsupported(elmt.Tok, "<i>EmitSetBuilder_Add</i>");
       }
       //throw new InvalidOperationException();
     }

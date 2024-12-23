@@ -15,7 +15,7 @@ public class UnboxingCastExpr : Expression {  // an UnboxingCastExpr is used onl
   }
 
   public UnboxingCastExpr(Expression e, Type fromType, Type toType)
-    : base(e.tok) {
+    : base(e.Tok) {
     Contract.Requires(e != null);
     Contract.Requires(fromType != null);
     Contract.Requires(toType != null);

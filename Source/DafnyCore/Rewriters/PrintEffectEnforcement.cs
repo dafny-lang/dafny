@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
             var hasPrintAttribute = HasPrintAttribute(member.Attributes);
             if (member is Function f) {
               if (hasPrintAttribute) {
-                ReportError(ErrorId.rw_print_attribute_forbidden_on_functions, member.tok, ":print attribute is not allowed on functions");
+                ReportError(ErrorId.rw_print_attribute_forbidden_on_functions, member.Tok, ":print attribute is not allowed on functions");
               }
               if (f.ByMethodDecl != null && Reporter.Options.EnforcePrintEffects) {
                 f.ByMethodDecl.Body.Body.ForEach(stmt => CheckNoPrintEffects(stmt, f.ByMethodDecl));
@@ -36,9 +36,9 @@ namespace Microsoft.Dafny {
             } else if (member is Method method) {
               if (hasPrintAttribute) {
                 if (member.IsGhost) {
-                  ReportError(ErrorId.rw_print_attribute_forbidden_on_ghost_methods, member.tok, ":print attribute is not allowed on ghost methods");
+                  ReportError(ErrorId.rw_print_attribute_forbidden_on_ghost_methods, member.Tok, ":print attribute is not allowed on ghost methods");
                 } else if (method.OverriddenMethod != null && !HasPrintAttribute(method.OverriddenMethod.Attributes, false)) {
-                  ReportError(ErrorId.rw_override_must_preserve_printing, member.tok,
+                  ReportError(ErrorId.rw_override_must_preserve_printing, member.Tok,
                     "not allowed to override a non-printing method with a possibly printing method ('{0}')", method.Name);
                 }
               } else if (!member.IsGhost && method.Body != null) {
@@ -55,7 +55,7 @@ namespace Microsoft.Dafny {
     bool HasPrintAttribute(Attributes attrs, bool checkParameters = true) {
       var printAttribute = Attributes.Find(attrs, "print");
       if (checkParameters && printAttribute != null && printAttribute.Args.Count != 0) {
-        ReportError(ErrorId.rw_print_attribute_takes_no_arguments, printAttribute.Args[0].tok, ":print attribute does not take any arguments");
+        ReportError(ErrorId.rw_print_attribute_takes_no_arguments, printAttribute.Args[0].Tok, ":print attribute does not take any arguments");
       }
       return printAttribute != null;
     }

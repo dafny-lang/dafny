@@ -107,7 +107,7 @@ namespace Microsoft.Dafny {
     protected override PreType GetAdviceType(PreTypeResolver preTypeResolver) {
       Type StringDecl() {
         var s = preTypeResolver.resolver.moduleInfo.TopLevels["string"];
-        return new UserDefinedType(s.tok, s.Name, s, new List<Type>());
+        return new UserDefinedType(s.Tok, s.Name, s, new List<Type>());
       }
 
       var target = what switch {

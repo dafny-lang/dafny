@@ -87,7 +87,7 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
 
     var s = this;
     if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
     }
 
     s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));

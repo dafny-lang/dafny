@@ -26,7 +26,7 @@ public partial class BoogieGenerator {
       generator.currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       generator.codeContext = f;
 
-      ExpressionTranslator ordinaryEtran = new ExpressionTranslator(generator, generator.Predef, f.tok, f);
+      ExpressionTranslator ordinaryEtran = new ExpressionTranslator(generator, generator.Predef, f.Tok, f);
       var etran = GetExpressionTranslator(f, ordinaryEtran, out var additionalRequires, out var heapParameters);
 
       // parameters of the procedure
@@ -61,12 +61,12 @@ public partial class BoogieGenerator {
       // Enforce 'older' conditions
       var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, procedureParameters);
       if (olderParameterCount != 0) {
-        generator.AddEnsures(ens, new Ensures(f.tok, false, olderCondition, null) {
+        generator.AddEnsures(ens, new Ensures(f.Tok, false, olderCondition, null) {
           Description = new IsOlderProofObligation(olderParameterCount, f.Ins.Count + (f.IsStatic ? 0 : 1))
         });
       }
 
-      var proc = new Procedure(f.tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName,
+      var proc = new Procedure(f.Tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName,
         new List<TypeVariable>(),
         Concat(Concat(typeInParams, heapParameters), procedureParameters), outParams,
         false, requires, mod, ens, etran.TrAttributes(f.Attributes, null));
@@ -86,14 +86,14 @@ public partial class BoogieGenerator {
       if (f is TwoStateFunction) {
         // $Heap := current$Heap;
         var heap = ordinaryEtran.HeapCastToIdentifierExpr;
-        builder.Add(Cmd.SimpleAssign(f.tok, heap, etran.HeapExpr));
+        builder.Add(Cmd.SimpleAssign(f.Tok, heap, etran.HeapExpr));
         etran = ordinaryEtran; // we no longer need the special heap names
       }
 
-      builder.AddCaptureState(f.tok, false, "initial state");
+      builder.AddCaptureState(f.Tok, false, "initial state");
 
-      generator.DefineFrame(f.tok, etran.ReadsFrame(f.tok), f.Reads.Expressions, builder, locals, null);
-      generator.InitializeFuelConstant(f.tok, builder, etran);
+      generator.DefineFrame(f.Tok, etran.ReadsFrame(f.Tok), f.Reads.Expressions, builder, locals, null);
+      generator.InitializeFuelConstant(f.Tok, builder, etran);
 
       var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, builder);
 
@@ -103,11 +103,11 @@ public partial class BoogieGenerator {
           var e = formal.DefaultValue;
           generator.CheckWellformed(e, wfo, locals, builder,
             etran.WithReadsFrame(etran.readsFrame, null)); // No frame scope for default values
-          builder.Add(new AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-          generator.CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
+          builder.Add(new AssumeCmd(e.Tok, etran.CanCallAssumption(e)));
+          generator.CheckSubrange(e.Tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
 
           if (formal.IsOld) {
-            Expr wh = generator.GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+            Expr wh = generator.GetWhereClause(e.Tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
               var desc = new IsAllocated("default value", "in the two-state function's previous state", e);
               builder.Add(generator.Assert(generator.GetToken(e), wh, desc, builder.Context));
@@ -151,9 +151,9 @@ public partial class BoogieGenerator {
       CheckBodyAndEnsuresClauseWellformedness(f, etran, locals, implementationParameters, builderInitializationArea, builder);
 
       if (generator.EmitImplementation(f.Attributes)) {
-        var s0 = builderInitializationArea.Collect(f.tok);
-        var s1 = builder.Collect(f.tok);
-        var implBody = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), f.tok);
+        var s0 = builderInitializationArea.Collect(f.Tok);
+        var s1 = builder.Collect(f.Tok);
+        var implBody = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), f.Tok);
 
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
@@ -176,7 +176,7 @@ public partial class BoogieGenerator {
       // If the function is marked as {:concurrent}, check that the reads clause is empty.
       if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName)) {
         var desc = new ConcurrentFrameEmpty(f, "reads");
-        generator.CheckFrameEmpty(f.tok, etran, etran.ReadsFrame(f.tok), builder, desc, null);
+        generator.CheckFrameEmpty(f.Tok, etran, etran.ReadsFrame(f.Tok), builder, desc, null);
       }
     }
 
@@ -198,7 +198,7 @@ public partial class BoogieGenerator {
       var bodyCheckBuilder = GetBodyCheckBuilder(f, etran, inParams, locals, builderInitializationArea);
 
       // Combine the two, letting the postcondition be checked on after the "bodyCheckBuilder" branch
-      builder.Add(new IfCmd(f.tok, null, postCheckBuilder.Collect(f.tok), null, bodyCheckBuilder.Collect(f.tok)));
+      builder.Add(new IfCmd(f.Tok, null, postCheckBuilder.Collect(f.Tok), null, bodyCheckBuilder.Collect(f.Tok)));
     }
 
     private BoogieStmtListBuilder GetBodyCheckBuilder(Function f, ExpressionTranslator etran,
@@ -215,8 +215,8 @@ public partial class BoogieGenerator {
         void CheckPostcondition(BoogieStmtListBuilder innerBuilder, Expression innerBody) {
           generator.CheckSubsetType(etran, innerBody, selfCall, f.ResultType, innerBuilder, "function call result");
           if (f.Result != null) {
-            var cmd = TrAssumeCmd(f.tok, Expr.Eq(selfCall, generator.TrVar(f.tok, f.Result)));
-            generator.proofDependencies?.AddProofDependencyId(cmd, f.tok, new FunctionDefinitionDependency(f));
+            var cmd = TrAssumeCmd(f.Tok, Expr.Eq(selfCall, generator.TrVar(f.Tok, f.Result)));
+            generator.proofDependencies?.AddProofDependencyId(cmd, f.Tok, new FunctionDefinitionDependency(f));
             innerBuilder.Add(cmd);
           }
           if (doReadsChecks) {
@@ -238,13 +238,13 @@ public partial class BoogieGenerator {
           builderInitializationArea.Add(cmd);
         }
       }
-      bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Expr.False));
+      bodyCheckBuilder.Add(TrAssumeCmd(f.Tok, Expr.False));
 
       return bodyCheckBuilder;
     }
 
     private Expr GetSelfCall(Function f, ExpressionTranslator etran, List<Variable> parameters) {
-      var funcId = new FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, generator.TrType(f.ResultType)));
+      var funcId = new FunctionCall(new Bpl.IdentifierExpr(f.Tok, f.FullSanitizedName, generator.TrType(f.ResultType)));
       var args = new List<Expr>();
       foreach (var p in GetTypeParams(f)) {
         args.Add(generator.TrTypeParameter(p));
@@ -267,10 +267,10 @@ public partial class BoogieGenerator {
       }
 
       foreach (Variable parameter in parameters) {
-        args.Add(new Bpl.IdentifierExpr(f.tok, parameter));
+        args.Add(new Bpl.IdentifierExpr(f.Tok, parameter));
       }
 
-      Expr funcAppl = new NAryExpr(f.tok, funcId, args);
+      Expr funcAppl = new NAryExpr(f.Tok, funcId, args);
       return funcAppl;
     }
 
@@ -302,23 +302,23 @@ public partial class BoogieGenerator {
       }
 
       if (!f.IsStatic) {
-        args.Add(new Bpl.IdentifierExpr(f.tok, etran.This));
+        args.Add(new Bpl.IdentifierExpr(f.Tok, etran.This));
       }
 
       foreach (var p in f.Ins) {
-        args.Add(new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), generator.TrType(p.Type)));
+        args.Add(new Bpl.IdentifierExpr(p.Tok, p.AssignUniqueName(f.IdGenerator), generator.TrType(p.Type)));
       }
 
-      Bpl.IdentifierExpr funcID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, generator.TrType(f.ResultType));
-      Expr funcAppl = new NAryExpr(f.tok, new FunctionCall(funcID), args);
+      Bpl.IdentifierExpr funcID = new Bpl.IdentifierExpr(f.Tok, f.FullSanitizedName, generator.TrType(f.ResultType));
+      Expr funcAppl = new NAryExpr(f.Tok, new FunctionCall(funcID), args);
 
-      var wh = generator.GetWhereClause(f.tok, funcAppl, f.ResultType, etran, NOALLOC);
+      var wh = generator.GetWhereClause(f.Tok, funcAppl, f.ResultType, etran, NOALLOC);
       if (wh != null) {
-        postCheckBuilder.Add(TrAssumeCmd(f.tok, wh));
+        postCheckBuilder.Add(TrAssumeCmd(f.Tok, wh));
         if (f.Result != null) {
-          var resultVarId = new Bpl.IdentifierExpr(f.Result.tok, f.Result.AssignUniqueName(f.IdGenerator), generator.TrType(f.Result.Type));
-          wh = generator.GetWhereClause(f.Result.tok, resultVarId, f.Result.Type, etran, NOALLOC);
-          postCheckBuilder.Add(TrAssumeCmd(f.Result.tok, wh));
+          var resultVarId = new Bpl.IdentifierExpr(f.Result.Tok, f.Result.AssignUniqueName(f.IdGenerator), generator.TrType(f.Result.Type));
+          wh = generator.GetWhereClause(f.Result.Tok, resultVarId, f.Result.Type, etran, NOALLOC);
+          postCheckBuilder.Add(TrAssumeCmd(f.Result.Tok, wh));
         }
       }
       // Now for the ensures clauses
@@ -327,7 +327,7 @@ public partial class BoogieGenerator {
         generator.CheckWellformedAndAssume(p.E, new WFOptions(f, false), locals, postCheckBuilder, etran, "ensures clause");
       }
 
-      postCheckBuilder.Add(TrAssumeCmd(f.tok, Expr.False));
+      postCheckBuilder.Add(TrAssumeCmd(f.Tok, Expr.False));
       return postCheckBuilder;
     }
 
@@ -337,19 +337,19 @@ public partial class BoogieGenerator {
       additionalRequires = new();
       inParams_Heap = new List<Variable>();
       if (f is TwoStateFunction) {
-        var prevHeapVar = new Bpl.Formal(f.tok, new TypedIdent(f.tok, "previous$Heap", generator.Predef.HeapType), true);
-        var currHeapVar = new Bpl.Formal(f.tok, new TypedIdent(f.tok, "current$Heap", generator.Predef.HeapType), true);
+        var prevHeapVar = new Bpl.Formal(f.Tok, new TypedIdent(f.Tok, "previous$Heap", generator.Predef.HeapType), true);
+        var currHeapVar = new Bpl.Formal(f.Tok, new TypedIdent(f.Tok, "current$Heap", generator.Predef.HeapType), true);
         inParams_Heap.Add(prevHeapVar);
         inParams_Heap.Add(currHeapVar);
-        Expr prevHeap = new Bpl.IdentifierExpr(f.tok, prevHeapVar);
-        Expr currHeap = new Bpl.IdentifierExpr(f.tok, currHeapVar);
+        Expr prevHeap = new Bpl.IdentifierExpr(f.Tok, prevHeapVar);
+        Expr currHeap = new Bpl.IdentifierExpr(f.Tok, currHeapVar);
         etran = new ExpressionTranslator(generator, generator.Predef, currHeap, prevHeap, f);
 
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
         var a1 = generator.HeapSucc(prevHeap, currHeap);
-        var a2 = generator.FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-        additionalRequires.Add(generator.Requires(f.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
+        var a2 = generator.FunctionCall(f.Tok, BuiltinFunction.IsGoodHeap, null, currHeap);
+        additionalRequires.Add(generator.Requires(f.Tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
       } else {
         etran = ordinaryEtran;
       }
@@ -364,7 +364,7 @@ public partial class BoogieGenerator {
         Contract.Assert(!p.IsOld);
         Bpl.Type varType = generator.TrType(p.Type);
         // Note, this variable should NOT have a "where" clause, because it gets assumed already at the beginning of the CheckWellformed procedure
-        outParams.Add(new Bpl.Formal(p.tok, new TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType), true));
+        outParams.Add(new Bpl.Formal(p.Tok, new TypedIdent(p.Tok, p.AssignUniqueName(f.IdGenerator), varType), true));
       }
 
       return outParams;
@@ -373,10 +373,10 @@ public partial class BoogieGenerator {
     private List<Bpl.Requires> GetWellformednessProcedureRequires(Function f, ExpressionTranslator etran) {
       var requires = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-      requires.Add(generator.FreeRequires(f.tok, etran.HeightContext(f), null));
+      requires.Add(generator.FreeRequires(f.Tok, etran.HeightContext(f), null));
 
-      foreach (var typeBoundAxiom in generator.TypeBoundAxioms(f.tok, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
-        requires.Add(generator.Requires(f.tok, true, null, typeBoundAxiom, null, null, null));
+      foreach (var typeBoundAxiom in generator.TypeBoundAxioms(f.Tok, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
+        requires.Add(generator.Requires(f.Tok, true, null, typeBoundAxiom, null, null, null));
       }
 
       return requires;
@@ -385,21 +385,21 @@ public partial class BoogieGenerator {
     private List<Variable> GetParameters(Function f, ExpressionTranslator etran) {
       var inParams = new List<Variable>();
       if (!f.IsStatic) {
-        var th = new Bpl.IdentifierExpr(f.tok, "this", generator.TrReceiverType(f));
+        var th = new Bpl.IdentifierExpr(f.Tok, "this", generator.TrReceiverType(f));
         Expr wh = BplAnd(
           generator.ReceiverNotNull(th),
-          (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, th, ModuleResolver.GetReceiverType(f.tok, f)));
-        Bpl.Formal thVar = new Bpl.Formal(f.tok, new TypedIdent(f.tok, "this", generator.TrReceiverType(f), wh), true);
+          (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.Tok, th, ModuleResolver.GetReceiverType(f.Tok, f)));
+        Bpl.Formal thVar = new Bpl.Formal(f.Tok, new TypedIdent(f.Tok, "this", generator.TrReceiverType(f), wh), true);
         inParams.Add(thVar);
       }
 
       foreach (Formal parameter in f.Ins) {
         Bpl.Type varType = generator.TrType(parameter.Type);
-        Expr wh = generator.GetWhereClause(parameter.tok,
-          new Bpl.IdentifierExpr(parameter.tok, parameter.AssignUniqueName(f.IdGenerator), varType), parameter.Type,
+        Expr wh = generator.GetWhereClause(parameter.Tok,
+          new Bpl.IdentifierExpr(parameter.Tok, parameter.AssignUniqueName(f.IdGenerator), varType), parameter.Type,
           parameter.IsOld ? etran.Old : etran, f is TwoStateFunction ? ISALLOC : NOALLOC);
-        inParams.Add(new Bpl.Formal(parameter.tok,
-          new TypedIdent(parameter.tok, parameter.AssignUniqueName(f.IdGenerator), varType, wh), true));
+        inParams.Add(new Bpl.Formal(parameter.Tok,
+          new TypedIdent(parameter.Tok, parameter.AssignUniqueName(f.IdGenerator), varType, wh), true));
       }
 
       return inParams;

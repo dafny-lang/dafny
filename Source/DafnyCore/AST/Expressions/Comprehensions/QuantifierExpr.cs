@@ -17,7 +17,7 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
     Expression accumulator = SplitQuantifier[0];
     for (int tid = 1; tid < SplitQuantifier.Count; tid++) {
-      accumulator = new BinaryExpr(Term.tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
+      accumulator = new BinaryExpr(Term.Tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
     }
     return accumulator;
   }

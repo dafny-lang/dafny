@@ -565,7 +565,7 @@ class DafnyDoc {
         if (f.IsOpaque) {
           details.Append(br).Append(space4).Append("Function body is opaque").Append(br).Append(eol);
         }
-        var brackets = new RangeToken(body.StartToken.Prev, body.EndToken.Next);
+        var brackets = new SourceOrigin(body.StartToken.Prev, body.EndToken.Next);
         int column = brackets.StartToken.line != brackets.EndToken.line ? brackets.EndToken.col : 0;
         var offset = column <= 1 ? "" : new StringBuilder().Insert(0, " ", column - 1).ToString();
         details.Append(Pre(offset + brackets.PrintOriginal()));

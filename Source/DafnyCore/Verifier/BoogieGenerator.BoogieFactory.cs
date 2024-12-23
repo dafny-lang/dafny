@@ -219,7 +219,7 @@ namespace Microsoft.Dafny {
       string comment = null, bool warnWhenUnused = false, Bpl.QKeyValue attributes = null) {
       var expr = etran.TrExpr(dafnyExpr);
       var cmd = TrAssumeCmd(tok, extendExpr(expr), attributes);
-      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
+      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.Tok, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
       return cmd;
     }
 
@@ -859,8 +859,8 @@ namespace Microsoft.Dafny {
 
     /* This function allows you to replace, for example:
 
-           Bpl.BoundVariable iVar = new Bpl.BoundVariable(e.tok, new Bpl.TypedIdent(e.tok, "$i", Bpl.Type.Int));
-           Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(e.tok, iVar);
+           Bpl.BoundVariable iVar = new Bpl.BoundVariable(e.Tok, new Bpl.TypedIdent(e.Tok, "$i", Bpl.Type.Int));
+           Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(e.Tok, iVar);
 
        with:
 
@@ -903,7 +903,7 @@ namespace Microsoft.Dafny {
           return boogieRangeToken.Center;
         }
 
-        return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
+        return new SourceOrigin(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
       }
 
       if (boogieToken is NestedOrigin nestedToken) {
