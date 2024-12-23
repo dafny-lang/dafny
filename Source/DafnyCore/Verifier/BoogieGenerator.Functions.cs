@@ -544,7 +544,7 @@ public partial class BoogieGenerator {
 
       AddOtherDefinition(precondF, new Bpl.Axiom(f.Tok,
         BplForall(f.Tok, new List<Bpl.TypeVariable>(), forallFormals, null, trig, Bpl.Expr.Imp(appl, useViaCanCall)),
-        "#requires ==> #canCall for " + f.FullSanitizedName)) ;
+        "#requires ==> #canCall for " + f.FullSanitizedName));
     }
 
     if (body == null || !RevealedInScope(f)) {
