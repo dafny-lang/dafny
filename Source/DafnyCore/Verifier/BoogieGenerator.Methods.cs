@@ -1152,7 +1152,7 @@ namespace Microsoft.Dafny {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
         var subEn = sub.Substitute(en.E);
         foreach (var s in TrSplitExpr(new BodyTranslationContext(false), subEn, etran, false, out _).Where(s => s.IsChecked)) {
-          builder.Add(TrAssumeCmd(f.tok, etran.CanCallAssumption(subEn, cco)));
+          builder.Add(TrAssumeCmd(f.Tok, etran.CanCallAssumption(subEn, cco)));
           var constraint = allOverrideEns == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
@@ -1405,10 +1405,10 @@ namespace Microsoft.Dafny {
 
       Bpl.Expr canCallFunc, canCallOverridingFunc;
       {
-        var callName = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-        canCallFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), argsJFCanCall);
-        callName = new Bpl.IdentifierExpr(overridingFunction.tok, overridingFunction.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-        canCallOverridingFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), argsCFCanCall);
+        var callName = new Bpl.IdentifierExpr(f.Tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+        canCallFunc = new Bpl.NAryExpr(f.Tok, new Bpl.FunctionCall(callName), argsJFCanCall);
+        callName = new Bpl.IdentifierExpr(overridingFunction.Tok, overridingFunction.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+        canCallOverridingFunc = new Bpl.NAryExpr(f.Tok, new Bpl.FunctionCall(callName), argsCFCanCall);
       }
 
       // useViaCanCall: C.F#canCall(args)
@@ -1518,7 +1518,7 @@ namespace Microsoft.Dafny {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
         var subEn = sub.Substitute(en.E);
         foreach (var s in TrSplitExpr(new BodyTranslationContext(false), subEn, etran, false, out _).Where(s => s.IsChecked)) {
-          builder.Add(TrAssumeCmd(m.OverriddenMethod.tok, etran.CanCallAssumption(subEn)));
+          builder.Add(TrAssumeCmd(m.OverriddenMethod.Tok, etran.CanCallAssumption(subEn)));
           var constraint = allOverrideEns == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
@@ -1549,7 +1549,7 @@ namespace Microsoft.Dafny {
       //generating class pre-conditions
       foreach (var req in ConjunctsOf(m.Req)) {
         foreach (var s in TrSplitExpr(new BodyTranslationContext(false), req.E, etran, false, out _).Where(s => s.IsChecked)) {
-          builder.Add(TrAssumeCmd(m.tok, etran.CanCallAssumption(req.E)));
+          builder.Add(TrAssumeCmd(m.Tok, etran.CanCallAssumption(req.E)));
           var constraint = allTraitReqs == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
@@ -1829,7 +1829,7 @@ namespace Microsoft.Dafny {
         var comment = "user-defined preconditions";
         foreach (var p in ConjunctsOf(m.Req)) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          req.Add(FreeRequires(p.E.tok, etran.CanCallAssumption(p.E), comment, true));
+          req.Add(FreeRequires(p.E.Tok, etran.CanCallAssumption(p.E), comment, true));
           comment = null;
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
@@ -1852,7 +1852,7 @@ namespace Microsoft.Dafny {
         // assume can-call conditions for the modifies clause
         comment = "user-defined frame expressions";
         foreach (var frameExpression in m.Mod.Expressions) {
-          req.Add(FreeRequires(frameExpression.tok, etran.CanCallAssumption(frameExpression.E), comment, true));
+          req.Add(FreeRequires(frameExpression.Tok, etran.CanCallAssumption(frameExpression.E), comment, true));
           comment = null;
         }
 

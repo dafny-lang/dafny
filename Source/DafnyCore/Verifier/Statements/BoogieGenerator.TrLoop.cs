@@ -259,7 +259,7 @@ public partial class BoogieGenerator {
     }
     // check definedness of decreases clause
     foreach (Expression e in theDecreases) {
-      builder.Add(TrAssumeCmd(e.tok, Bpl.Expr.Imp(w, etran.CanCallAssumption(e))));
+      builder.Add(TrAssumeCmd(e.Tok, Bpl.Expr.Imp(w, etran.CanCallAssumption(e))));
       TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
     }
     if (codeContext is IMethodCodeContext) {
@@ -373,7 +373,7 @@ public partial class BoogieGenerator {
           initDecrsDafny.Add(eInit);
           decrs.Add(etran.TrExpr(e));
           // need to add can calls again because the actual loop body updates the variables
-          loopBodyBuilder.Add(TrAssumeCmd(e.tok, BplImp(w, etran.CanCallAssumption(e))));
+          loopBodyBuilder.Add(TrAssumeCmd(e.Tok, BplImp(w, etran.CanCallAssumption(e))));
         }
         if (includeTerminationCheck) {
           AddComment(loopBodyBuilder, loop, "loop termination check");

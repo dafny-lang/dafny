@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
 
       public Boogie.Expr HeapExprForArrow(Type arrowType) {
         if (arrowType.IsArrowTypeWithoutReadEffects) {
-          return BoogieGenerator.NewOneHeapExpr(arrowType.tok);
+          return BoogieGenerator.NewOneHeapExpr(arrowType.Tok);
         } else {
           return HeapExpr;
         }
@@ -2123,7 +2123,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       }
 
       public Expression MakeAllowance(FunctionCallExpr e, CanCallOptions cco = null) {
-        Expression allowance = Expression.CreateBoolLiteral(e.tok, true);
+        Expression allowance = Expression.CreateBoolLiteral(e.Tok, true);
         if (!e.Function.IsStatic) {
           allowance = Expression.CreateAnd(allowance, Expression.CreateEq(e.Receiver, new ThisExpr(e.Function), e.Receiver.Type));
         }
@@ -2199,7 +2199,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             if (ModeledAsBoxType(arg.Type)) {
               return inner;
             } else {
-              return BoogieGenerator.FunctionCall(arg.tok, BuiltinFunction.Box, null, inner);
+              return BoogieGenerator.FunctionCall(arg.Tok, BuiltinFunction.Box, null, inner);
             }
           };
 
@@ -2209,7 +2209,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
               Cons(TrExpr(e.Function),
                 e.Args.ConvertAll(arg => TrArg(arg)))));
 
-          var requiresk = FunctionCall(e.tok, Requires(e.Args.Count), Boogie.Type.Bool, args);
+          var requiresk = FunctionCall(e.Tok, Requires(e.Args.Count), Boogie.Type.Bool, args);
           return BplAnd(
             BplAnd(
               Cons(CanCallAssumption(e.Function, cco),
@@ -2243,30 +2243,30 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           //             CanCallAssumption[[ init(i) ]])
 
           var varNameGen = BoogieGenerator.CurrentIdGenerator.NestedFreshIdGenerator("seqinit$");
-          var indexVar = new Bpl.BoundVariable(e.tok, new Bpl.TypedIdent(e.tok, varNameGen.FreshId("#i"), Bpl.Type.Int));
-          var index = new Bpl.IdentifierExpr(e.tok, indexVar);
+          var indexVar = new Bpl.BoundVariable(e.Tok, new Bpl.TypedIdent(e.Tok, varNameGen.FreshId("#i"), Bpl.Type.Int));
+          var index = new Bpl.IdentifierExpr(e.Tok, indexVar);
           var indexRange = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), index), Bpl.Expr.Lt(index, TrExpr(e.N)));
-          var initFVar = new Bpl.BoundVariable(e.tok, new Bpl.TypedIdent(e.tok, varNameGen.FreshId("#f"), Predef.HandleType));
+          var initFVar = new Bpl.BoundVariable(e.Tok, new Bpl.TypedIdent(e.Tok, varNameGen.FreshId("#f"), Predef.HandleType));
 
-          var initF = new Bpl.IdentifierExpr(e.tok, initFVar);
+          var initF = new Bpl.IdentifierExpr(e.Tok, initFVar);
 
-          var dafnyInitApplication = new ApplyExpr(e.tok, e.Initializer,
+          var dafnyInitApplication = new ApplyExpr(e.Tok, e.Initializer,
             new List<Expression>() { new BoogieWrapper(index, Type.Int) },
             Token.NoToken) {
             Type = e.Initializer.Type.AsArrowType.Result
           };
           var canCall = CanCallAssumption(dafnyInitApplication);
 
-          dafnyInitApplication = new ApplyExpr(e.tok, new BoogieWrapper(initF, e.Initializer.Type),
+          dafnyInitApplication = new ApplyExpr(e.Tok, new BoogieWrapper(initF, e.Initializer.Type),
             new List<Expression>() { new BoogieWrapper(index, Type.Int) },
             Token.NoToken) {
             Type = e.Initializer.Type.AsArrowType.Result
           };
           var apply = TrExpr(dafnyInitApplication);
 
-          var tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { apply });
-          var ccaInit = new Bpl.ForallExpr(e.tok, new List<Bpl.Variable>() { indexVar }, tr, BplImp(indexRange, canCall));
-          var rhsAppliedToIndex = new Bpl.LetExpr(e.tok, new List<Variable>() { initFVar },
+          var tr = new Bpl.Trigger(e.Tok, true, new List<Bpl.Expr> { apply });
+          var ccaInit = new Bpl.ForallExpr(e.Tok, new List<Bpl.Variable>() { indexVar }, tr, BplImp(indexRange, canCall));
+          var rhsAppliedToIndex = new Bpl.LetExpr(e.Tok, new List<Variable>() { initFVar },
             new List<Expr>() { TrExpr(e.Initializer) }, null, ccaInit);
 
           return BplAnd(BplAnd(CanCallAssumption(e.N, cco), CanCallAssumption(e.Initializer, cco)), rhsAppliedToIndex);

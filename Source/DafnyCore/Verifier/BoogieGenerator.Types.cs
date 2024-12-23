@@ -1011,7 +1011,7 @@ public partial class BoogieGenerator {
       }
 
       var comment = $"$IsAlloc axiom for {dd.WhatKind} {fullName}";
-      var axiom = new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(isAlloc), body), comment);
+      var axiom = new Bpl.Axiom(dd.Tok, BplForall(vars, BplTrigger(isAlloc), body), comment);
       AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
 
     } else {

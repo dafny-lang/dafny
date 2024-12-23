@@ -161,7 +161,7 @@ namespace Microsoft.Dafny {
               var bImp = new BoogieStmtListBuilder(this, options, builder.Context);
               bImp.Add(TrAssumeCmd(expr.Tok, etran.CanCallAssumption(expr)));
               bImp.Add(TrAssumeCmdWithDependencies(etran, expr.Tok, expr, comment));
-              builder.Add(new Bpl.IfCmd(expr.Tok, null, bAnd.Collect(expr.tok), null, bImp.Collect(expr.tok)));
+              builder.Add(new Bpl.IfCmd(expr.Tok, null, bAnd.Collect(expr.Tok), null, bImp.Collect(expr.Tok)));
             }
             return;
           case BinaryExpr.ResolvedOpcode.Or: {
@@ -823,7 +823,7 @@ namespace Microsoft.Dafny {
                   var directPrecond = directSub.Substitute(p.E);
 
                   Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
-                  builder.Add(TrAssumeCmd(precond.tok, etran.CanCallAssumption(precond)));
+                  builder.Add(TrAssumeCmd(precond.Tok, etran.CanCallAssumption(precond)));
                   var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
                   foreach (var ss in TrSplitExpr(builder.Context, precond, etran, true, out _)) {
                     if (ss.IsChecked) {
@@ -865,8 +865,6 @@ namespace Microsoft.Dafny {
                   if (wfOptions.DoOnlyCoarseGrainedTerminationChecks) {
                     builder.Add(Assert(GetToken(expr), Bpl.Expr.False, new IsNonRecursive(), builder.Context));
                   } else {
-                    List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-                    List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
                     if (e.Function == wfOptions.SelfCallsAllowance) {
                       allowance = Expression.CreateBoolLiteral(e.Tok, true);
                       if (!e.Function.IsStatic) {
@@ -1272,7 +1270,7 @@ namespace Microsoft.Dafny {
                     var different = BplOr(
                       Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
                       Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
-                    b.Add(new AssumeCmd(mc.TermLeft.tok, canCalls));
+                    b.Add(new AssumeCmd(mc.TermLeft.Tok, canCalls));
                     b.Add(Assert(GetToken(mc.TermLeft), different,
                       new ComprehensionNoAlias(mc.BoundVars, mc.Range, mc.TermLeft, mc.Term), builder.Context));
                   });
@@ -1390,7 +1388,7 @@ namespace Microsoft.Dafny {
       BoogieStmtListBuilder builder, string comment) {
 
       Contract.Assert(resultType != null);
-      builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
+      builder.Add(TrAssumeCmd(expr.Tok, etran.CanCallAssumption(expr)));
       var bResult = etran.TrExpr(expr);
       CheckSubrange(expr.Tok, bResult, expr.Type, resultType, expr, builder);
       builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.Tok, expr,

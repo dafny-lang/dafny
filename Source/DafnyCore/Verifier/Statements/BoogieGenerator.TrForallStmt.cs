@@ -547,7 +547,7 @@ public partial class BoogieGenerator {
 
       // check that postconditions hold
       foreach (var ens in ConjunctsOf(forallStmt.Ens)) {
-        definedness.Add(TrAssumeCmd(ens.E.tok, etran.CanCallAssumption(ens.E)));
+        definedness.Add(TrAssumeCmd(ens.E.Tok, etran.CanCallAssumption(ens.E)));
 
         foreach (var split in TrSplitExpr(definedness.Context, ens.E, etran, true, out var splitHappened)) {
           if (split.IsChecked) {

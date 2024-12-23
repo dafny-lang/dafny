@@ -49,7 +49,7 @@ public partial class BoogieGenerator {
         bool splitHappened /*we actually don't care*/ = generator.TrSplitExpr(context, ensures.E, splits, true, functionHeight, true, etran);
         var (errorMessage, successMessage) = generator.CustomErrorMessage(ensures.Attributes);
         var canCalls = etran.CanCallAssumption(ensures.E, new CanCallOptions(true, f));
-        generator.AddEnsures(ens, generator.FreeEnsures(ensures.E.tok, canCalls, null, true));
+        generator.AddEnsures(ens, generator.FreeEnsures(ensures.E.Tok, canCalls, null, true));
         foreach (var s in splits) {
           if (s.IsChecked && !s.Tok.IsInherited(generator.currentModule)) {
             generator.AddEnsures(ens, generator.EnsuresWithDependencies(s.Tok, false, ensures.E, s.E, errorMessage, successMessage, null));

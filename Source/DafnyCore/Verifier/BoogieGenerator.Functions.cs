@@ -524,8 +524,8 @@ public partial class BoogieGenerator {
       preReqAxiom = BplAnd(preRA, pre);
     }
 
-    var canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-    var useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
+    var canCallFuncID = new Bpl.IdentifierExpr(f.Tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+    var useViaCanCall = new Bpl.NAryExpr(f.Tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
 
     // Add the precondition function and its axiom (which is equivalent to the anteReqAxiom)
     if (body == null || (RevealedInScope(f) && lits == null)) {
@@ -542,9 +542,9 @@ public partial class BoogieGenerator {
         BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
         "#requires axiom for " + f.FullSanitizedName));
 
-      AddOtherDefinition(precondF, new Bpl.Axiom(f.tok,
-        BplForall(f.tok, new List<Bpl.TypeVariable>(), forallFormals, null, trig, Bpl.Expr.Imp(appl, useViaCanCall)),
-        "#requires ==> #canCall for " + f.FullSanitizedName));
+      AddOtherDefinition(precondF, new Bpl.Axiom(f.Tok,
+        BplForall(f.Tok, new List<Bpl.TypeVariable>(), forallFormals, null, trig, Bpl.Expr.Imp(appl, useViaCanCall)),
+        "#requires ==> #canCall for " + f.FullSanitizedName)) ;
     }
 
     if (body == null || !RevealedInScope(f)) {
@@ -970,7 +970,7 @@ public partial class BoogieGenerator {
       BplOr(new Bpl.NAryExpr(f.Tok, canCall, f0argsCanCall), fwf0));
     */
 
-    var fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+    var fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.Tok, f.FullSanitizedName, TrType(f.ResultType)));
     var F0 = new Bpl.NAryExpr(f.Tok, fn, f0args);
     var F1 = new Bpl.NAryExpr(f.Tok, fn, f1args);
     var eq = BplAnd(Bpl.Expr.Eq(F0, F1), Bpl.Expr.Eq(f0canCall, f1canCall));
