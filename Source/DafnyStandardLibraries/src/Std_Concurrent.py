@@ -52,7 +52,7 @@ class MutableMap:
     def Get(self, k):
         self.lock.Lock__()
         try:
-            v = self.map.get(k)
+            v = self.map[k]
         except KeyError:
             self.lock.Unlock()
             return Std_Wrappers.Option_None()
