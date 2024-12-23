@@ -108,7 +108,7 @@ namespace Microsoft.Dafny {
     }
 
     internal IOrigin GetToken(INode node) {
-      return node.Origin;
+      return node is IHasNavigationToken hasNavigationToken ? hasNavigationToken.NavigationToken : node.Origin;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {

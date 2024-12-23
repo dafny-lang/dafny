@@ -539,7 +539,7 @@ public class Compilation : IDisposable {
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, canVerify.NavigationToken,
+    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
