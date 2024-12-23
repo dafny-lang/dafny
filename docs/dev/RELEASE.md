@@ -26,9 +26,6 @@
    is already set for the next release. However, if you wish to change the
    minor or major version, see [VERSIONBUMP.md](VERSIONBUMP.md)
 
-1. Prepare a release commit containing the changes from the last two
-   steps and push it.
-
 1. Run `./Scripts/prepare_release.py $VER
    release` from the root of the repository. The script will tag the
    current commit and push it. A
