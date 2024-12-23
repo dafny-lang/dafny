@@ -1,8 +1,8 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=4 --refresh-exit-code=2 "%s"
 
 
-trait A<X> { }
-trait B<Y0, Y1> { }
+trait A<X> extends object { }
+trait B<Y0, Y1> extends object { }
 trait C<Z> extends B<int, Z> { }
 
 class K<U> extends object, B<int, U> { }
