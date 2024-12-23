@@ -156,15 +156,41 @@ public abstract class Expression : TokenNode {
 
   public virtual bool IsImplicit => false;
 
+  public static IEnumerable<Expression> ConjunctsWithLetsOnOutside(Expression expr) {
+    foreach (var conjunct in Conjuncts(expr)) {
+      if (conjunct is LetExpr { Exact: true } letExpr) {
+        foreach (var letBodyConjunct in ConjunctsWithLetsOnOutside(letExpr.Body)) {
+          yield return new LetExpr(letExpr.tok, letExpr.LHSs, letExpr.RHSs, letBodyConjunct, letExpr.Exact, letExpr.Attributes) {
+            Type = letExpr.Type
+          };
+        }
+      } else {
+        yield return conjunct;
+      }
+    }
+  }
+
+  /// <summary>
+  /// Return the negation of each of the expressions in "expressions".
+  /// If there is just one expression in "expressions", then use the given token "tok" for the negation.
+  /// Otherwise, use the token from each expression.
+  /// </summary>
+  static IEnumerable<Expression> NegateEach(IOrigin tok, IEnumerable<Expression> expressions) {
+    var exprs = expressions.ToList();
+    foreach (Expression e in exprs) {
+      yield return Expression.CreateNot(exprs.Count == 1 ? tok : e.tok, e);
+    }
+  }
+
   public static IEnumerable<Expression> Conjuncts(Expression expr) {
     Contract.Requires(expr != null);
     Contract.Requires(expr.Type.IsBoolType);
     Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
 
     expr = StripParens(expr);
-    if (expr is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
-      foreach (Expression e in Disjuncts(unary.E)) {
-        yield return Expression.CreateNot(e.Tok, e);
+    if (expr is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Not } unary) {
+      foreach (Expression e in NegateEach(expr.Tok, Disjuncts(unary.E))) {
+        yield return e;
       }
       yield break;
 
@@ -189,18 +215,18 @@ public abstract class Expression : TokenNode {
     Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
 
     expr = StripParens(expr);
-    if (expr is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
-      foreach (Expression e in Conjuncts(unary.E)) {
-        yield return Expression.CreateNot(e.Tok, e);
+    if (expr is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Not } unary) {
+      foreach (Expression e in NegateEach(expr.Tok, Conjuncts(unary.E))) {
+        yield return e;
       }
       yield break;
 
     } else if (expr is BinaryExpr bin) {
       if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
-        foreach (Expression e in Conjuncts(bin.E0)) {
+        foreach (Expression e in Disjuncts(bin.E0)) {
           yield return e;
         }
-        foreach (Expression e in Conjuncts(bin.E1)) {
+        foreach (Expression e in Disjuncts(bin.E1)) {
           yield return e;
         }
         yield break;
@@ -208,7 +234,7 @@ public abstract class Expression : TokenNode {
         foreach (Expression e in Conjuncts(bin.E0)) {
           yield return Expression.CreateNot(e.Tok, e);
         }
-        foreach (Expression e in Conjuncts(bin.E1)) {
+        foreach (Expression e in Disjuncts(bin.E1)) {
           yield return e;
         }
         yield break;

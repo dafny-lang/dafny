@@ -43,11 +43,13 @@ public partial class BoogieGenerator {
 
       var context = new BodyTranslationContext(f.ContainsHide);
       var ens = new List<Bpl.Ensures>();
-      foreach (AttributedExpression ensures in f.Ens) {
+      foreach (AttributedExpression ensures in ConjunctsOf(f.Ens)) {
         var functionHeight = generator.currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
         var splits = new List<SplitExprInfo>();
         bool splitHappened /*we actually don't care*/ = generator.TrSplitExpr(context, ensures.E, splits, true, functionHeight, true, etran);
         var (errorMessage, successMessage) = generator.CustomErrorMessage(ensures.Attributes);
+        var canCalls = etran.CanCallAssumption(ensures.E, new CanCallOptions(true, f));
+        generator.AddEnsures(ens, generator.FreeEnsures(ensures.E.Tok, canCalls, null, true));
         foreach (var s in splits) {
           if (s.IsChecked && !s.Tok.IsInherited(generator.currentModule)) {
             generator.AddEnsures(ens, generator.EnsuresWithDependencies(s.Tok, false, ensures.E, s.E, errorMessage, successMessage, null));
@@ -119,7 +121,7 @@ public partial class BoogieGenerator {
       // of them), do the postponed reads checks.
       delayer.DoWithDelayedReadsChecks(false, wfo => {
         builder.Add(new CommentCmd("Check well-formedness of preconditions, and then assume them"));
-        foreach (AttributedExpression require in f.Req) {
+        foreach (AttributedExpression require in ConjunctsOf(f.Req)) {
           if (require.Label != null) {
             require.Label.E = (f is TwoStateFunction ? ordinaryEtran : etran.Old).TrExpr(require.E);
             generator.CheckWellformed(require.E, wfo, locals, builder, etran);
@@ -371,7 +373,7 @@ public partial class BoogieGenerator {
     private List<Bpl.Requires> GetWellformednessProcedureRequires(Function f, ExpressionTranslator etran) {
       var requires = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-      requires.Add(generator.Requires(f.Tok, true, null, etran.HeightContext(f), null, null, null));
+      requires.Add(generator.FreeRequires(f.Tok, etran.HeightContext(f), null));
 
       foreach (var typeBoundAxiom in generator.TypeBoundAxioms(f.Tok, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
         requires.Add(generator.Requires(f.Tok, true, null, typeBoundAxiom, null, null, null));
