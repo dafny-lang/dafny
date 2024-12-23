@@ -2,6 +2,7 @@ module ConcurrentExamples {
 
   import opened Std.Concurrent
   import opened Std.Wrappers
+  import opened Std.BoundedInts
   import opened Helpers
 
   const p1: nat -> bool := _ => true
@@ -10,7 +11,7 @@ module ConcurrentExamples {
   const p4: (Copy, nat) -> bool := (_, _) => true
   // const p5: (object?, nat) -> bool := (_, _) => true
   const p6: (string, nat) -> bool := (_, _) => true
-
+  const p7: (bytes, nat) -> bool := (_, _) => true
 
   datatype Copy = A | B
 
@@ -205,6 +206,52 @@ module ConcurrentExamples {
     mmap.Put("Hello world", 0);
     b := mmap.HasKey("Hello world");
     expect(b);
+  }
+
+  @Test
+  method TestBytes() {
+    var mmap := new MutableMap(p7);
+    var data: bytes := [0x1, 0x2, 0x3, 0x4];
+    var b := mmap.HasKey(data);
+    expect(!b);
+    mmap.Put(data, 0);
+    var dataCopy: bytes := [0x1, 0x2, 0x3, 0x4];
+    b := mmap.HasKey(dataCopy);
+    expect(b);
+  }
+
+  @Test
+  method TestBytesOptimized() {
+    var mmap := new MutableMap(p7, true);
+    var data: bytes := [0x1, 0x2, 0x3, 0x4];
+    var b := mmap.HasKey(data);
+    expect(!b);
+    var value := mmap.Get(data);
+    expect(value == None);
+
+    mmap.Put(data, 0);
+    var dataCopy: bytes := [0x1, 0x2] + [0x3, 0x4];
+    b := mmap.HasKey(dataCopy);
+    expect(b);
+
+    var data2: bytes := [0x5, 0x6];
+    mmap.Put(data2, 1);
+    value := mmap.Get(data2);
+    expect(value == Some(1));
+
+    var keys := mmap.Keys();
+    expect keys == {data, data2};
+    var values := mmap.Values();
+    expect values == {0, 1};
+    var items := mmap.Items();
+    expect items == {(data, 0), (data2, 1)};
+    var size := mmap.Size();
+    expect size == 2;
+
+    assert p7(data, 0);
+    mmap.Remove(data);
+    items := mmap.Items();
+    expect items == {(data2, 1)};
   }
 
   // does not work everywhere
