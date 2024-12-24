@@ -433,32 +433,6 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     if (argType.AsNewtype is { } newTypeDecl) {
       return TypeEqualityErrorMessageHint(newTypeDecl.RhsWithArgument(argType.TypeArgs));
     }
-
-    var typeArgs = argType.TypeArgs;
-
-    if (argType.AsSeqType != null && typeArgs.Count >= 1) {
-      if (TypeEqualityErrorMessageHint(typeArgs[0]) is var messageSeq and not "") {
-        return messageSeq;
-      }
-    }
-    if (argType.AsMapType != null &&
-        typeArgs.Count >= 2 &&
-        TypeEqualityErrorMessageHint(typeArgs[1]) is var messageMap and not "") {
-      return messageMap;
-    }
-    if (argType.AsIndDatatype is { EqualitySupport: IndDatatypeDecl.ES.ConsultTypeArguments } decl) {
-      var i = 0;
-      foreach (var tParam in decl.TypeArgs) {
-        if (tParam.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && i < typeArgs.Count && !typeArgs[i].SupportsEquality && TypeEqualityErrorMessageHint(typeArgs[i]) is var message and not "") {
-          return message;
-        }
-        i++;
-      }
-    }
-
-    if (argType.AsNewtype is { } newTypeDecl) {
-      return TypeEqualityErrorMessageHint(newTypeDecl.RhsWithArgument(argType.TypeArgs));
-    }
     return "";
   }
 }

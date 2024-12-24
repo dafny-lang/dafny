@@ -1443,7 +1443,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitTypeTestExpr(Expression expr, Type fromType, Type toType, IOrigin tok,
       bool inLetExprBody, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
       var name = $"_is_{GetUniqueAstNumber(expr)}";
-      wr = CreateIIFE_ExprBody(name, fromType, tok, expr, inLetExprBody, Type.Bool, expr.tok, wr, ref wStmts);
+      wr = CreateIIFE_ExprBody(name, fromType, tok, expr, inLetExprBody, Type.Bool, expr.Tok, wr, ref wStmts);
       EmitTypeTest(name, fromType, toType, tok, wr);
     }
 
