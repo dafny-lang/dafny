@@ -656,7 +656,7 @@ namespace Microsoft.Dafny {
             for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
               var formal = dtv.Ctor.Formals[i];
               var arg = dtv.Arguments[i];
-              if (!(arg is DefaultValueExpression)) {
+              if (arg is not DefaultValueExpression) {
                 CheckWellformed(arg, wfOptions, locals, builder, etran);
               }
               // Cannot use the datatype's formals, so we substitute the inferred type args:

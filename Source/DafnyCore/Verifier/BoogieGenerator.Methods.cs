@@ -223,8 +223,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(sink != null && Predef != null);
 
       Bpl.Expr heightAntecedent = Bpl.Expr.True;
-      if (f is ConstantField) {
-        var cf = (ConstantField)f;
+      if (f is ConstantField cf) {
         AddWellformednessCheck(cf);
         if (InVerificationScope(cf)) {
           var etran = new ExpressionTranslator(this, Predef, f.Tok, null);
@@ -373,7 +372,7 @@ namespace Microsoft.Dafny {
       var tr = new Bpl.Trigger(c.Tok, true, t_es);
 
       // Now for the conclusion of the axioms
-      Bpl.Expr is_hf, isalloc_hf = null;
+      Bpl.Expr is_hf, isalloc_hf;
       if (is_array) {
         is_hf = MkIs(oDotF, tyexprs[0], true);
         isalloc_hf = MkIsAlloc(oDotF, tyexprs[0], h, true);
@@ -383,7 +382,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf));
-      AddOtherDefinition(fieldDeclaration, new Bpl.Axiom(c.Tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
+      AddOtherDefinition(fieldDeclaration, new Bpl.Axiom(c.Tok, BplImp(heightAntecedent, ax), $"{c}.{f}: Type axiom"));
 
       if (isalloc_hf != null) {
         if (!is_array && !f.IsMutable) {
