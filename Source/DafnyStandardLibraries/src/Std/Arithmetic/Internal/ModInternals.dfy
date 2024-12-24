@@ -77,23 +77,43 @@ module Std.Arithmetic.ModInternals {
     }
   }
 
+
+
   @IsolateAssertions
   lemma LemmaDivAddDenominator(n: int, x: int)
     requires n > 0
     ensures (x + n) / n == x / n + 1
   {
-    LemmaFundamentalDivMod(x, n);
-    LemmaFundamentalDivMod(x + n, n);
     var zp := (x + n) / n - x / n - 1;
-    assert 0 == n * zp + ((x + n) % n) - (x % n) by { LemmaMulDistributes(); }
-    if (zp > 0) {
-      assert (x + n) / n == x / n + 1 by {
-        LemmaMulInequality(1, zp, n);
+    assert 0 == n * zp + ((x + n) % n) - (x % n) by {
+      assert x == n * (x / n) + (x % n) by {LemmaFundamentalDivMod(x, n);}
+      assert x + n == n * ((x + n)/ n) + ((x + n) % n) by {LemmaFundamentalDivMod(x + n, n);}
+      calc {
+        n;
+        n * ((x + n)/ n) - n * (x / n) + ((x + n) % n) - (x % n); {
+          LemmaMulDistributesSpecific (((x + n)/ n), x/n, n);
+          assert  n * ((x + n)/ n) - n * (x / n) ==  n * ((x + n)/ n - x / n);
+        }
+        n * ((x + n)/ n - x / n) + ((x + n) % n) - (x % n);
+        n * (zp + 1) + ((x + n) % n) - (x % n);
+      }
+      calc {
+        0;
+        n * (zp + 1) + ((x + n) % n) - (x % n) - n; {
+            LemmaMulDistributesSpecific (zp, 1, n);
+            assert (zp + 1) * n == n * (zp) + 1 * n;
+        }
+        n * (zp) + n + ((x + n) % n) - (x % n) - n;
+        n * zp + ((x + n) % n) - (x % n);
       }
     }
-    if (zp < 0) {
-      assert (x + n) / n == x / n + 1 by {
+    assert zp == 0 by {
+      if (zp > 0) {
+        LemmaMulInequality(1, zp, n);
+        assert zp == 0;
+      } else if (zp < 0) {
         LemmaMulInequality(zp, -1, n);
+        assert zp == 0;
       }
     }
   }
