@@ -662,15 +662,16 @@ module Std.Collections.Seq {
 
   @ResourceLimit("1e6")
   @IsolateAssertions
-  lemma WillSplitOnDelim<T>(s: seq<T>, delim: T, prefix: seq<T>)
+  lemma {:induction false} WillSplitOnDelim<T>(s: seq<T>, delim: T, prefix: seq<T>)
     requires |prefix| < |s|
     requires forall i :: 0 <= i < |prefix| ==> prefix[i] == s[i]
     requires delim !in prefix && s[|prefix|] == delim
     ensures Split(s, delim) == [prefix] + Split(s[|prefix| + 1..], delim)
   {
+    hide *;
     calc {
       Split(s, delim);
-    ==
+    ==  { reveal Split(); }
       var i := IndexOfOption(s, delim);
       if i.Some? then [s[..i.value]] + Split(s[i.value + 1..], delim) else [s];
     ==  { IndexOfOptionLocatesElem(s, delim, |prefix|); assert IndexOfOption(s, delim).Some?; }
