@@ -773,7 +773,7 @@ module Std.JSON.ZeroCopy.Deserializer {
     }
 
     @IsolateAssertions
-    @ResourceLimit("100e6")
+    @ResourceLimit("1e9")
     function Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, exp => Spec.Maybe(exp, Spec.Exp))
     {

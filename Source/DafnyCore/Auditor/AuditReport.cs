@@ -167,7 +167,7 @@ public class AuditReport {
 
     foreach (var (decl, assumptions) in assumptionsByDecl) {
       foreach (var assumption in assumptions) {
-        text.AppendLine($"{decl.tok.TokenToString(options)}:{assumption.Warning()}");
+        text.AppendLine($"{decl.Tok.TokenToString(options)}:{assumption.Warning()}");
       }
     }
 
@@ -190,7 +190,7 @@ public class AuditReport {
           continue;
         }
         foreach (var decl in topLevelDeclWithMembers.Members) {
-          if (decl.tok.FromIncludeDirective(program)) {
+          if (decl.Tok.FromIncludeDirective(program)) {
             // Don't audit included code
             continue;
           }

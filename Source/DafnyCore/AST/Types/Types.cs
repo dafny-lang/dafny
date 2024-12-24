@@ -642,7 +642,7 @@ public abstract class Type : TokenNode {
     var typeMapParents = cl.ParentFormalTypeParametersToActuals;
     var typeMapUdt = TypeParameter.SubstitutionMap(cl.TypeArgs, udt.TypeArgs);
     var typeArgs = parent.TypeArgs.ConvertAll(tp => typeMapParents[tp].Subst(typeMapUdt));
-    return new UserDefinedType(udt.tok, parent.Name, parent, typeArgs);
+    return new UserDefinedType(udt.Tok, parent.Name, parent, typeArgs);
   }
 
   public bool IsTraitType => AsTraitType != null;
@@ -1167,11 +1167,11 @@ public abstract class Type : TokenNode {
     } else if (t is ArrowType) {
       var s = (ArrowType)t;
       var args = s.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
-      return new ArrowType(s.tok, (ArrowTypeDecl)s.ResolvedClass, args);
+      return new ArrowType(s.Tok, (ArrowTypeDecl)s.ResolvedClass, args);
     } else {
       var s = (UserDefinedType)t;
       var args = s.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
-      return new UserDefinedType(s.tok, s.Name, s.ResolvedClass, args);
+      return new UserDefinedType(s.Tok, s.Name, s.ResolvedClass, args);
     }
   }
 
@@ -1296,7 +1296,7 @@ public abstract class Type : TokenNode {
         if (typeArgs == null) {
           return null;
         }
-        return new UserDefinedType(udtA.tok, udtA.Name, udtA.ResolvedClass, typeArgs);
+        return new UserDefinedType(udtA.Tok, udtA.Name, udtA.ResolvedClass, typeArgs);
       }
     }
     // We exhausted all possibilities of subset types being equal, so use the base-most types.
@@ -1370,7 +1370,7 @@ public abstract class Type : TokenNode {
         return null;
       }
       var udt = (UserDefinedType)a;
-      return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
+      return new UserDefinedType(udt.Tok, udt.Name, aa, typeArgs);
     } else if (a.AsArrowType != null) {
       var aa = a.AsArrowType;
       var bb = b.AsArrowType;
@@ -1391,7 +1391,7 @@ public abstract class Type : TokenNode {
         return null;
       }
       var arr = (ArrowType)aa;
-      return new ArrowType(arr.tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
+      return new ArrowType(arr.Tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
     } else if (b.IsObjectQ) {
       var udtB = (UserDefinedType)b;
       return !a.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;
@@ -1416,7 +1416,7 @@ public abstract class Type : TokenNode {
           return null;
         }
         var udt = (UserDefinedType)a;
-        var xx = new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
+        var xx = new UserDefinedType(udt.Tok, udt.Name, aa, typeArgs);
         return abNonNullTypes ? UserDefinedType.CreateNonNullType(xx) : xx;
       } else if (aa is ClassLikeDecl && bb is ClassLikeDecl) {
         var A = (TopLevelDeclWithMembers)aa;
@@ -1534,7 +1534,7 @@ public abstract class Type : TokenNode {
         if (typeArgs == null) {
           return null;
         }
-        return new UserDefinedType(udtA.tok, udtA.Name, udtA.ResolvedClass, typeArgs);
+        return new UserDefinedType(udtA.Tok, udtA.Name, udtA.ResolvedClass, typeArgs);
       } else {
         // The two subset types do not have the same head, so there is no meet
         return null;
@@ -1596,7 +1596,7 @@ public abstract class Type : TokenNode {
         return null;
       }
       var udt = (UserDefinedType)a;
-      return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
+      return new UserDefinedType(udt.Tok, udt.Name, aa, typeArgs);
     } else if (a.AsArrowType != null) {
       var aa = a.AsArrowType;
       var bb = b.AsArrowType;
@@ -1617,7 +1617,7 @@ public abstract class Type : TokenNode {
         return null;
       }
       var arr = (ArrowType)aa;
-      return new ArrowType(arr.tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
+      return new ArrowType(arr.Tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
     } else if (b.IsObjectQ) {
       return a.IsRefType ? a : null;
     } else if (a.IsObjectQ) {
@@ -1640,7 +1640,7 @@ public abstract class Type : TokenNode {
           return null;
         }
         var udt = (UserDefinedType)a;
-        return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
+        return new UserDefinedType(udt.Tok, udt.Name, aa, typeArgs);
       } else if (aa is ClassLikeDecl && bb is ClassLikeDecl) {
         if (a.IsSubtypeOf(b, false, false)) {
           return a;
@@ -1898,7 +1898,7 @@ public class SelfType : NonProxyType {
   public TypeParameter TypeArg;
   public Type ResolvedType;
   public SelfType() : base() {
-    TypeArg = new TypeParameter(RangeToken.NoToken, new Name("selfType"), TypeParameter.TPVarianceSyntax.NonVariant_Strict);
+    TypeArg = new TypeParameter(SourceOrigin.NoToken, new Name("selfType"), TypeParameter.TPVarianceSyntax.NonVariant_Strict);
   }
 
   [System.Diagnostics.Contracts.Pure]

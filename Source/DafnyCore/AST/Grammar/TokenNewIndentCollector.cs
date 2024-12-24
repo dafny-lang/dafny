@@ -403,7 +403,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   }
 
   public void SetDeclIndentation(TopLevelDecl topLevelDecl, int indent) {
-    if (topLevelDecl.tok.FromIncludeDirective(program)) {
+    if (topLevelDecl.Tok.FromIncludeDirective(program)) {
       return;
     }
 
@@ -422,7 +422,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
         SetRedirectingTypeDeclDeclIndentation(indent, redirectingTypeDecl);
       }
 
-      var initialMemberIndent = declWithMembers.tok.line == 0 ? indent : indent2;
+      var initialMemberIndent = declWithMembers.Tok.line == 0 ? indent : indent2;
       foreach (var member in declWithMembers.PreResolveChildren) {
         if (member.Tok.FromIncludeDirective(program)) {
           continue;

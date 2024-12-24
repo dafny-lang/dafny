@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 public class UserDefinedType : NonProxyType, IHasReferences {
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(tok != null);
+    Contract.Invariant(Tok != null);
     Contract.Invariant(Name != null);
     Contract.Invariant(cce.NonNullElements(TypeArgs));
     Contract.Invariant(NamePath is NameSegment or ExprDotName);
@@ -68,7 +68,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     this.NamePath = namePath;
   }
   public UserDefinedType(Cloner cloner, UserDefinedType original)
-    : this(cloner.Origin(original.tok), cloner.CloneExpr(original.NamePath)) {
+    : this(cloner.Origin(original.Tok), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
       ResolvedClass = cloner.GetCloneIfAvailable(original.ResolvedClass);
       TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
@@ -109,7 +109,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(!(cd is ArrowTypeDecl));
 
     var typeArgs = cd.TypeArgs.ConvertAll(tp => (Type)Type.Bool);
-    return new UserDefinedType(cd.tok, cd.Name, cd, typeArgs);
+    return new UserDefinedType(cd.Tok, cd.Name, cd, typeArgs);
   }
 
   /// <summary>
@@ -179,14 +179,14 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(udtNullableType != null);
     Contract.Requires(udtNullableType.ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true });
     var cl = (ClassLikeDecl)udtNullableType.ResolvedClass;
-    return new UserDefinedType(udtNullableType.tok, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
+    return new UserDefinedType(udtNullableType.Tok, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
   }
 
   public static UserDefinedType CreateNullableType(UserDefinedType udtNonNullType) {
     Contract.Requires(udtNonNullType != null);
     Contract.Requires(udtNonNullType.ResolvedClass is NonNullTypeDecl);
     var nntd = (NonNullTypeDecl)udtNonNullType.ResolvedClass;
-    return new UserDefinedType(udtNonNullType.tok, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
+    return new UserDefinedType(udtNonNullType.Tok, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
   }
 
   public static UserDefinedType CreateNonNullTypeIfReferenceType(UserDefinedType classLikeType) {
@@ -205,7 +205,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// This constructor constructs a resolved type parameter
   /// </summary>
   public UserDefinedType(TypeParameter tp)
-    : this(tp.tok, tp) {
+    : this(tp.Tok, tp) {
     Contract.Requires(tp != null);
   }
 
@@ -281,7 +281,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
         return this;
       } else {
         // Note, even if t.NamePath is non-null, we don't care to keep that syntactic part of the expression in what we return here
-        return new UserDefinedType(tok, Name, resolvedClass, newArgs);
+        return new UserDefinedType(Tok, Name, resolvedClass, newArgs);
       }
     } else {
       // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
@@ -291,7 +291,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   }
 
   public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new UserDefinedType(tok, Name, ResolvedClass, arguments);
+    return new UserDefinedType(Tok, Name, ResolvedClass, arguments);
   }
 
   /// <summary>
@@ -528,9 +528,8 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
 
-  public IOrigin NavigationToken => tok;
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { ResolvedClass };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Tok, ResolvedClass) };
   }
 
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { NamePath });

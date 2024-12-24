@@ -72,7 +72,11 @@ replaceable module Std.Concurrent {
     // Invariant on key-value pairs this map may hold
     ghost const inv: (K, V) -> bool
 
-    constructor (ghost inv: (K, V) -> bool)
+    // The bytesKeys parameter allows for more efficient implementations.
+    // Currently only has any effect in Go, to enable O(1) lookup instead of O(n).
+    // This MUST NOT be set to true if K is not seq<uint8>,
+    // otherwise the behavior of this map is undefined.
+    constructor (ghost inv: (K, V) -> bool, bytesKeys: bool := false)
       ensures this.inv == inv
 
     method Keys() returns (keys: set<K>)

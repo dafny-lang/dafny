@@ -48,7 +48,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (this.HasUserAttribute("only", out _)) {
-      yield return new Assumption(decl, tok, AssumptionDescription.AssertOnly);
+      yield return new Assumption(decl, Tok, AssumptionDescription.AssertOnly);
     }
   }
 

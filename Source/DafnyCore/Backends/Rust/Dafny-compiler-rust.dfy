@@ -3137,10 +3137,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership)
+      requires exprOwnership != OwnershipAutoBorrowed
       modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
     {
       r := expr;
+      resultingOwnership := exprOwnership;
       var fromTpeGen := GenType(fromTyp, GenTypeContext.default());
       var toTpeGen := GenType(toTyp, GenTypeContext.default());
 
@@ -3191,7 +3193,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var upcastConverter := UpcastConversionLambda(fromTyp, fromTpeGen, toTyp, toTpeGen, map[]);
       if upcastConverter.Success? {
         var conversionLambda := upcastConverter.value;
-        if exprOwnership == OwnershipBorrowed {
+        if resultingOwnership == OwnershipBorrowed {
           if fromTyp.IsGeneralTrait() && r == R.Identifier("self") {
             // The self in this case does not implement the clone method, we need to call _clone from the trait
             // Similar to the code at the end of GenIdent()
@@ -3206,12 +3208,18 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             // we need the value to be owned for conversion
             r := BorrowedToOwned(r, env);
           }
+          resultingOwnership := OwnershipOwned;
         }
         r := conversionLambda.Apply1(r);
-        r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
+        r, resultingOwnership := FromOwnership(r, resultingOwnership, expectedOwnership);
       } else if IsDowncastConversion(fromTpeGen, toTpeGen) {
         assert toTpeGen.IsObjectOrPointer();
         toTpeGen := toTpeGen.ObjectOrPointerUnderlying();
+        if resultingOwnership == OwnershipBorrowed {
+          // we need the value to be owned for conversion
+          r := BorrowedToOwned(r, env);
+          resultingOwnership := OwnershipOwned;
+        }
         r := R.dafny_runtime
         .MSel(downcast).AsExpr().Apply([r, R.ExprFromType(toTpeGen)]);
         r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);

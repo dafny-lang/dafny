@@ -31,7 +31,7 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
     Exports = original.Exports;
   }
 
-  public AliasModuleDecl(DafnyOptions options, RangeToken rangeOrigin, ModuleQualifiedId path, Name name,
+  public AliasModuleDecl(DafnyOptions options, SourceOrigin rangeOrigin, ModuleQualifiedId path, Name name,
     ModuleDefinition parent, bool opened, List<IOrigin> exports, Guid cloneId)
     : base(options, rangeOrigin, name, parent, opened, false, cloneId) {
     Contract.Requires(path != null && path.Path.Count > 0);
@@ -62,7 +62,7 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
   /// </summary>
   public override IOrigin NavigationToken => HasAlias ? base.NavigationToken : (TargetQId.Decl?.NavigationToken ?? base.NavigationToken);
 
-  private bool HasAlias => NameNode.Origin.IsSet();
+  public bool HasAlias => NameNode.Origin.IsSet();
 
   public override IOrigin Tok => HasAlias ? NameNode.StartToken : StartToken;
 

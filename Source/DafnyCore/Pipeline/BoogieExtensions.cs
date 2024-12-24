@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
       };
     }
 
-    public static Location GetLocation(this RangeToken origin) {
+    public static Location GetLocation(this SourceOrigin origin) {
       return new Location() {
         Uri = DocumentUri.From(origin.Uri),
         Range = origin.GetLspRange()
