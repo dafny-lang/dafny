@@ -1598,10 +1598,8 @@ namespace Microsoft.Dafny {
         callerDafny.Add(e1);
         callee.Add(etran.TrExpr(e0));
         caller.Add(etran.TrExpr(e1));
-        var canCall = etran.CanCallAssumption(e1);
-        if (canCall != Bpl.Expr.True) {
-          builder.Add(new Bpl.AssumeCmd(e1.Tok, canCall));
-        }
+        var canCall = BplAnd(etran.CanCallAssumption(e1), etran.CanCallAssumption((e0)));
+        builder.Add(new Bpl.AssumeCmd(e1.Tok, canCall));
       }
 
       var decrCountT = contextDecreases.Count;

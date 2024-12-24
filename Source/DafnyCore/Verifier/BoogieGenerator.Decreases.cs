@@ -91,7 +91,6 @@ public partial class BoogieGenerator {
     bool endsWithWinningTopComparison = N == contextDecreases.Count && N < calleeDecreases.Count;
     builder.Add(TrAssumeCmd(tok, canCalls));
     Bpl.Expr decrExpr = DecreasesCheck(toks, null, newExpressions, oldExpressions, callee, caller, builder, "", endsWithWinningTopComparison, false);
-    // Bpl.Expr decrExpr = BplImp(canCalls, DecreasesCheck(toks, null, newExpressions, oldExpressions, callee, caller, builder, "", endsWithWinningTopComparison, false));
     if (allowance != null) {
       decrExpr = BplOr(etranCurrent.TrExpr(allowance), decrExpr);
     }
