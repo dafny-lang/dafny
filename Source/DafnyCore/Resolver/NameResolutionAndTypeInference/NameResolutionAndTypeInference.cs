@@ -5894,9 +5894,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                // TODO simplify to e.Origin
-                var tok = Options.Get(Snippets.ShowSnippets) ? e.Origin : e.Tok;
-                var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
+                var cRhs = new MethodCallInformation(e.Origin, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
                 reporter.Error(MessageSource.Resolver, e.Tok, "{0} call is not allowed to be used in an expression context ({1})", mse.Member.WhatKind, mse.Member.Name);
