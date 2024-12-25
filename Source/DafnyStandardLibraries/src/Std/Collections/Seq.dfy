@@ -717,7 +717,7 @@ module Std.Collections.Seq {
 
   /* Returns the sequence one obtains by applying a function to every element
      of a sequence. */
-  opaque function Map<T, R>(f: (T ~> R), xs: seq<T>): (result: seq<R>)
+  opaque function Map<T, R>(f: T ~> R, xs: seq<T>): (result: seq<R>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures |result| == |xs|
     ensures forall i {:trigger result[i]} :: 0 <= i < |xs| ==> result[i] == f(xs[i])
@@ -725,6 +725,12 @@ module Std.Collections.Seq {
   {
     if |xs| == 0 then []
     else [f(xs[0])] + Map(f, xs[1..])
+  }
+
+  function MapPartialFunction<T, R>(f: T --> R, xs: seq<T>): (result: seq<R>)
+    requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
+  {
+    Map(f, xs)
   }
 
   /* Applies a function to every element of a sequence, returning a Result value (which is a
