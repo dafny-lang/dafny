@@ -381,6 +381,9 @@ namespace Microsoft.Dafny {
                 desc, wfOptions.AssertKv);
             }
 
+            // all good
+            builder.Add(TrAssumeCmd(e.Tok, etran.CanCallAssumption(e)));
+
             break;
           }
         case SeqSelectExpr selectExpr: {
