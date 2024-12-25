@@ -56,6 +56,12 @@ module Std.Collections.Seq {
     xs[..|xs|-1]
   }
 
+  lemma TakeLess<T>(s: seq<T>, m: nat, n: nat)
+    requires m <= n <= |s|
+    ensures s[..n][..m] == s[..m]
+  {
+  }
+
   /* The concatenation of two subsequences of a non-empty sequence, the first obtained
      from dropping the last element, the second consisting only of the last
      element, is the original sequence. */
