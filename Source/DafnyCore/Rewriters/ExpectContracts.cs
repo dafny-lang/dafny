@@ -37,7 +37,7 @@ public class ExpectContracts : IRewriter {
   /// failure message.</param>
   /// <returns>The newly-created expect statement.</returns>
   private Statement CreateContractExpectStatement(AttributedExpression expr, string exprType) {
-    var tok = expr.E.tok;
+    var tok = expr.E.Tok;
     var msg = $"Runtime failure of {exprType} clause from {tok.TokenToString(Reporter.Options)}";
     var exprToCheck = expr.E;
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
@@ -83,7 +83,7 @@ public class ExpectContracts : IRewriter {
   /// <param name="parent">The declaration containing the on to be wrapped.</param>
   /// <param name="decl">The declaration to be wrapped.</param>
   private void GenerateWrapper(ModuleDefinition module, TopLevelDeclWithMembers parent, MemberDecl decl) {
-    var tok = decl.tok;
+    var tok = decl.Tok;
 
     var newName = decl.Name + "__dafny_checked";
     MemberDecl newDecl = null;
@@ -111,7 +111,7 @@ public class ExpectContracts : IRewriter {
     newFunc.NameNode.Value = newName;
 
     var args = newFunc.Ins.Select(Expression.CreateIdentExpr).ToList();
-    var receiver = ModuleResolver.GetReceiver(parent, origFunc, decl.tok);
+    var receiver = ModuleResolver.GetReceiver(parent, origFunc, decl.Tok);
     var callExpr = Expression.CreateResolvedCall(tok, receiver, origFunc, args,
       newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(), systemModuleManager);
 
@@ -144,8 +144,8 @@ public class ExpectContracts : IRewriter {
 
     var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
     var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
-    var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.tok);
-    var memberSelectExpr = new MemberSelectExpr(decl.tok, receiver, origMethod.Name);
+    var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.Tok);
+    var memberSelectExpr = new MemberSelectExpr(decl.Tok, receiver, origMethod.NameNode);
     memberSelectExpr.Member = origMethod;
     memberSelectExpr.TypeApplicationJustMember =
       newMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
@@ -171,7 +171,7 @@ public class ExpectContracts : IRewriter {
       Type = UserDefinedType.FromTopLevelDecl(Token.NoToken, cl)
     };
     var fn = Expression.CreateResolvedCall(tok, receiver, f, f.Ins.ConvertAll(Expression.CreateIdentExpr),
-      f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter)), systemModuleManager);
+      f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.Tok, typeParameter)), systemModuleManager);
     var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
       Type = Type.Bool
     });
@@ -257,7 +257,7 @@ public class ExpectContracts : IRewriter {
         module.CallRedirector.NewRedirections.ExceptBy(module.CallRedirector.CalledWrappers, x => x.Value);
       foreach (var uncalledRedirection in uncalledRedirections) {
         var uncalledOriginal = uncalledRedirection.Key;
-        ReportWarning(ErrorId.rw_unreachable_by_test, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
+        ReportWarning(ErrorId.rw_unreachable_by_test, uncalledOriginal.Tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
       }
     }
 
@@ -297,7 +297,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
     }
     // If there's no wrapper for the callee, don't try to call it, but warn.
     if (!NewRedirections.ContainsKey(callee)) {
-      reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper, caller.tok, $"Internal: no wrapper for {callee.FullDafnyName}");
+      reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper, caller.Tok, $"Internal: no wrapper for {callee.FullDafnyName}");
       return false;
     }
 
@@ -315,7 +315,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
         var newTarget = NewRedirections[f];
         var resolved = (FunctionCallExpr)fce.Resolved;
         resolved.Function = (Function)newTarget;
-        resolved.Name = newTarget.Name;
+        resolved.NameNode = newTarget.NameNode;
         CalledWrappers.Add(newTarget);
       }
     }
@@ -330,7 +330,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
         var newTarget = NewRedirections[m];
         var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
         resolved.Member = newTarget;
-        resolved.MemberName = newTarget.Name;
+        resolved.MemberNameNode = newTarget.NameNode;
         CalledWrappers.Add(newTarget);
       }
     }

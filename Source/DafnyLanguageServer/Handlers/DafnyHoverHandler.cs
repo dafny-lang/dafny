@@ -64,20 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private (ISymbol? symbol, string? symbolHoverContent) GetStaticHoverContent(HoverParams request, IdeState state) {
-      IHasNavigationToken? declarationOrUsage =
-        state.ResolvedProgram.FindNode<IHasNavigationToken>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
-      ISymbol? symbol;
-
-      if (declarationOrUsage is IHasReferences usage) {
-        symbol = state.SymbolTable.ReferenceToNode.GetValueOrDefault(usage) as ISymbol;
-      } else {
-        // If we hover over a usage, display the information of the declaration
-        symbol = declarationOrUsage as ISymbol;
-        if (symbol != null && !symbol.NavigationToken.ToLspRange().Contains(request.Position)) {
-          symbol = null;
-        }
-      }
-
+      var symbol = state.SymbolTable.GetDeclarationNode(request.TextDocument.Uri.ToUri(), request.Position) as ISymbol;
       if (symbol == null) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }

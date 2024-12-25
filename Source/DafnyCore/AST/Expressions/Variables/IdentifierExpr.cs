@@ -13,7 +13,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
   public readonly string Name;
   [FilledInDuringResolution] public IVariable Var;
 
-  public string DafnyName => tok.line > 0 ? Origin.PrintOriginal() : Name;
+  public string DafnyName => Tok.line > 0 ? Origin.PrintOriginal() : Name;
 
   public IdentifierExpr(IOrigin tok, string name)
     : base(tok) {
@@ -52,11 +52,10 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
     return expr.Resolved is IdentifierExpr identifierExpr && identifierExpr.Var == variable;
   }
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return Enumerable.Repeat(Var, 1);
+  public IEnumerable<Reference> GetReferences() {
+    return Enumerable.Repeat(new Reference(Tok, Var), 1);
   }
 
-  public IOrigin NavigationToken => tok;
   public override IEnumerable<INode> Children { get; } = Enumerable.Empty<Node>();
 }
 

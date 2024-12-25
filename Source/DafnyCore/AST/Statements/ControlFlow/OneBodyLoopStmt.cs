@@ -38,7 +38,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (Body is null) {
-      yield return new Assumption(decl, tok, AssumptionDescription.LoopWithoutBody);
+      yield return new Assumption(decl, Tok, AssumptionDescription.LoopWithoutBody);
     }
   }
 

@@ -130,11 +130,9 @@ public class IdPattern : ExtendedPattern, IHasReferences {
     }
   }
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new ISymbol[] { Ctor }.Where(x => x != null);
+  public IEnumerable<Reference> GetReferences() {
+    return Ctor == null ? Enumerable.Empty<Reference>() : new[] { new Reference(StartToken, Ctor) };
   }
-
-  public IOrigin NavigationToken => Tok;
 
   public void CheckLinearVarPattern(Type type, ResolutionContext resolutionContext, ModuleResolver resolver) {
     if (Arguments != null) {

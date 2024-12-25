@@ -326,7 +326,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     }
 
     callableName = ((ICallable)member).NameRelativeToModule;
-    var rr = new MemberSelectExpr(func.Tok, receiver, callableName);
+    var rr = new MemberSelectExpr(func.Tok, receiver, new Name(callableName));
     rr.Type = new InferredTypeProxy();
     rr.Member = member;
     rr.TypeApplicationJustMember = new List<Type>();
@@ -358,11 +358,11 @@ public class AutoRevealFunctionDependencies : IRewriter {
     var topLevelDeclsList = accessibleMember.AccessPath;
     var nameList = topLevelDeclsList.Where(decl => decl.Name != "_default").ToList();
 
-    nameList.Add(new NameSegment(func.tok, func.Name, new List<Type>()));
+    nameList.Add(new NameSegment(func.Tok, func.Name, new List<Type>()));
 
     Expression nameSeed = nameList[0];
     var resolveExpr = nameList.Skip(1)
-    .Aggregate(nameSeed, (acc, name) => new ExprDotName(func.tok, acc, name.Name, name.OptTypeArguments));
+    .Aggregate(nameSeed, (acc, name) => new ExprDotName(func.Tok, acc, name.NameNode, name.OptTypeArguments));
 
     return resolveExpr;
   }

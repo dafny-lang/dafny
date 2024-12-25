@@ -153,7 +153,7 @@ namespace Microsoft.Dafny {
             // if the type parameters were added as part of type-parameter completion.
             if (memberTypeArguments != null && memberTypeArguments.Count != 0 && memberTypeArguments[0].IsAutoCompleted) {
               var toolTip = $"<{memberTypeArguments.Comma(Printer.TypeParameterToString)}>";
-              reporter.Info(MessageSource.Resolver, member.tok, toolTip);
+              reporter.Info(MessageSource.Resolver, member.Tok, toolTip);
             }
 
           }
@@ -167,7 +167,7 @@ namespace Microsoft.Dafny {
         tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
         // Note, auto-completed type parameters already get a tool tip for the enclosing method/function
         if (reporter is not ErrorReporterWrapper && !tp.IsAutoCompleted) {
-          reporter.Info(MessageSource.Resolver, tp.tok, "(==)");
+          reporter.Info(MessageSource.Resolver, tp.Tok, "(==)");
         }
       }
       return requiresEqualitySupport;
@@ -226,7 +226,7 @@ namespace Microsoft.Dafny {
           }
         } else if (d is ClassLikeDecl cl) {
           foreach (var parentTrait in cl.ParentTraits) {
-            visitor.VisitType(cl.tok, parentTrait, false);
+            visitor.VisitType(cl.Tok, parentTrait, false);
           }
         } else if (d is DatatypeDecl dt) {
           foreach (var ctor in dt.Ctors) {
@@ -234,28 +234,28 @@ namespace Microsoft.Dafny {
             CheckFormals(ctor.Formals, ctor.IsGhost, visitor);
           }
         } else if (d is TypeSynonymDecl syn) {
-          visitor.VisitType(syn.tok, syn.Rhs, false);
+          visitor.VisitType(syn.Tok, syn.Rhs, false);
           if (!isAnExport) {
             if (syn.SupportsEquality && !syn.Rhs.SupportsEquality) {
-              reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as supporting equality, but the RHS type ({1}) might not",
-                syn.Name, syn.Rhs);
+              reporter.Error(MessageSource.Resolver, syn.Tok, "type '{0}' declared as supporting equality, but the RHS type ({1}) might not{2}",
+                syn.Name, syn.Rhs, CheckTypeCharacteristics_Visitor.TypeEqualityErrorMessageHint(syn.Rhs));
             }
             if (syn.Characteristics.IsNonempty && !syn.Rhs.IsNonempty) {
-              reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as being nonempty, but the RHS type ({1}) may be empty",
+              reporter.Error(MessageSource.Resolver, syn.Tok, "type '{0}' declared as being nonempty, but the RHS type ({1}) may be empty",
                 syn.Name, syn.Rhs);
             } else if (syn.Characteristics.HasCompiledValue && !syn.Rhs.HasCompilableValue) {
-              reporter.Error(MessageSource.Resolver, syn.tok,
+              reporter.Error(MessageSource.Resolver, syn.Tok,
                 "type '{0}' declared as auto-initialization type, but the RHS type ({1}) does not support auto-initialization", syn.Name,
                 syn.Rhs);
             }
             if (syn.Characteristics.ContainsNoReferenceTypes && syn.Rhs.MayInvolveReferences) {
-              reporter.Error(MessageSource.Resolver, syn.tok,
+              reporter.Error(MessageSource.Resolver, syn.Tok,
                 "type '{0}' declared as containing no reference types, but the RHS type ({1}) may contain reference types", syn.Name,
                 syn.Rhs);
             }
           }
         } else if (d is NewtypeDecl { BaseType: { } baseType }) {
-          visitor.VisitType(d.tok, baseType, false);
+          visitor.VisitType(d.Tok, baseType, false);
         }
 
         if (d is RedirectingTypeDecl rtd) {
@@ -274,13 +274,13 @@ namespace Microsoft.Dafny {
           foreach (var member in topLevelDeclWithMembers.Members) {
             CheckAttributes(member.Attributes, visitor);
             if (member is Field field) {
-              visitor.VisitType(field.tok, field.Type, field.IsGhost);
+              visitor.VisitType(field.Tok, field.Type, field.IsGhost);
               if (field is ConstantField { Rhs: { } } cf) {
                 visitor.Visit(cf.Rhs, cf.IsGhost);
               }
             } else if (member is Function function) {
               CheckFormals(function.Ins, function.IsGhost, visitor);
-              visitor.VisitType(function.Result?.tok ?? function.tok, function.ResultType, function.IsGhost);
+              visitor.VisitType(function.Result?.Tok ?? function.Tok, function.ResultType, function.IsGhost);
               CheckSpecification(function.Req, function.Reads, function.Ens, function.Decreases, visitor);
               if (function.Body != null) {
                 visitor.Visit(function.Body, function.IsGhost);
@@ -306,7 +306,7 @@ namespace Microsoft.Dafny {
 
     private static void CheckFormals(List<Formal> formals, bool isGhostContext, CheckTypeCharacteristics_Visitor visitor) {
       foreach (var p in formals) {
-        visitor.VisitType(p.tok, p.Type, isGhostContext || p.IsGhost);
+        visitor.VisitType(p.Tok, p.Type, isGhostContext || p.IsGhost);
         if (p.DefaultValue != null) {
           visitor.Visit(p.DefaultValue, isGhostContext || p.IsGhost);
         }

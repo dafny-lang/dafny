@@ -87,12 +87,12 @@ public class SystemModuleManager {
   }
 
   public SystemModuleManager(DafnyOptions options) {
-    SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IOrigin>(),
+    SystemModule = new(SourceOrigin.NoToken, new Name("_System"), new List<IOrigin>(),
       ModuleKindEnum.Concrete, false, null, null, null);
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
-    var str = new TypeSynonymDecl(RangeToken.NoToken, new Name("string"),
+    var str = new TypeSynonymDecl(SourceOrigin.NoToken, new Name("string"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
     SystemModule.SourceDecls.Add(str);
@@ -100,13 +100,13 @@ public class SystemModuleManager {
     var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
     var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
     var ax = AxiomAttribute();
-    NatDecl = new SubsetTypeDecl(RangeToken.NoToken, new Name("nat"),
+    NatDecl = new SubsetTypeDecl(SourceOrigin.NoToken, new Name("nat"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
     ((RedirectingTypeDecl)NatDecl).ConstraintIsCompilable = true;
     SystemModule.SourceDecls.Add(NatDecl);
     // create trait 'object'
-    ObjectDecl = new TraitDecl(RangeToken.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
+    ObjectDecl = new TraitDecl(SourceOrigin.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
     SystemModule.SourceDecls.Add(ObjectDecl);
     // add one-dimensional arrays, since they may arise during type checking
     // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -163,20 +163,20 @@ public class SystemModuleManager {
       enclosingType.Members.Add(member);
     }
 
-    var floor = new SpecialField(RangeToken.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
+    var floor = new SpecialField(SourceOrigin.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
     AddMember(floor, ValuetypeVariety.Real);
 
-    var isLimit = new SpecialField(RangeToken.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false, Type.Bool, null);
+    var isLimit = new SpecialField(SourceOrigin.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false, Type.Bool, null);
     AddMember(isLimit, ValuetypeVariety.BigOrdinal);
 
-    var isSucc = new SpecialField(RangeToken.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false, Type.Bool, null);
+    var isSucc = new SpecialField(SourceOrigin.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false, Type.Bool, null);
     AddMember(isSucc, ValuetypeVariety.BigOrdinal);
 
-    var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
+    var limitOffset = new SpecialField(SourceOrigin.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
     AddMember(limitOffset, ValuetypeVariety.BigOrdinal);
     ORDINAL_Offset = limitOffset;
 
-    var isNat = new SpecialField(RangeToken.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
+    var isNat = new SpecialField(SourceOrigin.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
     AddMember(isNat, ValuetypeVariety.BigOrdinal);
 
     // Add "Keys", "Values", and "Items" to map, imap
@@ -185,16 +185,16 @@ public class SystemModuleManager {
       var isFinite = typeVariety == ValuetypeVariety.Map;
 
       var r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[0]));
-      var keys = new SpecialField(RangeToken.NoToken, "Keys", SpecialField.ID.Keys, null, false, false, false, r, null);
+      var keys = new SpecialField(SourceOrigin.NoToken, "Keys", SpecialField.ID.Keys, null, false, false, false, r, null);
 
       r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[1]));
-      var values = new SpecialField(RangeToken.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r, null);
+      var values = new SpecialField(SourceOrigin.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r, null);
 
       var gt = vtd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       var dt = TupleType(Token.NoToken, 2, true);
       var tupleType = new UserDefinedType(Token.NoToken, dt.Name, dt, gt);
       r = new SetType(isFinite, tupleType);
-      var items = new SpecialField(RangeToken.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
+      var items = new SpecialField(SourceOrigin.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
 
       foreach (var memb in new[] { keys, values, items }) {
         AddMember(memb, typeVariety);
@@ -209,7 +209,7 @@ public class SystemModuleManager {
 
   public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
     var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null) };
-    var rotateMember = new SpecialFunction(RangeToken.NoToken, name, SystemModule, false, false,
+    var rotateMember = new SpecialFunction(SourceOrigin.NoToken, name, SystemModule, false, false,
       new List<TypeParameter>(), formals, resultType,
       new List<AttributedExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null), null, null, null);
@@ -257,7 +257,7 @@ public class SystemModuleManager {
       ArrayClassDecl arrayClass = new ArrayClassDecl(dims, builtIns.SystemModule, builtIns.DontCompile());
       for (int d = 0; d < dims; d++) {
         string name = dims == 1 ? "Length" : "Length" + d;
-        Field len = new SpecialField(RangeToken.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
+        Field len = new SpecialField(SourceOrigin.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
         len.EnclosingClass = arrayClass; // resolve here
         arrayClass.Members.Add(len);
       }
@@ -294,19 +294,19 @@ public class SystemModuleManager {
     IOrigin tok = Token.NoToken;
     var tps = Util.Map(Enumerable.Range(0, arity + 1),
       x => x < arity
-        ? new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
-        : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
+        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
     var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
 
     Function CreateMember(string name, Type resultType, Function readsFunction = null) {
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
         (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
-      var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, Token.NoToken, argExprs) {
+      var readsIS = new FunctionCallExpr(tok, new Name("reads"), new ImplicitThisExpr(tok), tok, Token.NoToken, argExprs) {
         Type = ObjectSetType(),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
-      var function = new Function(RangeToken.NoToken, new Name(name), false, true, false,
+      var function = new Function(SourceOrigin.NoToken, new Name(name), false, true, false,
         new List<TypeParameter>(), args, null, resultType,
         new List<AttributedExpression>(), new Specification<FrameExpression>(readsFrame, null), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null),
@@ -327,11 +327,11 @@ public class SystemModuleManager {
     // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
     tps = Util.Map(Enumerable.Range(0, arity + 1),
       x => x < arity
-        ? new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
-        : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
+        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
     tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
     var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
-    var partialArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
+    var partialArrow = new SubsetTypeDecl(SourceOrigin.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
       new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
       id, ArrowSubtypeConstraint(tok, tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)partialArrow).ConstraintIsCompilable = false;
@@ -342,11 +342,11 @@ public class SystemModuleManager {
 
     tps = Util.Map(Enumerable.Range(0, arity + 1),
       x => x < arity
-        ? new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
-        : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
+        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
     tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
     id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
-    var totalArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
+    var totalArrow = new SubsetTypeDecl(SourceOrigin.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
       new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
       id, ArrowSubtypeConstraint(tok, tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)totalArrow).ConstraintIsCompilable = false;
@@ -378,7 +378,7 @@ public class SystemModuleManager {
       args.Add(new IdentifierExpr(tok, bv));
       bounds.Add(new SpecialAllocIndependenceAllocatedBoundedPool());
     }
-    var fn = new MemberSelectExpr(tok, f, member.Name) {
+    var fn = new MemberSelectExpr(tok, f, new Name(member.Name)) {
       Member = member,
       TypeApplicationAtEnclosingClass = f.Type.TypeArgs,
       TypeApplicationJustMember = new List<Type>(),
@@ -410,7 +410,7 @@ public class SystemModuleManager {
     var formals = Util.Concat(f.EnclosingClass.TypeArgs, f.TypeArgs);
     var actuals = Util.Concat(typeArgumentsClass, typeArgumentsMember);
     var typeMap = TypeParameter.SubstitutionMap(formals, actuals);
-    return new ArrowType(f.tok, atd, f.Ins.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
+    return new ArrowType(f.Tok, atd, f.Ins.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
   }
 
   public TupleTypeDecl TupleType(IOrigin tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {

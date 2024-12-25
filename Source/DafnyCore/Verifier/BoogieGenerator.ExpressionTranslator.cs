@@ -481,7 +481,7 @@ namespace Microsoft.Dafny {
                     if (field.IsStatic) {
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(BoogieGenerator.GetReadonlyField(field)), args);
                     } else {
-                      Boogie.Expr obj = BoogieGenerator.BoxifyForTraitParent(e.tok, TrExpr(e.Obj), e.Member, e.Obj.Type);
+                      Boogie.Expr obj = BoogieGenerator.BoxifyForTraitParent(e.Tok, TrExpr(e.Obj), e.Member, e.Obj.Type);
                       args.Add(obj);
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(BoogieGenerator.GetReadonlyField(field)), args);
                     }
@@ -646,7 +646,7 @@ namespace Microsoft.Dafny {
                 var mem = recv as MemberSelectExpr;
                 var fn = mem == null ? null : mem.Member as Function;
                 if (fn != null) {
-                  return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.tok, e.CloseParen, e.Args) {
+                  return TrExpr(new FunctionCallExpr(e.Tok, fn.NameNode, mem.Obj, e.Tok, e.CloseParen, e.Args) {
                     Function = fn,
                     Type = e.Type,
                     TypeApplication_AtEnclosingClass = mem.TypeApplicationAtEnclosingClass,
@@ -655,7 +655,7 @@ namespace Microsoft.Dafny {
                 }
               }
 
-              Func<Expression, Boogie.Expr> TrArg = arg => BoogieGenerator.BoxIfNotNormallyBoxed(arg.tok, TrExpr(arg), arg.Type);
+              Func<Expression, Boogie.Expr> TrArg = arg => BoogieGenerator.BoxIfNotNormallyBoxed(arg.Tok, TrExpr(arg), arg.Type);
 
               var applied = FunctionCall(GetToken(applyExpr), BoogieGenerator.Apply(arity), Predef.BoxType,
                 Concat(Map(tt.TypeArgs, BoogieGenerator.TypeToTy),
@@ -831,7 +831,7 @@ namespace Microsoft.Dafny {
                   // Translate with $IsAllocBox, even if it requires boxing the argument. This has the effect of giving
                   // both the $IsAllocBox and $IsAlloc forms, because the axioms that connects these two is triggered
                   // by $IsAllocBox.
-                  return BoogieGenerator.MkIsAllocBox(BoxIfNecessary(e.E.tok, TrExpr(e.E), e.E.Type), e.E.Type, HeapExpr);
+                  return BoogieGenerator.MkIsAllocBox(BoxIfNecessary(e.E.Tok, TrExpr(e.E), e.E.Type), e.E.Type, HeapExpr);
                 case UnaryOpExpr.ResolvedOpcode.Assigned:
                   string name = null;
                   switch (e.E.Resolved) {
@@ -860,7 +860,7 @@ namespace Microsoft.Dafny {
             }
           case TypeTestExpr testExpr: {
               var e = testExpr;
-              return BoogieGenerator.GetSubrangeCheck(e.tok, TrExpr(e.E), e.E.Type, e.ToType, e.E, null, out var _) ?? Boogie.Expr.True;
+              return BoogieGenerator.GetSubrangeCheck(e.Tok, TrExpr(e.E), e.E.Type, e.ToType, e.E, null, out var _) ?? Boogie.Expr.True;
             }
           case BinaryExpr binaryExpr: {
               BinaryExpr e = binaryExpr;
@@ -913,11 +913,11 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.EqCommon:
                   keepLits = true;
                   if (ModeledAsBoxType(e.E0.Type)) {
-                    e1 = BoxIfNecessary(expr.tok, e1, e.E1.Type);
-                    oe1 = BoxIfNecessary(expr.tok, oe1, e.E1.Type);
+                    e1 = BoxIfNecessary(expr.Tok, e1, e.E1.Type);
+                    oe1 = BoxIfNecessary(expr.Tok, oe1, e.E1.Type);
                   } else if (ModeledAsBoxType(e.E1.Type)) {
-                    e0 = BoxIfNecessary(expr.tok, e0, e.E0.Type);
-                    oe0 = BoxIfNecessary(expr.tok, oe0, e.E0.Type);
+                    e0 = BoxIfNecessary(expr.Tok, e0, e.E0.Type);
+                    oe0 = BoxIfNecessary(expr.Tok, oe0, e.E0.Type);
                   }
                   if (e.E0.Type.IsCoDatatype && e.E1.Type.IsCoDatatype) {
                     var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
@@ -933,11 +933,11 @@ namespace Microsoft.Dafny {
                   break;
                 case BinaryExpr.ResolvedOpcode.NeqCommon:
                   if (ModeledAsBoxType(e.E0.Type)) {
-                    e1 = BoxIfNecessary(expr.tok, e1, e.E1.Type);
-                    oe1 = BoxIfNecessary(expr.tok, oe1, e.E1.Type);
+                    e1 = BoxIfNecessary(expr.Tok, e1, e.E1.Type);
+                    oe1 = BoxIfNecessary(expr.Tok, oe1, e.E1.Type);
                   } else if (ModeledAsBoxType(e.E1.Type)) {
-                    e0 = BoxIfNecessary(expr.tok, e0, e.E0.Type);
-                    oe0 = BoxIfNecessary(expr.tok, oe0, e.E0.Type);
+                    e0 = BoxIfNecessary(expr.Tok, e0, e.E0.Type);
+                    oe0 = BoxIfNecessary(expr.Tok, oe0, e.E0.Type);
                   }
                   if (e.E0.Type.IsCoDatatype && e.E1.Type.IsCoDatatype) {
                     var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
@@ -1469,8 +1469,8 @@ namespace Microsoft.Dafny {
           case ITEExpr iteExpr: {
               ITEExpr e = iteExpr;
               var g = BoogieGenerator.RemoveLit(TrExpr(e.Test));
-              var thn = BoogieGenerator.AdaptBoxing(e.Thn.tok, BoogieGenerator.RemoveLit(TrExpr(e.Thn)), e.Thn.Type, e.Type);
-              var els = BoogieGenerator.AdaptBoxing(e.Els.tok, BoogieGenerator.RemoveLit(TrExpr(e.Els)), e.Els.Type, e.Type);
+              var thn = BoogieGenerator.AdaptBoxing(e.Thn.Tok, BoogieGenerator.RemoveLit(TrExpr(e.Thn)), e.Thn.Type, e.Type);
+              var els = BoogieGenerator.AdaptBoxing(e.Els.Tok, BoogieGenerator.RemoveLit(TrExpr(e.Els)), e.Els.Type, e.Type);
               return new NAryExpr(GetToken(iteExpr), new IfThenElse(GetToken(iteExpr)), new List<Boogie.Expr> { g, thn, els });
             }
           case MatchExpr matchExpr: {
@@ -1623,7 +1623,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           foreach (var bv in mc.Arguments) {
             if (!LocalVariable.HasWildcardName(bv)) {
               var dtor = mc.Ctor.Destructors[argIndex];
-              var dv = new MemberSelectExpr(bv.tok, e.Source, dtor);
+              var dv = new MemberSelectExpr(bv.Tok, e.Source, dtor);
               substMap.Add(bv, dv);
             }
             argIndex++;
@@ -1632,8 +1632,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           if (r == null) {
             r = c;
           } else {
-            var test = new MemberSelectExpr(mc.tok, e.Source, mc.Ctor.QueryField);
-            var ite = new ITEExpr(mc.tok, false, test, c, r);
+            var test = new MemberSelectExpr(mc.Tok, e.Source, mc.Ctor.QueryField);
+            var ite = new ITEExpr(mc.Tok, false, test, c, r);
             ite.Type = e.Type;
             r = ite;
           }
@@ -1654,16 +1654,16 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         Boogie.Expr typeAntecedent = Boogie.Expr.True;
         var i = 0;
         foreach (BoundVar bv in boundVars) {
-          var tid = new Boogie.TypedIdent(bv.tok, bv.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(bv.Type));
+          var tid = new Boogie.TypedIdent(bv.Tok, bv.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(bv.Type));
           Boogie.Variable bvar;
           if (translateAsLocals) {
-            bvar = new Boogie.LocalVariable(bv.tok, tid);
+            bvar = new Boogie.LocalVariable(bv.Tok, tid);
           } else {
-            bvar = new Boogie.BoundVariable(bv.tok, tid);
+            bvar = new Boogie.BoundVariable(bv.Tok, tid);
           }
           bvars.Add(bvar);
           var useAlloc = freeOfAlloc == null || freeOfAlloc[i] ? NOALLOC : ISALLOC;
-          Boogie.Expr wh = BoogieGenerator.GetWhereClause(bv.tok, new Boogie.IdentifierExpr(bv.tok, bvar), bv.Type, this, useAlloc);
+          Boogie.Expr wh = BoogieGenerator.GetWhereClause(bv.Tok, new Boogie.IdentifierExpr(bv.Tok, bvar), bv.Type, this, useAlloc);
           if (wh != null) {
             typeAntecedent = BplAnd(typeAntecedent, wh);
           }
@@ -1678,9 +1678,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
         var varsAndAntecedents = new List<Tuple<Boogie.Variable, Boogie.Expr>>();
         foreach (BoundVar bv in boundVars) {
-          var tid = new Boogie.TypedIdent(bv.tok, bv.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(bv.Type));
-          var bvar = new Boogie.BoundVariable(bv.tok, tid);
-          var wh = BoogieGenerator.GetWhereClause(bv.tok, new Boogie.IdentifierExpr(bv.tok, bvar), bv.Type, this, NOALLOC);
+          var tid = new Boogie.TypedIdent(bv.Tok, bv.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(bv.Type));
+          var bvar = new Boogie.BoundVariable(bv.Tok, tid);
+          var wh = BoogieGenerator.GetWhereClause(bv.Tok, new Boogie.IdentifierExpr(bv.Tok, bvar), bv.Type, this, NOALLOC);
           varsAndAntecedents.Add(Tuple.Create<Boogie.Variable, Boogie.Expr>(bvar, wh));
         }
         return varsAndAntecedents;
@@ -1693,16 +1693,16 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         substMap = new Dictionary<IVariable, Expression>();
         Boogie.Expr typeAntecedent = Boogie.Expr.True;
         foreach (BoundVar bv in boundVars) {
-          var newBoundVar = new BoundVar(bv.tok, bv.Name, bv.Type);
-          IdentifierExpr ie = new IdentifierExpr(newBoundVar.tok, newBoundVar.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator)) {
+          var newBoundVar = new BoundVar(bv.Tok, bv.Name, bv.Type);
+          IdentifierExpr ie = new IdentifierExpr(newBoundVar.Tok, newBoundVar.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator)) {
             Var = newBoundVar,
             Type = newBoundVar.Type
           };
           substMap.Add(bv, ie);
-          Boogie.Variable bvar = new Boogie.BoundVariable(newBoundVar.tok, new Boogie.TypedIdent(newBoundVar.tok, newBoundVar.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(newBoundVar.Type)));
+          Boogie.Variable bvar = new Boogie.BoundVariable(newBoundVar.Tok, new Boogie.TypedIdent(newBoundVar.Tok, newBoundVar.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(newBoundVar.Type)));
           bvars.Add(bvar);
           var bIe = new Boogie.IdentifierExpr(bvar.tok, bvar);
-          Boogie.Expr wh = BoogieGenerator.GetWhereClause(bv.tok, bIe, newBoundVar.Type, this, NOALLOC);
+          Boogie.Expr wh = BoogieGenerator.GetWhereClause(bv.Tok, bIe, newBoundVar.Type, this, NOALLOC);
           if (wh != null) {
             typeAntecedent = BplAnd(typeAntecedent, wh);
           }
@@ -1748,7 +1748,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         }
         argsAreLit = true;
         if (!e.Function.IsStatic) {
-          var tr_ee = BoogieGenerator.BoxifyForTraitParent(e.tok, TrExpr(e.Receiver), e.Function, e.Receiver.Type);
+          var tr_ee = BoogieGenerator.BoxifyForTraitParent(e.Tok, TrExpr(e.Receiver), e.Function, e.Receiver.Type);
           argsAreLit = argsAreLit && BoogieGenerator.IsLit(tr_ee);
           args.Add(tr_ee);
         }
@@ -2001,14 +2001,14 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       private QKeyValue TrBooleanAttribute(string name, Expression arg, QKeyValue rest) {
         var boolArg = RemoveLit(TrExpr(arg));
         return boolArg is Boogie.LiteralExpr { IsTrue: true } or Boogie.LiteralExpr { IsFalse: true }
-          ? new QKeyValue(arg.tok, name, new List<object> { boolArg }, rest)
+          ? new QKeyValue(arg.Tok, name, new List<object> { boolArg }, rest)
           : rest;
       }
 
       private QKeyValue TrIntegerAttribute(string name, Expression arg, QKeyValue rest) {
         var intArg = RemoveLit(TrExpr(arg));
         return intArg is Boogie.LiteralExpr { isBigNum: true }
-          ? new QKeyValue(arg.tok, name, new List<object> { intArg }, rest)
+          ? new QKeyValue(arg.Tok, name, new List<object> { intArg }, rest)
           : rest;
       }
 
@@ -2016,7 +2016,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         // pass string literals down to Boogie as string literals, not as their expression translation
         var strArg = arg.AsStringLiteral();
         return strArg is not null
-          ? new QKeyValue(arg.tok, name, new List<object> { strArg }, rest)
+          ? new QKeyValue(arg.Tok, name, new List<object> { strArg }, rest)
           : rest;
       }
 
@@ -2037,9 +2037,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           }
 
           if (NullaryAttributesToTranslate.ContainsKey(name) && attr.Args.Count == 0) {
-            kv = new QKeyValue(attr.tok, NullaryAttributesToTranslate[name], new List<object>(), kv);
+            kv = new QKeyValue(attr.Tok, NullaryAttributesToTranslate[name], new List<object>(), kv);
           } else if (NullaryAttributesToCopy.Contains(name) && attr.Args.Count == 0) {
-            kv = new QKeyValue(attr.tok, name, new List<object>(), kv);
+            kv = new QKeyValue(attr.Tok, name, new List<object>(), kv);
           } else if (BooleanAttributesToCopy.Contains(name) && attr.Args.Count == 1) {
             kv = TrBooleanAttribute(name, attr.Args[0], kv);
           } else if (IntegerAttributesToCopy.Contains(name) && attr.Args.Count == 1) {
@@ -2051,7 +2051,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           } else if (name is "_rlimit") {
             kv = TrIntegerAttribute("rlimit", attr.Args[0], kv);
           } else if (name is "synthesize" or "extern") {
-            kv = new QKeyValue(attr.tok, "extern", new List<object>(), kv);
+            kv = new QKeyValue(attr.Tok, "extern", new List<object>(), kv);
           } else if (name is "rlimit" && attr.Args.Count == 1) {
             // Values for _rlimit are already in terms of Boogie units (1000 x user-provided value) because they're
             // derived from command-line rlimit settings. Values for rlimit still need to be multiplied.
@@ -2063,7 +2063,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
               litExpr.tok,
               BigNum.FromUInt(Boogie.Util.BoundedMultiply((uint)litExpr.asBigNum.ToIntSafe, 1000)),
               litExpr.Immutable);
-            kv = new QKeyValue(attr.tok, name, new List<object> { limit }, kv);
+            kv = new QKeyValue(attr.Tok, name, new List<object> { limit }, kv);
           } else if (name is "resource_limit" && attr.Args.Count == 1) {
             // Do this after the above multiplication because :resource_limit should not be multiplied.
             Expr limit;
@@ -2071,16 +2071,16 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             var strArg = arg.AsStringLiteral();
             if (strArg != null) {
               if (DafnyOptions.TryParseResourceCount(strArg, out var resourceLimit)) {
-                limit = new Boogie.LiteralExpr(attr.tok, BigNum.FromUInt(resourceLimit), true);
+                limit = new Boogie.LiteralExpr(attr.Tok, BigNum.FromUInt(resourceLimit), true);
               } else {
-                BoogieGenerator.reporter.Error(MessageSource.Verifier, attr.tok,
+                BoogieGenerator.reporter.Error(MessageSource.Verifier, attr.Tok,
                   $"failed to parse resource count: {strArg}");
                 continue;
               }
             } else {
               limit = RemoveLit(TrExpr(arg));
             }
-            kv = new QKeyValue(attr.tok, "rlimit", new List<object> { limit }, kv);
+            kv = new QKeyValue(attr.Tok, "rlimit", new List<object> { limit }, kv);
           }
         }
         return kv;
@@ -2129,7 +2129,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             if (dtor.EnclosingCtors.Count == dtor.EnclosingCtors[0].EnclosingDatatype.Ctors.Count) {
               // Every constructor has this destructor; might as well assume that here.
               var correctConstructor = BplOr(dtor.EnclosingCtors.ConvertAll(
-                ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Boogie.Type.Bool, TrExpr(e.Obj))));
+                ctor => FunctionCall(e.Tok, ctor.QueryField.FullSanitizedName, Boogie.Type.Bool, TrExpr(e.Obj))));
               r = BplAnd(r, correctConstructor);
             }
           }
@@ -2168,7 +2168,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           r = BplAnd(r, CanCallAssumption(e.Args));
           if (!(e.Function is SpecialFunction)) {
             // get to assume canCall
-            Boogie.IdentifierExpr canCallFuncID = new Boogie.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Boogie.Type.Bool);
+            Boogie.IdentifierExpr canCallFuncID = new Boogie.IdentifierExpr(expr.Tok, e.Function.FullSanitizedName + "#canCall", Boogie.Type.Bool);
             List<Boogie.Expr> args = FunctionInvocationArguments(e, null, null);
             Boogie.Expr canCallFuncAppl = new Boogie.NAryExpr(BoogieGenerator.GetToken(expr), new Boogie.FunctionCall(canCallFuncID), args);
             r = BplAnd(r, canCallFuncAppl);
@@ -2219,12 +2219,12 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             case BinaryExpr.ResolvedOpcode.NeqCommon: {
                 Boogie.Expr r = Boogie.Expr.True;
                 if (e.E0 is { Type: { AsDatatype: { } dt0 }, Resolved: not DatatypeValue }) {
-                  var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt0.FullSanitizedName, Boogie.Type.Bool));
-                  r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E0) }));
+                  var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.Tok, "$IsA#" + dt0.FullSanitizedName, Boogie.Type.Bool));
+                  r = BplAnd(r, new Boogie.NAryExpr(expr.Tok, funcID, new List<Boogie.Expr> { TrExpr(e.E0) }));
                 }
                 if (e.E1 is { Type: { AsDatatype: { } dt1 }, Resolved: not DatatypeValue }) {
-                  var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt1.FullSanitizedName, Boogie.Type.Bool));
-                  r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E1) }));
+                  var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.Tok, "$IsA#" + dt1.FullSanitizedName, Boogie.Type.Bool));
+                  r = BplAnd(r, new Boogie.NAryExpr(expr.Tok, funcID, new List<Boogie.Expr> { TrExpr(e.E1) }));
                 }
                 return BplAnd(r, BplAnd(t0, t1));
               }
@@ -2277,7 +2277,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           Dictionary<IVariable, Expression> subst = new Dictionary<IVariable, Expression>();
           foreach (var bv in e.BoundVars) {
             Boogie.Expr ve; var yVar = BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), BoogieGenerator.TrType(bv.Type), out ve);
-            var wh = BoogieGenerator.GetWhereClause(bv.tok, new Boogie.IdentifierExpr(bv.tok, yVar), bv.Type, et, NOALLOC);
+            var wh = BoogieGenerator.GetWhereClause(bv.Tok, new Boogie.IdentifierExpr(bv.Tok, yVar), bv.Type, et, NOALLOC);
             bvarsAndAntecedents.Add(Tuple.Create<Boogie.Variable, Boogie.Expr>(yVar, wh));
             subst[bv] = new BoogieWrapper(ve, bv.Type);
           }
@@ -2290,7 +2290,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
           // It's important to add the heap last to "bvarsAndAntecedents", because the heap may occur in the antecedents of
           // the other variables and BplForallTrim processes the given tuples in order.
-          var goodHeap = BoogieGenerator.FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, heap);
+          var goodHeap = BoogieGenerator.FunctionCall(e.Tok, BuiltinFunction.IsGoodHeap, null, heap);
           bvarsAndAntecedents.Add(Tuple.Create<Boogie.Variable, Boogie.Expr>(hVar, goodHeap));
 
           //TRIG (forall $l#0#heap#0: Heap, $l#0#x#0: int :: true)
@@ -2331,7 +2331,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             }
             var R = TrExpr(Substitute(mc.Range, null, substMap));
             var F = TrExpr(Substitute(mc.TermLeft, null, substMap));
-            var trig = BoogieGenerator.TrTrigger(this, e.Attributes, expr.tok, substMap);
+            var trig = BoogieGenerator.TrTrigger(this, e.Attributes, expr.Tok, substMap);
             substMap = new Dictionary<IVariable, Expression>();
             for (var i = 0; i < mc.BoundVars.Count; i++) {
               var p = new Boogie.NAryExpr(BoogieGenerator.GetToken(mc), new Boogie.FunctionCall(mc.ProjectionFunctions[i]), new List<Boogie.Expr> { F });
@@ -2345,7 +2345,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           // Create a list of all possible bound variables
           var bvarsAndAntecedents = TrBoundVariables_SeparateWhereClauses(e.BoundVars);
           // Produce the quantified CanCall expression, with a suitably reduced set of bound variables
-          var tr = BoogieGenerator.TrTrigger(this, e.Attributes, expr.tok);
+          var tr = BoogieGenerator.TrTrigger(this, e.Attributes, expr.Tok);
           return BplForallTrim(bvarsAndAntecedents, tr, canCall);
 
         } else if (expr is StmtExpr) {

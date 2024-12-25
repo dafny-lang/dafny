@@ -96,18 +96,26 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public TypeParameter.EqualitySupportValue EqualitySupport {
+  private IndDatatypeDecl.ES equalitySupport = IndDatatypeDecl.ES.NotYetComputed;
+
+  public IndDatatypeDecl.ES EqualitySupport {
     get {
-      if (this.BaseType.SupportsEquality) {
-        return TypeParameter.EqualitySupportValue.Required;
-      } else {
-        return TypeParameter.EqualitySupportValue.Unspecified;
+      if (equalitySupport == IndDatatypeDecl.ES.NotYetComputed) {
+        var thingsChanged = false;
+        if (ModuleResolver.SurelyNeverSupportEquality(BaseType)) {
+          equalitySupport = IndDatatypeDecl.ES.Never;
+        } else {
+          ModuleResolver.DetermineEqualitySupportType(BaseType, ref thingsChanged);
+          equalitySupport = IndDatatypeDecl.ES.ConsultTypeArguments;
+        }
       }
+
+      return equalitySupport;
     }
   }
 
   string RedirectingTypeDecl.Name { get { return Name; } }
-  IOrigin RedirectingTypeDecl.tok { get { return tok; } }
+  IOrigin INode.Tok { get { return Tok; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }

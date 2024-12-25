@@ -110,7 +110,7 @@ public static class DafnyCodeActionHelpers {
   /// <param name="input"></param>
   /// <param name="openingBracePosition"></param>
   /// <returns></returns>
-  private static (RangeToken? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
+  private static (SourceOrigin? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
       GetInformationToInsertAtEndOfBlock(IDafnyCodeActionInput input, Position openingBracePosition) {
 
     var (line, col) = openingBracePosition.ToTokenLineAndCol();
@@ -120,7 +120,7 @@ public static class DafnyCodeActionHelpers {
     }
 
     var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, line, col);
-    var beforeClosingBrace = new RangeToken(endToken, null);
+    var beforeClosingBrace = new SourceOrigin(endToken, null);
     return (beforeClosingBrace, extraIndentation, indentationUntilBrace);
   }
 
@@ -148,7 +148,7 @@ public static class DafnyCodeActionHelpers {
         return false; // Outside of the current scope
       }
 
-      if (n is Method method && method.tok.Uri == documentUri && method.Body != null &&
+      if (n is Method method && method.Tok.Uri == documentUri && method.Body != null &&
           method.StartToken.line <= line && line <= method.EndToken.line &&
           GetMatchingEndToken(line, col, method.Body) is { } token) {
         tokenFound = token;

@@ -277,7 +277,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(iter.tok, Feature.Iterators);
+      throw new UnsupportedFeatureException(iter.Tok, Feature.Iterators);
     }
 
     protected bool IsRecursiveConstructor(DatatypeDecl dt, DatatypeCtor ctor) {
@@ -344,7 +344,7 @@ namespace Microsoft.Dafny.Compilers {
         var argNames = new List<string>();
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            ws.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.tok), FormalName(arg, i));
+            ws.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Tok), FormalName(arg, i));
             argNames.Add(FormalName(arg, i));
             i++;
           }
@@ -369,7 +369,7 @@ namespace Microsoft.Dafny.Compilers {
         var wc = wdef.NewNamedBlock("{1}\n{0}{2}::{0}()", DtT_protected, DeclareTemplate(dt.TypeArgs), InstantiateTemplate(dt.TypeArgs));
         foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            wc.WriteLine("{0} = {1};", arg.CompileName, DefaultValue(arg.Type, wc, arg.tok));
+            wc.WriteLine("{0} = {1};", arg.CompileName, DefaultValue(arg.Type, wc, arg.Tok));
           }
         }
 
@@ -394,7 +394,7 @@ namespace Microsoft.Dafny.Compilers {
         owr.WriteLine("size_t seed = 0;");
         foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName);
+            owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Tok), arg.CompileName);
           }
         }
         owr.WriteLine("return seed;");
@@ -409,9 +409,9 @@ namespace Microsoft.Dafny.Compilers {
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive declaration needs to use a pointer
-                wstruct.WriteLine("std::shared_ptr<{0}> {1};", TypeName(arg.Type, wdecl, arg.tok), FormalName(arg, i));
+                wstruct.WriteLine("std::shared_ptr<{0}> {1};", TypeName(arg.Type, wdecl, arg.Tok), FormalName(arg, i));
               } else {
-                wstruct.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.tok), FormalName(arg, i));
+                wstruct.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Tok), FormalName(arg, i));
               }
               i++;
             }
@@ -454,9 +454,9 @@ namespace Microsoft.Dafny.Compilers {
             if (!arg.IsGhost) {
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                 // Recursive destructor needs to use a pointer
-                owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName);
+                owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.Tok), arg.CompileName);
               } else {
-                owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName);
+                owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Tok), arg.CompileName);
               }
               argCount++;
             }
@@ -503,7 +503,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (Formal arg in default_ctor.Formals) {
           if (!arg.IsGhost) {
             wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", arg.CompileName,
-              DefaultValue(arg.Type, wd, arg.tok));
+              DefaultValue(arg.Type, wd, arg.Tok));
           }
         }
 
@@ -544,7 +544,7 @@ namespace Microsoft.Dafny.Compilers {
             if (dtor.EnclosingCtors[0] == ctor) {
               var arg = dtor.CorrespondingFormals[0];
               if (!arg.IsGhost && arg.HasName) {
-                var returnType = TypeName(arg.Type, ws, arg.tok);
+                var returnType = TypeName(arg.Type, ws, arg.Tok);
                 if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                   // This is a recursive destuctor, so return a pointer
                   returnType = String.Format("std::shared_ptr<{0}>", returnType);
@@ -613,7 +613,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.WriteLine("typedef {0} {1};", nt_name_def, nt.Name);
         }
       } else {
-        throw new UnsupportedFeatureException(nt.tok, Feature.NonNativeNewtypes);
+        throw new UnsupportedFeatureException(nt.Tok, Feature.NonNativeNewtypes);
       }
       var className = "class_" + IdName(nt);
       var cw = CreateClass(nt.EnclosingModuleDefinition.GetCompileName(Options), className, nt, wr) as ClassWriter;
@@ -627,13 +627,13 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr(nt.Witness, witness, false, wStmts);
           witness.Write(".toNumber()");
         }
-        DeclareField(className, nt.TypeArgs, "Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w, wr);
+        DeclareField(className, nt.TypeArgs, "Witness", true, true, nt.BaseType, nt.Tok, witness.ToString(), w, wr);
       }
 
       GetNativeInfo(nt.NativeType.Sel, out var nt_name, out var literalSuffice, out var needsCastAfterArithmetic);
       var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt_name));
-      var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
-      var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
+      var udt = new UserDefinedType(nt.Tok, nt.Name, nt, new List<Type>());
+      var d = TypeInitializationValue(udt, wr, nt.Tok, false, false);
       wDefault.WriteLine("return {0};", d);
 
       return cw;
@@ -651,7 +651,7 @@ namespace Microsoft.Dafny.Compilers {
         templateDecl = DeclareTemplate(sst.Var.Type.TypeArgs);
       }
 
-      this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.tok));
+      this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.Tok));
 
       var className = "class_" + IdName(sst);
       var cw = CreateClass(sst.EnclosingModuleDefinition.GetCompileName(Options), className, sst, wr) as ClassWriter;
@@ -660,13 +660,13 @@ namespace Microsoft.Dafny.Compilers {
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         witness.Append(Expr(sst.Witness, false, w));
-        DeclareField(className, sst.TypeArgs, "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
+        DeclareField(className, sst.TypeArgs, "Witness", true, true, sst.Rhs, sst.Tok, witness.ToString(), w, wr);
       }
 
       var wDefault = w.NewBlock(String.Format("static {0}{1} get_Default()", IdName(sst), InstantiateTemplate(sst.TypeArgs)));
-      var udt = new UserDefinedType(sst.tok, sst.Name, sst,
+      var udt = new UserDefinedType(sst.Tok, sst.Name, sst,
         sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
-      var d = TypeInitializationValue(udt, wr, sst.tok, false, false);
+      var d = TypeInitializationValue(udt, wr, sst.Tok, false, false);
       wDefault.WriteLine("return {0};", d);
     }
 
@@ -731,7 +731,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        throw new UnsupportedFeatureException(m.tok, Feature.MethodSynthesis);
+        throw new UnsupportedFeatureException(m.Tok, Feature.MethodSynthesis);
       }
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation>/*?*/ typeArgs,
@@ -760,7 +760,7 @@ namespace Microsoft.Dafny.Compilers {
       List<Formal> nonGhostOuts = m.Outs.Where(o => !o.IsGhost).ToList();
       string targetReturnTypeReplacement = null;
       if (nonGhostOuts.Count == 1) {
-        targetReturnTypeReplacement = TypeName(nonGhostOuts[0].Type, wr, nonGhostOuts[0].tok);
+        targetReturnTypeReplacement = TypeName(nonGhostOuts[0].Type, wr, nonGhostOuts[0].Tok);
       } else if (nonGhostOuts.Count > 1) {
         targetReturnTypeReplacement = String.Format("struct Tuple{0}", InstantiateTemplate(nonGhostOuts.ConvertAll(n => n.Type)));
       }
@@ -957,7 +957,7 @@ namespace Microsoft.Dafny.Compilers {
         if (class_name || xType.IsTypeParameter || xType.IsAbstractType || xType.IsDatatype) {  // Don't add pointer decorations to class names or type parameters
           return IdProtect(s) + ActualTypeArgs(xType.TypeArgs);
         } else {
-          return TypeName_UDT(s, udt, wr, udt.tok);
+          return TypeName_UDT(s, udt, wr, udt.Tok);
         }
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
@@ -1128,7 +1128,7 @@ namespace Microsoft.Dafny.Compilers {
       if (compileTypeHint.AsStringLiteral() == "struct") {
         modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1};", DeclareTemplate(d.TypeArgs), d.Name);
       } else {
-        Error(GeneratorErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.tok, "Abstract type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
+        Error(GeneratorErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.Tok, "Abstract type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
       }
     }
 
@@ -1173,7 +1173,7 @@ namespace Microsoft.Dafny.Compilers {
       foreach (Formal arg in formals) {
         if (!arg.IsGhost) {
           string name = FormalName(arg, i);
-          string decl = DeclareFormalString(sep, name, arg.Type, arg.tok, arg.InParam);
+          string decl = DeclareFormalString(sep, name, arg.Type, arg.Tok, arg.InParam);
           if (decl != null) {
             ret += decl;
             sep = ", ";
@@ -1439,7 +1439,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
-        wr.Write(TypeName(e.Type, wr, e.tok));
+        wr.Write(TypeName(e.Type, wr, e.Tok));
       } else if (e.Value == null) {
         EmitNullText(e.Type, wr);
       } else if (e.Value is bool) {
@@ -1461,7 +1461,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is BigInteger i) {
         EmitIntegerLiteral(i, wr);
       } else if (e.Value is BaseTypes.BigDec) {
-        throw new UnsupportedFeatureException(e.tok, Feature.RealNumbers);
+        throw new UnsupportedFeatureException(e.Tok, Feature.RealNumbers);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
@@ -1530,7 +1530,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
       bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      throw new UnsupportedFeatureException(e0.tok, Feature.BitvectorRotateFunctions);
+      throw new UnsupportedFeatureException(e0.Tok, Feature.BitvectorRotateFunctions);
     }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
@@ -1638,7 +1638,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
       Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
-        throw new UnsupportedFeatureException(udt.tok, Feature.FunctionValues, string.Format("UserDefinedTypeName {0}", udt.Name));
+        throw new UnsupportedFeatureException(udt.Tok, Feature.FunctionValues, string.Format("UserDefinedTypeName {0}", udt.Name));
         //return ArrowType.Arrow_FullCompileName;
       }
       var cl = udt.ResolvedClass;
@@ -1776,7 +1776,7 @@ namespace Microsoft.Dafny.Compilers {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else if (sf is DatatypeDestructor dtor2) {
           if (!(dtor2.EnclosingClass is IndDatatypeDecl)) {
-            UnsupportedFeatureError(dtor2.tok, Feature.Codatatypes,
+            UnsupportedFeatureError(dtor2.Tok, Feature.Codatatypes,
               String.Format("Unexpected use of a destructor {0} that isn't for an inductive datatype.  Panic!",
                 member.Name));
           }
@@ -1880,9 +1880,9 @@ namespace Microsoft.Dafny.Compilers {
             udt.ResolvedClass is TypeSynonymDecl tsd) {
           // Hack to workaround type synonyms wrapped around the actual array type
           // TODO: Come up with a more systematic way of resolving this!
-          typeName = TypeName(tsd.Rhs.TypeArgs[0], wr, source.tok, null, false);
+          typeName = TypeName(tsd.Rhs.TypeArgs[0], wr, source.Tok, null, false);
         } else {
-          typeName = TypeName(source.Type.TypeArgs[0], wr, source.tok, null, false);
+          typeName = TypeName(source.Type.TypeArgs[0], wr, source.Tok, null, false);
         }
         if (lo == null) {
           if (hi == null) {
@@ -1925,7 +1925,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write("DafnySequence<{0}>::Create(", TypeName(expr.Type, wr, expr.tok, null, false));
+      wr.Write("DafnySequence<{0}>::Create(", TypeName(expr.Type, wr, expr.Tok, null, false));
       wr.Append(Expr(expr.N, inLetExprBody, wStmts));
       wr.Write(", ");
       wr.Append(Expr(expr.Initializer, inLetExprBody, wStmts));
@@ -1934,7 +1934,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(expr.tok, Feature.Multisets);
+      throw new UnsupportedFeatureException(expr.Tok, Feature.Multisets);
     }
 
     protected override void EmitApplyExpr(Type functionType, IOrigin tok, Expression function, List<Expression> arguments,
@@ -2286,7 +2286,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType || fromType.IsCharType) {
         if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
-          throw new UnsupportedFeatureException(fromExpr.tok, Feature.RealNumbers);
+          throw new UnsupportedFeatureException(fromExpr.Tok, Feature.RealNumbers);
         } else if (toType.IsCharType) {
           wr.Write("(char)");
           TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
@@ -2301,7 +2301,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (fromType.IsCharType) {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
-              throw new UnsupportedFeatureException(fromExpr.tok, Feature.UnboundedIntegers);
+              throw new UnsupportedFeatureException(fromExpr.Tok, Feature.UnboundedIntegers);
             } else {
               // char -> native
               wr.Write($"({GetNativeTypeName(toNative)})");
@@ -2434,11 +2434,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
       var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
-      wrVarInit.Write("DafnySet<{0}>()", TypeName(e.Type.NormalizeToAncestorType().AsSetType.Arg, wrVarInit, e.tok, null, false));
+      wrVarInit.Write("DafnySet<{0}>()", TypeName(e.Type.NormalizeToAncestorType().AsSetType.Arg, wrVarInit, e.Tok, null, false));
     }
 
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
-      throw new UnsupportedFeatureException(e.tok, Feature.MapComprehensions);
+      throw new UnsupportedFeatureException(e.Tok, Feature.MapComprehensions);
     }
 
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, ConcreteSyntaxTree wr) {

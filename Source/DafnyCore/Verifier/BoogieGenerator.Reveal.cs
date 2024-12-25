@@ -65,7 +65,7 @@ public partial class BoogieGenerator {
 
           e = BplAnd(e, Expr.Eq(startFuel, layer));
           e = BplAnd(e, Expr.Eq(startFuelAssert, layerAssert));
-          e = BplAnd(e, Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuelExpr), moreFuelExpr));
+          e = BplAnd(e, Expr.Eq(FunctionCall(f.Tok, BuiltinFunction.AsFuelBottom, null, moreFuelExpr), moreFuelExpr));
 
           return e;
         }

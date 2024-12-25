@@ -86,8 +86,8 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
 
   public override IEnumerable<INode> PreResolveChildren =>
     Attributes.AsEnumerable()
-      .Concat<Node>(Range != null && Range.tok.line > 0 ? new List<Node>() { Range } : new List<Node>())
-    .Concat(Term != null && Term.tok.line > 0 ? new List<Node> { Term } : new List<Node>());
+      .Concat<Node>(Range != null && Range.Tok.line > 0 ? new List<Node>() { Range } : new List<Node>())
+    .Concat(Term != null && Term.Tok.line > 0 ? new List<Node> { Term } : new List<Node>());
 
   public override IEnumerable<Expression> SubExpressions {
     get {

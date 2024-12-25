@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
         if (field is ConstantField cf) {
           if (cf == callingContext) {
             // detect self-loops here, since they don't show up in the graph's SSC methods
-            reporter.Error(MessageSource.Resolver, cf.tok, "recursive dependency involving constant initialization: {0} -> {0}", cf.Name);
+            reporter.Error(MessageSource.Resolver, cf.Tok, "recursive dependency involving constant initialization: {0} -> {0}", cf.Name);
           } else {
             AddCallGraphEdge(callingContext, cf, e, false);
           }

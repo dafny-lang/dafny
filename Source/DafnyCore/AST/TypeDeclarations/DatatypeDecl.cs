@@ -205,7 +205,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
         formal.DefaultValue = Rewriter.AddRevealStmtsToExpression(formal.DefaultValue, addedReveals);
 
         if (addedReveals.Any()) {
-          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, formal.tok,
+          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, formal.Tok,
             AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
         }
       }

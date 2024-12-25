@@ -38,6 +38,9 @@ jobs:
     - name: Check whitespace and style
       working-directory: dafny
       run: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
+    - name: Check that it's possible to bump the version
+      working-directory: dafny
+      run: make bumpversion-test
     - name: Get Boogie Version
       run: |
         sudo apt-get update
