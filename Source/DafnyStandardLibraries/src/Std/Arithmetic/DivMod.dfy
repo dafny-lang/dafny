@@ -629,12 +629,15 @@ module Std.Arithmetic.DivMod {
     }
   }
 
-  lemma LemmaIndistinguishableQuotients(a: int, b: int, d: int)
+  lemma {:induction false} LemmaIndistinguishableQuotients(a: int, b: int, d: int)
     requires 0 < d
     requires 0 <= a - a % d <= b < a + d - a % d
     ensures a / d == b / d
   {
-    LemmaDivInductionAuto(d, a - b, ab => var u := ab + b; 0 <= u - u % d <= b < u + d - u % d ==> u / d == b / d);
+    var f := ab => var u := ab + b; 0 <= u - u % d <= b < u + d - u % d ==> u / d == b / d;
+    assert f(a - b) by {
+      LemmaDivInductionAuto(d, a - b, f);
+    }
   }
 
   lemma LemmaIndistinguishableQuotientsAuto()
