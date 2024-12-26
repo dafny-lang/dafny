@@ -1876,6 +1876,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static bool ModifiesClauseIsEmpty(Specification<FrameExpression> modifiesClause) {
+      return modifiesClause.Expressions.All(e => e.E is SetDisplayExpr setDisplayExpr && !setDisplayExpr.Elements.Any());
+    }
+
     private void InsertChecksum(Method m, Boogie.Declaration decl, bool specificationOnly = false) {
       Contract.Requires(VisibleInScope(m));
       byte[] data;
