@@ -756,15 +756,48 @@ module Std.Arithmetic.DivMod {
     requires 0 <= b < d
     ensures (d * x + b) / d == x
   {
-    LemmaDivAuto(d);
-    assert b/d == 0;
+    assert b/d == 0 by { LemmaDivAuto(d); }
     var f := u => (d * u + b) / d == u;
     assert f(0);
     forall i
-      ensures MulAuto() && IsLe(i, 0) && f(i) ==> f(i - 1)
-      ensures MulAuto() && IsLe(0, i) && f(i) ==> f(i + 1)
+      ensures IsLe(0, i) && f(i) ==> f(i + 1)
       {
-        LemmaDivAuto(d);
+        if (f(i)) {
+          var z := ((d * i) + b)%d + d % d;
+          assert 0 <= z < d;
+          assert f (i + 1) by {
+            calc {
+              i + 1;
+              ((d * i) + b)/d + d/d; {
+                assert DivPlus (d, d * i + b, d) by {LemmaDivAuto(d);}
+              }
+              ((d * i) + b + d)/d; {
+                LemmaMulAuto();
+              }
+              (d * (i + 1) + b)/d;
+            }
+          }
+        }
+      }
+    forall i
+      ensures IsLe(i, 0) && f(i) ==> f(i - 1)
+      {
+        if (f(i)) {
+          var z := ((d * i) + b)%d - d % d;
+          assert 0 <= z < d;
+          assert f (i - 1) by {
+            calc {
+              i - 1;
+              ((d * i) + b)/d - d/d; {
+                assert DivMinus (d, d * i + b, d) by {LemmaDivAuto(d);}
+              }
+              ((d * i) + b - d)/d; {
+                LemmaMulAuto();
+              }
+              (d * (i - 1) + b)/d;
+            }
+          }
+        }
       }
     LemmaMulInductionAuto(x, f);
   }
