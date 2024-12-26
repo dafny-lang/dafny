@@ -38,6 +38,8 @@ module Std.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     }
 
+    @IsolateAssertions
+    @ResourceLimit("1000e6")
     function WS(cs: FreshCursor): (sp: Split<jblanks>)
       ensures sp.SplitFrom?(cs, SpecView)
       ensures sp.cs.SuffixOf?(cs)
