@@ -6,7 +6,7 @@ method Foo() returns (x: int)
 {
   x := 1;
   var y := 1;
-  opaque 
+  opaque
     ensures x > 3 
   {
     x := x + y;
