@@ -757,9 +757,16 @@ module Std.Arithmetic.DivMod {
     ensures (d * x + b) / d == x
   {
     LemmaDivAuto(d);
+    assert b/d == 0;
     var f := u => (d * u + b) / d == u;
+    assert f(0);
+    forall i
+      ensures MulAuto() && IsLe(i, 0) && f(i) ==> f(i - 1)
+      ensures MulAuto() && IsLe(0, i) && f(i) ==> f(i + 1)
+      {
+        LemmaDivAuto(d);
+      }
     LemmaMulInductionAuto(x, f);
-    assert f(x);
   }
 
   lemma LemmaDivMultiplesVanishFancyAuto()
