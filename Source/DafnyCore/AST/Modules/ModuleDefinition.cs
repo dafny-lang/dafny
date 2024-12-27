@@ -527,7 +527,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
           if (isDeclExported(origMod, exportSet, decl, out var isDeclRevealed)) {
             var newAccMember = accMember.Clone();
 
-            newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
+            newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Origin));
             newAccMember.IsRevealed = newAccMember.IsRevealed && isDeclRevealed;
             AddAccessibleMember(decl, newAccMember);
           }
@@ -543,7 +543,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
           if (isDeclExported(nested.ModuleDef, null, decl, out var isDeclRevealed)) {
             var newAccMember = accMember.Clone();
 
-            newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
+            newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Origin));
             newAccMember.IsRevealed = newAccMember.IsRevealed && isDeclRevealed;
 
             AddAccessibleMember(decl, newAccMember);
@@ -557,7 +557,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         var memberList = tld.Members;
 
         foreach (var mem in memberList) {
-          var accessPath = new List<NameSegment> { TopLevelDeclToNameSegment(d, d.Tok) };
+          var accessPath = new List<NameSegment> { TopLevelDeclToNameSegment(d, d.Origin) };
           var newAccessibleMember = new AccessibleMember(accessPath);
           AddAccessibleMember(mem, newAccessibleMember);
         }
@@ -684,12 +684,12 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         var existingModuleIsFound = bindings.TryLookup(subDecl.Name, out var prevDecl);
         Contract.Assert(existingModuleIsFound);
         if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
-          resolver.Reporter.Error(MessageSource.Resolver, subDecl.Tok, "Duplicate name of import: {0}", subDecl.Name);
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.Origin, "Duplicate name of import: {0}", subDecl.Name);
         } else if (subDecl is AliasModuleDecl { Opened: true } importDecl && importDecl.TargetQId.Path.Count == 1 &&
                    importDecl.Name == importDecl.TargetQId.RootName()) {
           importDecl.ShadowsLiteralModule = true;
         } else {
-          resolver.Reporter.Error(MessageSource.Resolver, subDecl.Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.Origin,
             "Import declaration uses same name as a module in the same scope: {0}", subDecl.Name);
         }
       }
@@ -754,7 +754,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
         anonymousImportCount++;
       } else if (toplevels.TryGetValue(d.Name, out var existingTopLevel)) {
-        resolver.reporter.Error(MessageSource.Resolver, new NestedOrigin(d.Tok, existingTopLevel.Origin),
+        resolver.reporter.Error(MessageSource.Resolver, new NestedOrigin(d.Origin, existingTopLevel.Origin),
           "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
@@ -806,7 +806,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
           }
 
           if (toplevels.ContainsKey(m.Name)) {
-            resolver.reporter.Error(MessageSource.Resolver, m.Tok, $"duplicate declaration for name {m.Name}");
+            resolver.reporter.Error(MessageSource.Resolver, m.Origin, $"duplicate declaration for name {m.Name}");
           } else {
             toplevels.Add(m.Name, m);
           }

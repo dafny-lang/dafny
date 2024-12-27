@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
     void ResolveNamesAndInferTypesForOneDeclarationInitial(TopLevelDecl topd) {
       if (topd is NewtypeDecl newtypeDecl) {
         // this check can be done only after it has been determined that the redirected types do not involve cycles
-        AddXConstraint(newtypeDecl.Tok, "NumericType", newtypeDecl.BaseType, "newtypes must be based on some numeric type (got {0})");
+        AddXConstraint(newtypeDecl.Origin, "NumericType", newtypeDecl.BaseType, "newtypes must be based on some numeric type (got {0})");
         // type check the constraint, if any
         if (newtypeDecl.Var != null) {
           Contract.Assert(object.ReferenceEquals(newtypeDecl.Var.Type.NormalizeExpand(true), newtypeDecl.BaseType.NormalizeExpand(true)));  // follows from NewtypeDecl invariant
@@ -361,10 +361,10 @@ namespace Microsoft.Dafny {
       var f = (Function)member;
       Expression receiver;
       if (f.IsStatic) {
-        receiver = new StaticReceiverExpr(f.Tok, (TopLevelDeclWithMembers)f.EnclosingClass, true);
+        receiver = new StaticReceiverExpr(f.Origin, (TopLevelDeclWithMembers)f.EnclosingClass, true);
       } else {
-        receiver = new ImplicitThisExpr(f.Tok);
-        receiver.Type = GetThisType(f.Tok, (TopLevelDeclWithMembers)member.EnclosingClass);
+        receiver = new ImplicitThisExpr(f.Origin);
+        receiver.Type = GetThisType(f.Origin, (TopLevelDeclWithMembers)member.EnclosingClass);
       }
 
       var typeApplication = new List<Type>();
@@ -376,7 +376,7 @@ namespace Microsoft.Dafny {
         typeApplication_JustForMember.Add(new IntType());
       }
 
-      var rr = new MemberSelectExpr(f.Tok, receiver, f.NameNode);
+      var rr = new MemberSelectExpr(f.Origin, receiver, f.NameNode);
       rr.Member = f;
       rr.TypeApplicationAtEnclosingClass = typeApplication;
       rr.TypeApplicationJustMember = typeApplication_JustForMember;
@@ -384,7 +384,7 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < f.Ins.Count; i++) {
         args.Add(new IntType());
       }
-      rr.Type = new ArrowType(f.Tok, args, new IntType());
+      rr.Type = new ArrowType(f.Origin, args, new IntType());
       ((NameSegment)arg).ResolvedExpression = rr;
       arg.Type = rr.Type;
     }
@@ -1208,7 +1208,7 @@ namespace Microsoft.Dafny {
           if (r == Scope<TypeParameter>.PushResult.Duplicate) {
             reporter.Error(MessageSource.Resolver, ParseErrors.ErrorId.none, tp, "Duplicate type-parameter name: {0}", tp.Name);
           } else if (r == Scope<TypeParameter>.PushResult.Shadow) {
-            reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tp.Tok, "Shadowed type-parameter name: {0}", tp.Name);
+            reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tp.Origin, "Shadowed type-parameter name: {0}", tp.Name);
           }
         }
       }
@@ -2756,7 +2756,7 @@ namespace Microsoft.Dafny {
           }
           ResolveExpression(constantField.Rhs, resolutionContext);
           scope.PopMarker();
-          AddAssignableConstraint(constantField.Tok, constantField.Type, constantField.Rhs.Type,
+          AddAssignableConstraint(constantField.Origin, constantField.Type, constantField.Rhs.Type,
             "type for constant '" + constantField.Name + "' is '{0}', but its initialization value type is '{1}'");
           SolveAllTypeConstraints();
         }
@@ -2932,7 +2932,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentClass == null);
 
       if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
-        Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_iterators_are_not_deterministic, iter.Tok,
+        Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_iterators_are_not_deterministic, iter.Origin,
           "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option");
       }
 
@@ -3152,7 +3152,7 @@ namespace Microsoft.Dafny {
       } else {
         if (isInitCall) {
           if (callee.IsStatic) {
-            reporter.Error(MessageSource.Resolver, s.Tok, "a method called as an initialization method must not be 'static'");
+            reporter.Error(MessageSource.Resolver, s.Origin, "a method called as an initialization method must not be 'static'");
           } else {
             tryToResolve = true;
           }
@@ -3175,7 +3175,7 @@ namespace Microsoft.Dafny {
       if (tryToResolve) {
         var typeMap = s.MethodSelect.TypeArgumentSubstitutionsAtMemberDeclaration();
         // resolve arguments
-        ResolveActualParameters(s.Bindings, callee.Ins, s.Tok, callee, resolutionContext, typeMap,
+        ResolveActualParameters(s.Bindings, callee.Ins, s.Origin, callee, resolutionContext, typeMap,
           callee.IsStatic ? null : s.Receiver);
         // type check the out-parameter arguments (in-parameters were type checked as part of ResolveActualParameters)
         for (int i = 0; i < callee.Outs.Count && i < s.Lhs.Count; i++) {
@@ -3186,7 +3186,7 @@ namespace Microsoft.Dafny {
           var what = GetLocationInformation(outFormal, callee.Outs.Count(), i, "method out-parameter");
 
           AddAssignableConstraint(
-            s.Tok, lhs.Type, st,
+            s.Origin, lhs.Type, st,
             $"incorrect return type {what} (expected {{1}}, got {{0}})");
         }
         for (int i = 0; i < s.Lhs.Count; i++) {
@@ -3196,7 +3196,7 @@ namespace Microsoft.Dafny {
         }
       }
       if (Contract.Exists(callee.Decreases.Expressions, e => e is WildcardExpr) && !resolutionContext.CodeContext.AllowsNontermination) {
-        reporter.Error(MessageSource.Resolver, s.Tok, "a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating");
+        reporter.Error(MessageSource.Resolver, s.Origin, "a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating");
       }
     }
 
@@ -3535,7 +3535,7 @@ namespace Microsoft.Dafny {
             Statement target = LoopStack[LoopStack.Count - s.BreakAndContinueCount];
             if (target.Labels == null) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
-              target.Labels = new LList<Label>(new Label(target.Tok, null), null);
+              target.Labels = new LList<Label>(new Label(target.Origin, null), null);
             }
             s.TargetStmt = target;
           }
@@ -3606,7 +3606,7 @@ namespace Microsoft.Dafny {
         // Resolve the types of the locals
         foreach (var local in s.Locals) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveType(local.Tok, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(local.Origin, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
             local.type = local.SyntacticType;
           } else {
@@ -3643,7 +3643,7 @@ namespace Microsoft.Dafny {
         VarDeclPattern s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveType(local.Tok, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(local.Origin, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
             local.type = local.SyntacticType;
           } else {
@@ -3701,14 +3701,14 @@ namespace Microsoft.Dafny {
           Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
 
           if (s.Lhs is ImplicitIdentifierExpr { Var: Formal { InParam: false } }) {
-            AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "Method return value mismatch (expected {0}, got {1})");
+            AddAssignableConstraint(stmt.Origin, lhsType, rr.Expr.Type, "Method return value mismatch (expected {0}, got {1})");
           } else {
-            AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "RHS (of type {1}) not assignable to LHS (of type {0})");
+            AddAssignableConstraint(stmt.Origin, lhsType, rr.Expr.Type, "RHS (of type {1}) not assignable to LHS (of type {0})");
           }
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
           ResolveTypeRhs(rr, stmt, resolutionContext);
-          AddAssignableConstraint(stmt.Tok, lhsType, rr.Type, "type {1} is not assignable to LHS (of type {0})");
+          AddAssignableConstraint(stmt.Origin, lhsType, rr.Type, "type {1} is not assignable to LHS (of type {0})");
         } else if (s.Rhs is HavocRhs havocRhs) {
           havocRhs.Resolve(this, resolutionContext);
         } else {
@@ -3740,7 +3740,7 @@ namespace Microsoft.Dafny {
             ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
           } else {
             if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
-              Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_non_deterministic_loop_forbidden, s.Tok,
+              Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_non_deterministic_loop_forbidden, s.Origin,
                 "nondeterministic loop forbidden by the --enforce-determinism option");
             }
           }
@@ -3763,7 +3763,7 @@ namespace Microsoft.Dafny {
             }
           } else if (forS.Decreases.Expressions.Count == 0 && !resolutionContext.CodeContext.AllowsNontermination) {
             // note, the following error message is also emitted elsewhere (if the loop bears a "decreases *")
-            reporter.Error(MessageSource.Resolver, forS.Tok,
+            reporter.Error(MessageSource.Resolver, forS.Origin,
               "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating" +
               " (or you can add a 'decreases' clause to this 'for' loop if you want to prove that it does indeed terminate)");
           }
@@ -3791,7 +3791,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
-          Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_loop_forbidden, s.Tok,
+          Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_loop_forbidden, s.Origin,
             "case-based loop forbidden by the --enforce-determinism option");
         }
         AlternativeStmt.ResolveAlternatives(this, s.Alternatives, s, resolutionContext);
@@ -3867,13 +3867,13 @@ namespace Microsoft.Dafny {
               // add the conclusion of the calc as a free postcondition
               var result = ((CalcStmt)s0).Result;
               s.Ens.Add(new AttributedExpression(result));
-              reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(Options, result));
+              reporter.Info(MessageSource.Resolver, s.Origin, "ensures " + Printer.ExprToString(Options, result));
             } else {
               s.Kind = ForallStmt.BodyKind.Proof;
               if (s.Body is BlockStmt && ((BlockStmt)s.Body).Body.Count == 0) {
                 // an empty statement, so don't produce any warning
               } else {
-                reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, s.Tok, "the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause");
+                reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, s.Origin, "the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause");
               }
             }
           }
@@ -3890,7 +3890,7 @@ namespace Microsoft.Dafny {
         if (modifyStmt.Body == null) {
           if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
             Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_bodyless_modify_statement_forbidden,
-              modifyStmt.Tok, "modify statement without a body forbidden by the --enforce-determinism option");
+              modifyStmt.Origin, "modify statement without a body forbidden by the --enforce-determinism option");
           }
         }
         ResolveAttributes(modifyStmt.Mod, resolutionContext);
@@ -3910,7 +3910,7 @@ namespace Microsoft.Dafny {
           s.Op = s.UserSuppliedOp;
         } else {
           s.Op = s.GetInferredDefaultOp() ?? CalcStmt.DefaultOp;
-          reporter.Info(MessageSource.Resolver, s.Tok, s.Op.ToString());
+          reporter.Info(MessageSource.Resolver, s.Origin, s.Op.ToString());
         }
 
         if (s.Lines.Count > 0) {
@@ -3956,7 +3956,7 @@ namespace Microsoft.Dafny {
           var resultOp = s.StepOps.Aggregate(s.Op, (op0, op1) => op1 == null ? op0 : op0.ResultOp(op1));
           s.Result = resultOp.StepExpr(s.Lines.First(), s.Lines.Last());
         } else {
-          s.Result = CalcStmt.DefaultOp.StepExpr(Expression.CreateIntLiteral(s.Tok, 0), Expression.CreateIntLiteral(s.Tok, 0));
+          s.Result = CalcStmt.DefaultOp.StepExpr(Expression.CreateIntLiteral(s.Origin, 0), Expression.CreateIntLiteral(s.Origin, 0));
         }
         ResolveExpression(s.Result, resolutionContext);
         Contract.Assert(s.Result != null);
@@ -3964,7 +3964,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
-        reporter.Error(MessageSource.Resolver, s.Tok, "skeleton statements are allowed only in refining methods");
+        reporter.Error(MessageSource.Resolver, s.Origin, "skeleton statements are allowed only in refining methods");
         // nevertheless, resolve the underlying statement; hey, why not
         if (s.S != null) {
           ResolveStatement(s.S, resolutionContext);
@@ -4206,10 +4206,10 @@ namespace Microsoft.Dafny {
                 if (caller != d) {
                 } else if (d is TypeSynonymDecl && !(d is SubsetTypeDecl)) {
                   // detect self-loops here, since they don't show up in the graph's SCC methods
-                  reporter.Error(MessageSource.Resolver, d.Tok, "type-synonym cycle: {0} -> {0}", d.Name);
+                  reporter.Error(MessageSource.Resolver, d.Origin, "type-synonym cycle: {0} -> {0}", d.Name);
                 } else {
                   // detect self-loops here, since they don't show up in the graph's SCC methods
-                  reporter.Error(MessageSource.Resolver, d.Tok, "recursive constraint dependency involving a {0}: {1} -> {1}", d.WhatKind, d.Name);
+                  reporter.Error(MessageSource.Resolver, d.Origin, "recursive constraint dependency involving a {0}: {1} -> {1}", d.WhatKind, d.Name);
                 }
               }
               t.ResolvedClass = d;
@@ -4335,7 +4335,7 @@ namespace Microsoft.Dafny {
         if (rr.ArrayDimensions != null) {
           // ---------- new T[EE]    OR    new T[EE] (elementInit)
           Contract.Assert(rr.Bindings == null && rr.Path == null && rr.InitCall == null);
-          ResolveType(stmt.Tok, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(stmt.Origin, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           int i = 0;
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
@@ -4343,7 +4343,7 @@ namespace Microsoft.Dafny {
             ConstrainToIntegerType(dim, false, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
-          rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, resolutionContext, false);
+          rr.Type = ResolvedArrayType(stmt.Origin, rr.ArrayDimensions.Count, rr.EType, resolutionContext, false);
           if (rr.ElementInit != null) {
             ResolveExpression(rr.ElementInit, resolutionContext);
             // Check
@@ -4375,7 +4375,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           if (rr.Bindings == null) {
-            ResolveType(stmt.Tok, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+            ResolveType(stmt.Origin, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
             var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
             if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObjectQ)) {
               // life is good

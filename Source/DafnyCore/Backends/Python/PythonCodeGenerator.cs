@@ -277,7 +277,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
       var cw = (ClassWriter)CreateClass(PublicModuleIdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), false,
-        iter.FullName, iter.TypeArgs, iter, null, iter.Tok, wr);
+        iter.FullName, iter.TypeArgs, iter, null, iter.Origin, wr);
       var constructorWriter = cw.ConstructorWriter;
       var w = cw.MethodWriter;
       // here come the fields
@@ -285,7 +285,7 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var member in iter.Members) {
         switch (member) {
           case Field { IsGhost: false } f:
-            DeclareField(IdName(f), false, false, f.Type, f.Tok, PlaceboValue(f.Type, constructorWriter, f.Tok, true), constructorWriter);
+            DeclareField(IdName(f), false, false, f.Type, f.Origin, PlaceboValue(f.Type, constructorWriter, f.Origin, true), constructorWriter);
             break;
           case Constructor constructor:
             Contract.Assert(ct == null);  // we're expecting just one constructor
@@ -323,7 +323,7 @@ namespace Microsoft.Dafny.Compilers {
       var DtT = IdProtect(dt.GetCompileName(Options));
 
       var baseClasses = dt.ParentTypeInformation.UniqueParentTraits().Any()
-        ? $"({dt.ParentTypeInformation.UniqueParentTraits().Comma(trait => TypeName(trait, wr, dt.Tok))})"
+        ? $"({dt.ParentTypeInformation.UniqueParentTraits().Comma(trait => TypeName(trait, wr, dt.Origin))})"
         : "";
       var btw = wr.NewBlockPy($"class {DtT}{baseClasses}:", close: BlockStyle.Newline);
 
@@ -333,7 +333,7 @@ namespace Microsoft.Dafny.Compilers {
           $"def AllSingletonConstructors(cls):");
         var values = dt.Ctors.Select(ctor =>
           ctor.IsGhost
-          ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.Tok, dt), w, dt.Tok)
+          ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.Origin, dt), w, dt.Origin)
           : $"{DtCtorDeclarationName(ctor)}()");
         w.WriteLine($"return [{values.Comma()}]");
       }
@@ -342,9 +342,9 @@ namespace Microsoft.Dafny.Compilers {
       var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt, true).Comma(FormatDefaultTypeParameterValue)}):");
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
-        wDefault.WriteLine($"return lambda: {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.Tok, dt), wDefault, dt.Tok)}");
+        wDefault.WriteLine($"return lambda: {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.Origin, dt), wDefault, dt.Origin)}");
       } else if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, dt, out var innerType)) {
-        wDefault.WriteLine($"return lambda: {DefaultValue(innerType, wDefault, dt.Tok)}");
+        wDefault.WriteLine($"return lambda: {DefaultValue(innerType, wDefault, dt.Origin)}");
       } else {
         var wTypeDescriptors = new ConcreteSyntaxTree();
         var typeDescriptorComma = "";
@@ -460,7 +460,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var cw = (ClassWriter)CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(d), d, wr);
       var w = cw.MethodWriter;
-      var udt = UserDefinedType.FromTopLevelDecl(d.Tok, d);
+      var udt = UserDefinedType.FromTopLevelDecl(d.Origin, d);
       w.WriteLine("@staticmethod");
       var block = w.NewBlockPy("def default():");
       var wStmts = block.Fork();
@@ -468,7 +468,7 @@ namespace Microsoft.Dafny.Compilers {
       if (witnessKind == SubsetTypeDecl.WKind.Compiled) {
         block.Append(Expr(witness, false, wStmts));
       } else {
-        block.Write(TypeInitializationValue(udt, wr, d.Tok, false, false));
+        block.Write(TypeInitializationValue(udt, wr, d.Origin, false, false));
       }
       block.WriteLine();
 
@@ -1397,7 +1397,7 @@ namespace Microsoft.Dafny.Compilers {
             return SimpleLvalue(w => {
               var customReceiver = NeedsCustomReceiverNotTrait(sf);
               if (sf.IsStatic || customReceiver) {
-                w.Write(TypeName_Companion(objType, w, member.Tok, member));
+                w.Write(TypeName_Companion(objType, w, member.Origin, member));
               } else {
                 obj(w);
               }
@@ -1405,7 +1405,7 @@ namespace Microsoft.Dafny.Compilers {
                 w.Write($".{(sf is ConstantField && internalAccess ? InternalFieldPrefix : "")}{compiledName}");
               }
               var sep = "(";
-              EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.Tok, w, ref sep);
+              EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.Origin, w, ref sep);
               if (customReceiver) {
                 w.Write(sep);
                 obj(w);
@@ -1418,7 +1418,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case Field: {
             return SimpleLvalue(w => {
-              if (member.IsStatic) { w.Write(TypeName_Companion(objType, w, member.Tok, member)); } else { obj(w); }
+              if (member.IsStatic) { w.Write(TypeName_Companion(objType, w, member.Origin, member)); } else { obj(w); }
               w.Write($".{IdName(member)}");
             });
           }
@@ -1435,7 +1435,7 @@ namespace Microsoft.Dafny.Compilers {
               obj(w);
               w.Write($".{IdName(fn)}(");
               var sep = "";
-              EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), fn.Tok, w, ref sep);
+              EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), fn.Origin, w, ref sep);
               if (additionalCustomParameter != null) {
                 w.Write(sep + additionalCustomParameter);
                 sep = ", ";
@@ -1448,7 +1448,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         default:
           return SimpleLvalue(w => {
-            w.Write($"{TypeName_Companion(objType, w, member.Tok, member)}.{IdName(member)}({additionalCustomParameter ?? ""})");
+            w.Write($"{TypeName_Companion(objType, w, member.Origin, member)}.{IdName(member)}({additionalCustomParameter ?? ""})");
           });
       }
     }

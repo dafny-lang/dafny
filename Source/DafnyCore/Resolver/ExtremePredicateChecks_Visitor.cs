@@ -46,7 +46,7 @@ class ExtremePredicateChecks_Visitor : FindFriendlyCalls_Visitor {
       var s = (CallStmt)stmt;
       if (ModuleDefinition.InSameSCC(context, s.Method)) {
         // we're looking at a recursive call
-        reporter.Error(MessageSource.Resolver, stmt.Tok, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
+        reporter.Error(MessageSource.Resolver, stmt.Origin, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
       }
       // do the sub-parts with the same "cp"
       return true;

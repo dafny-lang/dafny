@@ -71,7 +71,7 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
 
     if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
       resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_assign_such_that_forbidden,
-        Tok, "assign-such-that statement forbidden by the --enforce-determinism option");
+        Origin, "assign-such-that statement forbidden by the --enforce-determinism option");
     }
     base.GenResolve(resolver, resolutionContext);
 

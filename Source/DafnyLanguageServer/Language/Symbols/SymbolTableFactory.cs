@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(ModuleDefinition moduleDefinition) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(moduleDefinition, moduleDefinition.Tok, () => base.Visit(moduleDefinition));
+        ProcessNestedScope(moduleDefinition, moduleDefinition.Origin, () => base.Visit(moduleDefinition));
       }
 
       public override void Visit(TopLevelDeclWithMembers classDeclaration) {
@@ -115,12 +115,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         foreach (var parentTrait in declaration.ParentTraits) {
           RegisterTypeDesignator(currentScope, parentTrait);
         }
-        ProcessNestedScope(declaration, declaration.Tok, visit);
+        ProcessNestedScope(declaration, declaration.Origin, visit);
       }
 
       public override void Visit(Method method) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(method, method.Tok, () => base.Visit(method));
+        ProcessNestedScope(method, method.Origin, () => base.Visit(method));
       }
 
       public override void Visit(Function function) {
@@ -128,7 +128,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         if (function.Result == null) {
           RegisterTypeDesignator(currentScope, function.ResultType);
         }
-        ProcessNestedScope(function, function.Tok, () => base.Visit(function));
+        ProcessNestedScope(function, function.Origin, () => base.Visit(function));
       }
 
       public override void Visit(LambdaExpr lambdaExpression) {
@@ -179,7 +179,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(BlockStmt blockStatement) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(blockStatement, blockStatement.Tok, () => base.Visit(blockStatement));
+        ProcessNestedScope(blockStatement, blockStatement.Origin, () => base.Visit(blockStatement));
       }
 
       public override void Visit(ExprDotName expressionDotName) {
@@ -389,7 +389,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private static Range GetDeclarationRange(Declaration declaration) {
         return declaration.Origin == SourceOrigin.NoToken
-          ? declaration.Tok.GetLspRange()
+          ? declaration.Origin.GetLspRange()
           : new Range(declaration.Origin.StartToken.GetLspPosition(), declaration.Origin.EndToken.GetLspPosition());
       }
 

@@ -178,13 +178,13 @@ class GhostInterestVisitor {
             if (Attributes.Contains(local.Attributes, "assumption")) {
               if (allowAssumptionVariables) {
                 if (!local.Type.IsBoolType) {
-                  Error(ErrorId.r_assumption_var_must_be_bool, local.Tok, "assumption variable must be of type 'bool'");
+                  Error(ErrorId.r_assumption_var_must_be_bool, local.Origin, "assumption variable must be of type 'bool'");
                 }
                 if (!local.IsGhost) {
-                  Error(ErrorId.r_assumption_var_must_be_ghost, local.Tok, "assumption variable must be ghost");
+                  Error(ErrorId.r_assumption_var_must_be_ghost, local.Origin, "assumption variable must be ghost");
                 }
               } else {
-                Error(ErrorId.r_assumption_var_must_be_in_method, local.Tok, "assumption variable can only be declared in a method");
+                Error(ErrorId.r_assumption_var_must_be_in_method, local.Origin, "assumption variable can only be declared in a method");
               }
             }
           }
@@ -293,7 +293,7 @@ class GhostInterestVisitor {
           var s = ifStmt;
           s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost if");
           }
           Visit(s.Thn, s.IsGhost, proofContext);
           if (s.Els != null) {
@@ -313,7 +313,7 @@ class GhostInterestVisitor {
           var s = alternativeStmt;
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost if");
           }
           s.Alternatives.ForEach(alt => alt.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
@@ -335,7 +335,7 @@ class GhostInterestVisitor {
 
           s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost while");
           }
           if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
             Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
@@ -365,7 +365,7 @@ class GhostInterestVisitor {
 
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost while");
           }
           if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
             Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
@@ -393,7 +393,7 @@ class GhostInterestVisitor {
 
           s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost for-loop");
           }
           if (s.IsGhost) {
             if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
@@ -484,7 +484,7 @@ class GhostInterestVisitor {
           }
 
           if (!mustBeErasable && nestedMatchStmt.IsGhost) {
-            reporter.Info(MessageSource.Resolver, nestedMatchStmt.Tok, "ghost match");
+            reporter.Info(MessageSource.Resolver, nestedMatchStmt.Origin, "ghost match");
           }
           nestedMatchStmt.Cases.ForEach(kase => kase.Body.ForEach(ss => Visit(ss, nestedMatchStmt.IsGhost, proofContext)));
           nestedMatchStmt.IsGhost = nestedMatchStmt.IsGhost || nestedMatchStmt.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
@@ -500,7 +500,7 @@ class GhostInterestVisitor {
           var s = matchStmt;
           s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(s.Cases) != null;
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost match");
           }
           s.Cases.ForEach(kase => kase.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));

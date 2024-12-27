@@ -28,14 +28,14 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     if (decl is NewtypeDecl newtypeDecl) {
       if (newtypeDecl.Var != null) {
         if (!IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, newtypeDecl.Tok,
+          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, newtypeDecl.Origin,
             $"base type of {newtypeDecl.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{newtypeDecl.Var.Name}'");
         }
       }
 
     } else if (decl is SubsetTypeDecl subsetTypeDecl) {
       if (!IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
-        resolver.ReportError(ResolutionErrors.ErrorId.r_subset_type_base_undetermined, subsetTypeDecl.Tok,
+        resolver.ReportError(ResolutionErrors.ErrorId.r_subset_type_base_undetermined, subsetTypeDecl.Origin,
           $"base type of {subsetTypeDecl.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{subsetTypeDecl.Var.Name}'");
       }
 
@@ -61,7 +61,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
   public override void VisitField(Field field) {
     if (field is ConstantField constantField) {
       resolver.PartiallySolveTypeConstraints(true);
-      CheckTypeIsDetermined(field.Tok, field.Type, "const");
+      CheckTypeIsDetermined(field.Origin, field.Type, "const");
     }
 
     base.VisitField(field);
@@ -86,13 +86,13 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     if (stmt is VarDeclStmt) {
       var s = (VarDeclStmt)stmt;
       foreach (var local in s.Locals) {
-        CheckTypeIsDetermined(local.Tok, local.Type, "local variable");
-        CheckTypeArgsContainNoOrdinal(local.Tok, local.type, context);
+        CheckTypeIsDetermined(local.Origin, local.Type, "local variable");
+        CheckTypeArgsContainNoOrdinal(local.Origin, local.type, context);
       }
     } else if (stmt is VarDeclPattern) {
       var s = (VarDeclPattern)stmt;
-      s.LocalVars.ForEach(local => CheckTypeIsDetermined(local.Tok, local.Type, "local variable"));
-      s.LocalVars.ForEach(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type, context));
+      s.LocalVars.ForEach(local => CheckTypeIsDetermined(local.Origin, local.Type, "local variable"));
+      s.LocalVars.ForEach(local => CheckTypeArgsContainNoOrdinal(local.Origin, local.Type, context));
 
     } else if (stmt is ForallStmt) {
       var s = (ForallStmt)stmt;

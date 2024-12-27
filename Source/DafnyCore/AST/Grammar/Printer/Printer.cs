@@ -281,7 +281,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       foreach (TopLevelDecl d in decls) {
         Contract.Assert(d != null);
         var project = compilation.Options.DafnyProject;
-        if (PrintModeSkipGeneral(project, d.Tok)) { continue; }
+        if (PrintModeSkipGeneral(project, d.Origin)) { continue; }
         if (d is AbstractTypeDecl) {
           var at = (AbstractTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -715,7 +715,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
       foreach (MemberDecl m in members) {
-        if (PrintModeSkipGeneral(project, m.Tok)) { continue; }
+        if (PrintModeSkipGeneral(project, m.Origin)) { continue; }
         if (printMode == PrintModes.Serialization && Attributes.Contains(m.Attributes, "auto_generated")) {
           // omit this declaration
         } else if (m is Method) {

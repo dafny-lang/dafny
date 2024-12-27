@@ -696,12 +696,12 @@ namespace Microsoft.Dafny {
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
                 LocalVariable local = new LocalVariable(p.Origin, "##" + p.Name, et, p.IsGhost);
                 local.type = local.SyntacticType;  // resolve local here
-                var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator)) {
+                var ie = new IdentifierExpr(local.Origin, local.AssignUniqueName(CurrentDeclaration.IdGenerator)) {
                   Var = local
                 };
                 ie.Type = ie.Var.Type;  // resolve ie here
                 substMap.Add(p, ie);
-                locals.GetOrAdd(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(local.Type))));
+                locals.GetOrAdd(new Bpl.LocalVariable(local.Origin, new Bpl.TypedIdent(local.Origin, local.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(local.Type))));
                 Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
                 Expression ee = e.Args[i];
                 directSubstMap.Add(p, ee);
@@ -1395,7 +1395,7 @@ namespace Microsoft.Dafny {
       // Statement. Since statement translation (in particular, translation of CallStmt's)
       // work directly on the global variable $Heap, we temporarily change its value here.
       if (etran.UsesOldHeap) {
-        BuildWithHeapAs(stmtExpr.S.Tok, etran.HeapExpr, "StmtExpr#", locals, builder,
+        BuildWithHeapAs(stmtExpr.S.Origin, etran.HeapExpr, "StmtExpr#", locals, builder,
           () => {
             foreach (var statement in statements) {
               TrStmt(statement, builder, locals, etran);

@@ -92,7 +92,7 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
 
     s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
     if (!mustBeErasable && s.IsGhost) {
-      reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
+      reporter.Info(MessageSource.Resolver, s.Origin, "ghost for-loop");
     }
     if (s.IsGhost) {
       if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {

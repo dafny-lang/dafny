@@ -55,26 +55,26 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
 
     if (Body is null && HasPostcondition && EnclosingClass.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
-      yield return new Assumption(this, Tok, AssumptionDescription.NoBody(IsGhost));
+      yield return new Assumption(this, Origin, AssumptionDescription.NoBody(IsGhost));
     }
 
     if (HasExternAttribute && HasPostcondition && !HasAxiomAttribute) {
-      yield return new Assumption(this, Tok, AssumptionDescription.ExternWithPostcondition);
+      yield return new Assumption(this, Origin, AssumptionDescription.ExternWithPostcondition);
     }
 
     if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
-      yield return new Assumption(this, Tok, AssumptionDescription.ExternWithPrecondition);
+      yield return new Assumption(this, Origin, AssumptionDescription.ExternWithPrecondition);
     }
 
     if (Attributes.Contains(Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
-      yield return new Assumption(this, Tok, AssumptionDescription.HasAssumeConcurrentAttribute(false));
+      yield return new Assumption(this, Origin, AssumptionDescription.HasAssumeConcurrentAttribute(false));
     }
     if (Attributes.Contains(Mod.Attributes, Attributes.AssumeConcurrentAttributeName)) {
-      yield return new Assumption(this, Tok, AssumptionDescription.HasAssumeConcurrentAttribute(true));
+      yield return new Assumption(this, Origin, AssumptionDescription.HasAssumeConcurrentAttribute(true));
     }
 
     if (AllowsNontermination) {
-      yield return new Assumption(this, Tok, AssumptionDescription.MayNotTerminate);
+      yield return new Assumption(this, Origin, AssumptionDescription.MayNotTerminate);
     }
 
     foreach (var c in this.Descendants()) {
@@ -453,7 +453,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
         Attributes.MatchingValueOption.Bool,
         Attributes.MatchingValueOption.Int
-      }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Tok, s));
+      }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Origin, s));
 
     // Default behavior is reveal all dependencies
     int autoRevealDepth = int.MaxValue;
@@ -471,7 +471,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
     foreach (var func in Rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
       var revealStmt =
-        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Tok, EnclosingClass.EnclosingModuleDefinition);
+        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Origin, EnclosingClass.EnclosingModuleDefinition);
 
       if (revealStmt is not null) {
         addedReveals.Add(new AutoRevealFunctionDependencies.RevealStmtWithDepth(revealStmt, func.Depth));
@@ -479,7 +479,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
 
     if (autoRevealDepth > 0) {
-      Expression reqExpr = Expression.CreateBoolLiteral(Tok, true);
+      Expression reqExpr = Expression.CreateBoolLiteral(Origin, true);
 
       foreach (var revealStmt in addedReveals) {
         if (revealStmt.Depth <= autoRevealDepth) {
@@ -503,7 +503,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
 
     if (addedReveals.Any()) {
-      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Tok,
+      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Origin,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }

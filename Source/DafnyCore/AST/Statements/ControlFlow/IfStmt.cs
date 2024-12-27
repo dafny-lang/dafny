@@ -90,13 +90,13 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
   public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     if (Guard != null) {
       if (!resolutionContext.IsGhost && IsBindingGuard && resolver.Options.ForbidNondeterminism) {
-        resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_binding_if_forbidden, Tok, "binding if statement forbidden by the --enforce-determinism option");
+        resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_binding_if_forbidden, Origin, "binding if statement forbidden by the --enforce-determinism option");
       }
       resolver.ResolveExpression(Guard, resolutionContext);
       resolver.ConstrainTypeExprBool(Guard, "condition is expected to be of type bool, but is {0}");
     } else {
       if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
-        resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_nondeterministic_if_forbidden, Tok, "nondeterministic if statement forbidden by the --enforce-determinism option");
+        resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_nondeterministic_if_forbidden, Origin, "nondeterministic if statement forbidden by the --enforce-determinism option");
       }
     }
 
@@ -124,7 +124,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = mustBeErasable || (Guard != null && ExpressionTester.UsesSpecFeatures(Guard));
     if (!mustBeErasable && IsGhost) {
-      reporter.Info(MessageSource.Resolver, Tok, "ghost if");
+      reporter.Info(MessageSource.Resolver, Origin, "ghost if");
     }
     Thn.ResolveGhostness(resolver, reporter, IsGhost, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
     if (Els != null) {

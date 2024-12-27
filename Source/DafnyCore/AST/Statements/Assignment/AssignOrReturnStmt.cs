@@ -140,46 +140,46 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
     var method = (Method)resolutionContext.CodeContext;
     if (method.Outs.Count == 0 && KeywordToken == null) {
-      resolver.Reporter.Error(MessageSource.Resolver, Tok, "A method containing a :- statement must have an out-parameter ({0})", method.Name);
+      resolver.Reporter.Error(MessageSource.Resolver, Origin, "A method containing a :- statement must have an out-parameter ({0})", method.Name);
       return;
     }
     if (firstType != null) {
       firstType = resolver.PartiallyResolveTypeForMemberSelection(Rhs.Origin, firstType);
       if (firstType.AsTopLevelTypeWithMembers != null) {
         if (firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "IsFailure") == null) {
-          resolver.Reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Origin,
             "member IsFailure does not exist in {0}, in :- statement", firstType);
           return;
         }
         expectExtract = firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
         if (expectExtract && call == null && Lhss.Count != 1 + Rhss.Count) {
-          resolver.Reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Origin,
             "number of lhs ({0}) must match number of rhs ({1}) for a rhs type ({2}) with member Extract",
             Lhss.Count, 1 + Rhss.Count, firstType);
           return;
         } else if (expectExtract && call != null && Lhss.Count != call.Outs.Count) {
-          resolver.Reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Origin,
             "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) with member Extract",
             Lhss.Count, call.Outs.Count, firstType);
           return;
 
         } else if (!expectExtract && call == null && Lhss.Count != Rhss.Count) {
-          resolver.Reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Origin,
             "number of lhs ({0}) must be one less than number of rhs ({1}) for a rhs type ({2}) without member Extract", Lhss.Count, 1 + Rhss.Count, firstType);
           return;
 
         } else if (!expectExtract && call != null && Lhss.Count != call.Outs.Count - 1) {
-          resolver.Reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Origin,
             "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) without member Extract", Lhss.Count, call.Outs.Count - 1, firstType);
           return;
         }
       } else {
-        resolver.Reporter.Error(MessageSource.Resolver, Tok,
+        resolver.Reporter.Error(MessageSource.Resolver, Origin,
           $"The type of the first expression to the right of ':-' could not be determined to be a failure type (got '{firstType}')");
         return;
       }
     } else {
-      resolver.Reporter.Error(MessageSource.Resolver, Tok,
+      resolver.Reporter.Error(MessageSource.Resolver, Origin,
         "Internal Error: Unknown failure type in :- statement");
       return;
     }
@@ -200,7 +200,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
         lhsExtract = new ExprDotName(lexr.Origin, id, lexr.MemberNameNode, lex == null ? null : lex.OptTypeArguments);
       } else if (lhsResolved is SeqSelectExpr lseq) {
         if (!lseq.SelectOne || lseq.E0 == null) {
-          resolver.Reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Origin,
             "Element ranges not allowed as l-values");
           return;
         }
@@ -229,7 +229,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
     DesugarElephantStatement(expectExtract, lhsExtract, firstType, resolver, (Method)resolutionContext.CodeContext);
     ResolvedStatements.ForEach(a => resolver.ResolveStatement(a, resolutionContext));
-    resolver.EnsureSupportsErrorHandling(Tok, firstType, expectExtract, KeywordToken?.Token.val);
+    resolver.EnsureSupportsErrorHandling(Origin, firstType, expectExtract, KeywordToken?.Token.val);
   }
 
   public void ResolveKeywordToken(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
@@ -259,7 +259,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     var lhss = new List<LocalVariable>() { new LocalVariable(Origin, temp, new InferredTypeProxy(), false) };
     // "var temp ;"
     ResolvedStatements.Add(new VarDeclStmt(Origin, lhss, null));
-    var lhss2 = new List<Expression>() { new IdentifierExpr(Tok, temp) };
+    var lhss2 = new List<Expression>() { new IdentifierExpr(Origin, temp) };
     for (int k = (expectExtract ? 1 : 0); k < Lhss.Count; ++k) {
       lhss2.Add(Lhss[k]);
     }
@@ -269,7 +269,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     }
     if (Rhss != null && Rhss.Count > 0) {
       if (lhss2.Count != rhss2.Count) {
-        resolver.reporter.Error(MessageSource.Resolver, Tok,
+        resolver.reporter.Error(MessageSource.Resolver, Origin,
           "Mismatch in expected number of LHSs and RHSs");
         if (lhss2.Count < rhss2.Count) {
           rhss2.RemoveRange(lhss2.Count, rhss2.Count - lhss2.Count);
@@ -287,11 +287,11 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
     if (KeywordToken != null) {
       var keyword = KeywordToken.Token;
-      var notFailureExpr = new UnaryOpExpr(keyword, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Tok, temp, "IsFailure"));
+      var notFailureExpr = new UnaryOpExpr(keyword, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Origin, temp, "IsFailure"));
       Statement ss = null;
       if (keyword.val == "expect") {
         // "expect !temp.IsFailure(), temp"
-        ss = new ExpectStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
+        ss = new ExpectStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, new IdentifierExpr(Origin, temp), KeywordToken.Attrs);
       } else if (keyword.val == "assume") {
         ss = new AssumeStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
       } else if (keyword.val == "assert") {
@@ -302,7 +302,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       ResolvedStatements.Add(ss);
     } else {
       var enclosingOutParameter = enclosingMethod.Outs[0];
-      var ident = new IdentifierExpr(Tok, enclosingOutParameter.Name);
+      var ident = new IdentifierExpr(Origin, enclosingOutParameter.Name);
       // resolve it here to avoid capture into more closely declared local variables
       Contract.Assert(enclosingOutParameter.Type != null); // this confirms our belief that the out-parameter has already been resolved
       ident.Var = enclosingOutParameter;
@@ -310,12 +310,12 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
       ResolvedStatements.Add(
         // "if temp.IsFailure()"
-        new IfStmt(Origin, false, resolver.VarDotMethod(Tok, temp, "IsFailure"),
+        new IfStmt(Origin, false, resolver.VarDotMethod(Origin, temp, "IsFailure"),
           // THEN: { out := temp.PropagateFailure(); return; }
           new BlockStmt(Origin, new List<Statement>() {
             new AssignStatement(Origin,
               new List<Expression>() { ident },
-              new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "PropagateFailure")) }
+              new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Origin, temp, "PropagateFailure")) }
             ),
             new ReturnStmt(Origin, null),
           }),
@@ -330,11 +330,11 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       ResolvedStatements.Add(
         new AssignStatement(Origin,
           new List<Expression>() { lhsExtract },
-          new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "Extract")) }
+          new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Origin, temp, "Extract")) }
         ));
       // The following check is not necessary, because the ghost mismatch is caught later.
       // However the error message here is much clearer.
-      var m = resolver.ResolveMember(Tok, firstType, "Extract", out _);
+      var m = resolver.ResolveMember(Origin, firstType, "Extract", out _);
       if (m != null && m.IsGhost && !SingleAssignStmt.LhsIsToGhostOrAutoGhost(lhs)) {
         resolver.reporter.Error(MessageSource.Resolver, lhs.Origin,
           "The Extract member may not be ghost unless the initial LHS is ghost");

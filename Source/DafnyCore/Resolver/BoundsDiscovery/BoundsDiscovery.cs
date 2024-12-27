@@ -68,7 +68,7 @@ namespace Microsoft.Dafny {
         if (stmt is ForallStmt forallStmt) {
           forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true);
           if (forallStmt.Body == null) {
-            Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Tok, "this forall statement has no body");
+            Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Origin, "this forall statement has no body");
           }
         } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
           if (assignSuchThatStmt.AssumeToken == null) {

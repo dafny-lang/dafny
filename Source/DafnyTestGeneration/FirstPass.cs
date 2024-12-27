@@ -101,7 +101,7 @@ public class FirstPass {
       }
     }
     if (callableWithMaxTimeLimit != null) {
-      diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, SmallTimeLimitWarning, callableWithMaxTimeLimit.Tok,
+      diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, SmallTimeLimitWarning, callableWithMaxTimeLimit.Origin,
         $"Method/function {callableWithMaxTimeLimit} is annotated with {{:timeLimit {maxTimeLimit}}} but test " +
         $"generation is called with --{BoogieOptionBag.VerificationTimeLimit.Name}:{options.TimeLimit}." +
         $"\nConsider increasing the time limit for test generation",
@@ -122,7 +122,7 @@ public class FirstPass {
           (attribute.Args.Count == 1 && uint.TryParse(attribute.Args.First().ToString(), out uint result) && result > 0)) {
         continue;
       }
-      diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, MalformedAttributeError, toInline.Tok,
+      diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, MalformedAttributeError, toInline.Origin,
         $"{{:{TestGenerationOptions.TestInlineAttribute}}} attribute on the {toInline.FullDafnyName} method/function " +
         $"can only take one argument, which must be a positive integer specifying the recursion unrolling limit " +
         $"(absence of such an argument or 1 means no unrolling)",
@@ -199,14 +199,14 @@ public class FirstPass {
     var result = true;
     foreach (MemberDecl declaration in Utils.AllMemberDeclarationsWithAttribute(program.DefaultModule, TestGenerationOptions.TestEntryAttribute)) {
       if (declaration.EnclosingClass is TraitDecl or ArrayClassDecl or IteratorDecl) {
-        diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, UnsupportedInputTypeError, declaration.Tok,
+        diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, UnsupportedInputTypeError, declaration.Origin,
           $"Test Generation does not support trait, array, or iterator types as receivers of " +
           $"{{:{TestGenerationOptions.TestEntryAttribute}}}-annotated methods.\n" +
           $"Consider writing a wrapper method that creates a receiver and passes on the arguments to it",
           ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
         result = false;
       } else if (declaration.EnclosingClass is ClassDecl) {
-        diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, NotFullySupportedInputTypeWarning, declaration.Tok,
+        diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, NotFullySupportedInputTypeWarning, declaration.Origin,
           $"Test Generation does not fully support class types as receivers of " +
           $"{{:{TestGenerationOptions.TestEntryAttribute}}}-annotated methods.\n" +
           $"Consider writing a wrapper method that creates a receiver and passes on the arguments to it",

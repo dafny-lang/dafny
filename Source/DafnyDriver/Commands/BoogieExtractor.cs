@@ -122,7 +122,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (GetExtractName(decl.Attributes) is { } extractName) {
-        var ty = new Boogie.TypeCtorDecl(decl.Tok, extractName, decl.TypeArgs.Count);
+        var ty = new Boogie.TypeCtorDecl(decl.Origin, extractName, decl.TypeArgs.Count);
         declarations.Add(ty);
       }
 
@@ -141,16 +141,16 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if ((lemma.Ins.Count == 0) != (patterns == null)) {
-        throw new ExtractorError(lemma.Tok, $"a parameterized lemma must specify at least one :{PatternAttribute}: {lemma.Name}");
+        throw new ExtractorError(lemma.Origin, $"a parameterized lemma must specify at least one :{PatternAttribute}: {lemma.Name}");
       }
       if (lemma.TypeArgs.Count != 0) {
-        throw new ExtractorError(lemma.Tok, $"an extracted lemma is not allowed to have type parameters: {lemma.Name}");
+        throw new ExtractorError(lemma.Origin, $"an extracted lemma is not allowed to have type parameters: {lemma.Name}");
       }
       if (lemma.Outs.Count != 0) {
-        throw new ExtractorError(lemma.Tok, $"an extracted lemma is not allowed to have out-parameters: {lemma.Name}");
+        throw new ExtractorError(lemma.Origin, $"an extracted lemma is not allowed to have out-parameters: {lemma.Name}");
       }
 
-      var tok = lemma.Tok;
+      var tok = lemma.Origin;
 
       var boundVars = lemma.Ins.ConvertAll(formal =>
         (Boogie.Variable)new Boogie.BoundVariable(tok, new TypedIdent(tok, formal.Name, ExtractType(formal.Type)))
@@ -226,7 +226,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void VisitFunction(Function function) {
       if (GetExtractName(function.Attributes) is { } extractName) {
-        var tok = function.Tok;
+        var tok = function.Origin;
         if (function.TypeArgs.Count != 0) {
           throw new ExtractorError(tok, $"an extracted function is not allowed to have type parameters: {function.Name}");
         }

@@ -38,7 +38,7 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
   public override void GenResolve(INewOrOldResolver resolver, ResolutionContext context) {
     base.GenResolve(resolver, context);
     if (Message == null) {
-      Message = new StringLiteralExpr(Tok, "expectation violation", false);
+      Message = new StringLiteralExpr(Origin, "expectation violation", false);
     }
     resolver.ResolveExpression(Message, context);
   }

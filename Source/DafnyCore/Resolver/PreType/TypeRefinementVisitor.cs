@@ -330,9 +330,9 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
       VisitPattern(varDeclPattern.LHS, () => TypeRefinementWrapper.NormalizeSansBottom(varDeclPattern.RHS), context);
     } else if (stmt is SingleAssignStmt { Lhs: IdentifierExpr lhsIdentifierExpr } assignStmt) {
       if (assignStmt is { Rhs: ExprRhs exprRhs }) {
-        flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.Tok, ":="));
+        flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.Origin, ":="));
       } else if (assignStmt is { Rhs: TypeRhs tRhs }) {
-        flows.Add(new FlowFromType(lhsIdentifierExpr.Var.UnnormalizedType, tRhs.Type, assignStmt.Tok, ":= new"));
+        flows.Add(new FlowFromType(lhsIdentifierExpr.Var.UnnormalizedType, tRhs.Type, assignStmt.Origin, ":= new"));
       }
 
     } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
@@ -348,7 +348,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
         flows.Add(new FlowBetweenComputedTypes(() => {
           var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
           return (TypeRefinementWrapper.NormalizeSansBottom(formal).Subst(typeMap), TypeRefinementWrapper.NormalizeSansBottom(actual));
-        }, callStmt.Tok, $"{callStmt.Method.Name}({formal.Name} := ...)"));
+        }, callStmt.Origin, $"{callStmt.Method.Name}({formal.Name} := ...)"));
       }
 
       Contract.Assert(callStmt.Lhs.Count == callStmt.Method.Outs.Count);
@@ -358,7 +358,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
           flows.Add(new FlowIntoVariableFromComputedType(actualIdentifierExpr.Var, () => {
             var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
             return TypeRefinementWrapper.NormalizeSansBottom(formal).Subst(typeMap);
-          }, callStmt.Tok, $"{actualIdentifierExpr.Var.Name} := {callStmt.Method.Name}(...)"));
+          }, callStmt.Origin, $"{actualIdentifierExpr.Var.Name} := {callStmt.Method.Name}(...)"));
         }
       }
 

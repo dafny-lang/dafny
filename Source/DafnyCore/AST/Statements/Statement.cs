@@ -16,7 +16,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(Tok != null);
+    Contract.Invariant(Origin != null);
   }
 
   [FilledInDuringResolution] public bool IsGhost { get; set; }

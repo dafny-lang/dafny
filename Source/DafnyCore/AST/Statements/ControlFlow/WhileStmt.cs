@@ -72,7 +72,7 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
 
     IsGhost = mustBeErasable || (Guard != null && ExpressionTester.UsesSpecFeatures(Guard));
     if (!mustBeErasable && IsGhost) {
-      reporter.Info(MessageSource.Resolver, Tok, "ghost while");
+      reporter.Info(MessageSource.Resolver, Origin, "ghost while");
     }
     if (IsGhost && Decreases.Expressions.Exists(e => e is WildcardExpr)) {
       reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_decreases_forbidden_on_ghost_loops, this, "'decreases *' is not allowed on ghost loops");

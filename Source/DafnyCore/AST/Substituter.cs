@@ -611,7 +611,7 @@ namespace Microsoft.Dafny {
           newVar.type = tt;  // resolve here
           newVars.Add(newVar);
           // update substMap to reflect the new LocalVariable substitutions
-          var ie = new IdentifierExpr(newVar.Tok, newVar.Name) { Var = newVar, Type = newVar.Type };
+          var ie = new IdentifierExpr(newVar.Origin, newVar.Name) { Var = newVar, Type = newVar.Type };
           substMap.Add(v, ie);
         }
       }

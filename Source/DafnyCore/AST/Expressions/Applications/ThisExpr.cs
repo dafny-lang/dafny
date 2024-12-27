@@ -17,12 +17,12 @@ public class ThisExpr : Expression, ICloneable<ThisExpr> {
   /// to obtain a Dafny "this" expression.
   /// </summary>
   public ThisExpr(MemberDecl m)
-    : base(m.Tok) {
+    : base(m.Origin) {
     Contract.Requires(m != null);
-    Contract.Requires(m.Tok != null);
+    Contract.Requires(m.Origin != null);
     Contract.Requires(m.EnclosingClass != null);
     Contract.Requires(!m.IsStatic);
-    Type = ModuleResolver.GetReceiverType(m.Tok, m);
+    Type = ModuleResolver.GetReceiverType(m.Origin, m);
   }
 
   /// <summary>
@@ -31,10 +31,10 @@ public class ThisExpr : Expression, ICloneable<ThisExpr> {
   /// to obtain a Dafny "this" expression.
   /// </summary>
   public ThisExpr(TopLevelDeclWithMembers cl)
-    : base(cl.Tok) {
+    : base(cl.Origin) {
     Contract.Requires(cl != null);
-    Contract.Requires(cl.Tok != null);
-    Type = ModuleResolver.GetThisType(cl.Tok, cl);
+    Contract.Requires(cl.Origin != null);
+    Type = ModuleResolver.GetThisType(cl.Origin, cl);
   }
 
   public ThisExpr Clone(Cloner cloner) {

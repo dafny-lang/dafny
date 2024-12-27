@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
             var hasPrintAttribute = HasPrintAttribute(member.Attributes);
             if (member is Function f) {
               if (hasPrintAttribute) {
-                ReportError(ErrorId.rw_print_attribute_forbidden_on_functions, member.Tok, ":print attribute is not allowed on functions");
+                ReportError(ErrorId.rw_print_attribute_forbidden_on_functions, member.Origin, ":print attribute is not allowed on functions");
               }
               if (f.ByMethodDecl != null && Reporter.Options.EnforcePrintEffects) {
                 f.ByMethodDecl.Body.Body.ForEach(stmt => CheckNoPrintEffects(stmt, f.ByMethodDecl));
@@ -36,9 +36,9 @@ namespace Microsoft.Dafny {
             } else if (member is Method method) {
               if (hasPrintAttribute) {
                 if (member.IsGhost) {
-                  ReportError(ErrorId.rw_print_attribute_forbidden_on_ghost_methods, member.Tok, ":print attribute is not allowed on ghost methods");
+                  ReportError(ErrorId.rw_print_attribute_forbidden_on_ghost_methods, member.Origin, ":print attribute is not allowed on ghost methods");
                 } else if (method.OverriddenMethod != null && !HasPrintAttribute(method.OverriddenMethod.Attributes, false)) {
-                  ReportError(ErrorId.rw_override_must_preserve_printing, member.Tok,
+                  ReportError(ErrorId.rw_override_must_preserve_printing, member.Origin,
                     "not allowed to override a non-printing method with a possibly printing method ('{0}')", method.Name);
                 }
               } else if (!member.IsGhost && method.Body != null) {
@@ -64,18 +64,18 @@ namespace Microsoft.Dafny {
       if (stmt is PrintStmt) {
         var method = codeContext as Method;
         if (method != null && method.IsByMethod) {
-          ReportError(ErrorId.rw_no_print_in_function_by_method, stmt.Tok, "a function-by-method is not allowed to use print statements");
+          ReportError(ErrorId.rw_no_print_in_function_by_method, stmt.Origin, "a function-by-method is not allowed to use print statements");
         } else {
-          ReportError(ErrorId.rw_print_attribute_required_to_print, stmt.Tok,
+          ReportError(ErrorId.rw_print_attribute_required_to_print, stmt.Origin,
             "to use a print statement, the enclosing {0} must be marked with {{:print}}", method?.WhatKind ?? ((IteratorDecl)codeContext).WhatKind);
         }
       } else if (stmt is CallStmt call) {
         if (HasPrintAttribute(call.Method.Attributes, false)) {
           var method = codeContext as Method;
           if (method != null && method.IsByMethod) {
-            ReportError(ErrorId.rw_function_by_method_may_not_call_printing_method, stmt.Tok, "a function-by-method is not allowed to call a method with print effects");
+            ReportError(ErrorId.rw_function_by_method_may_not_call_printing_method, stmt.Origin, "a function-by-method is not allowed to call a method with print effects");
           } else {
-            ReportError(ErrorId.rw_must_be_print_to_call_printing_method, stmt.Tok,
+            ReportError(ErrorId.rw_must_be_print_to_call_printing_method, stmt.Origin,
               "to call a method with print effects, the enclosing {0} must be marked with {{:print}}",
               method?.WhatKind ?? ((IteratorDecl)codeContext).WhatKind);
           }

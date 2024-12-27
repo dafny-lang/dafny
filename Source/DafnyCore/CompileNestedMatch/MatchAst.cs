@@ -177,7 +177,7 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(Cases) != null;
     if (!mustBeErasable && IsGhost) {
-      reporter.Info(MessageSource.Resolver, Tok, "ghost match");
+      reporter.Info(MessageSource.Resolver, Origin, "ghost match");
     }
 
     Cases.ForEach(kase => kase.Body.ForEach(ss => ss.ResolveGhostness(resolver, reporter, IsGhost, codeContext,

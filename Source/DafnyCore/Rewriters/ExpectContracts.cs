@@ -83,7 +83,7 @@ public class ExpectContracts : IRewriter {
   /// <param name="parent">The declaration containing the on to be wrapped.</param>
   /// <param name="decl">The declaration to be wrapped.</param>
   private void GenerateWrapper(ModuleDefinition module, TopLevelDeclWithMembers parent, MemberDecl decl) {
-    var tok = decl.Tok;
+    var tok = decl.Origin;
 
     var newName = decl.Name + "__dafny_checked";
     MemberDecl newDecl = null;
@@ -111,7 +111,7 @@ public class ExpectContracts : IRewriter {
     newFunc.NameNode.Value = newName;
 
     var args = newFunc.Ins.Select(Expression.CreateIdentExpr).ToList();
-    var receiver = ModuleResolver.GetReceiver(parent, origFunc, decl.Tok);
+    var receiver = ModuleResolver.GetReceiver(parent, origFunc, decl.Origin);
     var callExpr = Expression.CreateResolvedCall(tok, receiver, origFunc, args,
       newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(), systemModuleManager);
 
@@ -144,8 +144,8 @@ public class ExpectContracts : IRewriter {
 
     var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
     var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
-    var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.Tok);
-    var memberSelectExpr = new MemberSelectExpr(decl.Tok, receiver, origMethod.NameNode);
+    var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.Origin);
+    var memberSelectExpr = new MemberSelectExpr(decl.Origin, receiver, origMethod.NameNode);
     memberSelectExpr.Member = origMethod;
     memberSelectExpr.TypeApplicationJustMember =
       newMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
@@ -171,7 +171,7 @@ public class ExpectContracts : IRewriter {
       Type = UserDefinedType.FromTopLevelDecl(Token.NoToken, cl)
     };
     var fn = Expression.CreateResolvedCall(tok, receiver, f, f.Ins.ConvertAll(Expression.CreateIdentExpr),
-      f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.Tok, typeParameter)), systemModuleManager);
+      f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.Origin, typeParameter)), systemModuleManager);
     var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
       Type = Type.Bool
     });
@@ -257,7 +257,7 @@ public class ExpectContracts : IRewriter {
         module.CallRedirector.NewRedirections.ExceptBy(module.CallRedirector.CalledWrappers, x => x.Value);
       foreach (var uncalledRedirection in uncalledRedirections) {
         var uncalledOriginal = uncalledRedirection.Key;
-        ReportWarning(ErrorId.rw_unreachable_by_test, uncalledOriginal.Tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
+        ReportWarning(ErrorId.rw_unreachable_by_test, uncalledOriginal.Origin, $"No :test code calls {uncalledOriginal.FullDafnyName}");
       }
     }
 
@@ -297,7 +297,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
     }
     // If there's no wrapper for the callee, don't try to call it, but warn.
     if (!NewRedirections.ContainsKey(callee)) {
-      reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper, caller.Tok, $"Internal: no wrapper for {callee.FullDafnyName}");
+      reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper, caller.Origin, $"Internal: no wrapper for {callee.FullDafnyName}");
       return false;
     }
 

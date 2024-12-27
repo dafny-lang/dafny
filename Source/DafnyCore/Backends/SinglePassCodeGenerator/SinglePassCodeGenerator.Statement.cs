@@ -128,17 +128,17 @@ namespace Microsoft.Dafny.Compilers {
             } else if (s.Rhs is TypeRhs typeRhs) {
               var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
               wStmts = wr.Fork();
-              var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(typeRhs), wr, assignStmt.Tok);
+              var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(typeRhs), wr, assignStmt.Origin);
               TrRhs(typeRhs, wRhs, wStmts);
             } else {
               var eRhs = (ExprRhs)s.Rhs;
               if (eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
-                TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, wr);
+                TrTailCallStmt(s.Origin, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, wr);
               } else {
                 var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
                 var doAssignment = (Expression e, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wrAssignment) => {
                   var wStmtsBeforeAssignment = wrAssignment.Fork();
-                  var wRhs = EmitAssignment(lvalue, resultType, e.Type, wrAssignment, assignStmt.Tok);
+                  var wRhs = EmitAssignment(lvalue, resultType, e.Type, wrAssignment, assignStmt.Origin);
                   EmitExpr(e, false, wRhs, wStmtsBeforeAssignment);
                 };
                 var continuation = new OptimizedExpressionContinuation(doAssignment, true);
@@ -154,7 +154,7 @@ namespace Microsoft.Dafny.Compilers {
             var missingBounds = BoundedPool.MissingBounds(lhss, s.Bounds, BoundedPool.PoolVirtues.Enumerable);
             if (missingBounds.Count != 0) {
               foreach (var bv in missingBounds) {
-                Error(ErrorId.c_assign_such_that_is_too_complex, s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
+                Error(ErrorId.c_assign_such_that_is_too_complex, s.Origin, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
               }
             } else {
               Contract.Assert(s.Bounds != null);
@@ -213,7 +213,7 @@ namespace Microsoft.Dafny.Compilers {
               };
 
               ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
-              var negated = new UnaryOpExpr(expectStmt.Tok, UnaryOpExpr.Opcode.Not,
+              var negated = new UnaryOpExpr(expectStmt.Origin, UnaryOpExpr.Opcode.Not,
                 new BinaryExpr(expectStmt.Expr.Origin, BinaryExpr.Opcode.Eq,
                   e0Ident,
                   e1Ident) {
@@ -232,10 +232,10 @@ namespace Microsoft.Dafny.Compilers {
               });
               EmitPrintStmt(bodyWriter, e1Ident);
 
-              EmitHalt(expectStmt.Tok, expectStmt.Message, bodyWriter);
+              EmitHalt(expectStmt.Origin, expectStmt.Message, bodyWriter);
             } else {
               ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
-              var negated = new UnaryOpExpr(expectStmt.Tok, UnaryOpExpr.Opcode.Not, expectStmt.Expr) { Type = Type.Bool };
+              var negated = new UnaryOpExpr(expectStmt.Origin, UnaryOpExpr.Opcode.Not, expectStmt.Expr) { Type = Type.Bool };
               EmitExpr(negated, false, guardWriter, wStmts);
 
               EmitHalt(expectStmt.Origin, expectStmt.Message, bodyWriter);
@@ -264,21 +264,21 @@ namespace Microsoft.Dafny.Compilers {
               if (s.Els == null) {
                 // let's compile the "else" branch, since that involves no work
                 // (still, let's leave a marker in the source code to indicate that this is what we did)
-                Coverage.UnusedInstrumentationPoint(s.Thn.Tok, "then branch");
-                var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.Tok, Expression.CreateBoolLiteral(s.Thn.Tok, false));
+                Coverage.UnusedInstrumentationPoint(s.Thn.Origin, "then branch");
+                var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.Origin, Expression.CreateBoolLiteral(s.Thn.Origin, false));
                 var thenWriter = EmitIf(out guardWriter, false, wr);
                 EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
-                Coverage.Instrument(s.Tok, "implicit else branch", wr);
+                Coverage.Instrument(s.Origin, "implicit else branch", wr);
                 thenWriter = EmitIf(out guardWriter, false, thenWriter);
                 EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
                 TrStmtList(new List<Statement>(), thenWriter);
               } else {
                 // let's compile the "then" branch
                 wr = EmitIf(out guardWriter, false, wr);
-                EmitExpr(Expression.CreateBoolLiteral(s.Thn.Tok, true), false, guardWriter, wStmts);
-                Coverage.Instrument(s.Thn.Tok, "then branch", wr);
+                EmitExpr(Expression.CreateBoolLiteral(s.Thn.Origin, true), false, guardWriter, wStmts);
+                Coverage.Instrument(s.Thn.Origin, "then branch", wr);
                 TrStmtList(s.Thn.Body, wr);
-                Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
+                Coverage.UnusedInstrumentationPoint(s.Els.Origin, "else branch");
               }
             } else {
               var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
@@ -288,15 +288,15 @@ namespace Microsoft.Dafny.Compilers {
               if (s.IsBindingGuard) {
                 IntroduceAndAssignBoundVars((ExistsExpr)s.Guard, thenWriter);
               }
-              Coverage.Instrument(s.Thn.Tok, "then branch", thenWriter);
+              Coverage.Instrument(s.Thn.Origin, "then branch", thenWriter);
               TrStmtList(s.Thn.Body, thenWriter);
 
               if (coverageForElse) {
                 wr = EmitBlock(wr);
                 if (s.Els == null) {
-                  Coverage.Instrument(s.Tok, "implicit else branch", wr);
+                  Coverage.Instrument(s.Origin, "implicit else branch", wr);
                 } else {
-                  Coverage.Instrument(s.Els.Tok, "else branch", wr);
+                  Coverage.Instrument(s.Els.Origin, "else branch", wr);
                 }
               }
               if (s.Els != null) {
@@ -331,11 +331,11 @@ namespace Microsoft.Dafny.Compilers {
               // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
               // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
               var wBody = CreateWhileLoop(out var guardWriter, wr);
-              EmitExpr(Expression.CreateBoolLiteral(s.Body.Tok, true), false, guardWriter, wStmts);
+              EmitExpr(Expression.CreateBoolLiteral(s.Body.Origin, true), false, guardWriter, wStmts);
               EmitBreak(null, wBody);
-              Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
+              Coverage.UnusedInstrumentationPoint(s.Body.Origin, "while body");
             } else {
-              var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, s.Labels, wr);
+              var guardWriter = EmitWhile(s.Body.Origin, s.Body.Body, s.Labels, wr);
               EmitExpr(s.Guard, false, guardWriter, wStmts);
             }
 
@@ -344,7 +344,7 @@ namespace Microsoft.Dafny.Compilers {
         case AlternativeLoopStmt loopStmt: {
             if (loopStmt.Alternatives.Count != 0) {
               var w = CreateWhileLoop(out var whileGuardWriter, wr);
-              EmitExpr(Expression.CreateBoolLiteral(loopStmt.Tok, true), false, whileGuardWriter, wStmts);
+              EmitExpr(Expression.CreateBoolLiteral(loopStmt.Origin, true), false, whileGuardWriter, wStmts);
               w = EmitContinueLabel(loopStmt.Labels, w);
               foreach (var alternative in loopStmt.Alternatives) {
                 var thn = EmitIf(out var guardWriter, true, w);
@@ -372,7 +372,7 @@ namespace Microsoft.Dafny.Compilers {
               wStmts = wr.Fork();
               EmitExpr(s.End, false, DeclareLocalVar(endVarName, s.End.Type, s.End.Origin, wr), wStmts);
             }
-            var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
+            var startExprWriter = EmitForStmt(s.Origin, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
             EmitExpr(s.Start, false, startExprWriter, wStmts);
             break;
           }

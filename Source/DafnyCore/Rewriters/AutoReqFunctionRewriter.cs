@@ -85,7 +85,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     }
 
     if (!tip.Equals("")) {
-      Reporter.Info(MessageSource.Rewriter, f.Tok, tip);
+      Reporter.Info(MessageSource.Rewriter, f.Origin, tip);
       if (Reporter.Options.AutoReqPrintFile != null) {
         using (System.IO.TextWriter writer = new System.IO.StreamWriter(Reporter.Options.AutoReqPrintFile, true)) {
           writer.WriteLine(f.Name);
@@ -109,7 +109,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     }
 
     if (!tip.Equals("")) {
-      Reporter.Info(MessageSource.Rewriter, method.Tok, tip);
+      Reporter.Info(MessageSource.Rewriter, method.Origin, tip);
       if (Reporter.Options.AutoReqPrintFile != null) {
         using System.IO.TextWriter writer = new System.IO.StreamWriter(Reporter.Options.AutoReqPrintFile, true);
         writer.WriteLine(method.Name);

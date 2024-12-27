@@ -39,7 +39,7 @@ namespace DafnyServer {
             Name = predicate.Name,
             ParentClass = predicate.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Predicate,
-            StartToken = predicate.Tok,
+            StartToken = predicate.Origin,
             EndToken = predicate.EndToken
           };
           information.Add(predicateSymbol);
@@ -51,7 +51,7 @@ namespace DafnyServer {
             Name = fn.Name,
             ParentClass = fn.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Function,
-            StartToken = fn.Tok,
+            StartToken = fn.Origin,
             EndColumn = fn.EndToken.col,
             EndLine = fn.EndToken.line,
             EndPosition = fn.EndToken.pos,
@@ -69,7 +69,7 @@ namespace DafnyServer {
             Name = m.Name,
             ParentClass = m.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Method,
-            StartToken = m.Tok,
+            StartToken = m.Origin,
             Ensures = ParseContracts(m.Ens),
             Requires = ParseContracts(m.Req),
             References =
@@ -87,14 +87,14 @@ namespace DafnyServer {
 
     private void AddFields(ModuleDefinition module, List<SymbolInformation> information) {
       foreach (var fs in ModuleDefinition.AllFields(module.TopLevelDecls).
-                 Where(e => e != null && !e.Tok.FromIncludeDirective(_dafnyProgram))) {
+                 Where(e => e != null && !e.Origin.FromIncludeDirective(_dafnyProgram))) {
 
         var fieldSymbol = new SymbolInformation {
           Module = fs.EnclosingClass.EnclosingModuleDefinition.Name,
           Name = fs.Name,
           ParentClass = fs.EnclosingClass.Name,
           SymbolType = SymbolInformation.Type.Field,
-          StartToken = fs.Tok,
+          StartToken = fs.Origin,
           References = FindFieldReferencesInternal(fs.Name, fs.EnclosingClass.Name, fs.EnclosingClass.EnclosingModuleDefinition.Name)
         };
         if (fs.Type is UserDefinedType) {
@@ -108,13 +108,13 @@ namespace DafnyServer {
 
     private void AddClasses(ModuleDefinition module, List<SymbolInformation> information) {
       foreach (var cs in module.TopLevelDecls.Where(t => t is ClassLikeDecl or DefaultClassDecl).
-                 Where(cl => !cl.Tok.FromIncludeDirective(_dafnyProgram))) {
-        if (cs.EnclosingModuleDefinition != null && cs.Tok != null) {
+                 Where(cl => !cl.Origin.FromIncludeDirective(_dafnyProgram))) {
+        if (cs.EnclosingModuleDefinition != null && cs.Origin != null) {
           var classSymbol = new SymbolInformation {
             Module = cs.EnclosingModuleDefinition.Name,
             Name = cs.Name,
             SymbolType = SymbolInformation.Type.Class,
-            StartToken = cs.Tok,
+            StartToken = cs.Origin,
             EndToken = cs.EndToken
           };
           information.Add(classSymbol);
@@ -172,7 +172,7 @@ namespace DafnyServer {
                 Name = autoGhost.Name,
                 ParentClass = autoGhost.Resolved.Type.ToString(),
                 SymbolType = SymbolInformation.Type.Definition,
-                StartToken = updateStatement.Tok,
+                StartToken = updateStatement.Origin,
                 EndToken = updateStatement.EndToken
               });
             }

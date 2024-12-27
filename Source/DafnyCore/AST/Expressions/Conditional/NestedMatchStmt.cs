@@ -95,7 +95,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
       resolver.PartiallySolveTypeConstraints(true);
 
       if (Source.Type is TypeProxy) {
-        resolver.Reporter.Error(MessageSource.Resolver, Tok, "Could not resolve the type of the source of the match statement. Please provide additional typing annotations.");
+        resolver.Reporter.Error(MessageSource.Resolver, Origin, "Could not resolve the type of the source of the match statement. Please provide additional typing annotations.");
         return;
       }
     }
@@ -154,7 +154,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
 
     if (!mustBeErasable && IsGhost) {
-      reporter.Info(MessageSource.Resolver, Tok, "ghost match");
+      reporter.Info(MessageSource.Resolver, Origin, "ghost match");
     }
 
     Cases.ForEach(kase => kase.Body.ForEach(ss =>

@@ -25,19 +25,19 @@ class TailRecursion {
     if (hasTailRecursionPreference && !tail) {
       // the user specifically requested no tail recursion, so do nothing else
     } else if (hasTailRecursionPreference && tail && m.IsGhost) {
-      reporter.Error(MessageSource.Resolver, m.Tok, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
+      reporter.Error(MessageSource.Resolver, m.Origin, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
     } else {
       var module = m.EnclosingClass.EnclosingModuleDefinition;
       var sccSize = module.CallGraph.GetSCCSize(m);
       if (hasTailRecursionPreference && 2 <= sccSize) {
-        reporter.Error(MessageSource.Resolver, m.Tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
+        reporter.Error(MessageSource.Resolver, m.Origin, "sorry, tail-call optimizations are not supported for mutually recursive methods");
       } else if (hasTailRecursionPreference || sccSize == 1) {
         Statement tailCall = null;
         var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
         if (status != TailRecursionStatus.NotTailRecursive && tailCall != null) {
           // this means there was at least one recursive call
           m.IsTailRecursive = true;
-          reporter.Info(MessageSource.Resolver, m.Tok, "tail recursive");
+          reporter.Info(MessageSource.Resolver, m.Origin, "tail recursive");
         }
       }
     }
@@ -74,7 +74,7 @@ class TailRecursion {
         if (status == TailRecursionStatus.TailCallSpent) {
           // a tail call cannot be followed by non-ghost code
           if (reportErrors) {
-            reporter.Error(MessageSource.Resolver, tailCall.Tok, "this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code");
+            reporter.Error(MessageSource.Resolver, tailCall.Origin, "this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code");
           }
           return TailRecursionStatus.NotTailRecursive;
         }
@@ -111,13 +111,13 @@ class TailRecursion {
         // and init call have taken place, the newly allocated object has yet to be assigned to
         // the LHS of the assignment statement.
         if (reportErrors) {
-          reporter.Error(MessageSource.Resolver, tRhs.InitCall.Tok,
+          reporter.Error(MessageSource.Resolver, tRhs.InitCall.Origin,
             "the recursive call to '{0}' is not tail recursive, because the assignment of the LHS happens after the call",
             tRhs.InitCall.Method.Name);
         }
         return TailRecursionStatus.NotTailRecursive;
       } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && fce.Function.ByMethodDecl == enclosingMethod) {
-        var status = ConfirmTailCall(s.Tok, enclosingMethod, fce.TypeApplication_JustFunction, new List<Expression>() { s.Lhs }, reportErrors);
+        var status = ConfirmTailCall(s.Origin, enclosingMethod, fce.TypeApplication_JustFunction, new List<Expression>() { s.Lhs }, reportErrors);
         if (status == TailRecursionStatus.TailCallSpent) {
           tailCall = s;
           fce.Args.ForEach(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
@@ -136,7 +136,7 @@ class TailRecursion {
       var s = (CallStmt)stmt;
       if (s.Method == enclosingMethod) {
         DisallowRecursiveCallsInExpressions(s, enclosingMethod, reportErrors);
-        var status = ConfirmTailCall(s.Tok, s.Method, s.MethodSelect.TypeApplicationJustMember, s.Lhs, reportErrors);
+        var status = ConfirmTailCall(s.Origin, s.Method, s.MethodSelect.TypeApplicationJustMember, s.Lhs, reportErrors);
         if (status == TailRecursionStatus.TailCallSpent) {
           tailCall = s;
         }
@@ -187,7 +187,7 @@ class TailRecursion {
         if (status == TailRecursionStatus.NotTailRecursive) {
           // an error has already been reported
         } else if (reportErrors) {
-          reporter.Error(MessageSource.Resolver, tailCall.Tok, "a recursive call inside a loop is not recognized as being a tail call");
+          reporter.Error(MessageSource.Resolver, tailCall.Origin, "a recursive call inside a loop is not recognized as being a tail call");
         }
         return TailRecursionStatus.NotTailRecursive;
       }
@@ -200,7 +200,7 @@ class TailRecursion {
           if (status == TailRecursionStatus.NotTailRecursive) {
             // an error has already been reported
           } else if (reportErrors) {
-            reporter.Error(MessageSource.Resolver, tailCall.Tok, "a recursive call inside a loop is not recognized as being a tail call");
+            reporter.Error(MessageSource.Resolver, tailCall.Origin, "a recursive call inside a loop is not recognized as being a tail call");
           }
           return TailRecursionStatus.NotTailRecursive;
         }
@@ -216,7 +216,7 @@ class TailRecursion {
         if (status == TailRecursionStatus.NotTailRecursive) {
           // an error has already been reported
         } else if (reportErrors) {
-          reporter.Error(MessageSource.Resolver, tailCall.Tok, "a recursive call inside a forall statement is not a tail call");
+          reporter.Error(MessageSource.Resolver, tailCall.Origin, "a recursive call inside a forall statement is not a tail call");
         }
         return TailRecursionStatus.NotTailRecursive;
       }
@@ -364,21 +364,21 @@ class TailRecursion {
     if (hasTailRecursionPreference && !tail) {
       // the user specifically requested no tail recursion, so do nothing else
     } else if (hasTailRecursionPreference && tail && f.IsGhost) {
-      reporter.Error(MessageSource.Resolver, f.Tok, "tail recursion can be specified only for functions that will be compiled, not for ghost functions");
+      reporter.Error(MessageSource.Resolver, f.Origin, "tail recursion can be specified only for functions that will be compiled, not for ghost functions");
     } else {
       var module = f.EnclosingClass.EnclosingModuleDefinition;
       var sccSize = module.CallGraph.GetSCCSize(f);
       if (hasTailRecursionPreference && 2 <= sccSize) {
-        reporter.Error(MessageSource.Resolver, f.Tok, "sorry, tail-call optimizations are not supported for mutually recursive functions");
+        reporter.Error(MessageSource.Resolver, f.Origin, "sorry, tail-call optimizations are not supported for mutually recursive functions");
       } else if (hasTailRecursionPreference || sccSize == 1) {
         var status = CheckTailRecursiveExpr(f.Body, f, true, hasTailRecursionPreference);
         if (status != Function.TailStatus.TriviallyTailRecursive && status != Function.TailStatus.NotTailRecursive) {
           // this means there was at least one recursive call
           f.TailRecursion = status;
           if (status == Function.TailStatus.TailRecursive) {
-            reporter.Info(MessageSource.Resolver, f.Tok, "tail recursive");
+            reporter.Info(MessageSource.Resolver, f.Origin, "tail recursive");
           } else {
-            reporter.Info(MessageSource.Resolver, f.Tok, "auto-accumulator tail recursive");
+            reporter.Info(MessageSource.Resolver, f.Origin, "auto-accumulator tail recursive");
           }
         }
       }

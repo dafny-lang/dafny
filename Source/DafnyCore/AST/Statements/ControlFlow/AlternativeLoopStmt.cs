@@ -97,7 +97,7 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
 
     s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
     if (!mustBeErasable && s.IsGhost) {
-      reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+      reporter.Info(MessageSource.Resolver, s.Origin, "ghost while");
     }
     if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
       reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");

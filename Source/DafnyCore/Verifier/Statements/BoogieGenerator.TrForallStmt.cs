@@ -12,7 +12,7 @@ public partial class BoogieGenerator {
 
   private void TrForallStmt(BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     ForallStmt forallStmt) {
-    this.fuelContext = FuelSetting.ExpandFuelContext(forallStmt.Attributes, forallStmt.Tok, this.fuelContext, this.reporter);
+    this.fuelContext = FuelSetting.ExpandFuelContext(forallStmt.Attributes, forallStmt.Origin, this.fuelContext, this.reporter);
 
     CurrentIdGenerator.Push();
     if (forallStmt.Kind == ForallStmt.BodyKind.Assign) {
@@ -24,10 +24,10 @@ public partial class BoogieGenerator {
         var s0 = (SingleAssignStmt)forallStmt.S0;
         var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
         var updater = new BoogieStmtListBuilder(this, options, builder.Context);
-        DefineFuelConstant(forallStmt.Tok, forallStmt.Attributes, definedness, etran);
+        DefineFuelConstant(forallStmt.Origin, forallStmt.Attributes, definedness, etran);
         TrForallAssign(forallStmt, s0, definedness, updater, locals, etran);
         // All done, so put the two pieces together
-        builder.Add(new Bpl.IfCmd(forallStmt.Tok, null, definedness.Collect(forallStmt.Tok), null, updater.Collect(forallStmt.Tok)));
+        builder.Add(new Bpl.IfCmd(forallStmt.Origin, null, definedness.Collect(forallStmt.Origin), null, updater.Collect(forallStmt.Origin)));
         builder.AddCaptureState(forallStmt);
       }
 
@@ -40,16 +40,16 @@ public partial class BoogieGenerator {
       } else {
         var s0 = (CallStmt)forallStmt.S0;
         if (Attributes.Contains(forallStmt.Attributes, "_trustWellformed")) {
-          TrForallStmtCall(forallStmt.Tok, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null,
+          TrForallStmtCall(forallStmt.Origin, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null,
             forallStmt.EffectiveEnsuresClauses, null, s0, null, builder, locals, etran);
         } else {
           var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
-          DefineFuelConstant(forallStmt.Tok, forallStmt.Attributes, definedness, etran);
+          DefineFuelConstant(forallStmt.Origin, forallStmt.Attributes, definedness, etran);
           var exporter = new BoogieStmtListBuilder(this, options, builder.Context);
-          TrForallStmtCall(forallStmt.Tok, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null,
+          TrForallStmtCall(forallStmt.Origin, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null,
             forallStmt.EffectiveEnsuresClauses, null, s0, definedness, exporter, locals, etran);
           // All done, so put the two pieces together
-          builder.Add(new Bpl.IfCmd(forallStmt.Tok, null, definedness.Collect(forallStmt.Tok), null, exporter.Collect(forallStmt.Tok)));
+          builder.Add(new Bpl.IfCmd(forallStmt.Origin, null, definedness.Collect(forallStmt.Origin), null, exporter.Collect(forallStmt.Origin)));
         }
         builder.AddCaptureState(forallStmt);
       }
@@ -58,10 +58,10 @@ public partial class BoogieGenerator {
       AddComment(builder, forallStmt, "forall statement (proof)");
       var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
       var exporter = new BoogieStmtListBuilder(this, options, builder.Context);
-      DefineFuelConstant(forallStmt.Tok, forallStmt.Attributes, definedness, etran);
+      DefineFuelConstant(forallStmt.Origin, forallStmt.Attributes, definedness, etran);
       TrForallProof(forallStmt, definedness, exporter, locals, etran);
       // All done, so put the two pieces together
-      builder.Add(new Bpl.IfCmd(forallStmt.Tok, null, definedness.Collect(forallStmt.Tok), null, exporter.Collect(forallStmt.Tok)));
+      builder.Add(new Bpl.IfCmd(forallStmt.Origin, null, definedness.Collect(forallStmt.Origin), null, exporter.Collect(forallStmt.Origin)));
       builder.AddCaptureState(forallStmt);
 
     } else {
@@ -352,7 +352,7 @@ public partial class BoogieGenerator {
         // TODO: in the following line, is the term equality okay, or does it have to include things like Set#Equal sometimes too?
         eqs = BplAnd(eqs, Bpl.Expr.Eq(etran.TrExpr(x), etran.TrExpr(xPrime)));
       }
-      definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.Not(eqs)));
+      definedness.Add(TrAssumeCmd(s.Origin, Bpl.Expr.Not(eqs)));
       GetObjFieldDetails(lhsPrime, etran, out var objPrime, out var FPrime);
       var Rhs = ((ExprRhs)s0.Rhs).Expr;
       var rhs = etran.TrExpr(Substitute(Rhs, null, substMap));
@@ -364,22 +364,22 @@ public partial class BoogieGenerator {
         lhsComponents.AddRange(multi.Indices);
       }
 
-      definedness.Add(Assert(s0.Tok,
+      definedness.Add(Assert(s0.Origin,
         BplOr(
           BplOr(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
           Bpl.Expr.Eq(rhs, rhsPrime)),
         new ForallLHSUnique(s.BoundVars, s.Range, lhsComponents, Rhs), definedness.Context));
     }
 
-    definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
+    definedness.Add(TrAssumeCmd(s.Origin, Bpl.Expr.False));
 
     // Now for the translation of the update itself
 
-    Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(s.Tok, locals);
+    Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(s.Origin, locals);
     var prevEtran = new ExpressionTranslator(this, Predef, prevHeap, etran.scope);
-    updater.Add(Bpl.Cmd.SimpleAssign(s.Tok, prevHeap, etran.HeapExpr));
-    updater.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
-    updater.Add(TrAssumeCmd(s.Tok, HeapSucc(prevHeap, etran.HeapExpr)));
+    updater.Add(Bpl.Cmd.SimpleAssign(s.Origin, prevHeap, etran.HeapExpr));
+    updater.Add(new Bpl.HavocCmd(s.Origin, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+    updater.Add(TrAssumeCmd(s.Origin, HeapSucc(prevHeap, etran.HeapExpr)));
 
     // Here comes:
     //   assume (forall o: ref, f: Field ::
@@ -387,12 +387,12 @@ public partial class BoogieGenerator {
     //     $Heap[o,f] = oldHeap[o,f] ||
     //     (exists x,y :: Range(x,y)[$Heap:=oldHeap] &&
     //                    o == Object(x,y)[$Heap:=oldHeap] && f == Field(x,y)[$Heap:=oldHeap]));
-    Bpl.BoundVariable oVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$o", Predef.RefType));
-    Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(s.Tok, oVar);
-    Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$f", Predef.FieldName(s.Tok)));
-    Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Tok, fVar);
-    Bpl.Expr heapOF = ReadHeap(s.Tok, etran.HeapExpr, o, f);
-    Bpl.Expr oldHeapOF = ReadHeap(s.Tok, prevHeap, o, f);
+    Bpl.BoundVariable oVar = new Bpl.BoundVariable(s.Origin, new Bpl.TypedIdent(s.Origin, "$o", Predef.RefType));
+    Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(s.Origin, oVar);
+    Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Origin, new Bpl.TypedIdent(s.Origin, "$f", Predef.FieldName(s.Origin)));
+    Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Origin, fVar);
+    Bpl.Expr heapOF = ReadHeap(s.Origin, etran.HeapExpr, o, f);
+    Bpl.Expr oldHeapOF = ReadHeap(s.Origin, prevHeap, o, f);
     List<bool> freeOfAlloc = BoundedPool.HasBounds(s.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
     List<Variable> xBvars = new List<Variable>();
     var xBody = etran.TrBoundVariables(s.BoundVars, xBvars, false, freeOfAlloc);
@@ -401,11 +401,11 @@ public partial class BoogieGenerator {
     xBody = BplAnd(xBody, Bpl.Expr.Eq(o, xObj));
     xBody = BplAnd(xBody, Bpl.Expr.Eq(f, xField));
     //TRIG (exists k#2: int :: (k#2 == LitInt(0 - 3) || k#2 == LitInt(4)) && $o == read($prevHeap, this, _module.MyClass.arr) && $f == MultiIndexField(IndexField(i#0), j#0))
-    Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Tok, xBvars, xBody);  // LL_TRIGGER
+    Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Origin, xBvars, xBody);  // LL_TRIGGER
     Bpl.Expr body = BplOr(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
-    var tr = new Trigger(s.Tok, true, new List<Expr>() { heapOF });
-    Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null, tr, body);
-    updater.Add(TrAssumeCmd(s.Tok, qq));
+    var tr = new Trigger(s.Origin, true, new List<Expr>() { heapOF });
+    Bpl.Expr qq = new Bpl.ForallExpr(s.Origin, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null, tr, body);
+    updater.Add(TrAssumeCmd(s.Origin, qq));
 
     if (s.EffectiveEnsuresClauses != null) {
       foreach (ForallExpr expr in s.EffectiveEnsuresClauses) {
@@ -414,7 +414,7 @@ public partial class BoogieGenerator {
         var e0 = ((BinaryExpr)term).E0.Resolved;
         var e1 = ((BinaryExpr)term).E1;
         qq = TrForall_NewValueAssumption(expr.Origin, expr.BoundVars, expr.Bounds, expr.Range, e0, e1, expr.Attributes, etran, prevEtran);
-        updater.Add(TrAssumeCmd(s.Tok, qq));
+        updater.Add(TrAssumeCmd(s.Origin, qq));
       }
     }
   }
@@ -508,10 +508,10 @@ public partial class BoogieGenerator {
       locals.AddRange(bVars);
       var havocIds = new List<Bpl.IdentifierExpr>();
       foreach (Bpl.Variable bv in bVars) {
-        havocIds.Add(new Bpl.IdentifierExpr(forallStmt.Tok, bv));
+        havocIds.Add(new Bpl.IdentifierExpr(forallStmt.Origin, bv));
       }
-      definedness.Add(new Bpl.HavocCmd(forallStmt.Tok, havocIds));
-      definedness.Add(TrAssumeCmd(forallStmt.Tok, typeAntecedent));
+      definedness.Add(new Bpl.HavocCmd(forallStmt.Origin, havocIds));
+      definedness.Add(TrAssumeCmd(forallStmt.Origin, typeAntecedent));
     }
     TrStmt_CheckWellformed(forallStmt.Range, definedness, locals, etran, false);
     definedness.Add(TrAssumeCmdWithDependencies(etran, forallStmt.Range.Origin, forallStmt.Range, "forall statement range"));
@@ -521,7 +521,7 @@ public partial class BoogieGenerator {
       TrStmt_CheckWellformed(ens.E, ensuresDefinedness, locals, etran, false);
       ensuresDefinedness.Add(TrAssumeCmdWithDependencies(etran, ens.E.Origin, ens.E, "forall statement ensures clause"));
     }
-    PathAsideBlock(forallStmt.Tok, ensuresDefinedness, definedness);
+    PathAsideBlock(forallStmt.Origin, ensuresDefinedness, definedness);
 
     if (forallStmt.Body != null) {
       TrStmt(forallStmt.Body, definedness, locals, etran);
@@ -536,7 +536,7 @@ public partial class BoogieGenerator {
       }
     }
 
-    definedness.Add(TrAssumeCmd(forallStmt.Tok, Bpl.Expr.False));
+    definedness.Add(TrAssumeCmd(forallStmt.Origin, Bpl.Expr.False));
 
     // Now for the other branch, where the ensures clauses are exported.
     // If the forall body has side effect such as call to a reveal function,
@@ -546,9 +546,9 @@ public partial class BoogieGenerator {
     var p = Substitute(forallStmt.EffectiveEnsuresClauses[0], null, substMap);
     var qq = etran.TrExpr(p);
     if (forallStmt.BoundVars.Count != 0) {
-      exporter.Add(TrAssumeCmd(forallStmt.Tok, BplAnd(se, qq)));
+      exporter.Add(TrAssumeCmd(forallStmt.Origin, BplAnd(se, qq)));
     } else {
-      exporter.Add(TrAssumeCmd(forallStmt.Tok, BplAnd(se, ((Bpl.ForallExpr)qq).Body)));
+      exporter.Add(TrAssumeCmd(forallStmt.Origin, BplAnd(se, ((Bpl.ForallExpr)qq).Body)));
     }
   }
 }

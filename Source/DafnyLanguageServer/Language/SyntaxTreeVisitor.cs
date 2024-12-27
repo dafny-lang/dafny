@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         case NewtypeDecl newTypeDeclaration:
         case TypeSynonymDecl typeSynonymDeclaration:
         default:
-          VisitUnknown(topLevelDeclaration, topLevelDeclaration.Tok);
+          VisitUnknown(topLevelDeclaration, topLevelDeclaration.Origin);
           break;
       }
     }
@@ -77,7 +77,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           Visit(method);
           break;
         default:
-          VisitUnknown(memberDeclaration, memberDeclaration.Tok);
+          VisitUnknown(memberDeclaration, memberDeclaration.Origin);
           break;
       }
     }
@@ -210,7 +210,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           Visit(printStatement);
           break;
         default:
-          VisitUnknown(statement, statement.Tok);
+          VisitUnknown(statement, statement.Origin);
           break;
       }
     }

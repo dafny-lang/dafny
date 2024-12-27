@@ -130,7 +130,7 @@ namespace Microsoft.Dafny {
         if (field.Rhs != null) {
           CheckExpression(field.Rhs, context);
         }
-        CheckPreType(field.PreType, context, field.Tok, "const");
+        CheckPreType(field.PreType, context, field.Origin, "const");
 
       } else if (member is Method method) {
         CheckParameterDefaultValues(method.Ins, context);
@@ -236,13 +236,13 @@ namespace Microsoft.Dafny {
       if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var local in s.Locals) {
-          CheckPreTypeIsDetermined(local.Tok, local.PreType, "local variable");
-          CheckTypeArgsContainNoOrdinal(local.Tok, local.PreType);
+          CheckPreTypeIsDetermined(local.Origin, local.PreType, "local variable");
+          CheckTypeArgsContainNoOrdinal(local.Origin, local.PreType);
         }
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
-        s.LocalVars.ForEach(local => CheckPreTypeIsDetermined(local.Tok, local.PreType, "local variable"));
-        s.LocalVars.ForEach(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.PreType));
+        s.LocalVars.ForEach(local => CheckPreTypeIsDetermined(local.Origin, local.PreType, "local variable"));
+        s.LocalVars.ForEach(local => CheckTypeArgsContainNoOrdinal(local.Origin, local.PreType));
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;

@@ -416,7 +416,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
 
     foreach (var hint in Hints) {
       // This block
-      if (hint.Tok.pos != hint.EndToken.pos) {
+      if (hint.Origin.pos != hint.EndToken.pos) {
         foreach (var hintStep in hint.Body) {
           formatter.SetOpeningIndentedRegion(hintStep.StartToken, indentBefore + formatter.SpaceTab + extraHintIndent);
         }

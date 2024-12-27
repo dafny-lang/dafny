@@ -48,11 +48,11 @@ public partial class BoogieGenerator {
     Bpl.IdentifierExpr initHeap = null;
     if (codeContext is IteratorDecl) {
       // var initHeap := $Heap;
-      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, CurrentIdGenerator.FreshId("$initHeapCallStmt#"), Predef.HeapType));
+      var initHeapVar = new Bpl.LocalVariable(s.Origin, new Bpl.TypedIdent(s.Origin, CurrentIdGenerator.FreshId("$initHeapCallStmt#"), Predef.HeapType));
       locals.Add(initHeapVar);
-      initHeap = new Bpl.IdentifierExpr(s.Tok, initHeapVar);
+      initHeap = new Bpl.IdentifierExpr(s.Origin, initHeapVar);
       // initHeap := $Heap;
-      builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
+      builder.Add(Bpl.Cmd.SimpleAssign(s.Origin, initHeap, etran.HeapExpr));
     }
     builder.Add(new CommentCmd("TrCallStmt: Before ProcessCallStmt"));
     ProcessCallStmt(s, tySubst, actualReceiver, bLhss, lhsTypes, builder, locals, etran);
@@ -90,7 +90,7 @@ public partial class BoogieGenerator {
     if (codeContext is IteratorDecl) {
       var iter = (IteratorDecl)codeContext;
       Contract.Assert(initHeap != null);
-      RecordNewObjectsIn_New(s.Tok, iter, initHeap, etran.HeapCastToIdentifierExpr, builder, locals, etran);
+      RecordNewObjectsIn_New(s.Origin, iter, initHeap, etran.HeapCastToIdentifierExpr, builder, locals, etran);
     }
     builder.AddCaptureState(s);
   }
@@ -185,10 +185,10 @@ public partial class BoogieGenerator {
       var local = new LocalVariable(formal.Origin, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
       local.type = local.SyntacticType;  // resolve local here
       var localName = local.AssignUniqueName(CurrentDeclaration.IdGenerator);
-      var ie = new IdentifierExpr(local.Tok, localName);
+      var ie = new IdentifierExpr(local.Origin, localName);
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
       substMap.Add(formal, ie);
-      locals.GetOrCreate(localName, () => new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, localName, TrType(local.Type))));
+      locals.GetOrCreate(localName, () => new Bpl.LocalVariable(local.Origin, new Bpl.TypedIdent(local.Origin, localName, TrType(local.Type))));
 
       var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
       Bpl.Expr bActual;

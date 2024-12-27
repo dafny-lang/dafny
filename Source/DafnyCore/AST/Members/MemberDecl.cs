@@ -122,7 +122,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
       yield return a;
     }
     if (this.HasUserAttribute("only", out _)) {
-      yield return new Assumption(decl, Tok, AssumptionDescription.MemberOnly);
+      yield return new Assumption(decl, Origin, AssumptionDescription.MemberOnly);
     }
   }
 

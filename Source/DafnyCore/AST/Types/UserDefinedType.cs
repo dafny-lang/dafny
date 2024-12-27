@@ -109,7 +109,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(!(cd is ArrowTypeDecl));
 
     var typeArgs = cd.TypeArgs.ConvertAll(tp => (Type)Type.Bool);
-    return new UserDefinedType(cd.Tok, cd.Name, cd, typeArgs);
+    return new UserDefinedType(cd.Origin, cd.Name, cd, typeArgs);
   }
 
   /// <summary>
@@ -205,7 +205,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// This constructor constructs a resolved type parameter
   /// </summary>
   public UserDefinedType(TypeParameter tp)
-    : this(tp.Tok, tp) {
+    : this(tp.Origin, tp) {
     Contract.Requires(tp != null);
   }
 

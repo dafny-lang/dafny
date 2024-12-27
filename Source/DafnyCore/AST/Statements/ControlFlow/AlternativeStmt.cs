@@ -60,7 +60,7 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
 
   public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism && 2 <= Alternatives.Count) {
-      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_if_forbidden, Tok,
+      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_if_forbidden, Origin,
         "case-based if statement forbidden by the --enforce-determinism option");
     }
     ResolveAlternatives(resolver, Alternatives, null, resolutionContext);
@@ -108,7 +108,7 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = mustBeErasable || Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
     if (!mustBeErasable && IsGhost) {
-      resolver.Reporter.Info(MessageSource.Resolver, Tok, "ghost if");
+      resolver.Reporter.Info(MessageSource.Resolver, Origin, "ghost if");
     }
 
     Alternatives.ForEach(alt => alt.Body.ForEach(ss =>
