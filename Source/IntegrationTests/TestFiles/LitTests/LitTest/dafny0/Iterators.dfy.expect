@@ -1,16 +1,16 @@
 Iterators.dfy(40,21): Error: a precondition for this call could not be proved
 Iterators.dfy(4,9): Related location: this is the precondition that could not be proved
-Iterators.dfy(89,13): Error: assertion might not hold
-Iterators.dfy(103,21): Error: assertion might not hold
-Iterators.dfy(106,13): Error: assertion might not hold
-Iterators.dfy(119,15): Error: assertion might not hold
-Iterators.dfy(150,15): Error: assertion might not hold
+Iterators.dfy(89,2): Error: assertion might not hold
+Iterators.dfy(103,2): Error: assertion might not hold
+Iterators.dfy(106,2): Error: assertion might not hold
+Iterators.dfy(119,4): Error: assertion might not hold
+Iterators.dfy(150,4): Error: assertion might not hold
 Iterators.dfy(155,23): Error: a precondition for this call could not be proved
 Iterators.dfy(125,9): Related location: this is the precondition that could not be proved
-Iterators.dfy(177,27): Error: assertion might not hold
+Iterators.dfy(177,18): Error: assertion might not hold
 Iterators.dfy(208,6): Error: an assignment to _new is only allowed to shrink the set
-Iterators.dfy(212,20): Error: assertion might not hold
-Iterators.dfy(234,20): Error: assertion might not hold
+Iterators.dfy(212,6): Error: assertion might not hold
+Iterators.dfy(234,6): Error: assertion might not hold
 Iterators.dfy(413,16): Error: this invariant could not be proved to be maintained by the loop
  Related message: loop invariant violation
 Iterators.dfy(414,21): Error: this invariant could not be proved to be maintained by the loop

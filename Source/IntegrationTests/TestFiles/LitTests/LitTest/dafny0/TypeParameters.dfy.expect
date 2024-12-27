@@ -1,5 +1,5 @@
-TypeParameters.dfy(44,21): Error: assertion might not hold
-TypeParameters.dfy(66,26): Error: assertion might not hold
+TypeParameters.dfy(44,4): Error: assertion might not hold
+TypeParameters.dfy(66,4): Error: assertion might not hold
 TypeParameters.dfy(153,11): Error: assertion might not hold
 TypeParameters.dfy(153,27): Related location: this proposition could not be proved
 TypeParameters.dfy(155,11): Error: assertion might not hold
