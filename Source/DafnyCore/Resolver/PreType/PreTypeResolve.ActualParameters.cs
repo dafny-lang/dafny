@@ -127,7 +127,7 @@ namespace Microsoft.Dafny {
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
           Constraints.AddSubtypeConstraint(
-            formal.PreType.Substitute(typeMap), b.Actual.PreType, callTok /* TODO should be b.Actual.Origin */,
+            formal.PreType.Substitute(typeMap), b.Actual.PreType, b.Actual.Origin,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
