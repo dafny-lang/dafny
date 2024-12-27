@@ -425,7 +425,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.E, resolutionContext);
         var innerRange = e.E.Origin;
         e.ResolvedExpression = e.E; // Overwrites the range, which is not suitable for ParensExpressions
-        e.E.Origin = innerRange;
+        e.E.SetOrigin(innerRange);
         e.Type = e.E.Type;
 
       } else if (expr is ChainingExpression) {

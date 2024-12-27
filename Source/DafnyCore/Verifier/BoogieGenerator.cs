@@ -2446,10 +2446,10 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.ValueAtReturn(out ie) != null);
 
       bv = new BoundVar(tok, CurrentIdGenerator.FreshId(prefix), iv.Type); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
-      ie = new IdentifierExpr(tok, bv.Name);
-      bv.Origin = iv.Origin;
-      ie.Var = bv;  // resolve here
-      ie.Type = bv.Type;  // resolve here
+      ie = new IdentifierExpr(tok, bv.Name) {
+        Var = bv, // resolve here
+        Type = bv.Type // resolve here
+      };
     }
 
     // Use trType to translate types in the args list
@@ -4059,7 +4059,6 @@ namespace Microsoft.Dafny {
         : base(ToDafnyToken(false, expr.tok)) {
         Contract.Requires(expr != null);
         Contract.Requires(dafnyType != null);
-        Origin = ToDafnyToken(true, expr.tok);
         Expr = expr;
         Type = dafnyType;  // resolve immediately
       }

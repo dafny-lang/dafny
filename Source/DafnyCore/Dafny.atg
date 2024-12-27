@@ -236,7 +236,7 @@ Dafny
     TopDecl<theModule, /* isTopLevel */ true, ref attrs> }
   (. CheckNoAttributes(ref attrs); .)
   (. 
-    theModule.Origin = new SourceOrigin(fileStartToken.Next, t);
+    theModule.SetOrigin(new SourceOrigin(fileStartToken.Next, t));
   .)
   SYNC
   EOF
@@ -348,9 +348,9 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    "}"
    (. CheckNoAttributes(ref attrs); .)
     (.
-      module.Origin = new SourceOrigin(dmod.FirstToken, t, name.Center);
+      module.SetOrigin(new SourceOrigin(dmod.FirstToken, t, name.Center));
       submodule = new LiteralModuleDecl(theOptions, module, parent, Guid.NewGuid());
-      submodule.Origin = module.Origin;
+      submodule.SetOrigin(module.Origin);
       theOptions = dafnyOptionsBackup;
     .)
   .
@@ -1484,16 +1484,16 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
      List<Type> tupleArgTypes = null;
      List<Token> argumentGhostTokens = null;
   .)
-  ( "bool"                          (. tok = t; startToken = t; ty.Origin = t; .)
-  | "char"                          (. tok = t; startToken = t;  ty = new CharType(); ty.Origin = t; .)
-  | "int"                           (. tok = t; startToken = t;  ty = new IntType(); ty.Origin = t; .)
-  | "nat"                           (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "real"                          (. tok = t; startToken = t;  ty = new RealType(); ty.Origin = t; .)
-  | "ORDINAL"                       (. tok = t; startToken = t;  ty = new BigOrdinalType(); ty.Origin = t; .)
+  ( "bool"                          (. tok = t; startToken = t; ty = new BoolType(); ty.SetOrigin(t); .)
+  | "char"                          (. tok = t; startToken = t; ty = new CharType(); ty.SetOrigin(t); .)
+  | "int"                           (. tok = t; startToken = t; ty = new IntType(); ty.SetOrigin(t); .)
+  | "nat"                           (. tok = t; startToken = t; ty = new UserDefinedType(tok, tok.val, null); .)
+  | "real"                          (. tok = t; startToken = t; ty = new RealType(); ty.SetOrigin(t); .)
+  | "ORDINAL"                       (. tok = t; startToken = t; ty = new BigOrdinalType(); ty.SetOrigin(t); .)
   | bvToken                         (. tok = t; startToken = t;
                                        int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide", startToken);
                                        ty = new BitvectorType(theOptions, w);
-                                       ty.Origin = t;
+                                       ty.SetOrigin(t);
                                     .)
   | "set"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1502,7 +1502,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "set type expects only one type argument");
                                        }
                                        ty = new SetType(true, gt != null ?gt[0] : null);
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | "iset"                          (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1511,7 +1511,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "iset type expects only one type argument");
                                        }
                                        ty = new SetType(false, gt != null ? gt[0] : null);
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | "multiset"                      (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1520,7 +1520,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "multiset type expects only one type argument");
                                        }
                                        ty = new MultiSetType(gt != null ? gt[0] : null);
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | "seq"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1529,15 +1529,11 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "seq type expects only one type argument");
                                        }
                                        ty = new SeqType(gt != null ? gt[0] : null);
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
-  | "string"                        (. tok = t; startToken = t;  
-                                       ty = new UserDefinedType(tok, tok.val, null); 
-                                       ty.Origin = new SourceOrigin(startToken, t); .)
-  | "object"                        (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); 
-                                       ty.Origin = new SourceOrigin(startToken, t); .)
-  | "object?"                       (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); 
-                                       ty.Origin = new SourceOrigin(startToken, t); .)
+  | "string"                        (. tok = t; startToken = t; ty = new UserDefinedType(new SourceOrigin(startToken, t), tok.val, null); .)
+  | "object"                        (. tok = t; startToken = t; ty = new UserDefinedType(new SourceOrigin(startToken, t), tok.val, null); .)
+  | "object?"                       (. tok = t; startToken = t; ty = new UserDefinedType(new SourceOrigin(startToken, t), tok.val, null); .)
   | "map"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt == null) {
@@ -1549,7 +1545,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                        } else {
                                          ty = new MapType(true, gt[0], gt[1]);
                                        }
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | "imap"                          (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1562,7 +1558,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                        } else {
                                          ty = new MapType(false, gt[0], gt[1]);
                                        }
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | arrayToken                      (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1573,7 +1569,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions", startToken);
                                        (ty, var bMod) = SystemModuleManager.ArrayType(tok, dims, gt, true, q);
                                        SystemModuleModifiers.Add(bMod);
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
@@ -1609,7 +1605,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
            ty = new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), gt);
          }
        }
-       ty.Origin = new SourceOrigin(startToken, t, tok);
+       ty.SetOrigin(new SourceOrigin(startToken, t, tok));
     .)
   ]
   .
@@ -2237,7 +2233,7 @@ LabeledStmt<out Statement s>
   OneStmt<out s>
   (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
      s.PostLabelToken = s.StartToken;
-     s.Origin = new SourceOrigin(labelToken, t, s.PostLabelToken);
+     s.SetOrigin(new SourceOrigin(labelToken, t, s.PostLabelToken));
   .)
   .
 
@@ -2451,7 +2447,7 @@ Rhs<out AssignmentRhs r>
   | Expression<out e, false, true>     (. r = new ExprRhs(e); startToken = e.StartToken; .)
   )
   { Attribute<ref attrs> }             (. r.Attributes = attrs;
-                                          r.Origin = new SourceOrigin(startToken ?? t, t, r.Center); .)
+                                          r.SetOrigin(new SourceOrigin(startToken ?? t, t, r.Center)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2588,7 +2584,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
 
     ";"
     (. s = new VarDeclPattern(e.Origin, pat, e, isGhost);
-       s.Origin = new SourceOrigin(pat.StartToken, t); .)
+       s.SetOrigin(new SourceOrigin(pat.StartToken, t)); .)
   )
   .
 
@@ -3413,7 +3409,7 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
          else e0 = new BinaryExpr(new SourceOrigin(firstOp, t, x), BinaryExpr.Opcode.Or, new LiteralExpr(new AutoGeneratedOrigin(x), false), e0);
          e0.FormatTokens = new[] { firstOp };
        } else if(prefixOp != null) {
-         e0.Origin = new SourceOrigin(prefixOp, e0.EndToken, e0.Center);
+         e0.SetOrigin(new SourceOrigin(prefixOp, e0.EndToken, e0.Center));
        }
   .)
   .
@@ -3508,7 +3504,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
   (. if (chain != null && kind != 3) {
        e = new ChainingExpression(opLocs[0], chain, ops, opLocs, prefixLimits);
      }
-     e.Origin = new SourceOrigin(startToken, t, e.Center);
+     e.SetOrigin(new SourceOrigin(startToken, t, e.Center));
   .)
   .
 
@@ -3725,7 +3721,7 @@ ConstAtomExpression<out Expression e>
   | "assigned"                                 (. x = t; .)
     "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
   | ParensExpression<out e>
-  ) (. if(x!= null) { e.Origin = new SourceOrigin(x, t, e.Center); } .)
+  ) (. if(x!= null) { e.SetOrigin(new SourceOrigin(x, t, e.Center)); } .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3749,7 +3745,7 @@ LiteralExpression<out Expression e>
                                                   Util.ValidateEscaping(theOptions, t, s, isVerbatimString, errors);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);
                                                .)
-  ) (. e.Origin = new SourceOrigin(t, t, e.Center); .)
+  ) (. e.SetOrigin(new SourceOrigin(t, t, e.Center)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3848,7 +3844,7 @@ ParensExpression<out Expression e>
          e = new ParensExpression(lp, e);
        }
      }
-     e.Origin = new SourceOrigin(lp, rp, e.Center);
+     e.SetOrigin(new SourceOrigin(lp, rp, e.Center));
   .)
   .
 
@@ -3924,7 +3920,7 @@ SetDisplayExpr<out Expression e>
                                                .)
     ")"
   )
-  (. e.Origin = new SourceOrigin(startToken, t, e.Center); .)
+  (. e.SetOrigin(new SourceOrigin(startToken, t, e.Center)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3960,7 +3956,7 @@ SeqDisplayExpr<out Expression e>
                                              .)
     "]"
   )
-  (.  e.Origin = new SourceOrigin(x, t, e.Center); .)
+  (.  e.SetOrigin(new SourceOrigin(x, t, e.Center)); .)
   .
 
 /*------------------------------------------------------------------------*/

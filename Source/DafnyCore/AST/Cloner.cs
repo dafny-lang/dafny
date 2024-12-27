@@ -346,9 +346,9 @@ namespace Microsoft.Dafny {
           Builtin = usaa.Builtin
         };
       } else {
-        return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev)) {
-          Origin = Origin(attrs.Origin)
-        };
+        var result = new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
+        result.SetOrigin(Origin(attrs.Origin));
+        return result;
       }
     }
 

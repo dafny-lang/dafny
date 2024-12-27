@@ -11,19 +11,20 @@ public abstract class NodeWithComputedRange : Node {
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal Token[] FormatTokens;
+  internal Token[] FormatTokens = null!;
 
   private IOrigin origin;
 
   protected NodeWithComputedRange(IOrigin? origin = null) {
+    this.origin = origin ?? Token.NoToken;
   }
 
   protected NodeWithComputedRange(Cloner cloner, NodeWithComputedRange original) {
     origin = cloner.Origin(original.Origin);
   }
 
-  public void SetOrigin(IOrigin newTok) {
-    origin = newTok;
+  public void SetOrigin(IOrigin newOrigin) {
+    origin = newOrigin;
   }
 
   public override IOrigin Origin {
@@ -74,6 +75,5 @@ public abstract class NodeWithComputedRange : Node {
 
       return origin;
     }
-    set => origin = value;
   }
 }
