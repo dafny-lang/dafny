@@ -29,13 +29,11 @@ public abstract class OriginWrapper : IOrigin {
 
   public virtual string Filepath => WrappedToken.Filepath;
 
-  public Uri Uri {
-    get => WrappedToken.Uri;
-    set => WrappedToken.Uri = value;
-  }
+  public Uri Uri => WrappedToken.Uri;
 
   public virtual Token StartToken => WrappedToken.StartToken;
   public virtual Token EndToken => WrappedToken.EndToken;
+  public virtual Token Center => WrappedToken.Center;
 
   public bool IsValid {
     get { return WrappedToken.IsValid; }

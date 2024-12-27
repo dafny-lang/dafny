@@ -102,8 +102,7 @@ public abstract class Expression : TokenNode {
 
   protected Expression(Cloner cloner, Expression original) {
 
-    tok = cloner.Origin(original.Tok);
-    Origin = cloner.Origin(original.Origin);
+    tok = cloner.Origin(original.tok);
 
     if (cloner.CloneResolvedFields && original.Type != null) {
       Type = original.Type;
@@ -882,9 +881,9 @@ public abstract class Expression : TokenNode {
 
     QuantifierExpr q;
     if (forall) {
-      q = new ForallExpr(expr.Tok, expr.Origin, newVars, expr.Range, body, expr.Attributes);
+      q = new ForallExpr(expr.Origin, newVars, expr.Range, body, expr.Attributes);
     } else {
-      q = new ExistsExpr(expr.Tok, expr.Origin, newVars, expr.Range, body, expr.Attributes);
+      q = new ExistsExpr(expr.Origin, newVars, expr.Range, body, expr.Attributes);
     }
     q.Type = Type.Bool;
 
@@ -896,7 +895,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression CreateIdentExpr(IVariable v) {
     Contract.Requires(v != null);
-    return new IdentifierExpr(v.Tok, v.Name) {
+    return new IdentifierExpr(v.Origin, v.Name) {
       Var = v,
       type = v.Type
     };

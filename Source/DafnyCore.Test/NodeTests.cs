@@ -12,7 +12,6 @@ public class NodeTests {
     }
 
     public override IOrigin Origin { get; set; }
-    public override IOrigin Tok => Origin.StartToken;
     public override IEnumerable<INode> Children { get; }
     public override IEnumerable<INode> PreResolveChildren => Children;
   }

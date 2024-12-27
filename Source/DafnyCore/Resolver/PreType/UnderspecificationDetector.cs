@@ -524,7 +524,7 @@ namespace Microsoft.Dafny {
 
     void CheckVariable(IVariable v, string whatIsBeingChecked) {
       if (!IsDetermined(v.PreType)) {
-        cus.ReportError(v.Tok, $"type of {whatIsBeingChecked} '{v.Name}' could not be determined{UndeterminedPreTypeToString(v.PreType)}; please specify the type explicitly");
+        cus.ReportError(v.Origin, $"type of {whatIsBeingChecked} '{v.Name}' could not be determined{UndeterminedPreTypeToString(v.PreType)}; please specify the type explicitly");
       }
     }
 

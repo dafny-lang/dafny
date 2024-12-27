@@ -333,7 +333,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     rr.TypeApplicationAtEnclosingClass = args;
 
     var call = new CallStmt(func.Origin, new List<Expression>(), rr, new List<ActualBinding>(),
-      func.Tok);
+      func.Center);
     call.IsGhost = true;
     call.Bindings.AcceptArgumentExpressionsAsExactParameterList(new List<Expression>());
 

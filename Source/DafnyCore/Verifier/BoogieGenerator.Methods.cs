@@ -697,11 +697,11 @@ namespace Microsoft.Dafny {
     public void ApplyModifiesEffect(INode node, ExpressionTranslator etran, BoogieStmtListBuilder builder,
       Specification<FrameExpression> modifies, bool allowsAllocation, bool isGhostContext) {
       // play havoc with the heap according to the modifies clause
-      builder.Add(new Boogie.HavocCmd(node.Tok, new List<Boogie.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+      builder.Add(new Boogie.HavocCmd(node.Origin, new List<Boogie.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
       // assume the usual two-state boilerplate information
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(node.Tok, modifies.Expressions, isGhostContext, allowsAllocation, etran.Old, etran, etran.Old)) {
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(node.Origin, modifies.Expressions, isGhostContext, allowsAllocation, etran.Old, etran, etran.Old)) {
         if (tri.IsFree) {
-          builder.Add(TrAssumeCmd(node.Tok, tri.Expr));
+          builder.Add(TrAssumeCmd(node.Origin, tri.Expr));
         }
       }
     }

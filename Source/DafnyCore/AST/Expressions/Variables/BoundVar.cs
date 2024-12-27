@@ -63,14 +63,14 @@ public class QuantifiedVar : BoundVar {
       if (qvar.Domain != null) {
         // Attach a token wrapper so we can produce a better error message if the domain is not a collection
         var domainWithToken = QuantifiedVariableDomainCloner.Instance.CloneExpr(qvar.Domain);
-        var inDomainExpr = new BinaryExpr(domainWithToken.Tok, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.Tok, bvar), domainWithToken);
-        range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.Tok, BinaryExpr.Opcode.And, range, inDomainExpr);
+        var inDomainExpr = new BinaryExpr(domainWithToken.Origin.Center, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.Tok, bvar), domainWithToken);
+        range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.Origin.Center, BinaryExpr.Opcode.And, range, inDomainExpr);
       }
 
       if (qvar.Range != null) {
         // Attach a token wrapper so we can produce a better error message if the range is not a boolean expression
         var rangeWithToken = QuantifiedVariableRangeCloner.Instance.CloneExpr(qvar.Range);
-        range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.Tok, BinaryExpr.Opcode.And, range, rangeWithToken);
+        range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.Origin.Center, BinaryExpr.Opcode.And, range, rangeWithToken);
       }
     }
   }

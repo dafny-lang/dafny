@@ -1284,7 +1284,7 @@ public class IndicesInDomain : ProofObligationDescription {
   public override Expression GetAssertedExpr(DafnyOptions options) {
     Utils.MakeQuantifierVarsForDims(dims, out var indexVars, out var indexVarExprs, out var indicesRange);
     var precond = new FunctionCallExpr("requires", init, Token.NoToken, Token.NoToken, new ActualBindings(indexVarExprs));
-    return new ForallExpr(Token.NoToken, Token.NoToken, indexVars, indicesRange, precond, null);
+    return new ForallExpr(Token.NoToken, indexVars, indicesRange, precond, null);
   }
 }
 
@@ -1484,7 +1484,7 @@ public class ForallLHSUnique : ProofObligationDescription {
       .Append(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, rhs, sub.Substitute(rhs)))
       .Aggregate((acc, disjunct) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, acc, disjunct));
 
-    return new ForallExpr(Token.NoToken, SourceOrigin.NoToken, combinedVars, combinedRange, condition, null);
+    return new ForallExpr(Token.NoToken, combinedVars, combinedRange, condition, null);
   }
 }
 
@@ -1638,7 +1638,7 @@ public class ComprehensionNoAlias : ProofObligationDescription {
       new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, key, sub.Substitute(key)),
       new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, value, sub.Substitute(value))
     );
-    return new ForallExpr(Token.NoToken, SourceOrigin.NoToken, combinedVars, combinedRange, condition, null);
+    return new ForallExpr(Token.NoToken, combinedVars, combinedRange, condition, null);
   }
 }
 
@@ -1755,7 +1755,7 @@ public class LetSuchThatUnique : ProofObligationDescription {
         new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, bvarsExprs[i], bvarprimesExprs[i])
         );
     }
-    return new ForallExpr(Token.NoToken, SourceOrigin.NoToken, bvars.Concat(bvarprimes).ToList(),
+    return new ForallExpr(Token.NoToken, bvars.Concat(bvarprimes).ToList(),
       new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, condition, conditionSecondBoundVar),
 
       conclusion, null);
@@ -1779,7 +1779,7 @@ public class LetSuchThatExists : ProofObligationDescription {
     this.bvars = bvars;
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new ExistsExpr(bvars[0].Tok, bvars[0].Origin, bvars,
+    return new ExistsExpr(bvars[0].Tok, bvars,
       null, condition, null);
   }
 }
@@ -1838,7 +1838,7 @@ public class ConcurrentFrameEmpty : ProofObligationDescription {
     var call = new ApplyExpr(Token.NoToken, func, args, Token.NoToken);
     var isEmpty = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, call,
       new SetDisplayExpr(Token.NoToken, true, new()));
-    return new ForallExpr(Token.NoToken, SourceOrigin.NoToken, bvars, null, isEmpty, null);
+    return new ForallExpr(Token.NoToken, bvars, null, isEmpty, null);
   }
 }
 
@@ -1984,7 +1984,6 @@ internal class Utils {
 
     return new ForallExpr(
       Token.NoToken,
-      SourceOrigin.NoToken,
       new() { objVar },
       new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, objOperand, objOrObjSet),
       check,

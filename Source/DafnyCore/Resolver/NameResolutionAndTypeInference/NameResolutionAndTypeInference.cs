@@ -2778,10 +2778,10 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in cl.Members) {
         Contract.Assert(VisibleInScope(member));
         if (member.HasUserAttribute("only", out var attribute)) {
-          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.Origin.ToToken(),
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.Origin,
             "Members with {:only} temporarily disable the verification of other members in the entire file");
           if (attribute.Args.Count >= 1) {
-            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].Origin.ToToken(),
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].Origin,
               "{:only} on members does not support arguments");
           }
         }
@@ -3327,7 +3327,7 @@ namespace Microsoft.Dafny {
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
           AddAssignableConstraint(
-            callTok, formal.Type.Subst(typeMap), b.Actual.Type,
+            callTok /* TODO should be b.Actual.Origin */, formal.Type.Subst(typeMap), b.Actual.Type,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
@@ -3564,7 +3564,7 @@ namespace Microsoft.Dafny {
             foreach (Formal f in cmc.Outs) {
               Expression produceLhs;
               if (stmt is ReturnStmt) {
-                var ident = new ImplicitIdentifierExpr(f.Tok, f.Name);
+                var ident = new ImplicitIdentifierExpr(f.NameNode.Origin, f.Name);
                 // resolve it here to avoid capture into more closely declared local variables
                 ident.Var = f;
                 ident.Type = ident.Var.Type;
@@ -4271,7 +4271,7 @@ namespace Microsoft.Dafny {
         if (option.Opt == ResolveTypeOptionEnum.AllowPrefixExtend) {
           // extend defaultTypeArguments, if needed
           for (int i = defaultTypeArguments.Count; i < n; i++) {
-            var parentToken = option.Parent.Tok;
+            var parentToken = option.Parent.Origin;
             var tp = new TypeParameter(parentToken, new Name(parentToken, "_T" + i), i, option.Parent);
             if (option.Parent is IteratorDecl) {
               tp.Characteristics.AutoInit = Type.AutoInitInfo.CompilableValue;
@@ -4419,7 +4419,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
                 if (methodSel.Member is Method) {
-                  rr.InitCall = new CallStmt(stmt.Origin, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
+                  rr.InitCall = new CallStmt(stmt.Origin, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok.Center);
                   ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
                 } else {
                   reporter.Error(MessageSource.Resolver, initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
@@ -5894,8 +5894,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = Options.Get(Snippets.ShowSnippets) ? e.Origin.ToToken() : e.Tok;
-                var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
+                var cRhs = new MethodCallInformation(e.Origin, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
                 reporter.Error(MessageSource.Resolver, e.Tok, "{0} call is not allowed to be used in an expression context ({1})", mse.Member.WhatKind, mse.Member.Name);
@@ -5917,7 +5916,8 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.Tok, mse.MemberNameNode, mse.Obj, e.Tok, e.CloseParen, e.Bindings, atLabel) {
+            // TODO use e.Origin instead of e.Lhs.Origin
+            var rr = new FunctionCallExpr(new OverrideCenter(e.Origin, e.Lhs.Origin.Center), mse.MemberNameNode, mse.Obj, e.Tok, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
               TypeApplication_AtEnclosingClass = mse.TypeApplicationAtEnclosingClass,
               TypeApplication_JustFunction = mse.TypeApplicationJustMember

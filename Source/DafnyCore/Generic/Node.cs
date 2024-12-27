@@ -12,9 +12,9 @@ public interface INode {
   bool SingleFileToken { get; }
   public Token StartToken => Origin.StartToken;
   public Token EndToken => Origin.EndToken;
+  public Token Center => Origin.Center;
   IEnumerable<IOrigin> OwnedTokens { get; }
   IOrigin Origin { get; }
-  IOrigin Tok { get; }
   IEnumerable<INode> Children { get; }
   IEnumerable<INode> PreResolveChildren { get; }
 }
@@ -37,7 +37,7 @@ public abstract class Node : INode {
   public Token StartToken => Origin?.StartToken;
 
   public Token EndToken => Origin?.EndToken;
-  public abstract IOrigin Tok { get; }
+  public Token Center => Origin?.Center;
 
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types

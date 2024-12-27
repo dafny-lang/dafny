@@ -49,13 +49,13 @@ namespace Microsoft.Dafny {
 
       Bpl.Variable tracker;
       if (isOutParam) {
-        tracker = new Bpl.Formal(p.Tok, new Bpl.TypedIdent(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool), false);
+        tracker = new Bpl.Formal(p.Origin, new Bpl.TypedIdent(p.Origin, DefassPrefix + p.UniqueName, Bpl.Type.Bool), false);
       } else {
-        tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool));
+        tracker = new Bpl.LocalVariable(p.Origin, new Bpl.TypedIdent(p.Origin, DefassPrefix + p.UniqueName, Bpl.Type.Bool));
       }
 
       tracker = localVariables.GetOrAdd(tracker);
-      var ie = new Bpl.IdentifierExpr(p.Tok, tracker);
+      var ie = new Bpl.IdentifierExpr(p.Origin, tracker);
       DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
       return ie;
     }
@@ -71,7 +71,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var ie = new Bpl.IdentifierExpr(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool);
+      var ie = new Bpl.IdentifierExpr(p.Origin, DefassPrefix + p.UniqueName, Bpl.Type.Bool);
       DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
     }
 
@@ -108,23 +108,7 @@ namespace Microsoft.Dafny {
     }
 
     internal IOrigin GetToken(INode node) {
-      if (flags.ReportRanges) {
-        // Filter against IHasUsages to only select declarations, not usages.
-        if (node is IHasNavigationToken declarationOrUsage && node is not IHasReferences) {
-          return new BoogieRangeOrigin(node.StartToken, node.EndToken, declarationOrUsage.NavigationToken);
-        }
-
-        return new BoogieRangeOrigin(node.StartToken, node.EndToken, node.Tok);
-      } else {
-        // The commented line is what we want, but it changes what is translated.
-        // Seems to relate to refinement and possibly RefinementToken.IsInherited and or ForceCheckToken
-        // It might be better to remove calls to RefinementToken.IsInherited from this file, and instead
-        // add generic attributes like {:verify false} in the refinement phases, so that refinement does not complicate
-        // translation,
-        //
-        // return new BoogieRangeToken(node.StartToken, node.EndToken, node.Tok);
-        return node.Tok;
-      }
+      return node is IHasNavigationToken hasNavigationToken ? hasNavigationToken.NavigationToken : node.Origin;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {

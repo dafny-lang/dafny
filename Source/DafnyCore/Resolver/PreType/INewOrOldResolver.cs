@@ -23,7 +23,7 @@ public interface INewOrOldResolver {
     string kind) where Thing : class;
 
   public void ScopePushAndReport(Scope<IVariable> scope, IVariable v, string kind) {
-    ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
+    ScopePushAndReport(scope, v.Name, v, v.Origin, kind);
   }
 
   void ResolveStatementWithLabels(Statement statement, ResolutionContext resolutionContext);

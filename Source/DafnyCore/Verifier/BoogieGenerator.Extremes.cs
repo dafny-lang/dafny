@@ -305,7 +305,7 @@ public partial class BoogieGenerator {
       if (pp.ExtremePred is GreatestPredicate) {
         // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
         var smaller = Expression.CreateLess(kprime, k);
-        limitCalls = new ForallExpr(pp.Tok, pp.Origin, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+        limitCalls = new ForallExpr(pp.Tok, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
           Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
         };
@@ -318,7 +318,7 @@ public partial class BoogieGenerator {
           ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
           Type = Type.Bool
         };
-        limitCalls = new ExistsExpr(pp.Tok, pp.Origin, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+        limitCalls = new ExistsExpr(pp.Tok, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
           Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
         };
