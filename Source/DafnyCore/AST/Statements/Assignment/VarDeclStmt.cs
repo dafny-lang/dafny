@@ -22,8 +22,8 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
     Assign = (ConcreteAssignStatement)cloner.CloneStmt(original.Assign, false);
   }
 
-  public VarDeclStmt(IOrigin rangeOrigin, List<LocalVariable> locals, ConcreteAssignStatement assign)
-    : base(rangeOrigin) {
+  public VarDeclStmt(IOrigin origin, List<LocalVariable> locals, ConcreteAssignStatement assign)
+    : base(origin) {
     Contract.Requires(locals != null);
     Contract.Requires(locals.Count != 0);
 

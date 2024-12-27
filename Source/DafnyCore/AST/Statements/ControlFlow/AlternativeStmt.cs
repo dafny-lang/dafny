@@ -21,14 +21,14 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
     UsesOptionalBraces = original.UsesOptionalBraces;
   }
 
-  public AlternativeStmt(IOrigin rangeOrigin, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
-    : base(rangeOrigin) {
+  public AlternativeStmt(IOrigin origin, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
+    : base(origin) {
     Contract.Requires(alternatives != null);
     Alternatives = alternatives;
     UsesOptionalBraces = usesOptionalBraces;
   }
-  public AlternativeStmt(IOrigin rangeOrigin, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(rangeOrigin, attrs) {
+  public AlternativeStmt(IOrigin origin, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
+    : base(origin, attrs) {
     Contract.Requires(alternatives != null);
     Alternatives = alternatives;
     UsesOptionalBraces = usesOptionalBraces;

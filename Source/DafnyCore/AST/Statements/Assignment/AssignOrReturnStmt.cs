@@ -43,9 +43,9 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     }
   }
 
-  public AssignOrReturnStmt(IOrigin rangeOrigin, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss)
-    : base(rangeOrigin, lhss) {
-    Contract.Requires(rangeOrigin != null);
+  public AssignOrReturnStmt(IOrigin origin, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss)
+    : base(origin, lhss) {
+    Contract.Requires(origin != null);
     Contract.Requires(lhss != null);
     Contract.Requires(lhss.Count <= 1);
     Contract.Requires(rhs != null);

@@ -47,9 +47,9 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
   /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
   /// </summary>
-  public AssignSuchThatStmt(IOrigin rangeOrigin, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
-    : base(rangeOrigin, lhss, attrs) {
-    Contract.Requires(rangeOrigin != null);
+  public AssignSuchThatStmt(IOrigin origin, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
+    : base(origin, lhss, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(lhss.Count != 0);
     Contract.Requires(expr != null);

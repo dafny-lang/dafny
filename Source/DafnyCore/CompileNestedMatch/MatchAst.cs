@@ -141,10 +141,10 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     }
   }
 
-  public MatchStmt(IOrigin rangeOrigin, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(IOrigin origin, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, MatchingContext context = null)
-    : base(rangeOrigin) {
-    Contract.Requires(rangeOrigin != null);
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
@@ -153,10 +153,10 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     Context = context is null ? new HoleCtx() : context;
   }
 
-  public MatchStmt(IOrigin rangeOrigin, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(IOrigin origin, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
-    : base(rangeOrigin, attrs) {
-    Contract.Requires(rangeOrigin != null);
+    : base(origin, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;

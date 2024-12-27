@@ -26,9 +26,9 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Els = cloner.CloneStmt(original.Els, false);
   }
 
-  public IfStmt(IOrigin rangeOrigin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
-    : base(rangeOrigin) {
-    Contract.Requires(rangeOrigin != null);
+  public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
@@ -37,9 +37,9 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Thn = thn;
     Els = els;
   }
-  public IfStmt(IOrigin rangeOrigin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
-    : base(rangeOrigin, attrs) {
-    Contract.Requires(rangeOrigin != null);
+  public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
+    : base(origin, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);

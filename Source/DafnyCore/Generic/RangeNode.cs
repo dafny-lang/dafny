@@ -8,7 +8,7 @@ public abstract class RangeNode : Node { // TODO merge into Node when TokenNode 
     Origin = cloner.Origin(original.Origin);
   }
 
-  protected RangeNode(IOrigin rangeOrigin) {
-    Origin = rangeOrigin;
+  protected RangeNode(IOrigin origin) {
+    Origin = origin;
   }
 }

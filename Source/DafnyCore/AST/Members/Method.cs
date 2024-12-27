@@ -131,7 +131,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.IsByMethod = original.IsByMethod;
   }
 
-  public Method(IOrigin rangeOrigin, Name name,
+  public Method(IOrigin origin, Name name,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -143,9 +143,9 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] BlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis,
     bool isByMethod = false)
-    : base(rangeOrigin, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
+    : base(origin, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
       typeArgs, ins, req, ens, decreases) {
-    Contract.Requires(rangeOrigin != null);
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));

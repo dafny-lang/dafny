@@ -6,8 +6,8 @@ namespace DafnyCore.Test;
 public class NodeTests {
 
   class ConcreteNode : Node {
-    public ConcreteNode(IOrigin rangeOrigin, IEnumerable<INode>? children = null) {
-      Origin = rangeOrigin;
+    public ConcreteNode(IOrigin origin, IEnumerable<INode>? children = null) {
+      Origin = origin;
       Children = children ?? Enumerable.Empty<INode>();
     }
 
