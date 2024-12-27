@@ -205,8 +205,8 @@ method {:testEntry} ContradictoryAssumeMethod(n: int)
 
 method {:testEntry} AssumeFalseMethod(n: int)
 {
-    assume </span><span class="nc" id="191:12">n == 1</span><span class="na" id="191:18">5; // shouldn't be covered
-    assume </span><span class="pc" id="192:12">f</span><span class="na" id="192:13">alse;
+    assume </span><span class="nc" id="191:12">n == 15</span><span class="na" id="191:19">; // shouldn't be covered
+    assume </span><span class="pc" id="192:12">false</span><span class="na" id="192:17">;
     </span><span class="nc" id="193:5">assert n < 10;</span><span class="na" id="193:19"> // shouldn't be covered
 }
 
@@ -464,7 +464,7 @@ function {:testEntry} GetX(c: C): int
 </span><span class="na" id="447:1">}
 
 method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
-  assume </span><span class="pc" id="450:10">t</span><span class="na" id="450:11">rue;
+  assume </span><span class="pc" id="450:10">true</span><span class="na" id="450:14">;
   </span><span class="fc" id="451:3">assert 1 + x == x + 1;
 </span><span class="na" id="452:1">}
 
