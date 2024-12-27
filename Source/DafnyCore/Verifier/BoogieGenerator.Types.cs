@@ -1520,7 +1520,7 @@ public partial class BoogieGenerator {
           // check that the witness expression checks out
           witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, decl.Witness) : null;
           if (witnessExpr != null) {
-            witnessExpr.SetTok(result.Origin);
+            witnessExpr.SetOrigin(result.Origin);
             var desc = new WitnessCheck(witnessString, witnessExpr);
             SplitAndAssertExpression(returnBuilder, witnessExpr, etran, context, desc);
           }
@@ -1537,7 +1537,7 @@ public partial class BoogieGenerator {
         CheckResultToBeInType(decl.Tok, witness, baseType, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
         witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, witness) : null;
         if (witnessExpr != null) {
-          witnessExpr.SetTok(decl.Tok);
+          witnessExpr.SetOrigin(decl.Tok);
           var desc = new WitnessCheck(witnessString, witnessExpr);
           SplitAndAssertExpression(witnessCheckBuilder, witnessExpr, etran, context, desc);
         }

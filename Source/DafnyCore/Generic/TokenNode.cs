@@ -23,7 +23,7 @@ public abstract class TokenNode : Node {
     origin = cloner.Origin(original.Origin);
   }
 
-  public void SetTok(IOrigin newTok) {
+  public void SetOrigin(IOrigin newTok) {
     origin = newTok;
   }
 

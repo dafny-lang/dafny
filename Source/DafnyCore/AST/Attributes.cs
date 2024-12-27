@@ -695,7 +695,7 @@ public class UserSuppliedAttributes : Attributes {
     Contract.Requires(openBrace != null);
     Contract.Requires(closeBrace != null);
     Contract.Requires(args != null);
-    SetTok(origin);
+    SetOrigin(origin);
     OpenBrace = openBrace;
     CloseBrace = closeBrace;
   }
@@ -710,7 +710,7 @@ public class UserSuppliedAtAttribute : Attributes {
   public UserSuppliedAtAttribute(IOrigin origin, Expression arg, Attributes prev)
     : base(AtName, new List<Expression>() { arg }, prev) {
     Contract.Requires(origin != null);
-    SetTok(origin);
+    SetOrigin(origin);
     this.AtSign = origin;
   }
 
