@@ -10,10 +10,9 @@ public static class OpaqueBlockVerifier {
   public static void EmitBoogie(BoogieGenerator generator, OpaqueBlock block, BoogieStmtListBuilder builder,
     Variables locals, BoogieGenerator.ExpressionTranslator etran, IMethodCodeContext codeContext) {
 
-    var hasModifiesClause = block.Modifies.Expressions.Any();
     var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
 
-    var bodyTranslator = GetBodyTranslator(generator, block, locals, etran, hasModifiesClause, blockBuilder);
+    var bodyTranslator = GetBodyTranslator(generator, block, locals, etran, blockBuilder);
     var prevDefiniteAssignmentTrackers = generator.DefiniteAssignmentTrackers;
     generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.Origin);
     generator.DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
@@ -43,12 +42,12 @@ public static class OpaqueBlockVerifier {
         etran.TrAttributes(ensure.Attributes, null)));
     }
 
-    if (hasModifiesClause) {
+    if (block.Modifies.Expressions.Any()) {
       var context = new OpaqueBlockContext(codeContext, block);
       if (context is IMethodCodeContext methodCodeContext) {
         generator.CheckFrameSubset(
-          block.Tok, block.Modifies.Expressions,
-          null, null, etran, etran.ModifiesFrame(block.Tok), blockBuilder, new ModifyFrameSubset(
+          block.Origin, block.Modifies.Expressions,
+          null, null, etran, etran.ModifiesFrame(block.Origin), blockBuilder, new ModifyFrameSubset(
             "opaque block",
             block.Modifies.Expressions,
             methodCodeContext.Modifies.Expressions
@@ -56,10 +55,12 @@ public static class OpaqueBlockVerifier {
       }
     }
 
-    generator.PathAsideBlock(block.Tok, blockBuilder, builder);
-    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(v => new BoogieIdentifierExpr(v.Tok, v.UniqueName)).ToList()));
+    generator.PathAsideBlock(block.Origin, blockBuilder, builder);
+    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(v => new BoogieIdentifierExpr(v.Origin, v.UniqueName)).ToList()));
 
-    if (hasModifiesClause) {
+    var effectiveModifies = block.Modifies.Expressions.Any() ? block.Modifies : codeContext.Modifies;
+    var emptyModifies = BoogieGenerator.ModifiesClauseIsEmpty(effectiveModifies);
+    if (!emptyModifies) {
       generator.ApplyModifiesEffect(block, etran, builder, block.Modifies, true, block.IsGhost);
     }
 
@@ -70,11 +71,11 @@ public static class OpaqueBlockVerifier {
   }
 
   private static BoogieGenerator.ExpressionTranslator GetBodyTranslator(BoogieGenerator generator, OpaqueBlock block, Variables locals,
-    BoogieGenerator.ExpressionTranslator etran, bool hasModifiesClause, BoogieStmtListBuilder blockBuilder) {
+    BoogieGenerator.ExpressionTranslator etran, BoogieStmtListBuilder blockBuilder) {
     BoogieGenerator.ExpressionTranslator bodyTranslator;
-    if (hasModifiesClause) {
+    if (block.Modifies.Expressions.Any()) {
       string modifyFrameName = BoogieGenerator.FrameVariablePrefix + generator.CurrentIdGenerator.FreshId("opaque#");
-      generator.DefineFrame(block.Tok, etran.ModifiesFrame(block.Tok), block.Modifies.Expressions, blockBuilder, locals, modifyFrameName);
+      generator.DefineFrame(block.Origin, etran.ModifiesFrame(block.Origin), block.Modifies.Expressions, blockBuilder, locals, modifyFrameName);
       bodyTranslator = etran.WithModifiesFrame(modifyFrameName);
     } else {
       bodyTranslator = etran;

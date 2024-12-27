@@ -184,11 +184,11 @@ namespace Microsoft.Dafny.Triggers {
           if (q.Comprehension is ForallExpr forallExpr) {
             IOrigin tok = forallExpr.Tok is NestedOrigin nestedToken ? nestedToken.Outer : forallExpr.Tok;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.And, group.Expressions);
-            q.Comprehension = new ForallExpr(tok, forallExpr.Origin, forallExpr.BoundVars, forallExpr.Range, expr, TriggerUtils.CopyAttributes(forallExpr.Attributes)) { Type = forallExpr.Type, Bounds = forallExpr.Bounds };
+            q.Comprehension = new ForallExpr(tok, forallExpr.BoundVars, forallExpr.Range, expr, TriggerUtils.CopyAttributes(forallExpr.Attributes)) { Type = forallExpr.Type, Bounds = forallExpr.Bounds };
           } else if (q.Comprehension is ExistsExpr existsExpr) {
             IOrigin tok = existsExpr.Tok is NestedOrigin nestedToken ? nestedToken.Outer : existsExpr.Tok;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.Or, group.Expressions);
-            q.Comprehension = new ExistsExpr(tok, existsExpr.Origin, existsExpr.BoundVars, existsExpr.Range, expr, TriggerUtils.CopyAttributes(existsExpr.Attributes)) { Type = existsExpr.Type, Bounds = existsExpr.Bounds };
+            q.Comprehension = new ExistsExpr(tok, existsExpr.BoundVars, existsExpr.Range, expr, TriggerUtils.CopyAttributes(existsExpr.Attributes)) { Type = existsExpr.Type, Bounds = existsExpr.Bounds };
           }
           list.Add(q);
           splits.Add(q.Comprehension);

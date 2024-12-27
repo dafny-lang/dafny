@@ -160,7 +160,7 @@ namespace Microsoft.Dafny {
     }
 
     private void Error(ErrorId errorId, INode n, string msg, params object[] args) {
-      Reporter.Error(MessageSource.RefinementTransformer, errorId, n.Tok, msg, args);
+      Reporter.Error(MessageSource.RefinementTransformer, errorId, n.Origin, msg, args);
     }
 
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
@@ -180,7 +180,7 @@ namespace Microsoft.Dafny {
         // There is a refinement parent and it resolved OK
         var refinementTarget = m.Implements.Target;
         if (m.Implements.Kind == ImplementationKind.Refinement && refinementTarget.Def.ModuleKind == ModuleKindEnum.Replaceable) {
-          Reporter.Error(MessageSource.RefinementTransformer, "refineReplaceable", refinementTarget.Tok,
+          Reporter.Error(MessageSource.RefinementTransformer, "refineReplaceable", refinementTarget.Origin,
             "replaceable module cannot be refined");
 
           return;
@@ -948,13 +948,13 @@ namespace Microsoft.Dafny {
         }
         var bodyProper = MergeStmtList(sbsSkeleton.BodyProper, sbsOldStmt.BodyProper, out hoverText);
         if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.Origin.ToToken(), hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.Origin, hoverText);
         }
         return new DividedBlockStmt(sbsSkeleton.Origin, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
       } else {
         var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
         if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, skeleton.Origin.ToToken(), hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, skeleton.Origin, hoverText);
         }
         return new BlockStmt(skeleton.Origin, body);
       }
@@ -1058,8 +1058,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new BoogieGenerator.ForceCheckOrigin(skel.Origin),
-                  e, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
+                body.Add(new AssertStmt(new NestedOrigin(skel.Origin, e.Origin), e, skel.Label, attrs));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
@@ -1666,7 +1665,6 @@ namespace Microsoft.Dafny {
           arg.PreType = usaa.Arg.PreType;
         }
         return new UserSuppliedAtAttribute(Origin(usaa.Tok), arg, MergeAttributes(prevAttrs, moreAttrs.Prev)) {
-          Origin = Origin(usaa.Origin),
           Builtin = usaa.Builtin
         };
       } else {

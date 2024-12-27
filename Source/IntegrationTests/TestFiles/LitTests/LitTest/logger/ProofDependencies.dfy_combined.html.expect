@@ -251,7 +251,7 @@ function {:testEntry} ObviouslyUnnecessaryRequiresFunc(x: nat): (r: nat)
   requires x < 10 // not required for the proof
 {
   // cause at least a little proof work to be necessary, for nat bounds
-</span><span class="fc" id="237:1">  if (x > 5) then x + 2 else x +</span><span class="pc" id="237:33"> 1
+</span><span class="fc" id="237:1">  if (x > 5) then x + 2 else </span><span class="pc" id="237:30">x + 1
 </span><span class="na" id="238:1">}
 
 method {:testEntry} ObviouslyUnnecessaryRequiresMethod(x: nat) returns (r: nat)
@@ -269,8 +269,8 @@ function {:testEntry} ObviouslyUnconstrainedCodeFunc(x: int): (r: (int, int))
 </span><span class="fc" id="252:1">  var a := x + 1</span><span class="na" id="252:17">; // constrained by ensures clause
 </span><span class="fc" id="253:1">  var b := x - 1</span><span class="na" id="253:17">; // not constrained by ensures clause 
   (a,
-   b)
-}
+</span><span class="fc" id="255:1">   b)
+</span><span class="na" id="256:1">}
 
 method {:testEntry} ObviouslyUnconstrainedCodeMethod(x: int) returns (r: (int, int))
   requires x > 10
@@ -296,7 +296,7 @@ function {:testEntry} PartiallyUnnecessaryRequiresFunc(x: int): (r: nat)
   requires x < 10 && x > 0 // RHS required for proof, but not LHS
 {
   // cause at least a little proof work to be necessary, for nat bounds
-</span><span class="fc" id="282:1">  if (x > 5) then x - 1 else x +</span><span class="pc" id="282:33"> 1
+</span><span class="fc" id="282:1">  if (x > 5) then x - 1 else </span><span class="pc" id="282:30">x + 1
 </span><span class="na" id="283:1">}
 
 
@@ -377,8 +377,8 @@ method {:testEntry} FalseAntecedentRequiresClauseMethod(x: int) returns (r: int)
 </span><span class="na" id="360:1">// False antecedent assert statement.
 method {:testEntry} FalseAntecedentAssertStatementMethod(x: int) {
 </span><span class="fc" id="362:1">  var y := x*x;
-  assert y < 0 ==> x < 0;
-</span><span class="na" id="364:1">}
+  assert y < 0 ==> x < 0</span><span class="na" id="363:25">;
+}
 
 // False antecedent ensures clause.
 method {:testEntry} FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)
@@ -460,7 +460,7 @@ class C {
 function {:testEntry} GetX(c: C): int
   reads c
 {
-</span><span class="fc" id="446:1">  c.</span><span class="pc" id="446:5">x
+</span><span class="fc" id="446:1">  </span><span class="pc" id="446:3">c.x
 </span><span class="na" id="447:1">}
 
 method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {

@@ -18,7 +18,7 @@
 
 const fs = require('fs');
 const { promisify } = require('util');
-const {exec} = require('child_process');
+const {exec, spawn} = require('child_process');
 const execAsync = promisify(exec);
 const minutes = 60*1000;
 const versionFile = "Source/Directory.Build.props";
@@ -47,7 +47,7 @@ async function synchronizeRepositoryWithNewVersionNumber() {
   await execute("make exe");
 
   //# * Compile the standard libraries and update their binaries which are checked in
-  await executeWithTimeout("make -C Source/DafnyStandardLibraries update-binary", 20*minutes);
+  await executeWithTimeout("make -C Source/DafnyStandardLibraries update-binary", 50*minutes);
 
   //# * Recompile Dafny so that standard libraries are in the executable.
   await execute("make exe");
@@ -55,11 +55,11 @@ async function synchronizeRepositoryWithNewVersionNumber() {
   //# * In the test directory `Source/IntegrationTests/TestFiles/LitTests/LitTest`,
   await execute(
   //#   * Rebuild `pythonmodule/multimodule/PythonModule1.doo` from `pythonmodule/multimodule/dafnysource/helloworld.dfy`
-  `Scripts/dafny build -t:lib ${TestDirectory}/pythonmodule/multimodule/dafnysource/helloworld.dfy -o ${TestDirectory}/pythonmodule/multimodule/PythonModule1.doo`,
+  `bash Scripts/dafny build -t:lib ${TestDirectory}/pythonmodule/multimodule/dafnysource/helloworld.dfy -o ${TestDirectory}/pythonmodule/multimodule/PythonModule1.doo`,
   //#   * Rebuild `pythonmodule/nestedmodule/SomeNestedModule.doo` from `pythonmodule/nestedmodule/dafnysource/SomeNestedModule.dfy`
-  `Scripts/dafny build -t:lib ${TestDirectory}/pythonmodule/nestedmodule/dafnysource/SomeNestedModule.dfy -o ${TestDirectory}/pythonmodule/nestedmodule/SomeNestedModule.doo`,
+  `bash Scripts/dafny build -t:lib ${TestDirectory}/pythonmodule/nestedmodule/dafnysource/SomeNestedModule.dfy -o ${TestDirectory}/pythonmodule/nestedmodule/SomeNestedModule.doo`,
   //#   * Rebuild `gomodule/multimodule/test.doo` from `gomodule/multimodule/dafnysource/helloworld.dfy`
-  `Scripts/dafny build -t:lib ${TestDirectory}/gomodule/multimodule/dafnysource/helloworld.dfy -o ${TestDirectory}/gomodule/multimodule/test.doo`);
+  `bash Scripts/dafny build -t:lib ${TestDirectory}/gomodule/multimodule/dafnysource/helloworld.dfy -o ${TestDirectory}/gomodule/multimodule/test.doo`);
 
   //#   * Search for `dafny_version = ` in checked-in `.dtr` files of the `<TestDirectory>`
   //#    and update the version number.
@@ -136,6 +136,45 @@ function replaceVersionNumber(versionFileContent, newVersion) {
   return versionFileContent.replace(/<VersionPrefix>\d+\.\d+\.\d+<\/VersionPrefix>/, `<VersionPrefix>${newVersion}</VersionPrefix>`);
 }
 
+
+// Spawn async
+function spawnAsync(commandAndArgs) {
+  return new Promise((resolve, reject) => {
+    // Regular expression to match quoted arguments and non-quoted parts
+    const regex = /'[^']*'|"[^"]*"|\S+/g;
+    
+    // Extract all matches and clean up quotes
+    const parts = commandAndArgs.match(regex).map(part => {
+      // Remove surrounding quotes (both single and double) if they exist
+      if ((part.startsWith('"') && part.endsWith('"')) || 
+          (part.startsWith("'") && part.endsWith("'"))) {
+        return part.slice(1, -1);
+      }
+      return part;
+    });
+
+    const command = parts[0];
+    const args = parts.slice(1);
+    const childProcess = spawn(command, args);
+
+    childProcess.stdout.on('data', (data) => {
+      process.stdout.write(`| ${data}`);
+    });
+
+    childProcess.stderr.on('data', (data) => {
+      process.stdout.write(`! ${data}`);
+    });
+
+    childProcess.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Process exited with code ${code}`));
+      }
+    });
+  });
+}
+
 // Execute each command in its arguments
 async function execute() {
   var commands = arguments;
@@ -145,7 +184,7 @@ async function execute() {
       console.log("Would have run " + command);
     } else {
       console.log("Running " + command);
-      await execAsync(command);
+      await spawnAsync(command);
     }
   }
 }
@@ -196,6 +235,14 @@ function executeWithTimeout(command, timeout) {
       } else {
         resolve({ok: true, log: stdout, answer: undefined});
       }
+    });
+    // Add these two handlers
+    childProcess.stdout.on('data', (data) => {
+      process.stdout.write(`| ${data}`);
+    });
+
+    childProcess.stderr.on('data', (data) => {
+      process.stdout.write(`! ${data}`);
     });
   });
 }

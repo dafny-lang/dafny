@@ -12,18 +12,6 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  public override IOrigin Tok {
-    get {
-      var firstRhs = Rhss.First();
-      if (firstRhs.StartToken != StartToken) {
-        // If there is an operator, use it as a token
-        return firstRhs.StartToken.Prev;
-      }
-
-      return firstRhs.Tok;
-    }
-  }
-
   [FilledInDuringResolution] public List<Statement> ResolvedStatements;
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
@@ -136,7 +124,8 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
       } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
         // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
         for (int i = 0; i < Lhss.Count; i++) {
-          var a = new SingleAssignStmt(Origin, Lhss[i].Resolved, Rhss[i]);
+          var origin = Lhss.Count > 1 ? new OverrideCenter(Origin, Rhss[i].Center) : Origin;
+          var a = new SingleAssignStmt(origin, Lhss[i].Resolved, Rhss[i]);
           ResolvedStatements.Add(a);
         }
       }
@@ -181,7 +170,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
         foreach (var ll in Lhss) {
           resolvedLhss.Add(ll.Resolved);
         }
-        CallStmt a = new CallStmt(Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+        CallStmt a = new CallStmt(Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok.Center);
         a.OriginalInitialLhs = OriginalInitialLhs;
         ResolvedStatements.Add(a);
       }
