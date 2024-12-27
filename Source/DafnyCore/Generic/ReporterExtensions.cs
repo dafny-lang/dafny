@@ -56,7 +56,7 @@ public static class ErrorReporterExtensions {
     if (!usingSnippets && dafnyToken.IncludesRange) {
       if (message == PostConditionFailingMessage) {
         var postcondition = dafnyToken.PrintOriginal();
-        message = $"this postcondition might not hold: {postcondition}";
+        message = $"this postcondition could not be proved: {postcondition}";
       } else if (message == null || message == RelatedLocationMessage) {
         string condition = dafnyToken.PrintOriginal();
         message = $"could not prove: {condition}";
