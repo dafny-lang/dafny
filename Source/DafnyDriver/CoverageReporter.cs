@@ -350,8 +350,8 @@ public class CoverageReporter {
       var line = span.Span.StartToken.line - 1;
       var column = span.Span.StartToken.col - 1;
       var endToken = span.Span.EndToken;
-      var endLineExclusive = endToken.line;
       var endColumnExclusive = endToken.col - 1 + (span.Span.InclusiveEnd ? endToken.val.Length : 0);
+      var endLineExclusive = endToken.line;
       while (true) {
         if (characterLabels[line].Length <= column) {
           do { line++; }
