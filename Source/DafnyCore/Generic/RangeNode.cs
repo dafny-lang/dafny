@@ -12,7 +12,7 @@ public abstract class RangeNode : Node {
   protected RangeNode(IOrigin origin) {
     this.origin = origin;
   }
-  
+
   public void SetOrigin(IOrigin newOrigin) {
     origin = newOrigin;
   }

@@ -14,12 +14,10 @@ public abstract class Type : NodeWithComputedRange {
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
 
-  protected Type(IOrigin origin = null) : base(origin)
-  {
+  protected Type(IOrigin origin = null) : base(origin) {
   }
 
-  protected Type(Cloner cloner, Type original) : base(cloner, original)
-  {
+  protected Type(Cloner cloner, Type original) : base(cloner, original) {
   }
 
   public override IEnumerable<INode> Children => TypeArgs;
@@ -1786,8 +1784,7 @@ public abstract class NonProxyType : Type {
   protected NonProxyType(IOrigin origin = null) : base(origin) {
   }
 
-  protected NonProxyType(Cloner cloner, NonProxyType original) : base(cloner, original)
-  {
+  protected NonProxyType(Cloner cloner, NonProxyType original) : base(cloner, original) {
   }
 }
 
