@@ -403,14 +403,14 @@ public class Compilation : IDisposable {
       return Enumerable.Empty<(IOrigin Group, List<IVerificationTask> Tasks)>();
     }
     var sortedTasks = ranges.OrderBy(r =>
-      BoogieGenerator.ToDafnyToken(true, r.Token).StartToken).ToList();
+      BoogieGenerator.ToDafnyToken(r.Token).StartToken).ToList();
     var groups = new List<(IOrigin Group, List<IVerificationTask> Tasks)>();
     var currentGroup = new List<IVerificationTask> { sortedTasks[0] };
-    var currentGroupRange = BoogieGenerator.ToDafnyToken(true, currentGroup[0].Token);
+    var currentGroupRange = BoogieGenerator.ToDafnyToken(currentGroup[0].Token);
 
     for (int i = 1; i < sortedTasks.Count; i++) {
       var currentTask = sortedTasks[i];
-      var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token);
+      var currentTaskRange = BoogieGenerator.ToDafnyToken(currentTask.Token);
       bool overlapsWithGroup = currentGroupRange.Intersects(currentTaskRange);
 
       if (overlapsWithGroup) {
@@ -474,7 +474,7 @@ public class Compilation : IDisposable {
   }
 
   private void HandleStatusUpdate(ICanVerify canVerify, IVerificationTask verificationTask, IVerificationStatus boogieStatus) {
-    var tokenString = BoogieGenerator.ToDafnyToken(true, verificationTask.Split.Token).TokenToString(Options);
+    var tokenString = BoogieGenerator.ToDafnyToken(verificationTask.Split.Token).TokenToString(Options);
     logger.LogDebug($"Received Boogie status {boogieStatus} for {tokenString}, version {Input.Version}");
 
     updates.OnNext(new BoogieUpdate(transformedProgram!.ProofDependencyManager, canVerify,
@@ -539,7 +539,7 @@ public class Compilation : IDisposable {
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),
+    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, BoogieGenerator.ToDafnyToken(task.Token),
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
