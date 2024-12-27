@@ -8,11 +8,10 @@ namespace Microsoft.Dafny;
 public abstract class NonglobalVariable : TokenNode, IVariable {
   public Name NameNode { get; }
 
-  protected NonglobalVariable(IOrigin origin, Name nameNode, Type type, bool isGhost) {
+  protected NonglobalVariable(IOrigin origin, Name nameNode, Type type, bool isGhost) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
-    this.origin = origin;
     this.NameNode = nameNode;
     IsTypeExplicit = type != null;
     this.type = type ?? new InferredTypeProxy();

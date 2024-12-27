@@ -29,8 +29,7 @@ public class CasePattern<VT> : TokenNode
     this.Arguments = new List<CasePattern<VT>>();
   }
 
-  public CasePattern(Cloner cloner, CasePattern<VT> original) {
-    origin = cloner.Origin(original.Origin);
+  public CasePattern(Cloner cloner, CasePattern<VT> original) : base(cloner, original) {
     Id = original.Id;
     if (original.Var != null) {
       Var = cloner.CloneIVariable(original.Var, false);
@@ -51,18 +50,16 @@ public class CasePattern<VT> : TokenNode
     }
   }
 
-  public CasePattern(IOrigin origin, string id, [Captured] List<CasePattern<VT>> arguments) {
+  public CasePattern(IOrigin origin, string id, [Captured] List<CasePattern<VT>> arguments) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(id != null);
-    this.origin = origin;
     Id = id;
     Arguments = arguments;
   }
 
-  public CasePattern(IOrigin origin, VT bv) {
+  public CasePattern(IOrigin origin, VT bv) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(bv != null);
-    this.origin = origin;
     Id = bv.Name;
     Var = bv;
   }

@@ -60,7 +60,7 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
     var range = Range == null ? null : s.Substitute(Range);
     var term = s.Substitute(Term);
     var attrs = s.SubstAttributes(Attributes);
-    var ex = new ExistsExpr(origin, bvars, range, term, attrs);
+    var ex = new ExistsExpr(Origin, bvars, range, term, attrs);
     ex.Type = Type.Bool;
     ex.Bounds = s.SubstituteBoundedPoolList(Bounds);
     return ex;

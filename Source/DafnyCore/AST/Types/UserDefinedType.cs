@@ -49,10 +49,9 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // this is what it means to be syntactically optional
   }
 
-  public UserDefinedType(IOrigin origin, Expression namePath) {
+  public UserDefinedType(IOrigin origin, Expression namePath) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(namePath is NameSegment || namePath is ExprDotName);
-    this.origin = origin;
     if (namePath is NameSegment) {
       var n = (NameSegment)namePath;
       this.Name = n.Name;
@@ -147,7 +146,8 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// the FromTopLevelDecl method to create the UserDefinedType; that makes sure the right class
   /// and right name is used.
   /// </summary>
-  public UserDefinedType(IOrigin origin, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
+  public UserDefinedType(IOrigin origin, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) 
+   : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cd != null);
@@ -160,7 +160,6 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
     Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
     Contract.Assert(cd is not ArrowTypeDecl || this is ArrowType);
-    this.origin = origin;
     this.Name = name;
     this.ResolvedClass = cd;
     this.TypeArgs = typeArgs;
@@ -212,10 +211,9 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// <summary>
   /// This constructor constructs a resolved type parameter
   /// </summary>
-  public UserDefinedType(IOrigin origin, TypeParameter tp) {
+  public UserDefinedType(IOrigin origin, TypeParameter tp) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(tp != null);
-    this.origin = origin;
     this.Name = tp.Name;
     this.TypeArgs = new List<Type>();
     this.ResolvedClass = tp;

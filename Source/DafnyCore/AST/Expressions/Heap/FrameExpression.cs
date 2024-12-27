@@ -26,17 +26,15 @@ public class FrameExpression : TokenNode, IHasReferences {
   /// If a "fieldName" is given, then "tok" denotes its source location.  Otherwise, "tok"
   /// denotes the source location of "e".
   /// </summary>
-  public FrameExpression(IOrigin origin, Expression e, string fieldName) {
+  public FrameExpression(IOrigin origin, Expression e, string fieldName) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(e != null);
     Contract.Requires(!(e is WildcardExpr) || fieldName == null);
-    this.origin = origin;
     OriginalExpression = e;
     FieldName = fieldName;
   }
 
-  public FrameExpression(Cloner cloner, FrameExpression original) {
-    this.origin = cloner.Origin(original.Origin);
+  public FrameExpression(Cloner cloner, FrameExpression original) : base(cloner, original) {
     OriginalExpression = cloner.CloneExpr(original.OriginalExpression);
     FieldName = original.FieldName;
 

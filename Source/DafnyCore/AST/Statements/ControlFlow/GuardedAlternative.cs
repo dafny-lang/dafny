@@ -21,23 +21,21 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
     Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
     Contract.Invariant(Body != null);
   }
-  public GuardedAlternative(IOrigin origin, bool isBindingGuard, Expression guard, List<Statement> body) {
+  public GuardedAlternative(IOrigin origin, bool isBindingGuard, Expression guard, List<Statement> body) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(guard != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(body != null);
-    this.origin = origin;
     this.IsBindingGuard = isBindingGuard;
     this.Guard = guard;
     this.Body = body;
     this.Attributes = null;
   }
-  public GuardedAlternative(IOrigin origin, bool isBindingGuard, Expression guard, List<Statement> body, Attributes attrs) {
+  public GuardedAlternative(IOrigin origin, bool isBindingGuard, Expression guard, List<Statement> body, Attributes attrs) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(guard != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(body != null);
-    this.origin = origin;
     this.IsBindingGuard = isBindingGuard;
     this.Guard = guard;
     this.Body = body;

@@ -93,17 +93,12 @@ public abstract class Expression : TokenNode {
     }
 #endif
 
-  public Expression(IOrigin origin) {
+  protected Expression(IOrigin origin) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Ensures(type == null);  // we would have liked to have written Type==null, but that's not admissible or provable
-
-    this.origin = origin;
   }
 
-  protected Expression(Cloner cloner, Expression original) {
-
-    origin = cloner.Origin(original.origin);
-
+  protected Expression(Cloner cloner, Expression original) : base(cloner, original) {
     if (cloner.CloneResolvedFields && original.Type != null) {
       Type = original.Type;
       PreType = original.PreType;
@@ -769,7 +764,7 @@ public abstract class Expression : TokenNode {
     var receiverType = (UserDefinedType)call.Receiver.Type.NormalizeExpand();
     var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
     subst = ModuleResolver.AddParentTypeParameterSubstitutions(subst, receiverType);
-    var exprDotName = new ExprDotName(call.origin, call.Receiver, call.Function.NameNode, call.TypeApplication_JustFunction) {
+    var exprDotName = new ExprDotName(call.Origin, call.Receiver, call.Function.NameNode, call.TypeApplication_JustFunction) {
       Type = ModuleResolver.SelectAppropriateArrowTypeForFunction(call.Function, subst, systemModuleManager)
     };
 
@@ -794,7 +789,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression WrapResolvedMemberSelect(MemberSelectExpr memberSelectExpr) {
     List<Type> optTypeArguments = memberSelectExpr.TypeApplicationJustMember.Count == 0 ? null : memberSelectExpr.TypeApplicationJustMember;
-    return new ExprDotName(memberSelectExpr.origin, memberSelectExpr.Obj, memberSelectExpr.MemberNameNode, optTypeArguments) {
+    return new ExprDotName(memberSelectExpr.Origin, memberSelectExpr.Obj, memberSelectExpr.MemberNameNode, optTypeArguments) {
       ResolvedExpression = memberSelectExpr,
       Type = memberSelectExpr.Type
     };

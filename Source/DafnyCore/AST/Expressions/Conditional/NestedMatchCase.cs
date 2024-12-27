@@ -5,10 +5,9 @@ namespace Microsoft.Dafny;
 public abstract class NestedMatchCase : TokenNode {
   public readonly ExtendedPattern Pat;
 
-  public NestedMatchCase(IOrigin origin, ExtendedPattern pat) {
+  protected NestedMatchCase(IOrigin origin, ExtendedPattern pat) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(pat != null);
-    this.origin = origin;
     this.Pat = pat;
   }
 

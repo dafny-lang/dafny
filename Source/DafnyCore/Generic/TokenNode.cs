@@ -1,7 +1,9 @@
+#nullable enable
 using System.Diagnostics;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Tomlyn.Syntax;
 
 namespace Microsoft.Dafny;
 
@@ -9,9 +11,17 @@ public abstract class TokenNode : Node {
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal Token[] FormatTokens = null;
+  internal Token[] FormatTokens;
 
-  protected IOrigin origin = Token.NoToken;
+  private IOrigin origin;
+
+  protected TokenNode(IOrigin? origin = null) {
+    this.origin = origin ?? Token.NoToken;
+  }
+
+  protected TokenNode(Cloner cloner, TokenNode original) {
+    origin = cloner.Origin(original.Origin);
+  }
 
   public void SetTok(IOrigin newTok) {
     origin = newTok;
@@ -65,8 +75,6 @@ public abstract class TokenNode : Node {
 
       return origin;
     }
-    set {
-      origin = value;
-    }
+    set => origin = value;
   }
 }

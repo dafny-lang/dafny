@@ -64,7 +64,7 @@ public class Attributes : TokenNode, ICanFormat {
   public readonly List<Expression> Args;
 
   public readonly Attributes Prev;
-  public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
+  public Attributes(string name, [Captured] List<Expression> args, Attributes prev) : base(Token.NoToken) {
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(args));
     Contract.Requires(name != UserSuppliedAtAttribute.AtName || this is UserSuppliedAtAttribute);
@@ -695,7 +695,7 @@ public class UserSuppliedAttributes : Attributes {
     Contract.Requires(openBrace != null);
     Contract.Requires(closeBrace != null);
     Contract.Requires(args != null);
-    this.origin = origin;
+    SetTok(origin);
     OpenBrace = openBrace;
     CloseBrace = closeBrace;
   }
@@ -710,7 +710,7 @@ public class UserSuppliedAtAttribute : Attributes {
   public UserSuppliedAtAttribute(IOrigin origin, Expression arg, Attributes prev)
     : base(AtName, new List<Expression>() { arg }, prev) {
     Contract.Requires(origin != null);
-    this.origin = origin;
+    SetTok(origin);
     this.AtSign = origin;
   }
 

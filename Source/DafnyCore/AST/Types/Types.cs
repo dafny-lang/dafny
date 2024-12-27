@@ -13,6 +13,15 @@ public abstract class Type : TokenNode {
   public static readonly CharType Char = new CharType();
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
+
+  protected Type(IOrigin origin = null) : base(origin)
+  {
+  }
+
+  protected Type(Cloner cloner, Type original) : base(cloner, original)
+  {
+  }
+
   public override IEnumerable<INode> Children => TypeArgs;
   public override IEnumerable<INode> PreResolveChildren => TypeArgs.OfType<Node>();
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
@@ -1774,6 +1783,12 @@ public class RealVarietiesSupertype : ArtificialType {
 /// A NonProxy type is a fully constrained type.  It may contain members.
 /// </summary>
 public abstract class NonProxyType : Type {
+  protected NonProxyType(IOrigin origin = null) : base(origin) {
+  }
+
+  protected NonProxyType(Cloner cloner, NonProxyType original) : base(cloner, original)
+  {
+  }
 }
 
 public abstract class BasicType : NonProxyType {
