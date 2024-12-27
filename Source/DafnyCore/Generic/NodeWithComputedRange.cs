@@ -11,7 +11,7 @@ public abstract class NodeWithComputedRange : Node {
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal Token[] FormatTokens = null!;
+  internal Token[]? FormatTokens = null;
 
   private IOrigin origin;
 
@@ -31,11 +31,11 @@ public abstract class NodeWithComputedRange : Node {
     get {
       if (origin is Token tokenOrigin) {
 
-        var startTok = Origin.StartToken;
-        var endTok = Origin.EndToken;
+        var startTok = origin.StartToken;
+        var endTok = origin.EndToken;
 
         void UpdateStartEndToken(Token token1) {
-          if (token1.Filepath != Origin.Filepath) {
+          if (token1.Filepath != origin.Filepath) {
             return;
           }
 
@@ -48,12 +48,12 @@ public abstract class NodeWithComputedRange : Node {
           }
         }
 
-        void UpdateStartEndTokRecursive(INode node) {
+        void UpdateStartEndTokRecursive(INode? node) {
           if (node is null) {
             return;
           }
 
-          if (node.Origin.Filepath != Origin.Filepath || node is Expression { IsImplicit: true } ||
+          if (node.Origin.Filepath != origin.Filepath || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {
