@@ -648,6 +648,8 @@ public class ExpressionTester {
     } else if (expr is MultiSetFormingExpr) {
       var e = (MultiSetFormingExpr)expr;
       return UsesSpecFeatures(e.E);
+    } else if (expr is DecreasesToExpr) {
+      return true;
     } else {
       Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
     }
