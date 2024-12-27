@@ -372,19 +372,15 @@ public class Compilation : IDisposable {
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
-        var groups = tasks.GroupBy(t => {
-          var dafnyToken = BoogieGenerator.ToDafnyToken(true, t.Token);
-          // We normalize so that we group on tokens as they are displayed to the user by Reporter.Info
-          return new SourceOrigin(dafnyToken.StartToken, dafnyToken.EndToken);
-        }).
-          OrderBy(g => g.Key);
+        var groups = GroupOverlappingRanges(tasks).
+          OrderBy(g => g.Group.StartToken);
         foreach (var tokenTasks in groups) {
-          var functions = tokenTasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
+          var functions = tokenTasks.Tasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
             OfType<FromDafnyNode>().Select(n => n.Node).
-            OfType<Function>()).Distinct().OrderBy(f => f.Tok);
+            OfType<Function>()).Distinct().OrderBy(f => f.Origin.Center);
           var hiddenFunctions = string.Join(", ", functions.Select(f => f.FullDafnyName));
           if (!string.IsNullOrEmpty(hiddenFunctions)) {
-            Reporter.Info(MessageSource.Verifier, tokenTasks.Key, $"hidden functions: {hiddenFunctions}");
+            Reporter.Info(MessageSource.Verifier, tokenTasks.Group, $"hidden functions: {hiddenFunctions}");
           }
         }
 
@@ -399,6 +395,38 @@ public class Compilation : IDisposable {
     finally {
       verificationTickets.Enqueue(Unit.Default);
     }
+  }
+
+
+  public static IEnumerable<(IOrigin Group, List<IVerificationTask> Tasks)> GroupOverlappingRanges(IReadOnlyList<IVerificationTask> ranges) {
+    if (!ranges.Any()) {
+      return Enumerable.Empty<(IOrigin Group, List<IVerificationTask> Tasks)>();
+    }
+    var sortedTasks = ranges.OrderBy(r =>
+      BoogieGenerator.ToDafnyToken(true, r.Token).StartToken).ToList();
+    var groups = new List<(IOrigin Group, List<IVerificationTask> Tasks)>();
+    var currentGroup = new List<IVerificationTask> { sortedTasks[0] };
+    var currentGroupRange = BoogieGenerator.ToDafnyToken(true, currentGroup[0].Token);
+
+    for (int i = 1; i < sortedTasks.Count; i++) {
+      var currentTask = sortedTasks[i];
+      var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token);
+      bool overlapsWithGroup = currentGroupRange.Intersects(currentTaskRange);
+
+      if (overlapsWithGroup) {
+        if (currentTaskRange.EndToken.pos > currentGroupRange.EndToken.pos) {
+          currentGroupRange = new SourceOrigin(currentGroupRange.StartToken, currentTaskRange.EndToken, currentGroupRange.Center);
+        }
+        currentGroup.Add(currentTask);
+      } else {
+        groups.Add((currentGroupRange, currentGroup));
+        currentGroup = new List<IVerificationTask> { currentTask };
+        currentGroupRange = currentTaskRange;
+      }
+    }
+
+    groups.Add((currentGroupRange, currentGroup)); // Add the last group
+    return groups;
   }
 
   private void VerifyTask(ICanVerify canVerify, IVerificationTask task) {
@@ -511,20 +539,19 @@ public class Compilation : IDisposable {
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, task.ScopeToken,
+    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
-  public static void ReportDiagnosticsInResult(DafnyOptions options, string name, Boogie.IToken token,
+  public static void ReportDiagnosticsInResult(DafnyOptions options, string name, IOrigin token,
     uint timeLimit,
     VerificationRunResult result,
     ErrorReporter errorReporter) {
     var outcome = GetOutcome(result.Outcome);
     result.CounterExamples.Sort(new CounterexampleComparer());
-    foreach (var counterExample in result.CounterExamples) //.OrderBy(d => d.GetLocation()))
-    {
+    foreach (var counterExample in result.CounterExamples) {
       var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
       if (options.ShowProofObligationExpressions) {
         AddAssertedExprToCounterExampleErrorInfo(options, counterExample, errorInformation);

@@ -74,7 +74,7 @@ public class AssumedProofObligationDependency : ProofDependency {
       $"assumption that {ProofObligation.SuccessDescription}";
 
   public AssumedProofObligationDependency(IOrigin tok, ProofObligationDescription proofObligation) {
-    Range = tok.IncludesRange ? tok : (proofObligation as AssertStatementDescription)?.AssertStatement.Origin ?? tok;
+    Range = tok;
     ProofObligation = proofObligation;
   }
 }

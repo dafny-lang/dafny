@@ -333,7 +333,7 @@ public class SystemModuleManager {
     var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
     var partialArrow = new SubsetTypeDecl(SourceOrigin.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
       new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-      id, ArrowSubtypeConstraint(tok, tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
+      id, ArrowSubtypeConstraint(tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)partialArrow).ConstraintIsCompilable = false;
     PartialArrowTypeDecls.Add(arity, partialArrow);
     SystemModule.SourceDecls.Add(partialArrow);
@@ -348,7 +348,7 @@ public class SystemModuleManager {
     id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
     var totalArrow = new SubsetTypeDecl(SourceOrigin.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
       new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-      id, ArrowSubtypeConstraint(tok, tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
+      id, ArrowSubtypeConstraint(tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)totalArrow).ConstraintIsCompilable = false;
     TotalArrowTypeDecls.Add(arity, totalArrow);
     SystemModule.SourceDecls.Add(totalArrow);
@@ -360,7 +360,7 @@ public class SystemModuleManager {
   /// the built-in total-arrow type (if "total", in which case "member" is expected to denote the "requires" member).
   /// The given "id" is expected to be already resolved.
   /// </summary>
-  private Expression ArrowSubtypeConstraint(IOrigin tok, IOrigin rangeOrigin, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
+  private Expression ArrowSubtypeConstraint(IOrigin tok, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
     Contract.Requires(tok != null);
     Contract.Requires(id != null);
     Contract.Requires(member != null);
@@ -386,7 +386,7 @@ public class SystemModuleManager {
       body = Expression.CreateEq(body, emptySet, member.ResultType);
     }
     if (tps.Count > 1) {
-      body = new ForallExpr(tok, rangeOrigin, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
+      body = new ForallExpr(tok, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
     }
     return body;
   }

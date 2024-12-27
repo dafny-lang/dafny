@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -15,7 +16,6 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   public IOrigin BodyStartTok = Token.NoToken;
   public Name NameNode;
 
-  public override IOrigin Tok => NameNode.Origin;
   public virtual IOrigin NavigationToken => NameNode.Origin;
 
   public string Name => NameNode.Value;

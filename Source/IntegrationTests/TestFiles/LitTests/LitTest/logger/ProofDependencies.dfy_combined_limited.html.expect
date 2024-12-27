@@ -251,8 +251,8 @@ function {:testEntry} ObviouslyUnnecessaryRequiresFunc(x: nat): (r: nat)
   requires </span><span class="nc" id="234:12">x < 1</span><span class="na" id="234:17">0 // not required for the proof
 {
   // cause at least a little proof work to be necessary, for nat bounds
-  if (x > 5) then </span><span class="nc" id="237:19">x </span><span class="na" id="237:21">+</span><span class="nc" id="237:22"> 2</span><span class="na" id="237:24"> else </span><span class="nc" id="237:30">x </span><span class="na" id="237:32">+</span><span class="nc" id="237:33"> 1
-</span><span class="na" id="238:1">}
+  if (x > 5) then x + 2 else x + 1
+}
 
 method {:testEntry} ObviouslyUnnecessaryRequiresMethod(x: nat) returns (r: nat)
   requires </span><span class="nc" id="241:12">x < 1</span><span class="na" id="241:17">0 // not required for the proof
@@ -296,8 +296,8 @@ function {:testEntry} PartiallyUnnecessaryRequiresFunc(x: int): (r: nat)
   requires </span><span class="nc" id="279:12">x < 1</span><span class="na" id="279:17">0 && x > 0 // RHS required for proof, but not LHS
 {
   // cause at least a little proof work to be necessary, for nat bounds
-  if (x > 5) then </span><span class="nc" id="282:19">x </span><span class="na" id="282:21">-</span><span class="nc" id="282:22"> 1</span><span class="na" id="282:24"> else </span><span class="nc" id="282:30">x </span><span class="na" id="282:32">+</span><span class="nc" id="282:33"> 1
-</span><span class="na" id="283:1">}
+  if (x > 5) then x - 1 else x + 1
+}
 
 
 // Redundancy of one requires clause due to at least two others, with at least
@@ -377,12 +377,12 @@ method {:testEntry} FalseAntecedentRequiresClauseMethod(x: int) returns (r: int)
 </span><span class="na" id="360:1">// False antecedent assert statement.
 method {:testEntry} FalseAntecedentAssertStatementMethod(x: int) {
   var y := x*x;
-  assert y < 0 ==> x < 0;
+  assert </span><span class="nc" id="363:10">y < 0 ==> </span><span class="na" id="363:20">x < 0;
 }
 
 // False antecedent ensures clause.
 method {:testEntry} FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)
-  ensures r < 0 ==> x < 0
+  ensures </span><span class="nc" id="368:11">r < 0 ==> </span><span class="na" id="368:21">x < 0
 {
   return x*x;
 </span><span class="nc" id="371:1">}
@@ -442,8 +442,8 @@ method {:testEntry} ObviouslyUnreachableMatchStatementCaseMethod(t: T) returns (
 
 </span><span class="na" id="426:1">method {:testEntry} CalcStatementWithSideConditions(x: int) {
   calc == {
-    </span><span class="nc" id="428:5">x </span><span class="na" id="428:7">/</span><span class="nc" id="428:8"> 2;
-    (x*2) </span><span class="na" id="429:11">/</span><span class="nc" id="429:12"> 4</span><span class="na" id="429:14">;
+    x / 2;
+    (x*2) / 4;
   }
 }
 
@@ -460,7 +460,7 @@ method {:testEntry} ObviouslyUnreachableMatchStatementCaseMethod(t: T) returns (
 function {:testEntry} GetX(c: C): int
   reads c
 {
-  </span><span class="nc" id="446:3">c.</span><span class="na" id="446:5">x
+  c.x
 }
 
 method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {

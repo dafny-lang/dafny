@@ -898,27 +898,13 @@ namespace Microsoft.Dafny {
     }
 
     public static IOrigin ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
-      if (boogieToken is BoogieRangeOrigin boogieRangeToken) {
-        if (!reportRanges && boogieRangeToken.Center is not null) {
-          return boogieRangeToken.Center;
-        }
-
-        return new SourceOrigin(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
-      }
-
-      if (boogieToken is NestedOrigin nestedToken) {
-        return new NestedOrigin(
-          ToDafnyToken(reportRanges, nestedToken.Outer),
-          ToDafnyToken(reportRanges, nestedToken.Inner));
-      }
-
       if (boogieToken == null) {
         return null;
       } else if (boogieToken is IOrigin dafnyToken) {
         return dafnyToken;
       } else if (boogieToken is VCGeneration.TokenWrapper tokenWrapper) {
         return ToDafnyToken(reportRanges, tokenWrapper.Inner);
-      } else if (boogieToken == Boogie.Token.NoToken) {
+      } else if (ReferenceEquals(boogieToken, Boogie.Token.NoToken)) {
         return Token.NoToken;
       } else {
         // These boogie Tokens can be created by TokenTextWriter

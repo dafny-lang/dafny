@@ -162,7 +162,7 @@ namespace Microsoft.Dafny {
         };
 
         var attributes = new Attributes("_reads", new List<Expression>(), null);
-        return new SetComprehension(e.Tok, e.Origin, true, boundVarDecls, inCollection, objUse, attributes) {
+        return new SetComprehension(e.Origin, true, boundVarDecls, inCollection, objUse, attributes) {
           Type = new SetType(true, elementType)
         };
       }

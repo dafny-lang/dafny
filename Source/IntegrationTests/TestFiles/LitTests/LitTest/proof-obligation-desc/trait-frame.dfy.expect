@@ -1,4 +1,4 @@
-trait-frame.dfy(10,2): Error: method might modify an object not in the parent trait context's modifies clause
+trait-frame.dfy(10,9): Error: method might modify an object not in the parent trait context's modifies clause
  Asserted expression: this in {}
 trait-frame.dfy(11,11): Error: function might read an object not in the parent trait context's reads clause
  Asserted expression: this in {}

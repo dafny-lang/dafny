@@ -269,8 +269,8 @@ function {:testEntry} ObviouslyUnconstrainedCodeFunc(x: int): (r: (int, int))
   var </span><span class="fc" id="252:7">a</span><span class="na" id="252:8"> := </span><span class="fc" id="252:12">x + 1</span><span class="na" id="252:17">; // constrained by ensures clause
   var </span><span class="pc" id="253:7">b</span><span class="na" id="253:8"> := </span><span class="pc" id="253:12">x - 1</span><span class="na" id="253:17">; // not constrained by ensures clause 
   (a,
-   b)
-}
+</span><span class="fc" id="255:1">   b)
+</span><span class="na" id="256:1">}
 
 method {:testEntry} ObviouslyUnconstrainedCodeMethod(x: int) returns (r: (int, int))
   requires x > 10
@@ -377,8 +377,8 @@ method {:testEntry} FalseAntecedentRequiresClauseMethod(x: int) returns (r: int)
 </span><span class="na" id="360:1">// False antecedent assert statement.
 method {:testEntry} FalseAntecedentAssertStatementMethod(x: int) {
   var y </span><span class="fc" id="362:9">:= x*x;
-</span><span class="na" id="363:1">  </span><span class="fc" id="363:3">assert </span><span class="pc" id="363:10">y < 0 ==> x < 0</span><span class="fc" id="363:25">;
-</span><span class="na" id="364:1">}
+</span><span class="na" id="363:1">  assert </span><span class="pc" id="363:10">y < 0 ==> x < 0</span><span class="na" id="363:25">;
+}
 
 // False antecedent ensures clause.
 method {:testEntry} FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)

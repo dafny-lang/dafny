@@ -76,7 +76,7 @@ class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_
   }
 
   public IEnumerable<Reference> GetReferences() {
-    return new[] { new Reference(Tok, Decl) };
+    return new[] { new Reference(Center, Decl) };
   }
 
   public Resolver_IdentifierExpr Clone(Cloner cloner) {

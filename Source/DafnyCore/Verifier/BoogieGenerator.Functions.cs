@@ -764,7 +764,7 @@ public partial class BoogieGenerator {
         // However, .reads ands .requires functions require special attention.
         // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual.
         // The requires clause of the .requires function is simply true.
-        // The requires clause of the .reads function checks that the precondtion of the receiving function holds.
+        // The requires clause of the .reads function checks that the precondition of the receiving function holds.
 
         var fhandle = FunctionCall(f.Tok, name, Predef.HandleType, SnocSelf(SnocPrevH(args)));
         var lhs = FunctionCall(f.Tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));

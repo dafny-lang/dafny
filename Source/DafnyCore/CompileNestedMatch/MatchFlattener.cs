@@ -534,7 +534,7 @@ public class MatchFlattener : IRewriter {
 
     var tok = matchee.Tok;
     var range = matchee.Tok;
-    var guard = new BinaryExpr(mti.Match.Tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1) {
+    var guard = new BinaryExpr(mti.Match.Origin, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1) {
       ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon,
       Type = Type.Bool
     };

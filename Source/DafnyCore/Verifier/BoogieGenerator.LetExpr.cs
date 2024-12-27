@@ -308,7 +308,7 @@ namespace Microsoft.Dafny {
         FVs = freeVariables;
         FV_Exprs = new List<Expression>();
         foreach (var v in FVs) {
-          var idExpr = new IdentifierExpr(v.Tok, v.AssignUniqueName(currentDeclaration.IdGenerator));
+          var idExpr = new IdentifierExpr(v.Origin, v.AssignUniqueName(currentDeclaration.IdGenerator));
           idExpr.Var = v;
           idExpr.Type = v.Type; // resolve here
           FV_Exprs.Add(idExpr);

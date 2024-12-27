@@ -3503,7 +3503,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (bound is DatatypeBoundedPool) {
         var b = (DatatypeBoundedPool)bound;
         collectionWriter = (wr) => EmitDatatypeBoundedPool(bv, propertySuffix, inLetExprBody, wr, wStmts);
-        return new UserDefinedType(bv.Tok, new NameSegment(bv.Tok, b.Decl.Name, new())) {
+        return new UserDefinedType(bv.Origin, new NameSegment(bv.Origin, b.Decl.Name, new())) {
           ResolvedClass = b.Decl
         };
       } else {
@@ -3550,7 +3550,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected virtual void EmitDatatypeBoundedPool(IVariable bv, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write("{0}.AllSingletonConstructors{1}", TypeName_Companion(bv.Type, wr, bv.Tok, null), propertySuffix);
+      wr.Write("{0}.AllSingletonConstructors{1}", TypeName_Companion(bv.Type, wr, bv.Origin, null), propertySuffix);
     }
 
     private Expression SubstituteBound(IntBoundedPool b, List<BoundedPool> bounds, List<BoundVar> boundVars, int index, bool lowBound) {
@@ -3768,7 +3768,7 @@ namespace Microsoft.Dafny.Compilers {
         var tmpVar = ProtectedFreshId("_assign_such_that_");
         var wStmts = currentBlock.Fork();
         var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, out var newtypeConversionsWereExplicit, wStmts);
-        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, false, inLetExprBody, bv.Tok, collection, wr);
+        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, false, inLetExprBody, bv.Origin, collection, wr);
         currentBlock = wr;
         if (needIterLimit) {
           var varName = $"{iterLimit}_{i}";
@@ -4700,7 +4700,7 @@ namespace Microsoft.Dafny.Compilers {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)
         return;
       }
-      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? PlaceboValue(v.Type, wr, v.Tok, true) : null, wr);
+      DeclareLocalVar(IdName(v), v.Type, v.Origin, false, alwaysInitialize ? PlaceboValue(v.Type, wr, v.Origin, true) : null, wr);
     }
 
     ConcreteSyntaxTree MatchCasePrelude(string source, UserDefinedType sourceType, DatatypeCtor ctor, List<BoundVar> arguments, int caseIndex, int caseCount, ConcreteSyntaxTree wr) {
@@ -5157,11 +5157,11 @@ namespace Microsoft.Dafny.Compilers {
         if (fv.IsGhost) {
           continue;
         }
-        fexprs.Add(new IdentifierExpr(fv.Tok, fv.Name) {
+        fexprs.Add(new IdentifierExpr(fv.Origin, fv.Name) {
           Var = fv, // resolved here!
           Type = fv.Type
         });
-        var bv = new BoundVar(fv.Tok, fv.Name, fv.Type);
+        var bv = new BoundVar(fv.Origin, fv.Name, fv.Type);
         bvars.Add(bv);
         sm[fv] = new IdentifierExpr(bv.Tok, bv.Name) {
           Var = bv, // resolved here!

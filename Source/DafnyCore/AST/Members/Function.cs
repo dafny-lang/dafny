@@ -487,8 +487,12 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       return triviaFound;
     }
 
+    // Comments after the type, but before the clauses
     var endTokenDefinition =
-      OwnedTokens.LastOrDefault(token => token.val == ")" || token.pos == ResultType.EndToken.pos);
+      OwnedTokens.LastOrDefault(token => token.val == ")");
+    if (endTokenDefinition != null && endTokenDefinition.pos < ResultType.EndToken.pos) {
+      endTokenDefinition = ResultType.EndToken;
+    }
     var tentativeTrivia = "";
     if (endTokenDefinition != null) {
       if (endTokenDefinition.pos < this.EndToken.pos) { // All comments are docstring

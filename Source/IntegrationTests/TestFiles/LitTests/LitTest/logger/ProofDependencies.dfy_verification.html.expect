@@ -251,7 +251,7 @@ function {:testEntry} ObviouslyUnnecessaryRequiresFunc(x: nat): (r: nat)
   requires </span><span class="nc" id="234:12">x < 1</span><span class="na" id="234:17">0 // not required for the proof
 {
   // cause at least a little proof work to be necessary, for nat bounds
-  if (x > 5) then </span><span class="nc" id="237:19">x </span><span class="pc" id="237:21">+</span><span class="nc" id="237:22"> 2</span><span class="na" id="237:24"> else </span><span class="nc" id="237:30">x </span><span class="pc" id="237:32">+</span><span class="nc" id="237:33"> 1
+  if (x > 5) then </span><span class="pc" id="237:19">x + 2</span><span class="na" id="237:24"> else </span><span class="pc" id="237:30">x + 1
 </span><span class="na" id="238:1">}
 
 method {:testEntry} ObviouslyUnnecessaryRequiresMethod(x: nat) returns (r: nat)
@@ -268,9 +268,9 @@ function {:testEntry} ObviouslyUnconstrainedCodeFunc(x: int): (r: (int, int))
 {
   var </span><span class="fc" id="252:7">a</span><span class="na" id="252:8"> := </span><span class="fc" id="252:12">x + 1</span><span class="na" id="252:17">; // constrained by ensures clause
   var </span><span class="nc" id="253:7">b</span><span class="na" id="253:8"> := </span><span class="nc" id="253:12">x - 1</span><span class="na" id="253:17">; // not constrained by ensures clause 
-  </span><span class="fc" id="254:3">(</span><span class="na" id="254:4">a,
+  </span><span class="fc" id="254:3">(a,
    b)
-}
+</span><span class="na" id="256:1">}
 
 method {:testEntry} ObviouslyUnconstrainedCodeMethod(x: int) returns (r: (int, int))
   requires </span><span class="pc" id="259:12">x > 1</span><span class="na" id="259:17">0
@@ -296,7 +296,7 @@ function {:testEntry} PartiallyUnnecessaryRequiresFunc(x: int): (r: nat)
   requires </span><span class="nc" id="279:12">x < 1</span><span class="na" id="279:17">0 && </span><span class="fc" id="279:22">x > 0</span><span class="na" id="279:27"> // RHS required for proof, but not LHS
 {
   // cause at least a little proof work to be necessary, for nat bounds
-  if (x > 5) then </span><span class="nc" id="282:19">x </span><span class="pc" id="282:21">-</span><span class="nc" id="282:22"> 1</span><span class="na" id="282:24"> else </span><span class="nc" id="282:30">x </span><span class="pc" id="282:32">+</span><span class="nc" id="282:33"> 1
+  if (x > 5) then </span><span class="pc" id="282:19">x - 1</span><span class="na" id="282:24"> else </span><span class="pc" id="282:30">x + 1
 </span><span class="na" id="283:1">}
 
 
@@ -377,12 +377,12 @@ method {:testEntry} FalseAntecedentRequiresClauseMethod(x: int) returns (r: int)
 </span><span class="na" id="360:1">// False antecedent assert statement.
 method {:testEntry} FalseAntecedentAssertStatementMethod(x: int) {
   var y </span><span class="fc" id="362:9">:= x*x;
-</span><span class="na" id="363:1">  </span><span class="fc" id="363:3">assert </span><span class="pc" id="363:10">y < 0 ==> x < 0</span><span class="fc" id="363:25">;
-</span><span class="na" id="364:1">}
+</span><span class="na" id="363:1">  assert </span><span class="nc" id="363:10">y < 0 ==> </span><span class="pc" id="363:20">x < 0</span><span class="na" id="363:25">;
+}
 
 // False antecedent ensures clause.
 method {:testEntry} FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)
-  ensures </span><span class="pc" id="368:11">r < 0 ==> x < 0
+  ensures </span><span class="nc" id="368:11">r < 0 ==> </span><span class="pc" id="368:21">x < 0
 </span><span class="na" id="369:1">{
   </span><span class="fc" id="370:3">return x*x;
 </span><span class="nc" id="371:1">}
@@ -442,8 +442,8 @@ method {:testEntry} ObviouslyUnreachableMatchStatementCaseMethod(t: T) returns (
 
 </span><span class="na" id="426:1">method {:testEntry} CalcStatementWithSideConditions(x: int) {
   calc == {
-    </span><span class="nc" id="428:5">x </span><span class="pc" id="428:7">/</span><span class="nc" id="428:8"> 2;
-    (x*2) </span><span class="pc" id="429:11">/</span><span class="nc" id="429:12"> 4</span><span class="na" id="429:14">;
+    </span><span class="pc" id="428:5">x / 2</span><span class="na" id="428:10">;
+    </span><span class="fc" id="429:5">(x*2) / 4</span><span class="na" id="429:14">;
   }
 }
 
@@ -460,7 +460,7 @@ class C {
 function {:testEntry} GetX(c: C): int
   reads c
 {
-  </span><span class="nc" id="446:3">c.</span><span class="pc" id="446:5">x
+  </span><span class="pc" id="446:3">c.x
 </span><span class="na" id="447:1">}
 
 method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
