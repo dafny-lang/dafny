@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class Include : TokenNode, IComparable {
+public class Include : NodeWithComputedRange, IComparable {
   public DafnyOptions ParseOptions { get; }
   public Uri IncluderFilename { get; }
   public Uri IncludedFilename { get; }

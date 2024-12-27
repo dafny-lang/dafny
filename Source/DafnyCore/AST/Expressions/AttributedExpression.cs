@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
+public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDeclaration {
   public readonly Expression E;
   public readonly AssertLabel/*?*/ Label;
 

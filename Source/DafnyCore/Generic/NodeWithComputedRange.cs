@@ -7,7 +7,7 @@ using Tomlyn.Syntax;
 
 namespace Microsoft.Dafny;
 
-public abstract class TokenNode : Node {
+public abstract class NodeWithComputedRange : Node {
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
@@ -15,11 +15,10 @@ public abstract class TokenNode : Node {
 
   private IOrigin origin;
 
-  protected TokenNode(IOrigin? origin = null) {
-    this.origin = origin ?? Token.NoToken;
+  protected NodeWithComputedRange(IOrigin? origin = null) {
   }
 
-  protected TokenNode(Cloner cloner, TokenNode original) {
+  protected NodeWithComputedRange(Cloner cloner, NodeWithComputedRange original) {
     origin = cloner.Origin(original.Origin);
   }
 

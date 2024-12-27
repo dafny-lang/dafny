@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
+public class GuardedAlternative : NodeWithComputedRange, IAttributeBearingDeclaration {
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly List<Statement> Body;

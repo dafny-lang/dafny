@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ExportSignature : TokenNode, IHasReferences {
+public class ExportSignature : NodeWithComputedRange, IHasReferences {
   public readonly IOrigin ClassIdTok;
   public readonly bool Opaque;
   public readonly string ClassId;

@@ -6,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Program : TokenNode {
+public class Program : NodeWithComputedRange {
   public CompilationData Compilation { get; }
 
   [ContractInvariantMethod]

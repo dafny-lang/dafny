@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class FrameExpression : TokenNode, IHasReferences {
+public class FrameExpression : NodeWithComputedRange, IHasReferences {
   public readonly Expression OriginalExpression; // may be a WildcardExpr
   [FilledInDuringResolution] public Expression DesugaredExpression; // may be null for modifies clauses, even after resolution
 

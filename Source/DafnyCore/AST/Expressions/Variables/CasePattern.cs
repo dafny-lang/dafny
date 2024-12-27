@@ -13,7 +13,7 @@ namespace Microsoft.Dafny;
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT> : TokenNode
+public class CasePattern<VT> : NodeWithComputedRange
   where VT : class, IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.

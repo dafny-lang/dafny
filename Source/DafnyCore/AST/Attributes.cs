@@ -45,7 +45,7 @@ public record BuiltInAtAttributeSyntax(
   }
 }
 
-public class Attributes : TokenNode, ICanFormat {
+public class Attributes : NodeWithComputedRange, ICanFormat {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);

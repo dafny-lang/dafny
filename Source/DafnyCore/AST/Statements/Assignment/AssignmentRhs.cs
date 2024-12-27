@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
+public abstract class AssignmentRhs : NodeWithComputedRange, IAttributeBearingDeclaration {
   private Attributes attributes;
 
   public Attributes Attributes {

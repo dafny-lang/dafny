@@ -5,7 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class NonglobalVariable : TokenNode, IVariable {
+public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
   public Name NameNode { get; }
 
   protected NonglobalVariable(IOrigin origin, Name nameNode, Type type, bool isGhost) : base(origin) {

@@ -6,7 +6,7 @@ using System.Numerics;
 
 namespace Microsoft.Dafny;
 
-public abstract class Expression : TokenNode {
+public abstract class Expression : NodeWithComputedRange {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Origin != null);
