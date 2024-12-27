@@ -142,7 +142,7 @@ public class CoverageReporter {
             int.TryParse(span.Groups[3].Value, out var col)) {
           var nextToken = new Token(line, col);
           nextToken.Uri = uri;
-          var precedingToken = new Token(line, col - 1);
+          var precedingToken = new Token(line, col);
           precedingToken.Uri = uri;
           var rangeToken = new SourceOrigin(lastEndToken, precedingToken);
           report.LabelCode(rangeToken, lastLabel);
