@@ -8,25 +8,6 @@ using Action = System.Action;
 
 namespace Microsoft.Dafny;
 
-public interface INode {
-  bool SingleFileToken { get; }
-  public Token StartToken => Origin.StartToken;
-  public Token EndToken => Origin.EndToken;
-  public Token Center => Origin.Center;
-  IEnumerable<IOrigin> OwnedTokens { get; }
-  IOrigin Origin { get; }
-  IEnumerable<INode> Children { get; }
-  IEnumerable<INode> PreResolveChildren { get; }
-}
-
-public interface ICanFormat : INode {
-  /// Sets the indentation of individual tokens owned by this node, given
-  /// the new indentation set by the tokens preceding this node
-  /// Returns if further traverse needs to occur (true) or if it already happened (false)
-  bool SetIndent(int indentBefore, TokenNewIndentCollector formatter);
-}
-
-
 public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
