@@ -109,7 +109,7 @@ public abstract class Node : INode {
     }
   }
 
-  public abstract IOrigin Origin { get; set; }
+  public abstract IOrigin Origin { get; }
 
   // <summary>
   // Returns all assumptions contained in this node or its descendants.
