@@ -14,7 +14,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     this.Body = body;
     this.Attributes = null;
   }
-  public NestedMatchCaseStmt(IOrigin tok, ExtendedPattern pat, List<Statement> body, Attributes attrs) : base(tok, pat) {
+  public NestedMatchCaseStmt(IOrigin origin, ExtendedPattern pat, List<Statement> body, Attributes attrs) : base(origin, pat) {
     Contract.Requires(body != null);
     this.Body = body;
     this.Attributes = attrs;

@@ -10,8 +10,8 @@ public class Include : TokenNode, IComparable {
   public Uri IncludedFilename { get; }
   public string CanonicalPath { get; }
 
-  public Include(IOrigin tok, Uri includer, Uri theFilename, DafnyOptions parseOptions) {
-    this.tok = tok;
+  public Include(IOrigin origin, Uri includer, Uri theFilename, DafnyOptions parseOptions) {
+    this.origin = origin;
     this.IncluderFilename = includer;
     this.IncludedFilename = theFilename;
     ParseOptions = parseOptions;

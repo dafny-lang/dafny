@@ -9,9 +9,9 @@ public class ConversionExpr : TypeUnaryExpr, ICloneable<ConversionExpr> {
     messagePrefix = original.messagePrefix;
   }
 
-  public ConversionExpr(IOrigin tok, Expression expr, Type toType, string messagePrefix = "")
-    : base(tok, expr, toType) {
-    Contract.Requires(tok != null);
+  public ConversionExpr(IOrigin origin, Expression expr, Type toType, string messagePrefix = "")
+    : base(origin, expr, toType) {
+    Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     Contract.Requires(toType != null);
     this.messagePrefix = messagePrefix;

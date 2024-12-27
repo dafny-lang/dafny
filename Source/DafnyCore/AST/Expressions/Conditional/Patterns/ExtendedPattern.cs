@@ -14,9 +14,9 @@ ExtendedPattern is either:
 public abstract class ExtendedPattern : TokenNode {
   public bool IsGhost;
 
-  public ExtendedPattern(IOrigin tok, bool isGhost = false) {
-    Contract.Requires(tok != null);
-    this.tok = tok;
+  public ExtendedPattern(IOrigin origin, bool isGhost = false) {
+    Contract.Requires(origin != null);
+    this.origin = origin;
     this.IsGhost = isGhost;
   }
 

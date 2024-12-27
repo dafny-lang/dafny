@@ -12,7 +12,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
 
   string IAttributeBearingDeclaration.WhatKind => "match expression case";
 
-  public NestedMatchCaseExpr(IOrigin tok, ExtendedPattern pat, Expression body, Attributes attrs) : base(tok, pat) {
+  public NestedMatchCaseExpr(IOrigin origin, ExtendedPattern pat, Expression body, Attributes attrs) : base(origin, pat) {
     Contract.Requires(body != null);
     this.Body = body;
     this.Attributes = attrs;

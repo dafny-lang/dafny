@@ -44,7 +44,7 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
     E = e;
     Label = label;
     Attributes = attrs;
-    this.tok = e.Origin;
+    this.origin = e.Origin;
   }
 
   public void AddCustomizedErrorMessage(IOrigin tok, string s) {

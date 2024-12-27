@@ -19,12 +19,12 @@ public class ExportSignature : TokenNode, IHasReferences {
     Contract.Invariant((ClassId != null) == (ClassIdTok != null));
   }
 
-  public ExportSignature(IOrigin prefixTok, string prefix, IOrigin idTok, string id, bool opaque) {
+  public ExportSignature(IOrigin prefixTok, string prefix, IOrigin idOrigin, string id, bool opaque) {
     Contract.Requires(prefixTok != null);
     Contract.Requires(prefix != null);
-    Contract.Requires(idTok != null);
+    Contract.Requires(idOrigin != null);
     Contract.Requires(id != null);
-    tok = idTok;
+    origin = idOrigin;
     ClassIdTok = prefixTok;
     ClassId = prefix;
     Id = id;
@@ -32,17 +32,17 @@ public class ExportSignature : TokenNode, IHasReferences {
     OwnedTokensCache = new List<IOrigin>() { Origin, prefixTok };
   }
 
-  public ExportSignature(IOrigin idTok, string id, bool opaque) {
-    Contract.Requires(idTok != null);
+  public ExportSignature(IOrigin idOrigin, string id, bool opaque) {
+    Contract.Requires(idOrigin != null);
     Contract.Requires(id != null);
-    tok = idTok;
+    origin = idOrigin;
     Id = id;
     Opaque = opaque;
     OwnedTokensCache = new List<IOrigin>() { Origin };
   }
 
   public ExportSignature(Cloner cloner, ExportSignature original) {
-    tok = cloner.Origin(original.Origin);
+    origin = cloner.Origin(original.Origin);
     Id = original.Id;
     Opaque = original.Opaque;
     ClassId = original.ClassId;

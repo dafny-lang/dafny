@@ -19,9 +19,9 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
     Contract.Invariant(cce.NonNullElements(MissingCases));
   }
 
-  public MatchExpr(IOrigin tok, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public MatchExpr(IOrigin origin, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
@@ -92,11 +92,11 @@ public abstract class MatchCase : TokenNode, IHasReferences {
     Contract.Invariant(cce.NonNullElements(Arguments));
   }
 
-  public MatchCase(IOrigin tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
-    Contract.Requires(tok != null);
+  public MatchCase(IOrigin origin, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
+    Contract.Requires(origin != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
-    this.tok = tok;
+    this.origin = origin;
     Ctor = ctor;
     Arguments = arguments;
   }
@@ -251,7 +251,7 @@ public class MatchCaseStmt : MatchCase {
 
   public MatchCaseStmt(IOrigin rangeOrigin, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
     : base(rangeOrigin, ctor, arguments) {
-    Contract.Requires(tok != null);
+    Contract.Requires(origin != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
     Contract.Requires(cce.NonNullElements(body));
@@ -282,9 +282,9 @@ public class MatchCaseExpr : MatchCase {
   public override IEnumerable<INode> Children => Arguments.Concat<Node>(new[] { body });
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public MatchCaseExpr(IOrigin tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
-    : base(tok, ctor, arguments) {
-    Contract.Requires(tok != null);
+  public MatchCaseExpr(IOrigin origin, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
+    : base(origin, ctor, arguments) {
+    Contract.Requires(origin != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
     Contract.Requires(body != null);

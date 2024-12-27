@@ -11,15 +11,15 @@ public abstract class TokenNode : Node {
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
   internal Token[] FormatTokens = null;
 
-  protected IOrigin tok = Token.NoToken;
+  protected IOrigin origin = Token.NoToken;
 
   public void SetTok(IOrigin newTok) {
-    tok = newTok;
+    origin = newTok;
   }
 
   public override IOrigin Origin {
     get {
-      if (tok is Token tokenOrigin) {
+      if (origin is Token tokenOrigin) {
 
         var startTok = Origin.StartToken;
         var endTok = Origin.EndToken;
@@ -60,13 +60,13 @@ public abstract class TokenNode : Node {
           }
         }
 
-        tok = new SourceOrigin(startTok, endTok, tokenOrigin);
+        origin = new SourceOrigin(startTok, endTok, tokenOrigin);
       }
 
-      return tok;
+      return origin;
     }
     set {
-      tok = value;
+      origin = value;
     }
   }
 }

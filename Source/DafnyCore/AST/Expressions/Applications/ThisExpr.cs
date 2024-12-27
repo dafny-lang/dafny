@@ -6,9 +6,9 @@ public class ThisExpr : Expression, ICloneable<ThisExpr> {
   public ThisExpr(Cloner cloner, ThisExpr original) : base(cloner, original) {
   }
 
-  public ThisExpr(IOrigin tok)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public ThisExpr(IOrigin origin)
+    : base(origin) {
+    Contract.Requires(origin != null);
   }
 
   /// <summary>

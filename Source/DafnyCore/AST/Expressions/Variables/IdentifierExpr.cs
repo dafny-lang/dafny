@@ -15,18 +15,18 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
 
   public string DafnyName => Origin.line > 0 ? Origin.PrintOriginal() : Name;
 
-  public IdentifierExpr(IOrigin tok, string name)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public IdentifierExpr(IOrigin origin, string name)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Name = name;
   }
   /// <summary>
   /// Constructs a resolved IdentifierExpr.
   /// </summary>
-  public IdentifierExpr(IOrigin tok, IVariable v)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public IdentifierExpr(IOrigin origin, IVariable v)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(v != null);
     Name = v.Name;
     Var = v;
@@ -64,14 +64,14 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
 /// assigning a value to a Method's out parameter.
 /// </summary>
 public class ImplicitIdentifierExpr : IdentifierExpr {
-  public ImplicitIdentifierExpr(IOrigin tok, string name)
-    : base(tok, name) { }
+  public ImplicitIdentifierExpr(IOrigin origin, string name)
+    : base(origin, name) { }
 
   /// <summary>
   /// Constructs a resolved implicit identifier.
   /// </summary>
-  public ImplicitIdentifierExpr(IOrigin tok, IVariable v)
-    : base(tok, v) { }
+  public ImplicitIdentifierExpr(IOrigin origin, IVariable v)
+    : base(origin, v) { }
 
   public override bool IsImplicit => true;
 }

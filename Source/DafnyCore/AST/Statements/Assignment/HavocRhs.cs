@@ -7,7 +7,7 @@ public class HavocRhs : AssignmentRhs, ICloneable<HavocRhs> {
   public HavocRhs Clone(Cloner cloner) {
     return new HavocRhs(cloner, this);
   }
-  public HavocRhs(IOrigin tok) : base(tok) {
+  public HavocRhs(IOrigin origin) : base(origin) {
   }
 
   private HavocRhs(Cloner cloner, HavocRhs havocRhs) : base(cloner, havocRhs) {

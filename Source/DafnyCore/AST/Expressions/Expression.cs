@@ -93,16 +93,16 @@ public abstract class Expression : TokenNode {
     }
 #endif
 
-  public Expression(IOrigin tok) {
-    Contract.Requires(tok != null);
+  public Expression(IOrigin origin) {
+    Contract.Requires(origin != null);
     Contract.Ensures(type == null);  // we would have liked to have written Type==null, but that's not admissible or provable
 
-    this.tok = tok;
+    this.origin = origin;
   }
 
   protected Expression(Cloner cloner, Expression original) {
 
-    tok = cloner.Origin(original.tok);
+    origin = cloner.Origin(original.origin);
 
     if (cloner.CloneResolvedFields && original.Type != null) {
       Type = original.Type;
@@ -769,7 +769,7 @@ public abstract class Expression : TokenNode {
     var receiverType = (UserDefinedType)call.Receiver.Type.NormalizeExpand();
     var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
     subst = ModuleResolver.AddParentTypeParameterSubstitutions(subst, receiverType);
-    var exprDotName = new ExprDotName(call.tok, call.Receiver, call.Function.NameNode, call.TypeApplication_JustFunction) {
+    var exprDotName = new ExprDotName(call.origin, call.Receiver, call.Function.NameNode, call.TypeApplication_JustFunction) {
       Type = ModuleResolver.SelectAppropriateArrowTypeForFunction(call.Function, subst, systemModuleManager)
     };
 
@@ -794,7 +794,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression WrapResolvedMemberSelect(MemberSelectExpr memberSelectExpr) {
     List<Type> optTypeArguments = memberSelectExpr.TypeApplicationJustMember.Count == 0 ? null : memberSelectExpr.TypeApplicationJustMember;
-    return new ExprDotName(memberSelectExpr.tok, memberSelectExpr.Obj, memberSelectExpr.MemberNameNode, optTypeArguments) {
+    return new ExprDotName(memberSelectExpr.origin, memberSelectExpr.Obj, memberSelectExpr.MemberNameNode, optTypeArguments) {
       ResolvedExpression = memberSelectExpr,
       Type = memberSelectExpr.Type
     };

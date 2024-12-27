@@ -17,12 +17,12 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
   }
 
   internal AssignmentRhs(Cloner cloner, AssignmentRhs original) {
-    tok = cloner.Origin(original.Origin);
+    origin = cloner.Origin(original.Origin);
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  internal AssignmentRhs(IOrigin tok, Attributes attrs = null) {
-    this.tok = tok;
+  internal AssignmentRhs(IOrigin origin, Attributes attrs = null) {
+    this.origin = origin;
     Attributes = attrs;
   }
 

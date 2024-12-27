@@ -40,7 +40,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
     }
   }
 
-  public IdPattern(IOrigin tok, String id, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(tok, isGhost) {
+  public IdPattern(IOrigin origin, String id, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(origin, isGhost) {
     Contract.Requires(id != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
     HasParenthesis = hasParenthesis;
@@ -49,7 +49,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
     this.Arguments = arguments;
   }
 
-  public IdPattern(IOrigin tok, String id, Type type, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
+  public IdPattern(IOrigin origin, String id, Type type, List<ExtendedPattern> arguments, bool isGhost = false) : base(origin, isGhost) {
     Contract.Requires(id != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
     this.Id = id;

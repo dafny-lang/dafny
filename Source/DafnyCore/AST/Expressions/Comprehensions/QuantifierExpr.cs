@@ -50,9 +50,9 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     return idGen.FreshId(prefix);
   }
 
-  protected QuantifierExpr(IOrigin tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok, bvars, range, term, attrs) {
-    Contract.Requires(tok != null);
+  protected QuantifierExpr(IOrigin origin, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    : base(origin, bvars, range, term, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(term != null);
     this.UniqueId = FreshQuantId();
