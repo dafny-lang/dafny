@@ -947,7 +947,7 @@ class DafnyDoc {
         return Code(s);
       }
     }
-    Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Tok, "Implementation missing for type " + t.GetType() + " " + t.ToString());
+    Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Origin, "Implementation missing for type " + t.GetType() + " " + t.ToString());
     return Code(t.ToString());
   }
 

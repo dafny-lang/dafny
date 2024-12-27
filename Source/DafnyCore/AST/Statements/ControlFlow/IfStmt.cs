@@ -104,7 +104,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     if (IsBindingGuard) {
       var exists = (ExistsExpr)Guard;
       foreach (var v in exists.BoundVars) {
-        resolver.ScopePushAndReport(resolver.Scope, v.Name, v, v.Tok, "bound-variable");
+        resolver.ScopePushAndReport(resolver.Scope, v.Name, v, v.Origin, "bound-variable");
       }
     }
     resolver.DominatingStatementLabels.PushMarker();

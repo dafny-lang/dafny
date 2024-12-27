@@ -55,7 +55,7 @@ namespace Microsoft.Dafny {
     bool HasPrintAttribute(Attributes attrs, bool checkParameters = true) {
       var printAttribute = Attributes.Find(attrs, "print");
       if (checkParameters && printAttribute != null && printAttribute.Args.Count != 0) {
-        ReportError(ErrorId.rw_print_attribute_takes_no_arguments, printAttribute.Args[0].Tok, ":print attribute does not take any arguments");
+        ReportError(ErrorId.rw_print_attribute_takes_no_arguments, printAttribute.Args[0].Origin, ":print attribute does not take any arguments");
       }
       return printAttribute != null;
     }

@@ -126,7 +126,7 @@ public partial class BoogieGenerator {
         definedness.Add(TrAssumeCmd(tok, ante));
       }
       TrStmt_CheckWellformed(range, definedness, locals, etran, false);
-      definedness.Add(TrAssumeCmd(range.Tok, etran.TrExpr(range)));
+      definedness.Add(TrAssumeCmd(range.Origin, etran.TrExpr(range)));
       if (additionalRange != null) {
         var es = additionalRange(new Dictionary<IVariable, Expression>(), etran);
         definedness.Add(TrAssumeCmd(es.tok, es));
@@ -179,14 +179,14 @@ public partial class BoogieGenerator {
         }
         boundVars = expr.BoundVars;
         ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
-        tr = TrTrigger(callEtran, expr.Attributes, expr.Tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+        tr = TrTrigger(callEtran, expr.Attributes, expr.Origin, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
 
         var p = Substitute(expr.Range, null, substMap);
         ante = BplAnd(ante, initEtran.TrExpr(p));
         if (additionalRange != null) {
           ante = BplAnd(ante, additionalRange(substMap, initEtran));
         }
-        tr = TrTrigger(callEtran, expr.Attributes, expr.Tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+        tr = TrTrigger(callEtran, expr.Attributes, expr.Origin, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
         post = callEtran.TrExpr(Substitute(expr.Term, null, substMap));
       } else {
         ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
@@ -215,7 +215,7 @@ public partial class BoogieGenerator {
               expr = Substitute(expr, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
               return callEtran.TrExpr(expr);
             });
-            tr = new Trigger(trigger[0].Tok, true, terms, tr);
+            tr = new Trigger(trigger[0].Origin, true, terms, tr);
           }
         }
       }
@@ -302,7 +302,7 @@ public partial class BoogieGenerator {
     var substMap = SetupBoundVarsAsLocals(s.BoundVars, definedness, locals, etran);
     Expression range = Substitute(s.Range, null, substMap);
     TrStmt_CheckWellformed(range, definedness, locals, etran, false);
-    definedness.Add(TrAssumeCmd(s.Range.Tok, etran.TrExpr(range)));
+    definedness.Add(TrAssumeCmd(s.Range.Origin, etran.TrExpr(range)));
 
     var lhs = Substitute(s0.Lhs.Resolved, null, substMap);
     TrStmt_CheckWellformed(lhs, definedness, locals, etran, false);
@@ -314,7 +314,7 @@ public partial class BoogieGenerator {
       _ => throw new cce.UnreachableException()
     };
     var desc = new Modifiable(description, GetContextModifiesFrames(), lhsObj, lhsField);
-    definedness.Add(Assert(lhs.Tok, Bpl.Expr.SelectTok(lhs.Tok, etran.ModifiesFrame(lhs.Tok), obj, F),
+    definedness.Add(Assert(lhs.Origin, Bpl.Expr.SelectTok(lhs.Origin, etran.ModifiesFrame(lhs.Origin), obj, F),
       desc, definedness.Context));
     if (s0.Rhs is ExprRhs) {
       var r = (ExprRhs)s0.Rhs;
@@ -330,11 +330,11 @@ public partial class BoogieGenerator {
         lhsType = ((MultiSelectExpr)lhs).Type;
       }
       var translatedRhs = etran.TrExpr(rhs);
-      CheckSubrange(r.Tok, translatedRhs, rhs.Type, lhsType, rhs, definedness);
+      CheckSubrange(r.Origin, translatedRhs, rhs.Type, lhsType, rhs, definedness);
       if (lhs is MemberSelectExpr) {
         var fse = (MemberSelectExpr)lhs;
         Contract.Assert(lhsField != null);
-        Check_NewRestrictions(fse.Tok, fse.Obj, obj, lhsField, translatedRhs, definedness, etran);
+        Check_NewRestrictions(fse.Origin, fse.Obj, obj, lhsField, translatedRhs, definedness, etran);
       }
     }
 
@@ -343,7 +343,7 @@ public partial class BoogieGenerator {
       var substMapPrime = SetupBoundVarsAsLocals(s.BoundVars, definedness, locals, etran);
       var lhsPrime = Substitute(s0.Lhs.Resolved, null, substMapPrime);
       range = Substitute(s.Range, null, substMapPrime);
-      definedness.Add(TrAssumeCmd(range.Tok, etran.TrExpr(range)));
+      definedness.Add(TrAssumeCmd(range.Origin, etran.TrExpr(range)));
       // assume !(x == x' && y == y');
       Bpl.Expr eqs = Bpl.Expr.True;
       foreach (var bv in s.BoundVars) {
@@ -413,7 +413,7 @@ public partial class BoogieGenerator {
         Contract.Assert(term != null);
         var e0 = ((BinaryExpr)term).E0.Resolved;
         var e1 = ((BinaryExpr)term).E1;
-        qq = TrForall_NewValueAssumption(expr.Tok, expr.BoundVars, expr.Bounds, expr.Range, e0, e1, expr.Attributes, etran, prevEtran);
+        qq = TrForall_NewValueAssumption(expr.Origin, expr.BoundVars, expr.Bounds, expr.Range, e0, e1, expr.Attributes, etran, prevEtran);
         updater.Add(TrAssumeCmd(s.Tok, qq));
       }
     }
@@ -448,7 +448,7 @@ public partial class BoogieGenerator {
     GetObjFieldDetails(lhs, prevEtran, out var obj, out var field);
     var xHeapOF = ReadHeap(tok, etran.HeapExpr, obj, field);
 
-    g = BoxIfNotNormallyBoxed(rhs.Tok, g, rhs.Type);
+    g = BoxIfNotNormallyBoxed(rhs.Origin, g, rhs.Type);
 
     Bpl.Trigger tr = null;
     var argsEtran = etran.WithNoLits();
@@ -514,12 +514,12 @@ public partial class BoogieGenerator {
       definedness.Add(TrAssumeCmd(forallStmt.Tok, typeAntecedent));
     }
     TrStmt_CheckWellformed(forallStmt.Range, definedness, locals, etran, false);
-    definedness.Add(TrAssumeCmdWithDependencies(etran, forallStmt.Range.Tok, forallStmt.Range, "forall statement range"));
+    definedness.Add(TrAssumeCmdWithDependencies(etran, forallStmt.Range.Origin, forallStmt.Range, "forall statement range"));
 
     var ensuresDefinedness = new BoogieStmtListBuilder(this, options, definedness.Context);
     foreach (var ens in forallStmt.Ens) {
       TrStmt_CheckWellformed(ens.E, ensuresDefinedness, locals, etran, false);
-      ensuresDefinedness.Add(TrAssumeCmdWithDependencies(etran, ens.E.Tok, ens.E, "forall statement ensures clause"));
+      ensuresDefinedness.Add(TrAssumeCmdWithDependencies(etran, ens.E.Origin, ens.E, "forall statement ensures clause"));
     }
     PathAsideBlock(forallStmt.Tok, ensuresDefinedness, definedness);
 

@@ -176,7 +176,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     }
   }
 
-  public IOrigin Start => Tok;
+  public IOrigin Start => Origin;
 
   public override IEnumerable<INode> Children {
     get {

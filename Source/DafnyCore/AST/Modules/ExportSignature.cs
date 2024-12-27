@@ -14,7 +14,7 @@ public class ExportSignature : TokenNode, IHasReferences {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(Tok != null);
+    Contract.Invariant(Origin != null);
     Contract.Invariant(Id != null);
     Contract.Invariant((ClassId != null) == (ClassIdTok != null));
   }
@@ -29,7 +29,7 @@ public class ExportSignature : TokenNode, IHasReferences {
     ClassId = prefix;
     Id = id;
     Opaque = opaque;
-    OwnedTokensCache = new List<IOrigin>() { Tok, prefixTok };
+    OwnedTokensCache = new List<IOrigin>() { Origin, prefixTok };
   }
 
   public ExportSignature(IOrigin idTok, string id, bool opaque) {
@@ -38,16 +38,16 @@ public class ExportSignature : TokenNode, IHasReferences {
     tok = idTok;
     Id = id;
     Opaque = opaque;
-    OwnedTokensCache = new List<IOrigin>() { Tok };
+    OwnedTokensCache = new List<IOrigin>() { Origin };
   }
 
   public ExportSignature(Cloner cloner, ExportSignature original) {
-    tok = cloner.Origin(original.Tok);
+    tok = cloner.Origin(original.Origin);
     Id = original.Id;
     Opaque = original.Opaque;
     ClassId = original.ClassId;
     ClassIdTok = cloner.Origin(original.ClassIdTok);
-    OwnedTokensCache = new List<IOrigin>() { Tok };
+    OwnedTokensCache = new List<IOrigin>() { Origin };
   }
 
   public override string ToString() {
@@ -60,6 +60,6 @@ public class ExportSignature : TokenNode, IHasReferences {
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
   public IEnumerable<Reference> GetReferences() {
-    return new[] { new Reference(Tok, Decl) };
+    return new[] { new Reference(Origin, Decl) };
   }
 }

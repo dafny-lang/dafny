@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      ReportError(expr.Tok, msg, args);
+      ReportError(expr.Origin, msg, args);
     }
 
     public void ReportError(IOrigin tok, string msg, params object[] args) {
@@ -1067,7 +1067,7 @@ namespace Microsoft.Dafny {
         scope.AllowInstance = false;
         ResolveExpression(dd.Witness, new ResolutionContext(codeContext, false));
         scope.PopMarker();
-        AddSubtypeConstraint(dd.BasePreType, dd.Witness.PreType, dd.Witness.Tok, "witness expression must have type '{0}' (got '{1}')");
+        AddSubtypeConstraint(dd.BasePreType, dd.Witness.PreType, dd.Witness.Origin, "witness expression must have type '{0}' (got '{1}')");
         Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' witness");
       }
     }
@@ -1120,7 +1120,7 @@ namespace Microsoft.Dafny {
       foreach (var formal in formals) {
         if (!formal.HasName) {
           foreach (var previousFormal in previousParametersWithDefaultValue) {
-            ReportError(previousFormal.DefaultValue.Tok,
+            ReportError(previousFormal.DefaultValue.Origin,
               "because of a later nameless parameter, which is a required parameter, this default value is never used; remove it or name all subsequent parameters");
           }
           previousParametersWithDefaultValue.Clear();
@@ -1129,14 +1129,14 @@ namespace Microsoft.Dafny {
         var d = formal.DefaultValue;
         if (d != null) {
           ResolveExpression(d, new ResolutionContext(codeContext, codeContext is TwoStateFunction or TwoStateLemma));
-          AddSubtypeConstraint(Type2PreType(formal.Type), d.PreType, d.Tok, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
+          AddSubtypeConstraint(Type2PreType(formal.Type), d.PreType, d.Origin, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
           foreach (var v in ModuleResolver.FreeVariables(d)) {
             dependencies.AddEdge(formal, v);
           }
           previousParametersWithDefaultValue.Add(formal);
         } else if (nameOfMostRecentNameonlyParameter != null && !formal.IsNameOnly) {
           // "formal" is preceded by a nameonly parameter, but itself is neither nameonly nor has a default value
-          ReportError(formal.Tok,
+          ReportError(formal.Origin,
             $"this parameter has to be nameonly, because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'; " +
             "declare it as nameonly or give it a default-value expression");
         }
@@ -1247,7 +1247,7 @@ namespace Microsoft.Dafny {
         // any type is fine, but associate this type with the corresponding _decreases<n> field
         var d = iter.DecreasesFields[i];
         // If the following type constraint does not hold, then: Bummer, there was a use--and a bad use--of the field before, so this won't be the best of error messages
-        AddSubtypeConstraint(d.PreType, e.PreType, e.Tok, "type of field '" + d.Name + "' is {1}, but has been constrained elsewhere to be of type {0}");
+        AddSubtypeConstraint(d.PreType, e.PreType, e.Origin, "type of field '" + d.Name + "' is {1}, but has been constrained elsewhere to be of type {0}");
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
         ResolveFrameExpression(fe, FrameExpressionUse.Reads, iter);
@@ -1464,7 +1464,7 @@ namespace Microsoft.Dafny {
         // Don't care about any duplication errors among the out-parameters, since they have already been reported
         scope.PushMarker();
         if (m is ExtremeLemma && m.Outs.Count != 0) {
-          ReportError(m.Outs[0].Tok, "{0}s are not allowed to have out-parameters", m.WhatKind);
+          ReportError(m.Outs[0].Origin, "{0}s are not allowed to have out-parameters", m.WhatKind);
         } else {
           foreach (Formal p in m.Outs) {
             ScopePushAndReport(p, "out-parameter", false);
@@ -1577,11 +1577,11 @@ namespace Microsoft.Dafny {
               $"an unchanged {expressionMustDenoteObject} or {collection} {instead}",
             _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
           };
-          ReportError(fe.E.Tok, errorMsgFormat, fe.E.PreType);
+          ReportError(fe.E.Origin, errorMsgFormat, fe.E.PreType);
         }
 
         if (fe.FieldName != null) {
-          var (member, tentativeReceiverType) = FindMember(fe.E.Tok, dp, fe.FieldName, resolutionContext);
+          var (member, tentativeReceiverType) = FindMember(fe.E.Origin, dp, fe.FieldName, resolutionContext);
           Contract.Assert((member == null) == (tentativeReceiverType == null)); // follows from contract of FindMember
           if (member == null) {
             // error has already been reported by FindMember
@@ -1665,15 +1665,15 @@ namespace Microsoft.Dafny {
       protected override void VisitOneExpr(Expression expr) {
         // compare expr.PreType and expr.Type
         if (expr.PreType == null) {
-          preTypeResolver.ReportWarning(expr.Tok, $"sanity check WARNING: no pre-type was computed");
+          preTypeResolver.ReportWarning(expr.Origin, $"sanity check WARNING: no pre-type was computed");
         } else if (expr.Type == null) {
-          preTypeResolver.ReportError(expr.Tok, $"SANITY CHECK FAILED: .PreType is '{expr.PreType}' but .Type is null");
+          preTypeResolver.ReportError(expr.Origin, $"SANITY CHECK FAILED: .PreType is '{expr.PreType}' but .Type is null");
         } else if (PreType.Same(expr.PreType, preTypeResolver.Type2PreType(expr.Type))) {
           // all is cool
         } else if (expr.PreType is MethodPreType && expr.Type is TypeProxy) {
           // this is expected
         } else {
-          preTypeResolver.ReportError(expr.Tok, $"SANITY CHECK FAILED: pre-type '{expr.PreType}' does not correspond to type '{expr.Type}'");
+          preTypeResolver.ReportError(expr.Origin, $"SANITY CHECK FAILED: pre-type '{expr.PreType}' does not correspond to type '{expr.Type}'");
         }
       }
     }

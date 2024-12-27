@@ -133,11 +133,11 @@ public class ArrowType : UserDefinedType {
   }
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    return new ArrowType(Tok, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
+    return new ArrowType(Origin, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
   }
 
   public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new ArrowType(Tok, (ArrowTypeDecl)ResolvedClass, arguments);
+    return new ArrowType(Origin, (ArrowTypeDecl)ResolvedClass, arguments);
   }
 
   public override bool SupportsEquality {

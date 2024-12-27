@@ -108,7 +108,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
         }
       }
       if (isEffectful && firstEffectfulRhs == null) {
-        firstEffectfulRhs = rhs.Tok;
+        firstEffectfulRhs = rhs.Origin;
       }
 
       resolver.ResolveAttributes(rhs, resolutionContext);
@@ -143,7 +143,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
           var tr = (TypeRhs)Rhss[0];
           Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
           if (tr.CanAffectPreviouslyKnownExpressions) {
-            resolver.Reporter.Error(MessageSource.Resolver, tr.Tok, "can only have initialization methods which modify at most 'this'.");
+            resolver.Reporter.Error(MessageSource.Resolver, tr.Origin, "can only have initialization methods which modify at most 'this'.");
           } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
             var a = new SingleAssignStmt(Origin, Lhss[0].Resolved, tr);
             ResolvedStatements.Add(a);
@@ -159,7 +159,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
         // must be a single TypeRhs
         if (Lhss.Count != 1) {
           Contract.Assert(2 <= Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-          resolver.Reporter.Error(MessageSource.Resolver, Lhss[1].Tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
+          resolver.Reporter.Error(MessageSource.Resolver, Lhss[1].Origin, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
         } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
           var a = new SingleAssignStmt(Origin, Lhss[0].Resolved, Rhss[0]);
           ResolvedStatements.Add(a);

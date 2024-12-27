@@ -280,7 +280,7 @@ namespace Microsoft.Dafny {
               }
             } else if (member is Function function) {
               CheckFormals(function.Ins, function.IsGhost, visitor);
-              visitor.VisitType(function.Result?.Tok ?? function.Tok, function.ResultType, function.IsGhost);
+              visitor.VisitType((function.Result != null ? function.Result.Origin : null) ?? function.Tok, function.ResultType, function.IsGhost);
               CheckSpecification(function.Req, function.Reads, function.Ens, function.Decreases, visitor);
               if (function.Body != null) {
                 visitor.Visit(function.Body, function.IsGhost);
@@ -306,7 +306,7 @@ namespace Microsoft.Dafny {
 
     private static void CheckFormals(List<Formal> formals, bool isGhostContext, CheckTypeCharacteristics_Visitor visitor) {
       foreach (var p in formals) {
-        visitor.VisitType(p.Tok, p.Type, isGhostContext || p.IsGhost);
+        visitor.VisitType(p.Origin, p.Type, isGhostContext || p.IsGhost);
         if (p.DefaultValue != null) {
           visitor.Visit(p.DefaultValue, isGhostContext || p.IsGhost);
         }

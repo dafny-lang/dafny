@@ -61,7 +61,7 @@ public abstract class DefaultValueExpression : ConcreteSyntaxExpression {
         resolver.reporter.Error(MessageSource.Resolver, this,
           "default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion");
         // nevertheless, to avoid any issues in the resolver, fill in the .ResolvedExpression field with something
-        this.ResolvedExpression = Expression.CreateBoolLiteral(this.Tok, false);
+        this.ResolvedExpression = Expression.CreateBoolLiteral(this.Origin, false);
       }
       return;
     }

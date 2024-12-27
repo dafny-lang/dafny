@@ -571,19 +571,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(prev != null);
 
       if (nw.Requires.Count != 0) {
-        Error(ErrorId.ref_no_new_iterator_preconditions, nw.Requires[0].E.Tok, "a refining iterator is not allowed to add preconditions");
+        Error(ErrorId.ref_no_new_iterator_preconditions, nw.Requires[0].E.Origin, "a refining iterator is not allowed to add preconditions");
       }
       if (nw.YieldRequires.Count != 0) {
-        Error(ErrorId.ref_no_new_iterator_yield_preconditions, nw.YieldRequires[0].E.Tok, "a refining iterator is not allowed to add yield preconditions");
+        Error(ErrorId.ref_no_new_iterator_yield_preconditions, nw.YieldRequires[0].E.Origin, "a refining iterator is not allowed to add yield preconditions");
       }
       if (nw.Reads.Expressions.Count != 0) {
-        Error(ErrorId.ref_no_new_iterator_reads, nw.Reads.Expressions[0].E.Tok, "a refining iterator is not allowed to extend the reads clause");
+        Error(ErrorId.ref_no_new_iterator_reads, nw.Reads.Expressions[0].E.Origin, "a refining iterator is not allowed to extend the reads clause");
       }
       if (nw.Modifies.Expressions.Count != 0) {
-        Error(ErrorId.ref_no_new_iterator_modifies, nw.Modifies.Expressions[0].E.Tok, "a refining iterator is not allowed to extend the modifies clause");
+        Error(ErrorId.ref_no_new_iterator_modifies, nw.Modifies.Expressions[0].E.Origin, "a refining iterator is not allowed to extend the modifies clause");
       }
       if (nw.Decreases.Expressions.Count != 0) {
-        Error(ErrorId.ref_no_new_iterator_decreases, nw.Decreases.Expressions[0].Tok, "a refining iterator is not allowed to extend the decreases clause");
+        Error(ErrorId.ref_no_new_iterator_decreases, nw.Decreases.Expressions[0].Origin, "a refining iterator is not allowed to extend the decreases clause");
       }
 
       if (nw.SignatureIsOmitted) {
@@ -701,13 +701,13 @@ namespace Microsoft.Dafny {
             } else {
               var prevFunction = (Function)member;
               if (f.Req.Count != 0) {
-                Error(ErrorId.ref_refinement_no_new_preconditions, f.Req[0].E.Tok, "a refining {0} is not allowed to add preconditions", f.WhatKind);
+                Error(ErrorId.ref_refinement_no_new_preconditions, f.Req[0].E.Origin, "a refining {0} is not allowed to add preconditions", f.WhatKind);
               }
               if (f.Reads.Expressions.Count != 0) {
-                Error(ErrorId.ref_refinement_no_new_reads, f.Reads.Expressions[0].E.Tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
+                Error(ErrorId.ref_refinement_no_new_reads, f.Reads.Expressions[0].E.Origin, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
               }
               if (f.Decreases.Expressions.Count != 0) {
-                Error(ErrorId.ref_no_new_decreases, f.Decreases.Expressions[0].Tok, "decreases clause on refining {0} not supported", f.WhatKind);
+                Error(ErrorId.ref_no_new_decreases, f.Decreases.Expressions[0].Origin, "decreases clause on refining {0} not supported", f.WhatKind);
               }
 
               if (prevFunction.HasStaticKeyword != f.HasStaticKeyword) {
@@ -754,13 +754,13 @@ namespace Microsoft.Dafny {
             } else {
               var prevMethod = (Method)member;
               if (m.Req.Count != 0) {
-                Error(ErrorId.ref_no_new_method_precondition, m.Req[0].E.Tok, "a refining method is not allowed to add preconditions");
+                Error(ErrorId.ref_no_new_method_precondition, m.Req[0].E.Origin, "a refining method is not allowed to add preconditions");
               }
               if (m.Reads.Expressions.Count != 0) {
-                Error(ErrorId.ref_no_new_method_reads, m.Reads.Expressions[0].E.Tok, "a refining method is not allowed to extend the reads clause");
+                Error(ErrorId.ref_no_new_method_reads, m.Reads.Expressions[0].E.Origin, "a refining method is not allowed to extend the reads clause");
               }
               if (m.Mod.Expressions.Count != 0) {
-                Error(ErrorId.ref_no_new_method_modifies, m.Mod.Expressions[0].E.Tok, "a refining method is not allowed to extend the modifies clause");
+                Error(ErrorId.ref_no_new_method_modifies, m.Mod.Expressions[0].E.Origin, "a refining method is not allowed to extend the modifies clause");
               }
               // If the previous method was not specified with "decreases *", then the new method is not allowed to provide any "decreases" clause.
               // Any "decreases *" clause is not inherited, so if the previous method was specified with "decreases *", then the new method needs
@@ -773,7 +773,7 @@ namespace Microsoft.Dafny {
               } else {
                 if (!Contract.Exists(prevMethod.Decreases.Expressions, e => e is WildcardExpr)) {
                   // If the previous loop was not specified with "decreases *", then the new loop is not allowed to provide any "decreases" clause.
-                  Error(ErrorId.ref_no_new_method_decreases, m.Decreases.Expressions[0].Tok, "decreases clause on refining method not supported, unless the refined method was specified with 'decreases *'");
+                  Error(ErrorId.ref_no_new_method_decreases, m.Decreases.Expressions[0].Origin, "decreases clause on refining method not supported, unless the refined method was specified with 'decreases *'");
                 }
                 decreases = m.Decreases;
               }
@@ -903,23 +903,23 @@ namespace Microsoft.Dafny {
           var o = old[i];
           var n = nw[i];
           if (o.Name != n.Name) {
-            Error(ErrorId.ref_mismatched_kind_name, n.Tok, "there is a difference in name of {0} {1} ('{2}' versus '{3}') of {4} {5} compared to corresponding {4} in the module it refines", parameterKind, i, n.Name, o.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_name, n.Origin, "there is a difference in name of {0} {1} ('{2}' versus '{3}') of {4} {5} compared to corresponding {4} in the module it refines", parameterKind, i, n.Name, o.Name, thing, name);
           } else if (!o.IsGhost && n.IsGhost) {
-            Error(ErrorId.ref_mismatched_kind_ghost, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-ghost to ghost", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_ghost, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-ghost to ghost", parameterKind, n.Name, thing, name);
           } else if (o.IsGhost && !n.IsGhost) {
-            Error(ErrorId.ref_mismatched_kind_non_ghost, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from ghost to non-ghost", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_non_ghost, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from ghost to non-ghost", parameterKind, n.Name, thing, name);
           } else if (!o.IsOld && n.IsOld) {
-            Error(ErrorId.ref_mismatched_kind_non_new, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from new to non-new", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_non_new, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from new to non-new", parameterKind, n.Name, thing, name);
           } else if (o.IsOld && !n.IsOld) {
-            Error(ErrorId.ref_mismatched_kind_new, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-new to new", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_new, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-new to new", parameterKind, n.Name, thing, name);
           } else if (!o.IsOlder && n.IsOlder) {
-            Error(ErrorId.ref_mismatched_kind_older, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-older to older", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_older, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-older to older", parameterKind, n.Name, thing, name);
           } else if (o.IsOlder && !n.IsOlder) {
-            Error(ErrorId.ref_mismatched_kind_non_older, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from older to non-older", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_non_older, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from older to non-older", parameterKind, n.Name, thing, name);
           } else if (!TypesAreSyntacticallyEqual(o.Type, n.Type)) {
-            Error(ErrorId.ref_mismatched_parameter_type, n.Tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
+            Error(ErrorId.ref_mismatched_parameter_type, n.Origin, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
           } else if (n.DefaultValue != null) {
-            Error(ErrorId.ref_refined_formal_may_not_have_default, n.Tok, "a refining formal parameter ('{0}') in a refinement module is not allowed to give a default-value expression", n.Name);
+            Error(ErrorId.ref_refined_formal_may_not_have_default, n.Origin, "a refining formal parameter ('{0}') in a refinement module is not allowed to give a default-value expression", n.Name);
           }
         }
       }
@@ -1124,7 +1124,7 @@ namespace Microsoft.Dafny {
                   Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(Reporter.Options, false, oldWhile.Guard));
                 } else {
                   if (oldWhile.Guard != null) {
-                    Error(ErrorId.ref_mismatched_while_statement_guard, skel.Guard.Tok, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
+                    Error(ErrorId.ref_mismatched_while_statement_guard, skel.Guard.Origin, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
                   }
                   guard = skel.Guard;
                 }
@@ -1433,7 +1433,7 @@ namespace Microsoft.Dafny {
       } else {
         if (!Contract.Exists(cOld.Decreases.Expressions, e => e is WildcardExpr)) {
           // If the previous loop was not specified with "decreases *", then the new loop is not allowed to provide any "decreases" clause.
-          Error(ErrorId.ref_mismatched_loop_decreases, cNew.Decreases.Expressions[0].Tok, "a refining loop can provide a decreases clause only if the loop being refined was declared with 'decreases *'");
+          Error(ErrorId.ref_mismatched_loop_decreases, cNew.Decreases.Expressions[0].Origin, "a refining loop can provide a decreases clause only if the loop being refined was declared with 'decreases *'");
         }
         decr = cNew.Decreases;
       }
@@ -1550,23 +1550,23 @@ namespace Microsoft.Dafny {
           Contract.Assert(ident.Var is LocalVariable || ident.Var is Formal); // LHS identifier expressions must be locals or out parameters (ie. formals)
           if ((ident.Var is LocalVariable && ((LocalVariable)ident.Var).Tok.IsInherited(m)) || ident.Var is Formal) {
             // for some reason, formals are not considered to be inherited.
-            Error(ErrorId.ref_invalid_variable_assignment, l.Tok, "refinement method cannot assign to variable defined in parent module ('{0}')", ident.Var.Name);
+            Error(ErrorId.ref_invalid_variable_assignment, l.Origin, "refinement method cannot assign to variable defined in parent module ('{0}')", ident.Var.Name);
           }
         } else if (l is MemberSelectExpr) {
           var member = ((MemberSelectExpr)l).Member;
           if (member.Tok.IsInherited(m)) {
-            Error(ErrorId.ref_invalid_field_assignment, l.Tok, "refinement method cannot assign to a field defined in parent module ('{0}')", member.Name);
+            Error(ErrorId.ref_invalid_field_assignment, l.Origin, "refinement method cannot assign to a field defined in parent module ('{0}')", member.Name);
           }
         } else {
           // must be an array element
-          Error(ErrorId.ref_invalid_new_assignments, l.Tok, "new assignments in a refinement method can only assign to state that the module defines (which never includes array elements)");
+          Error(ErrorId.ref_invalid_new_assignments, l.Origin, "new assignments in a refinement method can only assign to state that the module defines (which never includes array elements)");
         }
       }
       if (stmt is AssignStatement) {
         var s = (AssignStatement)stmt;
         foreach (var rhs in s.Rhss) {
           if (rhs.CanAffectPreviouslyKnownExpressions) {
-            Error(ErrorId.ref_invalid_assignment_rhs, rhs.Tok, "assignment RHS in refinement method is not allowed to affect previously defined state");
+            Error(ErrorId.ref_invalid_assignment_rhs, rhs.Origin, "assignment RHS in refinement method is not allowed to affect previously defined state");
           }
         }
       }
@@ -1657,14 +1657,14 @@ namespace Microsoft.Dafny {
         return CloneAttributes(prevAttrs);
       } else if (moreAttrs is UserSuppliedAttributes) {
         var usa = (UserSuppliedAttributes)moreAttrs;
-        return new UserSuppliedAttributes(Origin(usa.Tok), Origin(usa.OpenBrace), Origin(usa.CloseBrace), moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
+        return new UserSuppliedAttributes(Origin(usa.Origin), Origin(usa.OpenBrace), Origin(usa.CloseBrace), moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
       } else if (moreAttrs is UserSuppliedAtAttribute usaa) {
         var arg = CloneExpr(usaa.Arg);
         if (usaa.Arg.Type != null) { // The attribute has already been expanded
           arg.Type = usaa.Arg.Type;
           arg.PreType = usaa.Arg.PreType;
         }
-        return new UserSuppliedAtAttribute(Origin(usaa.Tok), arg, MergeAttributes(prevAttrs, moreAttrs.Prev)) {
+        return new UserSuppliedAtAttribute(Origin(usaa.Origin), arg, MergeAttributes(prevAttrs, moreAttrs.Prev)) {
           Builtin = usaa.Builtin
         };
       } else {

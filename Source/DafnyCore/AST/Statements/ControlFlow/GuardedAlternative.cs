@@ -16,7 +16,7 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(Tok != null);
+    Contract.Invariant(Origin != null);
     Contract.Invariant(Guard != null);
     Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
     Contract.Invariant(Body != null);

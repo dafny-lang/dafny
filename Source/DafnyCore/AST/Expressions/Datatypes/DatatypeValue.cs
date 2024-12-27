@@ -65,7 +65,7 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
     Arguments ?? Enumerable.Empty<Expression>();
 
   public IEnumerable<Reference> GetReferences() {
-    return Enumerable.Repeat(new Reference(Tok, Ctor), 1);
+    return Enumerable.Repeat(new Reference(Origin, Ctor), 1);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

@@ -328,7 +328,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       // Don't care about any duplication errors among the out-parameters, since they have already been reported
       resolver.scope.PushMarker();
       if (this is ExtremeLemma && Outs.Count != 0) {
-        resolver.reporter.Error(MessageSource.Resolver, Outs[0].Tok, "{0}s are not allowed to have out-parameters", WhatKind);
+        resolver.reporter.Error(MessageSource.Resolver, Outs[0].Origin, "{0}s are not allowed to have out-parameters", WhatKind);
       } else {
         foreach (Formal p in Outs) {
           resolver.scope.Push(p.Name, p);
@@ -489,7 +489,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
             Body.Body.Insert(0, revealStmt.RevealStmt);
           }
 
-          reqExpr = new StmtExpr(reqExpr.Tok, revealStmt.RevealStmt, reqExpr) {
+          reqExpr = new StmtExpr(reqExpr.Origin, revealStmt.RevealStmt, reqExpr) {
             Type = Type.Bool
           };
         } else {

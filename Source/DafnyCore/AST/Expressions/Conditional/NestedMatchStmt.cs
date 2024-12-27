@@ -23,7 +23,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     foreach (var c in Cases) {
       if (!Attributes.Contains(c.Attributes, "split")) {
         List<Expression> args = new List<Expression>();
-        args.Add(Expression.CreateBoolLiteral(c.Tok, splitMatch));
+        args.Add(Expression.CreateBoolLiteral(c.Origin, splitMatch));
         Attributes attrs = new Attributes("split", args, c.Attributes);
         c.Attributes = attrs;
       }
@@ -101,7 +101,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
 
     var errorCount = resolver.Reporter.Count(ErrorLevel.Error);
-    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.Tok, Source.Type).NormalizeExpand();
+    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.Origin, Source.Type).NormalizeExpand();
     CheckLinearNestedMatchStmt(sourceType, resolutionContext, resolver);
     if (resolver.Reporter.Count(ErrorLevel.Error) != errorCount) {
       return;

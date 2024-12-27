@@ -36,7 +36,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     var afterResolveErrorCount = resolver.reporter.ErrorCount;
     if (beforeResolveErrorCount == afterResolveErrorCount) {
       resolver.ResolveExpression(Body, resolutionContext);
-      resolver.ConstrainSubtypeRelation(resultType, Body.Type, Body.Tok, "type of case bodies do not agree (found {0}, previous types {1})", Body.Type, resultType);
+      resolver.ConstrainSubtypeRelation(resultType, Body.Type, Body.Origin, "type of case bodies do not agree (found {0}, previous types {1})", Body.Type, resultType);
     }
   }
 

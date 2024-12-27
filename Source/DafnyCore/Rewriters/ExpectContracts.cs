@@ -37,7 +37,7 @@ public class ExpectContracts : IRewriter {
   /// failure message.</param>
   /// <returns>The newly-created expect statement.</returns>
   private Statement CreateContractExpectStatement(AttributedExpression expr, string exprType) {
-    var tok = expr.E.Tok;
+    var tok = expr.E.Origin;
     var msg = $"Runtime failure of {exprType} clause from {tok.TokenToString(Reporter.Options)}";
     var exprToCheck = expr.E;
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {

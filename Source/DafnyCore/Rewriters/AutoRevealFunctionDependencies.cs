@@ -264,7 +264,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
           if (func.IsMadeImplicitlyOpaque(Options)) {
 
             var revealStmt0 = BuildRevealStmt(func,
-              expr.Tok, enclosingModule);
+              expr.Origin, enclosingModule);
 
             if (revealStmt0 is not null) {
               revealStmtList.Add(new RevealStmtWithDepth(revealStmt0, 1));
@@ -274,7 +274,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
           foreach (var newFunc in GetEnumerator(func, func.EnclosingClass, new List<Expression> { expr },
                      enclosingModule)) {
 
-            var revealStmt1 = BuildRevealStmt(newFunc.Function, expr.Tok, enclosingModule);
+            var revealStmt1 = BuildRevealStmt(newFunc.Function, expr.Origin, enclosingModule);
 
             if (revealStmt1 is not null) {
               revealStmtList.Add(new RevealStmtWithDepth(revealStmt1, newFunc.Depth));
@@ -294,7 +294,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     foreach (var revealStmt in revealStmtList) {
       var oldExpr = finalExpr;
 
-      finalExpr = new StmtExpr(expr.Tok, revealStmt.RevealStmt, oldExpr) {
+      finalExpr = new StmtExpr(expr.Origin, revealStmt.RevealStmt, oldExpr) {
         Type = oldExpr.Type
       };
     }

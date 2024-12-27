@@ -65,13 +65,13 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
       resolver.PartiallySolveTypeConstraints(true);
 
       if (Source.Type is TypeProxy) {
-        resolver.reporter.Error(MessageSource.Resolver, Tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
+        resolver.reporter.Error(MessageSource.Resolver, Origin, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
         return;
       }
     }
 
     var errorCount = resolver.reporter.Count(ErrorLevel.Error);
-    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.Tok, Source.Type).NormalizeExpand();
+    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.Origin, Source.Type).NormalizeExpand();
     if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
     }

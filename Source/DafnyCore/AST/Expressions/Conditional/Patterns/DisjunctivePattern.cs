@@ -29,7 +29,7 @@ public class DisjunctivePattern : ExtendedPattern {
     bool inPattern, bool inDisjunctivePattern) {
 
     if (inPattern) {
-      resolver.reporter.Error(MessageSource.Resolver, Tok, "Disjunctive patterns are not allowed inside other patterns");
+      resolver.reporter.Error(MessageSource.Resolver, Origin, "Disjunctive patterns are not allowed inside other patterns");
     }
 
     foreach (var alternative in Alternatives) {

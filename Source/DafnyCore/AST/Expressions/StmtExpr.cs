@@ -65,9 +65,9 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
       case CalcStmt stmt:
         return stmt.Result;
       case HideRevealStmt:
-        return CreateBoolLiteral(Tok, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
+        return CreateBoolLiteral(Origin, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
       case AssignStatement:
-        return CreateBoolLiteral(Tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
+        return CreateBoolLiteral(Origin, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
       case BlockByProofStmt stmt:
         return GetStatementConclusion(stmt.Body);
       default:

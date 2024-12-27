@@ -36,7 +36,7 @@ public class FrameExpression : TokenNode, IHasReferences {
   }
 
   public FrameExpression(Cloner cloner, FrameExpression original) {
-    this.tok = cloner.Origin(original.Tok);
+    this.tok = cloner.Origin(original.Origin);
     OriginalExpression = cloner.CloneExpr(original.OriginalExpression);
     FieldName = original.FieldName;
 
@@ -51,6 +51,6 @@ public class FrameExpression : TokenNode, IHasReferences {
   public override IEnumerable<INode> Children => new[] { E };
   public override IEnumerable<INode> PreResolveChildren => Children;
   public IEnumerable<Reference> GetReferences() {
-    return Field == null ? Enumerable.Empty<Reference>() : new[] { new Reference(Tok, Field) };
+    return Field == null ? Enumerable.Empty<Reference>() : new[] { new Reference(Origin, Field) };
   }
 }

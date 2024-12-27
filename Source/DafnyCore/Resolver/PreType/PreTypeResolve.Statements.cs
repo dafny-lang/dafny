@@ -169,14 +169,14 @@ namespace Microsoft.Dafny {
             foreach (Formal f in cmc.Outs) {
               Expression produceLhs;
               if (stmt is ReturnStmt) {
-                var ident = new IdentifierExpr(f.Tok, f.Name);
+                var ident = new IdentifierExpr(f.Origin, f.Name);
                 // resolve it here to avoid capture into more closely declared local variables
                 Contract.Assert(f.Type != null);
                 ident.Var = f;
                 ident.PreType = Type2PreType(ident.Var.Type);
                 produceLhs = ident;
               } else {
-                var yieldIdent = new ExprDotName(f.Tok, new ImplicitThisExpr(f.Tok), new Name(f.Name), null);
+                var yieldIdent = new ExprDotName(f.Origin, new ImplicitThisExpr(f.Origin), new Name(f.Name), null);
                 ResolveExpression(yieldIdent, resolutionContext);
                 produceLhs = yieldIdent;
               }
@@ -212,7 +212,7 @@ namespace Microsoft.Dafny {
         }
         if (c == 0) {
           // Every identifier-looking thing in the pattern resolved to a constructor; that is, this LHS is a constant literal
-          ReportError(s.LHS.Tok, "LHS is a constant literal; to be legal, it must introduce at least one bound variable");
+          ReportError(s.LHS.Origin, "LHS is a constant literal; to be legal, it must introduce at least one bound variable");
         }
 
       } else if (stmt is SingleAssignStmt) {
@@ -288,7 +288,7 @@ namespace Microsoft.Dafny {
         int prevErrorCount = ErrorCount;
         scope.PushMarker();
         foreach (BoundVar v in s.BoundVars) {
-          resolver.ResolveType(v.Tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          resolver.ResolveType(v.Origin, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           ScopePushAndReport(v, "local-variable");
         }
         ResolveExpression(s.Range, resolutionContext);
@@ -331,7 +331,7 @@ namespace Microsoft.Dafny {
 
               var rhs = ((SingleAssignStmt)s0).Rhs;
               if (rhs is TypeRhs) {
-                ReportError(rhs.Tok, "new allocation not supported in aggregate assignments");
+                ReportError(rhs.Origin, "new allocation not supported in aggregate assignments");
               }
 
             } else if (s0 is CallStmt) {
@@ -422,19 +422,19 @@ namespace Microsoft.Dafny {
       }
       if (s is ForLoopStmt forS) {
         var loopIndex = forS.LoopIndex;
-        resolver.ResolveType(loopIndex.Tok, loopIndex.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+        resolver.ResolveType(loopIndex.Origin, loopIndex.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         loopIndex.PreType = Type2PreType(loopIndex.Type);
-        AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, loopIndex.PreType, loopIndex.Tok, "index variable is expected to be of an integer type (got {0})");
+        AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, loopIndex.PreType, loopIndex.Origin, "index variable is expected to be of an integer type (got {0})");
 
         ResolveExpression(forS.Start, resolutionContext);
-        AddSubtypeConstraint(loopIndex.PreType, forS.Start.PreType, forS.Start.Tok,
+        AddSubtypeConstraint(loopIndex.PreType, forS.Start.PreType, forS.Start.Origin,
           "lower bound (of type {1}) not assignable to index variable (of type {0})");
         if (forS.End != null) {
           ResolveExpression(forS.End, resolutionContext);
-          AddSubtypeConstraint(loopIndex.PreType, forS.End.PreType, forS.End.Tok,
+          AddSubtypeConstraint(loopIndex.PreType, forS.End.PreType, forS.End.Origin,
             "upper bound (of type {1}) not assignable to index variable (of type {0})");
           if (forS.Decreases.Expressions.Count != 0) {
-            ReportError(forS.Decreases.Expressions[0].Tok,
+            ReportError(forS.Decreases.Expressions[0].Origin,
               "a 'for' loop is allowed an explicit 'decreases' clause only if the end-expression is '*'");
           }
         } else if (forS.Decreases.Expressions.Count == 0 && !resolutionContext.CodeContext.AllowsNontermination) {
@@ -480,7 +480,7 @@ namespace Microsoft.Dafny {
         PreType linePreType = CreatePreTypeProxy("calc line");
         var e0 = s.Lines.First();
         ResolveExpression(e0, resolutionContext);
-        AddSubtypeConstraint(linePreType, e0.PreType, e0.Tok, "all lines in a calculation must have the same type (got {1} after {0})");
+        AddSubtypeConstraint(linePreType, e0.PreType, e0.Origin, "all lines in a calculation must have the same type (got {1} after {0})");
         for (var i = 1; i < s.Lines.Count; i++) {
           var e1 = s.Lines[i];
           ResolveExpression(e1, resolutionContext);
@@ -488,7 +488,7 @@ namespace Microsoft.Dafny {
           // reuse the error object if we're on the dummy line; this prevents a duplicate error message
 #endif
           if (i < s.Lines.Count - 1) {
-            AddSubtypeConstraint(linePreType, e1.PreType, e1.Tok, "all lines in a calculation must have the same type (got {1} after {0})");
+            AddSubtypeConstraint(linePreType, e1.PreType, e1.Origin, "all lines in a calculation must have the same type (got {1} after {0})");
           }
           var step = (s.StepOps[i - 1] ?? s.Op).StepExpr(e0, e1); // Use custom line operator
           ResolveExpression(step, resolutionContext);
@@ -638,7 +638,7 @@ namespace Microsoft.Dafny {
         }
 
         if (isEffectful && firstEffectfulRhs == null) {
-          firstEffectfulRhs = rhs.Tok;
+          firstEffectfulRhs = rhs.Origin;
         }
 
         ResolveAttributes(rhs, resolutionContext, false);
@@ -674,7 +674,7 @@ namespace Microsoft.Dafny {
             var tr = (TypeRhs)update.Rhss[0];
             Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
             if (tr.CanAffectPreviouslyKnownExpressions) {
-              ReportError(tr.Tok, "can only have initialization methods which modify at most 'this'.");
+              ReportError(tr.Origin, "can only have initialization methods which modify at most 'this'.");
             } else if (ErrorCount == errorCountBeforeCheckingStmt) {
               var a = new SingleAssignStmt(update.Origin, update.Lhss[0].Resolved, tr);
               update.ResolvedStatements.Add(a);
@@ -693,7 +693,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(2 <=
                             update.Lhss
                               .Count); // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-            ReportError(update.Lhss[1].Tok,
+            ReportError(update.Lhss[1].Origin,
               "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
               update.Lhss.Count, update.Rhss.Count);
           } else if (ErrorCount == errorCountBeforeCheckingStmt) {
@@ -874,7 +874,7 @@ namespace Microsoft.Dafny {
             var typeMap = PreType.PreTypeSubstMap(callee.TypeArgs, methodCallInfo.Callee.PreTypeApplicationJustMember);
             firstPreType = callee.Outs[0].PreType.Substitute(typeMap);
           } else {
-            ReportError(s.Rhs.Tok, $"Expected '{callee.Name}' to have a success/failure output value, but the method returns nothing.");
+            ReportError(s.Rhs.Origin, $"Expected '{callee.Name}' to have a success/failure output value, but the method returns nothing.");
           }
         } else {
           // We're looking at a call to a function. Treat it like any other expression.
@@ -932,7 +932,7 @@ namespace Microsoft.Dafny {
       Expression lhsExtract = null;
       if (expectExtract) {
         if (enclosingMethod.Outs.Count == 0 && s.KeywordToken == null) {
-          ReportError(s.Rhs.Tok, $"Expected {enclosingMethod.Name} to have a Success/Failure output value");
+          ReportError(s.Rhs.Origin, $"Expected {enclosingMethod.Name} to have a Success/Failure output value");
           return;
         }
 
@@ -942,7 +942,7 @@ namespace Microsoft.Dafny {
         if (lhsResolved is MemberSelectExpr lexr) {
           Expression id = Expression.AsThis(lexr.Obj) != null ? lexr.Obj : resolver.makeTemp("recv", s, resolutionContext, lexr.Obj);
           var lex = lhsExtract as ExprDotName; // might be just a NameSegment
-          lhsExtract = new ExprDotName(lexr.Tok, id, lexr.MemberNameNode, lex?.OptTypeArguments);
+          lhsExtract = new ExprDotName(lexr.Origin, id, lexr.MemberNameNode, lex?.OptTypeArguments);
         } else if (lhsResolved is SeqSelectExpr lseq) {
           if (!lseq.SelectOne || lseq.E0 == null) {
             ReportError(s.Tok, "Element ranges not allowed as l-values");
@@ -950,7 +950,7 @@ namespace Microsoft.Dafny {
           }
           Expression id = resolver.makeTemp("recv", s, resolutionContext, lseq.Seq);
           Expression id0 = id0 = resolver.makeTemp("idx", s, resolutionContext, lseq.E0);
-          lhsExtract = new SeqSelectExpr(lseq.Tok, lseq.SelectOne, id, id0, null, lseq.CloseParen);
+          lhsExtract = new SeqSelectExpr(lseq.Origin, lseq.SelectOne, id, id0, null, lseq.CloseParen);
           lhsExtract.Type = lseq.Type;
         } else if (lhsResolved is MultiSelectExpr lmulti) {
           Expression id = resolver.makeTemp("recv", s, resolutionContext, lmulti.Array);
@@ -959,7 +959,7 @@ namespace Microsoft.Dafny {
             Expression idx = resolver.makeTemp("idx", s, resolutionContext, i);
             idxs.Add(idx);
           }
-          lhsExtract = new MultiSelectExpr(lmulti.Tok, id, idxs);
+          lhsExtract = new MultiSelectExpr(lmulti.Origin, id, idxs);
           lhsExtract.Type = lmulti.Type;
         } else if (lhsResolved is IdentifierExpr) {
           // do nothing
@@ -1119,7 +1119,7 @@ namespace Microsoft.Dafny {
         foreach (var dim in rr.ArrayDimensions) {
           ResolveExpression(dim, resolutionContext);
           var indexHint = dims == 1 ? "" : " for index " + i;
-          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, dim.PreType, dim.Tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, dim.PreType, dim.Origin,
             $"new must use an integer-based expression for the array size (got {{0}}{indexHint})");
           i++;
         }
@@ -1133,7 +1133,7 @@ namespace Microsoft.Dafny {
           resolver.SystemModuleManager.CreateArrowTypeDecl(dims);  // TODO: should this be done already in the parser?
           var indexPreTypes = Enumerable.Repeat(Type2PreType(resolver.SystemModuleManager.Nat()), dims).ToList();
           var arrowPreType = BuiltInArrowType(indexPreTypes, elementPreType);
-          Constraints.AddSubtypeConstraint(arrowPreType, rr.ElementInit.PreType, rr.ElementInit.Tok, () => {
+          Constraints.AddSubtypeConstraint(arrowPreType, rr.ElementInit.PreType, rr.ElementInit.Origin, () => {
             var hintString = !PreType.Same(arrowPreType, rr.ElementInit.PreType) ? "" :
               string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)",
               dims == 1 ? "_" : "(" + Util.Comma(dims, x => "_") + ")");
@@ -1142,7 +1142,7 @@ namespace Microsoft.Dafny {
         } else if (rr.InitDisplay != null) {
           foreach (var v in rr.InitDisplay) {
             ResolveExpression(v, resolutionContext);
-            AddSubtypeConstraint(elementPreType, v.PreType, v.Tok, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
+            AddSubtypeConstraint(elementPreType, v.PreType, v.Origin, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
           }
         }
       } else {
@@ -1152,7 +1152,7 @@ namespace Microsoft.Dafny {
           if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObjectQ)) {
             // life is good
           } else {
-            ReportError(rr.Tok, "new can be applied only to class types (got {0})", rr.EType);
+            ReportError(rr.Origin, "new can be applied only to class types (got {0})", rr.EType);
           }
         } else {
           string initCallName = null;
@@ -1161,23 +1161,23 @@ namespace Microsoft.Dafny {
           // * If rr.Path denotes a type, then set EType,initCallName to rr.Path,"_ctor", which sets up a call to the anonymous constructor.
           // * If the all-but-last components of rr.Path denote a type, then do EType,initCallName := allButLast(EType),last(EType)
           // * Otherwise, report an error
-          var ret = resolver.ResolveTypeLenient(rr.Tok, rr.Path, resolutionContext,
+          var ret = resolver.ResolveTypeLenient(rr.Origin, rr.Path, resolutionContext,
             new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
           if (ret != null) {
             // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
             rr.EType = ret.ReplacementType;
             initCallName = ret.LastComponent.SuffixName;
-            initCallTok = ret.LastComponent.Tok;
+            initCallTok = ret.LastComponent.Origin;
           } else {
             // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
             // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
             rr.EType = rr.Path;
             initCallName = "_ctor";
-            initCallTok = rr.Tok;
+            initCallTok = rr.Origin;
           }
           var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
           if (cl == null || rr.EType.IsTraitType) {
-            ReportError(rr.Tok, "new can be applied only to class types (got {0})", rr.EType);
+            ReportError(rr.Origin, "new can be applied only to class types (got {0})", rr.EType);
           } else {
             // ---------- new C.Init(EE)
             Contract.Assert(initCallName != null);
@@ -1193,7 +1193,7 @@ namespace Microsoft.Dafny {
               Type = rr.EType,
               PreType = rr.PreType
             };
-            var callLhs = new ExprDotName(((UserDefinedType)rr.EType).Tok, lhs, new Name(initCallName), ret?.LastComponent.OptTypeArguments);
+            var callLhs = new ExprDotName(((UserDefinedType)rr.EType).Origin, lhs, new Name(initCallName), ret?.LastComponent.OptTypeArguments);
             ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
             if (prevErrorCount == ErrorCount) {
               Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
@@ -1244,8 +1244,8 @@ namespace Microsoft.Dafny {
         }
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
-        var arrayType = resolver.ResolvedArrayType(ll.Seq.Tok, 1, new InferredTypeProxy(), resolutionContext, true);
-        AddSubtypeConstraint(Type2PreType(arrayType), ll.Seq.PreType, ll.Seq.Tok, "LHS of array assignment must denote an array element (found {1})");
+        var arrayType = resolver.ResolvedArrayType(ll.Seq.Origin, 1, new InferredTypeProxy(), resolutionContext, true);
+        AddSubtypeConstraint(Type2PreType(arrayType), ll.Seq.PreType, ll.Seq.Origin, "LHS of array assignment must denote an array element (found {1})");
         if (!ll.SelectOne) {
           ReportError(ll, "cannot assign to a range of array elements (try the 'forall' statement)");
         }

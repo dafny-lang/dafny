@@ -30,7 +30,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
       return NameNode.Value;
     }
   }
-  public string DafnyName => Origin == null || Tok.line == 0 ? Name : Origin.PrintOriginal();
+  public string DafnyName => Origin == null || Origin.line == 0 ? Name : Origin.PrintOriginal();
   public string DisplayName =>
     LocalVariable.DisplayNameHelper(this);
 

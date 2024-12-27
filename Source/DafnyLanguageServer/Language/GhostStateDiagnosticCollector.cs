@@ -92,7 +92,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       private static Range GetRange(AssignStatement updateStatement) {
         IOrigin startToken;
         if (updateStatement.Lhss.Count > 0) {
-          startToken = updateStatement.Lhss[0].Tok;
+          startToken = updateStatement.Lhss[0].Origin;
         } else if (updateStatement.ResolvedStatements.Count > 0) {
           // This branch handles the case where the UpdateStmt consists of an CallStmt without of left hand side.
           // otherwise, we'd only mark parentheses and the semi-colon of the CallStmt. 
@@ -105,7 +105,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
 
       private static IOrigin GetStartTokenFromResolvedStatement(Statement resolvedStatement) {
         return resolvedStatement switch {
-          CallStmt callStatement => callStatement.MethodSelect.Tok,
+          CallStmt callStatement => callStatement.MethodSelect.Origin,
           _ => resolvedStatement.Tok
         };
       }

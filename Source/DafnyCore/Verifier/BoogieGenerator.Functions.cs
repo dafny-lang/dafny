@@ -192,15 +192,15 @@ public partial class BoogieGenerator {
       }
     }
     foreach (Formal p in f.Ins) {
-      var bv = new Bpl.BoundVariable(p.Tok, new Bpl.TypedIdent(p.Tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(p.Type)));
-      Bpl.Expr formal = new Bpl.IdentifierExpr(p.Tok, bv);
+      var bv = new Bpl.BoundVariable(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(p.Type)));
+      Bpl.Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
       formals.Add(bv);
       olderInParams.Add(bv);
       args.Add(formal);
       // add well-typedness conjunct to antecedent
-      Bpl.Expr wh = GetWhereClause(p.Tok, formal, p.Type, p.IsOld ? etran.Old : etran, ISALLOC);
+      Bpl.Expr wh = GetWhereClause(p.Origin, formal, p.Type, p.IsOld ? etran.Old : etran, ISALLOC);
       if (wh != null) { ante = BplAnd(ante, wh); }
-      wh = GetWhereClause(p.Tok, formal, p.Type, p.IsOld ? etranHeap.Old : etranHeap, ISALLOC);
+      wh = GetWhereClause(p.Origin, formal, p.Type, p.IsOld ? etranHeap.Old : etranHeap, ISALLOC);
       if (wh != null) { anteIsAlloc = BplAnd(anteIsAlloc, wh); }
     }
 
@@ -479,18 +479,18 @@ public partial class BoogieGenerator {
     var substMap = new Dictionary<IVariable, Expression>();
     foreach (Formal p in f.Ins) {
       var pType = p.Type.Subst(typeMap);
-      bv = new Bpl.BoundVariable(p.Tok,
-        new Bpl.TypedIdent(p.Tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(pType)));
+      bv = new Bpl.BoundVariable(p.Origin,
+        new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(pType)));
       forallFormals.Add(bv);
       funcFormals.Add(bv);
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.Tok, bv));
-      Bpl.Expr formal = new Bpl.IdentifierExpr(p.Tok, bv);
+      Bpl.Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
       if (lits != null && lits.Contains(p) && !substMap.ContainsKey(p)) {
         args.Add(Lit(formal));
-        var ie = new IdentifierExpr(p.Tok, p.AssignUniqueName(f.IdGenerator));
+        var ie = new IdentifierExpr(p.Origin, p.AssignUniqueName(f.IdGenerator));
         ie.Var = p;
         ie.Type = ie.Var.Type;
-        var l = new UnaryOpExpr(p.Tok, UnaryOpExpr.Opcode.Lit, ie);
+        var l = new UnaryOpExpr(p.Origin, UnaryOpExpr.Opcode.Lit, ie);
         l.Type = ie.Var.Type;
         substMap.Add(p, l);
       } else {
@@ -498,12 +498,12 @@ public partial class BoogieGenerator {
       }
 
       // add well-typedness conjunct to antecedent
-      Bpl.Expr wh = GetWhereClause(p.Tok, formal, pType, p.IsOld ? etran.Old : etran, NOALLOC);
+      Bpl.Expr wh = GetWhereClause(p.Origin, formal, pType, p.IsOld ? etran.Old : etran, NOALLOC);
       if (wh != null) {
         ante = BplAnd(ante, wh);
       }
 
-      wh = GetWhereClause(p.Tok, formal, pType, etran, NOALLOC);
+      wh = GetWhereClause(p.Origin, formal, pType, etran, NOALLOC);
       if (wh != null) {
         anteReqAxiom = BplAnd(anteReqAxiom, wh);
       }
@@ -521,7 +521,7 @@ public partial class BoogieGenerator {
       Bpl.Expr preRA = Bpl.Expr.True;
       foreach (var formal in f.Ins) {
         if (formal.IsOld) {
-          var dafnyFormalIdExpr = new IdentifierExpr(formal.Tok, formal);
+          var dafnyFormalIdExpr = new IdentifierExpr(formal.Origin, formal);
           preRA = BplAnd(preRA, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, etran.Old.HeapExpr));
         }
 
@@ -949,11 +949,11 @@ public partial class BoogieGenerator {
     Bpl.Expr fwf0 = Bpl.Expr.True;
     Bpl.Expr fwf1 = Bpl.Expr.True;
     foreach (Formal p in f.Ins) {
-      Bpl.BoundVariable bv = new Bpl.BoundVariable(p.Tok, new Bpl.TypedIdent(p.Tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
+      Bpl.BoundVariable bv = new Bpl.BoundVariable(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
       bvars.Add(bv);
-      Bpl.Expr formal = new Bpl.IdentifierExpr(p.Tok, bv);
+      Bpl.Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
       f0args.Add(formal); f1args.Add(formal); f0argsCanCall.Add(formal); f1argsCanCall.Add(formal);
-      Bpl.Expr wh = GetWhereClause(p.Tok, formal, p.Type, etran0, useAlloc);
+      Bpl.Expr wh = GetWhereClause(p.Origin, formal, p.Type, etran0, useAlloc);
       if (wh != null) { fwf0 = BplAnd(fwf0, wh); }
     }
     var canCall = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.Tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool));

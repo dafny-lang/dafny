@@ -94,7 +94,7 @@ namespace Microsoft.Dafny {
     void MarkDefiniteAssignmentTracker(IdentifierExpr expr, BoogieStmtListBuilder builder) {
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);
-      MarkDefiniteAssignmentTracker(expr.Tok, expr.Var.UniqueName, builder);
+      MarkDefiniteAssignmentTracker(expr.Origin, expr.Var.UniqueName, builder);
     }
 
     void MarkDefiniteAssignmentTracker(IOrigin tok, string name, BoogieStmtListBuilder builder) {

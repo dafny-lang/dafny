@@ -562,7 +562,7 @@ namespace Microsoft.Dafny {
         // We ask Z3 to minimize all parameters of type 'nat'.
         foreach (var f in m.Ins) {
           if (f.Type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.Name == "nat") {
-            builder.Add(optimizeExpr(true, new IdentifierExpr(f.Tok, f), f.Tok, etran));
+            builder.Add(optimizeExpr(true, new IdentifierExpr(f.Origin, f), f.Origin, etran));
           }
         }
       }
@@ -597,11 +597,11 @@ namespace Microsoft.Dafny {
         foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
           var e = formal.DefaultValue;
           CheckWellformed(e, wfo, localVariables, builder, etran.WithReadsFrame(etran.readsFrame, null)); // No scope for default parameters
-          builder.Add(new Boogie.AssumeCmd(e.Tok, etran.CanCallAssumption(e)));
-          CheckSubrange(e.Tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
+          builder.Add(new Boogie.AssumeCmd(e.Origin, etran.CanCallAssumption(e)));
+          CheckSubrange(e.Origin, etran.TrExpr(e), e.Type, formal.Type, e, builder);
 
           if (formal.IsOld) {
-            Boogie.Expr wh = GetWhereClause(e.Tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+            Boogie.Expr wh = GetWhereClause(e.Origin, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
               var desc = new IsAllocated("default value", "in the two-state lemma's previous state", e);
               builder.Add(Assert(e.Origin, wh, desc, builder.Context));
@@ -680,7 +680,7 @@ namespace Microsoft.Dafny {
       // mark the end of the modifies/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
       // omit the CaptureState if there's no ensures clause)
       if (m.Ens.Count != 0) {
-        builder.AddCaptureState(m.Ens[0].E.Tok, false, "post-state");
+        builder.AddCaptureState(m.Ens[0].E.Origin, false, "post-state");
       }
 
       // check wellformedness of postconditions
@@ -723,9 +723,9 @@ namespace Microsoft.Dafny {
         foreach (var inFormal in m.Ins) {
           var dt = inFormal.Type.AsDatatype;
           if (dt != null) {
-            var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(inFormal.Tok, "$IsA#" + dt.FullSanitizedName, Boogie.Type.Bool));
-            var f = new Boogie.IdentifierExpr(inFormal.Tok, inFormal.AssignUniqueName(m.IdGenerator), TrType(inFormal.Type));
-            builder.Add(TrAssumeCmd(inFormal.Tok, new Boogie.NAryExpr(inFormal.Tok, funcID, new List<Boogie.Expr> { f })));
+            var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(inFormal.Origin, "$IsA#" + dt.FullSanitizedName, Boogie.Type.Bool));
+            var f = new Boogie.IdentifierExpr(inFormal.Origin, inFormal.AssignUniqueName(m.IdGenerator), TrType(inFormal.Type));
+            builder.Add(TrAssumeCmd(inFormal.Origin, new Boogie.NAryExpr(inFormal.Origin, funcID, new List<Boogie.Expr> { f })));
           }
         }
 
@@ -747,7 +747,7 @@ namespace Microsoft.Dafny {
             };
             receiverSubst = ie;
           } else {
-            CloneVariableAsBoundVar(iv.Tok, iv, "$ih#" + iv.Name, out bv, out var ie);
+            CloneVariableAsBoundVar(iv.Origin, iv, "$ih#" + iv.Name, out bv, out var ie);
             substMap.Add(iv, ie);
           }
           parBoundVars.Add(bv);
@@ -780,7 +780,7 @@ namespace Microsoft.Dafny {
           var decrCalleeDafny = new List<Expression>();
           var decrCallerDafny = new List<Expression>();
           foreach (var ee in m.Decreases.Expressions) {
-            decrToks.Add(ee.Tok);
+            decrToks.Add(ee.Origin);
             decrTypes.Add(ee.Type.NormalizeExpand());
             decrCallerDafny.Add(ee);
             decrCaller.Add(exprTran.TrExpr(ee));
@@ -866,13 +866,13 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < m.Ins.Count; i++) {
         // get corresponding formal in the class
-        var ie = new IdentifierExpr(m.Ins[i].Tok, m.Ins[i].AssignUniqueName(m.IdGenerator));
+        var ie = new IdentifierExpr(m.Ins[i].Origin, m.Ins[i].AssignUniqueName(m.IdGenerator));
         ie.Var = m.Ins[i]; ie.Type = ie.Var.Type;
         substMap.Add(m.OverriddenMethod.Ins[i], ie);
       }
       for (int i = 0; i < m.Outs.Count; i++) {
         // get corresponding formal in the class
-        var ie = new IdentifierExpr(m.Outs[i].Tok, m.Outs[i].AssignUniqueName(m.IdGenerator));
+        var ie = new IdentifierExpr(m.Outs[i].Origin, m.Outs[i].AssignUniqueName(m.IdGenerator));
         ie.Var = m.Outs[i]; ie.Type = ie.Var.Type;
         substMap.Add(m.OverriddenMethod.Outs[i], ie);
       }
@@ -978,8 +978,8 @@ namespace Microsoft.Dafny {
       }
       foreach (Formal p in f.Ins) {
         Boogie.Type varType = TrType(p.Type);
-        Boogie.Expr wh = GetWhereClause(p.Tok, new Boogie.IdentifierExpr(p.Tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, etran, NOALLOC);
-        inParams.Add(new Boogie.Formal(p.Tok, new Boogie.TypedIdent(p.Tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));
+        Boogie.Expr wh = GetWhereClause(p.Origin, new Boogie.IdentifierExpr(p.Origin, p.AssignUniqueName(f.IdGenerator), varType), p.Type, etran, NOALLOC);
+        inParams.Add(new Boogie.Formal(p.Origin, new Boogie.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), varType, wh), true));
       }
 
       Formal pOut = null;
@@ -990,11 +990,11 @@ namespace Microsoft.Dafny {
         } else {
           var pp = f.OverriddenFunction.Result;
           Contract.Assert(!pp.IsOld);
-          pOut = new Formal(pp.Tok, pp.NameNode, f.ResultType, false, pp.IsGhost, null);
+          pOut = new Formal(pp.Origin, pp.NameNode, f.ResultType, false, pp.IsGhost, null);
         }
         var varType = TrType(pOut.Type);
-        var wh = GetWhereClause(pOut.Tok, new Boogie.IdentifierExpr(pOut.Tok, pOut.AssignUniqueName(f.IdGenerator), varType), pOut.Type, etran, NOALLOC);
-        outParams.Add(new Boogie.Formal(pOut.Tok, new Boogie.TypedIdent(pOut.Tok, pOut.AssignUniqueName(f.IdGenerator), varType, wh), true));
+        var wh = GetWhereClause(pOut.Origin, new Boogie.IdentifierExpr(pOut.Origin, pOut.AssignUniqueName(f.IdGenerator), varType), pOut.Type, etran, NOALLOC);
+        outParams.Add(new Boogie.Formal(pOut.Origin, new Boogie.TypedIdent(pOut.Origin, pOut.AssignUniqueName(f.IdGenerator), varType, wh), true));
       }
       // the procedure itself
       var req = new List<Boogie.Requires>();
@@ -1048,14 +1048,14 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (var (formal, overriddenFormal) in f.Ins.Zip(f.OverriddenFunction.Ins, Tuple.Create)) {
         // get corresponding formal in the class
-        var ie = new IdentifierExpr(formal.Tok, formal.AssignUniqueName(f.IdGenerator)) { Var = formal, Type = formal.Type };
+        var ie = new IdentifierExpr(formal.Origin, formal.AssignUniqueName(f.IdGenerator)) { Var = formal, Type = formal.Type };
         substMap.Add(overriddenFormal, ie);
       }
 
       if (f.OverriddenFunction.Result != null) {
         Contract.Assert(pOut != null);
         //get corresponding formal in the class
-        var ie = new IdentifierExpr(pOut.Tok, pOut.AssignUniqueName(f.IdGenerator)) { Var = pOut, Type = pOut.Type };
+        var ie = new IdentifierExpr(pOut.Origin, pOut.AssignUniqueName(f.IdGenerator)) { Var = pOut, Type = pOut.Type };
         substMap.Add(f.OverriddenFunction.Result, ie);
       }
 
@@ -1189,7 +1189,7 @@ namespace Microsoft.Dafny {
       foreach (var e in func.OverriddenFunction.Reads.Expressions) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)func.EnclosingClass);
         var newE = sub.Substitute(e.E);
-        FrameExpression fe = new FrameExpression(e.Tok, newE, e.FieldName);
+        FrameExpression fe = new FrameExpression(e.Origin, newE, e.FieldName);
         traitFrameExps.Add(fe);
       }
 
@@ -1364,11 +1364,11 @@ namespace Microsoft.Dafny {
       var typeMap = GetTypeArgumentSubstitutionMap(f, overridingFunction);
       foreach (Formal p in f.Ins) {
         var pType = p.Type.Subst(typeMap);
-        var bv = new Boogie.BoundVariable(p.Tok, new Boogie.TypedIdent(p.Tok, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(pType)));
+        var bv = new Boogie.BoundVariable(p.Origin, new Boogie.TypedIdent(p.Origin, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(pType)));
         forallFormals.Add(bv);
-        var jfArg = new Boogie.IdentifierExpr(p.Tok, bv);
-        argsJF.Add(ModeledAsBoxType(p.Type) ? BoxIfNotNormallyBoxed(p.Tok, jfArg, pType) : jfArg);
-        moreArgsCF.Add(new Boogie.IdentifierExpr(p.Tok, bv));
+        var jfArg = new Boogie.IdentifierExpr(p.Origin, bv);
+        argsJF.Add(ModeledAsBoxType(p.Type) ? BoxIfNotNormallyBoxed(p.Origin, jfArg, pType) : jfArg);
+        moreArgsCF.Add(new Boogie.IdentifierExpr(p.Origin, bv));
       }
 
       // useViaContext: fh < FunctionContextHeight
@@ -1564,14 +1564,14 @@ namespace Microsoft.Dafny {
           N = i;
           break;
         }
-        toks.Add(new NestedOrigin(original.Origin.StartToken, e1.Tok));
+        toks.Add(new NestedOrigin(original.Origin.StartToken, e1.Origin));
         calleeDafny.Add(e0);
         callerDafny.Add(e1);
         callee.Add(etran.TrExpr(e0));
         caller.Add(etran.TrExpr(e1));
         var canCall = etran.CanCallAssumption(e1);
         if (canCall != Bpl.Expr.True) {
-          builder.Add(new Bpl.AssumeCmd(e1.Tok, canCall));
+          builder.Add(new Bpl.AssumeCmd(e1.Origin, canCall));
         }
       }
 
@@ -1634,7 +1634,7 @@ namespace Microsoft.Dafny {
         }
         foreach (var e in originalTraitFrameExps) {
           var newE = Substitute(e.E, null, substMap, typeMap);
-          var fe = new FrameExpression(e.Tok, newE, e.FieldName);
+          var fe = new FrameExpression(e.Origin, newE, e.FieldName);
           traitFrameExps.Add(fe);
         }
       }
@@ -1777,13 +1777,13 @@ namespace Microsoft.Dafny {
           var index = 0;
           foreach (var formal in m.Ins) {
             if (formal.IsOld) {
-              var dafnyFormalIdExpr = new IdentifierExpr(formal.Tok, formal);
+              var dafnyFormalIdExpr = new IdentifierExpr(formal.Origin, formal);
               var pIdx = m.Ins.Count == 1 ? "" : " at index " + index;
               var desc = new IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
                 "in the two-state lemma's previous state" + IsAllocated.HelperFormal(formal),
                 dafnyFormalIdExpr
               );
-              var require = Requires(formal.Tok, false, null, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
+              var require = Requires(formal.Origin, false, null, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
                 desc.FailureDescription, desc.SuccessDescription, null);
               require.Description = desc;
               req.Add(require);
@@ -1832,7 +1832,7 @@ namespace Microsoft.Dafny {
         var comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          AddEnsures(ens, Ensures(p.E.Tok, true, p.E, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
+          AddEnsures(ens, Ensures(p.E.Origin, true, p.E, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
           comment = null;
           foreach (var split in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
             var post = split.E;

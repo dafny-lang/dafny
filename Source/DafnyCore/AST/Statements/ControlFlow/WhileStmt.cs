@@ -67,7 +67,7 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     ICodeContext codeContext, string proofContext,
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     if (proofContext != null && Mod.Expressions != null && Mod.Expressions.Count != 0) {
-      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_may_not_use_modifies, Mod.Expressions[0].Tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_may_not_use_modifies, Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
     }
 
     IsGhost = mustBeErasable || (Guard != null && ExpressionTester.UsesSpecFeatures(Guard));

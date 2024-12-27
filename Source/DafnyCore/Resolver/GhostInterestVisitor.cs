@@ -330,7 +330,7 @@ class GhostInterestVisitor {
       case WhileStmt whileStmt: {
           var s = whileStmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            Error(ErrorId.r_loop_may_not_use_modifies, s.Mod.Expressions[0].Tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(ErrorId.r_loop_may_not_use_modifies, s.Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
@@ -360,7 +360,7 @@ class GhostInterestVisitor {
       case AlternativeLoopStmt loopStmt: {
           var s = loopStmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
@@ -388,7 +388,7 @@ class GhostInterestVisitor {
       case ForLoopStmt loopStmt: {
           var s = loopStmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
@@ -558,14 +558,14 @@ class GhostInterestVisitor {
     }
 
     if (proofContext != null && s.Rhs is TypeRhs) {
-      Error(ErrorId.r_new_forbidden_in_proof, s.Rhs.Tok, $"{proofContext} is not allowed to use 'new'");
+      Error(ErrorId.r_new_forbidden_in_proof, s.Rhs.Origin, $"{proofContext} is not allowed to use 'new'");
     }
 
     var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
     if (gk == SingleAssignStmt.NonGhostKind.IsGhost) {
       s.IsGhost = true;
       if (proofContext != null && !(lhs is IdentifierExpr)) {
-        Error(ErrorId.r_no_heap_update_in_proof, lhs.Tok, $"{proofContext} is not allowed to make heap updates");
+        Error(ErrorId.r_no_heap_update_in_proof, lhs.Origin, $"{proofContext} is not allowed to make heap updates");
       }
       if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
         Visit(tRhs.InitCall, true, proofContext);

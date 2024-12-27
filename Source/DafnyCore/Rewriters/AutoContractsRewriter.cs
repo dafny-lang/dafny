@@ -313,7 +313,7 @@ public class AutoContractsRewriter : IRewriter {
           var format = "requires {0}";
           if (m.Mod.Expressions.Count == 0) {
             // modifies Repr
-            m.Mod.Expressions.Add(new FrameExpression(Repr.Tok, Repr, null));
+            m.Mod.Expressions.Add(new FrameExpression(Repr.Origin, Repr, null));
             format += "\nmodifies {1}";
             addStatementsToUpdateRepr = true;
           }

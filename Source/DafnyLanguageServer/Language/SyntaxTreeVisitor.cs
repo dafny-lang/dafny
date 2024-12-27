@@ -235,7 +235,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           Visit(typeRhs);
           break;
         default:
-          VisitUnknown(assignmentRhs, assignmentRhs.Tok);
+          VisitUnknown(assignmentRhs, assignmentRhs.Origin);
           break;
       }
     }
@@ -500,7 +500,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           break;
         default:
           if (expression != null) {
-            VisitUnknown(expression, expression.Tok);
+            VisitUnknown(expression, expression.Origin);
           }
 
           break;

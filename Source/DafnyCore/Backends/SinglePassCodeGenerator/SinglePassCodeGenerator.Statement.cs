@@ -201,20 +201,20 @@ namespace Microsoft.Dafny.Compilers {
               var e1Name = ProtectedFreshId("_e1");
               var e0Var = new LocalVariable(new SourceOrigin(Token.NoToken, Token.NoToken), e0Name, e0.Type, false);
               var e1Var = new LocalVariable(new SourceOrigin(Token.NoToken, Token.NoToken), e1Name, e0.Type, false);
-              DeclareLocalVar(IdName(e0Var), null, e0.Tok, e0, false, wr);
-              DeclareLocalVar(IdName(e1Var), null, e1.Tok, e1, false, wr);
-              var e0Ident = new IdentifierExpr(e0.Tok, e0Name) {
+              DeclareLocalVar(IdName(e0Var), null, e0.Origin, e0, false, wr);
+              DeclareLocalVar(IdName(e1Var), null, e1.Origin, e1, false, wr);
+              var e0Ident = new IdentifierExpr(e0.Origin, e0Name) {
                 Type = e0.Type,
                 Var = e0Var
               };
-              var e1Ident = new IdentifierExpr(e1.Tok, e0Name) {
+              var e1Ident = new IdentifierExpr(e1.Origin, e0Name) {
                 Type = e1.Type,
                 Var = e1Var
               };
 
               ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
               var negated = new UnaryOpExpr(expectStmt.Tok, UnaryOpExpr.Opcode.Not,
-                new BinaryExpr(expectStmt.Expr.Tok, BinaryExpr.Opcode.Eq,
+                new BinaryExpr(expectStmt.Expr.Origin, BinaryExpr.Opcode.Eq,
                   e0Ident,
                   e1Ident) {
                   ResolvedOp = resolvedOp,
@@ -223,11 +223,11 @@ namespace Microsoft.Dafny.Compilers {
                 Type = Type.Bool
               };
               EmitExpr(negated, false, guardWriter, wStmts);
-              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e0.Tok, @"\nLeft:\n", false) {
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e0.Origin, @"\nLeft:\n", false) {
                 Type = new SeqType(new CharType())
               });
               EmitPrintStmt(bodyWriter, e0Ident);
-              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e1.Tok, @"\nRight:\n", false) {
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e1.Origin, @"\nRight:\n", false) {
                 Type = new SeqType(new CharType())
               });
               EmitPrintStmt(bodyWriter, e1Ident);
@@ -314,7 +314,7 @@ namespace Microsoft.Dafny.Compilers {
               if (alternative.IsBindingGuard) {
                 IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, thn);
               }
-              Coverage.Instrument(alternative.Tok, "if-case branch", thn);
+              Coverage.Instrument(alternative.Origin, "if-case branch", thn);
               TrStmtList(alternative.Body, thn);
             }
             var wElse = EmitBlock(wr);
@@ -349,7 +349,7 @@ namespace Microsoft.Dafny.Compilers {
               foreach (var alternative in loopStmt.Alternatives) {
                 var thn = EmitIf(out var guardWriter, true, w);
                 EmitExpr(alternative.Guard, false, guardWriter, wStmts);
-                Coverage.Instrument(alternative.Tok, "while-case branch", thn);
+                Coverage.Instrument(alternative.Origin, "while-case branch", thn);
                 TrStmtList(alternative.Body, thn);
               }
               var wElse = EmitBlock(w);
@@ -370,7 +370,7 @@ namespace Microsoft.Dafny.Compilers {
               // introduce a variable to hold the value of the end-expression
               endVarName = ProtectedFreshId(s.GoingUp ? "_hi" : "_lo");
               wStmts = wr.Fork();
-              EmitExpr(s.End, false, DeclareLocalVar(endVarName, s.End.Type, s.End.Tok, wr), wStmts);
+              EmitExpr(s.End, false, DeclareLocalVar(endVarName, s.End.Type, s.End.Origin, wr), wStmts);
             }
             var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
             EmitExpr(s.Start, false, startExprWriter, wStmts);
@@ -440,22 +440,22 @@ namespace Microsoft.Dafny.Compilers {
               if (s0.Lhs is MemberSelectExpr) {
                 var lhs = (MemberSelectExpr)s0.Lhs;
                 L = 2;
-                tupleTypeArgs = TypeArgumentName(lhs.Obj.Type, wr, lhs.Tok);
+                tupleTypeArgs = TypeArgumentName(lhs.Obj.Type, wr, lhs.Origin);
                 tupleTypeArgsList = new List<Type> { lhs.Obj.Type };
               } else if (s0.Lhs is SeqSelectExpr) {
                 var lhs = (SeqSelectExpr)s0.Lhs;
                 L = 3;
                 // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
-                tupleTypeArgs = TypeArgumentName(lhs.Seq.Type, wr, lhs.Tok) + IntSelect;
+                tupleTypeArgs = TypeArgumentName(lhs.Seq.Type, wr, lhs.Origin) + IntSelect;
                 tupleTypeArgsList = new List<Type> { lhs.Seq.Type, null };
               } else {
                 var lhs = (MultiSelectExpr)s0.Lhs;
                 L = 2 + lhs.Indices.Count;
                 if (8 < L) {
-                  Error(ErrorId.c_no_assignments_to_seven_d_arrays, lhs.Tok, "compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements", wr);
+                  Error(ErrorId.c_no_assignments_to_seven_d_arrays, lhs.Origin, "compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements", wr);
                   return;
                 }
-                tupleTypeArgs = TypeArgumentName(lhs.Array.Type, wr, lhs.Tok);
+                tupleTypeArgs = TypeArgumentName(lhs.Array.Type, wr, lhs.Origin);
                 tupleTypeArgsList = new List<Type> { lhs.Array.Type };
                 for (int i = 0; i < lhs.Indices.Count; i++) {
                   // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
@@ -464,7 +464,7 @@ namespace Microsoft.Dafny.Compilers {
                 }
 
               }
-              tupleTypeArgs += "," + TypeArgumentName(rhs.Type, wr, rhs.Tok);
+              tupleTypeArgs += "," + TypeArgumentName(rhs.Type, wr, rhs.Origin);
               tupleTypeArgsList.Add(rhs.Type);
 
               // declare and construct "ingredients"
@@ -576,7 +576,7 @@ namespace Microsoft.Dafny.Compilers {
       // }
       if (s.Cases.Count != 0) {
         string source = ProtectedFreshId("_source");
-        DeclareLocalVar(source, s.Source.Type, s.Source.Tok, s.Source, false, wr);
+        DeclareLocalVar(source, s.Source.Type, s.Source.Origin, s.Source, false, wr);
 
         int i = 0;
         var sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
@@ -641,7 +641,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitAbsurd(null, output);
       } else {
         string sourceName = ProtectedFreshId("_source");
-        DeclareLocalVar(sourceName, match.Source.Type, match.Source.Tok, match.Source, inLetExprBody, output);
+        DeclareLocalVar(sourceName, match.Source.Type, match.Source.Origin, match.Source, inLetExprBody, output);
 
         var label = preventCaseFallThrough ? ProtectedFreshId("match") : null;
         if (label != null) {
@@ -655,7 +655,7 @@ namespace Microsoft.Dafny.Compilers {
 
           var caseBlock = EmitBlock(output);
           var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, caseBlock, lastCase);
-          Coverage.Instrument(myCase.Tok, "case body", innerWriter);
+          Coverage.Instrument(myCase.Origin, "case body", innerWriter);
 
           emitBody(index, innerWriter);
           if (label != null && !lastCase) {
@@ -675,7 +675,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var thenWriter = EmitIf(out var guardWriter, false, writer);
-        CompileBinOp(BinaryExpr.ResolvedOpcode.EqCommon, sourceType, litExpression.Type, pattern.Tok, Type.Bool,
+        CompileBinOp(BinaryExpr.ResolvedOpcode.EqCommon, sourceType, litExpression.Type, pattern.Origin, Type.Bool,
           out var opString, out var preOpString, out var postOpString, out var callString, out var staticCallString,
           out _, out _, out _, out _,
           writer);
@@ -691,7 +691,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var boundVar = idPattern.BoundVar;
         if (!boundVar.Name.StartsWith(IdPattern.WildcardString)) {
-          var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);
+          var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Origin, writer);
           valueWriter.Write(sourceName);
         }
         return writer;
@@ -702,7 +702,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         string disjunctiveMatch = ProtectedFreshId("disjunctiveMatch");
-        DeclareLocalVar(disjunctiveMatch, Type.Bool, disjunctivePattern.Tok, Expression.CreateBoolLiteral(disjunctivePattern.Tok, false), false, writer);
+        DeclareLocalVar(disjunctiveMatch, Type.Bool, disjunctivePattern.Origin, Expression.CreateBoolLiteral(disjunctivePattern.Origin, false), false, writer);
         foreach (var alternative in disjunctivePattern.Alternatives) {
           var alternativeWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, alternative, writer, lastCase);
           EmitAssignment(disjunctiveMatch, Type.Bool, True, Type.Bool, alternativeWriter);
@@ -751,12 +751,12 @@ namespace Microsoft.Dafny.Compilers {
             var boundVar = childIdPattern.BoundVar;
             if (!childIdPattern.BoundVar.Name.StartsWith(IdPattern.WildcardString)) {
               newSourceName = IdName(boundVar);
-              var valueWriter = DeclareLocalVar(newSourceName, boundVar.Type, idPattern.Tok, result);
+              var valueWriter = DeclareLocalVar(newSourceName, boundVar.Type, idPattern.Origin, result);
               valueWriter.Append(destructor);
             }
           } else {
             newSourceName = ProtectedFreshId(arg.GetOrCreateCompileName(currentIdGenerator));
-            var valueWriter = DeclareLocalVar(newSourceName, type, idPattern.Tok, result);
+            var valueWriter = DeclareLocalVar(newSourceName, type, idPattern.Origin, result);
             valueWriter.Append(destructor);
             result = EmitNestedMatchCaseConditions(newSourceName, type, childPattern, result, lastCase);
           }

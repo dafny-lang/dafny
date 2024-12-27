@@ -17,18 +17,15 @@ public abstract class TokenNode : Node {
     tok = newTok;
   }
 
-  [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public IOrigin Tok => tok;
-
   public override IOrigin Origin {
     get {
-      if (Tok is Token tokenOrigin) {
+      if (tok is Token tokenOrigin) {
 
-        var startTok = Tok.StartToken;
-        var endTok = Tok.EndToken;
+        var startTok = Origin.StartToken;
+        var endTok = Origin.EndToken;
 
         void UpdateStartEndToken(Token token1) {
-          if (token1.Filepath != Tok.Filepath) {
+          if (token1.Filepath != Origin.Filepath) {
             return;
           }
 
@@ -46,7 +43,7 @@ public abstract class TokenNode : Node {
             return;
           }
 
-          if (node.Origin.Filepath != Tok.Filepath || node is Expression { IsImplicit: true } ||
+          if (node.Origin.Filepath != Origin.Filepath || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {

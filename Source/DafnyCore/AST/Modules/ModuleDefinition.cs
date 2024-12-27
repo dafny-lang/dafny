@@ -714,7 +714,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
       var attr1 = Attributes.Find(attrs, pair.Item1);
       var attr2 = Attributes.Find(attrs, pair.Item2);
       if (attr1 is not null && attr2 is not null) {
-        resolver.reporter.Error(MessageSource.Resolver, attr1.Tok,
+        resolver.reporter.Error(MessageSource.Resolver, attr1.Origin,
             $"the {pair.Item1} and {pair.Item2} attributes cannot be used together");
       }
     }
