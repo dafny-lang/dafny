@@ -3,18 +3,7 @@ git-issue-555.dfy(17,2): Error: assertion might not hold
 Dafny program verifier finished with 2 verified, 1 error
 
 Dafny program verifier did not attempt verification
-Failed to compile C# source code using 'dotnet build /Users/rwillems/SourceCode/dafny/Source/IntegrationTests/bin/Debug/net6.0/TestFiles/LitTests/LitTest/git-issues/git-issue-555.csproj -o /Users/rwillems/SourceCode/dafny/Source/IntegrationTests/bin/Debug/net6.0/TestFiles/LitTests/LitTest/git-issues'. Command output was:
-  Determining projects to restore...
-  Restored /Users/rwillems/SourceCode/dafny/Source/IntegrationTests/bin/Debug/net6.0/TestFiles/LitTests/LitTest/git-issues/git-issue-555.csproj (in 285 ms).
-/usr/local/share/dotnet/sdk/8.0.303/Microsoft.Common.CurrentVersion.targets(5270,5): error MSB3030: Could not copy the file "/Users/rwillems/SourceCode/dafny/Source/IntegrationTests/bin/Debug/net6.0/TestFiles/LitTests/LitTest/git-issues/obj/Debug/net6.0/apphost" because it was not found. [/Users/rwillems/SourceCode/dafny/Source/IntegrationTests/bin/Debug/net6.0/TestFiles/LitTests/LitTest/git-issues/git-issue-555.csproj]
-
-Build FAILED.
-
-/usr/local/share/dotnet/sdk/8.0.303/Microsoft.Common.CurrentVersion.targets(5270,5): error MSB3030: Could not copy the file "/Users/rwillems/SourceCode/dafny/Source/IntegrationTests/bin/Debug/net6.0/TestFiles/LitTests/LitTest/git-issues/obj/Debug/net6.0/apphost" because it was not found. [/Users/rwillems/SourceCode/dafny/Source/IntegrationTests/bin/Debug/net6.0/TestFiles/LitTests/LitTest/git-issues/git-issue-555.csproj]
-    0 Warning(s)
-    1 Error(s)
-
-Time Elapsed 00:00:02.13
+[Program halted] git-issue-555.dfy(22,2): expectation violation
 
 Dafny program verifier did not attempt verification
 [Program halted] git-issue-555.dfy(22,2): expectation violation
