@@ -224,7 +224,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static void ValidateEscaping(DafnyOptions options, IToken t, string s, bool isVerbatimString, Errors errors) {
+    public static void ValidateEscaping(DafnyOptions options, IOrigin t, string s, bool isVerbatimString, Errors errors) {
       if (options.Get(CommonOptionBag.UnicodeCharacters)) {
         foreach (var token in TokensWithEscapes(s, isVerbatimString)) {
           if (token.StartsWith("\\u")) {
@@ -455,14 +455,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(errors != null);
       if (performThisDeprecationCheck) {
         if (fe.E is ThisExpr) {
-          errors.Deprecated(ErrorId.g_deprecated_this_in_constructor_modifies_clause, fe.E.tok, "constructors no longer need 'this' to be listed in modifies clauses");
+          errors.Deprecated(ErrorId.g_deprecated_this_in_constructor_modifies_clause, fe.E.Tok, "constructors no longer need 'this' to be listed in modifies clauses");
           return;
         } else if (fe.E is SetDisplayExpr) {
           var s = (SetDisplayExpr)fe.E;
           var deprecated = s.Elements.FindAll(e => e is ThisExpr);
           if (deprecated.Count != 0) {
             foreach (var e in deprecated) {
-              errors.Deprecated(ErrorId.g_deprecated_this_in_constructor_modifies_clause, e.tok, "constructors no longer need 'this' to be listed in modifies clauses");
+              errors.Deprecated(ErrorId.g_deprecated_this_in_constructor_modifies_clause, e.Tok, "constructors no longer need 'this' to be listed in modifies clauses");
             }
             s.Elements.RemoveAll(e => e is ThisExpr);
             if (s.Elements.Count == 0) {

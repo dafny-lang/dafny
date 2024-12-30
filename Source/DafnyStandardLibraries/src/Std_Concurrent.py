@@ -8,9 +8,8 @@ import Std_Wrappers
 
 # Module: Std_Concurrent
 
-
 class MutableMap:
-    def ctor__(self):
+    def ctor__(self, bytesKeys):
         pass
         
     def __init__(self) -> None:
@@ -43,16 +42,23 @@ class MutableMap:
 
     def Put(self, k, v):
         self.lock.Lock__()
-        self.map[k] = v
+        try:
+            self.map[k] = v
+        except Exception as e:
+            self.lock.Unlock()
+            raise e
         self.lock.Unlock()
 
     def Get(self, k):
         self.lock.Lock__()
         try:
-            v = self.map.get(k)
+            v = self.map[k]
         except KeyError:
             self.lock.Unlock()
             return Std_Wrappers.Option_None()
+        except Exception as e:
+            self.lock.Unlock()
+            raise e
         self.lock.Unlock()
         return Std_Wrappers.Option_Some(v)
 

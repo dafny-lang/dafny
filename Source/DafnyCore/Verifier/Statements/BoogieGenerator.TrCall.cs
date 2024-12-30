@@ -40,8 +40,8 @@ public partial class BoogieGenerator {
           string nm = CurrentIdGenerator.FreshId("$rhs##");
           var formalOutType = s.Method.Outs[i].Type.Subst(tySubst);
           var ty = TrType(formalOutType);
-          var var = locals.GetOrCreate(nm, () => new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty)));
-          bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
+          var var = locals.GetOrCreate(nm, () => new Bpl.LocalVariable(lhs.Tok, new Bpl.TypedIdent(lhs.Tok, nm, ty)));
+          bLhss[i] = new Bpl.IdentifierExpr(lhs.Tok, var.Name, ty);
         }
       }
     }
@@ -82,8 +82,8 @@ public partial class BoogieGenerator {
       }
 
       Bpl.Expr bRhs = bLhss[i];  // the RHS (bRhs) of the assignment to the actual call-LHS (lhs) was a LHS (bLhss[i]) in the Boogie call statement
-      CheckSubrange(lhs.tok, bRhs, s.Method.Outs[i].Type.Subst(tySubst), rhsTypeConstraint, null, builder);
-      bRhs = CondApplyBox(lhs.tok, bRhs, lhs.Type, lhsType);
+      CheckSubrange(lhs.Tok, bRhs, s.Method.Outs[i].Type.Subst(tySubst), rhsTypeConstraint, null, builder);
+      bRhs = CondApplyBox(lhs.Tok, bRhs, lhs.Type, lhsType);
 
       lhsBuilders[i](bRhs, false, builder, etran);
     }
@@ -160,7 +160,7 @@ public partial class BoogieGenerator {
       if (bReceiver == null) {
         TrStmt_CheckWellformed(dafnyReceiver, builder, locals, etran, true);
         if (!(dafnyReceiver is ThisExpr)) {
-          CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
+          CheckNonNull(dafnyReceiver.Tok, dafnyReceiver, builder, etran, null);
         }
       }
       var obj = etran.TrExpr(receiver);
@@ -182,7 +182,7 @@ public partial class BoogieGenerator {
     var directSubstMap = new Dictionary<IVariable, Expression>();
     for (int i = 0; i < callee.Ins.Count; i++) {
       var formal = callee.Ins[i];
-      var local = new LocalVariable(formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
+      var local = new LocalVariable(formal.Origin, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
       local.type = local.SyntacticType;  // resolve local here
       var localName = local.AssignUniqueName(CurrentDeclaration.IdGenerator);
       var ie = new IdentifierExpr(local.Tok, localName);
@@ -196,12 +196,12 @@ public partial class BoogieGenerator {
       if (i == 0 && method is ExtremeLemma && isRecursiveCall) {
         // Treat this call to M(args) as a call to the corresponding prefix lemma M#(_k - 1, args), so insert an argument here.
         var k = ((PrefixLemma)callee).K;
-        var bplK = new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(k.Type));
-        dActual = Expression.CreateSubtract(Expression.CreateIdentExpr(k), Expression.CreateNatLiteral(k.tok, 1, k.Type));
+        var bplK = new Bpl.IdentifierExpr(k.Tok, k.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(k.Type));
+        dActual = Expression.CreateSubtract(Expression.CreateIdentExpr(k), Expression.CreateNatLiteral(k.Tok, 1, k.Type));
         if (k.Type.IsBigOrdinalType) {
-          bActual = FunctionCall(k.tok, "ORD#Minus", Predef.BigOrdinalType,
+          bActual = FunctionCall(k.Tok, "ORD#Minus", Predef.BigOrdinalType,
             bplK,
-            FunctionCall(k.tok, "ORD#FromNat", Predef.BigOrdinalType, Bpl.Expr.Literal(1)));
+            FunctionCall(k.Tok, "ORD#FromNat", Predef.BigOrdinalType, Bpl.Expr.Literal(1)));
         } else {
           bActual = Bpl.Expr.Sub(bplK, Bpl.Expr.Literal(1));
         }
@@ -218,12 +218,12 @@ public partial class BoogieGenerator {
         builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));
         // Check the subrange without boxing
         var beforeBox = etran.TrExpr(actual);
-        CheckSubrange(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst), actual, builder);
-        bActual = AdaptBoxing(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst));
+        CheckSubrange(actual.Tok, beforeBox, actual.Type, formal.Type.Subst(tySubst), actual, builder);
+        bActual = AdaptBoxing(actual.Tok, beforeBox, actual.Type, formal.Type.Subst(tySubst));
         dActual = actual;
       }
       directSubstMap.Add(formal, dActual);
-      Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
+      Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.Tok, param, bActual);
       builder.Add(cmd);
       ins.Add(AdaptBoxing(ToDafnyToken(flags.ReportRanges, param.tok), param, formal.Type.Subst(tySubst), formal.Type));
     }
@@ -235,26 +235,26 @@ public partial class BoogieGenerator {
     // check that its arguments were all available at that time as well.
     if (etran.UsesOldHeap) {
       if (!method.IsStatic && !(method is Constructor)) {
-        Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
+        Bpl.Expr wh = GetWhereClause(receiver.Tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
         if (wh != null) {
           var desc = new IsAllocated("receiver argument", "in the state in which the method is invoked", receiver);
-          builder.Add(Assert(receiver.tok, wh, desc, builder.Context));
+          builder.Add(Assert(receiver.Tok, wh, desc, builder.Context));
         }
       }
       for (int i = 0; i < Args.Count; i++) {
         Expression ee = Args[i];
-        Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
+        Bpl.Expr wh = GetWhereClause(ee.Tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
         if (wh != null) {
           var desc = new IsAllocated("argument", "in the state in which the method is invoked", ee);
-          builder.Add(Assert(ee.tok, wh, desc, builder.Context));
+          builder.Add(Assert(ee.Tok, wh, desc, builder.Context));
         }
       }
     } else if (method is TwoStateLemma) {
       if (!method.IsStatic) {
-        Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
+        Bpl.Expr wh = GetWhereClause(receiver.Tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
         if (wh != null) {
           var desc = new IsAllocated("receiver argument", "in the two-state lemma's previous state", receiver, atLabel);
-          builder.Add(Assert(receiver.tok, wh, desc, builder.Context));
+          builder.Add(Assert(receiver.Tok, wh, desc, builder.Context));
         }
       }
       Contract.Assert(callee.Ins.Count == Args.Count);
@@ -262,7 +262,7 @@ public partial class BoogieGenerator {
         var formal = callee.Ins[i];
         if (formal.IsOld) {
           Expression ee = Args[i];
-          Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
+          Bpl.Expr wh = GetWhereClause(ee.Tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
             var pIdx = Args.Count == 1 ? "" : " at index " + i;
             var desc = new IsAllocated(
@@ -271,7 +271,7 @@ public partial class BoogieGenerator {
               ee,
               atLabel
             );
-            builder.Add(Assert(ee.tok, wh, desc, builder.Context));
+            builder.Add(Assert(ee.Tok, wh, desc, builder.Context));
           }
         }
       }
@@ -350,7 +350,7 @@ public partial class BoogieGenerator {
     proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
     if (
       (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
-      (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+      (module != currentModule && tok.IsInherited(currentModule) && (codeContext == null || !codeContext.MustReverify))) {
       // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
       // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
       // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,

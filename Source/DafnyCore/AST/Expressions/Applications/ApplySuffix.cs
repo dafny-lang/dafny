@@ -8,8 +8,8 @@ namespace Microsoft.Dafny;
 /// An ApplySuffix desugars into either an ApplyExpr or a FunctionCallExpr
 /// </summary>
 public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
-  public readonly IToken/*?*/ AtTok;
-  public readonly IToken CloseParen;
+  public readonly IOrigin/*?*/ AtTok;
+  public readonly Token CloseParen;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   [FilledInDuringResolution] public MethodCallInformation MethodCallInfo = null; // resolution will set to a non-null value if ApplySuffix makes a method call
@@ -29,13 +29,13 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
 
   public ApplySuffix(Cloner cloner, ApplySuffix original) :
     base(cloner, original) {
-    AtTok = original.AtTok == null ? null : cloner.Tok(original.AtTok);
-    CloseParen = cloner.Tok(original.CloseParen);
+    AtTok = original.AtTok == null ? null : cloner.Origin(original.AtTok);
+    CloseParen = original.CloseParen;
     FormatTokens = original.FormatTokens;
     Bindings = new ActualBindings(cloner, original.Bindings);
   }
 
-  public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args, IToken closeParen)
+  public ApplySuffix(IOrigin tok, IOrigin/*?*/ atLabel, Expression lhs, List<ActualBinding> args, Token closeParen)
     : base(tok, lhs) {
     Contract.Requires(tok != null);
     Contract.Requires(lhs != null);
@@ -66,10 +66,10 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
   /// <param name="name">The name of the target function or method.</param>
   /// <param name="args">The arguments to apply the function or method to.</param>
   /// <returns></returns>
-  public static Expression MakeRawApplySuffix(IToken tok, string name, List<Expression> args) {
+  public static Expression MakeRawApplySuffix(IOrigin tok, string name, List<Expression> args) {
     var nameExpr = new NameSegment(tok, name, null);
     var argBindings = args.ConvertAll(arg => new ActualBinding(null, arg));
-    return new ApplySuffix(tok, null, nameExpr, argBindings, tok);
+    return new ApplySuffix(tok, null, nameExpr, argBindings, Token.NoToken);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

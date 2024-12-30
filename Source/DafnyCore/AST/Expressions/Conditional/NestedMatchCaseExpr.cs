@@ -12,7 +12,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
 
   string IAttributeBearingDeclaration.WhatKind => "match expression case";
 
-  public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body, Attributes attrs) : base(tok, pat) {
+  public NestedMatchCaseExpr(IOrigin tok, ExtendedPattern pat, Expression body, Attributes attrs) : base(tok, pat) {
     Contract.Requires(body != null);
     this.Body = body;
     this.Attributes = attrs;
@@ -36,7 +36,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     var afterResolveErrorCount = resolver.reporter.ErrorCount;
     if (beforeResolveErrorCount == afterResolveErrorCount) {
       resolver.ResolveExpression(Body, resolutionContext);
-      resolver.ConstrainSubtypeRelation(resultType, Body.Type, Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", Body.Type, resultType);
+      resolver.ConstrainSubtypeRelation(resultType, Body.Type, Body.Tok, "type of case bodies do not agree (found {0}, previous types {1})", Body.Type, resultType);
     }
   }
 

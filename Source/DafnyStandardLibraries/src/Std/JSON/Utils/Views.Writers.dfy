@@ -41,7 +41,8 @@ module Std.JSON.Utils.Views.Writers {
         Chain(this, v')
     }
 
-    method {:tailrecursion} CopyTo(dest: array<byte>, end: uint32)
+    @TailRecursion
+    method CopyTo(dest: array<byte>, end: uint32)
       requires end as int == Length() <= dest.Length
       modifies dest
       ensures dest[..end] == Bytes()
@@ -98,7 +99,8 @@ module Std.JSON.Utils.Views.Writers {
       fn(this)
     }
 
-    method {:tailrecursion} CopyTo(dest: array<byte>)
+    @TailRecursion
+    method CopyTo(dest: array<byte>)
       requires Valid?
       requires Unsaturated?
       requires Length() <= dest.Length

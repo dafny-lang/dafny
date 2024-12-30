@@ -62,10 +62,10 @@ Send notifications about the verification status of each line in the program.
                 "datatype",
                 ctor.Name,
                 ctor.GetCompileName(options),
-                ctor.tok.Filepath,
+                ctor.Tok.Filepath,
                 ctor.Tok.Uri,
                 verificationTreeRange,
-                ctor.tok.GetLspPosition(),
+                ctor.Tok.GetLspPosition(),
                 Attributes.Contains(ctor.Attributes, "only")
                 );
               AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -75,7 +75,7 @@ Send notifications about the verification status of each line in the program.
 
         if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           foreach (var member in topLevelDeclWithMembers.Members) {
-            var memberWasNotIncluded = member.tok.Uri != rootVerificationTree.Uri;
+            var memberWasNotIncluded = member.Tok.Uri != rootVerificationTree.Uri;
             if (memberWasNotIncluded) {
               continue;
             }
@@ -90,10 +90,10 @@ Send notifications about the verification status of each line in the program.
                 "constant",
                 member.Name,
                 member.GetCompileName(options),
-                member.tok.Filepath,
+                member.Tok.Filepath,
                 member.Tok.Uri,
                 verificationTreeRange,
-                member.tok.GetLspPosition(),
+                member.Tok.GetLspPosition(),
                 Attributes.Contains(member.Attributes, "only"));
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             } else if (member is Method or Function) {
@@ -102,19 +102,19 @@ Send notifications about the verification status of each line in the program.
                 (member is Method ? "method" : "function"),
                 member.Name,
                 member.GetCompileName(options),
-                member.tok.Filepath,
+                member.Tok.Filepath,
                 member.Tok.Uri,
                 verificationTreeRange,
-                member.tok.GetLspPosition(),
+                member.NavigationToken.GetLspPosition(),
                 Attributes.Contains(member.Attributes, "only"));
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {
-                var verificationTreeRangeByMethod = function.ByMethodBody.RangeToken.ToLspRange();
+                var verificationTreeRangeByMethod = function.ByMethodBody.Origin.ToLspRange();
                 var verificationTreeByMethod = new TopLevelDeclMemberVerificationTree(
                   "by method part of function",
                   member.Name,
                   member.GetCompileName(options) + "_by_method",
-                  member.tok.Filepath,
+                  member.Tok.Filepath,
                   member.Tok.Uri,
                   verificationTreeRangeByMethod,
                   function.ByMethodTok.GetLspPosition(),
@@ -126,7 +126,7 @@ Send notifications about the verification status of each line in the program.
         }
 
         if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
-          if (subsetTypeDecl.tok.Uri != rootVerificationTree.Uri) {
+          if (subsetTypeDecl.Tok.Uri != rootVerificationTree.Uri) {
             continue;
           }
 
@@ -135,10 +135,10 @@ Send notifications about the verification status of each line in the program.
             $"subset type",
             subsetTypeDecl.Name,
             subsetTypeDecl.GetCompileName(options),
-            subsetTypeDecl.tok.Filepath,
+            subsetTypeDecl.Tok.Filepath,
             subsetTypeDecl.Tok.Uri,
             verificationTreeRange,
-            subsetTypeDecl.tok.GetLspPosition(),
+            subsetTypeDecl.Tok.GetLspPosition(),
             Attributes.Contains(subsetTypeDecl.Attributes, "only"));
           AddAndPossiblyMigrateVerificationTree(verificationTree);
         }
@@ -156,7 +156,7 @@ Send notifications about the verification status of each line in the program.
   /// Also set the implementation priority depending on the last edited methods 
   /// </summary>
   public virtual void ReportImplementationsBeforeVerification(IdeState state, ICanVerify canVerify, Implementation[] implementations) {
-    var uri = canVerify.Tok.Uri;
+    var uri = canVerify.Origin.Uri;
     var tree = state.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(state.Program, uri);
 
     if (logger.IsEnabled(LogLevel.Debug)) {
@@ -167,7 +167,7 @@ Send notifications about the verification status of each line in the program.
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
     var canVerifyNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>()
-      .FirstOrDefault(t => t.Position == canVerify.Tok.GetLspPosition());
+      .FirstOrDefault(t => t.Position == canVerify.Origin.GetLspPosition());
     if (canVerifyNode == null) {
       return;
     }
@@ -218,7 +218,7 @@ Send notifications about the verification status of each line in the program.
   /// Called when the verifier starts verifying an implementation
   /// </summary>
   public void ReportVerifyImplementationRunning(IdeState state, Implementation implementation) {
-    var uri = ((IToken)implementation.tok).Uri;
+    var uri = ((IOrigin)implementation.tok).Uri;
     var tree = state.VerificationTrees[uri];
 
     lock (LockProcessing) {
@@ -249,7 +249,7 @@ Send notifications about the verification status of each line in the program.
     int implementationResourceCount,
     VcOutcome implementationOutcome) {
 
-    var uri = ((IToken)implementation.tok).Uri;
+    var uri = ((IOrigin)implementation.tok).Uri;
     var tree = state.VerificationTrees[uri];
 
     var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);
@@ -300,7 +300,7 @@ Send notifications about the verification status of each line in the program.
   /// Called when a split is finished to be verified
   /// </summary>
   public void ReportAssertionBatchResult(IdeState ideState, AssertionBatchResult batchResult) {
-    var uri = ((IToken)batchResult.Implementation.tok).Uri;
+    var uri = ((IOrigin)batchResult.Implementation.tok).Uri;
     var tree = ideState.VerificationTrees[uri];
 
     lock (LockProcessing) {
@@ -327,8 +327,8 @@ Send notifications about the verification status of each line in the program.
         implementationNode.AddAssertionBatchMetrics(result.VcNum, assertionBatchTime, assertionBatchResourceCount, result.CoveredElements.ToList());
 
         // Attaches the trace
-        void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
-          GutterVerificationStatus status, IToken? secondaryToken, string? assertDisplay = "",
+        void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IOrigin token,
+          GutterVerificationStatus status, IOrigin? secondaryToken, string? assertDisplay = "",
           string assertIdentifier = "") {
           if (token.Filepath != implementationNode.Filename) {
             return;
@@ -380,7 +380,7 @@ Send notifications about the verification status of each line in the program.
         foreach (var (assertCmd, outcome) in perAssertOutcome) {
           var status = GetNodeStatus(outcome);
           perAssertCounterExample.TryGetValue(assertCmd, out var counterexample);
-          IToken? secondaryToken = BoogieGenerator.ToDafnyToken(true, counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
+          IOrigin? secondaryToken = BoogieGenerator.ToDafnyToken(true, counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
             counterexample is CallCounterexample callCounterexample ? callCounterexample.FailingRequires.tok :
             null);
           if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
@@ -408,7 +408,7 @@ Send notifications about the verification status of each line in the program.
     Implementation implementation, out ImplementationVerificationTree? implementationTree, bool nameBased = false) {
     var targetMethodNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>().FirstOrDefault(
       node => node?.Position == implementation.tok.GetLspPosition() &&
-              node?.Uri == ((IToken)implementation.tok).Uri
+              node?.Uri == ((IOrigin)implementation.tok).Uri
       , null);
     if (nameBased) {
       implementationTree = targetMethodNode?.Children.OfType<ImplementationVerificationTree>().FirstOrDefault(

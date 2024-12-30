@@ -66,7 +66,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
         this.cancellationToken = cancellationToken;
       }
 
-      public override void VisitUnknown(object node, IToken token) { }
+      public override void VisitUnknown(object node, IOrigin token) { }
 
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -85,14 +85,14 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       private static Range GetRange(Statement statement) {
         return statement switch {
           AssignStatement updateStatement => GetRange(updateStatement),
-          _ => CreateRange(statement.RangeToken.StartToken, statement.RangeToken.EndToken)
+          _ => CreateRange(statement.Origin.StartToken, statement.Origin.EndToken)
         };
       }
 
       private static Range GetRange(AssignStatement updateStatement) {
-        IToken startToken;
+        IOrigin startToken;
         if (updateStatement.Lhss.Count > 0) {
-          startToken = updateStatement.Lhss[0].tok;
+          startToken = updateStatement.Lhss[0].Tok;
         } else if (updateStatement.ResolvedStatements.Count > 0) {
           // This branch handles the case where the UpdateStmt consists of an CallStmt without of left hand side.
           // otherwise, we'd only mark parentheses and the semi-colon of the CallStmt. 
@@ -100,17 +100,17 @@ Send notifications that indicate which lines are ghost.".TrimStart());
         } else {
           startToken = updateStatement.Tok;
         }
-        return CreateRange(startToken, updateStatement.RangeToken.EndToken);
+        return CreateRange(startToken, updateStatement.Origin.EndToken);
       }
 
-      private static IToken GetStartTokenFromResolvedStatement(Statement resolvedStatement) {
+      private static IOrigin GetStartTokenFromResolvedStatement(Statement resolvedStatement) {
         return resolvedStatement switch {
-          CallStmt callStatement => callStatement.MethodSelect.tok,
+          CallStmt callStatement => callStatement.MethodSelect.Tok,
           _ => resolvedStatement.Tok
         };
       }
 
-      private static Range CreateRange(IToken startToken, IToken endToken) {
+      private static Range CreateRange(IOrigin startToken, IOrigin endToken) {
         var endPosition = endToken.GetLspPosition();
         return new Range(
           startToken.GetLspPosition(),

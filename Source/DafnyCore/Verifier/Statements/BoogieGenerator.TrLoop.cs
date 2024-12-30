@@ -40,9 +40,9 @@ public partial class BoogieGenerator {
 
     var indexVar = stmt.LoopIndex;
     var indexVarName = indexVar.AssignUniqueName(CurrentDeclaration.IdGenerator);
-    var dIndex = new IdentifierExpr(indexVar.tok, indexVar);
-    locals.GetOrCreate(indexVarName, () => new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type))));
-    var bIndex = new Bpl.IdentifierExpr(indexVar.tok, indexVarName);
+    var dIndex = new IdentifierExpr(indexVar.Tok, indexVar);
+    locals.GetOrCreate(indexVarName, () => new Bpl.LocalVariable(indexVar.Tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type))));
+    var bIndex = new Bpl.IdentifierExpr(indexVar.Tok, indexVarName);
 
     var lo = stmt.GoingUp ? stmt.Start : stmt.End;
     var hi = stmt.GoingUp ? stmt.End : stmt.Start;
@@ -52,24 +52,24 @@ public partial class BoogieGenerator {
     Bpl.IdentifierExpr bHi = null;
     if (lo != null) {
       var name = indexVarName + "#lo";
-      locals.GetOrCreate(name, () => new Bpl.LocalVariable(lo.tok, new Bpl.TypedIdent(lo.tok, name, Bpl.Type.Int)));
-      bLo = new Bpl.IdentifierExpr(lo.tok, name);
+      locals.GetOrCreate(name, () => new Bpl.LocalVariable(lo.Tok, new Bpl.TypedIdent(lo.Tok, name, Bpl.Type.Int)));
+      bLo = new Bpl.IdentifierExpr(lo.Tok, name);
       CheckWellformed(lo, new WFOptions(null, false), locals, builder, etran);
-      builder.Add(Bpl.Cmd.SimpleAssign(lo.tok, bLo, etran.TrExpr(lo)));
+      builder.Add(Bpl.Cmd.SimpleAssign(lo.Tok, bLo, etran.TrExpr(lo)));
       dLo = new BoogieWrapper(bLo, lo.Type);
     }
     if (hi != null) {
       var name = indexVarName + "#hi";
-      locals.GetOrCreate(name, () => new Bpl.LocalVariable(hi.tok, new Bpl.TypedIdent(hi.tok, name, Bpl.Type.Int)));
-      bHi = new Bpl.IdentifierExpr(hi.tok, name);
+      locals.GetOrCreate(name, () => new Bpl.LocalVariable(hi.Tok, new Bpl.TypedIdent(hi.Tok, name, Bpl.Type.Int)));
+      bHi = new Bpl.IdentifierExpr(hi.Tok, name);
       CheckWellformed(hi, new WFOptions(null, false), locals, builder, etran);
-      builder.Add(Bpl.Cmd.SimpleAssign(hi.tok, bHi, etran.TrExpr(hi)));
+      builder.Add(Bpl.Cmd.SimpleAssign(hi.Tok, bHi, etran.TrExpr(hi)));
       dHi = new BoogieWrapper(bHi, hi.Type);
     }
 
     // check lo <= hi
     if (lo != null && hi != null) {
-      builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new ForRangeBoundsValid(lo, hi), builder.Context));
+      builder.Add(Assert(lo.Tok, Bpl.Expr.Le(bLo, bHi), new ForRangeBoundsValid(lo, hi), builder.Context));
     }
     // check forall x :: lo <= x <= hi ==> Is(x, typ)
     {
@@ -78,7 +78,7 @@ public partial class BoogieGenerator {
       //   havoc x;
       //   assume lo <= x <= hi;
       //   assert Is(x, typ);
-      var tok = indexVar.tok;
+      var tok = indexVar.Tok;
       var name = indexVarName + "#x";
       var x = new Bpl.IdentifierExpr(tok, name);
 
@@ -95,23 +95,23 @@ public partial class BoogieGenerator {
         builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
         List<Expression> dafnyRangeBounds = new();
         if (lo != null) {
-          dafnyRangeBounds.Add(new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, lo, dIndex));
+          dafnyRangeBounds.Add(new BinaryExpr(stmt.Tok, BinaryExpr.Opcode.Le, lo, dIndex));
         }
         if (hi != null) {
-          dafnyRangeBounds.Add(new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, dIndex, hi));
+          dafnyRangeBounds.Add(new BinaryExpr(stmt.Tok, BinaryExpr.Opcode.Le, dIndex, hi));
         }
 
         Expression dafnyRange = dafnyRangeBounds.Count == 1
           ? dafnyRangeBounds[0]
-          : new BinaryExpr(stmt.tok, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
-        var dafnyAssertion = new ForallExpr(stmt.tok, stmt.RangeToken, new List<BoundVar> { indexVar },
-          dafnyRange, new TypeTestExpr(indexVar.tok, dIndex, indexVar.Type), null);
+          : new BinaryExpr(stmt.Tok, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
+        var dafnyAssertion = new ForallExpr(stmt.Tok, new List<BoundVar> { indexVar },
+          dafnyRange, new TypeTestExpr(indexVar.Tok, dIndex, indexVar.Type), null);
         builder.Add(Assert(tok, cre, new ForRangeAssignable(desc, dafnyAssertion), builder.Context));
       }
     }
 
     // initialize the index variable
-    builder.Add(Bpl.Cmd.SimpleAssign(indexVar.tok, bIndex, stmt.GoingUp ? bLo : bHi));
+    builder.Add(Bpl.Cmd.SimpleAssign(indexVar.Tok, bIndex, stmt.GoingUp ? bLo : bHi));
 
     // build the guard expression
     Expression guard;
@@ -236,13 +236,13 @@ public partial class BoogieGenerator {
     foreach (AttributedExpression loopInv in loop.Invariants) {
       var (errorMessage, successMessage) = CustomErrorMessage(loopInv.Attributes);
       TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
-      invDefinednessBuilder.Add(TrAssumeCmdWithDependencies(etran, loopInv.E.tok, loopInv.E, "loop invariant"));
+      invDefinednessBuilder.Add(TrAssumeCmdWithDependencies(etran, loopInv.E.Tok, loopInv.E, "loop invariant"));
 
-      invariants.Add(TrAssumeCmd(loopInv.E.tok, BplImp(w, etran.CanCallAssumption(loopInv.E))));
+      invariants.Add(TrAssumeCmd(loopInv.E.Tok, BplImp(w, etran.CanCallAssumption(loopInv.E))));
       var ss = TrSplitExpr(builder.Context, loopInv.E, etran, false, out var splitHappened);
       if (!splitHappened) {
         var wInv = BplImp(w, etran.TrExpr(loopInv.E));
-        invariants.Add(Assert(loopInv.E.tok, wInv, new LoopInvariant(loopInv.E, errorMessage, successMessage), builder.Context));
+        invariants.Add(Assert(loopInv.E.Tok, wInv, new LoopInvariant(loopInv.E, errorMessage, successMessage), builder.Context));
       } else {
         foreach (var split in ss) {
           var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
@@ -250,7 +250,7 @@ public partial class BoogieGenerator {
             invariants.Add(Assert(split.Tok, wInv, new LoopInvariant(loopInv.E, errorMessage, successMessage), builder.Context));  // TODO: it would be fine to have this use {:subsumption 0}
           } else {
             var cmd = TrAssumeCmd(split.E.tok, wInv);
-            proofDependencies?.AddProofDependencyId(cmd, loopInv.E.tok, new InvariantDependency(loopInv.E));
+            proofDependencies?.AddProofDependencyId(cmd, loopInv.E.Tok, new InvariantDependency(loopInv.E));
             invariants.Add(cmd);
           }
         }
@@ -298,13 +298,13 @@ public partial class BoogieGenerator {
 
     // include a free invariant that says that all completed iterations so far have only decreased the termination metric
     if (initDecr != null) {
-      var toks = new List<IToken>();
+      var toks = new List<IOrigin>();
       var decrs = new List<Expr>();
       var decrsDafny = new List<Expression>();
       var initDecrsDafny = new List<Expression>();
       var prevGhostLocals = new List<VarDeclStmt>();
       foreach (Expression e in theDecreases) {
-        toks.Add(e.tok);
+        toks.Add(e.Tok);
         decrsDafny.Add(e);
         decrs.Add(etran.TrExpr(e));
         var (prevVars, eInit) = TranslateToLoopEntry(loop, e, "LoopEntry");
@@ -353,13 +353,13 @@ public partial class BoogieGenerator {
         // time for the actual loop body
         bodyTr(loopBodyBuilder, updatedFrameEtran);
         // check definedness of decreases expressions
-        var toks = new List<IToken>();
+        var toks = new List<IOrigin>();
         var decrs = new List<Expr>();
         var decrsDafny = new List<Expression>();
         var initDecrsDafny = new List<Expression>();
         var prevGhostLocals = new List<VarDeclStmt>();
         foreach (Expression e in theDecreases) {
-          toks.Add(e.tok);
+          toks.Add(e.Tok);
           // Note: the label "LoopEntry" doesn't exist in the program, and is
           // useful only for explanatory purposes.
           decrsDafny.Add(e);
@@ -374,7 +374,7 @@ public partial class BoogieGenerator {
             loopBodyBuilder, " at end of loop iteration", false, false);
           var description = new
             Terminates(loop.InferredDecreases, prevGhostLocals, null, initDecrsDafny, theDecreases, false);
-          loopBodyBuilder.Add(Assert(loop.Tok, decrCheck, description, builder.Context));
+          loopBodyBuilder.Add(Assert(loop.NavigationToken, decrCheck, description, builder.Context));
         }
       }
     } else if (isBodyLessLoop) {
@@ -406,7 +406,7 @@ public partial class BoogieGenerator {
   // the beginning of the loop for it to be valid.
   private (List<VarDeclStmt>, Expression) TranslateToLoopEntry(LoopStmt loop, Expression e, string loopLabel) {
     var prevGhostLocals = new List<VarDeclStmt>();
-    Expression olde = new OldExpr(e.tok, e, loopLabel) {
+    Expression olde = new OldExpr(e.Tok, e, loopLabel) {
       Type = e.Type
     };
 
@@ -418,7 +418,7 @@ public partial class BoogieGenerator {
         .OfType<IdentifierExpr>();
     foreach (var ie in modifiedVars) {
       var prevName = $"prev_{ie.Name}";
-      var prevDecl = Statement.CreateLocalVariable(RangeToken.NoToken, prevName, ie);
+      var prevDecl = Statement.CreateLocalVariable(SourceOrigin.NoToken, prevName, ie);
       var prevRef = Expression.CreateIdentExpr(prevDecl.Locals[0]);
       olde = Substitute(olde, ie.Var, prevRef);
       prevGhostLocals.Add(prevDecl);

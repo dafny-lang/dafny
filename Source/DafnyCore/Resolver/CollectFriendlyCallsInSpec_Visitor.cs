@@ -19,20 +19,18 @@ class CollectFriendlyCallsInSpec_Visitor : FindFriendlyCalls_Visitor {
       // no friendly calls in "expr"
       return false;  // don't recurse into subexpressions
     }
-    if (expr is FunctionCallExpr) {
+    if (expr is FunctionCallExpr fexp) {
       if (cp == CallingPosition.Positive) {
-        var fexp = (FunctionCallExpr)expr;
         if (IsCoContext ? fexp.Function is GreatestPredicate : fexp.Function is LeastPredicate) {
           if (Context.KNat != ((ExtremePredicate)fexp.Function).KNat) {
-            KNatMismatchError(expr.tok, Context.Name, Context.TypeOfK, ((ExtremePredicate)fexp.Function).TypeOfK);
+            KNatMismatchError(expr.Tok, Context.Name, Context.TypeOfK, ((ExtremePredicate)fexp.Function).TypeOfK);
           } else {
             friendlyCalls.Add(fexp);
           }
         }
       }
       return false;  // don't explore subexpressions any further
-    } else if (expr is BinaryExpr && IsCoContext) {
-      var bin = (BinaryExpr)expr;
+    } else if (expr is BinaryExpr bin && IsCoContext) {
       if (cp == CallingPosition.Positive && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
         friendlyCalls.Add(bin);
         return false;  // don't explore subexpressions any further

@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
     Version4,
   }
 
-  public record Options(IDictionary<Option, object> OptionArguments, IDictionary<Argument, object> Arguments);
+  public record Options(Dictionary<Option, object> OptionArguments, Dictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
@@ -67,12 +67,12 @@ namespace Microsoft.Dafny {
     }
 
     public T Get<T>(Argument<T> argument) {
-      return (T)Options.Arguments.GetOrCreate(argument, () => default(T));
+      return (T)Options.Arguments.GetOrDefault(argument, () => (object)default(T));
     }
 
 
     public T Get<T>(Option<T> option) {
-      return (T)Options.OptionArguments.GetOrCreate(option, () => default(T));
+      return (T)Options.OptionArguments.GetOrDefault(option, () => (object)default(T));
     }
 
     public object Get(Option option) {
@@ -867,7 +867,7 @@ namespace Microsoft.Dafny {
       return !ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"));
     }
 
-    public void ProcessSolverOptions(ErrorReporter errorReporter, IToken token) {
+    public void ProcessSolverOptions(ErrorReporter errorReporter, IOrigin token) {
       if (IsUsingZ3()) {
         var z3Version = SetZ3ExecutablePath(errorReporter, token);
         SetZ3Options(z3Version);
@@ -1108,7 +1108,7 @@ namespace Microsoft.Dafny {
     /// For this to work, Dafny first tries any prover path explicitly provided by the user, then looks for for the copy
     /// distributed with Dafny, and finally looks in any directory in the system PATH environment variable.
     /// </summary>
-    private Version SetZ3ExecutablePath(ErrorReporter errorReporter, IToken token) {
+    private Version SetZ3ExecutablePath(ErrorReporter errorReporter, IOrigin token) {
       string confirmedProverPath = null;
       string nextStepsMessage = $"Please either provide a path to the `z3` executable using the `--solver-path <path>` option, manually place the `z3` directory next to the `dafny` executable you are using (this directory should contain `bin/z3-{DefaultZ3Version}` or `bin/z3-{DefaultZ3Version}.exe`), or set the PATH environment variable to also include a directory containing the `z3` executable.";
 
@@ -1564,9 +1564,9 @@ for a similar Boogie program.
 
 class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
   private readonly Errors errors;
-  private IToken token;
+  private IOrigin token;
 
-  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, IToken token)
+  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, IOrigin token)
     : base(args, toolName) {
     this.errors = errors;
     this.token = token;
@@ -1589,7 +1589,7 @@ class DafnyAttributeOptions : DafnyOptions {
   };
 
   private readonly Errors errors;
-  public IToken Token { get; set; }
+  public IOrigin Token { get; set; }
 
   public DafnyAttributeOptions(DafnyOptions opts, Errors errors) : base(opts) {
     this.errors = errors;

@@ -7,7 +7,8 @@ namespace Microsoft.Dafny;
 /// An ExprDotName desugars into either an IdentifierExpr (if the Lhs is a static name) or a MemberSelectExpr (if the Lhs is a computed expression).
 /// </summary>
 public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
-  public readonly string SuffixName;
+  public readonly Name SuffixNameNode;
+  public string SuffixName => SuffixNameNode.Value;
   public readonly List<Type> OptTypeArguments;
 
   /// <summary>
@@ -28,16 +29,16 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
   }
 
   public ExprDotName(Cloner cloner, ExprDotName original) : base(cloner, original) {
-    SuffixName = original.SuffixName;
+    SuffixNameNode = new Name(cloner, original.SuffixNameNode);
     OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
   }
 
-  public ExprDotName(IToken tok, Expression obj, string suffixName, List<Type> optTypeArguments)
+  public ExprDotName(IOrigin tok, Expression obj, Name suffixName, List<Type> optTypeArguments)
     : base(tok, obj) {
     Contract.Requires(tok != null);
     Contract.Requires(obj != null);
     Contract.Requires(suffixName != null);
-    this.SuffixName = suffixName;
+    this.SuffixNameNode = suffixName;
     OptTypeArguments = optTypeArguments;
   }
 }

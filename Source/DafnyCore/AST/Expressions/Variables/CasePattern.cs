@@ -30,7 +30,7 @@ public class CasePattern<VT> : TokenNode
   }
 
   public CasePattern(Cloner cloner, CasePattern<VT> original) {
-    tok = cloner.Tok(original.tok);
+    tok = cloner.Origin(original.Tok);
     Id = original.Id;
     if (original.Var != null) {
       Var = cloner.CloneIVariable(original.Var, false);
@@ -51,7 +51,7 @@ public class CasePattern<VT> : TokenNode
     }
   }
 
-  public CasePattern(IToken tok, string id, [Captured] List<CasePattern<VT>> arguments) {
+  public CasePattern(IOrigin tok, string id, [Captured] List<CasePattern<VT>> arguments) {
     Contract.Requires(tok != null);
     Contract.Requires(id != null);
     this.tok = tok;
@@ -59,7 +59,7 @@ public class CasePattern<VT> : TokenNode
     Arguments = arguments;
   }
 
-  public CasePattern(IToken tok, VT bv) {
+  public CasePattern(IOrigin tok, VT bv) {
     Contract.Requires(tok != null);
     Contract.Requires(bv != null);
     this.tok = tok;
@@ -75,13 +75,13 @@ public class CasePattern<VT> : TokenNode
     Contract.Requires(Var != null || dtvTypeArgs != null);
     if (Var != null) {
       Contract.Assert(this.Id == this.Var.Name);
-      this.Expr = new IdentifierExpr(this.tok, this.Var);
+      this.Expr = new IdentifierExpr(this.Tok, this.Var);
     } else {
-      var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id,
+      var dtValue = new DatatypeValue(this.Tok, this.Ctor.EnclosingDatatype.Name, this.Id,
         this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr));
       dtValue.Ctor = this.Ctor;  // resolve here
       dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
-      dtValue.Type = new UserDefinedType(this.tok, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
+      dtValue.Type = new UserDefinedType(this.Tok, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
       this.Expr = dtValue;
     }
   }
@@ -94,11 +94,11 @@ public class CasePattern<VT> : TokenNode
     Contract.Requires(Var != null || dtvPreTypeArgs != null);
     if (Var != null) {
       Contract.Assert(this.Id == this.Var.Name);
-      this.Expr = new IdentifierExpr(this.tok, this.Var) {
+      this.Expr = new IdentifierExpr(this.Tok, this.Var) {
         PreType = this.Var.PreType
       };
     } else {
-      var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id,
+      var dtValue = new DatatypeValue(this.Tok, this.Ctor.EnclosingDatatype.Name, this.Id,
         this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr)) {
         Ctor = this.Ctor,
         PreType = new DPreType(this.Ctor.EnclosingDatatype, dtvPreTypeArgs)

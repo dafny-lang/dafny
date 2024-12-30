@@ -108,7 +108,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
     ModuleDefinition module = null;
     foreach (var outerModule in outerModules) {
-      var thisModule = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
+      var thisModule = new ModuleDefinition(SourceOrigin.NoToken, new Name(outerModule), new List<IOrigin>(),
         ModuleKindEnum.Concrete, false,
         null, null, null) {
         EnclosingModule = module

@@ -30,27 +30,16 @@ boogie: ${DIR}/boogie/Binaries/Boogie.exe
 tests:
 	(cd "${DIR}"; dotnet test Source/IntegrationTests)
 
-# make test name=<part of the path of an integration test>
+# make test name=<integration test filter>
+# make test name=<integration test filter> update=true                to update the test
+# make test name=<integration test filter>              build=false   don't build the solution
 test:
-	(cd "${DIR}"; dotnet test Source/IntegrationTests --filter "DisplayName~${name}")
+	@DIR="$(DIR)" name="$(name)" update="$(update)" build="$(build)" bash scripts/test.sh
 
 # Run Dafny on an integration test case directly in the folder itself.
-# make test-run name=<part of the path> action="run ..."
+# make test-dafny name=<part of the path> action="run ..." [build=false]
 test-dafny:
-	name="$(name)"; \
-	files=$$(cd "${DIR}"/Source/IntegrationTests/TestFiles/LitTests/LitTest; find . -type f -wholename "*$$name*" | grep -E '\.dfy$$'); \
-	count=$$(echo "$$files" | wc -l); \
-  echo "$${files}"; \
-	if [ "$$count" -eq 0 ]; then \
-		echo "No files found matching pattern: $$name"; \
-		exit 1; \
-	else \
-		echo "$$count test files found."; \
-		for file in $$files; do \
-			filedir=$$(dirname "$$file"); \
-			(cd "${DIR}/Source/IntegrationTests/TestFiles/LitTests/LitTest/$${filedir}"; dotnet run --project "${DIR}"/Source/Dafny -- $(action)  "$$(basename $$file)" ); \
-		done; \
-	fi
+	@name="$(name)" DIR="$(DIR)" action="$(action)" NO_BUILD=$$( [ "${build}" = "false" ] && echo "true" || echo "false" ) bash scripts/test-dafny.sh
 
 tests-verbose:
 	(cd "${DIR}"; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )
@@ -109,6 +98,9 @@ clean:
 	make -C "${DIR}"/docs/DafnyRef clean
 	(cd "${DIR}"; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)
 	echo Source/*/bin Source/*/obj
+
+bumpversion-test:
+	node ./Scripts/bump_version_number.js --test 1.2.3
 
 update-cs-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime; make update-system-module)

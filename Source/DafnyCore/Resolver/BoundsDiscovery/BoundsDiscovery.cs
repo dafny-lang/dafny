@@ -142,27 +142,27 @@ namespace Microsoft.Dafny {
         var boundVarUses = new List<Expression>();
         var i = 0;
         foreach (var functionArgumentType in arrowType.Args) {
-          var bv = new BoundVar(e.tok, $"_x{i}", functionArgumentType);
+          var bv = new BoundVar(e.Tok, $"_x{i}", functionArgumentType);
           boundVarDecls.Add(bv);
-          boundVarUses.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
+          boundVarUses.Add(new IdentifierExpr(e.Tok, bv.Name) { Type = bv.Type, Var = bv });
           i++;
         }
-        var objVar = new BoundVar(e.tok, "_obj", elementType.NormalizeExpand());
-        var objUse = new IdentifierExpr(e.tok, objVar.Name) { Type = objVar.Type, Var = objVar };
+        var objVar = new BoundVar(e.Tok, "_obj", elementType.NormalizeExpand());
+        var objUse = new IdentifierExpr(e.Tok, objVar.Name) { Type = objVar.Type, Var = objVar };
         boundVarDecls.Add(objVar);
 
-        var collection = new ApplyExpr(e.tok, e, boundVarUses, e.tok) {
+        var collection = new ApplyExpr(e.Tok, e, boundVarUses, Token.NoToken) {
           Type = collectionType
         };
         var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
 
-        var inCollection = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, objUse, collection) {
+        var inCollection = new BinaryExpr(e.Tok, BinaryExpr.Opcode.In, objUse, collection) {
           ResolvedOp = resolvedOpcode,
           Type = Type.Bool
         };
 
         var attributes = new Attributes("_reads", new List<Expression>(), null);
-        return new SetComprehension(e.tok, e.RangeToken, true, boundVarDecls, inCollection, objUse, attributes) {
+        return new SetComprehension(e.Origin, true, boundVarDecls, inCollection, objUse, attributes) {
           Type = new SetType(true, elementType)
         };
       }
@@ -629,7 +629,7 @@ namespace Microsoft.Dafny {
             goto JUST_RETURN_IT;
         }
         if (newROp != b.ResolvedOp || swapOperands) {
-          b = new BinaryExpr(b.tok, newOp, swapOperands ? b.E1 : b.E0, swapOperands ? b.E0 : b.E1);
+          b = new BinaryExpr(b.Tok, newOp, swapOperands ? b.E1 : b.E0, swapOperands ? b.E0 : b.E1);
           b.ResolvedOp = newROp;
           b.Type = Type.Bool;
           yield return b;
@@ -640,7 +640,7 @@ namespace Microsoft.Dafny {
       if (polarity) {
         yield return expr;
       } else {
-        expr = new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Not, expr);
+        expr = new UnaryOpExpr(expr.Tok, UnaryOpExpr.Opcode.Not, expr);
         expr.Type = Type.Bool;
         yield return expr;
       }
@@ -715,10 +715,10 @@ namespace Microsoft.Dafny {
               // Change "A+B op C" into either "A op C-B" or "B op C-A", depending on where we find bv among A and B.
               if (!FreeVariables(bin.E1).Contains(bv)) {
                 thisSide = bin.E0.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E1);
+                thatSide = new BinaryExpr(bin.Tok, BinaryExpr.Opcode.Sub, thatSide, bin.E1);
               } else if (!FreeVariables(bin.E0).Contains(bv)) {
                 thisSide = bin.E1.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E0);
+                thatSide = new BinaryExpr(bin.Tok, BinaryExpr.Opcode.Sub, thatSide, bin.E0);
               } else {
                 break; // done simplifying
               }
@@ -730,14 +730,14 @@ namespace Microsoft.Dafny {
               if (!FreeVariables(bin.E1).Contains(bv)) {
                 // change to "A op C+B"
                 thisSide = bin.E0.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Add, thatSide, bin.E1);
+                thatSide = new BinaryExpr(bin.Tok, BinaryExpr.Opcode.Add, thatSide, bin.E1);
                 ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
               } else if (!FreeVariables(bin.E0).Contains(bv)) {
                 // In principle, change to "-B op C-A" and then to "B dualOp A-C".  But since we don't want
                 // to change "op", we instead end with "A-C op B" and switch the mapping of thisSide/thatSide
                 // to e0/e1 (by inverting "whereIsBv").
                 thisSide = bin.E1.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, bin.E0, thatSide);
+                thatSide = new BinaryExpr(bin.Tok, BinaryExpr.Opcode.Sub, bin.E0, thatSide);
                 ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
                 whereIsBv = 1 - whereIsBv;
               } else {

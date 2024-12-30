@@ -10,7 +10,8 @@
 former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort */
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.Power {
   import opened DivMod
   import opened GeneralInternals
   import opened Mul
@@ -128,7 +129,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
   {
     LemmaMulIncreasesAuto();
     LemmaPow0Auto(); // Base case
-     // Distributes power i + 1 in first inductive step
+    // Distributes power i + 1 in first inductive step
     LemmaMulInductionAuto(e, u => 0 <= u ==> 0 < Pow(b, u));
   }
 
@@ -397,9 +398,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     requires e1 <= e2
     ensures Pow(b, e1) <= Pow(b, e2)
   {
-    LemmaPowAuto();
     var f := e => 0 <= e ==> Pow(b, e1) <= Pow(b, e1 + e);
-    forall i {:trigger IsLe(0, i)} | IsLe(0, i) && f(i)
+    forall i | IsLe(0, i) && f(i)
       ensures f(i + 1)
     {
       calc {

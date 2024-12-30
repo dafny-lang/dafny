@@ -96,7 +96,7 @@ namespace Microsoft.Dafny {
             if (position && e.Frame.Count > 1) {
               // split into a number of UnchangeExpr's, one for each FrameExpression
               foreach (var fe in e.Frame) {
-                var tok = new NestedToken(GetToken(e), fe.tok);
+                var tok = new NestedOrigin(GetToken(e), fe.Tok);
                 Expression ee = new UnchangedExpr(tok, new List<FrameExpression> { fe }, e.At) { AtLabel = e.AtLabel };
                 ee.Type = Type.Bool;  // resolve here
                 TrSplitExpr(context, ee, splits, position, heightLimit, applyInduction, etran);
@@ -175,7 +175,7 @@ namespace Microsoft.Dafny {
               // conditions, it seems confusing to get yet another error message.  Therefore, we add a middle disjunct to (*), namely
               // the conjunction of all the previous RHSs.
               var kAsORD = !e.E0.Type.IsBigOrdinalType ? FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, k) : k;
-              var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, kAsORD, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
+              var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, kAsORD, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B); // FunctionCall(expr.Tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
               Bpl.Expr kHasSuccessor, kMinusOne;
               if (e.E0.Type.IsBigOrdinalType) {
                 kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), FunctionCall(k.tok, "ORD#Offset", Bpl.Type.Int, k));
@@ -190,7 +190,7 @@ namespace Microsoft.Dafny {
               var A2 = etran2.TrExpr(e.E1);
               var B2 = etran2.TrExpr(e.E2);
               var needsTokenAdjust = TrSplitNeedsTokenAdjustment(ternaryExpr);
-              var tok = needsTokenAdjust ? new ForceCheckToken(ternaryExpr.tok) : ternaryExpr.tok;
+              var tok = needsTokenAdjust ? new ForceCheckOrigin(ternaryExpr.Tok) : ternaryExpr.Tok;
               Bpl.Expr layer = etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH);
               Bpl.Expr eqComponents = Bpl.Expr.True;
               foreach (var c in CoPrefixEquality(tok, codecl, e1type.TypeArgs, e2type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
@@ -294,19 +294,19 @@ namespace Microsoft.Dafny {
                 var nn = new List<Bpl.Expr>();
                 var kkDafny = new List<Expression>();
                 var nnDafny = new List<Expression>();
-                var toks = new List<IToken>();
+                var toks = new List<IOrigin>();
                 var substMap = new Dictionary<IVariable, Expression>();
                 foreach (var n in inductionVariables) {
-                  toks.Add(n.tok);
-                  BoundVar k = new BoundVar(n.tok, CurrentIdGenerator.FreshId(n.Name + "$ih#"), n.Type);
+                  toks.Add(n.Tok);
+                  BoundVar k = new BoundVar(n.Tok, CurrentIdGenerator.FreshId(n.Name + "$ih#"), n.Type);
                   kvars.Add(k);
 
-                  IdentifierExpr ieK = new IdentifierExpr(k.tok, k.AssignUniqueName(CurrentDeclaration.IdGenerator));
+                  IdentifierExpr ieK = new IdentifierExpr(k.Tok, k.AssignUniqueName(CurrentDeclaration.IdGenerator));
                   ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
                   kkDafny.Add(ieK);
                   kk.Add(etran.TrExpr(ieK));
 
-                  IdentifierExpr ieN = new IdentifierExpr(n.tok, n.AssignUniqueName(CurrentDeclaration.IdGenerator));
+                  IdentifierExpr ieN = new IdentifierExpr(n.Tok, n.AssignUniqueName(CurrentDeclaration.IdGenerator));
                   ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
                   nnDafny.Add(ieN);
                   nn.Add(etran.TrExpr(ieN));
@@ -325,8 +325,8 @@ namespace Microsoft.Dafny {
                 List<Variable> bvars = new List<Variable>();
                 Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
                 Bpl.Expr ih;
-                var tr = TrTrigger(etran, e.Attributes, expr.tok, substMap);
-                ih = new Bpl.ForallExpr(expr.tok, bvars, tr, BplImp(typeAntecedent, ihBody));
+                var tr = TrTrigger(etran, e.Attributes, expr.Tok, substMap);
+                ih = new Bpl.ForallExpr(expr.Tok, bvars, tr, BplImp(typeAntecedent, ihBody));
 
                 // More precisely now:
                 //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
@@ -334,7 +334,7 @@ namespace Microsoft.Dafny {
                 // or similar for existentials.
                 var caseProduct = new List<Bpl.Expr>() {
                 // make sure to include the correct token information (so, don't just use Bpl.Expr.True here)
-                new Bpl.LiteralExpr(TrSplitNeedsTokenAdjustment(expr) ? new ForceCheckToken(expr.tok) : expr.tok, true)
+                new Bpl.LiteralExpr(TrSplitNeedsTokenAdjustment(expr) ? new ForceCheckOrigin(expr.Tok) : expr.Tok, true)
               };
                 var i = 0;
                 foreach (var n in inductionVariables) {
@@ -342,7 +342,7 @@ namespace Microsoft.Dafny {
                   foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
                     foreach (var cs in caseProduct) {
                       if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
-                        newCases.Add(Bpl.Expr.Binary(new NestedToken(ToDafnyToken(flags.ReportRanges, cs.tok), ToDafnyToken(flags.ReportRanges, kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
+                        newCases.Add(Bpl.Expr.Binary(new NestedOrigin(ToDafnyToken(flags.ReportRanges, cs.tok), ToDafnyToken(flags.ReportRanges, kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
                       } else {
                         newCases.Add(cs);
                       }
@@ -359,7 +359,7 @@ namespace Microsoft.Dafny {
                   var etranBody = etran.LayerOffset(1);
                   var bdy = etranBody.TrExpr(e.LogicalBody());
                   Bpl.Expr q;
-                  var trig = TrTrigger(etranBody, e.Attributes, expr.tok);
+                  var trig = TrTrigger(etranBody, e.Attributes, expr.Tok);
                   if (position) {
                     q = new Bpl.ForallExpr(kase.tok, bvars, trig, BplImp(ante, bdy));
                   } else {
@@ -379,7 +379,7 @@ namespace Microsoft.Dafny {
                 var r = etranBoost.TrExpr(expr);
                 var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
                 if (needsTokenAdjustment) {
-                  r.tok = new ForceCheckToken(expr.tok);
+                  r.tok = new ForceCheckOrigin(expr.Tok);
                 }
                 if (etranBoost.Statistics_CustomLayerFunctionCount == 0) {
                   // apparently, the LayerOffset(1) we did had no effect
@@ -399,7 +399,7 @@ namespace Microsoft.Dafny {
               var r = etran.TrExpr(expr);
               var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
               if (needsTokenAdjustment) {
-                r.tok = new ForceCheckToken(expr.tok);
+                r.tok = new ForceCheckOrigin(expr.Tok);
               }
               if (etran.Statistics_CustomLayerFunctionCount == 0) {
                 // apparently, doesn't use layer
@@ -427,7 +427,7 @@ namespace Microsoft.Dafny {
         splitHappened = etran.Statistics_CustomLayerFunctionCount != 0;  // return true if the LayerOffset(1) came into play
       }
       if (TrSplitNeedsTokenAdjustment(expr)) {
-        translatedExpression.tok = new ForceCheckToken(expr.tok);
+        translatedExpression.tok = new ForceCheckOrigin(expr.Tok);
         splitHappened = true;
       }
       splits.Add(ToSplitExprInfo(SplitExprInfo.K.Both, translatedExpression));
@@ -451,22 +451,22 @@ namespace Microsoft.Dafny {
           List<Variable> bvs;
           List<Bpl.Expr> args;
           CreateBoundVariables(ctor.Formals, out bvs, out args);
-          Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, Predef.DatatypeType, args);
+          Bpl.Expr ct = FunctionCall(ctor.Tok, ctor.FullName, Predef.DatatypeType, args);
           // (exists args :: args-have-the-expected-types && ct(args) == expr)
-          Bpl.Expr q = Bpl.Expr.Binary(ctor.tok, BinaryOperator.Opcode.Eq, ct, expr);
+          Bpl.Expr q = Bpl.Expr.Binary(ctor.Tok, BinaryOperator.Opcode.Eq, ct, expr);
           if (bvs.Count != 0) {
             int i = 0;
             Bpl.Expr typeAntecedent = Bpl.Expr.True;
             foreach (Formal arg in ctor.Formals) {
               var instantiatedArgType = arg.Type.Subst(subst);
-              Bpl.Expr wh = GetWhereClause(arg.tok, CondApplyUnbox(arg.tok, args[i], arg.Type, instantiatedArgType), instantiatedArgType, etran, NOALLOC);
+              Bpl.Expr wh = GetWhereClause(arg.Tok, CondApplyUnbox(arg.Tok, args[i], arg.Type, instantiatedArgType), instantiatedArgType, etran, NOALLOC);
               if (wh != null) {
                 typeAntecedent = BplAnd(typeAntecedent, wh);
               }
               i++;
             }
             var trigger = BplTrigger(ct);  // this is probably never used, because this quantifier is not expected ever to appear in a context where it needs to be instantiated
-            q = new Bpl.ExistsExpr(ctor.tok, bvs, trigger, BplAnd(typeAntecedent, q));
+            q = new Bpl.ExistsExpr(ctor.Tok, bvs, trigger, BplAnd(typeAntecedent, q));
           }
           yield return q;
         }
@@ -482,7 +482,7 @@ namespace Microsoft.Dafny {
       var functionHeight = module.CallGraph.GetSCCRepresentativePredecessorCount(f);
 
       if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f)) {
-        if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
+        if (fexp.Tok.IsInherited(currentModule) &&
             f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
             (codeContext == null || !codeContext.MustReverify)) {
           // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
@@ -508,7 +508,7 @@ namespace Microsoft.Dafny {
           // The checked conjuncts of the body make use of the type-specialized body.
 
           // F#canCall(args)
-          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.Tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
           List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null, null);
           Bpl.Expr canCall = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
 
@@ -519,7 +519,7 @@ namespace Microsoft.Dafny {
           if (!CanSafelyInline(fexp, f)) {
             // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
             // TODO this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
-            reporter.Info(MessageSource.Translator, fexp.tok, "Some instances of this call are not inlined.");
+            reporter.Info(MessageSource.Translator, fexp.Tok, "Some instances of this call are not inlined.");
             // F#canCall(args) ==> F(args)
             var p = Bpl.Expr.Binary(fargs.tok, BinaryOperator.Opcode.Imp, canCall, fargs);
             splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
@@ -540,8 +540,8 @@ namespace Microsoft.Dafny {
                 var unboxedConjunct = CondApplyUnbox(s.E.tok, s.E, typeSpecializedResultType, expr.Type);
                 var bodyOrConjunct = BplOr(fargs, unboxedConjunct);
                 var tok = needsTokenAdjust
-                  ? (IToken)new ForceCheckToken(typeSpecializedBody.tok)
-                  : (IToken)new NestedToken(GetToken(fexp), s.Tok);
+                  ? (IOrigin)new ForceCheckOrigin(typeSpecializedBody.Tok)
+                  : (IOrigin)new NestedOrigin(GetToken(fexp), s.Tok);
                 var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
                 splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
               }
@@ -554,7 +554,7 @@ namespace Microsoft.Dafny {
                 Expression ee = e.Args[i];
                 Type t = e.Function.Ins[i].Type;
                 Expr tr_ee = etran.TrExpr(ee);
-                Bpl.Expr wh = GetWhereClause(e.tok, tr_ee, cce.NonNull(ee.Type), etran, NOALLOC);
+                Bpl.Expr wh = GetWhereClause(e.Tok, tr_ee, cce.NonNull(ee.Type), etran, NOALLOC);
                 if (wh != null) {
                   fargs = BplAnd(fargs, wh);
                 }
@@ -650,10 +650,10 @@ namespace Microsoft.Dafny {
       public bool IsOnlyChecked { get { return Kind == K.Checked; } }
       public bool IsChecked { get { return Kind != K.Free; } }
       public readonly Expr E;
-      public IToken Tok;
+      public IOrigin Tok;
       public SplitExprInfo(bool reportRanges, K kind, Expr e) {
         Contract.Requires(e != null && e.tok != null);
-        // TODO:  Contract.Requires(kind == K.Free || e.tok.IsValid);
+        // TODO:  Contract.Requires(kind == K.Free || e.Tok.IsValid);
         Kind = kind;
         E = e;
         Tok = ToDafnyToken(reportRanges, e.tok);

@@ -12,7 +12,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public record PrefixNameModule(DafnyOptions Options, IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
+public record PrefixNameModule(DafnyOptions Options, IReadOnlyList<IOrigin> Parts, LiteralModuleDecl Module);
 
 public enum ModuleKindEnum {
   Concrete,
@@ -27,7 +27,7 @@ public enum ImplementationKind {
 
 public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
-public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
+public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
 
   public static readonly Option<bool> LegacyModuleNames = new("--legacy-module-names",
     @"
@@ -40,13 +40,11 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     OptionRegistry.RegisterOption(LegacyModuleNames, OptionScope.Translation);
   }
 
-  public IToken BodyStartTok = Token.NoToken;
-  public IToken TokenWithTrailingDocString = Token.NoToken;
+  public IOrigin BodyStartTok = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
   public Name NameNode; // (Last segment of the) module name
 
   public override bool SingleFileToken => !ResolvedPrefixNamedModules.Any();
-  public override IToken Tok => NameNode.StartToken;
 
   public string Name => NameNode.Value;
   public string FullDafnyName {
@@ -68,8 +66,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
       }
     }
   }
-  public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
-                                          // nested module declaration is outside its enclosing module
+  public readonly List<IOrigin> PrefixIds; // The qualified module name, except the last segment when a
+                                           // nested module declaration is outside its enclosing module
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public Attributes Attributes { get; set; }
   public string WhatKind => "module definition";
@@ -128,7 +126,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   public ModuleDefinition(Cloner cloner, ModuleDefinition original) : base(cloner, original) {
     NameNode = original.NameNode;
-    PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
+    PrefixIds = original.PrefixIds.Select(cloner.Origin).ToList();
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     ModuleKind = original.ModuleKind;
@@ -158,7 +156,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
+  public ModuleDefinition(IOrigin tok, Name name, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
     Implements implements, ModuleDefinition parent, Attributes attributes) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -409,7 +407,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     return TopLevelDecls.All(decl => decl.IsEssentiallyEmpty());
   }
 
-  public IToken NavigationToken => tok;
+  public IOrigin NavigationToken => NameNode.Origin;
   public override IEnumerable<INode> Children =>
     Attributes.AsEnumerable().
     Concat<Node>(DefaultClasses).
@@ -569,7 +567,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     return true;
   }
 
-  private static NameSegment TopLevelDeclToNameSegment(TopLevelDecl decl, IToken tok) {
+  private static NameSegment TopLevelDeclToNameSegment(TopLevelDecl decl, IOrigin tok) {
     var typeArgs = new List<Type>();
 
     foreach (var arg in decl.TypeArgs) {
@@ -634,7 +632,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
       var prefixNameModule = prefixNamedModules.First();
       var firstPartToken = prefixNameModule.Parts[0];
-      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), ModuleKindEnum.Concrete,
+      var modDef = new ModuleDefinition(SourceOrigin.NoToken, new Name(firstPartToken, name), new List<IOrigin>(), ModuleKindEnum.Concrete,
         false, null, this, null);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 
@@ -686,12 +684,12 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         var existingModuleIsFound = bindings.TryLookup(subDecl.Name, out var prevDecl);
         Contract.Assert(existingModuleIsFound);
         if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
-          resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok, "Duplicate name of import: {0}", subDecl.Name);
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.Tok, "Duplicate name of import: {0}", subDecl.Name);
         } else if (subDecl is AliasModuleDecl { Opened: true } importDecl && importDecl.TargetQId.Path.Count == 1 &&
                    importDecl.Name == importDecl.TargetQId.RootName()) {
           importDecl.ShadowsLiteralModule = true;
         } else {
-          resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok,
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.Tok,
             "Import declaration uses same name as a module in the same scope: {0}", subDecl.Name);
         }
       }
@@ -716,7 +714,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
       var attr1 = Attributes.Find(attrs, pair.Item1);
       var attr2 = Attributes.Find(attrs, pair.Item2);
       if (attr1 is not null && attr2 is not null) {
-        resolver.reporter.Error(MessageSource.Resolver, attr1.tok,
+        resolver.reporter.Error(MessageSource.Resolver, attr1.Tok,
             $"the {pair.Item1} and {pair.Item2} attributes cannot be used together");
       }
     }
@@ -756,7 +754,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
         anonymousImportCount++;
       } else if (toplevels.TryGetValue(d.Name, out var existingTopLevel)) {
-        resolver.reporter.Error(MessageSource.Resolver, new NestedToken(d.Tok, existingTopLevel.Tok),
+        resolver.reporter.Error(MessageSource.Resolver, new NestedOrigin(d.Tok, existingTopLevel.Origin),
           "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
@@ -808,7 +806,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
           }
 
           if (toplevels.ContainsKey(m.Name)) {
-            resolver.reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
+            resolver.reporter.Error(MessageSource.Resolver, m.Tok, $"duplicate declaration for name {m.Name}");
           } else {
             toplevels.Add(m.Name, m);
           }
@@ -846,7 +844,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
             // create and add the query "method" (field, really)
             var queryName = ctor.NameNode.Append("?");
-            var query = new DatatypeDiscriminator(ctor.RangeToken, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.GetCompileName(resolver.Options),
+            var query = new DatatypeDiscriminator(ctor.Origin, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.GetCompileName(resolver.Options),
               ctor.IsGhost, Type.Bool, null);
             query.InheritVisibility(dt);
             query.EnclosingClass = dt; // resolve here
@@ -897,7 +895,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
               dtor.AddAnotherEnclosingCtor(ctor, formal);
             } else {
               // either the destructor has no explicit name, or this constructor declared another destructor with this name, or no previous destructor had this name
-              dtor = new DatatypeDestructor(formal.RangeToken, ctor, formal, new Name(formal.RangeToken, formal.Name), "dtor_" + formal.CompileName,
+              dtor = new DatatypeDestructor(formal.Origin, ctor, formal, formal.NameNode, "dtor_" + formal.CompileName,
                 formal.IsGhost, formal.Type, null);
               dtor.InheritVisibility(dt);
               dtor.EnclosingClass = dt; // resolve here
@@ -1065,19 +1063,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   }
 
-  public IEnumerable<ISymbol> ChildSymbols => TopLevelDecls.SelectMany(decl => {
-    if (decl is DefaultClassDecl defaultClassDecl) {
-      return defaultClassDecl.Members.OfType<ISymbol>();
-    }
+  public LiteralModuleDecl EnclosingLiteralModuleDecl { get; set; }
 
-    if (decl is ISymbol symbol) {
-      return new[] { symbol };
-    }
-
-    return Enumerable.Empty<ISymbol>();
-  });
-
-  public SymbolKind? Kind => SymbolKind.Namespace;
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }

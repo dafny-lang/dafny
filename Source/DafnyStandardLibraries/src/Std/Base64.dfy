@@ -92,7 +92,9 @@ module Std.Base64 {
     else (c - 65 as char) as int as index
   }
 
-  lemma {:resource_limit 2000000} {:isolate_assertions} CharToIndexToChar(c: char)
+  @ResourceLimit("2e6")
+  @IsolateAssertions
+  lemma CharToIndexToChar(c: char)
     requires IsBase64Char(c)
     ensures IndexToChar(CharToIndex(c)) == c
   {
@@ -113,7 +115,8 @@ module Std.Base64 {
     }
   }
 
-  lemma {:isolate_assertions} IndexToCharToIndex(i: index)
+  @IsolateAssertions
+  lemma IndexToCharToIndex(i: index)
     ensures (IndexToCharIsBase64(i); CharToIndex(IndexToChar(i)) == i)
   {
     // TODO: reduce resource use, brittleness
@@ -239,7 +242,8 @@ module Std.Base64 {
     IndexSeqToBV24ToIndexSeq(s);
   }
 
-  function {:isolate_assertions} DecodeRecursively(s: seq<index>): (b: seq<bv8>)
+  @IsolateAssertions
+  function DecodeRecursively(s: seq<index>): (b: seq<bv8>)
     requires |s| % 4 == 0
     decreases |s|
   {
@@ -300,7 +304,8 @@ module Std.Base64 {
     }
   }
 
-  function {:isolate_assertions} EncodeRecursively(b: seq<bv8>): (s: seq<index>)
+  @IsolateAssertions
+  function EncodeRecursively(b: seq<bv8>): (s: seq<index>)
     requires |b| % 3 == 0
   {
     if |b| == 0 then []
@@ -358,7 +363,7 @@ module Std.Base64 {
     }
   }
 
-  lemma {:isolate_assertions} EncodeDecodeRecursively(b: seq<bv8>) 
+  lemma {:isolate_assertions} EncodeDecodeRecursively(b: seq<bv8>)
     requires |b| % 3 == 0
     ensures (EncodeRecursivelyBounds(b); DecodeRecursively(EncodeRecursively(b)) == b)
   {
@@ -374,10 +379,10 @@ module Std.Base64 {
         DecodeRecursively(EncodeRecursively(b));
       ==
         DecodeRecursively(s);
-      == { 
-        assert |s[4..]| % 4 == 0; 
-        reveal DecodeRecursively;
-      }
+      == {
+           assert |s[4..]| % 4 == 0;
+           reveal DecodeRecursively;
+         }
         DecodeBlock(s[..4]) + DecodeRecursively(s[4..]);
       == { EncodeRecursivelyBlock(b); }
         b[..3] + DecodeRecursively(s[4..]);
@@ -391,7 +396,7 @@ module Std.Base64 {
     }
   }
 
-  lemma DecodeEncodeRecursively(s: seq<index>)
+  lemma {:isolate_assertions} DecodeEncodeRecursively(s: seq<index>)
     requires |s| % 4 == 0
     ensures (DecodeRecursivelyBounds(s); EncodeRecursively(DecodeRecursively(s)) == s)
   {
@@ -583,7 +588,6 @@ module Std.Base64 {
   {
   }
 
-  // 4884420 ~~ 4.9e6
   lemma {:resource_limit 0} Encode1PaddingIs1Padding(b: seq<bv8>)
     requires |b| == 2
     ensures Is1Padding(Encode1Padding(b))
@@ -593,15 +597,17 @@ module Std.Base64 {
     var s := Encode1Padding(b);
     var e := EncodeBlock([b[0], b[1], 0]);
 
+    reveal Encode1Padding; // TODO make by penetrate
     assert s == [IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '='] by {
-      reveal Encode1Padding;
     }
     IndexToCharIsBase64(e[0]);
     IndexToCharIsBase64(e[1]);
     IndexToCharIsBase64(e[2]);
 
-    assert CharToIndex(s[2]) & 0x3 == 0 by { // 4531046
-      reveal Encode1Padding, EncodeBlock, IndexToChar, CharToIndex, BV24ToIndexSeq, SeqToBV24;
+    // TODO make by penetrate
+    // TODO provide a way to reveal deeply.
+    reveal Encode1Padding, EncodeBlock, IndexToChar, CharToIndex, BV24ToIndexSeq, SeqToBV24;
+    assert CharToIndex(s[2]) & 0x3 == 0 by {
     }
 
     assert Is1Padding(s) by {
@@ -632,7 +638,8 @@ module Std.Base64 {
     }
   }
 
-  lemma {:isolate_assertions} DecodeEncode1Padding(s: seq<char>)
+  @IsolateAssertions
+  lemma DecodeEncode1Padding(s: seq<char>)
     requires Is1Padding(s)
     ensures Encode1Padding(Decode1Padding(s)) == s
   {
@@ -824,7 +831,7 @@ module Std.Base64 {
 
   lemma DecodeBVFailure(s: seq<char>)
     ensures !IsBase64String(s) ==> DecodeBV(s).Failure?
-  { 
+  {
   }
 
   ghost predicate StringIs7Bit(s: string) {
@@ -834,7 +841,7 @@ module Std.Base64 {
   lemma UnpaddedBase64StringIs7Bit(s: string)
     requires IsUnpaddedBase64String(s)
     ensures StringIs7Bit(s)
-  { 
+  {
   }
 
   lemma Is7Bit1Padding(s: string)
@@ -1096,7 +1103,8 @@ module Std.Base64 {
     AboutDecodeValid(s, DecodeValid(s));
   }
 
-  lemma {:resource_limit 12000000} DecodeValidEncode1Padding(s: seq<char>)
+  @ResourceLimit("12e6")
+  lemma DecodeValidEncode1Padding(s: seq<char>)
     requires IsBase64String(s)
     requires |s| >= 4
     requires Is1Padding(s[(|s| - 4)..])
@@ -1126,9 +1134,9 @@ module Std.Base64 {
     requires Is2Padding(s[(|s| - 4)..])
     ensures
       (
-       var b := DecodeValid(s);
-       b[..(|b| - 1)] == DecodeUnpadded(s[..(|s| - 4)]) &&
-       b[(|b| - 1)..] == Decode2Padding(s[(|s| - 4)..]))
+        var b := DecodeValid(s);
+        b[..(|b| - 1)] == DecodeUnpadded(s[..(|s| - 4)]) &&
+        b[(|b| - 1)..] == Decode2Padding(s[(|s| - 4)..]))
   {
     AboutDecodeValid(s, DecodeValid(s));
     assert Is2Padding(s[(|s| - 4)..]);
@@ -1140,9 +1148,9 @@ module Std.Base64 {
     requires Is1Padding(s[(|s| - 4)..])
     ensures
       (
-       var b := DecodeValid(s);
-       b[..(|b| - 2)] == DecodeUnpadded(s[..(|s| - 4)]) &&
-       b[(|b| - 2)..] == Decode1Padding(s[(|s| - 4)..]))
+        var b := DecodeValid(s);
+        b[..(|b| - 2)] == DecodeUnpadded(s[..(|s| - 4)]) &&
+        b[(|b| - 2)..] == Decode1Padding(s[(|s| - 4)..]))
   {
     AboutDecodeValid(s, DecodeValid(s));
   }
@@ -1318,7 +1326,9 @@ module Std.Base64 {
     seq(|b|, i requires 0 <= i < |b| => b[i] as uint8)
   }
 
-  lemma {:isolate_assertions} {:resource_limit 1000000000} UInt8sToBVsToUInt8s(u: seq<uint8>)
+  @IsolateAssertions
+  @ResourceLimit("1e9")
+  lemma UInt8sToBVsToUInt8s(u: seq<uint8>)
     ensures BVsToUInt8s(UInt8sToBVs(u)) == u
   {
     // TODO: reduce resource use

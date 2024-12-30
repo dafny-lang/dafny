@@ -21,10 +21,10 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
   public override IEnumerable<INode> PreResolveChildren => Ctors.Concat(base.PreResolveChildren);
 
-  public DatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public DatatypeDecl(IOrigin rangeOrigin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -92,6 +92,8 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   public override SymbolKind? Kind => SymbolKind.Enum;
 
   public bool SetIndent(int indent, TokenNewIndentCollector formatter) {
+    Attributes.SetIndents(Attributes, indent, formatter);
+
     var indent2 = indent + formatter.SpaceTab;
     var verticalBarIndent = indent2;
     var rightOfVerticalBarIndent = indent2 + formatter.SpaceTab;
@@ -114,6 +116,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
       .OrderBy(token => token.pos);
     foreach (var token in ownedTokens) {
       switch (token.val) {
+        case "codatatype":
         case "datatype": {
             formatter.SetOpeningIndentedRegion(token, indent);
             break;
@@ -177,13 +180,18 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   }
 
   public string GetTriviaContainingDocstring() {
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
     foreach (var token in OwnedTokens) {
-      if (token.val == "=" && token.TrailingTrivia.Trim() != "") {
-        return token.TrailingTrivia;
+      if (token.val == "=") {
+        if ((token.Prev.TrailingTrivia + (token.LeadingTrivia ?? "")).Trim() is { } tentativeTrivia and not "") {
+          return tentativeTrivia;
+        }
       }
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 
   public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options, ErrorReporter Reporter) {
@@ -197,7 +205,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
         formal.DefaultValue = Rewriter.AddRevealStmtsToExpression(formal.DefaultValue, addedReveals);
 
         if (addedReveals.Any()) {
-          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, formal.tok,
+          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, formal.Tok,
             AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
         }
       }

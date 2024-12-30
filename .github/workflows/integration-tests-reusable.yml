@@ -128,6 +128,22 @@ jobs:
 #    - name: Clean up libraries for testing
 #      run: |
 #        rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
+    - name: Use the default Rust linker (Non-Windows)
+      if: runner.os != 'Windows'
+      run: rustup default stable
+    - name: Use specific Toolchain (Windows)
+      if: runner.os == 'Windows'
+      run: rustup default stable-x86_64-pc-windows-gnu
+    - name: Rust-related System information
+      run: |
+        echo "What is the Rust version?"
+        rustc -vV
+        echo "What is the cargo version?"
+        cargo --version
+        echo "What is the architecture?"
+        uname -m
+        echo "What are Rust toolchains installed?"
+        rustup toolchain list
     - name: Create release
       if: inputs.all_platforms
       run: |

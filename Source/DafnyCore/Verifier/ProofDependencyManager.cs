@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
     // condition.
     private const string idAttributeName = "id";
 
-    public void AddProofDependencyId(ICarriesAttributes boogieNode, IToken tok, ProofDependency dep) {
+    public void AddProofDependencyId(ICarriesAttributes boogieNode, IOrigin tok, ProofDependency dep) {
       var idString = GetProofDependencyId(dep);
       boogieNode.Attributes =
         new QKeyValue(tok, idAttributeName, new List<object>() { idString }, boogieNode.Attributes);
@@ -82,7 +82,7 @@ namespace Microsoft.Dafny {
     public IEnumerable<ProofDependency> GetOrderedFullDependencies(IEnumerable<TrackedNodeComponent> components) {
       return components
         .Select(GetFullIdDependency)
-        .OrderBy(dep => dep.Range)
+        .OrderBy(dep => dep.Range.Center)
         .ThenBy(dep => dep.Description);
     }
   }

@@ -8,10 +8,10 @@ namespace Microsoft.Dafny;
 /// merge.
 /// </summary>
 public class RefinedWhileStmt : WhileStmt {
-  public RefinedWhileStmt(RangeToken rangeToken, Expression guard,
+  public RefinedWhileStmt(IOrigin rangeOrigin, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body)
-    : base(rangeToken, guard, invariants, decreases, mod, body) {
+    : base(rangeOrigin, guard, invariants, decreases, mod, body) {
     Contract.Requires(body != null);
   }
 }

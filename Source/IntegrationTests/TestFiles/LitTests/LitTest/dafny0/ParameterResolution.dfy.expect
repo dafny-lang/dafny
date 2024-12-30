@@ -90,14 +90,14 @@ ParameterResolution.dfy(351,15): Error: nameonly parameter '900' must be passed 
 ParameterResolution.dfy(355,15): Error: the binding named '0900' does not correspond to any formal parameter
 ParameterResolution.dfy(355,9): Error: datatype constructor parameter '900' at index 1 requires an argument of type int
 ParameterResolution.dfy(356,25): Error: the binding named '90_0' does not correspond to any formal parameter
-ParameterResolution.dfy(369,73): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'baz'); declare it as nameonly or give it a default-value expression
-ParameterResolution.dfy(370,71): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'baz'); declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(369,73): Error: this parameter has to be nameonly, because of the earlier nameonly parameter 'baz'; declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(370,71): Error: this parameter has to be nameonly, because of the earlier nameonly parameter 'baz'; declare it as nameonly or give it a default-value expression
 ParameterResolution.dfy(377,9): Error: wrong number of arguments (got 0, but datatype constructor 'Foo' expects at least 1: (bar: string, baz: string, qux: int))
-ParameterResolution.dfy(278,33): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'u'); declare it as nameonly or give it a default-value expression
-ParameterResolution.dfy(278,33): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'u'); declare it as nameonly or give it a default-value expression
-ParameterResolution.dfy(281,45): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter '1'); declare it as nameonly or give it a default-value expression
-ParameterResolution.dfy(284,27): Error: because of a later nameless parameter, this default value is never used; remove it or name all subsequent parameters
-ParameterResolution.dfy(285,39): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'b'); declare it as nameonly or give it a default-value expression
-ParameterResolution.dfy(286,34): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'b'); declare it as nameonly or give it a default-value expression
-ParameterResolution.dfy(368,79): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'baz'); declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(278,33): Error: this parameter has to be nameonly, because of the earlier nameonly parameter 'u'; declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(278,33): Error: this parameter has to be nameonly, because of the earlier nameonly parameter 'u'; declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(281,45): Error: this parameter has to be nameonly, because of the earlier nameonly parameter '1'; declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(284,27): Error: because of a later nameless parameter, which is a required parameter, this default value is never used; remove it or name all subsequent parameters
+ParameterResolution.dfy(285,39): Error: this parameter has to be nameonly, because of the earlier nameonly parameter 'b'; declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(286,34): Error: this parameter has to be nameonly, because of the earlier nameonly parameter 'b'; declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(368,79): Error: this parameter has to be nameonly, because of the earlier nameonly parameter 'baz'; declare it as nameonly or give it a default-value expression
 102 resolution/type errors detected in ParameterResolution.dfy

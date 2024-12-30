@@ -30,7 +30,7 @@ public partial class BoogieGenerator {
   private void AddArrowTypeAxioms(ArrowTypeDecl ad) {
     Contract.Requires(ad != null);
     var arity = ad.Arity;
-    var tok = ad.tok;
+    var tok = ad.Tok;
 
     // [Heap, Box, ..., Box]
     var map_args = Cons(Predef.HeapType, Map(Enumerable.Range(0, arity), i => Predef.BoxType));
@@ -110,8 +110,8 @@ public partial class BoogieGenerator {
         Func<Bpl.Expr, Bpl.Expr, Bpl.Expr> op = Bpl.Expr.Eq;
         if (selectorVar == "rd") {
           var bx = BplBoundVar("bx", Predef.BoxType, bvars);
-          lhs = Bpl.Expr.SelectTok(tok, lhs, bx);
-          rhs = Bpl.Expr.SelectTok(tok, rhs, bx);
+          lhs = IsSetMember(tok, lhs, bx, true);
+          rhs = IsSetMember(tok, rhs, bx, true);
           // op = BplImp;
         }
         if (selectorVar == "r") {
@@ -141,9 +141,9 @@ public partial class BoogieGenerator {
         MapM(Enumerable.Range(0, arity), i => rhsargs.Add(BplFormalVar("bx" + i, Predef.BoxType, true, formals)));
 
         sink.AddTopLevelDeclaration(
-          new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<TypeVariable>(), formals,
+          new Bpl.Function(f.Tok, f.FullSanitizedName + "#canCall", new List<TypeVariable>(), formals,
             BplFormalVar(null, Bpl.Type.Bool, false), null,
-            InlineAttribute(f.tok)) {
+            InlineAttribute(f.Tok)) {
             Body = Bpl.Expr.True
           });
       };
@@ -208,10 +208,10 @@ public partial class BoogieGenerator {
             BplAnd(
               Bpl.Expr.Neq(o, Predef.Null),
               // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
-              new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> {
-                  FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(hN, Cons(f, boxes)))),
-                  FunctionCall(tok, BuiltinFunction.Box, null, o)
-              })
+              IsSetMember(tok,
+                FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(hN, Cons(f, boxes)))),
+                FunctionCall(tok, BuiltinFunction.Box, null, o),
+                true)
             ),
             Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
 
@@ -416,7 +416,7 @@ public partial class BoogieGenerator {
         var r = BplBoundVar("r", Predef.RefType, bvarsR);
         var rNonNull = Bpl.Expr.Neq(r, Predef.Null);
         var reads = FunctionCall(tok, Reads(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-        var rInReads = Bpl.Expr.Select(reads, FunctionCall(tok, BuiltinFunction.Box, null, r));
+        var rInReads = IsSetMember(tok, reads, FunctionCall(tok, BuiltinFunction.Box, null, r), true);
         var rAlloc = IsAlloced(tok, h, r);
         var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
 
@@ -468,7 +468,7 @@ public partial class BoogieGenerator {
 
   private string AddTyAxioms(TopLevelDecl td) {
     Contract.Requires(td != null);
-    IToken tok = td.tok;
+    IOrigin tok = td.Tok;
 
     // use the internal type synonym, if any
     if (!RevealedInScope(td) && td is RevealableTypeDecl revealableTypeDecl) {
@@ -512,9 +512,9 @@ public partial class BoogieGenerator {
             ==> $Box($Unbox(bx): DatatypeType) == bx
              && $Is($Unbox(bx): DatatypeType, List(T)));
     */
-    if (!ModeledAsBoxType(UserDefinedType.FromTopLevelDecl(td.tok, td))) {
+    if (!ModeledAsBoxType(UserDefinedType.FromTopLevelDecl(td.Tok, td))) {
       var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
-      var ty_repr = TrType(UserDefinedType.FromTopLevelDecl(td.tok, td));
+      var ty_repr = TrType(UserDefinedType.FromTopLevelDecl(td.Tok, td));
       var typeTerm = FunctionCall(tok, name, Predef.Ty, argExprs);
       AddBoxUnboxAxiom(tok, name, typeTerm, ty_repr, args);
     }
@@ -533,7 +533,7 @@ public partial class BoogieGenerator {
    *     axiom (forall t0: Ty :: { List(t0) } TagFamily(List(t0)) == tytagFamily$List);
    */
   private Axiom CreateTagAndCallingForTypeConstructor(TopLevelDecl td) {
-    IToken tok = td.tok;
+    IOrigin tok = td.Tok;
     var inner_name = GetClass(td).TypedIdent.Name;
     string name = "T" + inner_name;
 
@@ -602,7 +602,7 @@ public partial class BoogieGenerator {
   ///         $Box($Unbox(bx): tyRepr) == bx &&
   ///         $Is($Unbox(bx): tyRepr, name(argExprs)));
   /// </summary>
-  private void AddBoxUnboxAxiom(IToken tok, string printableName, Bpl.Expr typeTerm, Bpl.Type tyRepr, List<Variable> args) {
+  private void AddBoxUnboxAxiom(IOrigin tok, string printableName, Bpl.Expr typeTerm, Bpl.Type tyRepr, List<Variable> args) {
     Contract.Requires(tok != null);
     Contract.Requires(printableName != null);
     Contract.Requires(typeTerm != null);
@@ -622,7 +622,7 @@ public partial class BoogieGenerator {
   }
 
 
-  private void GenerateAndCheckGuesses(IToken tok, List<BoundVar> bvars, List<BoundedPool> bounds, Expression expr, Trigger triggers, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+  private void GenerateAndCheckGuesses(IOrigin tok, List<BoundVar> bvars, List<BoundedPool> bounds, Expression expr, Trigger triggers, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
     Contract.Requires(tok != null);
     Contract.Requires(bvars != null);
     Contract.Requires(bounds != null);
@@ -703,9 +703,9 @@ public partial class BoogieGenerator {
     Contract.Requires(expr != null);
     var xType = x.Type.NormalizeExpand();
     if (xType is BoolType) {
-      var lit = Expression.CreateBoolLiteral(x.tok, false);
+      var lit = Expression.CreateBoolLiteral(x.Tok, false);
       yield return lit;
-      lit = Expression.CreateBoolLiteral(x.tok, true);
+      lit = Expression.CreateBoolLiteral(x.Tok, true);
       yield return lit;
       yield break;  // there are no more possible witnesses for booleans
     } else if (xType is CharType) {
@@ -713,17 +713,17 @@ public partial class BoogieGenerator {
     } else if (xType.IsBitVectorType) {
       // TODO: something could be done for bitvectors
     } else if (xType.IsRefType) {
-      var lit = new LiteralExpr(x.tok) { Type = xType };  // null
+      var lit = new LiteralExpr(x.Tok) { Type = xType };  // null
       yield return lit;
     } else if (xType.IsDatatype) {
       var dt = xType.AsDatatype;
-      Expression zero = Zero(x.tok, xType);
+      Expression zero = Zero(x.Tok, xType);
       if (zero != null) {
         yield return zero;
       }
       foreach (var ctor in dt.Ctors) {
         if (ctor.Formals.Count == 0) {
-          var v = new DatatypeValue(x.tok, dt.Name, ctor.Name, new List<Expression>());
+          var v = new DatatypeValue(x.Tok, dt.Name, ctor.Name, new List<Expression>());
           v.Ctor = ctor;  // resolve here
           v.InferredTypeArgs = xType.TypeArgs; // resolved here.
           v.Type = xType;  // resolve here
@@ -731,23 +731,23 @@ public partial class BoogieGenerator {
         }
       }
     } else if (xType is SetType) {
-      var empty = new SetDisplayExpr(x.tok, ((SetType)xType).Finite, new List<Expression>());
+      var empty = new SetDisplayExpr(x.Tok, ((SetType)xType).Finite, new List<Expression>());
       empty.Type = xType;
       yield return empty;
     } else if (xType is MultiSetType) {
-      var empty = new MultiSetDisplayExpr(x.tok, new List<Expression>());
+      var empty = new MultiSetDisplayExpr(x.Tok, new List<Expression>());
       empty.Type = xType;
       yield return empty;
     } else if (xType is SeqType) {
-      var empty = new SeqDisplayExpr(x.tok, new List<Expression>());
+      var empty = new SeqDisplayExpr(x.Tok, new List<Expression>());
       empty.Type = xType;
       yield return empty;
     } else if (xType.IsNumericBased(Type.NumericPersuasion.Int)) {
-      var lit = new LiteralExpr(x.tok, 0);
+      var lit = new LiteralExpr(x.Tok, 0);
       lit.Type = xType;  // resolve here
       yield return lit;
     } else if (xType.IsNumericBased(Type.NumericPersuasion.Real)) {
-      var lit = new LiteralExpr(x.tok, BaseTypes.BigDec.ZERO);
+      var lit = new LiteralExpr(x.Tok, BaseTypes.BigDec.ZERO);
       lit.Type = xType;  // resolve here
       yield return lit;
     }
@@ -812,7 +812,7 @@ public partial class BoogieGenerator {
   /// <summary>
   /// Return a zero-equivalent value for "typ", or return null (for any reason whatsoever).
   /// </summary>
-  Expression Zero(IToken tok, Type typ) {
+  Expression Zero(IOrigin tok, Type typ) {
     Contract.Requires(tok != null);
     Contract.Requires(typ != null);
     typ = typ.NormalizeToAncestorType();
@@ -978,7 +978,7 @@ public partial class BoogieGenerator {
 
     var baseType = dd.Var != null ? dd.Var.Type : ((NewtypeDecl)(object)dd).BaseType;
     var oBplType = TrType(baseType);
-    var c = new BoundVar(dd.tok, CurrentIdGenerator.FreshId("c"), baseType);
+    var c = new BoundVar(dd.Tok, CurrentIdGenerator.FreshId("c"), baseType);
     var o = BplBoundVar((dd.Var ?? c).AssignUniqueName((dd.IdGenerator)), oBplType, vars);
 
     Bpl.Expr body, is_o;
@@ -1005,12 +1005,12 @@ public partial class BoogieGenerator {
       // $Is(o, ..)
       is_o = MkIs(o, o_ty, ModeledAsBoxType(baseType));
       trigger = BplTrigger(is_o);
-      var etran = new ExpressionTranslator(this, Predef, NewOneHeapExpr(dd.tok), null);
+      var etran = new ExpressionTranslator(this, Predef, NewOneHeapExpr(dd.Tok), null);
       Bpl.Expr parentConstraint, constraint;
       if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
         // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
         parentConstraint = Bpl.Expr.True;
-        var udt = UserDefinedType.FromTopLevelDecl(dd.tok, dd);
+        var udt = UserDefinedType.FromTopLevelDecl(dd.Tok, dd);
         var substitutee = Expression.CreateIdentExpr(dd.Var ?? c);
         constraint = etran.TrExpr(ModuleResolver.GetImpliedTypeConstraint(substitutee, udt));
       } else {
@@ -1019,12 +1019,12 @@ public partial class BoogieGenerator {
           trigger.Next = BplTrigger(parentConstraint);
         }
         // conjoin the constraint
-        constraint = etran.TrExpr(dd.Constraint ?? Expression.CreateBoolLiteral(dd.tok, true));
+        constraint = etran.TrExpr(dd.Constraint ?? Expression.CreateBoolLiteral(dd.Tok, true));
       }
       body = BplIff(is_o, BplAnd(parentConstraint, constraint));
     }
 
-    var axiom = new Bpl.Axiom(dd.tok, BplForall(vars, trigger, body), comment);
+    var axiom = new Bpl.Axiom(dd.Tok, BplForall(vars, trigger, body), comment);
     AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
   }
 
@@ -1033,7 +1033,7 @@ public partial class BoogieGenerator {
   /// Returns the translation of converting "r", whose Dafny type was "fromType", to a value of type "toType".
   /// The translation assumes that "r" is known to be a value of type "toType".
   /// </summary>
-  Bpl.Expr ConvertExpression(IToken tok, Bpl.Expr r, Type fromType, Type toType) {
+  Bpl.Expr ConvertExpression(IOrigin tok, Bpl.Expr r, Type fromType, Type toType) {
     Contract.Requires(tok != null);
     Contract.Requires(r != null);
     Contract.Requires(fromType != null);
@@ -1177,7 +1177,7 @@ public partial class BoogieGenerator {
     return r;
   }
 
-  private Bpl.Expr IntToBV(IToken tok, Bpl.Expr r, Type toType) {
+  private Bpl.Expr IntToBV(IOrigin tok, Bpl.Expr r, Type toType) {
     var toWidth = toType.AsBitVectorType.Width;
     if (RemoveLit(r) is Bpl.LiteralExpr) {
       Bpl.LiteralExpr e = (Bpl.LiteralExpr)RemoveLit(r);
@@ -1194,7 +1194,7 @@ public partial class BoogieGenerator {
   /// <summary>
   /// Emit checks that "expr" (which may or may not be a value of type "expr.Type"!) is a value of type "toType".
   /// </summary>
-  void CheckResultToBeInType(IToken tok, Expression expr, Type toType, Variables locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, string errorMsgPrefix = "") {
+  void CheckResultToBeInType(IOrigin tok, Expression expr, Type toType, Variables locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, string errorMsgPrefix = "") {
     Contract.Requires(tok != null);
     Contract.Requires(expr != null);
     Contract.Requires(toType != null);
@@ -1215,7 +1215,7 @@ public partial class BoogieGenerator {
         o = new Bpl.IdentifierExpr(tok, oVar);
         var rhs = etran.TrExpr(expr);
         if (fromType.IsCharType) {
-          rhs = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, rhs);
+          rhs = FunctionCall(expr.Tok, "char#ToInt", Bpl.Type.Int, rhs);
         }
         builder.Add(Bpl.Cmd.SimpleAssign(tok, o, rhs));
       }
@@ -1254,7 +1254,7 @@ public partial class BoogieGenerator {
       var toWidth = toTypeFamily.AsBitVectorType.Width;
       var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
       Bpl.Expr boundsCheck = null;
-      var dafnyBound = new BinaryExpr(expr.tok, BinaryExpr.Opcode.LeftShift, Expression.CreateIntLiteral(expr.tok, 1), Expression.CreateIntLiteral(expr.tok, toWidth));
+      var dafnyBound = new BinaryExpr(expr.Tok, BinaryExpr.Opcode.LeftShift, Expression.CreateIntLiteral(expr.Tok, 1), Expression.CreateIntLiteral(expr.Tok, toWidth));
       Expression dafnyBoundsCheck = null;
       if (fromTypeFamily.IsBitVectorType) {
         var fromWidth = fromTypeFamily.AsBitVectorType.Width;
@@ -1262,10 +1262,10 @@ public partial class BoogieGenerator {
           // Check "expr < (1 << toWidth)" in type "fromType" (note that "1 << toWidth" is indeed a value in "fromType")
           PutSourceIntoLocal();
           var bound = BplBvLiteralExpr(tok, toBound, fromTypeFamily.AsBitVectorType);
-          boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
-          dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.And,
-            new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, new LiteralExpr(expr.tok, 0), expr),
-            new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, expr, dafnyBound)
+          boundsCheck = FunctionCall(expr.Tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
+          dafnyBoundsCheck = new BinaryExpr(expr.Tok, BinaryExpr.Opcode.And,
+            new BinaryExpr(expr.Tok, BinaryExpr.Opcode.Le, new LiteralExpr(expr.Tok, 0), expr),
+            new BinaryExpr(expr.Tok, BinaryExpr.Opcode.Lt, expr, dafnyBound)
         );
         }
       } else if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromTypeFamily.IsCharType) {
@@ -1274,7 +1274,7 @@ public partial class BoogieGenerator {
         var bound = Bpl.Expr.Literal(toBound);
         boundsCheck = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, bound));
         dafnyBoundsCheck = Expression.CreateAnd(
-          Expression.CreateLess(Expression.CreateIntLiteral(expr.tok, 0), expr),
+          Expression.CreateLess(Expression.CreateIntLiteral(expr.Tok, 0), expr),
           Expression.CreateAtMost(expr, dafnyBound));
       } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // Check "Int(expr) < (1 << toWidth)" in type "int"
@@ -1282,19 +1282,19 @@ public partial class BoogieGenerator {
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         boundsCheck = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, bound));
-        var intExpr = new ExprDotName(expr.tok, expr, "Floor", null);
-        dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.And,
-          new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, new LiteralExpr(expr.tok, 0), intExpr),
-          new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, intExpr, dafnyBound)
+        var intExpr = new ExprDotName(expr.Tok, expr, new Name("Floor"), null);
+        dafnyBoundsCheck = new BinaryExpr(expr.Tok, BinaryExpr.Opcode.And,
+          new BinaryExpr(expr.Tok, BinaryExpr.Opcode.Le, new LiteralExpr(expr.Tok, 0), intExpr),
+          new BinaryExpr(expr.Tok, BinaryExpr.Opcode.Lt, intExpr, dafnyBound)
         );
       } else if (fromType.IsBigOrdinalType) {
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, o);
         boundsCheck = Bpl.Expr.Lt(oi, bound);
-        var intExpr = new ExprDotName(expr.tok, expr, "Offset", null);
-        dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.And,
-          new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, new LiteralExpr(expr.tok, 0), intExpr),
-          new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, intExpr, dafnyBound)
+        var intExpr = new ExprDotName(expr.Tok, expr, new Name("Offset"), null);
+        dafnyBoundsCheck = new BinaryExpr(expr.Tok, BinaryExpr.Opcode.And,
+          new BinaryExpr(expr.Tok, BinaryExpr.Opcode.Le, new LiteralExpr(expr.Tok, 0), intExpr),
+          new BinaryExpr(expr.Tok, BinaryExpr.Opcode.Lt, intExpr, dafnyBound)
         );
       }
 
@@ -1312,7 +1312,7 @@ public partial class BoogieGenerator {
         PutSourceIntoLocal();
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, oi);
-        Expression intExpr = new ExprDotName(expr.tok, expr, "Floor", null);
+        Expression intExpr = new ExprDotName(expr.Tok, expr, new Name("Floor"), null);
         var dafnyBoundsCheck = Utils.MakeCharBoundsCheck(options, intExpr);
         builder.Add(Assert(tok, boundsCheck, new ConversionFit("real value", toType, dafnyBoundsCheck, errorMsgPrefix), builder.Context));
       } else if (fromType.IsBitVectorType) {
@@ -1324,9 +1324,9 @@ public partial class BoogieGenerator {
           PutSourceIntoLocal();
           var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth); // 1 << toWidth
           var bound = BplBvLiteralExpr(tok, toBound, fromType.AsBitVectorType);
-          var boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
-          var dafnyBound = new BinaryExpr(expr.tok, BinaryExpr.Opcode.LeftShift, Expression.CreateIntLiteral(expr.tok, 1), Expression.CreateIntLiteral(expr.tok, toWidth));
-          var dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, expr, dafnyBound);
+          var boundsCheck = FunctionCall(expr.Tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
+          var dafnyBound = new BinaryExpr(expr.Tok, BinaryExpr.Opcode.LeftShift, Expression.CreateIntLiteral(expr.Tok, 1), Expression.CreateIntLiteral(expr.Tok, toWidth));
+          var dafnyBoundsCheck = new BinaryExpr(expr.Tok, BinaryExpr.Opcode.Lt, expr, dafnyBound);
           builder.Add(Assert(tok, boundsCheck, new ConversionFit("bit-vector value", toType, dafnyBoundsCheck, errorMsgPrefix), builder.Context));
         }
       } else if (fromType.IsBigOrdinalType) {
@@ -1336,9 +1336,9 @@ public partial class BoogieGenerator {
         var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth); // 1 << toWidth
         var bound = Bpl.Expr.Literal(toBound);
         var boundsCheck = Bpl.Expr.Lt(oi, bound);
-        var dafnyBound = new BinaryExpr(expr.tok, BinaryExpr.Opcode.LeftShift, Expression.CreateIntLiteral(expr.tok, 1), Expression.CreateIntLiteral(expr.tok, toWidth));
-        var offset = new ExprDotName(expr.tok, expr, "Offset", null);
-        var dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, offset, dafnyBound);
+        var dafnyBound = new BinaryExpr(expr.Tok, BinaryExpr.Opcode.LeftShift, Expression.CreateIntLiteral(expr.Tok, 1), Expression.CreateIntLiteral(expr.Tok, toWidth));
+        var offset = new ExprDotName(expr.Tok, expr, new Name("Offset"), null);
+        var dafnyBoundsCheck = new BinaryExpr(expr.Tok, BinaryExpr.Opcode.Lt, offset, dafnyBound);
         builder.Add(Assert(tok, boundsCheck, new ConversionFit("ORDINAL value", toType, dafnyBoundsCheck, errorMsgPrefix), builder.Context));
       }
 
@@ -1353,7 +1353,7 @@ public partial class BoogieGenerator {
         PutSourceIntoLocal();
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), oi);
-        var intExpr = new ExprDotName(expr.tok, expr, "Floor", null);
+        var intExpr = new ExprDotName(expr.Tok, expr, new Name("Floor"), null);
         var desc = new ConversionPositive("real", toType, intExpr, errorMsgPrefix);
         builder.Add(Assert(tok, boundsCheck, desc, builder.Context));
       }
@@ -1368,12 +1368,12 @@ public partial class BoogieGenerator {
       PutSourceIntoLocal();
       Bpl.Expr be;
       if (fromType.IsNumericBased() || fromTypeFamily.IsBitVectorType) {
-        be = ConvertExpression(expr.tok, o, fromType, toType);
+        be = ConvertExpression(expr.Tok, o, fromType, toType);
       } else if (fromType.IsCharType) {
-        be = ConvertExpression(expr.tok, o, Dafny.Type.Int, toType);
+        be = ConvertExpression(expr.Tok, o, Dafny.Type.Int, toType);
       } else if (fromType.IsBigOrdinalType) {
-        be = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, o);
-        be = ConvertExpression(expr.tok, be, Dafny.Type.Int, toType);
+        be = FunctionCall(expr.Tok, "ORD#Offset", Bpl.Type.Int, o);
+        be = ConvertExpression(expr.Tok, be, Dafny.Type.Int, toType);
       } else {
         be = o;
       }
@@ -1381,7 +1381,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  void CheckResultToBeInType_Aux(IToken tok, Expression boogieExpr, Expression origExpr, Type toType, BoogieStmtListBuilder builder, ExpressionTranslator etran, string errorMsgPrefix) {
+  void CheckResultToBeInType_Aux(IOrigin tok, Expression boogieExpr, Expression origExpr, Type toType, BoogieStmtListBuilder builder, ExpressionTranslator etran, string errorMsgPrefix) {
     Contract.Requires(tok != null);
     Contract.Requires(boogieExpr != null);
     Contract.Requires(origExpr != null);
@@ -1434,7 +1434,7 @@ public partial class BoogieGenerator {
 
     currentModule = decl.Module;
     codeContext = new CallableWrapper(decl, true);
-    var etran = new ExpressionTranslator(this, Predef, decl.tok, null);
+    var etran = new ExpressionTranslator(this, Predef, decl.Tok, null);
 
     // parameters of the procedure
     var inParams = MkTyParamFormals(decl.TypeArgs, true);
@@ -1443,9 +1443,9 @@ public partial class BoogieGenerator {
     if (decl.Var != null) {
       baseType = decl.Var.Type;
       Bpl.Type varType = TrType(baseType);
-      whereClause = GetWhereClause(decl.Var.tok, new Bpl.IdentifierExpr(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), baseType, etran, NOALLOC);
+      whereClause = GetWhereClause(decl.Var.Tok, new Bpl.IdentifierExpr(decl.Var.Tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), baseType, etran, NOALLOC);
       // Do NOT use a where-clause in this declaration, because that would spoil the witness checking.
-      inParams.Add(new Bpl.Formal(decl.Var.tok, new Bpl.TypedIdent(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), true));
+      inParams.Add(new Bpl.Formal(decl.Var.Tok, new Bpl.TypedIdent(decl.Var.Tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), true));
     } else {
       baseType = ((NewtypeDecl)decl).BaseType;
       whereClause = null;
@@ -1454,13 +1454,13 @@ public partial class BoogieGenerator {
     // the procedure itself
     var req = new List<Bpl.Requires>();
     // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-    req.Add(Requires(decl.tok, true, null, etran.HeightContext(decl), null, null, null));
+    req.Add(Requires(decl.Tok, true, null, etran.HeightContext(decl), null, null, null));
     // modifies $Heap
     var mod = new List<Bpl.IdentifierExpr> {
         etran.HeapCastToIdentifierExpr,
       };
     var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
-    var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
+    var proc = new Bpl.Procedure(decl.Tok, name, new List<Bpl.TypeVariable>(),
       inParams, new List<Variable>(),
       false, req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
     AddVerboseNameAttribute(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
@@ -1476,10 +1476,10 @@ public partial class BoogieGenerator {
     var context = new BodyTranslationContext(false);
     var builder = new BoogieStmtListBuilder(this, options, context);
     builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
-    builder.AddCaptureState(decl.tok, false, "initial state");
+    builder.AddCaptureState(decl.Tok, false, "initial state");
     IsAllocContext = new IsAllocContext(options, true);
 
-    DefineFrame(decl.tok, etran.ReadsFrame(decl.tok), new List<FrameExpression>(), builder, locals, null);
+    DefineFrame(decl.Tok, etran.ReadsFrame(decl.Tok), new List<FrameExpression>(), builder, locals, null);
 
     // some initialization stuff;  // This is collected in builderInitializationArea
     // define frame;
@@ -1516,38 +1516,38 @@ public partial class BoogieGenerator {
           }
 
           // check that the witness is assignable to the type of the given bound variable
-          CheckResultToBeInType(decl.Witness.tok, decl.Witness, baseType, locals, witnessCheckBuilder, etran);
+          CheckResultToBeInType(decl.Witness.Tok, decl.Witness, baseType, locals, witnessCheckBuilder, etran);
           // check that the witness expression checks out
           witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, decl.Witness) : null;
           if (witnessExpr != null) {
-            witnessExpr.tok = result.Tok;
+            witnessExpr.SetTok(result.Tok);
             var desc = new WitnessCheck(witnessString, witnessExpr);
             SplitAndAssertExpression(returnBuilder, witnessExpr, etran, context, desc);
           }
         });
       codeContext = ghostCodeContext;
     } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
-      var witness = Zero(decl.tok, baseType);
+      var witness = Zero(decl.Tok, baseType);
       if (witness == null) {
         witnessString = "";
-        witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, new WitnessCheck(witnessString), builder.Context));
+        witnessCheckBuilder.Add(Assert(decl.Tok, Bpl.Expr.False, new WitnessCheck(witnessString), builder.Context));
       } else {
         // before trying 0 as a witness, check that 0 can be assigned to baseType
         witnessString = Printer.ExprToString(options, witness);
-        CheckResultToBeInType(decl.tok, witness, baseType, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
+        CheckResultToBeInType(decl.Tok, witness, baseType, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
         witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, witness) : null;
         if (witnessExpr != null) {
-          witnessExpr.tok = decl.tok;
+          witnessExpr.SetTok(decl.Tok);
           var desc = new WitnessCheck(witnessString, witnessExpr);
           SplitAndAssertExpression(witnessCheckBuilder, witnessExpr, etran, context, desc);
         }
       }
     }
-    PathAsideBlock(decl.Tok, witnessCheckBuilder, builder);
+    PathAsideBlock(decl.Origin, witnessCheckBuilder, builder);
 
-    var s0 = builderInitializationArea.Collect(decl.tok);
-    var s1 = builder.Collect(decl.tok);
-    var implBody = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), decl.tok);
+    var s0 = builderInitializationArea.Collect(decl.Tok);
+    var s1 = builder.Collect(decl.Tok);
+    var implBody = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), decl.Tok);
 
     if (EmitImplementation(decl.Attributes)) {
       // emit the impl only when there are proof obligations.
@@ -1566,15 +1566,15 @@ public partial class BoogieGenerator {
 
   private void SplitAndAssertExpression(BoogieStmtListBuilder witnessCheckBuilder, Expression witnessExpr,
     ExpressionTranslator etran, BodyTranslationContext context, WitnessCheck desc) {
-    witnessCheckBuilder.Add(new Bpl.AssumeCmd(witnessExpr.tok, etran.CanCallAssumption(witnessExpr)));
+    witnessCheckBuilder.Add(new Bpl.AssumeCmd(witnessExpr.Tok, etran.CanCallAssumption(witnessExpr)));
 
     var ss = TrSplitExpr(context, witnessExpr, etran, true, out var splitHappened);
     if (!splitHappened) {
-      witnessCheckBuilder.Add(Assert(witnessExpr.tok, etran.TrExpr(witnessExpr), desc, context));
+      witnessCheckBuilder.Add(Assert(witnessExpr.Tok, etran.TrExpr(witnessExpr), desc, context));
     } else {
       foreach (var split in ss) {
         if (split.IsChecked) {
-          var tok = witnessExpr.tok is { } t ? new NestedToken(t, split.Tok) : witnessExpr.tok;
+          var tok = witnessExpr.Tok is { } t ? new NestedOrigin(t, split.Tok) : witnessExpr.Tok;
           witnessCheckBuilder.Add(AssertAndForget(witnessCheckBuilder.Context, tok, split.E, desc));
         }
       }
@@ -1590,7 +1590,7 @@ public partial class BoogieGenerator {
     } else {
       constraintCheckBuilder.Add(new Bpl.CommentCmd($"check well-formedness of {decl.WhatKind} constraint"));
       if (whereClause != null) {
-        constraintCheckBuilder.Add(new Bpl.AssumeCmd(decl.tok, whereClause));
+        constraintCheckBuilder.Add(new Bpl.AssumeCmd(decl.Tok, whereClause));
       }
       var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, constraintCheckBuilder);
       delayer.DoWithDelayedReadsChecks(false, wfo => {
@@ -1598,7 +1598,7 @@ public partial class BoogieGenerator {
       });
     }
 
-    PathAsideBlock(decl.Tok, constraintCheckBuilder, builder);
+    PathAsideBlock(decl.Origin, constraintCheckBuilder, builder);
     return builderInitializationArea;
   }
 }

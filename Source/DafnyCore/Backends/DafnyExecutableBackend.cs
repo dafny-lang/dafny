@@ -64,7 +64,13 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   }
 
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree output) {
-    var o = DafnyCodeGenerator.EmitCallToMain(mainMethod.FullSanitizedName);
+    var sourceBuf = new ExprBuffer(null);
+    var mainCallHolder = new BuilderSyntaxTree<ExprContainer>(sourceBuf, ((DafnyCodeGenerator)codeGenerator));
+    ((DafnyCodeGenerator)codeGenerator).TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), mainCallHolder, mainMethod.Tok, mainMethod);
+    var companion = sourceBuf.Finish();
+    var hasArguments = mainMethod.Ins.Any();
+    var mainMethodName = (Sequence<Rune>)Sequence<Rune>.UnicodeFromString(mainMethod.Name);
+    var o = DafnyCodeGenerator.EmitCallToMain(companion, mainMethodName, hasArguments);
     output.Write(o.ToVerbatimString(false));
   }
 

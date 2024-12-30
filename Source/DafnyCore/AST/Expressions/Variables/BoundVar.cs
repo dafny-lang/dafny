@@ -1,13 +1,17 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-[DebuggerDisplay("Bound<{name}>")]
 public class BoundVar : NonglobalVariable {
   public override bool IsMutable => false;
-  public BoundVar(IToken tok, string name, Type type)
+
+  public BoundVar(string name, Type type) : this(Token.NoToken, new Name(Token.NoToken, name), type) { }
+  public BoundVar(IOrigin origin, string name, Type type) : this(origin, new Name(origin.StartToken, name), type) { }
+
+  public BoundVar(IOrigin tok, Name name, Type type)
     : base(tok, name, type, false) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -26,7 +30,7 @@ public class QuantifiedVar : BoundVar {
   public readonly Expression Domain;
   public readonly Expression Range;
 
-  public QuantifiedVar(IToken tok, string name, Type type, Expression domain, Expression range)
+  public QuantifiedVar(IOrigin tok, string name, Type type, Expression domain, Expression range)
     : base(tok, name, type) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -36,7 +40,7 @@ public class QuantifiedVar : BoundVar {
   }
 
   /// <summary>
-  /// Map a list of quantified variables to an eqivalent list of bound variables plus a single range expression.
+  /// Map a list of quantified variables to an equivalent list of bound variables plus a single range expression.
   /// The transformation looks like this in general:
   ///
   /// x1 <- C1 | E1, ..., xN <- CN | EN
@@ -48,25 +52,25 @@ public class QuantifiedVar : BoundVar {
   /// Note the result will be null rather than "true" if there are no such domains or ranges.
   /// Some quantification contexts (such as comprehensions) will replace this with "true".
   /// </summary>
-  public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, out Expression range) {
+  public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, [CanBeNull] out Expression range) {
     bvars = new List<BoundVar>();
     range = null;
 
     foreach (var qvar in qvars) {
-      BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.SyntacticType);
+      BoundVar bvar = new BoundVar(qvar.Tok, qvar.Name, qvar.SyntacticType);
       bvars.Add(bvar);
 
       if (qvar.Domain != null) {
         // Attach a token wrapper so we can produce a better error message if the domain is not a collection
         var domainWithToken = QuantifiedVariableDomainCloner.Instance.CloneExpr(qvar.Domain);
-        var inDomainExpr = new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), domainWithToken);
-        range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.And, range, inDomainExpr);
+        var inDomainExpr = new BinaryExpr(domainWithToken.Origin.Center, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.Tok, bvar), domainWithToken);
+        range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.Origin.Center, BinaryExpr.Opcode.And, range, inDomainExpr);
       }
 
       if (qvar.Range != null) {
         // Attach a token wrapper so we can produce a better error message if the range is not a boolean expression
         var rangeWithToken = QuantifiedVariableRangeCloner.Instance.CloneExpr(qvar.Range);
-        range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.tok, BinaryExpr.Opcode.And, range, rangeWithToken);
+        range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.Origin.Center, BinaryExpr.Opcode.And, range, rangeWithToken);
       }
     }
   }
@@ -84,15 +88,23 @@ public interface IBoundVarsBearingExpression {
 class QuantifiedVariableDomainCloner : Cloner {
   public static readonly QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
   private QuantifiedVariableDomainCloner() { }
-  public override IToken Tok(IToken tok) {
-    return new QuantifiedVariableDomainToken(tok);
+  public override IOrigin Origin(IOrigin tok) {
+    if (tok == null) {
+      return null;
+    }
+
+    return new QuantifiedVariableDomainOrigin(tok);
   }
 }
 
 class QuantifiedVariableRangeCloner : Cloner {
   public static readonly QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
   private QuantifiedVariableRangeCloner() { }
-  public override IToken Tok(IToken tok) {
-    return new QuantifiedVariableRangeToken(tok);
+  public override IOrigin Origin(IOrigin tok) {
+    if (tok == null) {
+      return null;
+    }
+
+    return new QuantifiedVariableRangeOrigin(tok);
   }
 }

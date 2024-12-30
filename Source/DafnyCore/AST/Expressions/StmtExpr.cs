@@ -24,7 +24,7 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
 
   public override IEnumerable<INode> Children => new Node[] { S, E };
 
-  public StmtExpr(IToken tok, Statement stmt, Expression expr)
+  public StmtExpr(IOrigin tok, Statement stmt, Expression expr)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(stmt != null);
@@ -65,9 +65,9 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
       case CalcStmt stmt:
         return stmt.Result;
       case HideRevealStmt:
-        return CreateBoolLiteral(tok, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
+        return CreateBoolLiteral(Tok, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
       case AssignStatement:
-        return CreateBoolLiteral(tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
+        return CreateBoolLiteral(Tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
       case BlockByProofStmt stmt:
         return GetStatementConclusion(stmt.Body);
       default:

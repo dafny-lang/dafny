@@ -10,7 +10,7 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   public readonly ModuleQualifiedId QId;
-  public readonly List<IToken> Exports; // list of exports sets
+  public readonly List<IOrigin> Exports; // list of exports sets
   public ModuleDecl CompileRoot;
   public ModuleSignature OriginalSignature;
 
@@ -20,9 +20,9 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
     QId = new ModuleQualifiedId(cloner, original.QId);
   }
 
-  public AbstractModuleDecl(DafnyOptions options, RangeToken rangeToken, ModuleQualifiedId qid, Name name,
-    ModuleDefinition parent, bool opened, List<IToken> exports, Guid cloneId)
-    : base(options, rangeToken, name, parent, opened, false, cloneId) {
+  public AbstractModuleDecl(DafnyOptions options, IOrigin rangeOrigin, ModuleQualifiedId qid, Name name,
+    ModuleDefinition parent, bool opened, List<IOrigin> exports, Guid cloneId)
+    : base(options, rangeOrigin, name, parent, opened, false, cloneId) {
     Contract.Requires(qid != null && qid.Path.Count > 0);
     Contract.Requires(exports != null);
 

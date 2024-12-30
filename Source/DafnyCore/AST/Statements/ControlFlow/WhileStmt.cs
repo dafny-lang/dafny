@@ -23,18 +23,18 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     Guard = cloner.CloneExpr(original.Guard);
   }
 
-  public WhileStmt(RangeToken rangeToken, Expression guard,
+  public WhileStmt(IOrigin rangeOrigin, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body)
-    : base(rangeToken, invariants, decreases, mod, body, null) {
-    this.Guard = guard;
+    : base(rangeOrigin, invariants, decreases, mod, body, null) {
+    Guard = guard;
   }
 
-  public WhileStmt(RangeToken rangeToken, Expression guard,
+  public WhileStmt(IOrigin rangeOrigin, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body, Attributes attrs)
-    : base(rangeToken, invariants, decreases, mod, body, attrs) {
-    this.Guard = guard;
+    : base(rangeOrigin, invariants, decreases, mod, body, attrs) {
+    Guard = guard;
   }
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
@@ -61,5 +61,36 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     }
 
     return false;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    if (proofContext != null && Mod.Expressions != null && Mod.Expressions.Count != 0) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_may_not_use_modifies, Mod.Expressions[0].Tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+    }
+
+    IsGhost = mustBeErasable || (Guard != null && ExpressionTester.UsesSpecFeatures(Guard));
+    if (!mustBeErasable && IsGhost) {
+      reporter.Info(MessageSource.Resolver, Tok, "ghost while");
+    }
+    if (IsGhost && Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_decreases_forbidden_on_ghost_loops, this, "'decreases *' is not allowed on ghost loops");
+    }
+    if (IsGhost && Mod.Expressions != null) {
+      Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
+    }
+    if (Body != null) {
+      Body.ResolveGhostness(resolver, reporter, IsGhost, codeContext, proofContext, allowAssumptionVariables,
+        inConstructorInitializationPhase);
+      if (Body.IsGhost && !Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+        IsGhost = true;
+      }
+    }
+    if (!IsGhost && Guard != null) {
+      // If there were features in the guard that are treated differently in ghost and non-ghost
+      // contexts, make sure they get treated for non-ghost use.
+      ExpressionTester.CheckIsCompilable(resolver, reporter, Guard, codeContext);
+    }
   }
 }

@@ -14,16 +14,6 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
   public readonly AttributedToken KeywordToken;
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new();
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
-  public override IToken Tok {
-    get {
-      var result = Rhs.StartToken.Prev;
-      if (char.IsLetter(result.val[0])) {
-        // Jump to operator if we're on an assume/expect/assert keyword.
-        result = result.Prev;
-      }
-      return result;
-    }
-  }
 
   public override IEnumerable<INode> Children => ResolvedStatements;
 
@@ -53,9 +43,9 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     }
   }
 
-  public AssignOrReturnStmt(RangeToken rangeToken, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss)
-    : base(rangeToken, lhss) {
-    Contract.Requires(rangeToken != null);
+  public AssignOrReturnStmt(IOrigin rangeOrigin, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss)
+    : base(rangeOrigin, lhss) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(lhss != null);
     Contract.Requires(lhss.Count <= 1);
     Contract.Requires(rhs != null);
@@ -70,7 +60,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       foreach (var e in base.SpecificationSubExpressions) {
         yield return e;
       }
-      foreach (var e in base.Lhss) {
+      foreach (var e in Lhss) {
         yield return e;
       }
       if (Rhs != null) {
@@ -137,7 +127,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
         if (call.Outs.Count != 0) {
           firstType = call.Outs[0].Type.Subst(typeMap);
         } else {
-          resolver.Reporter.Error(MessageSource.Resolver, Rhs.tok, "Expected {0} to have a Success/Failure output value, but the method returns nothing.", call.Name);
+          resolver.Reporter.Error(MessageSource.Resolver, Rhs.Tok, "Expected {0} to have a Success/Failure output value, but the method returns nothing.", call.Name);
         }
       } else {
         // We're looking at a call to a function. Treat it like any other expression.
@@ -154,7 +144,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       return;
     }
     if (firstType != null) {
-      firstType = resolver.PartiallyResolveTypeForMemberSelection(Rhs.tok, firstType);
+      firstType = resolver.PartiallyResolveTypeForMemberSelection(Rhs.Tok, firstType);
       if (firstType.AsTopLevelTypeWithMembers != null) {
         if (firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "IsFailure") == null) {
           resolver.Reporter.Error(MessageSource.Resolver, Tok,
@@ -197,7 +187,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     Expression lhsExtract = null;
     if (expectExtract) {
       if (resolutionContext.CodeContext is Method caller && caller.Outs.Count == 0 && KeywordToken == null) {
-        resolver.Reporter.Error(MessageSource.Resolver, Rhs.tok, "Expected {0} to have a Success/Failure output value", caller.Name);
+        resolver.Reporter.Error(MessageSource.Resolver, Rhs.Tok, "Expected {0} to have a Success/Failure output value", caller.Name);
         return;
       }
 
@@ -207,7 +197,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       if (lhsResolved is MemberSelectExpr lexr) {
         Expression id = Expression.AsThis(lexr.Obj) != null ? lexr.Obj : resolver.makeTemp("recv", this, resolutionContext, lexr.Obj);
         var lex = lhsExtract as ExprDotName; // might be just a NameSegment
-        lhsExtract = new ExprDotName(lexr.tok, id, lexr.MemberName, lex == null ? null : lex.OptTypeArguments);
+        lhsExtract = new ExprDotName(lexr.Tok, id, lexr.MemberNameNode, lex == null ? null : lex.OptTypeArguments);
       } else if (lhsResolved is SeqSelectExpr lseq) {
         if (!lseq.SelectOne || lseq.E0 == null) {
           resolver.Reporter.Error(MessageSource.Resolver, Tok,
@@ -216,7 +206,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
         }
         Expression id = resolver.makeTemp("recv", this, resolutionContext, lseq.Seq);
         Expression id0 = id0 = resolver.makeTemp("idx", this, resolutionContext, lseq.E0);
-        lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, null, lseq.CloseParen);
+        lhsExtract = new SeqSelectExpr(lseq.Tok, lseq.SelectOne, id, id0, null, lseq.CloseParen);
         lhsExtract.Type = lseq.Type;
       } else if (lhsResolved is MultiSelectExpr lmulti) {
         Expression id = resolver.makeTemp("recv", this, resolutionContext, lmulti.Array);
@@ -225,7 +215,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
           Expression idx = resolver.makeTemp("idx", this, resolutionContext, i);
           idxs.Add(idx);
         }
-        lhsExtract = new MultiSelectExpr(lmulti.tok, id, idxs);
+        lhsExtract = new MultiSelectExpr(lmulti.Tok, id, idxs);
         lhsExtract.Type = lmulti.Type;
       } else if (lhsResolved is IdentifierExpr) {
         // do nothing
@@ -266,9 +256,9 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     ModuleResolver resolver, Method enclosingMethod) {
 
     var temp = resolver.FreshTempVarName("valueOrError", enclosingMethod);
-    var lhss = new List<LocalVariable>() { new LocalVariable(RangeToken, temp, new InferredTypeProxy(), false) };
+    var lhss = new List<LocalVariable>() { new LocalVariable(Origin, temp, new InferredTypeProxy(), false) };
     // "var temp ;"
-    ResolvedStatements.Add(new VarDeclStmt(RangeToken, lhss, null));
+    ResolvedStatements.Add(new VarDeclStmt(Origin, lhss, null));
     var lhss2 = new List<Expression>() { new IdentifierExpr(Tok, temp) };
     for (int k = (expectExtract ? 1 : 0); k < Lhss.Count; ++k) {
       lhss2.Add(Lhss[k]);
@@ -289,25 +279,25 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       }
     }
     // " temp, ... := MethodOrExpression, ...;"
-    var up = new AssignStatement(RangeToken, lhss2, rhss2);
+    var up = new AssignStatement(Origin, lhss2, rhss2);
     if (expectExtract) {
       up.OriginalInitialLhs = Lhss.Count == 0 ? null : Lhss[0];
     }
     ResolvedStatements.Add(up);
 
     if (KeywordToken != null) {
-      var token = KeywordToken.Token;
-      var notFailureExpr = new UnaryOpExpr(token, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Tok, temp, "IsFailure"));
+      var keyword = KeywordToken.Token;
+      var notFailureExpr = new UnaryOpExpr(keyword, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Tok, temp, "IsFailure"));
       Statement ss = null;
-      if (token.val == "expect") {
+      if (keyword.val == "expect") {
         // "expect !temp.IsFailure(), temp"
-        ss = new ExpectStmt(new RangeToken(token, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
-      } else if (token.val == "assume") {
-        ss = new AssumeStmt(new RangeToken(token, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
-      } else if (token.val == "assert") {
-        ss = new AssertStmt(new RangeToken(token, EndToken), notFailureExpr, null, KeywordToken.Attrs);
+        ss = new ExpectStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
+      } else if (keyword.val == "assume") {
+        ss = new AssumeStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
+      } else if (keyword.val == "assert") {
+        ss = new AssertStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, null, KeywordToken.Attrs);
       } else {
-        Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
+        Contract.Assert(false, $"Invalid token in :- statement: {keyword.val}");
       }
       ResolvedStatements.Add(ss);
     } else {
@@ -320,14 +310,14 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
       ResolvedStatements.Add(
         // "if temp.IsFailure()"
-        new IfStmt(RangeToken, false, resolver.VarDotMethod(Tok, temp, "IsFailure"),
+        new IfStmt(Origin, false, resolver.VarDotMethod(Tok, temp, "IsFailure"),
           // THEN: { out := temp.PropagateFailure(); return; }
-          new BlockStmt(RangeToken, new List<Statement>() {
-            new AssignStatement(RangeToken,
+          new BlockStmt(Origin, new List<Statement>() {
+            new AssignStatement(Origin,
               new List<Expression>() { ident },
               new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "PropagateFailure")) }
             ),
-            new ReturnStmt(RangeToken, null),
+            new ReturnStmt(Origin, null),
           }),
           // ELSE: no else block
           null
@@ -338,7 +328,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       // "y := temp.Extract();"
       var lhs = Lhss[0];
       ResolvedStatements.Add(
-        new AssignStatement(RangeToken,
+        new AssignStatement(Origin,
           new List<Expression>() { lhsExtract },
           new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "Extract")) }
         ));
@@ -346,9 +336,17 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       // However the error message here is much clearer.
       var m = resolver.ResolveMember(Tok, firstType, "Extract", out _);
       if (m != null && m.IsGhost && !SingleAssignStmt.LhsIsToGhostOrAutoGhost(lhs)) {
-        resolver.reporter.Error(MessageSource.Resolver, lhs.tok,
+        resolver.reporter.Error(MessageSource.Resolver, lhs.Tok,
           "The Extract member may not be ghost unless the initial LHS is ghost");
       }
     }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    ResolvedStatements.ForEach(ss => ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext,
+      proofContext, allowAssumptionVariables, inConstructorInitializationPhase));
+    IsGhost = ResolvedStatements.All(ss => ss.IsGhost);
   }
 }

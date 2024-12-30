@@ -26,11 +26,11 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
     }
   }
 
-  public SubsetTypeDecl(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
+  public SubsetTypeDecl(IOrigin rangeOrigin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
     BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
     Attributes attributes)
-    : base(rangeToken, name, characteristics, typeArgs, module, id.Type, attributes) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, characteristics, typeArgs, module, id.Type, attributes) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(module != null);

@@ -13,9 +13,9 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
   public readonly string Name;
   [FilledInDuringResolution] public IVariable Var;
 
-  public string DafnyName => tok.line > 0 ? RangeToken.PrintOriginal() : Name;
+  public string DafnyName => Tok.line > 0 ? Origin.PrintOriginal() : Name;
 
-  public IdentifierExpr(IToken tok, string name)
+  public IdentifierExpr(IOrigin tok, string name)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -24,7 +24,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
   /// <summary>
   /// Constructs a resolved IdentifierExpr.
   /// </summary>
-  public IdentifierExpr(IToken tok, IVariable v)
+  public IdentifierExpr(IOrigin tok, IVariable v)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(v != null);
@@ -52,11 +52,10 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
     return expr.Resolved is IdentifierExpr identifierExpr && identifierExpr.Var == variable;
   }
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return Enumerable.Repeat(Var, 1);
+  public IEnumerable<Reference> GetReferences() {
+    return Enumerable.Repeat(new Reference(Tok, Var), 1);
   }
 
-  public IToken NavigationToken => tok;
   public override IEnumerable<INode> Children { get; } = Enumerable.Empty<Node>();
 }
 
@@ -65,13 +64,13 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
 /// assigning a value to a Method's out parameter.
 /// </summary>
 public class ImplicitIdentifierExpr : IdentifierExpr {
-  public ImplicitIdentifierExpr(IToken tok, string name)
+  public ImplicitIdentifierExpr(IOrigin tok, string name)
     : base(tok, name) { }
 
   /// <summary>
   /// Constructs a resolved implicit identifier.
   /// </summary>
-  public ImplicitIdentifierExpr(IToken tok, IVariable v)
+  public ImplicitIdentifierExpr(IOrigin tok, IVariable v)
     : base(tok, v) { }
 
   public override bool IsImplicit => true;

@@ -1,7 +1,7 @@
 
 // Rust AST
 module RAST
-  // All ToString methods should produce well-formed Rust code
+// All ToString methods should produce well-formed Rust code
 {
   import opened Std.Wrappers
   import Std
@@ -53,15 +53,15 @@ module RAST
           if recurseSubmodules then VisitMod(acc, mod, SelfPath.MSel(mod.name)) else acc
         case StructDecl(struct) =>
           VisitStructMapping(acc, struct)
-        case TypeDecl(TypeSynonym(attributes, name, typeParams, tpe)) =>
+        case TypeDecl(TypeSynonym(attributes, _, name, typeParams, tpe)) =>
           var acc := VisitTypeParams(acc, typeParams);
           var acc := VisitType(acc, tpe);
           acc
-        case ConstDecl(Constant(attributes, name, tpe, value)) =>
+        case ConstDecl(Constant(attributes, _, name, tpe, value)) =>
           var acc := VisitType(acc, tpe);
           var acc := value.Fold(acc, VisitExprSingle, VisitTypeSingle);
           acc
-        case EnumDecl(Enum(attributes, name, typeParams, variants)) =>
+        case EnumDecl(Enum(attributes, _, name, typeParams, variants)) =>
           FoldLeft(
             (acc: T, enumCase: EnumCase) requires enumCase in variants =>
               VisitFields(acc, enumCase.fields),
@@ -81,7 +81,7 @@ module RAST
 
     function VisitTraitDecl(acc: T, tr: Trait): T {
       match tr {
-        case Trait(typeParams, tpe, parents, body) =>
+        case Trait(_, _, typeParams, tpe, parents, body) =>
           var acc := VisitTypeParams(acc, typeParams);
           var acc := tpe.Fold(acc, VisitTypeSingle);
           var acc :=
@@ -97,7 +97,7 @@ module RAST
 
     function VisitTopFn(acc: T, t: TopFnDecl): T {
       match t {
-        case TopFn(attributes, visibility, fn) =>
+        case TopFn(_, attributes, visibility, fn) =>
           VisitFn(acc, fn)
       }
     }
@@ -112,13 +112,13 @@ module RAST
 
     function VisitImplMapping(acc: T, impl: Impl): T {
       match impl {
-        case ImplFor(typeParams, tpe, forType, where, body) =>
+        case ImplFor(typeParams, tpe, forType, body) =>
           var acc := VisitTypeParams(acc, typeParams);
           var acc := VisitType(acc, tpe);
           var acc := VisitType(acc, forType);
           VisitBody(acc, body)
         // TODO: Add body
-        case Impl(typeParams, tpe, where, body) =>
+        case Impl(typeParams, tpe, body) =>
           var acc := VisitType(acc, tpe);
           VisitBody(acc, body)
       }
@@ -134,15 +134,17 @@ module RAST
     function VisitMember(acc: T, member: ImplMember): T {
       match member {
         case RawImplMember(content) => acc
-        case FnDecl(pub, fun) =>
+        case FnDecl(docString, attributes, pub, fun) =>
           VisitFn(acc, fun)
+        case TypeDeclMember(name, tpe) =>
+          VisitType(acc, tpe)
         case ImplMemberMacro(expr: Expr) =>
           expr.Fold(acc, VisitExprSingle, VisitTypeSingle)
       }
     }
     function VisitFn(acc: T, fn: Fn): T {
       match fn {
-        case Fn(name, typeParams, formals, returnType, where, body) =>
+        case Fn(name, typeParams, formals, returnType, body) =>
           var acc := VisitTypeParams(acc, typeParams);
           var acc := FoldLeft(
                        (acc: T, f: Formal) requires f in formals => f.tpe.Fold(acc, VisitTypeSingle),
@@ -200,8 +202,8 @@ module RAST
 
     function ReplaceStruct(struct: Struct): Struct {
       match struct {
-        case Struct(attributes, name, typeParams, fields) =>
-          Struct(attributes, name,
+        case Struct(docString, attributes, name, typeParams, fields) =>
+          Struct(docString, attributes, name,
                  ReplaceTypeParams(typeParams),
                  ReplaceFields(fields)
           )
@@ -210,22 +212,22 @@ module RAST
 
     function ReplaceTypeDecl(t: TypeSynonym): TypeSynonym {
       match t {
-        case TypeSynonym(attributes, name, typeParams, tpe) =>
-          TypeSynonym(attributes, name, ReplaceTypeParams(typeParams), ReplaceType(tpe))
+        case TypeSynonym(docString, attributes, name, typeParams, tpe) =>
+          TypeSynonym(docString, attributes, name, ReplaceTypeParams(typeParams), ReplaceType(tpe))
       }
     }
 
     function ReplaceConst(t: Constant): Constant {
       match t {
-        case Constant(attributes, name, tpe, value) =>
-          Constant(attributes, name, ReplaceType(tpe), ReplaceExpr(value))
+        case Constant(docString, attributes, name, tpe, value) =>
+          Constant(docString, attributes, name, ReplaceType(tpe), ReplaceExpr(value))
       }
     }
 
     function ReplaceEnum(enum: Enum): Enum {
       match enum {
-        case Enum(attributes, name, typeParams, variants) =>
-          Enum(attributes, name,
+        case Enum(docString, attributes, name, typeParams, variants) =>
+          Enum(docString, attributes, name,
                ReplaceTypeParams(typeParams),
                Std.Collections.Seq.Map(
                  (t: EnumCase) => ReplaceEnumCase(t), variants))
@@ -234,29 +236,30 @@ module RAST
 
     function ReplaceEnumCase(enumCase: EnumCase): EnumCase {
       match enumCase {
-        case EnumCase(name, fields) =>
-          EnumCase(name, ReplaceFields(fields))
+        case EnumCase(docString, name, fields) =>
+          EnumCase(docString, name, ReplaceFields(fields))
       }
     }
 
     function ReplaceImplDecl(impl: Impl): Impl {
       match impl {
-        case ImplFor(typeParams, tpe, forType, where, body) =>
+        case ImplFor(typeParams, tpe, forType, body) =>
           ImplFor(
             ReplaceTypeParams(typeParams),
             ReplaceType(tpe),
             ReplaceType(forType),
-            where,
             ReplaceBody(body))
-        case Impl(typeParams, tpe, where, body) =>
-          Impl(ReplaceTypeParams(typeParams), ReplaceType(tpe), where, ReplaceBody(body))
+        case Impl(typeParams, tpe, body) =>
+          Impl(ReplaceTypeParams(typeParams), ReplaceType(tpe), ReplaceBody(body))
       }
     }
 
     function ReplaceTrait(tr: Trait): Trait {
       match tr {
-        case Trait(typeParams, tpe, parents, body) =>
+        case Trait(docString, attributes, typeParams, tpe, parents, body) =>
           Trait(
+            docString,
+            attributes,
             ReplaceTypeParams(typeParams),
             ReplaceType(tpe),
             Std.Collections.Seq.Map(
@@ -267,14 +270,14 @@ module RAST
 
     function ReplaceTopFn(t: TopFnDecl): TopFnDecl {
       match t {
-        case TopFn(attributes, visibility, fn) =>
-          TopFn(attributes, visibility, ReplaceFn(fn))
+        case TopFn(docString, attributes, visibility, fn) =>
+          TopFn(docString, attributes, visibility, ReplaceFn(fn))
       }
     }
 
     function ReplaceFn(t: Fn): Fn {
       match t {
-        case Fn(name, typeParams, formals, returnType, where, body) =>
+        case Fn(name, typeParams, formals, returnType, body) =>
           Fn(
             name,
             ReplaceTypeParams(typeParams),
@@ -283,7 +286,6 @@ module RAST
               formals
             ),
             if returnType.None? then None else Some(returnType.value.Replace(ReplaceType)),
-            where,
             if body.None? then None else Some(body.value.Replace(ReplaceExpr, ReplaceType))
           )
       }
@@ -304,8 +306,10 @@ module RAST
     function ReplaceImplMember(t: ImplMember): ImplMember {
       match t {
         case RawImplMember(content) => t
-        case FnDecl(pub, fun) =>
-          FnDecl(pub, ReplaceFn(fun))
+        case FnDecl(docString, attributes, pub, fun) =>
+          FnDecl(docString, attributes, pub, ReplaceFn(fun))
+        case TypeDeclMember(name, tpe) =>
+          TypeDeclMember(name, ReplaceType(tpe))
         case ImplMemberMacro(expr: Expr) =>
           ImplMemberMacro(ReplaceExpr(expr))
       }
@@ -347,9 +351,18 @@ module RAST
     else FoldLeft(f, f(init, xs[0]), xs[1..])
   }
 
+  function ToDocstringPrefix(docString: string, ind: string): string {
+    if docString == "" then "" else
+    "/// " + AddIndent(docString, ind + "/// ") + "\n" + ind
+  }
+
   datatype Mod =
       // Rust modules
-    | Mod(name: string, attributes: seq<Attribute>, body: seq<ModDecl>)
+    | Mod(
+        docString: string,
+        attributes: seq<Attribute>,
+        name: string,
+        body: seq<ModDecl>)
     | ExternMod(name: string)
   {
     function Fold<T(!new)>(acc: T, accBuilder: (T, ModDecl) --> T): T
@@ -364,7 +377,8 @@ module RAST
       match this {
         case ExternMod(name) =>
           "pub mod " + name + ";"
-        case Mod(name, attributes, body) =>
+        case Mod(docString, attributes, name, body) =>
+          ToDocstringPrefix(docString, ind) +
           Attribute.ToStringMultiple(attributes, ind) +
           /* If the module does not start with "use", just separate declarations by one blank line
              If the module starts with "use", add blank lines only after use declarations */
@@ -419,8 +433,12 @@ module RAST
       visibility.ToString() + "use " + path.ToString() + ";"
     }
   }
-  datatype TopFnDecl = TopFn(attributes: seq<Attribute>, visibility: Visibility, fn: Fn) {
+  datatype TopFnDecl = TopFn(
+    docString: string,
+    attributes: seq<Attribute>,
+    visibility: Visibility, fn: Fn) {
     function ToString(ind: string): string {
+      ToDocstringPrefix(docString, ind) +
       Attribute.ToStringMultiple(attributes, ind) +
       visibility.ToString() + fn.ToString(ind)
     }
@@ -434,10 +452,12 @@ module RAST
   }
 
   datatype Struct =
-    Struct(attributes: seq<Attribute>,
+    Struct(docString: string,
+           attributes: seq<Attribute>,
            name: string, typeParams: seq<TypeParamDecl>, fields: Fields)
   {
     function ToString(ind: string): string {
+      ToDocstringPrefix(docString, ind) +
       Attribute.ToStringMultiple(attributes, ind) +
       "pub struct " + name +
       TypeParamDecl.ToStringMultiple(typeParams, ind) +
@@ -447,10 +467,13 @@ module RAST
   }
 
   datatype TypeSynonym =
-    TypeSynonym(attributes: seq<Attribute>,
-                name: string, typeParams: seq<TypeParamDecl>, tpe: Type)
+    TypeSynonym(
+      docString: string,
+      attributes: seq<Attribute>,
+      name: string, typeParams: seq<TypeParamDecl>, tpe: Type)
   {
     function ToString(ind: string): string {
+      ToDocstringPrefix(docString, ind) +
       Attribute.ToStringMultiple(attributes, ind) +
       "pub type " + name +
       TypeParamDecl.ToStringMultiple(typeParams, ind) + " = " +
@@ -459,10 +482,13 @@ module RAST
   }
 
   datatype Constant =
-    Constant(attributes: seq<Attribute>,
-             name: string, tpe: Type, value: Expr)
+    Constant(
+      docString: string,
+      attributes: seq<Attribute>,
+      name: string, tpe: Type, value: Expr)
   {
     function ToString(ind: string): string {
+      ToDocstringPrefix(docString, ind) +
       Attribute.ToStringMultiple(attributes, ind) +
       "pub const " + name + ": " + tpe.ToString(ind) + " = " +
       value.ToString(ind) + ";"
@@ -519,19 +545,23 @@ module RAST
   }
 
   datatype EnumCase =
-    | EnumCase(name: string, fields: Fields)
+    | EnumCase(docString: string, name: string, fields: Fields)
   {
     function ToString(ind: string, newLine: bool): string {
+      ToDocstringPrefix(docString, ind) +
       name + fields.ToString(ind, newLine)
     }
   }
 
   datatype Enum =
-    Enum(attributes: seq<Attribute>,
-         name: string, typeParams: seq<TypeParamDecl>,
-         variants: seq<EnumCase>)
+    Enum(
+      docString: string,
+      attributes: seq<Attribute>,
+      name: string, typeParams: seq<TypeParamDecl>,
+      variants: seq<EnumCase>)
   {
     function ToString(ind: string): string {
+      ToDocstringPrefix(docString, ind) +
       Attribute.ToStringMultiple(attributes, ind) +
       "pub enum " + name +
       TypeParamDecl.ToStringMultiple(typeParams, ind)
@@ -553,7 +583,8 @@ module RAST
       if |typeParams| == 0 then "" else
       "<" + SeqToString(typeParams, (t: TypeParamDecl) => t.ToString(ind + IND), ", ") + ">"
     }
-    static function {:tailrecursion true} AddConstraintsMultiple(
+    @TailRecursion
+    static function AddConstraintsMultiple(
       typeParams: seq<TypeParamDecl>, constraints: seq<TypeParamConstraint>
     ): seq<TypeParamDecl> {
       if |typeParams| == 0 then []
@@ -590,6 +621,8 @@ module RAST
 
   const PtrPath: Path := dafny_runtime.MSel("Ptr")
 
+  const BoxPath := std.MSel("boxed").MSel("Box")
+
   const Ptr := PtrPath.AsExpr()
 
   function PtrType(underlying: Type): Type {
@@ -620,10 +653,10 @@ module RAST
   }
 
   function Box(content: Type): Type {
-    TypeApp(TIdentifier("Box"), [content])
+    TypeApp(BoxPath.AsType(), [content])
   }
   function BoxNew(content: Expr): Expr {
-    Identifier("Box").FSel("new").Apply([content])
+    BoxPath.AsExpr().FSel("new").Apply([content])
   }
 
   datatype Path =
@@ -685,11 +718,13 @@ module RAST
     | IntersectionType(left: Type, right: Type)
     | Array(underlying: Type, size: Option<string>)
     | TSynonym(display: Type, base: Type)
+    | TMetaData(display: Type, nameonly copySemantics: bool, nameonly overflow: bool)
   {
     function Expand(): (r: Type)
-      ensures !r.TSynonym? && (!TSynonym? ==> r == this)
+      ensures !r.TSynonym? && !r.TMetaData? && (!TSynonym? && !TMetaData? ==> r == this)
     {
-      if TSynonym? then base.Expand() else this
+      if TSynonym? then base.Expand() else
+      if TMetaData? then display.Expand() else this
     }
     predicate EndsWithNameThatCanAcceptGenerics() {
       || U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128?
@@ -699,7 +734,7 @@ module RAST
       || (ImplType? && underlying.EndsWithNameThatCanAcceptGenerics())
       || (DynType? && underlying.EndsWithNameThatCanAcceptGenerics())
       || (IntersectionType? && right.EndsWithNameThatCanAcceptGenerics())
-      || (TSynonym? && display.EndsWithNameThatCanAcceptGenerics())
+      || ((TSynonym? || TMetaData?) && display.EndsWithNameThatCanAcceptGenerics())
     }
     function ReplaceMap(mapping: map<Type, Type>): Type {
       Replace((t: Type) => if t in mapping then mapping[t] else t)
@@ -732,6 +767,8 @@ module RAST
             this.(underlying := underlying.Replace(mapping))
           case TSynonym(display, base) =>
             this.(display := display.Replace(mapping), base := base.Replace(mapping))
+          case TMetaData(display, copySemantics, overflow) =>
+            this.(display := display.Replace(mapping))
         };
       mapping(r)
     }
@@ -768,12 +805,21 @@ module RAST
           right.Fold(left.Fold(newAcc, f), f)
         case Array(underlying, size) => underlying.Fold(newAcc, f)
         case TSynonym(display, base) => display.Fold(newAcc, f)
+        case TMetaData(display, _, _) => display.Fold(newAcc, f)
       }
     }
 
+    predicate IsAutoSize() {
+      U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || USIZE?
+      || (TSynonym? && base.IsAutoSize())
+      || (TMetaData? && display.IsAutoSize())
+    }
+
     predicate CanReadWithoutClone() {
-      U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || USIZE? || Bool?
-      || (TSynonym? && base.CanReadWithoutClone()) || IsPointer()
+      IsAutoSize() || Bool?
+      || IsPointer()
+      || (TSynonym? && base.CanReadWithoutClone())
+      || (TMetaData? && (copySemantics || display.CanReadWithoutClone()))
     }
     predicate IsRcOrBorrowedRc() {
       (TypeApp? && baseName == RcType) ||
@@ -849,6 +895,7 @@ module RAST
         case USIZE() => "usize"
         case Array(underlying, size) => "[" + underlying.ToString(ind) + (if size.Some? then "; " + size.value else "") + "]"
         case TSynonym(display, base) => display.ToString(ind)
+        case TMetaData(display, _, _) => display.ToString(ind)
       }
     }
 
@@ -934,6 +981,28 @@ module RAST
           false
       else
         false
+    }
+    predicate IsBox() {
+      match this {
+        case TypeApp(TypeFromPath(o), elems1) =>
+          o == BoxPath && |elems1| == 1
+        case _ => false
+      }
+    }
+    // Every type that needs to be .as_ref() to become purely borrowed
+    predicate NeedsAsRefForBorrow() {
+      if Borrowed? then
+        underlying.IsBox() || underlying.IsRc()
+      else
+        IsBox() || IsRc()
+    }
+    function BoxUnderlying(): Type
+      requires IsBox()
+    {
+      match this {
+        case TypeApp(TypeFromPath(o), elems1) =>
+          elems1[0]
+      }
     }
     predicate IsObject() {
       match this {
@@ -1051,7 +1120,13 @@ module RAST
 
 
   datatype Trait =
-    | Trait(typeParams: seq<TypeParamDecl>, tpe: Type, parents: seq<Type>, body: seq<ImplMember>)
+    | Trait(
+        docString: string,
+        attributes: seq<Attribute>,
+        typeParams: seq<TypeParamDecl>,
+        tpe: Type,
+        parents: seq<Type>,
+        body: seq<ImplMember>)
   {
     function ToString(ind: string): string {
       var tpConstraints := Std.Collections.Seq
@@ -1068,6 +1143,8 @@ module RAST
       var where :=
         if additionalConstraints == "" then "" else
         "\n"+ind+IND+"where\n" + ind + IND + additionalConstraints;
+      ToDocstringPrefix(docString, ind) +
+      Attribute.ToStringMultiple(attributes, ind) +
       "pub trait " + tpe.ToString(ind) + parents + where
       + " {" +
       SeqToString(body, (member: ImplMember) => "\n" + ind + IND + member.ToString(ind + IND), "")
@@ -1076,13 +1153,12 @@ module RAST
   }
 
   datatype Impl =
-    | ImplFor(typeParams: seq<TypeParamDecl>, tpe: Type, forType: Type, where: string, body: seq<ImplMember>)
-    | Impl(typeParams: seq<TypeParamDecl>, tpe: Type, where: string, body: seq<ImplMember>)
+    | ImplFor(typeParams: seq<TypeParamDecl>, tpe: Type, forType: Type, body: seq<ImplMember>)
+    | Impl(typeParams: seq<TypeParamDecl>, tpe: Type, body: seq<ImplMember>)
   {
     function ToString(ind: string): string {
       "impl" + TypeParamDecl.ToStringMultiple(typeParams, ind) + " " + tpe.ToString(ind)
       + (if ImplFor? then "\n" + ind + IND + "for " + forType.ToString(ind + IND) else "")
-      + (if where != "" then "\n" + ind + IND + where else "")
       + " {" +
       SeqToString(body, (member: ImplMember) => "\n" + ind + IND + member.ToString(ind + IND), "")
       + (if |body| == 0 then "" else "\n" + ind) + "}"
@@ -1090,12 +1166,17 @@ module RAST
   }
   datatype ImplMember =
     | RawImplMember(content: string)
-    | FnDecl(pub: Visibility, fun: Fn)
+    | TypeDeclMember(name: string, rhs: Type) // When implementing traits
+    | FnDecl(docString: string, attributes: seq<Attribute>, pub: Visibility, fun: Fn)
     | ImplMemberMacro(expr: Expr)
   {
     function ToString(ind: string): string {
-      if FnDecl? then pub.ToString() + fun.ToString(ind)
+      if FnDecl? then
+        ToDocstringPrefix(docString, ind) +
+        Attribute.ToStringMultiple(attributes, ind) +
+        pub.ToString() + fun.ToString(ind)
       else if ImplMemberMacro? then expr.ToString(ind) + ";"
+      else if TypeDeclMember? then "type " + name + " = " + rhs.ToString(ind) + ";"
       else assert RawImplMember?; content
     }
   }
@@ -1118,7 +1199,7 @@ module RAST
       tpe.Fold(acc, ft)
     }
     function ToString(ind: string): string {
-      if name == "self" && tpe == SelfOwned then name
+      if name == "self" && tpe.Expand() == SelfOwned then name
       else if name == "self" && tpe == SelfBorrowed then "&" + name
       else if name == "self" && tpe == SelfBorrowedMut then "&mut " + name
       else if tpe.TIdentifier? && tpe.name == "_" then
@@ -1782,6 +1863,10 @@ module RAST
     function Clone(): Expr {
       Select(this, "clone").Apply0()
     }
+
+    predicate IsBorrow() {
+      UnaryOp? && op1 == "&"
+    }
   }
 
   function Unsafe(underlying: Expr): Expr {
@@ -1823,14 +1908,12 @@ module RAST
   datatype Fn =
     Fn(name: string, typeParams: seq<TypeParamDecl>, formals: seq<Formal>,
        returnType: Option<Type>,
-       where: string,
        body: Option<Expr>)
   {
     function ToString(ind: string): string {
       "fn " + name + TypeParamDecl.ToStringMultiple(typeParams, ind) +
       "(" + SeqToString(formals, (formal: Formal) => formal.ToString(ind), ", ") + ")" +
       (match returnType case Some(t) => " -> " + t.ToString(ind) case _ => "") +
-      (if where == "" then "" else "\n" + ind + IND + where) +
       match body {
         case None => ";"
         case Some(body) =>
@@ -1840,4 +1923,10 @@ module RAST
       }
     }
   }
+
+  /** Placeholder when there is no Rust docstring */
+  const NoDoc := ""
+
+  /** Placeholder when there are no Rust attributes */
+  const NoAttr: seq<Attribute> := []
 }

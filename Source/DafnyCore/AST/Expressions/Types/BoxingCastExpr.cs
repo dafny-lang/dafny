@@ -15,7 +15,7 @@ public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as 
   }
 
   public BoxingCastExpr(Expression e, Type fromType, Type toType)
-    : base(e.tok) {
+    : base(e.Tok) {
     Contract.Requires(e != null);
     Contract.Requires(fromType != null);
     Contract.Requires(toType != null);

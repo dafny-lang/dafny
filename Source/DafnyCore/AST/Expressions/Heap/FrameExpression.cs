@@ -26,7 +26,7 @@ public class FrameExpression : TokenNode, IHasReferences {
   /// If a "fieldName" is given, then "tok" denotes its source location.  Otherwise, "tok"
   /// denotes the source location of "e".
   /// </summary>
-  public FrameExpression(IToken tok, Expression e, string fieldName) {
+  public FrameExpression(IOrigin tok, Expression e, string fieldName) {
     Contract.Requires(tok != null);
     Contract.Requires(e != null);
     Contract.Requires(!(e is WildcardExpr) || fieldName == null);
@@ -36,7 +36,7 @@ public class FrameExpression : TokenNode, IHasReferences {
   }
 
   public FrameExpression(Cloner cloner, FrameExpression original) {
-    this.tok = cloner.Tok(original.tok);
+    this.tok = cloner.Origin(original.Tok);
     OriginalExpression = cloner.CloneExpr(original.OriginalExpression);
     FieldName = original.FieldName;
 
@@ -48,10 +48,9 @@ public class FrameExpression : TokenNode, IHasReferences {
     }
   }
 
-  public IToken NavigationToken => tok;
   public override IEnumerable<INode> Children => new[] { E };
   public override IEnumerable<INode> PreResolveChildren => Children;
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { Field }.Where(x => x != null);
+  public IEnumerable<Reference> GetReferences() {
+    return Field == null ? Enumerable.Empty<Reference>() : new[] { new Reference(Tok, Field) };
   }
 }

@@ -39,20 +39,20 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     Wildcard = original.Wildcard;
     if (cloner.CloneResolvedFields) {
       OffsetMembers = original.OffsetMembers.ToList();
-      LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Tok(a.Tok), a.Name)).ToList();
+      LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Origin(a.Tok), a.Name)).ToList();
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
-  public HideRevealStmt(RangeToken rangeToken, HideRevealCmd.Modes mode)
-    : base(rangeToken) {
+  public HideRevealStmt(IOrigin rangeOrigin, HideRevealCmd.Modes mode)
+    : base(rangeOrigin) {
     Wildcard = true;
     this.Exprs = null;
     Mode = mode;
   }
 
-  public HideRevealStmt(RangeToken rangeToken, List<Expression> exprs, HideRevealCmd.Modes mode)
-    : base(rangeToken) {
+  public HideRevealStmt(IOrigin rangeOrigin, List<Expression> exprs, HideRevealCmd.Modes mode)
+    : base(rangeOrigin) {
     Contract.Requires(exprs != null);
     this.Exprs = exprs;
     Wildcard = false;
@@ -62,7 +62,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
   public static string SingleName(Expression e) {
     Contract.Requires(e != null);
     if (e is NameSegment || e is LiteralExpr) {
-      return e.tok.val;
+      return e.Tok.val;
     } else {
       return null;
     }
@@ -121,9 +121,9 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
 
               var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);
               if (revealCallee != null) {
-                var call = new CallStmt(RangeToken, new List<Expression>(),
+                var call = new CallStmt(Origin, new List<Expression>(),
                   revealCallee,
-                  new List<ActualBinding>(), effectiveExpr.tok);
+                  new List<ActualBinding>(), effectiveExpr.Center);
                 ResolvedStatements.Add(call);
               }
             } else {
@@ -140,5 +140,13 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     foreach (var a in ResolvedStatements) {
       resolver.ResolveStatement(a, resolutionContext);
     }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    ResolvedStatements.ForEach(ss => ss.ResolveGhostness(resolver, reporter, true, codeContext,
+      $"a {Kind} statement", allowAssumptionVariables, inConstructorInitializationPhase));
+    IsGhost = ResolvedStatements.All(ss => ss.IsGhost);
   }
 }

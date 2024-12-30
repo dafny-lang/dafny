@@ -15,11 +15,11 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
     Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
   }
 
-  public BlockStmt(RangeToken rangeToken, [Captured] List<Statement> body)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public BlockStmt(IOrigin rangeOrigin, [Captured] List<Statement> body)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(body));
-    this.Body = body;
+    Body = body;
   }
 
   public override IEnumerable<Statement> SubStatements => Body;
@@ -61,14 +61,31 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
       }
     }
 
-    foreach (var blockStmtBody in Body) {
-      if (blockStmtBody is not BlockStmt && OwnedTokens.Any()) {
-        formatter.SetIndentations(blockStmtBody.StartToken, innerBlockIndent, innerBlockIndent);
+    foreach (var childStatement in Body) {
+      if (childStatement is not BlockStmt or BlockByProofStmt && OwnedTokens.Any()) {
+        formatter.SetIndentations(childStatement.StartToken, innerBlockIndent, innerBlockIndent);
       }
 
-      formatter.Visit(blockStmtBody, indentBefore + formatter.SpaceTab);
+      formatter.Visit(childStatement, indentBefore + formatter.SpaceTab);
     }
 
     return false;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
+    if (this is DividedBlockStmt ds) {
+      ds.BodyInit.ForEach(ss =>
+        ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables, true));
+      ds.BodyProper.ForEach(ss =>
+        ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables,
+          inConstructorInitializationPhase));
+    } else {
+      Body.ForEach(ss => ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext,
+        allowAssumptionVariables, inConstructorInitializationPhase));
+    }
+    IsGhost = IsGhost || Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
   }
 }

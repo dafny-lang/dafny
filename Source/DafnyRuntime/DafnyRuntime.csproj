@@ -46,7 +46,7 @@
     </Content>
   </ItemGroup>
   <PropertyGroup>
-    <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime-4.6.0.jar</DafnyRuntimeJar>
+    <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime-4.9.2.jar</DafnyRuntimeJar>
   </PropertyGroup>
   <Target Name="BuildDafnyRuntimeJar" AfterTargets="ResolveReferences" BeforeTargets="CoreCompile" Inputs="$(MSBuildProjectFile);@(DafnyRuntimeJavaInputFile)" Outputs="$(DafnyRuntimeJar)">
     

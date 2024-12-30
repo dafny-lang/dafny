@@ -14,8 +14,6 @@ Bug170.dfy(10,12): Info: B#[_k - 1]
 Bug170.dfy(15,12): Info: A#[_k - 1]
 Bug170.dfy(18,14): Info: AA# decreases _k, x
 Bug170.dfy(26,14): Info: BB# decreases _k, x
-Bug170.dfy(18,14): Info: AA# {:induction _k, x}
-Bug170.dfy(26,14): Info: BB# {:induction _k, x}
 Bug170.dfy(36,21): Info: _k: ORDINAL
 Bug170.dfy(41,21): Info: _k: ORDINAL
 Bug170.dfy(46,17): Info: _k: ORDINAL
@@ -33,7 +31,9 @@ Bug170.dfy(43,4): Info: A#[_k - 1]
 Bug170.dfy(46,17): Info: AA# decreases _k, x
 Bug170.dfy(53,17): Info: BB# decreases _k, x
 Bug170.dfy(46,17): Info: AA# {:induction _k, x}
+Bug170.dfy(46,17): Info: AA# {:inductionTrigger A#[_k](x)}
 Bug170.dfy(53,17): Info: BB# {:induction _k, x}
+Bug170.dfy(53,17): Info: BB# {:inductionTrigger B#[_k](x)}
 Bug170.dfy(64,18): Info: _k: ORDINAL
 Bug170.dfy(69,14): Info: _k: ORDINAL
 Bug170.dfy(70,14): Info: A#[_k]
@@ -42,7 +42,6 @@ Bug170.dfy(72,7): Info: A#[_k - 1]
 Bug170.dfy(73,6): Info: AA#[_k - 1]
 Bug170.dfy(66,12): Info: A#[_k - 1]
 Bug170.dfy(69,14): Info: AA# decreases _k, x
-Bug170.dfy(69,14): Info: AA# {:induction _k, x}
 Bug170.dfy(50,11): Info: Some instances of this call are not inlined.
 Bug170.dfy(57,11): Info: Some instances of this call are not inlined.
 

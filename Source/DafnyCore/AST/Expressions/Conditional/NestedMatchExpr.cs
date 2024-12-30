@@ -34,7 +34,7 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
     }
   }
 
-  public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces, Attributes attrs = null) : base(tok) {
+  public NestedMatchExpr(IOrigin tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces, Attributes attrs = null) : base(tok) {
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.Source = source;
@@ -65,13 +65,13 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
       resolver.PartiallySolveTypeConstraints(true);
 
       if (Source.Type is TypeProxy) {
-        resolver.reporter.Error(MessageSource.Resolver, tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
+        resolver.reporter.Error(MessageSource.Resolver, Tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
         return;
       }
     }
 
     var errorCount = resolver.reporter.Count(ErrorLevel.Error);
-    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.tok, Source.Type).NormalizeExpand();
+    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.Tok, Source.Type).NormalizeExpand();
     if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
     }

@@ -1,1 +1,0 @@
-Use --suggest-proof-refactoring to be alerted of function definitions, which have no contribution to a method's proof, and facts, which are only used once in a proof.

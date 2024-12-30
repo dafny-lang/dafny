@@ -1,3 +1,12 @@
+# Module `B`
+
+## Type `ClassExtendingTraitFromOtherModule`
+
+* Trait method calls may not terminate (uses `@AssumeCrossModuleTermination`). MUST remove `@AssumeCrossModuleTermination` or justify.
+
+## Type `TraitExtendingTraitFromOtherModule`
+
+* Trait method calls may not terminate (uses `@AssumeCrossModuleTermination`). MUST remove `@AssumeCrossModuleTermination` or justify.
 # Default module
 
 ## Top level

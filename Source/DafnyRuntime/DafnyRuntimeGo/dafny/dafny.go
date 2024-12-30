@@ -799,7 +799,7 @@ type Array interface {
 /***** newArray *****/
 
 // Multiply the numbers in "dims" and return the product as an "int".
-// If the produce doesn't fit in an "int", panic with the message that the
+// If the product doesn't fit in an "int", panic with the message that the
 // array-size limit has been exceeded.
 // It is expected that len(dims) is at least 1 and that each number in
 // dims is non-negative.
@@ -3154,20 +3154,20 @@ type GoAtomicBox struct {
   value interface{}
 }
 
-func (box GoAtomicBox) Get() interface{} {
+func (box *GoAtomicBox) Get() interface{} {
   return box.value
 }
 
-func (box GoAtomicBox) Put(value interface{}) {
+func (box *GoAtomicBox) Put(value interface{}) {
   box.value = value
 }
 
-func (box GoAtomicBox) String() string {
+func (box *GoAtomicBox) String() string {
   return "dafny.GoAtomicBox"
 }
 
 func (CompanionStruct_AtomicBox_) Make(value interface{}) AtomicBox {
-  return GoAtomicBox{
+  return &GoAtomicBox{
     value: value,
   }
 }

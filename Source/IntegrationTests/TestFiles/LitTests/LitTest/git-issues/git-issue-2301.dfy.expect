@@ -1,10 +1,11 @@
 git-issue-2301.dfy(15,14): Error: insufficient reads clause to read state of 'unchanged' object
 git-issue-2301.dfy(23,11): Error: assertion might not hold
 git-issue-2301.dfy(10,4): Related location: this proposition could not be proved
-git-issue-2301.dfy(39,8): Error: insufficient reads clause to read state of 'unchanged' object
-git-issue-2301.dfy(40,8): Error: insufficient reads clause to read state of 'unchanged' object
-git-issue-2301.dfy(42,17): Error: insufficient reads clause to read state of 'unchanged' set element
-git-issue-2301.dfy(44,8): Error: insufficient reads clause to read state of 'unchanged' multiset element
-git-issue-2301.dfy(46,8): Error: insufficient reads clause to read state of 'unchanged' sequence element
+git-issue-2301.dfy(39,6): Error: insufficient reads clause to read state of 'unchanged' object
+git-issue-2301.dfy(40,6): Error: insufficient reads clause to read state of 'unchanged' object
+git-issue-2301.dfy(46,14): Error: insufficient reads clause to read state of 'unchanged' set element
+git-issue-2301.dfy(52,6): Error: insufficient reads clause to read state of 'unchanged' multiset element
+git-issue-2301.dfy(53,6): Error: insufficient reads clause to read state of 'unchanged' sequence element
+git-issue-2301.dfy(54,6): Error: insufficient reads clause to read state of 'unchanged' sequence element
 
-Dafny program verifier finished with 3 verified, 7 errors
+Dafny program verifier finished with 3 verified, 8 errors

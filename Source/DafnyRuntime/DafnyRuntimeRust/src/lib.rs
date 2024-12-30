@@ -200,7 +200,7 @@ pub mod dafny_runtime_conversions {
         DafnyMap::<K, V>::from_hashmap(map, converter_k, converter_v)
     }
 
-    // --unicode-chars:true
+    // --unicode-char:true
     pub mod unicode_chars_true {
         use crate::Sequence;
 
@@ -216,7 +216,7 @@ pub mod dafny_runtime_conversions {
         }
     }
 
-    // --unicode-chars:false
+    // --unicode-char:false
     pub mod unicode_chars_false {
         use crate::Sequence;
 
@@ -3516,15 +3516,15 @@ fn increment_strong_count<T: ?Sized>(data: *const T) {
 impl <T: ?Sized> Object<T> {
     // SAFETY: This function needs to be called from a reference obtained by calling read!(o) on an object
     // We never inline this function, otherwise the compiler might figure out a way to remove the increment_strong_count
-    #[inline(never)]    
+    #[inline(never)]
     pub fn from_ref(r: &T) -> Object<T> {
         let pt = r as *const T as *const UnsafeCell<T>;
         // SAFETY: Not guaranteed unfortunately. But looking at the sources of from_raw as of today 10/24/2024
         // it will will correctly rebuilt the Rc
-        let rebuilt = unsafe { Rc::from_raw(pt) };
-        let previous_strong_count = Rc::strong_count(&rebuilt);
+        let rebuilt = ::std::hint::black_box(unsafe { Rc::from_raw(pt) });
+        let previous_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
         ::std::hint::black_box(crate::increment_strong_count(pt));
-        let new_strong_count = Rc::strong_count(&rebuilt);
+        let new_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
         assert_eq!(new_strong_count, previous_strong_count + 1); // Will panic if not
         Object(Some(rebuilt))
     }
@@ -3893,6 +3893,17 @@ pub fn upcast<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Ptr<A>) -> Ptr<B>>
     Rc::new(|x: Ptr<A>| read!(x).upcast())
 }
 
+pub fn upcast_box<A, B: ?Sized>() -> Rc<impl Fn(A) -> Box<B>>
+  where A: UpcastBox<B>
+{
+    Rc::new(|x: A| UpcastBox::upcast(&x))
+}
+pub fn upcast_box_box<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Box<A>) -> Box<B>>
+  where Box<A>: UpcastBox<B>
+{
+    Rc::new(|x: Box<A>| UpcastBox::upcast(&x))
+}
+
 pub fn upcast_id<A>() -> Rc<impl Fn(A) -> A>
 {
     Rc::new(|x: A| x)
@@ -3923,7 +3934,6 @@ pub trait Upcast<T: ?Sized> {
 pub trait UpcastObject<T: ?Sized> {
     fn upcast(&self) -> Object<T>;
 }
-
 impl <T: ?Sized> Upcast<T> for T {
     fn upcast(&self) -> Ptr<T> {
         Ptr::from_raw_nonnull(self as *const T as *mut T)
@@ -3934,6 +3944,12 @@ impl <T: ?Sized> UpcastObject<T> for T {
         Object::from_ref(self)
     }
 }
+
+// For general traits
+pub trait UpcastBox<T: ?Sized> {
+    fn upcast(&self) -> Box<T>;
+}
+
 
 #[macro_export]
 macro_rules! Extends {
@@ -3959,8 +3975,6 @@ macro_rules! UpcastObjectFn {
         }
     };
 }
-
-
 
 // It works only when there is no type parameters for $A...
 #[macro_export]

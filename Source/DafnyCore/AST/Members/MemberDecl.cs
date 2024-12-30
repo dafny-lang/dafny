@@ -67,9 +67,9 @@ public abstract class MemberDecl : Declaration, ISymbol {
     this.isGhost = original.isGhost;
   }
 
-  protected MemberDecl(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, attributes, isRefining) {
-    Contract.Requires(rangeToken != null);
+  protected MemberDecl(IOrigin rangeOrigin, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
+    : base(rangeOrigin, name, attributes, isRefining) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     this.hasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
@@ -122,11 +122,11 @@ public abstract class MemberDecl : Declaration, ISymbol {
       yield return a;
     }
     if (this.HasUserAttribute("only", out _)) {
-      yield return new Assumption(decl, tok, AssumptionDescription.MemberOnly);
+      yield return new Assumption(decl, Tok, AssumptionDescription.MemberOnly);
     }
   }
 
-  public void RecursiveCallParameters(IToken tok, List<TypeParameter> typeParams, List<Formal> ins,
+  public void RecursiveCallParameters(IOrigin tok, List<TypeParameter> typeParams, List<Formal> ins,
     Expression receiverSubst, Dictionary<IVariable, Expression> substMap,
     out Expression receiver, out List<Expression> arguments) {
     Contract.Requires(tok != null);
@@ -154,7 +154,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
       if (substMap.TryGetValue(inFormal, out inE)) {
         arguments.Add(inE);
       } else {
-        var ie = new IdentifierExpr(inFormal.tok, inFormal.Name);
+        var ie = new IdentifierExpr(inFormal.Tok, inFormal.Name);
         ie.Var = inFormal;  // resolve here
         ie.Type = inFormal.Type;  // resolve here
         arguments.Add(ie);

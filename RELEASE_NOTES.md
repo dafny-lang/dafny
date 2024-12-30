@@ -2,6 +2,118 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.9.1
+
+## New features
+
+- Introduce the attributes {:isolate} and {:isolate "paths} that simplify the verification of an assertion by introducing additional verification jobs. {:isolate} can be applied to `assert`, `return` and `continue` statements. When using `{:isolate_assertions}` or `--isolate-assertions`, each return statement now creates a separate verification job for each ensures clause. Previously all ensures clauses where verified in a single job, for all return statements. (https://github.com/dafny-lang/dafny/pull/5832)
+
+- Fill in matching patterns for the quantifiers introduced by automatic induction to represent the induction hypothesis. Suppress the generation of the induction hypothesis if no such matching patterns are found. Enhance tooltips accordingly. This feature is added to stabilize verification, but by sometimes not generating induction hypotheses, some automatic proofs may no longer go through. For backward compatibility, use an explicit `{:induction ...}` where `...` is the list of variables to use for the induction-hypothesis quantifier. Additionally, use a  `{:nowarn}` attribute to suppress any warning about lack of matching patterns.
+
+  Improve the selection of induction variables.
+
+  Allow codatatype equality in matching patterns and as a focal predicate for extreme predicates.
+
+  More specifically:
+
+  * If a lemma bears `{:induction x, y, z}`, where `x, y, z` is a subset of the lemma's parameters (in the same order
+     that the lemma gives them), then an induction hypothesis (IH) is generated. The IH quantifies over the
+     given variables.
+
+     For an instance-member lemma, the variables may include the implicit `this` parameter.
+
+     For an extreme lemma, the IH generated is the for corresponding prefix lemma, and the given variables may
+     include the implicit parameter `_k`.
+
+     If good matching patterns are found for the quantifier, then these are indicated in tooltips.
+     If no patterns are found, then a warning is generated; except, if the lemma bears `{:nowarn}`, then only
+     an informational message is given.
+
+  * If a lemma bears `{:induction}` or `{:induction true}`, then a list of induction variables is determined heuristically.
+
+     If the list is empty, then a warning message is generated and no IH is generated. If the list is nonempty,
+     an IH is generated and the list of variables is indicated in a tooltip.
+
+     If good matching patterns are found for the quantifier, then these are indicated in tooltips.
+     If no patterns are found, then a warning is generated; except, if the lemma bears {:nowarn}, then only
+     an informational message is given.
+
+  * If a lemma bears `{:induction false}`, then no IH is generated.
+
+  * If a lemma bears an `:induction` attribute other than those listed above, then an error is generated.
+
+  * If a lemma bears no `:induction` attribute, and the `--manual-lemma-induction` flag is present, then no IH is generated.
+
+  * Otherwise, a list of induction variables is determined heuristically.
+
+     If this list is empty, then no IH is generated and no warning/info is given.
+
+     If the list is nonempty, then the machinery looks for matching patterns for the IH quantifier. If none are
+     found, then no IH is generated.  An informational message is generated, saying which candidate variables were
+     used and saying that no matching patterns were found.
+
+     If patterns are found, then an IH is generated, the list of variables and the patterns are indicated in tooltips,
+     and the patterns are used with the IH quantifier.
+
+     The pattern search can be overriden by providing patterns explicitly using the `{:inductionTrigger}` attribute.
+     This attribute has the same syntax as the `{:trigger}` attribute.  Using an empty list of triggers restores
+     Dafny's legacy behavior (no triggers for lemma induction hypotheses).
+  (https://github.com/dafny-lang/dafny/pull/5835)
+
+- Accept `decreases to` and `nonincreases to` expressions with 0 LHSs and/or 0 RHSs, and allow parentheses to be omitted when there is 1 LHS and 1 RHS. (https://github.com/dafny-lang/dafny/pull/5891)
+
+- Allow forall statements in statement expressions (https://github.com/dafny-lang/dafny/pull/5894)
+
+- When using `--isolate-assertions` or `{:isolate_assertions}`, a separate assertion batch will be generated per pair of return statement and ensures clause. (https://github.com/dafny-lang/dafny/pull/5917)
+
+## Bug fixes
+
+- `{:only}` on members only affects verification on the current file. (https://github.com/dafny-lang/dafny/pull/5730)
+
+- Fixed a bug that caused "hide *" and "reveal *" not to work when used in statement expressions, 
+  after a variable assignment occurred in the same expression.
+  (https://github.com/dafny-lang/dafny/pull/5781)
+
+- Fix malformed Boogie in function override checks (https://github.com/dafny-lang/dafny/pull/5875)
+
+- Fix soundness issue where the verifier had assumed properties of `this` already during the first phase of a constructor (https://github.com/dafny-lang/dafny/pull/5876)
+
+- Don't assume type information before binding variables (for let expressions and named function results) (https://github.com/dafny-lang/dafny/pull/5877)
+
+- Enable using reveal statement expression inside witness expressions (https://github.com/dafny-lang/dafny/pull/5882)
+
+- Fix formatting of var by statements (https://github.com/dafny-lang/dafny/pull/5927)
+
+- Fix bugs that occur when using `{:extern}` to export members (https://github.com/dafny-lang/dafny/pull/5939)
+
+- Fixed a bug that would cause the symbol verification tasks to be done multiple times when using module refinement (https://github.com/dafny-lang/dafny/pull/5967)
+
+- Map range requires equality for enclosing type to support equality (https://github.com/dafny-lang/dafny/pull/5972)
+
+- Improved code navigation for datatype update expressions (https://github.com/dafny-lang/dafny/pull/5986)
+
+# 4.9.0
+
+## New features
+
+- Added opaque blocks to the language. Opaque blocks enable improving verification performance. See the documentation for more details. (https://github.com/dafny-lang/dafny/pull/5761)
+
+- By blocks ("... by { ... }") are now available for assert statements, call statements, and the three types of assignments (:=, :-, :|). Also, by blocks should now be more intuitive since they enable proving any assertions on the left-hand side of the 'by', not just the 'outermost' one. For example, previously `assert 3 / x == 1 by { assume x == 3; }` could still give a possible division by zero error, but now it won't. (https://github.com/dafny-lang/dafny/pull/5779)
+
+- Use --suggest-proof-refactoring to be alerted of function definitions, which have no contribution to a method's proof, and facts, which are only used once in a proof. (https://github.com/dafny-lang/dafny/pull/5812)
+
+- Support for [top-level @-attributes](https://dafny.org/latest/DafnyRef/DafnyRef#sec-at-attributes) (https://github.com/dafny-lang/dafny/pull/5825)
+
+## Bug fixes
+
+- Enable abstract imports to work well with match expression that occur in specifications (https://github.com/dafny-lang/dafny/pull/5808)
+
+- Fix a bug that prevented using reveal statement expressions in the body of a constant. (https://github.com/dafny-lang/dafny/pull/5823)
+
+- Improve performance of `dafny verify` for large applications, by removing memory leaks (https://github.com/dafny-lang/dafny/pull/5827)
+
+- Green gutter icons cover constants without RHS (https://github.com/dafny-lang/dafny/pull/5841)
+
 # 4.8.1
 
 ## New features

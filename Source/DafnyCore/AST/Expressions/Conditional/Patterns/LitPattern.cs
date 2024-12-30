@@ -39,11 +39,11 @@ public class LitPattern : ExtendedPattern {
         if (OrigLit is NegationExpression neg) {
           var lit = (LiteralExpr)neg.E;
           if (lit.Value is BaseTypes.BigDec d) {
-            optimisticallyDesugaredLit = new LiteralExpr(neg.tok, -d);
+            optimisticallyDesugaredLit = new LiteralExpr(neg.Tok, -d);
           } else {
             var n = (BigInteger)lit.Value;
-            var tok = new Token(neg.tok.line, neg.tok.col) {
-              Uri = neg.tok.Uri,
+            var tok = new Token(neg.Tok.line, neg.Tok.col) {
+              Uri = neg.Tok.Uri,
               val = "-0"
             };
             optimisticallyDesugaredLit = new LiteralExpr(tok, -n);
@@ -56,7 +56,7 @@ public class LitPattern : ExtendedPattern {
     }
   }
 
-  public LitPattern(IToken tok, Expression lit, bool isGhost = false) : base(tok, isGhost) {
+  public LitPattern(IOrigin tok, Expression lit, bool isGhost = false) : base(tok, isGhost) {
     Contract.Requires(lit is LiteralExpr || lit is NegationExpression);
     this.OrigLit = lit;
   }
@@ -81,7 +81,7 @@ public class LitPattern : ExtendedPattern {
 
     var literal = OptimisticallyDesugaredLit;
     resolver.ResolveExpression(literal, resolutionContext);
-    resolver.AddAssignableConstraint(literal.tok, sourceType, literal.Type,
+    resolver.AddAssignableConstraint(literal.Tok, sourceType, literal.Type,
       "literal expression in case (of type '{1}') not assignable to match source type '{0}'");
   }
 }

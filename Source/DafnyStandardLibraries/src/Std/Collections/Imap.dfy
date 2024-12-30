@@ -20,7 +20,7 @@ module Std.Collections.Imap {
   }
 
   /* Remove all key-value pairs corresponding to the iset of keys provided. */
-  ghost function RemoveKeys<X, Y>(m: imap<X, Y>, xs: iset<X>): (m': imap<X, Y>)
+  opaque ghost function RemoveKeys<X, Y>(m: imap<X, Y>, xs: iset<X>): (m': imap<X, Y>)
     ensures forall x {:trigger m'[x]} :: x in m && x !in xs ==> x in m' && m'[x] == m[x]
     ensures forall x {:trigger x in m'} :: x in m' ==> x in m && x !in xs
     ensures m'.Keys == m.Keys - xs
@@ -29,7 +29,7 @@ module Std.Collections.Imap {
   }
 
   /* Remove a key-value pair. Returns unmodified imap if key is not found. */
-  ghost function RemoveKey<X, Y>(m: imap<X, Y>, x: X): (m': imap<X, Y>)
+  opaque ghost function RemoveKey<X, Y>(m: imap<X, Y>, x: X): (m': imap<X, Y>)
     ensures m' == RemoveKeys(m, iset{x})
     ensures forall x' {:trigger m'[x']} :: x' in m' ==> m'[x'] == m[x']
   {
@@ -37,7 +37,7 @@ module Std.Collections.Imap {
   }
 
   /* Keep all key-value pairs corresponding to the iset of keys provided. */
-  ghost function Restrict<X, Y>(m: imap<X, Y>, xs: iset<X>): (m': imap<X, Y>)
+  opaque ghost function Restrict<X, Y>(m: imap<X, Y>, xs: iset<X>): (m': imap<X, Y>)
     ensures m' == RemoveKeys(m, m.Keys - xs)
   {
     imap x | x in xs && x in m :: m[x]
@@ -58,7 +58,7 @@ module Std.Collections.Imap {
 
   /* Union of two imaps. Does not require disjoint domains; on the intersection,
   values from the second imap are chosen. */
-  ghost function Union<X, Y>(m: imap<X, Y>, m': imap<X, Y>): (r: imap<X, Y>)
+  opaque ghost function Union<X, Y>(m: imap<X, Y>, m': imap<X, Y>): (r: imap<X, Y>)
     ensures r.Keys == m.Keys + m'.Keys
     ensures forall x {:trigger r[x]} :: x in m' ==> r[x] == m'[x]
     ensures forall x {:trigger r[x]} :: x in m && x !in m' ==> r[x] == m[x]

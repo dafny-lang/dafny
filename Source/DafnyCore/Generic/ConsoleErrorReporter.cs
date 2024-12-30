@@ -18,7 +18,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     }
   }
 
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
     var printMessage = base.MessageCore(source, level, errorId, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info);
     if (!printMessage) {
       return false;
@@ -45,12 +45,12 @@ public class ConsoleErrorReporter : BatchErrorReporter {
 
     if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
       var tw = new StringWriter();
-      Snippets.WriteSourceCodeSnippet(Options, tok.ToRange(), tw);
+      Snippets.WriteSourceCodeSnippet(Options, tok, tw);
       errorLine += tw.ToString();
     }
 
     var innerToken = tok;
-    while (innerToken is NestedToken nestedToken) {
+    while (innerToken is NestedOrigin nestedToken) {
       innerToken = nestedToken.Inner;
       if (innerToken.Filepath == nestedToken.Filepath &&
           innerToken.line == nestedToken.line &&
@@ -68,7 +68,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
       if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
         var tw = new StringWriter();
-        Snippets.WriteSourceCodeSnippet(Options, innerToken.ToRange(), tw);
+        Snippets.WriteSourceCodeSnippet(Options, innerToken, tw);
         errorLine += tw.ToString();
       }
     }

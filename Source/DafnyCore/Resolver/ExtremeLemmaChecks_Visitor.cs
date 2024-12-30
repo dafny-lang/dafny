@@ -30,7 +30,7 @@ class ExtremeLemmaChecks_Visitor : ResolverBottomUpVisitor {
       // the call goes from a greatest lemma context to a non-greatest-lemma callee
       if (ModuleDefinition.InSameSCC(context, e.Function)) {
         // we're looking at a recursive call (to a non-greatest-lemma)
-        resolver.reporter.Error(MessageSource.Resolver, e.tok, "a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas");
+        resolver.reporter.Error(MessageSource.Resolver, e.Tok, "a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas");
       }
     }
   }

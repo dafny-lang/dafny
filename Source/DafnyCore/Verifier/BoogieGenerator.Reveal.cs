@@ -13,36 +13,70 @@ namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
 
-  Expr TrStmtSideEffect(Expr e, Statement stmt, ExpressionTranslator etran) {
-    if (stmt is CallStmt) {
-      var call = (CallStmt)stmt;
-      var m = call.Method;
-      if (IsOpaqueRevealLemma(m)) {
-        List<Expression> args = Attributes.FindExpressions(m.Attributes, "fuel");
-        if (args != null) {
-          MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
-          if (selectExpr != null) {
-            Function f = selectExpr.Member as Function;
-            FuelConstant fuelConstant = this.functionFuel.Find(x => x.f == f);
-            if (fuelConstant != null) {
-              Bpl.Expr startFuel = fuelConstant.startFuel;
-              Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
-              Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, Predef, f.IdGenerator);
-              Bpl.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
-              Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
+  private static void TranslateRevealStmt(BoogieGenerator boogieGenerator, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
+    HideRevealStmt revealStmt) {
+    AddComment(builder, revealStmt, "hide/reveal statement");
+    foreach (var la in revealStmt.LabeledAsserts) {
+      Contract.Assert(la.E != null);  // this should have been filled in by now
+      builder.Add(new AssumeCmd(revealStmt.Tok, la.E));
+    }
 
-              e = BplAnd(e, Bpl.Expr.Eq(startFuel, layer));
-              e = BplAnd(e, Bpl.Expr.Eq(startFuelAssert, layerAssert));
-              e = BplAnd(e, Bpl.Expr.Eq(this.FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr));
-            }
-          }
+    if (builder.Context.ContainsHide) {
+      if (revealStmt.Wildcard) {
+        builder.Add(new HideRevealCmd(revealStmt.Tok, revealStmt.Mode));
+      } else {
+        foreach (var member in revealStmt.OffsetMembers) {
+          builder.Add(new HideRevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName), revealStmt.Mode));
         }
       }
-    } else if (stmt is HideRevealStmt reveal) {
-      foreach (var s in reveal.ResolvedStatements) {
-        e = BplAnd(e, TrFunctionSideEffect(s, etran));
-      }
     }
-    return e;
+
+    boogieGenerator.TrStmtList(revealStmt.ResolvedStatements, builder, locals, etran);
+  }
+
+  Expr TrStmtSideEffect(Expr e, Statement stmt, ExpressionTranslator etran) {
+    switch (stmt) {
+      case CallStmt call: {
+          var m = call.Method;
+          if (!IsOpaqueRevealLemma(m)) {
+            return e;
+          }
+
+          var args = Attributes.FindExpressions(m.Attributes, "fuel");
+          if (args == null) {
+            return e;
+          }
+
+          if (args[0].Resolved is not MemberSelectExpr selectExpr) {
+            return e;
+          }
+
+          var f = selectExpr.Member as Function;
+          var fuelConstant = functionFuel.Find(x => x.f == f);
+          if (fuelConstant == null) {
+            return e;
+          }
+
+          var startFuel = fuelConstant.startFuel;
+          var startFuelAssert = fuelConstant.startFuelAssert;
+          var moreFuelExpr = fuelConstant.MoreFuel(sink, Predef, f.IdGenerator);
+          var layer = etran.layerInterCluster.LayerN(1, moreFuelExpr);
+          var layerAssert = etran.layerInterCluster.LayerN(2, moreFuelExpr);
+
+          e = BplAnd(e, Expr.Eq(startFuel, layer));
+          e = BplAnd(e, Expr.Eq(startFuelAssert, layerAssert));
+          e = BplAnd(e, Expr.Eq(FunctionCall(f.Tok, BuiltinFunction.AsFuelBottom, null, moreFuelExpr), moreFuelExpr));
+
+          return e;
+        }
+      case HideRevealStmt reveal: {
+          foreach (var s in reveal.ResolvedStatements) {
+            e = BplAnd(e, TrFunctionSideEffect(s, etran));
+          }
+
+          return e;
+        }
+      default: return e;
+    }
   }
 }

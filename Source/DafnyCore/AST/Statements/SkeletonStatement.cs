@@ -28,9 +28,9 @@ namespace Microsoft.Dafny;
 public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanFormat {
   public readonly Statement? S;
   public bool ConditionOmitted => ConditionEllipsis != null;
-  public readonly IToken? ConditionEllipsis;
+  public readonly IOrigin? ConditionEllipsis;
   public bool BodyOmitted => BodyEllipsis != null;
-  public readonly IToken? BodyEllipsis;
+  public readonly IOrigin? BodyEllipsis;
 
   public SkeletonStatement Clone(Cloner cloner) {
     return new SkeletonStatement(cloner, this);
@@ -42,13 +42,13 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanF
     BodyEllipsis = original.BodyEllipsis;
   }
 
-  public SkeletonStatement(RangeToken rangeToken)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public SkeletonStatement(IOrigin rangeOrigin)
+    : base(rangeOrigin) {
+    Contract.Requires(rangeOrigin != null);
     S = null;
   }
-  public SkeletonStatement(Statement s, IToken conditionEllipsis, IToken bodyEllipsis)
-    : base(s.RangeToken) {
+  public SkeletonStatement(Statement s, IOrigin conditionEllipsis, IOrigin bodyEllipsis)
+    : base(s.Origin) {
     Contract.Requires(s != null);
     S = s;
     ConditionEllipsis = conditionEllipsis;
@@ -79,5 +79,15 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanF
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return true;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable;
+    if (S != null) {
+      S.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
+      IsGhost = IsGhost || S.IsGhost;
+    }
   }
 }

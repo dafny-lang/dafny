@@ -23,10 +23,10 @@ class Info {
 
   public string Source; // information on where the entity is declared
 
-  public Info(bool register, DafnyDoc dd, string kind, IToken tok, string name, string fullname) : this(register, dd, kind, tok, name, fullname, fullname) {
+  public Info(bool register, DafnyDoc dd, string kind, IOrigin tok, string name, string fullname) : this(register, dd, kind, tok, name, fullname, fullname) {
   }
 
-  public Info(bool register, DafnyDoc dd, string kind, IToken tok, string name, string fullname, string id) {
+  public Info(bool register, DafnyDoc dd, string kind, IOrigin tok, string name, string fullname, string id) {
     this.Contents = null;
     this.Kind = kind;
     this.Name = name;
@@ -270,7 +270,7 @@ class DafnyDoc {
 
 
   /** Returns printable info about the file containing the given token and the last modification time of the file */
-  public string FileInfo(IToken tok) {
+  public string FileInfo(IOrigin tok) {
     if (tok != null) {
       return FileInfo(tok.ActualFilename);
     }
@@ -565,7 +565,7 @@ class DafnyDoc {
         if (f.IsOpaque) {
           details.Append(br).Append(space4).Append("Function body is opaque").Append(br).Append(eol);
         }
-        var brackets = new RangeToken(body.StartToken.Prev, body.EndToken.Next);
+        var brackets = new SourceOrigin(body.StartToken.Prev, body.EndToken.Next);
         int column = brackets.StartToken.line != brackets.EndToken.line ? brackets.EndToken.col : 0;
         var offset = column <= 1 ? "" : new StringBuilder().Insert(0, " ", column - 1).ToString();
         details.Append(Pre(offset + brackets.PrintOriginal()));
@@ -579,7 +579,7 @@ class DafnyDoc {
   }
 
   public string ExpressionAsSource(Expression e) {
-    return e.RangeToken.PrintOriginal();
+    return e.Origin.PrintOriginal();
   }
 
   public Info TypeInfo(bool register, TopLevelDecl t, ModuleDefinition module, Info owner) {

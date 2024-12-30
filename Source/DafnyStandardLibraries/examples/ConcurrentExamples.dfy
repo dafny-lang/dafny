@@ -2,6 +2,7 @@ module ConcurrentExamples {
 
   import opened Std.Concurrent
   import opened Std.Wrappers
+  import opened Std.BoundedInts
   import opened Helpers
 
   const p1: nat -> bool := _ => true
@@ -9,7 +10,8 @@ module ConcurrentExamples {
   const p3: (char, nat) -> bool := (_, _) => true
   const p4: (Copy, nat) -> bool := (_, _) => true
   // const p5: (object?, nat) -> bool := (_, _) => true
-
+  const p6: (string, nat) -> bool := (_, _) => true
+  const p7: (bytes, nat) -> bool := (_, _) => true
 
   datatype Copy = A | B
 
@@ -42,14 +44,16 @@ module ConcurrentExamples {
       Valid() && !mutex.isLocked
     }
 
-    method {:concurrent} Write(n: nat)
+    @Concurrent
+    method Write(n: nat)
       reads {}
       requires Valid()
     {
       box.Put(n);
     }
 
-    method {:concurrent} Commit(slot: nat)
+    @Concurrent
+    method Commit(slot: nat)
       reads {}
       requires Valid()
       ensures Valid()
@@ -58,7 +62,8 @@ module ConcurrentExamples {
       primary.Put(slot, value);
     }
 
-    method {:concurrent} Propagate(slot: nat)
+    @Concurrent
+    method Propagate(slot: nat)
       reads {:assume_concurrent} mutex
       requires ValidLockState()
       modifies {:assume_concurrent} mutex
@@ -76,7 +81,8 @@ module ConcurrentExamples {
       mutex.Unlock();
     }
 
-    method {:concurrent} Read(copy: Copy, slot: nat) returns (r: Option<nat>)
+    @Concurrent
+    method Read(copy: Copy, slot: nat) returns (r: Option<nat>)
       reads {}
     {
       match copy
@@ -85,7 +91,8 @@ module ConcurrentExamples {
     }
   }
 
-  method {:test} TestApplication() {
+  @Test
+  method TestApplication() {
     var a := new Application();
     a.Write(0);
     a.Commit(0);
@@ -94,7 +101,8 @@ module ConcurrentExamples {
     expect(r == Some(0));
   }
 
-  method {:test} TestKeys() {
+  @Test
+  method TestKeys() {
     var mmap := new MutableMap(p2);
     var keys := mmap.Keys();
     expect(keys == {});
@@ -103,7 +111,8 @@ module ConcurrentExamples {
     expect(keys == {0});
   }
 
-  method {:test} TestHasKey() {
+  @Test
+  method TestHasKey() {
     var mmap := new MutableMap(p2);
     var b := mmap.HasKey(0);
     expect(!b);
@@ -112,7 +121,8 @@ module ConcurrentExamples {
     expect(b);
   }
 
-  method {:test} TestValues() {
+  @Test
+  method TestValues() {
     var mmap := new MutableMap(p2);
     var values := mmap.Values();
     expect(values == {});
@@ -121,7 +131,8 @@ module ConcurrentExamples {
     expect(values == {0});
   }
 
-  method {:test} TestItems() {
+  @Test
+  method TestItems() {
     var mmap := new MutableMap(p2);
     var items := mmap.Items();
     expect(items == {});
@@ -130,14 +141,16 @@ module ConcurrentExamples {
     expect(items == {(0, 0)});
   }
 
-  method {:test} TestPutGet() {
+  @Test
+  method TestPutGet() {
     var mmap := new MutableMap(p2);
     mmap.Put(0, 0);
     var v := mmap.Get(0);
     expect(v == Some(0));
   }
 
-  method {:test} TestRemove() {
+  @Test
+  method TestRemove() {
     var mmap := new MutableMap(p2);
     mmap.Put(0, 0);
     var b := mmap.HasKey(0);
@@ -151,7 +164,8 @@ module ConcurrentExamples {
     expect(!b);
   }
 
-  method {:test} TestSize() {
+  @Test
+  method TestSize() {
     var mmap := new MutableMap(p2);
     var size := mmap.Size();
     expect(size == 0);
@@ -160,7 +174,8 @@ module ConcurrentExamples {
     expect(size == 1);
   }
 
-  method {:test} TestChar() {
+  @Test
+  method TestChar() {
     var mmap := new MutableMap(p3);
     var b := mmap.HasKey('A');
     expect(!b);
@@ -169,7 +184,8 @@ module ConcurrentExamples {
     expect(b);
   }
 
-  method {:test} TestDt() {
+  @Test
+  method TestDt() {
     var mmap := new MutableMap(p4);
     var b := mmap.HasKey(A);
     expect(!b);
@@ -178,8 +194,68 @@ module ConcurrentExamples {
     expect(b);
   }
 
+  @Test
+  method TestString() {
+    // Note that using separate string literals
+    // helps make it more likely that we will use distinct values
+    // at runtime, and ensure we get the equality semantics correct
+    // even if we use reference types for strings.
+    var mmap := new MutableMap(p6);
+    var b := mmap.HasKey("Hello world");
+    expect(!b);
+    mmap.Put("Hello world", 0);
+    b := mmap.HasKey("Hello world");
+    expect(b);
+  }
+
+  @Test
+  method TestBytes() {
+    var mmap := new MutableMap(p7);
+    var data: bytes := [0x1, 0x2, 0x3, 0x4];
+    var b := mmap.HasKey(data);
+    expect(!b);
+    mmap.Put(data, 0);
+    var dataCopy: bytes := [0x1, 0x2, 0x3, 0x4];
+    b := mmap.HasKey(dataCopy);
+    expect(b);
+  }
+
+  @Test
+  method TestBytesOptimized() {
+    var mmap := new MutableMap(p7, true);
+    var data: bytes := [0x1, 0x2, 0x3, 0x4];
+    var b := mmap.HasKey(data);
+    expect(!b);
+    var value := mmap.Get(data);
+    expect(value == None);
+
+    mmap.Put(data, 0);
+    var dataCopy: bytes := [0x1, 0x2] + [0x3, 0x4];
+    b := mmap.HasKey(dataCopy);
+    expect(b);
+
+    var data2: bytes := [0x5, 0x6];
+    mmap.Put(data2, 1);
+    value := mmap.Get(data2);
+    expect(value == Some(1));
+
+    var keys := mmap.Keys();
+    expect keys == {data, data2};
+    var values := mmap.Values();
+    expect values == {0, 1};
+    var items := mmap.Items();
+    expect items == {(data, 0), (data2, 1)};
+    var size := mmap.Size();
+    expect size == 2;
+
+    assert p7(data, 0);
+    mmap.Remove(data);
+    items := mmap.Items();
+    expect items == {(data2, 1)};
+  }
+
   // does not work everywhere
-  // method {:test} TestObject() {
+  // @Test method TestObject() {
   //   var mmap := new MutableMap(p5);
   //   var b := mmap.HasKey(null);
   //   expect(!b);

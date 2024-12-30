@@ -87,11 +87,11 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
 
-  protected TopLevelDeclWithMembers(RangeToken rangeToken, Name name, ModuleDefinition module,
+  protected TopLevelDeclWithMembers(IOrigin rangeOrigin, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
     bool isRefining, List<Type>/*?*/ traits = null)
-    : base(rangeToken, name, module, typeArgs, attributes, isRefining) {
-    Contract.Requires(rangeToken != null);
+    : base(rangeOrigin, name, module, typeArgs, attributes, isRefining) {
+    Contract.Requires(rangeOrigin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
@@ -182,7 +182,17 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
-    return Members.SelectMany(m => m.Assumptions(this));
+    foreach (var a in base.Assumptions(this)) {
+      yield return a;
+    }
+
+    foreach (var a in Members.SelectMany(m => m.Assumptions(this))) {
+      yield return a;
+    }
+
+    if (Attributes.Contains(Attributes, "AssumeCrossModuleTermination")) {
+      yield return new Assumption(this, Tok, AssumptionDescription.HasAssumeCrossModuleTerminationAttribute);
+    }
   }
 
   public void RegisterMembers(ModuleResolver resolver, Dictionary<string, MemberDecl> members) {
@@ -195,7 +205,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
         if (m is Constructor) {
           Contract.Assert(this is ClassLikeDecl); // the parser ensures this condition
           if (this is TraitDecl) {
-            resolver.reporter.Error(MessageSource.Resolver, m.tok, "a trait is not allowed to declare a constructor");
+            resolver.reporter.Error(MessageSource.Resolver, m.Tok, "a trait is not allowed to declare a constructor");
           } else {
             ((ClassDecl)this).HasConstructor = true;
           }
@@ -207,13 +217,13 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
           Type typeOfK;
           if ((m is ExtremePredicate && ((ExtremePredicate)m).KNat) ||
               (m is ExtremeLemma && ((ExtremeLemma)m).KNat)) {
-            typeOfK = new UserDefinedType(m.tok, "nat", (List<Type>)null);
+            typeOfK = new UserDefinedType(m.Tok, "nat", (List<Type>)null);
           } else {
             typeOfK = new BigOrdinalType();
           }
 
-          var k = new ImplicitFormal(m.tok, "_k", typeOfK, true, false);
-          resolver.reporter.Info(MessageSource.Resolver, m.tok, string.Format("_k: {0}", k.Type));
+          var k = new ImplicitFormal(m.Tok, "_k", typeOfK, true, false);
+          resolver.reporter.Info(MessageSource.Resolver, m.Tok, string.Format("_k: {0}", k.Type));
           formals.Add(k);
           if (m is ExtremePredicate extremePredicate) {
             formals.AddRange(extremePredicate.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
@@ -221,12 +231,12 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
             List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
             // create prefix predicate
-            extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.RangeToken, extraName, extremePredicate.HasStaticKeyword,
+            extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.Origin, extraName, extremePredicate.HasStaticKeyword,
               tyvars, k, formals,
               extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
               cloner.CloneSpecFrameExpr(extremePredicate.Reads),
               extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
-              new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.tok, k.Name) }, null),
+              new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.Tok, k.Name) }, null),
               cloner.CloneExpr(extremePredicate.Body),
               SystemModuleManager.AxiomAttribute(),
               extremePredicate);
@@ -237,7 +247,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
             formals.AddRange(extremeLemma.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
             // prepend _k to the given decreases clause
             var decr = new List<Expression>();
-            decr.Add(new IdentifierExpr(extremeLemma.tok, k.Name));
+            decr.Add(new IdentifierExpr(extremeLemma.Tok, k.Name));
             decr.AddRange(extremeLemma.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
             // Create prefix lemma.  Note that the body is not cloned, but simply shared.
             // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
@@ -248,7 +258,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
             var ens = extremeLemma is GreatestLemma
               ? new List<AttributedExpression>()
               : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
-            extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.RangeToken, extraName, extremeLemma.HasStaticKeyword,
+            extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.Origin, extraName, extremeLemma.HasStaticKeyword,
               extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
               req, cloner.CloneSpecFrameExpr(extremeLemma.Reads),
               cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,

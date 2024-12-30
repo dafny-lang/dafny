@@ -32,7 +32,7 @@ class GhostInterestVisitor {
     Contract.Requires(msgArgs != null);
     reporter.Error(MessageSource.Resolver, errorId, expr, msg, msgArgs);
   }
-  protected void Error(ErrorId errorId, IToken tok, string msg, params object[] msgArgs) {
+  protected void Error(ErrorId errorId, IOrigin tok, string msg, params object[] msgArgs) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
@@ -105,7 +105,7 @@ class GhostInterestVisitor {
         hideRevealStmt.ResolvedStatements.ForEach(ss => Visit(ss, true, $"a {hideRevealStmt.Kind} statement"));
         hideRevealStmt.IsGhost = hideRevealStmt.ResolvedStatements.All(ss => ss.IsGhost);
         break;
-      case BreakStmt breakStmt: {
+      case BreakOrContinueStmt breakStmt: {
           var s = breakStmt;
           s.IsGhost = mustBeErasable;
           if (s.IsGhost && !s.TargetStmt.IsGhost) {
@@ -330,7 +330,7 @@ class GhostInterestVisitor {
       case WhileStmt whileStmt: {
           var s = whileStmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            Error(ErrorId.r_loop_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(ErrorId.r_loop_may_not_use_modifies, s.Mod.Expressions[0].Tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
@@ -360,7 +360,7 @@ class GhostInterestVisitor {
       case AlternativeLoopStmt loopStmt: {
           var s = loopStmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
@@ -388,7 +388,7 @@ class GhostInterestVisitor {
       case ForLoopStmt loopStmt: {
           var s = loopStmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
@@ -565,7 +565,7 @@ class GhostInterestVisitor {
     if (gk == SingleAssignStmt.NonGhostKind.IsGhost) {
       s.IsGhost = true;
       if (proofContext != null && !(lhs is IdentifierExpr)) {
-        Error(ErrorId.r_no_heap_update_in_proof, lhs.tok, $"{proofContext} is not allowed to make heap updates");
+        Error(ErrorId.r_no_heap_update_in_proof, lhs.Tok, $"{proofContext} is not allowed to make heap updates");
       }
       if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
         Visit(tRhs.InitCall, true, proofContext);

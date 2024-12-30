@@ -196,7 +196,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     } else if (expr is ComprehensionExpr) {
       var e = (ComprehensionExpr)expr;
       foreach (var bv in e.BoundVars) {
-        VisitType(bv.tok, bv.Type, inGhostContext);
+        VisitType(bv.Tok, bv.Type, inGhostContext);
       }
     } else if (expr is LetExpr) {
       var e = (LetExpr)expr;
@@ -208,7 +208,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
           // "true" if all variables are ghost.
           bool VisitPattern(CasePattern<BoundVar> pat, bool patternGhostContext) {
             if (pat.Var != null) {
-              VisitType(pat.tok, pat.Var.Type, patternGhostContext || pat.Var.IsGhost);
+              VisitType(pat.Tok, pat.Var.Type, patternGhostContext || pat.Var.IsGhost);
               return pat.Var.IsGhost;
             } else {
               var allGhost = true;
@@ -234,7 +234,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
           if (!bv.IsGhost) {
             allGhost = false;
           }
-          VisitType(bv.tok, bv.Type, inGhostContext || bv.IsGhost);
+          VisitType(bv.Tok, bv.Type, inGhostContext || bv.IsGhost);
         }
         Visit(e.RHSs[0], inGhostContext || allGhost);
       }
@@ -243,11 +243,11 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     } else if (expr is MemberSelectExpr) {
       var e = (MemberSelectExpr)expr;
       if (e.Member is Function || e.Member is Method) {
-        CheckTypeInstantiation(e.tok, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplicationJustMember, inGhostContext);
+        CheckTypeInstantiation(e.Tok, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplicationJustMember, inGhostContext);
       }
     } else if (expr is FunctionCallExpr) {
       var e = (FunctionCallExpr)expr;
-      CheckTypeInstantiation(e.tok, e.Function.WhatKind, e.Function.Name, e.Function.TypeArgs, e.TypeApplication_JustFunction, inGhostContext);
+      CheckTypeInstantiation(e.Tok, e.Function.WhatKind, e.Function.Name, e.Function.TypeArgs, e.TypeApplication_JustFunction, inGhostContext);
       // recursively visit all subexpressions (all actual parameters), noting which ones correspond to ghost formal parameters
       Visit(e.Receiver, inGhostContext);
       Contract.Assert(e.Args.Count == e.Function.Ins.Count);
@@ -257,7 +257,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       return false;  // we've done what there is to be done
     } else if (expr is DatatypeValue) {
       var e = (DatatypeValue)expr;
-      VisitType(expr.tok, expr.Type, inGhostContext);
+      VisitType(expr.Tok, expr.Type, inGhostContext);
       // recursively visit all subexpressions (all actual parameters), noting which ones correspond to ghost formal parameters
       Contract.Assert(e.Arguments.Count == e.Ctor.Formals.Count);
       for (var i = 0; i < e.Arguments.Count; i++) {
@@ -267,7 +267,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is SeqConstructionExpr ||
                expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
       // This catches other expressions whose type may potentially be illegal
-      VisitType(expr.tok, expr.Type, inGhostContext);
+      VisitType(expr.Tok, expr.Type, inGhostContext);
     } else if (expr is StmtExpr) {
       var e = (StmtExpr)expr;
       Visit(e.S, true);
@@ -277,7 +277,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     return true;
   }
 
-  public void VisitType(IToken tok, Type type, bool inGhostContext) {
+  public void VisitType(IOrigin tok, Type type, bool inGhostContext) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);
     type = type.Normalize();  // we only do a .Normalize() here, because we want to stop at any type synonym or subset type
@@ -315,7 +315,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       Contract.Assert(udt.ResolvedClass != null);
       var formalTypeArgs = udt.ResolvedClass.TypeArgs;
       Contract.Assert(formalTypeArgs != null);
-      CheckTypeInstantiation(udt.tok, "type", udt.ResolvedClass.Name, formalTypeArgs, udt.TypeArgs, inGhostContext);
+      CheckTypeInstantiation(udt.Tok, "type", udt.ResolvedClass.Name, formalTypeArgs, udt.TypeArgs, inGhostContext);
 
     } else if (type is TypeProxy) {
       // the type was underconstrained; this is checked elsewhere, but it is not in violation of the equality-type test
@@ -324,7 +324,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     }
   }
 
-  void CheckTypeInstantiation(IToken tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs, bool inGhostContext) {
+  void CheckTypeInstantiation(IOrigin tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs, bool inGhostContext) {
     Contract.Requires(tok != null);
     Contract.Requires(what != null);
     Contract.Requires(className != null);
@@ -375,21 +375,21 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     if (formal.HasCompiledValue && (inGhostContext ? !actual.IsNonempty : !actual.HasCompilableValue)) {
       whatIsNeeded = "support auto-initialization";
       hint = tp == null ? "" :
-        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(0)', which says it can only be instantiated with a type that supports auto-initialization)", tp.Name, tp.tok.line, tp.WhatKind);
+        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(0)', which says it can only be instantiated with a type that supports auto-initialization)", tp.Name, tp.Tok.line, tp.WhatKind);
       errorId = RefinementErrors.ErrorId.ref_mismatched_type_characteristics_autoinit;
       return false;
     }
     if (formal.IsNonempty && !actual.IsNonempty) {
       whatIsNeeded = "be nonempty";
       hint = tp == null ? "" :
-        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(00)', which says it can only be instantiated with a nonempty type)", tp.Name, tp.tok.line, tp.WhatKind);
+        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(00)', which says it can only be instantiated with a nonempty type)", tp.Name, tp.Tok.line, tp.WhatKind);
       errorId = RefinementErrors.ErrorId.ref_mismatched_type_characteristics_nonempty;
       return false;
     }
     if (formal.ContainsNoReferenceTypes && actual.MayInvolveReferences) {
       whatIsNeeded = "contain no references";
       hint = tp == null ? "" :
-        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(!new)', which says it can only be instantiated with a type that contains no references)", tp.Name, tp.tok.line, tp.WhatKind);
+        string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(!new)', which says it can only be instantiated with a type that contains no references)", tp.Name, tp.Tok.line, tp.WhatKind);
       errorId = RefinementErrors.ErrorId.ref_mismatched_type_characteristics_noreferences;
       return false;
     }
@@ -399,12 +399,39 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     return true;
   }
 
-  static string TypeEqualityErrorMessageHint(Type argType) {
+  public static string TypeEqualityErrorMessageHint(Type argType) {
     Contract.Requires(argType != null);
-    var cl = (argType.Normalize() as UserDefinedType)?.ResolvedClass;
+    argType = argType.Normalize();
+    var cl = (argType as UserDefinedType)?.ResolvedClass;
     var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as AbstractTypeDecl;
     if (tp != null) {
-      return string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.tok.line, tp.WhatKind);
+      return string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.Tok.line, tp.WhatKind);
+    }
+
+    var typeArgs = argType.TypeArgs;
+
+    if (argType.AsSeqType != null && typeArgs.Count >= 1) {
+      if (TypeEqualityErrorMessageHint(typeArgs[0]) is var messageSeq and not "") {
+        return messageSeq;
+      }
+    }
+    if (argType.AsMapType != null &&
+        typeArgs.Count >= 2 &&
+        TypeEqualityErrorMessageHint(typeArgs[1]) is var messageMap and not "") {
+      return messageMap;
+    }
+    if (argType.AsIndDatatype is { EqualitySupport: IndDatatypeDecl.ES.ConsultTypeArguments } decl) {
+      var i = 0;
+      foreach (var tParam in decl.TypeArgs) {
+        if (tParam.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && i < typeArgs.Count && !typeArgs[i].SupportsEquality && TypeEqualityErrorMessageHint(typeArgs[i]) is var message and not "") {
+          return message;
+        }
+        i++;
+      }
+    }
+
+    if (argType.AsNewtype is { } newTypeDecl) {
+      return TypeEqualityErrorMessageHint(newTypeDecl.RhsWithArgument(argType.TypeArgs));
     }
     return "";
   }

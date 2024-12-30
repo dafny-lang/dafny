@@ -21,10 +21,10 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     }
   }
 
-  protected OneBodyLoopStmt(RangeToken rangeToken,
+  protected OneBodyLoopStmt(IOrigin rangeOrigin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt /*?*/ body, Attributes/*?*/ attrs)
-    : base(rangeToken, invariants, decreases, mod, attrs) {
+    : base(rangeOrigin, invariants, decreases, mod, attrs) {
     Body = body;
   }
 
@@ -38,7 +38,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (Body is null) {
-      yield return new Assumption(decl, tok, AssumptionDescription.LoopWithoutBody);
+      yield return new Assumption(decl, Tok, AssumptionDescription.LoopWithoutBody);
     }
   }
 

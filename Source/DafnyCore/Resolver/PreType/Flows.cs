@@ -28,7 +28,7 @@ record FlowContext(SystemModuleManager SystemModuleManager, ErrorReporter Report
 /// For more information about type refinements, flow, and the whole type inference process, see docs/dev/TypeSystemRefresh.md.
 /// </summary>
 abstract class Flow {
-  private readonly IToken tok;
+  private readonly IOrigin tok;
   private readonly string description;
   public bool HasError;
 
@@ -41,7 +41,7 @@ abstract class Flow {
   /// </summary>
   public abstract bool Update(FlowContext context);
 
-  protected Flow(IToken tok, string description) {
+  protected Flow(IOrigin tok, string description) {
     this.tok = tok;
     this.description = description;
   }
@@ -142,7 +142,7 @@ abstract class Flow {
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var typeArgs = Joins(TypeParameter.Variances(udtA.ResolvedClass.TypeArgs), a.TypeArgs, b.TypeArgs, context);
         if (typeArgs != null) {
-          return UserDefinedType.FromTopLevelDecl(udtA.tok, udtA.ResolvedClass, typeArgs);
+          return UserDefinedType.FromTopLevelDecl(udtA.Tok, udtA.ResolvedClass, typeArgs);
         }
       }
       return null;
@@ -217,7 +217,7 @@ abstract class Flow {
       if (typeArgs == null) {
         return null;
       }
-      return new ArrowType(aa.tok, (ArrowTypeDecl)aa.ResolvedClass, typeArgs);
+      return new ArrowType(aa.Tok, (ArrowTypeDecl)aa.ResolvedClass, typeArgs);
     }
 
     // Convert a and b to their common supertype
@@ -230,14 +230,14 @@ abstract class Flow {
     var bTypeSubstMap = TypeParameter.SubstitutionMap(bDecl.TypeArgs, b.TypeArgs);
     (bDecl as TopLevelDeclWithMembers)?.AddParentTypeParameterSubstitutions(bTypeSubstMap);
 
-    var aSubst = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.tok, commonSupertypeDecl).Subst(aTypeSubstMap);
-    var bSubst = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.tok, commonSupertypeDecl).Subst(bTypeSubstMap);
+    var aSubst = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.Tok, commonSupertypeDecl).Subst(aTypeSubstMap);
+    var bSubst = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.Tok, commonSupertypeDecl).Subst(bTypeSubstMap);
 
     var joinedTypeArgs = Joins(TypeParameter.Variances(commonSupertypeDecl.TypeArgs), aSubst.TypeArgs, bSubst.TypeArgs, context);
     if (joinedTypeArgs == null) {
       return null;
     }
-    var result = UserDefinedType.FromTopLevelDecl(a.tok, commonSupertypeDecl, joinedTypeArgs);
+    var result = UserDefinedType.FromTopLevelDecl(a.Tok, commonSupertypeDecl, joinedTypeArgs);
     return abNonNullTypes && result.IsRefType ? UserDefinedType.CreateNonNullType(result) : result;
   }
 
@@ -302,7 +302,7 @@ class FlowIntoVariable : Flow {
   protected readonly Type sink;
   protected readonly Expression source;
 
-  public FlowIntoVariable(IVariable variable, Expression source, IToken tok, string description = ":=")
+  public FlowIntoVariable(IVariable variable, Expression source, IOrigin tok, string description = ":=")
     : base(tok, description) {
     this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(variable.UnnormalizedType);
     this.source = source;
@@ -325,7 +325,7 @@ class FlowIntoVariableFromComputedType : Flow {
   protected readonly Type sink;
   private readonly System.Func<Type> getType;
 
-  public FlowIntoVariableFromComputedType(IVariable variable, System.Func<Type> getType, IToken tok, string description = ":=")
+  public FlowIntoVariableFromComputedType(IVariable variable, System.Func<Type> getType, IOrigin tok, string description = ":=")
     : base(tok, description) {
     this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(variable.UnnormalizedType);
     this.getType = getType;
@@ -346,7 +346,7 @@ class FlowIntoVariableFromComputedType : Flow {
 class FlowBetweenComputedTypes : Flow {
   private readonly System.Func<(Type, Type)> getTypes;
 
-  public FlowBetweenComputedTypes(System.Func<(Type, Type)> getTypes, IToken tok, string description)
+  public FlowBetweenComputedTypes(System.Func<(Type, Type)> getTypes, IOrigin tok, string description)
     : base(tok, description) {
     this.getTypes = getTypes;
   }
@@ -367,13 +367,13 @@ class FlowBetweenComputedTypes : Flow {
 abstract class FlowIntoExpr : Flow {
   private readonly Type sink;
 
-  protected FlowIntoExpr(Type sink, IToken tok, string description = "")
+  protected FlowIntoExpr(Type sink, IOrigin tok, string description = "")
     : base(tok, description) {
     this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(sink);
   }
 
-  protected FlowIntoExpr(Expression sink, IToken tok, string description = "")
-    : base(sink.tok, description) {
+  protected FlowIntoExpr(Expression sink, IOrigin tok, string description = "")
+    : base(sink.Tok, description) {
     this.sink = sink.UnnormalizedType;
   }
 
@@ -394,13 +394,13 @@ abstract class FlowIntoExpr : Flow {
 class FlowFromType : FlowIntoExpr {
   private readonly Type source;
 
-  public FlowFromType(Type sink, Type source, IToken tok, string description = "")
+  public FlowFromType(Type sink, Type source, IOrigin tok, string description = "")
     : base(sink, tok, description) {
     this.source = source;
   }
 
   public FlowFromType(Expression sink, Type source, string description = "")
-    : base(sink, sink.tok, description) {
+    : base(sink, sink.Tok, description) {
     this.source = source;
   }
 
@@ -414,7 +414,7 @@ class FlowFromTypeArgument : FlowIntoExpr {
   private readonly int argumentIndex;
 
   public FlowFromTypeArgument(Expression sink, Type source, int argumentIndex)
-    : base(sink, sink.tok) {
+    : base(sink, sink.Tok) {
     Contract.Requires(0 <= argumentIndex);
     this.source = source;
     this.argumentIndex = argumentIndex;
@@ -432,7 +432,7 @@ class FlowFromTypeArgumentOfComputedSource : FlowIntoExpr {
   private readonly int argumentIndex;
 
   public FlowFromTypeArgumentOfComputedSource(Expression sink, System.Func<Type> getType, int argumentIndex)
-    : base(sink, sink.tok) {
+    : base(sink, sink.Tok) {
     Contract.Requires(0 <= argumentIndex);
     this.getType = getType;
     this.argumentIndex = argumentIndex;
@@ -449,7 +449,7 @@ class FlowFromComputedType : FlowIntoExpr {
   private readonly System.Func<Type> getType;
 
   public FlowFromComputedType(Expression sink, System.Func<Type> getType, string description = "")
-    : base(sink, sink.tok, description) {
+    : base(sink, sink.Tok, description) {
     this.getType = getType;
   }
 
@@ -462,7 +462,7 @@ class FlowFromComputedTypeIgnoreHeadTypes : FlowIntoExpr {
   private readonly System.Func<Type> getType;
 
   public FlowFromComputedTypeIgnoreHeadTypes(Expression sink, System.Func<Type> getType, string description = "")
-    : base(sink.Type.NormalizeToAncestorType(), sink.tok, description) {
+    : base(sink.Type.NormalizeToAncestorType(), sink.Tok, description) {
     this.getType = getType;
   }
 
@@ -475,7 +475,7 @@ class FlowBetweenExpressions : FlowIntoExpr {
   private readonly Expression source;
 
   public FlowBetweenExpressions(Expression sink, Expression source, string description = "")
-    : base(sink, sink.tok, description) {
+    : base(sink, sink.Tok, description) {
     this.source = source;
   }
 

@@ -41,7 +41,7 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
     }
   }
 
-  public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<ActualBinding> arguments)
+  public DatatypeValue(IOrigin tok, string datatypeName, string memberName, [Captured] List<ActualBinding> arguments)
     : base(tok) {
     Contract.Requires(cce.NonNullElements(arguments));
     Contract.Requires(tok != null);
@@ -56,7 +56,7 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
   /// This constructor is intended to be used when constructing a resolved DatatypeValue. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public DatatypeValue(IToken tok, string datatypeName, string memberName, List<Expression> arguments)
+  public DatatypeValue(IOrigin tok, string datatypeName, string memberName, List<Expression> arguments)
     : this(tok, datatypeName, memberName, arguments.ConvertAll(e => new ActualBinding(null, e))) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
@@ -64,11 +64,10 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
   public override IEnumerable<Expression> SubExpressions =>
     Arguments ?? Enumerable.Empty<Expression>();
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return Enumerable.Repeat(Ctor, 1);
+  public IEnumerable<Reference> GetReferences() {
+    return Enumerable.Repeat(new Reference(Tok, Ctor), 1);
   }
 
-  public IToken NavigationToken => tok;
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
     return true;
