@@ -2,17 +2,14 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.Dynamic;
 using System.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
-using DafnyCore;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
-using VC;
 
 namespace Microsoft.Dafny;
 
@@ -171,11 +168,13 @@ static class MeasureComplexityCommand {
           ["location"] = SerializeToken(task.Task.Token),
           ["resourceCount"] = task.Result.ResourceCount
         }).ToArray<JsonNode>()),
-        ["statistics"] = new JsonArray(allStatistics.Select(entry => {
+        ["taskData"] = new JsonArray(allStatistics.Select(entry => {
           var (stdDevRc, averageRc) = entry.Value.ResourceCounts.ToList().CalculateStdDev();
           var (stdDevVt, averageVt) = entry.Value.VerificationTimes.ToList().CalculateStdDev();
           var failuresAndHighVariations = entry.Value.Failures + entry.Value.ResourceCounts.Count(rc => rc > averageRc * 2);
           return new JsonObject {
+            ["rcs"] = new JsonArray(entry.Value.ResourceCounts.Select(r => JsonValue.Create(r)).ToArray<JsonNode>()),
+            ["vts"] = new JsonArray(entry.Value.VerificationTimes.Select(r => JsonValue.Create(r)).ToArray<JsonNode>()),
             ["averageRc"] = averageRc,
             ["standardDeviationRc"] = stdDevRc,
             ["relativeStandardDeviationRc"] = stdDevRc / averageRc,
