@@ -121,14 +121,11 @@ public class ExpectContracts : IRewriter {
     var localExpr = Expression.CreateIdentExpr(resultVar);
 
     var callRhs = new ExprRhs(callExpr);
-
-    var lhss = new List<Expression> { localExpr };
-    var rhss = new List<AssignmentRhs> { callRhs };
-
     var callStmt = new SingleAssignStmt(decl.Origin, localExpr, callRhs);
 
     var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
+    newFunc.ByMethodTok = Token.NoToken;
     newFunc.ByMethodBody = body;
     // We especially want to remove {:extern} from the wrapper, but also any other attributes.
     newFunc.Attributes = null;
