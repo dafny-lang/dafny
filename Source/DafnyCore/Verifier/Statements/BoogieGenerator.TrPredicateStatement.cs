@@ -149,19 +149,8 @@ namespace Microsoft.Dafny {
       var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
       var splits = TrSplitExpr(proofBuilder.Context, stmt.Expr, etran, true, out var splitHappened);
       if (!splitHappened) {
-        IOrigin origin;
-        if (stmt.Origin is NestedOrigin) {
-          // The OverrideCenter should move the center from the start of the assertion to the center of the expr. 
-          // For assert ... statements, we don't want to use the override center
-          // Because that's the location of what was filled in for the ...
-          // This logic won't be needed anymore once we stop using OverrideCenter.
-          origin = stmt.Origin;
-        } else {
-          origin = new OverrideCenter(stmt.Origin, GetToken(stmt.Expr).Center);
-        }
-
         var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
-        proofBuilder.Add(Assert(origin, etran.TrExpr(stmt.Expr), desc, stmt.Origin, proofBuilder.Context,
+        proofBuilder.Add(Assert(stmt.Origin, etran.TrExpr(stmt.Expr), desc, stmt.Origin, proofBuilder.Context,
           etran.TrAttributes(stmt.Attributes, null)));
       } else {
         foreach (var split in splits) {

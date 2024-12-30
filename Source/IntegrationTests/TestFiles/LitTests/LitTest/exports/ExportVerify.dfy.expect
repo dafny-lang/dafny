@@ -1,9 +1,9 @@
 ExportVerify.dfy(40,13): Error: variable 'd', which is subject to definite-assignment rules, might be uninitialized here
 ExportVerify.dfy(44,4): Error: variable 'd', which is subject to definite-assignment rules, might be uninitialized here
-ExportVerify.dfy(52,19): Error: assertion might not hold
-ExportVerify.dfy(54,21): Error: assertion might not hold
-ExportVerify.dfy(55,20): Error: assertion might not hold
-ExportVerify.dfy(56,15): Error: assertion might not hold
-ExportVerify.dfy(75,11): Error: assertion might not hold
+ExportVerify.dfy(52,4): Error: assertion might not hold
+ExportVerify.dfy(54,4): Error: assertion might not hold
+ExportVerify.dfy(55,4): Error: assertion might not hold
+ExportVerify.dfy(56,4): Error: assertion might not hold
+ExportVerify.dfy(75,4): Error: assertion might not hold
 
 Dafny program verifier finished with 1 verified, 7 errors

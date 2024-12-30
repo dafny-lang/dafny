@@ -2,6 +2,6 @@ Includee.dfy(6,0): Error: a postcondition could not be proved on this return pat
 Includee.dfy(5,12): Related location: this is the postcondition that could not be proved
 Includee.dfy(21,2): Error: a postcondition could not be proved on this return path
 Includee.dfy(20,14): Related location: this is the postcondition that could not be proved
-Includee.dfy(24,17): Error: assertion might not hold
+Includee.dfy(24,4): Error: assertion might not hold
 
 Dafny program verifier finished with 1 verified, 3 errors

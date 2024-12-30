@@ -1,8 +1,7 @@
 Using legacy resolver and verifying...
-Verification failed with exit code 4 (expected 0). Output:
-TestDoesNotVerify.dfy(6,11): Error: assertion might not hold
-
-Dafny program verifier finished with 0 verified, 1 error
-
-Error:
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-TestDoesNotVerify.dfy(6,11): Error: assertion might not hold
++TestDoesNotVerify.dfy(6,2): Error: assertion might not hold
+ 
 
