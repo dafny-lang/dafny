@@ -538,8 +538,8 @@ namespace Microsoft.Dafny {
           req, reads, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
-      var origin = currentMethod.Origin.MakeRefined(moduleUnderConstruction);
-      var newName = currentMethod.NameNode.Clone(refinementCloner);
+      var origin = currentMethod.Origin;
+      var newName = currentMethod.NameNode;
       if (previousMethod is LeastLemma) {
         return new LeastLemma(origin, newName, previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),

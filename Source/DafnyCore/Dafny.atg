@@ -2366,9 +2366,9 @@ AssignStatement<out Statement/*!*/ s>
     (
       "by" BlockStmt<out proof, out _, out _>
     | ";"
-    )                              (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { Origin = new SourceOrigin(e.StartToken, endToken) }); .)
+    )                              (. endTok = t; var rhs = new ExprRhs(e, attrs); rhs.SetOrigin(new SourceOrigin(e.StartToken, endToken)); rhss.Add(rhs); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
-                                   (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { Origin = new SourceOrigin(e.StartToken, endToken) });
+                                   (. endTok = t; var rhs2 = new ExprRhs(e, attrs); rhs2.SetOrigin(new SourceOrigin(e.StartToken, endToken)); rhss.Add(rhs2);
                                       SemErr(ErrorId.p_missing_semicolon, new SourceOrigin(startToken, t), "missing semicolon at end of statement");
                                    .)   
   )

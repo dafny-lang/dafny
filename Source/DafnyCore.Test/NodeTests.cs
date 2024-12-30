@@ -11,7 +11,7 @@ public class NodeTests {
       Children = children ?? Enumerable.Empty<INode>();
     }
 
-    public override IOrigin Origin { get; set; }
+    public override IOrigin Origin { get; }
     public override IEnumerable<INode> Children { get; }
     public override IEnumerable<INode> PreResolveChildren => Children;
   }

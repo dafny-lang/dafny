@@ -146,7 +146,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// the FromTopLevelDecl method to create the UserDefinedType; that makes sure the right class
   /// and right name is used.
   /// </summary>
-  public UserDefinedType(IOrigin origin, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) 
+  public UserDefinedType(IOrigin origin, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null)
    : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
