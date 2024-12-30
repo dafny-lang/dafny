@@ -1,4 +1,4 @@
-GeneralNewtypeMemberVerifyReal.dfy(27,25): Error: assertion might not hold
+GeneralNewtypeMemberVerifyReal.dfy(27,6): Error: assertion might not hold
 GeneralNewtypeMemberVerifyReal.dfy(38,27): Error: result of operation might violate newtype constraint for 'NonNegativeReal'
 
 Dafny program verifier finished with 2 verified, 2 errors
