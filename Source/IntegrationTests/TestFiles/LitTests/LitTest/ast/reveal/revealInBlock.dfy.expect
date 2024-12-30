@@ -1,12 +1,12 @@
-revealInBlock.dfy(20,10): Error: assertion might not hold
-revealInBlock.dfy(30,14): Error: assertion might not hold
-revealInBlock.dfy(33,10): Error: assertion might not hold
-revealInBlock.dfy(43,10): Error: assertion might not hold
-revealInBlock.dfy(56,10): Error: assertion might not hold
-revealInBlock.dfy(67,10): Error: assertion might not hold
-revealInBlock.dfy(78,14): Error: assertion might not hold
-revealInBlock.dfy(81,10): Error: assertion might not hold
-revealInBlock.dfy(91,14): Error: assertion might not hold
-revealInBlock.dfy(94,10): Error: assertion might not hold
+revealInBlock.dfy(20,2): Error: assertion might not hold
+revealInBlock.dfy(30,6): Error: assertion might not hold
+revealInBlock.dfy(33,2): Error: assertion might not hold
+revealInBlock.dfy(43,2): Error: assertion might not hold
+revealInBlock.dfy(56,2): Error: assertion might not hold
+revealInBlock.dfy(67,2): Error: assertion might not hold
+revealInBlock.dfy(78,6): Error: assertion might not hold
+revealInBlock.dfy(81,2): Error: assertion might not hold
+revealInBlock.dfy(91,6): Error: assertion might not hold
+revealInBlock.dfy(94,2): Error: assertion might not hold
 
 Dafny program verifier finished with 20 verified, 10 errors

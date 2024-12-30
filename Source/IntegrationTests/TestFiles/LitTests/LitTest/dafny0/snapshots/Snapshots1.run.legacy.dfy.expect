@@ -1,11 +1,11 @@
-Processing command (at Snapshots1.v0.dfy(4,10)) assert {:id "id1"} Lit(false);
+Processing command (at Snapshots1.v0.dfy(4,3)) assert {:id "id1"} Lit(false);
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 1 verified, 0 errors
 Processing call to procedure N (call) in implementation M (correctness) (at Snapshots1.v1.dfy(3,4)):
   >>> added after: a##cached##0 := a##cached##0 && false;
-Processing command (at Snapshots1.v1.dfy(4,10)) assert {:id "id8"} Lit(false);
+Processing command (at Snapshots1.v1.dfy(4,3)) assert {:id "id8"} Lit(false);
   >>> DoNothingToAssert
-Snapshots1.v1.dfy(4,9): Error: assertion might not hold
+Snapshots1.v1.dfy(4,2): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error

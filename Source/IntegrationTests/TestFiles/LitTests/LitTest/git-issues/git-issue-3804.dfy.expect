@@ -1,8 +1,8 @@
-git-issue-3804.dfy(9,17): Error: assertion might not hold
-git-issue-3804.dfy(20,17): Error: assertion might not hold
-git-issue-3804.dfy(22,10): Error: assertion might not hold
-git-issue-3804.dfy(31,17): Error: assertion might not hold
-git-issue-3804.dfy(48,10): Error: assertion might not hold
-git-issue-3804.dfy(69,10): Error: assertion might not hold
+git-issue-3804.dfy(9,2): Error: assertion might not hold
+git-issue-3804.dfy(20,2): Error: assertion might not hold
+git-issue-3804.dfy(22,2): Error: assertion might not hold
+git-issue-3804.dfy(31,2): Error: assertion might not hold
+git-issue-3804.dfy(48,2): Error: assertion might not hold
+git-issue-3804.dfy(69,2): Error: assertion might not hold
 
 Dafny program verifier finished with 2 verified, 6 errors
