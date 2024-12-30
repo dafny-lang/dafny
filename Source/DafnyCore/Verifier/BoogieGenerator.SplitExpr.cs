@@ -342,7 +342,7 @@ namespace Microsoft.Dafny {
                   foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
                     foreach (var cs in caseProduct) {
                       if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
-                        newCases.Add(Bpl.Expr.Binary(new NestedOrigin(ToDafnyToken(flags.ReportRanges, cs.tok), ToDafnyToken(flags.ReportRanges, kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
+                        newCases.Add(Bpl.Expr.Binary(new NestedOrigin(ToDafnyToken(cs.tok), ToDafnyToken(kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
                       } else {
                         newCases.Add(cs);
                       }
@@ -640,7 +640,7 @@ namespace Microsoft.Dafny {
 
 
     SplitExprInfo ToSplitExprInfo(SplitExprInfo.K kind, Expr e) {
-      return new SplitExprInfo(flags.ReportRanges, kind, e);
+      return new SplitExprInfo(kind, e);
     }
 
     public class SplitExprInfo {
@@ -651,12 +651,11 @@ namespace Microsoft.Dafny {
       public bool IsChecked { get { return Kind != K.Free; } }
       public readonly Expr E;
       public IOrigin Tok;
-      public SplitExprInfo(bool reportRanges, K kind, Expr e) {
+      public SplitExprInfo(K kind, Expr e) {
         Contract.Requires(e != null && e.tok != null);
-        // TODO:  Contract.Requires(kind == K.Free || e.Tok.IsValid);
         Kind = kind;
         E = e;
-        Tok = ToDafnyToken(reportRanges, e.tok);
+        Tok = ToDafnyToken(e.tok);
       }
     }
   }

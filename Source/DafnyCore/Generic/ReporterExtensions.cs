@@ -14,13 +14,13 @@ public static class ErrorReporterExtensions {
       if (auxiliaryInformation.Category == RelatedMessageCategory || auxiliaryInformation.Category == AssertedExprCategory) {
         error.Msg += "\n" + auxiliaryInformation.FullMsg;
       } else if (auxiliaryInformation.Category == RelatedLocationCategory) {
-        relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg, usingSnippets));
+        relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg, usingSnippets));
       } else {
         // The execution trace is an additional auxiliary which identifies itself with
         // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
         // the execution trace message appears to not have any interesting information.
         if (auxiliaryInformation.Tok.line > 0) {
-          reporter.Info(MessageSource.Verifier, BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg);
+          reporter.Info(MessageSource.Verifier, BoogieGenerator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg);
         }
       }
     }
@@ -33,7 +33,7 @@ public static class ErrorReporterExtensions {
       relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, msg, usingSnippets));
     }
 
-    var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
+    var dafnyToken = BoogieGenerator.ToDafnyToken(error.Tok);
 
     var tokens = new[] { dafnyToken }.Concat(relatedInformation.Select(i => i.Token)).ToList();
     IOrigin previous = tokens.Last();
@@ -48,25 +48,20 @@ public static class ErrorReporterExtensions {
   private const string RelatedMessageCategory = "Related message";
   public const string AssertedExprCategory = "Asserted expression";
   public static readonly string PostConditionFailingMessage = new EnsuresDescription(null, null, null).FailureDescription;
-  private static string FormatRelated(string related) {
-    return $"Could not prove: {related}";
-  }
 
   public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IOrigin token, string? message, bool usingSnippets) {
     var (tokenForMessage, inner, newMessage) = token is NestedOrigin nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
-    var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
+    var dafnyToken = BoogieGenerator.ToDafnyToken(tokenForMessage);
 
-    // Turning this on changes many regression tests, in a way that might be considered good,
-    // but it should be turned on in a separate PR
-    // There seem to be no LSP tests for this behavior, so turning it off did not affect those.
-    // if (!usingSnippets && dafnyToken.IncludesRange) {
-    //   if (message == PostConditionFailingMessage) {
-    //     var postcondition = dafnyToken.PrintOriginal();
-    //     message = $"this postcondition might not hold: {postcondition}";
-    //   } else if (message == null|| message == RelatedLocationMessage*/) {
-    //     message = FormatRelated(dafnyToken.PrintOriginal());
-    //   }
-    // }
+    if (!usingSnippets && dafnyToken.IncludesRange) {
+      if (message == PostConditionFailingMessage) {
+        var postcondition = dafnyToken.PrintOriginal();
+        message = $"this postcondition could not be proved: {postcondition}";
+      } else if (message == null || message == RelatedLocationMessage) {
+        string condition = dafnyToken.PrintOriginal();
+        message = $"could not prove: {condition}";
+      }
+    }
 
     message ??= "this proposition could not be proved";
 

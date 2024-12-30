@@ -894,13 +894,13 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public static IOrigin ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
+    public static IOrigin ToDafnyToken(Bpl.IToken boogieToken) {
       if (boogieToken == null) {
         return null;
       } else if (boogieToken is IOrigin dafnyToken) {
         return dafnyToken;
       } else if (boogieToken is VCGeneration.TokenWrapper tokenWrapper) {
-        return ToDafnyToken(reportRanges, tokenWrapper.Inner);
+        return ToDafnyToken(tokenWrapper.Inner);
       } else if (ReferenceEquals(boogieToken, Boogie.Token.NoToken)) {
         return Token.NoToken;
       } else {

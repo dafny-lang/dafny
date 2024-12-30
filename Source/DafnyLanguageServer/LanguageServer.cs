@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer {
     };
 
     public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
-      dafnyOptions.Set(Snippets.ShowSnippets, true);
+      dafnyOptions.Set(Snippets.ShowSnippets, false);
     }
 
     public static async Task Start(DafnyOptions dafnyOptions) {

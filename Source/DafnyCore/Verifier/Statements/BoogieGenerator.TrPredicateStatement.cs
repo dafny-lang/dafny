@@ -157,7 +157,7 @@ namespace Microsoft.Dafny {
           if (split.IsChecked) {
             var tok = split.E.tok;
             var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
-            proofBuilder.Add(AssertAndForget(proofBuilder.Context, ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
+            proofBuilder.Add(AssertAndForget(proofBuilder.Context, ToDafnyToken(tok), split.E, desc, stmt.Tok,
               etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
           }
         }
