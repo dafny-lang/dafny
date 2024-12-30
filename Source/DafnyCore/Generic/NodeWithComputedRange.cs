@@ -1,9 +1,5 @@
 #nullable enable
-using System.Diagnostics;
-using JetBrains.Annotations;
 using Microsoft.Boogie;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Tomlyn.Syntax;
 
 namespace Microsoft.Dafny;
 

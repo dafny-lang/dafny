@@ -280,7 +280,7 @@ namespace Microsoft.Dafny {
               }
             } else if (member is Function function) {
               CheckFormals(function.Ins, function.IsGhost, visitor);
-              visitor.VisitType((function.Result != null ? function.Result.Origin : null) ?? function.Origin, function.ResultType, function.IsGhost);
+              visitor.VisitType(function.Result?.Origin ?? function.Origin, function.ResultType, function.IsGhost);
               CheckSpecification(function.Req, function.Reads, function.Ens, function.Decreases, visitor);
               if (function.Body != null) {
                 visitor.Visit(function.Body, function.IsGhost);
