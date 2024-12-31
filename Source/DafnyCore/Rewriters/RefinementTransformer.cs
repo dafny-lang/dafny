@@ -532,14 +532,14 @@ namespace Microsoft.Dafny {
         ens.AddRange(moreEnsures);
       }
 
+      var origin = currentMethod.Origin;
+      var newName = currentMethod.NameNode;
       if (previousMethod is Constructor) {
         var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.Body);
-        return new Constructor(previousMethod.Origin.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsGhost, tps, ins,
+        return new Constructor(origin, newName, previousMethod.IsGhost, tps, ins,
           req, reads, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
-      var origin = currentMethod.Origin;
-      var newName = currentMethod.NameNode;
       if (previousMethod is LeastLemma) {
         return new LeastLemma(origin, newName, previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
