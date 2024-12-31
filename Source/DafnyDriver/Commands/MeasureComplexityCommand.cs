@@ -173,6 +173,7 @@ static class MeasureComplexityCommand {
           var (stdDevVt, averageVt) = entry.Value.VerificationTimes.ToList().CalculateStdDev();
           var failuresAndHighVariations = entry.Value.Failures + entry.Value.ResourceCounts.Count(rc => rc > averageRc * 2);
           return new JsonObject {
+            ["key"] = entry.Key,
             ["rcs"] = new JsonArray(entry.Value.ResourceCounts.Select(r => JsonValue.Create(r)).ToArray<JsonNode>()),
             ["vts"] = new JsonArray(entry.Value.VerificationTimes.Select(r => JsonValue.Create(r)).ToArray<JsonNode>()),
             ["averageRc"] = averageRc,
