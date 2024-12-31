@@ -83,6 +83,42 @@ public class PartialState {
     return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, left, right);
   }
 
+  public Dictionary<string, string> AsVariableValueDictionary() {
+    var variableToValue = new Dictionary<PartialValue, Expression>();
+    var variables = ExpandedVariableSet().ToArray();
+    var constraintSet = new HashSet<Constraint>();
+
+    foreach (var variable in variables) {
+      foreach (var constraint in variable.Constraints) {
+        constraintSet.Add(constraint);
+      }
+    }
+
+    Constraint.ResolveAndOrder(variableToValue, constraintSet.ToList(), true, true);
+
+    var variableValuesDictionary = new Dictionary<string, string>();
+    foreach (var variable in variables) {
+      var variableValue = variableToValue[variable].ToString();
+      foreach (var constraint in variable.Constraints.OfType<DefinitionConstraint>()
+                 .Where(constraint => constraint.DefinedValue == variable &&
+                 (constraint is not LiteralExprConstraint) &&
+                 (constraint is not DatatypeValueConstraint) &&
+                 (constraint is not SeqDisplayConstraint))) {
+        if (constraint.ReferencedValues.Any(value => !variableToValue.ContainsKey(value))) {
+          continue;
+        }
+        var variableNameAsExpression = constraint.RightHandSide(variableToValue);
+        var variableNameAsString = variableNameAsExpression.ToString();
+        if (variableValue == variableNameAsString) {
+          continue;
+        }
+        variableValuesDictionary[variableNameAsString] = variableValue + ",";
+      }
+    }
+
+    return variableValuesDictionary;
+  }
+
   /// <summary>
   /// Convert this counterexample state into an assumption that could be inserted in Dafny source code
   /// </summary>
