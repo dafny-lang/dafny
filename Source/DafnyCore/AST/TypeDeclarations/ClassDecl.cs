@@ -15,10 +15,10 @@ public class ClassDecl : ClassLikeDecl {
     Contract.Invariant(ParentTraits != null);
   }
 
-  public ClassDecl(IOrigin rangeOrigin, Name name, ModuleDefinition module,
+  public ClassDecl(IOrigin origin, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(rangeOrigin, name, module, typeArgs, members, attributes, isRefining, traits) {
-    Contract.Requires(rangeOrigin != null);
+    : base(origin, name, module, typeArgs, members, attributes, isRefining, traits) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

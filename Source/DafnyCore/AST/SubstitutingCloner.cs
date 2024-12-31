@@ -14,7 +14,7 @@ class SubstitutingCloner : Cloner {
     if (expr is IdentifierExpr identifierExpr) {
       if (substitutions.TryGetValue(identifierExpr.Var, out var variableReplacement)) {
         // TODO consider using the code from Substituter
-        return new IdentifierExpr(expr.Tok, variableReplacement);
+        return new IdentifierExpr(expr.Origin, variableReplacement);
       }
     }
 

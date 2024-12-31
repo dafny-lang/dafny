@@ -4,14 +4,13 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class Include : TokenNode, IComparable {
+public class Include : NodeWithComputedRange, IComparable {
   public DafnyOptions ParseOptions { get; }
   public Uri IncluderFilename { get; }
   public Uri IncludedFilename { get; }
   public string CanonicalPath { get; }
 
-  public Include(IOrigin tok, Uri includer, Uri theFilename, DafnyOptions parseOptions) {
-    this.tok = tok;
+  public Include(IOrigin origin, Uri includer, Uri theFilename, DafnyOptions parseOptions) : base(origin) {
     this.IncluderFilename = includer;
     this.IncludedFilename = theFilename;
     ParseOptions = parseOptions;

@@ -182,11 +182,11 @@ namespace Microsoft.Dafny.Triggers {
         foreach (var group in groups) {
           SplitPartTriggerWriter q = group.Quantifier;
           if (q.Comprehension is ForallExpr forallExpr) {
-            IOrigin tok = forallExpr.Tok is NestedOrigin nestedToken ? nestedToken.Outer : forallExpr.Tok;
+            IOrigin tok = forallExpr.Origin is NestedOrigin nestedToken ? nestedToken.Outer : forallExpr.Origin;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.And, group.Expressions);
             q.Comprehension = new ForallExpr(tok, forallExpr.BoundVars, forallExpr.Range, expr, TriggerUtils.CopyAttributes(forallExpr.Attributes)) { Type = forallExpr.Type, Bounds = forallExpr.Bounds };
           } else if (q.Comprehension is ExistsExpr existsExpr) {
-            IOrigin tok = existsExpr.Tok is NestedOrigin nestedToken ? nestedToken.Outer : existsExpr.Tok;
+            IOrigin tok = existsExpr.Origin is NestedOrigin nestedToken ? nestedToken.Outer : existsExpr.Origin;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.Or, group.Expressions);
             q.Comprehension = new ExistsExpr(tok, existsExpr.BoundVars, existsExpr.Range, expr, TriggerUtils.CopyAttributes(existsExpr.Attributes)) { Type = existsExpr.Type, Bounds = existsExpr.Bounds };
           }
@@ -220,9 +220,9 @@ namespace Microsoft.Dafny.Triggers {
     internal void CommitTriggers(SystemModuleManager systemModuleManager) {
       if (partWriters.Count > 1) {
         reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null,
-          comprehension.Tok, $"Quantifier was split into {partWriters.Count} parts. " +
-           "Better verification performance and error reporting may be obtained by splitting the quantifier in source. " +
-           "For more information, see the section quantifier instantiation rules in the reference manual.");
+          comprehension.Origin, $"Quantifier was split into {partWriters.Count} parts. " +
+                                "Better verification performance and error reporting may be obtained by splitting the quantifier in source. " +
+                                "For more information, see the section quantifier instantiation rules in the reference manual.");
       }
 
       for (var index = 0; index < partWriters.Count; index++) {

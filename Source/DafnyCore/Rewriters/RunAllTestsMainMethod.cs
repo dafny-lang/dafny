@@ -145,13 +145,13 @@ public class RunAllTestsMainMethod : IRewriter {
           };
 
           if (method.Ins.Count != 0) {
-            ReportError(ErrorId.rw_test_methods_may_not_have_inputs, method.Tok,
+            ReportError(ErrorId.rw_test_methods_may_not_have_inputs, method.Origin,
                 "Methods with the :test attribute may not have input arguments");
             continue;
           }
 
           if (method.TypeArgs.Count != 0) {
-            ReportError(ErrorId.rw_test_methods_may_not_have_type_parameters, method.Tok,
+            ReportError(ErrorId.rw_test_methods_may_not_have_type_parameters, method.Origin,
               "Methods with the :test attribute may not have type parameters");
             continue;
           }
@@ -164,7 +164,7 @@ public class RunAllTestsMainMethod : IRewriter {
           switch (method.Outs.Count) {
             case > 1:
               ReportError(ErrorId.rw_test_method_has_too_many_returns,
-               method.Tok,
+               method.Origin,
                 "Methods with the :test attribute can have at most one return value");
               continue;
             case 1: {

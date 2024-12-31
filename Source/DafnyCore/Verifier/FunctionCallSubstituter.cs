@@ -11,7 +11,7 @@ namespace Microsoft.Dafny {
     // expressions that evaluate to one.
     public FunctionCallSubstituter(Dictionary<IVariable, Expression /*!*/> /*!*/ substMap, Dictionary<TypeParameter, Type> typeMap,
       TraitDecl parentTrait, TopLevelDeclWithMembers impl)
-      : base(new ThisExpr(impl.Tok) { Type = UserDefinedType.FromTopLevelDecl(impl.Tok, impl) }, substMap, typeMap) {
+      : base(new ThisExpr(impl.Origin) { Type = UserDefinedType.FromTopLevelDecl(impl.Origin, impl) }, substMap, typeMap) {
       Tr = parentTrait;
       Impl = impl;
     }
@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
         } else {
           function = e.Function;
         }
-        return new FunctionCallExpr(e.Tok, e.NameNode, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel) {
+        return new FunctionCallExpr(e.Origin, e.NameNode, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel) {
           Function = function,
           Type = e.Type.Subst(typeMap),
           TypeApplication_AtEnclosingClass = SubstituteTypeList(typeApplicationAtEnclosingClass), // resolve here

@@ -21,10 +21,10 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     }
   }
 
-  protected OneBodyLoopStmt(IOrigin rangeOrigin,
+  protected OneBodyLoopStmt(IOrigin origin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt /*?*/ body, Attributes/*?*/ attrs)
-    : base(rangeOrigin, invariants, decreases, mod, attrs) {
+    : base(origin, invariants, decreases, mod, attrs) {
     Body = body;
   }
 
@@ -38,7 +38,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (Body is null) {
-      yield return new Assumption(decl, Tok, AssumptionDescription.LoopWithoutBody);
+      yield return new Assumption(decl, Origin, AssumptionDescription.LoopWithoutBody);
     }
   }
 
@@ -86,7 +86,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
       text += text.Length == 0 ? "$Heap" : ", $Heap";
     }
     text = $"this loop has no body{(text.Length == 0 ? "" : " (loop frame: " + text + ")")}";
-    reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, Tok, text);
+    reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, Origin, text);
   }
 
 }

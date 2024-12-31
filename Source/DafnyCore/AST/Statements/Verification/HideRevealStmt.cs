@@ -44,15 +44,15 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     }
   }
 
-  public HideRevealStmt(IOrigin rangeOrigin, HideRevealCmd.Modes mode)
-    : base(rangeOrigin) {
+  public HideRevealStmt(IOrigin origin, HideRevealCmd.Modes mode)
+    : base(origin) {
     Wildcard = true;
     this.Exprs = null;
     Mode = mode;
   }
 
-  public HideRevealStmt(IOrigin rangeOrigin, List<Expression> exprs, HideRevealCmd.Modes mode)
-    : base(rangeOrigin) {
+  public HideRevealStmt(IOrigin origin, List<Expression> exprs, HideRevealCmd.Modes mode)
+    : base(origin) {
     Contract.Requires(exprs != null);
     this.Exprs = exprs;
     Wildcard = false;
@@ -62,7 +62,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
   public static string SingleName(Expression e) {
     Contract.Requires(e != null);
     if (e is NameSegment || e is LiteralExpr) {
-      return e.Tok.val;
+      return e.Origin.val;
     } else {
       return null;
     }
@@ -88,7 +88,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
         Expression effectiveExpr = expr;
         if (expr is ApplySuffix applySuffix) {
           if (applySuffix.AtTok != null) {
-            resolver.Reporter.Error(MessageSource.Resolver, expr.Tok, $"an @-label can not be used in a hide or reveal statement");
+            resolver.Reporter.Error(MessageSource.Resolver, expr.Origin, $"an @-label can not be used in a hide or reveal statement");
           }
           effectiveExpr = applySuffix.Lhs;
         }
@@ -102,7 +102,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
           if (effectiveExpr.Resolved == null) {
             // error from resolving child
           } else if (effectiveExpr.Resolved is not MemberSelectExpr callee) {
-            resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Tok,
+            resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Origin,
               $"cannot reveal '{name}' because no revealable constant, function, assert label, or requires label in the current scope is named '{name}'");
           } else {
             if (callee.Member is Function or ConstantField) {
@@ -127,12 +127,12 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
                 ResolvedStatements.Add(call);
               }
             } else {
-              resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Tok,
+              resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Origin,
                 $"only functions and constants can be {KindVerb}");
             }
           }
         } else {
-          resolver.Reporter.Error(MessageSource.Resolver, Tok, "can't use parenthesis when hiding or revealing");
+          resolver.Reporter.Error(MessageSource.Resolver, Origin, "can't use parenthesis when hiding or revealing");
         }
       }
     }

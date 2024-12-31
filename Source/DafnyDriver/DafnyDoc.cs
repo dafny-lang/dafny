@@ -205,7 +205,7 @@ class DafnyDoc {
     }
     var defaultClass = moduleDef.TopLevelDecls.First(d => d is DefaultClassDecl cd) as DefaultClassDecl;
 
-    var info = new Info(register, this, "module", module == null ? null : module.Tok, moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
+    var info = new Info(register, this, "module", module == null ? null : module.Origin, moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
     info.Contents = new List<Info>();
 
     if (moduleDef.IsDefaultModule) {
@@ -217,7 +217,7 @@ class DafnyDoc {
         info.Source = FileInfo(dafnyFiles[0].CanonicalPath);
       }
     } else if (module != null) {
-      info.Source = FileInfo(module.Tok);
+      info.Source = FileInfo(module.Origin);
     }
 
     var docstring = Docstring(module);
@@ -317,7 +317,7 @@ class DafnyDoc {
   public Info ExportInfo(ModuleExportDecl ex, bool register) {
     var name = ex.Name;
     var docstring = Docstring(ex);
-    var info = new Info(register, this, "export", ex.Tok, name, ex.FullDafnyName, ExportId(ex.FullDafnyName));
+    var info = new Info(register, this, "export", ex.Origin, name, ex.FullDafnyName, ExportId(ex.FullDafnyName));
 
     info.HtmlSummary = Row($"{Keyword("export")} {Code(ex.EnclosingModuleDefinition.Name)}`{Link(info.Id, Code(Bold(ex.Name)))}",
      DashShortDocstring(ex));
@@ -387,7 +387,7 @@ class DafnyDoc {
   public Info ImportInfo(ModuleDecl md, bool register) {
     var name = md.Name;
     var docstring = Docstring(md);
-    var info = new Info(register, this, "import", md.Tok, name, md.FullDafnyName, md.FullDafnyName + "__import");
+    var info = new Info(register, this, "import", md.Origin, name, md.FullDafnyName, md.FullDafnyName + "__import");
 
     var styledName = Code(Bold(name));
     var details = new StringBuilder();
@@ -491,7 +491,7 @@ class DafnyDoc {
   }
 
   public Info ConstantInfo(bool register, ConstantField c) {
-    var info = new Info(register, this, "const", c.Tok, c.Name, c.FullDafnyName);
+    var info = new Info(register, this, "const", c.Origin, c.Name, c.FullDafnyName);
 
     var docstring = Docstring(c);
     var modifiers = c.ModifiersAsString();
@@ -511,7 +511,7 @@ class DafnyDoc {
   }
 
   public Info VarInfo(bool register, Field f) {
-    var info = new Info(register, this, "var", f.Tok, f.Name, f.FullDafnyName);
+    var info = new Info(register, this, "var", f.Origin, f.Name, f.FullDafnyName);
 
     var docstring = Docstring(f);
     var linkedName = Code(Link(f.FullDafnyName, Bold(f.Name)));
@@ -540,7 +540,7 @@ class DafnyDoc {
       }
     }
 
-    var info = new Info(register, this, m.WhatKind, m.Tok, name, m.FullDafnyName);
+    var info = new Info(register, this, m.WhatKind, m.Origin, name, m.FullDafnyName);
 
     var md = m as IHasDocstring;
     var docstring = Docstring(md);
@@ -591,7 +591,7 @@ class DafnyDoc {
     var typeparams = TypeFormals(t.TypeArgs);
     string kind = t.WhatKind.Replace("abstract ", "").Replace("opaque ", "").Replace("subset ", "").Replace(" synonym", "");
 
-    var info = new Info(register, this, t.WhatKind, t.Tok, t.Name, t.FullDafnyName);
+    var info = new Info(register, this, t.WhatKind, t.Origin, t.Name, t.FullDafnyName);
 
     var details = new StringBuilder();
 
@@ -642,7 +642,7 @@ class DafnyDoc {
       decl.Append(" = ");
       // datatype constructors are written out several lines down
     } else {
-      Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Tok, "Kind of type not handled in dafny doc");
+      Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Origin, "Kind of type not handled in dafny doc");
     }
     decl.Append(br).Append(eol);
     details.Append(AttrString(t.Attributes));
@@ -947,7 +947,7 @@ class DafnyDoc {
         return Code(s);
       }
     }
-    Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Tok, "Implementation missing for type " + t.GetType() + " " + t.ToString());
+    Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Origin, "Implementation missing for type " + t.GetType() + " " + t.ToString());
     return Code(t.ToString());
   }
 
