@@ -570,17 +570,12 @@ public partial class BoogieGenerator {
             }
           }
           TrStmt_CheckWellformed(CalcStmt.Rhs(stmt.Steps[i]), b, locals, etran, false);
-          // For calc statement expression, there is not always an explicit operator,
-          // so there is no obvious place to use as a center for each expression.
-          // We will use the start of the expression as its center.
-          // An alternative would be to use the preceding ; in case of an implicit operator
-          var origin = stmt.Lines[i + 1].Origin;
-          var leftCenterOrigin = new OverrideCenter(origin, origin.StartToken);
-          var ss = TrSplitExpr(leftCenterOrigin, builder.Context, stmt.Steps[i], etran, true, out var splitHappened);
+          var origin = stmt.Steps[i].Origin;
+          var ss = TrSplitExpr(origin, builder.Context, stmt.Steps[i], etran, true, out var splitHappened);
           // assert step:
           AddComment(b, stmt, "assert line" + i.ToString() + " " + (stmt.StepOps[i] ?? stmt.Op).ToString() + " line" + (i + 1).ToString());
           if (!splitHappened) {
-            b.Add(AssertAndForget(b.Context, leftCenterOrigin, etran.TrExpr(stmt.Steps[i]), new CalculationStep(stmt.Steps[i], stmt.Hints[i])));
+            b.Add(AssertAndForget(b.Context, origin, etran.TrExpr(stmt.Steps[i]), new CalculationStep(stmt.Steps[i], stmt.Hints[i])));
           } else {
             foreach (var split in ss) {
               if (split.IsChecked) {

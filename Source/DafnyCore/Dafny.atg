@@ -3258,9 +3258,9 @@ CalcOp<out Token x, out CalcStmt.CalcOp/*!*/ op>
   )
   (.
     if (k == null) {
-      op = new Microsoft.Dafny.CalcStmt.BinaryCalcOp(binOp);
+      op = new Microsoft.Dafny.CalcStmt.BinaryCalcOp(x, binOp);
     } else {
-      op = new Microsoft.Dafny.CalcStmt.TernaryCalcOp(k);
+      op = new Microsoft.Dafny.CalcStmt.TernaryCalcOp(x, k);
     }
   .)
   .
