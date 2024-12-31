@@ -147,7 +147,7 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran, BoogieStmtListBuilder proofBuilder) {
 
       var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
-      var splits = TrSplitExpr(proofBuilder.Context, stmt.Expr, etran, true, out var splitHappened);
+      var splits = TrSplitExpr(stmt.Origin, proofBuilder.Context, stmt.Expr, etran, true, out var splitHappened);
       if (!splitHappened) {
         var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
         proofBuilder.Add(Assert(stmt.Origin, etran.TrExpr(stmt.Expr), desc, stmt.Tok, proofBuilder.Context,
@@ -155,9 +155,9 @@ namespace Microsoft.Dafny {
       } else {
         foreach (var split in splits) {
           if (split.IsChecked) {
-            var tok = split.E.tok;
+            var origin = split.E.tok;
             var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
-            proofBuilder.Add(AssertAndForget(proofBuilder.Context, ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
+            proofBuilder.Add(AssertAndForget(proofBuilder.Context, ToDafnyToken(flags.ReportRanges, origin), split.E, desc, stmt.Tok,
               etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
           }
         }

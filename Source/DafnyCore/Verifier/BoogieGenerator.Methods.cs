@@ -1142,10 +1142,11 @@ namespace Microsoft.Dafny {
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
-      foreach (var en in f.OverriddenFunction.Ens) {
+      foreach (var ensures in f.OverriddenFunction.Ens) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
-        var subEn = sub.Substitute(en.E);
-        foreach (var s in TrSplitExpr(new BodyTranslationContext(false), sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
+        var subEn = sub.Substitute(ensures.E);
+        foreach (var s in TrSplitExpr(ensures.Origin, new BodyTranslationContext(false),
+                   sub.Substitute(ensures.E), etran, false, out _).Where(s => s.IsChecked)) {
           var constraint = allOverrideEns == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
@@ -1243,7 +1244,7 @@ namespace Microsoft.Dafny {
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating class pre-conditions
       foreach (var req in f.Req) {
-        foreach (var s in TrSplitExpr(new BodyTranslationContext(false), req.E, etran, false, out _).Where(s => s.IsChecked)) {
+        foreach (var s in TrSplitExpr(req.Origin, new BodyTranslationContext(false), req.E, etran, false, out _).Where(s => s.IsChecked)) {
           var constraint = allTraitReqs == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
@@ -1488,10 +1489,10 @@ namespace Microsoft.Dafny {
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
-      foreach (var en in m.OverriddenMethod.Ens) {
+      foreach (var ensures in m.OverriddenMethod.Ens) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
-        var subEn = sub.Substitute(en.E);
-        foreach (var s in TrSplitExpr(new BodyTranslationContext(false), subEn, etran, false, out _).Where(s => s.IsChecked)) {
+        var subEn = sub.Substitute(ensures.E);
+        foreach (var s in TrSplitExpr(ensures.Origin, new BodyTranslationContext(false), subEn, etran, false, out _).Where(s => s.IsChecked)) {
           var constraint = allOverrideEns == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
@@ -1520,7 +1521,7 @@ namespace Microsoft.Dafny {
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating class pre-conditions
       foreach (var req in m.Req) {
-        foreach (var s in TrSplitExpr(new BodyTranslationContext(false), req.E, etran, false, out _).Where(s => s.IsChecked)) {
+        foreach (var s in TrSplitExpr(req.Origin, new BodyTranslationContext(false), req.E, etran, false, out _).Where(s => s.IsChecked)) {
           var constraint = allTraitReqs == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
@@ -1755,21 +1756,21 @@ namespace Microsoft.Dafny {
       return proc;
 
       List<Boogie.Requires> GetRequires() {
-        var req = new List<Boogie.Requires>();
+        var reqs = new List<Boogie.Requires>();
         // FREE PRECONDITIONS
         if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
           // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-          req.Add(Requires(m.Tok, true, null, etran.HeightContext(m), null, null, null));
+          reqs.Add(Requires(m.Tok, true, null, etran.HeightContext(m), null, null, null));
           if (m is TwoStateLemma) {
             // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
             var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
             var a1 = HeapSucc(prevHeap, currHeap);
             var a2 = FunctionCall(m.Tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-            req.Add(Requires(m.Tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
+            reqs.Add(Requires(m.Tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
           }
 
           foreach (var typeBoundAxiom in TypeBoundAxioms(m.Tok, Concat(m.EnclosingClass.TypeArgs, m.TypeArgs))) {
-            req.Add(Requires(m.Tok, true, null, typeBoundAxiom, null, null, null));
+            reqs.Add(Requires(m.Tok, true, null, typeBoundAxiom, null, null, null));
           }
         }
         if (m is TwoStateLemma) {
@@ -1786,55 +1787,55 @@ namespace Microsoft.Dafny {
               var require = Requires(formal.Tok, false, null, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
                 desc.FailureDescription, desc.SuccessDescription, null);
               require.Description = desc;
-              req.Add(require);
+              reqs.Add(require);
             }
             index++;
           }
         }
 
         if (kind is MethodTranslationKind.SpecWellformedness or MethodTranslationKind.OverrideCheck) {
-          return req;
+          return reqs;
         }
 
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
-        foreach (var p in m.Req) {
-          var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          if (p.Label != null && kind == MethodTranslationKind.Implementation) {
+        foreach (var req in m.Req) {
+          var (errorMessage, successMessage) = CustomErrorMessage(req.Attributes);
+          if (req.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
-            p.Label.E = (m is TwoStateLemma ? ordinaryEtran : etran.Old).TrExpr(p.E);
+            req.Label.E = (m is TwoStateLemma ? ordinaryEtran : etran.Old).TrExpr(req.E);
           } else {
-            foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran,
+            foreach (var s in TrSplitExprForMethodSpec(req.Origin, new BodyTranslationContext(m.ContainsHide), req.E, etran,
                        kind)) {
               if (s.IsOnlyChecked && bodyKind) {
                 // don't include in split
               } else if (s.IsOnlyFree && !bodyKind) {
                 // don't include in split -- it would be ignored, anyhow
               } else {
-                req.Add(
-                  RequiresWithDependencies(s.Tok, s.IsOnlyFree, p.E, s.E, errorMessage, successMessage, comment));
+                reqs.Add(
+                  RequiresWithDependencies(s.Tok, s.IsOnlyFree, req.E, s.E, errorMessage, successMessage, comment));
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
             }
           }
         }
-        return req;
+        return reqs;
       }
 
       List<Bpl.Ensures> GetEnsures() {
-        var ens = new List<Bpl.Ensures>();
+        var enses = new List<Bpl.Ensures>();
         if (kind is MethodTranslationKind.SpecWellformedness or MethodTranslationKind.OverrideCheck) {
-          return ens;
+          return enses;
         }
 
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined postconditions";
-        foreach (var p in m.Ens) {
-          var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          AddEnsures(ens, Ensures(p.E.Tok, true, p.E, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
+        foreach (var ensures in m.Ens) {
+          var (errorMessage, successMessage) = CustomErrorMessage(ensures.Attributes);
+          AddEnsures(enses, Ensures(ensures.E.Tok, true, ensures.E, etran.CanCallAssumption(ensures.E), errorMessage, successMessage, comment));
           comment = null;
-          foreach (var split in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
+          foreach (var split in TrSplitExprForMethodSpec(ensures.Origin, new BodyTranslationContext(m.ContainsHide), ensures.E, etran, kind)) {
             var post = split.E;
             if (kind == MethodTranslationKind.Implementation && split.Tok.IsInherited(currentModule)) {
               // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
@@ -1845,7 +1846,7 @@ namespace Microsoft.Dafny {
             } else if (split.IsOnlyChecked && !bodyKind) {
               // don't include in split
             } else {
-              AddEnsures(ens, EnsuresWithDependencies(split.Tok, split.IsOnlyFree || this.assertionOnlyFilter != null, p.E, post, errorMessage, successMessage, null));
+              AddEnsures(enses, EnsuresWithDependencies(split.Tok, split.IsOnlyFree || this.assertionOnlyFilter != null, ensures.E, post, errorMessage, successMessage, null));
             }
           }
         }
@@ -1854,25 +1855,25 @@ namespace Microsoft.Dafny {
             new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Not,
               new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Allocated, new IdentifierExpr(Token.NoToken, "this"))));
           var fresh = Boogie.Expr.Not(etran.Old.IsAlloced(m.Tok, new Boogie.IdentifierExpr(m.Tok, "this", TrReceiverType(m))));
-          AddEnsures(ens, Ensures(m.Tok, false || this.assertionOnlyFilter != null, dafnyFresh, fresh, null, null, "constructor allocates the object"));
+          AddEnsures(enses, Ensures(m.Tok, false || this.assertionOnlyFilter != null, dafnyFresh, fresh, null, null, "constructor allocates the object"));
         }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.Tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
-          AddEnsures(ens, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
+          AddEnsures(enses, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
         }
 
         // add the fuel assumption for the reveal method of a opaque method
         if (IsOpaqueRevealLemma(m)) {
           List<Expression> args = Attributes.FindExpressions(m.Attributes, "revealedFunction");
           if (args == null) {
-            return ens;
+            return enses;
           }
 
           if (args[0].Resolved is MemberSelectExpr selectExpr) {
             Function f = selectExpr.Member as Function;
-            AddEnsures(ens, Ensures(m.Tok, true, null, GetRevealConstant(f), null, null, null));
+            AddEnsures(enses, Ensures(m.Tok, true, null, GetRevealConstant(f), null, null, null));
           }
         }
-        return ens;
+        return enses;
       }
     }
 

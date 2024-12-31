@@ -1522,7 +1522,8 @@ public partial class BoogieGenerator {
           if (witnessExpr != null) {
             witnessExpr.SetTok(result.Tok);
             var desc = new WitnessCheck(witnessString, witnessExpr);
-            SplitAndAssertExpression(returnBuilder, witnessExpr, etran, context, desc);
+            var origin = new SourceOrigin(witnessExpr.StartToken, witnessExpr.EndToken);
+            SplitAndAssertExpression(origin, returnBuilder, witnessExpr, etran, context, desc);
           }
         });
       codeContext = ghostCodeContext;
@@ -1539,7 +1540,8 @@ public partial class BoogieGenerator {
         if (witnessExpr != null) {
           witnessExpr.SetTok(decl.Tok);
           var desc = new WitnessCheck(witnessString, witnessExpr);
-          SplitAndAssertExpression(witnessCheckBuilder, witnessExpr, etran, context, desc);
+          var origin = new SourceOrigin(witnessExpr.StartToken, witnessExpr.EndToken);
+          SplitAndAssertExpression(origin, witnessCheckBuilder, witnessExpr, etran, context, desc);
         }
       }
     }
@@ -1564,11 +1566,11 @@ public partial class BoogieGenerator {
     Reset();
   }
 
-  private void SplitAndAssertExpression(BoogieStmtListBuilder witnessCheckBuilder, Expression witnessExpr,
+  private void SplitAndAssertExpression(IOrigin origin, BoogieStmtListBuilder witnessCheckBuilder, Expression witnessExpr,
     ExpressionTranslator etran, BodyTranslationContext context, WitnessCheck desc) {
     witnessCheckBuilder.Add(new Bpl.AssumeCmd(witnessExpr.Tok, etran.CanCallAssumption(witnessExpr)));
 
-    var ss = TrSplitExpr(context, witnessExpr, etran, true, out var splitHappened);
+    var ss = TrSplitExpr(origin, context, witnessExpr, etran, true, out var splitHappened);
     if (!splitHappened) {
       witnessCheckBuilder.Add(Assert(witnessExpr.Tok, etran.TrExpr(witnessExpr), desc, context));
     } else {

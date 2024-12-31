@@ -202,7 +202,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
   public readonly List<CalcOp/*?*/> StepOps; // StepOps[i] comes after line i
   [FilledInDuringResolution]
   public CalcOp Op;                          // main operator of the calculation (either UserSuppliedOp or (after resolution) an inferred CalcOp)
-  [FilledInDuringResolution] public readonly List<Expression> Steps;    // expressions li op l<i + 1> (last step is dummy)
+  [FilledInDuringResolution] public readonly List<Expression> Steps;    // expressions l<i> op l<i + 1> (last step is dummy)
   [FilledInDuringResolution] public Expression Result;                  // expression l0 ResultOp ln
 
   public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);

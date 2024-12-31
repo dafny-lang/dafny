@@ -46,7 +46,7 @@ public partial class BoogieGenerator {
       foreach (AttributedExpression ensures in f.Ens) {
         var functionHeight = generator.currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
         var splits = new List<SplitExprInfo>();
-        bool splitHappened /*we actually don't care*/ = generator.TrSplitExpr(context, ensures.E, splits, true, functionHeight, true, etran);
+        bool splitHappened /*we actually don't care*/ = generator.TrSplitExpr(ensures.Origin, context, ensures.E, splits, true, functionHeight, true, etran);
         var (errorMessage, successMessage) = generator.CustomErrorMessage(ensures.Attributes);
         foreach (var s in splits) {
           if (s.IsChecked && !s.Tok.IsInherited(generator.currentModule)) {
