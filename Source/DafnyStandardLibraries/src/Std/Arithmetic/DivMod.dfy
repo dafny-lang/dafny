@@ -66,7 +66,7 @@ module Std.Arithmetic.DivMod {
     ensures x / 1 == x
     ensures x != 0 ==> x / x == 1
   {
-    if (x != 0) {
+    if x != 0 {
       LemmaDivBySelf(x);
       LemmaDivOf0(x);
     }
@@ -133,12 +133,9 @@ module Std.Arithmetic.DivMod {
     assert forall u: int, d: int {:trigger u / d} {:trigger DivRecursive(u, d)}
         :: d > 0 ==> DivRecursive(u, d) == u / d;
 
-    if (x < z)
-    {
+    if x < z {
       LemmaDivIsOrdered(0, x, y);
-    }
-    else
-    {
+    } else {
       LemmaDivIsOrdered(x - z, x - y, y);
       LemmaDivIsOrderedByDenominator(x - z, y, z);
     }
@@ -500,7 +497,7 @@ module Std.Arithmetic.DivMod {
     LemmaModPropertiesAuto();
 
     LemmaDivPosIsPos(R, c);
-    if (R / c >= d) {
+    if R / c >= d {
       LemmaFundamentalDivMod(R, c);
       LemmaMulInequality(d, R / c, c);
       LemmaMulIsCommutativeAuto();
@@ -761,44 +758,44 @@ module Std.Arithmetic.DivMod {
     assert f(0);
     forall i
       ensures IsLe(0, i) && f(i) ==> f(i + 1)
-      {
-        if (f(i)) {
-          var z := ((d * i) + b)%d + d % d;
-          assert 0 <= z < d;
-          assert f (i + 1) by {
-            calc {
-              i + 1;
-              ((d * i) + b)/d + d/d; {
-                assert DivPlus (d, d * i + b, d) by {LemmaDivAuto(d);}
-              }
-              ((d * i) + b + d)/d; {
-                LemmaMulAuto();
-              }
-              (d * (i + 1) + b)/d;
+    {
+      if f(i) {
+        var z := ((d * i) + b) % d + d % d;
+        assert 0 <= z < d;
+        assert f (i + 1) by {
+          calc {
+            i + 1;
+            ((d * i) + b)/d + d/d; {
+              assert DivPlus (d, d * i + b, d) by {LemmaDivAuto(d);}
             }
+            ((d * i) + b + d)/d; {
+              LemmaMulAuto();
+            }
+            (d * (i + 1) + b)/d;
           }
         }
       }
+    }
     forall i
       ensures IsLe(i, 0) && f(i) ==> f(i - 1)
-      {
-        if (f(i)) {
-          var z := ((d * i) + b)%d - d % d;
-          assert 0 <= z < d;
-          assert f (i - 1) by {
-            calc {
-              i - 1;
-              ((d * i) + b)/d - d/d; {
-                assert DivMinus (d, d * i + b, d) by {LemmaDivAuto(d);}
-              }
-              ((d * i) + b - d)/d; {
-                LemmaMulAuto();
-              }
-              (d * (i - 1) + b)/d;
+    {
+      if f(i) {
+        var z := ((d * i) + b) % d - d % d;
+        assert 0 <= z < d;
+        assert f (i - 1) by {
+          calc {
+            i - 1;
+            ((d * i) + b)/d - d/d; {
+              assert DivMinus (d, d * i + b, d) by {LemmaDivAuto(d);}
             }
+            ((d * i) + b - d)/d; {
+              LemmaMulAuto();
+            }
+            (d * (i - 1) + b)/d;
           }
         }
       }
+    }
     LemmaMulInductionAuto(x, f);
   }
 
