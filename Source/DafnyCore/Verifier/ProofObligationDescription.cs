@@ -640,10 +640,10 @@ public class LoopInvariant : ProofObligationDescriptionCustomMessages {
 
 public class CalculationStep : ProofObligationDescription {
   public override string SuccessDescription =>
-    "the calculation step between the previous line and this line always holds";
+    "this calculation step always holds";
 
   public override string FailureDescription =>
-    "the calculation step between the previous line and this line could not be proved";
+    "this calculation step could not be proved";
 
   public override string ShortDescription => "calc step";
 
