@@ -61,6 +61,7 @@ static class MeasureComplexityCommand {
   }
 
   private static async Task<int> Execute(DafnyOptions options) {
+    options.Set(DafnyFile.DoNotVerifyDependencies, true);
     if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
       options.TrackVerificationCoverage = true;
     }
@@ -209,7 +210,7 @@ static class MeasureComplexityCommand {
     var random = new Random(iterationSeed);
     var iterations = (int)options.Get(Iterations);
     foreach (var iteration in Enumerable.Range(0, iterations)) {
-      if (options.Get(CommonOptionBag.ProgressOption) >= CommonOptionBag.ProgressLevel.Iteration) {
+      if (options.Get(CommonOptionBag.ProgressOption) >= CommonOptionBag.ProgressLevel.Iterations) {
         await options.OutputWriter.WriteLineAsync(
           $"{DateTime.Now.ToLocalTime()}: Starting verification of iteration {iteration + 1}/{iterations} with seed {iterationSeed}");
       }

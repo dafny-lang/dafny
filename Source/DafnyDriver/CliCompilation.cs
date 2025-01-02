@@ -186,7 +186,7 @@ public class CliCompilation {
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
         var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
 
-        if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.VerificationJobs) {
+        if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.Jobs) {
           var partOrigin = boogieUpdate.VerificationTask.Split.Token;
 
           var wellFormedness = boogieUpdate.VerificationTask.Split.Implementation.Name.Contains("CheckWellFormed$");
@@ -267,7 +267,7 @@ public class CliCompilation {
       foreach (var canVerify in toAwait) {
         var results = canVerifyResults[canVerify];
         try {
-          if (Options.Get(CommonOptionBag.ProgressOption) >= CommonOptionBag.ProgressLevel.Symbol) {
+          if (Options.Get(CommonOptionBag.ProgressOption) >= CommonOptionBag.ProgressLevel.Symbols) {
             await Options.OutputWriter.WriteLineAsync(
               $"Verified {done}/{canVerifies.ToList().Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
           }

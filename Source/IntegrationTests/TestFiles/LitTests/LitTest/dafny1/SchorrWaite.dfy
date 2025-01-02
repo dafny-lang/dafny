@@ -256,7 +256,7 @@ method {:isolate_assertions} SchorrWaite(root: Node, ghost S: set<Node>)
     decreases unmarkedNodes, stackNodes, |t.children| - t.childrenVisited
   {
     if t.childrenVisited == |t.children| {
-      assert {:focus} true;
+      //assert {:focus} true;
       // pop
       t.childrenVisited := 0;
       if p == null {
@@ -271,12 +271,12 @@ method {:isolate_assertions} SchorrWaite(root: Node, ghost S: set<Node>)
       path := t.pathFromRoot;
 
     } else if t.children[t.childrenVisited] == null || t.children[t.childrenVisited].marked {
-      assert {:focus} true;
+      //assert {:focus} true;
       // just advance to next child
       t.childrenVisited := t.childrenVisited + 1;
 
     } else {
-      assert {:focus} true;
+      //assert {:focus} true;
       // push
 
       var newT := t.children[t.childrenVisited];
@@ -289,5 +289,7 @@ method {:isolate_assertions} SchorrWaite(root: Node, ghost S: set<Node>)
       t.pathFromRoot := path;
       unmarkedNodes := unmarkedNodes - {t};
     }
+
+    continue {:isolate "paths"};
   }
 }
