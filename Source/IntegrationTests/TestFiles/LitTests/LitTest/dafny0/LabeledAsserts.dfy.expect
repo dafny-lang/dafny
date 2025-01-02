@@ -15,7 +15,7 @@ LabeledAsserts.dfy(211,4): Error: assertion might not hold
 LabeledAsserts.dfy(224,4): Error: assertion might not hold
 LabeledAsserts.dfy(226,4): Error: assertion might not hold
 LabeledAsserts.dfy(232,4): Error: assertion might not hold
-LabeledAsserts.dfy(252,6): Error: the calculation step between the previous line and this line could not be proved
+LabeledAsserts.dfy(251,2): Error: this calculation step could not be proved
 LabeledAsserts.dfy(265,2): Error: assertion might not hold
 LabeledAsserts.dfy(25,2): Error: assertion might not hold
 LabeledAsserts.dfy(27,2): Error: assertion might not hold

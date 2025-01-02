@@ -12,8 +12,10 @@ CoPrefix.dfy(163,14): Related location: this is the postcondition that could not
 CoPrefix.dfy(169,2): Error: a postcondition could not be proved on this return path
 CoPrefix.dfy(168,14): Related location: this is the postcondition that could not be proved
 CoPrefix.dfy(176,10): Error: cannot prove termination; try supplying a decreases clause
-CoPrefix.dfy(205,6): Error: the calculation step between the previous line and this line could not be proved
-CoPrefix.dfy(207,6): Error: the calculation step between the previous line and this line could not be proved
+CoPrefix.dfy(204,6): Error: this calculation step could not be proved
+CoPrefix.dfy(197,25): Related location: this proposition could not be proved
+CoPrefix.dfy(206,6): Error: this calculation step could not be proved
+CoPrefix.dfy(197,25): Related location: this proposition could not be proved
 CoPrefix.dfy(220,12): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
 
 Dafny program verifier finished with 13 verified, 11 errors

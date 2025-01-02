@@ -528,7 +528,7 @@ public partial class BoogieGenerator {
 
       // check that postconditions hold
       foreach (var ens in forallStmt.Ens) {
-        foreach (var split in TrSplitExpr(definedness.Context, ens.E, etran, true, out var splitHappened)) {
+        foreach (var split in TrSplitExpr(ens.Origin, definedness.Context, ens.E, etran, true, out var splitHappened)) {
           if (split.IsChecked) {
             definedness.Add(Assert(split.Tok, split.E, new ForallPostcondition(ens.E), definedness.Context));
           }
