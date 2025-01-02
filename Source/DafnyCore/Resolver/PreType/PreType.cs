@@ -405,7 +405,7 @@ namespace Microsoft.Dafny {
 
     public TopLevelDecl DeclWithMembersBypassInternalSynonym() {
       if (Decl is InternalTypeSynonymDecl isyn) {
-        var udt = UserDefinedType.FromTopLevelDecl(isyn.tok, isyn);
+        var udt = UserDefinedType.FromTopLevelDecl(isyn.Origin, isyn);
         if (isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) is UserDefinedType { ResolvedClass: { } decl }) {
           return decl is NonNullTypeDecl nntd ? nntd.Class : decl;
         }

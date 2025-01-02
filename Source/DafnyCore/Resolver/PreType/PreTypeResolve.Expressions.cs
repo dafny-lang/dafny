@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
             ResolveExpression(e.E, resolutionContext);
             var innerOrigin = e.E.Origin;
             e.ResolvedExpression = e.E; // Overwrites the range, which is not suitable for ParensExpressions
-            e.E.Origin = innerOrigin;
+            e.E.SetOrigin(innerOrigin);
             e.PreType = e.E.PreType;
             break;
           }

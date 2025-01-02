@@ -74,7 +74,7 @@ namespace Microsoft.Dafny {
 
       if (pattern is DisjunctivePattern dp) {
         if (inPattern) {
-          ReportError(dp.Tok, "Disjunctive patterns are not allowed inside other patterns");
+          ReportError(dp.Origin, "Disjunctive patterns are not allowed inside other patterns");
         }
 
         foreach (var alt in dp.Alternatives) {

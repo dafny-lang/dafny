@@ -519,7 +519,7 @@ namespace Microsoft.Dafny {
                     args.Add(Old.HeapExpr);
                   }
                   if (!fn.IsStatic) {
-                    Boogie.Expr obj = BoogieGenerator.BoxifyForTraitParent(e.tok, TrExpr(e.Obj), e.Member, e.Obj.Type);
+                    Boogie.Expr obj = BoogieGenerator.BoxifyForTraitParent(e.Origin, TrExpr(e.Obj), e.Member, e.Obj.Type);
                     args.Add(obj);
                   }
                   return FunctionCall(GetToken(e), BoogieGenerator.FunctionHandle(fn), Predef.HandleType, args);
