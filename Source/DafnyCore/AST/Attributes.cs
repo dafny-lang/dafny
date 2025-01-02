@@ -45,7 +45,7 @@ public record BuiltInAtAttributeSyntax(
   }
 }
 
-public class Attributes : TokenNode, ICanFormat {
+public class Attributes : NodeWithComputedRange, ICanFormat {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
@@ -64,7 +64,7 @@ public class Attributes : TokenNode, ICanFormat {
   public readonly List<Expression> Args;
 
   public readonly Attributes Prev;
-  public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
+  public Attributes(string name, [Captured] List<Expression> args, Attributes prev) : base(Token.NoToken) {
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(args));
     Contract.Requires(name != UserSuppliedAtAttribute.AtName || this is UserSuppliedAtAttribute);
@@ -612,7 +612,7 @@ public class Attributes : TokenNode, ICanFormat {
     UserSuppliedAtAttribute attrs, ActualBindings bindings, ModuleResolver resolver) {
     var resolutionContext = new ResolutionContext(new NoContext(program.DefaultModuleDef), false); ;
     var typeMap = new Dictionary<TypeParameter, Type>();
-    resolver.ResolveActualParameters(bindings, formals.ToList(), attrs.tok,
+    resolver.ResolveActualParameters(bindings, formals.ToList(), attrs.Origin,
       attrs, resolutionContext, typeMap, null);
     resolver.FillInDefaultValueExpressions();
     resolver.SolveAllTypeConstraints();
@@ -689,13 +689,13 @@ public class UserSuppliedAttributes : Attributes {
   public readonly IOrigin OpenBrace;
   public readonly IOrigin CloseBrace;
   public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
-  public UserSuppliedAttributes(IOrigin tok, IOrigin openBrace, IOrigin closeBrace, List<Expression> args, Attributes prev)
-    : base(tok.val, args, prev) {
-    Contract.Requires(tok != null);
+  public UserSuppliedAttributes(IOrigin origin, IOrigin openBrace, IOrigin closeBrace, List<Expression> args, Attributes prev)
+    : base(origin.val, args, prev) {
+    Contract.Requires(origin != null);
     Contract.Requires(openBrace != null);
     Contract.Requires(closeBrace != null);
     Contract.Requires(args != null);
-    this.tok = tok;
+    SetOrigin(origin);
     OpenBrace = openBrace;
     CloseBrace = closeBrace;
   }
@@ -707,11 +707,11 @@ public class UserSuppliedAtAttribute : Attributes {
   public readonly IOrigin AtSign;
   public bool Builtin;  // set to true to indicate it was recognized as a builtin attribute
   // Otherwise it's a user-defined one and Arg needs to be fully resolved
-  public UserSuppliedAtAttribute(IOrigin tok, Expression arg, Attributes prev)
+  public UserSuppliedAtAttribute(IOrigin origin, Expression arg, Attributes prev)
     : base(AtName, new List<Expression>() { arg }, prev) {
-    Contract.Requires(tok != null);
-    this.tok = tok;
-    this.AtSign = tok;
+    Contract.Requires(origin != null);
+    SetOrigin(origin);
+    this.AtSign = origin;
   }
 
   public Expression Arg => Args[0];

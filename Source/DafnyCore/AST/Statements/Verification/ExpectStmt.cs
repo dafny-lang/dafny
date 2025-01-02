@@ -10,15 +10,13 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
     return new ExpectStmt(cloner, this);
   }
 
-  public override IOrigin Tok => StartToken == Expr.StartToken ? Expr.Tok : base.Tok; // TODO move up to PredicateStmt?
-
   public ExpectStmt(Cloner cloner, ExpectStmt original) : base(cloner, original) {
     Message = cloner.CloneExpr(original.Message);
   }
 
-  public ExpectStmt(IOrigin rangeOrigin, Expression expr, Expression message, Attributes attrs)
-    : base(rangeOrigin, expr, attrs) {
-    Contract.Requires(rangeOrigin != null);
+  public ExpectStmt(IOrigin origin, Expression expr, Expression message, Attributes attrs)
+    : base(origin, expr, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     this.Message = message;
   }
@@ -40,7 +38,7 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
   public override void GenResolve(INewOrOldResolver resolver, ResolutionContext context) {
     base.GenResolve(resolver, context);
     if (Message == null) {
-      Message = new StringLiteralExpr(Tok, "expectation violation", false);
+      Message = new StringLiteralExpr(Origin, "expectation violation", false);
     }
     resolver.ResolveExpression(Message, context);
   }

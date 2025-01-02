@@ -78,7 +78,7 @@ namespace DafnyTestGeneration {
       return DafnyModelTypeUtils.ReplaceType(type, _ => true,
         typ => replacements.TryGetValue(typ.Name, out var replacement) ?
           replacement :
-          new UserDefinedType(typ.tok, typ.Name, typ.TypeArgs));
+          new UserDefinedType(typ.Origin, typ.Name, typ.TypeArgs));
     }
 
     /// <summary>

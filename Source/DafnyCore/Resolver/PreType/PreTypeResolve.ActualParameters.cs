@@ -87,13 +87,13 @@ namespace Microsoft.Dafny {
             ReportError(binding.FormalParameterName, $"duplicate binding for parameter name '{pname}'");
           }
         } else if (!stillAcceptingPositionalArguments) {
-          ReportError(arg.tok, "a positional argument is not allowed to follow named arguments");
+          ReportError(arg.Origin, "a positional argument is not allowed to follow named arguments");
         } else if (bindingIndex < formals.Count) {
           // use the name of formal corresponding to this positional argument, unless the parameter is name-only
           var formal = formals[bindingIndex];
           var pname = formal.Name;
           if (formal.IsNameOnly) {
-            ReportError(arg.tok, $"nameonly parameter '{pname}' must be passed using a name binding; it cannot be passed positionally");
+            ReportError(arg.Origin, $"nameonly parameter '{pname}' must be passed using a name binding; it cannot be passed positionally");
           }
           Contract.Assert(namesToActuals[pname] == null); // we expect this, since we've only filled parameters positionally so far
           namesToActuals[pname] = binding;
@@ -127,7 +127,7 @@ namespace Microsoft.Dafny {
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
           Constraints.AddSubtypeConstraint(
-            formal.PreType.Substitute(typeMap), b.Actual.PreType, callTok,
+            formal.PreType.Substitute(typeMap), b.Actual.PreType, callTok /* TODO should be b.Actual.Origin */,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the

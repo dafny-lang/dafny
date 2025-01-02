@@ -72,13 +72,13 @@ public static class PreType2TypeUtil {
 
     var arguments = pt.Arguments.ConvertAll(preType => PreType2RefinableType(preType));
     if (pt.Decl is ArrowTypeDecl arrowTypeDecl) {
-      return new ArrowType(pt.Decl.tok, arrowTypeDecl, arguments);
+      return new ArrowType(pt.Decl.Origin, arrowTypeDecl, arguments);
     } else if (pt.Decl is ValuetypeDecl valuetypeDecl) {
       return valuetypeDecl.CreateType(arguments);
     } else if (pt.Decl is ClassLikeDecl { IsReferenceTypeDecl: true }) {
-      return new UserDefinedType(pt.Decl.tok, pt.Decl.Name + "?", pt.Decl, arguments);
+      return new UserDefinedType(pt.Decl.Origin, pt.Decl.Name + "?", pt.Decl, arguments);
     } else {
-      return new UserDefinedType(pt.Decl.tok, pt.Decl.Name, pt.Decl, arguments);
+      return new UserDefinedType(pt.Decl.Origin, pt.Decl.Name, pt.Decl, arguments);
     }
   }
 

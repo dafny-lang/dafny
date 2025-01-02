@@ -15,9 +15,9 @@ public class SeqConstructionExpr : Expression, ICloneable<SeqConstructionExpr> {
     ExplicitElementType = elemType;
   }
 
-  public SeqConstructionExpr(IOrigin tok, Type/*?*/ elementType, Expression length, Expression initializer)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public SeqConstructionExpr(IOrigin origin, Type/*?*/ elementType, Expression length, Expression initializer)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(length != null);
     Contract.Requires(initializer != null);
     ExplicitElementType = elementType;

@@ -84,11 +84,11 @@ namespace Microsoft.Dafny {
               for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
                 var other = dtor.CorrespondingFormals[i];
                 if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
-                  ReportError(other.tok,
+                  ReportError(other.Origin,
                     "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
                     rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
                 } else if (rolemodel.IsGhost != other.IsGhost) {
-                  ReportError(other.tok,
+                  ReportError(other.Origin,
                     "shared destructors must agree on whether or not they are ghost, but '{0}' is {1} in constructor '{2}' and {3} in constructor '{4}'",
                     rolemodel.Name,
                     rolemodel.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[0].Name,
@@ -130,7 +130,7 @@ namespace Microsoft.Dafny {
         if (field.Rhs != null) {
           CheckExpression(field.Rhs, context);
         }
-        CheckPreType(field.PreType, context, field.tok, "const");
+        CheckPreType(field.PreType, context, field.Origin, "const");
 
       } else if (member is Method method) {
         CheckParameterDefaultValues(method.Ins, context);
@@ -236,18 +236,18 @@ namespace Microsoft.Dafny {
       if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var local in s.Locals) {
-          CheckPreTypeIsDetermined(local.Tok, local.PreType, "local variable");
-          CheckTypeArgsContainNoOrdinal(local.Tok, local.PreType);
+          CheckPreTypeIsDetermined(local.Origin, local.PreType, "local variable");
+          CheckTypeArgsContainNoOrdinal(local.Origin, local.PreType);
         }
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
-        s.LocalVars.ForEach(local => CheckPreTypeIsDetermined(local.Tok, local.PreType, "local variable"));
-        s.LocalVars.ForEach(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.PreType));
+        s.LocalVars.ForEach(local => CheckPreTypeIsDetermined(local.Origin, local.PreType, "local variable"));
+        s.LocalVars.ForEach(local => CheckTypeArgsContainNoOrdinal(local.Origin, local.PreType));
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        s.BoundVars.ForEach(bv => CheckPreTypeIsDetermined(bv.tok, bv.PreType, "bound variable"));
-        s.BoundVars.ForEach(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.PreType));
+        s.BoundVars.ForEach(bv => CheckPreTypeIsDetermined(bv.Origin, bv.PreType, "bound variable"));
+        s.BoundVars.ForEach(bv => CheckTypeArgsContainNoOrdinal(bv.Origin, bv.PreType));
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
@@ -259,7 +259,7 @@ namespace Microsoft.Dafny {
           }
         }
         foreach (var lhs in s.Lhss) {
-          CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.PreType);
+          CheckTypeArgsContainNoOrdinal(lhs.Origin, lhs.PreType);
         }
 
       } else if (stmt is CalcStmt) {
@@ -289,18 +289,18 @@ namespace Microsoft.Dafny {
           var absN = n < 0 ? -n : n;
           // For bitvectors, check that the magnitude fits the width
           if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && ConstantFolder.MaxBv(width) < absN) {
-            cus.ReportError(e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.PreType);
+            cus.ReportError(e.Origin, "literal ({0}) is too large for the bitvector type {1}", absN, e.PreType);
           }
           // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
           // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
-          if (n < 0 || e.tok.val == "-0") {
-            Contract.Assert(e.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
-            cus.ReportError(e.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.PreType);
+          if (n < 0 || e.Origin.val == "-0") {
+            Contract.Assert(e.Origin.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
+            cus.ReportError(e.Origin, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.PreType);
           }
         }
 
         if (expr is StaticReceiverExpr stexpr) {
-          CheckPreTypeIsDetermined(stexpr.tok, stexpr.PreType, "static receiver");
+          CheckPreTypeIsDetermined(stexpr.Origin, stexpr.PreType, "static receiver");
         }
 
       } else if (expr is ComprehensionExpr) {
@@ -308,7 +308,7 @@ namespace Microsoft.Dafny {
         foreach (var bv in e.BoundVars) {
           CheckVariable(bv, "bound variable");
           if (context.IsExtremePredicate || context.IsExtremeLemma) {
-            CheckContainsNoOrdinal(bv.tok, bv.PreType, $"type of bound variable '{bv.Name}' ('{bv.PreType}') is not allowed to use type ORDINAL");
+            CheckContainsNoOrdinal(bv.Origin, bv.PreType, $"type of bound variable '{bv.Name}' ('{bv.PreType}') is not allowed to use type ORDINAL");
           }
         }
 
@@ -322,9 +322,9 @@ namespace Microsoft.Dafny {
                 ? e.Member.EnclosingClass.TypeArgs[i]
                 : ((ICallable)e.Member).TypeArgs[i - e.PreTypeApplicationAtEnclosingClass.Count];
             if (!IsDetermined(p)) {
-              cus.ReportError(e.tok, $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
+              cus.ReportError(e.Origin, $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
             } else {
-              CheckContainsNoOrdinal(e.tok, p, $"type parameter '{tp.Name}' (passed in as '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' is not allowed to use ORDINAL");
+              CheckContainsNoOrdinal(e.Origin, p, $"type parameter '{tp.Name}' (passed in as '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' is not allowed to use ORDINAL");
             }
             i++;
           }
@@ -340,9 +340,9 @@ namespace Microsoft.Dafny {
               : e.Function.TypeArgs[i - e.PreTypeApplication_AtEnclosingClass.Count];
           if (!IsDetermined(p)) {
             var hint = e.Name.StartsWith(HideRevealStmt.RevealLemmaPrefix) ? ". If you are making an opaque function, make sure that the function can be called." : "";
-            cus.ReportError(e.tok, $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
+            cus.ReportError(e.Origin, $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
           } else {
-            CheckContainsNoOrdinal(e.tok, p, $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");
+            CheckContainsNoOrdinal(e.Origin, p, $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");
           }
           i++;
         }
@@ -352,15 +352,15 @@ namespace Microsoft.Dafny {
         foreach (var lhsPattern in e.LHSs) {
           foreach (var bv in lhsPattern.Vars) {
             CheckVariable(bv, "bound variable");
-            CheckTypeArgsContainNoOrdinal(bv.tok, bv.PreType);
+            CheckTypeArgsContainNoOrdinal(bv.Origin, bv.PreType);
           }
         }
 
       } else if (expr is IdentifierExpr) {
         // by specializing for IdentifierExpr, error messages will be clearer
-        CheckPreTypeIsDetermined(expr.tok, expr.PreType, "variable");
+        CheckPreTypeIsDetermined(expr.Origin, expr.PreType, "variable");
 
-      } else if (CheckPreTypeIsDetermined(expr.tok, expr.PreType, "expression")) {
+      } else if (CheckPreTypeIsDetermined(expr.Origin, expr.PreType, "expression")) {
         if (expr is UnaryOpExpr uop) {
           var resolvedOp = (uop.Op, PreTypeResolver.AncestorName(uop.E.PreType)) switch {
             (UnaryOpExpr.Opcode.Not, PreType.TypeNameBool) => UnaryOpExpr.ResolvedOpcode.BoolNot,
@@ -527,7 +527,7 @@ namespace Microsoft.Dafny {
 
     void CheckVariable(IVariable v, string whatIsBeingChecked) {
       if (!IsDetermined(v.PreType)) {
-        cus.ReportError(v.Tok, $"type of {whatIsBeingChecked} '{v.Name}' could not be determined{UndeterminedPreTypeToString(v.PreType)}; please specify the type explicitly");
+        cus.ReportError(v.Origin, $"type of {whatIsBeingChecked} '{v.Name}' could not be determined{UndeterminedPreTypeToString(v.PreType)}; please specify the type explicitly");
       }
     }
 

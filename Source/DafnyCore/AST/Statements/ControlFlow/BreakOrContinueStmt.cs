@@ -31,9 +31,9 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
     }
   }
 
-  public BreakOrContinueStmt(IOrigin rangeOrigin, IOrigin targetLabel, bool isContinue, Attributes attributes = null)
-    : base(rangeOrigin, attributes) {
-    Contract.Requires(rangeOrigin != null);
+  public BreakOrContinueStmt(IOrigin origin, IOrigin targetLabel, bool isContinue, Attributes attributes = null)
+    : base(origin, attributes) {
+    Contract.Requires(origin != null);
     Contract.Requires(targetLabel != null);
     TargetLabel = targetLabel;
     IsContinue = isContinue;
@@ -43,16 +43,16 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
   /// For "isContinue == false", represents the statement "break ^breakAndContinueCount ;".
   /// For "isContinue == true", represents the statement "break ^(breakAndContinueCount - 1) continue;".
   /// </summary>
-  public BreakOrContinueStmt(IOrigin rangeOrigin, int breakAndContinueCount, bool isContinue, Attributes attributes = null)
-    : base(rangeOrigin, attributes) {
-    Contract.Requires(rangeOrigin != null);
+  public BreakOrContinueStmt(IOrigin origin, int breakAndContinueCount, bool isContinue, Attributes attributes = null)
+    : base(origin, attributes) {
+    Contract.Requires(origin != null);
     Contract.Requires(1 <= breakAndContinueCount);
     BreakAndContinueCount = breakAndContinueCount;
     IsContinue = isContinue;
   }
 
   public IEnumerable<Reference> GetReferences() {
-    return TargetStmt is IHasNavigationToken target ? new[] { new Reference(TargetLabel ?? Tok, target) } : Enumerable.Empty<Reference>();
+    return TargetStmt is IHasNavigationToken target ? new[] { new Reference(TargetLabel ?? Origin, target) } : Enumerable.Empty<Reference>();
   }
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,

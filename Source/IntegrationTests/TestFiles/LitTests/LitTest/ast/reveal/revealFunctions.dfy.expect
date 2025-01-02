@@ -1,25 +1,25 @@
 revealFunctions.dfy(90,19): Info: auto-accumulator tail recursive
 revealFunctions.dfy(90,19): Info: decreases x
-revealFunctions.dfy(15,12): Info: hidden functions: P
-revealFunctions.dfy(22,12): Info: hidden functions: P
-revealFunctions.dfy(49,21): Info: hidden functions: OpaqueFunc
-revealFunctions.dfy(57,11): Info: hidden functions: Natty
-revealFunctions.dfy(60,11): Info: hidden functions: Natty
+revealFunctions.dfy(15,4): Info: hidden functions: P
+revealFunctions.dfy(22,4): Info: hidden functions: P
+revealFunctions.dfy(49,4): Info: hidden functions: OpaqueFunc
+revealFunctions.dfy(57,2): Info: hidden functions: Natty
+revealFunctions.dfy(60,2): Info: hidden functions: Natty
 revealFunctions.dfy(79,4): Info: hidden functions: Obj
-revealFunctions.dfy(81,18): Info: hidden functions: Obj
-revealFunctions.dfy(117,14): Info: hidden functions: Outer
-revealFunctions.dfy(118,14): Info: hidden functions: Inner
-revealFunctions.dfy(121,14): Info: hidden functions: Outer
+revealFunctions.dfy(81,4): Info: hidden functions: Obj
+revealFunctions.dfy(117,2): Info: hidden functions: Outer
+revealFunctions.dfy(118,2): Info: hidden functions: Inner
+revealFunctions.dfy(121,2): Info: hidden functions: Outer
 revealFunctions.dfy(131,10): Info: hidden functions: HideInFunction
-revealFunctions.dfy(134,10): Info: hidden functions: P
-revealFunctions.dfy(138,10): Info: hidden functions: P
-revealFunctions.dfy(15,12): Error: assertion might not hold
-revealFunctions.dfy(22,12): Error: assertion might not hold
-revealFunctions.dfy(49,21): Error: assertion might not hold
-revealFunctions.dfy(117,14): Error: assertion might not hold
-revealFunctions.dfy(118,14): Error: assertion might not hold
-revealFunctions.dfy(121,14): Error: assertion might not hold
-revealFunctions.dfy(134,10): Error: assertion might not hold
-revealFunctions.dfy(138,10): Error: assertion might not hold
+revealFunctions.dfy(134,2): Info: hidden functions: P
+revealFunctions.dfy(138,2): Info: hidden functions: P
+revealFunctions.dfy(15,4): Error: assertion might not hold
+revealFunctions.dfy(22,4): Error: assertion might not hold
+revealFunctions.dfy(49,4): Error: assertion might not hold
+revealFunctions.dfy(117,2): Error: assertion might not hold
+revealFunctions.dfy(118,2): Error: assertion might not hold
+revealFunctions.dfy(121,2): Error: assertion might not hold
+revealFunctions.dfy(134,2): Error: assertion might not hold
+revealFunctions.dfy(138,2): Error: assertion might not hold
 
 Dafny program verifier finished with 25 verified, 8 errors

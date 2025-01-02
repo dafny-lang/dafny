@@ -8,7 +8,7 @@ public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr>
   public readonly Expression Rhs;
   public readonly Expression Body;
 
-  public LetOrFailExpr(IOrigin tok, CasePattern<BoundVar>/*?*/ lhs, Expression rhs, Expression body) : base(tok) {
+  public LetOrFailExpr(IOrigin origin, CasePattern<BoundVar>/*?*/ lhs, Expression rhs, Expression body) : base(origin) {
     Lhs = lhs;
     Rhs = rhs;
     Body = body;

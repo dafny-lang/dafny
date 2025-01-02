@@ -88,13 +88,13 @@ public class MatchFlattener : IRewriter {
     CaseBody compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchExpr.Source), paths);
     if (compiledMatch is null) {
       if (nestedMatchExpr.Source.Type.AsDatatype == null) {
-        var havoc = LetExpr.Havoc(nestedMatchExpr.tok, nestedMatchExpr.Type);
-        return new StmtExpr(nestedMatchExpr.tok, AssertStmt.CreateErrorAssert(nestedMatchExpr, NoCasesMessage), havoc) {
+        var havoc = LetExpr.Havoc(nestedMatchExpr.Origin, nestedMatchExpr.Type);
+        return new StmtExpr(nestedMatchExpr.Origin, AssertStmt.CreateErrorAssert(nestedMatchExpr, NoCasesMessage), havoc) {
           Type = nestedMatchExpr.Type
         };
       }
 
-      return new MatchExpr(nestedMatchExpr.tok, nestedMatchExpr.Source, new List<MatchCaseExpr>(),
+      return new MatchExpr(nestedMatchExpr.Origin, nestedMatchExpr.Source, new List<MatchCaseExpr>(),
         nestedMatchExpr.UsesOptionalBraces) {
         Type = nestedMatchExpr.Type
       };
@@ -148,7 +148,7 @@ public class MatchFlattener : IRewriter {
 
   private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
     foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
-      yield return new NestedMatchCaseStmt(c.Tok, pat,
+      yield return new NestedMatchCaseStmt(c.Origin, pat,
         c.Body,
         c.Attributes);
     }
@@ -160,12 +160,12 @@ public class MatchFlattener : IRewriter {
         return pat;
       case IdPattern p:
         if (inDisjunctivePattern && p.ResolvedLit == null && p.Arguments == null && !p.IsWildcardPattern) {
-          return new IdPattern(p.Tok, "_", null, p.IsGhost);
+          return new IdPattern(p.Origin, "_", null, p.IsGhost);
         }
         var args = p.Arguments?.ConvertAll(a => RemoveIllegalSubpatterns(a, inDisjunctivePattern));
-        return new IdPattern(p.Tok, p.Id, p.Type, args, p.IsGhost) { ResolvedLit = p.ResolvedLit, BoundVar = p.BoundVar };
+        return new IdPattern(p.Origin, p.Id, p.Type, args, p.IsGhost) { ResolvedLit = p.ResolvedLit, BoundVar = p.BoundVar };
       case DisjunctivePattern p:
-        return new IdPattern(p.Tok, "_", null, p.IsGhost);
+        return new IdPattern(p.Origin, "_", null, p.IsGhost);
       default:
         Contract.Assert(false);
         return null;
@@ -189,7 +189,7 @@ public class MatchFlattener : IRewriter {
 
   private IEnumerable<NestedMatchCaseExpr> FlattenNestedMatchCaseExpr(NestedMatchCaseExpr c) {
     foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
-      yield return new NestedMatchCaseExpr(c.Tok, pat, c.Body, c.Attributes);
+      yield return new NestedMatchCaseExpr(c.Origin, pat, c.Body, c.Attributes);
     }
   }
 
@@ -280,7 +280,7 @@ public class MatchFlattener : IRewriter {
             Contract.Assert(false);
             throw new cce.UnreachableException(); // non-nullary constructors of a non-datatype;
           } else {
-            Reporter.Error(MessageSource.Resolver, currPattern.Tok,
+            Reporter.Error(MessageSource.Resolver, currPattern.Origin,
               "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, currPattern.Id);
           }
         }
@@ -317,9 +317,9 @@ public class MatchFlattener : IRewriter {
       var constructorPaths = new List<PatternPath>();
 
       // create a bound variable for each formal to use in the MatchCase for this constructor
-      // using the currMatchee.tok to get a location closer to the error if something goes wrong
+      // using the currMatchee.Tok to get a location closer to the error if something goes wrong
       var freshPatBV = ctor.Formals.ConvertAll(
-        x => CreateBoundVariable(headMatchee.tok, x.Type.Subst(subst), mti.CodeContext.CodeContext));
+        x => CreateBoundVariable(headMatchee.Origin, x.Type.Subst(subst), mti.CodeContext.CodeContext));
 
       // rhs to bind to head-patterns that are bound variables
       var rhsExpr = headMatchee;
@@ -358,7 +358,7 @@ public class MatchFlattener : IRewriter {
             }
 
             var freshArgs = ctor.Formals.ConvertAll(x =>
-              CreateFreshBindingPattern(idPattern.Tok, x.Type.Subst(subst), mti.CodeContext.CodeContext, x.IsGhost));
+              CreateFreshBindingPattern(idPattern.Origin, x.Type.Subst(subst), mti.CodeContext.CodeContext, x.IsGhost));
 
             tail.Patterns.InsertRange(0, freshArgs);
             var newPath = LetBindNonWildCard(idPattern, rhsExpr, tail);
@@ -370,7 +370,7 @@ public class MatchFlattener : IRewriter {
         }
       }
       // Add variables corresponding to the arguments of the current constructor (ctor) to the matchees
-      var freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.tok, x));
+      var freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.Origin, x));
       // Update the current context
       var newContext = context.FillHole(new IdCtx(ctor));
       var body = CompilePatternPaths(mti, newContext, LinkedLists.FromList(freshMatchees, remainingMatchees), constructorPaths);
@@ -380,7 +380,7 @@ public class MatchFlattener : IRewriter {
       }
 
       // Otherwise, add the case the new match created at [3]
-      var tok = body.Tok ?? new AutoGeneratedOrigin(headMatchee.tok);
+      var tok = body.Tok ?? new AutoGeneratedOrigin(headMatchee.Origin);
       var fromBoundVar = ctorToFromBoundVar.Contains(ctor.Name);
       var newMatchCase = CreateMatchCase(tok, ctor, freshPatBV, body, fromBoundVar);
       newMatchCases.Add(newMatchCase);
@@ -532,9 +532,9 @@ public class MatchFlattener : IRewriter {
     var currBlock = blocks.First();
     blocks = blocks.Skip(1).ToList();
 
-    var tok = matchee.Tok;
-    var range = matchee.Tok;
-    var guard = new BinaryExpr(mti.Match.Tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1) {
+    var tok = matchee.Origin;
+    var range = matchee.Origin;
+    var guard = new BinaryExpr(mti.Match.Origin, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1) {
       ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon,
       Type = Type.Bool
     };
@@ -618,8 +618,8 @@ public class MatchFlattener : IRewriter {
     public readonly int[] CaseCopyCount;
 
     public IOrigin Tok => Match switch {
-      NestedMatchExpr matchExpr => matchExpr.tok,
-      NestedMatchStmt matchStmt => matchStmt.Tok,
+      NestedMatchExpr matchExpr => matchExpr.Origin,
+      NestedMatchStmt matchStmt => matchStmt.Origin,
       _ => throw new ArgumentOutOfRangeException(nameof(Match))
     };
 
@@ -629,7 +629,7 @@ public class MatchFlattener : IRewriter {
     public MatchCompilationState(INestedMatch match, IReadOnlyList<NestedMatchCase> flattenedCases, ResolutionContext codeContext,
       Attributes attrs = null) {
       this.Match = match;
-      this.CaseTok = flattenedCases.Select(c => c.Tok).ToArray();
+      this.CaseTok = flattenedCases.Select(c => c.Origin).ToArray();
       this.CaseCopyCount = new int[flattenedCases.Count];
       Array.Fill(CaseCopyCount, 1);
       this.CodeContext = codeContext;
@@ -648,7 +648,7 @@ public class MatchFlattener : IRewriter {
     IReadOnlyList<Statement> Body, Attributes Attributes) : PatternPath(Tok, CaseId, Patterns) {
 
     public StmtPatternPath(int caseId, NestedMatchCaseStmt x, Attributes attrs = null) :
-      this(x.Tok, caseId, new List<ExtendedPattern>() { x.Pat },
+      this(x.Origin, caseId, new List<ExtendedPattern>() { x.Pat },
       new List<Statement>(x.Body), attrs) {
       Contract.Requires(!(x.Pat is DisjunctivePattern)); // No nested or patterns
     }
@@ -665,7 +665,7 @@ public class MatchFlattener : IRewriter {
   private record ExprPatternPath(IOrigin Tok, int CaseId, List<ExtendedPattern> Patterns,
     Expression Body, Attributes Attributes) : PatternPath(Tok, CaseId, Patterns) {
 
-    public ExprPatternPath(int caseId, NestedMatchCaseExpr x, Attributes attrs = null) : this(x.Tok, caseId,
+    public ExprPatternPath(int caseId, NestedMatchCaseExpr x, Attributes attrs = null) : this(x.Origin, caseId,
       new List<ExtendedPattern>() { x.Pat }, x.Body, attrs) {
     }
 
@@ -703,7 +703,7 @@ public class MatchFlattener : IRewriter {
     // to point at the bound variable, not at the source expression
     Expression expr = genExpr;
     if (genExpr.Resolved is IdentifierExpr idExpr) {
-      expr = new IdentifierExpr(var.Tok, idExpr.Var);
+      expr = new IdentifierExpr(var.Origin, idExpr.Var);
     }
     if (bodyPath is StmtPatternPath stmtPath) {
       if (stmtPath.Body.Count <= 0 && var.Type is TypeProxy) {
@@ -732,14 +732,14 @@ public class MatchFlattener : IRewriter {
     if (bodyPath is ExprPatternPath exprPath) {
       var cBVar = (BoundVar)var.BoundVar;
       cBVar.IsGhost = isGhost;
-      var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
+      var cPat = new CasePattern<BoundVar>(cBVar.Origin, cBVar);
       cPat.AssembleExpr(new List<Type>());
       var cPats = new List<CasePattern<BoundVar>>();
       cPats.Add(cPat);
       var exprs = new List<Expression>();
       exprs.Add(expr);
 
-      var letExpr = new LetExpr(cBVar.tok, cPats, exprs, exprPath.Body, true);
+      var letExpr = new LetExpr(cBVar.Origin, cPats, exprs, exprPath.Body, true);
       letExpr.Type = exprPath.Body.Type;
       return new ExprPatternPath(exprPath.Tok, exprPath.CaseId, exprPath.Patterns, letExpr, exprPath.Attributes);
     } else {

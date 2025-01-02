@@ -3,7 +3,7 @@ module {:extern} Std.JavaConcurrent replaces Concurrent {
   class {:extern} MutableMap<K(==), V(==)> ... {
 
     @Axiom
-    constructor {:extern} (ghost inv: (K, V) -> bool)
+    constructor {:extern} (ghost inv: (K, V) -> bool, bytesKeys: bool)
 
     ghost predicate Valid()
     {

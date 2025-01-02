@@ -1,4 +1,4 @@
-Processing command (at Snapshots0.v0.dfy(4,10)) assert {:id "id1"} Lit(false);
+Processing command (at Snapshots0.v0.dfy(4,3)) assert {:id "id1"} Lit(false);
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 1 verified, 0 errors
@@ -7,8 +7,8 @@ Processing call to procedure bar (call) in implementation foo (correctness) (at 
   >>> added after: a##cached##0 := a##cached##0 && ##extracted_function##1(call0old#AT#$Heap, $Heap);
 Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##1(call0old#AT#$Heap, $Heap);
   >>> AssumeNegationOfAssumptionVariable
-Processing command (at Snapshots0.v1.dfy(4,10)) assert {:id "id5"} Lit(false);
+Processing command (at Snapshots0.v1.dfy(4,3)) assert {:id "id5"} Lit(false);
   >>> MarkAsPartiallyVerified
-Snapshots0.v1.dfy(4,9): Error: assertion might not hold
+Snapshots0.v1.dfy(4,2): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error

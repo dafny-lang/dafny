@@ -24,8 +24,8 @@ Twostate-Verification.dfy(33,13): Warning: Argument to 'old' does not dereferenc
 Twostate-Verification.dfy(313,38): Error: assertion might not hold
 Twostate-Verification.dfy(337,23): Error: a precondition for this call could not be proved
 Twostate-Verification.dfy(317,29): Related location: this is the precondition that could not be proved
-Twostate-Verification.dfy(359,18): Error: assertion might not hold
-Twostate-Verification.dfy(361,18): Error: assertion might not hold
+Twostate-Verification.dfy(359,6): Error: assertion might not hold
+Twostate-Verification.dfy(361,6): Error: assertion might not hold
 Twostate-Verification.dfy(384,17): Error: receiver argument could not be proved to be allocated in the two-state function's previous state
 Twostate-Verification.dfy(386,17): Error: receiver argument could not be proved to be allocated in the two-state function's previous state
 Twostate-Verification.dfy(391,26): Error: argument at index 0 for parameter 'c' could not be proved to be allocated in the two-state function's previous state -- if you add 'new' before the parameter declaration, like 'new c: Cell', arguments can refer to expressions possibly unallocated in the previous state
@@ -65,6 +65,6 @@ Twostate-Verification.dfy(37,26): Error: receiver could not be proved to be allo
 Twostate-Verification.dfy(41,32): Error: receiver argument could not be proved to be allocated in the state in which the function is invoked
 Twostate-Verification.dfy(56,26): Error: receiver could not be proved to be allocated in the state in which its fields are accessed
 Twostate-Verification.dfy(58,32): Error: receiver argument could not be proved to be allocated in the state in which the function is invoked
-Twostate-Verification.dfy(74,15): Error: assertion might not hold
+Twostate-Verification.dfy(74,4): Error: assertion might not hold
 
 Dafny program verifier finished with 66 verified, 42 errors

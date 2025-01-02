@@ -1,4 +1,4 @@
-git-issue-1256.dfy(21,11): Error: assertion might not hold
-git-issue-1256.dfy(22,11): Error: assertion might not hold
+git-issue-1256.dfy(21,2): Error: assertion might not hold
+git-issue-1256.dfy(22,2): Error: assertion might not hold
 
 Dafny program verifier finished with 15 verified, 2 errors

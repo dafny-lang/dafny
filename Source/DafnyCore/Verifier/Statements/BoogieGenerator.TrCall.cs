@@ -40,19 +40,19 @@ public partial class BoogieGenerator {
           string nm = CurrentIdGenerator.FreshId("$rhs##");
           var formalOutType = s.Method.Outs[i].Type.Subst(tySubst);
           var ty = TrType(formalOutType);
-          var var = locals.GetOrCreate(nm, () => new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty)));
-          bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
+          var var = locals.GetOrCreate(nm, () => new Bpl.LocalVariable(lhs.Origin, new Bpl.TypedIdent(lhs.Origin, nm, ty)));
+          bLhss[i] = new Bpl.IdentifierExpr(lhs.Origin, var.Name, ty);
         }
       }
     }
     Bpl.IdentifierExpr initHeap = null;
     if (codeContext is IteratorDecl) {
       // var initHeap := $Heap;
-      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, CurrentIdGenerator.FreshId("$initHeapCallStmt#"), Predef.HeapType));
+      var initHeapVar = new Bpl.LocalVariable(s.Origin, new Bpl.TypedIdent(s.Origin, CurrentIdGenerator.FreshId("$initHeapCallStmt#"), Predef.HeapType));
       locals.Add(initHeapVar);
-      initHeap = new Bpl.IdentifierExpr(s.Tok, initHeapVar);
+      initHeap = new Bpl.IdentifierExpr(s.Origin, initHeapVar);
       // initHeap := $Heap;
-      builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
+      builder.Add(Bpl.Cmd.SimpleAssign(s.Origin, initHeap, etran.HeapExpr));
     }
     builder.Add(new CommentCmd("TrCallStmt: Before ProcessCallStmt"));
     ProcessCallStmt(s, tySubst, actualReceiver, bLhss, lhsTypes, builder, locals, etran);
@@ -82,15 +82,15 @@ public partial class BoogieGenerator {
       }
 
       Bpl.Expr bRhs = bLhss[i];  // the RHS (bRhs) of the assignment to the actual call-LHS (lhs) was a LHS (bLhss[i]) in the Boogie call statement
-      CheckSubrange(lhs.tok, bRhs, s.Method.Outs[i].Type.Subst(tySubst), rhsTypeConstraint, null, builder);
-      bRhs = CondApplyBox(lhs.tok, bRhs, lhs.Type, lhsType);
+      CheckSubrange(lhs.Origin, bRhs, s.Method.Outs[i].Type.Subst(tySubst), rhsTypeConstraint, null, builder);
+      bRhs = CondApplyBox(lhs.Origin, bRhs, lhs.Type, lhsType);
 
       lhsBuilders[i](bRhs, false, builder, etran);
     }
     if (codeContext is IteratorDecl) {
       var iter = (IteratorDecl)codeContext;
       Contract.Assert(initHeap != null);
-      RecordNewObjectsIn_New(s.Tok, iter, initHeap, etran.HeapCastToIdentifierExpr, builder, locals, etran);
+      RecordNewObjectsIn_New(s.Origin, iter, initHeap, etran.HeapCastToIdentifierExpr, builder, locals, etran);
     }
     builder.AddCaptureState(s);
   }
@@ -160,7 +160,7 @@ public partial class BoogieGenerator {
       if (bReceiver == null) {
         TrStmt_CheckWellformed(dafnyReceiver, builder, locals, etran, true);
         if (!(dafnyReceiver is ThisExpr)) {
-          CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
+          CheckNonNull(dafnyReceiver.Origin, dafnyReceiver, builder, etran, null);
         }
       }
       var obj = etran.TrExpr(receiver);
@@ -185,10 +185,10 @@ public partial class BoogieGenerator {
       var local = new LocalVariable(formal.Origin, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
       local.type = local.SyntacticType;  // resolve local here
       var localName = local.AssignUniqueName(CurrentDeclaration.IdGenerator);
-      var ie = new IdentifierExpr(local.Tok, localName);
+      var ie = new IdentifierExpr(local.Origin, localName);
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
       substMap.Add(formal, ie);
-      locals.GetOrCreate(localName, () => new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, localName, TrType(local.Type))));
+      locals.GetOrCreate(localName, () => new Bpl.LocalVariable(local.Origin, new Bpl.TypedIdent(local.Origin, localName, TrType(local.Type))));
 
       var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
       Bpl.Expr bActual;
@@ -196,12 +196,12 @@ public partial class BoogieGenerator {
       if (i == 0 && method is ExtremeLemma && isRecursiveCall) {
         // Treat this call to M(args) as a call to the corresponding prefix lemma M#(_k - 1, args), so insert an argument here.
         var k = ((PrefixLemma)callee).K;
-        var bplK = new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(k.Type));
-        dActual = Expression.CreateSubtract(Expression.CreateIdentExpr(k), Expression.CreateNatLiteral(k.tok, 1, k.Type));
+        var bplK = new Bpl.IdentifierExpr(k.Origin, k.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(k.Type));
+        dActual = Expression.CreateSubtract(Expression.CreateIdentExpr(k), Expression.CreateNatLiteral(k.Origin, 1, k.Type));
         if (k.Type.IsBigOrdinalType) {
-          bActual = FunctionCall(k.tok, "ORD#Minus", Predef.BigOrdinalType,
+          bActual = FunctionCall(k.Origin, "ORD#Minus", Predef.BigOrdinalType,
             bplK,
-            FunctionCall(k.tok, "ORD#FromNat", Predef.BigOrdinalType, Bpl.Expr.Literal(1)));
+            FunctionCall(k.Origin, "ORD#FromNat", Predef.BigOrdinalType, Bpl.Expr.Literal(1)));
         } else {
           bActual = Bpl.Expr.Sub(bplK, Bpl.Expr.Literal(1));
         }
@@ -218,12 +218,12 @@ public partial class BoogieGenerator {
         builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));
         // Check the subrange without boxing
         var beforeBox = etran.TrExpr(actual);
-        CheckSubrange(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst), actual, builder);
-        bActual = AdaptBoxing(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst));
+        CheckSubrange(actual.Origin, beforeBox, actual.Type, formal.Type.Subst(tySubst), actual, builder);
+        bActual = AdaptBoxing(actual.Origin, beforeBox, actual.Type, formal.Type.Subst(tySubst));
         dActual = actual;
       }
       directSubstMap.Add(formal, dActual);
-      Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
+      Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.Origin, param, bActual);
       builder.Add(cmd);
       ins.Add(AdaptBoxing(ToDafnyToken(flags.ReportRanges, param.tok), param, formal.Type.Subst(tySubst), formal.Type));
     }
@@ -235,26 +235,26 @@ public partial class BoogieGenerator {
     // check that its arguments were all available at that time as well.
     if (etran.UsesOldHeap) {
       if (!method.IsStatic && !(method is Constructor)) {
-        Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
+        Bpl.Expr wh = GetWhereClause(receiver.Origin, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
         if (wh != null) {
           var desc = new IsAllocated("receiver argument", "in the state in which the method is invoked", receiver);
-          builder.Add(Assert(receiver.tok, wh, desc, builder.Context));
+          builder.Add(Assert(receiver.Origin, wh, desc, builder.Context));
         }
       }
       for (int i = 0; i < Args.Count; i++) {
         Expression ee = Args[i];
-        Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
+        Bpl.Expr wh = GetWhereClause(ee.Origin, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
         if (wh != null) {
           var desc = new IsAllocated("argument", "in the state in which the method is invoked", ee);
-          builder.Add(Assert(ee.tok, wh, desc, builder.Context));
+          builder.Add(Assert(ee.Origin, wh, desc, builder.Context));
         }
       }
     } else if (method is TwoStateLemma) {
       if (!method.IsStatic) {
-        Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
+        Bpl.Expr wh = GetWhereClause(receiver.Origin, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
         if (wh != null) {
           var desc = new IsAllocated("receiver argument", "in the two-state lemma's previous state", receiver, atLabel);
-          builder.Add(Assert(receiver.tok, wh, desc, builder.Context));
+          builder.Add(Assert(receiver.Origin, wh, desc, builder.Context));
         }
       }
       Contract.Assert(callee.Ins.Count == Args.Count);
@@ -262,7 +262,7 @@ public partial class BoogieGenerator {
         var formal = callee.Ins[i];
         if (formal.IsOld) {
           Expression ee = Args[i];
-          Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
+          Bpl.Expr wh = GetWhereClause(ee.Origin, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
             var pIdx = Args.Count == 1 ? "" : " at index " + i;
             var desc = new IsAllocated(
@@ -271,7 +271,7 @@ public partial class BoogieGenerator {
               ee,
               atLabel
             );
-            builder.Add(Assert(ee.tok, wh, desc, builder.Context));
+            builder.Add(Assert(ee.Origin, wh, desc, builder.Context));
           }
         }
       }

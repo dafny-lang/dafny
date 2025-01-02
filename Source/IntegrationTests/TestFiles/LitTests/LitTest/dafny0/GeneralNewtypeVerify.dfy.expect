@@ -1,4 +1,4 @@
-GeneralNewtypeVerify.dfy(10,11): Error: assertion might not hold
+GeneralNewtypeVerify.dfy(10,4): Error: assertion might not hold
 GeneralNewtypeVerify.dfy(20,21): Error: result of operation might violate newtype constraint for 'NoBool'
 GeneralNewtypeVerify.dfy(32,11): Error: cannot prove termination; try supplying a decreases clause
 GeneralNewtypeVerify.dfy(73,9): Error: result of operation might violate newtype constraint for 'TrueBool'
@@ -18,7 +18,7 @@ GeneralNewtypeVerify.dfy(169,13): Error: result of operation might violate newty
 GeneralNewtypeVerify.dfy(171,13): Error: result of operation might violate newtype constraint for 'FalseBool'
 GeneralNewtypeVerify.dfy(173,13): Error: result of operation might violate newtype constraint for 'FalseBool'
 GeneralNewtypeVerify.dfy(179,13): Error: prefix-equality limit must be at least 0
-GeneralNewtypeVerify.dfy(196,11): Error: assertion might not hold
+GeneralNewtypeVerify.dfy(196,4): Error: assertion might not hold
 GeneralNewtypeVerify.dfy(247,21): Error: result of operation might violate newtype constraint for 'UpperCase'
 GeneralNewtypeVerify.dfy(266,13): Error: result of operation might violate subset type constraint for 'Subset'
 GeneralNewtypeVerify.dfy(268,13): Error: result of operation might violate newtype constraint for 'MyChar'

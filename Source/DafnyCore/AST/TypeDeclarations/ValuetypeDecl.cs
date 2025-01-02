@@ -16,7 +16,7 @@ public class ValuetypeDecl : TopLevelDeclWithMembers {
   public override bool AcceptThis => true;
 
   public ValuetypeDecl(string name, ModuleDefinition module, Func<Type, bool> typeTester, Func<List<Type>, Type> typeCreator /*?*/)
-    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), new List<MemberDecl>(), null, false, null) {
+    : base(SourceOrigin.NoToken, new Name(name), module, new List<TypeParameter>(), new List<MemberDecl>(), null, false, null) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeTester != null);
@@ -34,7 +34,7 @@ public class ValuetypeDecl : TopLevelDeclWithMembers {
     if (typeParameterVariance != null) {
       for (int i = 0; i < typeParameterVariance.Count; i++) {
         var variance = typeParameterVariance[i];
-        var tp = new TypeParameter(RangeToken.NoToken, new Name(((char)('T' + i)).ToString()), variance) {
+        var tp = new TypeParameter(SourceOrigin.NoToken, new Name(((char)('T' + i)).ToString()), variance) {
           Parent = this,
           PositionalIndex = i
         };
@@ -45,7 +45,7 @@ public class ValuetypeDecl : TopLevelDeclWithMembers {
 
   public ValuetypeDecl(string name, ModuleDefinition module, List<TypeParameter> typeParameters,
     List<MemberDecl> members, Attributes attributes, Func<Type, bool> typeTester, Func<List<Type>, Type> /*?*/ typeCreator)
-    : base(RangeToken.NoToken, new Name(name), module, typeParameters, members, attributes, false) {
+    : base(SourceOrigin.NoToken, new Name(name), module, typeParameters, members, attributes, false) {
     this.typeTester = typeTester;
     this.typeCreator = typeCreator;
   }

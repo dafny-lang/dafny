@@ -20,11 +20,11 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
     GoingUp = original.GoingUp;
   }
 
-  public ForLoopStmt(IOrigin rangeOrigin, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
+  public ForLoopStmt(IOrigin origin, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt /*?*/ body, Attributes attrs)
-    : base(rangeOrigin, invariants, decreases, mod, body, attrs) {
-    Contract.Requires(rangeOrigin != null);
+    : base(origin, invariants, decreases, mod, body, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(loopIndexVariable != null);
     Contract.Requires(start != null);
     Contract.Requires(invariants != null);
@@ -87,12 +87,12 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
 
     var s = this;
     if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
     }
 
     s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
     if (!mustBeErasable && s.IsGhost) {
-      reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
+      reporter.Info(MessageSource.Resolver, s.Origin, "ghost for-loop");
     }
     if (s.IsGhost) {
       if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {

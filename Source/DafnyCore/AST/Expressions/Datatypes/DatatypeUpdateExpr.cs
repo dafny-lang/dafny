@@ -34,9 +34,9 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
     }
   }
 
-  public DatatypeUpdateExpr(IOrigin tok, Expression root, List<Tuple<IOrigin, string, Expression>> updates)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public DatatypeUpdateExpr(IOrigin origin, Expression root, List<Tuple<IOrigin, string, Expression>> updates)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(root != null);
     Contract.Requires(updates != null);
     Contract.Requires(updates.Count != 0);

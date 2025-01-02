@@ -71,7 +71,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
         if (IsGhostStatementToMark(statement)) {
-          var list = GhostDiagnostics.GetOrCreate(statement.Tok.Uri, () => new List<Range>());
+          var list = GhostDiagnostics.GetOrCreate(statement.Origin.Uri, () => new List<Range>());
           list.Add(GetRange(statement));
         } else {
           base.Visit(statement);
@@ -79,7 +79,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       }
 
       private bool IsGhostStatementToMark(Statement statement) {
-        return statement.IsGhost && statement.Tok.line > 0;
+        return statement.IsGhost && statement.Origin.line > 0;
       }
 
       private static Range GetRange(Statement statement) {
@@ -92,21 +92,21 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       private static Range GetRange(AssignStatement updateStatement) {
         IOrigin startToken;
         if (updateStatement.Lhss.Count > 0) {
-          startToken = updateStatement.Lhss[0].tok;
+          startToken = updateStatement.Lhss[0].Origin;
         } else if (updateStatement.ResolvedStatements.Count > 0) {
           // This branch handles the case where the UpdateStmt consists of an CallStmt without of left hand side.
           // otherwise, we'd only mark parentheses and the semi-colon of the CallStmt. 
           startToken = GetStartTokenFromResolvedStatement(updateStatement.ResolvedStatements[0]);
         } else {
-          startToken = updateStatement.Tok;
+          startToken = updateStatement.Origin;
         }
         return CreateRange(startToken, updateStatement.Origin.EndToken);
       }
 
       private static IOrigin GetStartTokenFromResolvedStatement(Statement resolvedStatement) {
         return resolvedStatement switch {
-          CallStmt callStatement => callStatement.MethodSelect.tok,
-          _ => resolvedStatement.Tok
+          CallStmt callStatement => callStatement.MethodSelect.Origin,
+          _ => resolvedStatement.Origin
         };
       }
 
