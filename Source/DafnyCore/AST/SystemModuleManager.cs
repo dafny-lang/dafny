@@ -404,7 +404,7 @@ public class SystemModuleManager {
     var formals = Util.Concat(f.EnclosingClass.TypeArgs, f.TypeArgs);
     var actuals = Util.Concat(typeArgumentsClass, typeArgumentsMember);
     var typeMap = TypeParameter.SubstitutionMap(formals, actuals);
-    return new ArrowType(f.Tok, atd, f.Ins.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
+    return new ArrowType(f.Origin, atd, f.Ins.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
   }
 
   public TupleTypeDecl TupleType(IOrigin tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {

@@ -219,7 +219,7 @@ namespace Microsoft.Dafny {
       string comment = null, bool warnWhenUnused = false, Bpl.QKeyValue attributes = null) {
       var expr = etran.TrExpr(dafnyExpr);
       var cmd = TrAssumeCmd(tok, extendExpr(expr), attributes);
-      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.Tok, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
+      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.Origin, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
       return cmd;
     }
 

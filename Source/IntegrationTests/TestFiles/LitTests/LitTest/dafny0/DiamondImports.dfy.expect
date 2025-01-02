@@ -1,7 +1,7 @@
-DiamondImports.dfy(34,15): Error: assertion might not hold
-DiamondImports.dfy(50,15): Error: assertion might not hold
-DiamondImports.dfy(101,15): Error: assertion might not hold
-DiamondImports.dfy(120,15): Error: assertion might not hold
-DiamondImports.dfy(140,25): Error: assertion might not hold
+DiamondImports.dfy(34,6): Error: assertion might not hold
+DiamondImports.dfy(50,6): Error: assertion might not hold
+DiamondImports.dfy(101,6): Error: assertion might not hold
+DiamondImports.dfy(120,6): Error: assertion might not hold
+DiamondImports.dfy(140,6): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 5 errors

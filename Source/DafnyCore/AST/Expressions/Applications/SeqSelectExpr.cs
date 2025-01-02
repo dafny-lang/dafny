@@ -24,9 +24,9 @@ public class SeqSelectExpr : Expression, ICloneable<SeqSelectExpr> {
     Contract.Invariant(!SelectOne || E1 == null);
   }
 
-  public SeqSelectExpr(IOrigin tok, bool selectOne, Expression seq, Expression e0, Expression e1, Token closeParen)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public SeqSelectExpr(IOrigin origin, bool selectOne, Expression seq, Expression e0, Expression e1, Token closeParen)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(seq != null);
     Contract.Requires(!selectOne || e1 == null);
 

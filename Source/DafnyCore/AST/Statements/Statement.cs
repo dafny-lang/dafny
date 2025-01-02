@@ -16,7 +16,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(Tok != null);
+    Contract.Invariant(Origin != null);
   }
 
   [FilledInDuringResolution] public bool IsGhost { get; set; }
@@ -35,13 +35,13 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     }
   }
 
-  protected Statement(IOrigin rangeOrigin, Attributes attrs) : base(rangeOrigin) {
+  protected Statement(IOrigin origin, Attributes attrs) : base(origin) {
     this.Attributes = attrs;
   }
 
-  protected Statement(IOrigin rangeOrigin)
-    : this(rangeOrigin, null) {
-    Contract.Requires(rangeOrigin != null);
+  protected Statement(IOrigin origin)
+    : this(origin, null) {
+    Contract.Requires(origin != null);
   }
 
   /// <summary>

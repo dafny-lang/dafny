@@ -83,28 +83,28 @@ public abstract class ErrorReporter {
     Contract.Requires(d != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, ParseErrors.ErrorId.none, d.Tok, format, args);
+    Error(source, ParseErrors.ErrorId.none, d.Origin, format, args);
   }
 
   public void Error(MessageSource source, Enum errorId, Declaration d, string msg, params object[] args) {
     Contract.Requires(d != null);
     Contract.Requires(msg != null);
     Contract.Requires(args != null);
-    Error(source, errorId, d.Tok, msg, args);
+    Error(source, errorId, d.Origin, msg, args);
   }
 
   public void Error(MessageSource source, Enum errorId, Statement s, string format, params object[] args) {
     Contract.Requires(s != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, errorId, s.Tok, format, args);
+    Error(source, errorId, s.Origin, format, args);
   }
 
   public void Error(MessageSource source, Statement s, string format, params object[] args) {
     Contract.Requires(s != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, ParseErrors.ErrorId.none, s.Tok, format, args);
+    Error(source, ParseErrors.ErrorId.none, s.Origin, format, args);
   }
 
   public void Error(MessageSource source, INode v, string format, params object[] args) {
@@ -125,14 +125,14 @@ public abstract class ErrorReporter {
     Contract.Requires(e != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, errorId, e.Tok, format, args);
+    Error(source, errorId, e.Origin, format, args);
   }
 
   public void Error(MessageSource source, Expression e, string format, params object[] args) {
     Contract.Requires(e != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, ParseErrors.ErrorId.none, e.Tok, format, args);
+    Error(source, ParseErrors.ErrorId.none, e.Origin, format, args);
   }
 
   public void Warning(MessageSource source, Enum errorId, IOrigin tok, string format, params object[] args) {

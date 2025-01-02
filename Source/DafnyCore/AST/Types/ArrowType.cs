@@ -29,18 +29,18 @@ public class ArrowType : UserDefinedType {
   /// <summary>
   /// Constructs a(n unresolved) arrow type.
   /// </summary>
-  public ArrowType(IOrigin tok, List<Type> args, Type result)
-    : base(tok, ArrowTypeName(args.Count), Util.Snoc(args, result)) {
-    Contract.Requires(tok != null);
+  public ArrowType(IOrigin origin, List<Type> args, Type result)
+    : base(origin, ArrowTypeName(args.Count), Util.Snoc(args, result)) {
+    Contract.Requires(origin != null);
     Contract.Requires(args != null);
     Contract.Requires(result != null);
   }
   /// <summary>
   /// Constructs and returns a resolved arrow type.
   /// </summary>
-  public ArrowType(IOrigin tok, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
-    : base(tok, ArrowTypeName(atd.Arity), atd, typeArgsAndResult) {
-    Contract.Requires(tok != null);
+  public ArrowType(IOrigin origin, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
+    : base(origin, ArrowTypeName(atd.Arity), atd, typeArgsAndResult) {
+    Contract.Requires(origin != null);
     Contract.Requires(atd != null);
     Contract.Requires(typeArgsAndResult != null);
     Contract.Requires(typeArgsAndResult.Count == atd.Arity + 1);
@@ -48,9 +48,9 @@ public class ArrowType : UserDefinedType {
   /// <summary>
   /// Constructs and returns a resolved arrow type.
   /// </summary>
-  public ArrowType(IOrigin tok, ArrowTypeDecl atd, List<Type> typeArgs, Type result)
-    : this(tok, atd, Util.Snoc(typeArgs, result)) {
-    Contract.Requires(tok != null);
+  public ArrowType(IOrigin origin, ArrowTypeDecl atd, List<Type> typeArgs, Type result)
+    : this(origin, atd, Util.Snoc(typeArgs, result)) {
+    Contract.Requires(origin != null);
     Contract.Requires(atd != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == atd.Arity);
@@ -133,11 +133,11 @@ public class ArrowType : UserDefinedType {
   }
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    return new ArrowType(Tok, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
+    return new ArrowType(Origin, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
   }
 
   public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new ArrowType(Tok, (ArrowTypeDecl)ResolvedClass, arguments);
+    return new ArrowType(Origin, (ArrowTypeDecl)ResolvedClass, arguments);
   }
 
   public override bool SupportsEquality {

@@ -6,9 +6,9 @@ public class TypeTestExpr : TypeUnaryExpr, ICloneable<TypeTestExpr> {
   public TypeTestExpr(Cloner cloner, TypeTestExpr original) : base(cloner, original) {
   }
 
-  public TypeTestExpr(IOrigin tok, Expression expr, Type toType)
-    : base(tok, expr, toType) {
-    Contract.Requires(tok != null);
+  public TypeTestExpr(IOrigin origin, Expression expr, Type toType)
+    : base(origin, expr, toType) {
+    Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     Contract.Requires(toType != null);
   }

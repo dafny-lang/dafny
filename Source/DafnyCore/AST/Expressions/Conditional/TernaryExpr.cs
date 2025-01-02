@@ -17,9 +17,9 @@ public class TernaryExpr : Expression, ICloneable<TernaryExpr> {
     E2 = cloner.CloneExpr(original.E2);
   }
 
-  public TernaryExpr(IOrigin tok, Opcode op, Expression e0, Expression e1, Expression e2)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public TernaryExpr(IOrigin origin, Opcode op, Expression e0, Expression e1, Expression e2)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);
     Contract.Requires(e2 != null);

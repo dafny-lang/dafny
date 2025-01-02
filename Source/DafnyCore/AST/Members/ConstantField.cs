@@ -12,9 +12,9 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
 
   public override bool IsOpaque { get; }
 
-  public ConstantField(IOrigin rangeOrigin, Name name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
-    : base(rangeOrigin, name, ID.UseIdParam, NonglobalVariable.SanitizeName(name.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
-    Contract.Requires(Tok != null);
+  public ConstantField(IOrigin origin, Name name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
+    : base(origin, name, ID.UseIdParam, NonglobalVariable.SanitizeName(name.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
+    Contract.Requires(Origin != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
     this.Rhs = rhs;
@@ -67,7 +67,7 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
     Rhs = Rewriter.AddRevealStmtsToExpression(Rhs, addedReveals);
 
     if (addedReveals.Any()) {
-      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Tok,
+      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Origin,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
     }
   }

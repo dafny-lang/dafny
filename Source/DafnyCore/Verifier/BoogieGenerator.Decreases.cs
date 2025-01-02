@@ -63,7 +63,7 @@ public partial class BoogieGenerator {
     var oldExpressions = new List<Expression>();
     var newExpressions = new List<Expression>();
     Bpl.Expr canCalls = Bpl.Expr.True;
-    if (tok.IsInherited(currentModule) && contextDecreases.All(e => !e.Tok.IsInherited(currentModule))) {
+    if (tok.IsInherited(currentModule) && contextDecreases.All(e => !e.Origin.IsInherited(currentModule))) {
       // the call site is inherited but all the context decreases expressions are new
       tok = new ForceCheckOrigin(tok);
     }
@@ -72,7 +72,7 @@ public partial class BoogieGenerator {
       Expression e0direct = Substitute(calleeDecreases[i], receiverReplacement, directSubstMap, typeMap);
       Expression e1 = contextDecreases[i];
       if (oldCaller) {
-        e1 = new OldExpr(e1.Tok, e1) {
+        e1 = new OldExpr(e1.Origin, e1) {
           Type = e1.Type // To ensure that e1 stays resolved
         };
       }
@@ -82,7 +82,7 @@ public partial class BoogieGenerator {
       }
       oldExpressions.Add(e1);
       newExpressions.Add(e0direct);
-      toks.Add(new NestedOrigin(tok, e1.Tok));
+      toks.Add(new NestedOrigin(tok, e1.Origin));
       canCalls = BplAnd(canCalls, etranCurrent.CanCallAssumption(e1));
       canCalls = BplAnd(canCalls, etranCurrent.CanCallAssumption(e0direct));
       callee.Add(etranCurrent.TrExpr(e0));
@@ -155,11 +155,11 @@ public partial class BoogieGenerator {
         string zeroStr = null;
         if (dafny0[k].Type.NormalizeExpandKeepConstraints().IsNumericBased(Type.NumericPersuasion.Int)) {
           zero = Bpl.Expr.Literal(0);
-          dafnyZero = Expression.CreateIntLiteral(dafny0[k].Tok, 0);
+          dafnyZero = Expression.CreateIntLiteral(dafny0[k].Origin, 0);
           zeroStr = "0";
         } else if (dafny0[k].Type.NormalizeExpandKeepConstraints().IsNumericBased(Type.NumericPersuasion.Real)) {
           zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
-          dafnyZero = Expression.CreateRealLiteral(dafny0[k].Tok, BigDec.ZERO);
+          dafnyZero = Expression.CreateRealLiteral(dafny0[k].Origin, BigDec.ZERO);
           zeroStr = "0.0";
         }
         if (zero != null) {

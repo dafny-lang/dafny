@@ -27,17 +27,17 @@ public static class OpaqueBlockVerifier {
     var implicitAssignedIdentifiers =
       variablesUsedInEnsures.Where(v => assignedVariables.Contains(v.Var) && generator.DefiniteAssignmentTrackers.ContainsKey(v.Var.UniqueName));
     foreach (var v in implicitAssignedIdentifiers) {
-      var expression = new AttributedExpression(Expression.CreateAssigned(v.Tok, v));
+      var expression = new AttributedExpression(Expression.CreateAssigned(v.Origin, v));
       totalEnsures.Add(expression);
       blockBuilder.Add(generator.Assert(
-        v.Tok, etran.TrExpr(expression.E),
+        v.Origin, etran.TrExpr(expression.E),
         new DefiniteAssignment("variable", v.Var.Name, "here"), builder.Context));
     }
 
     foreach (var ensure in block.Ensures) {
       totalEnsures.Add(ensure);
       blockBuilder.Add(generator.Assert(
-        ensure.Tok, etran.TrExpr(ensure.E),
+        ensure.Origin, etran.TrExpr(ensure.E),
         new OpaqueEnsuresDescription(), builder.Context,
         etran.TrAttributes(ensure.Attributes, null)));
     }

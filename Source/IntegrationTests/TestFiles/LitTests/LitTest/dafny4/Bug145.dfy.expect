@@ -1,4 +1,4 @@
 Bug145.dfy(11,24): Error: array size (dimension 0) might be negative
-Bug145.dfy(24,11): Error: assertion might not hold
+Bug145.dfy(24,4): Error: assertion might not hold
 
 Dafny program verifier finished with 1 verified, 2 errors

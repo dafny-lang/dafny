@@ -63,7 +63,7 @@ public class MatchStmtVerifier {
         foreach (Variable local in newLocals.Values) {
           havocIds.Add(new IdentifierExpr(local.tok, local));
         }
-        builder.Add(new HavocCmd(mc.Tok, havocIds));
+        builder.Add(new HavocCmd(mc.Origin, havocIds));
       }
 
       // translate the body into b
@@ -72,7 +72,7 @@ public class MatchStmtVerifier {
       generator.DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
 
       Expr guard = Expr.Eq(source, r);
-      ifCmd = new IfCmd(mc.Tok, guard, b.Collect(mc.Tok), ifCmd, els, BlockRewriter.AllowSplitQ);
+      ifCmd = new IfCmd(mc.Origin, guard, b.Collect(mc.Origin), ifCmd, els, BlockRewriter.AllowSplitQ);
       els = null;
       generator.CurrentIdGenerator.Pop();
     }
@@ -147,23 +147,23 @@ public class MatchStmtVerifier {
       var nm = p.AssignUniqueName(generator.CurrentDeclaration.IdGenerator);
       Variable local = declareLocals ? null : locals.GetValueOrDefault(nm);  // find previous local
       if (local == null) {
-        local = new Microsoft.Boogie.LocalVariable(p.Tok, new TypedIdent(p.Tok, nm, generator.TrType(p.Type)));
+        local = new Microsoft.Boogie.LocalVariable(p.Origin, new TypedIdent(p.Origin, nm, generator.TrType(p.Type)));
         locals.Add(local);
       } else {
         Contract.Assert(Equals(local.TypedIdent.Type, generator.TrType(p.Type)));
       }
       var pFormalType = mc.Ctor.Formals[i].Type.Subst(subst);
       var pIsAlloc = (isAlloc == BoogieGenerator.ISALLOC) ? generator.IsAllocContext.Var(p) : BoogieGenerator.NOALLOC;
-      Expr wh = generator.GetWhereClause(p.Tok, new IdentifierExpr(p.Tok, local), pFormalType, etran, pIsAlloc);
+      Expr wh = generator.GetWhereClause(p.Origin, new IdentifierExpr(p.Origin, local), pFormalType, etran, pIsAlloc);
       if (wh != null) {
-        localTypeAssumptions.Add(BoogieGenerator.TrAssumeCmd(p.Tok, wh));
+        localTypeAssumptions.Add(BoogieGenerator.TrAssumeCmd(p.Origin, wh));
       }
-      generator.CheckSubrange(p.Tok, new IdentifierExpr(p.Tok, local), pFormalType, p.Type,
-        new Microsoft.Dafny.IdentifierExpr(p.Tok, p), localTypeAssumptions);
-      args.Add(generator.CondApplyBox(mc.Tok, new IdentifierExpr(p.Tok, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
+      generator.CheckSubrange(p.Origin, new IdentifierExpr(p.Origin, local), pFormalType, p.Type,
+        new Microsoft.Dafny.IdentifierExpr(p.Origin, p), localTypeAssumptions);
+      args.Add(generator.CondApplyBox(mc.Origin, new IdentifierExpr(p.Origin, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
     }
-    IdentifierExpr id = new IdentifierExpr(mc.Tok, mc.Ctor.FullName, generator.Predef.DatatypeType);
-    return new NAryExpr(mc.Tok, new FunctionCall(id), args);
+    IdentifierExpr id = new IdentifierExpr(mc.Origin, mc.Ctor.FullName, generator.Predef.DatatypeType);
+    return new NAryExpr(mc.Origin, new FunctionCall(id), args);
   }
 
   public static void TrMatchExpr(BoogieGenerator boogieGenerator, MatchExpr me, WFOptions wfOptions, Variables locals,
@@ -174,13 +174,13 @@ public class MatchStmtVerifier {
     Expr src = etran.TrExpr(me.Source);
     IfCmd ifCmd = null;
     BoogieStmtListBuilder elsBldr = new BoogieStmtListBuilder(boogieGenerator, boogieGenerator.Options, builder.Context);
-    elsBldr.Add(BoogieGenerator.TrAssumeCmd(me.Tok, Expr.False));
-    StmtList els = elsBldr.Collect(me.Tok);
+    elsBldr.Add(BoogieGenerator.TrAssumeCmd(me.Origin, Expr.False));
+    StmtList els = elsBldr.Collect(me.Origin);
     foreach (var missingCtor in me.MissingCases) {
       // havoc all bound variables
       var b = new BoogieStmtListBuilder(boogieGenerator, boogieGenerator.Options, builder.Context);
       var newLocals = new Variables();
-      Expr r = boogieGenerator.CtorInvocation(me.Tok, missingCtor, etran, newLocals, b);
+      Expr r = boogieGenerator.CtorInvocation(me.Origin, missingCtor, etran, newLocals, b);
       locals.AddRange(newLocals.Values);
 
       if (newLocals.Count != 0) {
@@ -189,7 +189,7 @@ public class MatchStmtVerifier {
           havocIds.Add(new IdentifierExpr(local.tok, local));
         }
 
-        builder.Add(new HavocCmd(me.Tok, havocIds));
+        builder.Add(new HavocCmd(me.Origin, havocIds));
       }
 
       String missingStr = me.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
@@ -197,7 +197,7 @@ public class MatchStmtVerifier {
         new MatchIsComplete("expression", missingStr), builder.Context));
 
       Expr guard = Expr.Eq(src, r);
-      ifCmd = new IfCmd(me.Tok, guard, b.Collect(me.Tok), ifCmd, els, BlockRewriter.AllowSplitQ);
+      ifCmd = new IfCmd(me.Origin, guard, b.Collect(me.Origin), ifCmd, els, BlockRewriter.AllowSplitQ);
       els = null;
     }
 
@@ -208,7 +208,7 @@ public class MatchStmtVerifier {
       // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
 
       boogieGenerator.CheckWellformedWithResult(mc.Body, wfOptions, locals, b, etran, addResultCommands);
-      ifCmd = new IfCmd(mc.Tok, Expr.Eq(src, ct), b.Collect(mc.Tok), ifCmd, els);
+      ifCmd = new IfCmd(mc.Origin, Expr.Eq(src, ct), b.Collect(mc.Origin), ifCmd, els);
       els = null;
     }
 

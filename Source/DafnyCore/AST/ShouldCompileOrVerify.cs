@@ -31,7 +31,7 @@ public static class ShouldCompileOrVerify {
       }
     }
 
-    return program.UrisToCompile.Contains(module.Tok.Uri);
+    return program.UrisToCompile.Contains(module.Origin.Uri);
   }
 
   public static bool ShouldVerify(this INode declaration, CompilationData compilation) {
