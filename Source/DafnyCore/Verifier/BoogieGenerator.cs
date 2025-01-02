@@ -2121,7 +2121,7 @@ namespace Microsoft.Dafny {
 
       foreach (var frameExpression in calleeFrame) {
         var e = substMap != null ? Substitute(frameExpression.E, receiverReplacement, substMap) : frameExpression.E;
-        makeAssume(frameExpression.Tok, etran.CanCallAssumption(e));
+        makeAssume(frameExpression.Origin, etran.CanCallAssumption(e));
       }
 
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> enclosingFrame[o,f]);

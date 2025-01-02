@@ -159,7 +159,7 @@ namespace Microsoft.Dafny {
               CheckWellformedAndAssume(e.E0, wfOptions, locals, bAnd, etran, comment);
               CheckWellformedAndAssume(e.E1, wfOptions, locals, bAnd, etran, comment);
               var bImp = new BoogieStmtListBuilder(this, options, builder.Context);
-              bImp.Add(TrAssumeCmd(expr.Tok, etran.CanCallAssumption(expr)));
+              bImp.Add(TrAssumeCmd(expr.Origin, etran.CanCallAssumption(expr)));
               bImp.Add(TrAssumeCmdWithDependencies(etran, expr.Origin, expr, comment));
               builder.Add(new Bpl.IfCmd(expr.Origin, null, bAnd.Collect(expr.Origin), null, bImp.Collect(expr.Origin)));
             }
@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
               var b0 = new BoogieStmtListBuilder(this, options, builder.Context);
               CheckWellformedAndAssume(e.E0, wfOptions, locals, b0, etran, comment);
               var b1 = new BoogieStmtListBuilder(this, options, builder.Context);
-              b1.Add(TrAssumeCmd(expr.Tok, etran.CanCallAssumption(e.E0)));
+              b1.Add(TrAssumeCmd(expr.Origin, etran.CanCallAssumption(e.E0)));
               b1.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.Origin, e.E0, Expr.Not, comment));
               CheckWellformedAndAssume(e.E1, wfOptions, locals, b1, etran, comment);
               builder.Add(new Bpl.IfCmd(expr.Origin, null, b0.Collect(expr.Origin), null, b1.Collect(expr.Origin)));
@@ -196,7 +196,7 @@ namespace Microsoft.Dafny {
         CheckWellformedAndAssume(e.Test, wfOptions, locals, bThn, etran, comment);
         CheckWellformedAndAssume(e.Thn, wfOptions, locals, bThn, etran, comment);
         var bEls = new BoogieStmtListBuilder(this, options, builder.Context);
-        bEls.Add(TrAssumeCmd(expr.Tok, etran.CanCallAssumption(e.Test)));
+        bEls.Add(TrAssumeCmd(expr.Origin, etran.CanCallAssumption(e.Test)));
         bEls.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.Origin, e.Test, Expr.Not, comment));
         CheckWellformedAndAssume(e.Els, wfOptions, locals, bEls, etran, comment);
         builder.Add(new Bpl.IfCmd(expr.Origin, null, bThn.Collect(expr.Origin), null, bEls.Collect(expr.Origin)));
@@ -382,7 +382,7 @@ namespace Microsoft.Dafny {
             }
 
             // all good
-            builder.Add(TrAssumeCmd(e.Tok, etran.CanCallAssumption(e)));
+            builder.Add(TrAssumeCmd(e.Origin, etran.CanCallAssumption(e)));
 
             break;
           }
@@ -826,7 +826,7 @@ namespace Microsoft.Dafny {
                   var directPrecond = directSub.Substitute(p.E);
 
                   Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
-                  builder.Add(TrAssumeCmd(precond.Tok, etran.CanCallAssumption(precond)));
+                  builder.Add(TrAssumeCmd(precond.Origin, etran.CanCallAssumption(precond)));
                   var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
                   foreach (var ss in TrSplitExpr(builder.Context, precond, etran, true, out _)) {
                     if (ss.IsChecked) {
@@ -1273,7 +1273,7 @@ namespace Microsoft.Dafny {
                     var different = BplOr(
                       Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
                       Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
-                    b.Add(new AssumeCmd(mc.TermLeft.Tok, canCalls));
+                    b.Add(new AssumeCmd(mc.TermLeft.Origin, canCalls));
                     b.Add(Assert(GetToken(mc.TermLeft), different,
                       new ComprehensionNoAlias(mc.BoundVars, mc.Range, mc.TermLeft, mc.Term), builder.Context));
                   });
@@ -1306,7 +1306,7 @@ namespace Microsoft.Dafny {
             }
 
             builder.Add(new Bpl.CommentCmd("End Comprehension WF check"));
-            builder.Add(TrAssumeCmd(expr.Tok, etran.CanCallAssumption(expr)));
+            builder.Add(TrAssumeCmd(expr.Origin, etran.CanCallAssumption(expr)));
             break;
           }
         case StmtExpr stmtExpr:
@@ -1391,7 +1391,7 @@ namespace Microsoft.Dafny {
       BoogieStmtListBuilder builder, string comment) {
 
       Contract.Assert(resultType != null);
-      builder.Add(TrAssumeCmd(expr.Tok, etran.CanCallAssumption(expr)));
+      builder.Add(TrAssumeCmd(expr.Origin, etran.CanCallAssumption(expr)));
       var bResult = etran.TrExpr(expr);
       CheckSubrange(expr.Origin, bResult, expr.Type, resultType, expr, builder);
       builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.Origin, expr,

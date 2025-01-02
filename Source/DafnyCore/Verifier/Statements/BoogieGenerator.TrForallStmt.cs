@@ -546,7 +546,7 @@ public partial class BoogieGenerator {
 
       // check that postconditions hold
       foreach (var ens in ConjunctsOf(forallStmt.Ens)) {
-        definedness.Add(TrAssumeCmd(ens.E.Tok, etran.CanCallAssumption(ens.E)));
+        definedness.Add(TrAssumeCmd(ens.E.Origin, etran.CanCallAssumption(ens.E)));
 
         foreach (var split in TrSplitExpr(definedness.Context, ens.E, etran, true, out var splitHappened)) {
           if (split.IsChecked) {
@@ -564,7 +564,7 @@ public partial class BoogieGenerator {
     var se = forallStmt.Body == null ? Bpl.Expr.True : TrFunctionSideEffect(forallStmt.Body, etran);
     var substMap = new Dictionary<IVariable, Expression>();
     var p = Substitute(forallStmt.EffectiveEnsuresClauses[0], null, substMap);
-    exporter.Add(TrAssumeCmd(forallStmt.Tok, etran.CanCallAssumption(p)));
+    exporter.Add(TrAssumeCmd(forallStmt.Origin, etran.CanCallAssumption(p)));
     var qq = etran.TrExpr(p);
     if (forallStmt.BoundVars.Count != 0) {
       exporter.Add(TrAssumeCmd(forallStmt.Origin, BplAnd(se, qq)));

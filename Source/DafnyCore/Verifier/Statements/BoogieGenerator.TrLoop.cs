@@ -259,7 +259,7 @@ public partial class BoogieGenerator {
     }
     // check definedness of decreases clause
     foreach (Expression e in theDecreases) {
-      builder.Add(TrAssumeCmd(e.Tok, Bpl.Expr.Imp(w, etran.CanCallAssumption(e))));
+      builder.Add(TrAssumeCmd(e.Origin, Bpl.Expr.Imp(w, etran.CanCallAssumption(e))));
       TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
     }
     if (codeContext is IMethodCodeContext) {
@@ -352,7 +352,7 @@ public partial class BoogieGenerator {
         bodyTr(loopBodyBuilder, updatedFrameEtran);
       } else {
         foreach (Expression e in theDecreases) {
-          loopBodyBuilder.Add(TrAssumeCmd(e.Tok, BplImp(w, etran.CanCallAssumption(e))));
+          loopBodyBuilder.Add(TrAssumeCmd(e.Origin, BplImp(w, etran.CanCallAssumption(e))));
         }
         List<Bpl.Expr> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr$" + suffix);
         // time for the actual loop body
@@ -373,7 +373,7 @@ public partial class BoogieGenerator {
           initDecrsDafny.Add(eInit);
           decrs.Add(etran.TrExpr(e));
           // need to add can calls again because the actual loop body updates the variables
-          loopBodyBuilder.Add(TrAssumeCmd(e.Tok, BplImp(w, etran.CanCallAssumption(e))));
+          loopBodyBuilder.Add(TrAssumeCmd(e.Origin, BplImp(w, etran.CanCallAssumption(e))));
         }
         if (includeTerminationCheck) {
           AddComment(loopBodyBuilder, loop, "loop termination check");

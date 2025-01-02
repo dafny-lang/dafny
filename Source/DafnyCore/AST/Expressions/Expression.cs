@@ -154,7 +154,7 @@ public abstract class Expression : NodeWithComputedRange {
     foreach (var conjunct in Conjuncts(expr)) {
       if (conjunct is LetExpr { Exact: true } letExpr) {
         foreach (var letBodyConjunct in ConjunctsWithLetsOnOutside(letExpr.Body)) {
-          yield return new LetExpr(letExpr.tok, letExpr.LHSs, letExpr.RHSs, letBodyConjunct, letExpr.Exact, letExpr.Attributes) {
+          yield return new LetExpr(letExpr.Origin, letExpr.LHSs, letExpr.RHSs, letBodyConjunct, letExpr.Exact, letExpr.Attributes) {
             Type = letExpr.Type
           };
         }
@@ -172,7 +172,7 @@ public abstract class Expression : NodeWithComputedRange {
   static IEnumerable<Expression> NegateEach(IOrigin tok, IEnumerable<Expression> expressions) {
     var exprs = expressions.ToList();
     foreach (Expression e in exprs) {
-      yield return Expression.CreateNot(exprs.Count == 1 ? tok : e.tok, e);
+      yield return Expression.CreateNot(exprs.Count == 1 ? tok : e.Origin, e);
     }
   }
 
