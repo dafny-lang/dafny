@@ -482,8 +482,18 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string DtTypeName(TopLevelDecl dt, bool typeVariables = true) {
-      var name = "_I" + dt.GetCompileName(Options);
+      var name = dt.GetCompileName(Options);
       if (typeVariables) { name += TypeParameters(SelectNonGhost(dt, dt.TypeArgs)); }
+      return name;
+    }
+
+    private string DtITypeName(TopLevelDecl dt, bool typeVariables = true) {
+      var name = "_I" + DtTypeName(dt, typeVariables);
+      return name;
+    }
+
+    private string DtDTypeName(TopLevelDecl dt, bool typeVariables = true) {
+      var name = "_D" + DtTypeName(dt, typeVariables);
       return name;
     }
 
@@ -559,12 +569,12 @@ namespace Microsoft.Dafny.Compilers {
       // }
       var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
       var DtT_TypeArgs = TypeParameters(nonGhostTypeArgs);
-      var DtT_protected = IdName(dt) + DtT_TypeArgs;
+      var DtT_protected = DtDTypeName(dt);
       var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, UserDefinedType.FromTopLevelDecl(dt.Origin, dt));
       var simplifiedTypeName = TypeName(simplifiedType, wr, dt.Origin);
 
       // ConcreteSyntaxTree for the interface
-      wr.Write($"public interface _I{dt.GetCompileName(Options)}{TypeParameters(nonGhostTypeArgs, true)}");
+      wr.Write($"public interface {DtITypeName(dt)}");
       var superTraits = dt.ParentTypeInformation.UniqueParentTraits();
       if (superTraits.Any()) {
         wr.Write($" : {superTraits.Comma(trait => TypeName(trait, wr, dt.Origin))}");
@@ -572,7 +582,7 @@ namespace Microsoft.Dafny.Compilers {
       var interfaceTree = wr.NewBlock();
 
       // from here on, write everything into the new block created here:
-      var btw = wr.NewNamedBlock("public{0} class {1} : {2}", dt.IsRecordType ? "" : " abstract", DtT_protected, DtTypeName(dt));
+      var btw = wr.NewNamedBlock("public{0} class {1} : {2}", dt.IsRecordType ? "" : " abstract", DtT_protected, DtITypeName(dt));
       wr = btw;
 
       // constructor
@@ -581,7 +591,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         EmitTypeDescriptorsForClass(dt.TypeArgs, dt, out var wTypeFields, out var wCtorParams, out _, out var wCtorBody);
         wr.Append(wTypeFields);
-        wr.Format($"public {IdName(dt)}({wCtorParams})").NewBlock().Append(wCtorBody);
+        wr.Format($"public {DtDTypeName(dt)}({wCtorParams})").NewBlock().Append(wCtorBody);
       }
 
       var wDefault = new ConcreteSyntaxTree();
@@ -629,14 +639,14 @@ namespace Microsoft.Dafny.Compilers {
       EmitTypeDescriptorMethod(dt, wr);
 
       if (dt is CoDatatypeDecl) {
-        interfaceTree.WriteLine($"{DtTypeName(dt)} _Get();");
-        wr.WriteLine($"public abstract {DtTypeName(dt)} _Get();");
+        interfaceTree.WriteLine($"{DtITypeName(dt)} _Get();");
+        wr.WriteLine($"public abstract {DtITypeName(dt)} _Get();");
       }
 
       // create methods
       foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         var typeDescriptorCount = EmitTypeDescriptorsForClass(dt.TypeArgs, dt, out _, out var wCtorParams, out var wCallArguments, out _);
-        wr.Write($"public static {DtTypeName(dt)} {DtCreateName(ctor)}(");
+        wr.Write($"public static {DtITypeName(dt)} {DtCreateName(ctor)}(");
         wr.Append(wCtorParams);
         var formalCount = WriteFormals(typeDescriptorCount > 0 ? ", " : "", ctor.Formals, wr);
         var sep = typeDescriptorCount > 0 && formalCount > 0 ? ", " : "";
@@ -650,7 +660,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var ctor = dt.Ctors[0];
         var typeDescriptorCount = EmitTypeDescriptorsForClass(dt.TypeArgs, dt, out _, out var wCtorParams, out var wCallArguments, out _);
-        wr.Write($"public static {DtTypeName(dt)} create_{ctor.GetCompileName(Options)}(");
+        wr.Write($"public static {DtITypeName(dt)} create_{ctor.GetCompileName(Options)}(");
         wr.Append(wCtorParams);
         var formalCount = WriteFormals(typeDescriptorCount > 0 ? ", " : "", ctor.Formals, wr);
         var sep = typeDescriptorCount > 0 && formalCount > 0 ? ", " : "";
@@ -677,7 +687,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dt.HasFinitePossibleValues) {
         Contract.Assert(nonGhostTypeArgs.Count == 0);
         var w = wr.NewNamedBlock(
-          $"public static System.Collections.Generic.IEnumerable<{DtTypeName(dt)}> AllSingletonConstructors");
+          $"public static System.Collections.Generic.IEnumerable<{DtITypeName(dt)}> AllSingletonConstructors");
         var wGet = w.NewBlock("get");
         foreach (var ctor in dt.Ctors) {
           Contract.Assert(ctor.Formals.Count == 0);
@@ -996,16 +1006,16 @@ namespace Microsoft.Dafny.Compilers {
         //   public override string ToString() { return _Get().ToString(); }
         // }
         var w = wrx.NewNamedBlock($"public class {dt.GetCompileName(Options)}__Lazy{typeParams} : {IdName(dt)}{typeParams}");
-        w.WriteLine($"public {NeedsNew(dt, "Computer")}delegate {DtTypeName(dt)} Computer();");
+        w.WriteLine($"public {NeedsNew(dt, "Computer")}delegate {DtITypeName(dt)} Computer();");
         w.WriteLine($"{NeedsNew(dt, "c")}Computer c;");
-        w.WriteLine($"{NeedsNew(dt, "d")}{DtTypeName(dt)} d;");
+        w.WriteLine($"{NeedsNew(dt, "d")}{DtITypeName(dt)} d;");
 
         var typeDescriptorCount = EmitTypeDescriptorsForClass(dt.TypeArgs, dt, out _, out var wCtorParams, out var wBaseCallArguments, out _);
         var sep = typeDescriptorCount > 0 ? ", " : "";
         w.NewBlock($"public {dt.GetCompileName(Options)}__Lazy({wCtorParams}{sep}Computer c) : base({wBaseCallArguments})")
           .WriteLine("this.c = c;");
         CompileDatatypeDowncastClone(dt, w, nonGhostTypeArgs, lazy: true);
-        w.WriteLine($"public override {DtTypeName(dt)} _Get() {{ if (c != null) {{ d = c(); c = null; }} return d; }}");
+        w.WriteLine($"public override {DtITypeName(dt)} _Get() {{ if (c != null) {{ d = c(); c = null; }} return d; }}");
         w.WriteLine("public override string ToString() { return _Get().ToString(); }");
       }
 
@@ -1086,7 +1096,7 @@ namespace Microsoft.Dafny.Compilers {
       var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
 
       if (dt is CoDatatypeDecl) {
-        wr.WriteLine($"public override {DtTypeName(dt)} _Get() {{ return this; }}");
+        wr.WriteLine($"public override {DtITypeName(dt)} _Get() {{ return this; }}");
       }
 
       CompileDatatypeDowncastClone(dt, wr, nonGhostTypeArgs, ctor: ctor);
@@ -1191,7 +1201,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      return dt.IsRecordType ? IdName(dt) : dt.GetCompileName(Options) + "_" + ctor.GetCompileName(Options);
+      return dt.IsRecordType ? DtDTypeName(dt) : dt.GetCompileName(Options) + "_" + ctor.GetCompileName(Options);
     }
 
     /// <summary>
@@ -1217,7 +1227,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      var dtName = IdName(dt);
+      var dtName = DtDTypeName(dt);
       if (!dt.EnclosingModuleDefinition.TryToAvoidName) {
         dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + dtName;
       }
@@ -1554,7 +1564,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
       Contract.Assume(member is Method { IsTailRecursive: true } or Function { IsTailRecursive: true }); // precondition
       if (!member.IsStatic && !NeedsCustomReceiver(member)) {
-        var receiverType = member.EnclosingClass is DatatypeDecl dt ? DtTypeName(dt) : "var";
+        var receiverType = member.EnclosingClass is DatatypeDecl dt ? DtITypeName(dt) : "var";
         wr.WriteLine($"{receiverType} _this = this;");
       }
       wr.Fork(-1).WriteLine("TAIL_CALL_START: ;");
@@ -1779,7 +1789,7 @@ namespace Microsoft.Dafny.Compilers {
     internal override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       if (type is UserDefinedType udt) {
-        var name = udt.ResolvedClass is TraitDecl ? udt.GetFullCompanionCompileName(Options) : FullTypeName(udt, member, true);
+        var name = udt.ResolvedClass is TraitDecl ? udt.GetFullCompanionCompileName(Options) : FullTypeName(udt, member, true, true);
         return TypeName_UDT(name, udt, wr, tok);
       } else {
         return TypeName(type, wr, tok, member);
@@ -2486,7 +2496,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string FullTypeName(UserDefinedType udt, MemberDecl /*?*/ member = null) {
       return FullTypeName(udt, member);
     }
-    private string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null, bool ignoreInterface = false) {
+    private string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null, bool ignoreInterface = false, bool ignoreD = false) {
       Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
@@ -2504,7 +2514,7 @@ namespace Microsoft.Dafny.Compilers {
       if ((cl is DatatypeDecl)
           && !ignoreInterface
           && (member is null || !NeedsCustomReceiver(member))) {
-        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
+        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + DtITypeName(cl, false);
       }
 
       if (cl.EnclosingModuleDefinition.TryToAvoidName) {
@@ -2514,7 +2524,7 @@ namespace Microsoft.Dafny.Compilers {
       if (cl.IsExtern(Options, out _, out _)) {
         return cl.EnclosingModuleDefinition.GetCompileName(Options) + "." + cl.GetCompileName(Options);
       }
-      return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
+      return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + (ignoreD? IdProtect(cl.GetCompileName(Options)) : DtDTypeName(cl));
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
