@@ -236,7 +236,7 @@ Dafny
     TopDecl<theModule, /* isTopLevel */ true, ref attrs> }
   (. CheckNoAttributes(ref attrs); .)
   (. 
-    theModule.Origin = new SourceOrigin(fileStartToken.Next, t);
+    theModule.SetOrigin(new SourceOrigin(fileStartToken.Next, t));
   .)
   SYNC
   EOF
@@ -348,9 +348,9 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    "}"
    (. CheckNoAttributes(ref attrs); .)
     (.
-      module.Origin = new SourceOrigin(dmod.FirstToken, t, name.Center);
+      module.SetOrigin(new SourceOrigin(dmod.FirstToken, t, name.Center));
       submodule = new LiteralModuleDecl(theOptions, module, parent, Guid.NewGuid());
-      submodule.Origin = module.Origin;
+      submodule.SetOrigin(module.Origin);
       theOptions = dafnyOptionsBackup;
     .)
   .
@@ -1344,7 +1344,7 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads, ref Attributes attrs,
   { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
   (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
-       SemErr(ErrorId.p_reads_star_must_be_alone, reads.First(fe => fe.E is WildcardExpr).Tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
+       SemErr(ErrorId.p_reads_star_must_be_alone, reads.First(fe => fe.E is WildcardExpr).Origin, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
      }
   .)
   OldSemi
@@ -1484,16 +1484,16 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
      List<Type> tupleArgTypes = null;
      List<Token> argumentGhostTokens = null;
   .)
-  ( "bool"                          (. tok = t; startToken = t; ty.Origin = t; .)
-  | "char"                          (. tok = t; startToken = t;  ty = new CharType(); ty.Origin = t; .)
-  | "int"                           (. tok = t; startToken = t;  ty = new IntType(); ty.Origin = t; .)
-  | "nat"                           (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "real"                          (. tok = t; startToken = t;  ty = new RealType(); ty.Origin = t; .)
-  | "ORDINAL"                       (. tok = t; startToken = t;  ty = new BigOrdinalType(); ty.Origin = t; .)
+  ( "bool"                          (. tok = t; startToken = t; ty = new BoolType(); ty.SetOrigin(t); .)
+  | "char"                          (. tok = t; startToken = t; ty = new CharType(); ty.SetOrigin(t); .)
+  | "int"                           (. tok = t; startToken = t; ty = new IntType(); ty.SetOrigin(t); .)
+  | "nat"                           (. tok = t; startToken = t; ty = new UserDefinedType(tok, tok.val, null); .)
+  | "real"                          (. tok = t; startToken = t; ty = new RealType(); ty.SetOrigin(t); .)
+  | "ORDINAL"                       (. tok = t; startToken = t; ty = new BigOrdinalType(); ty.SetOrigin(t); .)
   | bvToken                         (. tok = t; startToken = t;
                                        int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide", startToken);
                                        ty = new BitvectorType(theOptions, w);
-                                       ty.Origin = t;
+                                       ty.SetOrigin(t);
                                     .)
   | "set"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1502,7 +1502,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "set type expects only one type argument");
                                        }
                                        ty = new SetType(true, gt != null ?gt[0] : null);
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | "iset"                          (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1511,7 +1511,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "iset type expects only one type argument");
                                        }
                                        ty = new SetType(false, gt != null ? gt[0] : null);
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | "multiset"                      (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1520,7 +1520,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "multiset type expects only one type argument");
                                        }
                                        ty = new MultiSetType(gt != null ? gt[0] : null);
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | "seq"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1529,15 +1529,11 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                            new SourceOrigin(startToken.Next, t), "seq type expects only one type argument");
                                        }
                                        ty = new SeqType(gt != null ? gt[0] : null);
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
-  | "string"                        (. tok = t; startToken = t;  
-                                       ty = new UserDefinedType(tok, tok.val, null); 
-                                       ty.Origin = new SourceOrigin(startToken, t); .)
-  | "object"                        (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); 
-                                       ty.Origin = new SourceOrigin(startToken, t); .)
-  | "object?"                       (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); 
-                                       ty.Origin = new SourceOrigin(startToken, t); .)
+  | "string"                        (. tok = t; startToken = t; ty = new UserDefinedType(new SourceOrigin(startToken, t), tok.val, null); .)
+  | "object"                        (. tok = t; startToken = t; ty = new UserDefinedType(new SourceOrigin(startToken, t), tok.val, null); .)
+  | "object?"                       (. tok = t; startToken = t; ty = new UserDefinedType(new SourceOrigin(startToken, t), tok.val, null); .)
   | "map"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt == null) {
@@ -1549,7 +1545,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                        } else {
                                          ty = new MapType(true, gt[0], gt[1]);
                                        }
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | "imap"                          (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1562,7 +1558,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                        } else {
                                          ty = new MapType(false, gt[0], gt[1]);
                                        }
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | arrayToken                      (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -1573,7 +1569,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions", startToken);
                                        (ty, var bMod) = SystemModuleManager.ArrayType(tok, dims, gt, true, q);
                                        SystemModuleModifiers.Add(bMod);
-                                       ty.Origin = new SourceOrigin(startToken, t);
+                                       ty.SetOrigin(new SourceOrigin(startToken, t));
                                     .)
   | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
@@ -1609,7 +1605,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
            ty = new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), gt);
          }
        }
-       ty.Origin = new SourceOrigin(startToken, t, tok);
+       ty.SetOrigin(new SourceOrigin(startToken, t, tok));
     .)
   ]
   .
@@ -1963,7 +1959,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isGhost) {
        foreach (var formal in formals) {
          if (formal.IsGhost) {
-           IOrigin t = formal.Tok;
+           IOrigin t = formal.Origin;
            IOrigin ghostToken = null;
            while (t != null && t.val != "," && t.val != "(") {
             if (t.val == "ghost") {
@@ -1972,7 +1968,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
             }
             t = t.Prev;
            }
-           SemErr(ErrorId.p_no_ghost_formal, ghostToken ?? formal.Tok, "formal cannot be declared 'ghost' in this context");
+           SemErr(ErrorId.p_no_ghost_formal, ghostToken ?? formal.Origin, "formal cannot be declared 'ghost' in this context");
          }
        }
      }
@@ -2077,7 +2073,7 @@ PossiblyWildExpression<out Expression e, bool allowLambda, bool allowWild>
    */
   ( "*"                        (. e = new WildcardExpr(t);
                                   if (!allowWild) {
-                                    SemErr(ErrorId.p_no_wild_expression, e.Tok, "A '*' expression is not allowed here");
+                                    SemErr(ErrorId.p_no_wild_expression, e.Origin, "A '*' expression is not allowed here");
                                   }
                                .)
   | Expression<out e, false, allowLambda>
@@ -2114,7 +2110,7 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
      IOrigin feTok = null;
      fe = dummyFrameExpr;
   .)
-  ( Expression<out e, allowLemma, allowLambda>   (. feTok = e.Tok; .)
+  ( Expression<out e, allowLemma, allowLambda>   (. feTok = e.Origin; .)
     [ FrameField<out id>        (. fieldName = id.val;  feTok = id; .)
     ]                           (. fe = new FrameExpression(feTok, e, fieldName); .)
   |
@@ -2237,7 +2233,7 @@ LabeledStmt<out Statement s>
   OneStmt<out s>
   (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
      s.PostLabelToken = s.StartToken;
-     s.Origin = new SourceOrigin(labelToken, t, s.PostLabelToken);
+     s.SetOrigin(new SourceOrigin(labelToken, t, s.PostLabelToken));
   .)
   .
 
@@ -2370,9 +2366,9 @@ AssignStatement<out Statement/*!*/ s>
     (
       "by" BlockStmt<out proof, out _, out _>
     | ";"
-    )                              (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { Origin = new SourceOrigin(e.StartToken, endToken) }); .)
+    )                              (. endTok = t; var rhs = new ExprRhs(e, attrs); rhs.SetOrigin(new SourceOrigin(e.StartToken, endToken)); rhss.Add(rhs); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
-                                   (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { Origin = new SourceOrigin(e.StartToken, endToken) });
+                                   (. endTok = t; var rhs2 = new ExprRhs(e, attrs); rhs2.SetOrigin(new SourceOrigin(e.StartToken, endToken)); rhss.Add(rhs2);
                                       SemErr(ErrorId.p_missing_semicolon, new SourceOrigin(startToken, t), "missing semicolon at end of statement");
                                    .)   
   )
@@ -2451,7 +2447,7 @@ Rhs<out AssignmentRhs r>
   | Expression<out e, false, true>     (. r = new ExprRhs(e); startToken = e.StartToken; .)
   )
   { Attribute<ref attrs> }             (. r.Attributes = attrs;
-                                          r.Origin = new SourceOrigin(startToken ?? t, t, r.Center); .)
+                                          r.SetOrigin(new SourceOrigin(startToken ?? t, t, r.Center)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2582,13 +2578,13 @@ VarDeclStatement<.out Statement/*!*/ s.>
     CasePatternLocal<out pat, isGhost>
     ( ":="
     | { Attribute<ref attrs> }
-      ":|"                          (.  SemErr(ErrorId.p_no_patterns_and_such_that, pat.Tok, "LHS of assign-such-that expression must be variables, not general patterns"); .)
+      ":|"                          (.  SemErr(ErrorId.p_no_patterns_and_such_that, pat.Origin, "LHS of assign-such-that expression must be variables, not general patterns"); .)
     )
     Expression<out e, false, true>
 
     ";"
     (. s = new VarDeclPattern(e.Origin, pat, e, isGhost);
-       s.Origin = new SourceOrigin(pat.StartToken, t); .)
+       s.SetOrigin(new SourceOrigin(pat.StartToken, t)); .)
   )
   .
 
@@ -2741,7 +2737,7 @@ WhileStmt<out Statement stmt>
       var rangeToken = new SourceOrigin(startToken, t);
       if (guardEllipsis != null || bodyEllipsis != null) {
         if (mod != null) {
-          SemErr(ErrorId.p_no_modifies_on_refining_loops, mod[0].E.Tok, "'modifies' clauses are not allowed on refining loops");
+          SemErr(ErrorId.p_no_modifies_on_refining_loops, mod[0].E.Origin, "'modifies' clauses are not allowed on refining loops");
         }
         if (body == null && !isDirtyLoop) {
           body = new BlockStmt(rangeToken, new List<Statement>());
@@ -2835,7 +2831,7 @@ DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.
   { "," PossiblyWildExpression<out e, allowLambda, allowWildcard> (. decreases.Add(e); .)
   }
   (. if (allowWildcard && decreases.Count > 1 && decreases.Exists(e => e is WildcardExpr)) {
-       SemErr(ErrorId.p_no_decreases_expressions_with_star, e.Tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
+       SemErr(ErrorId.p_no_decreases_expressions_with_star, e.Origin, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
      }
   .)
   .
@@ -2894,8 +2890,8 @@ SingleExtendedPattern<.out ExtendedPattern pat.>
       ]
      ")"
                                            (. pat = new IdPattern(id, id.val, arguments, false, true); .)
-  | PossiblyNegatedLiteralExpr<out lit>    (. pat = new LitPattern(lit.Tok, lit); .)
-  | IdentTypeOptional<out bv>              (. pat = new IdPattern(bv.Tok, bv.Name, bv.SyntacticType, null); .)
+  | PossiblyNegatedLiteralExpr<out lit>    (. pat = new LitPattern(lit.Origin, lit); .)
+  | IdentTypeOptional<out bv>              (. pat = new IdPattern(bv.Origin, bv.Name, bv.SyntacticType, null); .)
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
     if (pat == null) {
@@ -2912,7 +2908,7 @@ ExtendedPattern<.out ExtendedPattern pat.>
   { "|"                                    (. branches ??= new() { branch }; .)
     SingleExtendedPattern<out branch>      (. branches.Add(branch); .)
   }
-  (. pat = branches == null ? branch : new DisjunctivePattern(branches[0].Tok, branches); .)
+  (. pat = branches == null ? branch : new DisjunctivePattern(branches[0].Origin, branches); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3413,7 +3409,7 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
          else e0 = new BinaryExpr(new SourceOrigin(firstOp, t, x), BinaryExpr.Opcode.Or, new LiteralExpr(new AutoGeneratedOrigin(x), false), e0);
          e0.FormatTokens = new[] { firstOp };
        } else if(prefixOp != null) {
-         e0.Origin = new SourceOrigin(prefixOp, e0.EndToken, e0.Center);
+         e0.SetOrigin(new SourceOrigin(prefixOp, e0.EndToken, e0.Center));
        }
   .)
   .
@@ -3508,7 +3504,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
   (. if (chain != null && kind != 3) {
        e = new ChainingExpression(opLocs[0], chain, ops, opLocs, prefixLimits);
      }
-     e.Origin = new SourceOrigin(startToken, t, e.Center);
+     e.SetOrigin(new SourceOrigin(startToken, t, e.Center));
   .)
   .
 
@@ -3725,7 +3721,7 @@ ConstAtomExpression<out Expression e>
   | "assigned"                                 (. x = t; .)
     "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
   | ParensExpression<out e>
-  ) (. if(x!= null) { e.Origin = new SourceOrigin(x, t, e.Center); } .)
+  ) (. if(x!= null) { e.SetOrigin(new SourceOrigin(x, t, e.Center)); } .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3749,7 +3745,7 @@ LiteralExpression<out Expression e>
                                                   Util.ValidateEscaping(theOptions, t, s, isVerbatimString, errors);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);
                                                .)
-  ) (. e.Origin = new SourceOrigin(t, t, e.Center); .)
+  ) (. e.SetOrigin(new SourceOrigin(t, t, e.Center)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3829,7 +3825,7 @@ ParensExpression<out Expression e>
              SemErr(ErrorId.p_binding_in_decreases_to, binding.FormalParameterName,
                $"bindings are not allowed in `{decreasesToToken.val} to` expressions.");
            } else if (binding.IsGhost) {
-             SemErr(ErrorId.p_ghost_in_decreases_to, binding.Actual.Tok, // we don't have the token of "ghost" :(
+             SemErr(ErrorId.p_ghost_in_decreases_to, binding.Actual.Origin, // we don't have the token of "ghost" :(
                $"'ghost' components are not allowed in `{decreasesToToken.val} to` expressions.");
            }
          }
@@ -3848,7 +3844,7 @@ ParensExpression<out Expression e>
          e = new ParensExpression(lp, e);
        }
      }
-     e.Origin = new SourceOrigin(lp, rp, e.Center);
+     e.SetOrigin(new SourceOrigin(lp, rp, e.Center));
   .)
   .
 
@@ -3924,7 +3920,7 @@ SetDisplayExpr<out Expression e>
                                                .)
     ")"
   )
-  (. e.Origin = new SourceOrigin(startToken, t, e.Center); .)
+  (. e.SetOrigin(new SourceOrigin(startToken, t, e.Center)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3960,7 +3956,7 @@ SeqDisplayExpr<out Expression e>
                                              .)
     "]"
   )
-  (.  e.Origin = new SourceOrigin(x, t, e.Center); .)
+  (.  e.SetOrigin(new SourceOrigin(x, t, e.Center)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4044,9 +4040,9 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
                      var exists = (ExistsExpr) e;
                      var LHSs = new List<CasePattern<BoundVar>>();
                      foreach (var v in exists.BoundVars) {
-                       LHSs.Add(new CasePattern<BoundVar>(e.Tok, v));
+                       LHSs.Add(new CasePattern<BoundVar>(e.Origin, v));
                      }
-                     e0 = new LetExpr(e.Tok, LHSs, new List<Expression>() {
+                     e0 = new LetExpr(e.Origin, LHSs, new List<Expression>() {
                        exists.Term }, e0, false);
                  }
                  e = new ITEExpr(new SourceOrigin(x, t), isBindingGuard, e, e0, e1);
@@ -4100,7 +4096,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
       ":|"                          (. exact = false;
                                        foreach (var lhs in letLHSs) {
                                          if (lhs.Arguments != null) {
-                                           SemErr(ErrorId.p_no_patterns_in_let_such_that, lhs.Tok, "LHS of let-such-that expression must be variables, not general patterns");
+                                           SemErr(ErrorId.p_no_patterns_in_let_such_that, lhs.Origin, "LHS of let-such-that expression must be variables, not general patterns");
                                          }
                                        }
                                     .)
@@ -4214,7 +4210,7 @@ CasePattern<.out CasePattern<BoundVar> pat.>
                                           // later if resolution finds the CasePattern to denote a parameter-less constructor), because this
                                           // (in particular, bv.IsGhost) is the place where a LetExpr records whether or not the "ghost"
                                           // keyword was used in the declaration.
-                                          pat = new CasePattern<BoundVar>(bv.Tok, bv);
+                                          pat = new CasePattern<BoundVar>(bv.Origin, bv);
                                        .)
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
@@ -4258,7 +4254,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
                                           // later if resolution finds the CasePattern to denote a parameter-less constructor), because this
                                           // (in particular, local.IsGhost) is the place where a LetExpr records whether or not the "ghost"
                                           // keyword was used in the declaration.
-                                          pat = new CasePattern<LocalVariable>(local.Tok, local);
+                                          pat = new CasePattern<LocalVariable>(local.Origin, local);
                                        .)
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
@@ -4555,7 +4551,7 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
     "|"
     Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
   ]
-  (. qvar = new QuantifiedVar(bv.Tok, bv.Name, bv.SyntacticType, domain, range); .)
+  (. qvar = new QuantifiedVar(bv.Origin, bv.Name, bv.SyntacticType, domain, range); .)
   .
 
 /*------------------------------------------------------------------------*/

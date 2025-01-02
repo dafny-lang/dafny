@@ -29,9 +29,9 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
     Rhs = cloner.CloneRHS(original.Rhs);
   }
 
-  public SingleAssignStmt(IOrigin rangeOrigin, Expression lhs, AssignmentRhs rhs)
-    : base(rangeOrigin) {
-    Contract.Requires(rangeOrigin != null);
+  public SingleAssignStmt(IOrigin origin, Expression lhs, AssignmentRhs rhs)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(lhs != null);
     Contract.Requires(rhs != null);
     Lhs = lhs;
@@ -149,14 +149,14 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
     }
 
     if (proofContext != null && Rhs is TypeRhs) {
-      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_new_forbidden_in_proof, Rhs.Tok, $"{proofContext} is not allowed to use 'new'");
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_new_forbidden_in_proof, Rhs.Origin, $"{proofContext} is not allowed to use 'new'");
     }
 
     var gk = LhsIsToGhost_Which(lhs);
     if (gk == NonGhostKind.IsGhost) {
       IsGhost = true;
       if (proofContext != null && !(lhs is IdentifierExpr)) {
-        reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_heap_update_in_proof, lhs.Tok, $"{proofContext} is not allowed to make heap updates");
+        reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_heap_update_in_proof, lhs.Origin, $"{proofContext} is not allowed to make heap updates");
       }
       if (Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
         tRhs.InitCall.ResolveGhostness(resolver, reporter, true, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);

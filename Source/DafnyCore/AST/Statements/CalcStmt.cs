@@ -147,7 +147,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
       } else if (other is TernaryCalcOp) {
         var a = Index;
         var b = ((TernaryCalcOp)other).Index;
-        var minIndex = new ITEExpr(a.Tok, false, new BinaryExpr(a.Tok, BinaryExpr.Opcode.Le, a, b), a, b);
+        var minIndex = new ITEExpr(a.Origin, false, new BinaryExpr(a.Origin, BinaryExpr.Opcode.Le, a, b), a, b);
         return new TernaryCalcOp(Token.NoToken, minIndex); // ToDo: if we could compare expressions for syntactic equality, we could use this here to optimize
       } else {
         Contract.Assert(false);
@@ -239,9 +239,9 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     Contract.Invariant(StepOps.Count == Hints.Count);
   }
 
-  public CalcStmt(IOrigin rangeOrigin, CalcOp userSuppliedOp, List<Expression> lines, List<BlockStmt> hints, List<CalcOp/*?*/> stepOps, Attributes attrs)
-    : base(rangeOrigin) {
-    Contract.Requires(rangeOrigin != null);
+  public CalcStmt(IOrigin origin, CalcOp userSuppliedOp, List<Expression> lines, List<BlockStmt> hints, List<CalcOp/*?*/> stepOps, Attributes attrs)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(lines != null);
     Contract.Requires(hints != null);
     Contract.Requires(stepOps != null);
@@ -432,7 +432,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
 
     foreach (var hint in Hints) {
       // This block
-      if (hint.Tok.pos != hint.EndToken.pos) {
+      if (hint.Origin.pos != hint.EndToken.pos) {
         foreach (var hintStep in hint.Body) {
           formatter.SetOpeningIndentedRegion(hintStep.StartToken, indentBefore + formatter.SpaceTab + extraHintIndent);
         }

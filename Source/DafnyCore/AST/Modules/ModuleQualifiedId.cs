@@ -67,7 +67,6 @@ public class ModuleQualifiedId : Node, IHasReferences {
 
   public override IOrigin Origin {
     get => new SourceOrigin(Path.First().StartToken, Path.Last().EndToken, Path.Last().Center);
-    set => throw new NotSupportedException();
   }
 
 

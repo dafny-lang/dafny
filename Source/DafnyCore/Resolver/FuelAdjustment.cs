@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 public static class FuelAdjustment {
 
   public static void CheckForFuelAdjustments(ErrorReporter reporter, ModuleDefinition module) {
-    CheckForFuelAdjustments(reporter, module.Tok, module.Attributes, module);
+    CheckForFuelAdjustments(reporter, module.Origin, module.Attributes, module);
     foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
       Statement body = null;
       if (clbl is Method method) {
@@ -75,7 +75,7 @@ class FuelAdjustment_Visitor : ResolverTopDownVisitor<FuelAdjustment_Context> {
   }
 
   protected override bool VisitOneStmt(Statement stmt, ref FuelAdjustment_Context st) {
-    FuelAdjustment.CheckForFuelAdjustments(reporter, stmt.Tok, stmt.Attributes, st.currentModule);
+    FuelAdjustment.CheckForFuelAdjustments(reporter, stmt.Origin, stmt.Attributes, st.currentModule);
     return true;
   }
 }

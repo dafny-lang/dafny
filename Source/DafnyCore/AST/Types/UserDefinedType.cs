@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 public class UserDefinedType : NonProxyType, IHasReferences {
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(Tok != null);
+    Contract.Invariant(Origin != null);
     Contract.Invariant(Name != null);
     Contract.Invariant(cce.NonNullElements(TypeArgs));
     Contract.Invariant(NamePath is NameSegment or ExprDotName);
@@ -42,17 +42,16 @@ public class UserDefinedType : NonProxyType, IHasReferences {
 
   [FilledInDuringResolution] public TopLevelDecl ResolvedClass;  // if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
 
-  public UserDefinedType(IOrigin tok, string name, List<Type> optTypeArgs)
-    : this(tok, new NameSegment(tok, name, optTypeArgs)) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(IOrigin origin, string name, List<Type> optTypeArgs)
+    : this(origin, new NameSegment(origin, name, optTypeArgs)) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // this is what it means to be syntactically optional
   }
 
-  public UserDefinedType(IOrigin tok, Expression namePath) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(IOrigin origin, Expression namePath) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(namePath is NameSegment || namePath is ExprDotName);
-    this.tok = tok;
     if (namePath is NameSegment) {
       var n = (NameSegment)namePath;
       this.Name = n.Name;
@@ -68,7 +67,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     this.NamePath = namePath;
   }
   public UserDefinedType(Cloner cloner, UserDefinedType original)
-    : this(cloner.Origin(original.Tok), cloner.CloneExpr(original.NamePath)) {
+    : this(cloner.Origin(original.Origin), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
       ResolvedClass = cloner.GetCloneIfAvailable(original.ResolvedClass);
       TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
@@ -109,7 +108,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(!(cd is ArrowTypeDecl));
 
     var typeArgs = cd.TypeArgs.ConvertAll(tp => (Type)Type.Bool);
-    return new UserDefinedType(cd.Tok, cd.Name, cd, typeArgs);
+    return new UserDefinedType(cd.Origin, cd.Name, cd, typeArgs);
   }
 
   /// <summary>
@@ -147,8 +146,9 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// the FromTopLevelDecl method to create the UserDefinedType; that makes sure the right class
   /// and right name is used.
   /// </summary>
-  public UserDefinedType(IOrigin tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(IOrigin origin, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null)
+   : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cd != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -160,13 +160,12 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
     Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
     Contract.Assert(cd is not ArrowTypeDecl || this is ArrowType);
-    this.tok = tok;
     this.Name = name;
     this.ResolvedClass = cd;
     this.TypeArgs = typeArgs;
     if (namePath == null) {
-      var ns = new NameSegment(tok, name, typeArgs.Count == 0 ? null : typeArgs);
-      var r = new Resolver_IdentifierExpr(tok, cd, typeArgs);
+      var ns = new NameSegment(origin, name, typeArgs.Count == 0 ? null : typeArgs);
+      var r = new Resolver_IdentifierExpr(origin, cd, typeArgs);
       ns.ResolvedExpression = r;
       ns.Type = r.Type;
       this.NamePath = ns;
@@ -179,14 +178,14 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(udtNullableType != null);
     Contract.Requires(udtNullableType.ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true });
     var cl = (ClassLikeDecl)udtNullableType.ResolvedClass;
-    return new UserDefinedType(udtNullableType.Tok, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
+    return new UserDefinedType(udtNullableType.Origin, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
   }
 
   public static UserDefinedType CreateNullableType(UserDefinedType udtNonNullType) {
     Contract.Requires(udtNonNullType != null);
     Contract.Requires(udtNonNullType.ResolvedClass is NonNullTypeDecl);
     var nntd = (NonNullTypeDecl)udtNonNullType.ResolvedClass;
-    return new UserDefinedType(udtNonNullType.Tok, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
+    return new UserDefinedType(udtNonNullType.Origin, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
   }
 
   public static UserDefinedType CreateNonNullTypeIfReferenceType(UserDefinedType classLikeType) {
@@ -205,22 +204,21 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// This constructor constructs a resolved type parameter
   /// </summary>
   public UserDefinedType(TypeParameter tp)
-    : this(tp.Tok, tp) {
+    : this(tp.Origin, tp) {
     Contract.Requires(tp != null);
   }
 
   /// <summary>
   /// This constructor constructs a resolved type parameter
   /// </summary>
-  public UserDefinedType(IOrigin tok, TypeParameter tp) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(IOrigin origin, TypeParameter tp) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(tp != null);
-    this.tok = tok;
     this.Name = tp.Name;
     this.TypeArgs = new List<Type>();
     this.ResolvedClass = tp;
-    var ns = new NameSegment(tok, tp.Name, null);
-    var r = new Resolver_IdentifierExpr(tok, tp);
+    var ns = new NameSegment(origin, tp.Name, null);
+    var r = new Resolver_IdentifierExpr(origin, tp);
     ns.ResolvedExpression = r;
     ns.Type = r.Type;
     this.NamePath = ns;
@@ -281,7 +279,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
         return this;
       } else {
         // Note, even if t.NamePath is non-null, we don't care to keep that syntactic part of the expression in what we return here
-        return new UserDefinedType(Tok, Name, resolvedClass, newArgs);
+        return new UserDefinedType(Origin, Name, resolvedClass, newArgs);
       }
     } else {
       // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
@@ -291,7 +289,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   }
 
   public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new UserDefinedType(Tok, Name, ResolvedClass, arguments);
+    return new UserDefinedType(Origin, Name, ResolvedClass, arguments);
   }
 
   /// <summary>

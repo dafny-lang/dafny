@@ -23,7 +23,7 @@ class CollectFriendlyCallsInSpec_Visitor : FindFriendlyCalls_Visitor {
       if (cp == CallingPosition.Positive) {
         if (IsCoContext ? fexp.Function is GreatestPredicate : fexp.Function is LeastPredicate) {
           if (Context.KNat != ((ExtremePredicate)fexp.Function).KNat) {
-            KNatMismatchError(expr.Tok, Context.Name, Context.TypeOfK, ((ExtremePredicate)fexp.Function).TypeOfK);
+            KNatMismatchError(expr.Origin, Context.Name, Context.TypeOfK, ((ExtremePredicate)fexp.Function).TypeOfK);
           } else {
             friendlyCalls.Add(fexp);
           }

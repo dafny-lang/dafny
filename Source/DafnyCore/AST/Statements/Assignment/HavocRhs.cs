@@ -7,7 +7,7 @@ public class HavocRhs : AssignmentRhs, ICloneable<HavocRhs> {
   public HavocRhs Clone(Cloner cloner) {
     return new HavocRhs(cloner, this);
   }
-  public HavocRhs(IOrigin tok) : base(tok) {
+  public HavocRhs(IOrigin origin) : base(origin) {
   }
 
   private HavocRhs(Cloner cloner, HavocRhs havocRhs) : base(cloner, havocRhs) {
@@ -19,7 +19,7 @@ public class HavocRhs : AssignmentRhs, ICloneable<HavocRhs> {
 
   public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
-      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_nondeterminism_forbidden, Tok, "nondeterministic assignment forbidden by the --enforce-determinism option");
+      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_nondeterminism_forbidden, Origin, "nondeterministic assignment forbidden by the --enforce-determinism option");
     }
   }
 }

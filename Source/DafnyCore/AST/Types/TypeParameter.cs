@@ -186,19 +186,19 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  public TypeParameter(IOrigin rangeOrigin, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
+  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
-    : base(rangeOrigin, name, null, new List<TypeParameter>(), null, false) {
-    Contract.Requires(rangeOrigin != null);
+    : base(origin, name, null, new List<TypeParameter>(), null, false) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Characteristics = characteristics;
     VarianceSyntax = varianceS;
     TypeBounds = typeBounds;
   }
 
-  public TypeParameter(IOrigin rangeOrigin, Name name, TPVarianceSyntax varianceS)
-    : this(rangeOrigin, name, varianceS, new TypeParameterCharacteristics(false), new List<Type>()) {
-    Contract.Requires(rangeOrigin != null);
+  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceS)
+    : this(origin, name, varianceS, new TypeParameterCharacteristics(false), new List<Type>()) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
   }
 

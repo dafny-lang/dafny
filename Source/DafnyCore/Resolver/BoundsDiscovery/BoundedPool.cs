@@ -86,7 +86,7 @@ public abstract class BoundedPool : ICloneable<BoundedPool> {
 
     if (Expression.IsIntLiteral(a, out var aa) && Expression.IsIntLiteral(b, out var bb)) {
       var x = pickMax ? BigInteger.Max(aa, bb) : BigInteger.Min(aa, bb);
-      return new LiteralExpr(a.Tok, x) { Type = a.Type };
+      return new LiteralExpr(a.Origin, x) { Type = a.Type };
     }
     // we don't know how to determine which of "a" or "b" is better, so we'll just return "a"
     // (better would be to return an expression that computes to the minimum of "a" and "b")

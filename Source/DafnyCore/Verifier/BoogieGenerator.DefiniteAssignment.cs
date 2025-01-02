@@ -86,15 +86,15 @@ namespace Microsoft.Dafny {
       }
 
       var nm = SurrogateName(field);
-      var tracker = localVariables.GetOrAdd(new Bpl.LocalVariable(field.Tok, new Bpl.TypedIdent(field.Tok, DefassPrefix + nm, Bpl.Type.Bool)));
-      var ie = new Bpl.IdentifierExpr(field.Tok, tracker);
+      var tracker = localVariables.GetOrAdd(new Bpl.LocalVariable(field.Origin, new Bpl.TypedIdent(field.Origin, DefassPrefix + nm, Bpl.Type.Bool)));
+      var ie = new Bpl.IdentifierExpr(field.Origin, tracker);
       DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(nm, ie);
     }
 
     void MarkDefiniteAssignmentTracker(IdentifierExpr expr, BoogieStmtListBuilder builder) {
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);
-      MarkDefiniteAssignmentTracker(expr.Tok, expr.Var.UniqueName, builder);
+      MarkDefiniteAssignmentTracker(expr.Origin, expr.Var.UniqueName, builder);
     }
 
     void MarkDefiniteAssignmentTracker(IOrigin tok, string name, BoogieStmtListBuilder builder) {
@@ -155,8 +155,8 @@ namespace Microsoft.Dafny {
         // fnCall == (m.Ens[0].E as BinaryExpr).E1;
         // fn == new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
         Bpl.IdentifierExpr canCallFuncID =
-          new Bpl.IdentifierExpr(method.Tok, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-        var etran = new ExpressionTranslator(this, Predef, method.Tok, method);
+          new Bpl.IdentifierExpr(method.Origin, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+        var etran = new ExpressionTranslator(this, Predef, method.Origin, method);
         List<Bpl.Expr> args = arguments.Select(arg => etran.TrExpr(arg)).ToList();
         var formals = MkTyParamBinders(GetTypeParams(method), out var tyargs);
         if (method.FunctionFromWhichThisIsByMethodDecl.ReadsHeap) {
@@ -170,8 +170,8 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr boogieAssumeCanCall =
-          new Bpl.NAryExpr(method.Tok, new FunctionCall(canCallFuncID), Concat(tyargs, args));
-        builder.Add(new AssumeCmd(method.Tok, boogieAssumeCanCall));
+          new Bpl.NAryExpr(method.Origin, new FunctionCall(canCallFuncID), Concat(tyargs, args));
+        builder.Add(new AssumeCmd(method.Origin, boogieAssumeCanCall));
       } else {
         Contract.Assert(false, "Error in shape of by-method");
       }

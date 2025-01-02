@@ -31,19 +31,19 @@ abstract class ExtremeCloner : Cloner {
     string name;
     if (e.Lhs is NameSegment ns) {
       name = ns.Name;
-      lhs = new NameSegment(Origin(ns.Tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
+      lhs = new NameSegment(Origin(ns.Origin), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
     } else {
       var edn = (ExprDotName)e.Lhs;
       name = edn.SuffixName;
-      lhs = new ExprDotName(Origin(edn.Tok), CloneExpr(edn.Lhs), new Name(name + "#"), edn.OptTypeArguments?.ConvertAll(CloneType));
+      lhs = new ExprDotName(Origin(edn.Origin), CloneExpr(edn.Lhs), new Name(name + "#"), edn.OptTypeArguments?.ConvertAll(CloneType));
     }
     var args = new List<ActualBinding>();
     args.Add(new ActualBinding(null, k));
     foreach (var arg in e.Bindings.ArgumentBindings) {
       args.Add(CloneActualBinding(arg));
     }
-    var apply = new ApplySuffix(Origin(e.Tok), e.AtTok == null ? null : Origin(e.AtTok), lhs, args, e.CloseParen);
-    reporter.Info(MessageSource.Cloner, e.Tok, name + suffix);
+    var apply = new ApplySuffix(Origin(e.Origin), e.AtTok == null ? null : Origin(e.AtTok), lhs, args, e.CloseParen);
+    reporter.Info(MessageSource.Cloner, e.Origin, name + suffix);
     return apply;
   }
 
@@ -59,8 +59,8 @@ abstract class ExtremeCloner : Cloner {
     foreach (var binding in e.Bindings.ArgumentBindings) {
       args.Add(CloneActualBinding(binding));
     }
-    var fexp = new FunctionCallExpr(Origin(e.Tok), e.NameNode.Append("#"), receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
-    reporter.Info(MessageSource.Cloner, e.Tok, e.Name + suffix);
+    var fexp = new FunctionCallExpr(Origin(e.Origin), e.NameNode.Append("#"), receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
+    reporter.Info(MessageSource.Cloner, e.Origin, e.Name + suffix);
     return fexp;
   }
 
@@ -69,10 +69,10 @@ abstract class ExtremeCloner : Cloner {
       throw new NotImplementedException();
     }
 
-    var eq = new TernaryExpr(Origin(binaryExpr.Tok),
+    var eq = new TernaryExpr(Origin(binaryExpr.Origin),
       binaryExpr.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp,
       k, CloneExpr(binaryExpr.E0), CloneExpr(binaryExpr.E1));
-    reporter.Info(MessageSource.Cloner, binaryExpr.Tok, "==" + suffix);
+    reporter.Info(MessageSource.Cloner, binaryExpr.Origin, "==" + suffix);
     return eq;
   }
 }

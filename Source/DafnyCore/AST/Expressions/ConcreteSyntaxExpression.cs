@@ -21,8 +21,8 @@ public abstract class ConcreteSyntaxExpression : Expression {
   [FilledInDuringResolution]
   public Expression ResolvedExpression { get; set; }
 
-  protected ConcreteSyntaxExpression(IOrigin tok)
-    : base(tok) {
+  protected ConcreteSyntaxExpression(IOrigin origin)
+    : base(origin) {
   }
   public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<Node>() : new[] { ResolvedExpression };
   public override IEnumerable<Expression> SubExpressions {
