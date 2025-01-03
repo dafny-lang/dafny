@@ -1,6 +1,5 @@
-// NONUNIFORM: /autoTriggers:0 not supported by new CLI
-// RUN: %dafny /compile:3 /deprecation:0 /autoTriggers:0 /typeSystemRefresh:0 /generalNewtypes:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s"
+
 
 // The tests in this file are designed to run through the compiler.  They contain
 // program snippets that are tricky to compile or whose compilation once was buggy.
@@ -36,7 +35,7 @@ module CoRecursion {
     Cons(s.head, Prefix(n-1, s.rest))
   }
 
-  class Cell { var data: int; }
+  class Cell { var data: int }
 
   // When run, the following method should print
   //   400
@@ -55,7 +54,7 @@ module CoRecursion {
     cell.data := 60;
     var l := Prefix(5, mr);
     while (l != Nil)
-      decreases l;
+      decreases l
     {
       match (l) { case Cons(x,y) => }
       print l.car, "\n";
@@ -72,7 +71,7 @@ module CoRecursion {
     // This method ensures m == hi - 1, but we don't care to prove it
     decreases hi - lo
   {
-    if y :| lo < y < hi {
+    if y {:nowarn} :| lo < y < hi {
       m := OneLess(y, hi);
     } else {
       m := lo;
@@ -85,7 +84,7 @@ module CoRecursion {
     decreases hi - lo
   {
     if {
-      case y :| lo < y < hi =>
+      case y {:nowarn} :| lo < y < hi =>
         m := OneLess'(y, hi);
       case lo+1 < hi =>
         m := OneLess'(lo+1, hi);
@@ -97,7 +96,7 @@ module CoRecursion {
 
 abstract module S {
   class C {
-    var f: int;
+    var f: int
     method m()
   }
 }
@@ -179,7 +178,7 @@ method DigitsIdents(t: Tuple<int, Tuple<int, bool>>)
 }
 
 class DigitsClass {
-  var 7: bool;
+  var 7: bool
   method M(c: DigitsClass)
   {
     var x: int := if this.7 then 7 else if c.7 then 8 else 9;
@@ -189,13 +188,13 @@ class DigitsClass {
 // Should not get errors about methods or functions with empty bodies
 // if they're marked with an :axiom attribute
 ghost method {:axiom} m_nobody() returns (y:int)
-  ensures y > 5;
+  ensures y > 5
 
 lemma {:axiom} l_nobody() returns (y:int)
-  ensures y > 5;
+  ensures y > 5
 
 ghost function {:axiom} f_nobody():int
-  ensures f_nobody() > 5;
+  ensures f_nobody() > 5
 
 // Make sure the lemma created for opaque functions doesn't produce compiler errors
 ghost function {:opaque} hidden():int
@@ -213,8 +212,8 @@ method hidden_test()
 
 module GhostLetExpr {
   method M() {
-    ghost var y;
-    var x;
+    ghost var y := *;
+    var x := *;
     var g := G(x, y);
     ghost var h := var ta := F(); 5;
     var j := ghost var tb := F(); 5;
@@ -248,12 +247,12 @@ module GhostLetExpr {
 
 class DigitUnderscore_Names {
   // the following would be the same integers, but they are different fields
-  var 0_1_0: int;
-  var 010: int;
-  var 10: int;
+  var 0_1_0: int
+  var 010: int
+  var 10: int
   // ... as we see here:
   method M()
-    modifies this;
+    modifies this
   {
     this.0_1_0 := 007;
     this.010 := 000_008;
@@ -306,11 +305,17 @@ module EqualityTests {
   method ArrayTests<T>(H: array?<T>)
   {
     var G := new int[10];
-    if G == H {  // this comparison is allowed in Dafny, but requires a cast in C#
+    if G as object == H {  // this comparison is allowed in Dafny, but requires a cast in C#
       print "this would be highly suspicious\n";
     }
-    if G != H {  // this comparison is allowed in Dafny, but requires a cast in C#
-      print "good world order\n";
+    if G == H as object? {  // this comparison is allowed in Dafny, but requires a cast in C#
+      print "this would be highly suspicious\n";
+    }
+    if G as object? != H {  // this comparison is allowed in Dafny, but requires a cast in C#
+      print "? good world order\n";
+    }
+    if G != H as object? {  // this comparison is allowed in Dafny, but requires a cast in C#
+      print "good world order ?\n";
     }
     if null == H {
       print "given array is null\n";
@@ -407,7 +412,7 @@ module TypeInstantiations {
 
   method TestMain() {
     var x := F<char>();
-    var ch: char;
+    var ch: char := *;
     var y := H(ch);
     print x, " ", y, "\n";
 
@@ -446,7 +451,7 @@ module TailRecursionWhereTypeParametersChange {
     } else if n % 2 == 0 {
       Compute<bool>(n-1);
     } else {
-      var g: G;
+      var g: G := *;
       print g, " ";
       Compute<G>(n-1);
     }
@@ -457,14 +462,44 @@ module TailRecursionWhereTypeParametersChange {
 
 module GeneralMaps {
   method Test() {
-    var m := map x | 2 <= x < 6 :: x+1;
-    print m, "\n";
-    m := map y | 2 <= y < 6 :: y+1 := y+3;
-    print m, "\n";
-    m := map y | 2 <= y < 6 :: y+1 := 10;
-    print m.Items, "\n";
+    var m := map x {:nowarn} | 2 <= x < 6 :: x+1;
+    PrintMap(m, 0, 20);
+    m := map y {:nowarn} | 2 <= y < 6 :: y+1 := y+3;
+    PrintMap(m, 0, 20);
+    m := map y {:nowarn} | 2 <= y < 6 :: y+1 := 10;
+    PrintPairs(m.Items, 0, 20);
     print m.Keys, "\n";
     print m.Values, "\n";
+  }
+
+  method PrintMap(m: map<int, int>, lo: int, hi: int)
+    requires lo <= hi
+  {
+    print |m|, ": map[";
+    var sep := "";
+    for i := lo to hi {
+      if i in m.Keys {
+        print sep, i, " := ", m[i];
+        sep := ", ";
+      }
+    }
+    print "]\n";
+  }
+
+  method PrintPairs(pairs: set<(int, int)>, lo: int, hi: int)
+    requires lo <= hi
+  {
+    print |pairs|, ": {";
+    var sep := "";
+    for i := lo to hi {
+      for j := lo to hi {
+        if (i, j) in pairs {
+          print sep, (i, j);
+          sep := ", ";
+        }
+      }
+    }
+    print "}\n";
   }
 }
 
