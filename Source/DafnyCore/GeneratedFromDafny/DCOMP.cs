@@ -609,9 +609,9 @@ namespace DCOMP {
       _17_parents = Dafny.Sequence<RAST._IType>.FromElements();
       Dafny.ISequence<RAST._IModDecl> _18_upcastImplemented;
       _18_upcastImplemented = Dafny.Sequence<RAST._IModDecl>.FromElements();
-      RAST._IType _19_instantiatedFullType;
-      _19_instantiatedFullType = RAST.__default.Box(RAST.Type.create_DynType(_10_traitFullType));
+      RAST._IType _19_instantiatedFullType = RAST.Type.Default();
       if (((t).dtor_traitType).is_GeneralTrait) {
+        _19_instantiatedFullType = RAST.__default.Box(RAST.Type.create_DynType(_10_traitFullType));
         RAST._IModDecl _20_upcastDynTrait;
         _20_upcastDynTrait = Defs.__default.UpcastDynTraitFor(_1_rTypeParamsDecls, _19_instantiatedFullType, _10_traitFullType, _11_traitFullExpr);
         _18_upcastImplemented = Dafny.Sequence<RAST._IModDecl>.Concat(_18_upcastImplemented, Dafny.Sequence<RAST._IModDecl>.FromElements(_20_upcastDynTrait));
@@ -650,7 +650,7 @@ namespace DCOMP {
       }
       Dafny.ISequence<RAST._IModDecl> _28_downcastDefinition;
       _28_downcastDefinition = Dafny.Sequence<RAST._IModDecl>.FromElements();
-      if ((new BigInteger(((t).dtor_parents).Count)).Sign == 1) {
+      if (((new BigInteger(((t).dtor_parents).Count)).Sign == 1) && (((t).dtor_traitType).is_GeneralTrait)) {
         Std.Wrappers._IOption<RAST._IModDecl> _29_downcastDefinitionOpt;
         _29_downcastDefinitionOpt = Defs.__default.DowncastTraitDeclFor(_1_rTypeParamsDecls, _19_instantiatedFullType);
         if ((_29_downcastDefinitionOpt).is_None) {
@@ -664,7 +664,7 @@ namespace DCOMP {
       } else if (((t).dtor_traitType).is_GeneralTrait) {
         _17_parents = Dafny.Sequence<RAST._IType>.Concat(Dafny.Sequence<RAST._IType>.FromElements(((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("AnyRef"))).AsType()), _17_parents);
       }
-      if ((new BigInteger(((t).dtor_downcastableTraits).Count)).Sign == 1) {
+      if (((new BigInteger(((t).dtor_downcastableTraits).Count)).Sign == 1) && (((t).dtor_traitType).is_GeneralTrait)) {
         BigInteger _hi3 = new BigInteger(((t).dtor_downcastableTraits).Count);
         for (BigInteger _31_i = BigInteger.Zero; _31_i < _hi3; _31_i++) {
           RAST._IType _32_downcastableTrait;

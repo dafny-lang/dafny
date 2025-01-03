@@ -603,8 +603,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
       var parents: seq<R.Type> := [];
       var upcastImplemented: seq<R.ModDecl> := [];
-      var instantiatedFullType := R.Box(R.DynType(traitFullType));
+      var instantiatedFullType: R.Type;
       if t.traitType.GeneralTrait? { // TODO: Make it work also for object traits
+        instantiatedFullType := R.Box(R.DynType(traitFullType));
         var upcastDynTrait := UpcastDynTraitFor(rTypeParamsDecls, instantiatedFullType, traitFullType, traitFullExpr);
         upcastImplemented := upcastImplemented + [upcastDynTrait];
       }
@@ -627,7 +628,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
       }
       var downcastDefinition := [];
-      if |t.parents| > 0 { // We will need to downcast
+      if |t.parents| > 0 && t.traitType.GeneralTrait? { // We will need to downcast
         var downcastDefinitionOpt := DowncastTraitDeclFor(rTypeParamsDecls, instantiatedFullType);
         if downcastDefinitionOpt.None? {
           var dummy := Error("Could not generate downcast definition for " + instantiatedFullType.ToString(""));
@@ -638,7 +639,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         // Any top-most general trait must extend AnyRef so that we can perform downcasts to actual datatypes
         parents := [R.dafny_runtime.MSel("AnyRef").AsType()] + parents;
       }
-      if |t.downcastableTraits| > 0 {
+      if |t.downcastableTraits| > 0 && t.traitType.GeneralTrait? {
         for i := 0 to |t.downcastableTraits| {
           var downcastableTrait := GenType(t.downcastableTraits[i], GenTypeContext.ForTraitParents());
           var downcastTraitOpt := downcastableTrait.ToDowncast();
