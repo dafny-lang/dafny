@@ -3301,7 +3301,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// This method returns "expr" are stripping off any type coercions and box/unbox functions.
+    /// This method returns "expr" after stripping off any type coercions and box/unbox functions.
     /// </summary>
     public static Boogie.Expr StripBoxAdjustments(Boogie.Expr expr) {
       while (expr is Boogie.NAryExpr { Fun: Boogie.FunctionCall { FunctionName: BoxFunctionName or UnboxFunctionName } or Boogie.TypeCoercion } nAryExpr) {
