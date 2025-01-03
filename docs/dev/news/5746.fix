@@ -1,0 +1,1 @@
+Correct generated C# code when a module has a datatype whose name is the module name
