@@ -2678,9 +2678,11 @@ namespace Microsoft.Dafny.Compilers {
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type> typeArgs, bool isCoCall,
       string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
+      var modname = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options));
+      modname = (modname == ModuleName ? "" : modname+".");
       var dtName = dt is TupleTypeDecl tupleDecl
         ? DafnyTupleClass(tupleDecl.NonGhostDims)
-        : /*IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." +*/ IdName(dt);
+        :  modname + IdName(dt);  // HERE Makes Dafny failing on standard libraries if removed, and on unit test if added
       var typeParams = typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
       var sep = typeDescriptorArguments.Length != 0 && arguments.Length != 0 ? ", " : "";
       if (!isCoCall) {
@@ -2690,10 +2692,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         var sep0 = typeDescriptorArguments.Length != 0 ? ", " : "";
 
-        var modname = dt.EnclosingModuleDefinition.GetCompileName(Options);
-        modname = IdProtect(modname);
-
-        wr.Write($"new {modname}.{IdName(dt)}__Lazy({typeDescriptorArguments}{sep0}");
+        wr.Write($"new {modname}{IdName(dt)}__Lazy({typeDescriptorArguments}{sep0}");
         wr.Write("() -> { return ");
         wr.Write($"new {DtCtorName(ctor)}{typeParams}({typeDescriptorArguments}{sep}{arguments})");
         wr.Write("; })");
