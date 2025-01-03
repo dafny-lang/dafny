@@ -15,7 +15,7 @@ public class BlockByProofStmtVerifier {
 
     generator.TrStmt(block.Body, proofBuilder, locals, etran);
 
-    generator.PathAsideBlock(block.Tok, proofBuilder, builder);
+    generator.PathAsideBlock(block.Origin, proofBuilder, builder);
     generator.TrStmt(block.Body, builder.WithContext(builder.Context with {
       AssertMode = AssertMode.Assume
     }), locals, etran);

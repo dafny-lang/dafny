@@ -1,4 +1,4 @@
-pattern-shape-is-valid.dfy(7,11): Error: assertion might not hold
+pattern-shape-is-valid.dfy(7,2): Error: assertion might not hold
  Asserted expression: d.D0?
 
 Dafny program verifier finished with 0 verified, 1 error

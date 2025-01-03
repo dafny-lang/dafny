@@ -1,16 +1,16 @@
-DecreasesTo3.dfy(5,31): Error: assertion might not hold
+DecreasesTo3.dfy(5,34): Error: assertion might not hold
  Asserted expression: (1 decreases to 0) && (0 decreases to 1)
-DecreasesTo3.dfy(9,11): Error: assertion might not hold
+DecreasesTo3.dfy(9,2): Error: assertion might not hold
  Asserted expression: 0 decreases to 1
-DecreasesTo3.dfy(13,74): Error: assertion might not hold
+DecreasesTo3.dfy(13,2): Error: assertion might not hold
  Asserted expression: b <==> (0, 1, 2 decreases to (0 nonincreases to 0), b <==> b, 6) <==> b
-DecreasesTo3.dfy(17,35): Error: assertion might not hold
+DecreasesTo3.dfy(17,2): Error: assertion might not hold
  Asserted expression: b <==> (3 decreases to 2) <==> !b
-DecreasesTo3.dfy(21,18): Error: assertion might not hold
+DecreasesTo3.dfy(21,2): Error: assertion might not hold
  Asserted expression: b <==> b decreases to var two: int := 2; two <= two
-DecreasesTo3.dfy(28,41): Error: assertion might not hold
+DecreasesTo3.dfy(28,2): Error: assertion might not hold
  Asserted expression: (Lemma(); b) <==> (Lemma(); !b) decreases to (Lemma(); false)
-DecreasesTo3.dfy(32,12): Error: assertion might not hold
+DecreasesTo3.dfy(32,2): Error: assertion might not hold
  Asserted expression: (b decreases to (Lemma(); true), (Lemma(); true))
 
 Dafny program verifier finished with 0 verified, 7 errors

@@ -106,7 +106,9 @@ module Std.Base64 {
       assert IndexToChar(CharToIndex(c)) == c;
     } else if '0' <= c <= '9' {
       assert IndexToChar(CharToIndex(c)) == c;
-    } else if 'a' <= c < 'm' {
+    } else if 'a' <= c < 'j' {
+      assert IndexToChar(CharToIndex(c)) == c;
+    } else if 'j' <= c < 'm' {
       assert IndexToChar(CharToIndex(c)) == c;
     } else if 'm' <= c <= 'z' {
       assert IndexToChar(CharToIndex(c)) == c;
@@ -410,7 +412,7 @@ module Std.Base64 {
         EncodeRecursively(DecodeRecursively(s));
       ==
         EncodeRecursively(b);
-      == { reveal EncodeRecursively; }
+      == { reveal EncodeRecursively; assert |b[3..]| % 3 == 0; }
         EncodeBlock(b[..3]) + EncodeRecursively(b[3..]);
       == { DecodeRecursivelyBlock(s); }
         s[..4] + EncodeRecursively(b[3..]);

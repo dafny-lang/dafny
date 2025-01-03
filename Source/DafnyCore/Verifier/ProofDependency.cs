@@ -60,7 +60,7 @@ public class ProofObligationDependency : ProofDependency {
       $"{ProofObligation.SuccessDescription}";
 
   public ProofObligationDependency(Microsoft.Boogie.IToken tok, ProofObligationDescription proofObligation) {
-    Range = tok as RangeToken ?? (proofObligation as AssertStatementDescription)?.AssertStatement.Origin ?? BoogieGenerator.ToDafnyToken(true, tok);
+    Range = tok as SourceOrigin ?? (proofObligation as AssertStatementDescription)?.AssertStatement.Origin ?? BoogieGenerator.ToDafnyToken(true, tok);
     ProofObligation = proofObligation;
   }
 }
@@ -74,7 +74,7 @@ public class AssumedProofObligationDependency : ProofDependency {
       $"assumption that {ProofObligation.SuccessDescription}";
 
   public AssumedProofObligationDependency(IOrigin tok, ProofObligationDescription proofObligation) {
-    Range = tok.IncludesRange ? tok : (proofObligation as AssertStatementDescription)?.AssertStatement.Origin ?? tok;
+    Range = tok;
     ProofObligation = proofObligation;
   }
 }
@@ -87,7 +87,7 @@ public class RequiresDependency : ProofDependency {
   private IOrigin tok;
 
   public override IOrigin Range =>
-    tok as RangeToken ?? requires.Origin;
+    tok as SourceOrigin ?? requires.Origin;
 
   public override string Description =>
     $"requires clause";
@@ -105,7 +105,7 @@ public class EnsuresDependency : ProofDependency {
   private readonly IOrigin tok;
 
   public override IOrigin Range =>
-    tok as RangeToken ?? ensures.Origin;
+    tok as SourceOrigin ?? ensures.Origin;
 
   public override string Description =>
     "ensures clause";

@@ -205,8 +205,8 @@ method {:testEntry} ContradictoryAssumeMethod(n: int)
 
 method {:testEntry} AssumeFalseMethod(n: int)
 {
-    assume </span><span class="nc" id="191:12">n == 1</span><span class="na" id="191:18">5; // shouldn't be covered
-    assume </span><span class="pc" id="192:12">f</span><span class="na" id="192:13">alse;
+    assume </span><span class="nc" id="191:12">n == 15</span><span class="na" id="191:19">; // shouldn't be covered
+    assume </span><span class="pc" id="192:12">false</span><span class="na" id="192:17">;
     </span><span class="nc" id="193:5">assert n < 10;</span><span class="na" id="193:19"> // shouldn't be covered
 }
 
@@ -269,8 +269,8 @@ function {:testEntry} ObviouslyUnconstrainedCodeFunc(x: int): (r: (int, int))
   var </span><span class="fc" id="252:7">a</span><span class="na" id="252:8"> := </span><span class="fc" id="252:12">x + 1</span><span class="na" id="252:17">; // constrained by ensures clause
   var </span><span class="pc" id="253:7">b</span><span class="na" id="253:8"> := </span><span class="pc" id="253:12">x - 1</span><span class="na" id="253:17">; // not constrained by ensures clause 
   (a,
-   b)
-}
+</span><span class="fc" id="255:1">   b)
+</span><span class="na" id="256:1">}
 
 method {:testEntry} ObviouslyUnconstrainedCodeMethod(x: int) returns (r: (int, int))
   requires x > 10
@@ -377,8 +377,8 @@ method {:testEntry} FalseAntecedentRequiresClauseMethod(x: int) returns (r: int)
 </span><span class="na" id="360:1">// False antecedent assert statement.
 method {:testEntry} FalseAntecedentAssertStatementMethod(x: int) {
   var y </span><span class="fc" id="362:9">:= x*x;
-</span><span class="na" id="363:1">  </span><span class="fc" id="363:3">assert </span><span class="pc" id="363:10">y < 0 ==> x < 0</span><span class="fc" id="363:25">;
-</span><span class="na" id="364:1">}
+</span><span class="na" id="363:1">  assert </span><span class="pc" id="363:10">y < 0 ==> x < 0</span><span class="na" id="363:25">;
+}
 
 // False antecedent ensures clause.
 method {:testEntry} FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)
@@ -392,7 +392,7 @@ method {:testEntry} FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)
   ensures r > 0
 {
   if x < 0
-  then </span><span class="nc" id="378:8">x - 1</span><span class="na" id="378:13"> // unreachable
+  then </span><span class="pc" id="378:8">x - 1</span><span class="na" id="378:13"> // unreachable
   else </span><span class="fc" id="379:8">x + 1
 </span><span class="na" id="380:1">}
 
@@ -414,7 +414,7 @@ function {:testEntry} ObviouslyUnreachableMatchExpressionCaseFunction(t: T): (r:
   ensures r > 1 // alt: r > 0
 {
   match t {
-    case A => </span><span class="nc" id="400:15">1</span><span class="na" id="400:16"> // unreachable
+    case A => </span><span class="pc" id="400:15">1</span><span class="na" id="400:16"> // unreachable
     case B => </span><span class="fc" id="401:15">2
 </span><span class="na" id="402:1">  }
 }
@@ -464,7 +464,7 @@ function {:testEntry} GetX(c: C): int
 </span><span class="na" id="447:1">}
 
 method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
-  assume </span><span class="pc" id="450:10">t</span><span class="na" id="450:11">rue;
+  assume </span><span class="pc" id="450:10">true</span><span class="na" id="450:14">;
   </span><span class="fc" id="451:3">assert 1 + x == x + 1;
 </span><span class="na" id="452:1">}
 

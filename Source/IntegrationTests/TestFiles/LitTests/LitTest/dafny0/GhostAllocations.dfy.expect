@@ -1,12 +1,12 @@
 GhostAllocations.dfy(88,11): Warning: the modify statement with a block statement is deprecated
 GhostAllocations.dfy(99,13): Warning: the modify statement with a block statement is deprecated
-GhostAllocations.dfy(28,11): Error: assertion might not hold
-GhostAllocations.dfy(31,11): Error: assertion might not hold
-GhostAllocations.dfy(63,9): Error: assertion might not hold
-GhostAllocations.dfy(76,9): Error: assertion might not hold
-GhostAllocations.dfy(82,9): Error: assertion might not hold
-GhostAllocations.dfy(93,9): Error: assertion might not hold
-GhostAllocations.dfy(105,9): Error: assertion might not hold
+GhostAllocations.dfy(28,4): Error: assertion might not hold
+GhostAllocations.dfy(31,4): Error: assertion might not hold
+GhostAllocations.dfy(63,2): Error: assertion might not hold
+GhostAllocations.dfy(76,2): Error: assertion might not hold
+GhostAllocations.dfy(82,2): Error: assertion might not hold
+GhostAllocations.dfy(93,2): Error: assertion might not hold
+GhostAllocations.dfy(105,2): Error: assertion might not hold
 GhostAllocations.dfy(138,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 GhostAllocations.dfy(177,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 GhostAllocations.dfy(180,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body

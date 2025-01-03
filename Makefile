@@ -99,6 +99,9 @@ clean:
 	(cd "${DIR}"; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)
 	echo Source/*/bin Source/*/obj
 
+bumpversion-test:
+	node ./Scripts/bump_version_number.js --test 1.2.3
+
 update-cs-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime; make update-system-module)
 

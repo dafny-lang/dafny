@@ -1,7 +1,7 @@
-Unchanged.dfy(33,25): Error: assertion might not hold
-Unchanged.dfy(34,25): Error: assertion might not hold
-Unchanged.dfy(35,25): Error: assertion might not hold
-Unchanged.dfy(38,13): Error: assertion might not hold
+Unchanged.dfy(33,18): Error: assertion might not hold
+Unchanged.dfy(34,18): Error: assertion might not hold
+Unchanged.dfy(35,18): Error: assertion might not hold
+Unchanged.dfy(38,6): Error: assertion might not hold
 Unchanged.dfy(46,35): Error: object could not be proved to be allocated in the old-state of the 'unchanged' predicate
 Unchanged.dfy(47,35): Error: object could not be proved to be allocated in the old-state of the 'unchanged' predicate
 Unchanged.dfy(48,41): Error: object could not be proved to be allocated in the old-state of the 'unchanged' predicate

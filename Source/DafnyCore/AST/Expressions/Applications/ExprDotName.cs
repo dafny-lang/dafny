@@ -33,9 +33,9 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
     OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
   }
 
-  public ExprDotName(IOrigin tok, Expression obj, Name suffixName, List<Type> optTypeArguments)
-    : base(tok, obj) {
-    Contract.Requires(tok != null);
+  public ExprDotName(IOrigin origin, Expression obj, Name suffixName, List<Type> optTypeArguments)
+    : base(origin, obj) {
+    Contract.Requires(origin != null);
     Contract.Requires(obj != null);
     Contract.Requires(suffixName != null);
     this.SuffixNameNode = suffixName;
