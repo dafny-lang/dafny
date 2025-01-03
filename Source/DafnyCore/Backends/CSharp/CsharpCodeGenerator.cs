@@ -572,7 +572,6 @@ namespace Microsoft.Dafny.Compilers {
       var DtT_protected = DtDTypeName(dt);
       var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, UserDefinedType.FromTopLevelDecl(dt.Origin, dt));
       var simplifiedTypeName = TypeName(simplifiedType, wr, dt.Origin);
-      simplifiedTypeName = DtITypeName(dt);
 
       // ConcreteSyntaxTree for the interface
       wr.Write($"public interface {DtITypeName(dt)}");
