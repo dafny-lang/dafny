@@ -366,7 +366,7 @@ namespace Microsoft.Dafny.Compilers {
       importWriter = wr.Fork();
       foreach (var import in Imports) {
         if (import.Name != ModuleName) {
-          EmitImport(import, importWriter);
+          //EmitImport(import, importWriter);
         }
       }
     }
