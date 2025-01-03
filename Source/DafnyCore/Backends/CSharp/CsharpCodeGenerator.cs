@@ -676,9 +676,9 @@ namespace Microsoft.Dafny.Compilers {
           interfaceTree.WriteLine($"bool is_{ctor.GetCompileName(Options)} {{ get; }}");
 
           var returnValue = dt.IsRecordType
-            // public bool is_Ctor0 { get { return true; } }
+          // public bool is_Ctor0 { get { return true; } }
             ? "true"
-            // public bool is_Ctor0 { get { return this is Dt_Ctor0; } }
+          // public bool is_Ctor0 { get { return this is Dt_Ctor0; } }
             : $"this is {dt.GetCompileName(Options)}_{ctor.GetCompileName(Options)}{DtT_TypeArgs}";
           wr.WriteLine($"public bool is_{ctor.GetCompileName(Options)} {{ get {{ return {returnValue}; }} }}");
         }
@@ -2524,7 +2524,7 @@ namespace Microsoft.Dafny.Compilers {
       if (cl.IsExtern(Options, out _, out _)) {
         return cl.EnclosingModuleDefinition.GetCompileName(Options) + "." + cl.GetCompileName(Options);
       }
-      return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + (ignoreD? IdProtect(cl.GetCompileName(Options)) : DtDTypeName(cl));
+      return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + (ignoreD ? IdProtect(cl.GetCompileName(Options)) : DtDTypeName(cl));
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
