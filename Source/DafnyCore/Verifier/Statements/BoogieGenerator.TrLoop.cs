@@ -238,6 +238,7 @@ public partial class BoogieGenerator {
       TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
       invDefinednessBuilder.Add(TrAssumeCmdWithDependencies(etran, loopInv.E.Origin, loopInv.E, "loop invariant"));
 
+      builder.Add(TrAssumeCmd(loopInv.E.Origin, BplImp(w, etran.CanCallAssumption(loopInv.E))));
       invariants.Add(TrAssumeCmd(loopInv.E.Origin, BplImp(w, etran.CanCallAssumption(loopInv.E))));
       var ss = TrSplitExpr(builder.Context, loopInv.E, etran, false, out var splitHappened);
       if (!splitHappened) {
@@ -258,6 +259,7 @@ public partial class BoogieGenerator {
     }
     // check definedness of decreases clause
     foreach (Expression e in theDecreases) {
+      builder.Add(TrAssumeCmd(e.Origin, Bpl.Expr.Imp(w, etran.CanCallAssumption(e))));
       TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
     }
     if (codeContext is IMethodCodeContext) {
@@ -349,6 +351,9 @@ public partial class BoogieGenerator {
         // omit termination checking for this loop
         bodyTr(loopBodyBuilder, updatedFrameEtran);
       } else {
+        foreach (Expression e in theDecreases) {
+          loopBodyBuilder.Add(TrAssumeCmd(e.Origin, BplImp(w, etran.CanCallAssumption(e))));
+        }
         List<Bpl.Expr> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr$" + suffix);
         // time for the actual loop body
         bodyTr(loopBodyBuilder, updatedFrameEtran);
@@ -367,6 +372,8 @@ public partial class BoogieGenerator {
           prevGhostLocals.AddRange(prevVars);
           initDecrsDafny.Add(eInit);
           decrs.Add(etran.TrExpr(e));
+          // need to add can calls again because the actual loop body updates the variables
+          loopBodyBuilder.Add(TrAssumeCmd(e.Origin, BplImp(w, etran.CanCallAssumption(e))));
         }
         if (includeTerminationCheck) {
           AddComment(loopBodyBuilder, loop, "loop termination check");

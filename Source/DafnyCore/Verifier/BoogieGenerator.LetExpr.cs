@@ -17,7 +17,7 @@ namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     public partial class ExpressionTranslator {
 
-      private Expr LetCanCallAssumption(LetExpr expr) {
+      private Expr LetCanCallAssumption(LetExpr expr, CanCallOptions cco) {
         if (!expr.Exact) {
           // CanCall[[ var b0,b1 :| RHS(b0,b1,g); Body(b0,b1,g,h) ]] =
           //   $let$canCall(g) &&
@@ -35,7 +35,7 @@ namespace Microsoft.Dafny {
             substMap.Add(bv, call);
           }
           var p = Substitute(expr.Body, null, substMap);
-          var cc = BplAnd(canCall, CanCallAssumption(p));
+          var cc = BplAnd(canCall, CanCallAssumption(p, cco));
           return cc;
         } else {
           // CanCall[[ var b := RHS(g); Body(b,g,h) ]] =
@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
           //   (var lhs0,lhs1,... := rhs0,rhs1,...;  CanCall[[ Body ]])
           Boogie.Expr canCallRHS = Boogie.Expr.True;
           foreach (var rhs in expr.RHSs) {
-            canCallRHS = BplAnd(canCallRHS, CanCallAssumption(rhs));
+            canCallRHS = BplAnd(canCallRHS, CanCallAssumption(rhs, cco));
           }
 
           var bodyCanCall = CanCallAssumption(expr.Body);
@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
           var call = FunctionCall(e.Origin, info.SkolemFunctionName(bv), BoogieGenerator.TrType(bv.Type), gExprs);
           tr = new Bpl.Trigger(e.Origin, true, new List<Bpl.Expr> { call }, tr);
           substMap.Add(bv, new BoogieWrapper(call, bv.Type));
-          if (!(bv.Type.IsTypeParameter)) {
+          if (!bv.Type.IsTypeParameter) {
             Bpl.Expr wh = BoogieGenerator.GetWhereClause(bv.Origin, call, bv.Type, etranCC, NOALLOC);
             if (wh != null) {
               antecedent = BplAnd(antecedent, wh);
@@ -274,7 +274,8 @@ namespace Microsoft.Dafny {
 
         var canCall = FunctionCall(e.Origin, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
         var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-        Bpl.Expr ax = BplImp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
+        var canCallBody = etranCC.CanCallAssumption(p);
+        Bpl.Expr ax = BplImp(canCall, BplAnd(antecedent, BplAnd(canCallBody, etranCC.TrExpr(p))));
         ax = BplForall(gg, tr, ax);
         BoogieGenerator.AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.Origin, ax));
       }
