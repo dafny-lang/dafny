@@ -2680,7 +2680,7 @@ namespace Microsoft.Dafny.Compilers {
       string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       var dtName = dt is TupleTypeDecl tupleDecl
         ? DafnyTupleClass(tupleDecl.NonGhostDims)
-        : IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdName(dt);
+        : /*IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." +*/ IdName(dt);
       var typeParams = typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
       var sep = typeDescriptorArguments.Length != 0 && arguments.Length != 0 ? ", " : "";
       if (!isCoCall) {
@@ -2691,7 +2691,7 @@ namespace Microsoft.Dafny.Compilers {
         var sep0 = typeDescriptorArguments.Length != 0 ? ", " : "";
 
         var modname = dt.EnclosingModuleDefinition.GetCompileName(Options);
-        modname = modname == "_module" ? "_System" : modname;
+        modname = IdProtect(modname);
 
         wr.Write($"new {modname}.{IdName(dt)}__Lazy({typeDescriptorArguments}{sep0}");
         wr.Write("() -> { return ");
