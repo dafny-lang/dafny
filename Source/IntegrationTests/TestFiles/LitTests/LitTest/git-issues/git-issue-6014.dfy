@@ -1,8 +1,4 @@
-// NONUNIFORM: Test still fails on CS (https://github.com/dafny-lang/dafny/issues/5746)
-// RUN: %run --target java "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-// RUN: %run --target cs "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" 
 
 module State {
 
