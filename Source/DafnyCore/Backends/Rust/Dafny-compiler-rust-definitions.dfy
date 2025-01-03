@@ -298,15 +298,15 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       ThisTyped? && dafnyType.IsClassOrObjectTrait()
     }
     predicate IsRcWrappedDatatype() {
-      ThisTyped? && IsRcWrappedDatatypeRec(dafnyType)      
+      ThisTyped? && IsRcWrappedDatatypeRec(dafnyType)
     }
   }
 
   predicate IsRcWrappedDatatypeRec(dafnyType: Type) {
     match dafnyType {
-      case UserDefined(ResolvedType(_, _, Datatype(_, _), attributes, _, _)) => 
+      case UserDefined(ResolvedType(_, _, Datatype(_, _), attributes, _, _)) =>
         IsRcWrapped(attributes)
-      case UserDefined(ResolvedType(_, _, SynonymType(tpe), attributes, _, _)) => 
+      case UserDefined(ResolvedType(_, _, SynonymType(tpe), attributes, _, _)) =>
         IsRcWrappedDatatypeRec(tpe)
       case _ => false
     }
@@ -314,7 +314,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
 
   predicate IsRcWrapped(attributes: seq<Attribute>) {
     (Attribute("auto-nongrowing-size", []) !in attributes &&
-      Attribute("rust_rc", ["false"]) !in attributes) ||
+     Attribute("rust_rc", ["false"]) !in attributes) ||
     Attribute("rust_rc", ["true"]) in attributes
   }
 
@@ -620,20 +620,20 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
 
   function EqImpl(rTypeParamsDeclsWithEq: seq<R.TypeParamDecl>, datatypeType: R.Type, rTypeParams: seq<R.Type>, eqImplBody: R.Expr): seq<R.ModDecl> {
     [ R.ImplDecl(
-          R.ImplFor(
-            rTypeParamsDeclsWithEq,
-            R.PartialEq,
-            datatypeType,
-            [ R.FnDecl(
-                R.NoDoc, R.NoAttr, R.PRIV,
-                R.Fn(
-                  "eq",
-                  [],
-                  [R.Formal.selfBorrowed, R.Formal("other", R.SelfBorrowed)],
-                  Some(R.Bool),
-                  Some(eqImplBody)
-                )
-              )])),
+        R.ImplFor(
+          rTypeParamsDeclsWithEq,
+          R.PartialEq,
+          datatypeType,
+          [ R.FnDecl(
+              R.NoDoc, R.NoAttr, R.PRIV,
+              R.Fn(
+                "eq",
+                [],
+                [R.Formal.selfBorrowed, R.Formal("other", R.SelfBorrowed)],
+                Some(R.Bool),
+                Some(eqImplBody)
+              )
+            )])),
       R.ImplDecl(
         R.ImplFor(
           rTypeParamsDeclsWithEq,
@@ -1068,7 +1068,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     }
   }
    */
-   function UpcastDynTraitFor(
+  function UpcastDynTraitFor(
     rTypeParamsDecls: seq<R.TypeParamDecl>,
     forBoxedTraitType: R.Type,
     superTraitType: R.Type,
@@ -1076,15 +1076,15 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   ): R.ModDecl {
     var superBoxedTraitType := R.Box(R.DynType(superTraitType));
     var body := superTraitExpr.FSel("_clone").Apply1(R.self.Sel("as_ref").Apply0());
-      R.ImplDecl(
-        R.ImplFor(
-          rTypeParamsDecls,
-          R.dafny_runtime.MSel("UpcastBox").AsType().Apply([R.DynType(superTraitType)]),
-          forBoxedTraitType,
-          [ R.FnDecl(
-              R.NoDoc, R.NoAttr, R.PRIV,
-              R.Fn("upcast", [], [R.Formal.selfBorrowed], Some(superBoxedTraitType), Some(body)))
-          ]))
+    R.ImplDecl(
+      R.ImplFor(
+        rTypeParamsDecls,
+        R.dafny_runtime.MSel("UpcastBox").AsType().Apply([R.DynType(superTraitType)]),
+        forBoxedTraitType,
+        [ R.FnDecl(
+            R.NoDoc, R.NoAttr, R.PRIV,
+            R.Fn("upcast", [], [R.Formal.selfBorrowed], Some(superBoxedTraitType), Some(body)))
+        ]))
   }
 
   // Overapproximate but sound static analysis domain for assignment of a variable

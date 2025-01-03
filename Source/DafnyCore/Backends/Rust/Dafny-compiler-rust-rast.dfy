@@ -454,13 +454,13 @@ module RAST
     static function Name(name: string): Attribute {
       ApplyAttribute(name, [])
     }
-    
+
     function ToString(ind: string): string {
       match this {
         case ApplyAttribute(name, derived) =>
           var arguments := if |derived| != 0 then
-            "("+SeqToString(derived, (derived: string) => derived, ", ")+")"
-            else "";
+                             "("+SeqToString(derived, (derived: string) => derived, ", ")+")"
+                           else "";
           "#["+name+arguments+"]"
       }
     }
@@ -1674,7 +1674,7 @@ module RAST
               else
                 PrecedenceAssociativity(110, RightToLeft)
             case "=>" => // Not a Rust operation, used in the map macro syntax
-                PrecedenceAssociativity(120, RightToLeft)
+              PrecedenceAssociativity(120, RightToLeft)
             case _ => PrecedenceAssociativity(0, RequiresParentheses)
           }
         case Lambda(_, _, _) => PrecedenceAssociativity(300, LeftToRight)

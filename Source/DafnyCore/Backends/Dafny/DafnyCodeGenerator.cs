@@ -1851,7 +1851,7 @@ namespace Microsoft.Dafny.Compilers {
     private readonly Dictionary<TopLevelDecl, ISequence<ISequence<Rune>>> topLevelDeclPath = new();
 
     private ISequence<ISequence<Rune>> PathFromTopLevel(TopLevelDecl topLevel) {
-      if (topLevel is NonNullTypeDecl {Class: var classLikeDecl} nonNullTypeDecl) {
+      if (topLevel is NonNullTypeDecl { Class: var classLikeDecl } nonNullTypeDecl) {
         topLevel = classLikeDecl;
       }
       if (topLevelDeclPath.TryGetValue(topLevel, out var path)) {

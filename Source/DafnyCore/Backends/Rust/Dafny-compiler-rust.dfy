@@ -174,12 +174,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         typeParamsSeq: seq<Type>,
         rTypeParams: seq<R.Type>,
         rTypeParamsDecls: seq<R.TypeParamDecl>)
+      ensures |rTypeParams| == |rTypeParamsDecls| == |typeParamsSeq| == |params|
     {
       typeParamsSeq := [];
       rTypeParams := [];
       rTypeParamsDecls := [];
       if |params| > 0 {
-        for tpI := 0 to |params| {
+        for tpI := 0 to |params|
+          invariant |rTypeParams| == |rTypeParamsDecls| == |typeParamsSeq| == tpI
+        {
           var tp := params[tpI];
           var typeArg, typeParam := GenTypeParam(tp);
           var rType := GenType(typeArg, GenTypeContext.default());
@@ -622,7 +625,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         parents := parents + [parentTpe];
         var upcastTrait := if parentTyp.IsGeneralTrait() then "UpcastBox" else Upcast;
         parents := parents + [R.dafny_runtime.MSel(upcastTrait).AsType().Apply1(R.DynType(parentTpe))];
-        if parentTyp.IsGeneralTrait() {
+        if parentTyp.IsGeneralTrait() && t.traitType.GeneralTrait? {
           var upcastDynTrait := UpcastDynTraitFor(rTypeParamsDecls, instantiatedFullType, parentTpe, parentTpeExpr);
           upcastImplemented := upcastImplemented + [upcastDynTrait];
         }
@@ -724,7 +727,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.std.MSel("cmp").MSel("Eq").AsType(),
               R.Box(R.DynType(traitFullType)),
               []))];
-          s := s + [
+        s := s + [
           /*
           impl Hash
             for Box<dyn Test> {
@@ -740,13 +743,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.Hash,
               R.Box(R.DynType(traitFullType)),
               [R.FnDecl(
-                R.NoDoc, R.NoAttr, R.PRIV,
-                R.Fn(
-                  "hash", hash_type_parameters,
-                  hash_parameters,
-                  None,
-                  Some(hash_function.Apply([R.Borrow(traitFullExpr.FSel("_hash").Apply1(R.self.Sel("as_ref").Apply0())), R.Identifier("_state")]))
-                ))]))
+                 R.NoDoc, R.NoAttr, R.PRIV,
+                 R.Fn(
+                   "hash", hash_type_parameters,
+                   hash_parameters,
+                   None,
+                   Some(hash_function.Apply([R.Borrow(traitFullExpr.FSel("_hash").Apply1(R.self.Sel("as_ref").Apply0())), R.Identifier("_state")]))
+                 ))]))
         ];
       }
       s := s + upcastImplemented;
@@ -998,11 +1001,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       eqImplBody: R.Expr,
       hashImplBody: R.Expr
     ) returns (impls: seq<R.ModDecl>)
-      requires |typeParamsDecls| == |rTypeParamsDecls|
+      requires |typeParamsDecls| == |rTypeParamsDecls| == |rTypeParams|
     {
       var rTypeParamsDeclsWithEq := rTypeParamsDecls;
       var rTypeParamsDeclsWithHash := rTypeParamsDecls;
-      for i := 0 to |rTypeParamsDecls| {
+      for i := 0 to |rTypeParamsDecls|
+        invariant |rTypeParamsDeclsWithEq| == |rTypeParamsDecls|
+        invariant |rTypeParamsDeclsWithHash| == |rTypeParamsDecls|
+      {
         if typeParamsDecls[i].info.necessaryForEqualitySupportOfSurroundingInductiveDatatype {
           rTypeParamsDeclsWithEq := rTypeParamsDeclsWithEq[i := rTypeParamsDeclsWithEq[i].AddConstraints([R.Eq, R.Hash])];
           rTypeParamsDeclsWithHash := rTypeParamsDeclsWithHash[i := rTypeParamsDeclsWithHash[i].AddConstraints([R.Hash])];
@@ -1213,7 +1219,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
       }
       var cIsAlwaysEq := c.equalitySupport.ConsultTypeArguments? &&
-        forall t <- c.typeParams :: !t.info.necessaryForEqualitySupportOfSurroundingInductiveDatatype;
+                         forall t <- c.typeParams :: !t.info.necessaryForEqualitySupportOfSurroundingInductiveDatatype;
       var datatypeType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
 
       // Derive PartialEq when c supports equality / derive Clone in all cases
@@ -1311,7 +1317,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               hashRhs.Then(hash_function.Apply([R.Identifier(patternName), R.Identifier("_state")]));
 
           ctorMatchInner := ctorMatchInner + patternName + ", ";
-          var matchingVariable2 := prefixWith2(patternName); 
+          var matchingVariable2 := prefixWith2(patternName);
           var patternPrefix := if isNumeric then "" else patternName + ": ";
           ctorMatchInner2 := ctorMatchInner2 + patternPrefix + matchingVariable2 + ", "; // field: _2_field,
           partialEqRhs :=
@@ -1393,10 +1399,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         ];
       }
       partialEqImplBodyCases := partialEqImplBodyCases + [
-          R.MatchCase(
-            R.RawPattern("_"),
-            R.Block(R.LiteralBool(false)))
-        ];
+        R.MatchCase(
+          R.RawPattern("_"),
+          R.Block(R.LiteralBool(false)))
+      ];
 
       if |c.typeParams| > 0 && |unusedTypeParams| > 0 {
         var extraCases := [
@@ -1808,8 +1814,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               tpe := R.SelfBorrowed;
             } else {
               if enclosingType.UserDefined? && enclosingType.resolved.kind.Newtype?
-                        && IsNewtypeCopy(enclosingType.resolved.kind.range)
-                        && !forTrait {
+                 && IsNewtypeCopy(enclosingType.resolved.kind.range)
+                 && !forTrait {
                 tpe := R.TMetaData(
                   R.SelfOwned,
                   copySemantics := true,
@@ -2843,9 +2849,26 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
+    method GenExprConvertTo(
+      expr: R.Expr,
+      exprOwnership: Ownership,
+      fromTpeWithSynonyms: Type,
+      toTpeWithSynonyms: Type,
+      env: Environment,
+      expectedOwnership: Ownership
+    ) returns (r: R.Expr, resultingOwnership: Ownership)
+      requires exprOwnership != OwnershipAutoBorrowed
+      modifies this
+      ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
+    {
+      var fromTpe := fromTpeWithSynonyms.RemoveSynonyms();
+      var toTpe := toTpeWithSynonyms.RemoveSynonyms();
+      r, resultingOwnership := GenExprConvertToWithoutSynonyms(expr, exprOwnership, fromTpe, toTpe, env, expectedOwnership);
+    }
+
     // To use when we know that the expression is a Convert(_, _, toTpe)
     // and toTpe is a newtype
-    method GenExprConvertTo(
+    method GenExprConvertToWithoutSynonyms(
       expr: R.Expr,
       exprOwnership: Ownership,
       fromTpe: Type,
@@ -2860,8 +2883,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     {
       r := expr;
       // For conversion purpose, synonyms are not desired
-      var fromTpe := fromTpe.RemoveSynonyms();
-      var toTpe := toTpe.RemoveSynonyms();
       if fromTpe == toTpe {
         r, resultingOwnership := FromOwnership(r, exprOwnership, expectedOwnership);
         return;
@@ -2870,13 +2891,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         // From type is a newtype but it's not a primitive one.
         r := UnwrapNewtype(r, exprOwnership, fromTpe);
         r, resultingOwnership :=
-          GenExprConvertTo(r, exprOwnership, fromTpe.resolved.kind.baseType, toTpe, env, expectedOwnership);
+          GenExprConvertToWithoutSynonyms(r, exprOwnership, fromTpe.resolved.kind.baseType, toTpe, env, expectedOwnership);
         return;
       }
       if NeedsUnwrappingConversion(toTpe) {
         var toKind := toTpe.resolved.kind;
         r, resultingOwnership :=
-          GenExprConvertTo(r, exprOwnership, fromTpe, toKind.baseType, env, expectedOwnership);
+          GenExprConvertToWithoutSynonyms(r, exprOwnership, fromTpe, toKind.baseType, env, expectedOwnership);
         r := WrapWithNewtype(r, resultingOwnership, toTpe);
         r, resultingOwnership := FromOwnership(r, resultingOwnership, expectedOwnership);
         return;
@@ -3051,12 +3072,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           if fromType.UserDefined? && fromType.resolved.kind.Datatype? then
             Std.Collections.Seq.Filter(
               i =>
-                  if 0 <= i < |fromTpe.arguments| then
-                    (0 <= i < |fromType.resolved.kind.info| ==>
-                      !fromType.resolved.kind.info[i].variance.Nonvariant?)
-                  else
-                    false
-              , seq(|fromTpe.arguments|, i => i))
+                if 0 <= i < |fromTpe.arguments| then
+                  (0 <= i < |fromType.resolved.kind.info| ==>
+                     !fromType.resolved.kind.info[i].variance.Nonvariant?)
+                else
+                  false
+            , seq(|fromTpe.arguments|, i => i))
           else
             seq(|fromTpe.arguments|, i => i);
         var lambdas :-

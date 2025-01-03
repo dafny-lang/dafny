@@ -294,7 +294,7 @@ module {:extern "DAST"} DAST {
 
   datatype TypeParameterInfo =
     TypeParameterInfo(variance: Variance, necessaryForEqualitySupportOfSurroundingInductiveDatatype: bool)
-  
+
   datatype EqualitySupport = Never | ConsultTypeArguments
 
   datatype ResolvedTypeBase =
