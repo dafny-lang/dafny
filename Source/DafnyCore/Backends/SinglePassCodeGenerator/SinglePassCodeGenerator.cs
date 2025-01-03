@@ -1632,13 +1632,7 @@ namespace Microsoft.Dafny.Compilers {
               };
             }
             Contract.Assert(exprs != null); // because externP is true
-            if (exprs.Count == 1) {
-              DeclareExternType(at, exprs[0], wr);
-            } else {
-              Error(ErrorId.c_abstract_type_needs_hint, d.Origin,
-                "Abstract type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}",
-                wr, at.FullName);
-            }
+            DeclareExternType(at, exprs[0], wr);
 
             v.Visit(exprs);
           } else {
