@@ -93,7 +93,11 @@ public class RustBackend : DafnyExecutableBackend {
     foreach (var keyValue in ImportFilesMapping(dafnyProgramName)) {
       var fullRustExternName = keyValue.Key;
       var expectedRustName = keyValue.Value;
-      File.Copy(fullRustExternName, Path.Combine(targetDirectory, expectedRustName), true);
+      var targetName = Path.Combine(targetDirectory, expectedRustName);
+      if (fullRustExternName == targetName) {
+        return true;
+      }
+      File.Copy(fullRustExternName, targetName, true);
     }
     return await base.OnPostGenerate(dafnyProgramName, targetDirectory, outputWriter);
   }

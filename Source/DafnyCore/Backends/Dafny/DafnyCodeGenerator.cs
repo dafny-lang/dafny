@@ -1848,11 +1848,24 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private readonly Dictionary<TopLevelDecl, ISequence<ISequence<Rune>>> topLevelDeclPath = new();
+
     private ISequence<ISequence<Rune>> PathFromTopLevel(TopLevelDecl topLevel) {
-      List<ISequence<Rune>> path = new();
-      path.Add(Sequence<Rune>.UnicodeFromString(topLevel.EnclosingModuleDefinition.GetCompileName(Options)));
-      path.Add(Sequence<Rune>.UnicodeFromString(topLevel.GetCompileName(Options)));
-      return Sequence<ISequence<Rune>>.FromArray(path.ToArray());
+      if (topLevel is NonNullTypeDecl {Class: var classLikeDecl} nonNullTypeDecl) {
+        topLevel = classLikeDecl;
+      }
+      if (topLevelDeclPath.TryGetValue(topLevel, out var path)) {
+        return path;
+      }
+      var enclosingName = topLevel.GetQualificationName(Options);
+      var compileName = topLevel.GetCompileName(Options);
+      List<ISequence<Rune>> pathList = new() {
+        Sequence<Rune>.UnicodeFromString(enclosingName),
+        Sequence<Rune>.UnicodeFromString(compileName)
+      };
+      var p = Sequence<ISequence<Rune>>.FromArray(pathList.ToArray());
+      topLevelDeclPath[topLevel] = p;
+      return p;
     }
 
     private DAST.NewtypeRange NativeTypeToNewtypeRange(NewtypeDecl newtypeDecl, bool overflows) {
@@ -1969,6 +1982,11 @@ namespace Microsoft.Dafny.Compilers {
           equalitySupport, infos);
       } else if (topLevel is ClassDecl) {
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Class();
+      } else if (topLevel is AbstractTypeDecl atd) {
+        var traitType = atd.ParentTraits.Any(s => s.IsRefType) ?
+          TraitType.create_ObjectTrait() :
+          TraitType.create_GeneralTrait();
+        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait(traitType);
       } else {
         // SubsetTypeDecl are covered by TypeSynonymDecl
         throw new InvalidOperationException(topLevel.GetType().ToString());

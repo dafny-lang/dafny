@@ -1626,6 +1626,11 @@ namespace Microsoft.Dafny.Compilers {
           bool externP = Attributes.Contains(at.Attributes, "extern");
           if (externP) {
             var exprs = Attributes.FindExpressions(at.Attributes, "extern");
+            if (exprs == null || exprs.Count == 0) {
+              exprs = new List<Expression>() {
+                Expression.CreateStringLiteral(Token.NoToken, at.Name)
+              };
+            }
             Contract.Assert(exprs != null); // because externP is true
             if (exprs.Count == 1) {
               DeclareExternType(at, exprs[0], wr);
