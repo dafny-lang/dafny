@@ -31,7 +31,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
 
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
-  public IOrigin BodyStartTok = Token.NoToken;
+  public IOrigin BodyStartOrigin = Token.NoToken;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -54,9 +54,9 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     return BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
-  public ComprehensionExpr(IOrigin tok, IOrigin rangeOrigin, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  protected ComprehensionExpr(IOrigin origin, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(term != null);
 
@@ -64,16 +64,14 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     Range = range;
     Term = term;
     Attributes = attrs;
-    BodyStartTok = tok;
-    Origin = rangeOrigin;
+    BodyStartOrigin = origin;
   }
 
   protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {
     BoundVars = original.BoundVars.Select(bv => cloner.CloneBoundVar(bv, false)).ToList();
     Range = cloner.CloneExpr(original.Range);
     Attributes = cloner.CloneAttributes(original.Attributes);
-    BodyStartTok = cloner.Origin(original.BodyStartTok);
-    Origin = cloner.Origin(original.Origin);
+    BodyStartOrigin = cloner.Origin(original.BodyStartOrigin);
     Term = cloner.CloneExpr(original.Term);
 
     if (cloner.CloneResolvedFields) {
@@ -86,8 +84,8 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
 
   public override IEnumerable<INode> PreResolveChildren =>
     Attributes.AsEnumerable()
-      .Concat<Node>(Range != null && Range.Tok.line > 0 ? new List<Node>() { Range } : new List<Node>())
-    .Concat(Term != null && Term.Tok.line > 0 ? new List<Node> { Term } : new List<Node>());
+      .Concat<Node>(Range != null && Range.Origin.line > 0 ? new List<Node>() { Range } : new List<Node>())
+    .Concat(Term != null && Term.Origin.line > 0 ? new List<Node> { Term } : new List<Node>());
 
   public override IEnumerable<Expression> SubExpressions {
     get {

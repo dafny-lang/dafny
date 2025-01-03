@@ -44,9 +44,9 @@ public class OpaqueMemberRewriter : IRewriter {
     Contract.Requires(lemma is Lemma || lemma is TwoStateLemma);
     Expression receiver;
     if (f.IsStatic) {
-      receiver = new StaticReceiverExpr(f.Tok, (TopLevelDeclWithMembers)f.EnclosingClass, true);
+      receiver = new StaticReceiverExpr(f.Origin, (TopLevelDeclWithMembers)f.EnclosingClass, true);
     } else {
-      receiver = new ImplicitThisExpr(f.Tok);
+      receiver = new ImplicitThisExpr(f.Origin);
       //receiver.Type = GetThisType(expr.Tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
     }
     var typeApplication = new List<Type>();
@@ -57,8 +57,8 @@ public class OpaqueMemberRewriter : IRewriter {
       typeApplication.Add(new IntType());
       typeApplication_JustForMember.Add(new IntType());
     }
-    var nameSegment = new NameSegment(f.Tok, f.Name, f.TypeArgs.Count == 0 ? null : typeApplication);
-    var rr = new MemberSelectExpr(f.Tok, receiver, f.NameNode);
+    var nameSegment = new NameSegment(f.Origin, f.Name, f.TypeArgs.Count == 0 ? null : typeApplication);
+    var rr = new MemberSelectExpr(f.Origin, receiver, f.NameNode);
     rr.Member = f;
     rr.TypeApplicationAtEnclosingClass = typeApplication;
     rr.TypeApplicationJustMember = typeApplication_JustForMember;
@@ -66,7 +66,7 @@ public class OpaqueMemberRewriter : IRewriter {
     for (int i = 0; i < f.Ins.Count; i++) {
       args.Add(new IntType());
     }
-    rr.Type = new ArrowType(f.Tok, args, new IntType());
+    rr.Type = new ArrowType(f.Origin, args, new IntType());
     nameSegment.ResolvedExpression = rr;
     nameSegment.Type = rr.Type;
     lemma.Attributes = new Attributes("revealedFunction", new List<Expression>() { nameSegment }, lemma.Attributes);
@@ -82,7 +82,7 @@ public class OpaqueMemberRewriter : IRewriter {
         // Nothing to do
       } else if (member is Function { Body: null }) {
         // Nothing to do
-      } else if (!member.Tok.IsInherited(c.EnclosingModuleDefinition)) {
+      } else if (!member.Origin.IsInherited(c.EnclosingModuleDefinition)) {
         GenerateRevealLemma(member, newDecls);
       }
     }
@@ -137,12 +137,12 @@ public class OpaqueMemberRewriter : IRewriter {
     }
     lemma_attrs = new Attributes("auto_generated", new List<Expression>(), lemma_attrs);
     lemma_attrs = new Attributes("opaque_reveal", new List<Expression>(), lemma_attrs);
-    lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(m.Tok, false) }, lemma_attrs);
+    lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(m.Origin, false) }, lemma_attrs);
     var ens = new List<AttributedExpression>();
 
     var isStatic = true;
     if (m is ConstantField { Rhs: not null } c) {
-      ens.Add(new AttributedExpression(new BinaryExpr(c.Tok, BinaryExpr.Opcode.Eq, new NameSegment(c.Tok, c.Name, null), c.Rhs)));
+      ens.Add(new AttributedExpression(new BinaryExpr(c.Origin, BinaryExpr.Opcode.Eq, new NameSegment(c.Origin, c.Name, null), c.Rhs)));
       isStatic = m.HasStaticKeyword;
     }
     Method reveal;

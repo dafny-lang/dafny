@@ -35,10 +35,10 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     SetupDefaultSignature();
   }
 
-  public ModuleExportDecl(DafnyOptions options, IOrigin rangeOrigin, Name name, ModuleDefinition parent,
+  public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(options, rangeOrigin, name, parent, false, isRefining, cloneId) {
+    : base(options, origin, name, parent, false, isRefining, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
@@ -103,10 +103,10 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     }
 
     var tentativeTrivia = "";
-    if (Tok.pos < EndToken.pos) {
-      tentativeTrivia = (Tok.TrailingTrivia + Tok.Next.LeadingTrivia).Trim();
+    if (Center.pos < EndToken.pos) {
+      tentativeTrivia = (Center.TrailingTrivia + Center.Next?.LeadingTrivia).Trim();
     } else {
-      tentativeTrivia = Tok.TrailingTrivia.Trim();
+      tentativeTrivia = Center.TrailingTrivia.Trim();
     }
     if (tentativeTrivia != "") {
       return tentativeTrivia;

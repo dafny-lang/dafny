@@ -16,18 +16,18 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   public static AssertStmt CreateErrorAssert(INode node, string message, Expression guard = null) {
-    var errorMessage = new StringLiteralExpr(node.Tok, message, true);
+    var errorMessage = new StringLiteralExpr(node.Origin, message, true);
     errorMessage.Type = new SeqType(Type.Char);
     var attr = new Attributes("error", new List<Expression> { errorMessage }, null);
-    guard ??= Expression.CreateBoolLiteral(node.Tok, false);
+    guard ??= Expression.CreateBoolLiteral(node.Origin, false);
     var assertFalse = new AssertStmt(node.Origin, guard, null, attr);
     assertFalse.IsGhost = true;
     return assertFalse;
   }
 
-  public AssertStmt(IOrigin rangeOrigin, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
-    : base(rangeOrigin, expr, attrs) {
-    Contract.Requires(rangeOrigin != null);
+  public AssertStmt(IOrigin origin, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
+    : base(origin, expr, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     Label = label;
   }
@@ -48,7 +48,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (this.HasUserAttribute("only", out _)) {
-      yield return new Assumption(decl, Tok, AssumptionDescription.AssertOnly);
+      yield return new Assumption(decl, Origin, AssumptionDescription.AssertOnly);
     }
   }
 
@@ -67,12 +67,12 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     }
 
     if (this.HasUserAttribute("only", out var attribute)) {
-      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.Origin.ToToken(),
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.Origin,
         "Assertion with {:only} temporarily transforms other assertions into assumptions");
       if (attribute.Args.Count >= 1
           && attribute.Args[0] is LiteralExpr { Value: string value }
           && value != "before" && value != "after") {
-        resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_before_after.ToString(), attribute.Args[0].Origin.ToToken(),
+        resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_before_after.ToString(), attribute.Args[0].Origin,
           "{:only} only accepts \"before\" or \"after\" as an optional argument");
       }
     }

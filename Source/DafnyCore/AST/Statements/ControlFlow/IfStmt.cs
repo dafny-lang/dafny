@@ -26,9 +26,9 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Els = cloner.CloneStmt(original.Els, false);
   }
 
-  public IfStmt(IOrigin rangeOrigin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
-    : base(rangeOrigin) {
-    Contract.Requires(rangeOrigin != null);
+  public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
@@ -37,9 +37,9 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Thn = thn;
     Els = els;
   }
-  public IfStmt(IOrigin rangeOrigin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
-    : base(rangeOrigin, attrs) {
-    Contract.Requires(rangeOrigin != null);
+  public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
+    : base(origin, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
@@ -90,13 +90,13 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
   public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     if (Guard != null) {
       if (!resolutionContext.IsGhost && IsBindingGuard && resolver.Options.ForbidNondeterminism) {
-        resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_binding_if_forbidden, Tok, "binding if statement forbidden by the --enforce-determinism option");
+        resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_binding_if_forbidden, Origin, "binding if statement forbidden by the --enforce-determinism option");
       }
       resolver.ResolveExpression(Guard, resolutionContext);
       resolver.ConstrainTypeExprBool(Guard, "condition is expected to be of type bool, but is {0}");
     } else {
       if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
-        resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_nondeterministic_if_forbidden, Tok, "nondeterministic if statement forbidden by the --enforce-determinism option");
+        resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_nondeterministic_if_forbidden, Origin, "nondeterministic if statement forbidden by the --enforce-determinism option");
       }
     }
 
@@ -104,7 +104,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     if (IsBindingGuard) {
       var exists = (ExistsExpr)Guard;
       foreach (var v in exists.BoundVars) {
-        resolver.ScopePushAndReport(resolver.Scope, v.Name, v, v.Tok, "bound-variable");
+        resolver.ScopePushAndReport(resolver.Scope, v.Name, v, v.Origin, "bound-variable");
       }
     }
     resolver.DominatingStatementLabels.PushMarker();
@@ -124,7 +124,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = mustBeErasable || (Guard != null && ExpressionTester.UsesSpecFeatures(Guard));
     if (!mustBeErasable && IsGhost) {
-      reporter.Info(MessageSource.Resolver, Tok, "ghost if");
+      reporter.Info(MessageSource.Resolver, Origin, "ghost if");
     }
     Thn.ResolveGhostness(resolver, reporter, IsGhost, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
     if (Els != null) {

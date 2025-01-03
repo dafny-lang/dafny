@@ -22,8 +22,6 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     Contract.Invariant(SyntacticType != null);
   }
 
-  public override IOrigin Tok => Origin;
-
   public LocalVariable(Cloner cloner, LocalVariable original)
     : base(cloner, original) {
     name = original.Name;
@@ -36,8 +34,8 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
-  public LocalVariable(IOrigin rangeOrigin, string name, Type type, bool isGhost)
-    : base(rangeOrigin) {
+  public LocalVariable(IOrigin origin, string name, Type type, bool isGhost)
+    : base(origin) {
     Contract.Requires(name != null);
     Contract.Requires(type != null);  // can be a proxy, though
 

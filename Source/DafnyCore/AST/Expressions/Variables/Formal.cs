@@ -15,18 +15,18 @@ public class Formal : NonglobalVariable {
   public readonly bool IsOlder;
   public readonly string NameForCompilation;
 
-  public Formal(IOrigin tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
+  public Formal(IOrigin origin, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
     Attributes attributes = null,
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
-    : this(tok, new Name(tok.StartToken, name), type, inParam, isGhost, defaultValue, attributes,
+    : this(origin, new Name(origin.StartToken, name), type, inParam, isGhost, defaultValue, attributes,
       isOld, isNameOnly, isOlder, nameForCompilation) {
   }
 
-  public Formal(IOrigin tok, Name nameNode, Type type, bool inParam, bool isGhost, Expression defaultValue,
+  public Formal(IOrigin origin, Name nameNode, Type type, bool inParam, bool isGhost, Expression defaultValue,
     Attributes attributes = null,
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
-    : base(tok, nameNode, type, isGhost) {
-    Contract.Requires(tok != null);
+    : base(origin, nameNode, type, isGhost) {
+    Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
     Contract.Requires(inParam || defaultValue == null);
@@ -59,9 +59,9 @@ public class Formal : NonglobalVariable {
 /// of each extreme lemma (for use in the extreme-method body only, not the specification).
 /// </summary>
 public class ImplicitFormal : Formal {
-  public ImplicitFormal(IOrigin tok, string name, Type type, bool inParam, bool isGhost)
-    : base(tok, name, type, inParam, isGhost, null, null) {
-    Contract.Requires(tok != null);
+  public ImplicitFormal(IOrigin origin, string name, Type type, bool inParam, bool isGhost)
+    : base(origin, name, type, inParam, isGhost, null, null) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
   }
@@ -74,9 +74,9 @@ public class ImplicitFormal : Formal {
 /// implementation.
 /// </summary>
 public class ThisSurrogate : ImplicitFormal {
-  public ThisSurrogate(IOrigin tok, Type type)
-    : base(tok, "this", type, true, false) {
-    Contract.Requires(tok != null);
+  public ThisSurrogate(IOrigin origin, Type type)
+    : base(origin, "this", type, true, false) {
+    Contract.Requires(origin != null);
     Contract.Requires(type != null);
   }
 }

@@ -387,7 +387,7 @@ public record IdeState(
     var implementations = canVerifyPartsIdentified.Parts.Select(t => t.Split.Implementation).Distinct();
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
 
-    var uri = canVerifyPartsIdentified.CanVerify.Tok.Uri;
+    var uri = canVerifyPartsIdentified.CanVerify.Origin.Uri;
     gutterIconManager.ReportImplementationsBeforeVerification(previousState,
       canVerifyPartsIdentified.CanVerify, implementations.ToArray());
 
@@ -411,7 +411,7 @@ public record IdeState(
     var previousState = this;
 
     var name = Compilation.GetTaskName(boogieException.Task);
-    var uri = boogieException.CanVerify.Tok.Uri;
+    var uri = boogieException.CanVerify.Origin.Uri;
     var range = boogieException.CanVerify.NavigationToken.GetLspRange();
 
     var previousVerificationResult = previousState.CanVerifyStates[uri][range];
@@ -442,7 +442,7 @@ public record IdeState(
 
     var name = Compilation.GetTaskName(boogieUpdate.VerificationTask);
     var status = StatusFromBoogieStatus(boogieUpdate.BoogieStatus);
-    var uri = boogieUpdate.CanVerify.Tok.Uri;
+    var uri = boogieUpdate.CanVerify.Origin.Uri;
     var range = boogieUpdate.CanVerify.NavigationToken.GetLspRange();
 
     var previousVerificationResult = previousState.CanVerifyStates[uri][range];

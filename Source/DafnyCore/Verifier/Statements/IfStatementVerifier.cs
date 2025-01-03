@@ -38,10 +38,10 @@ public class IfStatementVerifier {
     IfCmd elseIf = null;
     var elseBuilder = new BoogieStmtListBuilder(generator, generator.Options, builder.Context);
     if (stmt.IsBindingGuard) {
-      elseBuilder.Add(generator.TrAssumeCmdWithDependenciesAndExtend(etran, guard.Tok, guard, Expr.Not, "if statement binding guard"));
+      elseBuilder.Add(generator.TrAssumeCmdWithDependenciesAndExtend(etran, guard.Origin, guard, Expr.Not, "if statement binding guard"));
     }
     if (stmt.Els == null) {
-      elseList = elseBuilder.Collect(stmt.Tok);
+      elseList = elseBuilder.Collect(stmt.Origin);
     } else {
       generator.CurrentIdGenerator.Push();
       elseList = generator.TrStmt2StmtList(elseBuilder, stmt.Els, locals, etran, stmt.Els is not BlockStmt);
@@ -54,7 +54,7 @@ public class IfStatementVerifier {
         }
       }
     }
-    builder.Add(new IfCmd(stmt.Tok,
+    builder.Add(new IfCmd(stmt.Origin,
       guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard),
       thenList, elseIf, elseList, BlockRewriter.AllowSplitQ));
   }

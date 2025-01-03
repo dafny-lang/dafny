@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class Specification<T> : TokenNode, IAttributeBearingDeclaration
+public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclaration
   where T : Node {
   public readonly List<T> Expressions;
 

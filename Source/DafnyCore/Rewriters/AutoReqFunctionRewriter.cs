@@ -85,7 +85,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     }
 
     if (!tip.Equals("")) {
-      Reporter.Info(MessageSource.Rewriter, f.Tok, tip);
+      Reporter.Info(MessageSource.Rewriter, f.Origin, tip);
       if (Reporter.Options.AutoReqPrintFile != null) {
         using (System.IO.TextWriter writer = new System.IO.StreamWriter(Reporter.Options.AutoReqPrintFile, true)) {
           writer.WriteLine(f.Name);
@@ -109,7 +109,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     }
 
     if (!tip.Equals("")) {
-      Reporter.Info(MessageSource.Rewriter, method.Tok, tip);
+      Reporter.Info(MessageSource.Rewriter, method.Origin, tip);
       if (Reporter.Options.AutoReqPrintFile != null) {
         using System.IO.TextWriter writer = new System.IO.StreamWriter(Reporter.Options.AutoReqPrintFile, true);
         writer.WriteLine(method.Name);
@@ -254,11 +254,11 @@ public class AutoReqFunctionRewriter : IRewriter {
       foreach (MatchCaseExpr caseExpr in e.Cases) {
         //MatchCaseExpr c = new MatchCaseExpr(caseExpr.Tok, caseExpr.Id, caseExpr.Arguments, andify(caseExpr.Tok, generateAutoReqs(caseExpr.Body)));
         //c.Ctor = caseExpr.Ctor; // resolve here
-        MatchCaseExpr c = Expression.CreateMatchCase(caseExpr, Andify(caseExpr.Tok, GenerateAutoReqs(caseExpr.Body)));
+        MatchCaseExpr c = Expression.CreateMatchCase(caseExpr, Andify(caseExpr.Origin, GenerateAutoReqs(caseExpr.Body)));
         newMatches.Add(c);
       }
 
-      reqs.Add(Expression.CreateMatch(e.Tok, e.Source, newMatches, e.Type));
+      reqs.Add(Expression.CreateMatch(e.Origin, e.Source, newMatches, e.Type));
     } else if (expr is SeqConstructionExpr) {
       var e = (SeqConstructionExpr)expr;
       reqs.AddRange(GenerateAutoReqs(e.N));
@@ -291,7 +291,7 @@ public class AutoReqFunctionRewriter : IRewriter {
             // We only care about this req if E0 is false, since Or short-circuits
             var cloner = new Cloner(false, true);
             var e0 = cloner.CloneExpr(e.E0);
-            reqs.Add(Expression.CreateImplies(Expression.CreateNot(e.E1.Tok, e0), req));
+            reqs.Add(Expression.CreateImplies(Expression.CreateNot(e.E1.Origin, e0), req));
           }
           break;
 
@@ -315,7 +315,7 @@ public class AutoReqFunctionRewriter : IRewriter {
         }
         var new_reqs = GenerateAutoReqs(e.Body);
         if (new_reqs.Count > 0) {
-          reqs.Add(Expression.CreateLet(e.Tok, e.LHSs, e.RHSs, Andify(e.Tok, new_reqs), e.Exact));
+          reqs.Add(Expression.CreateLet(e.Origin, e.LHSs, e.RHSs, Andify(e.Origin, new_reqs), e.Exact));
         }
       } else {
         // TODO: Still need to figure out what the right choice is here:
@@ -331,10 +331,10 @@ public class AutoReqFunctionRewriter : IRewriter {
 
       var auto_reqs = GenerateAutoReqs(e.Term);
       if (auto_reqs.Count > 0) {
-        Expression allReqsSatisfied = Andify(e.Term.Tok, auto_reqs);
+        Expression allReqsSatisfied = Andify(e.Term.Origin, auto_reqs);
         Expression allReqsSatisfiedAndTerm = Expression.CreateAnd(allReqsSatisfied, e.Term);
         e.Term = allReqsSatisfiedAndTerm;
-        Reporter.Info(MessageSource.Rewriter, e.Tok, "autoreq added (" + Printer.ExtendedExprToString(Reporter.Options, allReqsSatisfied) + ") &&");
+        Reporter.Info(MessageSource.Rewriter, e.Origin, "autoreq added (" + Printer.ExtendedExprToString(Reporter.Options, allReqsSatisfied) + ") &&");
       }
     } else if (expr is SetComprehension) {
       var e = (SetComprehension)expr;
@@ -344,7 +344,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       //reqs.AddRange(generateAutoReqs(e.Range));
       var auto_reqs = GenerateAutoReqs(e.Term);
       if (auto_reqs.Count > 0) {
-        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.Tok, e.Origin, e.BoundVars, e.Range, Andify(e.Term.Tok, auto_reqs), e.Attributes), true));
+        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.Origin, e.BoundVars, e.Range, Andify(e.Term.Origin, auto_reqs), e.Attributes), true));
       }
     } else if (expr is MapComprehension) {
       var e = (MapComprehension)expr;
@@ -357,7 +357,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       }
       auto_reqs.AddRange(GenerateAutoReqs(e.Term));
       if (auto_reqs.Count > 0) {
-        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.Tok, e.Origin, e.BoundVars, e.Range, Andify(e.Term.Tok, auto_reqs), e.Attributes), true));
+        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.Origin, e.BoundVars, e.Range, Andify(e.Term.Origin, auto_reqs), e.Attributes), true));
       }
     } else if (expr is StmtExpr) {
       var e = (StmtExpr)expr;
@@ -365,7 +365,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     } else if (expr is ITEExpr) {
       ITEExpr e = (ITEExpr)expr;
       reqs.AddRange(GenerateAutoReqs(e.Test));
-      reqs.Add(Expression.CreateITE(e.Test, Andify(e.Thn.Tok, GenerateAutoReqs(e.Thn)), Andify(e.Els.Tok, GenerateAutoReqs(e.Els))));
+      reqs.Add(Expression.CreateITE(e.Test, Andify(e.Thn.Origin, GenerateAutoReqs(e.Thn)), Andify(e.Els.Origin, GenerateAutoReqs(e.Els))));
     } else if (expr is NestedMatchExpr) {
       containsMatch = true;
 
@@ -373,8 +373,8 @@ public class AutoReqFunctionRewriter : IRewriter {
       reqs.AddRange(GenerateAutoReqs(e.Source));
 
       var newCases = e.Cases.Select(cas =>
-        new NestedMatchCaseExpr(cas.Tok, cas.Pat, Andify(cas.Body.Tok, GenerateAutoReqs(cas.Body)), cas.Attributes)).ToList();
-      var nestedMatchExpr = new NestedMatchExpr(e.Tok, e.Source, newCases, e.UsesOptionalBraces);
+        new NestedMatchCaseExpr(cas.Origin, cas.Pat, Andify(cas.Body.Origin, GenerateAutoReqs(cas.Body)), cas.Attributes)).ToList();
+      var nestedMatchExpr = new NestedMatchExpr(e.Origin, e.Source, newCases, e.UsesOptionalBraces);
       nestedMatchExpr.Type = Type.Bool;
       reqs.Add(nestedMatchExpr);
     } else if (expr is ConcreteSyntaxExpression) {
