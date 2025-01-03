@@ -2679,10 +2679,10 @@ namespace Microsoft.Dafny.Compilers {
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type> typeArgs, bool isCoCall,
       string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       var modname = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options));
-      modname = (modname == ModuleName ? "" : modname+".");
+      modname = (modname == ModuleName ? "" : modname + ".");
       var dtName = dt is TupleTypeDecl tupleDecl
         ? DafnyTupleClass(tupleDecl.NonGhostDims)
-        :  modname + IdName(dt);  // HERE Makes Dafny failing on standard libraries if removed, and on unit test if added
+        : modname + IdName(dt);
       var typeParams = typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
       var sep = typeDescriptorArguments.Length != 0 && arguments.Length != 0 ? ", " : "";
       if (!isCoCall) {
