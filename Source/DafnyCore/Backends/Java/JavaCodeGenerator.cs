@@ -2689,7 +2689,11 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"{dtName}.{typeParams}{DtCreateName(ctor)}({typeDescriptorArguments}{sep}{arguments})");
       } else {
         var sep0 = typeDescriptorArguments.Length != 0 ? ", " : "";
-        wr.Write($"new {dt.EnclosingModuleDefinition.GetCompileName(Options)}.{IdName(dt)}__Lazy({typeDescriptorArguments}{sep0}");
+
+        var modname = dt.EnclosingModuleDefinition.GetCompileName(Options);
+        modname = modname == "_module" ? "_System" : modname;
+
+        wr.Write($"new {modname}.{IdName(dt)}__Lazy({typeDescriptorArguments}{sep0}");
         wr.Write("() -> { return ");
         wr.Write($"new {DtCtorName(ctor)}{typeParams}({typeDescriptorArguments}{sep}{arguments})");
         wr.Write("; })");
