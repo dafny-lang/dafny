@@ -1,3 +1,7 @@
+// RUN: %run --target java "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
+
 module State {
 
   datatype State = Whatever
