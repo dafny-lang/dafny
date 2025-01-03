@@ -1161,4 +1161,11 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     }
     return NotAssigned;
   }
+
+  function prefixWith2(s: string): string {
+    if |s| >= 2 && s[..2] == "r#" then
+      "_2_" + s[2..]
+    else
+      "_2_" + s
+  }
 }

@@ -262,7 +262,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     }
 
     method GenTraitImplementations(
-      path: seq<Ident>,
+      classPath: seq<Ident>,
       rTypeParams: seq<R.Type>,
       rTypeParamsDecls: seq<R.TypeParamDecl>,
       superTraitTypes: seq<Type>,
@@ -274,7 +274,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       modifies this
     {
       s := [];
-      var genPath := GenPath(path);
+      var genPath := GenPath(classPath);
       var genSelfPath := genPath.AsType();
       var genPathExpr := genPath.AsExpr();
       for i := 0 to |superTraitTypes| {
@@ -297,7 +297,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 continue; // We assume everything is implemented externally
               }
               if |body| != |properMethods| {
-                error := Some("Error: In the "+kind+" " + R.SeqToString(traitPath, (s: Ident) => s.id.dafny_name, ".") + ", some proper methods of " +
+                error := Some("Error: In the "+kind+" " + R.SeqToString(classPath, (s: Ident) => s.id.dafny_name, ".") + ", some proper methods of " +
                               fullTraitPath.ToString("") + " are marked {:extern} and some are not." +
                               " For the Rust compiler, please make all methods (" + R.SeqToString(properMethods, (s: Name) => s.dafny_name, ", ") +
                               ")  bodiless and mark as {:extern} and implement them in a Rust file, "+
@@ -1310,12 +1310,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               hashRhs.Then(hash_function.Apply([R.Identifier(patternName), R.Identifier("_state")]));
 
           ctorMatchInner := ctorMatchInner + patternName + ", ";
-          ctorMatchInner2 := ctorMatchInner2 + patternName + ": " + "_2_" + patternName + ", ";
+          var matchingVariable2 := prefixWith2(patternName); 
+          var patternPrefix := if isNumeric then "" else patternName + ": ";
+          ctorMatchInner2 := ctorMatchInner2 + patternPrefix + matchingVariable2 + ", "; // field: _2_field,
           partialEqRhs :=
             if formalType.Arrow? then
               partialEqRhs.And(R.LiteralBool(false)) // No equality support for arrow
             else
-              partialEqRhs.And(R.Identifier(patternName).Equals(R.Identifier("_2_"+patternName)));
+              partialEqRhs.And(R.Identifier(patternName).Equals(R.Identifier(matchingVariable2)));
 
           if (j > 0) {
             printRhs := printRhs.Then(writeStr(", "));
@@ -3185,10 +3187,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             return;
           }
         }
-      } else {
-        r := Error("Conversion from " + fromTpeGen.ToString("") + " to " + toTpeGen.ToString("") + " not yet supported. Currently supported are Object, Ptr, General trait, Datatype or newtype");
-        r, resultingOwnership := FromOwned(r, expectedOwnership);
-        return;
       }
       var upcastConverter := UpcastConversionLambda(fromTyp, fromTpeGen, toTyp, toTpeGen, map[]);
       if upcastConverter.Success? {
