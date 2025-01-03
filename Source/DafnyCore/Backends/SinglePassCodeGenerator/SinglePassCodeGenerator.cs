@@ -4873,7 +4873,7 @@ namespace Microsoft.Dafny.Compilers {
       //      Notes:
       //        - The constraint of a non-null reference type can be omitted in some cases, see note (c) above.
       if (fromType.IsTraitType || fromType.IsRefType) {
-        EmitTypeTestExpr(expr.E, fromType, expr.ToType, expr.Tok, inLetExprBody, wr, ref wStmts);
+        EmitTypeTestExpr(expr.E, fromType, expr.ToType, expr.Origin, inLetExprBody, wr, ref wStmts);
         return;
       }
 
