@@ -392,8 +392,8 @@ function {:testEntry} ObviouslyUnreachableIfExpressionBranchFunc(x: int): (r:int
   ensures r > 0
 {
   if x < 0
-</span><span class="nc" id="378:1">  then x - 1 // unreachable
-</span><span class="fc" id="379:1">  else x + 1
+</span><span class="fc" id="378:1">  then x - 1 // unreachable
+  else x + 1
 }
 
 </span><span class="na" id="382:1">method {:testEntry} ObviouslyUnreachableIfStatementBranchMethod(x: int) returns (r:int)
@@ -414,8 +414,8 @@ function {:testEntry} ObviouslyUnreachableIfExpressionBranchFunc(x: int): (r:int
   ensures r > 1 // alt: r > 0
 {
   match t {
-</span><span class="nc" id="400:1">    case A => 1 // unreachable
-</span><span class="fc" id="401:1">    case B => 2
+</span><span class="fc" id="400:1">    case A => 1 // unreachable
+    case B => 2
   }
 }
 

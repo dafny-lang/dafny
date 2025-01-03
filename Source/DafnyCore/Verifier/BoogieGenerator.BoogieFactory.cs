@@ -155,6 +155,9 @@ namespace Microsoft.Dafny {
       AtLayer
     }
 
+    public const string BoxFunctionName = "$Box";
+    public const string UnboxFunctionName = "$Unbox";
+
     Bpl.Expr Lit(Bpl.Expr expr, Bpl.Type typ) {
       Contract.Requires(expr != null);
       Contract.Requires(typ != null);
@@ -506,11 +509,11 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.Box:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "$Box", Predef.BoxType, args);
+          return FunctionCall(tok, BoxFunctionName, Predef.BoxType, args);
         case BuiltinFunction.Unbox:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
-          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "$Unbox", typeInstantiation, args), typeInstantiation);
+          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, UnboxFunctionName, typeInstantiation, args), typeInstantiation);
 
         case BuiltinFunction.RealToInt:
           Contract.Assume(args.Length == 1);

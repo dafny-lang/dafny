@@ -3,7 +3,9 @@
 
 class Ref {
   var inner: Ref
-  constructor()
+  constructor() {
+    inner := this;
+  }
 }
 
 function myf(o: Ref): ()
@@ -14,7 +16,6 @@ function myf(o: Ref): ()
 }
 
 method M()
-  ensures false
 {
   var outer := new Ref();
 
@@ -23,12 +24,14 @@ method M()
 
   var inner1 := new Ref();
   outer.inner := inner1;
-  var reads1 := myh.reads(outer);
-  assert reads1 == {inner1}; // Error: assertion might not hold
+  var reads1 := myg.reads(outer);
+  var reads2 := myh.reads(outer);
+  assert reads1 == reads2;
+  assert reads2 == {inner1}; // Error: assertion might not hold
+  assert false; // we don't know what the reads clause is, because the precondition of myf does not hold.
 }
 
 method M2()
-  ensures false
 {
   var outer := new Ref();
 
@@ -39,4 +42,5 @@ method M2()
   outer.inner := inner2;
   var reads2 := myh.reads(outer);
   assert reads2 == {inner2}; // Error: assertion might not hold
+  assert false; // we don't know what the reads clause is, because the precondition of myf does not hold.
 }

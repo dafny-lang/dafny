@@ -392,8 +392,8 @@ method {:testEntry} FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)
   ensures r > 0
 {
   if x < 0
-</span><span class="nc" id="378:1">  then x - 1 // unreachable
-</span><span class="na" id="379:1">  else x + 1
+  then </span><span class="nc" id="378:8">x - 1</span><span class="na" id="378:13"> // unreachable
+  else x + 1
 }
 
 method {:testEntry} ObviouslyUnreachableIfStatementBranchMethod(x: int) returns (r:int)
@@ -414,8 +414,8 @@ function {:testEntry} ObviouslyUnreachableMatchExpressionCaseFunction(t: T): (r:
   ensures r > 1 // alt: r > 0
 {
   match t {
-</span><span class="nc" id="400:1">    case A => 1 // unreachable
-</span><span class="na" id="401:1">    case B => 2
+    case A => </span><span class="nc" id="400:15">1</span><span class="na" id="400:16"> // unreachable
+    case B => 2
   }
 }
 

@@ -10,6 +10,9 @@
 // to be good, so this test file is meant to alert us to any changes, in
 // case we then want to revisit this issue in some way.
 
+// UPDATE: With the full implementation of CanCall, this test gives just
+// 1 error.
+
 datatype T = T(x: int)
 datatype S = S(u: int, v: int, w: int, x: int, y: int, z: int)
 
@@ -34,14 +37,14 @@ ghost predicate Good(s: S) {
   && s.z == 5
 }
 
-ghost function {:opaque} GetT(): T {
+opaque ghost function GetT(): T {
   T(5)
 }
 
 lemma foo()
   ensures var t := GetT();
-    && WellFormed(t)  // error (1x)
-    && Good(Func(t))  // error (5x, but only 4 of these are reported, due to the limit of 5 errors per method)
+    && WellFormed(t)  // error
+    && Good(Func(t))
 {
   reveal GetT();
 }

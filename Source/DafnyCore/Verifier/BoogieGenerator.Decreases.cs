@@ -62,6 +62,7 @@ public partial class BoogieGenerator {
     var caller = new List<Expr>();
     var oldExpressions = new List<Expression>();
     var newExpressions = new List<Expression>();
+    Bpl.Expr canCalls = Bpl.Expr.True;
     if (tok.IsInherited(currentModule) && contextDecreases.All(e => !e.Origin.IsInherited(currentModule))) {
       // the call site is inherited but all the context decreases expressions are new
       tok = new ForceCheckOrigin(tok);
@@ -82,10 +83,13 @@ public partial class BoogieGenerator {
       oldExpressions.Add(e1);
       newExpressions.Add(e0direct);
       toks.Add(new NestedOrigin(tok, e1.Origin));
+      canCalls = BplAnd(canCalls, etranCurrent.CanCallAssumption(e1));
+      canCalls = BplAnd(canCalls, etranCurrent.CanCallAssumption(e0direct));
       callee.Add(etranCurrent.TrExpr(e0));
       caller.Add(etranCurrent.TrExpr(e1));
     }
     bool endsWithWinningTopComparison = N == contextDecreases.Count && N < calleeDecreases.Count;
+    builder.Add(TrAssumeCmd(tok, canCalls));
     Bpl.Expr decrExpr = DecreasesCheck(toks, null, newExpressions, oldExpressions, callee, caller, builder, "", endsWithWinningTopComparison, false);
     if (allowance != null) {
       decrExpr = BplOr(etranCurrent.TrExpr(allowance), decrExpr);
