@@ -643,7 +643,10 @@ public partial class BoogieGenerator {
           typeConstraints = BplAnd(typeConstraints, MkIs(etran.TrExpr(be.Item2), be.Item1.Type));
         }
       }
+      var canCalls = etran.CanCallAssumption(tup.Item2);
+      body = BplImp(canCalls, body);
       body = BplAnd(typeConstraints, body);
+
       if (undetermined.Count != 0) {
         List<bool> freeOfAlloc = BoundedPool.HasBounds(bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
         var bvs = new List<Variable>();
@@ -952,80 +955,108 @@ public partial class BoogieGenerator {
     this.fuelContext = oldFuelContext;
   }
 
-  /**
-   * Example:
-    // _System.object: subset type $Is
-    axiom (forall c#0: ref :: 
-      { $Is(c#0, Tclass._System.object()) } 
-      $Is(c#0, Tclass._System.object())
-         <==> $Is(c#0, Tclass._System.object?()) && c#0 != null);
-
-    // _System.object: subset type $IsAlloc
-    axiom (forall c#0: ref, $h: Heap :: 
-      { $IsAlloc(c#0, Tclass._System.object(), $h) } 
-      $IsAlloc(c#0, Tclass._System.object(), $h)
-         <==> $IsAlloc(c#0, Tclass._System.object?(), $h));
-   */
-  void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName)
+  /// <summary>
+  /// Generate $Is (if "!generateIsAlloc") or $IsAlloc (if "generateIsAlloc") axioms for the newtype/subset-type "dd",
+  /// whose printable name is "fullName".
+  /// 
+  /// Given that the type "dd" is
+  ///
+  ///     (new)type dd<X> = x: Base<Y> | constraint
+  ///
+  /// the $Is axioms have the form
+  ///
+  ///     axiom (forall o: dd ::
+  ///         { $Is(o, Tclass.dd) }
+  ///         $Is(o, Tclass.dd) ==>
+  ///             $Is(o, Tclass.Base) && constraintCanCall && constraint);
+  ///     axiom (forall o: dd ::
+  ///         { $Is(o, Tclass.dd) }
+  ///         $Is(o, Tclass.Base) && (constraintCanCall ==> constraint) ==>
+  ///             $Is(o, Tclass.dd));
+  /// 
+  /// and the $IsAlloc axiom has the form
+  ///
+  ///     axiom (forall o: dd, $h: Heap ::
+  ///         { $IsAlloc(o, Tclass.dd, $h) }
+  ///         $IsAlloc(o, Tclass.dd, $h) <==> $IsAlloc(o, Tclass.Base, $h));
+  /// </summary>
+  void AddRedirectingTypeDeclAxioms<T>(bool generateIsAlloc, T dd, string fullName)
     where T : TopLevelDecl, RedirectingTypeDecl {
     Contract.Requires(dd != null);
     Contract.Requires((dd.Var != null && dd.Constraint != null) || dd is NewtypeDecl);
     Contract.Requires(fullName != null);
 
-    List<Bpl.Expr> typeArgs;
-    var vars = MkTyParamBinders(dd.TypeArgs, out typeArgs);
-    var o_ty = ClassTyCon(dd, typeArgs);
+    var vars = MkTyParamBinders(dd.TypeArgs, out var typeArgs);
+    var typeTerm = ClassTyCon(dd, typeArgs);
 
     var baseType = dd.Var != null ? dd.Var.Type : ((NewtypeDecl)(object)dd).BaseType;
     var oBplType = TrType(baseType);
     var c = new BoundVar(dd.Origin, CurrentIdGenerator.FreshId("c"), baseType);
     var o = BplBoundVar((dd.Var ?? c).AssignUniqueName((dd.IdGenerator)), oBplType, vars);
 
-    Bpl.Expr body, is_o;
-    string comment;
-    Trigger trigger;
-
-    if (is_alloc) {
-      comment = $"$IsAlloc axiom for {dd.WhatKind} {fullName}";
+    if (generateIsAlloc) {
       var h = BplBoundVar("$h", Predef.HeapType, vars);
       // $IsAlloc(o, ..)
-      is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(baseType));
-      trigger = BplTrigger(is_o);
+      var isAlloc = MkIsAlloc(o, typeTerm, h, ModeledAsBoxType(baseType));
+      Bpl.Expr body;
+      var trigger = BplTrigger(isAlloc);
       if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
-        body = is_o;
+        body = isAlloc;
       } else {
         Bpl.Expr rhs = MkIsAlloc(o, baseType, h);
         if (dd is NonNullTypeDecl) {
           trigger.Next = BplTrigger(rhs);
         }
-        body = BplIff(is_o, rhs);
+        body = BplIff(isAlloc, rhs);
       }
+
+      var comment = $"$IsAlloc axiom for {dd.WhatKind} {fullName}";
+      var axiom = new Bpl.Axiom(dd.Tok, BplForall(vars, BplTrigger(isAlloc), body), comment);
+      AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
+
     } else {
-      comment = $"$Is axiom for {dd.WhatKind} {fullName}";
       // $Is(o, ..)
-      is_o = MkIs(o, o_ty, ModeledAsBoxType(baseType));
-      trigger = BplTrigger(is_o);
+      var isPredicate = MkIs(o, typeTerm, ModeledAsBoxType(baseType));
+      var trigger = BplTrigger(isPredicate);
       var etran = new ExpressionTranslator(this, Predef, NewOneHeapExpr(dd.Origin), null);
-      Bpl.Expr parentConstraint, constraint;
+      Bpl.Expr parentConstraint;
+      Expression condition;
       if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
         // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
         parentConstraint = Bpl.Expr.True;
         var udt = UserDefinedType.FromTopLevelDecl(dd.Origin, dd);
-        var substitutee = Expression.CreateIdentExpr(dd.Var ?? c);
-        constraint = etran.TrExpr(ModuleResolver.GetImpliedTypeConstraint(substitutee, udt));
+        var idExpr = Expression.CreateIdentExpr(dd.Var ?? c);
+        condition = ModuleResolver.GetImpliedTypeConstraint(idExpr, udt);
       } else {
         parentConstraint = MkIs(o, baseType);
         if (dd is NonNullTypeDecl) {
           trigger.Next = BplTrigger(parentConstraint);
         }
-        // conjoin the constraint
-        constraint = etran.TrExpr(dd.Constraint ?? Expression.CreateBoolLiteral(dd.Origin, true));
+        condition = dd.Constraint ?? Expression.CreateBoolLiteral(dd.Origin, true);
       }
-      body = BplIff(is_o, BplAnd(parentConstraint, constraint));
-    }
 
-    var axiom = new Bpl.Axiom(dd.Origin, BplForall(vars, trigger, body), comment);
-    AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
+      var constraintCanCall = etran.CanCallAssumption(condition);
+      if (ArrowType.IsPartialArrowTypeName(dd.Name)) {
+        // Hack for now. TODO: The resolver currently sets up the constraint of a partial arrow as being
+        // a total arrow such that "forall bx: Box :: f(bx) == {}". However, it ought to be
+        // "forall bx: Box :: f.requires(bx) ==> f(bx) == {}". When that gets fixed, the hack here is no longer needed.
+        constraintCanCall = Bpl.Expr.True;
+      }
+      var canCallIsJustTrue = constraintCanCall == Bpl.Expr.True;
+      var constraint = etran.TrExpr(condition);
+      var comment = $"$Is axiom{(canCallIsJustTrue ? "" : "s")} for {dd.WhatKind} {fullName}";
+
+      var rhs = BplAnd(parentConstraint, BplAnd(constraintCanCall, constraint));
+      var body = canCallIsJustTrue ? BplIff(isPredicate, rhs) : BplImp(isPredicate, rhs);
+      var axiom = new Bpl.Axiom(dd.Origin, BplForall(vars, trigger, body), comment);
+      AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
+
+      if (!canCallIsJustTrue) {
+        body = BplImp(BplAnd(parentConstraint, BplImp(constraintCanCall, constraint)), isPredicate);
+        axiom = new Bpl.Axiom(dd.Origin, BplForall(vars, BplTrigger(isPredicate), body), null);
+        AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
+      }
+    }
   }
 
 
@@ -1410,8 +1441,11 @@ public partial class BoogieGenerator {
       // TODO: use TrSplitExpr
       var typeMap = TypeParameter.SubstitutionMap(rdt.TypeArgs, udt.TypeArgs);
       var dafnyConstraint = Substitute(rdt.Constraint, null, new() { { rdt.Var, origExpr } }, typeMap);
-      var boogieConstraint = etran.TrExpr(Substitute(rdt.Constraint, null, new() { { rdt.Var, boogieExpr } }, typeMap));
-      builder.Add(Assert(tok, boogieConstraint, new ConversionSatisfiesConstraints(errorMsgPrefix, kind, rdt.Name, dafnyConstraint), builder.Context));
+      var boogieConstraint = Substitute(rdt.Constraint, null, new() { { rdt.Var, boogieExpr } }, typeMap);
+
+      var canCall = etran.CanCallAssumption(boogieConstraint);
+      var constraint = etran.TrExpr(boogieConstraint);
+      builder.Add(Assert(tok, BplImp(canCall, constraint), new ConversionSatisfiesConstraints(errorMsgPrefix, kind, rdt.Name, dafnyConstraint), builder.Context));
     }
   }
 
@@ -1451,7 +1485,7 @@ public partial class BoogieGenerator {
     // the procedure itself
     var req = new List<Bpl.Requires>();
     // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-    req.Add(Requires(decl.Tok, true, null, etran.HeightContext(decl), null, null, null));
+    req.Add(FreeRequires(decl.Tok, etran.HeightContext(decl), null));
     // modifies $Heap
     var mod = new List<Bpl.IdentifierExpr> {
         etran.HeapCastToIdentifierExpr,

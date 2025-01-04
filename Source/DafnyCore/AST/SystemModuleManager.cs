@@ -379,13 +379,7 @@ public class SystemModuleManager {
       args.Add(new IdentifierExpr(tok, bv));
       bounds.Add(new SpecialAllocIndependenceAllocatedBoundedPool());
     }
-    var fn = new MemberSelectExpr(tok, f, new Name(member.Name)) {
-      Member = member,
-      TypeApplicationAtEnclosingClass = f.Type.TypeArgs,
-      TypeApplicationJustMember = new List<Type>(),
-      Type = GetTypeOfFunction(member, tps.ConvertAll(tp => (Type)new UserDefinedType(tp)), new List<Type>())
-    };
-    Expression body = new ApplyExpr(tok, fn, args, Token.NoToken);
+    Expression body = Expression.CreateResolvedCall(tok, f, member, args, new List<Type>(), this);
     body.Type = member.ResultType;  // resolve here
     if (!total) {
       Expression emptySet = new SetDisplayExpr(tok, true, new List<Expression>());

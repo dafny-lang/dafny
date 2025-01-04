@@ -399,7 +399,7 @@ module Exhaustiveness {
     } else if c == B {
     } else if c == C {
     } else {
-      assert false;  // used to fails :(, but now works :)
+      assert false;  // used to fail :(, but now works :)
     }
   }
 
@@ -418,7 +418,7 @@ module Exhaustiveness {
   {
     var c := s[i];
     if c != A && c != B && c != C {
-      assert false;  // used to fails :(, but now works :)
+      assert false;  // used to fail :(, but now works :)
     }
   }
 

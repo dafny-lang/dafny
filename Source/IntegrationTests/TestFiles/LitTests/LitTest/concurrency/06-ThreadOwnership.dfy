@@ -75,7 +75,7 @@ trait Object extends object {
   // This should really be a constant, but I don't know how to do that while factoring out join below,
   // because traits can't have constructors.
   const universe: Universe
-  
+
   // Base invariant: we're in the universe, and the universe satisfies its base.
   ghost predicate baseInv() reads * { this in universe.content && universe.globalBaseInv() }
 
@@ -114,7 +114,7 @@ trait Object extends object {
   ghost predicate inv() ensures inv() ==> localInv() reads *
   twostate predicate inv2() ensures inv2() ==> localInv2() reads *
   twostate lemma admissibility(running: Thread) requires goodPreAndLegalChanges(running) ensures inv2() && inv()
-  
+
   // To prevent a class from extending both OwnedObject and NonOwnedObject
   ghost predicate instanceOfOwnedObject()
 }
@@ -243,7 +243,7 @@ class EmptyType extends OwnedObject {
   twostate predicate userFieldsUnchanged() reads * {
     true
   }
-  
+
   ghost predicate baseUserInv() reads * {
     && true
   }
@@ -322,7 +322,7 @@ class AtomicCounter extends OwnedObject {
     //modifies running
     ensures objectGlobalInv() && universe.globalInv2()
     // The following might not always be needed
-    ensures this.universe == universe && this.owner == running && this.value == initialValue && this.closed == false 
+    ensures this.universe == universe && this.owner == running && this.value == initialValue && this.closed == false
     //ensures running.ownedObjects == old(running.ownedObjects) + { this }
     ensures universe.content == old(universe.content) + { this }
   {
@@ -359,7 +359,7 @@ class DoubleReadMethod extends OwnedObject {
     && old(initial_value) == initial_value
     && old(final_value) == final_value
   }
-  
+
   ghost predicate baseUserInv() reads * {
     && counter in universe.content && counter.universe == universe
   }
@@ -412,7 +412,7 @@ class DoubleReadMethod extends OwnedObject {
     universe.lci(running);
   }
 
-  method Run(ghost running: Thread)
+  method {:resource_limit "1e9"} Run(ghost running: Thread)
     requires this.objectGlobalInv() && running.universe == universe && running.inv()
     requires programCounter == 0 && closed && this.owner == running // Special requirements of Run
     modifies universe, universe.content, this
