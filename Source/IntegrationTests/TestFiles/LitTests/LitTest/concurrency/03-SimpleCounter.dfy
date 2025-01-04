@@ -17,7 +17,7 @@
 ghost function upCast(o: object): object {o}
 
 // A universe of objects playing under LCI rules 
-trait Universe {
+trait Universe extends object {
   // The set of objects in the universe
   ghost var content: set<Object>
 
@@ -64,7 +64,7 @@ trait Universe {
 }
 
 // A generic object trait
-trait Object {
+trait Object extends object {
   // Universe of which the Object is a member.
   // This should really be a constant, but I don't know how to do that while factoring out join below,
   // because traits can't have constructors.

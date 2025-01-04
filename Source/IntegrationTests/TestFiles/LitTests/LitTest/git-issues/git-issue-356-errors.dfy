@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --allow-deprecation --unicode-char false "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-deprecation --unicode-char false --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 

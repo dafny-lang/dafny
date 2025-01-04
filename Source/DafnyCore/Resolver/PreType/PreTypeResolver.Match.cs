@@ -21,7 +21,7 @@ namespace Microsoft.Dafny {
         ResolveAttributes(mc, resolutionContext, false);
 
         scope.PushMarker();
-        ResolveExtendedPattern(stmt.Source.Origin, mc.Pat, stmt.Source.PreType, false, resolutionContext);
+        ResolveExtendedPattern(stmt.Source.Origin, mc.Pat, stmt.Source.PreType, false, false, resolutionContext);
 
         DominatingStatementLabels.PushMarker();
         mc.Body.ForEach(ss => ResolveStatementWithLabels(ss, resolutionContext));
@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
         ResolveAttributes(mc, resolutionContext, false);
 
         scope.PushMarker();
-        ResolveExtendedPattern(expr.Source.Origin, mc.Pat, expr.Source.PreType, false, resolutionContext);
+        ResolveExtendedPattern(expr.Source.Origin, mc.Pat, expr.Source.PreType, false, false, resolutionContext);
 
         ResolveExpression(mc.Body, resolutionContext);
         AddSubtypeConstraint(expr.PreType, mc.Body.PreType, mc.Body.Origin,
@@ -69,10 +69,16 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Resolve "pattern" and push onto "scope" all its bound variables.
     /// </summary>
-    public void ResolveExtendedPattern(IOrigin sourceExprToken, ExtendedPattern pattern, PreType preType, bool inDisjunctivePattern, ResolutionContext resolutionContext) {
+    public void ResolveExtendedPattern(IOrigin sourceExprToken, ExtendedPattern pattern, PreType preType,
+      bool inPattern, bool inDisjunctivePattern, ResolutionContext resolutionContext) {
+
       if (pattern is DisjunctivePattern dp) {
+        if (inPattern) {
+          ReportError(dp.Origin, "Disjunctive patterns are not allowed inside other patterns");
+        }
+
         foreach (var alt in dp.Alternatives) {
-          ResolveExtendedPattern(sourceExprToken, alt, preType, true, resolutionContext);
+          ResolveExtendedPattern(sourceExprToken, alt, preType, true, true, resolutionContext);
         }
         return;
       }
@@ -86,7 +92,7 @@ namespace Microsoft.Dafny {
       }
 
       var idPattern = (IdPattern)pattern;
-      if (idPattern.Type is not TypeProxy) {
+      if (idPattern.Type is not TypeProxy || idPattern.IsWildcardPattern) {
         Contract.Assert(idPattern.Arguments == null); // the parser ensures this condition (the ID cannot be followed by both "(...)" and ": ...")
         resolver.ResolveType(idPattern.Origin, idPattern.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         // When a type is supplied, the ID is understood to be a bound variable.
@@ -149,14 +155,13 @@ namespace Microsoft.Dafny {
       var subst = PreType.PreTypeSubstMap(dtd.TypeArgs, dpreType.Arguments);
       for (var i = 0; i < idPattern.Arguments.Count; i++) {
         var argumentPreType = ctor.Formals[i].PreType.Substitute(subst);
-        ResolveExtendedPattern(sourceExprToken, idPattern.Arguments[i], argumentPreType, inDisjunctivePattern, resolutionContext);
+        ResolveExtendedPattern(sourceExprToken, idPattern.Arguments[i], argumentPreType, true, inDisjunctivePattern, resolutionContext);
       }
     }
 
     /// <summary>
-    /// Tries to resolve "idPattern" as a symbolic constant with a LiteralExpr RHS.
-    ///
-    /// Return "true" iff "idPattern" is a symbolic constant with a RHS (regardless of what that RHS is).
+    /// Tries to resolve "idPattern" as a symbolic constant with a LiteralExpr RHS, and
+    /// returns "true" upon success.
     ///
     /// If there is such a RHS and that RHS is a LiteralExpr, then
     ///   * record the RHS literal as "idPattern.ResolvedLit", and
@@ -172,10 +177,10 @@ namespace Microsoft.Dafny {
           // the ID refers to a const whose RHS is a literal
           idPattern.ResolvedLit = lit;
           AddSubtypeConstraint(preType, lit.PreType, idPattern.Origin, "literal pattern (of type {1}) cannot be used with source type {0}");
+          return true;
         } else if (reportErrors) {
           ReportError(idPattern.Origin, $"{idPattern.Id} is not initialized as a constant literal");
         }
-        return true;
       }
       return false;
     }

@@ -40,6 +40,7 @@ namespace Microsoft.Dafny {
     public const string TypeNameImap = "imap";
     public const string TypeNameObjectQ = "object?";
     public const string TypeNameArray = "array";
+    public const string TypeNameString = "string";
 
     public static string SetTypeName(bool finite) => finite ? TypeNameSet : TypeNameIset;
     public static string MapTypeName(bool finite) => finite ? TypeNameMap : TypeNameImap;
@@ -402,6 +403,17 @@ namespace Microsoft.Dafny {
       return new DPreType(Decl, newArguments ?? Arguments, printablePreType);
     }
 
+    public TopLevelDecl DeclWithMembersBypassInternalSynonym() {
+      if (Decl is InternalTypeSynonymDecl isyn) {
+        var udt = UserDefinedType.FromTopLevelDecl(isyn.Origin, isyn);
+        if (isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) is UserDefinedType { ResolvedClass: { } decl }) {
+          return decl is NonNullTypeDecl nntd ? nntd.Class : decl;
+        }
+      }
+
+      return Decl;
+    }
+
     /// <summary>
     /// Returns the pre-type "parent<X>", where "X" is a list of type parameters that makes "parent<X>" a supertype of "this".
     /// Requires "this" to be some pre-type "C<Y>" and "parent" to be among the reflexive, transitive parent traits of "C".
@@ -426,7 +438,6 @@ namespace Microsoft.Dafny {
         Contract.Assert(isyn.TypeArgs.Count == cl.TypeArgs.Count);
         for (var i = 0; i < isyn.TypeArgs.Count; i++) {
           var typeParameter = isyn.TypeArgs[i];
-          Contract.Assert(typeParameter == cl.TypeArgs[i]);
           Contract.Assert(rhsType.TypeArgs[i] is UserDefinedType { ResolvedClass: var tpDecl } && tpDecl == typeParameter);
         }
 

@@ -88,8 +88,8 @@ module AritySituations {
     var f' := F;
     var g' := G;
 
-    var s0 := P(F, 5);  // error: F takes 2 arguments, but P expect a function that takes 1
-    var s1 := P(G, (2,true));  // fine
+    // (see method MF below) var s0 := P(F, 5);
+    var s1 := P(G, (2, true));  // fine
 
     var v: () -> real;
     var w: (()) -> real;
@@ -100,6 +100,12 @@ module AritySituations {
     var w'': ((((((())))))) -> real := W;
     v := W;  // error
     w := V;  // error
+  }
+
+  method MF()
+  {
+    var s0 := P(F, 5);  // error: F takes 2 arguments, but P expect a function that takes 1
+    var s1 := P(G, (2, true));  // fine
   }
 
   method P<T,U>(r: T -> U, x: T) returns (u: U)

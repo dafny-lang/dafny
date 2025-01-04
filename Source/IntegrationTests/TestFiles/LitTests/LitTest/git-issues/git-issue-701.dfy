@@ -9,7 +9,7 @@ method Main() {
   print cc.y, " ", cc.k, " ", cc.l, "\n";
 }
 
-trait Trait<Y> {
+trait Trait<Y> extends object {
   const y: Y
   const k: Y := y
   const l: Y

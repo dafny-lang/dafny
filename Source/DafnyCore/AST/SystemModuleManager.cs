@@ -72,6 +72,7 @@ public class SystemModuleManager {
   public readonly ISet<int> Bitwidths = new HashSet<int>();
   [FilledInDuringResolution] public SpecialField ORDINAL_Offset;  // used by the translator
 
+  public readonly TypeSynonymDecl StringDecl;
   public readonly SubsetTypeDecl NatDecl;
   public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, new List<Type>()); }
   public readonly TraitDecl ObjectDecl;
@@ -92,10 +93,10 @@ public class SystemModuleManager {
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
-    var str = new TypeSynonymDecl(SourceOrigin.NoToken, new Name("string"),
+    StringDecl = new TypeSynonymDecl(SourceOrigin.NoToken, new Name("string"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
-    SystemModule.SourceDecls.Add(str);
+    SystemModule.SourceDecls.Add(StringDecl);
     // create subset type 'nat'
     var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
     var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));

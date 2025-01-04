@@ -315,6 +315,14 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
+  public static IEnumerable<MemberDecl> AllMembers(IEnumerable<TopLevelDecl> declarations) {
+    foreach (var decl in declarations.OfType<TopLevelDeclWithMembers>()) {
+      foreach (var member in decl.Members) {
+        yield return member;
+      }
+    }
+  }
+
   public static IEnumerable<TopLevelDeclWithMembers> AllTypesWithMembers(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
       if (d is TopLevelDeclWithMembers cl) {
@@ -905,7 +913,9 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
               }
             }
 
-            ctor.Destructors.Add(dtor);
+            if (!localDuplicate) {
+              ctor.Destructors.Add(dtor);
+            }
           }
 
           foreach (var duplicate in duplicates) {

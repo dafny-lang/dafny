@@ -1,5 +1,5 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
-
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --general-newtypes=false
+// This file tests legacy conversions. In the new resolver, these require explicit casts.
 method Main() {
   var a: bv8 := 0xFF;
   var b: bv16 := 0xFFFF;

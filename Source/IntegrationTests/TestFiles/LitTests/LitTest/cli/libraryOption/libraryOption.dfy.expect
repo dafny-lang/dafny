@@ -1,3 +1,3 @@
 CLI: Warning: The file 'brokenProducer.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
-brokenProducer.dfy(1,9): Error: Function body type mismatch (expected int, got bool)
+brokenProducer.dfy(2,2): Error: boolean literal used as if it had type int
 1 resolution/type errors detected in libraryOption.dfy

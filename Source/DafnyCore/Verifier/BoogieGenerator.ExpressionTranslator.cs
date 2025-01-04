@@ -528,7 +528,8 @@ namespace Microsoft.Dafny {
                     args.Add(Old.HeapExpr);
                   }
                   if (!fn.IsStatic) {
-                    args.Add(/* translator.BoxIfUnboxed */(TrExpr(e.Obj)/*, e.Type */));
+                    Boogie.Expr obj = BoogieGenerator.BoxifyForTraitParent(e.Origin, TrExpr(e.Obj), e.Member, e.Obj.Type);
+                    args.Add(obj);
                   }
                   return FunctionCall(GetToken(e), BoogieGenerator.FunctionHandle(fn), Predef.HandleType, args);
                 });

@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
     private Queue<EqualityConstraint> equalityConstraints = new();
     private List<Func<bool>> guardedConstraints = new();
     private readonly List<Advice> defaultAdvice = new();
-    private readonly List<(PreTypeProxy, PreType)> compatibleBounds = new();
+    private List<(PreTypeProxy, PreType)> compatibleBounds = new();
     private List<Confirmation> confirmations = new();
 
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
@@ -168,6 +168,8 @@ namespace Microsoft.Dafny {
       } else if (TryApplyDefaultAdvice()) {
         return true;
       } else if (TryUseCompatibleTypesAsBounds()) {
+        return true;
+      } else if (TryEquateBounds()) {
         return true;
       }
       return false;
@@ -345,6 +347,27 @@ namespace Microsoft.Dafny {
         AddEqualityConstraint(proxy, pt, constraint.tok, constraint.ErrorFormatString, null, constraint.ReportErrors); // TODO: the message could be made more specific now (perhaps)
         anythingChanged = true;
       }
+      return anythingChanged;
+    }
+
+    /// <summary>
+    /// For any bound ?x :> ?y, equate ?x and ?y.
+    /// </summary>
+    bool TryEquateBounds() {
+      var anythingChanged = false;
+      var constraints = unnormalizedSubtypeConstraints;
+      unnormalizedSubtypeConstraints = new();
+      foreach (var constraint in constraints) {
+        if (constraint.Super.Normalize() is PreTypeProxy super && constraint.Sub.Normalize() is PreTypeProxy sub) {
+          if (super != sub) {
+            super.Set(sub);
+            anythingChanged = true;
+          }
+        } else {
+          unnormalizedSubtypeConstraints.Add(constraint);
+        }
+      }
+
       return anythingChanged;
     }
 
@@ -526,13 +549,24 @@ namespace Microsoft.Dafny {
     }
 
     bool TryUseCompatibleTypesAsBounds() {
+      if (compatibleBounds.Count == 0) {
+        // common special case
+        return false;
+      }
+      var bounds = compatibleBounds;
+      compatibleBounds = new();
+
       // if there is a compatible-types constraint "ty ~~ proxy", then decide on the bound "ty :> proxy"
       bool anythingChanged = false;
-      foreach (var (compatibleBoundsProxy, compatibleBoundsType) in compatibleBounds) {
-        if (compatibleBoundsProxy.Normalize() is PreTypeProxy proxy && compatibleBoundsType.Normalize() is DPreType dPreType) {
-          // make a decision to set this proxy
-          proxy.Set(dPreType);
-          anythingChanged = true;
+      foreach (var item in bounds) {
+        var (compatibleBoundsProxy, compatibleBoundsType) = item;
+        if (compatibleBoundsProxy.Normalize() is PreTypeProxy proxy) {
+          if (!compatibleBoundsType.Contains(proxy, 1, new HashSet<PreTypeProxy>(), this, 0)) {
+            proxy.Set(compatibleBoundsType);
+            anythingChanged = true;
+          }
+        } else {
+          compatibleBounds.Add(item);
         }
       }
       return anythingChanged;
