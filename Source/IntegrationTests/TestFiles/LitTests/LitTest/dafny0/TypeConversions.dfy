@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --relax-definite-assignment --rprint:-
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --relax-definite-assignment --general-newtypes=false --rprint:-
 
 
 newtype EvenInt = x | x % 2 == 0

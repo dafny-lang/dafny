@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --type-system-refresh=false --general-traits=legacy --general-newtypes=false
 
 
 method Main() {

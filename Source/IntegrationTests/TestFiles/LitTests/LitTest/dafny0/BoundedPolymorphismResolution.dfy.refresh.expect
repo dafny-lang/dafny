@@ -65,7 +65,7 @@ BoundedPolymorphismResolution.dfy(355,39): Error: type bound for type parameter 
 BoundedPolymorphismResolution.dfy(378,15): Error: type parameters are not allowed to be renamed from the names given in the datatype in the module being refined (expected 'X', found 'Y')
 BoundedPolymorphismResolution.dfy(399,11): Error: type parameters are not allowed to be renamed from the names given in the type in the module being refined (expected 'X', found 'Z')
 BoundedPolymorphismResolution.dfy(401,12): Error: type parameters are not allowed to be renamed from the names given in the class in the module being refined (expected 'X', found 'Y')
-BoundedPolymorphismResolution.dfy[YY](394,28): Error: character literal used as if it had type int
+BoundedPolymorphismResolution.dfy[YY](394,28): Error: character literal used as if it had type X
 BoundedPolymorphismResolution.dfy(425,4): Error: actual type argument 'real' for formal type parameter 'G' must satisfy the type bound 'GoodTrait'
 BoundedPolymorphismResolution.dfy(425,5): Error: actual type argument 'real' for formal type parameter 'G' must satisfy the type bound 'GoodTrait'
 70 resolution/type errors detected in BoundedPolymorphismResolution.dfy
