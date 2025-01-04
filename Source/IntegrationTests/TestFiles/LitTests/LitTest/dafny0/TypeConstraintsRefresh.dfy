@@ -152,9 +152,9 @@ module MorePlusTests {
 
 module References {
   class C extends K, M { }
-  trait R { }
-  trait K { }
-  trait M { }
+  trait R extends object { }
+  trait K extends object { }
+  trait M extends object { }
 
   method M0() returns (c: C, r: R)
   {
@@ -191,7 +191,7 @@ module SimpleClassesAndTraits {
   class C extends K, M { }
   class D extends K, M { }
   trait R { }
-  trait K { var h: int }
+  trait K extends object { var h: int }
   trait M { }
 
   method Infer(c: C, o: object, k: K, d: D) returns (k': K) {
@@ -285,7 +285,7 @@ module Datatypes {
 }
 
 module TraitStuff {
-  trait Part {
+  trait Part extends object {
     var id: int
   }
   trait Motorized { }
@@ -321,8 +321,8 @@ module OtherTraitsAndClasses {
     y := m + m;
   }
 
-  trait J { }
-  trait K { }
+  trait J extends object { }
+  trait K extends object { }
   class C extends J { }
   class D extends J, K { }
   class E { }

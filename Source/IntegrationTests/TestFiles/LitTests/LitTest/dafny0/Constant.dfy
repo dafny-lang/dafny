@@ -89,7 +89,7 @@ class NoRHS {
 
 // ---------- traits --------------------
 
-trait Trait {
+trait Trait extends object {
   const x0: Six
   const x1: Six := 7
 

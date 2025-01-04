@@ -1,6 +1,6 @@
 // RUN: %exits-with 0 %verify "%s"
 
-trait YT<W> {
+trait YT<W> extends object {
   const f: W
 }
 

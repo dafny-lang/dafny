@@ -12,7 +12,7 @@ module C1 refines P {
 module OtherNamesWithSpecialCharacters?_ {
   datatype A?_ = A?_
   codatatype B?_ = B?_
-  trait Tr?_ { var data: int }
+  trait Tr?_ extends object { var data: int }
   class Cl?_ extends Tr?_ { }
   type Threes?_ = x: int | x % 3 == 0
   newtype Fives?_ = x: int | x % 5 == 0

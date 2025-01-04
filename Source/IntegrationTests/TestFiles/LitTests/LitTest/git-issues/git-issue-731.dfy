@@ -1,6 +1,6 @@
 // RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 
-trait Trait<Y> {
+trait Trait<Y> extends object {
   const y: Y
   const k: Y := y
   const l: Y

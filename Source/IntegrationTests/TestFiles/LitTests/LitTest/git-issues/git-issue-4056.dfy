@@ -1,7 +1,7 @@
 // RUN: %verify %s > %t
 // RUN: %diff "%s.expect" "%t"
 
-trait ADT {
+trait ADT extends object {
   ghost function ReprFamily(n: nat): set<object>
     decreases n
     ensures n > 0 ==> ReprFamily(n) >= ReprFamily(n-1)

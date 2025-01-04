@@ -147,7 +147,7 @@ module ClientOfErroneousModule5 {
 
 module ClientOfErroneousModule6 {
   import ModuleWithErrors
-  trait EverythingHasTheSameName<X> { }
+  trait EverythingHasTheSameName<X> extends object { }
   class EverythingHasTheSameName<X> { } // error: duplicate name
   datatype EverythingHasTheSameName<X> = Y // error: duplicate name
 }

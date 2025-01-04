@@ -227,14 +227,14 @@ module UninterpretedModuleLevelConst {
   class ClassyTrait extends Trait {  // fine, since the bad fields in Trait are static
   }
 
-  trait InstanceConst {
+  trait InstanceConst extends object {
     const w: MyClass
   }
 
   class Instance extends InstanceConst {  // error: because of "w", must declare a constructor
   }
 
-  trait GhostTr {
+  trait GhostTr extends object {
     ghost const w: MyClass  // the responsibility to initialize "w" lies with any class that implements "GhostTr"
   }
 

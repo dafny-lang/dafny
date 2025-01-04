@@ -2,7 +2,7 @@
 
 // Testing issue#731 when the class in question has type parameters
 
-trait Tr2<W, Y> {
+trait Tr2<W, Y> extends object {
   const w: W
   const y: Y
 }
