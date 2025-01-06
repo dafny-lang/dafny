@@ -2169,7 +2169,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             r = CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null));
           }
           if (e.Type.IsArrowType) {
-            var alloced = BoogieGenerator.MkIsAlloc(TrExpr(e), e.Type, this.HeapExpr)
+            var alloced = BoogieGenerator.MkIsAlloc(TrExpr(e), e.Type, this.HeapExpr);
             r = BplAnd(r,  alloced);
             // JATIN_TODO: Why does the following not work?
             // r = BplAnd(r, this.IsAlloced(GetToken(e), TrExpr(e)));
