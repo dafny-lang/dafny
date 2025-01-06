@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ExportSignature : TokenNode, IHasReferences {
+public class ExportSignature : NodeWithComputedRange, IHasReferences {
   public readonly IOrigin ClassIdTok;
   public readonly bool Opaque;
   public readonly string ClassId;
@@ -14,40 +14,37 @@ public class ExportSignature : TokenNode, IHasReferences {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(Tok != null);
+    Contract.Invariant(Origin != null);
     Contract.Invariant(Id != null);
     Contract.Invariant((ClassId != null) == (ClassIdTok != null));
   }
 
-  public ExportSignature(IOrigin prefixTok, string prefix, IOrigin idTok, string id, bool opaque) {
+  public ExportSignature(IOrigin prefixTok, string prefix, IOrigin idOrigin, string id, bool opaque) : base(idOrigin) {
     Contract.Requires(prefixTok != null);
     Contract.Requires(prefix != null);
-    Contract.Requires(idTok != null);
+    Contract.Requires(idOrigin != null);
     Contract.Requires(id != null);
-    tok = idTok;
     ClassIdTok = prefixTok;
     ClassId = prefix;
     Id = id;
     Opaque = opaque;
-    OwnedTokensCache = new List<IOrigin>() { Tok, prefixTok };
+    OwnedTokensCache = new List<IOrigin>() { Origin, prefixTok };
   }
 
-  public ExportSignature(IOrigin idTok, string id, bool opaque) {
-    Contract.Requires(idTok != null);
+  public ExportSignature(IOrigin idOrigin, string id, bool opaque) : base(idOrigin) {
+    Contract.Requires(idOrigin != null);
     Contract.Requires(id != null);
-    tok = idTok;
     Id = id;
     Opaque = opaque;
-    OwnedTokensCache = new List<IOrigin>() { Tok };
+    OwnedTokensCache = new List<IOrigin>() { Origin };
   }
 
-  public ExportSignature(Cloner cloner, ExportSignature original) {
-    tok = cloner.Tok(original.Tok);
+  public ExportSignature(Cloner cloner, ExportSignature original) : base(cloner, original) {
     Id = original.Id;
     Opaque = original.Opaque;
     ClassId = original.ClassId;
-    ClassIdTok = cloner.Tok(original.ClassIdTok);
-    OwnedTokensCache = new List<IOrigin>() { Tok };
+    ClassIdTok = cloner.Origin(original.ClassIdTok);
+    OwnedTokensCache = new List<IOrigin>() { Origin };
   }
 
   public override string ToString() {
@@ -57,10 +54,9 @@ public class ExportSignature : TokenNode, IHasReferences {
     return Id;
   }
 
-  public IOrigin NavigationToken => Tok;
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { Decl };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Origin, Decl) };
   }
 }

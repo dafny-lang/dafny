@@ -21,19 +21,19 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
     UsesOptionalBraces = original.UsesOptionalBraces;
   }
 
-  public AlternativeLoopStmt(RangeToken rangeOrigin,
+  public AlternativeLoopStmt(IOrigin origin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     List<GuardedAlternative> alternatives, bool usesOptionalBraces)
-    : base(rangeOrigin, invariants, decreases, mod) {
+    : base(origin, invariants, decreases, mod) {
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;
     this.UsesOptionalBraces = usesOptionalBraces;
   }
-  public AlternativeLoopStmt(RangeToken rangeOrigin,
+  public AlternativeLoopStmt(IOrigin origin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(rangeOrigin, invariants, decreases, mod, attrs) {
-    Contract.Requires(rangeOrigin != null);
+    : base(origin, invariants, decreases, mod, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;
     this.UsesOptionalBraces = usesOptionalBraces;
@@ -92,12 +92,12 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
 
     var s = this;
     if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
     }
 
     s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
     if (!mustBeErasable && s.IsGhost) {
-      reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+      reporter.Info(MessageSource.Resolver, s.Origin, "ghost while");
     }
     if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
       reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");

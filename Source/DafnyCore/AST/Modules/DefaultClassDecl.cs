@@ -12,7 +12,7 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
   public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
-    : base(RangeToken.NoToken, new Name("_default"), module, new List<TypeParameter>(), members, null, false, null) {
+    : base(SourceOrigin.NoToken, new Name("_default"), module, new List<TypeParameter>(), members, null, false, null) {
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(members));
     this.NewSelfSynonym();

@@ -178,13 +178,13 @@ class GhostInterestVisitor {
             if (Attributes.Contains(local.Attributes, "assumption")) {
               if (allowAssumptionVariables) {
                 if (!local.Type.IsBoolType) {
-                  Error(ErrorId.r_assumption_var_must_be_bool, local.Tok, "assumption variable must be of type 'bool'");
+                  Error(ErrorId.r_assumption_var_must_be_bool, local.Origin, "assumption variable must be of type 'bool'");
                 }
                 if (!local.IsGhost) {
-                  Error(ErrorId.r_assumption_var_must_be_ghost, local.Tok, "assumption variable must be ghost");
+                  Error(ErrorId.r_assumption_var_must_be_ghost, local.Origin, "assumption variable must be ghost");
                 }
               } else {
-                Error(ErrorId.r_assumption_var_must_be_in_method, local.Tok, "assumption variable can only be declared in a method");
+                Error(ErrorId.r_assumption_var_must_be_in_method, local.Origin, "assumption variable can only be declared in a method");
               }
             }
           }
@@ -293,7 +293,7 @@ class GhostInterestVisitor {
           var s = ifStmt;
           s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost if");
           }
           Visit(s.Thn, s.IsGhost, proofContext);
           if (s.Els != null) {
@@ -313,7 +313,7 @@ class GhostInterestVisitor {
           var s = alternativeStmt;
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost if");
           }
           s.Alternatives.ForEach(alt => alt.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
@@ -330,12 +330,12 @@ class GhostInterestVisitor {
       case WhileStmt whileStmt: {
           var s = whileStmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            Error(ErrorId.r_loop_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(ErrorId.r_loop_may_not_use_modifies, s.Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost while");
           }
           if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
             Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
@@ -360,12 +360,12 @@ class GhostInterestVisitor {
       case AlternativeLoopStmt loopStmt: {
           var s = loopStmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost while");
           }
           if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
             Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
@@ -388,12 +388,12 @@ class GhostInterestVisitor {
       case ForLoopStmt loopStmt: {
           var s = loopStmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost for-loop");
           }
           if (s.IsGhost) {
             if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
@@ -484,7 +484,7 @@ class GhostInterestVisitor {
           }
 
           if (!mustBeErasable && nestedMatchStmt.IsGhost) {
-            reporter.Info(MessageSource.Resolver, nestedMatchStmt.Tok, "ghost match");
+            reporter.Info(MessageSource.Resolver, nestedMatchStmt.Origin, "ghost match");
           }
           nestedMatchStmt.Cases.ForEach(kase => kase.Body.ForEach(ss => Visit(ss, nestedMatchStmt.IsGhost, proofContext)));
           nestedMatchStmt.IsGhost = nestedMatchStmt.IsGhost || nestedMatchStmt.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
@@ -500,7 +500,7 @@ class GhostInterestVisitor {
           var s = matchStmt;
           s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(s.Cases) != null;
           if (!mustBeErasable && s.IsGhost) {
-            reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
+            reporter.Info(MessageSource.Resolver, s.Origin, "ghost match");
           }
           s.Cases.ForEach(kase => kase.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
@@ -558,14 +558,14 @@ class GhostInterestVisitor {
     }
 
     if (proofContext != null && s.Rhs is TypeRhs) {
-      Error(ErrorId.r_new_forbidden_in_proof, s.Rhs.Tok, $"{proofContext} is not allowed to use 'new'");
+      Error(ErrorId.r_new_forbidden_in_proof, s.Rhs.Origin, $"{proofContext} is not allowed to use 'new'");
     }
 
     var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
     if (gk == SingleAssignStmt.NonGhostKind.IsGhost) {
       s.IsGhost = true;
       if (proofContext != null && !(lhs is IdentifierExpr)) {
-        Error(ErrorId.r_no_heap_update_in_proof, lhs.tok, $"{proofContext} is not allowed to make heap updates");
+        Error(ErrorId.r_no_heap_update_in_proof, lhs.Origin, $"{proofContext} is not allowed to make heap updates");
       }
       if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
         Visit(tRhs.InitCall, true, proofContext);

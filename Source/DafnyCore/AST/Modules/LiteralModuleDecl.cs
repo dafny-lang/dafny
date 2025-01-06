@@ -45,7 +45,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
   }
 
   public LiteralModuleDecl(DafnyOptions options, ModuleDefinition module, ModuleDefinition parent, Guid cloneId)
-    : base(options, module.RangeToken, module.NameNode, parent, false, false, cloneId) {
+    : base(options, module.Origin, module.NameNode, parent, false, false, cloneId) {
     ModuleDef = module;
     BodyStartTok = module.BodyStartTok;
     module.EnclosingLiteralModuleDecl = this;
@@ -159,7 +159,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     resolver.ComputeIsRecursiveBit(compilation, module, rewriters);
     resolver.FillInDecreasesClauses(module);
     foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
-      resolver.reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
+      resolver.reporter.Info(MessageSource.Resolver, iter.Origin, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
     }
 
     foreach (var rewriter in rewriters) {
@@ -184,9 +184,19 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
     if (!parentBindings.BindName(Name, this, bindings)) {
       parentBindings.TryLookup(Name, out var otherModule);
-      resolver.Reporter.Error(MessageSource.Resolver, new NestedOrigin(tok, otherModule.tok), "Duplicate module name: {0}", Name);
+      resolver.Reporter.Error(MessageSource.Resolver, new NestedOrigin(Origin, otherModule.Origin), "Duplicate module name: {0}", Name);
     }
   }
 
-  public IEnumerable<ISymbol> ChildSymbols => ModuleDef.ChildSymbols;
+  public IEnumerable<ISymbol> ChildSymbols => ModuleDef.TopLevelDecls.SelectMany(decl => {
+    if (decl is DefaultClassDecl defaultClassDecl) {
+      return defaultClassDecl.Members;
+    }
+
+    if (decl is ISymbol symbol) {
+      return new[] { symbol };
+    }
+
+    return Enumerable.Empty<ISymbol>();
+  });
 }

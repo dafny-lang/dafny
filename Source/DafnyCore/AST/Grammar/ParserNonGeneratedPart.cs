@@ -16,10 +16,10 @@ public partial class Parser {
     // initialize readonly fields
     dummyExpr = new LiteralExpr(Token.NoToken);
     dummyRhs = new ExprRhs(dummyExpr);
-    dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
-    dummyStmt = new ReturnStmt(Token.NoToken.ToRange(), null);
-    var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
-    dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
+    dummyFrameExpr = new FrameExpression(dummyExpr.Origin, dummyExpr, null);
+    dummyStmt = new ReturnStmt(Token.NoToken, null);
+    var dummyBlockStmt = new BlockStmt(Token.NoToken, new List<Statement>());
+    dummyIfStmt = new IfStmt(Token.NoToken, false, null, dummyBlockStmt, null);
 
     theOptions = new DafnyOptions(options);
     theModule = new FileModuleDefinition(scanner.FirstToken);
@@ -669,14 +669,14 @@ public partial class Parser {
     public IOrigin StaticToken;
     public bool IsOpaque;
     public IOrigin OpaqueToken;
-    public IOrigin FirstTokenExceptAttributes;
+    public Token FirstTokenExceptAttributes;
     public Attributes Attributes = null;
 
-    public IOrigin FirstToken {
+    public Token FirstToken {
       get {
-        IOrigin result = FirstTokenExceptAttributes;
+        Token result = FirstTokenExceptAttributes;
         foreach (var attr in Attributes.AsEnumerable()) {
-          if (result == null || result.pos > attr.tok.pos) {
+          if (result == null || result.pos > attr.Origin.pos) {
             result = attr.StartToken;
           }
         }
@@ -706,7 +706,7 @@ public partial class Parser {
   /// </summary>
   public void CheckNoAttributes(ref Attributes attrs) {
     if (attrs != null) {
-      SemErr(ErrorId.p_extra_attributes, attrs.RangeToken, "Attribute not expected here");
+      SemErr(ErrorId.p_extra_attributes, attrs.Origin, "Attribute not expected here");
       attrs = null;
     }
   }
@@ -720,7 +720,7 @@ public partial class Parser {
   }
 
   // Check that token has not been set, then set it, but just ignores if it was set already
-  public void CheckAndSetTokenOnce(ref IOrigin token) {
+  public void CheckAndSetTokenOnce(ref Token token) {
     if (token == null) {
       token = t;
     }
@@ -742,7 +742,7 @@ public partial class Parser {
     Replaceable = 32
   };
 
-  bool CheckAttribute(Errors errors, IOrigin attr, RangeToken range) {
+  bool CheckAttribute(Errors errors, IOrigin attr, SourceOrigin range) {
     // attr is the identifier of the Attribute
     // range is from opening brace to closing brace
     if (attr.val == "ignore") {
@@ -794,10 +794,10 @@ public partial class Parser {
   public void ApplyOptionsFromAttributes(Attributes attrs) {
     var overrides = attrs.AsEnumerable().Where(a => a.Name == "options" || a is UserSuppliedAtAttribute { UserSuppliedName: "Options" })
       .Reverse().Select(a =>
-        (token: a.tok,
+        (token: a.Origin,
          options: UserSuppliedAtAttribute.GetUserSuppliedArguments(a).Select(arg => {
            if (arg is not LiteralExpr { Value: string optStr }) {
-             SemErr(ErrorId.p_literal_string_required, arg.tok, "argument to :options attribute must be a literal string");
+             SemErr(ErrorId.p_literal_string_required, arg.Origin, "argument to :options attribute must be a literal string");
              return null;
            }
            return optStr;

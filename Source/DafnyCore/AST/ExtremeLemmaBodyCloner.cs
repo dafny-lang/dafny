@@ -34,7 +34,7 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
           return CloneCallAndAddK(functionCallExpr);
         }
       } else if (expr is StaticReceiverExpr ee) {
-        return new StaticReceiverExpr(Tok(ee.tok), ee.Type, ee.IsImplicit);
+        return new StaticReceiverExpr(Origin(ee.Origin), ee.Type, ee.IsImplicit);
       } else if (expr is ApplySuffix apply) {
         if (!apply.WasResolved()) {
           // Since we're assuming the enclosing statement to have been resolved, this ApplySuffix must
@@ -66,19 +66,19 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
         Expression lhsClone;
         if (apply.Lhs is NameSegment) {
           var lhs = (NameSegment)apply.Lhs;
-          lhsClone = new NameSegment(Tok(lhs.tok), lhs.Name + "#", lhs.OptTypeArguments?.ConvertAll(CloneType));
+          lhsClone = new NameSegment(Origin(lhs.Origin), lhs.Name + "#", lhs.OptTypeArguments?.ConvertAll(CloneType));
         } else {
           var lhs = (ExprDotName)apply.Lhs;
-          lhsClone = new ExprDotName(Tok(lhs.tok), CloneExpr(lhs.Lhs), lhs.SuffixName + "#", lhs.OptTypeArguments?.ConvertAll(CloneType));
+          lhsClone = new ExprDotName(Origin(lhs.Origin), CloneExpr(lhs.Lhs), lhs.SuffixNameNode.Append("#"), lhs.OptTypeArguments?.ConvertAll(CloneType));
         }
 
         var args = new List<ActualBinding>();
         args.Add(new ActualBinding(null, k));
         apply.Bindings.ArgumentBindings.ForEach(arg => args.Add(CloneActualBinding(arg)));
-        var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok),
-          lhsClone, args, Tok(apply.CloseParen));
+        var applyClone = new ApplySuffix(Origin(apply.Origin), apply.AtTok == null ? null : Origin(apply.AtTok),
+          lhsClone, args, apply.CloseParen);
         var c = new ExprRhs(applyClone, CloneAttributes(rhs.Attributes));
-        reporter.Info(MessageSource.Cloner, apply.Lhs.tok, extremeLemma.Name + suffix);
+        reporter.Info(MessageSource.Cloner, apply.Lhs.Origin, extremeLemma.Name + suffix);
         return c;
       }
     }

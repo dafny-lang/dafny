@@ -19,9 +19,9 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
     Contract.Invariant(cce.NonNullElements(MissingCases));
   }
 
-  public MatchExpr(IOrigin tok, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public MatchExpr(IOrigin origin, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
@@ -81,29 +81,27 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
   }
 }
 
-public abstract class MatchCase : TokenNode, IHasReferences {
+public abstract class MatchCase : NodeWithComputedRange, IHasReferences {
   public DatatypeCtor Ctor;
   public List<BoundVar> Arguments;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(tok != null);
+    Contract.Invariant(Origin != null);
     Contract.Invariant(Ctor != null);
     Contract.Invariant(cce.NonNullElements(Arguments));
   }
 
-  public MatchCase(IOrigin tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
-    Contract.Requires(tok != null);
+  public MatchCase(IOrigin origin, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
-    this.tok = tok;
     Ctor = ctor;
     Arguments = arguments;
   }
 
-  public IOrigin NavigationToken => tok;
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { Ctor };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Origin, Ctor) };
   }
 }
 
@@ -142,10 +140,10 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     }
   }
 
-  public MatchStmt(RangeToken rangeOrigin, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(IOrigin origin, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, MatchingContext context = null)
-    : base(rangeOrigin) {
-    Contract.Requires(rangeOrigin != null);
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
@@ -154,10 +152,10 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     Context = context is null ? new HoleCtx() : context;
   }
 
-  public MatchStmt(RangeToken rangeOrigin, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(IOrigin origin, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
-    : base(rangeOrigin, attrs) {
-    Contract.Requires(rangeOrigin != null);
+    : base(origin, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
@@ -178,7 +176,7 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(Cases) != null;
     if (!mustBeErasable && IsGhost) {
-      reporter.Info(MessageSource.Resolver, Tok, "ghost match");
+      reporter.Info(MessageSource.Resolver, Origin, "ghost match");
     }
 
     Cases.ForEach(kase => kase.Body.ForEach(ss => ss.ResolveGhostness(resolver, reporter, IsGhost, codeContext,
@@ -250,10 +248,8 @@ public class MatchCaseStmt : MatchCase {
   public override IEnumerable<INode> Children => body;
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public MatchCaseStmt(RangeToken rangeOrigin, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
-    : base(rangeOrigin.StartToken, ctor, arguments) {
-    RangeToken = rangeOrigin;
-    Contract.Requires(tok != null);
+  public MatchCaseStmt(IOrigin rangeOrigin, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+    : base(rangeOrigin, ctor, arguments) {
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
     Contract.Requires(cce.NonNullElements(body));
@@ -284,9 +280,9 @@ public class MatchCaseExpr : MatchCase {
   public override IEnumerable<INode> Children => Arguments.Concat<Node>(new[] { body });
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public MatchCaseExpr(IOrigin tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
-    : base(tok, ctor, arguments) {
-    Contract.Requires(tok != null);
+  public MatchCaseExpr(IOrigin origin, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
+    : base(origin, ctor, arguments) {
+    Contract.Requires(origin != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
     Contract.Requires(body != null);

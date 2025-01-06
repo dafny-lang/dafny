@@ -47,7 +47,7 @@ namespace Microsoft.Dafny.Triggers {
         Contract.Assert(letExpr.RHSs.Count == 1); // let-such-that expressions have exactly 1 RHS
         // Note, trigger selection adds some attributes. These will remain in the following exists expression. So, Boogie translation needs
         // to look at letExpr.SuchThatExists.Attributes (not letExpr.Attributes) to find them.
-        var existsExpr = new ExistsExpr(letExpr.tok, letExpr.RangeToken, letExpr.BoundVars.ToList(), null, letExpr.RHSs[0], letExpr.Attributes);
+        var existsExpr = new ExistsExpr(letExpr.Origin, letExpr.BoundVars.ToList(), null, letExpr.RHSs[0], letExpr.Attributes);
         existsExpr.Attributes = new Attributes("_delayTriggerWarning", new List<Expression>(), existsExpr.Attributes);
 
         ActionsOnSelectedTriggers.Add(() => {
@@ -94,15 +94,15 @@ namespace Microsoft.Dafny.Triggers {
         var boundVars = new List<BoundVar>();
         foreach (var localIdentifierExpr in assignSuchThatStmt.GetAssignedLocals()) {
           var local = localIdentifierExpr.Var;
-          var boundVar = new BoundVar(local.Tok, local.Name, local.Type);
-          var boundVarIdentifierExpr = new IdentifierExpr(boundVar.tok, boundVar);
+          var boundVar = new BoundVar(local.Origin, local.Name, local.Type);
+          var boundVarIdentifierExpr = new IdentifierExpr(boundVar.Origin, boundVar);
           boundVars.Add(boundVar);
           substLocalToBoundVar.Add(local, boundVarIdentifierExpr);
           substBoundVarToLocal.Add(boundVar, localIdentifierExpr);
         }
 
         var substituterTo = new Substituter(null, substLocalToBoundVar, new Dictionary<TypeParameter, Type>());
-        var existsExpr = new ExistsExpr(assignSuchThatStmt.tok, assignSuchThatStmt.RangeToken, boundVars, null,
+        var existsExpr = new ExistsExpr(assignSuchThatStmt.Origin, boundVars, null,
           substituterTo.Substitute(assignSuchThatStmt.Expr),
           substituterTo.SubstAttributes(assignSuchThatStmt.Attributes));
         existsExpr.Attributes = new Attributes("_delayTriggerWarning", new List<Expression>(), existsExpr.Attributes);

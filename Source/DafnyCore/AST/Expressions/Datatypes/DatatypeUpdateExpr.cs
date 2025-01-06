@@ -19,7 +19,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
 
   public DatatypeUpdateExpr(Cloner cloner, DatatypeUpdateExpr original) : base(cloner, original) {
     Root = cloner.CloneExpr(original.Root);
-    Updates = original.Updates.Select(t => Tuple.Create(cloner.Tok(t.Item1), t.Item2, cloner.CloneExpr(t.Item3)))
+    Updates = original.Updates.Select(t => Tuple.Create(cloner.Origin(t.Item1), t.Item2, cloner.CloneExpr(t.Item3)))
       .ToList();
 
     if (cloner.CloneResolvedFields) {
@@ -34,9 +34,9 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
     }
   }
 
-  public DatatypeUpdateExpr(IOrigin tok, Expression root, List<Tuple<IOrigin, string, Expression>> updates)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public DatatypeUpdateExpr(IOrigin origin, Expression root, List<Tuple<IOrigin, string, Expression>> updates)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(root != null);
     Contract.Requires(updates != null);
     Contract.Requires(updates.Count != 0);
@@ -62,11 +62,11 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
     }
   }
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return (IEnumerable<ISymbol>)LegalSourceConstructors ?? Array.Empty<ISymbol>();
+  public IEnumerable<Reference> GetReferences() {
+    return LegalSourceConstructors == null ? Enumerable.Empty<Reference>()
+      : Updates.Zip(LegalSourceConstructors).Select(t =>
+        new Reference(t.First.Item1, t.Second.Formals.Find(f => f.Name == t.First.Item2)));
   }
-
-  public IOrigin NavigationToken => tok;
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
     get {

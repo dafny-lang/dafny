@@ -110,7 +110,7 @@ public static class DafnyCodeActionHelpers {
   /// <param name="input"></param>
   /// <param name="openingBracePosition"></param>
   /// <returns></returns>
-  private static (RangeToken? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
+  private static (SourceOrigin? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
       GetInformationToInsertAtEndOfBlock(IDafnyCodeActionInput input, Position openingBracePosition) {
 
     var (line, col) = openingBracePosition.ToTokenLineAndCol();
@@ -120,7 +120,7 @@ public static class DafnyCodeActionHelpers {
     }
 
     var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, line, col);
-    var beforeClosingBrace = new RangeToken(endToken, null);
+    var beforeClosingBrace = new SourceOrigin(endToken, null);
     return (beforeClosingBrace, extraIndentation, indentationUntilBrace);
   }
 
@@ -133,10 +133,10 @@ public static class DafnyCodeActionHelpers {
   /// <param name="line">The line of the opening brace</param>
   /// <param name="col">The column of the opening brace</param>
   /// <returns>The token of a matching closing brace, typically the `ÈndTok` of a BlockStmt</returns>
-  private static IOrigin? GetMatchingEndToken(Node program, Uri documentUri, int line, int col) {
+  private static Token? GetMatchingEndToken(Node program, Uri documentUri, int line, int col) {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
-    IOrigin? tokenFound = null;
+    Token? tokenFound = null;
     program.Visit((INode n) => {
       if (tokenFound != null) {
         return false;
@@ -148,7 +148,7 @@ public static class DafnyCodeActionHelpers {
         return false; // Outside of the current scope
       }
 
-      if (n is Method method && method.tok.Uri == documentUri && method.Body != null &&
+      if (n is Method method && method.Origin.Uri == documentUri && method.Body != null &&
           method.StartToken.line <= line && line <= method.EndToken.line &&
           GetMatchingEndToken(line, col, method.Body) is { } token) {
         tokenFound = token;
@@ -167,11 +167,11 @@ public static class DafnyCodeActionHelpers {
   /// returns the closing brace token, else null.
   /// Visit substatements recursively
   /// </summary>
-  private static IOrigin? GetMatchingEndToken(int line, int col, Statement stmt) {
+  private static Token? GetMatchingEndToken(int line, int col, Statement stmt) {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
-    if (stmt is BlockStmt blockStmt && blockStmt.Tok.line == line && blockStmt.Tok.col == col) {
-      return blockStmt.RangeToken.EndToken;
+    if (stmt is BlockStmt blockStmt && blockStmt.Origin.line == line && blockStmt.Origin.col == col) {
+      return blockStmt.Origin.EndToken;
     }
 
     foreach (var subStmt in stmt.SubStatements) {

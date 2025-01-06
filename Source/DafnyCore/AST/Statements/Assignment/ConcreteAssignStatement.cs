@@ -14,8 +14,8 @@ public abstract class ConcreteAssignStatement : Statement, ICanFormat {
     Lhss = original.Lhss.Select(cloner.CloneExpr).ToList();
   }
 
-  public ConcreteAssignStatement(RangeToken rangeOrigin, List<Expression> lhss, Attributes attrs = null)
-    : base(rangeOrigin, attrs) {
+  public ConcreteAssignStatement(IOrigin origin, List<Expression> lhss, Attributes attrs = null)
+    : base(origin, attrs) {
     Contract.Requires(cce.NonNullElements(lhss));
     Lhss = lhss;
   }

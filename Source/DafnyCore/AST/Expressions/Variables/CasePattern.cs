@@ -13,7 +13,7 @@ namespace Microsoft.Dafny;
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT> : TokenNode
+public class CasePattern<VT> : NodeWithComputedRange
   where VT : class, IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
@@ -29,8 +29,7 @@ public class CasePattern<VT> : TokenNode
     this.Arguments = new List<CasePattern<VT>>();
   }
 
-  public CasePattern(Cloner cloner, CasePattern<VT> original) {
-    tok = cloner.Tok(original.tok);
+  public CasePattern(Cloner cloner, CasePattern<VT> original) : base(cloner, original) {
     Id = original.Id;
     if (original.Var != null) {
       Var = cloner.CloneIVariable(original.Var, false);
@@ -51,18 +50,16 @@ public class CasePattern<VT> : TokenNode
     }
   }
 
-  public CasePattern(IOrigin tok, string id, [Captured] List<CasePattern<VT>> arguments) {
-    Contract.Requires(tok != null);
+  public CasePattern(IOrigin origin, string id, [Captured] List<CasePattern<VT>> arguments) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(id != null);
-    this.tok = tok;
     Id = id;
     Arguments = arguments;
   }
 
-  public CasePattern(IOrigin tok, VT bv) {
-    Contract.Requires(tok != null);
+  public CasePattern(IOrigin origin, VT bv) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(bv != null);
-    this.tok = tok;
     Id = bv.Name;
     Var = bv;
   }
@@ -75,13 +72,13 @@ public class CasePattern<VT> : TokenNode
     Contract.Requires(Var != null || dtvTypeArgs != null);
     if (Var != null) {
       Contract.Assert(this.Id == this.Var.Name);
-      this.Expr = new IdentifierExpr(this.tok, this.Var);
+      this.Expr = new IdentifierExpr(this.Origin, this.Var);
     } else {
-      var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id,
+      var dtValue = new DatatypeValue(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Id,
         this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr));
       dtValue.Ctor = this.Ctor;  // resolve here
       dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
-      dtValue.Type = new UserDefinedType(this.tok, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
+      dtValue.Type = new UserDefinedType(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
       this.Expr = dtValue;
     }
   }
@@ -94,11 +91,11 @@ public class CasePattern<VT> : TokenNode
     Contract.Requires(Var != null || dtvPreTypeArgs != null);
     if (Var != null) {
       Contract.Assert(this.Id == this.Var.Name);
-      this.Expr = new IdentifierExpr(this.tok, this.Var) {
+      this.Expr = new IdentifierExpr(this.Origin, this.Var) {
         PreType = this.Var.PreType
       };
     } else {
-      var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id,
+      var dtValue = new DatatypeValue(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Id,
         this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr)) {
         Ctor = this.Ctor,
         PreType = new DPreType(this.Ctor.EnclosingDatatype, dtvPreTypeArgs)

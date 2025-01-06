@@ -45,7 +45,7 @@ public record BuiltInAtAttributeSyntax(
   }
 }
 
-public class Attributes : TokenNode, ICanFormat {
+public class Attributes : NodeWithComputedRange, ICanFormat {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
@@ -64,7 +64,7 @@ public class Attributes : TokenNode, ICanFormat {
   public readonly List<Expression> Args;
 
   public readonly Attributes Prev;
-  public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
+  public Attributes(string name, [Captured] List<Expression> args, Attributes prev) : base(Token.NoToken) {
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(args));
     Contract.Requires(name != UserSuppliedAtAttribute.AtName || this is UserSuppliedAtAttribute);
@@ -306,7 +306,7 @@ public class Attributes : TokenNode, ICanFormat {
     var bindings = atAttribute.UserSuppliedPreResolveBindings;
 
     if (name == null) {
-      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, "Attribute not recognized: " + atAttribute.ToString());
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.Origin, "Attribute not recognized: " + atAttribute.ToString());
       return null;
     }
 
@@ -316,7 +316,7 @@ public class Attributes : TokenNode, ICanFormat {
     }
 
     if (!builtinSyntax.CanBeApplied(attributeHost)) {
-      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, UserSuppliedAtAttribute.AtName + atAttribute.UserSuppliedName + " attribute cannot be applied to " + attributeHost.WhatKind);
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.Origin, UserSuppliedAtAttribute.AtName + atAttribute.UserSuppliedName + " attribute cannot be applied to " + attributeHost.WhatKind);
     }
 
     var resolver = new ModuleResolver(new ProgramResolver(program), program.Options) {
@@ -333,6 +333,9 @@ public class Attributes : TokenNode, ICanFormat {
     atAttribute.Arg.PreType = new DPreType(intDecl, new List<PreType>(), null);
 
     switch (name) {
+      case "AssumeCrossModuleTermination": {
+          return A("AssumeCrossModuleTermination");
+        }
       case "AutoContracts": {
           return A("autocontracts");
         }
@@ -478,6 +481,8 @@ public class Attributes : TokenNode, ICanFormat {
   // This list could be obtained from parsing and resolving a .Dfy file
   // but for now it's good enough.
   public static readonly List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = new() {
+    BuiltIn("AssumeCrossModuleTermination")
+      .Filter(attributeHost => attributeHost is ClassDecl or TraitDecl),
     BuiltIn("AutoContracts")
       .Filter(attributeHost => attributeHost is ClassDecl),
     BuiltIn("AutoRequires")
@@ -607,14 +612,14 @@ public class Attributes : TokenNode, ICanFormat {
     UserSuppliedAtAttribute attrs, ActualBindings bindings, ModuleResolver resolver) {
     var resolutionContext = new ResolutionContext(new NoContext(program.DefaultModuleDef), false); ;
     var typeMap = new Dictionary<TypeParameter, Type>();
-    resolver.ResolveActualParameters(bindings, formals.ToList(), attrs.tok,
+    resolver.ResolveActualParameters(bindings, formals.ToList(), attrs.Origin,
       attrs, resolutionContext, typeMap, null);
     resolver.FillInDefaultValueExpressions();
     resolver.SolveAllTypeConstraints();
     // Verify that provided arguments are given literally
     foreach (var binding in bindings.ArgumentBindings) {
       if (binding.Actual is not LiteralExpr) {
-        program.Reporter.Error(MessageSource.Resolver, binding.Actual.RangeToken, $"Argument to attribute {attrName} must be a literal");
+        program.Reporter.Error(MessageSource.Resolver, binding.Actual.Origin, $"Argument to attribute {attrName} must be a literal");
       }
     }
   }
@@ -684,13 +689,13 @@ public class UserSuppliedAttributes : Attributes {
   public readonly IOrigin OpenBrace;
   public readonly IOrigin CloseBrace;
   public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
-  public UserSuppliedAttributes(IOrigin tok, IOrigin openBrace, IOrigin closeBrace, List<Expression> args, Attributes prev)
-    : base(tok.val, args, prev) {
-    Contract.Requires(tok != null);
+  public UserSuppliedAttributes(IOrigin origin, IOrigin openBrace, IOrigin closeBrace, List<Expression> args, Attributes prev)
+    : base(origin.val, args, prev) {
+    Contract.Requires(origin != null);
     Contract.Requires(openBrace != null);
     Contract.Requires(closeBrace != null);
     Contract.Requires(args != null);
-    this.tok = tok;
+    SetOrigin(origin);
     OpenBrace = openBrace;
     CloseBrace = closeBrace;
   }
@@ -702,11 +707,11 @@ public class UserSuppliedAtAttribute : Attributes {
   public readonly IOrigin AtSign;
   public bool Builtin;  // set to true to indicate it was recognized as a builtin attribute
   // Otherwise it's a user-defined one and Arg needs to be fully resolved
-  public UserSuppliedAtAttribute(IOrigin tok, Expression arg, Attributes prev)
+  public UserSuppliedAtAttribute(IOrigin origin, Expression arg, Attributes prev)
     : base(AtName, new List<Expression>() { arg }, prev) {
-    Contract.Requires(tok != null);
-    this.tok = tok;
-    this.AtSign = tok;
+    Contract.Requires(origin != null);
+    SetOrigin(origin);
+    this.AtSign = origin;
   }
 
   public Expression Arg => Args[0];

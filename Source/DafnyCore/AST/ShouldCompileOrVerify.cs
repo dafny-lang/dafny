@@ -31,18 +31,18 @@ public static class ShouldCompileOrVerify {
       }
     }
 
-    return program.UrisToCompile.Contains(module.Tok.Uri);
+    return program.UrisToCompile.Contains(module.Origin.Uri);
   }
 
   public static bool ShouldVerify(this INode declaration, CompilationData compilation) {
-    if (declaration.Tok == Token.NoToken) {
+    if (ReferenceEquals(declaration.Origin, Token.NoToken)) {
       // Required for DefaultModuleDefinition.
       return true;
     }
     if (compilation.UrisToVerify == null) {
       compilation.UrisToVerify = ComputeUrisToVerify(compilation);
     }
-    if (!compilation.UrisToVerify.Contains(declaration.Tok.Uri)) {
+    if (!compilation.UrisToVerify.Contains(declaration.Origin.Uri)) {
       return false;
     }
 
@@ -50,7 +50,7 @@ public static class ShouldCompileOrVerify {
       return true;
     }
 
-    return !declaration.Tok.FromIncludeDirective(compilation);
+    return !declaration.Origin.FromIncludeDirective(compilation);
   }
 
   public static bool FromIncludeDirective(this IOrigin token, CompilationData outerModule) {

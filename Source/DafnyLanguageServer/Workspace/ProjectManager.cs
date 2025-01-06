@@ -304,7 +304,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     }
 
     if (uri != null) {
-      canVerifies = canVerifies.Where(d => d.Tok.Uri == uri).ToList();
+      canVerifies = canVerifies.Where(d => d.Origin.Uri == uri).ToList();
     }
 
     List<FilePosition> changedVerifiables;
@@ -322,19 +322,19 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     }
 
     int TopToBottomPriority(ISymbol symbol) {
-      return symbol.Tok.pos;
+      return symbol.Origin.pos;
     }
     var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
     var orderedVerifiables = canVerifies
       .OrderByDescending(GetPriorityAttribute)
-      .ThenBy(t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue))
+      .ThenBy(t => implementationOrder.GetOrDefault(t.Origin.GetFilePosition(), () => int.MaxValue))
       .ThenBy(TopToBottomPriority).ToList();
     logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NavigationToken.val))}");
 
     var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NavigationToken.GetFilePosition()).ToList();
     if (GutterIconTesting) {
       foreach (var canVerify in orderedVerifiableLocations) {
-        await compilation.VerifyLocation(canVerify, true);
+        await compilation.VerifyLocation(canVerify, onlyPrepareVerificationForGutterTests: true);
       }
 
       logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
@@ -350,10 +350,10 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     IntervalTree<Position, Position> GetTree(Uri uri) {
       var intervalTree = new IntervalTree<Position, Position>();
       foreach (var canVerify in verifiables) {
-        if (canVerify.Tok.Uri == uri) {
+        if (canVerify.Origin.Uri == uri) {
           intervalTree.Add(
-            canVerify.RangeToken.StartToken.GetLspPosition(),
-            canVerify.RangeToken.EndToken.GetLspPosition(true),
+            canVerify.Origin.StartToken.GetLspPosition(),
+            canVerify.Origin.EndToken.GetLspPosition(true),
             canVerify.NavigationToken.GetLspPosition());
         }
       }

@@ -42,13 +42,13 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanF
     BodyEllipsis = original.BodyEllipsis;
   }
 
-  public SkeletonStatement(RangeToken rangeOrigin)
-    : base(rangeOrigin) {
-    Contract.Requires(rangeOrigin != null);
+  public SkeletonStatement(IOrigin origin)
+    : base(origin) {
+    Contract.Requires(origin != null);
     S = null;
   }
   public SkeletonStatement(Statement s, IOrigin conditionEllipsis, IOrigin bodyEllipsis)
-    : base(s.RangeToken) {
+    : base(s.Origin) {
     Contract.Requires(s != null);
     S = s;
     ConditionEllipsis = conditionEllipsis;

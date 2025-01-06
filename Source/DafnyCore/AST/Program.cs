@@ -6,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Program : TokenNode {
+public class Program : NodeWithComputedRange {
   public CompilationData Compilation { get; }
 
   [ContractInvariantMethod]
@@ -110,12 +110,12 @@ public class Program : TokenNode {
 
   /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
   /// (skips included tokens)
-  public IOrigin GetStartOfFirstFileToken() {
+  public Token GetStartOfFirstFileToken() {
     return GetFirstTokenForUri(Compilation.RootSourceUris[0]);
   }
 
   public Token GetFirstTokenForUri(Uri uri) {
-    return (Token)OriginWrapper.Unwrap(this.FindNodesInUris(uri).MinBy(n => n.RangeToken.StartToken.pos)?.StartToken);
+    return this.FindNodesInUris(uri).MinBy(n => n.Origin.StartToken.pos)?.StartToken;
   }
 
   public override IEnumerable<INode> Children => new[] { DefaultModule };

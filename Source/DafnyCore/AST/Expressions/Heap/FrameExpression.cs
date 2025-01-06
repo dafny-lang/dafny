@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class FrameExpression : TokenNode, IHasReferences {
+public class FrameExpression : NodeWithComputedRange, IHasReferences {
   public readonly Expression OriginalExpression; // may be a WildcardExpr
   [FilledInDuringResolution] public Expression DesugaredExpression; // may be null for modifies clauses, even after resolution
 
@@ -26,17 +26,15 @@ public class FrameExpression : TokenNode, IHasReferences {
   /// If a "fieldName" is given, then "tok" denotes its source location.  Otherwise, "tok"
   /// denotes the source location of "e".
   /// </summary>
-  public FrameExpression(IOrigin tok, Expression e, string fieldName) {
-    Contract.Requires(tok != null);
+  public FrameExpression(IOrigin origin, Expression e, string fieldName) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(e != null);
     Contract.Requires(!(e is WildcardExpr) || fieldName == null);
-    this.tok = tok;
     OriginalExpression = e;
     FieldName = fieldName;
   }
 
-  public FrameExpression(Cloner cloner, FrameExpression original) {
-    this.tok = cloner.Tok(original.tok);
+  public FrameExpression(Cloner cloner, FrameExpression original) : base(cloner, original) {
     OriginalExpression = cloner.CloneExpr(original.OriginalExpression);
     FieldName = original.FieldName;
 
@@ -48,10 +46,9 @@ public class FrameExpression : TokenNode, IHasReferences {
     }
   }
 
-  public IOrigin NavigationToken => tok;
   public override IEnumerable<INode> Children => new[] { E };
   public override IEnumerable<INode> PreResolveChildren => Children;
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return new[] { Field }.Where(x => x != null);
+  public IEnumerable<Reference> GetReferences() {
+    return Field == null ? Enumerable.Empty<Reference>() : new[] { new Reference(Origin, Field) };
   }
 }

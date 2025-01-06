@@ -26,11 +26,11 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
     }
   }
 
-  public SubsetTypeDecl(RangeToken rangeOrigin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
+  public SubsetTypeDecl(IOrigin origin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
     BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
     Attributes attributes)
-    : base(rangeOrigin, name, characteristics, typeArgs, module, id.Type, attributes) {
-    Contract.Requires(rangeOrigin != null);
+    : base(origin, name, characteristics, typeArgs, module, id.Type, attributes) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(module != null);
@@ -84,10 +84,10 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
       }
 
       if (func.IsMadeImplicitlyOpaque(Options)) {
-        var revealStmt0 = AutoRevealFunctionDependencies.BuildRevealStmt(func, Witness.Tok, EnclosingModuleDefinition);
+        var revealStmt0 = AutoRevealFunctionDependencies.BuildRevealStmt(func, Witness.Origin, EnclosingModuleDefinition);
 
         if (revealStmt0 is not null) {
-          var newExpr = new StmtExpr(Witness.Tok, revealStmt0, Witness) {
+          var newExpr = new StmtExpr(Witness.Origin, revealStmt0, Witness) {
             Type = Witness.Type
           };
           Witness = newExpr;
@@ -96,13 +96,13 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
 
       foreach (var newFunc in Rewriter.GetEnumerator(func, func.EnclosingClass, new List<Expression>(), EnclosingModuleDefinition)) {
         var origExpr = Witness;
-        var revealStmt = AutoRevealFunctionDependencies.BuildRevealStmt(newFunc.Function, Witness.Tok, EnclosingModuleDefinition);
+        var revealStmt = AutoRevealFunctionDependencies.BuildRevealStmt(newFunc.Function, Witness.Origin, EnclosingModuleDefinition);
 
         if (revealStmt is null) {
           continue;
         }
 
-        var newExpr = new StmtExpr(Witness.Tok, revealStmt, origExpr) {
+        var newExpr = new StmtExpr(Witness.Origin, revealStmt, origExpr) {
           Type = origExpr.Type
         };
         Witness = newExpr;

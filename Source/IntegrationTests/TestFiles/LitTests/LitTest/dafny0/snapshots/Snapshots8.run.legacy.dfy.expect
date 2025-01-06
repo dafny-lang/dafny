@@ -1,40 +1,40 @@
 Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
-Processing command (at Snapshots8.v0.dfy(2,37)) assert {:id "id0"} x#0 < 20 || LitInt(10) <= x#0;
+Processing command (at Snapshots8.v0.dfy(2,23)) assert {:id "id0"} x#0 < 20 || LitInt(10) <= x#0;
   >>> DoNothingToAssert
-Processing command (at Snapshots8.v0.dfy(3,12)) assert {:id "id1"} x#0 < 10;
+Processing command (at Snapshots8.v0.dfy(3,3)) assert {:id "id1"} x#0 < 10;
   >>> DoNothingToAssert
 Processing command (at Snapshots8.v0.dfy(4,8)) assert {:id "id4$id2$requires"} {:id "id2"} LitInt(0) <= call0formal#AT#y#0;
   >>> DoNothingToAssert
-Snapshots8.v0.dfy(3,11): Error: assertion might not hold
+Snapshots8.v0.dfy(3,2): Error: assertion might not hold
 Snapshots8.v0.dfy(4,7): Error: a precondition for this call could not be proved
 Snapshots8.v0.dfy(8,13): Related location: this is the precondition that could not be proved
 Processing command (at Snapshots8.v0.dfy(13,13)) assert {:id "id8"} LitInt(2) <= z#0;
   >>> DoNothingToAssert
 Snapshots8.v0.dfy(17,9): Error: a postcondition could not be proved on this return path
 Snapshots8.v0.dfy(13,12): Related location: this is the postcondition that could not be proved
-Processing command (at Snapshots8.v0.dfy(23,12)) assert {:id "id10"} u#0 != 53;
+Processing command (at Snapshots8.v0.dfy(23,3)) assert {:id "id10"} u#0 != 53;
   >>> DoNothingToAssert
-Snapshots8.v0.dfy(23,11): Error: assertion might not hold
-Processing command (at Snapshots8.v0.dfy(28,10)) assert {:id "id11"} Lit(true);
+Snapshots8.v0.dfy(23,2): Error: assertion might not hold
+Processing command (at Snapshots8.v0.dfy(28,3)) assert {:id "id11"} Lit(true);
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 1 verified, 4 errors
-Processing command (at Snapshots8.v1.dfy(30,17)) assert {:id "id24"} u#0 != 53;
+Processing command (at Snapshots8.v1.dfy(30,8)) assert {:id "id24"} u#0 != 53;
   >>> RecycleError
-Snapshots8.v1.dfy(30,16): Error: assertion might not hold
-Processing command (at Snapshots8.v1.dfy(3,15)) assert {:id "id12"} x#0 < 20 || LitInt(10) <= x#0;
+Snapshots8.v1.dfy(30,7): Error: assertion might not hold
+Processing command (at Snapshots8.v1.dfy(3,1)) assert {:id "id12"} x#0 < 20 || LitInt(10) <= x#0;
   >>> MarkAsFullyVerified
-Processing command (at Snapshots8.v1.dfy(5,17)) assert {:id "id13"} x#0 < 10;
+Processing command (at Snapshots8.v1.dfy(5,8)) assert {:id "id13"} x#0 < 10;
   >>> RecycleError
 Processing command (at Snapshots8.v1.dfy(6,8)) assert {:id "id17$id14$requires"} {:id "id14"} LitInt(0) <= call0formal#AT#y#0;
   >>> RecycleError
-Processing command (at Snapshots8.v1.dfy(7,12)) assert {:id "id15"} x#0 == LitInt(7);
+Processing command (at Snapshots8.v1.dfy(7,3)) assert {:id "id15"} x#0 == LitInt(7);
   >>> DoNothingToAssert
-Snapshots8.v1.dfy(5,16): Error: assertion might not hold
+Snapshots8.v1.dfy(5,7): Error: assertion might not hold
 Snapshots8.v1.dfy(6,7): Error: a precondition for this call could not be proved
 Snapshots8.v1.dfy(12,20): Related location: this is the precondition that could not be proved
-Snapshots8.v1.dfy(7,11): Error: assertion might not hold
-Processing command (at Snapshots8.v1.dfy(23,12)) assert {:id "id23"} Lit(true);
+Snapshots8.v1.dfy(7,2): Error: assertion might not hold
+Processing command (at Snapshots8.v1.dfy(23,5)) assert {:id "id23"} Lit(true);
   >>> DoNothingToAssert
 Processing command (at Snapshots8.v1.dfy(19,13)) assert {:id "id21"} LitInt(2) <= z#0;
   >>> DoNothingToAssert

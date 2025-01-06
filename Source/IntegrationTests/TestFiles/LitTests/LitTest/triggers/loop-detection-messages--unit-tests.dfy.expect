@@ -1,21 +1,21 @@
 loop-detection-messages--unit-tests.dfy(11,9): Info: Selected triggers: {f(f(i))}
  Rejected triggers: {f(i)} (may loop with "f(f(i))")
-loop-detection-messages--unit-tests.dfy(12,9): Info: Selected triggers: {f(_t#0), f(i)}
-loop-detection-messages--unit-tests.dfy(13,9): Info: Selected triggers: {f(_t#0), f(i)}
+loop-detection-messages--unit-tests.dfy(12,9): Info: Selected triggers: {f(_t#0), f(i)} where _t#0 := i + 1
+loop-detection-messages--unit-tests.dfy(13,9): Info: Selected triggers: {f(_t#0), f(i)} where _t#0 := i + 1
 loop-detection-messages--unit-tests.dfy(15,9): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
 loop-detection-messages--unit-tests.dfy(15,9): Info: Part #0 is 'false ==> f(i) == f(_t#0)'
- Selected triggers: {f(_t#0), f(i)}
+ Selected triggers: {f(_t#0), f(i)} where _t#0 := i + 1
 loop-detection-messages--unit-tests.dfy(15,9): Info: Part #1 is 'false ==> f(i) == g(i)'
  Selected triggers:
    {g(i)}, {f(i)}
 loop-detection-messages--unit-tests.dfy(16,9): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
 loop-detection-messages--unit-tests.dfy(16,9): Info: Part #0 is 'false ==> f(i) == f(_t#0)'
- Selected triggers: {f(_t#0), f(i)}
+ Selected triggers: {f(_t#0), f(i)} where _t#0 := i + 1
 loop-detection-messages--unit-tests.dfy(16,9): Info: Part #1 is 'false ==> f(i) == f(i)'
  Selected triggers: {f(i)}
 loop-detection-messages--unit-tests.dfy(17,9): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
 loop-detection-messages--unit-tests.dfy(17,9): Info: Part #0 is 'false ==> f(i) == f(_t#0)'
- Selected triggers: {f(_t#0), f(i)}
+ Selected triggers: {f(_t#0), f(i)} where _t#0 := i + 1
 loop-detection-messages--unit-tests.dfy(17,9): Info: Part #1 is 'false ==> f(i) == f(i)'
  Selected triggers: {f(i)}
 loop-detection-messages--unit-tests.dfy(19,9): Info: Selected triggers: {f(i)}

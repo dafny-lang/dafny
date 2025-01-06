@@ -3,11 +3,11 @@ AsIsAgain.dfy(62,15): Error: value of expression (of type 'object') is not known
 AsIsAgain.dfy(64,15): Error: value of expression (of type 'object') is not known to be an instance of type 'B<W, int>'
 AsIsAgain.dfy(66,25): Error: value of expression (of type 'object') is not known to be an instance of type 'B<int, int>'
 AsIsAgain.dfy(68,15): Error: value of expression (of type 'object') is not known to be an instance of type 'A<W>'
-AsIsAgain.dfy(119,13): Error: assertion might not hold
-AsIsAgain.dfy(123,14): Error: assertion might not hold
-AsIsAgain.dfy(128,14): Error: assertion might not hold
-AsIsAgain.dfy(139,15): Error: assertion might not hold
-AsIsAgain.dfy(143,15): Error: assertion might not hold
-AsIsAgain.dfy(148,15): Error: assertion might not hold
+AsIsAgain.dfy(119,4): Error: assertion might not hold
+AsIsAgain.dfy(123,4): Error: assertion might not hold
+AsIsAgain.dfy(128,4): Error: assertion might not hold
+AsIsAgain.dfy(139,4): Error: assertion might not hold
+AsIsAgain.dfy(143,4): Error: assertion might not hold
+AsIsAgain.dfy(148,4): Error: assertion might not hold
 
 Dafny program verifier finished with 7 verified, 11 errors

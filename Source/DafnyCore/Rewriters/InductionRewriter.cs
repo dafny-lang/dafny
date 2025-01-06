@@ -73,17 +73,17 @@ public class InductionRewriter : IRewriter {
   void ComputeLemmaInduction(Method method) {
     Contract.Requires(method != null);
     if (method is { IsGhost: true, AllowsAllocation: false, Outs: { Count: 0 }, Body: not null } and not ExtremeLemma) {
-      Expression pre = Expression.CreateBoolLiteral(method.tok, true);
+      Expression pre = Expression.CreateBoolLiteral(method.Origin, true);
       foreach (var req in method.Req) {
         pre = Expression.CreateAnd(pre, req.E);
       }
 
-      Expression post = Expression.CreateBoolLiteral(method.tok, true);
+      Expression post = Expression.CreateBoolLiteral(method.Origin, true);
       foreach (var ens in method.Ens) {
         post = Expression.CreateAnd(post, ens.E);
       }
 
-      ComputeInductionVariables(method.tok, method.Ins, Expression.CreateImplies(pre, post), method, ref method.Attributes);
+      ComputeInductionVariables(method.Origin, method.Ins, Expression.CreateImplies(pre, post), method, ref method.Attributes);
     }
   }
 
@@ -140,7 +140,7 @@ public class InductionRewriter : IRewriter {
           }
 
           if (0 <= j) {
-            ReportWarning(ErrorId.rw_induction_arguments_quantifier_mismatch, arg.tok,
+            ReportWarning(ErrorId.rw_induction_arguments_quantifier_mismatch, arg.Origin,
               "{0}s given as :induction arguments must be given in the same order as in the {1}; ignoring attribute",
               lemma != null ? "lemma parameter" : "bound variable", lemma != null ? "lemma" : "quantifier");
             return;
@@ -153,12 +153,12 @@ public class InductionRewriter : IRewriter {
             continue;
           }
 
-          ReportWarning(ErrorId.rw_induction_arguments_lemma_mismatch, arg.tok,
+          ReportWarning(ErrorId.rw_induction_arguments_lemma_mismatch, arg.Origin,
             "lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute");
           return;
         }
 
-        ReportWarning(ErrorId.rw_invalid_induction_attribute, arg.tok,
+        ReportWarning(ErrorId.rw_invalid_induction_attribute, arg.Origin,
           "invalid :induction attribute argument; expected {0}{1}; ignoring attribute",
           i == 0 ? "'false' or 'true' or " : "",
           lemma != null ? "lemma parameter" : "bound variable");
@@ -169,7 +169,7 @@ public class InductionRewriter : IRewriter {
       // Next, look for matching patterns for the induction hypothesis.
       if (lemma != null) {
         var triggers = ComputeInductionTriggers(goodArguments, body, lemma.EnclosingClass.EnclosingModuleDefinition, tok, ref attributes);
-        ReportInductionTriggers(lemma.tok, lemma, attributes);
+        ReportInductionTriggers(lemma.Origin, lemma, attributes);
       }
 
       attributes = new Attributes("_induction", goodArguments, attributes);
@@ -188,7 +188,7 @@ public class InductionRewriter : IRewriter {
     foreach (IVariable n in boundVars) {
       if (!(n.Type.IsTypeParameter || n.Type.IsAbstractType || n.Type.IsInternalTypeSynonym || n.Type.IsArrowType) &&
           (args != null || InductionHeuristic.VarOccursInArgumentToRecursiveFunction(Reporter.Options, body, n))) {
-        inductionVariables.Add(new IdentifierExpr(n.Tok, n));
+        inductionVariables.Add(new IdentifierExpr(n.Origin, n));
       }
     }
 
@@ -260,7 +260,7 @@ public class InductionRewriter : IRewriter {
     var reverseSubstMap = new Dictionary<IVariable, Expression>();
     Expression receiverReplacement = null;
     foreach (var inductionVariableExpr in inductionVariables) {
-      var tok = inductionVariableExpr.tok;
+      var tok = inductionVariableExpr.Origin;
       BoundVar boundVar;
       if (inductionVariableExpr is IdentifierExpr identifierExpr) {
         boundVar = new BoundVar(tok, identifierExpr.Var.Name, identifierExpr.Var.Type);
@@ -275,7 +275,7 @@ public class InductionRewriter : IRewriter {
     }
 
     var substituter = new Substituter(receiverReplacement, substMap, new Dictionary<TypeParameter, Type>());
-    var quantifier = new ForallExpr(body.tok, body.RangeToken, boundVars, null, substituter.Substitute(body), null) {
+    var quantifier = new ForallExpr(body.Origin, boundVars, null, substituter.Substitute(body), null) {
       Type = Type.Bool
     };
 
@@ -318,7 +318,7 @@ public class InductionRewriter : IRewriter {
 
     protected override void VisitOneExpr(Expression expr) {
       if (expr is QuantifierExpr { SplitQuantifier: null } q) {
-        IndRewriter.ComputeInductionVariables(q.tok, q.BoundVars, q.LogicalBody(), null, ref q.Attributes);
+        IndRewriter.ComputeInductionVariables(q.Origin, q.BoundVars, q.LogicalBody(), null, ref q.Attributes);
       }
     }
   }

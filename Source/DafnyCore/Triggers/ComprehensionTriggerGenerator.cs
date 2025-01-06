@@ -182,13 +182,13 @@ namespace Microsoft.Dafny.Triggers {
         foreach (var group in groups) {
           SplitPartTriggerWriter q = group.Quantifier;
           if (q.Comprehension is ForallExpr forallExpr) {
-            IOrigin tok = forallExpr.tok is NestedOrigin nestedToken ? nestedToken.Outer : forallExpr.tok;
+            IOrigin tok = forallExpr.Origin is NestedOrigin nestedToken ? nestedToken.Outer : forallExpr.Origin;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.And, group.Expressions);
-            q.Comprehension = new ForallExpr(tok, forallExpr.RangeToken, forallExpr.BoundVars, forallExpr.Range, expr, TriggerUtils.CopyAttributes(forallExpr.Attributes)) { Type = forallExpr.Type, Bounds = forallExpr.Bounds };
+            q.Comprehension = new ForallExpr(tok, forallExpr.BoundVars, forallExpr.Range, expr, TriggerUtils.CopyAttributes(forallExpr.Attributes)) { Type = forallExpr.Type, Bounds = forallExpr.Bounds };
           } else if (q.Comprehension is ExistsExpr existsExpr) {
-            IOrigin tok = existsExpr.tok is NestedOrigin nestedToken ? nestedToken.Outer : existsExpr.tok;
+            IOrigin tok = existsExpr.Origin is NestedOrigin nestedToken ? nestedToken.Outer : existsExpr.Origin;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.Or, group.Expressions);
-            q.Comprehension = new ExistsExpr(tok, existsExpr.RangeToken, existsExpr.BoundVars, existsExpr.Range, expr, TriggerUtils.CopyAttributes(existsExpr.Attributes)) { Type = existsExpr.Type, Bounds = existsExpr.Bounds };
+            q.Comprehension = new ExistsExpr(tok, existsExpr.BoundVars, existsExpr.Range, expr, TriggerUtils.CopyAttributes(existsExpr.Attributes)) { Type = existsExpr.Type, Bounds = existsExpr.Bounds };
           }
           list.Add(q);
           splits.Add(q.Comprehension);
@@ -220,7 +220,7 @@ namespace Microsoft.Dafny.Triggers {
     internal void CommitTriggers(SystemModuleManager systemModuleManager) {
       if (partWriters.Count > 1) {
         reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null,
-          comprehension.Tok, $"Quantifier was split into {partWriters.Count} parts. " +
+          comprehension.Origin, $"Quantifier was split into {partWriters.Count} parts. " +
            "Better verification performance and error reporting may be obtained by splitting the quantifier in source. " +
            "For more information, see the section on quantifier instantiation rules in the reference manual.");
       }

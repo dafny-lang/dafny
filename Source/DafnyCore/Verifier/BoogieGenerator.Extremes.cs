@@ -52,7 +52,7 @@ public partial class BoogieGenerator {
     Contract.Requires(pp != null);
     Contract.Requires(Predef != null);
     var co = pp.ExtremePred;
-    var tok = pp.tok;
+    var tok = pp.Origin;
     var etran = new ExpressionTranslator(this, Predef, tok, pp);
 
     var tyvars = MkTyParamBinders(GetTypeParams(pp), out var tyexprs);
@@ -116,9 +116,9 @@ public partial class BoogieGenerator {
     //     Note that k is not added to bvs or coArgs.
     foreach (var p in pp.Ins) {
       bool is_k = p == pp.Ins[0];
-      var bv = new Bpl.BoundVariable(p.tok,
-        new Bpl.TypedIdent(p.tok, p.AssignUniqueName(pp.IdGenerator), TrType(p.Type)));
-      var formal = new Bpl.IdentifierExpr(p.tok, bv);
+      var bv = new Bpl.BoundVariable(p.Origin,
+        new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(pp.IdGenerator), TrType(p.Type)));
+      var formal = new Bpl.IdentifierExpr(p.Origin, bv);
       if (!is_k) {
         coArgs.Add(formal);
       }
@@ -126,14 +126,14 @@ public partial class BoogieGenerator {
       prefixArgs.Add(formal);
       prefixArgsLimited.Add(formal);
       if (is_k) {
-        m = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, "_m", TrType(p.Type)));
+        m = new Bpl.BoundVariable(p.Origin, new Bpl.TypedIdent(p.Origin, "_m", TrType(p.Type)));
         mId = new Bpl.IdentifierExpr(m.tok, m);
         prefixArgsLimitedM.Add(mId);
       } else {
         prefixArgsLimitedM.Add(formal);
       }
 
-      var wh = GetWhereClause(p.tok, formal, p.Type, etran, NOALLOC);
+      var wh = GetWhereClause(p.Origin, formal, p.Type, etran, NOALLOC);
       if (is_k) {
         // add the formal _k
         k = bv;
@@ -266,16 +266,16 @@ public partial class BoogieGenerator {
     var paramMap = new Dictionary<IVariable, Expression>();
     for (int i = 0; i < pp.ExtremePred.Ins.Count; i++) {
       var replacement = pp.Ins[i + 1];  // the +1 is to skip pp's _k parameter
-      var param = new IdentifierExpr(replacement.tok, replacement.Name);
+      var param = new IdentifierExpr(replacement.Origin, replacement.Name);
       param.Var = replacement;  // resolve here
       param.Type = replacement.Type;  // resolve here
       paramMap.Add(pp.ExtremePred.Ins[i], param);
     }
 
-    var k = new IdentifierExpr(pp.tok, pp.K.Name);
+    var k = new IdentifierExpr(pp.Origin, pp.K.Name);
     k.Var = pp.K;  // resolve here
     k.Type = pp.K.Type;  // resolve here
-    Expression kMinusOne = Expression.CreateSubtract(k, Expression.CreateNatLiteral(pp.tok, 1, pp.K.Type));
+    Expression kMinusOne = Expression.CreateSubtract(k, Expression.CreateNatLiteral(pp.Origin, 1, pp.K.Type));
 
     var s = new PrefixCallSubstituter(null, paramMap, typeMap, pp.ExtremePred, kMinusOne);
     body = s.Substitute(body);
@@ -283,18 +283,18 @@ public partial class BoogieGenerator {
     if (pp.K.Type.IsBigOrdinalType) {
       // 0 < k.Offset
       Contract.Assume(program.SystemModuleManager.ORDINAL_Offset != null);  // should have been filled in by the resolver
-      var kOffset = new MemberSelectExpr(pp.tok, k, program.SystemModuleManager.ORDINAL_Offset);
-      var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), kOffset);
-      var kIsLimit = Expression.CreateEq(Expression.CreateIntLiteral(pp.tok, 0), kOffset, Type.Int);
-      var kprimeVar = new BoundVar(pp.tok, "_k'", Type.BigOrdinal);
-      var kprime = new IdentifierExpr(pp.tok, kprimeVar);
+      var kOffset = new MemberSelectExpr(pp.Origin, k, program.SystemModuleManager.ORDINAL_Offset);
+      var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.Origin, 0), kOffset);
+      var kIsLimit = Expression.CreateEq(Expression.CreateIntLiteral(pp.Origin, 0), kOffset, Type.Int);
+      var kprimeVar = new BoundVar(pp.Origin, "_k'", Type.BigOrdinal);
+      var kprime = new IdentifierExpr(pp.Origin, kprimeVar);
 
       var substMap = new Dictionary<IVariable, Expression>();
       substMap.Add(pp.K, kprime);
       Expression recursiveCallReceiver;
       List<Expression> recursiveCallArgs;
-      pp.RecursiveCallParameters(pp.tok, pp.TypeArgs, pp.Ins, null, substMap, out recursiveCallReceiver, out recursiveCallArgs);
-      var ppCall = new FunctionCallExpr(pp.tok, pp.Name, recursiveCallReceiver, pp.tok, pp.tok, recursiveCallArgs);
+      pp.RecursiveCallParameters(pp.Origin, pp.TypeArgs, pp.Ins, null, substMap, out recursiveCallReceiver, out recursiveCallArgs);
+      var ppCall = new FunctionCallExpr(pp.Origin, pp.NameNode, recursiveCallReceiver, pp.Origin, Token.NoToken, recursiveCallArgs);
       ppCall.Function = pp;
       ppCall.Type = Type.Bool;
       ppCall.TypeApplication_AtEnclosingClass = pp.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
@@ -305,7 +305,7 @@ public partial class BoogieGenerator {
       if (pp.ExtremePred is GreatestPredicate) {
         // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
         var smaller = Expression.CreateLess(kprime, k);
-        limitCalls = new ForallExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+        limitCalls = new ForallExpr(pp.Origin, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
           Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
         };
@@ -314,11 +314,11 @@ public partial class BoogieGenerator {
         // Here, instead of using the usual ORD#Less, we use the semantically equivalent ORD#LessThanLimit, because this
         // allows us to write a good trigger for a targeted monotonicity axiom.  That axiom, in turn, makes the
         // automatic verification more powerful for least lemmas that have more than one focal-predicate term.
-        var smaller = new BinaryExpr(kprime.tok, BinaryExpr.Opcode.Lt, kprime, k) {
+        var smaller = new BinaryExpr(kprime.Origin, BinaryExpr.Opcode.Lt, kprime, k) {
           ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
           Type = Type.Bool
         };
-        limitCalls = new ExistsExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+        limitCalls = new ExistsExpr(pp.Origin, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
           Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
         };
@@ -328,7 +328,7 @@ public partial class BoogieGenerator {
       return Expression.CreateAnd(a, b);
     } else {
       // 0 < k
-      var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), k);
+      var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.Origin, 0), k);
       if (pp.ExtremePred is GreatestPredicate) {
         // add antecedent "0 < _k ==>"
         return Expression.CreateImplies(kIsPositive, body);

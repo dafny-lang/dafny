@@ -56,6 +56,12 @@ module Std.Collections.Seq {
     xs[..|xs|-1]
   }
 
+  lemma TakeLess<T>(s: seq<T>, m: nat, n: nat)
+    requires m <= n <= |s|
+    ensures s[..n][..m] == s[..m]
+  {
+  }
+
   /* The concatenation of two subsequences of a non-empty sequence, the first obtained
      from dropping the last element, the second consisting only of the last
      element, is the original sequence. */
@@ -662,15 +668,16 @@ module Std.Collections.Seq {
 
   @ResourceLimit("1e6")
   @IsolateAssertions
-  lemma WillSplitOnDelim<T>(s: seq<T>, delim: T, prefix: seq<T>)
+  lemma {:induction false} WillSplitOnDelim<T>(s: seq<T>, delim: T, prefix: seq<T>)
     requires |prefix| < |s|
     requires forall i :: 0 <= i < |prefix| ==> prefix[i] == s[i]
     requires delim !in prefix && s[|prefix|] == delim
     ensures Split(s, delim) == [prefix] + Split(s[|prefix| + 1..], delim)
   {
+    hide *;
     calc {
       Split(s, delim);
-    ==
+    ==  { reveal Split(); }
       var i := IndexOfOption(s, delim);
       if i.Some? then [s[..i.value]] + Split(s[i.value + 1..], delim) else [s];
     ==  { IndexOfOptionLocatesElem(s, delim, |prefix|); assert IndexOfOption(s, delim).Some?; }
@@ -710,7 +717,7 @@ module Std.Collections.Seq {
 
   /* Returns the sequence one obtains by applying a function to every element
      of a sequence. */
-  opaque function Map<T, R>(f: (T ~> R), xs: seq<T>): (result: seq<R>)
+  opaque function Map<T, R>(f: T ~> R, xs: seq<T>): (result: seq<R>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures |result| == |xs|
     ensures forall i {:trigger result[i]} :: 0 <= i < |xs| ==> result[i] == f(xs[i])
@@ -718,6 +725,12 @@ module Std.Collections.Seq {
   {
     if |xs| == 0 then []
     else [f(xs[0])] + Map(f, xs[1..])
+  }
+
+  function MapPartialFunction<T, R>(f: T --> R, xs: seq<T>): (result: seq<R>)
+    requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
+  {
+    Map(f, xs)
   }
 
   /* Applies a function to every element of a sequence, returning a Result value (which is a
@@ -742,20 +755,19 @@ module Std.Collections.Seq {
   /* Applying a function to a sequence  is distributive over concatenation. That is, concatenating
      two sequences and then applying Map is the same as applying Map to each sequence separately,
      and then concatenating the two resulting sequences. */
-  @ResourceLimit("1e9")
-  lemma LemmaMapDistributesOverConcat<T,R>(f: (T ~> R), xs: seq<T>, ys: seq<T>)
-    requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
-    requires forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
+  lemma {:induction false} LemmaMapDistributesOverConcat<T,R>(f: (T ~> R), xs: seq<T>, ys: seq<T>)
+    requires X: forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
+    requires Y: forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Map(f, xs + ys) == Map(f, xs) + Map(f, ys)
   {
     if |xs| == 0 {
       assert xs + ys == ys;
     } else {
       calc {
-        Map(f, xs + ys);
+        Map(f, reveal X, Y; xs + ys);
         { assert (xs + ys)[0] == xs[0]; assert (xs + ys)[1..] == xs[1..] + ys; }
         Map(f, [xs[0]]) + Map(f, xs[1..] + ys);
-        Map(f, [xs[0]]) + Map(f, xs[1..]) + Map(f, ys);
+        Map(f, [xs[0]]) + Map(f, reveal X; xs[1..]) + Map(f, reveal Y; ys);
         {assert [(xs + ys)[0]] + xs[1..] + ys == xs + ys;}
         Map(f, xs) + Map(f, ys);
       }

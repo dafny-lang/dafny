@@ -86,8 +86,8 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
         if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraints) {
           if (!declWithConstraints.ConstraintIsCompilable) {
 
-            IOrigin finalToken = boundVar.tok;
-            if (declWithConstraints.Constraint != null && declWithConstraints.Constraint.tok.line != 0) {
+            IOrigin finalToken = boundVar.Origin;
+            if (declWithConstraints.Constraint != null && declWithConstraints.Constraint.Origin.line != 0) {
               var errorCollector = new FirstErrorCollector(reporter.Options);
               ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraints.Constraint,
                 new CodeContextWrapper(declWithConstraints, true));

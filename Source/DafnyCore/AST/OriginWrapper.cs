@@ -12,20 +12,28 @@ public abstract class OriginWrapper : IOrigin {
   }
 
   public abstract IOrigin WithVal(string newVal);
+  public virtual bool IsCopy => WrappedToken.IsCopy;
 
   public virtual int col {
     get { return WrappedToken.col; }
     set { WrappedToken.col = value; }
   }
 
+  public virtual bool IsInherited(ModuleDefinition m) {
+    return WrappedToken.IsInherited(m);
+  }
+
+  public virtual bool InclusiveEnd => WrappedToken.InclusiveEnd;
+  public virtual bool IncludesRange => WrappedToken.IncludesRange;
   public string ActualFilename => WrappedToken.ActualFilename;
 
   public virtual string Filepath => WrappedToken.Filepath;
 
-  public Uri Uri {
-    get => WrappedToken.Uri;
-    set => WrappedToken.Uri = value;
-  }
+  public Uri Uri => WrappedToken.Uri;
+
+  public virtual Token StartToken => WrappedToken.StartToken;
+  public virtual Token EndToken => WrappedToken.EndToken;
+  public virtual Token Center => WrappedToken.Center;
 
   public bool IsValid {
     get { return WrappedToken.IsValid; }
@@ -73,21 +81,5 @@ public abstract class OriginWrapper : IOrigin {
 
   public int CompareTo(Boogie.IToken other) {
     return WrappedToken.CompareTo(other);
-  }
-
-  /// <summary>
-  ///  Removes token wrappings from a given token, so that it returns the bare token
-  /// </summary>
-  public static IOrigin Unwrap(IOrigin token, bool includeRanges = false) {
-    if (token is OriginWrapper wrapper
-        && (includeRanges || token is not RangeToken)) {
-      return Unwrap(wrapper.WrappedToken);
-    }
-
-    if (token is RangeToken rangeToken) {
-      return new RangeToken(Unwrap(rangeToken.StartToken), Unwrap(rangeToken.EndToken));
-    }
-
-    return token;
   }
 }

@@ -24,10 +24,10 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public ClassLikeDecl(RangeToken rangeOrigin, Name name, ModuleDefinition module,
+  public ClassLikeDecl(IOrigin origin, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(rangeOrigin, name, module, typeArgs, members, attributes, isRefining, traits) {
-    Contract.Requires(rangeOrigin != null);
+    : base(origin, name, module, typeArgs, members, attributes, isRefining, traits) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

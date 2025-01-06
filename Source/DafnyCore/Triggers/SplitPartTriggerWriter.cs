@@ -85,8 +85,8 @@ class SplitPartTriggerWriter {
           if (triggersCollector.IsTriggerKiller(sub) && (!triggersCollector.IsPotentialTriggerCandidate(sub))) {
             var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
             if (entry == null) {
-              var newBv = new BoundVar(sub.tok, "_t#" + substMap.Count, sub.Type);
-              var ie = new IdentifierExpr(sub.tok, newBv.Name) { Var = newBv, Type = newBv.Type };
+              var newBv = new BoundVar(sub.Origin, "_t#" + substMap.Count, sub.Type);
+              var ie = new IdentifierExpr(sub.Origin, newBv.Name) { Var = newBv, Type = newBv.Type };
               substMap.Add(new Tuple<Expression, IdentifierExpr>(sub, ie));
             }
           }
@@ -102,10 +102,10 @@ class SplitPartTriggerWriter {
     } else {
       // make a copy of the expr
       if (expr is ForallExpr) {
-        expr = new ForallExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
+        expr = new ForallExpr(expr.Origin, expr.BoundVars, expr.Range, expr.Term,
           TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
       } else {
-        expr = new ExistsExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
+        expr = new ExistsExpr(expr.Origin, expr.BoundVars, expr.Range, expr.Term,
           TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
       }
     }
@@ -140,7 +140,7 @@ class SplitPartTriggerWriter {
 
   public void CommitTrigger(ErrorReporter errorReporter, int? splitPartIndex, SystemModuleManager systemModuleManager) {
     bool suppressWarnings = Attributes.Contains(Comprehension.Attributes, "nowarn");
-    var reportingToken = Comprehension.Tok;
+    var reportingToken = Comprehension.Origin;
     var warningLevel = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
 
     if (!WantsAutoTriggers()) {
@@ -171,7 +171,8 @@ class SplitPartTriggerWriter {
       messages.Add($"Part #{splitPartIndex} is '{Comprehension.Term}'");
     }
     if (Candidates.Any()) {
-      messages.Add($"Selected triggers:{InfoFirstLineEnd(Candidates.Count)}{string.Join(", ", Candidates)}");
+      var subst = Util.Comma("", NamedExpressions, pair => $" where {pair.Item2} := {pair.Item1}");
+      messages.Add($"Selected triggers:{InfoFirstLineEnd(Candidates.Count)}{string.Join(", ", Candidates)}{subst}");
     }
     if (RejectedCandidates.Any()) {
       messages.Add($"Rejected triggers:{InfoFirstLineEnd(RejectedCandidates.Count)}{string.Join("\n  ", RejectedCandidates)}");
