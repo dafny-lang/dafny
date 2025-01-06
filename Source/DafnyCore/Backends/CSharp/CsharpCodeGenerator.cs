@@ -378,9 +378,7 @@ namespace Microsoft.Dafny.Compilers {
       var type = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.Origin, enclosingTypeDecl);
       var initializer = DefaultValue(type, wr, enclosingTypeDecl.Origin, true);
 
-      var targetTypeName = TypeName(type, wr, enclosingTypeDecl.Origin);
-      targetTypeName = DtITypeName(enclosingTypeDecl);
-     // targetTypeName = DtITypeName(enclosingTypeDecl.Origin);  TODO CHANGE HERE TO REMOVE FULLY QUALIFIED INTERFACE NAME
+      var targetTypeName = DtITypeName(enclosingTypeDecl);
       var typeDescriptorExpr = $"new {DafnyTypeDescriptor}<{targetTypeName}>({initializer})";
 
       if (enclosingTypeDecl.TypeArgs.Count == 0) {
@@ -494,11 +492,6 @@ namespace Microsoft.Dafny.Compilers {
       return name;
     }
 
-    private string DtDTypeName(TopLevelDecl dt, bool typeVariables = true) {
-      var name = "_D" + DtTypeName(dt, typeVariables);
-      return name;
-    }
-
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       var w = CompileDatatypeBase(dt, wr);
       CompileDatatypeConstructors(dt, wr);
@@ -573,8 +566,7 @@ namespace Microsoft.Dafny.Compilers {
       var DtT_TypeArgs = TypeParameters(nonGhostTypeArgs);
       var DtT_protected = IdName(dt) + DtT_TypeArgs;
       var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, UserDefinedType.FromTopLevelDecl(dt.Origin, dt));
-      var simplifiedTypeName = TypeName(simplifiedType, wr, dt.Origin);
-      simplifiedTypeName = DtITypeName(dt);
+      var simplifiedTypeName =  DtITypeName(dt);  // TODO comment on the change (fully qualified to not)
 
       // ConcreteSyntaxTree for the interface
       wr.Write($"public interface {DtITypeName(dt)}");
@@ -1030,7 +1022,7 @@ namespace Microsoft.Dafny.Compilers {
       int constructorIndex = 0; // used to give each constructor a different name
       foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         var wr = wrx.NewNamedBlock(
-          $"public class _HERE{DtCtorDeclarationName(ctor)}{TypeParameters(nonGhostTypeArgs)} : {IdName(dt)}{typeParams}");
+          $"public class {DtCtorDeclarationName(ctor)}{TypeParameters(nonGhostTypeArgs)} : {IdName(dt)}{typeParams}");
         DatatypeFieldsAndConstructor(ctor, constructorIndex, wr);
         constructorIndex++;
       }
@@ -1232,7 +1224,7 @@ namespace Microsoft.Dafny.Compilers {
       var dt = ctor.EnclosingDatatype;
       var dtName = IdName(dt);
       if (!dt.EnclosingModuleDefinition.TryToAvoidName &&
-          dt.EnclosingModuleDefinition != enclosingModule) {
+          dt.EnclosingModuleDefinition != enclosingModule) {// TODO comment 
         dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + dtName;
       }
 
@@ -1757,7 +1749,7 @@ namespace Microsoft.Dafny.Compilers {
         return $"(({TypeName(xType, wr, udt.Origin)})null)";
       } else if (cl is DatatypeDecl dt) {
         var s = DtTypeName(dt);
-        s = enclosingModule == dt.EnclosingModuleDefinition ? s : FullTypeName(udt, ignoreInterface: true); // REALLY HERE Must use FullTypeName or DtTypeName depending on in namespace or not
+        s = enclosingModule == dt.EnclosingModuleDefinition ? s : FullTypeName(udt, ignoreInterface: true); // TODO comment
         var nonGhostTypeArgs = SelectNonGhost(dt, udt.TypeArgs);
         if (nonGhostTypeArgs.Count != 0) {
           s += "<" + TypeNames(nonGhostTypeArgs, wr, udt.Origin) + ">";
@@ -2501,7 +2493,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string FullTypeName(UserDefinedType udt, MemberDecl /*?*/ member = null) {
       return FullTypeName(udt, member);
     }
-    private string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null, bool ignoreInterface = false, bool ignoreD = false) {
+    private string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null, bool ignoreInterface = false, bool ignoreD = false) { // TODO remove ignoreD
       Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
@@ -2529,7 +2521,7 @@ namespace Microsoft.Dafny.Compilers {
       if (cl.IsExtern(Options, out _, out _)) {
         return cl.EnclosingModuleDefinition.GetCompileName(Options) + "." + cl.GetCompileName(Options);
       }
-      return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + (ignoreD || true ? IdProtect(cl.GetCompileName(Options)) : DtDTypeName(cl));
+      return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
