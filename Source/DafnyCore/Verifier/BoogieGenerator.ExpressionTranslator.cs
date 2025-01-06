@@ -2168,6 +2168,12 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           } else if (e.Member is ConstantField { Rhs: { } rhs } && BoogieGenerator.RevealedInScope(e.Member)) {
             r = CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null));
           }
+          if (e.Type.IsArrowType) {
+            var alloced = BoogieGenerator.MkIsAlloc(TrExpr(e), e.Type, this.HeapExpr)
+            r = BplAnd(r,  alloced);
+            // JATIN_TODO: Why does the following not work?
+            // r = BplAnd(r, this.IsAlloced(GetToken(e), TrExpr(e)));
+          }
           return r;
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr e = (SeqSelectExpr)expr;
@@ -2363,7 +2369,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
         } else if (expr is LambdaExpr) {
           var e = (LambdaExpr)expr;
-
+          var alloced = BoogieGenerator.MkIsAlloc(TrExpr(e), e.Type, this.HeapExpr);
           var bvarsAndAntecedents = new List<Tuple<Boogie.Variable, Boogie.Expr>>();
           var varNameGen = BoogieGenerator.CurrentIdGenerator.NestedFreshIdGenerator("$l#");
 
@@ -2394,7 +2400,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           //TRIG (forall $l#0#heap#0: Heap, $l#0#x#0: int :: true)
           //TRIG (forall $l#0#heap#0: Heap, $l#0#t#0: DatatypeType :: _module.__default.TMap#canCall(_module._default.TMap$A, _module._default.TMap$B, $l#0#heap#0, $l#0#t#0, f#0))
           //TRIG (forall $l#4#heap#0: Heap, $l#4#x#0: Box :: _0_Monad.__default.Bind#canCall(Monad._default.Associativity$B, Monad._default.Associativity$C, $l#4#heap#0, Apply1(Monad._default.Associativity$A, #$M$B, f#0, $l#4#heap#0, $l#4#x#0), g#0))
-          return BplForallTrim(bvarsAndAntecedents, null, canCall); // L_TRIGGER
+          return BplAnd(alloced, BplForallTrim(bvarsAndAntecedents, null, canCall)); // L_TRIGGER
 
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
