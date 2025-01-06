@@ -279,21 +279,25 @@ namespace Microsoft.Dafny.Compilers {
       ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       var protectedModuleName = IdProtectModule(moduleName);
-      var hasNameClash = false;
-      // If the module has a type decl with the same name, change the name of the generated nameclass
-      // to _N+moduleName to avoid name clashes.
-      if (module != null) {
-        foreach (var d in module.TopLevelDecls) {
-          if (d is DatatypeDecl) {
-            if (d.Name == module.Name) {
-              hasNameClash = true;
-              break;
+      if (moduleNameMapping.ContainsKey(moduleName)) {
+        protectedModuleName = moduleNameMapping[moduleName];
+      } else {
+        var hasNameClash = false;
+        // If the module has a type decl with the same name, change the name of the generated nameclass
+        // to _N+moduleName to avoid name clashes.
+        if (module != null) {
+          foreach (var d in module.TopLevelDecls) {
+            if (d is DatatypeDecl) {
+              if (d.Name == module.Name) {
+                hasNameClash = true;
+                break;
+              }
             }
           }
         }
+        protectedModuleName = hasNameClash ? "_N" + protectedModuleName : protectedModuleName;
+        moduleNameMapping.Add(moduleName, protectedModuleName);
       }
-      protectedModuleName = hasNameClash ? "_N" + protectedModuleName : protectedModuleName;
-      moduleNameMapping.Add(moduleName, protectedModuleName);
       return wr.NewBlock($"namespace {protectedModuleName}", " // end of " + $"namespace _N{moduleName}");
     }
 
