@@ -378,56 +378,56 @@ public partial class BoogieGenerator {
         sink.AddTopLevelDeclaration(new Axiom(tok,
           BplForall(bvarsOuter, new Bpl.Trigger(tok, true, new[] { IsT, IsU }), body)));
       }
-      /*  This is the definition of $IsAlloc function the arrow type:
-        axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
-          { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
-          $IsGoodHeap(h)
-          ==>
-          (
-            $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h)
-              <==>
-              (forall bx0: Box ::
-                { Apply1(t0, t1, f, h, bx0) } { Reads1(t0, t1, f, h, bx0) }
-                $IsBox(bx0, t0) && $IsAllocBox(bx0, t0, h)
-                && precondition of f(bx0) holds in h
-                ==>
-                  (everything in reads set of f(bx0) is allocated in h)
-          ));
-        However, for /allocated:0 and /allocated:1, IsAlloc for arrow types is trivially true
-        and implies nothing about the reads set.
-      */
-      {
-        var bvarsOuter = new List<Bpl.Variable>();
-        var f = BplBoundVar("f", Predef.HandleType, bvarsOuter);
-        var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, Predef.Ty, bvarsOuter));
-        var h = BplBoundVar("h", Predef.HeapType, bvarsOuter);
-        var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
-        var isAlloc = MkIsAlloc(f, ClassTyCon(ad, types), h);
+      // /*  This is the definition of $IsAlloc function the arrow type:
+      //   axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
+      //     { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
+      //     $IsGoodHeap(h)
+      //     ==>
+      //     (
+      //       $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h)
+      //         <==>
+      //         (forall bx0: Box ::
+      //           { Apply1(t0, t1, f, h, bx0) } { Reads1(t0, t1, f, h, bx0) }
+      //           $IsBox(bx0, t0) && $IsAllocBox(bx0, t0, h)
+      //           && precondition of f(bx0) holds in h
+      //           ==>
+      //             (everything in reads set of f(bx0) is allocated in h)
+      //     ));
+      //   However, for /allocated:0 and /allocated:1, IsAlloc for arrow types is trivially true
+      //   and implies nothing about the reads set.
+      // */
+      // {
+      //   var bvarsOuter = new List<Bpl.Variable>();
+      //   var f = BplBoundVar("f", Predef.HandleType, bvarsOuter);
+      //   var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, Predef.Ty, bvarsOuter));
+      //   var h = BplBoundVar("h", Predef.HeapType, bvarsOuter);
+      //   var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+      //   var isAlloc = MkIsAlloc(f, ClassTyCon(ad, types), h);
 
-        var bvarsInner = new List<Bpl.Variable>();
-        var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, Predef.BoxType, bvarsInner));
-        var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i =>
-          BplAnd(MkIs(boxes[i], types[i], true), MkIsAlloc(boxes[i], types[i], h, true))));
-        var pre = FunctionCall(tok, Requires(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-        var applied = FunctionCall(tok, Apply(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+      //   var bvarsInner = new List<Bpl.Variable>();
+      //   var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, Predef.BoxType, bvarsInner));
+      //   var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i =>
+      //     BplAnd(MkIs(boxes[i], types[i], true), MkIsAlloc(boxes[i], types[i], h, true))));
+      //   var pre = FunctionCall(tok, Requires(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+      //   var applied = FunctionCall(tok, Apply(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
-        // (forall r: ref :: {Reads1(t0, t1, f, h, bx0)[$Box(r)]}  r != null && Reads1(t0, t1, f, h, bx0)[$Box(r)] ==> h[r, alloc])
-        var bvarsR = new List<Bpl.Variable>();
-        var r = BplBoundVar("r", Predef.RefType, bvarsR);
-        var rNonNull = Bpl.Expr.Neq(r, Predef.Null);
-        var reads = FunctionCall(tok, Reads(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-        var rInReads = IsSetMember(tok, reads, FunctionCall(tok, BuiltinFunction.Box, null, r), true);
-        var rAlloc = IsAlloced(tok, h, r);
-        var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
+      //   // (forall r: ref :: {Reads1(t0, t1, f, h, bx0)[$Box(r)]}  r != null && Reads1(t0, t1, f, h, bx0)[$Box(r)] ==> h[r, alloc])
+      //   var bvarsR = new List<Bpl.Variable>();
+      //   var r = BplBoundVar("r", Predef.RefType, bvarsR);
+      //   var rNonNull = Bpl.Expr.Neq(r, Predef.Null);
+      //   var reads = FunctionCall(tok, Reads(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+      //   var rInReads = IsSetMember(tok, reads, FunctionCall(tok, BuiltinFunction.Box, null, r), true);
+      //   var rAlloc = IsAlloced(tok, h, r);
+      //   var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
 
-        sink.AddTopLevelDeclaration(new Axiom(tok,
-          BplForall(bvarsOuter, BplTrigger(isAlloc),
-            BplImp(goodHeap,
-              BplIff(isAlloc,
-                BplForall(bvarsInner,
-                  new Bpl.Trigger(tok, true, new List<Bpl.Expr> { applied }, BplTrigger(reads)),
-                  BplImp(BplAnd(isAllocBoxes, pre), isAllocReads)))))));
-      }
+      //   sink.AddTopLevelDeclaration(new Axiom(tok,
+      //     BplForall(bvarsOuter, BplTrigger(isAlloc),
+      //       BplImp(goodHeap,
+      //         BplIff(isAlloc,
+      //           BplForall(bvarsInner,
+      //             new Bpl.Trigger(tok, true, new List<Bpl.Expr> { applied }, BplTrigger(reads)),
+      //             BplImp(BplAnd(isAllocBoxes, pre), isAllocReads)))))));
+      // }
       /*  This is the allocatedness consequence axiom of arrow types:
         axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
           { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
