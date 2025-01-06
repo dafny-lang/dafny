@@ -50,8 +50,8 @@ SmallTests.dfy(627,24): Error: target object might be null
 SmallTests.dfy(640,2): Error: assertion might not hold
 SmallTests.dfy(664,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SmallTests.dfy(687,2): Error: assertion might not hold
-SmallTests.dfy(701,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SmallTests.dfy(701,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 SmallTests.dfy(716,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SmallTests.dfy(733,4): Error: assertion might not hold
 SmallTests.dfy(754,6): Error: assertion might not hold

@@ -649,7 +649,7 @@ module DefaultValueExpressionSubstitution {
    */
   method Test()
   {
-    var r: int := 3 + Fa<real>(7, 7 + var x: real :| true; 7);
+    var r: int := 3 + Fa<real>(7, 7 + var x: real /*{:_delayTriggerWarning}*/ /*{:_noAutoTriggerFound}*/ :| true; 7);
     r := r + Fb<real>({});
     var rs: set<real> := {2.7};
     r := r + Fc<real>(rs, forall xa: real {:trigger xa in rs} :: xa in rs ==> true);
