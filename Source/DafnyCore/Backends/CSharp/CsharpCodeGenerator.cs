@@ -265,15 +265,36 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<{CharTypeName}>> {argsParameterName})");
     }
 
+    private IDictionary<string, string> moduleNameMapping = new Dictionary<string, string>();
+
     string IdProtectModule(string moduleName) {
+      Contract.Requires(moduleName != null);
+      if (moduleNameMapping.ContainsKey(moduleName)) {
+        return moduleNameMapping[moduleName];
+      }
       return string.Join(".", moduleName.Split(".").Select(IdProtect));
     }
 
     protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
       ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
-      moduleName = IdProtectModule(moduleName);
-      return wr.NewBlock($"namespace {moduleName}", " // end of " + $"namespace {moduleName}");
+      var protectedModuleName = IdProtectModule(moduleName);
+      var hasNameClash = false;
+      // If the module has a type decl with the same name, change the name of the generated nameclass
+      // to _N+moduleName to avoid name clashes.
+      if (module != null) {
+        foreach (var d in module.TopLevelDecls) {
+          if (d is DatatypeDecl) {
+            if (d.Name == module.Name) {
+              hasNameClash = true;
+              break;
+            }
+          }
+        }
+      }
+      protectedModuleName = hasNameClash ? "_N" + protectedModuleName : protectedModuleName;
+      moduleNameMapping.Add(moduleName, protectedModuleName);
+      return wr.NewBlock($"namespace {protectedModuleName}", " // end of " + $"namespace _N{moduleName}");
     }
 
     protected override string GetHelperModuleName() => DafnyHelpersClass;
