@@ -269,7 +269,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Compute the name of the class to use to translate a data-type
     /// </summary>
     private string dataTypeName(DatatypeDecl dt) {
-      var protectedName = IdProtect(dt.Name);
+      var protectedName = IdName(dt);
       if (dt.EnclosingModuleDefinition is not null) {
         var moduleName = IdProtectModule(dt.EnclosingModuleDefinition.Name);
         if (moduleName == protectedName) {
