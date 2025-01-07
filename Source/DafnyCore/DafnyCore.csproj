@@ -37,7 +37,7 @@
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
       <PackageReference Include="System.Collections.Immutable" Version="1.7.1" />
       <PackageReference Include="Boogie.ExecutionEngine" Version="3.4.3" />
-      <PackageReference Include="Tomlyn" Version="0.17.2" />
+      <PackageReference Include="Tomlyn" Version="0.17.0" />
   </ItemGroup>
 
   <ItemGroup>

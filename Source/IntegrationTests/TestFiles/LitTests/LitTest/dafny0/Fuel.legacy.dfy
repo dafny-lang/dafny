@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /autoTriggers:0 /optimizeResolution:0 /errorLimit:0 "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-deprecated --manual-triggers --error-limit 0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module TestModule1 {
