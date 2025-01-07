@@ -274,8 +274,6 @@ namespace Microsoft.Dafny.Compilers {
         var moduleName = IdProtectModule(dt.EnclosingModuleDefinition.Name);
         if (moduleName == protectedName) {
           return $"_{protectedName}";
-        } else {
-          return $"{moduleName}_{protectedName}";
         }
       }
       return protectedName;
