@@ -17,7 +17,7 @@ static class MeasureComplexityCommand {
   public static IEnumerable<Option> Options => new Option[] {
     Iterations,
     RandomSeed,
-    Format,
+    FormatOption,
     WorstAmountOption,
     VerifyCommand.FilterSymbol,
     VerifyCommand.FilterPosition,
@@ -31,13 +31,15 @@ static class MeasureComplexityCommand {
 
     OptionRegistry.RegisterOption(Iterations, OptionScope.Cli);
     OptionRegistry.RegisterOption(RandomSeed, OptionScope.Cli);
-    OptionRegistry.RegisterOption(Format, OptionScope.Cli);
+    OptionRegistry.RegisterOption(FormatOption, OptionScope.Cli);
     OptionRegistry.RegisterOption(WorstAmountOption, OptionScope.Cli);
   }
 
   enum ComplexityFormat { Text, Json, LineBased }
-  private static readonly Option<ComplexityFormat> Format = new("--format", 
-    $"Specify the format in which the complexity data is presented");
+  private static readonly Option<ComplexityFormat> FormatOption = new("--format", 
+    $"Specify the format in which the complexity data is presented") {
+    IsHidden = true
+  };
   
   private static readonly Option<uint> WorstAmountOption = new("--worst-amount", () => 10U,
     $"Configures the amount of worst performing verification tasks that are reported.");
@@ -150,14 +152,14 @@ static class MeasureComplexityCommand {
     while (worstPerformers.Count > 0) {
       decreasingWorst.Push(worstPerformers.Dequeue());
     }
-    if (cliCompilation.Options.Get(Format) == ComplexityFormat.LineBased) {
+    if (cliCompilation.Options.Get(FormatOption) == ComplexityFormat.LineBased) {
       var lines = decreasingWorst.GroupBy(t => t.Task.Token.line).
         OrderBy(g => g.Key).
         Select(g => g.Key + ", " + Math.Floor(g.Average(i => i.Result.ResourceCount)));
       
       await output.WriteLineAsync($"Average resource for each line:\n" + string.Join("\n", lines));
     } 
-    else if (cliCompilation.Options.Get(Format) == ComplexityFormat.Text)
+    else if (cliCompilation.Options.Get(FormatOption) == ComplexityFormat.Text)
     {
       await output.WriteLineAsync($"The total consumed resources are {totalResources}");
       await output.WriteLineAsync($"The most demanding {worstAmount} verification tasks consumed these resources:");
@@ -165,7 +167,7 @@ static class MeasureComplexityCommand {
         var location = BoogieGenerator.ToDafnyToken(false, performer.Task.Token).TokenToString(cliCompilation.Options);
         await output.WriteLineAsync($"{location}: {performer.Result.ResourceCount}");
       }
-    } else if (cliCompilation.Options.Get(Format) == ComplexityFormat.Json) {
+    } else if (cliCompilation.Options.Get(FormatOption) == ComplexityFormat.Json) {
       var json = new JsonObject {
         ["totalResources"] = totalResources,
         ["worstPerforming"] = new JsonArray(decreasingWorst.Select(task => new JsonObject {
