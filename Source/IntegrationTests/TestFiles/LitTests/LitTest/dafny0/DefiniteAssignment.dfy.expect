@@ -23,8 +23,8 @@ DefiniteAssignment.dfy(305,13): Error: cannot establish the existence of LHS val
 DefiniteAssignment.dfy(310,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 DefiniteAssignment.dfy(315,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 DefiniteAssignment.dfy(321,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-DefiniteAssignment.dfy(334,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(341,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(333,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(339,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 DefiniteAssignment.dfy(356,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 DefiniteAssignment.dfy(375,11): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(382,6): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
@@ -36,4 +36,4 @@ DefiniteAssignment.dfy(438,13): Error: variable 'g', which is subject to definit
 DefiniteAssignment.dfy(441,2): Error: out-parameter 'r'', which is subject to definite-assignment rules, might be uninitialized at this return point
 DefiniteAssignment.dfy(449,2): Error: out-parameter 'r', which is subject to definite-assignment rules, might be uninitialized at this return point
 
-Dafny program verifier finished with 14 verified, 37 errors
+Dafny program verifier finished with 15 verified, 37 errors
