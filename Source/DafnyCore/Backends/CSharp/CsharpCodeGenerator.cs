@@ -265,15 +265,24 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<{CharTypeName}>> {argsParameterName})");
     }
 
-    // Mapping of Dafny module name to C# module names. The C# module names could be changed to
-    // avoid name clash between a namespace and a datatype declared within it.
-    private IDictionary<string, string> moduleNameMapping = new Dictionary<string, string>();
+    /// <summary>
+    /// Compute the name of the class to use to translate a data-type
+    /// </summary>
+    private string dataTypeName(DatatypeDecl dt) {
+      var protectedName = IdProtect(dt.Name);
+      if (dt.EnclosingModuleDefinition is not null) {
+        var moduleName = IdProtectModule(dt.EnclosingModuleDefinition.Name);
+        if (moduleName == protectedName) {
+          return $"_{protectedName}";
+        } else {
+          return $"{moduleName}_{protectedName}";
+        }
+      }
+      return protectedName;
+    }
 
     string IdProtectModule(string moduleName) {
       Contract.Requires(moduleName != null);
-      if (moduleNameMapping.ContainsKey(moduleName)) {
-        return moduleNameMapping[moduleName];
-      }
       return string.Join(".", moduleName.Split(".").Select(IdProtect));
     }
 
@@ -281,25 +290,6 @@ namespace Microsoft.Dafny.Compilers {
       ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       var protectedModuleName = IdProtectModule(moduleName);
-      if (moduleNameMapping.ContainsKey(moduleName)) {
-        protectedModuleName = moduleNameMapping[moduleName];
-      } else {
-        var hasNameClash = false;
-        // If the module has a type decl with the same name, change the name of the generated nameclass
-        // to _N+moduleName to avoid name clashes.
-        if (module != null) {
-          foreach (var d in module.TopLevelDecls) {
-            if (d is DatatypeDecl) {
-              if (d.Name == module.Name) {
-                hasNameClash = true;
-                break;
-              }
-            }
-          }
-        }
-        protectedModuleName = hasNameClash ? "_N" + protectedModuleName : protectedModuleName;
-        moduleNameMapping.Add(moduleName, protectedModuleName);
-      }
       return wr.NewBlock($"namespace {protectedModuleName}", " // end of " + $"namespace {protectedModuleName}");
     }
 
@@ -586,7 +576,7 @@ namespace Microsoft.Dafny.Compilers {
       // }
       var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
       var DtT_TypeArgs = TypeParameters(nonGhostTypeArgs);
-      var DtT_protected = IdName(dt) + DtT_TypeArgs;
+      var DtT_protected = dataTypeName(dt) + DtT_TypeArgs;
       var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, UserDefinedType.FromTopLevelDecl(dt.Origin, dt));
       var simplifiedTypeName = TypeName(simplifiedType, wr, dt.Origin);
 
@@ -608,7 +598,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         EmitTypeDescriptorsForClass(dt.TypeArgs, dt, out var wTypeFields, out var wCtorParams, out _, out var wCtorBody);
         wr.Append(wTypeFields);
-        wr.Format($"public {IdName(dt)}({wCtorParams})").NewBlock().Append(wCtorBody);
+        wr.Format($"public {dataTypeName(dt)}({wCtorParams})").NewBlock().Append(wCtorBody);
       }
 
       var wDefault = new ConcreteSyntaxTree();
@@ -1022,7 +1012,7 @@ namespace Microsoft.Dafny.Compilers {
         //   public override _IDt<T> _Get() { if (c != null) { d = c(); c = null; } return d; }
         //   public override string ToString() { return _Get().ToString(); }
         // }
-        var w = wrx.NewNamedBlock($"public class {dt.GetCompileName(Options)}__Lazy{typeParams} : {IdName(dt)}{typeParams}");
+        var w = wrx.NewNamedBlock($"public class {dt.GetCompileName(Options)}__Lazy{typeParams} : {dataTypeName(dt)}{typeParams}");
         w.WriteLine($"public {NeedsNew(dt, "Computer")}delegate {DtTypeName(dt)} Computer();");
         w.WriteLine($"{NeedsNew(dt, "c")}Computer c;");
         w.WriteLine($"{NeedsNew(dt, "d")}{DtTypeName(dt)} d;");
@@ -1044,7 +1034,7 @@ namespace Microsoft.Dafny.Compilers {
       int constructorIndex = 0; // used to give each constructor a different name
       foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         var wr = wrx.NewNamedBlock(
-          $"public class {DtCtorDeclarationName(ctor)}{TypeParameters(nonGhostTypeArgs)} : {IdName(dt)}{typeParams}");
+          $"public class {DtCtorDeclarationName(ctor)}{TypeParameters(nonGhostTypeArgs)} : {dataTypeName(dt)}{typeParams}");
         DatatypeFieldsAndConstructor(ctor, constructorIndex, wr);
         constructorIndex++;
       }
@@ -1218,7 +1208,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      return dt.IsRecordType ? IdName(dt) : dt.GetCompileName(Options) + "_" + ctor.GetCompileName(Options);
+      return dt.IsRecordType ? dataTypeName(dt) : dt.GetCompileName(Options) + "_" + ctor.GetCompileName(Options);
     }
 
     /// <summary>
@@ -1244,7 +1234,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      var dtName = IdName(dt);
+      var dtName = dataTypeName(dt);
       if (!dt.EnclosingModuleDefinition.TryToAvoidName) {
         dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + dtName;
       }
@@ -2534,6 +2524,10 @@ namespace Microsoft.Dafny.Compilers {
         return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
       }
 
+      if (cl is DatatypeDecl) {
+        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + dataTypeName(cl as DatatypeDecl);
+      }
+
       if (cl.EnclosingModuleDefinition.TryToAvoidName) {
         return IdProtect(cl.GetCompileName(Options));
       }
@@ -2555,7 +2549,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      var dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdName(dt);
+      var dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + dataTypeName(dt);
 
       var nonGhostInferredTypeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
       var typeParams = nonGhostInferredTypeArgs.Count == 0 ? "" : $"<{TypeNames(nonGhostInferredTypeArgs, wr, dtv.Origin)}>";
