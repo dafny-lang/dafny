@@ -59,9 +59,9 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     _ResolvedOp = resolvedOpcode;
   }
 
-  public UnaryOpExpr(IToken tok, Opcode op, Expression e)
-    : base(tok, e) {
-    Contract.Requires(tok != null);
+  public UnaryOpExpr(IOrigin origin, Opcode op, Expression e)
+    : base(origin, e) {
+    Contract.Requires(origin != null);
     Contract.Requires(e != null);
     Contract.Requires(op != Opcode.Fresh || this is FreshExpr);
     this.Op = op;

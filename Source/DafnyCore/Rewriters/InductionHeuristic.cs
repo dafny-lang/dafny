@@ -1,3 +1,4 @@
+#nullable enable
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
@@ -6,6 +7,8 @@ public static class InductionHeuristic {
 
   /// <summary>
   /// Returns 'true' iff by looking at 'expr' the Induction Heuristic determines that induction should be applied to 'n'.
+  /// Variable 'n' can be passed in as 'null', in which case it stands for 'this'.
+  /// 
   /// More precisely:
   ///   DafnyInductionHeuristic      Return 'true'
   ///   -----------------------      -------------
@@ -17,10 +20,10 @@ public static class InductionHeuristic {
   ///        5    if 'n' occurs as   a prominent subexpression of                                                               any                       argument to a recursive function
   ///        6    if 'n' occurs as   a prominent subexpression of                                                               any decreases-influencing argument to a recursive function
   /// </summary>
-  public static bool VarOccursInArgumentToRecursiveFunction(DafnyOptions options, Expression expr, IVariable n) {
+  public static bool VarOccursInArgumentToRecursiveFunction(DafnyOptions options, Expression expr, IVariable? n) {
     switch (options.InductionHeuristic) {
       case 0: return true;
-      case 1: return FreeVariablesUtil.ContainsFreeVariable(expr, false, n);
+      case 1: return FreeVariablesUtil.ContainsFreeVariable(expr, n == null, n);
       default: return VarOccursInArgumentToRecursiveFunction(options, expr, n, false);
     }
   }
@@ -29,17 +32,20 @@ public static class InductionHeuristic {
   /// Worker routine for VarOccursInArgumentToRecursiveFunction(expr,n), where the additional parameter 'exprIsProminent' says whether or
   /// not 'expr' has prominent status in its context.
   /// DafnyInductionHeuristic cases 0 and 1 are assumed to be handled elsewhere (i.e., a precondition of this method is DafnyInductionHeuristic is at least 2).
+  /// Variable 'n' can be passed in as 'null', in which case it stands for 'this'.
   /// </summary>
-  static bool VarOccursInArgumentToRecursiveFunction(DafnyOptions options, Expression expr, IVariable n, bool exprIsProminent) {
+  static bool VarOccursInArgumentToRecursiveFunction(DafnyOptions options, Expression expr, IVariable? n, bool exprIsProminent) {
     Contract.Requires(expr != null);
     Contract.Requires(n != null);
 
     // The following variable is what gets passed down to recursive calls if the subexpression does not itself acquire prominent status.
     var subExprIsProminent = options.InductionHeuristic == 2 || options.InductionHeuristic == 4 ? /*once prominent, always prominent*/exprIsProminent : /*reset the prominent status*/false;
 
-    if (expr is IdentifierExpr) {
+    if (n != null && expr is IdentifierExpr) {
       var e = (IdentifierExpr)expr;
       return exprIsProminent && e.Var == n;
+    } else if (n == null && expr is ThisExpr) {
+      return exprIsProminent;
     } else if (expr is SeqSelectExpr) {
       var e = (SeqSelectExpr)expr;
       var q = options.InductionHeuristic < 4 || subExprIsProminent;
@@ -108,7 +114,7 @@ public static class InductionHeuristic {
       }
     } else if (expr is DatatypeValue) {
       var e = (DatatypeValue)expr;
-      var q = n.Type.IsDatatype ? exprIsProminent : subExprIsProminent;  // prominent status continues, if we're looking for a variable whose type is a datatype
+      var q = n != null && n.Type.IsDatatype ? exprIsProminent : subExprIsProminent;  // prominent status continues, if we're looking for a variable whose type is a datatype
       return e.Arguments.Exists(exp => VarOccursInArgumentToRecursiveFunction(options, exp, n, q));
     } else if (expr is UnaryExpr) {
       var e = (UnaryExpr)expr;
@@ -145,7 +151,7 @@ public static class InductionHeuristic {
     } else if (expr is StmtExpr) {
       var e = (StmtExpr)expr;
       // ignore the statement
-      return VarOccursInArgumentToRecursiveFunction(options, e.E, n);
+      return VarOccursInArgumentToRecursiveFunction(options, e.E, n, exprIsProminent);
 
     } else if (expr is ITEExpr) {
       var e = (ITEExpr)expr;
@@ -164,7 +170,7 @@ public static class InductionHeuristic {
       return false;
     } else {
       // in all other cases, reset the prominence status and recurse on the subexpressions
-      foreach (var exp in expr.SubExpressions) {
+      foreach (var exp in expr!.SubExpressions) {
         if (VarOccursInArgumentToRecursiveFunction(options, exp, n, subExprIsProminent)) {
           return true;
         }

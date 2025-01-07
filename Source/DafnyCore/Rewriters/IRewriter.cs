@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
     /// <param name="moduleDefinition">A module definition after it
     ///   is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
     /// <param name="errorReporter"></param>
-    internal virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition, ErrorReporter errorReporter) {
+    internal virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition) {
       Contract.Requires(moduleDefinition != null);
     }
 
@@ -121,11 +121,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(program != null);
     }
 
-    public virtual void ReportWarning(ErrorId errorId, IToken t, string msg, params object[] args) {
+    public virtual void ReportWarning(ErrorId errorId, IOrigin t, string msg, params object[] args) {
       Reporter.Warning(MessageSource.Rewriter, errorId, t, msg, args);
     }
 
-    public virtual void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+    public virtual void ReportError(ErrorId errorId, IOrigin t, string msg, params object[] args) {
       Reporter.Error(MessageSource.Rewriter, errorId, t, msg, args);
     }
   }

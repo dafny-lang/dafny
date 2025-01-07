@@ -54,7 +54,7 @@ public class ModuleBindings {
   public bool ResolveQualifiedModuleIdRootAbstract(AbstractModuleDecl context, ModuleQualifiedId qid,
     out ModuleDecl result) {
     Contract.Assert(qid != null);
-    IToken root = qid.Path[0].StartToken;
+    IOrigin root = qid.Path[0].StartToken;
     result = null;
     bool res = TryLookupFilter(root.val, out result,
       m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
@@ -70,7 +70,7 @@ public class ModuleBindings {
   public bool ResolveQualifiedModuleIdRootImport(AliasModuleDecl context, ModuleQualifiedId qid,
     out ModuleDecl result) {
     Contract.Assert(qid != null);
-    IToken root = qid.Path[0].StartToken;
+    IOrigin root = qid.Path[0].StartToken;
     result = null;
     bool res = TryLookupFilter(root.val, out result,
       m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
@@ -80,7 +80,7 @@ public class ModuleBindings {
   public bool ResolveQualifiedModuleIdRootRefines(ModuleDefinition context, ModuleQualifiedId qid,
     out ModuleDecl result) {
     Contract.Assert(qid != null);
-    IToken root = qid.Path[0].StartToken;
+    IOrigin root = qid.Path[0].StartToken;
     result = null;
     bool res = TryLookupFilter(root.val, out result, m => m.EnclosingModuleDefinition != context);
     return res;

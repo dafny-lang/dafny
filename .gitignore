@@ -90,3 +90,4 @@ Source/IntegrationTests/TestFiles/LitTests/LitTest/**/*.csproj
 /Source/IntegrationTests/TestFiles/LitTests/LitTest/pythonmodule/singlemodule/dafnysource/PythonModule1
 /Source/DafnyCore/Prelude/DafnyPrelude.bpl
 /Source/DafnyCore/Prelude/Sequences.bpl
+/venv

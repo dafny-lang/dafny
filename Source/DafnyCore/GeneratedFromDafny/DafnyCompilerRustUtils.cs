@@ -228,7 +228,7 @@ namespace DafnyCompilerRustUtils {
       } else if (!((m2).is_GatheringModule)) {
         return this;
       } else {
-        return DafnyCompilerRustUtils.GatheringModule.create_GatheringModule(RAST.Mod.create_Mod(((this).dtor_existingMod).dtor_name, ((this).dtor_existingMod).dtor_attributes, Dafny.Sequence<RAST._IModDecl>.Concat(((this).dtor_existingMod).dtor_body, ((m2).dtor_existingMod).dtor_body)), DafnyCompilerRustUtils.GatheringModule.MergeSeqMap((this).dtor_submodules, (m2).dtor_submodules));
+        return DafnyCompilerRustUtils.GatheringModule.create_GatheringModule(RAST.Mod.create_Mod(Dafny.Sequence<Dafny.Rune>.Concat(((this).dtor_existingMod).dtor_docString, ((m2).dtor_existingMod).dtor_docString), ((this).dtor_existingMod).dtor_attributes, ((this).dtor_existingMod).dtor_name, Dafny.Sequence<RAST._IModDecl>.Concat(((this).dtor_existingMod).dtor_body, ((m2).dtor_existingMod).dtor_body)), DafnyCompilerRustUtils.GatheringModule.MergeSeqMap((this).dtor_submodules, (m2).dtor_submodules));
       }
     }
     public static DafnyCompilerRustUtils._ISeqMap<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule> Wrap(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> containingPath, RAST._IMod rawDecl)
@@ -242,7 +242,7 @@ namespace DafnyCompilerRustUtils {
         }
       } else {
         Dafny.ISequence<Dafny.Rune> _1_enclosingModule = (containingPath).Select(BigInteger.Zero);
-        return DafnyCompilerRustUtils.SeqMap<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule>.Single(_1_enclosingModule, DafnyCompilerRustUtils.GatheringModule.create_GatheringModule(RAST.Mod.create_Mod(_1_enclosingModule, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), Dafny.Sequence<RAST._IModDecl>.FromElements()), DafnyCompilerRustUtils.GatheringModule.Wrap((containingPath).Drop(BigInteger.One), rawDecl)));
+        return DafnyCompilerRustUtils.SeqMap<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule>.Single(_1_enclosingModule, DafnyCompilerRustUtils.GatheringModule.create_GatheringModule(RAST.Mod.create_Mod(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), _1_enclosingModule, Dafny.Sequence<RAST._IModDecl>.FromElements()), DafnyCompilerRustUtils.GatheringModule.Wrap((containingPath).Drop(BigInteger.One), rawDecl)));
       }
     }
     public RAST._IMod ToRust() {
@@ -262,7 +262,7 @@ namespace DafnyCompilerRustUtils {
           }
           return Dafny.Sequence<RAST._IModDecl>.FromArray(arr13);
         }))());
-        return RAST.Mod.create_Mod((_2_dt__update__tmp_h0).dtor_name, (_2_dt__update__tmp_h0).dtor_attributes, _3_dt__update_hbody_h0);
+        return RAST.Mod.create_Mod((_2_dt__update__tmp_h0).dtor_docString, (_2_dt__update__tmp_h0).dtor_attributes, (_2_dt__update__tmp_h0).dtor_name, _3_dt__update_hbody_h0);
       }
     }
   }

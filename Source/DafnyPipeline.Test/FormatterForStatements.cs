@@ -66,14 +66,14 @@ method AlternativeStmt() {
       print ""odd"";
     case x % 2 == 0 =>
       print ""even"";
-      // That's the last case
+    // That's the last case
   }
   if
   case x % 2 == 1 =>
     print ""odd1"";
   case x % 2 == 0 =>
     print ""even1"";
-    // That's the last case
+  // That's the last case
 }
 
 method AlternativeLoopStmt() {
@@ -84,7 +84,7 @@ method AlternativeLoopStmt() {
       print ""odd2"";
     case x % 2 == 0 =>
       print ""even2"";
-      // That's the last case
+    // That's the last case
   }
   while
     invariant x >= 0
@@ -92,7 +92,7 @@ method AlternativeLoopStmt() {
     print ""odd3"";
   case x % 2 == 0 =>
     print ""even3"";
-    // That's the last case
+  // That's the last case
 }
 ");
   }
@@ -185,6 +185,9 @@ method Test() {
     }
     case 2
       =>
+      var b := 3 by {
+        LemmaCall();
+      }
     case 3 => {
     }
   }
@@ -226,6 +229,32 @@ module ModifyStmtBreak1 refines ModifyStmtBreak0 {
       } else {
         break L;
       }
+    }
+  }
+}
+");
+  }
+
+  [Fact]
+  public async Task FormatterWorksForReveal() {
+    await FormatterWorksFor(@"
+method Foo() {
+  var x := 3 by {
+    reveal p.q;
+  }
+  x := 4 by {
+    reveal p.q;
+  }
+  match foo {
+    case Some(x) => {
+      reveal x.y;
+      a := b(
+        c,
+        d 
+      );
+    }
+    case None => {
+      a := e;
     }
   }
 }

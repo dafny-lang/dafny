@@ -83,13 +83,13 @@ SubsetTypes.dfy(398,26): Error: value of expression (of type 'int ~> int') is no
 SubsetTypes.dfy(401,9): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(411,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 SubsetTypes.dfy(413,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-SubsetTypes.dfy(429,13): Error: assertion might not hold
-SubsetTypes.dfy(436,15): Error: assertion might not hold
-SubsetTypes.dfy(445,15): Error: assertion might not hold
-SubsetTypes.dfy(452,15): Error: assertion might not hold
-SubsetTypes.dfy(459,15): Error: assertion might not hold
-SubsetTypes.dfy(464,13): Error: assertion might not hold
+SubsetTypes.dfy(429,4): Error: assertion might not hold
+SubsetTypes.dfy(436,6): Error: assertion might not hold
+SubsetTypes.dfy(445,6): Error: assertion might not hold
+SubsetTypes.dfy(452,6): Error: assertion might not hold
+SubsetTypes.dfy(459,6): Error: assertion might not hold
+SubsetTypes.dfy(464,4): Error: assertion might not hold
 
 Dafny program verifier finished with 13 verified, 91 errors
-Total resources used is 775600
-Max resources used by VC is 101900
+Total resources used is 739000
+Max resources used by VC is 75000

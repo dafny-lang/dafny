@@ -5,7 +5,8 @@
  */
 
 /** High-level API (JSON values) */
-module {:options "-functionSyntax:4"} AbstractSyntax {
+@Options("-functionSyntax:4")
+module AbstractSyntax {
   import Std.JSON.API
   import opened Std.JSON.Values
   import opened Std.Wrappers
@@ -15,7 +16,9 @@ module {:options "-functionSyntax:4"} AbstractSyntax {
    The high-level API works with fairly simple datatype values that contain 
    native Dafny strings. 
    */
-  method {:test} {:resource_limit 100000000} Test() {
+  @Test
+  @ResourceLimit("100e6")
+  method Test() {
 
     /**
      Use `API.Deserialize` to deserialize a byte string.
@@ -126,7 +129,8 @@ module {:options "-functionSyntax:4"} AbstractSyntax {
  If you care about low-level performance, or about preserving existing
  formatting as much as possible, you may prefer to use the lower-level API:
  */
-module {:options "-functionSyntax:4"} ConcreteSyntax {
+@Options("-functionSyntax:4")
+module ConcreteSyntax {
   import Std.JSON.ZeroCopy.API
   import opened Std.Unicode.UnicodeStringsWithUnicodeChar
   import opened Std.JSON.Grammar
@@ -138,7 +142,9 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
    encoding: each node contains pointers to parts of a string, such that
    concatenating the fields of all nodes reconstructs the serialized value.
   */
-  method {:test} {:resource_limit 100000000} Test() {
+  @Test
+  @ResourceLimit("100e6")
+  method Test() {
 
     /** 
      The low-level API exposes the same functions and methods as the high-level

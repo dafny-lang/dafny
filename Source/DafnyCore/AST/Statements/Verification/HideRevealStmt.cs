@@ -39,20 +39,20 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     Wildcard = original.Wildcard;
     if (cloner.CloneResolvedFields) {
       OffsetMembers = original.OffsetMembers.ToList();
-      LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Tok(a.Tok), a.Name)).ToList();
+      LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Origin(a.Tok), a.Name)).ToList();
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
-  public HideRevealStmt(RangeToken rangeToken, HideRevealCmd.Modes mode)
-    : base(rangeToken) {
+  public HideRevealStmt(IOrigin origin, HideRevealCmd.Modes mode)
+    : base(origin) {
     Wildcard = true;
     this.Exprs = null;
     Mode = mode;
   }
 
-  public HideRevealStmt(RangeToken rangeToken, List<Expression> exprs, HideRevealCmd.Modes mode)
-    : base(rangeToken) {
+  public HideRevealStmt(IOrigin origin, List<Expression> exprs, HideRevealCmd.Modes mode)
+    : base(origin) {
     Contract.Requires(exprs != null);
     this.Exprs = exprs;
     Wildcard = false;
@@ -62,7 +62,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
   public static string SingleName(Expression e) {
     Contract.Requires(e != null);
     if (e is NameSegment || e is LiteralExpr) {
-      return e.tok.val;
+      return e.Origin.val;
     } else {
       return null;
     }
@@ -88,7 +88,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
         Expression effectiveExpr = expr;
         if (expr is ApplySuffix applySuffix) {
           if (applySuffix.AtTok != null) {
-            resolver.Reporter.Error(MessageSource.Resolver, expr.Tok, $"an @-label can not be used in a hide or reveal statement");
+            resolver.Reporter.Error(MessageSource.Resolver, expr.Origin, $"an @-label can not be used in a hide or reveal statement");
           }
           effectiveExpr = applySuffix.Lhs;
         }
@@ -102,7 +102,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
           if (effectiveExpr.Resolved == null) {
             // error from resolving child
           } else if (effectiveExpr.Resolved is not MemberSelectExpr callee) {
-            resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Tok,
+            resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Origin,
               $"cannot reveal '{name}' because no revealable constant, function, assert label, or requires label in the current scope is named '{name}'");
           } else {
             if (callee.Member is Function or ConstantField) {
@@ -121,18 +121,18 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
 
               var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);
               if (revealCallee != null) {
-                var call = new CallStmt(RangeToken, new List<Expression>(),
+                var call = new CallStmt(Origin, new List<Expression>(),
                   revealCallee,
-                  new List<ActualBinding>(), effectiveExpr.tok);
+                  new List<ActualBinding>(), effectiveExpr.Center);
                 ResolvedStatements.Add(call);
               }
             } else {
-              resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Tok,
+              resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Origin,
                 $"only functions and constants can be {KindVerb}");
             }
           }
         } else {
-          resolver.Reporter.Error(MessageSource.Resolver, Tok, "can't use parenthesis when hiding or revealing");
+          resolver.Reporter.Error(MessageSource.Resolver, Origin, "can't use parenthesis when hiding or revealing");
         }
       }
     }
@@ -140,5 +140,13 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     foreach (var a in ResolvedStatements) {
       resolver.ResolveStatement(a, resolutionContext);
     }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    ResolvedStatements.ForEach(ss => ss.ResolveGhostness(resolver, reporter, true, codeContext,
+      $"a {Kind} statement", allowAssumptionVariables, inConstructorInitializationPhase));
+    IsGhost = ResolvedStatements.All(ss => ss.IsGhost);
   }
 }

@@ -11,11 +11,11 @@ public class PrefixPredicate : Function {
   public override string WhatKindMentionGhost => WhatKind;
   public readonly Formal K;
   public readonly ExtremePredicate ExtremePred;
-  public PrefixPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword,
+  public PrefixPredicate(IOrigin rangeOrigin, Name name, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, Formal k, List<Formal> ins,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, ExtremePredicate extremePred)
-    : base(rangeToken, name, hasStaticKeyword, true, false, typeArgs, ins, null, Type.Bool, req, reads, ens, decreases, body, null, null, attributes, null) {
+    : base(rangeOrigin, name, hasStaticKeyword, true, false, typeArgs, ins, null, Type.Bool, req, reads, ens, decreases, body, null, null, attributes, null) {
     Contract.Requires(k != null);
     Contract.Requires(extremePred != null);
     Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);

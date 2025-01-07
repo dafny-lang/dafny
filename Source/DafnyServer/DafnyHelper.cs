@@ -46,12 +46,12 @@ namespace Microsoft.Dafny {
       reporter = new ConsoleErrorReporter(options);
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
       var file = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
-      var program = await new ProgramParser().ParseFiles(fname, new[] { file },
+      var parseResult = await new ProgramParser().ParseFiles(fname, new[] { file },
         reporter, CancellationToken.None);
 
       var success = !reporter.HasErrors;
       if (success) {
-        dafnyProgram = program;
+        dafnyProgram = parseResult.Program;
       }
       return success;
     }

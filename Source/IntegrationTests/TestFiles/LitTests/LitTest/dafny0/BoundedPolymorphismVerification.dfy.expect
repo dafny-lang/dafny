@@ -1,11 +1,11 @@
 BoundedPolymorphismVerification.dfy(13,28): Error: value of expression (of type 'Parent') is not known to be an instance of type 'TheOther'
 BoundedPolymorphismVerification.dfy(22,18): Error: value of expression (of type 'Trait') is not known to be an instance of type 'X'
 BoundedPolymorphismVerification.dfy(28,15): Error: value of expression (of type 'Z') is not known to be an instance of type 'object'
-BoundedPolymorphismVerification.dfy(49,11): Error: assertion might not hold
-BoundedPolymorphismVerification.dfy(60,13): Error: assertion might not hold
-BoundedPolymorphismVerification.dfy(68,11): Error: assertion might not hold
-BoundedPolymorphismVerification.dfy(115,20): Error: assertion might not hold
-BoundedPolymorphismVerification.dfy(144,4): Error: the method must provide an equal or more permissive precondition than in its parent trait
+BoundedPolymorphismVerification.dfy(49,4): Error: assertion might not hold
+BoundedPolymorphismVerification.dfy(60,6): Error: assertion might not hold
+BoundedPolymorphismVerification.dfy(68,4): Error: assertion might not hold
+BoundedPolymorphismVerification.dfy(115,6): Error: assertion might not hold
+BoundedPolymorphismVerification.dfy(144,11): Error: the method must provide an equal or more permissive precondition than in its parent trait
 BoundedPolymorphismVerification.dfy(148,22): Error: the function must provide an equal or more permissive precondition than in its parent trait
 BoundedPolymorphismVerification.dfy(173,16): Error: value of expression (of type 'Z') is not known to be an instance of type 'Trait'
 BoundedPolymorphismVerification.dfy(364,11): Error: value of expression (of type 'Generic<nat>') is not known to be an instance of type 'Generic<int>'

@@ -117,7 +117,7 @@ namespace Microsoft.Dafny {
       ISet<String> filesSeen = new HashSet<string>();
       var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(options.LibraryFiles).ToHashSet();
       foreach (var file in options.CliRootSourceUris.Where(u => u.IsFile).Select(u => u.LocalPath).
-                 Concat(libraryFiles)) {
+                 Concat(libraryFiles).Distinct()) {
         Contract.Assert(file != null);
         var extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
@@ -197,9 +197,13 @@ namespace Microsoft.Dafny {
       // only because if they are added first, one might be used as the program name,
       // which is not handled well.
       if (options.Get(CommonOptionBag.UseStandardLibraries)) {
+        if (options.Backend is LibraryBackend) {
+          options.Set(CommonOptionBag.TranslateStandardLibrary, false);
+        }
+
         // For now the standard libraries are still translated from scratch.
-        // This breaks separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
-        var asLibrary = false;
+        // This creates issues with separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
+        var asLibrary = !options.Get(CommonOptionBag.TranslateStandardLibrary);
 
         var reporter = new ConsoleErrorReporter(options);
         if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
@@ -221,6 +225,10 @@ namespace Microsoft.Dafny {
     }
 
     private static IExecutableBackend GetBackend(DafnyOptions options) {
+      if (options.Backend?.TargetId == options.CompilerName) {
+        return options.Backend;
+      }
+
       var backends = options.Plugins.SelectMany(p => p.GetCompilers(options)).ToList();
       var backend = backends.LastOrDefault(c => c.TargetId == options.CompilerName);
       if (backend == null) {

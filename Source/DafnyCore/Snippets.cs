@@ -18,23 +18,23 @@ public class Snippets {
     OptionRegistry.RegisterOption(ShowSnippets, OptionScope.Cli);
   }
 
-  public static void WriteSourceCodeSnippet(DafnyOptions options, IToken tok, TextWriter tw) {
-    string line = GetFileLine(options, tok.Uri, tok.line - 1);
+  public static void WriteSourceCodeSnippet(DafnyOptions options, IOrigin tok, TextWriter tw) {
+    var start = tok.StartToken;
+    var end = tok.EndToken;
+    string line = GetFileLine(options, tok.Uri, start.line - 1);
     if (line == null) {
       return;
     }
 
-    string lineNumber = tok.line.ToString();
+    string lineNumber = start.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
-    string columnSpaces = new string(' ', tok.col - 1);
-    var lineStartPos = tok.pos - tok.col + 1;
+    string columnSpaces = new string(' ', start.col - 1);
+    var lineStartPos = start.pos - start.col + 1;
     var lineEndPos = lineStartPos + line.Length;
 
-    var tokEndPos = tok.pos + tok.val.Length;
-    if (tok is RangeToken rangeToken) {
-      tokEndPos = rangeToken.EndToken.pos + rangeToken.EndToken.val.Length;
-    }
-    var underlineLength = Math.Max(1, Math.Min(tokEndPos - tok.pos, lineEndPos - tok.pos));
+    var tokEndPos = end.pos + end.val.Length;
+
+    var underlineLength = Math.Max(1, Math.Min(tokEndPos - start.pos, lineEndPos - start.pos));
     string underline = new string('^', underlineLength);
     tw.WriteLine($"{lineNumberSpaces} |");
     tw.WriteLine($"{lineNumber} | {line}");
@@ -49,7 +49,7 @@ public class Snippets {
         // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
         // an in-memory version of each file it parses.
         var file = DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance, new ErrorReporterSink(options), options, uri, Token.NoToken);
-        using var reader = file.GetContent();
+        using var reader = file.GetContent().Reader;
         lines = Util.Lines(reader).ToList();
       } catch (Exception) {
         lines = new List<string>();

@@ -96,6 +96,7 @@ public class ParseErrors {
     p_no_decreases_expressions_with_star,
     p_assert_needs_by_or_semicolon,
     p_deprecated_forall_with_no_bound_variables,
+    p_deprecated_forall_statement_with_parentheses_around_bound_variables,
     p_forall_with_ensures_must_have_body,
     p_deprecated_modify_statement_with_block,
     p_calc_operator_must_be_transitive,
@@ -142,6 +143,7 @@ public class ParseErrors {
     p_general_traits_full,
     p_decreases_without_to,
     p_binding_in_decreases_to,
+    p_ghost_in_decreases_to,
   }
 
   static ParseErrors() {
@@ -455,7 +457,7 @@ The currently defined type characteristics are designated by `==` (equality - su
 ".TrimStart(), range =>
     range.Prev.val == "," ?
       new List<DafnyAction> {
-      OneAction("remove comma", range.Prev.ToRange(), ""),
+      OneAction("remove comma", range.Prev, ""),
       OneAction("insert '=='", range, "==" + range.PrintOriginal()),
       OneAction("insert '0'", range, "0" + range.PrintOriginal()),
       OneAction("insert '00'", range, "00" + range.PrintOriginal()),
@@ -726,7 +728,7 @@ Hence `decreases` clauses are inappropriate and not allowed.
 A predicate is a function that returns `bool`. The return type here is something else.
 If you mean to have a non-`bool` return type, use `function` instead of `predicate`.
 ".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove type", new RangeToken(range.StartToken.Prev, range.EndToken), "", true),
+    OneAction("remove type", new SourceOrigin(range.StartToken.Prev, range.EndToken), "", true),
     OneAction("replace type with 'bool'", range, "bool", true) }
 );
 
@@ -736,7 +738,7 @@ A `predicate` is simply a `function` that returns a `bool` value.
 Accordingly, the type is (required to be) omitted, unless the result is being named.
 So `predicate p(): (res: bool) { true }` is permitted.
 ".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove type", new RangeToken(range.StartToken.Prev, range.EndToken), "", true),
+    OneAction("remove type", new SourceOrigin(range.StartToken.Prev, range.EndToken), "", true),
   });
 
     Add(ErrorId.p_no_wild_expression,
@@ -775,7 +777,7 @@ in a loop after it is allocated, or to initialize with a function, as in
 `var a:= new int[2,2]((i: int, j: int)=>i+j)`.
 ".TrimStart());
 
-    ActionSignature sharedLambda = delegate (RangeToken range) {
+    ActionSignature sharedLambda = delegate (SourceOrigin range) {
       return new List<DafnyAction> {
         OneAction("replace with ':='", range, ":=", false),
         OneAction("replace with ':-", range, ":-", false),

@@ -12,9 +12,10 @@ class ResolvedDesugaredExecutableDafnyCodeGenerator : DafnyWrittenCodeGenerator 
     w.Write(COMP.Compile(program).ToVerbatimString(false));
   }
 
-  public override ISequence<Rune> EmitCallToMain(string fullName) {
-    var splitByDot = fullName.Split('.');
-    var convertedToUnicode = Sequence<Sequence<Rune>>.FromArray(splitByDot.Select(s => (Sequence<Rune>)Sequence<Rune>.UnicodeFromString(s)).ToArray());
-    return COMP.EmitCallToMain(convertedToUnicode);
+  public override ISequence<Rune> EmitCallToMain(
+    DAST.Expression companion,
+    Sequence<Rune> mainMethodName,
+    bool hasArguments) {
+    return COMP.EmitCallToMain(companion);
   }
 }

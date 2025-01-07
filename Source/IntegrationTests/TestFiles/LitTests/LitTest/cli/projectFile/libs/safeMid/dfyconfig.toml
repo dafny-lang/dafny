@@ -1,0 +1,7 @@
+includes = ["usesLibrary.dfy"]
+
+[options]
+library = [
+  "../low/wrappersLib.dfy"
+]
+allow-warnings=true

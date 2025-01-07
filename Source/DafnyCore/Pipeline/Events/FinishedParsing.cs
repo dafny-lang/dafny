@@ -4,4 +4,4 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public record FinishedParsing(Program Program) : ICompilationEvent;
+public record FinishedParsing(ProgramParseResult ParseResult) : ICompilationEvent;

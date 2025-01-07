@@ -13,9 +13,9 @@ public class MapDisplayExpr : Expression, ICanFormat, ICloneable<MapDisplayExpr>
     Elements = original.Elements.Select(p => new ExpressionPair(cloner.CloneExpr(p.A), cloner.CloneExpr(p.B))).ToList();
   }
 
-  public MapDisplayExpr(IToken tok, bool finite, List<ExpressionPair> elements)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public MapDisplayExpr(IOrigin origin, bool finite, List<ExpressionPair> elements)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(elements));
     Finite = finite;
     Elements = elements;

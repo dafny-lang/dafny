@@ -99,18 +99,18 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     Contract.Invariant(!(ArrayDimensions == null && Bindings == null) || (Path == null && InitCall == null && ElementInit == null && InitDisplay == null));
   }
 
-  public TypeRhs(IToken tok, Type type, List<Expression> arrayDimensions, Expression elementInit)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public TypeRhs(IOrigin origin, Type type, List<Expression> arrayDimensions, Expression elementInit)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(type != null);
     Contract.Requires(arrayDimensions != null && 1 <= arrayDimensions.Count);
     EType = type;
     ArrayDimensions = arrayDimensions;
     ElementInit = elementInit;
   }
-  public TypeRhs(IToken tok, Type type, Expression dim, List<Expression> initDisplay)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public TypeRhs(IOrigin origin, Type type, Expression dim, List<Expression> initDisplay)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(type != null);
     Contract.Requires(dim != null);
     Contract.Requires(initDisplay != null);
@@ -118,15 +118,15 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     ArrayDimensions = new List<Expression> { dim };
     InitDisplay = initDisplay;
   }
-  public TypeRhs(IToken tok, Type type)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public TypeRhs(IOrigin origin, Type type)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(type != null);
     EType = type;
   }
-  public TypeRhs(IToken tok, Type path, List<ActualBinding> arguments)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public TypeRhs(IOrigin origin, Type path, List<ActualBinding> arguments)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(path != null);
     Contract.Requires(arguments != null);
     Path = path;
@@ -176,7 +176,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     }
   }
 
-  public IToken Start => Tok;
+  public IOrigin Start => Origin;
 
   public override IEnumerable<INode> Children {
     get {

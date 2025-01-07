@@ -292,6 +292,10 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
+    public static Dafny.ISequence<__R> MapPartialFunction<__T, __R>(Func<__T, __R> f, Dafny.ISequence<__T> xs)
+    {
+      return Std.Collections.Seq.__default.Map<__T, __R>(f, xs);
+    }
     public static Std.Wrappers._IResult<Dafny.ISequence<__R>, __E> MapWithResult<__T, __R, __E>(Func<__T, Std.Wrappers._IResult<__R, __E>> f, Dafny.ISequence<__T> xs)
     {
       if ((new BigInteger((xs).Count)).Sign == 0) {

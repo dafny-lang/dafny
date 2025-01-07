@@ -23,9 +23,9 @@ public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld {
     }
   }
 
-  public OpaqueBlock(RangeToken rangeToken, List<Statement> body,
+  public OpaqueBlock(IOrigin origin, List<Statement> body,
     List<AttributedExpression> ensures,
-    Specification<FrameExpression> modifies) : base(rangeToken, body) {
+    Specification<FrameExpression> modifies) : base(origin, body) {
     Ensures = ensures;
     Modifies = modifies;
   }

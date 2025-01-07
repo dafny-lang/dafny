@@ -88,15 +88,25 @@ module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
     else
     if i[0] == '_' then
       |i| >= 2 &&
-      i[1] in "_qkh" && IsDafnyEncodedIdTail(i[2..])
+      i[1] in ESCAPING && IsDafnyEncodedIdTail(i[2..])
     else
-      i[0] in "aqkhd." &&
+      (i[0] in SAMPLE_LETTERS || i[0] == '.') &&
       IsDafnyEncodedIdTail(i[1..])
   }
 
-  predicate IsDafnyEncodedId(i: string) {
-    if |i| == 0 then true
-    else i[0] in "aqkhd" && IsDafnyEncodedIdTail(i[1..])
+  // Subset of characters supported in Dafny identifiers, for proof purposes
+  const SAMPLE_LETTERS := "aqkhd"
+
+  // Letters that can come after a "_" in Dafny identifiers
+  // __ => _
+  // _q => ?
+  // _k => '
+  // _h => #
+  const ESCAPING := "_qkh"
+
+  ghost predicate IsDafnyEncodedId(i: string) {
+    if |i| == 0 then false
+    else i[0] in SAMPLE_LETTERS && IsDafnyEncodedIdTail(i[1..])
   }
 
   lemma DafnyEscapeCorrect(s: string)
@@ -123,8 +133,9 @@ module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
   {}
 
   // However, if we restrict ourself to a Dafny encoding, it's invertible
-  lemma {:rlimit 2500} {:vcs_split_on_every_assert} // {:resource_limit 500e3}
-  ReplaceDotsInvertible(i: string)
+  @ResourceLimit("2500e3")
+  @IsolateAssertions
+  lemma ReplaceDotsInvertible(i: string)
     requires IsDafnyEncodedIdTail(i)
     ensures ReverseReplaceDots(replaceDots(i)) == i
   {
@@ -137,6 +148,7 @@ module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
       if i[0] == '_' {
         assert |i| >= 2 &&
                i[1] in "_qkh" && IsDafnyEncodedIdTail(i[2..]);
+        assert [i[0]] + replaceDots(i[1..]) == [i[0]] + [i[1]] + replaceDots(i[2..]);
         ReplaceDotsInvertible(i[2..]);
         assert ReverseReplaceDots(replaceDots(i)) == i;
       } else {
@@ -188,13 +200,14 @@ module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
     }
   }
 
-  lemma {:fuel has_special, 2, 3} EscapeIdentExamples()
+  @Fuel(2, 3, "has_special")
+  lemma EscapeIdentExamples()
     ensures escapeIdent("i") == "i"   // Loop variable
     ensures escapeIdent("_1") == "_1" // tuple deconstructor
     ensures escapeIdent("_m") == "_m" // any hidden variable
     ensures escapeIdent("___hMake1") == "_T1" // tuple deconstructor
     ensures escapeIdent("h__w") == "h_w" // only letters and underscore
-    ensures escapeIdent("h_kw") == "r#_h_kw" //contains special char
+    ensures escapeIdent("h_kw") == "_h_kw" //contains special char
     ensures escapeIdent("fn") == "r#fn" // Keyword
   {
     assert has_special("h_kw");
@@ -225,26 +238,26 @@ module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
   }
 
   function UnescapeIdent(s: string): string {
-    if |s| >= 2 && s[0..2] == "r#" then
-      if |s| >= 3 && s[2] == '_' then
-        ReverseReplaceDots(s[3..]) // General escape
-      else
-        s[2..] // Keyword
-    else if |s| >= 1 && s[0] == '_' then
-      if |s| >= 2 && s[1] == 'T' then
+    if |s| >= 1 && s[0] == '_' then
+      if is_tuple_numeric(s) then
+        s
+      else if |s| >= 2 && s[1] == 'T' then
         "___hMake" + s[2..] // Tuple builder
-      else if is_tuple_numeric(s) then
-        s
+      else if s == "_self" || s == "_Self" then
+        s[1..]
       else
-        s
+        ReverseReplaceDots(s[1..]) // We remove the extra "_" prefix and place dots again
+    else if |s| >= 2 && s[0..2] == "r#" then
+      s[2..] // Reserved identifier
     else // Idiomatic rust
       ReverseIdiomaticRust(s)
   }
 
-  lemma TupleIdentInvertible(s: string)
-    requires is_tuple_numeric(s)
-    ensures UnescapeIdent(escapeIdent(s)) == s
-  {}
+  lemma TupleIdentInvertible(i: string)
+    requires is_tuple_numeric(i)
+    ensures UnescapeIdent(escapeIdent(i)) == i
+  {
+  }
 
   lemma {:rlimit 500} TupleBuilderInvertible(i: string)
     requires !is_tuple_numeric(i)
@@ -302,14 +315,24 @@ module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
     }
   }
 
-  lemma {:rlimit 800} EscapeIdentInvertibleForDafnyGeneratedId(s: string)
-    requires !is_tuple_numeric(s)
-    requires !is_tuple_builder(s)
-    requires s !in reserved_rust
-    requires !is_idiomatic_rust_id(s)
-    requires is_dafny_generated_id(s)
-    ensures UnescapeIdent(escapeIdent(s)) == s
+  lemma {:rlimit 800} EscapeIdentInvertibleForDafnyGeneratedId(i: string)
+    requires IsDafnyEncodedId(i)
+    requires !is_tuple_numeric(i)
+    requires !is_tuple_builder(i)
+    requires i !in reserved_rust
+    requires !is_idiomatic_rust_id(i)
+    requires is_dafny_generated_id(i)
+    ensures UnescapeIdent(escapeIdent(i)) == i
   {
+    assert escapeIdent(i) == i;
+    var s := i;
+    assert |s| >= 1 && s[0] == '_';
+    assert !(|s| >= 2 && s[1] == 'T');
+    assert !(s == "_self" || s == "_Self");
+    calc {
+      UnescapeIdent(s);
+      s;
+    }
   }
 
   lemma {:rlimit 800} EverythingElseInvertible(i: string)
@@ -322,16 +345,24 @@ module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
     ensures UnescapeIdent(escapeIdent(i)) == i
   {
     var r := replaceDots(i);
-    var s := "r#_" + r;
-    assert |s| >= 2 && s[0..2] == "r#";
-    assert |s| >= 3 && s[2] == '_';
-    assert s[3..] == r;
-    calc {
-      UnescapeIdent(escapeIdent(i));
-      UnescapeIdent(s);
-      ReverseReplaceDots(replaceDots(i));
-      { ReplaceDotsInvertible(i); }
-      i;
+    var s := "_" + r;
+    assert escapeIdent(i) == s;
+    assert |s| >= 1 && s[0] == '_';
+    assert !(|s| >= 2 && s[1] == 'T');
+    assert !(s == "_self" || s == "_Self");
+    assert |i| > 0;
+    if i[0] == '_' {
+      assert i[0] == '_'; // So if i[0] is not '_'
+      assert UnescapeIdent(escapeIdent(i)) == i;
+    } else {
+      calc {
+        UnescapeIdent(s);
+        ReverseReplaceDots(s[1..]);
+        ReverseReplaceDots(r);
+        ReverseReplaceDots(replaceDots(i));
+        { ReplaceDotsInvertible(i); }
+        i;
+      }
     }
   }
 
@@ -341,7 +372,7 @@ module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
              || is_tuple_builder(i) // ___hMake0, ____hMake1 ... => _T0, _T1 ...
              || i in reserved_rust  // fn, impl, mod ...         => r#fn, r#impl, r#mod...
              || IsDafnyEncodedId(i) // i                         => i
-                                    // create_struct             => create_struct
+    // create_struct             => create_struct
     //  c#ons.tant?'              => r#_c_hons_dtant_q_k
     ensures UnescapeIdent(escapeIdent(i)) == i
   {

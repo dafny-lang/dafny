@@ -8,8 +8,8 @@ public class ArrayClassDecl : ClassDecl {
 
   public readonly int Dims;
   public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
-    : base(RangeToken.NoToken, new Name(SystemModuleManager.ArrayClassName(dims)), module,
-      new List<TypeParameter>(new TypeParameter[] { new TypeParameter(RangeToken.NoToken, new Name("arg"), TypeParameter.TPVarianceSyntax.NonVariant_Strict) }),
+    : base(SourceOrigin.NoToken, new Name(SystemModuleManager.ArrayClassName(dims)), module,
+      new List<TypeParameter>(new TypeParameter[] { new TypeParameter(SourceOrigin.NoToken, new Name("arg"), TypeParameter.TPVarianceSyntax.NonVariant_Strict) }),
       new List<MemberDecl>(), attrs, false, null) {
     Contract.Requires(1 <= dims);
     Contract.Requires(module != null);

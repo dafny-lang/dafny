@@ -2,14 +2,14 @@ loop-detection-is-not-too-strict.dfy(15,9): Info: Selected triggers:
    {P(y, x)}, {P(x, y)}
 loop-detection-is-not-too-strict.dfy(18,9): Info: Selected triggers:
    {P(y, x)}, {P(x, y)}
-loop-detection-is-not-too-strict.dfy(21,9): Info: Selected triggers: {P(x, _t#0), P(x, y)}
+loop-detection-is-not-too-strict.dfy(21,9): Info: Selected triggers: {P(x, _t#0), P(x, y)} where _t#0 := y + 1
 loop-detection-is-not-too-strict.dfy(26,9): Info: Selected triggers: {Q(x)}
 loop-detection-is-not-too-strict.dfy(27,9): Info: Selected triggers: {Q(x)}
 loop-detection-is-not-too-strict.dfy(28,9): Info: Selected triggers:
    {P(x, z)}, {P(x, 1)}
 loop-detection-is-not-too-strict.dfy(33,9): Info: Selected triggers: {Q(x)}
 loop-detection-is-not-too-strict.dfy(34,9): Info: Selected triggers: {Q(x)}
-loop-detection-is-not-too-strict.dfy(36,9): Info: Selected triggers: {Q(_t#0), Q(x)}
-loop-detection-is-not-too-strict.dfy(40,9): Info: Selected triggers: {Q(_t#0), Q(x)}
+loop-detection-is-not-too-strict.dfy(36,9): Info: Selected triggers: {Q(_t#0), Q(x)} where _t#0 := if z > 1 then x else 3 * z + 1
+loop-detection-is-not-too-strict.dfy(40,9): Info: Selected triggers: {Q(_t#0), Q(x)} where _t#0 := x + 1
 
 Dafny program verifier finished with 1 verified, 0 errors

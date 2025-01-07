@@ -2937,13 +2937,6 @@ As of v3.9.0 there is work underway to update Z3 to a more recent version.
 Until then, the best you can do is to try to change the verification condition sent to Z3 by splitting it up, using various Dafny options and attributes like `{:split_here}`, `{:focus}`, `/vcsSplitOnEveryAssert`, `/vcsMaxSplits`, and `/randomSeed`.
 
 
-# "Warning: file contains no code"
-
-
-This warning can occur if a file being compiled by Dafny is completely empty.
-Previous other occurrences of this warning were bugs.
-
-
 # "Duplicate name of import: ..."
 
 

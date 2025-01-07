@@ -1,7 +1,7 @@
-AsIs-UnusedTypeParameters.dfy(39,13): Error: assertion might not hold
+AsIs-UnusedTypeParameters.dfy(39,6): Error: assertion might not hold
 AsIs-UnusedTypeParameters.dfy(41,12): Error: value of expression (of type 'C<F<X, X>>') is not known to be an instance of type 'C<F<X, int>>'
 AsIs-UnusedTypeParameters.dfy(43,15): Error: value of expression (of type 'C<F<X, X>>') is not known to be an instance of type 'C<F<X, int>>'
-AsIs-UnusedTypeParameters.dfy(57,13): Error: assertion might not hold
+AsIs-UnusedTypeParameters.dfy(57,6): Error: assertion might not hold
 AsIs-UnusedTypeParameters.dfy(59,12): Error: value of expression (of type 'C<F<X, int>>') is not known to be an instance of type 'C<F<X, X>>'
 AsIs-UnusedTypeParameters.dfy(61,15): Error: value of expression (of type 'C<F<X, int>>') is not known to be an instance of type 'C<F<X, X>>'
 
