@@ -2770,12 +2770,3 @@ The following options are also commonly used:
 
 * `--verification-time-limit:<n>` (was `-timeLimit:<n>`) - limits 
   the number of seconds spent trying to verify each procedure.
-
-
-### 13.9.11. Controlling test generation {#sec-controlling-test-gen}
-
-Dafny is capable of generating unit (runtime) tests. It does so by asking the prover to solve
-for values of inputs to a method that cause the program to execute specific blocks or paths.
-A detailed description of how to do this is given in
-[a separate document](https://github.com/dafny-lang/dafny/blob/master/Source/DafnyTestGeneration/README.md).
-
