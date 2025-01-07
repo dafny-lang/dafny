@@ -775,6 +775,13 @@ public partial class BoogieGenerator {
           }
         }
 
+      } else if (bound is MapBoundedPool mapBoundedPool) {
+        if (mapBoundedPool.Map.Resolved is MapDisplayExpr display) {
+          foreach (var maplet in display.Elements) {
+            yield return maplet.A;
+          }
+        }
+
       } else if (bound is ExactBoundedPool exactBoundedPool) {
         yield return exactBoundedPool.E;
       }
