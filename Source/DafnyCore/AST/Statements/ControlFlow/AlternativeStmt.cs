@@ -21,17 +21,17 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
     UsesOptionalBraces = original.UsesOptionalBraces;
   }
 
-  public AlternativeStmt(RangeToken rangeToken, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
-    : base(rangeToken) {
+  public AlternativeStmt(IOrigin origin, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
+    : base(origin) {
     Contract.Requires(alternatives != null);
-    this.Alternatives = alternatives;
-    this.UsesOptionalBraces = usesOptionalBraces;
+    Alternatives = alternatives;
+    UsesOptionalBraces = usesOptionalBraces;
   }
-  public AlternativeStmt(RangeToken rangeToken, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(rangeToken, attrs) {
+  public AlternativeStmt(IOrigin origin, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
+    : base(origin, attrs) {
     Contract.Requires(alternatives != null);
-    this.Alternatives = alternatives;
-    this.UsesOptionalBraces = usesOptionalBraces;
+    Alternatives = alternatives;
+    UsesOptionalBraces = usesOptionalBraces;
   }
   public override IEnumerable<Statement> SubStatements {
     get {
@@ -60,7 +60,7 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
 
   public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism && 2 <= Alternatives.Count) {
-      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_if_forbidden, Tok,
+      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_if_forbidden, Origin,
         "case-based if statement forbidden by the --enforce-determinism option");
     }
     ResolveAlternatives(resolver, Alternatives, null, resolutionContext);
@@ -100,6 +100,27 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
     }
     if (loopToCatchBreaks != null) {
       resolver.LoopStack.RemoveAt(resolver.LoopStack.Count - 1);  // pop
+    }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable || Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
+    if (!mustBeErasable && IsGhost) {
+      resolver.Reporter.Info(MessageSource.Resolver, Origin, "ghost if");
+    }
+
+    Alternatives.ForEach(alt => alt.Body.ForEach(ss =>
+      ss.ResolveGhostness(resolver, reporter, IsGhost, codeContext, proofContext,
+        allowAssumptionVariables, inConstructorInitializationPhase)));
+    IsGhost = IsGhost || Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
+    if (!IsGhost) {
+      // If there were features in the guards that are treated differently in ghost and non-ghost
+      // contexts, make sure they get treated for non-ghost use.
+      foreach (var alt in Alternatives) {
+        ExpressionTester.CheckIsCompilable(resolver, reporter, alt.Guard, codeContext);
+      }
     }
   }
 }

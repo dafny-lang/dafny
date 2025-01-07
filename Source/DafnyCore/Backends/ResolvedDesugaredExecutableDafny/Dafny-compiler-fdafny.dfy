@@ -9,7 +9,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       s := PrettyPrinter.PrettyPrint(p);
     }
 
-    static method EmitCallToMain(fullName: seq<string>) returns (s: string) {
+    static method EmitCallToMain(fullName: Expression) returns (s: string) {
       s := "";
     }
   }

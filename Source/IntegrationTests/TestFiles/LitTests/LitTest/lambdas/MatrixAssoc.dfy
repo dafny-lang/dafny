@@ -59,7 +59,7 @@ lemma distr_add_n(f: Index -> int, g: Index -> int, n: nat)
 
 /** (Σ f) * x == Σ (i => f(i) * x) */
 /** proof by induction */
-lemma distr_mult_n(f: Index -> int, n: nat, x: int)
+lemma {:induction n} distr_mult_n(f: Index -> int, n: nat, x: int)
   requires n <= N
   ensures Sum_n(f, n) * x == Sum_n((i: Index) => f(i) * x, n)
 {}
@@ -73,7 +73,7 @@ lemma distr_mult(f: Index -> int, x: int)
 
 /** Σ_k (Σ_l f(k,l))  ==  Σ_l (Σ_k f(k,l)) */
 /** proof by induction */
-lemma sum_assoc_n(m: Matrix, n1: nat, n2: nat)
+lemma {:induction m, n1, n2} {:nowarn} sum_assoc_n(m: Matrix, n1: nat, n2: nat)
   requires n1 <= N && n2 <= N
   ensures Sum_n((k: Index) => Sum_n((l: Index) => m(k)(l), n1), n2)
           ==

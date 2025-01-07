@@ -3,18 +3,18 @@ NonReferenceTraitsVerify.dfy(35,22): Related location: this is the postcondition
 NonReferenceTraitsVerify.dfy(43,4): Error: a postcondition could not be proved on this return path
 NonReferenceTraitsVerify.dfy(42,16): Related location: this is the postcondition that could not be proved
 NonReferenceTraitsVerify.dfy(49,13): Error: the function must provide an equal or more permissive precondition than in its parent trait
-NonReferenceTraitsVerify.dfy(56,4): Error: the method must provide an equal or more detailed postcondition than in its parent trait
+NonReferenceTraitsVerify.dfy(56,11): Error: the method must provide an equal or more detailed postcondition than in its parent trait
 NonReferenceTraitsVerify.dfy(107,6): Error: a postcondition could not be proved on this return path
 NonReferenceTraitsVerify.dfy(105,22): Related location: this is the postcondition that could not be proved
 NonReferenceTraitsVerify.dfy(113,4): Error: a postcondition could not be proved on this return path
 NonReferenceTraitsVerify.dfy(112,16): Related location: this is the postcondition that could not be proved
 NonReferenceTraitsVerify.dfy(119,13): Error: the function must provide an equal or more permissive precondition than in its parent trait
-NonReferenceTraitsVerify.dfy(126,4): Error: the method must provide an equal or more detailed postcondition than in its parent trait
+NonReferenceTraitsVerify.dfy(126,11): Error: the method must provide an equal or more detailed postcondition than in its parent trait
 NonReferenceTraitsVerify.dfy(177,6): Error: a postcondition could not be proved on this return path
 NonReferenceTraitsVerify.dfy(175,22): Related location: this is the postcondition that could not be proved
 NonReferenceTraitsVerify.dfy(183,4): Error: a postcondition could not be proved on this return path
 NonReferenceTraitsVerify.dfy(182,16): Related location: this is the postcondition that could not be proved
 NonReferenceTraitsVerify.dfy(189,13): Error: the function must provide an equal or more permissive precondition than in its parent trait
-NonReferenceTraitsVerify.dfy(196,4): Error: the method must provide an equal or more detailed postcondition than in its parent trait
+NonReferenceTraitsVerify.dfy(196,11): Error: the method must provide an equal or more detailed postcondition than in its parent trait
 
 Dafny program verifier finished with 42 verified, 12 errors

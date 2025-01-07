@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
+public abstract class AssignmentRhs : NodeWithComputedRange, IAttributeBearingDeclaration {
   private Attributes attributes;
 
   public Attributes Attributes {
@@ -16,14 +16,11 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
     return Attributes != null;
   }
 
-  internal AssignmentRhs(Cloner cloner, AssignmentRhs original) {
-    tok = cloner.Tok(original.tok);
+  internal AssignmentRhs(Cloner cloner, AssignmentRhs original) : base(cloner, original) {
     Attributes = cloner.CloneAttributes(original.Attributes);
-    RangeToken = cloner.Range(original.rangeToken);
   }
 
-  internal AssignmentRhs(IToken tok, Attributes attrs = null) {
-    this.tok = tok;
+  internal AssignmentRhs(IOrigin origin, Attributes attrs = null) : base(origin) {
     Attributes = attrs;
   }
 

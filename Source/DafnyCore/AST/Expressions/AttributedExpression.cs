@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
+public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDeclaration {
   public readonly Expression E;
   public readonly AssertLabel/*?*/ Label;
 
@@ -25,7 +25,7 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
 
   string IAttributeBearingDeclaration.WhatKind => "expression";
 
-  public override RangeToken RangeToken => E.RangeToken;
+  public override IOrigin Origin => E.Origin;
 
   public bool HasAttributes() {
     return Attributes != null;
@@ -39,18 +39,17 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
   public AttributedExpression(Expression e, Attributes attrs) : this(e, null, attrs) {
   }
 
-  public AttributedExpression(Expression e, AssertLabel/*?*/ label, Attributes attrs) {
+  public AttributedExpression(Expression e, AssertLabel/*?*/ label, Attributes attrs) : base(e.Origin) {
     Contract.Requires(e != null);
     E = e;
     Label = label;
     Attributes = attrs;
-    this.tok = e.Tok;
   }
 
-  public void AddCustomizedErrorMessage(IToken tok, string s) {
+  public void AddCustomizedErrorMessage(IOrigin tok, string s) {
     var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
-    IToken openBrace = tok;
-    IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
+    IOrigin openBrace = tok;
+    IOrigin closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
 

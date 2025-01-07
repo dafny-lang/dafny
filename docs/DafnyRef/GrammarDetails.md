@@ -1631,7 +1631,7 @@ MapComprehensionExpr(allowLemma, allowLambda) =
 
 ````grammar
 StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
-             | RevealStmt | CalcStmt
+             | RevealStmt | CalcStmt | ForallStmt
              )
 ````
 

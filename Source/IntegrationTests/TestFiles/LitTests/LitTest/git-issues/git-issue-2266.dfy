@@ -1,4 +1,4 @@
-// RUN: %verify --bprint %t.bpl "%s"
+// RUN: %verify --bprint "%t.bpl" "%s"
 // RUN: %boogie "%t.bpl" > "%t"
 // RUN: %diff "%s.expect" "%t"
 

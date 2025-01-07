@@ -5,7 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 [ContractClassFor(typeof(IVariable))]
-public abstract class IVariableContracts : TokenNode, IVariable {
+public abstract class IVariableContracts : NodeWithComputedRange, IVariable {
   public string Name {
     get {
       Contract.Ensures(Contract.Result<string>() != null);
@@ -89,7 +89,7 @@ public abstract class IVariableContracts : TokenNode, IVariable {
     throw new NotImplementedException();
   }
 
-  public abstract IToken NavigationToken { get; }
+  public abstract IOrigin NavigationToken { get; }
   public SymbolKind? Kind => throw new NotImplementedException();
   public string GetDescription(DafnyOptions options) {
     throw new NotImplementedException();

@@ -1,3 +1,3 @@
-CallByHide.dfy(15,10): Error: assertion might not hold
+CallByHide.dfy(15,2): Error: assertion might not hold
 
 Dafny program verifier finished with 2 verified, 1 error

@@ -4,11 +4,12 @@ using System.IO;
 
 namespace Microsoft.Dafny;
 
-public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint, ICloneable<Statement> {
+public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint,
+  ICloneable<Statement>, ICanFormat {
 
   public Statement Body { get; }
   public BlockStmt Proof { get; }
-  public BlockByProofStmt(RangeToken range, BlockStmt proof, Statement body) : base(range) {
+  public BlockByProofStmt(IOrigin range, BlockStmt proof, Statement body) : base(range) {
     Proof = proof;
     Body = body;
   }
@@ -48,5 +49,21 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint, IClo
 
   public Statement Clone(Cloner cloner) {
     return new BlockByProofStmt(cloner, this);
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
+    Body.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
+    IsGhost = IsGhost || Body.IsGhost;
+
+    Proof.ResolveGhostness(resolver, reporter, true, codeContext, "a by block", allowAssumptionVariables, inConstructorInitializationPhase);
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetStatementIndentation(Body);
+    Proof.SetIndent(indentBefore, formatter);
+    return false;
   }
 }

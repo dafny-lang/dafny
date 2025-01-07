@@ -142,10 +142,9 @@ public class CoverageReporter {
             int.TryParse(span.Groups[3].Value, out var col)) {
           var nextToken = new Token(line, col);
           nextToken.Uri = uri;
-          var precedingToken = new Token(line, col - 1);
+          var precedingToken = new Token(line, col);
           precedingToken.Uri = uri;
-          var rangeToken = new RangeToken(lastEndToken, precedingToken);
-          rangeToken.Uri = uri;
+          var rangeToken = new SourceOrigin(lastEndToken, precedingToken);
           report.LabelCode(rangeToken, lastLabel);
           lastLabel = FromHtmlClass(span.Groups[1].Value);
           lastEndToken = nextToken;
@@ -154,7 +153,7 @@ public class CoverageReporter {
 
       var lastToken = new Token(source.Count(c => c == '\n') + 2, 0);
       lastToken.Uri = uri;
-      var lastRangeToken = new RangeToken(lastEndToken, lastToken);
+      var lastRangeToken = new SourceOrigin(lastEndToken, lastToken);
       report.LabelCode(lastRangeToken, lastLabel);
     }
     return report;
@@ -263,7 +262,7 @@ public class CoverageReporter {
           module.FullName
         });
 
-        var moduleRange = module.RangeToken.ToDafnyRange();
+        var moduleRange = module.Origin.ToDafnyRange();
         body.Last().AddRange(coverageLabels
           .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
           .Select(label => report.CoverageSpansForFile(sourceFile)
@@ -339,7 +338,7 @@ public class CoverageReporter {
     var files = await DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance,
         new ConsoleErrorReporter(options), options, uri, Token.Cli).ToListAsync();
     var dafnyFile = files[0];
-    var source = await dafnyFile.GetContent().ReadToEndAsync();
+    var source = await dafnyFile.GetContent().Reader.ReadToEndAsync();
     var lines = source.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
     var characterLabels = new CoverageLabel[lines.Length][];
     for (int i = 0; i < lines.Length; i++) {
@@ -350,6 +349,9 @@ public class CoverageReporter {
     foreach (var span in report.CoverageSpansForFile(uri)) {
       var line = span.Span.StartToken.line - 1;
       var column = span.Span.StartToken.col - 1;
+      var endToken = span.Span.EndToken;
+      var endColumnExclusive = endToken.col - 1 + (span.Span.InclusiveEnd ? endToken.val.Length : 0);
+      var endLineExclusive = endToken.line;
       while (true) {
         if (characterLabels[line].Length <= column) {
           do { line++; }
@@ -359,7 +361,8 @@ public class CoverageReporter {
             break;
           }
         }
-        if (line > span.Span.EndToken.line - 1 || (line == span.Span.EndToken.line - 1 && column > span.Span.EndToken.col - 1)) {
+
+        if (line >= endLineExclusive || (line == endToken.line - 1 && column >= endColumnExclusive)) {
           break;
         }
         characterLabels[line][column] = CoverageLabelExtension.Combine(characterLabels[line][column], span.Label);

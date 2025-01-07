@@ -369,7 +369,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       if (node is not Program program) {
         return new Range(0, 0, -1, 0);
       }
-      var end = program.Files.FirstOrDefault(f => f.RangeToken.Uri == uri)?.EndToken ?? Token.NoToken;
+      var end = program.Files.FirstOrDefault(f => f.Origin.Uri == uri)?.EndToken ?? Token.NoToken;
       while (end.Next != null) {
         end = end.Next;
       }
@@ -598,7 +598,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       var tok = assertion.tok;
       var result = new List<Range>();
-      while (tok is NestedToken nestedToken) {
+      while (tok is NestedOrigin nestedToken) {
         tok = nestedToken.Inner;
         if (tok.filename == assertion.tok.filename) {
           result.Add(tok.GetLspRange());
@@ -608,7 +608,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       if (counterExample is ReturnCounterexample returnCounterexample) {
         tok = returnCounterexample.FailingReturn.tok;
         if (tok.filename == assertion.tok.filename) {
-          result.Add(returnCounterexample.FailingReturn.tok.GetLspRange());
+          result.Add(BoogieGenerator.ToDafnyToken(true, returnCounterexample.FailingReturn.tok).StartToken.GetLspRange());
         }
       }
 

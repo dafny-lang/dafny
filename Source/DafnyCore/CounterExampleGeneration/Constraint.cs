@@ -228,7 +228,7 @@ public abstract class MemberSelectExprConstraint : DefinitionConstraint {
   }
 
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
-    return new MemberSelectExpr(Token.NoToken, definitions[Obj], MemberName);
+    return new MemberSelectExpr(Token.NoToken, definitions[Obj], new Name(MemberName));
   }
 }
 
@@ -387,7 +387,7 @@ public class MapKeysDisplayConstraint : Constraint {
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     var setDisplayExpr = new SetDisplayExpr(Token.NoToken, true, elements.ConvertAll(element => definitions[element]));
     setDisplayExpr.Type = new SetType(true, map.Type.TypeArgs[0]);
-    var memberSelectExpr = new MemberSelectExpr(Token.NoToken, definitions[map], "Keys");
+    var memberSelectExpr = new MemberSelectExpr(Token.NoToken, definitions[map], new Name("Keys"));
     memberSelectExpr.Type = new SetType(true, map.Type.TypeArgs[0]);
     return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, memberSelectExpr, setDisplayExpr);
   }
@@ -418,7 +418,7 @@ public class FunctionCallConstraint : DefinitionConstraint {
     return new ApplySuffix(
       Token.NoToken,
       null,
-      new ExprDotName(Token.NoToken, definitions[receiver], functionName, null),
+      new ExprDotName(Token.NoToken, definitions[receiver], new Name(functionName), null),
       args.Select(formal =>
         new ActualBinding(null, definitions[formal])).ToList(),
       Token.NoToken);
@@ -442,7 +442,7 @@ public class FunctionCallRequiresConstraint : Constraint {
     return new ApplySuffix(
       Token.NoToken,
       null,
-      new ExprDotName(Token.NoToken, definitions[receiver], functionName + ".requires", null),
+      new ExprDotName(Token.NoToken, definitions[receiver], new Name(functionName + ".requires"), null),
       args.Select(formal =>
         new ActualBinding(null, definitions[formal])).ToList(),
       Token.NoToken);
@@ -481,12 +481,12 @@ public class ArrayLengthConstraint : Constraint {
   }
 
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
-    var length0 = new MemberSelectExpr(Token.NoToken, definitions[Array], indices.Count == 1 ? "Length" : "Length0");
+    var length0 = new MemberSelectExpr(Token.NoToken, definitions[Array], new Name(indices.Count == 1 ? "Length" : "Length0"));
     length0.Type = Type.Int;
     var constraint = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, length0, indices.First());
     constraint.Type = Type.Bool;
     for (int i = 1; i < indices.Count; i++) {
-      var length = new MemberSelectExpr(Token.NoToken, definitions[Array], $"Length{i}");
+      var length = new MemberSelectExpr(Token.NoToken, definitions[Array], new Name($"Length{i}"));
       length.Type = Type.Int;
       var newConstraint = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, length, indices[i]);
       newConstraint.Type = Type.Bool;
@@ -526,7 +526,7 @@ public class DatatypeConstructorCheckConstraint : Constraint {
   }
 
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
-    return new MemberSelectExpr(Token.NoToken, definitions[obj], ConstructorName + "?");
+    return new MemberSelectExpr(Token.NoToken, definitions[obj], new Name(ConstructorName + "?"));
   }
 }
 
