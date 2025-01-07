@@ -11,7 +11,7 @@ namespace XUnitExtensions.Lit {
   /// because 'diff' does not exist on Windows.
   /// </summary>
   public class DiffCommand : ILitCommand {
-    public static readonly bool UpdateExpectFile = true;
+    public static readonly bool UpdateExpectFile = "true" == Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE");
 
     public string ExpectedPath { get; }
     public string ActualPath { get; }
