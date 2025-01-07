@@ -13,15 +13,7 @@ public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDecl
     Contract.Invariant(E != null);
   }
 
-  private Attributes attributes;
-  public Attributes Attributes {
-    get {
-      return attributes;
-    }
-    set {
-      attributes = value;
-    }
-  }
+  public Attributes Attributes { get; set; }
 
   string IAttributeBearingDeclaration.WhatKind => "expression";
 
@@ -31,15 +23,15 @@ public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDecl
     return Attributes != null;
   }
 
-  public AttributedExpression(Expression e)
-    : this(e, null) {
+  public AttributedExpression(IOrigin origin, Expression e)
+    : this(origin, e, null) {
     Contract.Requires(e != null);
   }
 
-  public AttributedExpression(Expression e, Attributes attrs) : this(e, null, attrs) {
+  public AttributedExpression(IOrigin origin, Expression e, Attributes attrs) : this(origin, e, null, attrs) {
   }
 
-  public AttributedExpression(Expression e, AssertLabel/*?*/ label, Attributes attrs) : base(e.Origin) {
+  public AttributedExpression(IOrigin origin, Expression e, AssertLabel/*?*/ label, Attributes attrs) : base(e.Origin) {
     Contract.Requires(e != null);
     E = e;
     Label = label;

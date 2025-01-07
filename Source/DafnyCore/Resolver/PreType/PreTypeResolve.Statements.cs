@@ -350,7 +350,7 @@ namespace Microsoft.Dafny {
               s.Kind = ForallStmt.BodyKind.Proof;
               // add the conclusion of the calc as a free postcondition
               var result = ((CalcStmt)s0).Result;
-              s.Ens.Add(new AttributedExpression(result));
+              s.Ens.Add(new AttributedExpression(Token.NoToken, result));
               ReportInfo(s.Origin, "ensures " + Printer.ExprToString(resolver.Options, result));
             } else {
               s.Kind = ForallStmt.BodyKind.Proof;

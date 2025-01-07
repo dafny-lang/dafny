@@ -27,7 +27,7 @@ public static class OpaqueBlockVerifier {
     var implicitAssignedIdentifiers =
       variablesUsedInEnsures.Where(v => assignedVariables.Contains(v.Var) && generator.DefiniteAssignmentTrackers.ContainsKey(v.Var.UniqueName));
     foreach (var v in implicitAssignedIdentifiers) {
-      var expression = new AttributedExpression(Expression.CreateAssigned(v.Origin, v));
+      var expression = new AttributedExpression(Token.NoToken, Expression.CreateAssigned(v.Origin, v));
       totalEnsures.Add(expression);
       blockBuilder.Add(generator.Assert(
         v.Origin, etran.TrExpr(expression.E),

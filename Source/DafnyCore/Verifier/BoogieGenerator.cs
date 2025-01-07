@@ -4513,31 +4513,31 @@ namespace Microsoft.Dafny {
           yield return attrExpr;
         } else {
           foreach (var conjunct in Expression.ConjunctsWithLetsOnOutside(attrExpr.E)) {
-            yield return new AttributedExpression(conjunct, attrExpr.Attributes);
+            yield return new AttributedExpression(Token.NoToken, conjunct, attrExpr.Attributes);
           }
         }
       }
     }
 
-    List<SplitExprInfo> /*!*/ TrSplitExpr(BodyTranslationContext context, Expression expr, ExpressionTranslator etran, bool applyInduction,
+    List<SplitExprInfo> /*!*/ TrSplitExpr(IOrigin origin, BodyTranslationContext context, Expression expr, ExpressionTranslator etran, bool applyInduction,
       out bool splitHappened) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, applyInduction, etran);
+      splitHappened = TrSplitExpr(origin, context, expr, splits, true, int.MaxValue, applyInduction, etran);
       return splits;
     }
 
-    List<SplitExprInfo> TrSplitExprForMethodSpec(BodyTranslationContext context, Expression expr, ExpressionTranslator etran, MethodTranslationKind kind) {
+    List<SplitExprInfo> TrSplitExprForMethodSpec(IOrigin origin, BodyTranslationContext context, Expression expr, ExpressionTranslator etran, MethodTranslationKind kind) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
       var applyInduction = kind == MethodTranslationKind.Implementation;
-      TrSplitExpr(context, expr, splits, true, int.MaxValue, applyInduction, etran);
+      TrSplitExpr(origin, context, expr, splits, true, int.MaxValue, applyInduction, etran);
       return splits;
     }
 

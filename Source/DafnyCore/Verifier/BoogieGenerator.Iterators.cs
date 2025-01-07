@@ -75,31 +75,31 @@ namespace Microsoft.Dafny {
       GenerateMethodParametersChoose(iter.Origin, iter, kind,
         true, true, false, etran, inParams, out var outParams);
 
-      var req = new List<Bpl.Requires>();
+      var reqs = new List<Bpl.Requires>();
       var mod = new List<Bpl.IdentifierExpr>();
-      var ens = new List<Bpl.Ensures>();
+      var enses = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh = FunctionContextHeight;
-        req.Add(FreeRequires(iter.Origin, etran.HeightContext(iter), null));
+        reqs.Add(FreeRequires(iter.Origin, etran.HeightContext(iter), null));
       }
       mod.Add(etran.HeapCastToIdentifierExpr);
 
       if (kind != MethodTranslationKind.SpecWellformedness) {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
-        foreach (var p in iter.Requires) {
-          req.Add(FreeRequires(p.E.Origin, etran.CanCallAssumption(p.E), comment, true));
-          var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          if (p.Label != null && kind == MethodTranslationKind.Implementation) {
+        foreach (var req in iter.Requires) {
+          reqs.Add(FreeRequires(req.E.Origin, etran.CanCallAssumption(req.E), comment, true));
+          var (errorMessage, successMessage) = CustomErrorMessage(req.Attributes);
+          if (req.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
-            p.Label.E = etran.Old.TrExpr(p.E);
+            req.Label.E = etran.Old.TrExpr(req.E);
           } else {
-            foreach (var split in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
+            foreach (var split in TrSplitExprForMethodSpec(req.Origin, new BodyTranslationContext(false), req.E, etran, kind)) {
               if (kind == MethodTranslationKind.Call && split.Tok.IsInherited(currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
-                req.Add(Requires(split.Tok, split.IsOnlyFree, p.E, split.E, errorMessage, successMessage, comment));
+                reqs.Add(Requires(split.Tok, split.IsOnlyFree, req.E, split.E, errorMessage, successMessage, comment));
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
@@ -107,27 +107,27 @@ namespace Microsoft.Dafny {
           }
         }
         comment = "user-defined postconditions";
-        foreach (var p in iter.Ensures) {
-          var canCalls = etran.CanCallAssumption(p.E);
-          AddEnsures(ens, FreeEnsures(p.E.Origin, canCalls, comment, true));
+        foreach (var ens in iter.Ensures) {
+          var canCalls = etran.CanCallAssumption(ens.E);
+          AddEnsures(enses, FreeEnsures(ens.E.Origin, canCalls, comment, true));
 
-          foreach (var split in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
+          foreach (var split in TrSplitExprForMethodSpec(ens.Origin, new BodyTranslationContext(false), ens.E, etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && split.Tok.IsInherited(currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
-              ens.Add(Ensures(split.Tok, split.IsOnlyFree, p.E, split.E, null, null, comment));
+              enses.Add(Ensures(split.Tok, split.IsOnlyFree, ens.E, split.E, null, null, comment));
               comment = null;
             }
           }
         }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.Origin, iter.Modifies.Expressions, false, iter.AllowsAllocation, etran.Old, etran, etran.Old)) {
-          ens.Add(Ensures(tri.tok, tri.IsFree, null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
+          enses.Add(Ensures(tri.tok, tri.IsFree, null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
         }
       }
 
       var name = MethodName(iter, kind);
       var proc = new Bpl.Procedure(iter.Origin, name, new List<Bpl.TypeVariable>(),
-        inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
+        inParams, outParams.Values.ToList(), false, reqs, mod, enses, etran.TrAttributes(iter.Attributes, null));
       AddVerboseNameAttribute(proc, iter.FullDafnyName, kind);
 
       currentModule = null;

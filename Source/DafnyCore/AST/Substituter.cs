@@ -941,7 +941,7 @@ namespace Microsoft.Dafny {
 
     protected AttributedExpression SubstMayBeFreeExpr(AttributedExpression expr) {
       Contract.Requires(expr != null);
-      var mfe = new AttributedExpression(Substitute(expr.E));
+      var mfe = new AttributedExpression(expr.Origin, Substitute(expr.E));
       mfe.Attributes = SubstAttributes(expr.Attributes);
       return mfe;
     }
@@ -994,9 +994,9 @@ namespace Microsoft.Dafny {
       if (op == null) {
         return null;
       } else if (op is CalcStmt.BinaryCalcOp) {
-        return new CalcStmt.BinaryCalcOp(((CalcStmt.BinaryCalcOp)op).Op);
+        return new CalcStmt.BinaryCalcOp(op.Token, ((CalcStmt.BinaryCalcOp)op).Op);
       } else if (op is CalcStmt.TernaryCalcOp) {
-        return new CalcStmt.TernaryCalcOp(Substitute(((CalcStmt.TernaryCalcOp)op).Index));
+        return new CalcStmt.TernaryCalcOp(op.Token, Substitute(((CalcStmt.TernaryCalcOp)op).Index));
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException();

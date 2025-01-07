@@ -820,13 +820,13 @@ namespace Microsoft.Dafny {
                 var argSubstMap = e.Function.Ins.Zip(e.Args).ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
                 var directSub = new Substituter(e.Receiver, argSubstMap, e.GetTypeArgumentSubstitutions());
 
-                foreach (AttributedExpression p in ConjunctsOf(e.Function.Req)) {
-                  var directPrecond = directSub.Substitute(p.E);
+                foreach (AttributedExpression requires in ConjunctsOf(e.Function.Req)) {
+                  var directPrecond = directSub.Substitute(requires.E);
 
-                  Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
+                  Expression precond = Substitute(requires.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
                   builder.Add(TrAssumeCmd(precond.Origin, etran.CanCallAssumption(precond)));
-                  var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-                  foreach (var ss in TrSplitExpr(builder.Context, precond, etran, true, out _)) {
+                  var (errorMessage, successMessage) = CustomErrorMessage(requires.Attributes);
+                  foreach (var ss in TrSplitExpr(requires.Origin, builder.Context, precond, etran, true, out _)) {
                     if (ss.IsChecked) {
                       var tok = new NestedOrigin(GetToken(expr), ss.Tok);
                       var desc = new PreconditionSatisfied(directPrecond, errorMessage, successMessage);

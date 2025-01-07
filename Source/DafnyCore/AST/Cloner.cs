@@ -353,7 +353,7 @@ namespace Microsoft.Dafny {
     }
 
     public AttributedExpression CloneAttributedExpr(AttributedExpression expr) {
-      var mfe = new AttributedExpression(CloneExpr(expr.E),
+      var mfe = new AttributedExpression(Origin(expr.Origin), CloneExpr(expr.E),
         expr.Label == null ? null : new AssertLabel(Origin(expr.Label.Tok), expr.Label.Name),
         CloneAttributes(expr.Attributes));
       mfe.Attributes = CloneAttributes(expr.Attributes);
@@ -486,9 +486,9 @@ namespace Microsoft.Dafny {
       if (op == null) {
         return null;
       } else if (op is CalcStmt.BinaryCalcOp) {
-        return new CalcStmt.BinaryCalcOp(((CalcStmt.BinaryCalcOp)op).Op);
+        return new CalcStmt.BinaryCalcOp(op.Token, ((CalcStmt.BinaryCalcOp)op).Op);
       } else if (op is CalcStmt.TernaryCalcOp) {
-        return new CalcStmt.TernaryCalcOp(CloneExpr(((CalcStmt.TernaryCalcOp)op).Index));
+        return new CalcStmt.TernaryCalcOp(op.Token, CloneExpr(((CalcStmt.TernaryCalcOp)op).Index));
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException();

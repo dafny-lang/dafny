@@ -240,10 +240,10 @@ public partial class BoogieGenerator {
 
       builder.Add(TrAssumeCmd(loopInv.E.Origin, BplImp(w, etran.CanCallAssumption(loopInv.E))));
       invariants.Add(TrAssumeCmd(loopInv.E.Origin, BplImp(w, etran.CanCallAssumption(loopInv.E))));
-      var ss = TrSplitExpr(builder.Context, loopInv.E, etran, false, out var splitHappened);
+      var ss = TrSplitExpr(loopInv.Origin, builder.Context, loopInv.E, etran, false, out var splitHappened);
       if (!splitHappened) {
         var wInv = BplImp(w, etran.TrExpr(loopInv.E));
-        invariants.Add(Assert(loopInv.E.Origin, wInv, new LoopInvariant(loopInv.E, errorMessage, successMessage), builder.Context));
+        invariants.Add(Assert(loopInv.Origin, wInv, new LoopInvariant(loopInv.E, errorMessage, successMessage), builder.Context));
       } else {
         foreach (var split in ss) {
           var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);

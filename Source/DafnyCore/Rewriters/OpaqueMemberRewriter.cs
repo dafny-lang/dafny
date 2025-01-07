@@ -142,7 +142,7 @@ public class OpaqueMemberRewriter : IRewriter {
 
     var isStatic = true;
     if (m is ConstantField { Rhs: not null } c) {
-      ens.Add(new AttributedExpression(new BinaryExpr(c.Origin, BinaryExpr.Opcode.Eq, new NameSegment(c.Origin, c.Name, null), c.Rhs)));
+      ens.Add(new AttributedExpression(c.Origin, new BinaryExpr(c.Origin, BinaryExpr.Opcode.Eq, new NameSegment(c.Origin, c.Name, null), c.Rhs)));
       isStatic = m.HasStaticKeyword;
     }
     Method reveal;

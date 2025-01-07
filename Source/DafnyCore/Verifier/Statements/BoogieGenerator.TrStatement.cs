@@ -118,18 +118,18 @@ public partial class BoogieGenerator {
         );
       var fieldSub = new SpecialFieldSubstituter(fieldSubstMap);
 
-      foreach (var p in iter.YieldEnsures) {
-        var ss = TrSplitExpr(builder.Context, p.E, yeEtran, true, out var splitHappened);
+      foreach (var ensures in iter.YieldEnsures) {
+        var ss = TrSplitExpr(ensures.Origin, builder.Context, ensures.E, yeEtran, true, out var splitHappened);
         foreach (var split in ss) {
           if (split.Tok.IsInherited(currentModule)) {
             // this postcondition was inherited into this module, so just ignore it
           } else if (split.IsChecked) {
             var yieldToken = new NestedOrigin(s.Origin, split.Tok);
-            var desc = new YieldEnsures(fieldSub.Substitute(p.E));
+            var desc = new YieldEnsures(fieldSub.Substitute(ensures.E));
             builder.Add(AssertAndForget(builder.Context, yieldToken, split.E, desc, stmt.Origin, null));
           }
         }
-        builder.Add(TrAssumeCmdWithDependencies(yeEtran, stmt.Origin, p.E, "yield ensures clause"));
+        builder.Add(TrAssumeCmdWithDependencies(yeEtran, stmt.Origin, ensures.E, "yield ensures clause"));
       }
       YieldHavoc(iter.Origin, iter, builder, etran);
       builder.AddCaptureState(s);
@@ -571,15 +571,16 @@ public partial class BoogieGenerator {
             }
           }
           TrStmt_CheckWellformed(CalcStmt.Rhs(stmt.Steps[i]), b, locals, etran, false);
-          var ss = TrSplitExpr(builder.Context, stmt.Steps[i], etran, true, out var splitHappened);
+          var origin = stmt.Steps[i].Origin;
+          var ss = TrSplitExpr(origin, builder.Context, stmt.Steps[i], etran, true, out var splitHappened);
           // assert step:
           AddComment(b, stmt, "assert line" + i.ToString() + " " + (stmt.StepOps[i] ?? stmt.Op).ToString() + " line" + (i + 1).ToString());
           if (!splitHappened) {
-            b.Add(AssertAndForget(b.Context, stmt.Lines[i + 1].Origin, etran.TrExpr(stmt.Steps[i]), new CalculationStep(stmt.Steps[i], stmt.Hints[i])));
+            b.Add(AssertAndForget(b.Context, origin, etran.TrExpr(stmt.Steps[i]), new CalculationStep(stmt.Steps[i], stmt.Hints[i])));
           } else {
             foreach (var split in ss) {
               if (split.IsChecked) {
-                b.Add(AssertAndForget(b.Context, stmt.Lines[i + 1].Origin, split.E, new CalculationStep(stmt.Steps[i], stmt.Hints[i])));
+                b.Add(AssertAndForget(b.Context, split.Tok, split.E, new CalculationStep(stmt.Steps[i], stmt.Hints[i])));
               }
             }
           }
