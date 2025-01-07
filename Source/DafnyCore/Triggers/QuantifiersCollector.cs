@@ -47,8 +47,10 @@ namespace Microsoft.Dafny.Triggers {
         Contract.Assert(letExpr.RHSs.Count == 1); // let-such-that expressions have exactly 1 RHS
         // Note, trigger selection adds some attributes. These will remain in the following exists expression. So, Boogie translation needs
         // to look at letExpr.SuchThatExists.Attributes (not letExpr.Attributes) to find them.
-        var existsExpr = new ExistsExpr(letExpr.Origin, letExpr.BoundVars.ToList(), null, letExpr.RHSs[0], letExpr.Attributes);
-        existsExpr.Attributes = new Attributes("_delayTriggerWarning", new List<Expression>(), existsExpr.Attributes);
+        var existsExpr = new ExistsExpr(letExpr.Origin, letExpr.BoundVars.ToList(), null, letExpr.RHSs[0],
+          new Attributes("_delayTriggerWarning", new List<Expression>(), letExpr.Attributes)) {
+          Type = Type.Bool
+        };
 
         ActionsOnSelectedTriggers.Add(() => {
           letExpr.Attributes = existsExpr.Attributes;
@@ -104,8 +106,9 @@ namespace Microsoft.Dafny.Triggers {
         var substituterTo = new Substituter(null, substLocalToBoundVar, new Dictionary<TypeParameter, Type>());
         var existsExpr = new ExistsExpr(assignSuchThatStmt.Origin, boundVars, null,
           substituterTo.Substitute(assignSuchThatStmt.Expr),
-          substituterTo.SubstAttributes(assignSuchThatStmt.Attributes));
-        existsExpr.Attributes = new Attributes("_delayTriggerWarning", new List<Expression>(), existsExpr.Attributes);
+          new Attributes("_delayTriggerWarning", new List<Expression>(), substituterTo.SubstAttributes(assignSuchThatStmt.Attributes))) {
+          Type = Type.Bool
+        };
 
         ActionsOnSelectedTriggers.Add(() => {
           var substituteFrom = new Substituter(null, substBoundVarToLocal, new Dictionary<TypeParameter, Type>());
