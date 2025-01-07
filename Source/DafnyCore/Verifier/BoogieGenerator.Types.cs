@@ -728,12 +728,14 @@ public partial class BoogieGenerator {
       if (zero != null) {
         yield return zero;
       }
+
       foreach (var ctor in dt.Ctors) {
         if (ctor.Formals.Count == 0) {
-          var v = new DatatypeValue(x.Origin, dt.Name, ctor.Name, new List<Expression>());
-          v.Ctor = ctor;  // resolve here
-          v.InferredTypeArgs = xType.TypeArgs; // resolved here.
-          v.Type = xType;  // resolve here
+          var v = new DatatypeValue(x.Origin, dt.Name, ctor.Name, new List<Expression>()) {
+            Ctor = ctor,
+            InferredTypeArgs = xType.TypeArgs,
+            Type = xType
+          };
           yield return v;
         }
       }
@@ -761,23 +763,22 @@ public partial class BoogieGenerator {
 
     var bounds = ModuleResolver.DiscoverAllBounds_SingleVar(x, expr, out _);
     foreach (var bound in bounds) {
-      if (bound is IntBoundedPool) {
-        var bnd = (IntBoundedPool)bound;
-        if (bnd.LowerBound != null) {
-          yield return bnd.LowerBound;
+      if (bound is IntBoundedPool intBoundedPool) {
+        if (intBoundedPool.LowerBound != null) {
+          yield return intBoundedPool.LowerBound;
+        }
+        if (intBoundedPool.UpperBound != null) {
+          yield return Expression.CreateDecrement(intBoundedPool.UpperBound, 1);
         }
 
-        if (bnd.UpperBound != null) {
-          yield return Expression.CreateDecrement(bnd.UpperBound, 1);
-        }
-      } else if (bound is SubSetBoundedPool) {
-        var bnd = (SubSetBoundedPool)bound;
-        yield return bnd.UpperBound;
-      } else if (bound is SuperSetBoundedPool) {
-        var bnd = (SuperSetBoundedPool)bound;
-        yield return bnd.LowerBound;
-      } else if (bound is SetBoundedPool) {
-        var st = ((SetBoundedPool)bound).Set.Resolved;
+      } else if (bound is SubSetBoundedPool subSetBoundedPool) {
+        yield return subSetBoundedPool.UpperBound;
+
+      } else if (bound is SuperSetBoundedPool superSetBoundedPool) {
+        yield return superSetBoundedPool.LowerBound;
+
+      } else if (bound is SetBoundedPool setBoundedPool) {
+        var st = setBoundedPool.Set.Resolved;
         if (st is DisplayExpression) {
           var display = (DisplayExpression)st;
           foreach (var el in display.Elements) {
@@ -789,8 +790,9 @@ public partial class BoogieGenerator {
             yield return maplet.A;
           }
         }
-      } else if (bound is MultiSetBoundedPool) {
-        var st = ((MultiSetBoundedPool)bound).MultiSet.Resolved;
+
+      } else if (bound is MultiSetBoundedPool multiSetBoundedPool) {
+        var st = multiSetBoundedPool.MultiSet.Resolved;
         if (st is DisplayExpression) {
           var display = (DisplayExpression)st;
           foreach (var el in display.Elements) {
@@ -802,16 +804,18 @@ public partial class BoogieGenerator {
             yield return maplet.A;
           }
         }
-      } else if (bound is SeqBoundedPool) {
-        var sq = ((SeqBoundedPool)bound).Seq.Resolved;
+
+      } else if (bound is SeqBoundedPool seqBoundedPool) {
+        var sq = seqBoundedPool.Seq.Resolved;
         var display = sq as DisplayExpression;
         if (display != null) {
           foreach (var el in display.Elements) {
             yield return el;
           }
         }
-      } else if (bound is ExactBoundedPool) {
-        yield return ((ExactBoundedPool)bound).E;
+
+      } else if (bound is ExactBoundedPool exactBoundedPool) {
+        yield return exactBoundedPool.E;
       }
     }
   }
@@ -826,9 +830,7 @@ public partial class BoogieGenerator {
     if (typ is BoolType) {
       return Expression.CreateBoolLiteral(tok, false);
     } else if (typ is CharType) {
-      var z = new CharLiteralExpr(tok, CharType.DefaultValue.ToString());
-      z.Type = Type.Char;  // resolve here
-      return z;
+      return new CharLiteralExpr(tok, CharType.DefaultValue.ToString()) { Type = Type.Char };
     } else if (typ.IsNumericBased(Type.NumericPersuasion.Int)) {
       return Expression.CreateIntLiteral(tok, 0);
     } else if (typ.IsNumericBased(Type.NumericPersuasion.Real)) {
@@ -836,31 +838,19 @@ public partial class BoogieGenerator {
     } else if (typ.IsBigOrdinalType) {
       return Expression.CreateNatLiteral(tok, 0, Type.BigOrdinal);
     } else if (typ.IsBitVectorType) {
-      var z = new LiteralExpr(tok, 0);
-      z.Type = typ;
-      return z;
+      return new LiteralExpr(tok, 0) { Type = typ };
     } else if (typ.IsRefType) {
-      var z = new LiteralExpr(tok);  // null
-      z.Type = typ;
-      return z;
+      return new LiteralExpr(tok) { Type = typ };  // null
     } else if (typ.IsDatatype) {
       return null;  // this can be improved
-    } else if (typ is SetType) {
-      var empty = new SetDisplayExpr(tok, ((SetType)typ).Finite, new List<Expression>());
-      empty.Type = typ;
-      return empty;
+    } else if (typ is SetType setType) {
+      return new SetDisplayExpr(tok, setType.Finite, new List<Expression>()) { Type = typ };
     } else if (typ is MultiSetType) {
-      var empty = new MultiSetDisplayExpr(tok, new List<Expression>());
-      empty.Type = typ;
-      return empty;
+      return new MultiSetDisplayExpr(tok, new List<Expression>()) { Type = typ };
     } else if (typ is SeqType) {
-      var empty = new SeqDisplayExpr(tok, new List<Expression>());
-      empty.Type = typ;
-      return empty;
-    } else if (typ is MapType) {
-      var empty = new MapDisplayExpr(tok, ((MapType)typ).Finite, new List<ExpressionPair>());
-      empty.Type = typ;
-      return empty;
+      return new SeqDisplayExpr(tok, new List<Expression>()) { Type = typ };
+    } else if (typ is MapType mapType) {
+      return new MapDisplayExpr(tok, mapType.Finite, new List<ExpressionPair>()) { Type = typ };
     } else if (typ is ArrowType) {
       // TODO: do better than just returning null
       return null;

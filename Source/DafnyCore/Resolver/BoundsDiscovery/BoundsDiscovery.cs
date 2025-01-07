@@ -375,12 +375,11 @@ namespace Microsoft.Dafny {
           }
           continue;
         }
-        if (conjunct is UnaryOpExpr || conjunct is OldExpr) {
+        if (conjunct is UnaryOpExpr or OldExpr) {
           // we also consider a unary expression sitting immediately inside an old
           var unary = conjunct as UnaryOpExpr ?? ((OldExpr)conjunct).E.Resolved as UnaryOpExpr;
           if (unary != null) {
-            var ide = unary.E.Resolved as IdentifierExpr;
-            if (ide != null && ide.Var == (IVariable)bv) {
+            if (unary.E.Resolved is IdentifierExpr ide && ide.Var == (IVariable)bv) {
               if (unary.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot) {
                 bounds.Add(new ExactBoundedPool(Expression.CreateBoolLiteral(Token.NoToken, false)));
               } else if (unary.ResolvedOp == UnaryOpExpr.ResolvedOpcode.Allocated) {
