@@ -279,6 +279,17 @@ namespace Microsoft.Dafny.Compilers {
       return protectedName;
     }
 
+    private string className(TopLevelDecl dt) {
+      var protectedName = IdName(dt);
+      if (dt.EnclosingModuleDefinition is not null) {
+        var moduleName = IdProtectModule(dt.EnclosingModuleDefinition.Name);
+        if (moduleName == protectedName) {
+          return $"_{protectedName}";
+        }
+      }
+      return protectedName;
+    }
+
     string IdProtectModule(string moduleName) {
       Contract.Requires(moduleName != null);
       return string.Join(".", moduleName.Split(".").Select(IdProtect));
@@ -320,8 +331,9 @@ namespace Microsoft.Dafny.Compilers {
       return $"<{targs.Comma(PrintTypeParameter)}>";
     }
 
-    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string /*?*/ fullPrintName,
+    protected override IClassWriter CreateClass(string moduleName, TopLevelDecl tl, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
+      var name = className(tl);
       var wBody = WriteTypeHeader("partial class", name, typeParameters, superClasses, tok, wr);
 
       ConcreteSyntaxTree/*?*/ wCtorBody = null;
@@ -457,7 +469,7 @@ namespace Microsoft.Dafny.Compilers {
       //     }
       //   }
 
-      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), iter, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), iter, iter, wr);
       var w = cw.InstanceMemberWriter;
       // here come the fields
 
@@ -1250,7 +1262,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), nt, nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var wEnum = w.NewBlock($"public static System.Collections.Generic.IEnumerable<{GetNativeTypeName(nt.NativeType)}> IntegerRange(BigInteger lo, BigInteger hi)");
@@ -1319,7 +1331,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), sst, sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
@@ -2524,6 +2536,10 @@ namespace Microsoft.Dafny.Compilers {
 
       if (cl is DatatypeDecl) {
         return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + dataTypeName(cl as DatatypeDecl);
+      }
+
+      if (cl is ClassDecl) {
+        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + className(cl as ClassDecl);
       }
 
       if (cl.EnclosingModuleDefinition.TryToAvoidName) {

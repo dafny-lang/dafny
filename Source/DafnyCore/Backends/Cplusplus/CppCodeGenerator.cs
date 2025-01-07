@@ -226,9 +226,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string GetHelperModuleName() => "_dafny";
 
-    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
+    protected override IClassWriter CreateClass(string moduleName, TopLevelDecl cl, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
+      var className = "class_" + IdName(cl);
       if (isExtern) {
-        throw new UnsupportedFeatureException(tok, Feature.ExternalClasses, String.Format("extern in class {0}", name));
+        throw new UnsupportedFeatureException(tok, Feature.ExternalClasses, String.Format("extern in class {0}", className));
       }
       if (superClasses != null && superClasses.Any(trait => !trait.IsObject)) {
         throw new UnsupportedFeatureException(tok, Feature.Traits);
@@ -242,17 +243,17 @@ namespace Microsoft.Dafny.Compilers {
         classDefWriter.WriteLine(DeclareTemplate(typeParameters));
       }
 
-      var methodDeclWriter = classDefWriter.NewBlock(string.Format("class {0}", name), ";");
+      var methodDeclWriter = classDefWriter.NewBlock(string.Format("class {0}", className), ";");
       var methodDefWriter = wr;
 
-      classDeclWriter.WriteLine("class {0};", name);
+      classDeclWriter.WriteLine("class {0};", className);
 
       methodDeclWriter.Write("public:\n");
       methodDeclWriter.WriteLine("// Default constructor");
-      methodDeclWriter.WriteLine("{0}() {{}}", name);
+      methodDeclWriter.WriteLine("{0}() {{}}", className);
 
       // Create the code for the specialization of get_default
-      var fullName = moduleName + "::" + name;
+      var fullName = moduleName + "::" + className;
       var getDefaultStr = String.Format("template <{0}>\nstruct get_default<std::shared_ptr<{1}{2} > > {{\n",
         TypeParameters(typeParameters),
         fullName,
@@ -266,7 +267,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var fieldWriter = methodDeclWriter;
 
-      return new ClassWriter(name, this, methodDeclWriter, methodDefWriter, fieldWriter, wr);
+      return new ClassWriter(className, this, methodDeclWriter, methodDefWriter, fieldWriter, wr);
     }
 
     protected override bool SupportsProperties { get => false; }
@@ -615,8 +616,8 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         throw new UnsupportedFeatureException(nt.Origin, Feature.NonNativeNewtypes);
       }
+      var cw = CreateClass(nt.EnclosingModuleDefinition.GetCompileName(Options), nt, nt, wr) as ClassWriter;
       var className = "class_" + IdName(nt);
-      var cw = CreateClass(nt.EnclosingModuleDefinition.GetCompileName(Options), className, nt, wr) as ClassWriter;
       var w = cw.MethodDeclWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
@@ -653,8 +654,8 @@ namespace Microsoft.Dafny.Compilers {
 
       this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.Origin));
 
+      var cw = CreateClass(sst.EnclosingModuleDefinition.GetCompileName(Options), sst, sst, wr) as ClassWriter;
       var className = "class_" + IdName(sst);
-      var cw = CreateClass(sst.EnclosingModuleDefinition.GetCompileName(Options), className, sst, wr) as ClassWriter;
       var w = cw.MethodDeclWriter;
 
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {

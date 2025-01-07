@@ -90,8 +90,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string GetHelperModuleName() => "_dafny";
 
-    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
+    protected override IClassWriter CreateClass(string moduleName, TopLevelDecl cl, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
+        var name = IdName(cl);
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}" + (isExtern ? " extends $module.{0}" : ""), name), ";");
       w.Write("constructor (");
       var sep = "";
@@ -160,7 +161,7 @@ namespace Microsoft.Dafny.Compilers {
       //     }
       //   }
 
-      var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), iter, wr) as JavaScriptCodeGenerator.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), iter, iter, wr) as JavaScriptCodeGenerator.ClassWriter;
       var w = cw.MethodWriter;
       var instanceFieldsWriter = cw.FieldWriter;
       // here come the fields
@@ -575,7 +576,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), nt, nt, wr);
       var w = cw.MethodWriter;
       if (nt.NativeType != null) {
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
@@ -638,7 +639,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), sst, sst, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(sst.Origin, sst);
       string d;

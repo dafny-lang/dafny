@@ -218,15 +218,15 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
     protected virtual bool InstanceMethodsAllowedToCallTraitMethods => true;
-    protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl cls, ConcreteSyntaxTree wr) {
-      return CreateClass(moduleName, name, false, null, cls.TypeArgs,
+    protected IClassWriter CreateClass(string moduleName, TopLevelDecl cl, TopLevelDecl cls, ConcreteSyntaxTree wr) {
+      return CreateClass(moduleName, cl, false, null, cls.TypeArgs,
         cls, (cls as TopLevelDeclWithMembers)?.ParentTypeInformation.UniqueParentTraits(), null, wr);
     }
 
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
+    protected abstract IClassWriter CreateClass(string moduleName, TopLevelDecl cl, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr);
 
     /// <summary>
@@ -1685,7 +1685,7 @@ namespace Microsoft.Dafny.Compilers {
 
           if (include) {
             var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
-              IdName(defaultClassDecl),
+              defaultClassDecl,
               classIsExtern, defaultClassDecl.FullName,
               defaultClassDecl.TypeArgs, defaultClassDecl,
               defaultClassDecl.ParentTypeInformation.UniqueParentTraits(), defaultClassDecl.Origin, wr);
@@ -1700,7 +1700,7 @@ namespace Microsoft.Dafny.Compilers {
           var (classIsExtern, include) = GetIsExternAndIncluded(cl);
 
           if (include) {
-            var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl),
+            var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), cl,
               classIsExtern, cl.FullName,
               cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.Origin, wr);
             CompileClassMembers(program, cl, cw);
