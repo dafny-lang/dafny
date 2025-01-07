@@ -4513,7 +4513,7 @@ namespace Microsoft.Dafny {
           yield return attrExpr;
         } else {
           foreach (var conjunct in Expression.ConjunctsWithLetsOnOutside(attrExpr.E)) {
-            yield return new AttributedExpression(conjunct, attrExpr.Attributes);
+            yield return new AttributedExpression(Token.NoToken, conjunct, attrExpr.Attributes);
           }
         }
       }

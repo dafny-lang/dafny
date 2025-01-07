@@ -67,27 +67,27 @@ namespace Microsoft.Dafny {
         case NestedMatchExpr nestedMatchExpr:
           return TrSplitExpr(origin, context, nestedMatchExpr.Flattened, splits, position, heightLimit, applyInduction, etran);
         case LetExpr letExpr: {
-          if (!letExpr.Exact) {
+            if (!letExpr.Exact) {
               var d = etran.LetDesugaring(letExpr);
               return TrSplitExpr(origin, context, d, splits, position, heightLimit, applyInduction, etran);
-          }
-
-          var ss = new List<SplitExprInfo>();
-          if (TrSplitExpr(letExpr.Body.Origin, context, letExpr.Body, ss, position, heightLimit, applyInduction, etran)) {
-            // We don't know where the RHSs of the let are used in the body. In particular, we don't know if a RHS
-            // will end up in a spot where TrSplitExpr would like to increase the Layer offset or not. In fact, different
-            // uses of the same let variable may end up needing different Layer constants. The following code will
-            // always bump the Layer offset in the RHS. This seems likely to be desireable in many cases, because the
-            // LetExpr sits in a position for which TrSplitExpr is invoked.
-            etran.LayerOffset(1).TrLetExprPieces(letExpr, out var lhss, out var rhss);
-            foreach (var s in ss) {
-              // as the source location in the following let, use that of the translated "s"
-              splits.Add(ToSplitExprInfo(s.Kind, new Bpl.LetExpr(s.E.tok, lhss, rhss, null, s.E)));
             }
-            return true;
-          }
 
-          break;
+            var ss = new List<SplitExprInfo>();
+            if (TrSplitExpr(letExpr.Body.Origin, context, letExpr.Body, ss, position, heightLimit, applyInduction, etran)) {
+              // We don't know where the RHSs of the let are used in the body. In particular, we don't know if a RHS
+              // will end up in a spot where TrSplitExpr would like to increase the Layer offset or not. In fact, different
+              // uses of the same let variable may end up needing different Layer constants. The following code will
+              // always bump the Layer offset in the RHS. This seems likely to be desireable in many cases, because the
+              // LetExpr sits in a position for which TrSplitExpr is invoked.
+              etran.LayerOffset(1).TrLetExprPieces(letExpr, out var lhss, out var rhss);
+              foreach (var s in ss) {
+                // as the source location in the following let, use that of the translated "s"
+                splits.Add(ToSplitExprInfo(s.Kind, new Bpl.LetExpr(s.E.tok, lhss, rhss, null, s.E)));
+              }
+              return true;
+            }
+
+            break;
           }
         case UnchangedExpr unchangedExpr: {
             var e = unchangedExpr;

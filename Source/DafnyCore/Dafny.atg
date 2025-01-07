@@ -1299,17 +1299,18 @@ RequiresClause<.List<AttributedExpression> req, bool allowLabel.>
     LabelName<out lbl> ":"
   ]
   Expression<out e, false, false>
-  OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
+  OldSemi       (. req.Add(new AttributedExpression(new SourceOrigin(t, e.EndToken), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
 EnsuresClause<.List<AttributedExpression> ens, bool allowLambda.>
 = "ensures"     (. Expression e;
+                   Token start = t;
                    Attributes attrs = null;
                  .)
   { Attribute<ref attrs> }
   Expression<out e, false, allowLambda>
-    OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
+    OldSemi       (. ens.Add(new AttributedExpression(new SourceOrigin(start, e.EndToken), e, attrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1354,9 +1355,10 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads, ref Attributes attrs,
 InvariantClause<. List<AttributedExpression> invariants.> =
   "invariant"                                   (. Attributes attrs = null;
                                                    Expression e;
+                                                   Token start = t;
                                                 .)
   { Attribute<ref attrs> }
-  Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
+  Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(new SourceOrigin(t, e.EndToken), e, attrs)); .)
   OldSemi
   .
 

@@ -585,7 +585,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       Body = bodyExpr;
 
       if (Req.Any() || Ens.Any()) {
-        Req.Insert(0, new AttributedExpression(reqExpr));
+        Req.Insert(0, new AttributedExpression(Token.NoToken, reqExpr));
       }
     }
 

@@ -169,7 +169,7 @@ public class ExpectContracts : IRewriter {
     };
     var fn = Expression.CreateResolvedCall(tok, receiver, f, f.Ins.ConvertAll(Expression.CreateIdentExpr),
       f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.Origin, typeParameter)), systemModuleManager);
-    var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
+    var post = new AttributedExpression(Token.NoToken, new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
       Type = Type.Bool
     });
     // If f.Reads is empty, replace it with an explicit `reads {}` so that we don't replace that
