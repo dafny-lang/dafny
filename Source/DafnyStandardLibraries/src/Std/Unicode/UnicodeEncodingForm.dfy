@@ -275,7 +275,7 @@ abstract module Std.Unicode.UnicodeEncodingForm {
     s := [];
     ghost var unflattened: seq<MinimalWellFormedCodeUnitSeq> := [];
     for i := |vs| downto 0
-      invariant unflattened == Seq.Map(EncodeScalarValue, vs[i..])
+      invariant unflattened == Seq.MapPartialFunction(EncodeScalarValue, vs[i..])
       invariant s == Seq.Flatten(unflattened)
     {
       var next: MinimalWellFormedCodeUnitSeq := EncodeScalarValue(vs[i]);
@@ -292,12 +292,12 @@ abstract module Std.Unicode.UnicodeEncodingForm {
     ensures EncodeScalarSequence(vs) == s
   {
     var parts := PartitionCodeUnitSequence(s);
-    var vs := Seq.Map(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
+    var vs := Seq.MapPartialFunction(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
     calc == {
       s;
       Seq.Flatten(parts);
-      { assert parts == Seq.Map(EncodeScalarValue, vs); }
-      Seq.Flatten(Seq.Map(EncodeScalarValue, vs));
+      { assert parts == Seq.MapPartialFunction(EncodeScalarValue, vs); }
+      Seq.Flatten(Seq.MapPartialFunction(EncodeScalarValue, vs));
       EncodeScalarSequence(vs);
     }
     vs
@@ -324,12 +324,12 @@ abstract module Std.Unicode.UnicodeEncodingForm {
       return None;
     }
     var parts := maybeParts.value;
-    var vs := Seq.Map(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
+    var vs := Seq.MapPartialFunction(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
     calc == {
       s;
       Seq.Flatten(parts);
-      { assert parts == Seq.Map(EncodeScalarValue, vs); }
-      Seq.Flatten(Seq.Map(EncodeScalarValue, vs));
+      { assert parts == Seq.MapPartialFunction(EncodeScalarValue, vs); }
+      Seq.Flatten(Seq.MapPartialFunction(EncodeScalarValue, vs));
       EncodeScalarSequence(vs);
     }
     return Some(vs);

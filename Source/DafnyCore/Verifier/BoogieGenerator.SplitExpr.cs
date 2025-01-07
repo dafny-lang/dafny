@@ -320,6 +320,7 @@ namespace Microsoft.Dafny {
                 if (!position) {
                   ihBody = Bpl.Expr.Not(ihBody);
                 }
+                ihBody = BplAnd(etran.CanCallAssumption(bodyK), ihBody);
                 ihBody = BplImp(less, ihBody);
                 List<Variable> bvars = new List<Variable>();
                 Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
