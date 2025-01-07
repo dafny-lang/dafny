@@ -717,11 +717,6 @@ public partial class BoogieGenerator {
       yield break;  // there are no more possible witnesses for booleans
     } else if (xType is CharType) {
       // TODO: something could be done for character literals
-    } else if (xType.IsBitVectorType) {
-      // TODO: something could be done for bitvectors
-    } else if (xType.IsRefType) {
-      var lit = new LiteralExpr(x.Origin) { Type = xType };  // null
-      yield return lit;
     } else if (xType.IsDatatype) {
       var dt = xType.AsDatatype;
       Expression zero = Zero(x.Origin, xType);
@@ -739,26 +734,8 @@ public partial class BoogieGenerator {
           yield return v;
         }
       }
-    } else if (xType is SetType) {
-      var empty = new SetDisplayExpr(x.Origin, ((SetType)xType).Finite, new List<Expression>());
-      empty.Type = xType;
-      yield return empty;
-    } else if (xType is MultiSetType) {
-      var empty = new MultiSetDisplayExpr(x.Origin, new List<Expression>());
-      empty.Type = xType;
-      yield return empty;
-    } else if (xType is SeqType) {
-      var empty = new SeqDisplayExpr(x.Origin, new List<Expression>());
-      empty.Type = xType;
-      yield return empty;
-    } else if (xType.IsNumericBased(Type.NumericPersuasion.Int)) {
-      var lit = new LiteralExpr(x.Origin, 0);
-      lit.Type = xType;  // resolve here
-      yield return lit;
-    } else if (xType.IsNumericBased(Type.NumericPersuasion.Real)) {
-      var lit = new LiteralExpr(x.Origin, BaseTypes.BigDec.ZERO);
-      lit.Type = xType;  // resolve here
-      yield return lit;
+    } else if (Zero(x.Origin, xType) is { } zero) {
+      yield return zero;
     }
 
     var bounds = ModuleResolver.DiscoverAllBounds_SingleVar(x, expr, out _);
@@ -778,37 +755,21 @@ public partial class BoogieGenerator {
         yield return superSetBoundedPool.LowerBound;
 
       } else if (bound is SetBoundedPool setBoundedPool) {
-        var st = setBoundedPool.Set.Resolved;
-        if (st is DisplayExpression) {
-          var display = (DisplayExpression)st;
+        if (setBoundedPool.Set.Resolved is DisplayExpression display) {
           foreach (var el in display.Elements) {
             yield return el;
-          }
-        } else if (st is MapDisplayExpr) {
-          var display = (MapDisplayExpr)st;
-          foreach (var maplet in display.Elements) {
-            yield return maplet.A;
           }
         }
 
       } else if (bound is MultiSetBoundedPool multiSetBoundedPool) {
-        var st = multiSetBoundedPool.MultiSet.Resolved;
-        if (st is DisplayExpression) {
-          var display = (DisplayExpression)st;
+        if (multiSetBoundedPool.MultiSet.Resolved is DisplayExpression display) {
           foreach (var el in display.Elements) {
             yield return el;
-          }
-        } else if (st is MapDisplayExpr) {
-          var display = (MapDisplayExpr)st;
-          foreach (var maplet in display.Elements) {
-            yield return maplet.A;
           }
         }
 
       } else if (bound is SeqBoundedPool seqBoundedPool) {
-        var sq = seqBoundedPool.Seq.Resolved;
-        var display = sq as DisplayExpression;
-        if (display != null) {
+        if (seqBoundedPool.Seq.Resolved is DisplayExpression display) {
           foreach (var el in display.Elements) {
             yield return el;
           }
