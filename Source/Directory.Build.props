@@ -1,6 +1,7 @@
 <Project>
 
   <PropertyGroup>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <VersionPrefix>4.9.2</VersionPrefix>
     <NoWarn>1701;1702;VSTHRD200</NoWarn>
   </PropertyGroup>

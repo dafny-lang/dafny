@@ -8,7 +8,6 @@
     <OutputPath>..\..\Binaries\</OutputPath>
     <IsPackable>true</IsPackable>
     <DefineConstants>TRACE</DefineConstants>
-    <TargetFramework>net8.0</TargetFramework>
       <RollForward>Major</RollForward>
     <Nullable>enable</Nullable>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>

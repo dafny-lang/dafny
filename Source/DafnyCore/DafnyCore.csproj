@@ -17,7 +17,6 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <TargetFramework>net8.0</TargetFramework>
     <RollForward>Major</RollForward>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     

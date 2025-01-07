@@ -5,7 +5,6 @@
       <AssemblyName>DafnyDriver</AssemblyName>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
-      <TargetFramework>net8.0</TargetFramework>
       <RollForward>Major</RollForward>
       <OutputPath>..\..\Binaries\</OutputPath>
       <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
