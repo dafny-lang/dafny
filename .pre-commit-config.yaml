@@ -4,7 +4,6 @@ repos:
     -   id: dotnet-format
         name: dotnet-format
         language: system
-        # entry: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude Source/DafnyCore/GeneratedFromDafny.cs --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
         entry: dotnet format whitespace Source/Dafny.sln -v:d --include
         exclude: 'Source/DafnyCore/Scanner.cs|Source/DafnyCore/Parser.cs|.git/modules/Source/boogie|Source/DafnyCore/GeneratedFromDafny|Source/DafnyCore.Test/GeneratedFromDafny|Source/DafnyRuntime/DafnyRuntimeSystemModule.cs'
         types_or: ["c#"]

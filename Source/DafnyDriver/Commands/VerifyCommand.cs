@@ -198,7 +198,7 @@ public static class VerifyCommand {
           diagnostic.Message);
       }
     });
-    
+
   }
 
   public static async Task LogVerificationResults(CliCompilation cliCompilation, ResolutionResult resolution,

@@ -36,7 +36,7 @@ public record DafnyDiagnostic(MessageSource Source, string ErrorId, IOrigin Toke
 
 class OriginCenterComparer : IComparer<IOrigin> {
   public static readonly OriginCenterComparer Instance = new();
-  
+
   public int Compare(IOrigin? x, IOrigin? y) {
     if (x == null) {
       return -1;
