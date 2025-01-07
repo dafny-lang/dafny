@@ -298,7 +298,7 @@ namespace Microsoft.Dafny.Compilers {
         protectedModuleName = hasNameClash ? "_N" + protectedModuleName : protectedModuleName;
         moduleNameMapping.Add(moduleName, protectedModuleName);
       }
-      return wr.NewBlock($"namespace {protectedModuleName}", " // end of " + $"namespace _N{moduleName}");
+      return wr.NewBlock($"namespace {protectedModuleName}", " // end of " + $"namespace {protectedModuleName}");
     }
 
     protected override string GetHelperModuleName() => DafnyHelpersClass;
