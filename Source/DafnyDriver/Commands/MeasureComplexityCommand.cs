@@ -18,7 +18,7 @@ static class MeasureComplexityCommand {
     Iterations,
     RandomSeed,
     Format,
-    TopX,
+    WorstAmountOption,
     VerifyCommand.FilterSymbol,
     VerifyCommand.FilterPosition,
   }.Concat(DafnyCommands.VerificationOptions).
@@ -32,14 +32,14 @@ static class MeasureComplexityCommand {
     OptionRegistry.RegisterOption(Iterations, OptionScope.Cli);
     OptionRegistry.RegisterOption(RandomSeed, OptionScope.Cli);
     OptionRegistry.RegisterOption(Format, OptionScope.Cli);
-    OptionRegistry.RegisterOption(TopX, OptionScope.Cli);
+    OptionRegistry.RegisterOption(WorstAmountOption, OptionScope.Cli);
   }
 
   enum ComplexityFormat { Text, Json, LineBased }
   private static readonly Option<ComplexityFormat> Format = new("--format", 
     $"Specify the format in which the complexity data is presented");
   
-  private static readonly Option<uint> TopX = new("--worst-amount", () => 10U,
+  private static readonly Option<uint> WorstAmountOption = new("--worst-amount", () => 10U,
     $"Configures the amount of worst performing verification tasks that are reported.");
 
   private static readonly Option<uint> RandomSeed = new("--random-seed", () => 0U,
@@ -109,7 +109,10 @@ static class MeasureComplexityCommand {
     PriorityQueue<VerificationTaskResult, int> worstPerformers = new();
 
     var totalResources = 0L;
-    var worstAmount = cliCompilation.Options.Get(TopX);
+    var worstAmount = cliCompilation.Options.Get(WorstAmountOption);
+    if (worstAmount == 0) {
+      worstAmount = int.MaxValue;
+    }
     verificationResults.Subscribe(result => {
       foreach (var taskResult in result.Results) {
         var runResult = taskResult.Result;
