@@ -1,9 +1,5 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using Microsoft.Boogie;
-using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.EventHandlers;
-using Xunit.Abstractions;
-using XUnitExtensions.Lit;
 
 namespace IntegrationTests;
 
@@ -64,15 +60,5 @@ public class UpdateTests {
       var error = await errorTask;
       var exitCode = process.ExitCode;
     }
-  }
-}
-
-class OutputHelper : ITestOutputHelper {
-  public void WriteLine(string message) {
-    throw new System.NotImplementedException();
-  }
-
-  public void WriteLine(string format, params object[] args) {
-    throw new System.NotImplementedException();
   }
 }

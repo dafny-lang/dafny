@@ -8,8 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\IntegrationTests\IntegrationTests.csproj" />
-      <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
     </ItemGroup>
 
 </Project>
