@@ -193,13 +193,35 @@ public static class VerifyCommand {
           completed.Result, batchReporter);
       }
 
-      foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token.Center)) {
+      foreach (var diagnostic in batchReporter.AllMessages.OrderBy(d => d.Token, new OriginCenterComparer())) {
         compilation.Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
           diagnostic.Message);
       }
     });
+    
   }
+  class OriginCenterComparer : IComparer<IOrigin>
+  {
+    public int Compare(IOrigin? x, IOrigin? y) {
+      if (x == null) {
+        return -1;
+      }
 
+      if (y == null) {
+        return 1;
+      }
+
+      if (x is NestedOrigin nestedX && y is NestedOrigin nestedY) {
+        var outer = Compare(nestedX.Outer, nestedY.Outer);
+        if (outer != 0) {
+          return outer;
+        }
+
+        return Compare(nestedX.Inner, nestedY.Inner);
+      }
+      return x.Center.CompareTo(y.Center);
+    }
+  }
 
   public static async Task LogVerificationResults(CliCompilation cliCompilation, ResolutionResult resolution,
     IObservable<CanVerifyResult> verificationResults) {
