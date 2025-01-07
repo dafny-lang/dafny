@@ -265,6 +265,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<{CharTypeName}>> {argsParameterName})");
     }
 
+    // Mapping of Dafny module name to C# module names. The C# module names could be changed to
+    // avoid name clash between a namespace and a datatype declared within it.
     private IDictionary<string, string> moduleNameMapping = new Dictionary<string, string>();
 
     string IdProtectModule(string moduleName) {
