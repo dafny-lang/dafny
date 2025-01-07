@@ -40,6 +40,8 @@ public class UpdateTests {
       repoRoot = Path.GetDirectoryName(repoRoot)!;
     }
 
+    Console.WriteLine($"Tests to update:\n{string.Join("\n", failedTestNames)}\n");
+    
     var needsBuilds = true;
     for (var index = 0; index < failedTestNames.Count; index++) {
       Console.WriteLine($"Updating test {index+1}/{failedTestNames.Count}");
