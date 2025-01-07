@@ -562,14 +562,14 @@ module Std.Arithmetic.Power {
   }
 
   /* b^e % b = 0 */
-  lemma LemmaPowMod(b: nat, e: nat)
+  lemma {:induction false} LemmaPowMod(b: nat, e: nat)
     requires b > 0 && e > 0
     ensures Pow(b, e) % b == 0
   {
     calc {
       Pow(b, e) % b;
       (b * Pow(b, e - 1)) % b;
-      { LemmaMulIsAssociativeAuto(); }
+      { LemmaMulIsCommutative(b, Pow(b, e - 1)); }
       (Pow(b, e - 1) * b) % b;
       {
         LemmaPowPositiveAuto();

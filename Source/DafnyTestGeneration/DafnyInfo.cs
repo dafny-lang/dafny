@@ -482,7 +482,7 @@ namespace DafnyTestGeneration {
             isValidExpression = false;
             return base.CloneExpr(expr);
           case ThisExpr:
-            return new IdentifierExpr(expr.Tok, receiver);
+            return new IdentifierExpr(expr.Origin, receiver);
           case AutoGhostIdentifierExpr:
             isValidExpression = false;
             return base.CloneExpr(expr);
@@ -521,7 +521,7 @@ namespace DafnyTestGeneration {
               }
               if ((identifierExpr.Var != null) &&
                   subst.ContainsKey(identifierExpr.Var)) {
-                return new IdentifierExpr(expr.Tok, subst[identifierExpr.Var]);
+                return new IdentifierExpr(expr.Origin, subst[identifierExpr.Var]);
               }
               return base.CloneExpr(expr);
             }
@@ -532,7 +532,7 @@ namespace DafnyTestGeneration {
                 return base.CloneExpr(expr);
               }
               if (memberSelectExpr.Obj is StaticReceiverExpr staticReceiverExpr) {
-                return new IdentifierExpr(expr.Tok,
+                return new IdentifierExpr(expr.Origin,
                   ((staticReceiverExpr.Type) as UserDefinedType).ResolvedClass
                   .FullDafnyName + "." + memberSelectExpr.MemberName);
               }

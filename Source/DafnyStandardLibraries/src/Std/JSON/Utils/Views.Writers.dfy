@@ -8,7 +8,6 @@
  */
 module Std.JSON.Utils.Views.Writers {
   import opened BoundedInts
-  import opened Wrappers
   import opened Core
 
   datatype Chain =

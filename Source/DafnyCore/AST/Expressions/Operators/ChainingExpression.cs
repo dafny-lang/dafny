@@ -24,9 +24,9 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
     E = ComputeDesugaring(Operands, Operators, OperatorLocs, PrefixLimits);
   }
 
-  public ChainingExpression(IOrigin tok, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IOrigin> operatorLocs, List<Expression/*?*/> prefixLimits)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public ChainingExpression(IOrigin origin, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IOrigin> operatorLocs, List<Expression/*?*/> prefixLimits)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(operands != null);
     Contract.Requires(operators != null);
     Contract.Requires(operatorLocs != null);

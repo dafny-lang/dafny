@@ -18,15 +18,15 @@ public partial class BoogieGenerator {
     AddComment(builder, revealStmt, "hide/reveal statement");
     foreach (var la in revealStmt.LabeledAsserts) {
       Contract.Assert(la.E != null);  // this should have been filled in by now
-      builder.Add(new AssumeCmd(revealStmt.Tok, la.E));
+      builder.Add(new AssumeCmd(revealStmt.Origin, la.E));
     }
 
     if (builder.Context.ContainsHide) {
       if (revealStmt.Wildcard) {
-        builder.Add(new HideRevealCmd(revealStmt.Tok, revealStmt.Mode));
+        builder.Add(new HideRevealCmd(revealStmt.Origin, revealStmt.Mode));
       } else {
         foreach (var member in revealStmt.OffsetMembers) {
-          builder.Add(new HideRevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName), revealStmt.Mode));
+          builder.Add(new HideRevealCmd(new Bpl.IdentifierExpr(revealStmt.Origin, member.FullSanitizedName), revealStmt.Mode));
         }
       }
     }
@@ -65,7 +65,7 @@ public partial class BoogieGenerator {
 
           e = BplAnd(e, Expr.Eq(startFuel, layer));
           e = BplAnd(e, Expr.Eq(startFuelAssert, layerAssert));
-          e = BplAnd(e, Expr.Eq(FunctionCall(f.Tok, BuiltinFunction.AsFuelBottom, null, moreFuelExpr), moreFuelExpr));
+          e = BplAnd(e, Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.AsFuelBottom, null, moreFuelExpr), moreFuelExpr));
 
           return e;
         }

@@ -53,9 +53,9 @@ class ExtremeLemmaSpecificationSubstituter : ExtremeCloner {
         var op = e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp;
         var A = CloneExpr(e.E0);
         var B = CloneExpr(e.E1);
-        var teq = new TernaryExpr(Origin(e.Tok), op, k, A, B);
+        var teq = new TernaryExpr(Origin(e.Origin), op, k, A, B);
         var opString = op == TernaryExpr.Opcode.PrefixEqOp ? "==" : "!=";
-        reporter.Info(MessageSource.Cloner, e.Tok, opString + suffix);
+        reporter.Info(MessageSource.Cloner, e.Origin, opString + suffix);
         return teq;
       }
     }
@@ -66,7 +66,7 @@ class ExtremeLemmaSpecificationSubstituter : ExtremeCloner {
       var tt = (UserDefinedType)t;
       // We want syntactic cloning of the Expression that is tt.NamePath, unlike the semantic (that is, post-resolved)
       // cloning that CloneExpr is doing above.
-      return new UserDefinedType(Origin(tt.Tok), CloneNamePathExpression(tt.NamePath));
+      return new UserDefinedType(Origin(tt.Origin), CloneNamePathExpression(tt.NamePath));
     } else {
       return base.CloneType(t);
     }
@@ -78,7 +78,7 @@ class ExtremeLemmaSpecificationSubstituter : ExtremeCloner {
       return new NameSegment(this, e);
     } else {
       var e = (ExprDotName)expr;
-      return new ExprDotName(Origin(e.Tok), CloneNamePathExpression(e.Lhs), e.SuffixNameNode, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+      return new ExprDotName(Origin(e.Origin), CloneNamePathExpression(e.Lhs), e.SuffixNameNode, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
     }
   }
 }

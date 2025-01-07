@@ -1,4 +1,4 @@
-matrix-accesses-are-triggers.dfy(7,11): Info: Selected triggers: {m[j, _t#0], m[i, j]}
+matrix-accesses-are-triggers.dfy(7,11): Info: Selected triggers: {m[j, _t#0], m[i, j]} where _t#0 := i + 1
 matrix-accesses-are-triggers.dfy(7,82): Error: index 0 out of range
 matrix-accesses-are-triggers.dfy(7,86): Error: index 1 out of range
 

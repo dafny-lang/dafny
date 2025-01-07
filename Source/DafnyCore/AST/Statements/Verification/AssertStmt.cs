@@ -25,9 +25,9 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     return assertFalse;
   }
 
-  public AssertStmt(IOrigin rangeOrigin, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
-    : base(rangeOrigin, expr, attrs) {
-    Contract.Requires(rangeOrigin != null);
+  public AssertStmt(IOrigin origin, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
+    : base(origin, expr, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     Label = label;
   }
@@ -48,7 +48,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (this.HasUserAttribute("only", out _)) {
-      yield return new Assumption(decl, Tok, AssumptionDescription.AssertOnly);
+      yield return new Assumption(decl, Origin, AssumptionDescription.AssertOnly);
     }
   }
 

@@ -90,6 +90,13 @@ module Std.Arithmetic.MulInternals {
     }
   }
 
+  lemma LemmaMulDistributesSpecific(x:int, y:int, z:int)
+    ensures (x + y) * z == x * z + y * z
+    ensures (x - y) * z == x * z - y * z
+  {
+    LemmaMulDistributes();
+  }
+
   /* groups distributive and associative properties of multiplication */
   ghost predicate MulAuto()
   {

@@ -81,9 +81,9 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
       atLabel) {
   }
 
-  public FunctionCallExpr(IOrigin tok, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
-    : this(tok, fn, receiver, openParen, closeParen, new ActualBindings(args), atLabel) {
-    Contract.Requires(tok != null);
+  public FunctionCallExpr(IOrigin origin, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
+    : this(origin, fn, receiver, openParen, closeParen, new ActualBindings(args), atLabel) {
+    Contract.Requires(origin != null);
     Contract.Requires(fn != null);
     Contract.Requires(receiver != null);
     Contract.Requires(cce.NonNullElements(args));
@@ -91,9 +91,9 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
     Contract.Ensures(type == null);
   }
 
-  public FunctionCallExpr(IOrigin tok, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public FunctionCallExpr(IOrigin origin, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(fn != null);
     Contract.Requires(receiver != null);
     Contract.Requires(bindings != null);
@@ -113,9 +113,9 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
   /// This constructor is intended to be used when constructing a resolved FunctionCallExpr. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public FunctionCallExpr(IOrigin tok, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] List<Expression> args,
+  public FunctionCallExpr(IOrigin origin, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] List<Expression> args,
     Label /*?*/ atLabel = null)
-    : this(tok, fn, receiver, openParen, closeParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
+    : this(origin, fn, receiver, openParen, closeParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 

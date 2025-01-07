@@ -35,9 +35,9 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
     Bindings = new ActualBindings(cloner, original.Bindings);
   }
 
-  public ApplySuffix(IOrigin tok, IOrigin/*?*/ atLabel, Expression lhs, List<ActualBinding> args, Token closeParen)
-    : base(tok, lhs) {
-    Contract.Requires(tok != null);
+  public ApplySuffix(IOrigin origin, IOrigin/*?*/ atLabel, Expression lhs, List<ActualBinding> args, Token closeParen)
+    : base(origin, lhs) {
+    Contract.Requires(origin != null);
     Contract.Requires(lhs != null);
     Contract.Requires(cce.NonNullElements(args));
     AtTok = atLabel;

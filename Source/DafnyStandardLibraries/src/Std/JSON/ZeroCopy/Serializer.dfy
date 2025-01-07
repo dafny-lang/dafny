@@ -493,7 +493,9 @@ module Std.JSON.ZeroCopy.Serializer {
     for i := 0 to |members| // FIXME uint32
       invariant wr == MembersSpec(obj, members[..i], writer)
     {
-      assert members[..i+1][..i] == members[..i];
+      assert members[..i+1][..i] == members[..i] by {
+        Seq.TakeLess(members, i, i + 1);
+      }
       wr := Member(obj, members[i], wr);
     }
     assert members[..|members|] == members;
