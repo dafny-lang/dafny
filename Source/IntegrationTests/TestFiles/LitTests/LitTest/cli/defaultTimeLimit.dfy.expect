@@ -1,0 +1,7 @@
+TestFiles/LitTests/LitTest/cli/defaultTimeLimit.dfy(4,7): Error: Verification of 'Foo' timed out after 30 seconds
+  |
+4 | method Foo() {
+  |        ^^^
+
+
+Dafny program verifier finished with 1 verified, 0 errors, 1 time out
