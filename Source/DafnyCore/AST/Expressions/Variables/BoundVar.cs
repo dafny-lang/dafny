@@ -8,11 +8,10 @@ namespace Microsoft.Dafny;
 public class BoundVar : NonglobalVariable {
   public override bool IsMutable => false;
 
-  public BoundVar(string name, Type type) : this(Token.NoToken, new Name(Token.NoToken, name), type) { }
-  public BoundVar(IOrigin origin, string name, Type type) : this(origin, new Name(origin.StartToken, name), type) { }
+  public BoundVar(IOrigin origin, string name, Type type, bool isGhost = false) : this(origin, new Name(origin.StartToken, name), type, isGhost) { }
 
-  public BoundVar(IOrigin origin, Name name, Type type)
-    : base(origin, name, type, false) {
+  public BoundVar(IOrigin origin, Name name, Type type, bool isGhost)
+    : base(origin, name, type, isGhost) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
