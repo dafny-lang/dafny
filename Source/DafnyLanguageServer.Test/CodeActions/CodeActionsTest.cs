@@ -1,4 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
 using Xunit.Abstractions;
-using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
   public class CodeActionTest : ClientBasedLanguageServerTest {
@@ -82,6 +81,13 @@ method><".TrimStart(), out var source, out var positions,
 method NoCodeAction() {
   assert fal><se;
 }");
+    }
+
+    [Fact]
+    public async Task TestEnsureFalseNotSuggestingItself() {
+      await TestNoCodeAction(@"
+method NoCodeAction() ensures f><alse {
+}", excepted: message => message == "Assert postcondition at return location where it fails");
     }
 
     [Fact]
@@ -379,7 +385,7 @@ function Foo(i: int): int
 
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
-    private async Task TestNoCodeAction(string source) {
+    private async Task TestNoCodeAction(string source, Func<string, bool> excepted = null) {
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
       MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions,
         out var ranges);
@@ -388,6 +394,10 @@ function Foo(i: int): int
       Assert.Equal(0, ranges.Count);
       foreach (var position in positions) {
         var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
+        completionList = excepted == null
+          ? completionList
+          : completionList.Where(completion =>
+            completion.CodeAction is not { Title: var title } || !excepted(title)).ToList();
         Assert.Empty(completionList);
       }
     }
