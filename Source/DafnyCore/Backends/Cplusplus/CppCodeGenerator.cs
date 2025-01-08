@@ -228,14 +228,14 @@ namespace Microsoft.Dafny.Compilers {
 
     private string clName(TopLevelDecl cl) {
       var className = IdName(cl);
-      if (className == "__default" || true) {
+      if (cl is ClassDecl || cl is DefaultClassDecl) {
         return className;
       }
       return "class_" + className;
     }
 
-    protected override IClassWriter CreateClass(string moduleName, TopLevelDecl cl, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
-      var className = clName(cl);
+    protected override IClassWriter CreateClass(string moduleName, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
+      var className = clName(cls);
       if (isExtern) {
         throw new UnsupportedFeatureException(tok, Feature.ExternalClasses, String.Format("extern in class {0}", className));
       }
@@ -624,7 +624,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         throw new UnsupportedFeatureException(nt.Origin, Feature.NonNativeNewtypes);
       }
-      var cw = CreateClass(nt.EnclosingModuleDefinition.GetCompileName(Options), nt, nt, wr) as ClassWriter;
+      var cw = CreateClass(nt.EnclosingModuleDefinition.GetCompileName(Options), nt, wr) as ClassWriter;
       var className = clName(nt);
       var w = cw.MethodDeclWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -662,7 +662,7 @@ namespace Microsoft.Dafny.Compilers {
 
       this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.Origin));
 
-      var cw = CreateClass(sst.EnclosingModuleDefinition.GetCompileName(Options), sst, sst, wr) as ClassWriter;
+      var cw = CreateClass(sst.EnclosingModuleDefinition.GetCompileName(Options), sst, wr) as ClassWriter;
       var className = clName(sst);
       var w = cw.MethodDeclWriter;
 

@@ -231,13 +231,13 @@ namespace Microsoft.Dafny.Compilers {
       return name;
     }
 
-    protected override IClassWriter CreateClass(string moduleName, TopLevelDecl cl, bool isExtern, string/*?*/ fullPrintName,
+    protected override IClassWriter CreateClass(string moduleName, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
       var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? new List<Type>();
       var baseClasses = realSuperClasses.Any()
         ? $"({realSuperClasses.Comma(trait => TypeName(trait, wr, tok))})"
         : "";
-      var name = IdName(cl);
+      var name = IdName(cls);
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}{baseClasses}:");
 
       var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor).ToList();
@@ -277,7 +277,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(PublicModuleIdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), iter, false,
+      var cw = (ClassWriter)CreateClass(PublicModuleIdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), false,
         iter.FullName, iter.TypeArgs, iter, null, iter.Origin, wr);
       var constructorWriter = cw.ConstructorWriter;
       var w = cw.MethodWriter;
@@ -459,7 +459,7 @@ namespace Microsoft.Dafny.Compilers {
     protected IClassWriter DeclareType(TopLevelDecl d, SubsetTypeDecl.WKind witnessKind, Expression witness, ConcreteSyntaxTree wr) {
       Contract.Requires(d is SubsetTypeDecl or NewtypeDecl);
 
-      var cw = (ClassWriter)CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), d, d, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), d, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(d.Origin, d);
       w.WriteLine("@staticmethod");

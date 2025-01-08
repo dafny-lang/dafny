@@ -193,13 +193,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override IClassWriter CreateClass(string moduleName, TopLevelDecl cl, bool isExtern, string fullPrintName,
+    protected override IClassWriter CreateClass(string moduleName, bool isExtern, string fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
       if (currentBuilder is ClassContainer builder) {
         List<DAST.TypeArgDecl> typeParams = typeParameters.Select(tp => GenTypeArgDecl(tp)).ToList();
 
         return new ClassWriter(this, typeParams.Count > 0, builder.Class(
-          IdName(cl), moduleName, typeParams, superClasses.Select(t => GenType(t)).ToList(),
+          IdName(cls), moduleName, typeParams, superClasses.Select(t => GenType(t)).ToList(),
           ParseAttributes(cls.Attributes), GetDocString(cls))
           );
       } else {
