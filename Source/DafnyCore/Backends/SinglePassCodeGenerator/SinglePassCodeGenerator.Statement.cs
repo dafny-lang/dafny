@@ -43,6 +43,8 @@ namespace Microsoft.Dafny.Compilers {
       if (stmt.IsGhost) {
         return;
       }
+
+      stmt = Statement.StripByBlocks(stmt);
       switch (stmt) {
         case PrintStmt printStmt: {
             var s = printStmt;
