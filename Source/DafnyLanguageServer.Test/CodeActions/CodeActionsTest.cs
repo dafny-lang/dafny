@@ -77,6 +77,14 @@ method><".TrimStart(), out var source, out var positions,
     }
 
     [Fact]
+    public async Task TestAssertFalseNotSuggestingItself() {
+      await TestNoCodeAction(@"
+method NoCodeAction() {
+  assert fal><se;
+}");
+    }
+
+    [Fact]
     public async Task TestInsertion() {
       await TestCodeAction(@"
 datatype L = N | C(t: L)
@@ -370,6 +378,19 @@ function Foo(i: int): int
     }
 
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
+
+    private async Task TestNoCodeAction(string source) {
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions,
+        out var ranges);
+      var documentItem = await CreateOpenAndWaitForResolve(output);
+      var diagnostics = await GetLastDiagnostics(documentItem);
+      Assert.Equal(0, ranges.Count);
+      foreach (var position in positions) {
+        var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
+        Assert.Empty(completionList);
+      }
+    }
 
     private async Task TestCodeAction(string source) {
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
