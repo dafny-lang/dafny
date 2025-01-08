@@ -53,7 +53,7 @@ module UsingA {
 
    import opened A
 
-   method Main() {
+   method Main3() {
      var b := new A();
 
      print "Hello!\n";

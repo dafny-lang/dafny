@@ -149,7 +149,7 @@ namespace Microsoft.Dafny.Compilers {
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var w = wr.NewBlock("int main(int argc, char *argv[])");
       var tryWr = w.NewBlock("try");
-      tryWr.WriteLine(string.Format("{0}::{1}::{2}(dafny_get_args(argc, argv));", mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options), mainMethod.EnclosingClass.GetCompileName(Options), mainMethod.Name));
+      tryWr.WriteLine(string.Format("{0}::{1}::{2}(dafny_get_args(argc, argv));", mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options), clName(mainMethod.EnclosingClass), mainMethod.Name));
       var catchWr = w.NewBlock("catch (DafnyHaltException & e)");
       catchWr.WriteLine("std::cout << \"Program halted: \" << e.what() << std::endl;");
     }
@@ -226,8 +226,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string GetHelperModuleName() => "_dafny";
 
+    private string clName(TopLevelDecl cl) {
+      return "class_" + IdName(cl);
+    }
+
     protected override IClassWriter CreateClass(string moduleName, TopLevelDecl cl, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
-      var className = "class_" + IdName(cl);
+      var className = clName(cl);
       if (isExtern) {
         throw new UnsupportedFeatureException(tok, Feature.ExternalClasses, String.Format("extern in class {0}", className));
       }
@@ -444,7 +448,7 @@ namespace Microsoft.Dafny.Compilers {
           // Overload the not-comparison operator
           wstruct.WriteLine("friend bool operator!=(const {0} &left, const {0} &right) {{ return !(left == right); }} ", structName);
 
-          // Define a custom hasher
+          // Define a custom hasherGetCompileName
           hashWr.WriteLine("template <{0}>", TypeParameters(dt.TypeArgs));
           var fullName = dt.EnclosingModuleDefinition.GetCompileName(Options) + "::" + structName + InstantiateTemplate(dt.TypeArgs);
           var hwr = hashWr.NewBlock(string.Format("struct std::hash<{0}>", fullName), ";");
@@ -617,7 +621,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new UnsupportedFeatureException(nt.Origin, Feature.NonNativeNewtypes);
       }
       var cw = CreateClass(nt.EnclosingModuleDefinition.GetCompileName(Options), nt, nt, wr) as ClassWriter;
-      var className = "class_" + IdName(nt);
+      var className = clName(nt);
       var w = cw.MethodDeclWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
@@ -655,7 +659,7 @@ namespace Microsoft.Dafny.Compilers {
       this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.Origin));
 
       var cw = CreateClass(sst.EnclosingModuleDefinition.GetCompileName(Options), sst, sst, wr) as ClassWriter;
-      var className = "class_" + IdName(sst);
+      var className = clName(sst);
       var w = cw.MethodDeclWriter;
 
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -786,7 +790,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write("{0} {1}{2}::{3}",
         targetReturnTypeReplacement ?? "void",
-        m.EnclosingClass.GetCompileName(Options),
+        clName(m.EnclosingClass),
         InstantiateTemplate(m.EnclosingClass.TypeArgs),
         IdName(m));
 
@@ -1044,7 +1048,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
-          return td.EnclosingModuleDefinition.GetCompileName(Options) + "::class_" + td.GetCompileName(Options) + "::Witness";
+          return td.EnclosingModuleDefinition.GetCompileName(Options) + "::" + clName(td) + "::Witness";
         } else if (td.NativeType != null) {
           return "0";
         } else {
@@ -1053,7 +1057,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-          return td.EnclosingModuleDefinition.GetCompileName(Options) + "::class_" + td.GetCompileName(Options) + "::Witness";
+          return td.EnclosingModuleDefinition.GetCompileName(Options) + "::" + clName(td) + "::Witness";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -1763,14 +1767,14 @@ namespace Microsoft.Dafny.Compilers {
         // This used to work, but now obj comes in wanting to use TypeName on the class, which results in (std::shared_ptr<_module::MyClass>)::c;
         //return SuffixLvalue(obj, "::{0}", member.CompileName);
         return SimpleLvalue(wr => {
-          wr.Write("{0}::{1}::{2}", IdProtect(member.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options)), IdProtect(member.EnclosingClass.GetCompileName(Options)), IdProtect(member.GetCompileName(Options)));
+          wr.Write("{0}::{1}::{2}", IdProtect(member.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options)), IdProtect(clName(member.EnclosingClass)), IdProtect(member.GetCompileName(Options)));
         });
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         return SuffixLvalue(obj, ".get<{0}>()", dtor.Name);
       } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName
                  && fieldName.StartsWith("is_")) {
         // Ugly hack of a check to figure out if this is a datatype query: f.Constructor?
-        return SuffixLvalue(obj, ".is_{0}_{1}()", IdProtect(sf2.EnclosingClass.GetCompileName(Options)), fieldName.Substring(3));
+        return SuffixLvalue(obj, ".is_{0}_{1}()", IdProtect(clName(sf2.EnclosingClass)), fieldName.Substring(3));
       } else if (member is SpecialField sf) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out var preStr, out var postStr);
         if (sf.SpecialId == SpecialField.ID.Keys || sf.SpecialId == SpecialField.ID.Values) {
