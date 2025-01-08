@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Text.RegularExpressions;
 
 namespace IntegrationTests;
@@ -8,16 +9,16 @@ public class UpdateTests {
   public static async Task Main(string[] args) {
     Environment.SetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE", "true");
 
-    var files = Directory.GetFiles(args[0]);
-    var key = "integration-tests";
-    var integrationFiles = files.Where(f => {
-      var fileName = Path.GetFileName(f);
+    using var zipFile = new FileStream(args[0], FileMode.Open);
+    using var archive = new ZipArchive(zipFile, ZipArchiveMode.Read);
+    var integrationFiles = archive.Entries.Where(entry => {
+      var fileName = entry.Name;
       var regex = new Regex(@"\d+_integration-tests");
       var match = regex.Match(fileName);
       return match.Success;
     });
-    var failedTestNames = integrationFiles.SelectMany(file => {
-      var content = File.ReadAllText(file);
+    var failedTestNames = integrationFiles.SelectMany(entry => {
+      var content = new StreamReader(entry.Open()).ReadToEnd();
       var regex = new Regex(@"Failed (.*) \[");
       var matches = regex.Matches(content);
       return matches.Select(m => m.Groups[1].Value);
