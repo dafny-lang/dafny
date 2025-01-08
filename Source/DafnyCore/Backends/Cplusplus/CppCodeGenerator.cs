@@ -227,7 +227,11 @@ namespace Microsoft.Dafny.Compilers {
     protected override string GetHelperModuleName() => "_dafny";
 
     private string clName(TopLevelDecl cl) {
-      return "class_" + IdName(cl);
+      var className = IdName(cl);
+      if (className == "__default" || true) {
+        return className;
+      }
+      return "class_" + className;
     }
 
     protected override IClassWriter CreateClass(string moduleName, TopLevelDecl cl, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
