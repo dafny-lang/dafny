@@ -621,7 +621,9 @@ public partial class BoogieGenerator {
         "Box/unbox axiom for " + printableName));
   }
 
-
+  /// <summary>
+  /// See GeneratePartialGuesses for an example of how GenerateAndCheckGuesses emits.
+  /// </summary>
   private void GenerateAndCheckGuesses(IOrigin tok, List<BoundVar> bvars, List<BoundedPool> bounds, Expression expr,
     Attributes triggerAttributes, bool autoTriggerSearchFailed, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
     Contract.Requires(tok != null);
@@ -662,12 +664,107 @@ public partial class BoogieGenerator {
     builder.Add(Assert(tok, w, new LetSuchThatExists(bvars, expr, autoTriggerSearchFailed), builder.Context));
   }
 
+  /// <summary>
+  /// Take a linear scan through the bound variables, for each one considering specific guesses.
+  /// Then, fill in "expression" with those guesses, remembering which variables have been substituted for what.
+  /// What's returned is a list of tuples of the form (substitutionMappings, expressionWithSubstitutions).
+  ///
+  /// In substitutionMappings, a mapping "x := null" says for the caller to quantify over "x".
+  /// Any non-null mappings, say "x := e0, y := e1" say that "x" and "y" have been replaced by "e0" and "e1" in "expression"
+  /// to form "expressionWithSubstitutions".
+  /// 
+  /// The reason for returning substitutionMappings rather than just a list of variables is so that the caller can
+  /// apply these substitutions in triggers that were computed for the entire "expression". Therefore, each non-null
+  /// mapping "x := e" is one where "e" is acceptable in a trigger. 
+  ///
+  /// Here is an example. Assuming that the types of a,b,c are nonempty and that we obtain
+  ///
+  ///   GuessWitnesses(c):  0, a, b
+  ///   GuessWitnesses(b):  10
+  ///   GuessWitnesses(a):  88
+  ///  
+  /// then GeneratePartialGuesses works as follows:
+  ///
+  ///   GeneratePartialGuesses([a, b, c], X || Y(a) || Z(a, c)) {
+  ///     yield ([], X) // since X does not mention a or b or c
+  /// 
+  ///     GeneratePartialGuesses([b, c], Y(a) || Z(a, c)) {
+  ///       yield ([], Y(a)) // since Y(a) does not mention b or c
+  /// 
+  ///       GeneratePartialGuesses([c], Z(a, c)) {
+  ///         GeneratePartialGuesses([], Z(a, c)) {
+  ///           yield ([], Z(a, c)) // no vars
+  ///         }
+  /// 
+  ///         yield ([c:=null], Z(a, c)) // quantify over c
+  ///         yield ([c:=0], Z(a, 0)) // guess c := 0
+  ///         yield ([c:=a], Z(a, a)) // guess c := a
+  ///         yield ([c:=b], Z(a, b)) // guess c := b
+  ///       }
+  ///
+  ///       yield ([c:=null], Z(a, c)) // since b does not occur in expression
+  ///       yield ([c:=0], Z(a, 0)) // since b does not occur in expression
+  ///       yield ([c:=a], Z(a, a)) // since b does not occur in expression
+  ///       yield ([b:=null, c:=b], Z(a, b)) // quantify over b
+  ///       yield ([b:=10, c:=10], Z(a, 10)) // guess b := 10
+  ///     }
+  ///
+  ///     yield ([a:=null], Y(a)) // quantify over a
+  ///     yield ([a:=88], Y(88)) // guess a := 88
+  ///  
+  ///     yield ([a:=null, c:=null], Z(a, c)) // quantify over a
+  ///     yield ([a:=88, c:=null], Z(88, c)) // guess a := 88
+  ///
+  ///     yield ([a:=null, c:=0], Z(a, 0)) // quantify over a
+  ///     yield ([a:=88, c:=0], Z(88, 0)) // guess a := 88
+  ///
+  ///     yield ([a:=null, c:=a], Z(a, a)) // quantify over a
+  ///     yield ([a:=88, c:=88], Z(88, 88)) // guess a := 88
+  ///
+  ///     yield ([a:=null, b:=null, c:=b], Z(a, b)) // quantify over a
+  ///     yield ([a:=88, b:=null, c:=b], Z(88, b)) // guess a := 88
+  ///
+  ///     yield ([a:=null, b:=10, c:=10], Z(a, 10)) // quantify over a
+  ///     yield ([a:=88, b:=10, c:=10], Z(88, 10)) // guess a := 88
+  ///   }
+  ///
+  /// From these yields, the caller (GenerateAndCheckGuesses) will then emit the following disjuncts:
+  /// 
+  ///   XCallCall ==> X
+  /// 
+  ///   exists a :: Is(a, A) && (YCanCall(a) ==> Y(a))
+  ///   YCanCall(88) ==> Y(88)
+  /// 
+  ///   exists a, c :: Is(a, A) && Is(c, C) && (ZCanCall(a, b) ==> Z(a, c))
+  ///   exists c :: Is(c, C) && (ZCanCall(88, c) ==> Z(88, c))
+  /// 
+  ///   exists a :: Is(a, A) && (ZCanCall(a, 0) ==> Z(a, 0))
+  ///   ZCanCall(88, 0) ==> Z(88, 0)
+  ///
+  ///   exists a :: Is(a, A) && (ZCanCall(a, a) ==> Z(a, a))
+  ///   ZCanCall(88, 88) ==> Z(88, 88)
+  ///
+  ///   exists a, b :: Is(a, A) && Is(b, B) && (ZCanCall(a, b) ==> Z(a, b))
+  ///   exists b :: Is(b, B) && (ZCanCall ==> Z(88, b))
+  ///
+  ///   exists a :: Is(a, A) && (ZCanCall(a, 10) ==> Z(a, 10))
+  ///   ZCanCall(88, 10) ==> Z(88, 10)
+  /// </summary>
   List<(List<(BoundVar, Expression)>, Expression)> GeneratePartialGuesses(List<BoundVar> bvars, Expression expression) {
     if (bvars.Count == 0) {
       var tup = (new List<(BoundVar, Expression)>(), expression);
       return new() { tup };
     }
+
     var result = new List<(List<(BoundVar, Expression)>, Expression)>();
+
+    var (exprIndependentOfVars, exprMentionsVars) = SeparateDisjunctsAccordingToVariableUsage(bvars, expression);
+    if (!LiteralExpr.IsFalse(exprIndependentOfVars)) {
+      var tup = (new List<(BoundVar, Expression)>(), exprIndependentOfVars);
+      result.Add(tup);
+      expression = exprMentionsVars;
+    }
+
     var x = bvars[0];
     var otherBvars = bvars.GetRange(1, bvars.Count - 1);
     foreach (var tup in GeneratePartialGuesses(otherBvars, expression)) {
@@ -676,10 +773,12 @@ public partial class BoogieGenerator {
         result.Add(tup);
         continue;
       }
-      // one possible result is to quantify over all the variables
+
+      // one possible result is to quantify over x
       var vs = new List<(BoundVar, Expression)>() { (x, null) };
       vs.AddRange(tup.Item1);
       result.Add((vs, tup.Item2));
+
       // other possibilities involve guessing a value for x
       foreach (var guess in GuessWitnesses(x, tup.Item2)) {
         var g = Substitute(tup.Item2, x, guess);
@@ -689,6 +788,38 @@ public partial class BoogieGenerator {
       }
     }
     return result;
+  }
+
+  /// <summary>
+  /// Return a pair of expressions (a, b) such that the disjunction "a || b" is equivalent to "expression"
+  /// and expression "a" does not mention any variable in "vars".
+  /// Expression "a" is always returns as "false" unless all variables in "vars" are known to have a value.
+  /// </summary>
+  (Expression, Expression) SeparateDisjunctsAccordingToVariableUsage(List<BoundVar> vars, Expression expression) {
+    Expression a = Expression.CreateBoolLiteral(expression.Origin, false);
+
+    if (vars.Exists(x => !x.Type.KnownToHaveToAValue(x.IsGhost))) {
+      return (a, expression);
+    }
+
+    // Place the left-most var-independent disjuncts into "a" and the rest into "b". 
+    Expression b = Expression.CreateBoolLiteral(expression.Origin, false);
+    var seenDisjunctsWithoutVariables = false;
+    var seenDisjunctsWithVariables = false;
+    foreach (var disjunct in Expression.Disjuncts(expression)) {
+      if (!seenDisjunctsWithVariables && vars.All(x => !FreeVariablesUtil.ContainsFreeVariable(disjunct, false, x))) {
+        a = Expression.CreateOr(a, disjunct);
+        seenDisjunctsWithoutVariables = true;
+      } else if (!seenDisjunctsWithoutVariables) {
+        // everything goes into the second component, so no need to split up into new disjunction
+        return (a, expression);
+      } else {
+        b = Expression.CreateOr(b, disjunct);
+        seenDisjunctsWithVariables = true;
+      }
+    }
+
+    return (a, b);
   }
 
   private void AddRangeSubst(List<(BoundVar, Expression)> vs, List<(BoundVar, Expression)> aa, IVariable v, Expression e) {
