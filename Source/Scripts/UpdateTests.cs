@@ -4,10 +4,10 @@ using System.Text.RegularExpressions;
 namespace IntegrationTests;
 
 public class UpdateTests {
-  
+
   public static async Task Main(string[] args) {
     Environment.SetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE", "true");
-    
+
     var files = Directory.GetFiles(args[0]);
     var key = "integration-tests";
     var integrationFiles = files.Where(f => {
@@ -37,11 +37,11 @@ public class UpdateTests {
     }
 
     Console.WriteLine($"Tests to update:\n{string.Join("\n", failedTestNames)}\n");
-    
+
     var needsBuilds = true;
     for (var index = 0; index < failedTestNames.Count; index++) {
       var failedTestName = failedTestNames[index];
-      Console.WriteLine($"Updating test {index+1}/{failedTestNames.Count} '{failedTestName}'");
+      Console.WriteLine($"Updating test {index + 1}/{failedTestNames.Count} '{failedTestName}'");
       var integrationTestsDir = $"{repoRoot}/Source/IntegrationTests";
       var arguments = new List<string> { "test", integrationTestsDir, $"--filter=DisplayName~{failedTestName}" };
       if (!needsBuilds) {

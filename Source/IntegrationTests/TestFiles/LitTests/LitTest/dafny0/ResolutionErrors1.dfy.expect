@@ -5,7 +5,7 @@ ResolutionErrors1.dfy(51,30): Error: Wrong number of type arguments (0 instead o
 ResolutionErrors1.dfy(66,20): Error: unresolved identifier: w
 ResolutionErrors1.dfy(85,8): Error: the type of this local variable is underspecified
 ResolutionErrors1.dfy(86,25): Error: the type of this variable is underspecified
-ResolutionErrors1.dfy(86,23): Error: type parameter 'T' (inferred to be '?') in the function call to 'P' could not be determined
+ResolutionErrors1.dfy(86,24): Error: type parameter 'T' (inferred to be '?') in the function call to 'P' could not be determined
 ResolutionErrors1.dfy(86,18): Error: type of bound variable 'z' could not be determined; please specify the type explicitly
 ResolutionErrors1.dfy(99,13): Error: a lemma is not allowed to use 'new'
 ResolutionErrors1.dfy(100,9): Error: a lemma is not allowed to use 'new'

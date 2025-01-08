@@ -4,14 +4,14 @@ ResolutionErrors6.dfy(71,11): Error: name of type (Cache) is used as a variable
 ResolutionErrors6.dfy(71,17): Error: incorrect type for selection into ? (got X)
 ResolutionErrors6.dfy(79,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
 ResolutionErrors6.dfy(89,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
-ResolutionErrors6.dfy(123,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
-ResolutionErrors6.dfy(124,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors6.dfy(123,14): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors6.dfy(124,14): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ResolutionErrors6.dfy(126,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors6.dfy(147,4): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors6.dfy(157,15): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
-ResolutionErrors6.dfy(158,22): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
-ResolutionErrors6.dfy(164,15): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
-ResolutionErrors6.dfy(165,22): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors6.dfy(157,16): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors6.dfy(158,23): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors6.dfy(164,16): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors6.dfy(165,23): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ResolutionErrors6.dfy(182,23): Error: type of left argument to * (int) must agree with the result type (bool)
 ResolutionErrors6.dfy(182,23): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
 ResolutionErrors6.dfy(181,13): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
@@ -45,7 +45,7 @@ ResolutionErrors6.dfy(343,18): Error: map update requires the value to have the 
 ResolutionErrors6.dfy(368,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 363 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors6.dfy(371,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 363 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors6.dfy(372,5): Error: type parameter (G) passed to method P must be nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 363 as 'Z(00)', which says it can only be instantiated with a nonempty type)
-ResolutionErrors6.dfy(381,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 376 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors6.dfy(384,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 376 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors6.dfy(385,9): Error: type parameter (G) passed to function FP must be nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 376 as 'Z(00)', which says it can only be instantiated with a nonempty type)
+ResolutionErrors6.dfy(381,11): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 376 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors6.dfy(384,11): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 376 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors6.dfy(385,11): Error: type parameter (G) passed to function FP must be nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 376 as 'Z(00)', which says it can only be instantiated with a nonempty type)
 46 resolution/type errors detected in ResolutionErrors6.dfy
