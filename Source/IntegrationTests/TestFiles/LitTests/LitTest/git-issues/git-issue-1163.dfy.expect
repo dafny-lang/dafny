@@ -2,5 +2,7 @@ git-issue-1163.dfy(7,17): Warning: Argument to 'old' does not dereference the mu
 git-issue-1163.dfy(21,42): Error: receiver argument could not be proved to be allocated in the state in which the function is invoked
 git-issue-1163.dfy(23,44): Error: argument could not be proved to be allocated in the state in which the function is invoked
 git-issue-1163.dfy(27,40): Error: receiver argument could not be proved to be allocated in the state in which the function is invoked
+git-issue-1163.dfy(79,21): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+git-issue-1163.dfy(83,21): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 
-Dafny program verifier finished with 2 verified, 3 errors
+Dafny program verifier finished with 2 verified, 5 errors
