@@ -1778,7 +1778,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName
                  && fieldName.StartsWith("is_")) {
         // Ugly hack of a check to figure out if this is a datatype query: f.Constructor?
-        return SuffixLvalue(obj, ".is_{0}_{1}()", IdProtect(clName(sf2.EnclosingClass)), fieldName.Substring(3));
+        return SuffixLvalue(obj, ".is_{0}_{1}()", IdProtect(sf2.EnclosingClass.GetCompileName(Options)), fieldName.Substring(3));
       } else if (member is SpecialField sf) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out var preStr, out var postStr);
         if (sf.SpecialId == SpecialField.ID.Keys || sf.SpecialId == SpecialField.ID.Values) {

@@ -2538,10 +2538,6 @@ namespace Microsoft.Dafny.Compilers {
         return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + dataTypeName(cl as DatatypeDecl);
       }
 
-      if (cl is ClassDecl) {
-        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + className(cl as ClassDecl);
-      }
-
       if (cl.EnclosingModuleDefinition.TryToAvoidName) {
         return IdProtect(cl.GetCompileName(Options));
       }
@@ -2549,6 +2545,11 @@ namespace Microsoft.Dafny.Compilers {
       if (cl.IsExtern(Options, out _, out _)) {
         return cl.EnclosingModuleDefinition.GetCompileName(Options) + "." + cl.GetCompileName(Options);
       }
+
+      if (cl is ClassDecl) {
+        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + className(cl as ClassDecl);
+      }
+
       return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
     }
 
