@@ -32,12 +32,6 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-    # If we do not also install .NET 6 as well, then our doc-tests fail for an unknown reason
-    # Failing run: https://github.com/dafny-lang/dafny/actions/runs/12276984671/job/34255376460
-    - name: Setup dotnet
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 6.0.x
     - name: Checkout Dafny
       uses: actions/checkout@v4
       with:

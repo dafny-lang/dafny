@@ -73,6 +73,6 @@ index 4a8b2f89b..a308be9bf 100644
 +      <ProjectReference Include="..\..\boogie\Source\Provers\SMTLib\SMTLib.csproj" />
 +      <ProjectReference Include="..\..\boogie\Source\Houdini\Houdini.csproj" />
 +      <ProjectReference Include="..\..\boogie\Source\Concurrency\Concurrency.csproj" />
-       <PackageReference Include="Tomlyn" Version="0.16.2" />
+       <PackageReference Include="Tomlyn" Version="0.17.0" />
    </ItemGroup>
  

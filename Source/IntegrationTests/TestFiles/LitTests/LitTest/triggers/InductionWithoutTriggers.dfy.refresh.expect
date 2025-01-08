@@ -19,10 +19,10 @@ InductionWithoutTriggers.dfy(100,0): Error: a postcondition could not be proved 
 InductionWithoutTriggers.dfy(99,11): Related location: this is the postcondition that could not be proved
 InductionWithoutTriggers.dfy(31,28): Related location: this proposition could not be proved
 InductionWithoutTriggers.dfy(124,0): Error: a postcondition could not be proved on this return path
-InductionWithoutTriggers.dfy(123,19): Related location: this is the postcondition that could not be proved
-InductionWithoutTriggers.dfy(35,28): Related location: this proposition could not be proved
-InductionWithoutTriggers.dfy(124,0): Error: a postcondition could not be proved on this return path
 InductionWithoutTriggers.dfy(123,11): Related location: this is the postcondition that could not be proved
 InductionWithoutTriggers.dfy(31,28): Related location: this proposition could not be proved
+InductionWithoutTriggers.dfy(124,0): Error: a postcondition could not be proved on this return path
+InductionWithoutTriggers.dfy(123,19): Related location: this is the postcondition that could not be proved
+InductionWithoutTriggers.dfy(35,28): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 12 verified, 8 errors
