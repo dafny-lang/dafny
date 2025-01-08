@@ -40,15 +40,16 @@ public class UpdateTests {
     
     var needsBuilds = true;
     for (var index = 0; index < failedTestNames.Count; index++) {
-      Console.WriteLine($"Updating test {index+1}/{failedTestNames.Count}");
       var failedTestName = failedTestNames[index];
-      var arguments = new List<string> { "test", $"name={failedTestName}", "update=true" };
+      Console.WriteLine($"Updating test {index+1}/{failedTestNames.Count} '{failedTestName}'");
+      var integrationTestsDir = $"{repoRoot}/Source/IntegrationTests";
+      var arguments = new List<string> { "test", integrationTestsDir, $"--filter=DisplayName~{failedTestName}" };
       if (!needsBuilds) {
-        arguments.Add("build=false");
+        arguments.Add("--no-build");
       }
       needsBuilds = false;
       var process = Process.Start(
-        new ProcessStartInfo("make", arguments) {
+        new ProcessStartInfo("dotnet", arguments) {
           RedirectStandardOutput = true,
           RedirectStandardError = true,
           WorkingDirectory = repoRoot,
@@ -59,6 +60,10 @@ public class UpdateTests {
       var output = await outputTask;
       var error = await errorTask;
       var exitCode = process.ExitCode;
+      if (exitCode != 0) {
+        await Console.Error.WriteLineAsync($"Non-zero exit code. Output:\n{output}\nError:{error}");
+        throw new Exception("Non-zero exit code");
+      }
     }
   }
 }
