@@ -693,16 +693,19 @@ public abstract class Expression : NodeWithComputedRange {
     Contract.Requires(b != null);
     Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
     Contract.Ensures(Contract.Result<Expression>() != null);
-    if (allowSimplification && LiteralExpr.IsTrue(a)) {
-      return b;
-    } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
-      return a;
-    } else {
-      return new BinaryExpr(a.Origin, BinaryExpr.Opcode.And, a, b) {
-        ResolvedOp = BinaryExpr.ResolvedOpcode.And,
-        Type = Type.Bool
-      };
+    if (allowSimplification) {
+      if (LiteralExpr.IsTrue(a)) {
+        return b;
+      } else if (LiteralExpr.IsFalse(a) || LiteralExpr.IsTrue(b)) {
+        return a;
+      }
+      // Note, to respect evaluation order, we don't simplify "X && false" to "false".
     }
+
+    return new BinaryExpr(a.Origin, BinaryExpr.Opcode.And, a, b) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.And,
+      Type = Type.Bool
+    };
   }
 
   /// <summary>
@@ -713,14 +716,19 @@ public abstract class Expression : NodeWithComputedRange {
     Contract.Requires(b != null);
     Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
     Contract.Ensures(Contract.Result<Expression>() != null);
-    if (allowSimplification && (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b))) {
-      return b;
-    } else {
-      return new BinaryExpr(a.Origin, BinaryExpr.Opcode.Imp, a, b) {
-        ResolvedOp = BinaryExpr.ResolvedOpcode.Imp,
-        Type = Type.Bool
-      };
+    if (allowSimplification) {
+      if (LiteralExpr.IsTrue(a)) {
+        return b;
+      } else if (LiteralExpr.IsFalse(a)) {
+        return CreateBoolLiteral(a.Origin, true);
+      }
+      // Note, to respect evaluation order, we don't simplify "X ==> true" to "true".
     }
+
+    return new BinaryExpr(a.Origin, BinaryExpr.Opcode.Imp, a, b) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.Imp,
+      Type = Type.Bool
+    };
   }
 
   /// <summary>
@@ -731,16 +739,19 @@ public abstract class Expression : NodeWithComputedRange {
     Contract.Requires(b != null);
     Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
     Contract.Ensures(Contract.Result<Expression>() != null);
-    if (allowSimplification && LiteralExpr.IsTrue(a)) {
-      return a;
-    } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
-      return b;
-    } else {
-      return new BinaryExpr(a.Origin, BinaryExpr.Opcode.Or, a, b) {
-        ResolvedOp = BinaryExpr.ResolvedOpcode.Or,
-        Type = Type.Bool
-      };
+    if (allowSimplification) {
+      if (LiteralExpr.IsFalse(a)) {
+        return b;
+      } else if (LiteralExpr.IsTrue(a) || LiteralExpr.IsFalse(b)) {
+        return a;
+      }
+      // Note, to respect evaluation order, we don't simplify "X || true" to "true".
     }
+
+    return new BinaryExpr(a.Origin, BinaryExpr.Opcode.Or, a, b) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.Or,
+      Type = Type.Bool
+    };
   }
 
   /// <summary>
