@@ -12,12 +12,9 @@ public class UpdateTests {
     var key = "integration-tests";
     var integrationFiles = files.Where(f => {
       var fileName = Path.GetFileName(f);
-      if (fileName.Length <= 2 + key.Length) {
-        return false;
-      }
-
-      return fileName.Substring(2, key.Length) == key;
-
+      var regex = new Regex(@"\d+_integration-tests");
+      var match = regex.Match(fileName);
+      return match.Success;
     });
     var failedTestNames = integrationFiles.SelectMany(file => {
       var content = File.ReadAllText(file);
