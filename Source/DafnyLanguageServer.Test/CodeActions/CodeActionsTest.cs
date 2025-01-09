@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Castle.Core.Internal;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
 using Xunit.Abstractions;
@@ -90,6 +91,44 @@ method Dec(c: L)
 method Dac(c: L) 
   decreases c, 1 {
     Dec(c);
+}");
+    }
+
+    [Fact]
+    public async Task TestCalcIntroduction() {
+      await TestCodeAction(@"
+method Test() {
+  assert 1 =><= 2(>Insert a calc statement-> by {
+    calc {
+      1;
+      2;
+    }
+  }:::;<)
+}");
+    }
+
+    [Fact]
+    public async Task TestCalcIntroductionEquiv() {
+      await TestCodeAction(@"
+method Test() {
+  assert true <=><=> false(>Insert a calc statement-> by {
+    calc <==> {
+      true;
+      false;
+    }
+  }:::;<)
+}");
+    }
+
+    [Fact]
+    public async Task TestForallIntroduction() {
+      await TestCodeAction(@"
+method Test() {
+  assert forall i | i % 4 == 1 :: i % 2 == 0(>Insert a calc statement-> by {
+    forall i | i % 4 == 1 ensures i % 2 == 0 {
+      assert i % 2 == 0;
+    }
+  }:::;<)
 }");
     }
 
@@ -239,17 +278,50 @@ function Test(e: D, inputs: map<int, int>): bool {
     }
 
     [Fact]
-    public async Task ExplicitDivisionByZero() {
+    public async Task ExplicitDivisionByZeroFunction() {
       await TestCodeAction(@"
-method Foo(i: int)
+function Foo(i: int): int
 {
   (>Insert explicit failing assertion->assert i + 1 != 0;
   <)var x := 2>< / (i + 1); 
+  x
 }");
     }
 
     [Fact]
-    public async Task ExplicitDivisionImp() {
+    public async Task ExplicitDivisionByZeroMethod() {
+      await TestCodeAction(@"
+method Foo(i: int)
+{
+  var x := 2>< / (i + 1)(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionImpFunction() {
+      await TestCodeAction(@"
+function Foo(b: bool, i: int, j: int): bool
+{
+  var x := b ==> (>Insert explicit failing assertion->assert i + 1 != 0;
+                 <)2 ></ (i + 1) == j;
+  x
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionImpImpMethod() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := b ==> b ==> (>Insert explicit failing assertion->assert i + 1 != 0;
+                       <)2 ></ (i + 1) == j;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionImpMethod() {
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
@@ -269,22 +341,47 @@ method Foo(b: bool, i: int, j: int)
     }
 
     [Fact]
-    public async Task ExplicitDivisionAnd() {
+    public async Task ExplicitDivisionAndFunction() {
       await TestCodeAction(@"
-method Foo(b: bool, i: int, j: int)
+function Foo(b: bool, i: int, j: int): int
 {
   var x := b && (>Insert explicit failing assertion->assert i + 1 != 0;
                 <)2 ></ (i + 1) == j;
+  x
+}");
+    }
+    
+    
+    [Fact]
+    public async Task ExplicitDivisionAndMethod() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := b && 2 ></ (i + 1) == j(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
 }");
     }
 
     [Fact]
-    public async Task ExplicitDivisionAnd2() {
+    public async Task ExplicitDivisionAnd2Function() {
       await TestCodeAction(@"
-method Foo(b: bool, i: int, j: int)
+function Foo(b: bool, i: int, j: int): int
 {
   (>Insert explicit failing assertion->assert i + 1 != 0;
   <)var x := 2 ></ (i + 1) == j && b;
+  x
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionAnd2Method() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := 2 ></ (i + 1) == j && b(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
 }");
     }
 
@@ -304,45 +401,80 @@ method Foo(b: bool, i: int, j: int)
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
-  (>Insert explicit failing assertion->assert i + 1 != 0;
-  <)var x := 2 ></ (i + 1) == j || b;
+  var x := 2 ></ (i + 1) == j || b(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
 }");
     }
-
-
 
     [Fact]
     public async Task ExplicitDivisionAddParentheses() {
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
-  (>Insert explicit failing assertion->assert (match b case true => i + 1 case false => i - 1) != 0;
-  <)var x := 2 ></ match b case true => i + 1 case false => i - 1;
+  var x := 2 ></ match b case true => i + 1 case false => i - 1(>Insert explicit failing assertion-> by {
+    assert (match b case true => i + 1 case false => i - 1) != 0;
+  }:::;<)
 }");
     }
 
     [Fact]
-    public async Task ExplicitDivisionExp() {
+    public async Task ExplicitDivisionAddParentheses2() {
+      await TestCodeAction(@"
+function Foo(b: bool, i: int, j: int): int
+{
+  (>Insert explicit failing assertion->assert (match b case true => i + 1 case false => i - 1) != 0;
+  <)var x := 2 ></ match b case true => i + 1 case false => i - 1;
+  x
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionExpMethod() {
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
+{
+  var x := b <== 2 ></ (i + 1) == j(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionExpFunction() {
+      await TestCodeAction(@"
+function Foo(b: bool, i: int, j: int): int
 {
   (>Insert explicit failing assertion->assert i + 1 != 0;
   <)var x := b <== 2 ></ (i + 1) == j;
+  2
 }");
     }
 
     [Fact]
-    public async Task ExplicitDivisionExp2() {
+    public async Task ExplicitDivisionExp2Function() {
       await TestCodeAction(@"
-method Foo(b: bool, i: int, j: int)
+function Foo(b: bool, i: int, j: int): int
 {
   var x := (>Insert explicit failing assertion->(assert i + 1 != 0;
             2 / (i + 1) == j):::2 ></ (i + 1) == j<) <== b;
+  x
 }");
     }
 
     [Fact]
-    public async Task ExplicitDivisionByZeroFunction() {
+    public async Task ExplicitDivisionExp2Method() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := 2 ></ (i + 1) == j <== b(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionByZeroIfFunction() {
       await TestCodeAction(@"
 function Foo(i: int): int
 {
@@ -357,7 +489,7 @@ function Foo(i: int): int
 
 
     [Fact]
-    public async Task ExplicitDivisionByZeroFunctionLetExpr() {
+    public async Task ExplicitDivisionByZeroMatchFunctionLetExpr() {
       await TestCodeAction(@"
 function Foo(i: int): int
 {
@@ -409,8 +541,13 @@ function Foo(i: int): int
           }
         }
 
-        Assert.True(found,
-          $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
+        if (otherTitles.IsNullOrEmpty()) {
+          // Parsing gone wrong, we display diagnostics
+          Assert.True(false, output + "\n" + string.Join("\n", diagnostics.Select(d => d.ToString())));
+        } else {
+          Assert.True(found,
+            $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
+        }
       }
     }
 
