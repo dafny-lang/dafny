@@ -582,7 +582,7 @@ public class Compilation : IDisposable {
           break;
         }
 
-        string msg = string.Format("Verification of '{1}' timed out after {0} seconds", timeLimit, name);
+        string msg = string.Format("Verification of '{1}' timed out after {0} seconds. (the limit can be increased using --verification-time-limit)", timeLimit, name);
         errorInfo = ErrorInformation.Create(token, msg);
 
         //  Report timed out assertions as auxiliary info.
