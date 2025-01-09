@@ -2769,7 +2769,7 @@ The following options are also commonly used:
   but a large positive number reports more errors per run
 
 * `--verification-time-limit:<n>` (was `-timeLimit:<n>`) - limits 
-  the number of seconds spent trying to verify each procedure.
+  the number of seconds spent trying to verify each assertion batch.
 
 
 ### 13.9.11. Controlling test generation {#sec-controlling-test-gen}

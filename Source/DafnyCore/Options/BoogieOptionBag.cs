@@ -52,7 +52,7 @@ public static class BoogieOptionBag {
   };
 
   public static readonly Option<uint> VerificationTimeLimit = new("--verification-time-limit", () => 30,
-    "Limit the number of seconds spent trying to verify each procedure") {
+    "Limit the number of seconds spent trying to verify each assertion batch. A value of 0 indicates no limit") {
     ArgumentHelpName = "seconds",
   };
 
