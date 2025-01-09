@@ -270,7 +270,7 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     private string dataTypeName(DatatypeDecl dt) {
       var protectedName = IdName(dt);
-      if (dt.EnclosingModuleDefinition is not null) {
+      if (dt.EnclosingModuleDefinition is { Name: var moduleName } && moduleName == protectedName) {
         var moduleName = IdProtectModule(dt.EnclosingModuleDefinition.Name);
         if (moduleName == protectedName) {
           return $"_{protectedName}";
