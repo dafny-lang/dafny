@@ -2732,7 +2732,7 @@ If you have Boogie installed locally, you can run the printed Boogie file with t
 DOTNET=$(which dotnet)
 
 BOOGIE_ROOT="path/to/boogie/Source"
-BOOGIE="$BOOGIE_ROOT/BoogieDriver/bin/Debug/net6.0/BoogieDriver.dll"
+BOOGIE="$BOOGIE_ROOT/BoogieDriver/bin/Debug/net8.0/BoogieDriver.dll"
 
 if [[ ! -x "$DOTNET" ]]; then
     echo "Error: Dafny requires .NET Core to run on non-Windows systems."

@@ -193,13 +193,13 @@ public static class VerifyCommand {
           completed.Result, batchReporter);
       }
 
-      foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token.Center)) {
+      foreach (var diagnostic in batchReporter.AllMessages.Order()) {
         compilation.Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
           diagnostic.Message);
       }
     });
-  }
 
+  }
 
   public static async Task LogVerificationResults(CliCompilation cliCompilation, ResolutionResult resolution,
     IObservable<CanVerifyResult> verificationResults) {
