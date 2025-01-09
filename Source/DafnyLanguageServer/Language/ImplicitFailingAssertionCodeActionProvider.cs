@@ -124,9 +124,11 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
           assertTree.Finished &&
             assertTree.Range.Intersects(selection) &&
             assertTree.StatusVerification is GutterVerificationStatus.Error or GutterVerificationStatus.Inconclusive &&
-            assertTree.GetAssertion()?.Description is ProofObligationDescription { IsImplicit: true } description &&
+            assertTree.GetAssertion()?.Description is ProofObligationDescription description &&
             description.GetAssertedExpr(options) is { } assertedExpr) {
-        failingExpressions.Add(assertedExpr);
+        if (description.IsImplicit) {
+          failingExpressions.Add(assertedExpr);
+        }
       }
     });
     if (failingExpressions.Count == 0) {
