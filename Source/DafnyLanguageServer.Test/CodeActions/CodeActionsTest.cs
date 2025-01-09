@@ -124,11 +124,23 @@ method Test() {
     public async Task TestForallIntroduction() {
       await TestCodeAction(@"
 method Test() {
-  assert forall i | i % 4 == 1 :: i % 2 == 0(>Insert a calc statement-> by {
-    forall i | i % 4 == 1 ensures i % 2 == 0 {
+  assert for><all i | i % 4 == 1 :: i % 2 == 0(>Insert a forall statement-> by {
+    forall i: int | i % 4 == 1 ensures i % 2 == 0 {
       assert i % 2 == 0;
     }
   }:::;<)
+}");
+    }
+
+    [Fact]
+    public async Task TestForallIntroductionFunction() {
+      await TestCodeAction(@"
+function Test(): int {
+  (>Insert a forall statement->forall i | i % 4 == 1 ensures i % 2 == 0 {
+    assert i % 2 == 0;
+  }
+  <)assert for><all i | i % 4 == 1 :: i % 2 == 0;
+  1
 }");
     }
 
@@ -137,9 +149,10 @@ method Test() {
       await TestCodeAction(@"
 predicate P(i: int)
 
-method Test() {(>Insert explicit failing assertion->
-  assert exists x: int :: P(x);<)
-  var x :><| P(x);
+method Test() {
+  var x :><| P(x)(>Insert explicit failing assertion-> by {
+    assert exists x: int :: P(x);
+  }:::;<)
 }");
     }
 
@@ -150,9 +163,10 @@ module Test {
   class TheTest {
     predicate P(i: int)
 
-    method Test() {(>Insert explicit failing assertion->
-      assert exists x: int :: P(x);<)
-      var x :><| P(x);
+    method Test() {
+      var x :><| P(x)(>Insert explicit failing assertion-> by {
+        assert exists x: int :: P(x);
+      }:::;<)
     }
   }
 }");
@@ -335,8 +349,9 @@ method Foo(b: bool, i: int, j: int)
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
-  (>Insert explicit failing assertion->assert i + 1 != 0;
-  <)var x := 2 ></ (i + 1) == j ==> b;
+  var x := 2 ></ (i + 1) == j ==> b(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
 }");
     }
 

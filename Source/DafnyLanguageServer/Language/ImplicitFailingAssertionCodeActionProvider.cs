@@ -40,17 +40,17 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     return node.StartToken.line > 0 ? new List<INode> { node } : null;
   }
   
-  public static INode? GetInsertionNode(Node program, Range selection, out List<INode>? nodesTillFailure, out bool needsIsolation)
+  public static INode? GetInsertionNode(Node program, Range selection, out List<INode>? nodesSinceFailure, out bool needsIsolation)
   {
-    nodesTillFailure = FindInnermostNodeIntersecting(program, selection);
+    nodesSinceFailure = FindInnermostNodeIntersecting(program, selection);
 
     needsIsolation = false;
 
     INode? insertionNode = null;
-    if (nodesTillFailure != null) {
-      for (var i = 0; i < nodesTillFailure.Count; i++) {
-        var node = nodesTillFailure[i];
-        var nextNode = i < nodesTillFailure.Count - 1 ? nodesTillFailure[i + 1] : null;
+    if (nodesSinceFailure != null) {
+      for (var i = 0; i < nodesSinceFailure.Count; i++) {
+        var node = nodesSinceFailure[i];
+        var nextNode = i < nodesSinceFailure.Count - 1 ? nodesSinceFailure[i + 1] : null;
         if (node is Statement or LetExpr &&
             ((node is AssignStatement or AssignSuchThatStmt && nextNode is not VarDeclStmt) ||
              (node is not AssignStatement && nextNode is not VarDeclStmt && nextNode is not AssignSuchThatStmt))) {
@@ -59,7 +59,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         }
 
         if (nextNode is TopLevelDecl or MemberDecl or ITEExpr or MatchExpr or NestedMatchExpr
-            or NestedMatchCase) {
+            or NestedMatchCase) { // Nodes that change the path condition
           insertionNode = node;
           break;
         }
@@ -75,7 +75,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         }
       }
 
-      insertionNode ??= nodesTillFailure[0];
+      insertionNode ??= nodesSinceFailure[0];
     } else {
       insertionNode = null;
     }
@@ -108,14 +108,9 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         return new DafnyCodeActionEdit[]{};
       }
 
-      var i = nodesTillFailure.FindLastIndex(node => node is AssertStmt or VarDeclStmt or CallStmt);
-      INode? possibleByBlocks = null;
-      if (i != -1 && i + 1 <= nodesTillFailure.Count && insertionNode == nodesTillFailure[i + 1]) {
-        possibleByBlocks = nodesTillFailure[i];
-      }
-      if (possibleByBlocks?.EndToken  is {val: ";" } endToken) {
+      if (insertionNode is AssertStmt or VarDeclStmt or CallStmt && insertionNode.EndToken  is {val: ";" } endToken) {
         // We can insert a by block to keep the proof limited
-        var start = possibleByBlocks.StartToken;
+        var start = insertionNode.StartToken;
         var indentation = IndentationFormatter.Whitespace(Math.Max(start.col - 1, 0));
         var indentation2 = indentation + "  ";
         var block = " by {\n" +
@@ -212,7 +207,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       Node program,
       ForallExpr failingExplicit,
       Range selection
-    ) : base(options, program, failingExplicit, selection, "Insert a calc statement") {
+    ) : base(options, program, failingExplicit, selection, "Insert a forall statement") {
       this.failingExplicit = failingExplicit;
     }
 
@@ -229,9 +224,8 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       return null;
     }
 
-    var failingExpressions = new List<Expression>() { };
-    var failingEqualities = new List<BinaryExpr>() { };
-    var failingForalls = new List<ForallExpr>() { };
+    var implicitlyFailing = new List<Expression>() { };
+    var explicitlyFailing = new List<Expression>() { };
     input.VerificationTree?.Visit(tree => {
       if (tree is AssertionVerificationTree assertTree &&
           assertTree.Finished &&
@@ -240,32 +234,27 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
           assertTree.GetAssertion()?.Description is ProofObligationDescription description &&
           description.GetAssertedExpr(options) is { } assertedExpr) {
         if (description.IsImplicit) {
-          failingExpressions.Add(assertedExpr);
+          implicitlyFailing.Add(assertedExpr);
         } else {
-          switch (assertedExpr)
-          {
-            case BinaryExpr { Op: BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Iff } binExpr:
-              failingEqualities.Add(binExpr);
-              break;
-            case ForallExpr forallExpr:
-              failingForalls.Add(forallExpr);
-              break;
-          }
+          explicitlyFailing.Add(assertedExpr);
         }
       }
     });
-    if (failingExpressions.Count == 0 && failingEqualities.Count == 0) {
+    if (implicitlyFailing.Count == 0 && explicitlyFailing.Count == 0) {
       return null;
     }
 
-    IEnumerable<DafnyCodeAction> explicitAssertions = failingExpressions.Select(failingExpression =>
+    IEnumerable<DafnyCodeAction> suggestedExplicitAssertions = implicitlyFailing.Select(failingExpression =>
       new ExplicitAssertionDafnyCodeAction(options, input.Program, failingExpression, selection)
     );
-    IEnumerable<DafnyCodeAction> suggestedCalcStatements = failingEqualities.Select(failingEquality =>
+    IEnumerable<DafnyCodeAction> suggestedCalcStatements = 
+      explicitlyFailing.OfType<BinaryExpr>().Where(b => b.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Iff ).Select(failingEquality =>
       new BinaryExprToCalcStatementCodeAction(options, input.Program, failingEquality, selection));
-    IEnumerable<DafnyCodeAction> suggestedForallStatements = failingForalls.Select(failingForall =>
+    IEnumerable<DafnyCodeAction> suggestedForallStatements = explicitlyFailing
+      .OfType<ForallExpr>()
+      .Select(failingForall =>
       new ForallExprStatementCodeAction(options, input.Program, failingForall, selection));
 
-    return explicitAssertions.Concat(suggestedCalcStatements).Concat(suggestedForallStatements);
+    return suggestedExplicitAssertions.Concat(suggestedCalcStatements).Concat(suggestedForallStatements);
   }
 }
