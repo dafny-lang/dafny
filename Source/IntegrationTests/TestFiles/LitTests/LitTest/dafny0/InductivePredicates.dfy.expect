@@ -1,6 +1,4 @@
 InductivePredicates.dfy(80,2): Error: assertion might not hold
 InductivePredicates.dfy(92,14): Error: assertion might not hold
-InductivePredicates.dfy(265,2): Error: a postcondition could not be proved on this return path
-InductivePredicates.dfy(264,12): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 31 verified, 3 errors
+Dafny program verifier finished with 32 verified, 2 errors
