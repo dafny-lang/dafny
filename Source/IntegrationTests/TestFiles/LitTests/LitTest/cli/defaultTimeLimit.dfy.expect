@@ -1,4 +1,4 @@
-defaultTimeLimit.dfy(4,7): Error: Verification of 'Foo' timed out after 30 seconds.  (the limit can be increased using --verification-time-limit)
+defaultTimeLimit.dfy(4,7): Error: Verification of 'Foo' timed out after 30 seconds. (the limit can be increased using --verification-time-limit)
   |
 4 | method Foo() {
   |        ^^^
