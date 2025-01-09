@@ -19,7 +19,7 @@ on:
         default: ""
 
 env:
-  dotnet-version: 6.0.x # SDK Version for building Dafny
+  dotnet-version: 8.0.x # SDK Version for building Dafny
 
 jobs:
   # This job is used to dynamically calculate the matrix dimensions.
