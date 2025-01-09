@@ -577,52 +577,52 @@ public class Compilation : IDisposable {
         break;
       case VcOutcome.Errors:
       case VcOutcome.TimedOut: {
-        if (vcOutcome != VcOutcome.TimedOut &&
-            (!errors.Any(e => e.IsAuxiliaryCexForDiagnosingTimeouts))) {
-          break;
-        }
-
-        string msg = string.Format("Verification of '{1}' timed out after {0} seconds. (the limit can be increased using --verification-time-limit)", timeLimit, name);
-        errorInfo = ErrorInformation.Create(token, msg);
-
-        //  Report timed out assertions as auxiliary info.
-        var comparer = new CounterexampleComparer();
-        var timedOutAssertions = errors.Where(e => e.IsAuxiliaryCexForDiagnosingTimeouts).Distinct(comparer)
-          .OrderBy(x => x, comparer).ToList();
-        if (0 < timedOutAssertions.Count) {
-          errorInfo!.Msg += $" with {timedOutAssertions.Count} check(s) that timed out individually";
-        }
-
-        foreach (Counterexample error in timedOutAssertions) {
-          IToken tok;
-          string auxMsg = null!;
-          switch (error) {
-            case CallCounterexample callCounterexample:
-              tok = callCounterexample.FailingCall.tok;
-              auxMsg = callCounterexample.FailingCall.Description.FailureDescription;
-              break;
-            case ReturnCounterexample returnCounterexample:
-              tok = returnCounterexample.FailingReturn.tok;
-              auxMsg = returnCounterexample.FailingReturn.Description.FailureDescription;
-              break;
-            case AssertCounterexample assertError: {
-              tok = assertError.FailingAssert.tok;
-              if (!(assertError.FailingAssert.ErrorMessage == null ||
-                    ((ExecutionEngineOptions)options).ForceBplErrors)) {
-                auxMsg = assertError.FailingAssert.ErrorMessage;
-              }
-
-              auxMsg ??= assertError.FailingAssert.Description.FailureDescription;
-              break;
-            }
-            default: throw new Exception();
+          if (vcOutcome != VcOutcome.TimedOut &&
+              (!errors.Any(e => e.IsAuxiliaryCexForDiagnosingTimeouts))) {
+            break;
           }
 
-          errorInfo.AddAuxInfo(tok, auxMsg, "Unverified check due to timeout");
-        }
+          string msg = string.Format("Verification of '{1}' timed out after {0} seconds. (the limit can be increased using --verification-time-limit)", timeLimit, name);
+          errorInfo = ErrorInformation.Create(token, msg);
 
-        break;
-      }
+          //  Report timed out assertions as auxiliary info.
+          var comparer = new CounterexampleComparer();
+          var timedOutAssertions = errors.Where(e => e.IsAuxiliaryCexForDiagnosingTimeouts).Distinct(comparer)
+            .OrderBy(x => x, comparer).ToList();
+          if (0 < timedOutAssertions.Count) {
+            errorInfo!.Msg += $" with {timedOutAssertions.Count} check(s) that timed out individually";
+          }
+
+          foreach (Counterexample error in timedOutAssertions) {
+            IToken tok;
+            string auxMsg = null!;
+            switch (error) {
+              case CallCounterexample callCounterexample:
+                tok = callCounterexample.FailingCall.tok;
+                auxMsg = callCounterexample.FailingCall.Description.FailureDescription;
+                break;
+              case ReturnCounterexample returnCounterexample:
+                tok = returnCounterexample.FailingReturn.tok;
+                auxMsg = returnCounterexample.FailingReturn.Description.FailureDescription;
+                break;
+              case AssertCounterexample assertError: {
+                  tok = assertError.FailingAssert.tok;
+                  if (!(assertError.FailingAssert.ErrorMessage == null ||
+                        ((ExecutionEngineOptions)options).ForceBplErrors)) {
+                    auxMsg = assertError.FailingAssert.ErrorMessage;
+                  }
+
+                  auxMsg ??= assertError.FailingAssert.Description.FailureDescription;
+                  break;
+                }
+              default: throw new Exception();
+            }
+
+            errorInfo.AddAuxInfo(tok, auxMsg, "Unverified check due to timeout");
+          }
+
+          break;
+        }
       case VcOutcome.OutOfResource: {
           string msg = "Verification out of resource (" + name + ")";
           errorInfo = ErrorInformation.Create(token, msg);
