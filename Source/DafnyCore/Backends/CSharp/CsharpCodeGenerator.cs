@@ -270,10 +270,9 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     private string protectedTypeName(TopLevelDecl dt) {
       var protectedName = IdName(dt);
-      if (dt.EnclosingModuleDefinition is { Name: var moduleName } && moduleName == protectedName)
-        if (moduleName == protectedName) {
-          return $"_{protectedName}";
-        }
+      if (dt.EnclosingModuleDefinition is { Name: var moduleName } && moduleName == protectedName) {
+        return $"_{protectedName}";
+      }
       return protectedName;
     }
 
