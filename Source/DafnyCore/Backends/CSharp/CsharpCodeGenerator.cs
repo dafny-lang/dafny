@@ -2477,6 +2477,7 @@ namespace Microsoft.Dafny.Compilers {
         case "ToString":
         case "GetHashCode":
         case "Main":
+        case "Default":
           return "_" + name;
         default:
           return name;
