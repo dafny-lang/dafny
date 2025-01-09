@@ -1,7 +1,6 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 #nullable enable
-using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 
@@ -16,8 +15,6 @@ namespace Microsoft.Dafny {
   }
 
   public record DafnyRelatedInformation(IOrigin Token, string Message);
-  public record DafnyDiagnostic(MessageSource Source, string ErrorId, IOrigin Token, string Message, ErrorLevel Level,
-    IReadOnlyList<DafnyRelatedInformation> RelatedInformation);
 
   public class ErrorReporterSink : ErrorReporter {
     public ErrorReporterSink(DafnyOptions options) : base(options) { }

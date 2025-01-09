@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
       wr.WriteLine("// To recompile, you will need the libraries");
       wr.WriteLine("//     System.Runtime.Numerics.dll System.Collections.Immutable.dll");
-      wr.WriteLine("// but the 'dotnet' tool in net6.0 should pick those up automatically.");
+      wr.WriteLine("// but the 'dotnet' tool in .NET should pick those up automatically.");
       wr.WriteLine("// Optionally, you may want to include compiler switches like");
       wr.WriteLine("//     /debug /nowarn:162,164,168,183,219,436,1717,1718");
       wr.WriteLine();
