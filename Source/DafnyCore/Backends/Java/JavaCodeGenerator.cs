@@ -2439,6 +2439,7 @@ namespace Microsoft.Dafny.Compilers {
         case "toString":
         case "equals":
         case "hashCode":
+        case "Default":
           return name + "_"; // TODO: figure out what to do here (C# uses @, Go uses _, JS uses _$$_)
         default:
           return name; // Package name is not a keyword, so it can be used
