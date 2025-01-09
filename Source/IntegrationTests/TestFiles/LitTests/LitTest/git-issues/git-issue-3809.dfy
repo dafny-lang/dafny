@@ -20,7 +20,7 @@ module m {
       case B => print "B!\n";
       case C => print "C!\n";
     }
-     print "Hello!\n";
+    print "Hello!\n";
   }
 
 }
