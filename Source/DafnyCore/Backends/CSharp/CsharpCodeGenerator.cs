@@ -266,27 +266,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// Compute the name of the class to use to translate a data-type
+    /// Compute the name of the class to use to translate a data-type or a class
     /// </summary>
-    private string dataTypeName(DatatypeDecl dt) {
+    private string protectedTypeName(TopLevelDecl dt) {
       var protectedName = IdName(dt);
-      if (dt.EnclosingModuleDefinition is { Name: var moduleName } && moduleName == protectedName) {
-        var moduleName = IdProtectModule(dt.EnclosingModuleDefinition.Name);
+      if (dt.EnclosingModuleDefinition is { Name: var moduleName } && moduleName == protectedName)
         if (moduleName == protectedName) {
           return $"_{protectedName}";
         }
-      }
-      return protectedName;
-    }
-
-    private string className(TopLevelDecl dt) {
-      var protectedName = IdName(dt);
-      if (dt.EnclosingModuleDefinition is not null) {
-        var moduleName = IdProtectModule(dt.EnclosingModuleDefinition.Name);
-        if (moduleName == protectedName) {
-          return $"_{protectedName}";
-        }
-      }
       return protectedName;
     }
 
@@ -333,7 +320,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateClass(string moduleName, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
-      var name = className(cls);
+      var name = protectedTypeName(cls);
       var wBody = WriteTypeHeader("partial class", name, typeParameters, superClasses, tok, wr);
 
       ConcreteSyntaxTree/*?*/ wCtorBody = null;
@@ -586,7 +573,7 @@ namespace Microsoft.Dafny.Compilers {
       // }
       var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
       var DtT_TypeArgs = TypeParameters(nonGhostTypeArgs);
-      var DtT_protected = dataTypeName(dt) + DtT_TypeArgs;
+      var DtT_protected = protectedTypeName(dt) + DtT_TypeArgs;
       var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, UserDefinedType.FromTopLevelDecl(dt.Origin, dt));
       var simplifiedTypeName = TypeName(simplifiedType, wr, dt.Origin);
 
@@ -608,7 +595,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         EmitTypeDescriptorsForClass(dt.TypeArgs, dt, out var wTypeFields, out var wCtorParams, out _, out var wCtorBody);
         wr.Append(wTypeFields);
-        wr.Format($"public {dataTypeName(dt)}({wCtorParams})").NewBlock().Append(wCtorBody);
+        wr.Format($"public {protectedTypeName(dt)}({wCtorParams})").NewBlock().Append(wCtorBody);
       }
 
       var wDefault = new ConcreteSyntaxTree();
@@ -1022,7 +1009,7 @@ namespace Microsoft.Dafny.Compilers {
         //   public override _IDt<T> _Get() { if (c != null) { d = c(); c = null; } return d; }
         //   public override string ToString() { return _Get().ToString(); }
         // }
-        var w = wrx.NewNamedBlock($"public class {dt.GetCompileName(Options)}__Lazy{typeParams} : {dataTypeName(dt)}{typeParams}");
+        var w = wrx.NewNamedBlock($"public class {dt.GetCompileName(Options)}__Lazy{typeParams} : {protectedTypeName(dt)}{typeParams}");
         w.WriteLine($"public {NeedsNew(dt, "Computer")}delegate {DtTypeName(dt)} Computer();");
         w.WriteLine($"{NeedsNew(dt, "c")}Computer c;");
         w.WriteLine($"{NeedsNew(dt, "d")}{DtTypeName(dt)} d;");
@@ -1044,7 +1031,7 @@ namespace Microsoft.Dafny.Compilers {
       int constructorIndex = 0; // used to give each constructor a different name
       foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         var wr = wrx.NewNamedBlock(
-          $"public class {DtCtorDeclarationName(ctor)}{TypeParameters(nonGhostTypeArgs)} : {dataTypeName(dt)}{typeParams}");
+          $"public class {DtCtorDeclarationName(ctor)}{TypeParameters(nonGhostTypeArgs)} : {protectedTypeName(dt)}{typeParams}");
         DatatypeFieldsAndConstructor(ctor, constructorIndex, wr);
         constructorIndex++;
       }
@@ -1218,7 +1205,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      return dt.IsRecordType ? dataTypeName(dt) : dt.GetCompileName(Options) + "_" + ctor.GetCompileName(Options);
+      return dt.IsRecordType ? protectedTypeName(dt) : dt.GetCompileName(Options) + "_" + ctor.GetCompileName(Options);
     }
 
     /// <summary>
@@ -1244,7 +1231,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      var dtName = dataTypeName(dt);
+      var dtName = protectedTypeName(dt);
       if (!dt.EnclosingModuleDefinition.TryToAvoidName) {
         dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + dtName;
       }
@@ -2535,7 +2522,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (cl is DatatypeDecl) {
-        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + dataTypeName(cl as DatatypeDecl);
+        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + protectedTypeName(cl as DatatypeDecl);
       }
 
       if (cl.EnclosingModuleDefinition.TryToAvoidName) {
@@ -2547,7 +2534,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (cl is ClassDecl) {
-        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + className(cl as ClassDecl);
+        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + protectedTypeName(cl as ClassDecl);
       }
 
       return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
@@ -2564,7 +2551,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      var dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + dataTypeName(dt);
+      var dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + protectedTypeName(dt);
 
       var nonGhostInferredTypeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
       var typeParams = nonGhostInferredTypeArgs.Count == 0 ? "" : $"<{TypeNames(nonGhostInferredTypeArgs, wr, dtv.Origin)}>";

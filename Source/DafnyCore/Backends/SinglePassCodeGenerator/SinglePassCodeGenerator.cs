@@ -1684,7 +1684,6 @@ namespace Microsoft.Dafny.Compilers {
           var (classIsExtern, include) = GetIsExternAndIncluded(defaultClassDecl);
 
           if (include) {
-            // HERE: was using IdName(defaultClassDecl) as name, now using clName(defaultClassDecl)
             var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
               classIsExtern, defaultClassDecl.FullName,
               defaultClassDecl.TypeArgs, defaultClassDecl,
@@ -1700,7 +1699,6 @@ namespace Microsoft.Dafny.Compilers {
           var (classIsExtern, include) = GetIsExternAndIncluded(cl);
 
           if (include) {
-            // HERE: was using IdName(cl) as name, now using clName(cl)
             var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
               classIsExtern, cl.FullName,
               cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.Origin, wr);
