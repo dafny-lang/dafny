@@ -2579,6 +2579,7 @@ namespace Microsoft.Dafny.Compilers {
         case "String":
         case "Equals":
         case "EqualsGeneric":
+        case "Default":
 
         // Built-in types (can also be used as functions)
         case "bool":
