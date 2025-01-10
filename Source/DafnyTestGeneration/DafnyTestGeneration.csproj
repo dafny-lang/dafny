@@ -15,7 +15,6 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
     <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
   </ItemGroup>
 
