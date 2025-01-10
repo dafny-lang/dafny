@@ -155,6 +155,9 @@ namespace Microsoft.Dafny {
       AtLayer
     }
 
+    public const string BoxFunctionName = "$Box";
+    public const string UnboxFunctionName = "$Unbox";
+
     Bpl.Expr Lit(Bpl.Expr expr, Bpl.Type typ) {
       Contract.Requires(expr != null);
       Contract.Requires(typ != null);
@@ -216,7 +219,7 @@ namespace Microsoft.Dafny {
       string comment = null, bool warnWhenUnused = false, Bpl.QKeyValue attributes = null) {
       var expr = etran.TrExpr(dafnyExpr);
       var cmd = TrAssumeCmd(tok, extendExpr(expr), attributes);
-      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.Tok, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
+      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.Origin, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
       return cmd;
     }
 
@@ -506,11 +509,11 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.Box:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "$Box", Predef.BoxType, args);
+          return FunctionCall(tok, BoxFunctionName, Predef.BoxType, args);
         case BuiltinFunction.Unbox:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
-          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "$Unbox", typeInstantiation, args), typeInstantiation);
+          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, UnboxFunctionName, typeInstantiation, args), typeInstantiation);
 
         case BuiltinFunction.RealToInt:
           Contract.Assume(args.Length == 1);
@@ -895,27 +898,13 @@ namespace Microsoft.Dafny {
     }
 
     public static IOrigin ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
-      if (boogieToken is BoogieRangeOrigin boogieRangeToken) {
-        if (!reportRanges && boogieRangeToken.Center is not null) {
-          return boogieRangeToken.Center;
-        }
-
-        return new SourceOrigin(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
-      }
-
-      if (boogieToken is NestedOrigin nestedToken) {
-        return new NestedOrigin(
-          ToDafnyToken(reportRanges, nestedToken.Outer),
-          ToDafnyToken(reportRanges, nestedToken.Inner));
-      }
-
       if (boogieToken == null) {
         return null;
       } else if (boogieToken is IOrigin dafnyToken) {
         return dafnyToken;
       } else if (boogieToken is VCGeneration.TokenWrapper tokenWrapper) {
         return ToDafnyToken(reportRanges, tokenWrapper.Inner);
-      } else if (boogieToken == Boogie.Token.NoToken) {
+      } else if (ReferenceEquals(boogieToken, Boogie.Token.NoToken)) {
         return Token.NoToken;
       } else {
         // These boogie Tokens can be created by TokenTextWriter

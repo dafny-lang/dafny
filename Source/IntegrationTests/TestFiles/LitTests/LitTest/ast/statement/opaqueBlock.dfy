@@ -13,7 +13,7 @@ method Foo() returns (x: int)
     x := x + 2;
   }
   assert x == 4; // error
-  x := x + 1;
+  x := x + y;
 }
 
 method StructuredCommandsIf(t: bool)
@@ -195,4 +195,25 @@ method FlattenedMatch(x: Option<int>, y: Option<int>) {
      }
    }
    assert z == 3;
+}
+
+method ModifiesFresh(w: Wrapper)
+{
+  opaque modifies {} 
+  {
+    var wrapper := new Wrapper;
+    wrapper.x := 2;
+    w.x := 3;
+  }
+}
+
+method ImplicitModifiesClause(w: Wrapper)
+  modifies w
+{
+  w.x := 2;
+  opaque
+  {
+    w.x := 3;
+  }
+  assert w.x == 2;
 }

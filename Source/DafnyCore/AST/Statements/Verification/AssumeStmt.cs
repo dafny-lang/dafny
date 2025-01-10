@@ -12,9 +12,9 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
   public AssumeStmt(Cloner cloner, AssumeStmt original) : base(cloner, original) {
   }
 
-  public AssumeStmt(IOrigin rangeOrigin, Expression expr, Attributes attrs)
-    : base(rangeOrigin, expr, attrs) {
-    Contract.Requires(rangeOrigin != null);
+  public AssumeStmt(IOrigin origin, Expression expr, Attributes attrs)
+    : base(origin, expr, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(expr != null);
   }
   public override IEnumerable<Expression> SpecificationSubExpressions {
@@ -25,7 +25,7 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
   }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
-    yield return new Assumption(decl, Tok, AssumptionDescription.AssumeStatement(
+    yield return new Assumption(decl, Origin, AssumptionDescription.AssumeStatement(
       Attributes.Contains(Attributes, Attributes.AxiomAttributeName)));
   }
 
@@ -37,7 +37,7 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
     base.GenResolve(resolver, context);
 
     if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !this.IsExplicitAxiom()) {
-      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assume_statement_without_axiom, Tok, "assume statement has no {:axiom} annotation");
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assume_statement_without_axiom, Origin, "assume statement has no {:axiom} annotation");
     }
   }
 

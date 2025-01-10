@@ -72,7 +72,7 @@ public partial class BoogieGenerator {
         lhsType = null;  // for an array update, always make sure the value assigned is boxed
         rhsTypeConstraint = e.Array.Type.NormalizeExpand().TypeArgs[0];
       }
-      var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], null, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran, stmt);
+      var bRhs = TrAssignmentRhs(rhss[i].Origin, bLhss[i], null, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran, stmt);
       if (bLhss[i] != null) {
         Contract.Assert(bRhs == bLhss[i]);  // this is what the postcondition of TrAssignmentRhs promises
         // assignment has already been done by TrAssignmentRhs
@@ -123,7 +123,7 @@ public partial class BoogieGenerator {
         lhsType = null;  // for an array update, always make sure the value assigned is boxed
         rhsTypeConstraint = e.Array.Type.NormalizeExpand().TypeArgs[0];
       }
-      var bRhs = TrAssignmentRhs(rhss[i].Tok, null, (lhs as IdentifierExpr)?.Var, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran, stmt);
+      var bRhs = TrAssignmentRhs(rhss[i].Origin, null, (lhs as IdentifierExpr)?.Var, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran, stmt);
       finalRhss.Add(bRhs);
     }
     return finalRhss;
@@ -230,7 +230,7 @@ public partial class BoogieGenerator {
 
     i = 0;
     foreach (var lhs in lhss) {
-      IOrigin tok = lhs.Tok;
+      IOrigin tok = lhs.Origin;
       TrStmt_CheckWellformed(lhs, builder, locals, etran, true, true);
 
       if (lhs is IdentifierExpr) {
@@ -241,7 +241,7 @@ public partial class BoogieGenerator {
         lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
           if (rhs != null) {
             var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, rhs);
-            proofDependencies?.AddProofDependencyId(cmd, lhs.Tok, new AssignmentDependency(stmt.Origin));
+            proofDependencies?.AddProofDependencyId(cmd, lhs.Origin, new AssignmentDependency(stmt.Origin));
             bldr.Add(cmd);
           }
 
@@ -269,17 +269,17 @@ public partial class BoogieGenerator {
 
         if (useSurrogateLocal) {
           var nm = SurrogateName(field);
-          var bLhs = new Bpl.IdentifierExpr(fse.Tok, nm, TrType(field.Type));
+          var bLhs = new Bpl.IdentifierExpr(fse.Origin, nm, TrType(field.Type));
           bLhss.Add(rhsCanAffectPreviouslyKnownExpressions ? null : bLhs);
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
               var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, rhs);
-              proofDependencies?.AddProofDependencyId(cmd, fse.Tok, new AssignmentDependency(stmt.Origin));
+              proofDependencies?.AddProofDependencyId(cmd, fse.Origin, new AssignmentDependency(stmt.Origin));
               bldr.Add(cmd);
             }
 
             if (!origRhsIsHavoc || field.Type.HavocCountsAsDefiniteAssignment(field.IsGhost)) {
-              MarkDefiniteAssignmentTracker(lhs.Tok, nm, bldr);
+              MarkDefiniteAssignmentTracker(lhs.Origin, nm, bldr);
             }
           });
         } else {
@@ -291,7 +291,7 @@ public partial class BoogieGenerator {
               Check_NewRestrictions(tok, fse.Obj, obj, fseField, rhs, bldr, et);
               var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
               var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
-              proofDependencies?.AddProofDependencyId(cmd, lhs.Tok, new AssignmentDependency(stmt.Origin));
+              proofDependencies?.AddProofDependencyId(cmd, lhs.Origin, new AssignmentDependency(stmt.Origin));
               bldr.Add(cmd);
               // assume $IsGoodHeap($Heap);
               bldr.Add(AssumeGoodHeap(tok, et));
@@ -307,7 +307,7 @@ public partial class BoogieGenerator {
         var obj = SaveInTemp(etran.TrExpr(sel.Seq), rhsCanAffectPreviouslyKnownExpressions,
           "$obj" + i, Predef.RefType, builder, locals);
         var idx = etran.TrExpr(sel.E0);
-        idx = ConvertExpression(sel.E0.Tok, idx, sel.E0.Type, Type.Int);
+        idx = ConvertExpression(sel.E0.Origin, idx, sel.E0.Type, Type.Int);
         var fieldName = SaveInTemp(FunctionCall(tok, BuiltinFunction.IndexField, null, idx), rhsCanAffectPreviouslyKnownExpressions,
           "$index" + i, Predef.FieldName(tok), builder, locals);
         prevObj[i] = obj;
@@ -321,7 +321,7 @@ public partial class BoogieGenerator {
           if (rhs != null) {
             var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
             var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
-            proofDependencies?.AddProofDependencyId(cmd, lhs.Tok, new AssignmentDependency(stmt.Origin));
+            proofDependencies?.AddProofDependencyId(cmd, lhs.Origin, new AssignmentDependency(stmt.Origin));
             bldr.Add(cmd);
             // assume $IsGoodHeap($Heap);
             bldr.Add(AssumeGoodHeap(tok, et));
@@ -334,8 +334,8 @@ public partial class BoogieGenerator {
 
         var obj = SaveInTemp(etran.TrExpr(mse.Array), rhsCanAffectPreviouslyKnownExpressions,
           "$obj" + i, Predef.RefType, builder, locals);
-        var fieldName = SaveInTemp(etran.GetArrayIndexFieldName(mse.Tok, mse.Indices), rhsCanAffectPreviouslyKnownExpressions,
-          "$index" + i, Predef.FieldName(mse.Tok), builder, locals);
+        var fieldName = SaveInTemp(etran.GetArrayIndexFieldName(mse.Origin, mse.Indices), rhsCanAffectPreviouslyKnownExpressions,
+          "$index" + i, Predef.FieldName(mse.Origin), builder, locals);
         prevObj[i] = obj;
         prevIndex[i] = fieldName;
         var desc = new Modifiable("an array element", contextModFrames, mse.Array, null);
@@ -346,7 +346,7 @@ public partial class BoogieGenerator {
           if (rhs != null) {
             var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
             var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
-            proofDependencies?.AddProofDependencyId(cmd, lhs.Tok, new AssignmentDependency(stmt.Origin));
+            proofDependencies?.AddProofDependencyId(cmd, lhs.Origin, new AssignmentDependency(stmt.Origin));
             bldr.Add(cmd);
             // assume $IsGoodHeap($Heap);
             bldr.Add(AssumeGoodHeap(tok, etran));
@@ -427,7 +427,7 @@ public partial class BoogieGenerator {
       TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true, addResultCommands:
         (returnBuilder, result) => {
           if (cre != null) {
-            returnBuilder.Add(Assert(result.Tok, cre, desc, builder.Context));
+            returnBuilder.Add(Assert(result.Origin, cre, desc, builder.Context));
           }
         });
 
@@ -487,7 +487,7 @@ public partial class BoogieGenerator {
             zeroSize = BplOr(zeroSize, Bpl.Expr.Eq(Bpl.Expr.Literal(0), etran.TrExpr(dim)));
           }
           var desc = new ArrayInitEmpty(tRhs.EType.ToString(), tRhs.ArrayDimensions);
-          builder.Add(Assert(tRhs.Tok, zeroSize, desc, builder.Context));
+          builder.Add(Assert(tRhs.Origin, zeroSize, desc, builder.Context));
         }
       }
 
@@ -509,7 +509,7 @@ public partial class BoogieGenerator {
             foreach (var v in tRhs.InitDisplay) {
               var EE_ii = etran.TrExpr(v);
               // assert EE_ii satisfies any subset-type constraints;
-              CheckSubrange(v.Tok, EE_ii, v.Type, tRhs.EType, v, builder);
+              CheckSubrange(v.Origin, EE_ii, v.Type, tRhs.EType, v, builder);
               // assume nw[ii] == EE_ii;
               var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }));
               builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxUnlessInherentlyBoxed(ai, tRhs.EType), AdaptBoxing(tok, EE_ii, v.Type, tRhs.EType))));

@@ -249,16 +249,16 @@ public class CliCompilation {
 
     var canVerifiesPerModule = canVerifies.GroupBy(c => c.ContainingModule);
     foreach (var canVerifiesForModule in canVerifiesPerModule.
-               OrderBy(v => v.Key.Tok.pos)) {
+               OrderBy(v => v.Key.Origin.pos)) {
       var toAwait = new List<ICanVerify>();
-      foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Tok.pos)) {
+      foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Origin.pos)) {
         var results = new CliCanVerifyState();
         canVerifyResults[canVerify] = results;
         if (line != null) {
           results.TaskFilter = t => KeepVerificationTask(t, line.Value);
         }
 
-        var shouldVerify = await Compilation.VerifyLocation(canVerify.Tok.GetFilePosition(), results.TaskFilter, randomSeed);
+        var shouldVerify = await Compilation.VerifyLocation(canVerify.Origin.GetFilePosition(), results.TaskFilter, randomSeed);
         if (shouldVerify) {
           toAwait.Add(canVerify);
         }
@@ -275,12 +275,12 @@ public class CliCompilation {
           await results.Finished.Task;
           done++;
         } catch (ProverException e) {
-          Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
+          Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Origin, e.Message);
           yield break;
         } catch (OperationCanceledException) {
 
         } catch (Exception e) {
-          Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
+          Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Origin,
             $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
           throw;
         }
@@ -338,7 +338,7 @@ public class CliCompilation {
     }
     var filePart = result.Groups[1].Value;
     string? linePart = result.Groups.Count > 2 ? result.Groups[2].Value : null;
-    var fileFiltered = canVerifies.Where(c => c.Tok.Uri.ToString().EndsWith(filePart)).ToList();
+    var fileFiltered = canVerifies.Where(c => c.Origin.Uri.ToString().EndsWith(filePart)).ToList();
     if (string.IsNullOrEmpty(linePart)) {
       line = null;
       return fileFiltered;

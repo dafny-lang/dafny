@@ -1,35 +1,37 @@
-using System.Diagnostics;
-using JetBrains.Annotations;
+#nullable enable
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public abstract class TokenNode : Node {
+public abstract class NodeWithComputedRange : Node {
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal Token[] FormatTokens = null;
+  internal Token[]? FormatTokens = null;
 
-  protected IOrigin RangeOrigin = null;
+  private IOrigin origin;
 
-  protected IOrigin tok = Token.NoToken;
-
-  public void SetTok(IOrigin newTok) {
-    tok = newTok;
+  protected NodeWithComputedRange(IOrigin? origin = null) {
+    this.origin = origin ?? Token.NoToken;
   }
 
-  [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IOrigin Tok => tok;
+  protected NodeWithComputedRange(Cloner cloner, NodeWithComputedRange original) {
+    origin = cloner.Origin(original.Origin);
+  }
+
+  public void SetOrigin(IOrigin newOrigin) {
+    origin = newOrigin;
+  }
 
   public override IOrigin Origin {
     get {
-      if (RangeOrigin == null) {
+      if (origin is Token tokenOrigin) {
 
-        var startTok = Tok.StartToken;
-        var endTok = Tok.EndToken;
+        var startTok = origin.StartToken;
+        var endTok = origin.EndToken;
 
         void UpdateStartEndToken(Token token1) {
-          if (token1.Filepath != Tok.Filepath) {
+          if (token1.Filepath != origin.Filepath) {
             return;
           }
 
@@ -42,12 +44,12 @@ public abstract class TokenNode : Node {
           }
         }
 
-        void UpdateStartEndTokRecursive(INode node) {
+        void UpdateStartEndTokRecursive(INode? node) {
           if (node is null) {
             return;
           }
 
-          if (node.Origin.Filepath != Tok.Filepath || node is Expression { IsImplicit: true } ||
+          if (node.Origin.Filepath != origin.Filepath || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {
@@ -64,11 +66,10 @@ public abstract class TokenNode : Node {
           }
         }
 
-        RangeOrigin = new SourceOrigin(startTok, endTok);
+        origin = new SourceOrigin(startTok, endTok, tokenOrigin);
       }
 
-      return RangeOrigin;
+      return origin;
     }
-    set => RangeOrigin = value;
   }
 }

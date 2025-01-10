@@ -122,7 +122,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     }
 
     // Best heuristic for new elements is to indent them using the method's formatting
-    SetMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indentBefore);
+    SetMethodLikeIndent(stmt.Origin, stmt.OwnedTokens, indentBefore);
     SetIndentations(stmt.EndToken, -1, -1, indentBefore);
 
     return true;
@@ -403,7 +403,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   }
 
   public void SetDeclIndentation(TopLevelDecl topLevelDecl, int indent) {
-    if (topLevelDecl.Tok.FromIncludeDirective(program)) {
+    if (topLevelDecl.Origin.FromIncludeDirective(program)) {
       return;
     }
 
@@ -422,9 +422,9 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
         SetRedirectingTypeDeclDeclIndentation(indent, redirectingTypeDecl);
       }
 
-      var initialMemberIndent = declWithMembers.Tok.line == 0 ? indent : indent2;
+      var initialMemberIndent = declWithMembers.Origin.line == 0 ? indent : indent2;
       foreach (var member in declWithMembers.PreResolveChildren) {
-        if (member.Tok.FromIncludeDirective(program)) {
+        if (member.Origin.FromIncludeDirective(program)) {
           continue;
         }
 
@@ -992,7 +992,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     }
 
     if (body != null) {
-      SetDelimiterIndentedRegions(body.Tok, indent);
+      SetDelimiterIndentedRegions(body.Origin, indent);
       if (body.EndToken.val == "}") {
         SetClosingIndentedRegion(body.EndToken, indent);
       }

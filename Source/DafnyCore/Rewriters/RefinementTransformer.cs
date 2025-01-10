@@ -156,11 +156,11 @@ namespace Microsoft.Dafny {
     }
 
     private void Error(ErrorId errorId, Declaration d, string msg, params object[] args) {
-      Reporter.Error(MessageSource.RefinementTransformer, errorId, d.Tok, msg, args);
+      Reporter.Error(MessageSource.RefinementTransformer, errorId, d.Origin, msg, args);
     }
 
     private void Error(ErrorId errorId, INode n, string msg, params object[] args) {
-      Reporter.Error(MessageSource.RefinementTransformer, errorId, n.Tok, msg, args);
+      Reporter.Error(MessageSource.RefinementTransformer, errorId, n.Origin, msg, args);
     }
 
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
@@ -180,7 +180,7 @@ namespace Microsoft.Dafny {
         // There is a refinement parent and it resolved OK
         var refinementTarget = m.Implements.Target;
         if (m.Implements.Kind == ImplementationKind.Refinement && refinementTarget.Def.ModuleKind == ModuleKindEnum.Replaceable) {
-          Reporter.Error(MessageSource.RefinementTransformer, "refineReplaceable", refinementTarget.Tok,
+          Reporter.Error(MessageSource.RefinementTransformer, "refineReplaceable", refinementTarget.Origin,
             "replaceable module cannot be refined");
 
           return;
@@ -199,11 +199,11 @@ namespace Microsoft.Dafny {
           if (refinedModuleTopLevelDecls.TryGetValue(mdecl.Name, out var baseDecl)) {
             if (baseDecl is ModuleDecl baseModuleDecl) {
               if (mdecl.Opened && !baseModuleDecl.Opened) {
-                Error(ErrorId.ref_refinement_import_must_match_opened_base, m.Tok,
+                Error(ErrorId.ref_refinement_import_must_match_opened_base, m.Origin,
                   "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}.",
                   mdecl.Name, m.Name, m.Implements.Target.ToString());
               } else if (!mdecl.Opened && baseModuleDecl.Opened) {
-                Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.Tok,
+                Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.Origin,
                   "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.",
                   mdecl.Name, m.Name, m.Implements.Target.ToString());
               }
@@ -251,9 +251,9 @@ namespace Microsoft.Dafny {
             MergeTopLevelDecls(module, newPointer, originalDeclaration);
           } else if (newDeclaration is TypeSynonymDecl) {
             var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.Implements.Target}), even if it denotes the same type";
-            Error(ErrorId.ref_refinement_type_must_match_base, newDeclaration.Tok, msg);
+            Error(ErrorId.ref_refinement_type_must_match_base, newDeclaration.Origin, msg);
           } else if (!(originalDeclaration is AbstractModuleDecl)) {
-            Error(ErrorId.ref_refining_notation_needed, newDeclaration.Tok, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.Implements.Target}', you must use the refining (`...`) notation");
+            Error(ErrorId.ref_refining_notation_needed, newDeclaration.Origin, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.Implements.Target}', you must use the refining (`...`) notation");
           }
         }
       }
@@ -278,7 +278,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(excludeList != null);
       foreach (var d in topLevelDecls) {
         if (d.IsRefining && !excludeList.Contains(d.Name)) {
-          Error(ErrorId.ref_refining_notation_does_not_refine, d.Tok, $"declaration '{d.Name}' indicates refining (notation `...`), but does not refine anything");
+          Error(ErrorId.ref_refining_notation_does_not_refine, d.Origin, $"declaration '{d.Name}' indicates refining (notation `...`), but does not refine anything");
         }
       }
     }
@@ -290,7 +290,7 @@ namespace Microsoft.Dafny {
     private void AddDefaultBaseTypeToUnresolvedNewtypes(IEnumerable<TopLevelDecl> topLevelDecls) {
       foreach (var d in topLevelDecls) {
         if (d is NewtypeDecl { IsRefining: true, BaseType: null } decl) {
-          Reporter.Info(MessageSource.RefinementTransformer, decl.Tok, $"defaulting to 'int' for unspecified base type of '{decl.Name}'");
+          Reporter.Info(MessageSource.RefinementTransformer, decl.Origin, $"defaulting to 'int' for unspecified base type of '{decl.Name}'");
           decl.BaseType = new IntType(); // Set `BaseType` to some reasonable default to allow resolution to proceed
         }
       }
@@ -324,7 +324,7 @@ namespace Microsoft.Dafny {
         } else {
           // check that the new module refines the previous declaration
           if (!CheckIsRefinement((ModuleDecl)nw, (AbstractModuleDecl)d)) {
-            Error(ErrorId.ref_module_must_refine_module_2, nw.Tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
+            Error(ErrorId.ref_module_must_refine_module_2, nw.Origin, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
           }
         }
       } else if (d is AbstractTypeDecl) {
@@ -334,11 +334,11 @@ namespace Microsoft.Dafny {
           var od = (AbstractTypeDecl)d;
           postTasks.Enqueue(() => {
             // check that od's type characteristics are respected by nw's
-            var newType = UserDefinedType.FromTopLevelDecl(nw.Tok,
+            var newType = UserDefinedType.FromTopLevelDecl(nw.Origin,
               nw is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl } ? nonNullTypeDecl : nw);
             if (!CheckTypeCharacteristics_Visitor.CheckCharacteristics(od.Characteristics, newType, false, out var whatIsNeeded, out var hint, out var errorId)) {
               var typeCharacteristicsSyntax = od.Characteristics.ToString();
-              Error(errorId, nw.Tok,
+              Error(errorId, nw.Origin,
                 $"to be a refinement of {od.WhatKind} '{od.EnclosingModuleDefinition.Name}.{od.Name}' declared with {typeCharacteristicsSyntax}, " +
                 $"{nw.WhatKind} '{m.Name}.{nw.Name}' must {whatIsNeeded}{hint}");
             }
@@ -351,7 +351,7 @@ namespace Microsoft.Dafny {
               "a {0} ({1}) cannot declare members, so it cannot refine an abstract type with members",
               nw.WhatKind, nw.Name);
           } else {
-            CheckAgreement_TypeParameters(nw.Tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type");
+            CheckAgreement_TypeParameters(nw.Origin, d.TypeArgs, nw.TypeArgs, nw.Name, "type");
           }
         }
       } else if (nw is AbstractTypeDecl) {
@@ -477,7 +477,7 @@ namespace Microsoft.Dafny {
           body = moreBody;
           bodyOrigin = Predicate.BodyOriginKind.DelayedDefinition;
         } else {
-          body = new BinaryExpr(previousFunction.Tok, BinaryExpr.Opcode.And, refinementCloner.CloneExpr(previousFunction.Body), moreBody);
+          body = new BinaryExpr(previousFunction.Origin, BinaryExpr.Opcode.And, refinementCloner.CloneExpr(previousFunction.Body), moreBody);
           bodyOrigin = Predicate.BodyOriginKind.Extension;
         }
       } else {
@@ -486,28 +486,28 @@ namespace Microsoft.Dafny {
       }
       var byMethodBody = refinementCloner.CloneBlockStmt(previousFunction.ByMethodBody);
 
-      var range = newFunction.Origin;
+      var origin = newFunction.Origin;
       var nameNode = newFunction.NameNode;
 
       if (previousFunction is Predicate) {
-        return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result,
+        return new Predicate(origin, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result,
           req, reads, ens, decreases, body, bodyOrigin,
           previousFunction.ByMethodTok == null ? null : refinementCloner.Origin(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is LeastPredicate) {
-        return new LeastPredicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, ((LeastPredicate)previousFunction).TypeOfK, tps, formals, result,
+        return new LeastPredicate(origin, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, ((LeastPredicate)previousFunction).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is GreatestPredicate) {
-        return new GreatestPredicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, ((GreatestPredicate)previousFunction).TypeOfK, tps, formals, result,
+        return new GreatestPredicate(origin, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, ((GreatestPredicate)previousFunction).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is TwoStatePredicate) {
-        return new TwoStatePredicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, tps, formals, result,
+        return new TwoStatePredicate(origin, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, tps, formals, result,
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is TwoStateFunction) {
-        return new TwoStateFunction(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
+        return new TwoStateFunction(origin, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else {
-        return new Function(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
+        return new Function(origin, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
           req, reads, ens, decreases, body,
           previousFunction.ByMethodTok == null ? null : refinementCloner.Origin(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
@@ -532,33 +532,33 @@ namespace Microsoft.Dafny {
         ens.AddRange(moreEnsures);
       }
 
+      var origin = currentMethod.Origin;
+      var newName = currentMethod.NameNode;
       if (previousMethod is Constructor) {
         var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.Body);
-        return new Constructor(previousMethod.Origin.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsGhost, tps, ins,
+        return new Constructor(origin, newName, previousMethod.IsGhost, tps, ins,
           req, reads, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
-      var newRange = currentMethod.Origin.MakeRefined(moduleUnderConstruction);
-      var newName = currentMethod.NameNode.Clone(refinementCloner);
       if (previousMethod is LeastLemma) {
-        return new LeastLemma(newRange, newName, previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
+        return new LeastLemma(origin, newName, previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is GreatestLemma) {
-        return new GreatestLemma(newRange, newName, previousMethod.HasStaticKeyword, ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
+        return new GreatestLemma(origin, newName, previousMethod.HasStaticKeyword, ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is Lemma) {
-        return new Lemma(newRange, newName, previousMethod.HasStaticKeyword, tps, ins,
+        return new Lemma(origin, newName, previousMethod.HasStaticKeyword, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is TwoStateLemma) {
         var two = (TwoStateLemma)previousMethod;
-        return new TwoStateLemma(newRange, newName, previousMethod.HasStaticKeyword, tps, ins,
+        return new TwoStateLemma(origin, newName, previousMethod.HasStaticKeyword, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else {
-        return new Method(newRange, newName, previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
+        return new Method(origin, newName, previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null, previousMethod.IsByMethod);
       }
@@ -571,19 +571,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(prev != null);
 
       if (nw.Requires.Count != 0) {
-        Error(ErrorId.ref_no_new_iterator_preconditions, nw.Requires[0].E.Tok, "a refining iterator is not allowed to add preconditions");
+        Error(ErrorId.ref_no_new_iterator_preconditions, nw.Requires[0].E.Origin, "a refining iterator is not allowed to add preconditions");
       }
       if (nw.YieldRequires.Count != 0) {
-        Error(ErrorId.ref_no_new_iterator_yield_preconditions, nw.YieldRequires[0].E.Tok, "a refining iterator is not allowed to add yield preconditions");
+        Error(ErrorId.ref_no_new_iterator_yield_preconditions, nw.YieldRequires[0].E.Origin, "a refining iterator is not allowed to add yield preconditions");
       }
       if (nw.Reads.Expressions.Count != 0) {
-        Error(ErrorId.ref_no_new_iterator_reads, nw.Reads.Expressions[0].E.Tok, "a refining iterator is not allowed to extend the reads clause");
+        Error(ErrorId.ref_no_new_iterator_reads, nw.Reads.Expressions[0].E.Origin, "a refining iterator is not allowed to extend the reads clause");
       }
       if (nw.Modifies.Expressions.Count != 0) {
-        Error(ErrorId.ref_no_new_iterator_modifies, nw.Modifies.Expressions[0].E.Tok, "a refining iterator is not allowed to extend the modifies clause");
+        Error(ErrorId.ref_no_new_iterator_modifies, nw.Modifies.Expressions[0].E.Origin, "a refining iterator is not allowed to extend the modifies clause");
       }
       if (nw.Decreases.Expressions.Count != 0) {
-        Error(ErrorId.ref_no_new_iterator_decreases, nw.Decreases.Expressions[0].Tok, "a refining iterator is not allowed to extend the decreases clause");
+        Error(ErrorId.ref_no_new_iterator_decreases, nw.Decreases.Expressions[0].Origin, "a refining iterator is not allowed to extend the decreases clause");
       }
 
       if (nw.SignatureIsOmitted) {
@@ -591,9 +591,9 @@ namespace Microsoft.Dafny {
         Contract.Assert(nw.Outs.Count == 0);
         Reporter.Info(MessageSource.RefinementTransformer, nw.SignatureEllipsis, Printer.IteratorSignatureToString(Reporter.Options, prev));
       } else {
-        CheckAgreement_TypeParameters(nw.Tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "iterator");
-        CheckAgreement_Parameters(nw.Tok, prev.Ins, nw.Ins, nw.Name, "iterator", "in-parameter");
-        CheckAgreement_Parameters(nw.Tok, prev.Outs, nw.Outs, nw.Name, "iterator", "yield-parameter");
+        CheckAgreement_TypeParameters(nw.Origin, prev.TypeArgs, nw.TypeArgs, nw.Name, "iterator");
+        CheckAgreement_Parameters(nw.Origin, prev.Ins, nw.Ins, nw.Name, "iterator", "in-parameter");
+        CheckAgreement_Parameters(nw.Origin, prev.Outs, nw.Outs, nw.Name, "iterator", "yield-parameter");
       }
 
       BlockStmt newBody;
@@ -630,7 +630,7 @@ namespace Microsoft.Dafny {
     }
 
     TopLevelDeclWithMembers MergeClass(TopLevelDeclWithMembers nw, TopLevelDeclWithMembers prev) {
-      CheckAgreement_TypeParameters(nw.Tok, prev.TypeArgs, nw.TypeArgs, nw.Name, nw.WhatKind);
+      CheckAgreement_TypeParameters(nw.Origin, prev.TypeArgs, nw.TypeArgs, nw.Name, nw.WhatKind);
 
       prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(refinementCloner.CloneType(item)));
       nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);
@@ -701,13 +701,13 @@ namespace Microsoft.Dafny {
             } else {
               var prevFunction = (Function)member;
               if (f.Req.Count != 0) {
-                Error(ErrorId.ref_refinement_no_new_preconditions, f.Req[0].E.Tok, "a refining {0} is not allowed to add preconditions", f.WhatKind);
+                Error(ErrorId.ref_refinement_no_new_preconditions, f.Req[0].E.Origin, "a refining {0} is not allowed to add preconditions", f.WhatKind);
               }
               if (f.Reads.Expressions.Count != 0) {
-                Error(ErrorId.ref_refinement_no_new_reads, f.Reads.Expressions[0].E.Tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
+                Error(ErrorId.ref_refinement_no_new_reads, f.Reads.Expressions[0].E.Origin, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
               }
               if (f.Decreases.Expressions.Count != 0) {
-                Error(ErrorId.ref_no_new_decreases, f.Decreases.Expressions[0].Tok, "decreases clause on refining {0} not supported", f.WhatKind);
+                Error(ErrorId.ref_no_new_decreases, f.Decreases.Expressions[0].Origin, "decreases clause on refining {0} not supported", f.WhatKind);
               }
 
               if (prevFunction.HasStaticKeyword != f.HasStaticKeyword) {
@@ -723,8 +723,8 @@ namespace Microsoft.Dafny {
                 Contract.Assert(f.Ins.Count == 0);
                 Reporter.Info(MessageSource.RefinementTransformer, f.SignatureEllipsis, Printer.FunctionSignatureToString(Reporter.Options, prevFunction));
               } else {
-                CheckAgreement_TypeParameters(f.Tok, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
-                CheckAgreement_Parameters(f.Tok, prevFunction.Ins, f.Ins, f.Name, "function", "parameter");
+                CheckAgreement_TypeParameters(f.Origin, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
+                CheckAgreement_Parameters(f.Origin, prevFunction.Ins, f.Ins, f.Name, "function", "parameter");
                 if (prevFunction.Result != null && f.Result != null && prevFunction.Result.Name != f.Result.Name) {
                   Error(ErrorId.ref_mismatched_function_return_name, f, "the name of function return value '{0}'({1}) differs from the name of corresponding function return value in the module it refines ({2})", f.Name, f.Result.Name, prevFunction.Result.Name);
                 }
@@ -741,8 +741,6 @@ namespace Microsoft.Dafny {
                 Error(ErrorId.ref_mismatched_refinement_body, nwMember, $"a refining {f.WhatKind} is not allowed to extend/change the body");
               }
               var newF = CloneFunction(f, prevFunction, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
-              newF.Origin = f.Origin;
-              newF.NameNode.Origin = f.NameNode.Origin;
               newF.RefinementBase = member;
               nw.Members[index] = newF;
             }
@@ -754,13 +752,13 @@ namespace Microsoft.Dafny {
             } else {
               var prevMethod = (Method)member;
               if (m.Req.Count != 0) {
-                Error(ErrorId.ref_no_new_method_precondition, m.Req[0].E.Tok, "a refining method is not allowed to add preconditions");
+                Error(ErrorId.ref_no_new_method_precondition, m.Req[0].E.Origin, "a refining method is not allowed to add preconditions");
               }
               if (m.Reads.Expressions.Count != 0) {
-                Error(ErrorId.ref_no_new_method_reads, m.Reads.Expressions[0].E.Tok, "a refining method is not allowed to extend the reads clause");
+                Error(ErrorId.ref_no_new_method_reads, m.Reads.Expressions[0].E.Origin, "a refining method is not allowed to extend the reads clause");
               }
               if (m.Mod.Expressions.Count != 0) {
-                Error(ErrorId.ref_no_new_method_modifies, m.Mod.Expressions[0].E.Tok, "a refining method is not allowed to extend the modifies clause");
+                Error(ErrorId.ref_no_new_method_modifies, m.Mod.Expressions[0].E.Origin, "a refining method is not allowed to extend the modifies clause");
               }
               // If the previous method was not specified with "decreases *", then the new method is not allowed to provide any "decreases" clause.
               // Any "decreases *" clause is not inherited, so if the previous method was specified with "decreases *", then the new method needs
@@ -773,7 +771,7 @@ namespace Microsoft.Dafny {
               } else {
                 if (!Contract.Exists(prevMethod.Decreases.Expressions, e => e is WildcardExpr)) {
                   // If the previous loop was not specified with "decreases *", then the new loop is not allowed to provide any "decreases" clause.
-                  Error(ErrorId.ref_no_new_method_decreases, m.Decreases.Expressions[0].Tok, "decreases clause on refining method not supported, unless the refined method was specified with 'decreases *'");
+                  Error(ErrorId.ref_no_new_method_decreases, m.Decreases.Expressions[0].Origin, "decreases clause on refining method not supported, unless the refined method was specified with 'decreases *'");
                 }
                 decreases = m.Decreases;
               }
@@ -791,9 +789,9 @@ namespace Microsoft.Dafny {
                 Contract.Assert(m.Outs.Count == 0);
                 Reporter.Info(MessageSource.RefinementTransformer, m.SignatureEllipsis, Printer.MethodSignatureToString(Reporter.Options, prevMethod));
               } else {
-                CheckAgreement_TypeParameters(m.Tok, prevMethod.TypeArgs, m.TypeArgs, m.Name, "method");
-                CheckAgreement_Parameters(m.Tok, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
-                CheckAgreement_Parameters(m.Tok, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
+                CheckAgreement_TypeParameters(m.Origin, prevMethod.TypeArgs, m.TypeArgs, m.Name, "method");
+                CheckAgreement_Parameters(m.Origin, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
+                CheckAgreement_Parameters(m.Origin, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
               }
               currentMethod = m;
               var replacementBody = m.Body;
@@ -805,8 +803,6 @@ namespace Microsoft.Dafny {
                 }
               }
               var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
-              newM.Origin = m.Origin;
-              newM.NameNode.Origin = m.NameNode.Origin;
               newM.RefinementBase = member;
               nw.Members[index] = newM;
             }
@@ -829,7 +825,7 @@ namespace Microsoft.Dafny {
           var o = old[i];
           var n = nw[i];
           if (o.Name != n.Name) {
-            Error(ErrorId.ref_mismatched_type_parameter_name, n.Tok, "type parameters are not allowed to be renamed from the names given in the {0} in the module being refined (expected '{1}', found '{2}')", thing, o.Name, n.Name);
+            Error(ErrorId.ref_mismatched_type_parameter_name, n.Origin, "type parameters are not allowed to be renamed from the names given in the {0} in the module being refined (expected '{1}', found '{2}')", thing, o.Name, n.Name);
           } else {
             // This explains what we want to do and why:
             // switch (o.EqualitySupport) {
@@ -849,23 +845,23 @@ namespace Microsoft.Dafny {
             // }
             // Here's how we actually compute it:
             if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
-              Error(ErrorId.ref_mismatched_type_parameter_equality, n.Tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
+              Error(ErrorId.ref_mismatched_type_parameter_equality, n.Origin, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
             }
             if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
-              Error(ErrorId.ref_mismatched_type_parameter_auto_init, n.Tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
+              Error(ErrorId.ref_mismatched_type_parameter_auto_init, n.Origin, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
             } else if (o.Characteristics.IsNonempty != n.Characteristics.IsNonempty) {
-              Error(ErrorId.ref_mismatched_type_parameter_nonempty, n.Tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty", n.Name);
+              Error(ErrorId.ref_mismatched_type_parameter_nonempty, n.Origin, "type parameter '{0}' is not allowed to change the requirement of being nonempty", n.Name);
             }
             if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
-              Error(ErrorId.ref_mismatched_type_parameter_not_reference, n.Tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
+              Error(ErrorId.ref_mismatched_type_parameter_not_reference, n.Origin, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
             }
             if (o.Variance != n.Variance) {  // syntax is allowed to be different as long as the meaning is the same (i.e., compare Variance, not VarianceSyntax)
               var ov = o.Variance == TypeParameter.TPVariance.Co ? "+" : o.Variance == TypeParameter.TPVariance.Contra ? "-" : "=";
               var nv = n.Variance == TypeParameter.TPVariance.Co ? "+" : n.Variance == TypeParameter.TPVariance.Contra ? "-" : "=";
-              Error(ErrorId.ref_mismatched_type_parameter_variance, n.Tok, "type parameter '{0}' is not allowed to change variance (here, from '{1}' to '{2}')", n.Name, ov, nv);
+              Error(ErrorId.ref_mismatched_type_parameter_variance, n.Origin, "type parameter '{0}' is not allowed to change variance (here, from '{1}' to '{2}')", n.Name, ov, nv);
             }
 
-            CheckAgreement_TypeBounds(n.Tok, o, n, name, thing);
+            CheckAgreement_TypeBounds(n.Origin, o, n, name, thing);
           }
         }
       }
@@ -903,23 +899,23 @@ namespace Microsoft.Dafny {
           var o = old[i];
           var n = nw[i];
           if (o.Name != n.Name) {
-            Error(ErrorId.ref_mismatched_kind_name, n.Tok, "there is a difference in name of {0} {1} ('{2}' versus '{3}') of {4} {5} compared to corresponding {4} in the module it refines", parameterKind, i, n.Name, o.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_name, n.Origin, "there is a difference in name of {0} {1} ('{2}' versus '{3}') of {4} {5} compared to corresponding {4} in the module it refines", parameterKind, i, n.Name, o.Name, thing, name);
           } else if (!o.IsGhost && n.IsGhost) {
-            Error(ErrorId.ref_mismatched_kind_ghost, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-ghost to ghost", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_ghost, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-ghost to ghost", parameterKind, n.Name, thing, name);
           } else if (o.IsGhost && !n.IsGhost) {
-            Error(ErrorId.ref_mismatched_kind_non_ghost, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from ghost to non-ghost", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_non_ghost, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from ghost to non-ghost", parameterKind, n.Name, thing, name);
           } else if (!o.IsOld && n.IsOld) {
-            Error(ErrorId.ref_mismatched_kind_non_new, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from new to non-new", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_non_new, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from new to non-new", parameterKind, n.Name, thing, name);
           } else if (o.IsOld && !n.IsOld) {
-            Error(ErrorId.ref_mismatched_kind_new, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-new to new", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_new, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-new to new", parameterKind, n.Name, thing, name);
           } else if (!o.IsOlder && n.IsOlder) {
-            Error(ErrorId.ref_mismatched_kind_older, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-older to older", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_older, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-older to older", parameterKind, n.Name, thing, name);
           } else if (o.IsOlder && !n.IsOlder) {
-            Error(ErrorId.ref_mismatched_kind_non_older, n.Tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from older to non-older", parameterKind, n.Name, thing, name);
+            Error(ErrorId.ref_mismatched_kind_non_older, n.Origin, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from older to non-older", parameterKind, n.Name, thing, name);
           } else if (!TypesAreSyntacticallyEqual(o.Type, n.Type)) {
-            Error(ErrorId.ref_mismatched_parameter_type, n.Tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
+            Error(ErrorId.ref_mismatched_parameter_type, n.Origin, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
           } else if (n.DefaultValue != null) {
-            Error(ErrorId.ref_refined_formal_may_not_have_default, n.Tok, "a refining formal parameter ('{0}') in a refinement module is not allowed to give a default-value expression", n.Name);
+            Error(ErrorId.ref_refined_formal_may_not_have_default, n.Origin, "a refining formal parameter ('{0}') in a refinement module is not allowed to give a default-value expression", n.Name);
           }
         }
       }
@@ -944,17 +940,17 @@ namespace Microsoft.Dafny {
         var sbsOldStmt = (DividedBlockStmt)oldStmt;
         var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out var hoverText);
         if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Tok, hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Origin, hoverText);
         }
         var bodyProper = MergeStmtList(sbsSkeleton.BodyProper, sbsOldStmt.BodyProper, out hoverText);
         if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.Origin.ToToken(), hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.Origin, hoverText);
         }
         return new DividedBlockStmt(sbsSkeleton.Origin, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
       } else {
         var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
         if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, skeleton.Origin.ToToken(), hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, skeleton.Origin, hoverText);
         }
         return new BlockStmt(skeleton.Origin, body);
       }
@@ -977,7 +973,7 @@ namespace Microsoft.Dafny {
           } else if (((SkeletonStatement)cur).S == null) {
             // the "..." matches the empty statement sequence
           } else {
-            Error(ErrorId.ref_mismatched_skeleton, cur.Tok, "skeleton statement does not match old statement");
+            Error(ErrorId.ref_mismatched_skeleton, cur.Origin, "skeleton statement does not match old statement");
           }
           i++;
         } else {
@@ -1039,7 +1035,7 @@ namespace Microsoft.Dafny {
                   oldS = oldStmt[j];
                 }
                 if (hoverTextA.Length != 0) {
-                  Reporter.Info(MessageSource.RefinementTransformer, c.Tok, hoverTextA);
+                  Reporter.Info(MessageSource.RefinementTransformer, c.Origin, hoverTextA);
                 }
               }
               i++;
@@ -1049,7 +1045,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(c.ConditionOmitted);
               var oldAssume = oldS as PredicateStmt;
               if (oldAssume == null) {
-                Error(ErrorId.ref_mismatched_assert, cur.Tok, "assert template does not match inherited statement");
+                Error(ErrorId.ref_mismatched_assert, cur.Origin, "assert template does not match inherited statement");
                 i++;
               } else {
                 // Clone the expression, but among the new assert's attributes, indicate
@@ -1058,8 +1054,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new BoogieGenerator.ForceCheckOrigin(skel.Origin),
-                  e, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
+                body.Add(new AssertStmt(new NestedOrigin(skel.Origin, e.Origin), e, skel.Label, attrs));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
@@ -1069,7 +1064,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(c.ConditionOmitted);
               var oldExpect = oldS as ExpectStmt;
               if (oldExpect == null) {
-                Error(ErrorId.ref_mismatched_expect, cur.Tok, "expect template does not match inherited statement");
+                Error(ErrorId.ref_mismatched_expect, cur.Origin, "expect template does not match inherited statement");
                 i++;
               } else {
                 var e = refinementCloner.CloneExpr(oldExpect.Expr);
@@ -1085,7 +1080,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(c.ConditionOmitted);
               var oldAssume = oldS as AssumeStmt;
               if (oldAssume == null) {
-                Error(ErrorId.ref_mismatched_assume, cur.Tok, "assume template does not match inherited statement");
+                Error(ErrorId.ref_mismatched_assume, cur.Origin, "assume template does not match inherited statement");
                 i++;
               } else {
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
@@ -1100,7 +1095,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(c.ConditionOmitted);
               var oldIf = oldS as IfStmt;
               if (oldIf == null) {
-                Error(ErrorId.ref_mismatched_if_statement, cur.Tok, "if-statement template does not match inherited statement");
+                Error(ErrorId.ref_mismatched_if_statement, cur.Origin, "if-statement template does not match inherited statement");
                 i++;
               } else {
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
@@ -1116,7 +1111,7 @@ namespace Microsoft.Dafny {
               var skel = (WhileStmt)S;
               var oldWhile = oldS as WhileStmt;
               if (oldWhile == null) {
-                Error(ErrorId.ref_mismatched_while_statement, cur.Tok, "while-statement template does not match inherited statement");
+                Error(ErrorId.ref_mismatched_while_statement, cur.Origin, "while-statement template does not match inherited statement");
                 i++;
               } else {
                 Expression guard;
@@ -1125,7 +1120,7 @@ namespace Microsoft.Dafny {
                   Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(Reporter.Options, false, oldWhile.Guard));
                 } else {
                   if (oldWhile.Guard != null) {
-                    Error(ErrorId.ref_mismatched_while_statement_guard, skel.Guard.Tok, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
+                    Error(ErrorId.ref_mismatched_while_statement_guard, skel.Guard.Origin, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
                   }
                   guard = skel.Guard;
                 }
@@ -1141,7 +1136,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(c.ConditionOmitted);
               var oldModifyStmt = oldS as ModifyStmt;
               if (oldModifyStmt == null) {
-                Error(ErrorId.ref_mismatched_modify_statement, cur.Tok, "modify template does not match inherited statement");
+                Error(ErrorId.ref_mismatched_modify_statement, cur.Origin, "modify template does not match inherited statement");
                 i++;
               } else {
                 var mod = refinementCloner.CloneSpecFrameExpr(oldModifyStmt.Mod);
@@ -1154,7 +1149,7 @@ namespace Microsoft.Dafny {
                   // also sets ".ReverifyPost" to "true" for any "return" statements.
                   mbody = MergeBlockStmt(skel.Body, new BlockStmt(oldModifyStmt.Origin, new List<Statement>()));
                 } else if (skel.Body == null) {
-                  Error(ErrorId.ref_mismatched_statement_body, cur.Tok, "modify template must have a body if the inherited modify statement does");
+                  Error(ErrorId.ref_mismatched_statement_body, cur.Origin, "modify template must have a body if the inherited modify statement does");
                   mbody = null;
                 } else {
                   mbody = MergeBlockStmt(skel.Body, oldModifyStmt.Body);
@@ -1434,7 +1429,7 @@ namespace Microsoft.Dafny {
       } else {
         if (!Contract.Exists(cOld.Decreases.Expressions, e => e is WildcardExpr)) {
           // If the previous loop was not specified with "decreases *", then the new loop is not allowed to provide any "decreases" clause.
-          Error(ErrorId.ref_mismatched_loop_decreases, cNew.Decreases.Expressions[0].Tok, "a refining loop can provide a decreases clause only if the loop being refined was declared with 'decreases *'");
+          Error(ErrorId.ref_mismatched_loop_decreases, cNew.Decreases.Expressions[0].Origin, "a refining loop can provide a decreases clause only if the loop being refined was declared with 'decreases *'");
         }
         decr = cNew.Decreases;
       }
@@ -1447,7 +1442,7 @@ namespace Microsoft.Dafny {
       } else if (cOld.Body == null) {
         newBody = MergeBlockStmt(cNew.Body, new BlockStmt(cOld.Origin, new List<Statement>()));
       } else if (cNew.Body == null) {
-        Error(ErrorId.ref_mismatched_while_body, cNew.Tok, "while template must have a body if the inherited while statement does");
+        Error(ErrorId.ref_mismatched_while_body, cNew.Origin, "while template must have a body if the inherited while statement does");
         newBody = null;
       } else {
         newBody = MergeBlockStmt(cNew.Body, cOld.Body);
@@ -1521,13 +1516,13 @@ namespace Microsoft.Dafny {
         // in this module are allowed.  This needs to be checked.  If the LHS refers to an l-value that was not declared within
         // this module, then either an error should be reported or the Translator needs to know to translate new proof obligations.
         var a = (SingleAssignStmt)s;
-        Error(ErrorId.ref_misplaced_assignment, a.Tok, "cannot have assignment statement");
+        Error(ErrorId.ref_misplaced_assignment, a.Origin, "cannot have assignment statement");
       } else if (s is ConcreteAssignStatement) {
         postTasks.Enqueue(() => {
           CheckIsOkayUpdateStmt((ConcreteAssignStatement)s, moduleUnderConstruction);
         });
       } else if (s is CallStmt) {
-        Error(ErrorId.ref_misplaced_call, s.Tok, "cannot have call statement");
+        Error(ErrorId.ref_misplaced_call, s.Origin, "cannot have call statement");
       } else {
         if (s is WhileStmt || s is AlternativeLoopStmt) {
           loopLevels++;
@@ -1549,25 +1544,25 @@ namespace Microsoft.Dafny {
         if (l is IdentifierExpr) {
           var ident = (IdentifierExpr)l;
           Contract.Assert(ident.Var is LocalVariable || ident.Var is Formal); // LHS identifier expressions must be locals or out parameters (ie. formals)
-          if ((ident.Var is LocalVariable && ((LocalVariable)ident.Var).Tok.IsInherited(m)) || ident.Var is Formal) {
+          if ((ident.Var is LocalVariable && ((LocalVariable)ident.Var).Origin.IsInherited(m)) || ident.Var is Formal) {
             // for some reason, formals are not considered to be inherited.
-            Error(ErrorId.ref_invalid_variable_assignment, l.Tok, "refinement method cannot assign to variable defined in parent module ('{0}')", ident.Var.Name);
+            Error(ErrorId.ref_invalid_variable_assignment, l.Origin, "refinement method cannot assign to variable defined in parent module ('{0}')", ident.Var.Name);
           }
         } else if (l is MemberSelectExpr) {
           var member = ((MemberSelectExpr)l).Member;
-          if (member.Tok.IsInherited(m)) {
-            Error(ErrorId.ref_invalid_field_assignment, l.Tok, "refinement method cannot assign to a field defined in parent module ('{0}')", member.Name);
+          if (member.Origin.IsInherited(m)) {
+            Error(ErrorId.ref_invalid_field_assignment, l.Origin, "refinement method cannot assign to a field defined in parent module ('{0}')", member.Name);
           }
         } else {
           // must be an array element
-          Error(ErrorId.ref_invalid_new_assignments, l.Tok, "new assignments in a refinement method can only assign to state that the module defines (which never includes array elements)");
+          Error(ErrorId.ref_invalid_new_assignments, l.Origin, "new assignments in a refinement method can only assign to state that the module defines (which never includes array elements)");
         }
       }
       if (stmt is AssignStatement) {
         var s = (AssignStatement)stmt;
         foreach (var rhs in s.Rhss) {
           if (rhs.CanAffectPreviouslyKnownExpressions) {
-            Error(ErrorId.ref_invalid_assignment_rhs, rhs.Tok, "assignment RHS in refinement method is not allowed to affect previously defined state");
+            Error(ErrorId.ref_invalid_assignment_rhs, rhs.Origin, "assignment RHS in refinement method is not allowed to affect previously defined state");
           }
         }
       }
@@ -1658,15 +1653,14 @@ namespace Microsoft.Dafny {
         return CloneAttributes(prevAttrs);
       } else if (moreAttrs is UserSuppliedAttributes) {
         var usa = (UserSuppliedAttributes)moreAttrs;
-        return new UserSuppliedAttributes(Origin(usa.Tok), Origin(usa.OpenBrace), Origin(usa.CloseBrace), moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
+        return new UserSuppliedAttributes(Origin(usa.Origin), Origin(usa.OpenBrace), Origin(usa.CloseBrace), moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
       } else if (moreAttrs is UserSuppliedAtAttribute usaa) {
         var arg = CloneExpr(usaa.Arg);
         if (usaa.Arg.Type != null) { // The attribute has already been expanded
           arg.Type = usaa.Arg.Type;
           arg.PreType = usaa.Arg.PreType;
         }
-        return new UserSuppliedAtAttribute(Origin(usaa.Tok), arg, MergeAttributes(prevAttrs, moreAttrs.Prev)) {
-          Origin = Origin(usaa.Origin),
+        return new UserSuppliedAtAttribute(Origin(usaa.Origin), arg, MergeAttributes(prevAttrs, moreAttrs.Prev)) {
           Builtin = usaa.Builtin
         };
       } else {

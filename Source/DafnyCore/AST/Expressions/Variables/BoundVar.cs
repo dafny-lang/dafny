@@ -11,9 +11,9 @@ public class BoundVar : NonglobalVariable {
   public BoundVar(string name, Type type) : this(Token.NoToken, new Name(Token.NoToken, name), type) { }
   public BoundVar(IOrigin origin, string name, Type type) : this(origin, new Name(origin.StartToken, name), type) { }
 
-  public BoundVar(IOrigin tok, Name name, Type type)
-    : base(tok, name, type, false) {
-    Contract.Requires(tok != null);
+  public BoundVar(IOrigin origin, Name name, Type type)
+    : base(origin, name, type, false) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
   }
@@ -57,20 +57,20 @@ public class QuantifiedVar : BoundVar {
     range = null;
 
     foreach (var qvar in qvars) {
-      BoundVar bvar = new BoundVar(qvar.Tok, qvar.Name, qvar.SyntacticType);
+      BoundVar bvar = new BoundVar(qvar.Origin, qvar.Name, qvar.SyntacticType);
       bvars.Add(bvar);
 
       if (qvar.Domain != null) {
         // Attach a token wrapper so we can produce a better error message if the domain is not a collection
         var domainWithToken = QuantifiedVariableDomainCloner.Instance.CloneExpr(qvar.Domain);
-        var inDomainExpr = new BinaryExpr(domainWithToken.Tok, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.Tok, bvar), domainWithToken);
-        range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.Tok, BinaryExpr.Opcode.And, range, inDomainExpr);
+        var inDomainExpr = new BinaryExpr(domainWithToken.Origin.Center, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.Origin, bvar), domainWithToken);
+        range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.Origin.Center, BinaryExpr.Opcode.And, range, inDomainExpr);
       }
 
       if (qvar.Range != null) {
         // Attach a token wrapper so we can produce a better error message if the range is not a boolean expression
         var rangeWithToken = QuantifiedVariableRangeCloner.Instance.CloneExpr(qvar.Range);
-        range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.Tok, BinaryExpr.Opcode.And, range, rangeWithToken);
+        range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.Origin.Center, BinaryExpr.Opcode.And, range, rangeWithToken);
       }
     }
   }

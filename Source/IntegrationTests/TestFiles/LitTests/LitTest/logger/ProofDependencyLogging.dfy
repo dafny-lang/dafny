@@ -30,24 +30,24 @@
 // CHECK:       ProofDependencies.dfy\(217,12\)-\(217,16\): requires clause
 // CHECK:       ProofDependencies.dfy\(219,11\)-\(219,15\): ensures clause
 // CHECK:       ProofDependencies.dfy\(221,3\)-\(221,7\): function call result
-// CHECK:       ProofDependencies.dfy\(221,5\)-\(221,5\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencies.dfy\(221,3\)-\(221,7\): value always satisfies the subset constraints of 'nat'
 //
 // CHECK: Results for M.ObviouslyRedundantRequiresMethod \(correctness\)
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencies.dfy\(225,12\)-\(225,16\): requires clause
 // CHECK:       ProofDependencies.dfy\(227,11\)-\(227,15\): ensures clause
 // CHECK:       ProofDependencies.dfy\(229,3\)-\(229,15\): assignment \(or return\)
-// CHECK:       ProofDependencies.dfy\(229,12\)-\(229,12\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencies.dfy\(229,10\)-\(229,14\): value always satisfies the subset constraints of 'nat'
 //
 // CHECK: Results for M.ObviouslyUnnecessaryRequiresFunc \(well-formedness\)
 // CHECK:     Proof dependencies:
-// CHECK:       ProofDependencies.dfy\(237,21\)-\(237,21\): value always satisfies the subset constraints of 'nat'
-// CHECK:       ProofDependencies.dfy\(237,32\)-\(237,32\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencies.dfy\(237,19\)-\(237,23\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencies.dfy\(237,30\)-\(237,34\): value always satisfies the subset constraints of 'nat'
 //
 // CHECK: Results for M.ObviouslyUnnecessaryRequiresMethod \(correctness\)
 // CHECK:     Proof dependencies:
-// CHECK:       ProofDependencies.dfy\(244,25\)-\(244,25\): value always satisfies the subset constraints of 'nat'
-// CHECK:       ProofDependencies.dfy\(244,48\)-\(244,48\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencies.dfy\(244,23\)-\(244,27\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencies.dfy\(244,46\)-\(244,50\): value always satisfies the subset constraints of 'nat'
 //
 // CHECK: Results for M.ObviouslyUnconstrainedCodeFunc \(well-formedness\)
 // CHECK:     Proof dependencies:
@@ -56,7 +56,7 @@
 // CHECK:       ProofDependencies.dfy\(250,11\)-\(250,17\): ensures clause
 // CHECK:       ProofDependencies.dfy\(252,7\)-\(252,7\): let expression binding
 // CHECK:       ProofDependencies.dfy\(252,12\)-\(252,16\): let expression binding RHS well-formed
-// CHECK:       ProofDependencies.dfy\(254,3\)-\(254,3\): function call result
+// CHECK:       ProofDependencies.dfy\(254,3\)-\(255,5\): function call result
 //
 // CHECK: Results for M.ObviouslyUnconstrainedCodeMethod \(correctness\)
 // CHECK:     Proof dependencies:
@@ -71,13 +71,13 @@
 // CHECK:       ProofDependencies.dfy\(271,23\)-\(271,27\): requires clause
 // CHECK:       ProofDependencies.dfy\(272,11\)-\(272,15\): ensures clause
 // CHECK:       ProofDependencies.dfy\(274,3\)-\(274,7\): function call result
-// CHECK:       ProofDependencies.dfy\(274,5\)-\(274,5\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencies.dfy\(274,3\)-\(274,7\): value always satisfies the subset constraints of 'nat'
 //
 // CHECK: Results for M.PartiallyUnnecessaryRequiresFunc \(well-formedness\)
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencies.dfy\(279,22\)-\(279,26\): requires clause
-// CHECK:       ProofDependencies.dfy\(282,21\)-\(282,21\): value always satisfies the subset constraints of 'nat'
-// CHECK:       ProofDependencies.dfy\(282,32\)-\(282,32\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencies.dfy\(282,19\)-\(282,23\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencies.dfy\(282,30\)-\(282,34\): value always satisfies the subset constraints of 'nat'
 //
 // CHECK: Results for M.MultiPartRedundantRequiresFunc \(well-formedness\)
 // CHECK:     Proof dependencies:
@@ -110,8 +110,8 @@
 // CHECK:       ProofDependencies.dfy\(336,1\)-\(342,1\): function definition for CallContradictoryFunctionFunc
 // CHECK:       ProofDependencies.dfy\(337,12\)-\(337,16\): requires clause
 // CHECK:       ProofDependencies.dfy\(338,11\)-\(338,15\): ensures clause
-// CHECK:       ProofDependencies.dfy\(341,3\)-\(341,39\): function call result
 // CHECK:       ProofDependencies.dfy\(341,3\)-\(341,35\): function precondition satisfied
+// CHECK:       ProofDependencies.dfy\(341,3\)-\(341,39\): function call result
 //
 // CHECK: Results for M.CallContradictoryMethodMethod \(correctness\)
 // CHECK:     Proof dependencies:
@@ -168,10 +168,10 @@
 // CHECK:       ProofDependencies.dfy\(420,7\)-\(420,15\): assignment \(or return\)
 // CHECK:     Unused by proof:
 // CHECK:       ProofDependencies.dfy\(428,5\)-\(428,9\): assumption that divisor is always non-zero.
-// CHECK:       ProofDependencies.dfy\(428,5\)-\(429,13\): calc statement result
+// CHECK:       ProofDependencies.dfy\(428,5\)-\(428,9\): calc statement result
 //
 // CHECK: Results for M.GetX \(well-formedness\)
 // CHECK:     Proof dependencies:
-// CHECK:       ProofDependencies.dfy\(446,5\)-\(446,5\): target object is never null
+// CHECK:       ProofDependencies.dfy\(446,3\)-\(446,5\): target object is never null
 
 include "ProofDependencies.dfy"

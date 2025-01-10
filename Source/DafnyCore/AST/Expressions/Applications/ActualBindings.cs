@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ActualBindings : TokenNode {
+public class ActualBindings : NodeWithComputedRange {
   public readonly List<ActualBinding> ArgumentBindings;
 
   public ActualBindings(List<ActualBinding> argumentBindings) {
@@ -43,7 +43,7 @@ public class ActualBindings : TokenNode {
   public override IEnumerable<INode> PreResolveChildren => Children;
 }
 
-public class ActualBinding : TokenNode {
+public class ActualBinding : NodeWithComputedRange {
   public readonly IOrigin /*?*/ FormalParameterName;
   public readonly Expression Actual;
   public readonly bool IsGhost;

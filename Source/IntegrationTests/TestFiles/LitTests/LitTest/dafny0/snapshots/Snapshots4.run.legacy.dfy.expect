@@ -1,15 +1,15 @@
 Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
-Processing command (at Snapshots4.v0.dfy(9,14)) assert {:id "id0"} LitInt(0) == LitInt(0);
+Processing command (at Snapshots4.v0.dfy(9,5)) assert {:id "id0"} LitInt(0) == LitInt(0);
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 1 verified, 0 errors
-Processing command (at Snapshots4.v1.dfy(5,14)) assert {:id "id1"} Lit(1 != 1);
+Processing command (at Snapshots4.v1.dfy(5,5)) assert {:id "id1"} Lit(1 != 1);
   >>> DoNothingToAssert
-Processing command (at Snapshots4.v1.dfy(9,14)) assert {:id "id2"} LitInt(0) == LitInt(0);
+Processing command (at Snapshots4.v1.dfy(9,5)) assert {:id "id2"} LitInt(0) == LitInt(0);
   >>> MarkAsFullyVerified
-Processing command (at Snapshots4.v1.dfy(10,14)) assert {:id "id3"} Lit(2 != 2);
+Processing command (at Snapshots4.v1.dfy(10,5)) assert {:id "id3"} Lit(2 != 2);
   >>> DoNothingToAssert
-Snapshots4.v1.dfy(5,13): Error: assertion might not hold
-Snapshots4.v1.dfy(10,13): Error: assertion might not hold
+Snapshots4.v1.dfy(5,4): Error: assertion might not hold
+Snapshots4.v1.dfy(10,4): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 2 errors

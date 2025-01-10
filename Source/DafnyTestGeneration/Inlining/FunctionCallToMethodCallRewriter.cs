@@ -66,7 +66,7 @@ public class FunctionCallToMethodCallRewriter : Cloner {
           resolvedStmt is SingleAssignStmt { Rhs: ExprRhs exprRhs } &&
           exprRhs.Expr.Resolved is FunctionCallExpr { IsByMethodCall: true } funcCallExpr) {
         var memberSelectExpr = new MemberSelectExpr(
-          funcCallExpr.Tok,
+          funcCallExpr.Origin,
           CloneExpr(funcCallExpr.Receiver.Resolved),
           funcCallExpr.Function.ByMethodDecl.NameNode);
         memberSelectExpr.Member = funcCallExpr.Function.ByMethodDecl;

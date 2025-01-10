@@ -19,6 +19,6 @@ public class RewriterPreventingVerificationWithArgument : Rewriter {
   }
 
   public override void PostResolve(ModuleDefinition moduleDefinition) {
-    Reporter.Error(MessageSource.Resolver, moduleDefinition.Tok, "Impossible to continue " + configuration.Argument);
+    Reporter.Error(MessageSource.Resolver, moduleDefinition.Origin, "Impossible to continue " + configuration.Argument);
   }
 }
