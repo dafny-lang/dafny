@@ -1665,6 +1665,10 @@ namespace Microsoft.Dafny {
         }
       }
 
+      var canCalls = traitFrameExps.Concat(classFrameExps)
+        .Select(e => etran.CanCallAssumption(e.E))
+        .Aggregate((Bpl.Expr)Bpl.Expr.True, BplAnd);
+      builder.Add(TrAssumeCmd(Token.NoToken, canCalls));
       var kv = etran.TrAttributes(m.Attributes, null);
 
       var tok = m.Origin;
