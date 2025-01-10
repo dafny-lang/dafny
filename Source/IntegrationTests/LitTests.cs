@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Dafny;
 using TestDafny;
 using Xunit;
@@ -21,10 +22,10 @@ namespace IntegrationTests {
     private static readonly bool InvokeMainMethodsDirectly;
 
     private static readonly Assembly DafnyDriverAssembly = typeof(Dafny.Dafny).Assembly;
-    private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.MultiBackendTest).Assembly;
+    private static readonly Assembly TestDafnyAssembly = typeof(MultiBackendTest).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
-    private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
+    private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net8.0/
 
     private static readonly string[] DefaultBoogieArguments = new[] {
       "/infer:j",
@@ -54,15 +55,20 @@ namespace IntegrationTests {
         return (extraDafnyArguments is null ? args : args.Append(extraDafnyArguments)).Concat(local);
       }
 
-      string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename", "--show-snippets:false" };
-      string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--show-snippets:false", "--cores:2", "--verification-time-limit:300" };
-      //string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
-      string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--show-snippets:false", "--cores:2", "--verification-time-limit:300" };
-      string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--show-snippets:false", "--cores:2", "--verification-time-limit:300" };
+      // Note we disallow standard libraries by default in tests,
+      // to discourage the language itself from depending on them.
+      // These explicit defaults are here, and should remain here independent of the user-facing defaults.
+      // The metatests/StdLibsOffByDefaultInTests.dfy test directly enforces this.
+
+      string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false" };
+      string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
+      string[] defaultTranslateArgs = new[] { "--use-basename-for-filename", "--cores:2", "--standard-libraries:false", "--verification-time-limit:300", "--resource-limit:50e6" };
+      string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
+      string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
-        { "%trargs", "--use-basename-for-filename --show-snippets:false --cores:2 --verification-time-limit:300" },
+        { "%trargs", "--use-basename-for-filename --show-snippets:false, --standard-libraries:false --cores:2 --verification-time-limit:300 --resource-limit:50e6" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}") },
         { "%repositoryRoot", RepositoryRoot.Replace(@"\", "/") },
@@ -76,8 +82,17 @@ namespace IntegrationTests {
           "%resolve", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultResolveArgs, args), config, InvokeMainMethodsDirectly)
         }, {
-          "%translate", (args, config) =>
-            DafnyCommand(AddExtraArgs(new[] { "translate" }, args), config, InvokeMainMethodsDirectly)
+          "%translate", (args, config) => {
+            var totalArgs = args.ToList();
+            if (totalArgs.Any()) {
+              var target = totalArgs.First();
+              totalArgs = new[] { target }.Concat(defaultTranslateArgs).Concat(totalArgs.Skip(1)).ToList();
+            } else {
+              totalArgs = defaultTranslateArgs.ToList();
+            }
+            return DafnyCommand(AddExtraArgs(new[] { "translate" }, totalArgs), config,
+              InvokeMainMethodsDirectly);
+          }
         }, {
           "%verify", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultVerifyArgs, args), config, InvokeMainMethodsDirectly)
@@ -89,18 +104,25 @@ namespace IntegrationTests {
             DafnyCommand(AddExtraArgs(defaultRunArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
-            DafnyCommand(AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)
+            DafnyCommand(AddExtraArgs(DafnyCliTests.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)
         }, {
-          "%testDafnyForEachCompiler", (args, config) =>
-            MainMethodLitCommand.Parse(TestDafnyAssembly, new[] { "for-each-compiler" }.Concat(args), config,
-              InvokeMainMethodsDirectly)
+          "%testDafnyForEachCompiler", (args, config) => {
+            var fullArguments = new[] { "for-each-compiler" }.Concat(args);
+            return MainCommand("testDafnyForEachCompiler", fullArguments,
+              (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a),
+              TestDafnyAssembly,
+              config);
+          }
         }, {
-          "%testDafnyForEachResolver", (args, config) =>
-            MainMethodLitCommand.Parse(TestDafnyAssembly, new[] { "for-each-resolver" }.Concat(args), config,
-              InvokeMainMethodsDirectly)
+          "%testDafnyForEachResolver", (args, config) => {
+            var fullArguments = new[] { "for-each-resolver" }.Concat(args);
+            return MainCommand("testDafnyForEachResolver", fullArguments,
+              (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a),
+              TestDafnyAssembly,
+              config);
+          }
         }, {
-          "%server", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+          "%server", (args, config) => MainCommand("legacyServer", args, Server.MainWithWriters, DafnyServerAssembly, config)
         }, {
           "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
@@ -110,6 +132,12 @@ namespace IntegrationTests {
           "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
         }, {
           "%sed", (args, config) => SedCommand.Parse(args.ToArray())
+        }, {
+          "%mv", (args, config) => MvCommand.Parse(args.ToArray())
+        }, {
+          "%rm", (args, config) => RmCommand.Parse(args.ToArray())
+        }, {
+          "%cp", (args, config) => CpCommand.Parse(args.ToArray())
         }, {
           "%OutputCheck", OutputCheckCommand.Parse
         }
@@ -138,7 +166,7 @@ namespace IntegrationTests {
         throw new Exception($"Unsupported OS: {RuntimeInformation.OSDescription}");
       }
 
-      substitutions["%args"] = DafnyDriver.NewDefaultArgumentsForTesting;
+      substitutions["%args"] = DafnyCliTests.NewDefaultArgumentsForTesting;
 
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
@@ -147,13 +175,17 @@ namespace IntegrationTests {
           new ShellLitCommand(dafnyCliPath, args, config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath,
-            AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
-        commands["%testDafnyForEachCompiler"] = (args, config) =>
-          MainMethodLitCommand.Parse(TestDafnyAssembly,
-            new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config, false);
-        commands["%testDafnyForEachResolver"] = (args, config) =>
-          MainMethodLitCommand.Parse(TestDafnyAssembly,
-            new[] { "for-each-resolver", "--dafny", dafnyCliPath }.Concat(args), config, false);
+            AddExtraArgs(DafnyCliTests.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
+        commands["%testDafnyForEachCompiler"] = (args, config) => {
+          var shellArguments = new[] { TestDafnyAssembly.Location, "for-each-compiler", "--dafny", dafnyCliPath }
+            .Concat(args);
+          return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables); ;
+        };
+        commands["%testDafnyForEachResolver"] = (args, config) => {
+          var shellArguments = new[] { TestDafnyAssembly.Location, "for-each-resolver", "--dafny", dafnyCliPath }
+            .Concat(args);
+          return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
+        };
         commands["%server"] = (args, config) =>
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         commands["%boogie"] = (args, config) =>
@@ -163,14 +195,32 @@ namespace IntegrationTests {
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}");
       }
 
-      Config = new LitTestConfiguration(substitutions, commands, features, DafnyDriver.ReferencedEnvironmentVariables);
+      Config = new LitTestConfiguration(substitutions, commands, features, DafnyCliTests.ReferencedEnvironmentVariables);
+    }
+
+    private static ILitCommand MainCommand(string name, IEnumerable<string> args, MainWithWriters mainWithWriters, Assembly assembly,
+      LitTestConfiguration config) {
+      if (InvokeMainMethodsDirectly) {
+        return new MainWithWritersCommand(name, args, mainWithWriters);
+      }
+
+      var shellArguments = new[] { assembly.Location }.Concat(args);
+      return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
     }
 
     public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
-      return invokeDirectly
-        ? new DafnyDriverLitCommand(arguments, config)
-        : new ShellLitCommand("dotnet", new[] { DafnyDriverAssembly.Location }.Concat(arguments),
+      if (invokeDirectly) {
+        return new MainWithWritersCommand("dafny", arguments, DafnyBackwardsCompatibleCli.MainWithWriters);
+      }
+
+      var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
+      if (dafnyReleaseDir == null) {
+        return new ShellLitCommand("dotnet", new[] { DafnyDriverAssembly.Location }.Concat(arguments),
           config.PassthroughEnvironmentVariables);
+      }
+
+      var dafnyCliPath = Path.Join(dafnyReleaseDir, "dafny");
+      return new ShellLitCommand(dafnyCliPath, arguments, config.PassthroughEnvironmentVariables);
     }
 
     private readonly ITestOutputHelper output;
@@ -192,7 +242,7 @@ namespace IntegrationTests {
           // not the copy in the output directory of this project.
           var sourcePath = Path.Join(Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR"), testPath);
           ConvertToMultiBackendTestIfNecessary(sourcePath);
-          return;
+          break;
         case "uniformity-check":
           var testCase = LitTestCase.Read(path, Config);
           if (NeedsConverting(testCase)) {
@@ -224,14 +274,14 @@ namespace IntegrationTests {
           return false;
         }
 
-        if (leafCommand is ShellLitCommand or DafnyDriverLitCommand) {
+        if (leafCommand is ShellLitCommand or MainWithWritersCommand) {
           var arguments = GetDafnyArguments(leafCommand);
           if (arguments != null) {
             if (arguments.Any(arg => allOtherFileExtensions.Any(arg.EndsWith))) {
               return false;
             }
 
-            if (arguments.Any(arg => arg is "/compile:3" or "/compile:4" or "run" or "translate")) {
+            if (arguments.Any(arg => arg is "/compile:3" or "/compile:4" or "run")) {
               return true;
             }
           }
@@ -245,7 +295,7 @@ namespace IntegrationTests {
       foreach (var command in testCase.Commands) {
         var leafCommand = GetLeafCommand(command);
 
-        if (leafCommand is ShellLitCommand or DafnyDriverLitCommand) {
+        if (leafCommand is ShellLitCommand or MainWithWritersCommand) {
           var arguments = GetDafnyArguments(leafCommand);
           if (arguments != null) {
             if (arguments.Any(arg => arg is "for-each-compiler")) {
@@ -270,10 +320,10 @@ namespace IntegrationTests {
           return true;
         }
 
-        if (DafnyDriver.NewDefaultArgumentsForTesting.Contains(arg)) {
+        if (DafnyCliTests.NewDefaultArgumentsForTesting.Contains(arg)) {
           return true;
         }
-        if (DafnyDriver.DefaultArgumentsForTesting.Contains(arg)) {
+        if (DafnyCliTests.DefaultArgumentsForTesting.Contains(arg)) {
           return true;
         }
 
@@ -308,7 +358,7 @@ namespace IntegrationTests {
       foreach (var command in testCase.Commands) {
         var leafCommand = GetLeafCommand(command);
         switch (leafCommand) {
-          case ShellLitCommand or DafnyDriverLitCommand: {
+          case ShellLitCommand or MainWithWritersCommand: {
               var arguments = GetDafnyArguments(leafCommand);
               if (arguments == null) {
                 throw new ArgumentException();
@@ -421,7 +471,7 @@ namespace IntegrationTests {
           "/optimizeErasableDatatypeWrapper:0" => "--optimize-erasable-datatype-wrapper:false",
           "/verifyAllModules" => "--verify-included-files",
           "/errorLimit:0" => "--error-limit:0",
-          "/deprecation:0" => "--warn-deprecation:false",
+          "/deprecation:0" => "--allow-deprecation",
           _ => extraOption
         });
       }
@@ -478,7 +528,7 @@ namespace IntegrationTests {
           } else {
             return null;
           }
-        case DafnyDriverLitCommand ddlc:
+        case MainWithWritersCommand ddlc:
           return ddlc.Arguments;
         default:
           return null;
@@ -503,55 +553,6 @@ namespace IntegrationTests {
       }
 
       return "cs";
-    }
-  }
-
-  class DafnyDriverLitCommand : ILitCommand {
-    public string[] Arguments { get; }
-
-    public DafnyDriverLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
-      this.Arguments = arguments.ToArray();
-    }
-
-    public (int, string, string) Execute(TextReader inputReader,
-      TextWriter outputWriter,
-      TextWriter errorWriter) {
-      var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
-      return (exitCode, "", "");
-    }
-
-    public override string ToString() {
-      return $"dafny {string.Join(" ", Arguments)}";
-    }
-  }
-
-  class MultiBackendLitCommand : ILitCommand {
-    private readonly string[] arguments;
-
-    public MultiBackendLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
-      this.arguments = arguments.ToArray();
-    }
-
-    public (int, string, string) Execute(TextReader inputReader,
-      TextWriter outputWriter,
-      TextWriter errorWriter) {
-      var exitCode = new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-compiler"));
-      return (exitCode, "", "");
-    }
-  }
-
-  class MultiResolverLitCommand : ILitCommand {
-    private readonly string[] arguments;
-
-    public MultiResolverLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
-      this.arguments = arguments.ToArray();
-    }
-
-    public (int, string, string) Execute(TextReader inputReader,
-      TextWriter outputWriter,
-      TextWriter errorWriter) {
-      var exitCode = new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-resolver"));
-      return (exitCode, "", "");
     }
   }
 }

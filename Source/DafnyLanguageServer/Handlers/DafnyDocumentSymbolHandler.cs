@@ -35,32 +35,40 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
-      var state = await projects.GetResolvedDocumentAsyncNormalizeUri(request.TextDocument);
+      var state = await projects.GetParsedDocumentNormalizeUri(request.TextDocument);
       if (state == null) {
         logger.LogWarning("symbols requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return EmptySymbols;
       }
 
       var fileNodes = state.Program.FindNodesInUris(request.TextDocument.Uri.ToUri()).OfType<ISymbol>();
-      return fileNodes.Select(topLevel => new SymbolInformationOrDocumentSymbol(FromSymbol(topLevel))).ToList();
+      return fileNodes.SelectMany(FromSymbol).Select(s => new SymbolInformationOrDocumentSymbol(s)).ToList();
     }
 
-    private DocumentSymbol FromSymbol(ISymbol symbol) {
+    private IEnumerable<DocumentSymbol> FromSymbol(ISymbol symbol) {
       var documentation = (symbol as IHasDocstring)?.GetDocstring(serverOptions) ?? "";
       var children = new List<DocumentSymbol>();
       if (symbol is IHasSymbolChildren hasSymbolChildren) {
         foreach (var child in hasSymbolChildren.ChildSymbols) {
-          var childDocumentSymbol = FromSymbol(child);
-          children.Add(childDocumentSymbol);
+          var childDocumentSymbols = FromSymbol(child);
+          children.AddRange(childDocumentSymbols);
         }
       }
-      return new DocumentSymbol {
-        Children = children,
-        Name = symbol.NameToken.val,
-        Detail = documentation,
-        Range = symbol.RangeToken.ToLspRange(),
-        Kind = (SymbolKind)symbol.Kind,
-        SelectionRange = symbol.NameToken.ToRange().ToLspRange()
+
+      if (!symbol.Kind.HasValue || string.IsNullOrEmpty(symbol.NavigationToken.val)) {
+        return children;
+      }
+
+      var range = symbol.Origin.ToLspRange();
+      return new DocumentSymbol[] {
+        new() {
+          Children = children,
+          Name = symbol.NavigationToken.val,
+          Detail = documentation,
+          Range = range,
+          Kind = symbol.Kind.Value,
+          SelectionRange = symbol.NavigationToken == Token.NoToken ? range : symbol.NavigationToken.ToLspRange()
+        }
       };
     }
   }

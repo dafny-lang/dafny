@@ -38,20 +38,32 @@ public abstract record SinglyLinkedList<T> : IEnumerable<T> {
   IEnumerator IEnumerable.GetEnumerator() {
     return GetEnumerator();
   }
+
+  public bool Any() {
+    return this is not Nil<T>;
+  }
 }
 
 public static class LinkedLists {
-  public static SinglyLinkedList<T> Concat<T>(IEnumerable<T> left, SinglyLinkedList<T> right) {
-    SinglyLinkedList<T> result = right;
-    foreach (var value in left.Reverse()) {
-      result = new Cons<T>(value, result);
-    }
+  public static SinglyLinkedList<T> Concat<T>(SinglyLinkedList<T> left, SinglyLinkedList<T> right) {
+    return left switch {
+      Nil<T> => right,
+      Cons<T> cons => new Cons<T>(cons.Head, Concat<T>(cons.Tail, right)),
+      _ => throw new ArgumentOutOfRangeException(nameof(left))
+    };
+  }
 
+
+  public static SinglyLinkedList<T> FromList<T>(IReadOnlyList<T> values, SinglyLinkedList<T> tail = null) {
+    SinglyLinkedList<T> result = tail ?? new Nil<T>();
+    for (int i = values.Count - 1; i >= 0; i--) {
+      result = new Cons<T>(values[i], result);
+    }
     return result;
   }
 
   public static SinglyLinkedList<T> Create<T>(params T[] values) {
-    return Concat(values, new Nil<T>());
+    return FromList(values);
   }
 }
 

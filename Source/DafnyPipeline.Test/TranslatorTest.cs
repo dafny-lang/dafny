@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.Collections.Generic;
 using Bpl = Microsoft.Boogie;
 using Xunit;
 using Microsoft.Dafny;
-using Microsoft.Dafny.ProofObligationDescription;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DafnyPipeline.Test;
 
@@ -15,8 +9,8 @@ namespace DafnyPipeline.Test;
 public class TranslatorTest {
 
   private void Expect(Bpl.Expr expr, bool isAlwaysTrue, bool isAlwaysFalse) {
-    Assert.Equal(isAlwaysTrue, Translator.IsExprAlways(expr, true));
-    Assert.Equal(isAlwaysFalse, Translator.IsExprAlways(expr, false));
+    Assert.Equal(isAlwaysTrue, BoogieGenerator.IsExprAlways(expr, true));
+    Assert.Equal(isAlwaysFalse, BoogieGenerator.IsExprAlways(expr, false));
   }
 
   [Fact]

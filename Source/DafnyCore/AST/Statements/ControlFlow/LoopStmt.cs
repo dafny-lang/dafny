@@ -3,9 +3,10 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class LoopStmt : Statement, IDeclarationOrUsage {
+public abstract class LoopStmt : Statement, IHasNavigationToken {
   public readonly List<AttributedExpression> Invariants;
   public readonly Specification<Expression> Decreases;
+
   [FilledInDuringResolution] public bool InferredDecreases;  // says that no explicit "decreases" clause was given and an attempt was made to find one automatically (which may or may not have produced anything)
   public readonly Specification<FrameExpression> Mod;
   [ContractInvariantMethod]
@@ -25,9 +26,9 @@ public abstract class LoopStmt : Statement, IDeclarationOrUsage {
     }
   }
 
-  public LoopStmt(RangeToken rangeToken, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);
     Contract.Requires(mod != null);
@@ -36,9 +37,9 @@ public abstract class LoopStmt : Statement, IDeclarationOrUsage {
     this.Decreases = decreases;
     this.Mod = mod;
   }
-  public LoopStmt(RangeToken rangeToken, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
-    : base(rangeToken, attrs) {
-    Contract.Requires(rangeToken != null);
+  public LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
+    : base(origin, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);
     Contract.Requires(mod != null);
@@ -84,5 +85,5 @@ public abstract class LoopStmt : Statement, IDeclarationOrUsage {
     }
   }
 
-  public IToken NameToken => Tok;
+  public IOrigin NavigationToken => StartToken;
 }

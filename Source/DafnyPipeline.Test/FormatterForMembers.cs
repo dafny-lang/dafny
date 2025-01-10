@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -7,8 +8,8 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForMembers")]
 public class FormatterForMembers : FormatterBaseTest {
   [Fact]
-  public void FormatterWorksForMethodsInModule() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForMethodsInModule() {
+    await FormatterWorksFor(@"
 import opened Test
 module Test {
   method f1<T, U>(a: T, b: U)
@@ -141,8 +142,8 @@ module Test {
   }
 
   [Fact]
-  public void FormatWorksForFunctionMethods() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForFunctionMethods() {
+    await FormatterWorksFor(@"
 function Test(): int {
   1
 } by method {
@@ -154,8 +155,8 @@ function Test(): int {
   }
 
   [Fact]
-  public void FormatWorksForFunctionByMethods() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForFunctionByMethods() {
+    await FormatterWorksFor(@"
 function Fib(i: nat): nat {
   1
 } by method {
@@ -171,8 +172,8 @@ function Fib(i: nat): nat {
   }
 
   [Fact]
-  public void FormatWorksConstant() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksConstant() {
+    await FormatterWorksFor(@"
 class T {
   const x
     : int
@@ -183,8 +184,8 @@ class T {
 }");
   }
   [Fact]
-  public void FormatterWorksForConstants() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForConstants() {
+    await FormatterWorksFor(@"
 const c :=
   1111111111111111111111111111111111111111
 const ASSIGNED_PLANES := [
@@ -206,8 +207,8 @@ const ASSIGNED_PLANES := (
   }
 
   [Fact]
-  public void FormatterWorksForExtremePredicates() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForExtremePredicates() {
+    await FormatterWorksFor(@"
 lemma Lemma(k: ORDINAL, r: real)
   requires E.P(r)
   requires E.P#[k](r)
@@ -215,8 +216,8 @@ lemma Lemma(k: ORDINAL, r: real)
   }
 
   [Fact]
-  public void FormatterWorksForSmokeTest() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForSmokeTest() {
+    await FormatterWorksFor(@"
 include ""../libraries/src/Wrappers.dfy""
 import opened Wrappers
 

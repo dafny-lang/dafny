@@ -1,38 +1,45 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
 public class CachingParser : ProgramParser {
-  private readonly PruneIfNotUsedSinceLastPruneCache<byte[], DfyParseResult> parseCache = new(new HashEquality());
-  private readonly ITelemetryPublisher telemetryPublisher;
+  private readonly PruneIfNotUsedSinceLastPruneCache<byte[], DfyParseFileResult> parseCache = new(new HashEquality());
+  private readonly TelemetryPublisherBase telemetryPublisher;
 
   public CachingParser(ILogger<ProgramParser> logger,
     IFileSystem fileSystem,
-    ITelemetryPublisher telemetryPublisher) : base(logger, fileSystem) {
+    TelemetryPublisherBase telemetryPublisher) : base(logger, fileSystem) {
     this.telemetryPublisher = telemetryPublisher;
   }
 
-  public override Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,
+  public override Task<ProgramParseResult> ParseFiles(string programName, IReadOnlyList<DafnyFile> files,
+    ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
     return parseCache.ProfileAndPruneCache(() =>
       base.ParseFiles(programName, files, errorReporter, cancellationToken),
-      telemetryPublisher, programName, "parsing");
+      logger, telemetryPublisher, programName, "parsing", cancellationToken);
   }
 
-  protected override DfyParseResult ParseFile(DafnyOptions options, Func<TextReader> getReader,
+  protected override DfyParseFileResult ParseFile(DafnyOptions options, FileSnapshot fileSnapshot,
     Uri uri, CancellationToken cancellationToken) {
-    using var reader = getReader();
-    var (newReader, hash) = ComputeHashFromReader(uri, reader, HashAlgorithm.Create("SHA256")!);
+    using var reader = fileSnapshot.Reader;
+
+    // Add NUL delimiter to avoid collisions (otherwise hash("A" + "BC") == hash("AB" + "C"))
+    var uriBytes = Encoding.UTF8.GetBytes(uri + "\0");
+
+    var (newReader, hash) = ComputeHashFromReader(uriBytes, reader, SHA256.Create()!);
     if (!parseCache.TryGet(hash, out var result)) {
       logger.LogDebug($"Parse cache miss for {uri}");
-      result = base.ParseFile(options, () => newReader, uri, cancellationToken);
+      result = base.ParseFile(options, fileSnapshot with { Reader = newReader }, uri, cancellationToken);
       parseCache.Set(hash, result);
     } else {
       logger.LogDebug($"Parse cache hit for {uri}");
@@ -42,7 +49,8 @@ public class CachingParser : ProgramParser {
     // We should cache an immutable version of the AST instead: https://github.com/dafny-lang/dafny/issues/4086
     var cloner = new Cloner(true, false);
     var clonedResult = result! with {
-      Module = new FileModuleDefinition(cloner, result.Module)
+      Module = new FileModuleDefinition(cloner, result.Module),
+      Version = fileSnapshot.Version
     };
     return clonedResult;
   }
@@ -51,15 +59,14 @@ public class CachingParser : ProgramParser {
   /// We read the contents of the reader and store them in memory using chunks
   /// to prevent allocating a large array of memory.
   /// </summary>
-  private static (TextReader reader, byte[] hash) ComputeHashFromReader(Uri uri, TextReader reader, HashAlgorithm hashAlgorithm) {
+  private static (TextReader reader, byte[] hash) ComputeHashFromReader(byte[] startingBytes, TextReader reader, HashAlgorithm hashAlgorithm) {
     var result = new List<char[]>();
     const int chunkSize = 1024;
     hashAlgorithm.Initialize();
     // Add NUL delimiter to avoid collisions (otherwise hash("A" + "BC") == hash("AB" + "C"))
-    var uriBytes = Encoding.UTF8.GetBytes(uri.ToString() + "\0");
 
     // We need to include the uri as part of the hash, because the parsed AST contains tokens that refer to the filename. 
-    hashAlgorithm.TransformBlock(uriBytes, 0, uriBytes.Length, null, 0);
+    hashAlgorithm.TransformBlock(startingBytes, 0, startingBytes.Length, null, 0);
     while (true) {
       var chunk = new char[chunkSize];
       var readCount = reader.ReadBlock(chunk, 0, chunk.Length);

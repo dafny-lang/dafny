@@ -6,8 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
+using VC;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -21,14 +21,14 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
-    CompilationAfterResolution compilation, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
-    var program = compilation.Program;
+  public async Task<IReadOnlyList<IVerificationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
+    ResolutionResult resolution, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
+    var program = resolution.ResolvedProgram;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var tasks = await verifier.GetVerificationTasksAsync(engine, compilation, moduleDefinition, cancellationToken);
+    var tasks = await verifier.GetVerificationTasksAsync(engine, resolution, moduleDefinition, cancellationToken);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
       tasks = tasks.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
     }
@@ -36,18 +36,24 @@ class SlowVerifier : IProgramVerifier {
     return tasks;
   }
 
-  class NeverVerifiesImplementationTask : IImplementationTask {
-    private readonly IImplementationTask original;
+  class NeverVerifiesImplementationTask : IVerificationTask {
+    private readonly IVerificationTask original;
     private readonly Subject<IVerificationStatus> source;
 
-    public NeverVerifiesImplementationTask(IImplementationTask original) {
+    public NeverVerifiesImplementationTask(IVerificationTask original) {
       this.original = original;
       source = new();
     }
 
+    public IVerificationTask FromSeed(int newSeed) {
+      return this;
+    }
+
     public IVerificationStatus CacheStatus => new Stale();
-    public ProcessedProgram ProcessedProgram => original.ProcessedProgram;
-    public Implementation Implementation => original.Implementation;
+    public ManualSplit Split => original.Split;
+    public Boogie.IToken ScopeToken => original.ScopeToken;
+    public string ScopeId => original.ScopeId;
+    public Boogie.IToken Token => original.Token;
 
     public IObservable<IVerificationStatus> TryRun() {
       return source;

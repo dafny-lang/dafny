@@ -1,5 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Util;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -30,11 +34,11 @@ public abstract class DafnyCodeActionProvider {
 
   // When building DafnyCodeActionEdit (what DafnyCodeAction return),
   // use this to create ranges suitable for insertion
-  protected static RangeToken InsertBefore(IToken tok) {
-    return new RangeToken(tok, null);
+  protected static SourceOrigin InsertBefore(Token tok) {
+    return new SourceOrigin(tok, null);
   }
-  protected static RangeToken InsertAfter(IToken tok) {
-    return new RangeToken(new Token(tok.line, tok.col + tok.val.Length) {
+  protected static SourceOrigin InsertAfter(IOrigin tok) {
+    return new SourceOrigin(new Token(tok.line, tok.col + tok.val.Length) {
       pos = tok.pos + tok.val.Length,
     }, null);
   }
@@ -45,18 +49,25 @@ public abstract class DafnyCodeActionProvider {
 /// that are being touched by the selection
 /// </summary>
 public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvider {
+  private ILogger<DafnyCodeActionHandler> logger;
+
+  protected DiagnosticDafnyCodeActionProvider(ILogger<DafnyCodeActionHandler> logger) {
+    this.logger = logger;
+  }
+
   public override IEnumerable<DafnyCodeAction> GetDafnyCodeActions(IDafnyCodeActionInput input, Range selection) {
     if (input.Program == null) {
       return System.Array.Empty<DafnyCodeAction>();
     }
     var diagnostics = input.Diagnostics;
     var result = new List<DafnyCodeAction>();
-    foreach (var diagnostic in diagnostics) {
-      var range = diagnostic.Token.GetLspRange();
+    var uri = input.Uri.ToUri();
+    foreach (var diagnostic in diagnostics.Where(d => d.Uri == uri)) {
+      var range = diagnostic.Diagnostic.Range;
       var linesOverlap = range.Start.Line <= selection.Start.Line
                          && selection.Start.Line <= range.End.Line;
       if (linesOverlap) {
-        var moreDafnyCodeActions = GetDafnyCodeActions(input, diagnostic, selection);
+        var moreDafnyCodeActions = GetDafnyCodeActions(input, diagnostic.Diagnostic, selection);
         if (moreDafnyCodeActions != null) {
           result.AddRange(moreDafnyCodeActions);
         }
@@ -73,5 +84,25 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
   /// <param name="dafnyDiagnostic"></param>
   /// <param name="selection">Where the user's caret is</param>
   protected abstract IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
-    DafnyDiagnostic diagnostic, Range selection);
+    Diagnostic diagnostic, Range selection);
+
+  public SourceOrigin? FindTokenRangeFromLspRange(IDafnyCodeActionInput input, Range range) {
+    var start = range.Start;
+    var startNode = input.Program.FindNode<Node>(input.Uri.ToUri(), start.ToDafnyPosition());
+    if (startNode == null) {
+      // A program should have FileModuleDefinition nodes whose ranges span the entire contents of files,
+      // But currently those nodes are missing
+      return null;
+    }
+
+    var startToken = startNode.CoveredTokens.FirstOrDefault(t => t.line - 1 == start.Line && t.col - 1 == start.Character);
+    if (startToken == null) {
+      logger.LogError($"Could not find starting token for position {start} in node {startNode}");
+      return null;
+    }
+    var end = range.End;
+    var endNode = input.Program.FindNode<Node>(input.Uri.ToUri(), end.ToDafnyPosition());
+    var endToken = endNode.CoveredTokens.FirstOrDefault(t => t.line - 1 == end.Line && t.col - 1 + t.val.Length == end.Character);
+    return new SourceOrigin(startToken, endToken);
+  }
 }

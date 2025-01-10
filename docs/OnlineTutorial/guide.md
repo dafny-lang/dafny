@@ -1,4 +1,6 @@
-<p></p> <!-- avoids duplicate title -->
+---
+title: "Getting Started with Dafny: A Guide"
+---
 
 # Getting Started with Dafny: A Guide
 
@@ -514,7 +516,7 @@ method Abs(x: int) returns (y: int)
 
 This expresses exactly the property we discussed before,
 that the absolute value is the same for non-negative integers. The second
-ensures is expressed via the implication operator, which basically says that
+`ensures` is expressed via the implication operator `==>`, which basically says that
 the left hand side implies the right in the mathematical sense (it binds more
 weakly than boolean "and" and comparisons, so the above says `0 <= x` implies `y == x`).
 The left and right sides must both be boolean expressions.
@@ -667,11 +669,11 @@ method m()
 ```
 
 In fact, not only can we write this statement directly
-without capturing to a local variable, we didn't even need to write all the
-postconditions that we did with the method (though functions can and do have
+without capturing to a local variable, we didn't even need to write any
+postconditions to caputure the behavior as we did with the method (though functions can and do have
 pre- and postconditions in general). The limitations of functions are
-precisely what let Dafny do this. Unlike methods, Dafny does not forget the
-body of a function when considering other functions. So it can expand the
+precisely what enable Dafny to do this. Unlike with methods, Dafny does not forget the
+body of a function when using it. So it can expand the
 definition of `abs` in the above assertion and determine that the result is
 actually `3`.
 
@@ -691,45 +693,12 @@ method Testing() {
 }
 ```
 
-One caveat of functions is that not only can they appear in
-annotations, they can only appear in annotations. One cannot write:
-
-<!-- %no-check -->
-```dafny
-  var v := abs(3);
-```
-
-as this is not an annotation. Functions are never part of
-the final compiled program, they are just tools to help us verify our code.
-Sometimes it is convenient to use a function in real code, so one can define a
-`function method`, which can be called from real code. Note
-that there are restrictions on what functions can be function methods (See the
-reference for details).
-
 **Exercise 5.**
-  *Change your test method from Exercise 4 to capture the value of
-  `max` to an out-parameter, and then do the checks from Exercise 4 using
-  the variable. Dafny will reject this program because you are calling
-  `max` from real code. Fix this problem using a `function method`.*
-
-<!-- %check-resolve -->
-```dafny
-function max(a: int, b: int): int
-{
-  0 // Use your code from Exercise 4
-}
-method Testing() returns (r: int) {
-  // Add assertions to check max here. Be sure to capture it to the out-parameter
-  r := 0;
-}
-```
-
-**Exercise 6.**
   *Now that we have an `abs` function, change the postcondition of
   method `Abs` to make use of `abs`. After confirming the method still
   verifies, change the body of `Abs` to also use `abs`. (After doing
   this, you will realize there is not much point in having a method
-  that does exactly the same thing as a function method.)*
+  that does exactly the same thing as a function.)*
 
 <!-- %check-verify -->
 ```dafny
@@ -764,9 +733,8 @@ function fib(n: nat): nat
 
 Here we use `nat`s, the type of
 natural numbers (non-negative integers), which is often more convenient than
-annotating everything to be non-negative. It turns out that we could make this
-function a function method if we wanted to. But this would be extremely slow,
-as this version of calculating the Fibonacci numbers has exponential
+annotating everything to be non-negative. Using this function for actually calculating
+the Fibonacci numbers would be extremely slow, as this implementation has exponential
 complexity. There are much better ways to calculate the Fibonacci function. But
 this function is still useful, as we can have Dafny prove that a fast version
 really matches the mathematical definition. We can get the best of both worlds:
@@ -923,7 +891,7 @@ The challenge in picking loop invariants is finding one that is preserved
 by the loop, but also that lets you prove what you need after the loop
 has executed.
 
-**Exercise 7.**
+**Exercise 6.**
   *Change the loop invariant to `0 <= i <= n+2`. Does the loop still
   verify? Does the assertion `i == n` after the loop still verify?*
 
@@ -942,7 +910,7 @@ method m(n: nat)
 ```
 
 
-**Exercise 8.**
+**Exercise 7.**
   *With the original loop invariant, change the loop guard from
   `i < n` to `i != n`. Do the loop and the assertion after the loop
   still verify? Why or why not?*
@@ -1070,7 +1038,7 @@ holding, because if `n` were zero, it would return before reaching the loop.
 Dafny is also able to use the loop invariants to prove that after the loop, `i == n`
 and `b == fib(i)`, which together imply the postcondition, `b == fib(n)`.
 
-**Exercise 9.**
+**Exercise 8.**
   *The `ComputeFib` method above is more complicated than
   necessary. Write a simpler program by not introducing `a` as the
   Fibonacci number that precedes `b`, but instead introducing a
@@ -1106,7 +1074,7 @@ method ComputeFib(n: nat) returns (b: nat)
 ```
 
 
-**Exercise 10.**
+**Exercise 9.**
   *Starting with the completed `ComputeFib` method above, delete the
   `if` statement and initialize `i` to `0`, `a` to `1`, and `b` to
   `0`.  Verify this new program by adjusting the loop invariants to
@@ -1161,7 +1129,7 @@ an expression that decreases with every loop iteration or recursive call.
 There are two conditions that Dafny needs to verify when using a `decreases`
 expression: that the expression actually gets smaller and that it is bounded.
 Many times, an integral value (natural or plain integer) is the quantity that
-decreases, but other things that can be used as well. (See the reference for
+decreases, but other things can be used as well. (See the reference for
 details.) In the case of integers, the bound is assumed to be zero. For
 example, the following is a proper use of `decreases` on a loop (with its own
 keyword, of course):
@@ -1182,7 +1150,7 @@ method m ()
 
 Here Dafny has all the ingredients it needs to prove
 termination. The variable `i` gets smaller each loop iteration and is bounded
-below by zero. This is fine, except the loop is backwards from most loops,
+below by zero. This is fine, except the loop is backwards compared to most loops,
 which tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
@@ -1209,11 +1177,11 @@ the quantity. This also works when the bound `n` is not
 constant, such as in the binary search algorithm, where two quantities approach
 each other, and neither is fixed.
 
-**Exercise 11.**
+**Exercise 10.**
   *In the loop above, the invariant `i <= n` and the negation of the
   loop guard allow us to conclude `i == n` after the loop (as we
   checked previously with an `assert`. Note that if the loop guard
-  were instead written as `i != n` (as in Exercise 8), then the
+  were instead written as `i != n` (as in Exercise 7), then the
   negation of the guard immediately gives `i == n` after the loop,
   regardless of the loop invariant. Change the loop guard to `i != n`
   and delete the invariant annotation. Does the program verify? What
@@ -1426,7 +1394,7 @@ method Find(a: array<int>, key: int) returns (index: int)
 ```
 
 This says that everything before, but excluding, the current
-index is not the key. Notice that upon entering the loop, `i`
+index is not the key. Notice that upon entering the loop, `index`
 is zero, so the first part of the implication is always false, and thus the
 quantified property is always true. This common situation is known as
 *vacuous truth*: the
@@ -1465,7 +1433,7 @@ method Find(a: array<int>, key: int) returns (index: int)
 }
 ```
 
-**Exercise 12.**
+**Exercise 11.**
   *Write a method that takes an integer array, which it requires to
   have at least one element, and returns an index to the maximum of
   the array's elements. Annotate the method with pre- and
@@ -1487,7 +1455,7 @@ queries are made of the same data. If the array is sorted, then we can use the
 very efficient binary search procedure to find the key. But in order for us to
 be able to prove our implementation correct, we need some way to require that
 the input array actually is sorted. We could do this directly with a quantifier
-inside a requires clause of our method, but a more modular way to express this
+inside a `requires` clause of our method, but a more modular way to express this
 is through a *predicate*.
 
 ## Predicates
@@ -1593,7 +1561,7 @@ reference types, and they are stored on the heap (though as always there is a su
 distinction between the reference itself and the value it points to.)
 
 
-**Exercise 13.**
+**Exercise 12.**
   *Modify the definition of the `sorted` predicate so that it returns
   true exactly when the array is sorted and all its elements are
   distinct.*
@@ -1607,7 +1575,7 @@ predicate sorted(a: array<int>)
 }
 ```
 
-**Exercise 14.**
+**Exercise 13.**
   *Change the definition of `sorted` so that it allows its argument to be 
   null (using a nullable array type) but
   returns false if it is.*
@@ -1715,7 +1683,7 @@ prove the code correct, but we can understand the operation of the code more eas
 ourselves.
 
 
-**Exercise 15.**
+**Exercise 14.**
   *Change the assignments in the body of `BinarySearch` to set `low`
   to `mid` or to set `high` to `mid - 1`. In each case, what goes
   wrong?*

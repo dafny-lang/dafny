@@ -204,11 +204,20 @@ module N refines M { datatype D = ... Y | Z }
 
 <!-- INSERT-TEXT -->
 
-## **Error: datatype extending traits is a beta feature; use /generalTraits:1 to engage** {#p_general_traits_beta}
+## **Error: datatype extending traits is not yet enabled by default; use --general-traits=datatype to enable it** {#p_general_traits_datatype}
 
 ```dafny
 trait Trait { }
 datatype D extends Trait = A | B
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: newtype extending traits is not fully supported (specifically, compilation of such types is not supported); to use them for verification only, use --general-traits=full** {#p_general_traits_full}
+
+```dafny
+trait Trait { }
+newtype N extends Trait = int
 ```
 
 <!-- INSERT-TEXT -->
@@ -802,23 +811,6 @@ method m() {
 
 <!-- INSERT-TEXT -->
 
-## **Error: a forall statement with an ensures clause must have a body** {#p_forall_with_ensures_must_have_body}
-
-<!-- TODO: This example does not yet work in the new CLI because there is no way to turn on /noCheating in the new CLI -->
-
-<!-- %check-legacy %options -compile:0 -noCheating:1 -->
-```dafny
-module M {
-  predicate f(i: int) { true }
-  method  m(a: seq<int>) {
-    forall i | 0 <= i < 10
-       ensures f(i)
-  }
-}
-```
-
-<!-- INSERT-TEXT -->
-
 ## **Warning: the modify statement with a block statement is deprecated** {#p_deprecated_modify_statement_with_block}
 
 <!-- INSERT-TEXT -->
@@ -991,7 +983,7 @@ const i: int := 5 | 6 & 7
 
 ## **Error: too many characters in character literal** {#p_invalid_char_literal}
 
-<!-- %check-resolve --unicode-char:false -->
+<!-- %check-resolve %options --allow-deprecation --unicode-char:false -->
 ```dafny
 const c := '🚀'
 ```
@@ -1124,7 +1116,7 @@ const _myconst := 5
 
 ## **Warning: deprecated style: a semi-colon is not needed here {#p_deprecated_semicolon}
 
-<!-- %check-legacy %exit 0 %options /compile:0 /deprecation:2 -->
+<!-- %check-resolve %options -->
 ```dafny
 const c := 5;
 ```
@@ -1187,15 +1179,6 @@ The Dafny scanner saw a pragma -- the first character of the line is a # charact
 scanner recognizes. The only pragma ever recognized was `#line`.
 
 <!-- ./DafnyCore/AST/Grammar/ProgramParser.cs -->
-
-## **Warning: File contains no code** {#p_file_has_no_code}
-
-<!-- %check-resolve-warn -->
-```dafny
-// const c := 42
-```
-
-<!-- INSERT-TEXT -->
 
 ## **Error: [internal error] Parser exception: _message_** {#p_internal_exception}
 

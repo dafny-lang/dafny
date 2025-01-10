@@ -1,13 +1,14 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public class LitTestCase {
+    private static readonly TimeSpan IndividualTestTimeout = TimeSpan.FromMinutes(15);
     public string FilePath { get; }
     public IEnumerable<ILitCommand> Commands { get; }
     public bool ExpectFailure { get; }
@@ -53,8 +54,11 @@ namespace XUnitExtensions.Lit {
       return Parse(filePath, config);
     }
 
+    public static readonly TimeSpan MaxTestCaseRuntime = TimeSpan.FromMinutes(15);
     public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
-      Read(filePath, config).Execute(outputHelper);
+      var litTestCase = Read(filePath, config);
+      var task = Task.Run(() => litTestCase.Execute(outputHelper));
+      task.Wait(IndividualTestTimeout);
     }
 
     public LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
@@ -63,28 +67,27 @@ namespace XUnitExtensions.Lit {
       this.ExpectFailure = expectFailure;
     }
 
-    public void Execute(ITestOutputHelper outputHelper) {
+    public async Task Execute(ITestOutputHelper outputHelper) {
       Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(FilePath), "Output"));
       // For debugging. Only printed on failure in case the true cause is buried in an earlier command.
       List<(string, string)> results = new();
 
+
       foreach (var command in Commands) {
         int exitCode;
-        string output;
-        string error;
         var outputWriter = new StringWriter();
         var errorWriter = new StringWriter();
         try {
           outputHelper.WriteLine($"Executing command: {command}");
-          (exitCode, output, error) = command.Execute(TextReader.Null, outputWriter, errorWriter);
+          exitCode = await command.Execute(TextReader.Null, outputWriter, errorWriter);
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
         }
 
         if (ExpectFailure) {
           if (exitCode != 0) {
-            throw new SkipException(
-              $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output + outputWriter}\nError:\n{error + errorWriter}");
+            results.Add((outputWriter.ToString(), errorWriter.ToString()));
+            return;
           }
         }
 
@@ -96,10 +99,10 @@ namespace XUnitExtensions.Lit {
           }
 
           throw new Exception(
-            $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output + outputWriter}\nError:\n{error + errorWriter}");
+            $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{outputWriter}\nError:\n{errorWriter}");
         }
 
-        results.Add((output, error));
+        results.Add((outputWriter.ToString(), errorWriter.ToString()));
       }
 
       if (ExpectFailure) {

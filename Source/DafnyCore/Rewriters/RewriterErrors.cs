@@ -17,6 +17,7 @@ public class RewriterErrors {
     rw_unusual_indentation_start,
     rw_unusual_indentation_end,
     rw_test_methods_may_not_have_inputs,
+    rw_test_methods_may_not_have_type_parameters,
     rw_test_method_has_too_many_returns,
     rw_clause_cannot_be_compiled,
     rw_no_wrapper,

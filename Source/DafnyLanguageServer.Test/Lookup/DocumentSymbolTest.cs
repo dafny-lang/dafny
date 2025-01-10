@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -12,11 +13,82 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class DocumentSymbolTest : ClientBasedLanguageServerTest {
 
     [Fact]
+    public async Task ExportImport() {
+      var source = @"
+module Low {
+  const x := 3
+}
+
+module High {
+  import Low
+
+  export
+    provides
+      Low
+}
+".TrimStart();
+
+      var documentItem = CreateAndOpenTestDocument(source);
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      Assert.Equal(2, symbols.Count);
+    }
+
+    [Fact]
+    public async Task NamelessClass() {
+      var source = @"class {
+  function Foo(): int
+  function Bar(): int
+}";
+      var documentItem = CreateAndOpenTestDocument(source);
+
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      Assert.True(symbols.All(s => s.Range.Start.Line >= 0));
+      Assert.True(symbols.All(s => s.SelectionRange.Start.Line >= 0));
+      Assert.True(symbols.All(s => !string.IsNullOrEmpty(s.Name)));
+    }
+
+    [Fact]
+    public async Task NamelessModule() {
+      var source = @"module {
+  function Foo(): int
+  function Bar(): int
+}";
+      var documentItem = CreateAndOpenTestDocument(source);
+
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      SymbolsAreValid(symbols);
+    }
+
+    [Fact]
+    public async Task NoCrashOnJustFunction() {
+      var source = "function";
+      var documentItem = CreateAndOpenTestDocument(source);
+
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      SymbolsAreValid(symbols);
+    }
+
+    private static void SymbolsAreValid(List<DocumentSymbol> symbols) {
+      Assert.True(symbols.All(s => s.Range.Start.Line >= 0));
+      Assert.True(symbols.All(s => s.SelectionRange.Start.Line >= 0));
+      Assert.True(symbols.All(s => !string.IsNullOrEmpty(s.Name)));
+    }
+
+    [Fact]
+    public async Task NamelessFunction() {
+      var source = "function(): int";
+      var documentItem = CreateAndOpenTestDocument(source);
+
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      SymbolsAreValid(symbols);
+    }
+
+    [Fact]
     public async Task CanResolveSymbolsForMultiFileProjects() {
-      var temp = Path.GetTempPath();
-      await CreateAndOpenTestDocument("", Path.Combine(temp, DafnyProject.FileName));
-      var file1 = await CreateAndOpenTestDocument("method Foo() {}", Path.Combine(temp, "file1.dfy"));
-      var file2 = await CreateAndOpenTestDocument("method Bar() {}", Path.Combine(temp, "file2.dfy"));
+      var temp = GetFreshTempPath();
+      await CreateOpenAndWaitForResolve("", Path.Combine(temp, DafnyProject.FileName));
+      var file1 = CreateAndOpenTestDocument("method Foo() {}", Path.Combine(temp, "file1.dfy"));
+      var file2 = CreateAndOpenTestDocument("method Bar() {}", Path.Combine(temp, "file2.dfy"));
 
       var fooSymbol = (await RequestDocumentSymbol(file1)).Single();
       Assert.Equal("Foo", fooSymbol.Name);
@@ -34,7 +106,7 @@ module A.B.C {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      client.OpenDocument(documentItem);
 
       var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
       Assert.Single(symbols);
@@ -50,8 +122,7 @@ module A.B.C {
       var source = @"
   method Foo(a: int,, b: int) returns (x: int) {
   }".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var documentItem = CreateAndOpenTestDocument(source);
       var allSymbols = await RequestDocumentSymbol(documentItem);
       Assert.Single(allSymbols);
     }
@@ -65,8 +136,7 @@ module A.B.C {
   method CallIt() returns () {
     var x := DoIt();
   }".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var documentItem = CreateAndOpenTestDocument(source);
       var allSymbols = await RequestDocumentSymbol(documentItem);
       Assert.Equal(2, allSymbols.Count());
     }
@@ -85,8 +155,7 @@ class Y {
     var x := DoIt();
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source, "LoadCorrectDocumentCreatesSymbols.dfy");
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var documentItem = CreateAndOpenTestDocument(source, "LoadCorrectDocumentCreatesSymbols.dfy");
 
       var classSymbol = (await RequestDocumentSymbol(documentItem)).Single();
       var classChildren = classSymbol.Children.ToArray();
@@ -134,8 +203,7 @@ class Y {
     [Fact]
     public async Task CanResolveSymbolsForMethodsWithoutBody() {
       var source = "method DoIt()";
-      var documentItem = CreateTestDocument(source, "CanResolveSymbolsForMethodsWithoutBody.dfy");
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var documentItem = CreateAndOpenTestDocument(source, "CanResolveSymbolsForMethodsWithoutBody.dfy");
 
       var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();
       Assert.Equal("DoIt", methodSymbol.Name);
@@ -147,8 +215,7 @@ class Y {
     [Fact]
     public async Task CanResolveSymbolsForFunctionWithoutBody() {
       var source = "function ConstOne(): int";
-      var documentItem = CreateTestDocument(source, "CanResolveSymbolsForFunctionWithoutBody.dfy");
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var documentItem = CreateAndOpenTestDocument(source, "CanResolveSymbolsForFunctionWithoutBody.dfy");
 
       var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();
       Assert.Equal("ConstOne", methodSymbol.Name);

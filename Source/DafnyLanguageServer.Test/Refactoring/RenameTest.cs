@@ -20,21 +20,31 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Refactoring {
 const i := 0
 ".TrimStart();
 
-      var documentItem = await CreateAndOpenTestDocument(source);
+      var documentItem = await CreateOpenAndWaitForResolve(source);
       await Assert.ThrowsAnyAsync<Exception>(() => RequestRename(documentItem, new Position(0, 6), "j"));
     }
 
     [Fact]
+    public async Task EmptyModules() {
+      var source = @"
+module [>><C<] {}
+".TrimStart();
+
+      var tempDir = SetUpProjectFile();
+      await AssertRangesRenamed(source, tempDir, "foobar");
+    }
+
+    [Fact]
     public async Task InvalidNewNameIsNoOp() {
-      var documentItem = await CreateAndOpenTestDocument("");
+      var documentItem = await CreateOpenAndWaitForResolve("");
       var workspaceEdit = await RequestRename(documentItem, new Position(0, 0), "");
       Assert.Null(workspaceEdit);
     }
 
     [Fact]
     public async Task RenameNonSymbolFails() {
-      var tempDir = await SetUpProjectFile();
-      var documentItem = await CreateAndOpenTestDocument("module Foo {}", Path.Combine(tempDir, "tmp.dfy"));
+      var tempDir = SetUpProjectFile();
+      var documentItem = await CreateOpenAndWaitForResolve("module Foo {}", Path.Combine(tempDir, "tmp.dfy"));
       var workspaceEdit = await RequestRename(documentItem, new Position(0, 6), "space");
       Assert.Null(workspaceEdit);
     }
@@ -48,7 +58,7 @@ method M() {
 }
 ".TrimStart();
 
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "foobar");
     }
 
@@ -59,7 +69,7 @@ method [>foobar<]()
 method U() { [>><foobar<](); }
 ".TrimStart();
 
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "M");
     }
 
@@ -72,7 +82,7 @@ module C { import [>><A<] }
 module D { import [>A<] }
 ".TrimStart();
 
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "AAA");
     }
 
@@ -90,7 +100,7 @@ module B {
 }
 ".TrimStart();
 
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       await AssertRangesRenamed(new[] { sourceA, sourceB }, tempDir, "CCC");
     }
 
@@ -103,18 +113,16 @@ abstract module [>A<] {}
 abstract module B { import [>><A<] }
 ".TrimStart();
 
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       await AssertRangesRenamed(new[] { sourceA, sourceB }, tempDir, "AAA");
     }
 
     /// <summary>
     /// Create an empty project file in a new temporary directory, and return the temporary directory's path.
     /// </summary>
-    protected async Task<string> SetUpProjectFile() {
-      var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-      Directory.CreateDirectory(tempDir);
-      var projectFilePath = Path.Combine(tempDir, DafnyProject.FileName);
-      await File.WriteAllTextAsync(projectFilePath, "");
+    protected string SetUpProjectFile() {
+      var tempDir = GetFreshTempPath();
+      CreateAndOpenTestDocument("", Path.Combine(tempDir, DafnyProject.FileName));
       return tempDir;
     }
 
@@ -140,7 +148,7 @@ abstract module B { import [>><A<] }
       var items = sources.Select(async (source, sourceIndex) => {
         MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
           out var positions, out var ranges);
-        var documentItem = await CreateAndOpenTestDocument(cleanSource, Path.Combine(tempDir, $"tmp{sourceIndex}.dfy"));
+        var documentItem = await CreateOpenAndWaitForResolve(cleanSource, Path.Combine(tempDir, $"tmp{sourceIndex}.dfy"));
         Assert.InRange(positions.Count, 0, 1);
         return new DocPosRange(documentItem, positions.FirstOrDefault((Position)null), ranges);
       }).Select(task => task.Result).ToImmutableList();

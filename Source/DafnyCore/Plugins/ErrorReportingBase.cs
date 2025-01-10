@@ -1,6 +1,6 @@
 using System.Diagnostics.Contracts;
 
-namespace Microsoft.Dafny.Plugins; 
+namespace Microsoft.Dafny.Plugins;
 
 /// <summary>
 /// Abstract base class for plugin interfaces that may report errors.

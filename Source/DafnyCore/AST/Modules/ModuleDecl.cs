@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -9,6 +10,9 @@ namespace Microsoft.Dafny;
 /// Represents a submodule declaration at module level scope
 /// </summary>
 public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
+
+  public DafnyOptions Options { get; }
+
   /// <summary>
   /// Only equivalent between modules if one is a clone of the other.
   /// This property is used to determine if two module declarations have the same contents when doing resolution caching
@@ -36,12 +40,14 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
 
   protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
+    Options = original.Options;
     Opened = original.Opened;
     CloneId = original.CloneId;
   }
 
-  protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
-    : base(rangeToken, name, parent, new List<TypeParameter>(), null, isRefining) {
+  protected ModuleDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
+    : base(origin, name, parent, new List<TypeParameter>(), null, isRefining) {
+    Options = options;
     Height = -1;
     Signature = null;
     Opened = opened;
@@ -55,28 +61,28 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   }
 
   public virtual string GetTriviaContainingDocstring() {
-    IToken candidate = null;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
-      PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : Enumerable.Empty<IToken>();
+      PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : Enumerable.Empty<IOrigin>();
     foreach (var token in tokens) {
       if (token.val == "{") {
-        candidate = token.Prev;
-        if (candidate.TrailingTrivia.Trim() != "") {
-          return candidate.TrailingTrivia;
+        if ((token.Prev.TrailingTrivia + token.LeadingTrivia).Trim() is { } tentativeTrivia and not "") {
+          return tentativeTrivia;
         }
       }
     }
-
-    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia2 and not "") {
+      return tentativeTrivia2;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
-  public string GetDescription(DafnyOptions options) {
+  public override SymbolKind? Kind => SymbolKind.Namespace;
+  public override string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }
 }

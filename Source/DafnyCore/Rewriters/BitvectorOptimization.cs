@@ -4,16 +4,12 @@
 using System;
 using System.Linq.Expressions;
 using System.Numerics;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
 public class BitvectorOptimization : IRewriter {
-  private SystemModuleManager systemModuleManager;
-  public BitvectorOptimization(ErrorReporter reporter) : base(reporter) {
-  }
-
-  internal override void PreResolve(Program program) {
+  private readonly SystemModuleManager systemModuleManager;
+  public BitvectorOptimization(Program program, ErrorReporter reporter) : base(reporter) {
     systemModuleManager = program.SystemModuleManager;
   }
 
@@ -42,7 +38,7 @@ public class BitvectorOptimizationVisitor : BottomUpVisitor {
     var width = new BigInteger(originalType.Width);
     var intermediateType = new BitvectorType(options, (int)width.GetBitLength());
     systemModuleManager.Bitwidths.Add(intermediateType.Width);
-    var newExpr = new ConversionExpr(expr.tok, expr, intermediateType, "when converting shift amount to a bit vector, the ");
+    var newExpr = new ConversionExpr(expr.Origin, expr, intermediateType, "when converting shift amount to a bit vector, the ");
     newExpr.Type = intermediateType;
     return newExpr;
   }

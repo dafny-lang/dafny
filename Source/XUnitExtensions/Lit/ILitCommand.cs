@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Xunit.Abstractions;
@@ -22,7 +23,7 @@ namespace XUnitExtensions.Lit {
       this.Factory = factory;
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter,
       TextWriter errorWriter) {
       if (command == null) {
@@ -42,7 +43,7 @@ namespace XUnitExtensions.Lit {
 
     private static readonly Dictionary<string, Func<string, LitTestConfiguration, ILitCommand>> CommandParsers = new();
     static ILitCommand() {
-      CommandParsers.Add("RUN:", RunCommand.Parse);
+      CommandParsers.Add("RUN:", LitRunCommand.Parse);
       CommandParsers.Add("UNSUPPORTED:", UnsupportedCommand.Parse);
       CommandParsers.Add("XFAIL:", XFailCommand.Parse);
       CommandParsers.Add("NONUNIFORM:", NonUniformTestCommand.Parse);
@@ -98,6 +99,6 @@ namespace XUnitExtensions.Lit {
       return result.ToArray();
     }
 
-    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
+    public Task<int> Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
   }
 }

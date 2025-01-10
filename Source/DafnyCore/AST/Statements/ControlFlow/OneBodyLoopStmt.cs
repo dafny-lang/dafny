@@ -11,7 +11,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
   public WhileStmt.LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
 
   protected OneBodyLoopStmt(Cloner cloner, OneBodyLoopStmt original) : base(cloner, original) {
-    Body = (BlockStmt)cloner.CloneStmt(original.Body);
+    Body = (BlockStmt)cloner.CloneStmt(original.Body, false);
     if (cloner.CloneResolvedFields) {
       if (original.BodySurrogate != null) {
         BodySurrogate = new WhileStmt.LoopBodySurrogate(
@@ -21,10 +21,10 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     }
   }
 
-  protected OneBodyLoopStmt(RangeToken rangeToken,
+  protected OneBodyLoopStmt(IOrigin origin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt /*?*/ body, Attributes/*?*/ attrs)
-    : base(rangeToken, invariants, decreases, mod, attrs) {
+    : base(origin, invariants, decreases, mod, attrs) {
     Body = body;
   }
 
@@ -38,7 +38,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (Body is null) {
-      yield return new Assumption(decl, tok, AssumptionDescription.LoopWithoutBody);
+      yield return new Assumption(decl, Origin, AssumptionDescription.LoopWithoutBody);
     }
   }
 
@@ -85,8 +85,8 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     if (BodySurrogate.UsesHeap) {
       text += text.Length == 0 ? "$Heap" : ", $Heap";
     }
-    text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
-    reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, Tok, text);
+    text = $"this loop has no body{(text.Length == 0 ? "" : " (loop frame: " + text + ")")}";
+    reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, Origin, text);
   }
 
 }

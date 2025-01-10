@@ -1,24 +1,25 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Binding;
-using System.Configuration;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
+using DafnyCore.Options;
 using Microsoft.Dafny;
-using Microsoft.Dafny.Auditor;
 using Tomlyn;
+using Tomlyn.Helpers;
 using Tomlyn.Model;
-using Type = System.Type;
 
-namespace DafnyCore; 
+namespace DafnyCore;
 
 // Model class for the .doo file format for Dafny libraries.
 // Contains the validation logic for safely consuming libraries as well.
 public class DooFile {
+  public const string Extension = ".doo";
 
   private const string ProgramFileEntry = "program";
 
@@ -30,13 +31,20 @@ public class DooFile {
 
     public string DafnyVersion { get; set; }
 
-    public string SolverIdentifier { get; set; }
-    public string SolverVersion { get; set; }
+    public string? SolverIdentifier { get; set; }
+    public string? SolverVersion { get; set; }
 
     public Dictionary<string, object> Options { get; set; }
 
+    static ManifestData() {
+      CommonOptionBag.EnsureStaticConstructorHasRun();
+    }
+
     public ManifestData() {
       // Only for TOML deserialization!
+      DooFileVersion = null!;
+      DafnyVersion = null!;
+      Options = null!;
     }
 
     public ManifestData(DafnyOptions options) {
@@ -44,11 +52,30 @@ public class DooFile {
       DafnyVersion = options.VersionNumber;
 
       SolverIdentifier = options.SolverIdentifier;
-      SolverVersion = options.SolverVersion.ToString();
+      // options.SolverVersion may be null (if --no-verify is used for example)
+      SolverVersion = options.SolverVersion?.ToString();
 
       Options = new Dictionary<string, object>();
-      foreach (var (option, _) in OptionChecks) {
-        var optionValue = GetOptionValue(options, option);
+      foreach (var option in OptionRegistry.GlobalOptions.Concat(OptionRegistry.ModuleOptions)) {
+        if (option == CommonOptionBag.Libraries) {
+          // We don't want to serialize the FileInfo objects of this option
+          // For now we add an option specific exception here so we do not need to change
+          // the option registration system.
+          // When improve soundness through https://github.com/dafny-lang/dafny/issues/5335
+          // Then we'll get back to this
+          continue;
+        }
+        var optionValue = options.Get((dynamic)option);
+        if (option == CommonOptionBag.QuantifierSyntax) {
+          switch (optionValue) {
+            case QuantifierSyntaxOptions.Version4:
+              optionValue = "4";
+              break;
+            case QuantifierSyntaxOptions.Version3:
+              optionValue = "3";
+              break;
+          }
+        }
         Options.Add(option.Name, optionValue);
       }
     }
@@ -58,7 +85,17 @@ public class DooFile {
     }
 
     public void Write(TextWriter writer) {
-      writer.Write(Toml.FromModel(this, new TomlModelOptions()));
+      var content = Toml.FromModel(this, new TomlModelOptions() {
+        ConvertToToml = obj => {
+          if (obj is Enum) {
+            TomlFormatHelper.ToString(obj.ToString()!, TomlPropertyDisplayKind.Default);
+            return obj.ToString();
+          }
+
+          return obj;
+        }
+      }).Replace("\r\n", "\n");
+      writer.Write(content);
     }
   }
 
@@ -66,40 +103,48 @@ public class DooFile {
 
   public string ProgramText { get; set; }
 
-  // This must be independent from any user-provided options,
-  // and remain fixed over the lifetime of a single .doo file format version.
-  // We don't want to attempt to read the program text using --function-syntax:3 for example.
-  // If we change default option values in future Dafny major version bumps,
-  // this must be configured to stay the same.
-  private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
-
-  public static DooFile Read(string path) {
-    var result = new DooFile();
-
+  public static async Task<DooFile> Read(string path) {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
+    return await Read(archive);
+  }
+
+  public static async Task<DooFile> Read(Stream stream) {
+    using var archive = new ZipArchive(stream);
+    return await Read(archive);
+  }
+
+  private static async Task<DooFile> Read(ZipArchive archive) {
+
     var manifestEntry = archive.GetEntry(ManifestFileEntry);
     if (manifestEntry == null) {
       throw new ArgumentException(".doo file missing manifest entry");
     }
-    using (var manifestStream = manifestEntry.Open()) {
-      result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
+
+    ManifestData manifest;
+    await using (var manifestStream = manifestEntry.Open()) {
+      manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
     }
 
     var programTextEntry = archive.GetEntry(ProgramFileEntry);
     if (programTextEntry == null) {
       throw new ArgumentException(".doo file missing program text entry");
     }
-    using (var programTextStream = programTextEntry.Open()) {
+
+    string programText;
+    await using (var programTextStream = programTextEntry.Open()) {
       var reader = new StreamReader(programTextStream, Encoding.UTF8);
-      result.ProgramText = reader.ReadToEnd();
+      programText = await reader.ReadToEndAsync();
     }
 
+    var result = new DooFile(manifest, programText);
     return result;
   }
 
   public DooFile(Program dafnyProgram) {
-    var tw = new StringWriter();
-    var pr = new Printer(tw, ProgramSerializationOptions, PrintModes.Serialization);
+    var tw = new StringWriter {
+      NewLine = "\n"
+    };
+    var pr = new Printer(tw, dafnyProgram.Options, PrintModes.Serialization);
     // afterResolver is false because we don't yet have a way to safely skip resolution
     // when reading the program back into memory.
     // It's probably worth serializing a program in a more efficient way first
@@ -109,71 +154,83 @@ public class DooFile {
     Manifest = new ManifestData(dafnyProgram.Options);
   }
 
-  private DooFile() {
+  public DooFile(ManifestData manifest, string programText) {
+    Manifest = manifest;
+    ProgramText = programText;
   }
 
-  public bool Validate(string filePath, DafnyOptions options, Command currentCommand) {
-    if (currentCommand == null) {
-      options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: .doo files cannot be used with the legacy CLI");
-      return false;
+  /// <summary>
+  /// Returns the options as specified by the DooFile
+  /// </summary>
+  public DafnyOptions? Validate(ErrorReporter reporter, Uri file, DafnyOptions options, IOrigin origin) {
+    if (!options.UsingNewCli) {
+      reporter.Error(MessageSource.Project, origin,
+        $"cannot load {options.GetPrintPath(file.LocalPath)}: .doo files cannot be used with the legacy CLI");
+      return null;
     }
 
     if (options.VersionNumber != Manifest.DafnyVersion) {
-      options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
-      return false;
+      reporter.Error(MessageSource.Project, origin,
+        $"cannot load {options.GetPrintPath(file.LocalPath)}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
+      return null;
     }
 
+    return CheckAndGetLibraryOptions(reporter, file, options, origin, Manifest.Options);
+  }
+
+  public static DafnyOptions? CheckAndGetLibraryOptions(ErrorReporter reporter,
+    Uri libraryFile,
+    DafnyOptions options, IOrigin origin,
+    IDictionary<string, object> libraryOptions) {
+    var result = new DafnyOptions(options);
     var success = true;
-    var revelantOptions = currentCommand.Options.ToHashSet();
-    foreach (var (option, check) in OptionChecks) {
+
+    var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
+    foreach (var option in OptionRegistry.GlobalOptions.Concat(OptionRegistry.ModuleOptions)) {
       // It's important to only look at the options the current command uses,
       // because other options won't be initialized to the correct default value.
       // See CommandRegistry.Create().
-      if (!revelantOptions.Contains(option)) {
+      if (!relevantOptions.Contains(option)) {
         continue;
       }
-
       var localValue = options.Get(option);
 
-      object libraryValue = null;
-      if (Manifest.Options.TryGetValue(option.Name, out var manifestValue)) {
-        if (!DafnyProject.TryGetValueFromToml(Console.Out, null,
-              option.Name, option.ValueType, manifestValue, out libraryValue)) {
-          return false;
+      object? libraryValue;
+      if (libraryOptions.TryGetValue(option.Name, out var manifestValue)) {
+        var printTomlValue = DafnyProject.PrintTomlOptionToCliValue(libraryFile, manifestValue, option);
+        var parseResult = option.Parse(printTomlValue.ToArray());
+        if (parseResult.Errors.Any()) {
+          reporter.Error(MessageSource.Project, origin, $"could not parse value '{manifestValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
+          return null;
         }
-      } else if (option.ValueType == typeof(IEnumerable<string>)) {
-        // This can happen because Tomlyn will drop aggregate properties with no values.
-        libraryValue = Array.Empty<string>();
+        // By using the dynamic keyword, we can use the generic version of GetValueForOption which does type conversion,
+        // which is sadly not accessible without generics.
+        libraryValue = parseResult.GetValueForOption((dynamic)option);
+      } else {
+        // This else can occur because Tomlyn will drop aggregate properties with no values.
+        // When this happens, use the default value
+        libraryValue = option.Parse("").GetValueForOption(option)!;
       }
-      success = success && check(options, option, localValue, filePath, libraryValue);
-    }
-    return success;
-  }
 
-  private static object GetOptionValue(DafnyOptions options, Option option) {
-    // This is annoyingly necessary because only DafnyOptions.Get<T>(Option<T> option)
-    // handles falling back to the configured default option value,
-    // whereas the non-generic DafnyOptions.Get(Option option) doesn't.
-    // TODO: Move somewhere more generic if this is useful in other cases?
-    var optionType = option.ValueType;
-    if (optionType == typeof(bool)) {
-      return options.Get((Option<bool>)option);
-    }
-    if (optionType == typeof(string)) {
-      return options.Get((Option<string>)option);
-    }
-    if (optionType == typeof(IEnumerable<string>)) {
-      return options.Get((Option<IEnumerable<string>>)option);
+      result.Options.OptionArguments[option] = libraryValue;
+      result.ApplyBinding(option);
+      var prefix = $"cannot load {options.GetPrintPath(libraryFile.LocalPath)}";
+      var checkpasses = OptionRegistry.GlobalCheck(option)?.Invoke(reporter, origin, prefix, option, localValue, libraryValue) ?? true;
+      success = success && checkpasses;
     }
 
-    throw new ArgumentException();
+    if (!success) {
+      return null;
+    }
+
+    return result;
   }
 
   public void Write(ConcreteSyntaxTree wr) {
     var manifestWr = wr.NewFile(ManifestFileEntry);
     using var manifestWriter = new StringWriter();
     Manifest.Write(manifestWriter);
-    manifestWr.Write(manifestWriter.ToString());
+    manifestWr.Write(manifestWriter.ToString().Replace("\r\n", "\n"));
 
     var programTextWr = wr.NewFile(ProgramFileEntry);
     programTextWr.Write(ProgramText);
@@ -198,71 +255,4 @@ public class DooFile {
     }
   }
 
-  // Partitioning of all options into subsets that must be recorded in a .doo file
-  // to guard against unsafe usage.
-  // Note that legacy CLI options are not as cleanly enumerated and therefore
-  // more difficult to completely categorize, which is the main reason the LibraryBackend
-  // is restricted to only the new CLI.
-
-  public delegate bool OptionCheck(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue);
-  private static readonly Dictionary<Option, OptionCheck> OptionChecks = new();
-  private static readonly HashSet<Option> NoChecksNeeded = new();
-
-  public static bool CheckOptionMatches(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (OptionValuesEqual(option, localValue, libraryValue)) {
-      return true;
-    }
-
-    options.Printer.ErrorWriteLine(Console.Out, $"*** Error: Cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
-    return false;
-  }
-
-  private static bool OptionValuesEqual(Option option, object first, object second) {
-    if (first.Equals(second)) {
-      return true;
-    }
-
-    if (option.ValueType == typeof(IEnumerable<string>)) {
-      return ((IEnumerable<string>)first).SequenceEqual((IEnumerable<string>)second);
-    }
-
-    return false;
-  }
-
-  private static string OptionValueToString(Option option, object value) {
-    if (option.ValueType == typeof(IEnumerable<string>)) {
-      var values = (IEnumerable<string>)value;
-      return $"[{string.Join(',', values)}]";
-    }
-
-    return value.ToString();
-  }
-
-  public static void RegisterLibraryChecks(IDictionary<Option, OptionCheck> checks) {
-    foreach (var (option, check) in checks) {
-      if (NoChecksNeeded.Contains(option)) {
-        throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
-      }
-      OptionChecks.Add(option, check);
-    }
-  }
-
-  public static void RegisterNoChecksNeeded(params Option[] options) {
-    foreach (var option in options) {
-      if (OptionChecks.ContainsKey(option)) {
-        throw new ArgumentException($"Option already registered as needing a library check: {option.Name}");
-      }
-      NoChecksNeeded.Add(option);
-    }
-  }
-
-  public static void CheckOptions(IEnumerable<Option> allOptions) {
-    var unsupportedOptions = allOptions.ToHashSet()
-      .Where(o =>
-        !OptionChecks.ContainsKey(o) && !NoChecksNeeded.Contains(o))
-      .ToList();
-    if (unsupportedOptions.Any()) {
-      throw new Exception($"Internal error - unsupported options registered: {{\n{string.Join(",\n", unsupportedOptions)}\n}}");
-    }
-  }
 }

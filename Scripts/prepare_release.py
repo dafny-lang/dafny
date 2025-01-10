@@ -322,6 +322,18 @@ class Release:
             self.REMOTE, f"{self.release_branch_path}:{self.release_branch_path}",
             check=True)
 
+    def set_next_version(self):
+        assert_one(f"Is {self.version} a valid version number?",
+                   self._parse_vernum)
+        assert_one(f"Can we find `{self.build_props_path}`?",
+                   self._build_props_file_exists)
+        assert_one(f"Can we parse `{self.build_props_path}`?",
+                   self._build_props_file_parses)
+        assert_one(f"Can we create a section for `{self.version}` in `{self.release_notes_md_path}`?",
+                   self._version_number_is_fresh)
+        run_one(f"Updating `{self.build_props_path}`...",
+                self._update_build_props_file)
+
     # Still TODO:
     # - Run deep test as part of release workflow
 
@@ -375,10 +387,11 @@ class Release:
         progress("Done!")
         progress()
 
-        DEEPTESTS_URL = "https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml"
+        DEEPTESTS_URL = "https://github.com/dafny-lang/dafny/actions/workflows/nightly-build.yml"
         progress(f"Now, start a deep-tests workflow manually for branch {self.release_branch_name} at\n"
-                 f"<{DEEPTESTS_URL}>.\n"
-                 "Once it completes, re-run this script with argument `release`.")
+                 f"<{DEEPTESTS_URL}>\n"
+                 f"To do so, click Run workflow, use workflow from {self.release_branch_name},\n"
+                 f"Once it completes, just re-run this script as `./Scripts/prepare_release.py {self.version} release` to tag the branch and push it to trigger the release.")
         progress()
 
     def _tag_release(self):
@@ -429,7 +442,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--source-branch", help="Which branch to release from (optional, defaults to 'master')", default="master")
     parser.add_argument("version", help="Version number for this release (A.B.C-xyz)")
     parser.add_argument("action", help="Which part of the release process to run",
-                        choices=["prepare", "release"])
+                        choices=["prepare", "release", "set-next-version"])
     return parser.parse_args()
 
 def main() -> None:
@@ -437,6 +450,7 @@ def main() -> None:
     try:
         release = (DryRunRelease if args.dry_run else Release)(args.version, args.source_branch)
         {"prepare": release.prepare,
+         "set-next-version": release.set_next_version,
          "release": release.release}[args.action]()
     except CannotReleaseError:
         sys.exit(1)

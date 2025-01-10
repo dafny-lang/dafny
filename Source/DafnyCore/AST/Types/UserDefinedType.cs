@@ -6,13 +6,13 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-public class UserDefinedType : NonProxyType, IHasUsages {
+public class UserDefinedType : NonProxyType, IHasReferences {
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(tok != null);
+    Contract.Invariant(Origin != null);
     Contract.Invariant(Name != null);
     Contract.Invariant(cce.NonNullElements(TypeArgs));
-    Contract.Invariant(NamePath is NameSegment || NamePath is ExprDotName);
+    Contract.Invariant(NamePath is NameSegment or ExprDotName);
     Contract.Invariant(!ArrowType.IsArrowTypeName(Name) || this is ArrowType);
   }
 
@@ -22,7 +22,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
 
   public string FullName {
     get {
-      if (ResolvedClass?.EnclosingModuleDefinition?.IsDefaultModule == false) {
+      if (ResolvedClass?.EnclosingModuleDefinition?.TryToAvoidName == false) {
         return ResolvedClass.EnclosingModuleDefinition.Name + "." + Name;
       } else {
         return Name;
@@ -36,23 +36,22 @@ public class UserDefinedType : NonProxyType, IHasUsages {
   public string GetFullCompanionCompileName(DafnyOptions options) {
     Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
     var m = ResolvedClass.EnclosingModuleDefinition;
-    var s = m.IsDefaultModule ? "" : m.GetCompileName(options) + ".";
+    var s = m.TryToAvoidName ? "" : m.GetCompileName(options) + ".";
     return s + "_Companion_" + ResolvedClass.GetCompileName(options);
   }
 
   [FilledInDuringResolution] public TopLevelDecl ResolvedClass;  // if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
 
-  public UserDefinedType(IToken tok, string name, List<Type> optTypeArgs)
-    : this(tok, new NameSegment(tok, name, optTypeArgs)) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(IOrigin origin, string name, List<Type> optTypeArgs)
+    : this(origin, new NameSegment(origin, name, optTypeArgs)) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // this is what it means to be syntactically optional
   }
 
-  public UserDefinedType(IToken tok, Expression namePath) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(IOrigin origin, Expression namePath) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(namePath is NameSegment || namePath is ExprDotName);
-    this.tok = tok;
     if (namePath is NameSegment) {
       var n = (NameSegment)namePath;
       this.Name = n.Name;
@@ -68,7 +67,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     this.NamePath = namePath;
   }
   public UserDefinedType(Cloner cloner, UserDefinedType original)
-    : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
+    : this(cloner.Origin(original.Origin), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
       ResolvedClass = cloner.GetCloneIfAvailable(original.ResolvedClass);
       TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
@@ -83,17 +82,24 @@ public class UserDefinedType : NonProxyType, IHasUsages {
   /// If "typeArgs" is non-null, then its type parameters are used in constructing the returned type.
   /// If "typeArgs" is null, then the formal type parameters of "cd" are used.
   /// </summary>
-  public static UserDefinedType FromTopLevelDecl(IToken tok, TopLevelDecl cd, List<TypeParameter> typeArgs = null) {
+  public static UserDefinedType FromTopLevelDecl(IOrigin tok, TopLevelDecl cd, List<TypeParameter> typeArgs = null) {
     Contract.Requires(tok != null);
     Contract.Requires(cd != null);
     Contract.Assert((cd is ArrowTypeDecl) == ArrowType.IsArrowTypeName(cd.Name));
     var args = (typeArgs ?? cd.TypeArgs).ConvertAll(tp => (Type)new UserDefinedType(tp));
+    return FromTopLevelDecl(tok, cd, args);
+  }
+
+  /// <summary>
+  /// Constructs a Type (in particular, a UserDefinedType) from a TopLevelDecl denoting a type declaration.
+  /// </summary>
+  public static UserDefinedType FromTopLevelDecl(IOrigin tok, TopLevelDecl cd, List<Type> typeArguments) {
     if (cd is ArrowTypeDecl) {
-      return new ArrowType(tok, (ArrowTypeDecl)cd, args);
+      return new ArrowType(tok, (ArrowTypeDecl)cd, typeArguments);
     } else if (cd is ClassLikeDecl { IsReferenceTypeDecl: true }) {
-      return new UserDefinedType(tok, cd.Name + "?", cd, args);
+      return new UserDefinedType(tok, cd.Name + "?", cd, typeArguments);
     } else {
-      return new UserDefinedType(tok, cd.Name, cd, args);
+      return new UserDefinedType(tok, cd.Name, cd, typeArguments);
     }
   }
 
@@ -102,7 +108,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     Contract.Requires(!(cd is ArrowTypeDecl));
 
     var typeArgs = cd.TypeArgs.ConvertAll(tp => (Type)Type.Bool);
-    return new UserDefinedType(cd.tok, cd.Name, cd, typeArgs);
+    return new UserDefinedType(cd.Origin, cd.Name, cd, typeArgs);
   }
 
   /// <summary>
@@ -135,10 +141,14 @@ public class UserDefinedType : NonProxyType, IHasUsages {
   }
 
   /// <summary>
-  /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type
+  /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type.
+  /// Note, if "cd" is an arrow type or a possibly-null reference type, then it's better to call
+  /// the FromTopLevelDecl method to create the UserDefinedType; that makes sure the right class
+  /// and right name is used.
   /// </summary>
-  public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(IOrigin origin, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null)
+   : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cd != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -149,13 +159,13 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     //Contract.Requires(!(cd is ClassDecl) || name == cd.Name + "?");
     Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
     Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
-    this.tok = tok;
+    Contract.Assert(cd is not ArrowTypeDecl || this is ArrowType);
     this.Name = name;
     this.ResolvedClass = cd;
     this.TypeArgs = typeArgs;
     if (namePath == null) {
-      var ns = new NameSegment(tok, name, typeArgs.Count == 0 ? null : typeArgs);
-      var r = new Resolver_IdentifierExpr(tok, cd, typeArgs);
+      var ns = new NameSegment(origin, name, typeArgs.Count == 0 ? null : typeArgs);
+      var r = new Resolver_IdentifierExpr(origin, cd, typeArgs);
       ns.ResolvedExpression = r;
       ns.Type = r.Type;
       this.NamePath = ns;
@@ -168,14 +178,14 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     Contract.Requires(udtNullableType != null);
     Contract.Requires(udtNullableType.ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true });
     var cl = (ClassLikeDecl)udtNullableType.ResolvedClass;
-    return new UserDefinedType(udtNullableType.tok, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
+    return new UserDefinedType(udtNullableType.Origin, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
   }
 
   public static UserDefinedType CreateNullableType(UserDefinedType udtNonNullType) {
     Contract.Requires(udtNonNullType != null);
     Contract.Requires(udtNonNullType.ResolvedClass is NonNullTypeDecl);
     var nntd = (NonNullTypeDecl)udtNonNullType.ResolvedClass;
-    return new UserDefinedType(udtNonNullType.tok, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
+    return new UserDefinedType(udtNonNullType.Origin, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
   }
 
   public static UserDefinedType CreateNonNullTypeIfReferenceType(UserDefinedType classLikeType) {
@@ -194,22 +204,21 @@ public class UserDefinedType : NonProxyType, IHasUsages {
   /// This constructor constructs a resolved type parameter
   /// </summary>
   public UserDefinedType(TypeParameter tp)
-    : this(tp.tok, tp) {
+    : this(tp.Origin, tp) {
     Contract.Requires(tp != null);
   }
 
   /// <summary>
   /// This constructor constructs a resolved type parameter
   /// </summary>
-  public UserDefinedType(IToken tok, TypeParameter tp) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(IOrigin origin, TypeParameter tp) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(tp != null);
-    this.tok = tok;
     this.Name = tp.Name;
     this.TypeArgs = new List<Type>();
     this.ResolvedClass = tp;
-    var ns = new NameSegment(tok, tp.Name, null);
-    var r = new Resolver_IdentifierExpr(tok, tp);
+    var ns = new NameSegment(origin, tp.Name, null);
+    var r = new Resolver_IdentifierExpr(origin, tp);
     ns.ResolvedExpression = r;
     ns.Type = r.Type;
     this.NamePath = ns;
@@ -270,7 +279,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
         return this;
       } else {
         // Note, even if t.NamePath is non-null, we don't care to keep that syntactic part of the expression in what we return here
-        return new UserDefinedType(tok, Name, resolvedClass, newArgs);
+        return new UserDefinedType(Origin, Name, resolvedClass, newArgs);
       }
     } else {
       // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
@@ -280,7 +289,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
   }
 
   public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new UserDefinedType(tok, Name, ResolvedClass, arguments);
+    return new UserDefinedType(Origin, Name, ResolvedClass, arguments);
   }
 
   /// <summary>
@@ -365,7 +374,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
 
   public override bool SupportsEquality {
     get {
-      if (ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true } or NewtypeDecl) {
+      if (ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true }) {
         return ResolvedClass.IsRevealedInScope(Type.GetScope());
       } else if (ResolvedClass is TraitDecl) {
         return false;
@@ -389,6 +398,12 @@ public class UserDefinedType : NonProxyType, IHasUsages {
           i++;
         }
         return true;
+      } else if (ResolvedClass is NewtypeDecl newtypeDecl) {
+        if (newtypeDecl.IsRevealedInScope(Type.GetScope())) {
+          return newtypeDecl.RhsWithArgument(TypeArgs).SupportsEquality;
+        } else {
+          return false;
+        }
       } else if (ResolvedClass is TypeSynonymDeclBase) {
         var t = (TypeSynonymDeclBase)ResolvedClass;
         if (t.SupportsEquality) {
@@ -492,8 +507,8 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     return true;
   }
 
-  public override List<Type> ParentTypes() {
-    return ResolvedClass != null ? ResolvedClass.ParentTypes(TypeArgs) : base.ParentTypes();
+  public override List<Type> ParentTypes(bool includeTypeBounds) {
+    return ResolvedClass != null ? ResolvedClass.ParentTypes(TypeArgs, includeTypeBounds) : base.ParentTypes(includeTypeBounds);
   }
 
   public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
@@ -511,9 +526,8 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
 
-  public IToken NameToken => tok;
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
-    return new[] { ResolvedClass };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Center, ResolvedClass) };
   }
 
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { NamePath });

@@ -2,20 +2,18 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Bpl = Microsoft.Boogie;
 using Xunit;
 using Microsoft.Dafny;
-using Microsoft.Dafny.ProofObligationDescription;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DafnyPipeline.Test;
 
 [Collection("Dafny implicit assertion test")]
 public class ImplicitAssertionTest {
   [Fact]
-  public void GitIssue4016ExplicitAssertionPrintNested() {
-    ShouldHaveImplicitCode(@"
+  public async Task GitIssue4016ExplicitAssertionPrintNested() {
+    await ShouldHaveImplicitCode(@"
 datatype D = C(value: int) | N
 
 function Test(e: D, inputs: map<int, int>): bool {
@@ -28,8 +26,8 @@ function Test(e: D, inputs: map<int, int>): bool {
   }
 
   [Fact]
-  public void DivisionByZero() {
-    ShouldHaveImplicitCode(@"
+  public async Task DivisionByZero() {
+    await ShouldHaveImplicitCode(@"
 method Test(x: int, y: int) returns (z: int) {
   z := 2 / (x + y); // Here
 }
@@ -37,8 +35,8 @@ method Test(x: int, y: int) returns (z: int) {
   }
 
   [Fact]
-  public void CompilableAssignSuchThat() {
-    ShouldHaveImplicitCode(@"
+  public async Task CompilableAssignSuchThat() {
+    await ShouldHaveImplicitCode(@"
 predicate P(x: int, c: int)
  
 function Test(x: int, z: int): int
@@ -51,8 +49,8 @@ function Test(x: int, z: int): int
   }
 
   [Fact]
-  public void AssignmentSuchThatShouldExist() {
-    ShouldHaveImplicitCode(@"
+  public async Task AssignmentSuchThatShouldExist() {
+    await ShouldHaveImplicitCode(@"
 predicate P(x: int)
  
 lemma PUnique(a: int)
@@ -68,8 +66,8 @@ function Test(x: int): int
   }
 
   [Fact]
-  public void SeqIndexOutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task SeqIndexOutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> seq<int>, i: int) {
   var b := a(2)[i + 3]; // Here
 }
@@ -77,8 +75,8 @@ method Test(a: int -> seq<int>, i: int) {
   }
 
   [Fact]
-  public void SeqIndexOutOfRangeUpdate() {
-    ShouldHaveImplicitCode(@"
+  public async Task SeqIndexOutOfRangeUpdate() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> seq<int>, i: int) {
   var b := a(2)[i + 3 := 1]; // Here
 }
@@ -86,8 +84,8 @@ method Test(a: int -> seq<int>, i: int) {
   }
 
   [Fact]
-  public void SeqSliceLowerOutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task SeqSliceLowerOutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> seq<int>, i: int) {
   var b := a(2)[i + 3..]; // Here
 }
@@ -95,8 +93,8 @@ method Test(a: int -> seq<int>, i: int) {
   }
 
   [Fact]
-  public void SeqUpperOutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task SeqUpperOutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> seq<int>, i: int, j: int) {
   var b := a(2)[j..i + 3]; // Here
 }
@@ -104,8 +102,8 @@ method Test(a: int -> seq<int>, i: int, j: int) {
   }
 
   [Fact]
-  public void ArrayIndexOutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task ArrayIndexOutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> array<int>, i: int) {
   var b := a(2)[i + 3]; // Here
 }
@@ -113,8 +111,8 @@ method Test(a: int -> array<int>, i: int) {
   }
 
   [Fact]
-  public void ArrayIndex0OutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task ArrayIndex0OutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> array2<int>, i: int) {
   var b := a(2)[i + 3, i + 4]; // Here
 }
@@ -122,8 +120,8 @@ method Test(a: int -> array2<int>, i: int) {
   }
 
   [Fact]
-  public void ArrayIndex1OutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task ArrayIndex1OutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> array2<int>, i: int) {
   var b := a(2)[i + 3, i + 4]; // Here
 }
@@ -131,8 +129,8 @@ method Test(a: int -> array2<int>, i: int) {
   }
 
   [Fact]
-  public void ElementNotInDomain() {
-    ShouldHaveImplicitCode(@"
+  public async Task ElementNotInDomain() {
+    await ShouldHaveImplicitCode(@"
 method Test(m: map<int, int>, x: int) {
   var b := m[x + 2]; // Here
 }
@@ -141,7 +139,7 @@ method Test(m: map<int, int>, x: int) {
   /** Look at the line containing "// Here", and for every assertion there,
   look if they contain an implicit assertion that, if printed,
   would generate the string "expected" */
-  private void ShouldHaveImplicitCode(string program, string expected, DafnyOptions options = null) {
+  private async Task ShouldHaveImplicitCode(string program, string expected, DafnyOptions options = null) {
     if (program.IndexOf("// Here", StringComparison.Ordinal) == -1) {
       Assert.Fail("Test is missing // Here");
     }
@@ -150,25 +148,26 @@ method Test(m: map<int, int>, x: int) {
     options = options ?? new DafnyOptions(TextReader.Null, TextWriter.Null, TextWriter.Null);
     var uri = new Uri("virtual:///virtual");
     BatchErrorReporter reporter = new BatchErrorReporter(options);
-    var dafnyProgram = new ProgramParser().Parse(program, uri, reporter);
-    if (reporter.ErrorCount > 0) {
+    var parseResult = await new ProgramParser().Parse(program, uri, reporter);
+    var dafnyProgram = parseResult.Program;
+    if (reporter.HasErrors) {
       var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
     }
     DafnyMain.Resolve(dafnyProgram);
-    if (reporter.ErrorCount > 0) {
+    if (reporter.HasErrors) {
       var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
     }
 
-    var boogiePrograms = DafnyDriver.Translate(options, dafnyProgram).ToList();
+    var boogiePrograms = SynchronousCliCompilation.Translate(options, dafnyProgram).ToList();
     Assert.Single(boogiePrograms);
     var boogieProgram = boogiePrograms[0].Item2;
     var encountered = new List<string>();
     var found = false;
     foreach (var implementation in boogieProgram.Implementations) {
       foreach (var block in implementation.Blocks) {
-        foreach (var cmd in block.cmds) {
+        foreach (var cmd in block.Cmds) {
           if (cmd is Bpl.AssertCmd { tok: { line: var line } } assertCmd && line == expectedLine) {
             if (assertCmd.Description is ProofObligationDescription description) {
               var assertedExpr = description.GetAssertedExpr(options);

@@ -1,5 +1,5 @@
 ```
-Use 'dafny --help' to see help for a newer Dafny CLI format.
+Use 'dafny --help' to see help for the new Dafny CLI format.
 Usage: dafny [ option ... ] [ filename ... ]
 
   ---- General options -------------------------------------------------------
@@ -33,36 +33,8 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Plugins ---------------------------------------------------------------
   
-  /plugin:<path-to-one-assembly[,argument]*>
-      
-      (experimental) One path to an assembly that contains at least one
-      instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
-      can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
-      receive arguments. More information about what plugins do and how
-      to define them:
-      
-      https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
-
   ---- Overall reporting and printing ----------------------------------------
   
-  /dprint:<file>
-      Print Dafny program after parsing it.
-      (Use - as <file> to print to console.)
-
-  /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
-      Everything (default) - Print everything listed below.
-      DllEmbed - print the source that will be included in a compiled dll.
-      NoIncludes - disable printing of {:verify false} methods
-          incorporated via the include mechanism, as well as datatypes and
-          fields included from other files.
-      NoGhost - disable printing of functions, ghost methods, and proof
-          statements in implementation methods. It also disables anything
-          NoIncludes disables.
-
-  /rprint:<file>
-      Print Dafny program after resolving it.
-      (use - as <file> to print to console.)
-
   /showSnippets:<value>
       0 (default) - Don't show source code snippets for Dafny messages.
       1 - Show a source code snippet for each Dafny message.
@@ -105,29 +77,15 @@ Usage: dafny [ option ... ] [ filename ... ]
       `autoRevealDependencies` makes all functions not explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`. 
       `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.
 
-  /generalTraits:<value>
-      0 (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and classes can extend traits.
-      1 - A trait is a reference type iff it or one of its ancestor traits is 'object'. Any type with members can extend traits.
-
-  /ntitrace:<value>
-      0 (default) - Don't print debug information for the new type system.
-      1 - Print debug information for the new type system.
-
   /readsClausesOnMethods:<value>
       0 (default) - Reads clauses on methods are forbidden.
       1 - Reads clauses on methods are permitted (with a default of 'reads *').
 
-  /titrace:<value>
-      0 (default) - Don't print type-inference debug information.
-      1 - Print type-inference debug information.
-
-  /typeSystemRefresh:<value>
-      0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
-      1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.
-
-  /unicodeChar:<value>
-      0 - The char type represents any UTF-16 code unit.
-      1 (default) - The char type represents any Unicode scalar value.
+  /standardLibraries:<value>
+      0 (default) - Do not allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+      1 - Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+      See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
+      Not compatible with the /unicodeChar:0 option.
 
   /noIncludes
       Ignore include directives.
@@ -205,6 +163,16 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Verification options -------------------------------------------------
   
+  /allowAxioms:<value>
+      Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.
+
+  /verificationLogger:<configuration>
+      Logs verification results using the given test result format. The currently supported formats are `trx`, `csv`, and `text`. These are: the XML-based format commonly used for test results for .NET languages, a custom CSV schema, and a textual format meant for human consumption. You can provide configuration using the same string format as when using the --logger option for dotnet test, such as: --format "trx;LogFileName=<...>");
+      
+      The `trx` and `csv` formats automatically choose an output file name by default, and print the name of this file to the console. The `text` format prints its output to the console by default, but can send output to a file given the `LogFileName` option.
+      
+      The `text` format also includes a more detailed breakdown of what assertions appear in each assertion batch. When combined with the isolate-assertions option, it will provide approximate time and resource use costs for each assertion, allowing identification of especially expensive assertions.
+
   /dafnyVerify:<n>
       0 - Stop after resolution and typechecking.
       1 - Continue on to verification and compilation.
@@ -212,33 +180,14 @@ Usage: dafny [ option ... ] [ filename ... ]
   /verifyAllModules
       Verify modules that come from an include directive.
   
+  /emitUncompilableCode
+      Allow compilers to emit uncompilable code that usually contain useful
+      information about what feature is missing, rather than
+      stopping on the first problem
+  
   /separateModuleOutput
       Output verification results for each module separately, rather than
       aggregating them after they are all finished.
-  
-  /verificationLogger:<configuration string>
-      Logs verification results to the given test result logger. The
-      currently supported loggers are `trx`, `csv`, and `text`. These are
-      the XML-based format commonly used for test results for .NET
-      languages, a custom CSV schema, and a textual format meant for human
-      consumption. You can provide configuration using the same string
-      format as when using the --logger option for dotnet test, such as:
-  
-          /verificationLogger:trx;LogFileName=<...>.
-  
-      The exact mapping of verification concepts to these formats is
-      experimental and subject to change!
-  
-      The `trx` and `csv` loggers automatically choose an output file name
-      by default, and print the name of this file to the console. The
-      `text` logger prints its output to the console by default, but can
-      send output to a file given the `LogFileName` option.
-  
-      The `text` logger also includes a more detailed breakdown of what
-      assertions appear in each assertion batch. When combined with the
-      `/vcsSplitOnEveryAssert` option, it will provide approximate time
-      and resource use costs for each assertion, allowing identification
-      of especially expensive assertions.
   
   /noCheating:<n>
       0 (default) - Allow assume statements and free invariants.
@@ -331,16 +280,10 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   /extractCounterexample
       If verification fails, report a detailed counterexample for the
-      first failing assertion. Requires specifying the /mv:<file> option as well
-      as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
-      /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
-      /proverOpt:O:model.completion=true.
+      first failing assertion (experimental).
   
   ---- Compilation options ---------------------------------------------------
   
-  /compileSuffix:<value>
-      Add the suffix _Compile to module names without :extern
-
   /compileTarget:<language>
       cs (default) - Compile to .NET via C#.
       go - Compile to Go.
@@ -373,6 +316,16 @@ Usage: dafny [ option ... ] [ filename ... ]
   /out:<file>
       Specify the filename and location for the generated target language files.
 
+  /runAllTests:<n>
+      0 (default) - Annotates compiled methods with the {:test}
+              attribute such that they can be tested using a testing framework
+              in the target language (e.g. xUnit for C#).
+          1 - Emits a main method in the target language that will execute
+              every method in the program with the {:test} attribute. Cannot
+              be used if the program already contains a main method. Note that
+              /compile:3 or 4 must be provided as well to actually execute
+              this main method!
+
   /compile:<n>
       0 - Do not compile Dafny program.
       1 (default) - Upon successful verification of the Dafny program,
@@ -393,15 +346,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       When running a Dafny file through /compile:3 or /compile:4, '--args' provides
       all arguments after it to the Main function, at index starting at 1.
       Index 0 is used to store the executable's name if it exists.
-  /runAllTests:<n> (experimental)
-      0 (default) - Annotates compiled methods with the {:test}
-          attribute such that they can be tested using a testing framework
-          in the target language (e.g. xUnit for C#).
-      1 - Emits a main method in the target language that will execute
-          every method in the program with the {:test} attribute. Cannot
-          be used if the program already contains a main method. Note that
-          /compile:3 or 4 must be provided as well to actually execute
-          this main method!
   
   /compileVerbose:<n>
       0 - Don't print status of compilation to the console.
@@ -489,6 +433,7 @@ Usage: dafny [ option ... ] [ filename ... ]
   /printWithUniqueIds : print augmented information that uniquely
                    identifies variables
   /printUnstructured : with /print option, desugars all structured statements
+  /printPassive :  with /print option, prints passive version of program
   /printDesugared : with /print option, desugars calls
   /printLambdaLifting : with /print option, desugars lambda lifting
 
@@ -503,6 +448,10 @@ Usage: dafny [ option ... ] [ filename ... ]
 
   /loopUnroll:<n>
                 unroll loops, following up to n back edges (and then some)
+                default is -1, which means loops are not unrolled
+  /extractLoops
+                extract reducible loops into recursive procedures and
+                inline irreducible loops using the bound supplied by /loopUnroll:<n>
   /soundLoopUnrolling
                 sound loop unrolling
   /doModSetAnalysis
@@ -661,12 +610,18 @@ Usage: dafny [ option ... ] [ filename ... ]
                 the SMT theory of arrays. This option allows the use of axioms instead.
   /reflectAdd   In the VC, generate an auxiliary symbol, elsewhere defined
                 to be +, instead of +.
-  /prune
-                Turn on pruning. Pruning will remove any top-level Boogie declarations 
-                that are not accessible by the implementation that is about to be verified.
-                Without pruning, due to the unstable nature of SMT solvers,
-                a change to any part of a Boogie program has the potential 
-                to affect the verification of any other part of the program.
+  /prune:<n>
+                0 - Turn off pruning.
+                1 - Turn on pruning (default). Pruning will remove any top-level
+                Boogie declarations that are not accessible by the implementation
+                that is about to be verified. Without pruning, due to the unstable
+                nature of SMT solvers, a change to any part of a Boogie program
+                has the potential to affect the verification of any other part of
+                the program.
+
+                Only use this if your program contains uses clauses
+                where required, otherwise pruning will break your program.
+                More information can be found here: https://github.com/boogie-org/boogie/blob/afe8eb0ffbb48d593de1ae3bf89712246444daa8/Source/ExecutionEngine/CommandLineOptions.cs#L160
   /printPruned:<file>
                 After pruning, print the Boogie program to the specified file.
   /relaxFocus   Process foci in a bottom-up fashion. This way only generates
@@ -695,6 +650,11 @@ Usage: dafny [ option ... ] [ filename ... ]
                 assignments, and calls can be labeled for inclusion in this
                 report. This generalizes and replaces the previous
                 (undocumented) `/printNecessaryAssertions` option.
+
+  /keepQuantifier
+                If pool-based quantifier instantiation creates instances of a quantifier
+                then keep the quantifier along with the instances. By default, the quantifier
+                is dropped if any instances are created.
 
   ---- Verification-condition splitting --------------------------------------
 
@@ -763,7 +723,7 @@ Usage: dafny [ option ... ] [ filename ... ]
                 Limit the number of seconds spent trying to verify
                 each procedure
   /rlimit:<num>
-                Limit the Z3 resource spent trying to verify each procedure
+                Limit the Z3 resource spent trying to verify each procedure.
   /errorTrace:<n>
                 0 - no Trace labels in the error output,
                 1 (default) - include useful Trace labels in error output,

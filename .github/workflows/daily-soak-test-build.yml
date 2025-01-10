@@ -1,0 +1,23 @@
+
+# Scheduled daily build
+#
+# The purpose of this build is to run tests that may have non-deterministic failures
+# many times over, in the hopes of more aggressively revealing
+# flaky tests that occasionally slow down unrelated development.
+
+name: Daily soak test workflow
+
+on:
+  schedule:
+    # Chosen to be hopefully outside of business hours for most contributors'
+    # time zones, and not on the hour to avoid heavy scheduled-job times:
+    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  daily-soak-build-for-master:
+    if: github.repository_owner == 'dafny-lang' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/xunit-tests-reusable.yml
+    with:
+        soak_test: true

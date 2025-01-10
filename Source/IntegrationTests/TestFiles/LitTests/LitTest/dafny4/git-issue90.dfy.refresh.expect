@@ -1,0 +1,2 @@
+git-issue90.dfy(6,8): Error: recursive constraint dependency involving a newtype: MyInt -> y -> x -> MyInt
+1 resolution/type errors detected in git-issue90.dfy

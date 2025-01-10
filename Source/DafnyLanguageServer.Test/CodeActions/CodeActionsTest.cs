@@ -28,6 +28,72 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
     }
 
     [Fact]
+    public async Task MethodKeywordCodeAction() {
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
+
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(@"
+method><".TrimStart(), out var source, out var positions,
+        out var ranges);
+      var documentItem = await CreateOpenAndWaitForResolve(source);
+      var position = positions[0];
+      var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
+      Assert.Empty(completionList);
+    }
+
+    [Fact]
+    public async Task TypeTestCodeAction() {
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
+
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(@"module M {
+  trait Object {
+   ghost function typeId() : (id: string)
+  }
+
+  type A extends Object {
+   ghost function typeId() : (id: string)  { ""A"" }
+  }
+
+  type B extends Object {
+   ghost function typeId() : (id: string)  { ""B"" }
+  }
+  type C extends Object {
+   ghost function typeId() : (id: string)  { ""C"" }
+  }
+
+  lemma test(x: Object)
+    ensures multiset{x is A, x is B, x is C}[true] == 1
+  {
+    var _ := x.typeId();
+    if (x is A) {
+      assert x !is B.><
+    }
+  }
+}".TrimStart(), out var source, out var positions,
+        out var ranges);
+      var documentItem = await CreateOpenAndWaitForResolve(source);
+      var position = positions[0];
+      var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
+      Assert.Empty(completionList);
+    }
+
+    [Fact]
+    public async Task TestInsertion() {
+      await TestCodeAction(@"
+datatype L = N | C(t: L)
+
+method Dec(c: L)
+  decreases c, 1, 1
+{(>Insert explicit failing assertion->
+  assert (old(c), old(1) decreases to c, 1);<)
+  Da><c(c);
+}
+method Dac(c: L) 
+  decreases c, 1 {
+    Dec(c);
+}");
+    }
+
+    [Fact]
     public async Task GitIssue4401CorrectInsertionPlace() {
       await TestCodeAction(@"
 predicate P(i: int)
@@ -310,8 +376,8 @@ function Foo(i: int): int
 
       MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions,
         out var ranges);
-      var documentItem = await CreateAndOpenTestDocument(output);
-      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      var documentItem = await CreateOpenAndWaitForResolve(output);
+      var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Equal(ranges.Count, diagnostics.Length);
 
       if (positions.Count != ranges.Count) {

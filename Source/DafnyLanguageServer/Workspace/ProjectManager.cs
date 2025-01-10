@@ -1,12 +1,15 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using IntervalTree;
@@ -16,29 +19,50 @@ using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Location = OmniSharp.Extensions.LanguageServer.Protocol.Models.Location;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public delegate ProjectManager CreateProjectManager(
-  ExecutionEngine boogieEngine,
+  TaskScheduler scheduler,
+  VerificationResultCache verificationCache,
   DafnyProject project);
 
-public record FilePosition(Uri Uri, Position Position);
 
 /// <summary>
 /// Handles operation on a single document.
 /// Handles migration of previously published document state
 /// </summary>
-public class ProjectManager : IDisposable {
+public class ProjectManager {
+
+  public const int DefaultThrottleTime = 100;
+  public static readonly Option<int> UpdateThrottling = new("--update-throttling", () => DefaultThrottleTime,
+    @"How many milliseconds the server will wait before sending new document updates to the client. Higher values reduce bandwidth at the cost of responsiveness".TrimStart()) {
+    IsHidden = true
+  };
+
+  public static readonly Option<VerifyOnMode> Verification = new("--verify-on", () => VerifyOnMode.Change, @"
+(experimental)
+Determine when to automatically verify the program. Choose from: Never, OnChange (verify everything in a file when changing the file), OnChangeProject or OnSave.".TrimStart()) {
+    ArgumentHelpName = "event"
+  };
+
+  public static readonly Option<bool> ReuseSolvers = new("--reuse-solvers",
+    @"(experimental) Reuse solver for different verification of different document versions. Reduces verification latency but may reduce reliability of verification.".TrimStart()) {
+    ArgumentHelpName = "event"
+  };
+
   private readonly CreateMigrator createMigrator;
   public DafnyProject Project { get; }
 
   private readonly IdeStateObserver observer;
-  public CompilationManager CompilationManager { get; private set; }
+  public Compilation Compilation { get; private set; }
   private IDisposable observerSubscription;
-  private readonly INotificationPublisher notificationPublisher;
-  private readonly IVerificationProgressReporter verificationProgressReporter;
+  private readonly EventLoopScheduler ideStateUpdateScheduler = new();
   private readonly ILogger<ProjectManager> logger;
+
+  private readonly VerificationResultCache cache;
+  private readonly TaskScheduler scheduler;
 
   /// <summary>
   /// The version of this project.
@@ -48,85 +72,119 @@ public class ProjectManager : IDisposable {
   /// </summary>
   private int version;
 
-  private int openFileCount;
+  private ConcurrentDictionary<Uri, int> openFiles = new();
 
-  private VerifyOnMode AutomaticVerificationMode => options.Get(ServerCommand.Verification);
+  private VerifyOnMode AutomaticVerificationMode => options.Get(Verification);
 
-  private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
+  private bool VerifyOnSave => options.Get(Verification) == VerifyOnMode.Save;
   public List<Location> RecentChanges { get; set; } = new();
 
   private readonly DafnyOptions options;
   private readonly DafnyOptions serverOptions;
-  private readonly CreateCompilationManager createCompilationManager;
-  private readonly ExecutionEngine boogieEngine;
+  private readonly CreateCompilation createCompilation;
+  private ExecutionEngine? boogieEngine;
   private readonly IFileSystem fileSystem;
-  private Lazy<IdeState> latestIdeState;
+  private readonly TelemetryPublisherBase telemetryPublisher;
+  private readonly IProjectDatabase projectDatabase;
+  private IdeState latestIdeState;
+  private ReplaySubject<IdeState> states = new(1);
+  public IObservable<IdeState> States => states;
 
   public ProjectManager(
     DafnyOptions serverOptions,
     ILogger<ProjectManager> logger,
     CreateMigrator createMigrator,
     IFileSystem fileSystem,
-    INotificationPublisher notificationPublisher,
-    IVerificationProgressReporter verificationProgressReporter,
-    CreateCompilationManager createCompilationManager,
+    TelemetryPublisherBase telemetryPublisher,
+    IProjectDatabase projectDatabase,
+    CreateCompilation createCompilation,
     CreateIdeStateObserver createIdeStateObserver,
-    ExecutionEngine boogieEngine,
+    TaskScheduler scheduler,
+    VerificationResultCache cache,
     DafnyProject project) {
     Project = project;
-    this.verificationProgressReporter = verificationProgressReporter;
-    this.notificationPublisher = notificationPublisher;
+    this.telemetryPublisher = telemetryPublisher;
+    this.projectDatabase = projectDatabase;
     this.serverOptions = serverOptions;
     this.fileSystem = fileSystem;
-    this.createCompilationManager = createCompilationManager;
+    this.createCompilation = createCompilation;
     this.createMigrator = createMigrator;
     this.logger = logger;
-    this.boogieEngine = boogieEngine;
 
     options = DetermineProjectOptions(project, serverOptions);
     options.Printer = new OutputLogger(logger);
-    var initialCompilation = CreateInitialCompilation();
-    var initialIdeState = initialCompilation.InitialIdeState(initialCompilation, options);
-    latestIdeState = new Lazy<IdeState>(initialIdeState);
+    this.cache = cache;
+    this.scheduler = scheduler;
+    var compilationInput = new CompilationInput(options, version, Project);
+    var initialIdeState = IdeState.InitialIdeState(compilationInput);
+    latestIdeState = initialIdeState;
 
     observer = createIdeStateObserver(initialIdeState);
-    CompilationManager = createCompilationManager(
-        options, boogieEngine, initialCompilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty
-    );
+    Compilation = this.createCompilation(GetBoogie(), compilationInput);
 
     observerSubscription = Disposable.Empty;
   }
 
-  private Compilation CreateInitialCompilation() {
-    var rootUris = Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris).ToList();
-    return new Compilation(version, Project, rootUris);
-  }
-
   private const int MaxRememberedChanges = 100;
-  private const int MaxRememberedChangedVerifiables = 5;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    var migrator = createMigrator(documentChange, CancellationToken.None);
-    Lazy<IdeState> lazyPreviousCompilationLastIdeState = latestIdeState;
-    latestIdeState = new Lazy<IdeState>(() => {
-      // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
-      observer.Migrate(migrator, version + 1);
-      return lazyPreviousCompilationLastIdeState.Value.Migrate(migrator, version + 1);
-    });
-    StartNewCompilation();
+    StartNewCompilation(documentChange.TextDocument.Uri.ToUri(), documentChange);
+  }
 
+  private void StartNewCompilation(Uri triggeringFile, DidChangeTextDocumentParams? changes) {
+    observerSubscription.Dispose();
+    version += 1;
+
+    var input = new CompilationInput(options, version, Project);
+    IMigrator migrator = changes == null ? new NoopMigrator(triggeringFile) : createMigrator(changes, CancellationToken.None);
+    // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
+    observer.Migrate(options, migrator, version);
+    latestIdeState = latestIdeState.Migrate(options, migrator, version, false);
+
+    Compilation.Dispose();
+    Compilation = createCompilation(GetBoogie(), input);
+    var migratedUpdates = GetStates(Compilation);
+    states = new ReplaySubject<IdeState>(1);
+    var statesSubscription = observerSubscription =
+      migratedUpdates.Do(s => latestIdeState = s).Subscribe(states);
+
+    var throttleTime = options.Get(UpdateThrottling);
+    var throttledUpdates = throttleTime == 0 ? States : States.Sample(TimeSpan.FromMilliseconds(throttleTime));
+
+    var throttledSubscription = throttledUpdates.Subscribe(observer);
+    observerSubscription = new CompositeDisposable(statesSubscription, throttledSubscription);
+
+    Compilation.Start();
+
+    if (changes != null) {
+      UpdateRecentChanges(changes, migrator);
+    }
+    TriggerVerificationForFile(triggeringFile);
+  }
+
+  private ExecutionEngine GetBoogie() {
+    if (options.Get(ReuseSolvers)) {
+      boogieEngine ??= new ExecutionEngine(options, cache, scheduler);
+    } else {
+      boogieEngine?.Dispose();
+      boogieEngine = new ExecutionEngine(options, cache, scheduler);
+    }
+    return boogieEngine;
+  }
+
+  private void UpdateRecentChanges(DidChangeTextDocumentParams changes, IMigrator? migrator) {
     lock (RecentChanges) {
-      var newChanges = documentChange.ContentChanges.Where(c => c.Range != null).
+      var newChanges = changes.ContentChanges.Where(c => c.Range != null).
         Select(contentChange => new Location {
           Range = contentChange.Range!,
-          Uri = documentChange.TextDocument.Uri
+          Uri = changes.TextDocument.Uri
         });
       var migratedChanges = RecentChanges.Select(location => {
-        if (location.Uri != documentChange.TextDocument.Uri) {
+        if (location.Uri != changes.TextDocument.Uri) {
           return location;
         }
 
-        var newRange = migrator.MigrateRange(location.Range);
+        var newRange = migrator!.MigrateRange(location.Range);
         if (newRange == null) {
           return null;
         }
@@ -137,36 +195,38 @@ public class ProjectManager : IDisposable {
       }).Where(r => r != null);
       RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
     }
-    TriggerVerificationForFile(documentChange.TextDocument.Uri.ToUri());
   }
 
-  private void StartNewCompilation() {
-    version++;
-    logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
+  private IObservable<IdeState> GetStates(Compilation compilation) {
+    var initialState = latestIdeState;
+    var previousIdeState = initialState with {
+      Input = compilation.Input,
+    };
 
-    Lazy<IdeState> migratedLazyPreviousCompilationLastIdeState = latestIdeState;
-    observerSubscription.Dispose();
+    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => Update(ev));
 
-    CompilationManager.CancelPendingUpdates();
-    CompilationManager = createCompilationManager(
-      options,
-      boogieEngine,
-      CreateInitialCompilation(),
-      latestIdeState.Value.VerificationTrees);
+    IdeState Update(ICompilationEvent ev) {
+      if (ev is InternalCompilationException compilationException) {
+        logger.LogError(compilationException.Exception, "error while handling document event");
+        telemetryPublisher.PublishUnhandledException(compilationException.Exception);
+      }
 
-    var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
-      latestIdeState = new Lazy<IdeState>(() => document.ToIdeState(migratedLazyPreviousCompilationLastIdeState.Value)));
-    var throttleTime = options.Get(ServerCommand.UpdateThrottling);
-    var throttledUpdates = throttleTime == 0 ? migratedUpdates : migratedUpdates.Sample(TimeSpan.FromMilliseconds(throttleTime));
-    observerSubscription = throttledUpdates.
-      Select(x => x.Value).Subscribe(observer);
-
-    CompilationManager.Start();
+      try {
+#pragma warning disable VSTHRD002
+        previousIdeState = previousIdeState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev).Result;
+#pragma warning restore VSTHRD002
+        return previousIdeState;
+      } catch (Exception e) {
+        logger.LogError(e, "error while updating IDE state");
+        telemetryPublisher.PublishUnhandledException(e);
+        throw;
+      }
+    }
   }
 
   private void TriggerVerificationForFile(Uri triggeringFile) {
     if (AutomaticVerificationMode is VerifyOnMode.Change or VerifyOnMode.ChangeProject) {
-      var _ = VerifyEverythingAsync(AutomaticVerificationMode == VerifyOnMode.Change ? triggeringFile : null);
+      _ = VerifyEverythingAsync(AutomaticVerificationMode == VerifyOnMode.Change ? triggeringFile : null);
     } else {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
     }
@@ -175,13 +235,20 @@ public class ProjectManager : IDisposable {
   private static DafnyOptions DetermineProjectOptions(DafnyProject projectOptions, DafnyOptions serverOptions) {
     var result = new DafnyOptions(serverOptions);
 
-    foreach (var option in ServerCommand.Instance.Options) {
-      var hasProjectFileValue = projectOptions.TryGetValue(option, TextWriter.Null, out var projectFileValue);
+    foreach (var option in LanguageServer.Options) {
+      var hasProjectFileValue = projectOptions.TryGetValue(option, out var projectFileValue);
       if (hasProjectFileValue) {
         result.Options.OptionArguments[option] = projectFileValue;
         result.ApplyBinding(option);
       }
     }
+
+    if (result.SolverIdentifier == "Z3") {
+      result.SolverVersion = null;
+    }
+
+    result.DafnyProject = projectOptions;
+    result.ApplyDefaultOptionsWithoutSettingsDefault();
 
     return result;
   }
@@ -197,64 +264,31 @@ public class ProjectManager : IDisposable {
   /// Needs to be thread-safe
   /// </summary>
   /// <returns></returns>
-  public bool CloseDocument(out Task close) {
-    if (Interlocked.Decrement(ref openFileCount) == 0) {
-      close = CloseAsync();
+  public bool CloseDocument(Uri uri) {
+    if (openFiles.TryRemove(uri, out _) && openFiles.IsEmpty) {
+      CloseAsync();
       return true;
     }
 
-    close = Task.CompletedTask;
     return false;
   }
 
-  public async Task CloseAsync() {
-    CompilationManager.CancelPendingUpdates();
+  public void CloseAsync() {
+    Compilation.Dispose();
     try {
-      await CompilationManager.LastDocument;
-      observer.OnCompleted();
+      observer.Clear();
     } catch (OperationCanceledException) {
     }
+    Dispose();
   }
 
-  public async Task<CompilationAfterParsing> GetLastDocumentAsync() {
-    logger.LogDebug($"GetLastDocumentAsync passed ProjectManager check for {Project.Uri}");
-    return await CompilationManager.LastDocument;
+  public Task<IdeState> GetStateAfterParsingAsync() {
+    return States.Where(s => s.Status > CompilationStatus.Parsing).FirstAsync().ToTask();
   }
 
-  public async Task<IdeState> GetStateAfterParsingAsync() {
-    try {
-      var parsedCompilation = await CompilationManager.ParsedCompilation;
-      logger.LogDebug($"GetSnapshotAfterParsingAsync returns compilation version {parsedCompilation.Version}");
-    } catch (OperationCanceledException) {
-      logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for parsed compilation {Project.Uri}");
-    }
-
-    logger.LogDebug($"GetSnapshotAfterParsingAsync returns state version {latestIdeState.Value.Version}");
-    return latestIdeState.Value;
+  public Task<IdeState> GetStateAfterResolutionAsync() {
+    return States.Where(s => s.Status is CompilationStatus.ParsingFailed or > CompilationStatus.ResolutionStarted).FirstAsync().ToTask();
   }
-
-  public async Task<IdeState> GetStateAfterResolutionAsync() {
-    try {
-      var resolvedCompilation = await CompilationManager.ResolvedCompilation;
-      logger.LogDebug($"GetStateAfterResolutionAsync returns compilation version {resolvedCompilation.Version}");
-      logger.LogDebug($"GetStateAfterResolutionAsync returns state version {latestIdeState.Value.Version}");
-      return latestIdeState.Value;
-    } catch (OperationCanceledException) {
-      logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for resolved compilation {Project.Uri}");
-      return await GetStateAfterParsingAsync();
-    }
-
-  }
-
-  public async Task<IdeState> GetIdeStateAfterVerificationAsync() {
-    try {
-      await GetLastDocumentAsync();
-    } catch (OperationCanceledException) {
-    }
-
-    return latestIdeState.Value;
-  }
-
 
   /// <summary>
   /// This property and related code will be removed once we replace server gutter icons with client side computed gutter icons
@@ -262,68 +296,65 @@ public class ProjectManager : IDisposable {
   public static bool GutterIconTesting = false;
 
   public async Task VerifyEverythingAsync(Uri? uri) {
-    var compilationManager = CompilationManager;
-    try {
-      compilationManager.IncrementJobs();
-      var resolvedCompilation = await compilationManager.ResolvedCompilation;
-
-      var verifiables = resolvedCompilation.Verifiables.ToList();
-      if (uri != null) {
-        verifiables = verifiables.Where(d => d.Tok.Uri == uri).ToList();
-      }
-
-      List<FilePosition> changedVerifiables;
-      lock (RecentChanges) {
-        changedVerifiables = GetChangedVerifiablesFromRanges(resolvedCompilation, RecentChanges).ToList();
-      }
-
-      int GetPriorityAttribute(ISymbol symbol) {
-        if (symbol is IAttributeBearingDeclaration hasAttributes &&
-            hasAttributes.HasUserAttribute("priority", out var attribute) &&
-            attribute.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
-          return (int)priority;
-        }
-        return 0;
-      }
-
-      int TopToBottomPriority(ISymbol symbol) {
-        return symbol.Tok.pos;
-      }
-      var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedVerifiables = verifiables.OrderByDescending(GetPriorityAttribute).CreateOrderedEnumerable(
-        t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue),
-        null, false).CreateOrderedEnumerable(TopToBottomPriority, null, false).ToList();
-      logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
-
-      var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
-      if (GutterIconTesting) {
-        foreach (var canVerify in orderedVerifiableLocations) {
-          await compilationManager.VerifySymbol(canVerify, true);
-        }
-
-        logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
-      }
-
-      foreach (var canVerify in orderedVerifiableLocations) {
-        // Wait for each task to try and run, so the order is respected.
-        await compilationManager.VerifySymbol(canVerify);
-      }
+    var compilation = Compilation;
+    var resolution = await compilation.Resolution;
+    var canVerifies = resolution?.CanVerifies?.ToList();
+    if (canVerifies == null) {
+      return;
     }
-    finally {
-      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
-      compilationManager.DecrementJobs();
+
+    if (uri != null) {
+      canVerifies = canVerifies.Where(d => d.Origin.Uri == uri).ToList();
+    }
+
+    List<FilePosition> changedVerifiables;
+    lock (RecentChanges) {
+      changedVerifiables = GetChangedVerifiablesFromRanges(canVerifies, RecentChanges).ToList();
+    }
+
+    int GetPriorityAttribute(ISymbol symbol) {
+      if (symbol is IAttributeBearingDeclaration hasAttributes &&
+          hasAttributes.HasUserAttribute("priority", out var attribute) &&
+          attribute.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
+        return (int)priority;
+      }
+      return 0;
+    }
+
+    int TopToBottomPriority(ISymbol symbol) {
+      return symbol.Origin.pos;
+    }
+    var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
+    var orderedVerifiables = canVerifies
+      .OrderByDescending(GetPriorityAttribute)
+      .ThenBy(t => implementationOrder.GetOrDefault(t.Origin.GetFilePosition(), () => int.MaxValue))
+      .ThenBy(TopToBottomPriority).ToList();
+    logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NavigationToken.val))}");
+
+    var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NavigationToken.GetFilePosition()).ToList();
+    if (GutterIconTesting) {
+      foreach (var canVerify in orderedVerifiableLocations) {
+        await compilation.VerifyLocation(canVerify, onlyPrepareVerificationForGutterTests: true);
+      }
+
+      logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
+    }
+
+    foreach (var canVerify in orderedVerifiableLocations) {
+      // Wait for each task to try and run, so the order is respected.
+      await compilation.VerifyLocation(canVerify);
     }
   }
 
-  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterResolution translated, IEnumerable<Location> changedRanges) {
+  private static IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(IReadOnlyList<ICanVerify> verifiables, IEnumerable<Location> changedRanges) {
     IntervalTree<Position, Position> GetTree(Uri uri) {
       var intervalTree = new IntervalTree<Position, Position>();
-      foreach (var canVerify in translated.Verifiables) {
-        if (canVerify.Tok.Uri == uri) {
+      foreach (var canVerify in verifiables) {
+        if (canVerify.Origin.Uri == uri) {
           intervalTree.Add(
-            canVerify.RangeToken.StartToken.GetLspPosition(),
-            canVerify.RangeToken.EndToken.GetLspPosition(true),
-            canVerify.NameToken.GetLspPosition());
+            canVerify.Origin.StartToken.GetLspPosition(),
+            canVerify.Origin.EndToken.GetLspPosition(true),
+            canVerify.NavigationToken.GetLspPosition());
         }
       }
       return intervalTree;
@@ -339,15 +370,21 @@ public class ProjectManager : IDisposable {
   }
 
   public void OpenDocument(Uri uri, bool triggerCompilation) {
-    Interlocked.Increment(ref openFileCount);
+    openFiles.TryAdd(uri, 1);
 
     if (triggerCompilation) {
-      StartNewCompilation();
-      TriggerVerificationForFile(uri);
+      StartNewCompilation(uri, null);
     }
   }
 
+  public bool IsDisposed { get; private set; }
+
   public void Dispose() {
-    CompilationManager.CancelPendingUpdates();
+    IsDisposed = true;
+    boogieEngine?.Dispose();
+    Compilation.Dispose();
+    observerSubscription.Dispose();
+    // Dispose the update scheduler after the observer subscription, to prevent accessing a disposed object.
+    ideStateUpdateScheduler.Dispose();
   }
 }

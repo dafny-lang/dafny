@@ -23,18 +23,23 @@ public class TryRecoverStatement : Statement, ICloneable<TryRecoverStatement> {
   }
 
   public TryRecoverStatement(Cloner cloner, TryRecoverStatement original) : base(cloner, original) {
-    TryBody = cloner.CloneStmt(original.TryBody);
-    RecoverBody = cloner.CloneStmt(original.RecoverBody);
+    TryBody = cloner.CloneStmt(original.TryBody, false);
+    RecoverBody = cloner.CloneStmt(original.RecoverBody, false);
     HaltMessageVar = cloner.CloneIVariable(original.HaltMessageVar, false);
   }
 
   public TryRecoverStatement(Statement tryBody, IVariable haltMessageVar, Statement recoverBody)
-    : base(new RangeToken(tryBody.StartToken, recoverBody.EndToken)) {
+    : base(new SourceOrigin(tryBody.StartToken, recoverBody.EndToken)) {
     Contract.Requires(tryBody != null);
     Contract.Requires(haltMessageVar != null);
     Contract.Requires(recoverBody != null);
     TryBody = tryBody;
     HaltMessageVar = haltMessageVar;
     RecoverBody = recoverBody;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable, ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    throw new System.NotSupportedException("This type is only created after resolution");
   }
 }

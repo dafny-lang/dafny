@@ -1,17 +1,22 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static Microsoft.Dafny.ParseErrors;
 
 namespace Microsoft.Dafny;
 
-public record DfyParseResult(
+public record DfyParseFileResult(
+  int? Version,
+  Uri Uri,
   BatchErrorReporter ErrorReporter,
   FileModuleDefinition Module,
   IReadOnlyList<Action<SystemModuleManager>> ModifyBuiltins
@@ -29,28 +34,30 @@ public class ProgramParser {
     this.fileSystem = fileSystem;
   }
 
-  public virtual Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files,
+  public virtual async Task<ProgramParseResult> ParseFiles(string programName, IReadOnlyList<DafnyFile> files,
     ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
     var options = errorReporter.Options;
     var builtIns = new SystemModuleManager(options);
-    var defaultModule = new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList());
+    var defaultModule = new DefaultModuleDefinition();
 
-    var verifiedRoots = files.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
-    var compiledRoots = files.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();
-    var compilation = new CompilationData(errorReporter, defaultModule.Includes, defaultModule.RootSourceUris, verifiedRoots,
+    var rootSourceUris = files.Select(f => f.Uri).ToList();
+    var verifiedRoots = files.Where(df => df.ShouldNotVerify).Select(df => df.Uri).ToHashSet();
+    var compiledRoots = files.Where(df => df.ShouldNotCompile).Select(df => df.Uri).ToHashSet();
+    var compilation = new CompilationData(errorReporter, defaultModule.Includes, rootSourceUris, verifiedRoots,
       compiledRoots);
     var program = new Program(
       programName,
-      new LiteralModuleDecl(defaultModule, null, Guid.NewGuid()),
+      new LiteralModuleDecl(options, defaultModule, null, Guid.NewGuid()),
       builtIns,
       errorReporter, compilation
     );
+    var versionedFiles = new Dictionary<Uri, int>();
 
     foreach (var dafnyFile in files) {
       cancellationToken.ThrowIfCancellationRequested();
       if (options.Trace) {
-        options.OutputWriter.WriteLine("Parsing " + dafnyFile.FilePath);
+        await options.OutputWriter.WriteLineAsync("Parsing " + dafnyFile.FilePath);
       }
 
       if (options.XmlSink is { IsOpen: true } && dafnyFile.Uri.IsFile) {
@@ -58,17 +65,16 @@ public class ProgramParser {
       }
 
       var parseResult = ParseFileWithErrorHandling(
-        errorReporter.Options,
+        dafnyFile.FileOptions,
         dafnyFile.GetContent,
         dafnyFile.Origin,
         dafnyFile.Uri,
-        cancellationToken
-      );
-      if (parseResult.ErrorReporter.ErrorCount != 0) {
+        cancellationToken);
+      if (parseResult.ErrorReporter.HasErrors) {
         logger.LogDebug($"encountered {parseResult.ErrorReporter.ErrorCount} errors while parsing {dafnyFile.Uri}");
       }
 
-      AddParseResultToProgram(parseResult, program);
+      AddParseResultToProgram(parseResult, program, versionedFiles);
     }
 
     if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
@@ -76,7 +82,7 @@ public class ProgramParser {
         builtIns, errorReporter, cancellationToken);
 
       foreach (var module in includedModules) {
-        AddParseResultToProgram(module, program);
+        AddParseResultToProgram(module, program, versionedFiles);
       }
     }
 
@@ -86,22 +92,30 @@ public class ProgramParser {
       dependencyMap.PrintMap(options);
     }
 
-    if (errorReporter.ErrorCount == 0) {
+    if (!errorReporter.HasErrors) {
       DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
+
+      // Capture the original program text before resolution
+      // if we're building a .doo file.
+      // See comment on LibraryBackend.DooFile.
+      if (program.Options.Backend is LibraryBackend libBackend) {
+        program.AfterParsingClone = new Program(new Cloner(true), program);
+      }
     }
 
     ShowWarningsForIncludeCycles(program);
 
-    return program;
+    return new ProgramParseResult(program, versionedFiles);
   }
 
-  private DfyParseResult ParseFileWithErrorHandling(DafnyOptions options,
-    Func<TextReader> getContent,
-    IToken origin,
+  private DfyParseFileResult ParseFileWithErrorHandling(DafnyOptions options,
+    Func<FileSnapshot> getSnapShot,
+    IOrigin origin,
     Uri uri,
     CancellationToken cancellationToken) {
+    var fileSnapshot = getSnapShot();
     try {
-      return ParseFile(options, getContent, uri, cancellationToken);
+      return ParseFile(options, fileSnapshot, uri, cancellationToken);
     } catch (IOException e) {
       if (origin == null) {
         throw;
@@ -110,7 +124,8 @@ public class ProgramParser {
       var reporter = new BatchErrorReporter(options);
       reporter.Error(MessageSource.Parser, origin,
         $"Unable to open the file {uri} because {e.Message}.");
-      return new DfyParseResult(reporter, new FileModuleDefinition(Token.NoToken), new Action<SystemModuleManager>[] { });
+      return new DfyParseFileResult(fileSnapshot.Version, uri, reporter, new FileModuleDefinition(Token.NoToken),
+        new Action<SystemModuleManager>[] { });
     } catch (OperationCanceledException) {
       throw;
     } catch (Exception e) {
@@ -124,9 +139,9 @@ public class ProgramParser {
 
       var reporter = new BatchErrorReporter(options);
       reporter.Error(MessageSource.Parser, ErrorId.p_internal_exception, internalErrorDummyToken,
-        "[internal error] Parser exception: " + e.Message + (!options.Verbose ? "" :
-          "\n" + e.StackTrace));
-      return new DfyParseResult(reporter, new FileModuleDefinition(Token.NoToken), new Action<SystemModuleManager>[] { });
+        "[internal error] Parser exception: " + e.Message + "\n" + e.StackTrace);
+      return new DfyParseFileResult(fileSnapshot.Version, uri, reporter, new FileModuleDefinition(Token.NoToken),
+        new Action<SystemModuleManager>[] { });
     }
   }
 
@@ -146,38 +161,26 @@ public class ProgramParser {
     }
   }
 
-  private static void AddParseResultToProgram(DfyParseResult parseResult, Program program) {
+  private static void AddParseResultToProgram(DfyParseFileResult parseFileResult, Program program,
+    Dictionary<Uri, int> versionedFiles) {
+    if (parseFileResult.Version != null) {
+      versionedFiles.Add(parseFileResult.Uri, parseFileResult.Version.Value);
+    }
+
     var defaultModule = program.DefaultModuleDef;
-    var fileModule = parseResult.Module;
+    var fileModule = parseFileResult.Module;
     program.Files.Add(fileModule);
 
-    foreach (var modify in parseResult.ModifyBuiltins) {
+    foreach (var modify in parseFileResult.ModifyBuiltins) {
       modify(program.SystemModuleManager);
     }
 
-    foreach (var diagnostic in parseResult.ErrorReporter.AllMessages) {
-      program.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-        diagnostic.Message);
-    }
+    parseFileResult.ErrorReporter.CopyDiagnostics(program.Reporter);
 
-    foreach (var declToMove in fileModule.DefaultClasses.Concat(fileModule.SourceDecls)) {
-      declToMove.EnclosingModuleDefinition = defaultModule;
-      if (declToMove is LiteralModuleDecl literalModuleDecl) {
-        literalModuleDecl.ModuleDef.EnclosingModule = defaultModule;
-      }
+    ModuleDefinition sourceModule = fileModule;
+    ModuleDefinition targetModule = defaultModule;
 
-      if (declToMove is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl }) {
-        nonNullTypeDecl.EnclosingModuleDefinition = defaultModule;
-      }
-      if (declToMove is DefaultClassDecl defaultClassDecl) {
-        foreach (var member in defaultClassDecl.Members) {
-          defaultModule.DefaultClass.Members.Add(member);
-          member.EnclosingClass = defaultModule.DefaultClass;
-        }
-      } else {
-        defaultModule.SourceDecls.Add(declToMove);
-      }
-    }
+    MoveModuleContents(sourceModule, targetModule);
 
     foreach (var include in fileModule.Includes) {
       defaultModule.Includes.Add(include);
@@ -190,7 +193,29 @@ public class ProgramParser {
     defaultModule.DefaultClass.SetMembersBeforeResolution();
   }
 
-  public IList<DfyParseResult> TryParseIncludes(
+  public static void MoveModuleContents(ModuleDefinition sourceModule, ModuleDefinition targetModule) {
+    foreach (var declToMove in sourceModule.DefaultClasses.Concat(sourceModule.SourceDecls)) {
+      declToMove.EnclosingModuleDefinition = targetModule;
+      if (declToMove is LiteralModuleDecl literalModuleDecl) {
+        literalModuleDecl.ModuleDef.EnclosingModule = targetModule;
+      }
+
+      if (declToMove is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl }) {
+        nonNullTypeDecl.EnclosingModuleDefinition = targetModule;
+      }
+
+      if (declToMove is DefaultClassDecl defaultClassDecl) {
+        foreach (var member in defaultClassDecl.Members) {
+          targetModule.DefaultClass.Members.Add(member);
+          member.EnclosingClass = targetModule.DefaultClass;
+        }
+      } else {
+        targetModule.SourceDecls.Add(declToMove);
+      }
+    }
+  }
+
+  public IList<DfyParseFileResult> TryParseIncludes(
     IReadOnlyList<DafnyFile> files,
     IEnumerable<Include> roots,
     SystemModuleManager systemModuleManager,
@@ -198,14 +223,14 @@ public class ProgramParser {
     CancellationToken cancellationToken
   ) {
     var stack = new Stack<DafnyFile>();
-    var result = new List<DfyParseResult>();
+    var result = new List<DfyParseFileResult>();
     var resolvedFiles = new HashSet<Uri>();
     foreach (var rootFile in files) {
       resolvedFiles.Add(rootFile.Uri);
     }
 
     foreach (var root in roots) {
-      var dafnyFile = IncludeToDafnyFile(systemModuleManager, errorReporter, root);
+      var dafnyFile = IncludeToDafnyFile(errorReporter, root);
       if (dafnyFile != null) {
         stack.Push(dafnyFile);
       }
@@ -219,16 +244,15 @@ public class ProgramParser {
 
       cancellationToken.ThrowIfCancellationRequested();
       var parseIncludeResult = ParseFileWithErrorHandling(
-        errorReporter.Options,
+        top.FileOptions,
         top.GetContent,
         top.Origin,
         top.Uri,
-        cancellationToken
-      );
+        cancellationToken);
       result.Add(parseIncludeResult);
 
       foreach (var include in parseIncludeResult.Module.Includes) {
-        var dafnyFile = IncludeToDafnyFile(systemModuleManager, errorReporter, include);
+        var dafnyFile = IncludeToDafnyFile(errorReporter, include);
         if (dafnyFile != null) {
           stack.Push(dafnyFile);
         }
@@ -238,15 +262,8 @@ public class ProgramParser {
     return result;
   }
 
-  private DafnyFile IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
-    try {
-      return new DafnyFile(systemModuleManager.Options, include.IncludedFilename, include.tok,
-        () => fileSystem.ReadFile(include.IncludedFilename));
-    } catch (IllegalDafnyFile) {
-      errorReporter.Error(MessageSource.Parser, include.tok,
-        $"Unable to open the include {include.IncludedFilename}.");
-      return null;
-    }
+  private DafnyFile IncludeToDafnyFile(ErrorReporter errorReporter, Include include) {
+    return DafnyFile.HandleDafnyFile(fileSystem, errorReporter, include.ParseOptions, include.IncludedFilename, include.PathOrigin, false);
   }
 
   ///<summary>
@@ -255,12 +272,12 @@ public class ProgramParser {
   /// Returns the number of parsing errors encountered.
   /// Note: first initialize the Scanner.
   ///</summary>
-  protected virtual DfyParseResult ParseFile(DafnyOptions options, Func<TextReader> getReader,
+  protected virtual DfyParseFileResult ParseFile(DafnyOptions options, FileSnapshot fileSnapshot,
     Uri uri, CancellationToken cancellationToken) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
-    using var reader = getReader();
+    using var reader = fileSnapshot.Reader;
     var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
-    return ParseFile(options, text, uri, cancellationToken);
+    return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
   }
 
   ///<summary>
@@ -269,20 +286,16 @@ public class ProgramParser {
   /// Returns the number of parsing errors encountered.
   /// Note: first initialize the Scanner with the given Errors sink.
   ///</summary>
-  private static DfyParseResult ParseFile(DafnyOptions options, string /*!*/ s, Uri /*!*/ uri, CancellationToken cancellationToken) {
+  private static DfyParseFileResult ParseFile(DafnyOptions options, int? version, string /*!*/ content, Uri /*!*/ uri, CancellationToken cancellationToken) {
     var batchErrorReporter = new BatchErrorReporter(options);
-    Parser parser = SetupParser(s, uri, batchErrorReporter, cancellationToken);
+    Parser parser = SetupParser(content, uri, batchErrorReporter, cancellationToken);
     parser.Parse();
 
-    if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
-        && (parser.theModule.PrefixNamedModules == null || parser.theModule.PrefixNamedModules.Count == 0)) {
-      batchErrorReporter.Warning(MessageSource.Parser, ErrorId.p_file_has_no_code, new Token(1, 1) { Uri = uri }, "File contains no code");
-    }
-
-    return new DfyParseResult(batchErrorReporter, parser.theModule, parser.SystemModuleModifiers);
+    return new DfyParseFileResult(version, uri, batchErrorReporter, parser.theModule, parser.SystemModuleModifiers);
   }
 
-  private static Parser SetupParser(string /*!*/ s, Uri /*!*/ uri, ErrorReporter /*!*/ errorReporter, CancellationToken cancellationToken) {
+  private static Parser SetupParser(string s /*!*/, Uri uri /*!*/,
+    ErrorReporter errorReporter /*!*/, CancellationToken cancellationToken) {
     Contract.Requires(s != null);
     Contract.Requires(uri != null);
     System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
@@ -299,8 +312,10 @@ public class ProgramParser {
     return new Parser(errorReporter.Options, scanner, errors, cancellationToken);
   }
 
-  public Program Parse(string source, Uri uri, ErrorReporter reporter) {
-    var files = new[] { new DafnyFile(reporter.Options, uri, null, () => new StringReader(source)) };
-    return ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
+  public async Task<ProgramParseResult> Parse(string source, Uri uri, ErrorReporter reporter) {
+    var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
+    var file = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
+    var files = new[] { file };
+    return await ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 }

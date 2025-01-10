@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore.Test;
 using DafnyTestGeneration;
@@ -9,6 +10,7 @@ using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
 using BoogieProgram = Microsoft.Boogie.Program;
+using Token = Microsoft.Boogie.Token;
 
 namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
@@ -148,15 +150,16 @@ module SomeModule {
     }
 
     [Fact]
-    public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
-      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
+    public async Task NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
+      Regex idAttributeRegex = new Regex("{:id \".*\"}");
 
-      var regularBoogie = GetBoogie(options, originalProgram).ToList();
-      var renamedBoogie = GetBoogie(options, renamedProgram).ToList();
-      var regularBoogieText = GetBoogieText(options, regularBoogie);
-      var renamedBoogieText = GetBoogieText(options, renamedBoogie);
+      var regularBoogie = await GetBoogie(options, originalProgram);
+      var renamedBoogie = await GetBoogie(options, renamedProgram);
+      var regularBoogieText = idAttributeRegex.Replace(GetBoogieText(options, regularBoogie), "");
+      var renamedBoogieText = idAttributeRegex.Replace(GetBoogieText(options, renamedBoogie), "");
       var separate = UniqueNonCommentLines(regularBoogieText + renamedBoogieText);
-      var combinedBoogie = GetBoogieText(options, GetBoogie(options, originalProgram + renamedProgram));
+      var combinedBoogie = idAttributeRegex.Replace(GetBoogieText(options, await GetBoogie(options, originalProgram + renamedProgram)), "");
       var together = UniqueNonCommentLines(combinedBoogie);
 
       var uniqueLines = separate.Union(together).Except(separate.Intersect(together)).ToList();
@@ -165,32 +168,32 @@ module SomeModule {
 
     [Fact]
     public async Task EqualProverLogWhenReorderingProgram() {
-      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("SomeMethod*");
 
-      var reorderedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, reorderedProgram));
-      var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, originalProgram));
+      var reorderedProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, reorderedProgram));
+      var regularProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, originalProgram));
       Assert.Equal(regularProverLog, reorderedProverLog);
     }
 
     [Fact]
     public async Task EqualProverLogWhenRenamingProgram() {
-      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("*SomeMethod*");
 
-      var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, renamedProgram));
-      var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, originalProgram));
+      var renamedProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, renamedProgram));
+      var regularProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
 
     [Fact]
     public async Task EqualProverLogWhenAddingUnrelatedProgram() {
 
-      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("*SomeMethod *");
 
-      var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, renamedProgram + originalProgram));
-      var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, originalProgram));
+      var renamedProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, renamedProgram + originalProgram));
+      var regularProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
 
@@ -207,15 +210,18 @@ module SomeModule {
       var temp1 = directory + "/proverLog";
       testOutputHelper.WriteLine("proverLog: " + temp1);
       options.ProverLogFilePath = temp1;
+      options.ProcessSolverOptions(new ErrorReporterSink(options), Microsoft.Dafny.Token.NoToken);
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
-          var (outcome, _) = await DafnyMain.BoogieOnce(options, options.OutputWriter, engine, "", "", boogieProgram, "programId");
+          var (outcome, _) = await DafnyMain.BoogieOnce(new ErrorReporterSink(options),
+            options, options.OutputWriter, engine, "", "", boogieProgram, "programId");
           testOutputHelper.WriteLine("outcome: " + outcome);
         }
       }
       foreach (var proverFile in Directory.GetFiles(directory)) {
         yield return await File.ReadAllTextAsync(proverFile);
       }
+      Directory.Delete(directory, true);
     }
 
     ISet<string> UniqueNonCommentLines(string input) {
@@ -233,13 +239,13 @@ module SomeModule {
       return string.Join('\n', boogieProgram.Select(x => PrintBoogie(options, x)));
     }
 
-    IEnumerable<BoogieProgram> GetBoogie(DafnyOptions options, string dafnyProgramText) {
+    async Task<IReadOnlyList<BoogieProgram>> GetBoogie(DafnyOptions options, string dafnyProgramText) {
       var reporter = new BatchErrorReporter(options);
-      var dafnyProgram = Utils.Parse(reporter, dafnyProgramText, false);
+      var dafnyProgram = await Utils.Parse(reporter, dafnyProgramText, false);
       Assert.NotNull(dafnyProgram);
       DafnyMain.Resolve(dafnyProgram);
       Assert.Equal(0, reporter.ErrorCount);
-      return Translator.Translate(dafnyProgram, reporter).Select(t => t.Item2).ToList();
+      return BoogieGenerator.Translate(dafnyProgram, reporter).Select(t => t.Item2).ToList();
     }
   }
 }

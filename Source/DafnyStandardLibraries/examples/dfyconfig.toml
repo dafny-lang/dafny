@@ -1,0 +1,10 @@
+[options]
+standard-libraries = true
+# This needs to be set because the examples themselves
+# use {:concurrent} and reads clauses on methods,
+# but consumers don't have to have this option set
+# to use the standard libraries in general.
+reads-clauses-on-methods = true
+resource-limit = 1000000
+warn-redundant-assumptions = true
+warn-contradictory-assumptions = true

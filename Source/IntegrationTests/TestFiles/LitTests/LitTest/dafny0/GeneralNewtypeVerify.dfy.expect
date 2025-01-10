@@ -1,0 +1,52 @@
+GeneralNewtypeVerify.dfy(10,4): Error: assertion might not hold
+GeneralNewtypeVerify.dfy(20,21): Error: result of operation might violate newtype constraint for 'NoBool'
+GeneralNewtypeVerify.dfy(32,11): Error: cannot prove termination; try supplying a decreases clause
+GeneralNewtypeVerify.dfy(73,9): Error: result of operation might violate newtype constraint for 'TrueBool'
+GeneralNewtypeVerify.dfy(98,20): Error: result of operation might violate newtype constraint for 'TrueBool'
+GeneralNewtypeVerify.dfy(109,27): Error: result of operation might violate newtype constraint for 'FalseBool'
+GeneralNewtypeVerify.dfy(117,37): Error: result of operation might violate newtype constraint for 'FalseBool'
+GeneralNewtypeVerify.dfy(119,35): Error: result of operation might violate newtype constraint for 'TrueBool'
+GeneralNewtypeVerify.dfy(127,21): Error: result of operation might violate newtype constraint for 'TrueBool'
+GeneralNewtypeVerify.dfy(129,21): Error: result of operation might violate newtype constraint for 'TrueBool'
+GeneralNewtypeVerify.dfy(131,17): Error: result of operation might violate newtype constraint for 'FalseBool'
+GeneralNewtypeVerify.dfy(133,21): Error: result of operation might violate newtype constraint for 'FalseBool'
+GeneralNewtypeVerify.dfy(145,15): Error: result of operation might violate newtype constraint for 'TrueBool'
+GeneralNewtypeVerify.dfy(149,20): Error: result of operation might violate newtype constraint for 'FalseBool'
+GeneralNewtypeVerify.dfy(154,33): Error: result of operation might violate newtype constraint for 'TrueBool'
+GeneralNewtypeVerify.dfy(167,13): Error: result of operation might violate newtype constraint for 'TrueBool'
+GeneralNewtypeVerify.dfy(169,13): Error: result of operation might violate newtype constraint for 'TrueBool'
+GeneralNewtypeVerify.dfy(171,13): Error: result of operation might violate newtype constraint for 'FalseBool'
+GeneralNewtypeVerify.dfy(173,13): Error: result of operation might violate newtype constraint for 'FalseBool'
+GeneralNewtypeVerify.dfy(179,13): Error: prefix-equality limit must be at least 0
+GeneralNewtypeVerify.dfy(196,4): Error: assertion might not hold
+GeneralNewtypeVerify.dfy(247,21): Error: result of operation might violate newtype constraint for 'UpperCase'
+GeneralNewtypeVerify.dfy(266,13): Error: result of operation might violate subset type constraint for 'Subset'
+GeneralNewtypeVerify.dfy(268,13): Error: result of operation might violate newtype constraint for 'MyChar'
+GeneralNewtypeVerify.dfy(272,13): Error: result of operation might violate newtype constraint for 'MyChar'
+GeneralNewtypeVerify.dfy(283,15): Error: result of operation might violate subset type constraint for 'NotRSubset'
+GeneralNewtypeVerify.dfy(293,15): Error: result of operation might violate newtype constraint for 'NotRNewtype'
+GeneralNewtypeVerify.dfy(317,14): Error: result of operation might violate newtype constraint for 'BV'
+GeneralNewtypeVerify.dfy(329,24): Error: possible division by zero
+GeneralNewtypeVerify.dfy(330,12): Error: result of operation might violate newtype constraint for 'BV'
+GeneralNewtypeVerify.dfy(330,25): Error: result of operation might violate newtype constraint for 'BV'
+GeneralNewtypeVerify.dfy(351,11): Error: shift amount must not exceed the width of the result (5)
+GeneralNewtypeVerify.dfy(352,11): Error: shift amount must not exceed the width of the result (5)
+GeneralNewtypeVerify.dfy(354,13): Error: shift amount must be non-negative
+GeneralNewtypeVerify.dfy(361,13): Error: rotate amount must be non-negative
+GeneralNewtypeVerify.dfy(364,11): Error: rotate amount must not exceed the width of the result (5)
+GeneralNewtypeVerify.dfy(367,27): Error: result of operation might violate subset type constraint for 'nat'
+GeneralNewtypeVerify.dfy(371,35): Error: result of operation might violate newtype constraint for 'BV'
+GeneralNewtypeVerify.dfy(490,7): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+GeneralNewtypeVerify.dfy(491,10): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+GeneralNewtypeVerify.dfy(496,7): Error: trying witness 0: result of operation might violate subset type constraint for 'Never'
+GeneralNewtypeVerify.dfy(507,10): Error: trying witness 0: result of operation might violate newtype constraint for 'Never'
+GeneralNewtypeVerify.dfy(518,10): Error: trying witness 0: result of operation might violate newtype constraint for 'Never'
+GeneralNewtypeVerify.dfy(536,37): Error: function precondition could not be proved
+GeneralNewtypeVerify.dfy(529,15): Related location
+GeneralNewtypeVerify.dfy(548,40): Error: function precondition could not be proved
+GeneralNewtypeVerify.dfy(541,15): Related location
+GeneralNewtypeVerify.dfy(555,10): Error: trying witness 0: result of operation might violate newtype constraint for 'A'
+GeneralNewtypeVerify.dfy(560,24): Error: result of operation might violate newtype constraint for 'A'
+GeneralNewtypeVerify.dfy(561,30): Error: result of operation might violate newtype constraint for 'A'
+
+Dafny program verifier finished with 40 verified, 48 errors

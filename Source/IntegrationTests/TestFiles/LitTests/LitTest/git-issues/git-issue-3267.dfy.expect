@@ -1,0 +1,10 @@
+*** Error: 'zzzz': The first input must be a command or a legacy option or file with supported extension
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
+*** Error: 'test.d': Filename extension '.d' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files (.cs, .dll)
+CLI: Error: command-line argument '--zzzz' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).
+CLI: Error: command-line argument 'test' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).
+CLI: Error: command-line argument 'test.d' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
+*** Error: 'test.d': Filename extension '.d' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files (.cs, .dll)
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
+*** Error: Command-line argument 'zzzz' is neither a recognized option nor a filename with a supported extension (.dfy, .cs, .dll).

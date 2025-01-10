@@ -1,1 +1,0 @@
-Support generating of tests targeting path-coverage of the entire program and tests targeting call-graph-sensitive block coverage (referred to as Branch coverage)

@@ -3,10 +3,12 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  static class CaptureStateExtensions {
+  public static class CaptureStateExtensions {
 
-    public static void AddCaptureState(this BoogieStmtListBuilder builder, Statement statement) {
-      if (builder.Options.ModelViewFile != null || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+    public const string AfterLoopIterationsStateMarker = "after some loop iterations";
+
+    internal static void AddCaptureState(this BoogieStmtListBuilder builder, Statement statement) {
+      if (builder.Options.ExpectingModel || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.Add(CaptureState(builder.Options, statement));
       }
     }
@@ -14,16 +16,16 @@ namespace Microsoft.Dafny {
     private static Bpl.Cmd CaptureState(DafnyOptions options, Statement stmt) {
       Contract.Requires(stmt != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      return CaptureState(options, stmt.RangeToken.EndToken, true, null);
+      return CaptureState(options, stmt.Origin.EndToken, true, null);
     }
 
-    public static void AddCaptureState(this BoogieStmtListBuilder builder, IToken tok, bool isEndToken, string /*?*/ additionalInfo) {
-      if (builder.Options.ModelViewFile != null || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+    internal static void AddCaptureState(this BoogieStmtListBuilder builder, IOrigin tok, bool isEndToken, string /*?*/ additionalInfo) {
+      if (builder.Options.ExpectingModel || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.Add(CaptureState(builder.Options, tok, isEndToken, additionalInfo));
       }
     }
 
-    private static Bpl.Cmd CaptureState(DafnyOptions options, IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
+    private static Bpl.Cmd CaptureState(DafnyOptions options, IOrigin tok, bool isEndToken, string/*?*/ additionalInfo) {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       string description;
@@ -33,7 +35,7 @@ namespace Microsoft.Dafny {
         description = $"{tok.TokenToString(options)}{(additionalInfo == null ? "" : (": " + additionalInfo))}";
       }
       Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "captureState", new List<object>() { description }, null);
-      return Translator.TrAssumeCmd(tok, Bpl.Expr.True, kv);
+      return BoogieGenerator.TrAssumeCmd(tok, Bpl.Expr.True, kv);
     }
   }
 }

@@ -1,12 +1,9 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
-using System;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -26,23 +23,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services) {
       return services
         .AddSingleton<IProjectDatabase, ProjectManagerDatabase>()
-        .AddSingleton<CreateProjectManager>(provider => (boogieEngine, documentIdentifier) => new ProjectManager(
+        .AddSingleton<CreateProjectManager>(provider => (scheduler, cache, documentIdentifier) => new ProjectManager(
           provider.GetRequiredService<DafnyOptions>(),
           provider.GetRequiredService<ILogger<ProjectManager>>(),
           provider.GetRequiredService<CreateMigrator>(),
           provider.GetRequiredService<IFileSystem>(),
-          provider.GetRequiredService<INotificationPublisher>(),
-          provider.GetRequiredService<IVerificationProgressReporter>(),
-          provider.GetRequiredService<CreateCompilationManager>(),
+          provider.GetRequiredService<TelemetryPublisherBase>(),
+          provider.GetRequiredService<IProjectDatabase>(),
+          provider.GetRequiredService<CreateCompilation>(),
           provider.GetRequiredService<CreateIdeStateObserver>(),
-          boogieEngine,
+          scheduler,
+          cache,
           documentIdentifier))
         .AddSingleton<IFileSystem, LanguageServerFilesystem>()
         .AddSingleton<IDafnyParser>(serviceProvider => {
           var options = serviceProvider.GetRequiredService<DafnyOptions>();
           return new DafnyLangParser(options,
             serviceProvider.GetRequiredService<IFileSystem>(),
-            serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+            serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
             serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
             serviceProvider.GetRequiredService<ILogger<CachingParser>>());
         })
@@ -53,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           provider.GetRequiredService<ILogger<LegacySignatureAndCompletionTable>>(),
           changes, cancellationToken))
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
-        .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
+        .AddSingleton<TelemetryPublisherBase, LspTelemetryPublisher>();
     }
   }
 }

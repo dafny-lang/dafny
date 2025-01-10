@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -7,8 +8,8 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForStatements")]
 public class FormatterForStatements : FormatterBaseTest {
   [Fact]
-  public void FormatterWorksForWhileTests() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForWhileTests() {
+    await FormatterWorksFor(@"
 method Test() {
   rs.Close();
   ghost var qc := q.contents;
@@ -56,8 +57,8 @@ method Test() {
   }
 
   [Fact]
-  public void FormatterWorksForAlternatives() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForAlternatives() {
+    await FormatterWorksFor(@"
 method AlternativeStmt() {
   if
   {
@@ -65,14 +66,14 @@ method AlternativeStmt() {
       print ""odd"";
     case x % 2 == 0 =>
       print ""even"";
-      // That's the last case
+    // That's the last case
   }
   if
   case x % 2 == 1 =>
     print ""odd1"";
   case x % 2 == 0 =>
     print ""even1"";
-    // That's the last case
+  // That's the last case
 }
 
 method AlternativeLoopStmt() {
@@ -83,7 +84,7 @@ method AlternativeLoopStmt() {
       print ""odd2"";
     case x % 2 == 0 =>
       print ""even2"";
-      // That's the last case
+    // That's the last case
   }
   while
     invariant x >= 0
@@ -91,14 +92,14 @@ method AlternativeLoopStmt() {
     print ""odd3"";
   case x % 2 == 0 =>
     print ""even3"";
-    // That's the last case
+  // That's the last case
 }
 ");
   }
 
   [Fact]
-  public void FormatterWorksForElephantOperatorWithoutLHS() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForElephantOperatorWithoutLHS() {
+    await FormatterWorksFor(@"
 method {:test} PassingTestUsingNoLHSAssignOrHalt() {
   :- // Comment 
     expect FailUnless(true);
@@ -108,8 +109,8 @@ method {:test} PassingTestUsingNoLHSAssignOrHalt() {
   }
 
   [Fact]
-  public void FormatterWorksForPrintStmt() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForPrintStmt() {
+    await FormatterWorksFor(@"
 // Sanity check
 method Main() {
   print FunctionMethodSyntax.CompiledFunction()
@@ -127,8 +128,8 @@ method Main() {
   }
 
   [Fact]
-  public void FormatterWorksForIfCaseReturn() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForIfCaseReturn() {
+    await FormatterWorksFor(@"
 method Test() {
   if
   case true =>
@@ -142,8 +143,8 @@ method Test() {
 
 
   [Fact]
-  public void FormatterWorksForElephantOperatorInMatch() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForElephantOperatorInMatch() {
+    await FormatterWorksFor(@"
 method execute_external_method(n:nat, m:nat) returns (r:Status)
 {
   match n { // match statement is essential to reproduce the bug
@@ -163,8 +164,8 @@ method execute_external_method(n:nat, m:nat) returns (r:Status)
   }
 
   [Fact]
-  public void FormatterWorksForBraceAfterArrowAndSimilar() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForBraceAfterArrowAndSimilar() {
+    await FormatterWorksFor(@"
 function Test(): int {
   match s
   case None => (
@@ -184,6 +185,9 @@ method Test() {
     }
     case 2
       =>
+      var b := 3 by {
+        LemmaCall();
+      }
     case 3 => {
     }
   }
@@ -192,8 +196,8 @@ method Test() {
   }
 
   [Fact]
-  public void FormatterWorksForLabelsBeforeIf() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForLabelsBeforeIf() {
+    await FormatterWorksFor(@"
 
 method TheBreaker_AllGood(M: int, N: int, O: int)
 {
@@ -208,8 +212,8 @@ method TheBreaker_AllGood(M: int, N: int, O: int)
   }
 
   [Fact]
-  public void FormatterWorksForSkeletonStatement() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForSkeletonStatement() {
+    await FormatterWorksFor(@"
 module ModifyStmtBreak1 refines ModifyStmtBreak0 {
   method W... {
     while true
@@ -232,8 +236,34 @@ module ModifyStmtBreak1 refines ModifyStmtBreak0 {
   }
 
   [Fact]
-  public void FormatterWorksForDividedBlockStmt() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForReveal() {
+    await FormatterWorksFor(@"
+method Foo() {
+  var x := 3 by {
+    reveal p.q;
+  }
+  x := 4 by {
+    reveal p.q;
+  }
+  match foo {
+    case Some(x) => {
+      reveal x.y;
+      a := b(
+        c,
+        d 
+      );
+    }
+    case None => {
+      a := e;
+    }
+  }
+}
+");
+  }
+
+  [Fact]
+  public async Task FormatterWorksForDividedBlockStmt() {
+    await FormatterWorksFor(@"
 class X {
   constructor Init(x: nat)
   {
@@ -246,8 +276,8 @@ class X {
   }
 
   [Fact]
-  public void FormatterWorksForControlFlow() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForControlFlow() {
+    await FormatterWorksFor(@"
 method ControlFlowTest() {
   while
     decreases O - k;
@@ -264,8 +294,8 @@ method ControlFlowTest() {
 ");
   }
   [Fact]
-  public void FormatterWorksForIfInLemma() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForIfInLemma() {
+    await FormatterWorksFor(@"
 lemma AlltokenSpec(i: int)
   requires Valid()
   decreases |allTokens|
@@ -281,8 +311,8 @@ lemma AlltokenSpec(i: int)
   }
 
   [Fact]
-  public void FormatterWorksForParticularCase() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForParticularCase() {
+    await FormatterWorksFor(@"
 module Test {
   lemma ProveMeThis(i: nat)
   {
@@ -312,8 +342,8 @@ module Test {
 ");
   }
   [Fact]
-  public void FormatterWorksForUsualMatchCasePatterns() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForUsualMatchCasePatterns() {
+    await FormatterWorksFor(@"
 method test() {
   match x {
     case 1 => Bring(
@@ -337,7 +367,7 @@ method test() {
   };
 }
 ", reduceBlockiness: true);
-    FormatterWorksFor(@"
+    await FormatterWorksFor(@"
 method test() {
   var longName := match x {
                     case 1 => World(
@@ -359,7 +389,7 @@ method test() {
 ", reduceBlockiness: false);
   }
   [Fact]
-  public void FormatterWorksForLabels() {
+  public async Task FormatterWorksForLabels() {
     var test = @"
 method BreakLabels(s: seq<int>)
   requires |s| == 1000
@@ -432,7 +462,7 @@ method Test() {
   }
 }
 ";
-    FormatterWorksFor(test, test);
+    await FormatterWorksFor(test, test);
   }
 
   public FormatterForStatements([NotNull] ITestOutputHelper output) : base(output) {

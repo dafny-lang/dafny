@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using DafnyCore.Test;
 using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
@@ -26,8 +27,8 @@ namespace DafnyPipeline.Test {
     private Newlines currentNewlines;
 
     [Fact]
-    public void TriviaSplitWorksOnLinuxMacAndWindows() {
-      var options = DafnyOptions.Create(output);
+    public async Task TriviaSplitWorksOnLinuxMacAndWindows() {
+      var options = DafnyOptions.CreateUsingOldParser(output);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"
@@ -41,33 +42,28 @@ trait Trait1 { }
 // Just a comment
 trait Trait2 extends Trait1
 // Trait docstring
-{ }
-// This is attached to trait2
-// This is also attached to trait2
+{ } /*
+This is attached to trait2
+This is also attached to trait2 */
 
 // This is attached to n
-type n = x: int | x % 2 == 0
-// This is attached to n as well
+type n = x: int | x % 2 == 0 // This docstring is attached to n
 
 // Just a comment
 class Class1 extends Trait1
 // Class docstring
-{ }
-// This is attached to the class
+{ } // This is attached to the class
 
 // Comment attached to c
-const c := 2;
-// Docstring attached to c
+const c := 2 // Docstring attached to c
 
 // This is attached to f
-function f(): int
-// This is f docstring
+function f(): int // This is f docstring
 ensures true
 { 1 }
 
 /** This is the docstring */
-function g(): int
-// This is not the docstring
+function g(): int // This is not the docstring
 ensures true
 { 1 }
 
@@ -80,7 +76,7 @@ ensures true
         programString = AdjustNewlines(programString);
 
         var reporter = new BatchErrorReporter(options);
-        var dafnyProgram = Utils.Parse(reporter, programString, false);
+        var dafnyProgram = await Utils.Parse(reporter, programString, false);
         Assert.Equal(0, reporter.ErrorCount);
         var topLevelDecls = dafnyProgram.DefaultModuleDef.TopLevelDecls.ToList();
         Assert.Equal(6, topLevelDecls.Count());
@@ -101,15 +97,15 @@ ensures true
         Assert.NotNull(trait1.StartToken.Next);
         Assert.Equal("Trait1", trait1.StartToken.Next.val);
 
-        AssertTrivia(moduleTest, "\n// Comment ∈ before\n", " // Module docstring\n");
-        AssertTrivia(trait1, "/** Trait docstring */\n", " ");
-        AssertTrivia(trait2, "// Just a comment\n", "\n// Trait docstring\n");
-        AssertTrivia(subsetType, "// This is attached to n\n", "\n// This is attached to n as well\n\n");
-        AssertTrivia(class1, "// Just a comment\n", "\n// Class docstring\n");
-        AssertTrivia(c, "// Comment attached to c\n", "\n// Docstring attached to c\n\n");
-        AssertTrivia(f, "// This is attached to f\n", "\n// This is f docstring\n");
-        AssertTrivia(g, "/** This is the docstring */\n", "\n// This is not the docstring\n");
-        AssertTrivia(m, "// Just a regular comment\n", "\n// This is the docstring\n");
+        AssertTrivia(moduleTest, "\n// Comment ∈ before\n", "// Module docstring");
+        AssertTrivia(trait1, "\n/** Trait docstring */\n", "/** Trait docstring */");
+        AssertTrivia(trait2, "\n// Just a comment\n", "// Trait docstring");
+        AssertTrivia(subsetType, "\n\n// This is attached to n\n", "// This docstring is attached to n");
+        AssertTrivia(class1, "\n// Just a comment\n", "// Class docstring");
+        AssertTrivia(c, "\n// Comment attached to c\n", "// Docstring attached to c");
+        AssertTrivia(f, "\n// This is attached to f\n", "// This is f docstring");
+        AssertTrivia(g, "\n/** This is the docstring */\n", "/** This is the docstring */");
+        AssertTrivia(m, "\n// Just a regular comment\n", "// This is the docstring");
 
         TestTokens(dafnyProgram);
       }
@@ -119,7 +115,7 @@ ensures true
     // and that every token from start to end of every program child
     // is owned by a node.
     private void TestTokens(Node program) {
-      var allTokens = new HashSet<IToken>();
+      var allTokens = new HashSet<IOrigin>();
 
       void Traverse(INode node) {
         foreach (var ownedToken in node.OwnedTokens) {
@@ -158,14 +154,13 @@ ensures true
       };
     }
 
-    private void AssertTrivia(TopLevelDecl topLevelDecl, string triviaBefore, string triviaDoc) {
+    private void AssertTrivia(Node topLevelDecl, string triviaBefore, string triviaDoc) {
       Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.StartToken.LeadingTrivia);
-      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenWithTrailingDocString.TrailingTrivia);
-    }
-
-    private void AssertTrivia(MemberDecl topLevelDecl, string triviaBefore, string triviaDoc) {
-      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.StartToken.LeadingTrivia);
-      Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenWithTrailingDocString.TrailingTrivia);
+      if (topLevelDecl is IHasDocstring hasDocstring) {
+        Assert.Equal(AdjustNewlines(triviaDoc), hasDocstring.GetTriviaContainingDocstring());
+      } else {
+        Assert.True(false);
+      }
     }
   }
 }

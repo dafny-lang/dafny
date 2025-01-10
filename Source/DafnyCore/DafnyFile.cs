@@ -1,97 +1,263 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.IO;
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Threading.Tasks;
+using DafnyAssembly;
 using DafnyCore;
-using JetBrains.Annotations;
+using DafnyCore.Options;
 
 namespace Microsoft.Dafny;
 
 public class DafnyFile {
-  public string FilePath { get; private set; }
-  public string CanonicalPath { get; private set; }
+  public const string DafnyFileExtension = ".dfy";
+  public string FilePath => CanonicalPath;
+  public string Extension { get; private set; }
+  public string CanonicalPath { get; }
   public string BaseName { get; private set; }
-  public bool IsPreverified { get; set; }
-  public bool IsPrecompiled { get; set; }
-  public Func<TextReader> GetContent { get; set; }
-  public Uri Uri { get; }
-  [CanBeNull] public IToken Origin { get; }
+  public bool ShouldNotVerify { get; private set; }
+  public bool ShouldNotCompile { get; private set; }
+  public DafnyOptions FileOptions { get; private set; }
+  public Func<FileSnapshot> GetContent { get; set; }
+  public Uri Uri { get; private set; }
+  public IOrigin? Origin { get; }
 
-  public DafnyFile(DafnyOptions options, Uri uri, [CanBeNull] IToken origin = null, Func<TextReader> getContentOverride = null) {
-    Uri = uri;
-    Origin = origin;
-    var filePath = uri.LocalPath;
+  private static readonly Dictionary<Uri, Uri> ExternallyVisibleEmbeddedFiles = new();
 
-    var extension = ".dfy";
+  static DafnyFile() {
+    OptionRegistry.RegisterGlobalOption(DoNotVerifyDependencies, OptionCompatibility.OptionLibraryImpliesLocalError);
+  }
+
+  public static Uri ExposeInternalUri(string externalName, Uri internalUri) {
+    var externalUri = new Uri("dafny:" + externalName);
+    ExternallyVisibleEmbeddedFiles[externalUri] = internalUri;
+    return externalUri;
+  }
+
+  public delegate IAsyncEnumerable<DafnyFile> HandleExtension(DafnyOptions options, IFileSystem
+    fileSystem, ErrorReporter reporter, Uri uri, IOrigin origin, bool asLibrary);
+
+  private static readonly Dictionary<string, HandleExtension> ExtensionHandlers = new();
+
+  public static void RegisterExtensionHandler(string extension, HandleExtension handler) {
+    ExtensionHandlers[extension] = handler;
+  }
+
+  public static async IAsyncEnumerable<DafnyFile> CreateAndValidate(IFileSystem fileSystem,
+    ErrorReporter reporter,
+    DafnyOptions options, Uri uri, IOrigin? uriOrigin,
+    bool asLibrary = false, string? errorOnNotRecognized = null) {
+
+    var embeddedFile = ExternallyVisibleEmbeddedFiles.GetValueOrDefault(uri);
+    if (embeddedFile != null) {
+      var embeddedResults = CreateAndValidate(fileSystem, reporter, options, embeddedFile, uriOrigin, asLibrary, errorOnNotRecognized);
+      await foreach (var result in embeddedResults) {
+        result.Uri = uri;
+        yield return result;
+      }
+      yield break;
+    }
+
+    uriOrigin ??= Token.NoToken;
+
+    string extension;
     if (uri.IsFile) {
       extension = Path.GetExtension(uri.LocalPath).ToLower();
-      BaseName = Path.GetFileName(uri.LocalPath);
-    }
-    if (uri.Scheme == "stdin") {
-      getContentOverride = () => options.Input;
-      BaseName = "<stdin>";
-    }
-
-    // Normalizing symbolic links appears to be not
-    // supported in .Net APIs, because it is very difficult in general
-    // So we will just use the absolute path, lowercased for all file systems.
-    // cf. IncludeComparer.CompareTo
-    CanonicalPath = getContentOverride == null ? Canonicalize(filePath).LocalPath : "<stdin>";
-    FilePath = CanonicalPath;
-
-    var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
-    if (getContentOverride != null) {
-      IsPreverified = false;
-      IsPrecompiled = false;
-      GetContent = getContentOverride;
-    } else if (extension == ".dfy" || extension == ".dfyi") {
-      IsPreverified = false;
-      IsPrecompiled = false;
-      if (!File.Exists(filePath)) {
-        if (0 < options.VerifySnapshots) {
-          // For snapshots, we first create broken DafnyFile without content,
-          // then look for the real files and create DafnuFiles for them.
-          // TODO prevent creating the broken DafnyFiles for snapshots
-          return;
-        }
-
-        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
-        throw new IllegalDafnyFile(true);
-      } else {
-        GetContent = () => new StreamReader(filePath);
-      }
-    } else if (extension == ".doo") {
-      IsPreverified = true;
-      IsPrecompiled = false;
-
-      if (!File.Exists(filePath)) {
-        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
-        throw new IllegalDafnyFile(true);
-      }
-      var dooFile = DooFile.Read(filePath);
-      if (!dooFile.Validate(filePathForErrors, options, options.CurrentCommand)) {
-        throw new IllegalDafnyFile(true);
-      }
-
-      // For now it's simpler to let the rest of the pipeline parse the
-      // program text back into the AST representation.
-      // At some point we'll likely want to serialize a program
-      // more efficiently inside a .doo file, at which point
-      // the DooFile class should encapsulate the serialization logic better
-      // and expose a Program instead of the program text.
-      GetContent = () => new StringReader(dooFile.ProgramText);
-    } else if (extension == ".dll") {
-      IsPreverified = true;
-      // Technically only for C#, this is for backwards compatability
-      IsPrecompiled = true;
-
-      var sourceText = GetDafnySourceAttributeText(filePath);
-      if (sourceText == null) { throw new IllegalDafnyFile(); }
-      GetContent = () => new StringReader(sourceText);
+    } else if (uri.Scheme == "dllresource") {
+      extension = Path.GetExtension(uri.LocalPath).ToLower();
     } else {
-      throw new IllegalDafnyFile();
+      extension = DafnyFileExtension;
     }
+
+    if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi") {
+      var file = HandleDafnyFile(fileSystem, reporter, options, uri, uriOrigin, asLibrary);
+      if (file != null) {
+        yield return file;
+      }
+      yield break;
+    }
+
+    if (extension == DooFile.Extension) {
+      await foreach (var dooResult in HandleDooFile(fileSystem, reporter, options, uri, uriOrigin, asLibrary)) {
+        yield return dooResult;
+      }
+      yield break;
+    }
+
+    if (extension == ".dll") {
+      var dllResult = HandleDll(options, uri, uriOrigin);
+      if (dllResult != null) {
+        yield return dllResult;
+      }
+      yield break;
+    }
+
+    var handler = ExtensionHandlers.GetValueOrDefault(extension);
+    if (handler != null) {
+      await foreach (var result in handler(options, fileSystem, reporter, uri, uriOrigin, asLibrary)) {
+        yield return result;
+      }
+      yield break;
+    }
+    if (errorOnNotRecognized != null) {
+      reporter.Error(MessageSource.Project, Token.Cli, errorOnNotRecognized);
+    }
+  }
+
+  public static readonly Option<bool> DoNotVerifyDependencies = new("--dont-verify-dependencies",
+    "Allows Dafny to accept dependencies that may not have been previously verified, which can be useful during development.");
+
+  public static DafnyFile? HandleDafnyFile(IFileSystem fileSystem,
+    ErrorReporter reporter,
+    DafnyOptions options,
+    Uri uri, IOrigin origin, bool asLibrary = false, bool warnLibrary = true) {
+    string canonicalPath;
+    string baseName;
+    if (uri.IsFile) {
+      baseName = Path.GetFileName(uri.LocalPath);
+      // Normalizing symbolic links appears to be not
+      // supported in .Net APIs, because it is very difficult in general
+      // So we will just use the absolute path, lowercased for all file systems.
+      // cf. IncludeComparer.CompareTo
+      canonicalPath = Canonicalize(uri.LocalPath).LocalPath;
+    } else {
+      canonicalPath = "";
+      baseName = "";
+    }
+
+    var filePath = uri.LocalPath;
+    if (!fileSystem.Exists(uri)) {
+      if (0 < options.VerifySnapshots) {
+        // For snapshots, we first create broken DafnyFile without content,
+        // then look for the real files and create DafnuFiles for them.
+        return new DafnyFile(DafnyFileExtension, canonicalPath, baseName, null!, uri, origin, null!);
+      }
+
+      reporter.Error(MessageSource.Project, origin, $"file {options.GetPrintPath(filePath)} not found");
+      return null;
+    }
+
+    if (!options.Get(DoNotVerifyDependencies) && asLibrary && warnLibrary) {
+      reporter.Warning(MessageSource.Project, "", origin,
+        $"The file '{options.GetPrintPath(filePath)}' was passed to --library. " +
+        $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
+        $"Use a .doo file to enable Dafny to check that compatible options were used");
+    }
+
+    return new DafnyFile(DafnyFileExtension, canonicalPath, baseName, () => fileSystem.ReadFile(uri), uri, origin, options) {
+      ShouldNotCompile = asLibrary,
+      ShouldNotVerify = asLibrary,
+    };
+  }
+
+  public static DafnyFile HandleStandardInput(DafnyOptions options, IOrigin origin) {
+    return new DafnyFile(DafnyFileExtension, "<stdin>", "<stdin>",
+      () => new FileSnapshot(options.Input, null), new Uri("stdin:///"), origin, options) {
+      ShouldNotCompile = false,
+      ShouldNotVerify = false,
+    };
+  }
+
+  /// <summary>
+  /// Technically only for C#, this is for backwards compatability
+  /// </summary>
+  private static DafnyFile? HandleDll(DafnyOptions parseOptions, Uri uri, IOrigin origin) {
+
+    string baseName;
+    string canonicalPath;
+    if (uri.IsFile) {
+      baseName = Path.GetFileName(uri.LocalPath);
+      // Normalizing symbolic links appears to be not
+      // supported in .Net APIs, because it is very difficult in general
+      // So we will just use the absolute path, lowercased for all file systems.
+      // cf. IncludeComparer.CompareTo
+      canonicalPath = Canonicalize(uri.LocalPath).LocalPath;
+    } else {
+      canonicalPath = "";
+      baseName = "";
+    }
+
+    var filePath = uri.LocalPath;
+    var sourceText = GetDafnySourceAttributeText(filePath);
+    if (sourceText == null) {
+      return null;
+    }
+
+    return new DafnyFile(".dll", canonicalPath, baseName,
+      () => new FileSnapshot(new StringReader(sourceText), null), uri, origin, parseOptions) {
+      ShouldNotCompile = true,
+      ShouldNotVerify = true,
+    };
+  }
+
+  public delegate Task<int> Executor(TextWriter outputWriter, TextWriter errorWriter, string[] arguments);
+
+  public static async IAsyncEnumerable<DafnyFile> HandleDooFile(IFileSystem fileSystem,
+    ErrorReporter reporter,
+    DafnyOptions options,
+    Uri uri, IOrigin origin, bool asLibrary) {
+    DooFile dooFile;
+    var filePath = uri.LocalPath;
+
+    if (uri.Scheme == "dllresource") {
+      var assembly = Assembly.Load(uri.Host);
+      // Skip the leading "/"
+      var resourceName = uri.LocalPath[1..];
+      await using var stream = assembly.GetManifestResourceStream(resourceName);
+      if (stream is null) {
+        throw new Exception($"Cannot find embedded resource: {resourceName}");
+      }
+
+      dooFile = await DooFile.Read(stream);
+    } else {
+      if (!fileSystem.Exists(uri)) {
+        reporter.Error(MessageSource.Project, origin, $"file {options.GetPrintPath(filePath)} not found");
+        yield break;
+      }
+
+      try {
+        dooFile = await DooFile.Read(filePath);
+      } catch (InvalidDataException) {
+        reporter.Error(MessageSource.Project, origin, $"malformed doo file {options.GetPrintPath(filePath)}");
+        yield break;
+      } catch (ArgumentException e) {
+        reporter.Error(MessageSource.Project, origin, e.Message);
+        yield break;
+      }
+    }
+
+    var validDooOptions = dooFile.Validate(reporter, uri, options, origin);
+    if (validDooOptions == null) {
+      yield break;
+    }
+
+    // For now it's simpler to let the rest of the pipeline parse the
+    // program text back into the AST representation.
+    // At some point we'll likely want to serialize a program
+    // more efficiently inside a .doo file, at which point
+    // the DooFile class should encapsulate the serialization logic better
+    // and expose a Program instead of the program text.
+    yield return new DafnyFile(DooFile.Extension, Canonicalize(uri.LocalPath).LocalPath, Path.GetFileName(uri.LocalPath),
+      () => new FileSnapshot(new StringReader(dooFile.ProgramText), null), uri, origin, validDooOptions) {
+      ShouldNotCompile = asLibrary,
+      ShouldNotVerify = true,
+    };
+  }
+
+  protected DafnyFile(string extension, string canonicalPath, string baseName,
+    Func<FileSnapshot> getContent, Uri uri, IOrigin? origin, DafnyOptions fileOptions) {
+    Extension = extension;
+    CanonicalPath = canonicalPath;
+    BaseName = baseName;
+    GetContent = getContent;
+    Uri = uri;
+    Origin = origin;
+    FileOptions = fileOptions;
   }
 
   // Returns a canonical string for the given file path, namely one which is the same
@@ -99,9 +265,9 @@ public class DafnyFile {
   // make the path absolute -- detecting case and canonicalizing symbolic and hard
   // links are difficult across file systems (which may mount parts of other filesystems,
   // with different characteristics) and is not supported by .Net libraries
-  public static Uri Canonicalize(string filePath) {
+  public static Uri Canonicalize(string? filePath) {
     if (filePath == null || !filePath.StartsWith("file:")) {
-      return new Uri(Path.GetFullPath(filePath));
+      return new Uri(Path.GetFullPath(filePath!));
     }
 
     if (Uri.IsWellFormedUriString(filePath, UriKind.RelativeOrAbsolute)) {
@@ -130,71 +296,22 @@ public class DafnyFile {
     return sourceFiles;
   }
 
-  private static string GetDafnySourceAttributeText(string dllPath) {
+  private static string? GetDafnySourceAttributeText(string dllPath) {
     if (!File.Exists(dllPath)) {
-      throw new IllegalDafnyFile();
+      return null;
     }
-    using var dllFs = new FileStream(dllPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-    using var dllPeReader = new PEReader(dllFs);
-    var dllMetadataReader = dllPeReader.GetMetadataReader();
 
-    foreach (var attrHandle in dllMetadataReader.CustomAttributes) {
-      var attr = dllMetadataReader.GetCustomAttribute(attrHandle);
-      try {
-        /* The cast from EntityHandle to MemberReferenceHandle is overriden, uses private members, and throws
-         * an InvalidCastException if it fails. We have no other option than to use it and catch the exception.
-         */
-        var constructor = dllMetadataReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
-        var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
-        if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
-          var decoded = attr.DecodeValue(new StringOnlyCustomAttributeTypeProvider());
-          return (string)decoded.FixedArguments[0].Value;
-        }
-      } catch (InvalidCastException) {
-        // Ignore - the Handle casts are handled as custom explicit operators,
-        // and there's no way I can see to test if the cases will succeed ahead of time.
+    try {
+      var assembly = Assembly.LoadFile(dllPath);
+
+      foreach (DafnySourceAttribute attr in assembly.GetCustomAttributes(typeof(DafnySourceAttribute), true)) {
+        return attr.dafnySourceText;
       }
+    } catch (Exception) {
+      // ignored
     }
 
     return null;
   }
 
-  // Dummy implementation of ICustomAttributeTypeProvider, providing just enough
-  // functionality to successfully decode a DafnySourceAttribute value.
-  private class StringOnlyCustomAttributeTypeProvider : ICustomAttributeTypeProvider<System.Type> {
-    public System.Type GetPrimitiveType(PrimitiveTypeCode typeCode) {
-      if (typeCode == PrimitiveTypeCode.String) {
-        return typeof(string);
-      }
-      throw new NotImplementedException();
-    }
-
-    public System.Type GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind) {
-      throw new NotImplementedException();
-    }
-
-    public System.Type GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind) {
-      throw new NotImplementedException();
-    }
-
-    public System.Type GetSZArrayType(System.Type elementType) {
-      throw new NotImplementedException();
-    }
-
-    public System.Type GetSystemType() {
-      throw new NotImplementedException();
-    }
-
-    public System.Type GetTypeFromSerializedName(string name) {
-      throw new NotImplementedException();
-    }
-
-    public PrimitiveTypeCode GetUnderlyingEnumType(System.Type type) {
-      throw new NotImplementedException();
-    }
-
-    public bool IsSystemType(System.Type type) {
-      throw new NotImplementedException();
-    }
-  }
 }

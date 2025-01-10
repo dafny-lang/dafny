@@ -14,7 +14,7 @@ public delegate IdeStateObserver CreateIdeStateObserver(IdeState initialState);
 
 public class IdeStateObserver : IObserver<IdeState> { // Inheriting from ObserverBase prevents this observer from recovering after a problem
   private readonly ILogger logger;
-  private readonly ITelemetryPublisher telemetryPublisher;
+  private readonly TelemetryPublisherBase telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
 
   private readonly object lastPublishedStateLock = new();
@@ -23,7 +23,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
   public IdeState LastPublishedState { get; private set; }
 
   public IdeStateObserver(ILogger logger,
-    ITelemetryPublisher telemetryPublisher,
+    TelemetryPublisherBase telemetryPublisher,
     INotificationPublisher notificationPublisher,
     IdeState initialState) {
     this.initialState = initialState;
@@ -33,32 +33,19 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
     this.notificationPublisher = notificationPublisher;
   }
 
-  public void OnCompleted() {
+  public void Clear() {
     var ideState = initialState with {
-      Version = LastPublishedState.Version + 1
+      Input = initialState.Input with { Version = LastPublishedState.Version + 1 },
+      OwnedUris = LastPublishedState.OwnedUris
     };
-#pragma warning disable VSTHRD002
-    notificationPublisher.PublishNotifications(LastPublishedState, ideState).Wait();
-#pragma warning restore VSTHRD002
+    notificationPublisher.PublishNotifications(LastPublishedState, ideState);
     telemetryPublisher.PublishUpdateComplete();
   }
 
+  public void OnCompleted() {
+  }
+
   public void OnError(Exception exception) {
-    var internalErrorDiagnostic = new Diagnostic {
-      Message =
-        "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
-        exception,
-      Severity = DiagnosticSeverity.Error,
-      Range = new Range(0, 0, 0, 1)
-    };
-    var documentToPublish = LastPublishedState with {
-      ResolutionDiagnostics = ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty.Add(initialState.Compilation.Uri.ToUri(), new[] { internalErrorDiagnostic })
-    };
-
-    OnNext(documentToPublish);
-
-    logger.LogError(exception, "error while handling document event");
-    telemetryPublisher.PublishUnhandledException(exception);
   }
 
   public void OnNext(IdeState snapshot) {
@@ -67,20 +54,16 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
         return;
       }
 
-      // To prevent older updates from being sent after newer ones, we can only run one PublishNotifications at a time.
-      // So we wait for it here to finish, and the lock in this method prevents more than one from running at a time.
-#pragma warning disable VSTHRD002
-      notificationPublisher.PublishNotifications(LastPublishedState, snapshot).Wait();
-#pragma warning restore VSTHRD002
+      notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
       LastPublishedState = snapshot;
-      logger.LogDebug($"Updated LastPublishedState to version {snapshot.Version}, uri {initialState.Compilation.Uri.ToUri()}");
+      logger.LogDebug($"Updated LastPublishedState to version {snapshot.Version}, uri {initialState.Input.Uri.ToUri()}");
     }
   }
 
-  public void Migrate(Migrator migrator, int version) {
+  public void Migrate(DafnyOptions options, IMigrator migrator, int version) {
     lock (lastPublishedStateLock) {
-      LastPublishedState = LastPublishedState.Migrate(migrator, version);
-      logger.LogDebug($"Migrated LastPublishedState to version {version}, uri {initialState.Compilation.Uri.ToUri()}");
+      LastPublishedState = LastPublishedState.Migrate(options, migrator, version, true);
+      logger.LogDebug($"Migrated LastPublishedState to version {version}, uri {initialState.Input.Uri.ToUri()}");
     }
   }
 }

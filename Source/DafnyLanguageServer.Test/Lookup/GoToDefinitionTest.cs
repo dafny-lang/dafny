@@ -12,6 +12,115 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class GoToDefinitionTest : ClientBasedLanguageServerTest {
 
     [Fact]
+    public async Task DatatypeFields() {
+      var source = @"
+datatype MultipleFields = MultipleFields(x: int, [>y<]: int)
+
+method Update(m: MultipleFields) {
+  var m2 := m.(><y := 3);
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
+    public async Task ModuleImport1ResolutionErrorInDependency() {
+      var source = @"
+module User {
+ import Us><ed
+ 
+ const x := Used.x
+}
+
+module [>Used<] {
+  const x: bool := 3
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
+    public async Task ResolutionErrorInDependency() {
+      var source = @"
+module User {
+ import Used
+ 
+ const x := Used.><x
+}
+
+module [>Used<] {
+  const x: bool := 3
+}".TrimStart();
+      MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
+        out var positions, out var ranges);
+
+      var documentItem = await CreateOpenAndWaitForResolve(cleanSource, null);
+      foreach (var position in positions) {
+        var result = (await RequestDefinition(documentItem, position));
+        Assert.Empty(result);
+      }
+    }
+
+    [Fact]
+    public async Task ResolutionError() {
+      var source = @"
+module User {
+ import Used
+ 
+ const x: bool := Used.><x
+}
+
+module Used {
+  const [>x<] := 3
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
+    public async Task ResolutionErrorInDependent() {
+      var source = @"
+module User {
+ import Used
+ 
+ const x: bool := Used.3
+}
+
+module Used {
+  const [>y<] := 3
+  const x: bool := ><y
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
+    public async Task ModuleImport1() {
+      var source = @"
+module User {
+ import Us><ed
+ 
+ const x := Used.x
+}
+
+module [>Used<] {
+  const x := 3
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
+    public async Task ModuleImport2() {
+      var source = @"
+module User {
+ import Used
+ 
+ const x := Us><ed.x
+}
+
+module [>Used<] {
+  const x := 3
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
     public async Task ExplicitProjectToGoDefinitionWorks() {
       var sourceA = @"
 const a := 3;
@@ -22,9 +131,9 @@ const b := a + 2;
 ".TrimStart();
 
       var directory = Path.GetRandomFileName();
-      await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-      var aFile = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "A.dfy"));
-      var bFile = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "B.dfy"));
+      await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+      var aFile = await CreateOpenAndWaitForResolve(sourceA, Path.Combine(directory, "A.dfy"));
+      var bFile = await CreateOpenAndWaitForResolve(sourceB, Path.Combine(directory, "B.dfy"));
 
       var result1 = await RequestDefinition(bFile, new Position(0, 11));
       Assert.Equal(new Range(0, 6, 0, 7), result1.Single().Location!.Range);
@@ -72,24 +181,6 @@ datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
 ".TrimStart();
 
       await AssertPositionsLineUpWithRanges(source);
-    }
-
-    /// <summary>
-    /// Given <paramref name="source"/> with N positions, for each K from 0 to N exclusive,
-    /// assert that a RequestDefinition at position K
-    /// returns either the Kth range, or the range with key K (as a string).
-    /// </summary>
-    private async Task AssertPositionsLineUpWithRanges(string source) {
-      MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
-        out var positions, out var ranges);
-
-      var documentItem = await CreateAndOpenTestDocument(cleanSource);
-      for (var index = 0; index < positions.Count; index++) {
-        var position = positions[index];
-        var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();
-        var result = (await RequestDefinition(documentItem, position)).Single();
-        Assert.Equal(range, result.Location!.Range);
-      }
     }
 
     [Fact]
@@ -222,7 +313,7 @@ module Consumer {
     [Fact]
     public async Task JumpToOtherModule() {
       var source = @"
-module Provider {
+module {>2:Provider<} {
   class A {
     var [>x<]: int;
 
@@ -246,7 +337,7 @@ module Consumer {
 }
 
 module Consumer2 {
-  import [>Provider<]
+  import Provider
 
   type A2 = Pro><vider.A
 }".TrimStart();
@@ -289,10 +380,10 @@ method CallIts() returns () {
     public async Task DefinitionReturnsBeforeVerificationIsComplete() {
       var documentItem = CreateTestDocument(NeverVerifies, "DefinitionReturnsBeforeVerificationIsComplete.dfy");
       client.OpenDocument(documentItem);
-      var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
+      var verificationTask = GetLastDiagnostics(documentItem);
       var definitionTask = RequestDefinition(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
-      Assert.False(verificationTask.IsCompleted);
+      Assert.False(verificationTask.IsCompletedSuccessfully);
       Assert.Same(first, definitionTask);
     }
 

@@ -55,6 +55,9 @@ namespace Microsoft.Dafny {
 
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
+          if (!DetectUnderspecificationVisitor.IsDetermined(dd.Var.PreType)) {
+            ReportError(dd, $"base type of {dd.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
+          }
           CheckExpression(dd.Constraint, context);
           if (dd.Witness != null) {
             CheckExpression(dd.Witness, context);
@@ -64,7 +67,7 @@ namespace Microsoft.Dafny {
           var dd = (NewtypeDecl)d;
           if (dd.Var != null) {
             if (!DetectUnderspecificationVisitor.IsDetermined(dd.BasePreType)) {
-              ReportError(dd, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
+              ReportError(dd, $"base type of {dd.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
             }
             CheckExpression(dd.Constraint, context);
             if (dd.Witness != null) {
@@ -81,11 +84,11 @@ namespace Microsoft.Dafny {
               for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
                 var other = dtor.CorrespondingFormals[i];
                 if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
-                  ReportError(other.tok,
+                  ReportError(other.Origin,
                     "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
                     rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
                 } else if (rolemodel.IsGhost != other.IsGhost) {
-                  ReportError(other.tok,
+                  ReportError(other.Origin,
                     "shared destructors must agree on whether or not they are ghost, but '{0}' is {1} in constructor '{2}' and {3} in constructor '{4}'",
                     rolemodel.Name,
                     rolemodel.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[0].Name,
@@ -127,12 +130,12 @@ namespace Microsoft.Dafny {
         if (field.Rhs != null) {
           CheckExpression(field.Rhs, context);
         }
-        CheckPreType(field.PreType, context, field.tok, "const");
+        CheckPreType(field.PreType, context, field.Origin, "const");
 
       } else if (member is Method method) {
         CheckParameterDefaultValues(method.Ins, context);
         method.Req.ForEach(mfe => CheckAttributedExpression(mfe, context));
-        method.Reads.ForEach(mfe => CheckExpression(mfe.E, context));
+        CheckSpecFrameExpression(method.Reads, context);
         CheckSpecFrameExpression(method.Mod, context);
         method.Ens.ForEach(mfe => CheckAttributedExpression(mfe, context));
         CheckSpecExpression(method.Decreases, context);
@@ -140,23 +143,23 @@ namespace Microsoft.Dafny {
           CheckStatement(method.Body, context);
         }
         if (errorCount == ErrorCount) {
-          if (method is ExtremeLemma extremeLemma) {
-            CheckMember(extremeLemma.PrefixLemma);
+          if (method is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
+            CheckMember(prefixLemma);
           }
         }
 
       } else if (member is Function function) {
-        CheckParameterDefaultValues(function.Formals, context);
+        CheckParameterDefaultValues(function.Ins, context);
         function.Req.ForEach(e => CheckExpression(e.E, context));
         function.Ens.ForEach(e => CheckExpression(e.E, context));
-        function.Reads.ForEach(fe => CheckExpression(fe.E, context));
+        CheckSpecFrameExpression(function.Reads, context);
         CheckSpecExpression(function.Decreases, context);
         if (function.Body != null) {
           CheckExpression(function.Body, context);
         }
         if (errorCount == ErrorCount) {
-          if (function is ExtremePredicate extremePredicate) {
-            CheckMember(extremePredicate.PrefixPredicate);
+          if (function is ExtremePredicate { PrefixPredicate: { } prefixPredicate }) {
+            CheckMember(prefixPredicate);
           } else if (function.ByMethodDecl != null) {
             CheckMember(function.ByMethodDecl);
           }
@@ -164,7 +167,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CheckPreType(PreType preType, UnderspecificationDetectorContext context, IToken tok, string whatIsBeingChecked) {
+    private void CheckPreType(PreType preType, UnderspecificationDetectorContext context, IOrigin tok, string whatIsBeingChecked) {
       var visitor = new DetectUnderspecificationVisitor(this, context);
       visitor.CheckPreTypeIsDetermined(tok, preType, whatIsBeingChecked);
     }
@@ -233,18 +236,18 @@ namespace Microsoft.Dafny {
       if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var local in s.Locals) {
-          CheckPreTypeIsDetermined(local.Tok, local.PreType, "local variable");
-          CheckTypeArgsContainNoOrdinal(local.Tok, local.PreType);
+          CheckPreTypeIsDetermined(local.Origin, local.PreType, "local variable");
+          CheckTypeArgsContainNoOrdinal(local.Origin, local.PreType);
         }
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
-        s.LocalVars.ForEach(local => CheckPreTypeIsDetermined(local.Tok, local.PreType, "local variable"));
-        s.LocalVars.ForEach(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.PreType));
+        s.LocalVars.ForEach(local => CheckPreTypeIsDetermined(local.Origin, local.PreType, "local variable"));
+        s.LocalVars.ForEach(local => CheckTypeArgsContainNoOrdinal(local.Origin, local.PreType));
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        s.BoundVars.ForEach(bv => CheckPreTypeIsDetermined(bv.tok, bv.PreType, "bound variable"));
-        s.BoundVars.ForEach(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.PreType));
+        s.BoundVars.ForEach(bv => CheckPreTypeIsDetermined(bv.Origin, bv.PreType, "bound variable"));
+        s.BoundVars.ForEach(bv => CheckTypeArgsContainNoOrdinal(bv.Origin, bv.PreType));
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
@@ -256,7 +259,7 @@ namespace Microsoft.Dafny {
           }
         }
         foreach (var lhs in s.Lhss) {
-          CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.PreType);
+          CheckTypeArgsContainNoOrdinal(lhs.Origin, lhs.PreType);
         }
 
       } else if (stmt is CalcStmt) {
@@ -281,23 +284,23 @@ namespace Microsoft.Dafny {
 
       if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
-        if (PreTypeResolver.IsBitvectorName(familyDeclName) || familyDeclName == "ORDINAL") {
+        if (PreTypeResolver.IsBitvectorName(familyDeclName) || familyDeclName == PreType.TypeNameORDINAL) {
           var n = (BigInteger)e.Value;
           var absN = n < 0 ? -n : n;
           // For bitvectors, check that the magnitude fits the width
-          if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && ModuleResolver.MaxBV(width) < absN) {
-            cus.ReportError(e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.PreType);
+          if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && ConstantFolder.MaxBv(width) < absN) {
+            cus.ReportError(e.Origin, "literal ({0}) is too large for the bitvector type {1}", absN, e.PreType);
           }
           // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
           // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
-          if (n < 0 || e.tok.val == "-0") {
-            Contract.Assert(e.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
-            cus.ReportError(e.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.PreType);
+          if (n < 0 || e.Origin.val == "-0") {
+            Contract.Assert(e.Origin.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
+            cus.ReportError(e.Origin, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.PreType);
           }
         }
 
         if (expr is StaticReceiverExpr stexpr) {
-          CheckPreTypeIsDetermined(stexpr.tok, stexpr.PreType, "static receiver");
+          CheckPreTypeIsDetermined(stexpr.Origin, stexpr.PreType, "static receiver");
         }
 
       } else if (expr is ComprehensionExpr) {
@@ -305,7 +308,7 @@ namespace Microsoft.Dafny {
         foreach (var bv in e.BoundVars) {
           CheckVariable(bv, "bound variable");
           if (context.IsExtremePredicate || context.IsExtremeLemma) {
-            CheckContainsNoOrdinal(bv.tok, bv.PreType, $"type of bound variable '{bv.Name}' ('{bv.PreType}') is not allowed to use type ORDINAL");
+            CheckContainsNoOrdinal(bv.Origin, bv.PreType, $"type of bound variable '{bv.Name}' ('{bv.PreType}') is not allowed to use type ORDINAL");
           }
         }
 
@@ -313,15 +316,15 @@ namespace Microsoft.Dafny {
         var e = (MemberSelectExpr)expr;
         if (e.Member is Function || e.Member is Method) {
           var i = 0;
-          foreach (var p in Util.Concat(e.PreTypeApplication_AtEnclosingClass, e.PreTypeApplication_JustMember)) {
+          foreach (var p in Util.Concat(e.PreTypeApplicationAtEnclosingClass, e.PreTypeApplicationJustMember)) {
             var tp =
-              i < e.PreTypeApplication_AtEnclosingClass.Count
+              i < e.PreTypeApplicationAtEnclosingClass.Count
                 ? e.Member.EnclosingClass.TypeArgs[i]
-                : ((ICallable)e.Member).TypeArgs[i - e.PreTypeApplication_AtEnclosingClass.Count];
+                : ((ICallable)e.Member).TypeArgs[i - e.PreTypeApplicationAtEnclosingClass.Count];
             if (!IsDetermined(p)) {
-              cus.ReportError(e.tok, $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
+              cus.ReportError(e.Origin, $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
             } else {
-              CheckContainsNoOrdinal(e.tok, p, $"type parameter '{tp.Name}' (passed in as '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' is not allowed to use ORDINAL");
+              CheckContainsNoOrdinal(e.Origin, p, $"type parameter '{tp.Name}' (passed in as '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' is not allowed to use ORDINAL");
             }
             i++;
           }
@@ -336,10 +339,10 @@ namespace Microsoft.Dafny {
               ? e.Function.EnclosingClass.TypeArgs[i]
               : e.Function.TypeArgs[i - e.PreTypeApplication_AtEnclosingClass.Count];
           if (!IsDetermined(p)) {
-            var hint = e.Name.StartsWith("reveal_") ? ". If you are making an opaque function, make sure that the function can be called." : "";
-            cus.ReportError(e.tok, $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
+            var hint = e.Name.StartsWith(HideRevealStmt.RevealLemmaPrefix) ? ". If you are making an opaque function, make sure that the function can be called." : "";
+            cus.ReportError(e.Origin, $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
           } else {
-            CheckContainsNoOrdinal(e.tok, p, $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");
+            CheckContainsNoOrdinal(e.Origin, p, $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");
           }
           i++;
         }
@@ -349,30 +352,22 @@ namespace Microsoft.Dafny {
         foreach (var lhsPattern in e.LHSs) {
           foreach (var bv in lhsPattern.Vars) {
             CheckVariable(bv, "bound variable");
-            CheckTypeArgsContainNoOrdinal(bv.tok, bv.PreType);
+            CheckTypeArgsContainNoOrdinal(bv.Origin, bv.PreType);
           }
         }
 
       } else if (expr is IdentifierExpr) {
         // by specializing for IdentifierExpr, error messages will be clearer
-        CheckPreTypeIsDetermined(expr.tok, expr.PreType, "variable");
+        CheckPreTypeIsDetermined(expr.Origin, expr.PreType, "variable");
 
-      } else if (expr is ConversionExpr) {
-        var e = (ConversionExpr)expr;
-        CheckPreTypeIsDetermined(e.tok, e.PreType, "cast target");
-
-      } else if (expr is TypeTestExpr) {
-        var e = (TypeTestExpr)expr;
-        CheckPreTypeIsDetermined(e.tok, e.PreType, "type test target");
-
-      } else if (CheckPreTypeIsDetermined(expr.tok, expr.PreType, "expression")) {
+      } else if (CheckPreTypeIsDetermined(expr.Origin, expr.PreType, "expression")) {
         if (expr is UnaryOpExpr uop) {
           var resolvedOp = (uop.Op, PreTypeResolver.AncestorName(uop.E.PreType)) switch {
-            (UnaryOpExpr.Opcode.Not, "bool") => UnaryOpExpr.ResolvedOpcode.BoolNot,
-            (UnaryOpExpr.Opcode.Cardinality, "set") => UnaryOpExpr.ResolvedOpcode.SetCard,
-            (UnaryOpExpr.Opcode.Cardinality, "seq") => UnaryOpExpr.ResolvedOpcode.SeqLength,
-            (UnaryOpExpr.Opcode.Cardinality, "multiset") => UnaryOpExpr.ResolvedOpcode.MultiSetCard,
-            (UnaryOpExpr.Opcode.Cardinality, "map") => UnaryOpExpr.ResolvedOpcode.MapCard,
+            (UnaryOpExpr.Opcode.Not, PreType.TypeNameBool) => UnaryOpExpr.ResolvedOpcode.BoolNot,
+            (UnaryOpExpr.Opcode.Cardinality, PreType.TypeNameSet) => UnaryOpExpr.ResolvedOpcode.SetCard,
+            (UnaryOpExpr.Opcode.Cardinality, PreType.TypeNameSeq) => UnaryOpExpr.ResolvedOpcode.SeqLength,
+            (UnaryOpExpr.Opcode.Cardinality, PreType.TypeNameMultiset) => UnaryOpExpr.ResolvedOpcode.MultiSetCard,
+            (UnaryOpExpr.Opcode.Cardinality, PreType.TypeNameMap) => UnaryOpExpr.ResolvedOpcode.MapCard,
             (UnaryOpExpr.Opcode.Fresh, _) => UnaryOpExpr.ResolvedOpcode.Fresh,
             (UnaryOpExpr.Opcode.Allocated, _) => UnaryOpExpr.ResolvedOpcode.Allocated,
             (UnaryOpExpr.Opcode.Lit, _) => UnaryOpExpr.ResolvedOpcode.Lit,
@@ -414,40 +409,40 @@ namespace Microsoft.Dafny {
           return BinaryExpr.ResolvedOpcode.Or;
         case BinaryExpr.Opcode.Eq:
           return operandFamilyName switch {
-            "set" or "iset" => BinaryExpr.ResolvedOpcode.SetEq,
-            "multiset" => BinaryExpr.ResolvedOpcode.MultiSetEq,
-            "seq" => BinaryExpr.ResolvedOpcode.SeqEq,
-            "map" or "imap" => BinaryExpr.ResolvedOpcode.MapEq,
+            PreType.TypeNameSet or PreType.TypeNameIset => BinaryExpr.ResolvedOpcode.SetEq,
+            PreType.TypeNameMultiset => BinaryExpr.ResolvedOpcode.MultiSetEq,
+            PreType.TypeNameSeq => BinaryExpr.ResolvedOpcode.SeqEq,
+            PreType.TypeNameMap or PreType.TypeNameImap => BinaryExpr.ResolvedOpcode.MapEq,
             _ => BinaryExpr.ResolvedOpcode.EqCommon
           };
         case BinaryExpr.Opcode.Neq:
           return operandFamilyName switch {
-            "set" or "iset" => BinaryExpr.ResolvedOpcode.SetNeq,
-            "multiset" => BinaryExpr.ResolvedOpcode.MultiSetNeq,
-            "seq" => BinaryExpr.ResolvedOpcode.SeqNeq,
-            "map" or "imap" => BinaryExpr.ResolvedOpcode.MapNeq,
+            PreType.TypeNameSet or PreType.TypeNameIset => BinaryExpr.ResolvedOpcode.SetNeq,
+            PreType.TypeNameMultiset => BinaryExpr.ResolvedOpcode.MultiSetNeq,
+            PreType.TypeNameSeq => BinaryExpr.ResolvedOpcode.SeqNeq,
+            PreType.TypeNameMap or PreType.TypeNameImap => BinaryExpr.ResolvedOpcode.MapNeq,
             _ => BinaryExpr.ResolvedOpcode.NeqCommon
           };
         case BinaryExpr.Opcode.Disjoint:
-          return operandFamilyName == "multiset" ? BinaryExpr.ResolvedOpcode.MultiSetDisjoint : BinaryExpr.ResolvedOpcode.Disjoint;
+          return operandFamilyName == PreType.TypeNameMultiset ? BinaryExpr.ResolvedOpcode.MultiSetDisjoint : BinaryExpr.ResolvedOpcode.Disjoint;
         case BinaryExpr.Opcode.Lt: {
-            if (operandPreType is DPreType dp && PreTypeResolver.AncestorDecl(dp.Decl) is IndDatatypeDecl) {
+            if (operandPreType is DPreType dp && PreTypeResolver.AncestorPreType(dp)?.Decl is IndDatatypeDecl) {
               return BinaryExpr.ResolvedOpcode.RankLt;
             }
             return operandFamilyName switch {
-              "set" or "iset" => BinaryExpr.ResolvedOpcode.ProperSubset,
-              "multiset" => BinaryExpr.ResolvedOpcode.ProperMultiSubset,
-              "seq" => BinaryExpr.ResolvedOpcode.ProperPrefix,
-              "char" => BinaryExpr.ResolvedOpcode.LtChar,
+              PreType.TypeNameSet or PreType.TypeNameIset => BinaryExpr.ResolvedOpcode.ProperSubset,
+              PreType.TypeNameMultiset => BinaryExpr.ResolvedOpcode.ProperMultiSubset,
+              PreType.TypeNameSeq => BinaryExpr.ResolvedOpcode.ProperPrefix,
+              PreType.TypeNameChar => BinaryExpr.ResolvedOpcode.LtChar,
               _ => BinaryExpr.ResolvedOpcode.Lt
             };
           }
         case BinaryExpr.Opcode.Le:
           return operandFamilyName switch {
-            "set" or "iset" => BinaryExpr.ResolvedOpcode.Subset,
-            "multiset" => BinaryExpr.ResolvedOpcode.MultiSubset,
-            "seq" => BinaryExpr.ResolvedOpcode.Prefix,
-            "char" => BinaryExpr.ResolvedOpcode.LeChar,
+            PreType.TypeNameSet or PreType.TypeNameIset => BinaryExpr.ResolvedOpcode.Subset,
+            PreType.TypeNameMultiset => BinaryExpr.ResolvedOpcode.MultiSubset,
+            PreType.TypeNameSeq => BinaryExpr.ResolvedOpcode.Prefix,
+            PreType.TypeNameChar => BinaryExpr.ResolvedOpcode.LeChar,
             _ => BinaryExpr.ResolvedOpcode.Le
           };
         case BinaryExpr.Opcode.LeftShift:
@@ -456,59 +451,59 @@ namespace Microsoft.Dafny {
           return BinaryExpr.ResolvedOpcode.RightShift;
         case BinaryExpr.Opcode.Add:
           return operandFamilyName switch {
-            "set" or "iset" => BinaryExpr.ResolvedOpcode.Union,
-            "multiset" => BinaryExpr.ResolvedOpcode.MultiSetUnion,
-            "seq" => BinaryExpr.ResolvedOpcode.Concat,
-            "map" or "imap" => BinaryExpr.ResolvedOpcode.MapMerge,
+            PreType.TypeNameSet or PreType.TypeNameIset => BinaryExpr.ResolvedOpcode.Union,
+            PreType.TypeNameMultiset => BinaryExpr.ResolvedOpcode.MultiSetUnion,
+            PreType.TypeNameSeq => BinaryExpr.ResolvedOpcode.Concat,
+            PreType.TypeNameMap or PreType.TypeNameImap => BinaryExpr.ResolvedOpcode.MapMerge,
             _ => BinaryExpr.ResolvedOpcode.Add
           };
         case BinaryExpr.Opcode.Sub: {
             var leftFamilyName = PreTypeResolver.AncestorName(leftOperandPreType);
-            if (leftFamilyName == "map" || leftFamilyName == "imap") {
+            if (leftFamilyName is PreType.TypeNameMap or PreType.TypeNameImap) {
               return BinaryExpr.ResolvedOpcode.MapSubtraction;
             }
             return operandFamilyName switch {
-              "set" or "iset" => BinaryExpr.ResolvedOpcode.SetDifference,
-              "multiset" => BinaryExpr.ResolvedOpcode.MultiSetDifference,
+              PreType.TypeNameSet or PreType.TypeNameIset => BinaryExpr.ResolvedOpcode.SetDifference,
+              PreType.TypeNameMultiset => BinaryExpr.ResolvedOpcode.MultiSetDifference,
               _ => BinaryExpr.ResolvedOpcode.Sub
             };
           }
         case BinaryExpr.Opcode.Mul:
           return operandFamilyName switch {
-            "set" or "iset" => BinaryExpr.ResolvedOpcode.Intersection,
-            "multiset" => BinaryExpr.ResolvedOpcode.MultiSetIntersection,
+            PreType.TypeNameSet or PreType.TypeNameIset => BinaryExpr.ResolvedOpcode.Intersection,
+            PreType.TypeNameMultiset => BinaryExpr.ResolvedOpcode.MultiSetIntersection,
             _ => BinaryExpr.ResolvedOpcode.Mul
           };
         case BinaryExpr.Opcode.Gt: {
-            if (operandPreType is DPreType dp && PreTypeResolver.AncestorDecl(dp.Decl) is IndDatatypeDecl) {
+            if (operandPreType is DPreType dp && PreTypeResolver.AncestorPreType(dp)?.Decl is IndDatatypeDecl) {
               return BinaryExpr.ResolvedOpcode.RankGt;
             }
             return operandFamilyName switch {
-              "set" or "iset" => BinaryExpr.ResolvedOpcode.ProperSuperset,
-              "multiset" => BinaryExpr.ResolvedOpcode.ProperMultiSuperset,
-              "char" => BinaryExpr.ResolvedOpcode.GtChar,
+              PreType.TypeNameSet or PreType.TypeNameIset => BinaryExpr.ResolvedOpcode.ProperSuperset,
+              PreType.TypeNameMultiset => BinaryExpr.ResolvedOpcode.ProperMultiSuperset,
+              PreType.TypeNameChar => BinaryExpr.ResolvedOpcode.GtChar,
               _ => BinaryExpr.ResolvedOpcode.Gt
             };
           }
         case BinaryExpr.Opcode.Ge:
           return operandFamilyName switch {
-            "set" or "iset" => BinaryExpr.ResolvedOpcode.Superset,
-            "multiset" => BinaryExpr.ResolvedOpcode.MultiSuperset,
-            "char" => BinaryExpr.ResolvedOpcode.GeChar,
+            PreType.TypeNameSet or PreType.TypeNameIset => BinaryExpr.ResolvedOpcode.Superset,
+            PreType.TypeNameMultiset => BinaryExpr.ResolvedOpcode.MultiSuperset,
+            PreType.TypeNameChar => BinaryExpr.ResolvedOpcode.GeChar,
             _ => BinaryExpr.ResolvedOpcode.Ge
           };
         case BinaryExpr.Opcode.In:
           return operandFamilyName switch {
-            "set" or "iset" => BinaryExpr.ResolvedOpcode.InSet,
-            "multiset" => BinaryExpr.ResolvedOpcode.InMultiSet,
-            "map" or "imap" => BinaryExpr.ResolvedOpcode.InMap,
+            PreType.TypeNameSet or PreType.TypeNameIset => BinaryExpr.ResolvedOpcode.InSet,
+            PreType.TypeNameMultiset => BinaryExpr.ResolvedOpcode.InMultiSet,
+            PreType.TypeNameMap or PreType.TypeNameImap => BinaryExpr.ResolvedOpcode.InMap,
             _ => BinaryExpr.ResolvedOpcode.InSeq
           };
         case BinaryExpr.Opcode.NotIn:
           return operandFamilyName switch {
-            "set" or "iset" => BinaryExpr.ResolvedOpcode.NotInSet,
-            "multiset" => BinaryExpr.ResolvedOpcode.NotInMultiSet,
-            "map" or "imap" => BinaryExpr.ResolvedOpcode.NotInMap,
+            PreType.TypeNameSet or PreType.TypeNameIset => BinaryExpr.ResolvedOpcode.NotInSet,
+            PreType.TypeNameMultiset => BinaryExpr.ResolvedOpcode.NotInMultiSet,
+            PreType.TypeNameMap or PreType.TypeNameImap => BinaryExpr.ResolvedOpcode.NotInMap,
             _ => BinaryExpr.ResolvedOpcode.NotInSeq
           };
         case BinaryExpr.Opcode.Div:
@@ -529,7 +524,7 @@ namespace Microsoft.Dafny {
 
     void CheckVariable(IVariable v, string whatIsBeingChecked) {
       if (!IsDetermined(v.PreType)) {
-        cus.ReportError(v.Tok, $"type of {whatIsBeingChecked} '{v.Name}' could not be determined{UndeterminedPreTypeToString(v.PreType)}; please specify the type explicitly");
+        cus.ReportError(v.Origin, $"type of {whatIsBeingChecked} '{v.Name}' could not be determined{UndeterminedPreTypeToString(v.PreType)}; please specify the type explicitly");
       }
     }
 
@@ -560,7 +555,7 @@ namespace Microsoft.Dafny {
     /// Check if "pt" is fully determined. If it is, return "true". If it is not, then
     /// report an error and return "false".
     /// </summary>
-    public bool CheckPreTypeIsDetermined(IToken tok, PreType pt, string whatIsBeingChecked, PreType origPreType = null) {
+    public bool CheckPreTypeIsDetermined(IOrigin tok, PreType pt, string whatIsBeingChecked, PreType origPreType = null) {
       Contract.Requires(tok != null);
       Contract.Requires(pt != null);
       Contract.Requires(whatIsBeingChecked != null);
@@ -584,7 +579,7 @@ namespace Microsoft.Dafny {
       return dp.Arguments.TrueForAll(tt => CheckPreTypeIsDetermined(tok, tt, whatIsBeingChecked, origPreType));
     }
 
-    public void CheckTypeArgsContainNoOrdinal(IToken tok, PreType preType) {
+    public void CheckTypeArgsContainNoOrdinal(IOrigin tok, PreType preType) {
       Contract.Requires(tok != null);
       Contract.Requires(preType != null);
       if (preType.Normalize() is DPreType dp) {
@@ -592,12 +587,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void CheckContainsNoOrdinal(IToken tok, PreType preType, string errMsg) {
+    public void CheckContainsNoOrdinal(IOrigin tok, PreType preType, string errMsg) {
       Contract.Requires(tok != null);
       Contract.Requires(preType != null);
       Contract.Requires(errMsg != null);
       if (preType.Normalize() is DPreType dp) {
-        if (PreTypeResolver.AncestorName(dp) == "ORDINAL") {
+        if (PreTypeResolver.AncestorName(dp) == PreType.TypeNameORDINAL) {
           cus.ReportError(tok, errMsg);
         }
         dp.Arguments.ForEach(tt => CheckContainsNoOrdinal(tok, tt, errMsg));

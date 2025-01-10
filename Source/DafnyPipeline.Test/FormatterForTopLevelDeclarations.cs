@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -7,8 +8,8 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForTopLevelDeclarations")]
 public class FormatterForTopLevelDeclarations : FormatterBaseTest {
   [Fact]
-  public void FormatterWorksForEmptyDocument() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForEmptyDocument() {
+    await FormatterWorksFor(@"
 /*
 module S0 refines R {
   // This module defines a local g().  It takes precedence over the g() that
@@ -23,8 +24,8 @@ module S0 refines R {
   }
 
   [Fact]
-  public void FormatWorksForSingleInclude() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForSingleInclude() {
+    await FormatterWorksFor(@"
 // RUN
 
 include ""git-issue48-include.dfyi""
@@ -32,18 +33,40 @@ include ""git-issue48-include.dfyi""
 ");
   }
   [Fact]
-  public void FormatterWorksForMultipleModules() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForMultipleModules() {
+    await FormatterWorksFor(@"
+/* Comment about module */
+@Compile(
+  false
+)
+@Options(
+  ""-functionSyntax:4""
+)
 module Outer.A {
   import B
   import C
   const a := B.b + C.c
+  @Compile(false)
+  module Inner {
+  }
+  @Compile(false)
+  class Test {
+  }
+  @Compile(false)
+  trait TestTrait {
+  }
+
+  @Compile(false)
+  datatype TestDatatype = TestDatatype
+
+  @Compile(false)
+  type T = TestDatatype
 }");
   }
 
   [Fact]
-  public void FormatterWorksForIteratorRequiresComment() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForIteratorRequiresComment() {
+    await FormatterWorksFor(@"
 iterator Iter(x: int) yields (y: int)
   requires A: 0 <= x
   // yield requires B: 0 <= y  // not allowed; won't parse
@@ -53,8 +76,8 @@ iterator Iter(x: int) yields (y: int)
   }
 
   [Fact]
-  public void FormatWorksForTypes() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForTypes() {
+    await FormatterWorksFor(@"
 type NoWitness_EffectlessArrow<!A(!new), B> = f: A ~> B  // error: cannot find witness
   | forall a :: f.reads(a) == {}
  
@@ -82,8 +105,8 @@ type Z =
   }
 
   [Fact]
-  public void FormatWorksForNewTypes() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForNewTypes() {
+    await FormatterWorksFor(@"
 newtype X
   = i : int
   | || i == 2
@@ -104,8 +127,11 @@ newtype Y
   }
 
   [Fact]
-  public void FormatWorksForModules() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForModules() {
+    await FormatterWorksFor(@"
+include ""test.dfy""
+
+@Compile(true)
 module AM { class A {}
             class B {} }
 
@@ -144,7 +170,7 @@ module M {
              L4
     provides L5
            , L6
-             // Comment
+    // Comment
     provides
       L7, L8
     provides
@@ -161,7 +187,7 @@ module M {
             M4
     reveals M5
           , M6
-            // Comment
+    // Comment
     reveals
       M7, M8
     reveals
@@ -183,8 +209,8 @@ abstract module Abs {
   }
 
   [Fact]
-  public void FormatWorksForSimpleIterator() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForSimpleIterator() {
+    await FormatterWorksFor(@"
 iterator Gen(start: int) yields (x: int)
   yield ensures |xs| <= 10 && x == start + |xs| - 1
 {
@@ -198,8 +224,8 @@ iterator Gen(start: int) yields (x: int)
 ");
   }
   [Fact]
-  public void FormatterWorksForModules() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForModules() {
+    await FormatterWorksFor(@"
 module Tests {
 class C {
   function F(c: C, d: D): bool { true }
@@ -217,8 +243,8 @@ module Tests {
   }
 
   [Fact]
-  public void FormatterWorksForClassExtend() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForClassExtend() {
+    await FormatterWorksFor(@"
 class A
   extends B<
     C<
@@ -254,8 +280,8 @@ class W extends  AA2,
 ");
   }
   [Fact]
-  public void FormatterWorksForAbstractModuleDecl() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForAbstractModuleDecl() {
+    await FormatterWorksFor(@"
 abstract module C {
   export Body provides AF reveals g
  
@@ -264,8 +290,8 @@ abstract module C {
 ");
   }
   [Fact]
-  public void FormatterWorksForNewtypeWithMember() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForNewtypeWithMember() {
+    await FormatterWorksFor(@"
 newtype Even = x : int | x % 2 == 0
 {
   method {:timeLimitMultiplier 4} NewtypeTest(y:int) {
@@ -283,8 +309,8 @@ type Opaque<
   }
 
   [Fact]
-  public void FormatterWorksForCppExample() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForCppExample() {
+    await FormatterWorksFor(@"
 // RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp ExternDefs.h ""%s"" > ""%t""
 // RUN: %diff ""%s.expect"" ""%t""
 
@@ -338,8 +364,8 @@ method Main() {
   }
 
   [Fact]
-  public void FormatterWorksForRefinedMethod() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForRefinedMethod() {
+    await FormatterWorksFor(@"
 method M... 
 {
   if ... {}

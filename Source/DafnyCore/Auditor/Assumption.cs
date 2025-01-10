@@ -5,124 +5,116 @@ using System.Runtime.CompilerServices;
 namespace Microsoft.Dafny.Auditor;
 
 public record AssumptionDescription(
-  string issue,
-  string mitigation,
-  string mitigationIETF,
-  bool isExplicit,
-  bool allowedInLibraries
+  string Issue,
+  string Mitigation,
+  string MitigationIetf,
+  bool IsExplicit
 ) {
   public static AssumptionDescription HasAxiomAttribute = new(
-    issue: "Declaration has explicit [{:axiom}] attribute.",
-    mitigation: "Provide a proof or test.",
-    mitigationIETF: "SHOULD provide a proof or test.",
-    isExplicit: true,
-    allowedInLibraries: true);
+    Issue: "Declaration has explicit [{:axiom}] attribute.",
+    Mitigation: "Provide a proof or test.",
+    MitigationIetf: "SHOULD provide a proof or test.",
+    IsExplicit: true);
   public static AssumptionDescription HasVerifyFalseAttribute = new(
-    issue: "Declaration has [{:verify false}] attribute.",
-    mitigation: "Remove [{:verify false}] attribute and prove if possible.",
-    mitigationIETF: "MUST remove [{:verify false}] attribute and prove.",
-    isExplicit: false,
-    allowedInLibraries: false);
+    Issue: "Declaration has [{:verify false}] attribute.",
+    Mitigation: "Remove [{:verify false}] attribute and prove if possible.",
+    MitigationIetf: "MUST remove [{:verify false}] attribute and prove.",
+    IsExplicit: false);
   public static AssumptionDescription ExternFunction = new(
-    issue: "Function with [{:extern}] attribute.",
-    mitigation: "Turn into a [method] with [modifies *] or test thoroughly for lack of side effects.",
-    mitigationIETF: "SHOULD use [method] with [modifies *] instead.",
-    isExplicit: false,
-    allowedInLibraries: false);
+    Issue: "Function with [{:extern}] attribute.",
+    Mitigation: "Turn into a [method] with [modifies {}] and test thoroughly for lack of side effects.",
+    MitigationIetf: "SHOULD use [method] with [modifies {}] instead.",
+    IsExplicit: false);
+
   public static AssumptionDescription ExternWithPrecondition = new(
-    issue: "Declaration with [{:extern}] has a requires clause.",
-    mitigation: "Test any external callers (maybe with [/testContracts]).",
-    mitigationIETF: "MUST test any external callers.",
-    isExplicit: false,
-    allowedInLibraries: false);
+    Issue: "Declaration with [{:extern}] has a requires clause.",
+    Mitigation: "Test any external callers (maybe with [/testContracts]).",
+    MitigationIetf: "MUST test any external callers.",
+    IsExplicit: false);
   public static AssumptionDescription ExternWithPostcondition = new(
-    issue: "Declaration with [{:extern}] has a ensures clause.",
-    mitigation: "Test external callee (maybe with [/testContracts]).",
-    mitigationIETF: "MUST test external callee.",
-    isExplicit: false,
-    allowedInLibraries: false);
+    Issue: "Declaration with [{:extern}] has a ensures clause.",
+    Mitigation: "Test external callee (maybe with [/testContracts]).",
+    MitigationIetf: "MUST test external callee.",
+    IsExplicit: false);
+
   public static AssumptionDescription AssumeStatement(bool hasAxiomAttribute) {
     return new(
-      issue:
+      Issue:
       hasAxiomAttribute
         ? "Definition has [assume {:axiom}] statement in body."
         : "Definition has [assume] statement in body.",
-      mitigation:
+      Mitigation:
         hasAxiomAttribute
           ? "Replace with [assert] and prove."
           : "Replace with [assert] and prove or add [{:axiom}].",
-      mitigationIETF:
+      MitigationIetf:
         hasAxiomAttribute
           ? "SHOULD replace with [assert] and prove."
           : "MUST replace with [assert] and prove or add [{:axiom}].",
-      isExplicit: false,
-      allowedInLibraries: false
+      IsExplicit: false
     );
   }
   public static AssumptionDescription MayNotTerminate = new(
-    issue: "Method may not terminate (uses [decreases *]).",
-    mitigation: "Provide a valid [decreases] clause.",
-    mitigationIETF: "SHOULD provide a valid [decreases] clause.",
-    isExplicit: false,
-    // This isn't unsound but it's hard to imagine useful libraries
-    // with non-terminating methods. If we ever want to offer something like a
-    // top-level event loop driver we can revisit.
-    allowedInLibraries: false);
+    Issue: "Method may not terminate (uses [decreases *]).",
+    Mitigation: "Provide a valid [decreases] clause.",
+    MitigationIetf: "SHOULD provide a valid [decreases] clause.",
+    IsExplicit: false);
   public static AssumptionDescription HasTerminationFalseAttribute = new(
-    issue: "Trait method calls may not terminate (uses [{:termination false}]).",
-    mitigation: "Remove if possible.",
-    mitigationIETF: "MUST remove [{:termination false}] or justify.",
-    isExplicit: false,
-    allowedInLibraries: false);
+    Issue: "Trait method calls may not terminate (uses [{:termination false}]).",
+    Mitigation: "Remove if possible.",
+    MitigationIetf: "MUST remove [{:termination false}] or justify.",
+    IsExplicit: false);
+  public static AssumptionDescription HasAssumeCrossModuleTerminationAttribute = new(
+    Issue: "Trait method calls may not terminate (uses [@AssumeCrossModuleTermination]).",
+    Mitigation: "Remove if possible.",
+    MitigationIetf: "MUST remove [@AssumeCrossModuleTermination] or justify.",
+    IsExplicit: false);
   public static AssumptionDescription ForallWithoutBody = new(
-    issue: "Definition contains [forall] statement with no body.",
-    mitigation: "Provide a body.",
-    mitigationIETF: "MUST provide a body.",
-    isExplicit: false,
-    allowedInLibraries: false);
+    Issue: "Definition contains [forall] statement with no body.",
+    Mitigation: "Provide a body.",
+    MitigationIetf: "MUST provide a body.",
+    IsExplicit: false);
   public static AssumptionDescription LoopWithoutBody = new(
-    issue: "Definition contains loop with no body.",
-    mitigation: "Provide a body.",
-    mitigationIETF: "MUST provide a body.",
-    isExplicit: false,
-    allowedInLibraries: false);
-  public static AssumptionDescription HasConcurrentAttribute = new(
-    issue: "Declaration has [{:concurrent}] attribute.",
-    mitigation: "Manually review and test in a concurrent setting.",
-    mitigationIETF: "MUST manually review and test in a concurrent setting.",
-    isExplicit: false,
-    allowedInLibraries: false);
+    Issue: "Definition contains loop with no body.",
+    Mitigation: "Provide a body.",
+    MitigationIetf: "MUST provide a body.",
+    IsExplicit: false);
+
+  public static AssumptionDescription HasAssumeConcurrentAttribute(bool isModifies) {
+    return new AssumptionDescription(
+      Issue: (isModifies ? "Modifies" : "Reads") + " clause has [{:assume_concurrent}] attribute.",
+      Mitigation: "Manually review and test in a concurrent setting.",
+      MitigationIetf: "MUST manually review and test in a concurrent setting.",
+      IsExplicit: true);
+  }
 
   public static AssumptionDescription NoBody(bool isGhost) {
     return new(
-      issue: (isGhost ? "Ghost" : "Compiled") +
+      Issue: (isGhost ? "Ghost" : "Compiled") +
              " declaration has no body and has an ensures clause.",
-      mitigation: "Provide a body or add [{:axiom}].",
-      mitigationIETF: (isGhost ? "MUST" : "SHOULD") + " provide a body or add [{:axiom}].",
-      isExplicit: false,
-      allowedInLibraries: false);
+      Mitigation: "Provide a body or add [{:axiom}].",
+      MitigationIetf: (isGhost ? "MUST" : "SHOULD") + " provide a body or add [{:axiom}].",
+      IsExplicit: false);
   }
 
   public static readonly AssumptionDescription AssertOnly = new(
-    issue: "Assertion has explicit temporary [{:only}] attribute.",
-    mitigation: "Remove the [{:only}] attribute.",
-    mitigationIETF: "MUST remove the [{:only}] attribute.",
-    isExplicit: true,
-    allowedInLibraries: false
+    Issue: "Assertion has explicit temporary [{:only}] attribute.",
+    Mitigation: "Remove the [{:only}] attribute.",
+    MitigationIetf: "MUST remove the [{:only}] attribute.",
+    IsExplicit: true
   );
 
   public static readonly AssumptionDescription MemberOnly = new(
-    issue: "Member has explicit temporary [{:only}] attribute.",
-    mitigation: "Remove the [{:only}] attribute.",
-    mitigationIETF: "MUST remove the [{:only}] attribute.",
-    isExplicit: true,
-    allowedInLibraries: false
+    Issue: "Member has explicit temporary [{:only}] attribute.",
+    Mitigation: "Remove the [{:only}] attribute.",
+    MitigationIetf: "MUST remove the [{:only}] attribute.",
+    IsExplicit: true
   );
 }
-public record Assumption(Declaration decl, IToken tok, AssumptionDescription desc) {
+public record Assumption(Declaration decl, IOrigin Tok, AssumptionDescription desc) {
   public string Warning() {
-    var tickIssue = UpdateVerbatim(desc.issue, "`", "`");
-    var tickMitigation = UpdateVerbatim(desc.mitigation, "`", "`");
+    var tickIssue = UpdateVerbatim(desc.Issue, "`", "`");
+    var tickMitigation = UpdateVerbatim(desc.Mitigation, "`", "`");
     return decl.Name + ": " + tickIssue + " Possible mitigation: " + tickMitigation;
   }
 

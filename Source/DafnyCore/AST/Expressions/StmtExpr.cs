@@ -19,14 +19,14 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
 
   public StmtExpr(Cloner cloner, StmtExpr original) : base(cloner, original) {
     E = cloner.CloneExpr(original.E);
-    S = cloner.CloneStmt(original.S);
+    S = cloner.CloneStmt(original.S, false);
   }
 
   public override IEnumerable<INode> Children => new Node[] { S, E };
 
-  public StmtExpr(IToken tok, Statement stmt, Expression expr)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public StmtExpr(IOrigin origin, Statement stmt, Expression expr)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(stmt != null);
     Contract.Requires(expr != null);
     S = stmt;
@@ -53,20 +53,25 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
   /// S is executed.
   /// This method should be called only after successful resolution of the expression.
   /// </summary>
-  public Expression GetSConclusion() {
-    // this is one place where we actually investigate what kind of statement .S is
-    if (S is PredicateStmt) {
-      var s = (PredicateStmt)S;
-      return s.Expr;
-    } else if (S is CalcStmt) {
-      var s = (CalcStmt)S;
-      return s.Result;
-    } else if (S is RevealStmt) {
-      return new LiteralExpr(tok, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
-    } else if (S is UpdateStmt) {
-      return new LiteralExpr(tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
-    } else {
-      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+  public Expression GetStatementConclusion() {
+    return GetStatementConclusion(S);
+  }
+
+  private Expression GetStatementConclusion(Statement statement) {
+    switch (statement) {
+      // this is one place where we actually investigate what kind of statement .S is
+      case PredicateStmt stmt:
+        return stmt.Expr;
+      case CalcStmt stmt:
+        return stmt.Result;
+      case HideRevealStmt:
+        return CreateBoolLiteral(Origin, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
+      case AssignStatement:
+        return CreateBoolLiteral(Origin, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
+      case BlockByProofStmt stmt:
+        return GetStatementConclusion(stmt.Body);
+      default:
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
     }
   }
 

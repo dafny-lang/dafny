@@ -62,6 +62,7 @@ namespace DafnyTestGeneration {
       if (options.TestGenOptions.Mode is TestGenerationOptions.Modes.InlinedBlock) {
         program = new AnnotationVisitor(options).VisitProgram(program);
       }
+      program = Utils.DeepCloneResolvedProgram(program, options); // need to make sure the program is resolved and typed
       TestEntries = program.Implementations
         .Where(implementation =>
           Utils.DeclarationHasAttribute(implementation, TestGenerationOptions.TestEntryAttribute) &&
@@ -86,8 +87,8 @@ namespace DafnyTestGeneration {
       if (options.TestGenOptions.SeqLengthLimit == 0) {
         return;
       }
-      var limit = options.TestGenOptions.SeqLengthLimit;
-      Parser.Parse($"axiom (forall<T> y: Seq T :: " +
+      var limit = (uint)options.TestGenOptions.SeqLengthLimit;
+      Parser.Parse($"axiom (forall y: Seq :: " +
                    $"{{ Seq#Length(y) }} Seq#Length(y) <= {limit});",
         "", out var tmpProgram);
       program.AddTopLevelDeclaration(
@@ -149,17 +150,15 @@ namespace DafnyTestGeneration {
       }
 
       public override Block VisitBlock(Block node) {
-        var state = Utils.GetBlockId(node, options);
-        if (state == null) { // cannot map back to Dafny source location
-          return base.VisitBlock(node);
-        }
-        var data = new List<object>
-          { "Block", implementation.Name, state };
-        int afterPartition = node.cmds.FindIndex(cmd =>
+        int afterPartition = node.Cmds.FindIndex(cmd =>
           cmd is not AssumeCmd assumeCmd || assumeCmd.Attributes == null || assumeCmd.Attributes.Key != "partition");
         afterPartition = afterPartition > -1 ? afterPartition : 0;
-        node.cmds.Insert(afterPartition, GetAssumePrintCmd(data));
-        return node;
+        foreach (var state in Utils.AllBlockIds(node, options)) {
+          var data = new List<object>
+            { "Block", implementation.Name, state };
+          node.Cmds.Insert(afterPartition, GetAssumePrintCmd(data));
+        }
+        return base.VisitBlock(node);
       }
 
       public override Implementation VisitImplementation(Implementation node) {
@@ -168,12 +167,12 @@ namespace DafnyTestGeneration {
         var data = new List<object> { "Types" };
         data.AddRange(node.InParams.Select(var =>
           var.TypedIdent.Type.ToString()));
-        node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
+        node.Blocks[0].Cmds.Insert(0, GetAssumePrintCmd(data));
 
         // record parameter values:
         data = new List<object> { "Impl", node.VerboseName.Split(" ")[0] };
         data.AddRange(node.InParams.Select(var => new IdentifierExpr(new Token(), var)));
-        node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
+        node.Blocks[0].Cmds.Insert(0, GetAssumePrintCmd(data));
         if (Utils.DeclarationHasAttribute(node, TestGenerationOptions.TestEntryAttribute) || Utils.DeclarationHasAttribute(node, TestGenerationOptions.TestInlineAttribute)) {
           VisitBlockList(node.Blocks);
         }
@@ -198,11 +197,11 @@ namespace DafnyTestGeneration {
       }
 
       public override Block VisitBlock(Block node) {
-        var toRemove = node.cmds.OfType<AssertCmd>().ToList();
+        var toRemove = node.Cmds.OfType<AssertCmd>().ToList();
         foreach (var cmd in toRemove) {
           var newCmd = new AssumeCmd(new Token(), cmd.Expr, cmd.Attributes);
-          node.cmds.Insert(node.cmds.IndexOf(cmd), newCmd);
-          node.cmds.Remove(cmd);
+          node.Cmds.Insert(node.Cmds.IndexOf(cmd), newCmd);
+          node.Cmds.Remove(cmd);
         }
         return node;
       }

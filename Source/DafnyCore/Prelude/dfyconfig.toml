@@ -1,0 +1,5 @@
+[options]
+allow-warnings=true
+type-system-refresh=true
+general-traits="datatype"
+general-newtypes=true

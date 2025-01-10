@@ -1,4 +1,6 @@
-<p></p> <!-- avoids duplicate title -->
+---
+title: Dafny compilation to Go
+---
 
 Dafny compilation to Go
 =======================

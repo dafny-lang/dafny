@@ -23,11 +23,15 @@ public class IndentationFormatter : IIndentationFormatter {
   /// Creates an IndentationFormatter for the given program,
   /// by immediately processing all nodes and assigning indentations to most structural tokens 
   /// </summary>
-  public static IndentationFormatter ForProgram(Program program, bool reduceBlockiness = true) {
-    var tokenNewIndentCollector = new TokenNewIndentCollector(program) {
+  public static IndentationFormatter ForProgram(Program program, Uri fileToFormat, bool reduceBlockiness = true) {
+    var tokenNewIndentCollector = new TokenNewIndentCollector(program, fileToFormat) {
       ReduceBlockiness = reduceBlockiness
     };
     foreach (var child in program.DefaultModuleDef.PreResolveChildren) {
+      var isPhysicalToken = child.Origin.line != 0;
+      if (isPhysicalToken && child.Origin.Uri != fileToFormat) {
+        continue;
+      }
       if (child is TopLevelDecl topLevelDecl) {
         tokenNewIndentCollector.SetDeclIndentation(topLevelDecl, 0);
       } else if (child is Include include) {
@@ -43,11 +47,11 @@ public class IndentationFormatter : IIndentationFormatter {
 
   #region Override for implementing IIndentationFormatter
 
-  public string GetNewLeadingTrivia(IToken token) {
+  public string GetNewLeadingTrivia(Token token) {
     return GetNewTrivia(token, false);
   }
 
-  public string GetNewTrailingTrivia(IToken token) {
+  public string GetNewTrailingTrivia(Token token) {
     return GetNewTrivia(token, true);
   }
 
@@ -144,7 +148,7 @@ public class IndentationFormatter : IIndentationFormatter {
   ///   // One last word
   /// }
   /// ```
-  public string GetNewTrivia(IToken token, bool trailingTrivia) {
+  public string GetNewTrivia(Token token, bool trailingTrivia) {
     var precededByNewline = token.Prev != null && !trailingTrivia && TriviaFormatterHelper.EndsWithNewline(token.Prev.TrailingTrivia);
     if (token.val == "") {
       return trailingTrivia ? token.TrailingTrivia : token.LeadingTrivia;
@@ -225,7 +229,7 @@ public class IndentationFormatter : IIndentationFormatter {
     });
   }
 
-  private string ReIndentMultilineComment(IToken token, string capturedComment, int currentIndent,
+  private string ReIndentMultilineComment(IOrigin token, string capturedComment, int currentIndent,
     string indentationBefore, bool precededByNewline, out bool previousMatchWasSingleLineCommentToAlign) {
     var doubleStar = capturedComment.StartsWith("/**") && !capturedComment.StartsWith("/***");
 
@@ -293,7 +297,7 @@ public class IndentationFormatter : IIndentationFormatter {
     return Whitespace(currentIndent + relativeIndent - initialRelativeIndent) + result;
   }
 
-  private string ReIndentSingleLineComment(IToken token, string capturedComment, int originalCommentIndent,
+  private string ReIndentSingleLineComment(Token token, string capturedComment, int originalCommentIndent,
     int currentIndent, int newCommentIndent, Group caseCommented, ref bool previousMatchWasSingleLineCommentToAlign,
     ref string indentationBefore) {
     if (capturedComment.StartsWith("///") && !capturedComment.StartsWith("////")) {

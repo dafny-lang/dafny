@@ -9,20 +9,20 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   public readonly List<Expression> RHSs;
   public readonly Expression Body;
   public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
-  public readonly Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-  [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Constraint_Bounds;  // null for Exact=true and for when expression is in a ghost context
+  public Attributes Attributes { get; set; }
+  string IAttributeBearingDeclaration.WhatKind => "let expression";
+  [FilledInDuringResolution] public List<BoundedPool> Constraint_Bounds;  // null for Exact=true and for when expression is in a ghost context
   // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
   private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
-  private Translator lastTranslatorUsed; // avoid clashing desugaring between translators
+  private BoogieGenerator lastBoogieGeneratorUsed; // avoid clashing desugaring between translators
 
-  public void SetTranslationDesugaring(Translator trans, Expression expr) {
-    lastTranslatorUsed = trans;
+  public void SetTranslationDesugaring(BoogieGenerator trans, Expression expr) {
+    lastBoogieGeneratorUsed = trans;
     translationDesugaring = expr;
   }
 
-  public Expression GetTranslationDesugaring(Translator trans) {
-    if (lastTranslatorUsed == trans) {
+  public Expression GetTranslationDesugaring(BoogieGenerator trans) {
+    if (lastBoogieGeneratorUsed == trans) {
       return translationDesugaring;
     } else {
       return null;
@@ -44,8 +44,8 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     }
   }
 
-  public LetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
-    : base(tok) {
+  public LetExpr(IOrigin origin, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
+    : base(origin) {
     LHSs = lhss;
     RHSs = rhss;
     Body = body;
@@ -53,7 +53,7 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     Attributes = attrs;
   }
 
-  public static LetExpr Havoc(IToken tok, Type type = null) {
+  public static LetExpr Havoc(IOrigin tok, Type type = null) {
     type ??= new InferredTypeProxy();
     var boundVar = new BoundVar(tok, "x", type);
     var casePatterns = new List<CasePattern<BoundVar>>() { new(tok, boundVar) };
@@ -123,8 +123,8 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>())
-    .Concat(LHSs)
+    Attributes.AsEnumerable().
+      Concat<Node>(LHSs)
     .Concat(base.Children);
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

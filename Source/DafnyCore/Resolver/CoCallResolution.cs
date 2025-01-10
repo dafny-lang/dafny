@@ -120,10 +120,10 @@ class CoCallResolution {
       if (!Attributes.ContainsBool(e.Function.Attributes, "abstemious", ref abstemious)) {
         abstemious = false;
       }
-      Contract.Assert(e.Args.Count == e.Function.Formals.Count);
+      Contract.Assert(e.Args.Count == e.Function.Ins.Count);
       for (var i = 0; i < e.Args.Count; i++) {
         var arg = e.Args[i];
-        if (!e.Function.Formals[i].Type.IsCoDatatype) {
+        if (!e.Function.Ins[i].Type.IsCoDatatype) {
           CheckCoCalls(arg, int.MaxValue, null, coCandidates);
         } else if (abstemious) {
           CheckCoCalls(arg, 0, coContext, coCandidates);
@@ -153,7 +153,7 @@ class CoCallResolution {
           } else {
             e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded;
           }
-        } else if (e.Function.Reads.Count != 0) {
+        } else if (e.Function.Reads.Expressions.Count != 0) {
           // this call is disqualified from being a co-call, because of side effects
           if (!dealsWithCodatatypes) {
             e.CoCall = FunctionCallExpr.CoCallResolution.No;
@@ -182,7 +182,7 @@ class CoCallResolution {
       if (e.Range != null) {
         CheckCoCalls(e.Range, int.MaxValue, null, coCandidates);
       }
-      foreach (var read in e.Reads) {
+      foreach (var read in e.Reads.Expressions) {
         CheckCoCalls(read.E, int.MaxValue, null, coCandidates);
       }
       return;

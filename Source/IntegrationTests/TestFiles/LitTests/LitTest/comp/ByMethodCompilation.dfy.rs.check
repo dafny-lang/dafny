@@ -1,0 +1,1 @@
+// CHECK-L: error[E0425]: cannot find value `_hresult` in this scope

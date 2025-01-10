@@ -1,4 +1,6 @@
-<p></p> <!-- avoids duplicate title -->
+---
+title: Lemmas and Induction
+---
 
 # Lemmas and Induction
 

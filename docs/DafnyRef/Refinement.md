@@ -152,7 +152,7 @@ Method declarations can be refined as in the following example.
 
 <!-- %check-verify -->
 ```dafny
-module A {
+abstract module A {
   method ToImplement(x: int) returns (r: int)
     ensures r > x
 
@@ -225,7 +225,7 @@ the following example.
 
 <!-- %check-verify -->
 ```dafny
-module A {
+abstract module A {
   function F(x: int): (r: int)
     ensures r > x
 

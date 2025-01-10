@@ -7,6 +7,7 @@ using static Microsoft.Dafny.ErrorRegistry;
 public class GenericErrors {
 
   public enum ErrorId {
+    none,
     g_deprecated_this_in_constructor_modifies_clause,
     g_no_old_unicode_char,
     g_unicode_escape_must_have_six_digits,

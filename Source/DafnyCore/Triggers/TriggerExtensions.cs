@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
+using DafnyCore.Generic;
 
 namespace Microsoft.Dafny.Triggers {
   internal static class DeduplicateExtension {
@@ -25,29 +26,8 @@ namespace Microsoft.Dafny.Triggers {
     }
   }
 
-  internal struct TriggerMatch {
-    internal Expression Expr;
-    internal Expression OriginalExpr;
-    internal Dictionary<IVariable, Expression> Bindings;
-
-    internal static bool Eq(TriggerMatch t1, TriggerMatch t2) {
-      return ExprExtensions.ExpressionEq(t1.Expr, t2.Expr);
-    }
-
-    /// <summary>
-    ///  This method checks whether this match could actually cause a loop, given a set of terms participating in a trigger;
-    ///  to compute an answer, we match the Expr of this match against the Exprs of each of these term, allowing for harmless
-    ///  variations. If any of these tests does match, this term likely won't cause a loop.
-    ///  The boundVars list is useful to determine that forall x :: P(x) == P(y+z) does not loop.
-    /// </summary>
-    internal bool CouldCauseLoops(List<TriggerTerm> terms, ISet<BoundVar> boundVars, DafnyOptions options) {
-      var expr = Expr;
-      return !terms.Any(term => term.Expr.ExpressionEqModuloExpressionsNotInvolvingBoundVariables(expr, boundVars, options));
-    }
-  }
-
   internal static class ExprExtensions {
-    internal static bool IsInlineable(this LetExpr expr) {
+    private static bool IsInlineable(this LetExpr expr) {
       return expr.LHSs.All(p => p.Var != null) && expr.Exact;
     }
 
@@ -56,7 +36,7 @@ namespace Microsoft.Dafny.Triggers {
 
       if (inlineLets && expr is LetExpr && ((LetExpr)expr).IsInlineable()) {
         var le = (LetExpr)expr;
-        foreach (var subexpr in AllSubExpressions(Translator.InlineLet(le), wrapOld, strict, inlineLets)) {
+        foreach (var subexpr in AllSubExpressions(BoogieGenerator.InlineLet(le), wrapOld, strict, inlineLets)) {
           yield return subexpr;
         }
         // If strict is false, then the recursive call will already yield a copy of (the inlined version) of expr,
@@ -103,7 +83,8 @@ namespace Microsoft.Dafny.Triggers {
       expr1 = expr1.Resolved;
       expr2 = expr2.Resolved;
 
-      return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions, expr2.SubExpressions, (e1, e2) => ExpressionEq(e1, e2));
+      return ShallowEq_Top(expr1, expr2) &&
+             expr1.SubExpressions.SequenceEqual(expr2.SubExpressions, new PredicateEqualityComparer<Expression>(ExpressionEq));
     }
 
     internal static bool ExpressionEqModuloExpressionsNotInvolvingBoundVariables(this Expression expr1, Expression expr2, ISet<BoundVar> boundVars, DafnyOptions options) {
@@ -120,8 +101,8 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
 
-      return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions,
-        expr2.SubExpressions, (e1, e2) => ExpressionEqModuloExpressionsNotInvolvingBoundVariables(e1, e2, boundVars, options));
+      Func<Expression, Expression, bool> comparer = (e1, e2) => ExpressionEqModuloExpressionsNotInvolvingBoundVariables(e1, e2, boundVars, options);
+      return ShallowEq_Top(expr1, expr2) && expr1.SubExpressions.SequenceEqual(expr2.SubExpressions, new PredicateEqualityComparer<Expression>(comparer));
     }
 
     internal static bool MatchesTrigger(this Expression expr, Expression trigger, ISet<BoundVar> holes, Dictionary<IVariable, Expression> bindings) {
@@ -142,7 +123,8 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
 
-      return ShallowEq_Top(expr, trigger) && TriggerUtils.SameLists(expr.SubExpressions, trigger.SubExpressions, (e1, e2) => MatchesTrigger(e1, e2, holes, bindings));
+      Func<Expression, Expression, bool> comparer = (e1, e2) => MatchesTrigger(e1, e2, holes, bindings);
+      return ShallowEq_Top(expr, trigger) && expr.SubExpressions.SequenceEqual(trigger.SubExpressions, new PredicateEqualityComparer<Expression>(comparer));
     }
 
     private static TriggerMatch? MatchAgainst(this Expression expr, Expression trigger, IEnumerable<BoundVar> holes, Expression originalExpr) {
@@ -156,12 +138,13 @@ namespace Microsoft.Dafny.Triggers {
 
     internal static IEnumerable<TriggerMatch> SubexpressionsMatchingTrigger(this ComprehensionExpr quantifier, Expression trigger) {
       return quantifier.AllSubExpressions(true, true, true)
-        .Select(e => TriggerUtils.PrepareExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars, e))
+        .Select(e => TriggersCollector.PrepareExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars, e))
         .Where(e => e.HasValue).Select(e => e.Value);
     }
 
     private static bool ShallowSameAttributes(Attributes attributes1, Attributes attributes2) {
-      return TriggerUtils.SameLists(attributes1.AsEnumerable(), attributes2.AsEnumerable(), ShallowSameSingleAttribute);
+      Func<Attributes, Attributes, bool> comparer = ShallowSameSingleAttribute;
+      return attributes1.AsEnumerable().SequenceEqual(attributes2.AsEnumerable(), new PredicateEqualityComparer<Attributes>(comparer));
     }
 
     private static bool ShallowSameSingleAttribute(Attributes arg1, Attributes arg2) {
@@ -171,7 +154,6 @@ namespace Microsoft.Dafny.Triggers {
     private static bool SameBoundVar(IVariable arg1, IVariable arg2) {
       return arg1 == arg2 ||
              (arg1.Name == arg2.Name &&
-              arg1.CompileName == arg2.CompileName &&
               arg1.DisplayName == arg2.DisplayName &&
               arg1.UniqueName == arg2.UniqueName &&
               arg1.IsGhost == arg2.IsGhost &&
@@ -286,12 +268,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(LambdaExpr expr1, LambdaExpr expr2) {
-#if THROW_UNSUPPORTED_COMPARISONS
-      Contract.Assume(false); // This kind of expression never appears in a trigger
-      throw new NotImplementedException();
-#else
-      return false;
-#endif
+      return true;
     }
 
     private static bool ShallowEq(MapComprehension expr1, MapComprehension expr2) {
@@ -334,7 +311,8 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(ComprehensionExpr expr1, ComprehensionExpr expr2) {
-      if (!TriggerUtils.SameLists(expr1.BoundVars, expr2.BoundVars, SameBoundVar) ||
+      Func<BoundVar, BoundVar, bool> comparer = SameBoundVar;
+      if (!expr1.BoundVars.SequenceEqual(expr2.BoundVars, new PredicateEqualityComparer<BoundVar>(comparer)) ||
           !ShallowSameAttributes(expr1.Attributes, expr2.Attributes) ||
           // Filled in during resolution: !SameLists(expr1.Bounds, expr2.Bounds, ReferenceCompare) ||
           //                              !SameLists(expr1.MissingBounds, expr2.MissingBounds, SameBoundVar) ||
@@ -430,10 +408,12 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(MemberSelectExpr expr1, MemberSelectExpr expr2) {
+      Func<Type, Type, bool> comparer = TypeEq;
+      Func<Type, Type, bool> comparer1 = TypeEq;
       return expr1.MemberName == expr2.MemberName &&
              expr1.Member == expr2.Member &&
-             TriggerUtils.SameLists(expr1.TypeApplication_AtEnclosingClass, expr2.TypeApplication_AtEnclosingClass, TypeEq) &&
-             TriggerUtils.SameLists(expr1.TypeApplication_JustMember, expr2.TypeApplication_JustMember, TypeEq);
+             expr1.TypeApplicationAtEnclosingClass.SequenceEqual(expr2.TypeApplicationAtEnclosingClass, new PredicateEqualityComparer<Type>(comparer)) &&
+             expr1.TypeApplicationJustMember.SequenceEqual(expr2.TypeApplicationJustMember, new PredicateEqualityComparer<Type>(comparer1));
     }
 
     internal static bool TypeEq(Type type1, Type type2) {
@@ -498,11 +478,12 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(DatatypeValue expr1, DatatypeValue expr2) {
+      Func<Type, Type, bool> comparer = TypeEq;
       return // Implied by Ctor equality: expr1.DatatypeName == expr2.DatatypeName &&
              // Implied by Ctor equality: expr1.MemberName == expr2.MemberName &&
              expr1.Ctor == expr2.Ctor &&
              // Contextual information: expr1.IsCoCall == expr2.IsCoCall &&
-             TriggerUtils.SameLists(expr1.InferredTypeArgs, expr2.InferredTypeArgs, TypeEq);
+             expr1.InferredTypeArgs.SequenceEqual(expr2.InferredTypeArgs, new PredicateEqualityComparer<Type>(comparer));
     }
 
     private static bool ShallowEq(StringLiteralExpr expr1, StringLiteralExpr expr2) {

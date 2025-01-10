@@ -69,7 +69,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Are there functional alternatives to recursive calls that are more efficient or use less stack space?"](FAQRecursiveCalls)
 - ["How do I read a file as a string?"](FAQReadFile)
 - ["Can I ask dafny to not check termination of a function?"](FAQNoTermCheck)
-- ["What does {:termination false} do on trait? It looks like it is required if I want to extend traits from other modules."](FAQTerminationFalse)
+- ["What do {:termination false} and @AssumeCrossModuleTermination do? It looks one of them is required if I want to extend traits from other modules."](FAQTerminationFalse)
 - ["How do I make Dafny termination checking happy with this pattern of mutual recursion?"](FAQMutualRecursion)
 - ["Can it be proved that a class instance is not an instance of a trait?"](FAQTypeReasoning)
 - ["Is there a nice way to turn a set into a seq?"](FAQSetToSeq)
@@ -86,6 +86,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I model extern methods that return objects?"](FAQExternReturnsObject)
 - ["How do I tell Dafny that a class field may be updated?"](FAQUpdateArrayField)
 - ["Why does Dafny not know this obvious property of maps?"](FAQMapMembership)
+- ["I can't prove the equivalence between the method part of a `function by method` and the function itself"](FAQFunctionByMethodProof)
 
 ## Dafny tools
 
@@ -120,7 +121,6 @@ Also see [the error catalog](./Errors) for a complete, searchable list of error 
 - ["Cannot export mutable field 'x' without revealing its enclosing class 'A'"](ERROR_MutableField)
 - ["this symbol not expected in Dafny"](ERROR_PostconditionLemma)
 - [Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown "Overflow encountered when expanding old_vector")](ERROR_ProverError1)
-- ["Warning: File contains no code: ..."](ERROR_NoCode)
 - ["Duplicate name of import: ..."](ERROR_DuplicateImportName)
 - ["Warning: /!\ No terms found to trigger on."](ERROR_NoTriggers)
 - ["Error: value does not satisfy the subset constraints of '(seq\<uint8>, Materials.EncryptedDataKey) -> seq\<uint8>' (possible cause: it may be partial or have read effects)"](ERROR_SubsetConstraints)

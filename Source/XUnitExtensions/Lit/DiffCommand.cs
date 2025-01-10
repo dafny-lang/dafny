@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -10,6 +11,7 @@ namespace XUnitExtensions.Lit {
   /// because 'diff' does not exist on Windows.
   /// </summary>
   public class DiffCommand : ILitCommand {
+    public static readonly bool UpdateExpectFile = "true" == Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE");
 
     public string ExpectedPath { get; }
     public string ActualPath { get; }
@@ -28,12 +30,29 @@ namespace XUnitExtensions.Lit {
       return new DiffCommand(expectedPath, actualPath);
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public static string? Run(string expectedOutputFile, string actualOutput) {
+      if (UpdateExpectFile) {
+        if (Path.GetExtension(expectedOutputFile) == ".tmp") {
+          return "With DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE=true, first argument of %diff cannot be a *.tmp file, it should be an *.expect file";
+        }
+        var path = Path.GetFullPath(expectedOutputFile).Replace("bin" + Path.DirectorySeparatorChar + "Debug" + Path.DirectorySeparatorChar + "net8.0" + Path.DirectorySeparatorChar, "");
+        File.WriteAllText(path, actualOutput);
+        return null;
+      }
+      var expected = File.ReadAllText(expectedOutputFile);
+      return AssertWithDiff.GetDiffMessage(expected, actualOutput);
+    }
+
+    public async Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
-      var expected = File.ReadAllText(ExpectedPath);
-      var actual = File.ReadAllText(ActualPath);
-      var diffMessage = AssertWithDiff.GetDiffMessage(expected, actual);
-      return diffMessage == null ? (0, "", "") : (1, diffMessage, "");
+      var actual = await File.ReadAllTextAsync(ActualPath);
+      var diffMessage = Run(ExpectedPath, actual);
+      if (diffMessage != null) {
+        await outputWriter.WriteAsync(diffMessage);
+        return 1;
+      }
+
+      return 0;
     }
 
     public override string ToString() {

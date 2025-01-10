@@ -30,23 +30,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         .AddSingleton<IDafnyParser>(serviceProvider => new DafnyLangParser(
           serviceProvider.GetRequiredService<DafnyOptions>(),
           serviceProvider.GetRequiredService<IFileSystem>(),
-          serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+          serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
           serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
           serviceProvider.GetRequiredService<ILogger<CachingParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
         .AddSingleton<CreateIdeStateObserver>(serviceProvider => compilation =>
           new IdeStateObserver(serviceProvider.GetRequiredService<ILogger<IdeStateObserver>>(),
-            serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+            serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
             serviceProvider.GetRequiredService<INotificationPublisher>(),
             compilation))
-        .AddSingleton<IVerificationProgressReporter, VerificationProgressReporter>()
         .AddSingleton(CreateVerifier)
-        .AddSingleton<CreateCompilationManager>(serviceProvider => (options, engine, compilation, migratedVerificationTree) => new CompilationManager(
-          serviceProvider.GetRequiredService<ILogger<CompilationManager>>(),
+        .AddSingleton<CreateCompilation>(serviceProvider => (engine, compilation) => new Compilation(
+          serviceProvider.GetRequiredService<ILogger<Compilation>>(),
+          serviceProvider.GetRequiredService<IFileSystem>(),
           serviceProvider.GetRequiredService<ITextDocumentLoader>(),
           serviceProvider.GetRequiredService<IProgramVerifier>(),
-          serviceProvider.GetRequiredService<IVerificationProgressReporter>(),
-          options, engine, compilation, migratedVerificationTree
+          engine, compilation
           ))
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();

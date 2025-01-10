@@ -1,0 +1,1 @@
+// CHECK-L: error[E0369]: binary operation `==` cannot be applied to type `Rc<List<_A>>`

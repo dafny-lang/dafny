@@ -1,15 +1,14 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace;
+﻿using Microsoft.Dafny.LanguageServer.Workspace;
 using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore.Test;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using Xunit;
@@ -22,8 +21,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private Mock<IFileSystem> fileSystem;
     private Mock<IDafnyParser> parser;
     private Mock<ISymbolResolver> symbolResolver;
-    private Mock<ISymbolTableFactory> symbolTableFactory;
-    private Mock<IGhostStateDiagnosticCollector> ghostStateDiagnosticCollector;
     private TextDocumentLoader textDocumentLoader;
     private Mock<ILogger<ITextDocumentLoader>> logger;
 
@@ -31,16 +28,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       this.output = new WriterFromOutputHelper(output);
       parser = new();
       symbolResolver = new();
-      symbolTableFactory = new();
-      ghostStateDiagnosticCollector = new();
       fileSystem = new();
       logger = new Mock<ILogger<ITextDocumentLoader>>();
-      textDocumentLoader = TextDocumentLoader.Create(
+      textDocumentLoader = new TextDocumentLoader(
+        logger.Object,
         parser.Object,
-        symbolResolver.Object,
-        symbolTableFactory.Object,
-        ghostStateDiagnosticCollector.Object,
-        logger.Object
+        symbolResolver.Object
       );
     }
 
@@ -51,24 +44,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       };
     }
 
-    private static DocumentTextBuffer CreateTestDocument() {
-      return new DocumentTextBuffer(new TextDocumentItem() {
-        Uri = DocumentUri.Parse("untitled:untitled1"),
-        LanguageId = "dafny",
-        Version = 1,
-        Text = ""
-      });
-    }
-
     [Fact]
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       var source = new CancellationTokenSource();
       parser.Setup(p => p.Parse(
           It.IsAny<Compilation>(),
-          It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
         .Throws<TaskCanceledException>();
-      var task = textDocumentLoader.ParseAsync(DafnyOptions.Default, GetCompilation(), ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, source.Token);
+      var task = textDocumentLoader.ParseAsync(GetCompilation(), source.Token);
       try {
         await task;
         Assert.Fail("document load was not cancelled");
@@ -79,19 +62,26 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       }
     }
 
-    private static Compilation GetCompilation() {
+    private Compilation GetCompilation() {
       var versionedTextDocumentIdentifier = CreateTestDocumentId();
-      var compilation = new Compilation(0, ProjectManagerDatabase.ImplicitProject(versionedTextDocumentIdentifier.Uri.ToUri()), new[] { versionedTextDocumentIdentifier.Uri.ToUri() });
+      var uri = versionedTextDocumentIdentifier.Uri.ToUri();
+      var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, ""));
+      var file = DafnyFile.HandleDafnyFile(fs, new ErrorReporterSink(DafnyOptions.Default), DafnyOptions.Default, uri, Token.NoToken, false);
+      var input = new CompilationInput(DafnyOptions.Default, 0, ProjectManagerDatabase.ImplicitProject(uri));
+      var engine = new ExecutionEngine(DafnyOptions.Default, new VerificationResultCache(),
+        CustomStackSizePoolTaskScheduler.Create(0, 0));
+      var compilation = new Compilation(new Mock<ILogger<Compilation>>().Object, new Mock<IFileSystem>().Object, textDocumentLoader,
+        new Mock<IProgramVerifier>().Object, engine, input);
+      compilation.RootFiles = Task.FromResult<IReadOnlyList<DafnyFile>>(new[] { file });
       return compilation;
     }
 
     [Fact]
     public async Task LoadReturnsFaultedTaskIfAnyExceptionOccured() {
       parser.Setup(p => p.Parse(It.IsAny<Compilation>(),
-          It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
-      var task = textDocumentLoader.ParseAsync(DafnyOptions.Default, GetCompilation(), ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, default);
+      var task = textDocumentLoader.ParseAsync(GetCompilation(), default);
       try {
         await task;
         Assert.Fail("document load did not fail");

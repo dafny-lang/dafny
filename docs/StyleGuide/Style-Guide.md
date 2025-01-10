@@ -1,4 +1,8 @@
-<font size="+4"><p style="text-align: center;">Dafny Style Guide</p></font>
+---
+title: Dafny Style Guide
+---
+
+# Dafny Style Guide
 
 * toc
 {:toc}

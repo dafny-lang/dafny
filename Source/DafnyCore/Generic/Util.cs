@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Text.RegularExpressions;
@@ -24,6 +26,20 @@ namespace Microsoft.Dafny {
 
   public static class Util {
 
+    public static Task WaitForComplete<T>(this IObservable<T> observable) {
+      var result = new TaskCompletionSource();
+      observable.Subscribe(_ => { }, e => result.SetException(e), () => result.SetResult());
+      return result.Task;
+    }
+
+    public static string CapitaliseFirstLetter(this string input) {
+      if (input.Length > 0) {
+        return char.ToUpper(input[0]) + input.Substring(1);
+      }
+
+      return input;
+    }
+
     public static bool LessThanOrEquals<T>(this T first, T second)
       where T : IComparable<T> {
       return first.CompareTo(second) != 1;
@@ -41,8 +57,8 @@ namespace Microsoft.Dafny {
 #pragma warning restore VSTHRD105
     }
 
-    public static string Comma(this IEnumerable<string> l) {
-      return Comma(l, s => s);
+    public static string Comma<T>(this IEnumerable<T> l) {
+      return Comma(l, s => s.ToString());
     }
 
     public static string Comma<T>(this IEnumerable<T> l, Func<T, string> f) {
@@ -208,7 +224,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static void ValidateEscaping(DafnyOptions options, IToken t, string s, bool isVerbatimString, Errors errors) {
+    public static void ValidateEscaping(DafnyOptions options, IOrigin t, string s, bool isVerbatimString, Errors errors) {
       if (options.Get(CommonOptionBag.UnicodeCharacters)) {
         foreach (var token in TokensWithEscapes(s, isVerbatimString)) {
           if (token.StartsWith("\\u")) {
@@ -265,8 +281,12 @@ namespace Microsoft.Dafny {
     public static readonly Regex UnicodeEscape = new Regex(@"\\U\{([0-9a-fA-F_]+)\}");
     private static readonly Regex NullEscape = new Regex(@"\\0");
 
-    private static string ToUtf16Escape(char c) {
-      return $"\\u{(int)c:x4}";
+    private static string ToUtf16Escape(char c, bool addBraces = false) {
+      if (addBraces) {
+        return $"\\u{{{(int)c:x4}}}";
+      } else {
+        return $"\\u{(int)c:x4}";
+      }
     }
 
     public static string ReplaceTokensWithEscapes(string s, Regex pattern, MatchEvaluator evaluator) {
@@ -306,6 +326,10 @@ namespace Microsoft.Dafny {
       return ReplaceTokensWithEscapes(s, NullEscape, match => "\\u0000");
     }
 
+    public static IEnumerable<int> UnescapedCharacters(DafnyOptions options, string p, bool isVerbatimString) {
+      return UnescapedCharacters(options.Get(CommonOptionBag.UnicodeCharacters), p, isVerbatimString);
+    }
+
     /// <summary>
     /// Returns the characters of the well-parsed string p, replacing any
     /// escaped characters by the actual characters.
@@ -314,8 +338,7 @@ namespace Microsoft.Dafny {
     /// if --unicode-char is enabled - these are synthesized by the parser when
     /// reading the original UTF-8 source, but don't represent the true character values.
     /// </summary>
-    public static IEnumerable<int> UnescapedCharacters(DafnyOptions options, string p, bool isVerbatimString) {
-      var unicodeChars = options.Get(CommonOptionBag.UnicodeCharacters);
+    public static IEnumerable<int> UnescapedCharacters(bool unicodeChars, string p, bool isVerbatimString) {
       if (isVerbatimString) {
         foreach (var s in TokensWithEscapes(p, true)) {
           if (s == "\"\"") {
@@ -432,14 +455,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(errors != null);
       if (performThisDeprecationCheck) {
         if (fe.E is ThisExpr) {
-          errors.Deprecated(ErrorId.g_deprecated_this_in_constructor_modifies_clause, fe.E.tok, "constructors no longer need 'this' to be listed in modifies clauses");
+          errors.Deprecated(ErrorId.g_deprecated_this_in_constructor_modifies_clause, fe.E.Origin, "constructors no longer need 'this' to be listed in modifies clauses");
           return;
         } else if (fe.E is SetDisplayExpr) {
           var s = (SetDisplayExpr)fe.E;
           var deprecated = s.Elements.FindAll(e => e is ThisExpr);
           if (deprecated.Count != 0) {
             foreach (var e in deprecated) {
-              errors.Deprecated(ErrorId.g_deprecated_this_in_constructor_modifies_clause, e.tok, "constructors no longer need 'this' to be listed in modifies clauses");
+              errors.Deprecated(ErrorId.g_deprecated_this_in_constructor_modifies_clause, e.Origin, "constructors no longer need 'this' to be listed in modifies clauses");
             }
             s.Elements.RemoveAll(e => e is ThisExpr);
             if (s.Elements.Count == 0) {
@@ -473,7 +496,7 @@ namespace Microsoft.Dafny {
             foreach (var member in c.Members) {
               if (member is Function f) {
                 List<Function> calls = new List<Function>();
-                foreach (var e in f.Reads) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
+                foreach (var e in f.Reads.Expressions) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
                 foreach (var e in f.Req) { if (e != null) { callFinder.Visit(e, calls); } }
                 foreach (var e in f.Ens) { if (e != null) { callFinder.Visit(e, calls); } }
                 if (f.Body != null) {
@@ -629,6 +652,10 @@ namespace Microsoft.Dafny {
         string keyString = keypair.Key.PadRight(max_key_length + 2);
         program.Options.OutputWriter.WriteLine("{0} {1,4}", keyString, keypair.Value);
       }
+    }
+
+    public static IEnumerable<string> Lines(TextReader reader) {
+      return new LinesEnumerable(reader);
     }
   }
 
@@ -882,7 +909,7 @@ namespace Microsoft.Dafny {
           return true;
         }
       } else if (memberDeclaration is Function f) {
-        if (f.Formals.Any(Traverse)) {
+        if (f.Ins.Any(Traverse)) {
           return true;
         }
         if (f.Result != null && f.Result.DefaultValue != null && Traverse(f.Result.DefaultValue, "Result.DefaultValue", f)) {
@@ -891,7 +918,7 @@ namespace Microsoft.Dafny {
         if (f.Req.Any(e => Traverse(e.E, "Req.E", f))) {
           return true;
         }
-        if (f.Reads.Any(e => Traverse(e.E, "Reads.E", f))) {
+        if (f.Reads.Expressions.Any(e => Traverse(e.E, "Reads.E", f))) {
           return true;
         }
         if (f.Ens.Any(e => Traverse(e.E, "Ens.E", f))) {
@@ -922,7 +949,7 @@ namespace Microsoft.Dafny {
         if (m.Req.Any(e => Traverse(e.E, "Req.E", m))) {
           return true;
         }
-        if (m.Reads.Any(e => Traverse(e.E, "Reads.E", m))) {
+        if (m.Reads.Expressions.Any(e => Traverse(e.E, "Reads.E", m))) {
           return true;
         }
         if (m.Mod.Expressions.Any(e => Traverse(e.E, "Mod.E", m) == true)) {
@@ -970,6 +997,47 @@ namespace Microsoft.Dafny {
 
       return expr.SubExpressions.Any(subExpr => Traverse(subExpr, "SubExpression", expr)) ||
              OnExit(expr, field, parent);
+    }
+  }
+
+  class LinesEnumerable : IEnumerable<string> {
+    private readonly TextReader Reader;
+
+    public LinesEnumerable(TextReader reader) {
+      Reader = reader;
+    }
+
+    public IEnumerator<string> GetEnumerator() {
+      return new LinesEnumerator(Reader);
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() {
+      return GetEnumerator();
+    }
+  }
+
+  class LinesEnumerator : IEnumerator<string> {
+
+    private readonly TextReader Reader;
+
+    public LinesEnumerator(TextReader reader) {
+      Reader = reader;
+    }
+
+    public bool MoveNext() {
+      Current = Reader.ReadLine();
+      return Current != null;
+    }
+
+    public void Reset() {
+      throw new NotImplementedException();
+    }
+
+    public string Current { get; internal set; }
+
+    object IEnumerator.Current => Current;
+
+    public void Dispose() {
     }
   }
 }

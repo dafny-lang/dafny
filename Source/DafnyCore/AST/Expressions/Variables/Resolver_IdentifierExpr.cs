@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// This class is used only inside the resolver itself. It gets hung in the AST in uncompleted name segments.
 /// </summary>
-class Resolver_IdentifierExpr : Expression, IHasUsages, ICloneable<Resolver_IdentifierExpr> {
+class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_IdentifierExpr> {
   public readonly TopLevelDecl Decl;
   public readonly List<Type> TypeArgs;
   [ContractInvariantMethod]
@@ -59,9 +59,9 @@ class Resolver_IdentifierExpr : Expression, IHasUsages, ICloneable<Resolver_Iden
     }
   }
 
-  public Resolver_IdentifierExpr(IToken tok, TopLevelDecl decl, List<Type> typeArgs)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public Resolver_IdentifierExpr(IOrigin origin, TopLevelDecl decl, List<Type> typeArgs)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(decl != null);
     Contract.Requires(typeArgs != null && typeArgs.Count == decl.TypeArgs.Count);
     Decl = decl;
@@ -69,17 +69,16 @@ class Resolver_IdentifierExpr : Expression, IHasUsages, ICloneable<Resolver_Iden
     Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
     PreType = decl is ModuleDecl ? new PreTypePlaceholderModule() : new PreTypePlaceholderType();
   }
-  public Resolver_IdentifierExpr(IToken tok, TypeParameter tp)
-    : this(tok, tp, new List<Type>()) {
-    Contract.Requires(tok != null);
+  public Resolver_IdentifierExpr(IOrigin origin, TypeParameter tp)
+    : this(origin, tp, new List<Type>()) {
+    Contract.Requires(origin != null);
     Contract.Requires(tp != null);
   }
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
-    return new[] { Decl };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(Center, Decl) };
   }
 
-  public IToken NameToken => tok;
   public Resolver_IdentifierExpr Clone(Cloner cloner) {
     return new Resolver_IdentifierExpr(cloner, this);
   }

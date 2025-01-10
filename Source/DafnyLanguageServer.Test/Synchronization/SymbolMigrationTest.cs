@@ -72,7 +72,7 @@ function GetConstant(): int {
         new Range((4, 0), (4, 0)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      var document = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
     }
 

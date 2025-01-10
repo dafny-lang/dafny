@@ -13,14 +13,17 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class ReferencesTest : ClientBasedLanguageServerTest {
     private async Task<LocationContainer> RequestReferences(
-      TextDocumentItem documentItem, Position position) {
+      TextDocumentItem documentItem, Position position, bool includeDeclaration = false) {
       // We don't want resolution errors, but other diagnostics (like a cyclic-include warning) are okay
       await AssertNoResolutionErrors(documentItem);
 
       return await client.RequestReferences(
         new ReferenceParams {
           TextDocument = documentItem.Uri,
-          Position = position
+          Position = position,
+          Context = new ReferenceContext() {
+            IncludeDeclaration = includeDeclaration
+          }
         }, CancellationToken).AsTask();
     }
 
@@ -28,23 +31,85 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     /// Assert that when finding-references at each cursor position and each regular span,
     /// the client returns all ranges marked with regular spans.
     /// </summary>
-    /// <param name="source"></param>
-    private async Task AssertReferences(string source, string fileName) {
+    private async Task AssertReferences(string source, string fileName, bool includeDeclaration = false) {
       MarkupTestFile.GetPositionsAndRanges(
         source, out var cleanSource, out var explicitPositions, out var expectedRangesArray);
       var expectedRanges = new HashSet<Range>(expectedRangesArray);
 
-      var positionsFromRanges = expectedRangesArray.SelectMany(r => new[] { r.Start, r.End });
+      var positionsFromRanges = expectedRangesArray.SelectMany(r => new[] {
+        r.Start,
+        new Position(r.End.Line, r.End.Character-1) });
       var allPositions = explicitPositions.Concat(positionsFromRanges);
 
       var documentItem = CreateTestDocument(cleanSource, fileName);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await AssertNoResolutionErrors(documentItem);
 
       foreach (var position in allPositions) {
-        var result = await RequestReferences(documentItem, position);
+        var result = await RequestReferences(documentItem, position, includeDeclaration);
         var resultRanges = result.Select(location => location.Range).ToHashSet();
         Assert.Equal(expectedRanges, resultRanges);
       }
+    }
+
+    [Fact]
+    public async Task UnusedModule() {
+      var source = @"
+module [>><C<] {}
+".TrimStart();
+
+      await AssertReferences(source, "ExportNamedImport.dfy", true);
+    }
+
+    [Fact]
+    public async Task ExplicitTypeBoundVariableInLambda() {
+      var source = @"
+datatype ><C = Cons
+method Foo() {
+  var f := (x: [>C<]) => 3;
+  var c: [>C<] := Cons;
+}
+".TrimStart();
+
+      await AssertReferences(source, "ExportNamedImport.dfy");
+    }
+
+    [Fact]
+    public async Task ExportNamedImport() {
+      var source = @"
+module Low {
+  const x := 3
+}
+
+module High {
+  import ><MyLow = Low
+
+  export
+    provides
+      [>MyLow<]
+}
+".TrimStart();
+
+      await AssertReferences(source, "ExportNamedImport.dfy");
+    }
+
+    [Fact]
+    public async Task ExportNamelessImport() {
+      var source = @"
+module ><Low {
+  const x := 3
+}
+
+module High {
+  import [>Low<]
+
+  export
+    provides
+      [>Low<]
+}
+".TrimStart();
+
+      await AssertReferences(source, "ExportImport.dfy");
     }
 
     [Fact]

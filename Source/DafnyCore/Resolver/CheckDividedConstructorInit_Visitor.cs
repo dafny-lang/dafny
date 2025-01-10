@@ -24,8 +24,8 @@ class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int> {
     //     stmt.SubStatements.Iter(Visit);     (**)
     //     VisitOneStmt(stmt);                 (***)
     // We may do less for (*), we always use CheckInit instead of Visit in (**), and we do (***) the same.
-    if (stmt is AssignStmt) {
-      var s = stmt as AssignStmt;
+    if (stmt is SingleAssignStmt) {
+      var s = stmt as SingleAssignStmt;
       // The usual visitation of s.SubExpressions.Iter(Visit) would do the following:
       //   Attributes.SubExpressions(s.Attributes).Iter(Visit);  (+)
       //   Visit(s.Lhs);                                         (++)
@@ -63,8 +63,10 @@ class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int> {
       if (e.Member.IsInstanceIndependentConstant && Expression.AsThis(e.Obj) != null) {
         return false;  // don't continue the recursion
       }
+    } else if (expr is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Assigned }) {
+      return false;  // don't continue the recursion
     } else if (expr is ThisExpr && !(expr is ImplicitThisExpr_ConstructorCall)) {
-      reporter.Error(MessageSource.Resolver, expr.tok, "in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields");
+      reporter.Error(MessageSource.Resolver, expr.Origin, "in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields");
     }
     return base.VisitOneExpr(expr, ref unused);
   }

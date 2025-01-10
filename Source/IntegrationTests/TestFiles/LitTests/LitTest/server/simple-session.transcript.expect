@@ -1,0 +1,430 @@
+# Reading from simple-session.transcript
+
+Verifying A (correctness) ...
+  [1 proof obligation]  error
+transcript(3,9): Error: assertion might not hold
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+
+Verifying A (correctness) ...
+  [0 proof obligations]  error
+transcript(3,9): Error: assertion might not hold
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+
+Verifying A (correctness) ...
+  [0 proof obligations]  error
+transcript(3,9): Error: assertion might not hold
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+
+Verifying A (correctness) ...
+  [0 proof obligations]  error
+transcript(3,9): Error: assertion might not hold
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,13): Error: rbrace expected
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(6,2): Error: rbrace expected
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(7,0): Error: invalid UpdateStmt
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(7,0): Error: invalid Ident
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(7,11): Error: the number of left-hand sides (2) and right-hand sides (1) must match for a multi-assignment
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(7,11): Error: the number of left-hand sides (2) and right-hand sides (1) must match for a multi-assignment
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(6,2): Error: this symbol not expected in MethodSpec
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(6,2): Error: this symbol not expected in MethodSpec
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(11,0): Error: invalid UpdateStmt
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Error: invalid AssertStmt
+transcript(10,9): Error: Expected 'to' or 'downto'
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(11,0): Error: invalid LogicalExpression
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,22): Error: invalid LogicalExpression
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,22): Error: invalid LogicalExpression
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,26): Error: invalid QSep
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,28): Error: invalid QSep
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,27): Error: invalid LogicalExpression
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+
+Verifying M' (correctness) ...
+  [1 proof obligation]  error
+transcript(10,9): Error: assertion might not hold
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+
+Verifying M' (correctness) ...
+  [1 proof obligation]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+Retrieving cached verification result for implementation M' (correctness)...
+  [1 proof obligation]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(12,0): Error: invalid UpdateStmt
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+
+Verifying M' (correctness) ...
+  [1 proof obligation]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+Retrieving cached verification result for implementation M' (correctness)...
+  [1 proof obligation]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,14): Error: Duplicate member name: M'
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,14): Error: Duplicate member name: M'
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,14): Error: Duplicate member name: M'
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,14): Error: Duplicate member name: M'
+transcript(24,14): Error: Duplicate member name: M'
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,14): Error: Duplicate member name: M'
+transcript(24,14): Error: Duplicate member name: M'
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,14): Error: Duplicate member name: M'
+transcript(24,14): Error: Duplicate member name: M'
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,14): Error: Duplicate member name: M'
+transcript(24,14): Error: Duplicate member name: M'
+transcript(33,14): Error: Duplicate member name: M'
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,14): Error: Duplicate member name: M
+transcript(33,14): Error: Duplicate member name: M
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Info: Selected triggers: {x' * x'}
+Retrieving cached verification result for implementation M' (correctness)...
+  [1 proof obligation]  verified
+
+Verifying M0 (correctness) ...
+  [2 proof obligations]  verified
+
+Verifying M1 (correctness) ...
+  [2 proof obligations]  verified
+
+Verifying M2 (correctness) ...
+  [2 proof obligations]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Info: Selected triggers: {x' * x'}
+Retrieving cached verification result for implementation M' (correctness)...
+  [1 proof obligation]  verified
+Retrieving cached verification result for implementation M0 (correctness)...
+  [2 proof obligations]  verified
+Retrieving cached verification result for implementation M1 (correctness)...
+  [2 proof obligations]  verified
+Retrieving cached verification result for implementation M2 (correctness)...
+  [2 proof obligations]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+Retrieving cached verification result for implementation M' (correctness)...
+  [1 proof obligation]  verified
+Retrieving cached verification result for implementation M0 (correctness)...
+  [2 proof obligations]  verified
+Retrieving cached verification result for implementation M1 (correctness)...
+  [2 proof obligations]  verified
+
+Verifying M2 (correctness) ...
+  [2 proof obligations]  error
+transcript(38,9): Error: assertion might not hold
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(38,38): Error: invalid AssertStmt
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+Retrieving cached verification result for implementation M' (correctness)...
+  [1 proof obligation]  verified
+Retrieving cached verification result for implementation M0 (correctness)...
+  [2 proof obligations]  verified
+Retrieving cached verification result for implementation M1 (correctness)...
+  [2 proof obligations]  verified
+
+Verifying M2 (correctness) ...
+  [2 proof obligations]  error
+transcript(38,9): Error: assertion might not hold
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+Retrieving cached verification result for implementation M' (correctness)...
+  [1 proof obligation]  verified
+Retrieving cached verification result for implementation M0 (correctness)...
+  [2 proof obligations]  verified
+Retrieving cached verification result for implementation M1 (correctness)...
+  [2 proof obligations]  verified
+
+Verifying M2 (correctness) ...
+  [2 proof obligations]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+Retrieving cached verification result for implementation M' (correctness)...
+  [1 proof obligation]  verified
+Retrieving cached verification result for implementation M0 (correctness)...
+  [2 proof obligations]  verified
+Retrieving cached verification result for implementation M1 (correctness)...
+  [2 proof obligations]  verified
+Retrieving cached verification result for implementation M2 (correctness)...
+  [2 proof obligations]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(40,2): Error: invalid UpdateStmt
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(40,2): Error: invalid UpdateStmt
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(40,2): Error: invalid UpdateStmt
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+Retrieving cached verification result for implementation M' (correctness)...
+  [1 proof obligation]  verified
+Retrieving cached verification result for implementation M0 (correctness)...
+  [2 proof obligations]  verified
+Retrieving cached verification result for implementation M1 (correctness)...
+  [2 proof obligations]  verified
+
+Verifying M2 (correctness) ...
+  [1 proof obligation]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(40,9): Error: invalid AssertStmt
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(40,9): Error: invalid AssertStmt
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(40,9): Error: unresolved identifier: fal
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+Retrieving cached verification result for implementation M' (correctness)...
+  [1 proof obligation]  verified
+Retrieving cached verification result for implementation M0 (correctness)...
+  [2 proof obligations]  verified
+Retrieving cached verification result for implementation M1 (correctness)...
+  [2 proof obligations]  verified
+
+Verifying M2 (correctness) ...
+  [1 proof obligation]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+Retrieving cached verification result for implementation M' (correctness)...
+  [1 proof obligation]  verified
+Retrieving cached verification result for implementation M0 (correctness)...
+  [2 proof obligations]  verified
+Retrieving cached verification result for implementation M1 (correctness)...
+  [2 proof obligations]  verified
+Retrieving cached verification result for implementation M2 (correctness)...
+  [1 proof obligation]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]

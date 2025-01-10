@@ -38,7 +38,8 @@ public class LanguageServerFilesystem : IFileSystem {
     string existingText = "";
     try {
       if (OnDiskFileSystem.Instance.Exists(uri)) {
-        existingText = OnDiskFileSystem.Instance.ReadFile(uri).ReadToEnd();
+        using var fileStream = OnDiskFileSystem.Instance.ReadFile(uri).Reader;
+        existingText = fileStream.ReadToEnd();
       }
     } catch (IOException) {
       // If we don't manage to detect whether this document already existed ond disc,
@@ -48,7 +49,7 @@ public class LanguageServerFilesystem : IFileSystem {
     return existingText != document.Text;
   }
 
-  public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
+  public bool UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var uri = documentChange.TextDocument.Uri.ToUri();
     if (!openFiles.TryGetValue(uri, out var entry)) {
       throw new InvalidOperationException("Cannot update file that has not been opened");
@@ -56,10 +57,13 @@ public class LanguageServerFilesystem : IFileSystem {
 
     var buffer = entry.Buffer;
     var mergedBuffer = buffer;
-    foreach (var change in documentChange.ContentChanges) {
-      mergedBuffer = mergedBuffer.ApplyTextChange(change);
+    try {
+      foreach (var change in documentChange.ContentChanges) {
+        mergedBuffer = mergedBuffer.ApplyTextChange(change);
+      }
+    } catch (ArgumentOutOfRangeException) {
+      return false;
     }
-    entry.Buffer = mergedBuffer;
 
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
@@ -71,8 +75,10 @@ public class LanguageServerFilesystem : IFileSystem {
         $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVersion}");
     }
 
-    entry.Version = newVersion!.Value;
-
+    // We assume no concurrent mutating calls to IFileSysten, in particular to OpenDocument and UpdateDocument
+    // Otherwise we'd have to lock around these calls.
+    openFiles[uri] = new Entry(mergedBuffer, newVersion!.Value);
+    return true;
   }
 
   public void CloseDocument(TextDocumentIdentifier document) {
@@ -84,9 +90,17 @@ public class LanguageServerFilesystem : IFileSystem {
     }
   }
 
-  public TextReader ReadFile(Uri uri) {
+  public TextBuffer? GetBuffer(Uri uri) {
     if (openFiles.TryGetValue(uri, out var entry)) {
-      return new StringReader(entry.Buffer.Text);
+      return entry.Buffer;
+    }
+
+    return null;
+  }
+
+  public FileSnapshot ReadFile(Uri uri) {
+    if (openFiles.TryGetValue(uri, out var entry)) {
+      return new FileSnapshot(new StringReader(entry.Buffer.Text), entry.Version);
     }
 
     return OnDiskFileSystem.Instance.ReadFile(uri);
@@ -101,18 +115,5 @@ public class LanguageServerFilesystem : IFileSystem {
     var inMemory = new InMemoryDirectoryInfoFromDotNet8(root, inMemoryFiles);
 
     return new CombinedDirectoryInfo(new[] { inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root) });
-  }
-
-  /// <summary>
-  /// Return the version of a particular file.
-  /// When the client sends file updates, it includes a new version for this file, which we store and return here.
-  /// File version are important to the client because it can use them to do client side migration of positions.
-  /// </summary>
-  public int? GetVersion(Uri uri) {
-    if (openFiles.TryGetValue(uri, out var file)) {
-      return file.Version;
-    }
-
-    return null;
   }
 }

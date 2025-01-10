@@ -5,7 +5,6 @@
 //
 //-----------------------------------------------------------------------------
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -18,18 +17,18 @@ record FlowContext(SystemModuleManager SystemModuleManager, ErrorReporter Report
 }
 
 /// <summary>
-/// A "Flow" is a puzzle piece in recomputing types. The "type adjustment" phase defines a set of flows and then
+/// A "Flow" is a puzzle piece in recomputing types. The "type refinement" phase defines a set of flows and then
 /// recomputes types until it reaches a fix point.
 ///
-/// For example, the type adjustment phase will use a FlowIntoVariable to define a flow from the RHS of an assignment to
+/// For example, the type refinement phase will use a FlowIntoVariable to define a flow from the RHS of an assignment to
 /// the LHS. It will use a FlowBetweenExpressions to define a flow from the "then" branch of an "if-then-else" expression
 /// to the "if-then-else" expression itself, and will use another FlowBetweenExpressions to define the analogous flow from
 /// the "else" branch.
 ///
-/// For more information about type adjustments, flow, and the whole type inference process, see docs/dev/TypeSystemRefresh.md.
+/// For more information about type refinements, flow, and the whole type inference process, see docs/dev/TypeSystemRefresh.md.
 /// </summary>
 abstract class Flow {
-  private readonly IToken tok;
+  private readonly IOrigin tok;
   private readonly string description;
   public bool HasError;
 
@@ -42,22 +41,22 @@ abstract class Flow {
   /// </summary>
   public abstract bool Update(FlowContext context);
 
-  protected Flow(IToken tok, string description) {
+  protected Flow(IOrigin tok, string description) {
     this.tok = tok;
     this.description = description;
   }
 
   public abstract void DebugPrint(TextWriter output);
 
-  protected bool UpdateAdjustableType(Type sink, Type sourceType, FlowContext context) {
+  protected bool UpdateTypeHeldByRefinementWrapper(Type sink, Type sourceType, FlowContext context) {
     string previousLhs = null;
     string joinArguments = null;
     if (context.DebugPrint) {
-      previousLhs = $"{AdjustableType.ToStringAsAdjustableType(sink)}";
-      joinArguments = $"{AdjustableType.ToStringAsBottom(sink)} \\/ {AdjustableType.ToStringAsBottom(sourceType)}";
+      previousLhs = $"{TypeRefinementWrapper.ToStringShowingWrapper(sink)}";
+      joinArguments = $"{TypeRefinementWrapper.ToStringAsBottom(sink)} \\/ {TypeRefinementWrapper.ToStringAsBottom(sourceType)}";
     }
 
-    var previousSink = (AdjustableType.NormalizeSansAdjustableType(sink) as AdjustableType)?.T ?? sink;
+    var previousSink = (TypeRefinementWrapper.NormalizeSansRefinementWrappers(sink) as TypeRefinementWrapper)?.T ?? sink;
     var join = JoinAndUpdate(sink, sourceType, context);
     if (join == null) {
       HasError = true;
@@ -67,13 +66,13 @@ abstract class Flow {
       return false;
     }
     if (context.DebugPrint) {
-      context.OutputWriter.WriteLine($"DEBUG: updating {previousLhs} to {AdjustableType.ToStringAsBottom(sink)} ({joinArguments})");
+      context.OutputWriter.WriteLine($"DEBUG: refining {previousLhs} to {TypeRefinementWrapper.ToStringAsBottom(sink)} ({joinArguments})");
     }
     return true;
   }
 
   protected static bool EqualTypes(Type a, Type b) {
-    if (AdjustableType.NormalizesToBottom(a) != AdjustableType.NormalizesToBottom(b)) {
+    if (TypeRefinementWrapper.NormalizesToBottom(a) != TypeRefinementWrapper.NormalizesToBottom(b)) {
       return false;
     }
     return a.Equals(b, true);
@@ -81,32 +80,31 @@ abstract class Flow {
 
   [CanBeNull]
   public static Type JoinAndUpdate(Type a, Type b, FlowContext context) {
-    var adjustableA = AdjustableType.NormalizeSansAdjustableType(a) as AdjustableType;
-    var join = Join(adjustableA?.T ?? a, b, context);
+    var wrapperA = TypeRefinementWrapper.NormalizeSansRefinementWrappers(a) as TypeRefinementWrapper;
+    var wrapperB = TypeRefinementWrapper.NormalizeSansRefinementWrappers(b) as TypeRefinementWrapper;
+    var join = Join(wrapperA?.T ?? a, wrapperB?.T ?? b, context);
     if (join == null) {
       return null;
     }
-    if (adjustableA == null) {
+    if (wrapperA == null) {
       return join;
     }
 
-    join = AdjustableType.NormalizeSansAdjustableType(join);
-    if (join is AdjustableType adjustableJoin) {
-      join = adjustableJoin.T;
+    if (TypeRefinementWrapper.NormalizeSansRefinementWrappers(join) is TypeRefinementWrapper wrapperJoin) {
+      join = wrapperJoin.T;
     }
-    adjustableA.T = join;
-    return adjustableA;
+    wrapperA.T = join;
+    return wrapperA;
   }
 
   [CanBeNull]
   public static Type CopyAndUpdate(Type a, Type b, FlowContext context) {
-    var adjustableA = AdjustableType.NormalizeSansAdjustableType(a) as AdjustableType;
-    var aa = adjustableA?.T ?? a;
+    var wrapperA = TypeRefinementWrapper.NormalizeSansRefinementWrappers(a) as TypeRefinementWrapper;
     // compute the "copy" of aa and b:
     Type copy;
-    if (AdjustableType.NormalizesToBottom(a)) {
+    if (TypeRefinementWrapper.NormalizesToBottom(a)) {
       copy = b;
-    } else if (AdjustableType.NormalizesToBottom(b)) {
+    } else if (TypeRefinementWrapper.NormalizesToBottom(b)) {
       copy = a;
     } else if (a.Equals(b, true)) {
       copy = a;
@@ -114,16 +112,16 @@ abstract class Flow {
       return null;
     }
 
-    if (adjustableA == null) {
+    if (wrapperA == null) {
       return copy;
     }
 
-    copy = AdjustableType.NormalizeSansAdjustableType(copy);
-    if (copy is AdjustableType adjustableCopy) {
-      copy = adjustableCopy.T;
+    copy = TypeRefinementWrapper.NormalizeSansRefinementWrappers(copy);
+    if (copy is TypeRefinementWrapper wrapperCopy) {
+      copy = wrapperCopy.T;
     }
-    adjustableA.T = copy;
-    return adjustableA;
+    wrapperA.T = copy;
+    return wrapperA;
   }
 
   /// <summary>
@@ -137,6 +135,19 @@ abstract class Flow {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
 
+    [CanBeNull]
+    Type JoinChildren(UserDefinedType udtA, UserDefinedType udtB) {
+      if (udtA.ResolvedClass == udtB.ResolvedClass) {
+        // We have two subset types with equal heads
+        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+        var typeArgs = Joins(TypeParameter.Variances(udtA.ResolvedClass.TypeArgs), a.TypeArgs, b.TypeArgs, context);
+        if (typeArgs != null) {
+          return UserDefinedType.FromTopLevelDecl(udtA.Origin, udtA.ResolvedClass, typeArgs);
+        }
+      }
+      return null;
+    }
+
     if (a is BottomTypePlaceholder) {
       return b;
     } else if (b is BottomTypePlaceholder) {
@@ -146,8 +157,8 @@ abstract class Flow {
     // Before we do anything else, make a note of whether or not both "a" and "b" are non-null types.
     var abNonNullTypes = a.IsNonNullRefType && b.IsNonNullRefType;
 
-    var towerA = Type.GetTowerOfSubsetTypes(a);
-    var towerB = Type.GetTowerOfSubsetTypes(b);
+    var towerA = Type.GetTowerOfSubsetTypes(a, true);
+    var towerB = Type.GetTowerOfSubsetTypes(b, true);
     // We almost expect the base types of these towers to be the same, since the module has successfully gone through pre-resolution and the
     // pre-resolution underspecification checks. However, there are considerations.
     //   - One is that the two given types may contain unused type parameters in type synonyms or subset types, and pre-resolution does not
@@ -156,17 +167,9 @@ abstract class Flow {
     for (var n = System.Math.Min(towerA.Count, towerB.Count); 1 <= --n;) {
       a = towerA[n];
       b = towerB[n];
-      var udtA = (UserDefinedType)a;
-      var udtB = (UserDefinedType)b;
-      if (udtA.ResolvedClass == udtB.ResolvedClass) {
-        // We have two subset types with equal heads
-        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-        var typeArgs = Joins(TypeParameter.Variances(udtA.ResolvedClass.TypeArgs), a.TypeArgs, b.TypeArgs, context);
-        if (typeArgs == null) {
-          // there was an error in computing the joins, so propagate the error
-          return null;
-        }
-        return new UserDefinedType(udtA.tok, udtA.Name, udtA.ResolvedClass, typeArgs);
+      var join = JoinChildren((UserDefinedType)a, (UserDefinedType)b);
+      if (join != null) {
+        return join;
       }
     }
     // We exhausted all possibilities of subset types being equal, so use the base-most types.
@@ -214,7 +217,7 @@ abstract class Flow {
       if (typeArgs == null) {
         return null;
       }
-      return new ArrowType(aa.tok, (ArrowTypeDecl)aa.ResolvedClass, typeArgs);
+      return new ArrowType(aa.Origin, (ArrowTypeDecl)aa.ResolvedClass, typeArgs);
     }
 
     // Convert a and b to their common supertype
@@ -227,15 +230,14 @@ abstract class Flow {
     var bTypeSubstMap = TypeParameter.SubstitutionMap(bDecl.TypeArgs, b.TypeArgs);
     (bDecl as TopLevelDeclWithMembers)?.AddParentTypeParameterSubstitutions(bTypeSubstMap);
 
-    a = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.tok, commonSupertypeDecl).Subst(aTypeSubstMap);
-    b = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.tok, commonSupertypeDecl).Subst(bTypeSubstMap);
+    var aSubst = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.Origin, commonSupertypeDecl).Subst(aTypeSubstMap);
+    var bSubst = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.Origin, commonSupertypeDecl).Subst(bTypeSubstMap);
 
-    var joinedTypeArgs = Joins(TypeParameter.Variances(commonSupertypeDecl.TypeArgs), a.TypeArgs, b.TypeArgs, context);
+    var joinedTypeArgs = Joins(TypeParameter.Variances(commonSupertypeDecl.TypeArgs), aSubst.TypeArgs, bSubst.TypeArgs, context);
     if (joinedTypeArgs == null) {
       return null;
     }
-    var udt = (UserDefinedType)a;
-    var result = new UserDefinedType(udt.tok, udt.Name, commonSupertypeDecl, joinedTypeArgs);
+    var result = UserDefinedType.FromTopLevelDecl(a.Origin, commonSupertypeDecl, joinedTypeArgs);
     return abNonNullTypes && result.IsRefType ? UserDefinedType.CreateNonNullType(result) : result;
   }
 
@@ -300,21 +302,21 @@ class FlowIntoVariable : Flow {
   protected readonly Type sink;
   protected readonly Expression source;
 
-  public FlowIntoVariable(IVariable variable, Expression source, IToken tok, string description = ":=")
+  public FlowIntoVariable(IVariable variable, Expression source, IOrigin tok, string description = ":=")
     : base(tok, description) {
-    this.sink = AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType);
+    this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(variable.UnnormalizedType);
     this.source = source;
   }
 
   public override bool Update(FlowContext context) {
-    return UpdateAdjustableType(sink, source.Type, context);
+    return UpdateTypeHeldByRefinementWrapper(sink, TypeRefinementWrapper.NormalizeSansBottom(source), context);
   }
 
   public override void DebugPrint(TextWriter output) {
-    var lhs = AdjustableType.ToStringAsAdjustableType(sink);
-    var rhs = AdjustableType.ToStringAsAdjustableType(source.UnnormalizedType);
+    var lhs = TypeRefinementWrapper.ToStringShowingWrapper(sink);
+    var rhs = TypeRefinementWrapper.ToStringShowingWrapper(source.UnnormalizedType);
     var bound = PreTypeConstraints.Pad($"{lhs} :> {rhs}", 27);
-    var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(sink), 20);
+    var value = PreTypeConstraints.Pad(TypeRefinementWrapper.ToStringAsBottom(sink), 20);
     output.WriteLine($"    {bound}  {value}    {TokDescription()}");
   }
 }
@@ -323,20 +325,20 @@ class FlowIntoVariableFromComputedType : Flow {
   protected readonly Type sink;
   private readonly System.Func<Type> getType;
 
-  public FlowIntoVariableFromComputedType(IVariable variable, System.Func<Type> getType, IToken tok, string description = ":=")
+  public FlowIntoVariableFromComputedType(IVariable variable, System.Func<Type> getType, IOrigin tok, string description = ":=")
     : base(tok, description) {
-    this.sink = AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType);
+    this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(variable.UnnormalizedType);
     this.getType = getType;
   }
 
   public override bool Update(FlowContext context) {
-    return UpdateAdjustableType(sink, getType(), context);
+    return UpdateTypeHeldByRefinementWrapper(sink, getType(), context);
   }
 
   public override void DebugPrint(TextWriter output) {
     var sourceType = getType();
-    var bound = PreTypeConstraints.Pad($"{AdjustableType.ToStringAsAdjustableType(sink)} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
-    var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(sink), 20);
+    var bound = PreTypeConstraints.Pad($"{TypeRefinementWrapper.ToStringShowingWrapper(sink)} :> {TypeRefinementWrapper.ToStringShowingWrapper(sourceType)}", 27);
+    var value = PreTypeConstraints.Pad(TypeRefinementWrapper.ToStringAsBottom(sink), 20);
     output.WriteLine($"    {bound}  {value}    {TokDescription()}");
   }
 }
@@ -344,20 +346,20 @@ class FlowIntoVariableFromComputedType : Flow {
 class FlowBetweenComputedTypes : Flow {
   private readonly System.Func<(Type, Type)> getTypes;
 
-  public FlowBetweenComputedTypes(System.Func<(Type, Type)> getTypes, IToken tok, string description)
+  public FlowBetweenComputedTypes(System.Func<(Type, Type)> getTypes, IOrigin tok, string description)
     : base(tok, description) {
     this.getTypes = getTypes;
   }
 
   public override bool Update(FlowContext context) {
     var (sink, source) = getTypes();
-    return UpdateAdjustableType(sink, source, context);
+    return UpdateTypeHeldByRefinementWrapper(sink, source, context);
   }
 
   public override void DebugPrint(TextWriter output) {
     var (sink, source) = getTypes();
-    var bound = PreTypeConstraints.Pad($"{AdjustableType.ToStringAsAdjustableType(sink)} :> {AdjustableType.ToStringAsAdjustableType(source)}", 27);
-    var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(sink), 20);
+    var bound = PreTypeConstraints.Pad($"{TypeRefinementWrapper.ToStringShowingWrapper(sink)} :> {TypeRefinementWrapper.ToStringShowingWrapper(source)}", 27);
+    var value = PreTypeConstraints.Pad(TypeRefinementWrapper.ToStringAsBottom(sink), 20);
     output.WriteLine($"    {bound}  {value}    {TokDescription()}");
   }
 }
@@ -365,42 +367,40 @@ class FlowBetweenComputedTypes : Flow {
 abstract class FlowIntoExpr : Flow {
   private readonly Type sink;
 
-  protected FlowIntoExpr(Type sink, IToken tok, string description = "")
+  protected FlowIntoExpr(Type sink, IOrigin tok, string description = "")
     : base(tok, description) {
-    this.sink = AdjustableType.NormalizeSansAdjustableType(sink);
+    this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(sink);
   }
 
-  protected FlowIntoExpr(Expression sink, IToken tok, string description = "")
-    : base(sink.tok, description) {
+  protected FlowIntoExpr(Expression sink, IOrigin tok, string description = "")
+    : base(sink.Origin, description) {
     this.sink = sink.UnnormalizedType;
   }
 
   protected abstract Type GetSourceType();
 
   public override bool Update(FlowContext context) {
-    return UpdateAdjustableType(sink, GetSourceType(), context);
+    return UpdateTypeHeldByRefinementWrapper(sink, GetSourceType(), context);
   }
 
   public override void DebugPrint(TextWriter output) {
-    if (sink is AdjustableType adjustableType) {
-      var sourceType = GetSourceType();
-      var bound = PreTypeConstraints.Pad($"{adjustableType.UniqueId} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
-      var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(adjustableType), 20);
-      output.WriteLine($"    {bound}  {value}    {TokDescription()}");
-    }
+    var sourceType = GetSourceType();
+    var bound = PreTypeConstraints.Pad($"{TypeRefinementWrapper.ToStringShowingWrapper(sink)} :> {TypeRefinementWrapper.ToStringShowingWrapper(sourceType)}", 27);
+    var value = PreTypeConstraints.Pad(TypeRefinementWrapper.ToStringAsBottom(sink), 20);
+    output.WriteLine($"    {bound}  {value}    {TokDescription()}");
   }
 }
 
 class FlowFromType : FlowIntoExpr {
   private readonly Type source;
 
-  public FlowFromType(Type sink, Type source, IToken tok, string description = "")
+  public FlowFromType(Type sink, Type source, IOrigin tok, string description = "")
     : base(sink, tok, description) {
     this.source = source;
   }
 
   public FlowFromType(Expression sink, Type source, string description = "")
-    : base(sink, sink.tok, description) {
+    : base(sink, sink.Origin, description) {
     this.source = source;
   }
 
@@ -414,14 +414,32 @@ class FlowFromTypeArgument : FlowIntoExpr {
   private readonly int argumentIndex;
 
   public FlowFromTypeArgument(Expression sink, Type source, int argumentIndex)
-    : base(sink, sink.tok) {
+    : base(sink, sink.Origin) {
     Contract.Requires(0 <= argumentIndex);
     this.source = source;
     this.argumentIndex = argumentIndex;
   }
 
   protected override Type GetSourceType() {
-    var sourceType = source.NormalizeExpand();
+    var sourceType = source.NormalizeToAncestorType();
+    Contract.Assert(argumentIndex < sourceType.TypeArgs.Count);
+    return sourceType.TypeArgs[argumentIndex];
+  }
+}
+
+class FlowFromTypeArgumentOfComputedSource : FlowIntoExpr {
+  private readonly System.Func<Type> getType;
+  private readonly int argumentIndex;
+
+  public FlowFromTypeArgumentOfComputedSource(Expression sink, System.Func<Type> getType, int argumentIndex)
+    : base(sink, sink.Origin) {
+    Contract.Requires(0 <= argumentIndex);
+    this.getType = getType;
+    this.argumentIndex = argumentIndex;
+  }
+
+  protected override Type GetSourceType() {
+    var sourceType = getType().NormalizeExpand();
     Contract.Assert(argumentIndex < sourceType.TypeArgs.Count);
     return sourceType.TypeArgs[argumentIndex];
   }
@@ -431,7 +449,20 @@ class FlowFromComputedType : FlowIntoExpr {
   private readonly System.Func<Type> getType;
 
   public FlowFromComputedType(Expression sink, System.Func<Type> getType, string description = "")
-    : base(sink, sink.tok, description) {
+    : base(sink, sink.Origin, description) {
+    this.getType = getType;
+  }
+
+  protected override Type GetSourceType() {
+    return getType();
+  }
+}
+
+class FlowFromComputedTypeIgnoreHeadTypes : FlowIntoExpr {
+  private readonly System.Func<Type> getType;
+
+  public FlowFromComputedTypeIgnoreHeadTypes(Expression sink, System.Func<Type> getType, string description = "")
+    : base(sink.Type.NormalizeToAncestorType(), sink.Origin, description) {
     this.getType = getType;
   }
 
@@ -444,11 +475,11 @@ class FlowBetweenExpressions : FlowIntoExpr {
   private readonly Expression source;
 
   public FlowBetweenExpressions(Expression sink, Expression source, string description = "")
-    : base(sink, sink.tok, description) {
+    : base(sink, sink.Origin, description) {
     this.source = source;
   }
 
   protected override Type GetSourceType() {
-    return source.Type;
+    return TypeRefinementWrapper.NormalizeSansBottom(source);
   }
 }

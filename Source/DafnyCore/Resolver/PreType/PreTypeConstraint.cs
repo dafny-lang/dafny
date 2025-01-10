@@ -10,7 +10,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
   public abstract class PreTypeConstraint {
-    public readonly IToken tok;
+    public readonly IOrigin tok;
 
     // exactly one of "errorFormatString" and "errorFormatStringProducer" is non-null
     private readonly string errorFormatString;
@@ -20,7 +20,7 @@ namespace Microsoft.Dafny {
 
     public abstract string ErrorMessage();
 
-    public PreTypeConstraint(IToken tok, string errorFormatString, PreTypeConstraint baseError = null) {
+    public PreTypeConstraint(IOrigin tok, string errorFormatString, PreTypeConstraint baseError = null) {
       Contract.Requires(tok != null);
       Contract.Requires(errorFormatString != null);
       this.tok = tok;
@@ -31,11 +31,24 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public PreTypeConstraint(IToken tok, Func<string> errorFormatStringProducer) {
+    public PreTypeConstraint(IOrigin tok, Func<string> errorFormatStringProducer) {
       Contract.Requires(tok != null);
       Contract.Requires(errorFormatStringProducer != null);
       this.tok = tok;
       this.errorFormatStringProducer = errorFormatStringProducer;
+    }
+  }
+
+  public abstract class OptionalErrorPreTypeConstraint : PreTypeConstraint {
+    public readonly bool ReportErrors;
+    public OptionalErrorPreTypeConstraint(IOrigin tok, string errorFormatString, PreTypeConstraint baseError, bool reportErrors)
+      : base(tok, errorFormatString, baseError) {
+      ReportErrors = reportErrors;
+    }
+
+    public OptionalErrorPreTypeConstraint(IOrigin tok, Func<string> errorFormatStringProducer, bool reportErrors)
+      : base(tok, errorFormatStringProducer) {
+      ReportErrors = reportErrors;
     }
   }
 }

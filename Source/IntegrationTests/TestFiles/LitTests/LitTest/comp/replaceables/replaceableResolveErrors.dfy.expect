@@ -1,0 +1,4 @@
+replaceableResolveErrors.dfy(17,26): Error: replaceable module cannot be refined
+replaceableResolveErrors.dfy(23,27): Error: replaceable module cannot be refined
+replaceableResolveErrors.dfy(17,7): Error: not resolving module '_module' because there were errors in resolving its nested module 'FooRefiner'
+3 resolution/type errors detected in replaceableResolveErrors.dfy

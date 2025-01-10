@@ -1,2 +1,0 @@
-Prior to generating tests, Dafny now checks the targeted program for any features that test generation does not support or any misuse of test generation specific attributes.
-Any such issues are reported to the user.  

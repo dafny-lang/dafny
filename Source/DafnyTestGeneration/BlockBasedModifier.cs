@@ -3,6 +3,7 @@
 
 #nullable disable
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using LiteralExpr = Microsoft.Boogie.LiteralExpr;
@@ -27,29 +28,23 @@ namespace DafnyTestGeneration {
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
       return VisitProgram(p);
     }
-    private ProgramModification/*?*/ VisitBlock(Block node) {
 
+    /// <summary>
+    /// After inlining, several basic blocks might correspond to the same program state, i.e. location in the Dafny code
+    /// This method creates a mapping from such a state to all blocks that represent it
+    /// </summary>
+    private void PopulateStateToBlocksMap(Block block, Dictionary<string, HashSet<Block>> stateToBlocks) {
       if (program == null || implementation == null) {
-        return null;
+        return;
       }
-      var state = Utils.GetBlockId(node, DafnyInfo.Options);
+      var state = Utils.GetBlockId(block, DafnyInfo.Options);
       if (state == null) {
-        return null;
+        return;
       }
-
-      var testEntryNames = Utils.DeclarationHasAttribute(implementation, TestGenerationOptions.TestInlineAttribute)
-        ? TestEntries
-        : new() { implementation.VerboseName };
-      node.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
-      var record = modifications.GetProgramModification(program, implementation,
-        new HashSet<string>() { state },
-          testEntryNames, $"{implementation.VerboseName.Split(" ")[0]} ({state})");
-
-      node.cmds.RemoveAt(node.cmds.Count - 1);
-      if (record.IsCovered(modifications)) {
-        return null;
+      if (!stateToBlocks.ContainsKey(state)) {
+        stateToBlocks[state] = new();
       }
-      return record;
+      stateToBlocks[state].Add(block);
     }
 
     private IEnumerable<ProgramModification> VisitImplementation(
@@ -59,10 +54,35 @@ namespace DafnyTestGeneration {
           !DafnyInfo.IsAccessible(node.VerboseName.Split(" ")[0])) {
         yield break;
       }
-      for (int i = node.Blocks.Count - 1; i >= 0; i--) {
-        var modification = VisitBlock(node.Blocks[i]);
-        if (modification != null) {
-          yield return modification;
+      var testEntryNames = Utils.DeclarationHasAttribute(implementation, TestGenerationOptions.TestInlineAttribute)
+        ? TestEntries
+        : new() { implementation.VerboseName };
+      var blocks = node.Blocks.ToList();
+      blocks.Reverse();
+      var stateToBlocksMap = new Dictionary<string, HashSet<Block>>();
+      foreach (var block in node.Blocks) {
+        PopulateStateToBlocksMap(block, stateToBlocksMap);
+      }
+      foreach (var block in blocks) {
+        var state = Utils.GetBlockId(block, DafnyInfo.Options);
+        if (state == null) {
+          continue;
+        }
+        foreach (var twinBlock in stateToBlocksMap[state]) {
+          twinBlock.Cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+        }
+        var record = modifications.GetProgramModification(program, implementation,
+          Utils.AllBlockIds(block, DafnyInfo.Options).ToHashSet(),
+          testEntryNames, $"{implementation.VerboseName.Split(" ")[0]} ({state})");
+        if (record.IsCovered(modifications)) {
+          foreach (var twinBlock in stateToBlocksMap[state]) {
+            twinBlock.Cmds.RemoveAt(twinBlock.Cmds.Count - 1);
+          }
+          continue;
+        }
+        yield return record;
+        foreach (var twinBlock in stateToBlocksMap[state]) {
+          twinBlock.Cmds.RemoveAt(twinBlock.Cmds.Count - 1);
         }
       }
 
@@ -70,7 +90,8 @@ namespace DafnyTestGeneration {
 
     private IEnumerable<ProgramModification> VisitProgram(Program node) {
       program = node;
-      foreach (var implementation in node.Implementations) {
+      var implementations = node.Implementations.ToList();
+      foreach (var implementation in implementations) {
         foreach (var modification in VisitImplementation(implementation)) {
           yield return modification;
         }

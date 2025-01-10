@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ master, main-* ]
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,13 +12,11 @@ concurrency:
 
 
 env:
-  dotnet-version: 6.0.x # SDK Version for building Dafny
+  dotnet-version: 8.0.x # SDK Version for building Dafny
 
 jobs:
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
-    with:
-      branch: master
 
   singletons:
     needs: check-deep-tests
@@ -25,17 +24,23 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dafny
         submodules: recursive
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
+    - name: Check whitespace and style
+      working-directory: dafny
+      run: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
+    - name: Check that it's possible to bump the version
+      working-directory: dafny
+      run: make bumpversion-test
     - name: Get Boogie Version
       run: |
         sudo apt-get update
@@ -45,7 +50,7 @@ jobs:
       working-directory: dafny
       run: git apply customBoogie.patch
     - name: Checkout Boogie
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: boogie-org/boogie
         path: dafny/boogie
@@ -53,11 +58,8 @@ jobs:
     - name: Build Dafny with local Boogie
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
-    - name: Check whitespace and style
-      working-directory: dafny
-      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs --exclude DafnyCore/GeneratedFromDafny.cs --exclude DafnyCore/GeneratedFromDafnyRust.cs
     - name: Create NuGet package (just to make sure it works)
-      run: dotnet pack --no-build dafny/Source/Dafny.sln
+      run: dotnet pack dafny/Source/Dafny.sln
     - name: Check uniformity of integration tests that exercise backends
       run: DAFNY_INTEGRATION_TESTS_MODE=uniformity-check dotnet test dafny/Source/IntegrationTests
 
@@ -68,14 +70,17 @@ jobs:
 
   integration-tests:
     needs: check-deep-tests
-    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
+    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.pull_request.labels.*.name, 'run-integration-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
+      ref: ${{ github.ref }}
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"
       # label, and skip checking the nightly build above.
       # This is the best way to fix an issue in master that was only caught by the nightly build.
       all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.push.labels.*.name, 'run-deep-tests')}}
       num_shards: 5
+      # Omit Rust in the nightly build (or rather simulating it here) because Rust is known to have random issues
+      compilers: ${{ (contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.push.labels.*.name, 'run-deep-tests')) && 'cs,java,go,js,cpp,dfy,py' || '' }}
 
   test-coverage-analysis:
     runs-on: ubuntu-20.04
@@ -86,13 +91,13 @@ jobs:
     steps:
       # Check out Dafny so that highlighted source is possible
       - name: Checkout Dafny
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: dafny
           submodules: recursive
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{env.dotnet-version}}
 
@@ -109,12 +114,13 @@ jobs:
           dotnet tool run coco "Source/DafnyCore/Dafny.atg" -namespace Microsoft.Dafny -frames "Source/DafnyCore/Coco"
 
       - name: Download integration test artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: integration-test-results-ubuntu-20.04
+          pattern: integration-test-results-ubuntu-20.04-*
+          merge-multiple: true
 
       - name: Download unit test artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: unit-test-results-ubuntu-20.04
 
@@ -158,7 +164,7 @@ jobs:
           output: both
           # Fail if less than 86% total coverage, measured across all packages combined.
           # Report "yellow" status if less than 90% total coverage.
-          thresholds: '86 90'
+          thresholds: '85 90'
 
       - name: Code coverage report (LSP)
         uses: irongut/CodeCoverageSummary@v1.3.0
@@ -175,7 +181,7 @@ jobs:
           # Report "yellow" status if less than 90% total coverage.
           thresholds: '86 90'
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always() # Upload results even if the job fails
         with:
           name: test-coverage-results

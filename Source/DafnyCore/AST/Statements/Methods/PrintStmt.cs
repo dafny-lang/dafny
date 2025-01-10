@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using DafnyCore;
+using DafnyCore.Options;
 
 namespace Microsoft.Dafny;
 
@@ -16,10 +17,7 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
       options.EnforcePrintEffects = value;
     });
 
-    DooFile.RegisterLibraryChecks(
-      checks: new Dictionary<Option, DooFile.OptionCheck> {
-        { TrackPrintEffectsOption, DooFile.CheckOptionMatches }
-      });
+    OptionRegistry.RegisterGlobalOption(TrackPrintEffectsOption, OptionCompatibility.CheckOptionLocalImpliesLibrary);
   }
 
   [ContractInvariantMethod]
@@ -35,9 +33,9 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
     Args = original.Args.Select(cloner.CloneExpr).ToList();
   }
 
-  public PrintStmt(RangeToken rangeToken, List<Expression> args)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public PrintStmt(IOrigin origin, List<Expression> args)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(args));
 
     Args = args;
@@ -53,5 +51,16 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    if (mustBeErasable) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_print_statement_is_not_ghost, this,
+        "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+    } else {
+      Args.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
+    }
   }
 }
