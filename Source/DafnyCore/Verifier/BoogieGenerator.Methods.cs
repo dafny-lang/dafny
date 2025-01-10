@@ -1665,13 +1665,13 @@ namespace Microsoft.Dafny {
         }
       }
 
+
+      var kv = etran.TrAttributes(m.Attributes, null);
+      var tok = m.Origin;
       var canCalls = traitFrameExps.Concat(classFrameExps)
         .Select(e => etran.CanCallAssumption(e.E))
         .Aggregate((Bpl.Expr)Bpl.Expr.True, BplAnd);
-      builder.Add(TrAssumeCmd(Token.NoToken, canCalls));
-      var kv = etran.TrAttributes(m.Attributes, null);
-
-      var tok = m.Origin;
+      builder.Add(TrAssumeCmd(tok, canCalls));
       var oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", Predef.RefType));
       var o = new Boogie.IdentifierExpr(tok, oVar);
       var fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", Predef.FieldName(tok)));
