@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from functools import reduce
 from types import GeneratorType, FunctionType
 from math import floor
-from itertools import chain, combinations, count
+from itertools import chain, combinations, count, islice
 
 class classproperty(property):
     def __get__(self, instance, owner):
@@ -135,8 +135,14 @@ class Seq:
         See docs/Compilation/StringsAndChars.md.
         '''
 
-        self.elems = iterable if isinstance(iterable, Concat) else (list(iterable) if iterable is not None else [])
-        self.len = len(self.elems)
+        if isinstance(iterable, Seq):
+            # avoid calling list() if iterable is a Seq; that can be expensive
+            self.elems = iterable.elems
+            self.len = iterable.len
+            self.isStr = iterable.isStr
+        else:
+            self.elems = iterable if isinstance(iterable, Concat) else (list(iterable) if iterable is not None else [])
+            self.len = len(self.elems)
         if isStr is None:
             self.isStr = None
         else:
@@ -177,8 +183,7 @@ class Seq:
 
     def __getitem__(self, key):
         if isinstance(key, slice):
-            indices = range(*key.indices(len(self)))
-            return Seq((self.Elements[i] for i in indices), isStr=self.isStr)
+            return Seq(islice(self.Elements, *key.indices(len(self))), isStr=self.isStr)
         return self.Elements.__getitem__(key)
 
     def set(self, key, value):
