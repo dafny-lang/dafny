@@ -13,16 +13,6 @@
 
       <IsPackable>true</IsPackable>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0|AnyCPU'">
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-  </PropertyGroup>
-
-  <!-- Working around some stange behavior in dotnet publish: https://github.com/dotnet/sdk/issues/10566 -->
-  <PropertyGroup Condition="$(RUNTIME_IDENTIFIER) != ''">
-    <RuntimeIdentifier>$(RUNTIME_IDENTIFIER)</RuntimeIdentifier>
-  </PropertyGroup>
     
   <ItemGroup>
     <PackageReference Include="Microsoft.TestPlatform.Extensions.TrxLogger" Version="17.9.0" />
@@ -42,8 +32,8 @@
     
   <ItemGroup>
     <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
+    <ProjectReference Include="..\DafnyLanguageServer\DafnyLanguageServer.csproj" />
     <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
-    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
   </ItemGroup>
   
   <ItemGroup>

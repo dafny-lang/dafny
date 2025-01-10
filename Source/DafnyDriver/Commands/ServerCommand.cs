@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.CommandLine;
-using DafnyCore;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
