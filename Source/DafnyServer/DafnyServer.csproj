@@ -10,11 +10,6 @@
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0|AnyCPU'">
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\DafnyLanguageServer\DafnyLanguageServer.csproj" />
     <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
