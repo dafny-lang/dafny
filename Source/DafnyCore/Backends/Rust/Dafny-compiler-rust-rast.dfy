@@ -608,8 +608,10 @@ module RAST
   const SelfBorrowedMut := BorrowedMut(SelfOwned)
 
   const RcPath := std.MSel("rc").MSel("Rc")
+  const ArcPath := std.MSel("sync").MSel("Arc")
 
   const RcType := RcPath.AsType()
+  const ArcType := ArcPath.AsType()
 
   const ObjectPath: Path := dafny_runtime.MSel("Object")
 
@@ -629,9 +631,6 @@ module RAST
     PtrPath.AsType().Apply([underlying])
   }
 
-  function Rc(underlying: Type): Type {
-    TypeApp(RcType, [underlying])
-  }
   function RefCell(underlying: Type): Type {
     TypeApp(RefcellType, [underlying])
   }

@@ -8,7 +8,7 @@ pub mod _System {
   pub use ::std::fmt::Formatter;
   pub use ::std::fmt::Result;
   pub use crate::DafnyPrint;
-  pub use ::std::rc::Rc;
+  #[cfg(feature = "sync")] pub use ::std::sync::{Arc as Rc}; #[cfg(not(feature = "sync"))] pub use ::std::rc::Rc;
   pub use ::std::cmp::Eq;
   pub use ::std::hash::Hash;
   pub use ::std::hash::Hasher;

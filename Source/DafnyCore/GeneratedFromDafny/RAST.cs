@@ -52,9 +52,6 @@ namespace RAST {
     public static RAST._IType PtrType(RAST._IType underlying) {
       return ((RAST.__default.PtrPath).AsType()).Apply(Dafny.Sequence<RAST._IType>.FromElements(underlying));
     }
-    public static RAST._IType Rc(RAST._IType underlying) {
-      return RAST.Type.create_TypeApp(RAST.__default.RcType, Dafny.Sequence<RAST._IType>.FromElements(underlying));
-    }
     public static RAST._IType RefCell(RAST._IType underlying) {
       return RAST.Type.create_TypeApp(RAST.__default.RefcellType, Dafny.Sequence<RAST._IType>.FromElements(underlying));
     }
@@ -194,8 +191,14 @@ namespace RAST {
     public static RAST._IPath RcPath { get {
       return ((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("rc"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Rc"));
     } }
+    public static RAST._IPath ArcPath { get {
+      return ((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("sync"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Arc"));
+    } }
     public static RAST._IType RcType { get {
       return (RAST.__default.RcPath).AsType();
+    } }
+    public static RAST._IType ArcType { get {
+      return (RAST.__default.ArcPath).AsType();
     } }
     public static RAST._IPath dafny__runtime { get {
       return (RAST.__default.@global).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("dafny_runtime"));
