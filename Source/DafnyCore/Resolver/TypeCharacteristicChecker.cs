@@ -49,6 +49,13 @@ namespace Microsoft.Dafny {
                     }
                   }
                 }
+
+                foreach (var parentType in dt.ParentTraits) {
+                  if (InferAndSetEqualitySupport(tp, parentType, reporter)) {
+                    inferredSomething = true;
+                    goto DONE_DT; // break out of the doubly-nested loop
+                  }
+                }
               DONE_DT:;
               }
             }
