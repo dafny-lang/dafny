@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.CommandLine.Help;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -372,19 +373,15 @@ public class Compilation : IDisposable {
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
-        var groups = tasks.GroupBy(t => {
-          var dafnyToken = BoogieGenerator.ToDafnyToken(true, t.Token);
-          // We normalize so that we group on tokens as they are displayed to the user by Reporter.Info
-          return new RangeToken(dafnyToken.StartToken, dafnyToken.EndToken);
-        }).
-          OrderBy(g => g.Key);
+        var groups = GroupOverlappingRanges(tasks).
+          OrderBy(g => g.Group.StartToken);
         foreach (var tokenTasks in groups) {
-          var functions = tokenTasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
+          var functions = tokenTasks.Tasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
             OfType<FromDafnyNode>().Select(n => n.Node).
-            OfType<Function>()).Distinct().OrderBy(f => f.tok);
+            OfType<Function>()).Distinct().OrderBy(f => f.Origin.Center);
           var hiddenFunctions = string.Join(", ", functions.Select(f => f.FullDafnyName));
           if (!string.IsNullOrEmpty(hiddenFunctions)) {
-            Reporter.Info(MessageSource.Verifier, tokenTasks.Key, $"hidden functions: {hiddenFunctions}");
+            Reporter.Info(MessageSource.Verifier, tokenTasks.Group, $"hidden functions: {hiddenFunctions}");
           }
         }
 
@@ -399,6 +396,38 @@ public class Compilation : IDisposable {
     finally {
       verificationTickets.Enqueue(Unit.Default);
     }
+  }
+
+
+  public static IEnumerable<(IOrigin Group, List<IVerificationTask> Tasks)> GroupOverlappingRanges(IReadOnlyList<IVerificationTask> ranges) {
+    if (!ranges.Any()) {
+      return Enumerable.Empty<(IOrigin Group, List<IVerificationTask> Tasks)>();
+    }
+    var sortedTasks = ranges.OrderBy(r =>
+      BoogieGenerator.ToDafnyToken(true, r.Token).StartToken).ToList();
+    var groups = new List<(IOrigin Group, List<IVerificationTask> Tasks)>();
+    var currentGroup = new List<IVerificationTask> { sortedTasks[0] };
+    var currentGroupRange = BoogieGenerator.ToDafnyToken(true, currentGroup[0].Token);
+
+    for (int i = 1; i < sortedTasks.Count; i++) {
+      var currentTask = sortedTasks[i];
+      var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token);
+      bool overlapsWithGroup = currentGroupRange.Intersects(currentTaskRange);
+
+      if (overlapsWithGroup) {
+        if (currentTaskRange.EndToken.pos > currentGroupRange.EndToken.pos) {
+          currentGroupRange = new SourceOrigin(currentGroupRange.StartToken, currentTaskRange.EndToken, currentGroupRange.Center);
+        }
+        currentGroup.Add(currentTask);
+      } else {
+        groups.Add((currentGroupRange, currentGroup));
+        currentGroup = new List<IVerificationTask> { currentTask };
+        currentGroupRange = currentTaskRange;
+      }
+    }
+
+    groups.Add((currentGroupRange, currentGroup)); // Add the last group
+    return groups;
   }
 
   private void VerifyTask(ICanVerify canVerify, IVerificationTask task) {
@@ -511,20 +540,19 @@ public class Compilation : IDisposable {
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, task.ScopeToken,
+    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
-  public static void ReportDiagnosticsInResult(DafnyOptions options, string name, Boogie.IToken token,
+  public static void ReportDiagnosticsInResult(DafnyOptions options, string name, IOrigin token,
     uint timeLimit,
     VerificationRunResult result,
     ErrorReporter errorReporter) {
     var outcome = GetOutcome(result.Outcome);
     result.CounterExamples.Sort(new CounterexampleComparer());
-    foreach (var counterExample in result.CounterExamples) //.OrderBy(d => d.GetLocation()))
-    {
+    foreach (var counterExample in result.CounterExamples) {
       var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
       if (options.ShowProofObligationExpressions) {
         AddAssertedExprToCounterExampleErrorInfo(options, counterExample, errorInformation);
@@ -533,17 +561,96 @@ public class Compilation : IDisposable {
       errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
     }
 
-    // This reports problems that are not captured by counter-examples, like a time-out
-    // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
-    var boogieEngine = new ExecutionEngine(options, new EmptyVerificationResultCache(),
-      CustomStackSizePoolTaskScheduler.Create(0, 0));
-    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, null, false),
-      name, token, null, TextWriter.Null,
-      timeLimit, result.CounterExamples);
+    var outcomeError = ReportOutcome(options, outcome, name, token, timeLimit, result.CounterExamples);
+    if (outcomeError != null) {
+      errorReporter.ReportBoogieError(outcomeError, null, false);
+    }
+  }
+
+  private static ErrorInformation? ReportOutcome(DafnyOptions options,
+      VcOutcome vcOutcome, string name,
+      IToken token, uint timeLimit, List<Counterexample> errors) {
+    ErrorInformation? errorInfo = null;
+
+    switch (vcOutcome) {
+      case VcOutcome.Correct:
+        break;
+      case VcOutcome.Errors:
+      case VcOutcome.TimedOut: {
+          if (vcOutcome != VcOutcome.TimedOut &&
+              (!errors.Any(e => e.IsAuxiliaryCexForDiagnosingTimeouts))) {
+            break;
+          }
+
+          string msg = string.Format("Verification of '{1}' timed out after {0} seconds. (the limit can be increased using --verification-time-limit)", timeLimit, name);
+          errorInfo = ErrorInformation.Create(token, msg);
+
+          //  Report timed out assertions as auxiliary info.
+          var comparer = new CounterexampleComparer();
+          var timedOutAssertions = errors.Where(e => e.IsAuxiliaryCexForDiagnosingTimeouts).Distinct(comparer)
+            .OrderBy(x => x, comparer).ToList();
+          if (0 < timedOutAssertions.Count) {
+            errorInfo!.Msg += $" with {timedOutAssertions.Count} check(s) that timed out individually";
+          }
+
+          foreach (Counterexample error in timedOutAssertions) {
+            IToken tok;
+            string auxMsg = null!;
+            switch (error) {
+              case CallCounterexample callCounterexample:
+                tok = callCounterexample.FailingCall.tok;
+                auxMsg = callCounterexample.FailingCall.Description.FailureDescription;
+                break;
+              case ReturnCounterexample returnCounterexample:
+                tok = returnCounterexample.FailingReturn.tok;
+                auxMsg = returnCounterexample.FailingReturn.Description.FailureDescription;
+                break;
+              case AssertCounterexample assertError: {
+                  tok = assertError.FailingAssert.tok;
+                  if (!(assertError.FailingAssert.ErrorMessage == null ||
+                        ((ExecutionEngineOptions)options).ForceBplErrors)) {
+                    auxMsg = assertError.FailingAssert.ErrorMessage;
+                  }
+
+                  auxMsg ??= assertError.FailingAssert.Description.FailureDescription;
+                  break;
+                }
+              default: throw new Exception();
+            }
+
+            errorInfo.AddAuxInfo(tok, auxMsg, "Unverified check due to timeout");
+          }
+
+          break;
+        }
+      case VcOutcome.OutOfResource: {
+          string msg = "Verification out of resource (" + name + ")";
+          errorInfo = ErrorInformation.Create(token, msg);
+        }
+        break;
+      case VcOutcome.OutOfMemory: {
+          string msg = "Verification out of memory (" + name + ")";
+          errorInfo = ErrorInformation.Create(token, msg);
+        }
+        break;
+      case VcOutcome.SolverException: {
+          string msg = "Verification encountered solver exception (" + name + ")";
+          errorInfo = ErrorInformation.Create(token, msg);
+        }
+        break;
+
+      case VcOutcome.Inconclusive: {
+          string msg = "Verification inconclusive (" + name + ")";
+          errorInfo = ErrorInformation.Create(token, msg);
+        }
+        break;
+    }
+
+    return errorInfo;
   }
 
   private static void AddAssertedExprToCounterExampleErrorInfo(
-      DafnyOptions options, Counterexample counterExample, ErrorInformation errorInformation) {
+    DafnyOptions options, Counterexample counterExample, ErrorInformation errorInformation) {
     Boogie.ProofObligationDescription? boogieProofObligationDesc = null;
     switch (errorInformation.Kind) {
       case ErrorKind.Assertion:

@@ -38,6 +38,8 @@ module Std.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     }
 
+    @IsolateAssertions
+    @ResourceLimit("1000e6")
     function WS(cs: FreshCursor): (sp: Split<jblanks>)
       ensures sp.SplitFrom?(cs, SpecView)
       ensures sp.cs.SuffixOf?(cs)
@@ -291,11 +293,17 @@ module Std.JSON.ZeroCopy.Deserializer {
       ensures
         var sp := Core.TryStructural(cs);
         var s0 := sp.t.t.Peek();
-        && ((!cs.BOF? || !cs.EOF?) && (s0 == SEPARATOR as opt_byte) ==> (var sp: Split<Structural<jcomma>> := sp; sp.cs.StrictSuffixOf?(cs)))
-        && ((s0 == SEPARATOR as opt_byte) ==> var sp: Split<Structural<jcomma>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView)))
-        && ((!cs.BOF? || !cs.EOF?) && (s0 == CLOSE as opt_byte) ==> (var sp: Split<Structural<jclose>> := sp; sp.cs.StrictSuffixOf?(cs)))
-        && ((s0 == CLOSE as opt_byte) ==> var sp: Split<Structural<jclose>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView)))
+        && ((!cs.BOF? || !cs.EOF?) && s0 == SEPARATOR as opt_byte ==> var sp: Split<Structural<jcomma>> := sp; sp.cs.StrictSuffixOf?(cs))
+        && (s0 == SEPARATOR as opt_byte ==> var sp: Split<Structural<jcomma>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView)))
+        && ((!cs.BOF? || !cs.EOF?) && s0 == CLOSE as opt_byte ==> var sp: Split<Structural<jclose>> := sp; sp.cs.StrictSuffixOf?(cs))
+        && (s0 == CLOSE as opt_byte ==> var sp: Split<Structural<jclose>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView)))
     {
+      var sp := Core.TryStructural(cs);
+      var s0 := sp.t.t.Peek();
+      assert (!cs.BOF? || !cs.EOF?) && s0 == SEPARATOR as opt_byte ==> var sp: Split<Structural<jcomma>> := sp; sp.cs.StrictSuffixOf?(cs);
+      assert s0 == SEPARATOR as opt_byte ==> var sp: Split<Structural<jcomma>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView));
+      assert (!cs.BOF? || !cs.EOF?) && s0 == CLOSE as opt_byte ==> var sp: Split<Structural<jclose>> := sp; sp.cs.StrictSuffixOf?(cs);
+      assert s0 == CLOSE as opt_byte ==> var sp: Split<Structural<jclose>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView));
     }
 
     @IsolateAssertions
@@ -796,6 +804,7 @@ module Std.JSON.ZeroCopy.Deserializer {
       if period.Empty? then
         Success(SP(Empty(), cs))
       else
+        assert Digits(cs).t.Empty? ==> NonEmptyDigits(cs).Failure?;
         var SP(num, cs) :- NonEmptyDigits(cs);
         Success(SP(NonEmpty(JFrac(period, num)), cs))
     }

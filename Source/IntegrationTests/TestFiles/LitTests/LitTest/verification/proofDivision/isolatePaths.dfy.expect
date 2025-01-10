@@ -3,7 +3,7 @@ Verified 1/4 of Assertion: assertion at line 21, after executing lines 8, 16 - c
 Verified 2/4 of Assertion: assertion at line 21, after executing lines 8, 18 - verified successfully <redacted>
 Verified 3/4 of Assertion: assertion at line 21, after executing lines 11, 16 - verified successfully <redacted>
 Verified 4/4 of Assertion: assertion at line 21, after executing lines 11, 18 - verified successfully <redacted>
-isolatePaths.dfy(21,30): Error: assertion might not hold
+isolatePaths.dfy(21,2): Error: assertion might not hold
 Verified 1/2 symbols. Waiting for Return to verify.
 Verified 1/3 of Return: remaining assertions - could not be verified <redacted>
 Verified 2/3 of Return: return at line 38, after executing lines 30 - could not be verified <redacted>

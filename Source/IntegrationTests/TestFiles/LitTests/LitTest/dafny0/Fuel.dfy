@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /autoTriggers:0 /optimizeResolution:0 /errorLimit:0 "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-deprecation --manual-triggers --error-limit 0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module TestModule1 {
@@ -9,8 +9,8 @@ module TestModule1 {
     }
 
     method test(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert pos(z) == 0;
         assert pos(-1) == 0;
@@ -46,8 +46,8 @@ module TestModule2 {
     }
 
     method test(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert pos1(z) == 0;
         assert pos1(-1) == 0;
@@ -58,21 +58,21 @@ module TestModule2 {
         assert pos2(-1) == 0;
         assert pos2(y) == 3 + pos2(y - 3);
         assert pos2(y) == 4 + pos2(y - 4);
-
-        if (*) {
+    }
+    method test3(y: int) requires y > 5 {
+        if * {
             assert pos3(y) == 5 + pos3(y - 5);  // Just enough fuel to get here
         } else {
             assert pos3(y) == 6 + pos3(y - 6);  // error: Should fail even with a boost, since boost is too small
         }
-
-        if (*) {
+    }
+    method test4(y: int, z: int) requires y > 5 requires z < 0 {
+        if * {
             assert pos4(z) == 0;    // error: Fuel shouldn't overcome opaque
         } else {
             reveal pos4();
             assert pos4(y) == 5 + pos4(y - 5);  // With reveal, everything should work as above
         }
-
-
     }
 }
 
@@ -86,8 +86,8 @@ module TestModule3 {
     }
 
     method test(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert pos(z) == 0;             // error: Opaque setting hides body
         assert pos(-1) == 0;            // error: Lits also obey opaque now
@@ -105,8 +105,8 @@ module TestModule4 {
 
     // Should pass
     method {:fuel pos,3} test1(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert pos(z) == 0;
         assert pos(-1) == 0;
@@ -114,8 +114,8 @@ module TestModule4 {
     }
 
     method {:fuel pos,0,0} test2(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert pos(z) == 0;               // error: Should fail due to "opaque" fuel setting
         assert pos(-1) == 0;              // error: Should fail due to "opaque" fuel setting.  Even Lits obey opaque
@@ -123,12 +123,12 @@ module TestModule4 {
     }
 
     method test3(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert {:fuel pos,0,0} pos(z) == 0;               // error: fuel can't be decreased
         assert pos(-1) == 0;
-        if (*) {
+        if * {
             assert pos(y) == 3 + pos(y - 3);  // error: Should fail without extra fuel setting
             assert pos(y) == 6 + pos(y - 6);  // error: Should fail even with previous assert turned into assume
         } else {
@@ -138,16 +138,16 @@ module TestModule4 {
     }
 
     method test4(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         forall t:int {:fuel pos,3} | t > 0
-            ensures true;
+            ensures true
         {
             assert pos(y) == 3 + pos(y - 3);    // Expected to pass, due to local fuel boost
         }
 
-        if (*) {
+        if * {
             calc {:fuel pos,3} {
                 pos(y);
                 3 + pos(y - 3);
@@ -172,8 +172,8 @@ module TestModule5 {
                 }
 
                 method test(y:int, z:int)
-                    requires y > 5;
-                    requires z < 0;
+                    requires y > 5
+                    requires z < 0
                 {
                     assert pos(z) == 0;
                     assert pos(-1) == 0;
@@ -182,8 +182,8 @@ module TestModule5 {
             }
 
             method test(y:int, z:int)
-                requires y > 5;
-                requires z < 0;
+                requires y > 5
+                requires z < 0
             {
                 assert TestModule5aiA.pos(z) == 0;
                 assert TestModule5aiA.pos(-1) == 0;
@@ -192,8 +192,8 @@ module TestModule5 {
         }
 
         method test(y:int, z:int)
-            requires y > 5;
-            requires z < 0;
+            requires y > 5
+            requires z < 0
         {
             assert TestModule5ai.TestModule5aiA.pos(z) == 0;
             assert TestModule5ai.TestModule5aiA.pos(-1) == 0;
@@ -211,8 +211,8 @@ module TestModule5 {
                 }
 
                 method test(y:int, z:int)
-                    requires y > 5;
-                    requires z < 0;
+                    requires y > 5
+                    requires z < 0
                 {
                     assert pos(z) == 0;
                     assert pos(-1) == 0;
@@ -232,15 +232,15 @@ module TestModule6 {
     }
 
     ghost function neg(x:int) : int
-        decreases 1 - x;
+        decreases 1 - x
     {
         if x > 0 then 0
         else 1 + neg(x + 1)
     }
 
     method test1(y:int, z:int)
-        requires y > 5;
-        requires z < 5;
+        requires y > 5
+        requires z < 5
     {
         assert pos(y) == 3 + pos(y - 3);    // error: Should fail, due to lack of fuel
 
@@ -248,8 +248,8 @@ module TestModule6 {
     }
 
     method {:fuel pos,3} {:fuel neg,4} test2(y:int, z:int)
-        requires y > 5;
-        requires z < -5;
+        requires y > 5
+        requires z < -5
     {
         assert pos(y) == 3 + pos(y - 3);
 
@@ -266,23 +266,23 @@ module TestModule7 {
     }
 
     ghost function {:fuel 0,0} neg(x:int) : int
-        decreases 1 - x;
+        decreases 1 - x
     {
         if x > 0 then 0
         else 1 + neg(x + 1)
     }
 
     method {:fuel neg,4} {:fuel pos,0,0} test1(y:int, z:int)
-        requires y > 5;
-        requires z < -5;
+        requires y > 5
+        requires z < -5
     {
-        if (*) {
+        if * {
             assert pos(y) == 3 + pos(y - 3);    // error: Method fuel should override function fuel, so this should fail
             assert neg(z) == 3 + neg(z + 3);    // Method fuel should override function fuel, so this succeeds
         }
 
         forall t:int {:fuel pos,3} | t > 0
-            ensures true;
+            ensures true
         {
             assert pos(y) == 3 + pos(y - 3);    // Statement fuel should override method fuel, so this should succeed
         }
@@ -321,15 +321,15 @@ module TestModule8 {
         function CRequest_grammar() : G { GTaggedUnion([ GTuple([EndPoint_grammar(), GUint64, CAppMessage_grammar()]), GUint64]) }
 
         function parse_EndPoint(val:V) : EndPoint
-            requires ValInGrammar(val, EndPoint_grammar());
+            requires ValInGrammar(val, EndPoint_grammar())
 
         type CAppMessage
         function CAppMessage_grammar() : G { GTaggedUnion([GUint64, GUint64, GUint64]) }
         function parse_AppMessage(val:V) : CAppMessage
-            requires ValInGrammar(val, CAppMessage_grammar());
+            requires ValInGrammar(val, CAppMessage_grammar())
 
         function {:fuel ValInGrammar,1} parse_Request1(val:V) : CRequest
-            requires ValInGrammar(val, CRequest_grammar());
+            requires ValInGrammar(val, CRequest_grammar())
         {
             if val.c == 0 then
                 var ep := parse_EndPoint(val.val.t[0]); // With default fuel, error: function precondition (6x), destructor, index
@@ -339,7 +339,7 @@ module TestModule8 {
         }
 
         function parse_Request2(val:V) : CRequest
-            requires ValInGrammar(val, CRequest_grammar());
+            requires ValInGrammar(val, CRequest_grammar())
         {
             if val.c == 0 then
                 var ep := parse_EndPoint(val.val.t[0]);                      // With fuel boosted to 2 this succeeds
@@ -349,7 +349,7 @@ module TestModule8 {
         }
 
         function {:fuel ValInGrammar,3} parse_Request3(val:V) : CRequest
-            requires ValInGrammar(val, CRequest_grammar());
+            requires ValInGrammar(val, CRequest_grammar())
         {
             if val.c == 0 then
                 var ep := parse_EndPoint(val.val.t[0]);
@@ -360,7 +360,7 @@ module TestModule8 {
 
         // With the method, everything succeeds with one less fuel boost (i.e., 2, rather than 3, as in parse_Request3)
         method parse_Request4(val:V) returns (req:CRequest)
-            requires ValInGrammar(val, CRequest_grammar());
+            requires ValInGrammar(val, CRequest_grammar())
         {
             if val.c == 0 {
                 var ep := parse_EndPoint(val.val.t[0]);
@@ -381,8 +381,8 @@ module TestModule9 {
 
     // All should pass.
     method test1(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert abs(z) == -1*z;
         assert abs(y) == y;
@@ -391,8 +391,8 @@ module TestModule9 {
 
     // Method-level fuel override
     method {:fuel abs,0,0} test2(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert abs(z) == -1*z;  // error: Cannot see the body of abs
         assert abs(y) == y;     // error: Cannot see the body of abs
@@ -401,8 +401,8 @@ module TestModule9 {
 
     // Statement-level fuel override
     method test3(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert {:fuel abs,0,0} abs(z) == -1*z;  // error: fuel can't be decreased
         assert abs(y) == y;     // Normal success
@@ -412,8 +412,8 @@ module TestModule9 {
     // Giving more fuel to a non-recursive function won't help,
     // but it shouldn't hurt either.
     method {:fuel abs,5,6} test4(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert abs(z) == -1*z;
         assert abs(y) == y;
@@ -429,8 +429,8 @@ module TestModule10 {
     }
 
     method test1(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert abs(z) == -1*z;  // error: Cannot see the body of abs
         assert abs(y) == y;     // error: Cannot see the body of abs
@@ -451,8 +451,8 @@ module TestModule11 {
     }
 
     method test1(y:int, z:int)
-        requires y > 5;
-        requires z < 0;
+        requires y > 5
+        requires z < 0
     {
         assert abs'(z) == -1*z;  // Annotation on abs' only applies locally, so we see the body of abs
         assert abs'(y) == y;     // Annotation on abs' only applies locally, so we see the body of abs
@@ -474,7 +474,7 @@ module TestModule12 {
 		}
 
 		method {:fuel pos3,2,3} {:fuel pos4,2,3} test (y:int)
-			requires y > 3;
+			requires y > 3
 		{
 				assert pos3(y) == 3 + pos4(y - 3);
 		}

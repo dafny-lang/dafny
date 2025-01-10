@@ -2,7 +2,7 @@ git-issue-3804b.dfy(18,2): Error: a postcondition could not be proved on this re
 git-issue-3804b.dfy(16,12): Related location: this is the postcondition that could not be proved
 git-issue-3804b.dfy(27,2): Error: a postcondition could not be proved on this return path
 git-issue-3804b.dfy(25,12): Related location: this is the postcondition that could not be proved
-git-issue-3804b.dfy(40,20): Error: assertion might not hold
-git-issue-3804b.dfy(48,21): Error: assertion might not hold
+git-issue-3804b.dfy(40,2): Error: assertion might not hold
+git-issue-3804b.dfy(48,2): Error: assertion might not hold
 
 Dafny program verifier finished with 5 verified, 4 errors

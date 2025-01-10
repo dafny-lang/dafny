@@ -12,7 +12,7 @@ public partial class BoogieGenerator {
 
   private void TrForallStmt(BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     ForallStmt forallStmt) {
-    this.fuelContext = FuelSetting.ExpandFuelContext(forallStmt.Attributes, forallStmt.Tok, this.fuelContext, this.reporter);
+    this.fuelContext = FuelSetting.ExpandFuelContext(forallStmt.Attributes, forallStmt.Origin, this.fuelContext, this.reporter);
 
     CurrentIdGenerator.Push();
     if (forallStmt.Kind == ForallStmt.BodyKind.Assign) {
@@ -24,10 +24,10 @@ public partial class BoogieGenerator {
         var s0 = (SingleAssignStmt)forallStmt.S0;
         var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
         var updater = new BoogieStmtListBuilder(this, options, builder.Context);
-        DefineFuelConstant(forallStmt.Tok, forallStmt.Attributes, definedness, etran);
+        DefineFuelConstant(forallStmt.Origin, forallStmt.Attributes, definedness, etran);
         TrForallAssign(forallStmt, s0, definedness, updater, locals, etran);
         // All done, so put the two pieces together
-        builder.Add(new Bpl.IfCmd(forallStmt.Tok, null, definedness.Collect(forallStmt.Tok), null, updater.Collect(forallStmt.Tok)));
+        builder.Add(new Bpl.IfCmd(forallStmt.Origin, null, definedness.Collect(forallStmt.Origin), null, updater.Collect(forallStmt.Origin)));
         builder.AddCaptureState(forallStmt);
       }
 
@@ -40,16 +40,16 @@ public partial class BoogieGenerator {
       } else {
         var s0 = (CallStmt)forallStmt.S0;
         if (Attributes.Contains(forallStmt.Attributes, "_trustWellformed")) {
-          TrForallStmtCall(forallStmt.Tok, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null,
+          TrForallStmtCall(forallStmt.Origin, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null,
             forallStmt.EffectiveEnsuresClauses, null, s0, null, builder, locals, etran);
         } else {
           var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
-          DefineFuelConstant(forallStmt.Tok, forallStmt.Attributes, definedness, etran);
+          DefineFuelConstant(forallStmt.Origin, forallStmt.Attributes, definedness, etran);
           var exporter = new BoogieStmtListBuilder(this, options, builder.Context);
-          TrForallStmtCall(forallStmt.Tok, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null,
+          TrForallStmtCall(forallStmt.Origin, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null,
             forallStmt.EffectiveEnsuresClauses, null, s0, definedness, exporter, locals, etran);
           // All done, so put the two pieces together
-          builder.Add(new Bpl.IfCmd(forallStmt.Tok, null, definedness.Collect(forallStmt.Tok), null, exporter.Collect(forallStmt.Tok)));
+          builder.Add(new Bpl.IfCmd(forallStmt.Origin, null, definedness.Collect(forallStmt.Origin), null, exporter.Collect(forallStmt.Origin)));
         }
         builder.AddCaptureState(forallStmt);
       }
@@ -58,10 +58,10 @@ public partial class BoogieGenerator {
       AddComment(builder, forallStmt, "forall statement (proof)");
       var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
       var exporter = new BoogieStmtListBuilder(this, options, builder.Context);
-      DefineFuelConstant(forallStmt.Tok, forallStmt.Attributes, definedness, etran);
+      DefineFuelConstant(forallStmt.Origin, forallStmt.Attributes, definedness, etran);
       TrForallProof(forallStmt, definedness, exporter, locals, etran);
       // All done, so put the two pieces together
-      builder.Add(new Bpl.IfCmd(forallStmt.Tok, null, definedness.Collect(forallStmt.Tok), null, exporter.Collect(forallStmt.Tok)));
+      builder.Add(new Bpl.IfCmd(forallStmt.Origin, null, definedness.Collect(forallStmt.Origin), null, exporter.Collect(forallStmt.Origin)));
       builder.AddCaptureState(forallStmt);
 
     } else {
@@ -74,7 +74,8 @@ public partial class BoogieGenerator {
 
   void TrForallStmtCall(IOrigin tok, List<BoundVar> boundVars, List<BoundedPool> bounds,
     Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, List<List<Expression>> triggers, CallStmt s0,
-    BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, Variables locals, ExpressionTranslator etran) {
+    BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, Variables locals, ExpressionTranslator etran,
+    bool includeCanCalls = true) {
     Contract.Requires(tok != null);
     Contract.Requires(boundVars != null);
     Contract.Requires(bounds != null);
@@ -126,7 +127,7 @@ public partial class BoogieGenerator {
         definedness.Add(TrAssumeCmd(tok, ante));
       }
       TrStmt_CheckWellformed(range, definedness, locals, etran, false);
-      definedness.Add(TrAssumeCmd(range.tok, etran.TrExpr(range)));
+      definedness.Add(TrAssumeCmd(range.Origin, etran.TrExpr(range)));
       if (additionalRange != null) {
         var es = additionalRange(new Dictionary<IVariable, Expression>(), etran);
         definedness.Add(TrAssumeCmd(es.tok, es));
@@ -168,7 +169,7 @@ public partial class BoogieGenerator {
       var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
       Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
       var callEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, initHeap, etran.scope);
-      Bpl.Expr ante;
+      Bpl.Expr anteCanCalls, ante;
       Bpl.Expr post = Bpl.Expr.True;
       Bpl.Trigger tr;
       if (forallExpressions != null) {
@@ -179,21 +180,25 @@ public partial class BoogieGenerator {
         }
         boundVars = expr.BoundVars;
         ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
-        tr = TrTrigger(callEtran, expr.Attributes, expr.tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+        tr = TrTrigger(callEtran, expr.Attributes, expr.Origin, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
 
         var p = Substitute(expr.Range, null, substMap);
+        anteCanCalls = initEtran.CanCallAssumption(p);
         ante = BplAnd(ante, initEtran.TrExpr(p));
         if (additionalRange != null) {
           ante = BplAnd(ante, additionalRange(substMap, initEtran));
         }
-        tr = TrTrigger(callEtran, expr.Attributes, expr.tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
-        post = callEtran.TrExpr(Substitute(expr.Term, null, substMap));
+        p = Substitute(expr.Term, null, substMap);
+        post = BplAnd(post, callEtran.CanCallAssumption(p));
+        post = BplAnd(post, callEtran.TrExpr(p));
       } else {
         ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
 
         var p = Substitute(range, null, substMap);
+        anteCanCalls = initEtran.CanCallAssumption(p);
         ante = BplAnd(ante, initEtran.TrExpr(p));
         if (additionalRange != null) {
+          // additionalRange produces something of the form canCallAssumptions ==> TrExpr
           ante = BplAnd(ante, additionalRange(substMap, initEtran));
         }
 
@@ -202,8 +207,11 @@ public partial class BoogieGenerator {
           var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the renamed bound variables for the declared ones
           argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
         }
-        foreach (var ens in s0.Method.Ens) {
+        foreach (var ens in ConjunctsOf(s0.Method.Ens)) {
           p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the call's actuals for the method's formals
+          if (includeCanCalls) {
+            post = BplAnd(post, callEtran.CanCallAssumption(p));
+          }
           post = BplAnd(post, callEtran.TrExpr(p));
         }
 
@@ -215,7 +223,7 @@ public partial class BoogieGenerator {
               expr = Substitute(expr, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
               return callEtran.TrExpr(expr);
             });
-            tr = new Trigger(trigger[0].tok, true, terms, tr);
+            tr = new Trigger(trigger[0].Origin, true, terms, tr);
           }
         }
       }
@@ -223,7 +231,11 @@ public partial class BoogieGenerator {
       // TRIG (forall $ih#s0#0: Seq :: $Is($ih#s0#0, TSeq(TChar)) && $IsAlloc($ih#s0#0, TSeq(TChar), $initHeapForallStmt#0) && Seq#Length($ih#s0#0) != 0 && Seq#Rank($ih#s0#0) < Seq#Rank(s#0) ==> (forall i#2: int :: true ==> LitInt(0) <= i#2 && i#2 < Seq#Length($ih#s0#0) ==> char#ToInt(_module.CharChar.MinChar($LS($LZ), $Heap, this, $ih#s0#0)) <= char#ToInt($Unbox(Seq#Index($ih#s0#0, i#2)): char)))
       // TRIG (forall $ih#pat0#0: Seq, $ih#a0#0: Seq :: $Is($ih#pat0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#pat0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && $Is($ih#a0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#a0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && Seq#Length($ih#pat0#0) <= Seq#Length($ih#a0#0) && Seq#SameUntil($ih#pat0#0, $ih#a0#0, Seq#Length($ih#pat0#0)) && (Seq#Rank($ih#pat0#0) < Seq#Rank(pat#0) || (Seq#Rank($ih#pat0#0) == Seq#Rank(pat#0) && Seq#Rank($ih#a0#0) < Seq#Rank(a#0))) ==> _module.__default.IsRelaxedPrefixAux(_module._default.Same0$T, $LS($LZ), $Heap, $ih#pat0#0, $ih#a0#0, LitInt(1)))'
       // TRIG (forall $ih#m0#0: DatatypeType, $ih#n0#0: DatatypeType :: $Is($ih#m0#0, Tclass._module.Nat()) && $IsAlloc($ih#m0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && $Is($ih#n0#0, Tclass._module.Nat()) && $IsAlloc($ih#n0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && Lit(true) && (DtRank($ih#m0#0) < DtRank(m#0) || (DtRank($ih#m0#0) == DtRank(m#0) && DtRank($ih#n0#0) < DtRank(n#0))) ==> _module.__default.mult($LS($LZ), $Heap, $ih#m0#0, _module.__default.plus($LS($LZ), $Heap, $ih#n0#0, $ih#n0#0)) == _module.__default.mult($LS($LZ), $Heap, _module.__default.plus($LS($LZ), $Heap, $ih#m0#0, $ih#m0#0), $ih#n0#0))
-      var qq = new Bpl.ForallExpr(tok, bvars, tr, BplImp(ante, post));  // TODO: Add a SMART_TRIGGER here.  If we can't find one, abort the attempt to do induction automatically
+      var body = BplImp(ante, post);
+      if (includeCanCalls) {
+        body = BplAnd(anteCanCalls, body);
+      }
+      var qq = new Bpl.ForallExpr(tok, bvars, tr, body);
       exporter.Add(TrAssumeCmd(tok, qq));
     }
   }
@@ -302,7 +314,7 @@ public partial class BoogieGenerator {
     var substMap = SetupBoundVarsAsLocals(s.BoundVars, definedness, locals, etran);
     Expression range = Substitute(s.Range, null, substMap);
     TrStmt_CheckWellformed(range, definedness, locals, etran, false);
-    definedness.Add(TrAssumeCmd(s.Range.tok, etran.TrExpr(range)));
+    definedness.Add(TrAssumeCmd(s.Range.Origin, etran.TrExpr(range)));
 
     var lhs = Substitute(s0.Lhs.Resolved, null, substMap);
     TrStmt_CheckWellformed(lhs, definedness, locals, etran, false);
@@ -314,7 +326,7 @@ public partial class BoogieGenerator {
       _ => throw new cce.UnreachableException()
     };
     var desc = new Modifiable(description, GetContextModifiesFrames(), lhsObj, lhsField);
-    definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.ModifiesFrame(lhs.tok), obj, F),
+    definedness.Add(Assert(lhs.Origin, Bpl.Expr.SelectTok(lhs.Origin, etran.ModifiesFrame(lhs.Origin), obj, F),
       desc, definedness.Context));
     if (s0.Rhs is ExprRhs) {
       var r = (ExprRhs)s0.Rhs;
@@ -330,11 +342,11 @@ public partial class BoogieGenerator {
         lhsType = ((MultiSelectExpr)lhs).Type;
       }
       var translatedRhs = etran.TrExpr(rhs);
-      CheckSubrange(r.Tok, translatedRhs, rhs.Type, lhsType, rhs, definedness);
+      CheckSubrange(r.Origin, translatedRhs, rhs.Type, lhsType, rhs, definedness);
       if (lhs is MemberSelectExpr) {
         var fse = (MemberSelectExpr)lhs;
         Contract.Assert(lhsField != null);
-        Check_NewRestrictions(fse.tok, fse.Obj, obj, lhsField, translatedRhs, definedness, etran);
+        Check_NewRestrictions(fse.Origin, fse.Obj, obj, lhsField, translatedRhs, definedness, etran);
       }
     }
 
@@ -343,7 +355,7 @@ public partial class BoogieGenerator {
       var substMapPrime = SetupBoundVarsAsLocals(s.BoundVars, definedness, locals, etran);
       var lhsPrime = Substitute(s0.Lhs.Resolved, null, substMapPrime);
       range = Substitute(s.Range, null, substMapPrime);
-      definedness.Add(TrAssumeCmd(range.tok, etran.TrExpr(range)));
+      definedness.Add(TrAssumeCmd(range.Origin, etran.TrExpr(range)));
       // assume !(x == x' && y == y');
       Bpl.Expr eqs = Bpl.Expr.True;
       foreach (var bv in s.BoundVars) {
@@ -352,7 +364,7 @@ public partial class BoogieGenerator {
         // TODO: in the following line, is the term equality okay, or does it have to include things like Set#Equal sometimes too?
         eqs = BplAnd(eqs, Bpl.Expr.Eq(etran.TrExpr(x), etran.TrExpr(xPrime)));
       }
-      definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.Not(eqs)));
+      definedness.Add(TrAssumeCmd(s.Origin, Bpl.Expr.Not(eqs)));
       GetObjFieldDetails(lhsPrime, etran, out var objPrime, out var FPrime);
       var Rhs = ((ExprRhs)s0.Rhs).Expr;
       var rhs = etran.TrExpr(Substitute(Rhs, null, substMap));
@@ -364,22 +376,22 @@ public partial class BoogieGenerator {
         lhsComponents.AddRange(multi.Indices);
       }
 
-      definedness.Add(Assert(s0.Tok,
+      definedness.Add(Assert(s0.Origin,
         BplOr(
           BplOr(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
           Bpl.Expr.Eq(rhs, rhsPrime)),
         new ForallLHSUnique(s.BoundVars, s.Range, lhsComponents, Rhs), definedness.Context));
     }
 
-    definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
+    definedness.Add(TrAssumeCmd(s.Origin, Bpl.Expr.False));
 
     // Now for the translation of the update itself
 
-    Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(s.Tok, locals);
+    Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(s.Origin, locals);
     var prevEtran = new ExpressionTranslator(this, Predef, prevHeap, etran.scope);
-    updater.Add(Bpl.Cmd.SimpleAssign(s.Tok, prevHeap, etran.HeapExpr));
-    updater.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
-    updater.Add(TrAssumeCmd(s.Tok, HeapSucc(prevHeap, etran.HeapExpr)));
+    updater.Add(Bpl.Cmd.SimpleAssign(s.Origin, prevHeap, etran.HeapExpr));
+    updater.Add(new Bpl.HavocCmd(s.Origin, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+    updater.Add(TrAssumeCmd(s.Origin, HeapSucc(prevHeap, etran.HeapExpr)));
 
     // Here comes:
     //   assume (forall o: ref, f: Field ::
@@ -387,12 +399,12 @@ public partial class BoogieGenerator {
     //     $Heap[o,f] = oldHeap[o,f] ||
     //     (exists x,y :: Range(x,y)[$Heap:=oldHeap] &&
     //                    o == Object(x,y)[$Heap:=oldHeap] && f == Field(x,y)[$Heap:=oldHeap]));
-    Bpl.BoundVariable oVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$o", Predef.RefType));
-    Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(s.Tok, oVar);
-    Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$f", Predef.FieldName(s.Tok)));
-    Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Tok, fVar);
-    Bpl.Expr heapOF = ReadHeap(s.Tok, etran.HeapExpr, o, f);
-    Bpl.Expr oldHeapOF = ReadHeap(s.Tok, prevHeap, o, f);
+    Bpl.BoundVariable oVar = new Bpl.BoundVariable(s.Origin, new Bpl.TypedIdent(s.Origin, "$o", Predef.RefType));
+    Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(s.Origin, oVar);
+    Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Origin, new Bpl.TypedIdent(s.Origin, "$f", Predef.FieldName(s.Origin)));
+    Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Origin, fVar);
+    Bpl.Expr heapOF = ReadHeap(s.Origin, etran.HeapExpr, o, f);
+    Bpl.Expr oldHeapOF = ReadHeap(s.Origin, prevHeap, o, f);
     List<bool> freeOfAlloc = BoundedPool.HasBounds(s.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
     List<Variable> xBvars = new List<Variable>();
     var xBody = etran.TrBoundVariables(s.BoundVars, xBvars, false, freeOfAlloc);
@@ -401,11 +413,11 @@ public partial class BoogieGenerator {
     xBody = BplAnd(xBody, Bpl.Expr.Eq(o, xObj));
     xBody = BplAnd(xBody, Bpl.Expr.Eq(f, xField));
     //TRIG (exists k#2: int :: (k#2 == LitInt(0 - 3) || k#2 == LitInt(4)) && $o == read($prevHeap, this, _module.MyClass.arr) && $f == MultiIndexField(IndexField(i#0), j#0))
-    Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Tok, xBvars, xBody);  // LL_TRIGGER
+    Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Origin, xBvars, xBody);  // LL_TRIGGER
     Bpl.Expr body = BplOr(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
-    var tr = new Trigger(s.Tok, true, new List<Expr>() { heapOF });
-    Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null, tr, body);
-    updater.Add(TrAssumeCmd(s.Tok, qq));
+    var tr = new Trigger(s.Origin, true, new List<Expr>() { heapOF });
+    Bpl.Expr qq = new Bpl.ForallExpr(s.Origin, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null, tr, body);
+    updater.Add(TrAssumeCmd(s.Origin, qq));
 
     if (s.EffectiveEnsuresClauses != null) {
       foreach (ForallExpr expr in s.EffectiveEnsuresClauses) {
@@ -413,16 +425,17 @@ public partial class BoogieGenerator {
         Contract.Assert(term != null);
         var e0 = ((BinaryExpr)term).E0.Resolved;
         var e1 = ((BinaryExpr)term).E1;
-        qq = TrForall_NewValueAssumption(expr.tok, expr.BoundVars, expr.Bounds, expr.Range, e0, e1, expr.Attributes, etran, prevEtran);
-        updater.Add(TrAssumeCmd(s.Tok, qq));
+        qq = TrForall_NewValueAssumption(expr.Origin, expr.BoundVars, expr.Bounds, expr.Range, e0, e1, expr.Attributes, etran, prevEtran);
+        updater.Add(TrAssumeCmd(s.Origin, qq));
       }
     }
   }
 
   /// <summary>
   /// Generate:
-  ///   assume (forall x,y :: Range(x,y)[$Heap:=oldHeap] ==>
-  ///                         $Heap[ Object(x,y)[$Heap:=oldHeap], Field(x,y)[$Heap:=oldHeap] ] == G[$Heap:=oldHeap] ));
+  ///   assume (forall x,y :: Range#canCall AND
+  ///                         (Range(x,y)[$Heap:=oldHeap] ==>
+  ///                           $Heap[ Object(x,y)[$Heap:=oldHeap], Field(x,y)[$Heap:=oldHeap] ] == G[$Heap:=oldHeap])));
   /// where
   ///   x,y           represent boundVars
   ///   Object(x,y)   is the first part of lhs
@@ -448,7 +461,7 @@ public partial class BoogieGenerator {
     GetObjFieldDetails(lhs, prevEtran, out var obj, out var field);
     var xHeapOF = ReadHeap(tok, etran.HeapExpr, obj, field);
 
-    g = BoxIfNotNormallyBoxed(rhs.tok, g, rhs.Type);
+    g = BoxIfNotNormallyBoxed(rhs.Origin, g, rhs.Type);
 
     Bpl.Trigger tr = null;
     var argsEtran = etran.WithNoLits();
@@ -465,7 +478,12 @@ public partial class BoogieGenerator {
         tr = new Bpl.Trigger(tok, true, tt, tr);
       }
     }
-    return new Bpl.ForallExpr(tok, xBvars, tr, BplImp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
+    var canCalls = BplAnd(prevEtran.CanCallAssumption(lhs), prevEtran.CanCallAssumption(rhs));
+    var canCallRange = prevEtran.CanCallAssumption(range);
+    var body = BplAnd(canCalls, Bpl.Expr.Eq(xHeapOF, g));
+    body = BplImp(xAnte, body);
+    body = BplAnd(canCallRange, body);
+    return new Bpl.ForallExpr(tok, xBvars, tr, body);
   }
 
   IEnumerable<Statement> TransitiveSubstatements(Statement s) {
@@ -508,26 +526,28 @@ public partial class BoogieGenerator {
       locals.AddRange(bVars);
       var havocIds = new List<Bpl.IdentifierExpr>();
       foreach (Bpl.Variable bv in bVars) {
-        havocIds.Add(new Bpl.IdentifierExpr(forallStmt.Tok, bv));
+        havocIds.Add(new Bpl.IdentifierExpr(forallStmt.Origin, bv));
       }
-      definedness.Add(new Bpl.HavocCmd(forallStmt.Tok, havocIds));
-      definedness.Add(TrAssumeCmd(forallStmt.Tok, typeAntecedent));
+      definedness.Add(new Bpl.HavocCmd(forallStmt.Origin, havocIds));
+      definedness.Add(TrAssumeCmd(forallStmt.Origin, typeAntecedent));
     }
     TrStmt_CheckWellformed(forallStmt.Range, definedness, locals, etran, false);
-    definedness.Add(TrAssumeCmdWithDependencies(etran, forallStmt.Range.tok, forallStmt.Range, "forall statement range"));
+    definedness.Add(TrAssumeCmdWithDependencies(etran, forallStmt.Range.Origin, forallStmt.Range, "forall statement range"));
 
     var ensuresDefinedness = new BoogieStmtListBuilder(this, options, definedness.Context);
-    foreach (var ens in forallStmt.Ens) {
+    foreach (var ens in ConjunctsOf(forallStmt.Ens)) {
       TrStmt_CheckWellformed(ens.E, ensuresDefinedness, locals, etran, false);
-      ensuresDefinedness.Add(TrAssumeCmdWithDependencies(etran, ens.E.tok, ens.E, "forall statement ensures clause"));
+      ensuresDefinedness.Add(TrAssumeCmdWithDependencies(etran, ens.E.Origin, ens.E, "forall statement ensures clause"));
     }
-    PathAsideBlock(forallStmt.Tok, ensuresDefinedness, definedness);
+    PathAsideBlock(forallStmt.Origin, ensuresDefinedness, definedness);
 
     if (forallStmt.Body != null) {
       TrStmt(forallStmt.Body, definedness, locals, etran);
 
       // check that postconditions hold
-      foreach (var ens in forallStmt.Ens) {
+      foreach (var ens in ConjunctsOf(forallStmt.Ens)) {
+        definedness.Add(TrAssumeCmd(ens.E.Origin, etran.CanCallAssumption(ens.E)));
+
         foreach (var split in TrSplitExpr(definedness.Context, ens.E, etran, true, out var splitHappened)) {
           if (split.IsChecked) {
             definedness.Add(Assert(split.Tok, split.E, new ForallPostcondition(ens.E), definedness.Context));
@@ -536,7 +556,7 @@ public partial class BoogieGenerator {
       }
     }
 
-    definedness.Add(TrAssumeCmd(forallStmt.Tok, Bpl.Expr.False));
+    definedness.Add(TrAssumeCmd(forallStmt.Origin, Bpl.Expr.False));
 
     // Now for the other branch, where the ensures clauses are exported.
     // If the forall body has side effect such as call to a reveal function,
@@ -544,11 +564,12 @@ public partial class BoogieGenerator {
     var se = forallStmt.Body == null ? Bpl.Expr.True : TrFunctionSideEffect(forallStmt.Body, etran);
     var substMap = new Dictionary<IVariable, Expression>();
     var p = Substitute(forallStmt.EffectiveEnsuresClauses[0], null, substMap);
+    exporter.Add(TrAssumeCmd(forallStmt.Origin, etran.CanCallAssumption(p)));
     var qq = etran.TrExpr(p);
     if (forallStmt.BoundVars.Count != 0) {
-      exporter.Add(TrAssumeCmd(forallStmt.Tok, BplAnd(se, qq)));
+      exporter.Add(TrAssumeCmd(forallStmt.Origin, BplAnd(se, qq)));
     } else {
-      exporter.Add(TrAssumeCmd(forallStmt.Tok, BplAnd(se, ((Bpl.ForallExpr)qq).Body)));
+      exporter.Add(TrAssumeCmd(forallStmt.Origin, BplAnd(se, ((Bpl.ForallExpr)qq).Body)));
     }
   }
 }

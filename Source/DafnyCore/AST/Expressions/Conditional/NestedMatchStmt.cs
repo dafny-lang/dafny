@@ -23,7 +23,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     foreach (var c in Cases) {
       if (!Attributes.Contains(c.Attributes, "split")) {
         List<Expression> args = new List<Expression>();
-        args.Add(Expression.CreateBoolLiteral(c.Tok, splitMatch));
+        args.Add(Expression.CreateBoolLiteral(c.Origin, splitMatch));
         Attributes attrs = new Attributes("split", args, c.Attributes);
         c.Attributes = attrs;
       }
@@ -72,8 +72,8 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
   }
 
-  public NestedMatchStmt(IOrigin rangeOrigin, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
-    : base(rangeOrigin, attrs) {
+  public NestedMatchStmt(IOrigin origin, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
+    : base(origin, attrs) {
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     Source = source;
@@ -95,13 +95,13 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
       resolver.PartiallySolveTypeConstraints(true);
 
       if (Source.Type is TypeProxy) {
-        resolver.Reporter.Error(MessageSource.Resolver, Tok, "Could not resolve the type of the source of the match statement. Please provide additional typing annotations.");
+        resolver.Reporter.Error(MessageSource.Resolver, Origin, "Could not resolve the type of the source of the match statement. Please provide additional typing annotations.");
         return;
       }
     }
 
     var errorCount = resolver.Reporter.Count(ErrorLevel.Error);
-    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.tok, Source.Type).NormalizeExpand();
+    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.Origin, Source.Type).NormalizeExpand();
     CheckLinearNestedMatchStmt(sourceType, resolutionContext, resolver);
     if (resolver.Reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
@@ -154,7 +154,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
 
     if (!mustBeErasable && IsGhost) {
-      reporter.Info(MessageSource.Resolver, Tok, "ghost match");
+      reporter.Info(MessageSource.Resolver, Origin, "ghost match");
     }
 
     Cases.ForEach(kase => kase.Body.ForEach(ss =>

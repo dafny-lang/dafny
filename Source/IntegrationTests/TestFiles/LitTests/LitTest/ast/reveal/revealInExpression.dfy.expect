@@ -1,3 +1,3 @@
-revealInExpression.dfy(34,14): Error: assertion might not hold
+revealInExpression.dfy(34,6): Error: assertion might not hold
 
 Dafny program verifier finished with 15 verified, 1 error

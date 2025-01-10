@@ -159,7 +159,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     resolver.ComputeIsRecursiveBit(compilation, module, rewriters);
     resolver.FillInDecreasesClauses(module);
     foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
-      resolver.reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
+      resolver.reporter.Info(MessageSource.Resolver, iter.Origin, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
     }
 
     foreach (var rewriter in rewriters) {
@@ -184,7 +184,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
     if (!parentBindings.BindName(Name, this, bindings)) {
       parentBindings.TryLookup(Name, out var otherModule);
-      resolver.Reporter.Error(MessageSource.Resolver, new NestedOrigin(tok, otherModule.tok), "Duplicate module name: {0}", Name);
+      resolver.Reporter.Error(MessageSource.Resolver, new NestedOrigin(Origin, otherModule.Origin), "Duplicate module name: {0}", Name);
     }
   }
 

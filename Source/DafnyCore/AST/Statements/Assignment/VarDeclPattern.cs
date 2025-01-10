@@ -18,8 +18,8 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern>, ICanFormat 
     HasGhostModifier = original.HasGhostModifier;
   }
 
-  public VarDeclPattern(IOrigin rangeOrigin, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
-    : base(rangeOrigin) {
+  public VarDeclPattern(IOrigin origin, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
+    : base(origin) {
     LHS = lhs;
     RHS = rhs;
     HasGhostModifier = hasGhostModifier;

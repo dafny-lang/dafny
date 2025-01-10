@@ -1,7 +1,7 @@
 // Dafny program the_program compiled into C#
 // To recompile, you will need the libraries
 //     System.Runtime.Numerics.dll System.Collections.Immutable.dll
-// but the 'dotnet' tool in net6.0 should pick those up automatically.
+// but the 'dotnet' tool in .NET should pick those up automatically.
 // Optionally, you may want to include compiler switches like
 //     /debug /nowarn:162,164,168,183,219,436,1717,1718
 
@@ -4182,6 +4182,7 @@ namespace DCOMP {
       r = RAST.Expr.Default();
       resultingOwnership = Defs.Ownership.Default();
       r = expr;
+      resultingOwnership = exprOwnership;
       RAST._IType _0_fromTpeGen;
       RAST._IType _out0;
       _out0 = (this).GenType(fromTpe, Defs.GenTypeContext.@default());
@@ -4195,17 +4196,22 @@ namespace DCOMP {
       if ((_2_upcastConverter).is_Success) {
         RAST._IExpr _3_conversionLambda;
         _3_conversionLambda = (_2_upcastConverter).dtor_value;
-        if (object.Equals(exprOwnership, Defs.Ownership.create_OwnershipBorrowed())) {
+        if (object.Equals(resultingOwnership, Defs.Ownership.create_OwnershipBorrowed())) {
           r = (this).BorrowedToOwned(r, env);
+          resultingOwnership = Defs.Ownership.create_OwnershipOwned();
         }
         r = (_3_conversionLambda).Apply1(r);
         RAST._IExpr _out2;
         Defs._IOwnership _out3;
-        (this).FromOwnership(r, Defs.Ownership.create_OwnershipOwned(), expectedOwnership, out _out2, out _out3);
+        (this).FromOwnership(r, resultingOwnership, expectedOwnership, out _out2, out _out3);
         r = _out2;
         resultingOwnership = _out3;
       } else if ((this).IsDowncastConversion(_0_fromTpeGen, _1_toTpeGen)) {
         _1_toTpeGen = (_1_toTpeGen).ObjectOrPointerUnderlying();
+        if (object.Equals(resultingOwnership, Defs.Ownership.create_OwnershipBorrowed())) {
+          r = (this).BorrowedToOwned(r, env);
+          resultingOwnership = Defs.Ownership.create_OwnershipOwned();
+        }
         r = (((RAST.__default.dafny__runtime).MSel((this).downcast)).AsExpr()).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(r, RAST.Expr.create_ExprFromType(_1_toTpeGen)));
         RAST._IExpr _out4;
         Defs._IOwnership _out5;

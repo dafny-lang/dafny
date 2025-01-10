@@ -230,6 +230,6 @@ That's it! Now, build your library while inside your folder:
 > dotnet build
 ```
 
-This will create the file `PluginTutorial/bin/Debug/net6.0/PluginTutorial.dll`.
+This will create the file `PluginTutorial/bin/Debug/net8.0/PluginTutorial.dll`.
 Now, open VSCode, open Dafny settings, and enter the absolute path to this DLL in the plugins section.
 Restart VSCode, and it should work!

@@ -187,18 +187,19 @@ public static class VerifyCommand {
       // We use an intermediate reporter so we can sort the diagnostics from all parts by token
       var batchReporter = new BatchErrorReporter(compilation.Options);
       foreach (var completed in result.Results) {
-        Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, completed.Task.Token,
+        Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName,
+          BoogieGenerator.ToDafnyToken(true, completed.Task.Token),
           (uint)completed.Result.RunTime.TotalSeconds,
           completed.Result, batchReporter);
       }
 
-      foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
+      foreach (var diagnostic in batchReporter.AllMessages.Order()) {
         compilation.Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
           diagnostic.Message);
       }
     });
-  }
 
+  }
 
   public static async Task LogVerificationResults(CliCompilation cliCompilation, ResolutionResult resolution,
     IObservable<CanVerifyResult> verificationResults) {

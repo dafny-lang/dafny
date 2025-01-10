@@ -67,9 +67,9 @@ public abstract class MemberDecl : Declaration, ISymbol {
     this.isGhost = original.isGhost;
   }
 
-  protected MemberDecl(IOrigin rangeOrigin, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
-    : base(rangeOrigin, name, attributes, isRefining) {
-    Contract.Requires(rangeOrigin != null);
+  protected MemberDecl(IOrigin origin, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
+    : base(origin, name, attributes, isRefining) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     this.hasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
@@ -122,7 +122,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
       yield return a;
     }
     if (this.HasUserAttribute("only", out _)) {
-      yield return new Assumption(decl, tok, AssumptionDescription.MemberOnly);
+      yield return new Assumption(decl, Origin, AssumptionDescription.MemberOnly);
     }
   }
 
@@ -154,7 +154,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
       if (substMap.TryGetValue(inFormal, out inE)) {
         arguments.Add(inE);
       } else {
-        var ie = new IdentifierExpr(inFormal.tok, inFormal.Name);
+        var ie = new IdentifierExpr(inFormal.Origin, inFormal.Name);
         ie.Var = inFormal;  // resolve here
         ie.Type = inFormal.Type;  // resolve here
         arguments.Add(ie);

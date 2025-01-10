@@ -4,6 +4,6 @@ GeneralTraitsVerify.dfy(40,13): Error: value of expression (of type 'Parent') is
 GeneralTraitsVerify.dfy(43,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'Abstract'
 GeneralTraitsVerify.dfy(50,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'MyInt'
 GeneralTraitsVerify.dfy(53,13): Error: value does not satisfy the subset constraints of 'MyConstrainedInt'
-GeneralTraitsVerify.dfy(419,11): Error: assertion might not hold
+GeneralTraitsVerify.dfy(419,4): Error: assertion might not hold
 
 Dafny program verifier finished with 52 verified, 7 errors

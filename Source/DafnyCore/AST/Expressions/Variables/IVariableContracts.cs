@@ -5,7 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 [ContractClassFor(typeof(IVariable))]
-public abstract class IVariableContracts : TokenNode, IVariable {
+public abstract class IVariableContracts : NodeWithComputedRange, IVariable {
   public string Name {
     get {
       Contract.Ensures(Contract.Result<string>() != null);

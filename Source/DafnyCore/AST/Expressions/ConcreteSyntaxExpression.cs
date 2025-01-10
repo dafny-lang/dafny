@@ -15,21 +15,14 @@ public abstract class ConcreteSyntaxExpression : Expression {
     }
   }
 
+  /// <summary>
+  /// // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+  /// </summary>
   [FilledInDuringResolution]
-  private Expression resolvedExpression;
+  public Expression ResolvedExpression { get; set; }
 
-  public Expression ResolvedExpression {
-    get => resolvedExpression;
-    set {
-      resolvedExpression = value;
-      if (RangeOrigin != null && resolvedExpression != null) {
-        resolvedExpression.Origin = RangeOrigin;
-      }
-    }
-  }  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
-
-  public ConcreteSyntaxExpression(IOrigin tok)
-    : base(tok) {
+  protected ConcreteSyntaxExpression(IOrigin origin)
+    : base(origin) {
   }
   public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<Node>() : new[] { ResolvedExpression };
   public override IEnumerable<Expression> SubExpressions {

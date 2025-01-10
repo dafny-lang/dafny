@@ -122,7 +122,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (GetExtractName(decl.Attributes) is { } extractName) {
-        var ty = new Boogie.TypeCtorDecl(decl.tok, extractName, decl.TypeArgs.Count);
+        var ty = new Boogie.TypeCtorDecl(decl.Origin, extractName, decl.TypeArgs.Count);
         declarations.Add(ty);
       }
 
@@ -141,16 +141,16 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if ((lemma.Ins.Count == 0) != (patterns == null)) {
-        throw new ExtractorError(lemma.tok, $"a parameterized lemma must specify at least one :{PatternAttribute}: {lemma.Name}");
+        throw new ExtractorError(lemma.Origin, $"a parameterized lemma must specify at least one :{PatternAttribute}: {lemma.Name}");
       }
       if (lemma.TypeArgs.Count != 0) {
-        throw new ExtractorError(lemma.tok, $"an extracted lemma is not allowed to have type parameters: {lemma.Name}");
+        throw new ExtractorError(lemma.Origin, $"an extracted lemma is not allowed to have type parameters: {lemma.Name}");
       }
       if (lemma.Outs.Count != 0) {
-        throw new ExtractorError(lemma.tok, $"an extracted lemma is not allowed to have out-parameters: {lemma.Name}");
+        throw new ExtractorError(lemma.Origin, $"an extracted lemma is not allowed to have out-parameters: {lemma.Name}");
       }
 
-      var tok = lemma.tok;
+      var tok = lemma.Origin;
 
       var boundVars = lemma.Ins.ConvertAll(formal =>
         (Boogie.Variable)new Boogie.BoundVariable(tok, new TypedIdent(tok, formal.Name, ExtractType(formal.Type)))
@@ -174,9 +174,9 @@ namespace Microsoft.Dafny.Compilers {
 
       if (usedByInfo != null) {
         if (usedByInfo.Args.Count == 1 && usedByInfo.Args[0].Resolved is MemberSelectExpr { Member: Function function }) {
-          axiomUsedBy.Add((usedByInfo.tok, axiom, function));
+          axiomUsedBy.Add((usedByInfo.Origin, axiom, function));
         } else {
-          throw new ExtractorError(usedByInfo.tok, $":{UsedByAttribute} argument on lemma '{lemma.Name}' is expected to be an extracted function");
+          throw new ExtractorError(usedByInfo.Origin, $":{UsedByAttribute} argument on lemma '{lemma.Name}' is expected to be an extracted function");
         }
       }
     }
@@ -226,7 +226,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void VisitFunction(Function function) {
       if (GetExtractName(function.Attributes) is { } extractName) {
-        var tok = function.tok;
+        var tok = function.Origin;
         if (function.TypeArgs.Count != 0) {
           throw new ExtractorError(tok, $"an extracted function is not allowed to have type parameters: {function.Name}");
         }
@@ -254,7 +254,7 @@ namespace Microsoft.Dafny.Compilers {
             return new Boogie.UnresolvedTypeIdentifier(Boogie.Token.NoToken, name, udt.TypeArgs.ConvertAll(ExtractType));
           }
         default:
-          throw new ExtractorError(type.tok, $"type not supported by extractor: {type}");
+          throw new ExtractorError(type.Origin, $"type not supported by extractor: {type}");
       }
     }
 
@@ -269,7 +269,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private Boogie.Expr ExtractExpr(Expression expr) {
       expr = expr.Resolved;
-      var tok = expr.tok;
+      var tok = expr.Origin;
       switch (expr) {
         case LiteralExpr literalExpr: {
             if (literalExpr.Value is bool boolValue) {
@@ -344,7 +344,7 @@ namespace Microsoft.Dafny.Compilers {
             var e = ExtractExpr(unaryOpExpr.E);
             return Boogie.Expr.Not(e);
           } else {
-            throw new ExtractorError(unaryOpExpr.tok, $"extractor does not support unary operator {unaryOpExpr.ResolvedOp}");
+            throw new ExtractorError(unaryOpExpr.Origin, $"extractor does not support unary operator {unaryOpExpr.ResolvedOp}");
           }
 
         case QuantifierExpr quantifierExpr: {
@@ -354,7 +354,7 @@ namespace Microsoft.Dafny.Compilers {
 
             var patterns = Attributes.FindAllExpressions(quantifierExpr.Attributes, PatternAttribute);
             if (patterns == null || patterns.Count == 0) {
-              throw new ExtractorError(quantifierExpr.tok, $"extraction expects every quantifier to specify at least one :{PatternAttribute}");
+              throw new ExtractorError(quantifierExpr.Origin, $"extraction expects every quantifier to specify at least one :{PatternAttribute}");
             }
             var triggers = GetTriggers(tok, patterns);
 
@@ -372,7 +372,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
       }
 
-      throw new ExtractorError(expr.tok, $"extraction does not support expression of type {expr.GetType()}: {expr}");
+      throw new ExtractorError(expr.Origin, $"extraction does not support expression of type {expr.GetType()}: {expr}");
     }
   }
 }

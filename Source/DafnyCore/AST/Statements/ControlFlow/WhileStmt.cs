@@ -23,17 +23,17 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     Guard = cloner.CloneExpr(original.Guard);
   }
 
-  public WhileStmt(IOrigin rangeOrigin, Expression guard,
+  public WhileStmt(IOrigin origin, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body)
-    : base(rangeOrigin, invariants, decreases, mod, body, null) {
+    : base(origin, invariants, decreases, mod, body, null) {
     Guard = guard;
   }
 
-  public WhileStmt(IOrigin rangeOrigin, Expression guard,
+  public WhileStmt(IOrigin origin, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body, Attributes attrs)
-    : base(rangeOrigin, invariants, decreases, mod, body, attrs) {
+    : base(origin, invariants, decreases, mod, body, attrs) {
     Guard = guard;
   }
 
@@ -67,12 +67,12 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     ICodeContext codeContext, string proofContext,
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     if (proofContext != null && Mod.Expressions != null && Mod.Expressions.Count != 0) {
-      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_may_not_use_modifies, Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_may_not_use_modifies, Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
     }
 
     IsGhost = mustBeErasable || (Guard != null && ExpressionTester.UsesSpecFeatures(Guard));
     if (!mustBeErasable && IsGhost) {
-      reporter.Info(MessageSource.Resolver, Tok, "ghost while");
+      reporter.Info(MessageSource.Resolver, Origin, "ghost while");
     }
     if (IsGhost && Decreases.Expressions.Exists(e => e is WildcardExpr)) {
       reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_decreases_forbidden_on_ghost_loops, this, "'decreases *' is not allowed on ghost loops");

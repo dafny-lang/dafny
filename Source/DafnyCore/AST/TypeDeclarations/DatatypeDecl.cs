@@ -21,10 +21,10 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
   public override IEnumerable<INode> PreResolveChildren => Ctors.Concat(base.PreResolveChildren);
 
-  public DatatypeDecl(IOrigin rangeOrigin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public DatatypeDecl(IOrigin origin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeOrigin, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeOrigin != null);
+    : base(origin, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -205,7 +205,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
         formal.DefaultValue = Rewriter.AddRevealStmtsToExpression(formal.DefaultValue, addedReveals);
 
         if (addedReveals.Any()) {
-          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, formal.tok,
+          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, formal.Origin,
             AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
         }
       }

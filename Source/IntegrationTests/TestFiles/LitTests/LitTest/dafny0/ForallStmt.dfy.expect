@@ -2,8 +2,8 @@ ForallStmt.dfy(33,9): Error: a precondition for this call could not be proved
 ForallStmt.dfy(59,13): Related location: this is the precondition that could not be proved
 ForallStmt.dfy(37,4): Error: target object might be null
 ForallStmt.dfy(41,17): Error: possible violation of postcondition of forall statement
-ForallStmt.dfy(46,18): Error: assertion might not hold
-ForallStmt.dfy(91,18): Error: assertion might not hold
+ForallStmt.dfy(46,6): Error: assertion might not hold
+ForallStmt.dfy(91,4): Error: assertion might not hold
 ForallStmt.dfy(97,19): Error: possible violation of postcondition of forall statement
 ForallStmt.dfy(119,11): Error: value does not satisfy the subset constraints of 'nat'
 ForallStmt.dfy(182,11): Error: left-hand sides for different forall-statement bound variables might refer to the same location (and right-hand sides might not be equivalent)

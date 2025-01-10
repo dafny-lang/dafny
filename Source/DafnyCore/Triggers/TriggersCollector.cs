@@ -320,12 +320,12 @@ internal class TriggersCollector {
       ret = expr;
       if (expr is BinaryExpr bin) {
         if (bin.Op == BinaryExpr.Opcode.NotIn) {
-          expr = new BinaryExpr(bin.tok, BinaryExpr.Opcode.In, bin.E0, bin.E1) {
+          expr = new BinaryExpr(bin.Origin, BinaryExpr.Opcode.In, bin.E0, bin.E1) {
             ResolvedOp = RemoveNotInBinaryExprIn(bin.ResolvedOp),
             Type = bin.Type
           };
         } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
-          expr = new SeqSelectExpr(bin.tok, true, bin.E1, bin.E0, null, null) {
+          expr = new SeqSelectExpr(bin.Origin, true, bin.E1, bin.E0, null, null) {
             Type = bin.Type
           };
           isKiller = true; // [a in s] becomes [s[a] > 0], which is a trigger killer
@@ -335,7 +335,7 @@ internal class TriggersCollector {
             // For sets, isets, and multisets, change < to <= in triggers (and analogously
             // > to >=), since "a < b" translates as "a <= b && !(b <= a)" or
             // "a <= b && !(a == b)".
-            expr = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOp2SyntacticOp(newOpcode), bin.E0, bin.E1) {
+            expr = new BinaryExpr(bin.Origin, BinaryExpr.ResolvedOp2SyntacticOp(newOpcode), bin.E0, bin.E1) {
               ResolvedOp = newOpcode,
               Type = bin.Type
             };

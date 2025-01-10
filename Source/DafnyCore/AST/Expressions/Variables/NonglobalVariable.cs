@@ -5,14 +5,13 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class NonglobalVariable : TokenNode, IVariable {
+public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
   public Name NameNode { get; }
 
-  protected NonglobalVariable(IOrigin tok, Name nameNode, Type type, bool isGhost) {
-    Contract.Requires(tok != null);
+  protected NonglobalVariable(IOrigin origin, Name nameNode, Type type, bool isGhost) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
-    this.tok = tok;
     this.NameNode = nameNode;
     IsTypeExplicit = type != null;
     this.type = type ?? new InferredTypeProxy();
@@ -30,7 +29,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
       return NameNode.Value;
     }
   }
-  public string DafnyName => Origin == null || tok.line == 0 ? Name : Origin.PrintOriginal();
+  public string DafnyName => Origin == null || Origin.line == 0 ? Name : Origin.PrintOriginal();
   public string DisplayName =>
     LocalVariable.DisplayNameHelper(this);
 
