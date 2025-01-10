@@ -10,7 +10,8 @@
 former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort */
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.Mul {
 
   import MulINL = MulInternalsNonlinear
   import opened MulInternals
@@ -41,8 +42,18 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
     requires x >= 0
     ensures x * y == MulPos(x, y)
   {
-    reveal MulPos();
-    LemmaMulInductionAuto(x, u => u >= 0 ==> u * y == MulPos(u, y));
+    if x == 0 {
+      assert MulPos(x, y) == 0;
+    } else {
+      calc {
+        MulPos(x, y);
+        y + MulPos(x - 1, y);
+        { LemmaMulIsMulPos(x - 1, y); }
+        y + (x - 1) * y;
+        { LemmaMulDistributes(); }
+        x * y;
+      }
+    }
   }
 
   /* ensures that the basic properties of multiplication, including the identity and zero properties */
@@ -73,7 +84,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulNonzeroAuto()
     ensures forall x: int, y: int {:trigger x * y} :: x * y != 0 <==> x != 0 && y != 0
   {
-    forall (x: int, y: int)
+    forall x: int, y: int
       ensures x * y != 0 <==> x != 0 && y != 0
     {
       LemmaMulNonzero(x, y);
@@ -103,7 +114,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
     ensures forall x: int, y: int, z: int {:trigger x * (y * z)} {:trigger (x * y) * z}
               :: x * (y * z) == (x * y) * z
   {
-    forall (x: int, y: int, z: int)
+    forall x: int, y: int, z: int
       ensures x * (y * z) == (x * y) * z
     {
       LemmaMulIsAssociative(x, y, z);
@@ -152,7 +163,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulEqualityAuto()
     ensures forall x: int, y: int, z: int {:trigger x * z, y * z } :: x == y ==> x * z == y * z
   {
-    forall (x: int, y: int, z: int | x == y)
+    forall x: int, y: int, z: int | x == y
       ensures x * z == y * z
     {
       LemmaMulEquality(x, y, z);
@@ -172,7 +183,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulInequalityAuto()
     ensures  forall x: int, y: int, z: int {:trigger x * z, y * z} :: x <= y && z >= 0 ==> x * z <= y * z
   {
-    forall (x: int, y: int, z: int | x <= y && z >= 0)
+    forall x: int, y: int, z: int | x <= y && z >= 0
       ensures x * z <= y * z
     {
       LemmaMulInequality(x, y, z);
@@ -192,7 +203,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulStrictInequalityAuto()
     ensures  forall x: int, y: int, z: int {:trigger x * z, y * z} :: x < y && z > 0 ==> x * z < y * z
   {
-    forall (x: int, y: int, z: int | x < y && z > 0)
+    forall x: int, y: int, z: int | x < y && z > 0
       ensures x * z < y * z
     {
       LemmaMulStrictInequality(x, y, z);
@@ -215,7 +226,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
     ensures forall x: int, XBound: int, y: int, YBound: int {:trigger x * y, XBound * YBound}
               :: x <= XBound && y <= YBound && 0 <= x && 0 <= y ==> x * y <= XBound * YBound
   {
-    forall (x: int, XBound: int, y: int, YBound: int | x <= XBound && y <= YBound && 0 <= x && 0 <= y)
+    forall x: int, XBound: int, y: int, YBound: int | x <= XBound && y <= YBound && 0 <= x && 0 <= y
       ensures x * y <= XBound * YBound
     {
       LemmaMulUpperBound(x, XBound, y, YBound);
@@ -238,14 +249,14 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
     ensures forall x: int, XBound: int, y: int, YBound: int {:trigger x * y, (XBound - 1) * (YBound - 1)}
               :: x < XBound && y < YBound && 0 < x && 0 < y ==> x * y <= (XBound - 1) * (YBound - 1)
   {
-    forall (x: int, XBound: int, y: int, YBound: int
+    forall x: int, XBound: int, y: int, YBound: int
       // https://github.com/dafny-lang/dafny/issues/4771
       {:trigger (XBound - 1) * (YBound - 1), x * y}
       {:trigger YBound - 1, XBound - 1, 0 < y, 0 < x}
       {:trigger YBound - 1, 0 < y, x < XBound}
       {:trigger XBound - 1, 0 < x, y < YBound}
       {:trigger y < YBound, x < XBound}
-      | x < XBound && y < YBound && 0 < x && 0 < y)
+      | x < XBound && y < YBound && 0 < x && 0 < y
       ensures x * y <= (XBound - 1) * (YBound - 1)
     {
       LemmaMulStrictUpperBound(x, XBound, y, YBound);
@@ -266,7 +277,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
     ensures forall x: int, y: int, z: int {:trigger x * y, x * z}
               :: x > 0 ==> (y <= z ==> x * y <= x * z) && (y < z ==> x * y < x * z)
   {
-    forall (x: int, y: int, z: int | (y <= z || y < z) && 0 < x)
+    forall x: int, y: int, z: int | (y <= z || y < z) && 0 < x
       ensures (y <= z ==> x * y <= x * z) && (y < z ==> x * y < x * z)
     {
       LemmaMulLeftInequality(x, y, z);
@@ -291,7 +302,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulEqualityConverseAuto()
     ensures forall m: int, x: int, y: int {:trigger m * x, m * y} :: (m != 0 && m * x == m * y) ==> x == y
   {
-    forall (m: int, x: int, y: int | m != 0 && m * x == m * y)
+    forall m: int, x: int, y: int | m != 0 && m * x == m * y
       ensures x == y
     {
       LemmaMulEqualityConverse(m, x, y);
@@ -312,7 +323,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulInequalityConverseAuto()
     ensures  forall x: int, y: int, z: int {:trigger x * z, y * z} :: x * z <= y * z && z > 0 ==> x <= y
   {
-    forall (x: int, y: int, z: int | x * z <= y * z && z > 0)
+    forall x: int, y: int, z: int | x * z <= y * z && z > 0
       ensures x <= y
     {
       LemmaMulInequalityConverse(x, y, z);
@@ -333,7 +344,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulStrictInequalityConverseAuto()
     ensures  forall x: int, y: int, z: int {:trigger x * z, y * z} :: x * z < y * z && z >= 0 ==> x < y
   {
-    forall (x: int, y: int, z: int | x * z < y * z && z >= 0)
+    forall x: int, y: int, z: int | x * z < y * z && z >= 0
       ensures x < y
     {
       LemmaMulStrictInequalityConverse(x, y, z);
@@ -351,7 +362,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulIsDistributiveAddAuto()
     ensures forall x: int, y: int, z: int {:trigger x * (y + z)} :: x * (y + z) == x * y + x * z
   {
-    forall (x: int, y: int, z: int)
+    forall x: int, y: int, z: int
       ensures x * (y + z) == x * y + x * z
     {
       LemmaMulIsDistributiveAdd(x, y, z);
@@ -368,7 +379,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulIsDistributiveAddOtherWayAuto()
     ensures forall x: int, y: int, z: int {:trigger (y + z) * x} :: (y + z) * x == y * x + z * x
   {
-    forall (x: int, y: int, z: int)
+    forall x: int, y: int, z: int
       ensures (y+z) * x == y * x + z * x
     {
       LemmaMulIsDistributiveAddOtherWay(x, y, z);
@@ -386,7 +397,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulIsDistributiveSubAuto()
     ensures forall x: int, y: int, z: int {:trigger x * (y - z)} :: x * (y - z) == x * y - x * z
   {
-    forall (x: int, y: int, z: int)
+    forall x: int, y: int, z: int
       ensures x * (y - z) == x * y - x * z
     {
       LemmaMulIsDistributiveSub(x, y, z);
@@ -430,7 +441,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulStrictlyPositiveAuto()
     ensures forall x: int, y: int {:trigger x * y} :: (0 < x && 0 < y) ==> (0 < x * y)
   {
-    forall (x: int, y: int | 0 < x && 0 < y)
+    forall x: int, y: int | 0 < x && 0 < y
       ensures 0 < x * y
     {
       LemmaMulStrictlyPositive(x,y);
@@ -452,7 +463,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulStrictlyIncreasesAuto()
     ensures forall x: int, y: int {:trigger x * y} :: 1 < x && 0 < y  ==> y < x * y
   {
-    forall (x: int, y: int | 1 < x && 0 < y)
+    forall x: int, y: int | 1 < x && 0 < y
       ensures y < x * y
     {
       LemmaMulStrictlyIncreases(x, y);
@@ -474,7 +485,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulIncreasesAuto()
     ensures forall x: int, y: int {:trigger x * y} :: (0 < x && 0 < y) ==> (y <= x * y)
   {
-    forall (x: int, y: int | 0 < x && 0 < y)
+    forall x: int, y: int | 0 < x && 0 < y
       ensures y <= x * y
     {
       LemmaMulIncreases(x, y);
@@ -494,7 +505,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulNonnegativeAuto()
     ensures forall x: int, y: int {:trigger x * y} :: 0 <= x && 0 <= y ==> 0 <= x * y
   {
-    forall (x: int, y: int | 0 <= x && 0 <= y)
+    forall x: int, y: int | 0 <= x && 0 <= y
       ensures 0 <= x * y
     {
       LemmaMulNonnegative(x, y);
@@ -512,7 +523,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
   lemma LemmaMulUnaryNegationAuto()
     ensures forall x: int, y: int {:trigger (-x) * y} {:trigger x * (-y)} :: (-x) * y == -(x * y) == x * (-y)
   {
-    forall (x: int, y: int)
+    forall x: int, y: int
       ensures (-x) * y == -(x * y) == x * (-y)
     {
       LemmaMulUnaryNegation(x, y);

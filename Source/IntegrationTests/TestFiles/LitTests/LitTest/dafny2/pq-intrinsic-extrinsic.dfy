@@ -219,12 +219,22 @@ module PriorityQueue_extrinsic {
     else
       Node(t.val, Insert(t.right, x), t.left)
   }
-  lemma AboutInsert(t: T, x: int)
+  lemma {:resource_limit "70e6"} AboutInsert(t: T, x: int)
     requires Valid(t)
     ensures var t' := Insert(t, x);
       Valid(t') &&
       Elements(t') == Elements(t) + multiset{x}
   {
+    var t' := Insert(t, x);
+    assert Valid(t') by {
+      if t == Leaf {
+        assert t' == Node(x, Leaf, Leaf);
+      } else if x < t.val {
+        assert t' == Node(x, Insert(t.right, t.val), t.left);
+      } else {
+        assert t' == Node(t.val, Insert(t.right, x), t.left);
+      }
+    }
   }
   function Min(t: T): int
     requires Elements(t) != multiset{}

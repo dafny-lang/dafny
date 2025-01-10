@@ -1,0 +1,1 @@
+// CHECK: .*<i>Coercion\ from\ ::dafny_runtime::Object<dyn\ super::_module::X>\ to\ ::dafny_runt\.\.\..*

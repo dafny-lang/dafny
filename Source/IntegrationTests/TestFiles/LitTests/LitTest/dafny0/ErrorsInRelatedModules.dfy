@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file gives some regression tests, where Dafny once had crashed when an imported module

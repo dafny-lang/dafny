@@ -25,7 +25,7 @@ module _System {
   */
 
   class {:compile false} array<arg> {
-    var Length: int  // immutable
+    const Length: int
   }
   /*-- non-null type
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
@@ -67,17 +67,19 @@ module _System {
 
   type bool { }
 
+  type char { }
+
   type int { }
 
   type real {
-    var Floor: int  // immutable
+    const Floor: int
   }
 
   type ORDINAL {
-    var IsLimit: bool  // immutable
-    var IsSucc: bool  // immutable
-    var Offset: int  // immutable
-    var IsNat: bool  // immutable
+    const IsLimit: bool
+    const IsSucc: bool
+    const Offset: int
+    const IsNat: bool
   }
 
   type _bv {
@@ -86,16 +88,24 @@ module _System {
     function RotateRight(w: nat): selftype
   }
 
+  type set<+T> { }
+
+  type iset<*T> { }
+
+  type seq<+T> { }
+
+  type multiset<+T> { }
+
   type map<+T, +U> {
-    var Keys: set<T>  // immutable
-    var Values: set<U>  // immutable
-    var Items: set<(T, U)>  // immutable
+    const Keys: set<T>
+    const Values: set<U>
+    const Items: set<(T, U)>
   }
 
   type imap<*T, +U> {
-    var Keys: iset<T>  // immutable
-    var Values: iset<U>  // immutable
-    var Items: iset<(T, U)>  // immutable
+    const Keys: iset<T>
+    const Values: iset<U>
+    const Items: iset<(T, U)>
   }
 
   datatype /*_tuple#0*/ () = _#Make0
@@ -540,7 +550,7 @@ BitvectorsMore.dfy(168,33): Error: when converting shift amount to a bit vector,
 BitvectorsMore.dfy(169,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
 BitvectorsMore.dfy(170,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
 BitvectorsMore.dfy(171,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
-BitvectorsMore.dfy(193,26): Error: shift amount must not exceed the width of the result (5)
-BitvectorsMore.dfy(194,26): Error: shift amount must not exceed the width of the result (5)
+BitvectorsMore.dfy(193,26): Error: rotate amount must not exceed the width of the result (5)
+BitvectorsMore.dfy(194,26): Error: rotate amount must not exceed the width of the result (5)
 
 Dafny program verifier finished with 9 verified, 41 errors

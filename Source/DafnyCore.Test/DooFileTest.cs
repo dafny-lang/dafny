@@ -7,15 +7,16 @@ namespace DafnyCore.Test;
 
 public class DooFileTest {
   [Fact]
-  public void RoundTripCurrentVersion() {
+  public async Task RoundTripCurrentVersion() {
     var options = DafnyOptions.Default;
     options.ApplyDefaultOptionsWithoutSettingsDefault();
-    var program = ParseProgram("module MyModule { function TheAnswer(): int { 42 } }", options);
+    var program = await ParseProgram("module MyModule { function TheAnswer(): int { 42 } }", options);
+    options.ProcessSolverOptions(program.Reporter, Token.Cli);
     var dooFile = new DooFile(program);
 
     var path = Path.GetTempFileName();
     dooFile.Write(path);
-    var loadedDooFile = DooFile.Read(path);
+    var loadedDooFile = await DooFile.Read(path);
 
     Assert.Equal(loadedDooFile.Manifest.DooFileVersion, DooFile.ManifestData.CurrentDooFileVersion);
     Assert.Equal(loadedDooFile.Manifest.DafnyVersion, options.VersionNumber);
@@ -30,13 +31,13 @@ public class DooFileTest {
     Assert.Throws<TomlException>(() => DooFile.ManifestData.Read(new StringReader(source)));
   }
 
-  private static Program ParseProgram(string dafnyProgramText, DafnyOptions options) {
+  private static async Task<Program> ParseProgram(string dafnyProgramText, DafnyOptions options) {
     const string fullFilePath = "untitled:foo";
     var rootUri = new Uri(fullFilePath);
     Microsoft.Dafny.Type.ResetScopes();
     var errorReporter = new ConsoleErrorReporter(options);
-    var program = new ProgramParser().Parse(dafnyProgramText, rootUri, errorReporter);
+    var parseResult = await new ProgramParser().Parse(dafnyProgramText, rootUri, errorReporter);
     Assert.Equal(0, errorReporter.ErrorCount);
-    return program;
+    return parseResult.Program;
   }
 }

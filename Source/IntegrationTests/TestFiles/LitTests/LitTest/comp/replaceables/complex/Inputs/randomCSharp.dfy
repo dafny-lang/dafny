@@ -18,13 +18,13 @@ module Interop {
   import opened CSharpSystem
   import opened Std.Wrappers
   
-  function {:extern} IntToInt32(value: int): Option<Int32>
+  function {:axiom} {:extern} IntToInt32(value: int): Option<Int32>
     ensures var r := IntToInt32(value); 
       if value <= Int32.MaxValue.value 
         then r.Some? && r.Extract().value == value
         else r.None?
     
-  function {:extern} Int32ToInt(value: Int32): int
+  function {:axiom} {:extern} Int32ToInt(value: Int32): int
     ensures Int32ToInt(value) == value.value
 }
 
@@ -38,9 +38,9 @@ module {:extern "System"} CSharpSystem {
   }
   
   class {:extern "Random" } Random {
-    constructor {:extern} () { }
+    constructor {:extern} ()
     
-    method {:extern} Next(minValue: Int32, maxValue: Int32) returns (r: Int32)
+    method {:axiom} {:extern} Next(minValue: Int32, maxValue: Int32) returns (r: Int32)
       ensures minValue.value <= r.value && r.value < maxValue.value
   }
 }

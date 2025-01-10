@@ -1,11 +1,11 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
+// RUN: %exits-with 2 %verify --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Option<T> = Some(value: T) | None {
   predicate IsFailure() {
     None?
   }
-  function PropagateFailure<U>(): Option<U>
+function PropagateFailure<U>(): Option<U>
     requires None?
   {
     None

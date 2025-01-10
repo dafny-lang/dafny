@@ -1,4 +1,4 @@
-// RUN: %verify --show-inference "%s" > "%t"
+// RUN: %verify --show-hints --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file checks that function applications yield trigger candidates

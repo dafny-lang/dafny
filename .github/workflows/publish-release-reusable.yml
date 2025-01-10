@@ -30,12 +30,12 @@ on:
         required: false
 
 env:
-  dotnet-version: 6.0.x # SDK Version for building Dafny
+  dotnet-version: 8.0.x # SDK Version for building Dafny
   
 jobs:
 
   publish-release:
-    runs-on: macos-latest   # Put back 'ubuntu-20.04' if macos-latest fails in any way
+    runs-on: macos-13   # Put back 'ubuntu-20.04' if macos-latest fails in any way
     steps:
     - name: Print version
       run: echo ${{ inputs.name }}
@@ -98,33 +98,29 @@ jobs:
       # version.
       run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
 
-    - name: Install latex pandoc - Linux
+    - name: Install pandoc - Linux
       if: runner.os == 'Linux'
       run: |
-        sudo apt-get update
-        sudo apt-get install texlive-full
         wget https://github.com/jgm/pandoc/releases/download/3.1.7/pandoc-3.1.7-1-amd64.deb
         sudo dpkg -i *.deb
         rm -rf *.deb
         pandoc -v
-        which latex || echo NOT FOUND latex
-        which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
-    - name: Install latex pandoc - MacOS
+    - name: Install pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
         unset HOMEBREW_NO_INSTALL_FROM_API
         brew untap Homebrew/core
         brew update-reset && brew update
         brew install pandoc
-        brew install --cask basictex
-        eval "$(/usr/libexec/path_helper)"
-        sudo tlmgr update --self
-        sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
         pandoc -v
-        which latex || echo NOT FOUND latex
-        which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge -v 3.30.0
+    - name: Install Tectonic
+      uses: wtfjoke/setup-tectonic@v3
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        tectonic-version: 0.15
+
     - name: Clean Dafny
       run: dotnet clean dafny/Source/Dafny.sln
     # First we build the ZIPs (which do not include the refman)
@@ -151,7 +147,7 @@ jobs:
 
     - name: Create GitHub release (release)
       if: ${{ !inputs.prerelease }}
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: Dafny ${{ inputs.name }}
         tag_name: ${{ inputs.tag_name }}
@@ -166,7 +162,7 @@ jobs:
     # This step is separate from the release one because the refman is omitted
     - name: Create GitHub release (prerelease)
       if: ${{ inputs.prerelease }}
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: Dafny ${{ inputs.name }}
         tag_name: ${{ inputs.tag_name }}

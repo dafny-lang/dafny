@@ -22,10 +22,10 @@ namespace IntegrationTests {
     private static readonly bool InvokeMainMethodsDirectly;
 
     private static readonly Assembly DafnyDriverAssembly = typeof(Dafny.Dafny).Assembly;
-    private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.MultiBackendTest).Assembly;
+    private static readonly Assembly TestDafnyAssembly = typeof(MultiBackendTest).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
-    private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
+    private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net8.0/
 
     private static readonly string[] DefaultBoogieArguments = new[] {
       "/infer:j",
@@ -62,7 +62,7 @@ namespace IntegrationTests {
 
       string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false" };
       string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
-      //string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--standard-libraries:false", "--verification-time-limit:300", "--resource-limit:50e6" };
+      string[] defaultTranslateArgs = new[] { "--use-basename-for-filename", "--cores:2", "--standard-libraries:false", "--verification-time-limit:300", "--resource-limit:50e6" };
       string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
       string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
 
@@ -82,8 +82,17 @@ namespace IntegrationTests {
           "%resolve", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultResolveArgs, args), config, InvokeMainMethodsDirectly)
         }, {
-          "%translate", (args, config) =>
-            DafnyCommand(AddExtraArgs(new[] { "translate" }, args), config, InvokeMainMethodsDirectly)
+          "%translate", (args, config) => {
+            var totalArgs = args.ToList();
+            if (totalArgs.Any()) {
+              var target = totalArgs.First();
+              totalArgs = new[] { target }.Concat(defaultTranslateArgs).Concat(totalArgs.Skip(1)).ToList();
+            } else {
+              totalArgs = defaultTranslateArgs.ToList();
+            }
+            return DafnyCommand(AddExtraArgs(new[] { "translate" }, totalArgs), config,
+              InvokeMainMethodsDirectly);
+          }
         }, {
           "%verify", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultVerifyArgs, args), config, InvokeMainMethodsDirectly)
@@ -99,21 +108,21 @@ namespace IntegrationTests {
         }, {
           "%testDafnyForEachCompiler", (args, config) => {
             var fullArguments = new[] { "for-each-compiler" }.Concat(args);
-            return InvokeMainMethodsDirectly
-              ? new MultiBackendLitCommand(fullArguments, config)
-              : MainMethodLitCommand.Parse(TestDafnyAssembly, fullArguments, config,
-                false);
+            return MainCommand("testDafnyForEachCompiler", fullArguments,
+              (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a),
+              TestDafnyAssembly,
+              config);
           }
         }, {
           "%testDafnyForEachResolver", (args, config) => {
             var fullArguments = new[] { "for-each-resolver" }.Concat(args);
-            return InvokeMainMethodsDirectly
-              ? new MultiBackendLitCommand(fullArguments, config)
-              : MainMethodLitCommand.Parse(TestDafnyAssembly, fullArguments, config, false);
+            return MainCommand("testDafnyForEachResolver", fullArguments,
+              (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a),
+              TestDafnyAssembly,
+              config);
           }
         }, {
-          "%server", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+          "%server", (args, config) => MainCommand("legacyServer", args, Server.MainWithWriters, DafnyServerAssembly, config)
         }, {
           "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
@@ -123,6 +132,12 @@ namespace IntegrationTests {
           "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
         }, {
           "%sed", (args, config) => SedCommand.Parse(args.ToArray())
+        }, {
+          "%mv", (args, config) => MvCommand.Parse(args.ToArray())
+        }, {
+          "%rm", (args, config) => RmCommand.Parse(args.ToArray())
+        }, {
+          "%cp", (args, config) => CpCommand.Parse(args.ToArray())
         }, {
           "%OutputCheck", OutputCheckCommand.Parse
         }
@@ -161,12 +176,16 @@ namespace IntegrationTests {
         commands["%dafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath,
             AddExtraArgs(DafnyCliTests.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
-        commands["%testDafnyForEachCompiler"] = (args, config) =>
-          MainMethodLitCommand.Parse(TestDafnyAssembly,
-            new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config, false);
-        commands["%testDafnyForEachResolver"] = (args, config) =>
-          MainMethodLitCommand.Parse(TestDafnyAssembly,
-            new[] { "for-each-resolver", "--dafny", dafnyCliPath }.Concat(args), config, false);
+        commands["%testDafnyForEachCompiler"] = (args, config) => {
+          var shellArguments = new[] { TestDafnyAssembly.Location, "for-each-compiler", "--dafny", dafnyCliPath }
+            .Concat(args);
+          return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables); ;
+        };
+        commands["%testDafnyForEachResolver"] = (args, config) => {
+          var shellArguments = new[] { TestDafnyAssembly.Location, "for-each-resolver", "--dafny", dafnyCliPath }
+            .Concat(args);
+          return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
+        };
         commands["%server"] = (args, config) =>
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         commands["%boogie"] = (args, config) =>
@@ -179,9 +198,19 @@ namespace IntegrationTests {
       Config = new LitTestConfiguration(substitutions, commands, features, DafnyCliTests.ReferencedEnvironmentVariables);
     }
 
+    private static ILitCommand MainCommand(string name, IEnumerable<string> args, MainWithWriters mainWithWriters, Assembly assembly,
+      LitTestConfiguration config) {
+      if (InvokeMainMethodsDirectly) {
+        return new MainWithWritersCommand(name, args, mainWithWriters);
+      }
+
+      var shellArguments = new[] { assembly.Location }.Concat(args);
+      return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
+    }
+
     public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
       if (invokeDirectly) {
-        return new DafnyDriverLitCommand(arguments, config);
+        return new MainWithWritersCommand("dafny", arguments, DafnyBackwardsCompatibleCli.MainWithWriters);
       }
 
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
@@ -213,7 +242,7 @@ namespace IntegrationTests {
           // not the copy in the output directory of this project.
           var sourcePath = Path.Join(Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR"), testPath);
           ConvertToMultiBackendTestIfNecessary(sourcePath);
-          return;
+          break;
         case "uniformity-check":
           var testCase = LitTestCase.Read(path, Config);
           if (NeedsConverting(testCase)) {
@@ -245,7 +274,7 @@ namespace IntegrationTests {
           return false;
         }
 
-        if (leafCommand is ShellLitCommand or DafnyDriverLitCommand) {
+        if (leafCommand is ShellLitCommand or MainWithWritersCommand) {
           var arguments = GetDafnyArguments(leafCommand);
           if (arguments != null) {
             if (arguments.Any(arg => allOtherFileExtensions.Any(arg.EndsWith))) {
@@ -266,7 +295,7 @@ namespace IntegrationTests {
       foreach (var command in testCase.Commands) {
         var leafCommand = GetLeafCommand(command);
 
-        if (leafCommand is ShellLitCommand or DafnyDriverLitCommand) {
+        if (leafCommand is ShellLitCommand or MainWithWritersCommand) {
           var arguments = GetDafnyArguments(leafCommand);
           if (arguments != null) {
             if (arguments.Any(arg => arg is "for-each-compiler")) {
@@ -329,7 +358,7 @@ namespace IntegrationTests {
       foreach (var command in testCase.Commands) {
         var leafCommand = GetLeafCommand(command);
         switch (leafCommand) {
-          case ShellLitCommand or DafnyDriverLitCommand: {
+          case ShellLitCommand or MainWithWritersCommand: {
               var arguments = GetDafnyArguments(leafCommand);
               if (arguments == null) {
                 throw new ArgumentException();
@@ -442,7 +471,7 @@ namespace IntegrationTests {
           "/optimizeErasableDatatypeWrapper:0" => "--optimize-erasable-datatype-wrapper:false",
           "/verifyAllModules" => "--verify-included-files",
           "/errorLimit:0" => "--error-limit:0",
-          "/deprecation:0" => "--warn-deprecation:false",
+          "/deprecation:0" => "--allow-deprecation",
           _ => extraOption
         });
       }
@@ -499,7 +528,7 @@ namespace IntegrationTests {
           } else {
             return null;
           }
-        case DafnyDriverLitCommand ddlc:
+        case MainWithWritersCommand ddlc:
           return ddlc.Arguments;
         default:
           return null;
@@ -524,55 +553,6 @@ namespace IntegrationTests {
       }
 
       return "cs";
-    }
-  }
-
-  class DafnyDriverLitCommand : ILitCommand {
-    public string[] Arguments { get; }
-
-    public DafnyDriverLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
-      this.Arguments = arguments.ToArray();
-    }
-
-    public (int, string, string) Execute(TextReader inputReader,
-      TextWriter outputWriter,
-      TextWriter errorWriter) {
-      var exitCode = DafnyBackwardsCompatibleCli.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
-      return (exitCode, "", "");
-    }
-
-    public override string ToString() {
-      return $"dafny {string.Join(" ", Arguments)}";
-    }
-  }
-
-  class MultiBackendLitCommand : ILitCommand {
-    private readonly string[] arguments;
-
-    public MultiBackendLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
-      this.arguments = arguments.ToArray();
-    }
-
-    public (int, string, string) Execute(TextReader inputReader,
-      TextWriter outputWriter,
-      TextWriter errorWriter) {
-      var exitCode = new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments);
-      return (exitCode, "", "");
-    }
-  }
-
-  class MultiResolverLitCommand : ILitCommand {
-    private readonly string[] arguments;
-
-    public MultiResolverLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
-      this.arguments = arguments.ToArray();
-    }
-
-    public (int, string, string) Execute(TextReader inputReader,
-      TextWriter outputWriter,
-      TextWriter errorWriter) {
-      var exitCode = new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-resolver"));
-      return (exitCode, "", "");
     }
   }
 }

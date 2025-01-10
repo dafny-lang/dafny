@@ -1,8 +1,7 @@
 // NONUNIFORM: Go-specific extern test
-// RUN: %exits-with 3 %dafny /compile:3 /unicodeChar:0 /spillTargetCode:2 "%s" /compileTarget:go 2> "%t"
-// note: putting /compileTarget:go after "%s" overrides user-provided option
+// RUN: %exits-with 3 %run --allow-external-contracts --target go "%s" &> "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
-// CHECK: undefined: GoModuleConversions.ParseURL
+// CHECK: undefined: m_GoModuleConversions.ParseURL
 
 // This test used to work only because of a questionable Go-only feature
 // of mapping a Dafny string directly to a Go string when passed in or out of

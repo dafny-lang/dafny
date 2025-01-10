@@ -1,0 +1,1 @@
+// CHECK-L: error[E0277]: the trait bound `RefCell<Vec<DafnyInt>>: Hash` is not satisfied

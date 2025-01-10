@@ -3,22 +3,24 @@ Dafny program verifier finished with 1 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 git-issue-1151-more.dfy(13,5): Error: Abstract type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
+Translation was aborted because errors were found
 
 Dafny program verifier did not attempt verification
 git-issue-1151-more.dfy(13,5): Error: Abstract type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
-Wrote textual form of partial target program to git-issue-1151-more-java/git_issue_1151_more.java
+Translation was aborted because errors were found
 
 Dafny program verifier did not attempt verification
 git-issue-1151-more.dfy(13,5): Error: Abstract type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
+Translation was aborted because errors were found
 
 Dafny program verifier did not attempt verification
 git-issue-1151-more.dfy(13,5): Error: Abstract type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
-Wrote textual form of partial target program to git-issue-1151-more-go/src/git-issue-1151-more.go
+Translation was aborted because errors were found
 
 Dafny program verifier did not attempt verification
 git-issue-1151-more.dfy(13,5): Error: Abstract type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
-Wrote textual form of partial target program to git-issue-1151-more.cpp
+Translation was aborted because errors were found
 
 Dafny program verifier did not attempt verification
 git-issue-1151-more.dfy(13,5): Error: Abstract type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
-Wrote textual form of partial target program to git-issue-1151-more-py/__main__.py
+Translation was aborted because errors were found

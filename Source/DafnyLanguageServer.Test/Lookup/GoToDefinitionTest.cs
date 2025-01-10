@@ -12,6 +12,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class GoToDefinitionTest : ClientBasedLanguageServerTest {
 
     [Fact]
+    public async Task DatatypeFields() {
+      var source = @"
+datatype MultipleFields = MultipleFields(x: int, [>y<]: int)
+
+method Update(m: MultipleFields) {
+  var m2 := m.(><y := 3);
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
     public async Task ModuleImport1ResolutionErrorInDependency() {
       var source = @"
 module User {
@@ -98,12 +109,12 @@ module [>Used<] {
     public async Task ModuleImport2() {
       var source = @"
 module User {
- [>import<] Used
+ import Used
  
  const x := Us><ed.x
 }
 
-module Used {
+module [>Used<] {
   const x := 3
 }".TrimStart();
       await AssertPositionsLineUpWithRanges(source);
@@ -302,7 +313,7 @@ module Consumer {
     [Fact]
     public async Task JumpToOtherModule() {
       var source = @"
-module Provider {
+module {>2:Provider<} {
   class A {
     var [>x<]: int;
 
@@ -326,7 +337,7 @@ module Consumer {
 }
 
 module Consumer2 {
-  [>import<] Provider
+  import Provider
 
   type A2 = Pro><vider.A
 }".TrimStart();

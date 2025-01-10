@@ -2,11 +2,13 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class MemberDecl : Declaration {
+public abstract class MemberDecl : Declaration, ISymbol {
   public abstract string WhatKind { get; }
+  public string WhatKindAndName => $"{WhatKind} '{Name}'";
   public virtual string WhatKindMentionGhost => (IsGhost ? "ghost " : "") + WhatKind;
   protected bool hasStaticKeyword;
   public bool HasStaticKeyword => hasStaticKeyword;
@@ -65,9 +67,9 @@ public abstract class MemberDecl : Declaration {
     this.isGhost = original.isGhost;
   }
 
-  protected MemberDecl(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, attributes, isRefining) {
-    Contract.Requires(rangeToken != null);
+  protected MemberDecl(IOrigin origin, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
+    : base(origin, name, attributes, isRefining) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     this.hasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
@@ -95,7 +97,8 @@ public abstract class MemberDecl : Declaration {
   public override string SanitizedName =>
     (Name == EnclosingClass.Name ? "_" : "") + base.SanitizedName;
 
-  public override string GetCompileName(DafnyOptions options) => (Name == EnclosingClass.Name ? "_" : "") + base.GetCompileName(options);
+  public override string GetCompileName(DafnyOptions options) =>
+    (Name == EnclosingClass.Name ? "_" : "") + base.GetCompileName(options);
 
   public virtual string FullSanitizedName {
     get {
@@ -119,11 +122,11 @@ public abstract class MemberDecl : Declaration {
       yield return a;
     }
     if (this.HasUserAttribute("only", out _)) {
-      yield return new Assumption(decl, tok, AssumptionDescription.MemberOnly);
+      yield return new Assumption(decl, Origin, AssumptionDescription.MemberOnly);
     }
   }
 
-  public void RecursiveCallParameters(IToken tok, List<TypeParameter> typeParams, List<Formal> ins,
+  public void RecursiveCallParameters(IOrigin tok, List<TypeParameter> typeParams, List<Formal> ins,
     Expression receiverSubst, Dictionary<IVariable, Expression> substMap,
     out Expression receiver, out List<Expression> arguments) {
     Contract.Requires(tok != null);
@@ -151,7 +154,7 @@ public abstract class MemberDecl : Declaration {
       if (substMap.TryGetValue(inFormal, out inE)) {
         arguments.Add(inE);
       } else {
-        var ie = new IdentifierExpr(inFormal.tok, inFormal.Name);
+        var ie = new IdentifierExpr(inFormal.Origin, inFormal.Name);
         ie.Var = inFormal;  // resolve here
         ie.Type = inFormal.Type;  // resolve here
         arguments.Add(ie);

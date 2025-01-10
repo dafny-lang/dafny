@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --warn-deprecation:false
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --allow-deprecation
 
 
 // ----- Stream
@@ -135,7 +135,7 @@ greatest lemma {:induction false} Compare<T>(h: T)
   Compare(Next(h));
   if {
     case true =>
-      assert FF(h).tail == GG(h).tail;  // error: full equality is not known here
+      assert FF(h).tail == GG(h).tail;  // yes, this full equality is a focal predicate, so it's rewritten into ==#[_k - 1]
     case true =>
       assert FF(h) ==#[_k] GG(h);  // yes, this is the postcondition to be proved, and it is known to hold
     case true =>

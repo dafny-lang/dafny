@@ -12,15 +12,25 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
   public readonly WKind WitnessKind;
   public Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
-  [FilledInDuringResolution] public bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
 
-  [FilledInDuringResolution] bool RedirectingTypeDecl.ConstraintIsCompilable { get; set; }
+  private bool? constraintIsCompilable = null;
+  [FilledInDuringResolution]
+  bool RedirectingTypeDecl.ConstraintIsCompilable {
+    get {
+      Contract.Assert(constraintIsCompilable != null);
+      return (bool)constraintIsCompilable;
+    }
+    set {
+      Contract.Assert(constraintIsCompilable == null);
+      constraintIsCompilable = value;
+    }
+  }
 
-  public SubsetTypeDecl(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
+  public SubsetTypeDecl(IOrigin origin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
     BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
     Attributes attributes)
-    : base(rangeToken, name, characteristics, typeArgs, module, id.Type, attributes) {
-    Contract.Requires(rangeToken != null);
+    : base(origin, name, characteristics, typeArgs, module, id.Type, attributes) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(module != null);
@@ -40,16 +50,18 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
       );
 
   BoundVar RedirectingTypeDecl.Var => Var;
+  PreType RedirectingTypeDecl.BasePreType => Var.PreType;
+  Type RedirectingTypeDecl.BaseType => Var.Type;
   Expression RedirectingTypeDecl.Constraint => Constraint;
   WKind RedirectingTypeDecl.WitnessKind => WitnessKind;
   Expression RedirectingTypeDecl.Witness => Witness;
 
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
+  public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
     return new List<Type> { RhsWithArgument(typeArgs) };
   }
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
-  public override SymbolKind Kind => SymbolKind.Class;
+  public override SymbolKind? Kind => SymbolKind.Class;
   public override string GetDescription(DafnyOptions options) {
     return "subset type";
   }
@@ -72,10 +84,10 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
       }
 
       if (func.IsMadeImplicitlyOpaque(Options)) {
-        var revealStmt0 = AutoRevealFunctionDependencies.BuildRevealStmt(func, Witness.Tok, EnclosingModuleDefinition);
+        var revealStmt0 = AutoRevealFunctionDependencies.BuildRevealStmt(func, Witness.Origin, EnclosingModuleDefinition);
 
         if (revealStmt0 is not null) {
-          var newExpr = new StmtExpr(Witness.Tok, revealStmt0, Witness) {
+          var newExpr = new StmtExpr(Witness.Origin, revealStmt0, Witness) {
             Type = Witness.Type
           };
           Witness = newExpr;
@@ -84,13 +96,13 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
 
       foreach (var newFunc in Rewriter.GetEnumerator(func, func.EnclosingClass, new List<Expression>(), EnclosingModuleDefinition)) {
         var origExpr = Witness;
-        var revealStmt = AutoRevealFunctionDependencies.BuildRevealStmt(newFunc.Function, Witness.Tok, EnclosingModuleDefinition);
+        var revealStmt = AutoRevealFunctionDependencies.BuildRevealStmt(newFunc.Function, Witness.Origin, EnclosingModuleDefinition);
 
         if (revealStmt is null) {
           continue;
         }
 
-        var newExpr = new StmtExpr(Witness.Tok, revealStmt, origExpr) {
+        var newExpr = new StmtExpr(Witness.Origin, revealStmt, origExpr) {
           Type = origExpr.Type
         };
         Witness = newExpr;

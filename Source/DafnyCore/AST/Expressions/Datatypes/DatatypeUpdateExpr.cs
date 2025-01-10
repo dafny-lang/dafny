@@ -5,9 +5,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneable<DatatypeUpdateExpr> {
+public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, ICloneable<DatatypeUpdateExpr> {
   public readonly Expression Root;
-  public readonly List<Tuple<IToken, string, Expression>> Updates;
+  public readonly List<Tuple<IOrigin, string, Expression>> Updates;
   [FilledInDuringResolution] public List<MemberDecl> Members;
   [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
   [FilledInDuringResolution] public bool InCompiledContext;
@@ -19,7 +19,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneab
 
   public DatatypeUpdateExpr(Cloner cloner, DatatypeUpdateExpr original) : base(cloner, original) {
     Root = cloner.CloneExpr(original.Root);
-    Updates = original.Updates.Select(t => Tuple.Create<IToken, string, Expression>(cloner.Tok((IToken)t.Item1), t.Item2, cloner.CloneExpr(t.Item3)))
+    Updates = original.Updates.Select(t => Tuple.Create(cloner.Origin(t.Item1), t.Item2, cloner.CloneExpr(t.Item3)))
       .ToList();
 
     if (cloner.CloneResolvedFields) {
@@ -34,9 +34,9 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneab
     }
   }
 
-  public DatatypeUpdateExpr(IToken tok, Expression root, List<Tuple<IToken, string, Expression>> updates)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public DatatypeUpdateExpr(IOrigin origin, Expression root, List<Tuple<IOrigin, string, Expression>> updates)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(root != null);
     Contract.Requires(updates != null);
     Contract.Requires(updates.Count != 0);
@@ -62,11 +62,11 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneab
     }
   }
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
-    return (IEnumerable<IDeclarationOrUsage>)LegalSourceConstructors ?? Array.Empty<IDeclarationOrUsage>();
+  public IEnumerable<Reference> GetReferences() {
+    return LegalSourceConstructors == null ? Enumerable.Empty<Reference>()
+      : Updates.Zip(LegalSourceConstructors).Select(t =>
+        new Reference(t.First.Item1, t.Second.Formals.Find(f => f.Name == t.First.Item2)));
   }
-
-  public IToken NameToken => tok;
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
     get {

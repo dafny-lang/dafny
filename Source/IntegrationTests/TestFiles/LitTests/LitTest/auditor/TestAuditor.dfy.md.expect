@@ -1,5 +1,7 @@
 |Name|Compiled|Explicit Assumption|Extern|Issue|Mitigation|
 |----|--------|-------------------|------|-----|----------|
+| B.ClassExtendingTraitFromOtherModule | True | False | False | Trait method calls may not terminate (uses `@AssumeCrossModuleTermination`). | Remove if possible. |
+| B.TraitExtendingTraitFromOtherModule | True | False | False | Trait method calls may not terminate (uses `@AssumeCrossModuleTermination`). | Remove if possible. |
 | MinusBv8NoBody | False | False | False | Ghost declaration has no body and has an ensures clause. | Provide a body or add `{:axiom}`. |
 | LeftShiftBV128 | False | True | False | Declaration has explicit `{:axiom}` attribute. | Provide a proof or test. |
 | MinusBv8Assume | False | False | False | Definition has `assume` statement in body. | Replace with `assert` and prove or add `{:axiom}`. |

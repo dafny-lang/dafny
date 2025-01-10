@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer {
       }
     }
 
-    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, Action killLanguageServer) {
+    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, DafnyOptions dafnyOptions, Action killLanguageServer) {
       options.ServerInfo = new ServerInfo {
         Name = "Dafny",
         Version = DafnyVersion
@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer {
       return options
         .WithDafnyLanguage()
         .WithDafnyWorkspace()
-        .WithDafnyHandlers()
+        .WithDafnyHandlers(dafnyOptions)
         .OnInitialize((server, @params, token) => InitializeAsync(server, @params, token, killLanguageServer))
         .OnStarted(StartedAsync);
     }
@@ -56,8 +56,12 @@ namespace Microsoft.Dafny.LanguageServer {
       try {
         var proverOptions = new SMTLibSolverOptions(options);
         proverOptions.Parse(options.ProverOptions);
+        if (proverOptions.ProverName == "noop") {
+          telemetryPublisher.PublishSolverPath("noop solver");
+          return;
+        }
         solverPath = proverOptions.ExecutablePath();
-        HandleZ3Version(options, telemetryPublisher, proverOptions);
+        HandleZ3Version(telemetryPublisher, solverPath);
       } catch (Exception e) {
         solverPath = $"Error while determining solver path: {e}";
       }
@@ -65,22 +69,13 @@ namespace Microsoft.Dafny.LanguageServer {
       telemetryPublisher.PublishSolverPath(solverPath);
     }
 
-    private static void HandleZ3Version(DafnyOptions options, TelemetryPublisherBase telemetryPublisher, SMTLibSolverOptions proverOptions) {
-      var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
-      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
+    private static void HandleZ3Version(TelemetryPublisherBase telemetryPublisher, string solverPath) {
+      var z3Version = DafnyOptions.GetZ3Version(solverPath);
+      if (z3Version is null) {
         return;
       }
 
       telemetryPublisher.PublishZ3Version($"Z3 version {z3Version}");
-
-      var toReplace = "O:model_compress=false";
-      var i = options.ProverOptions.IndexOf(toReplace);
-      if (i == -1) {
-        telemetryPublisher.PublishUnhandledException(new Exception($"Z3 version is > 4.8.6 but I did not find {toReplace} in the prover options:" + string.Join(" ", options.ProverOptions)));
-        return;
-      }
-
-      options.ProverOptions[i] = "O:model.compact=false";
     }
 
     /// <summary>

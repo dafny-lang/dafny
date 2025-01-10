@@ -6,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Program : TokenNode {
+public class Program : NodeWithComputedRange {
   public CompilationData Compilation { get; }
 
   [ContractInvariantMethod]
@@ -17,6 +17,11 @@ public class Program : TokenNode {
 
   public bool HasParseErrors { get; set; }
   public readonly string FullName;
+  /// <summary>
+  /// If this is a placeholder module, code generation will look for a unique module that replaces this one,
+  /// and use it to set this field. 
+  /// </summary>
+  public Dictionary<ModuleDefinition, ModuleDefinition> Replacements = new();
 
   // Resolution essentially flattens the module hierarchy, for
   // purposes of translation and compilation.
@@ -33,6 +38,24 @@ public class Program : TokenNode {
   public ErrorReporter Reporter { get; set; }
 
   public ProofDependencyManager ProofDependencyManager { get; set; } = new();
+
+  /// <summary>
+  /// Serializing the state of the Program passed to this backend,
+  /// after resolution, can be problematic.
+  /// If nothing else, very early on in the resolution process
+  /// we create explicit module definitions for implicit ones appearing
+  /// in qualified names such as `module A.B.C { ... }`,
+  /// and this means that multiple .doo files would then not be able to
+  /// share these prefixes without hitting duplicate name errors.
+  ///
+  /// Instead we serialize the state of the program immediately after parsing.
+  /// See also ProgramParser.ParseFiles().
+  /// 
+  /// This could be captured somewhere else, such as on the Program itself,
+  /// if having this state here hampers reuse in the future,
+  /// especially parallel processing.
+  /// </summary>
+  public Program AfterParsingClone { get; set; }
 
   public Program(string name, [Captured] LiteralModuleDecl module, [Captured] SystemModuleManager systemModuleManager, ErrorReporter reporter,
     CompilationData compilation) {
@@ -87,12 +110,12 @@ public class Program : TokenNode {
 
   /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
   /// (skips included tokens)
-  public IToken GetStartOfFirstFileToken() {
+  public Token GetStartOfFirstFileToken() {
     return GetFirstTokenForUri(Compilation.RootSourceUris[0]);
   }
 
-  public IToken GetFirstTokenForUri(Uri uri) {
-    return this.FindNodesInUris(uri).MinBy(n => n.RangeToken.StartToken.pos)?.StartToken;
+  public Token GetFirstTokenForUri(Uri uri) {
+    return this.FindNodesInUris(uri).MinBy(n => n.Origin.StartToken.pos)?.StartToken;
   }
 
   public override IEnumerable<INode> Children => new[] { DefaultModule };

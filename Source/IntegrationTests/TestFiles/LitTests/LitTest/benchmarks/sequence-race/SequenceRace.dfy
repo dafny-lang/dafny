@@ -1,7 +1,7 @@
 // Only because we're calling gradlew rather than gradlew.bat
 // UNSUPPORTED: windows
 
-// Ensure trying to use an unsupported compilation target results in a clean error message.
+// Ensure trying to use an unsupported translation target results in a clean error message.
 // RUN: %exits-with 3 %baredafny translate cs %args "%s" --plugin:DafnyBenchmarkingPlugin.dll > "%t"
 // RUN: %diff "%s.expect" "%t"
 

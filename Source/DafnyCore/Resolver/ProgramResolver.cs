@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
@@ -28,7 +29,7 @@ public class ProgramResolver {
     return null;
   }
 
-  public virtual void Resolve(CancellationToken cancellationToken) {
+  public virtual Task Resolve(CancellationToken cancellationToken) {
     Type.ResetScopes();
 
     Type.EnableScopes();
@@ -43,7 +44,7 @@ public class ProgramResolver {
     ComputeModuleDependencyGraph(Program, out var moduleDeclarationPointers);
 
     if (Reporter.ErrorCount != startingErrorCount) {
-      return;
+      return Task.CompletedTask;
     }
 
     var sortedDecls = dependencies.TopologicallySortedComponents();
@@ -71,7 +72,7 @@ public class ProgramResolver {
     }
 
     if (Reporter.ErrorCount != startingErrorCount) {
-      return;
+      return Task.CompletedTask;
     }
 
     Type.DisableScopes();
@@ -83,6 +84,7 @@ public class ProgramResolver {
       cancellationToken.ThrowIfCancellationRequested();
       rewriter.PostResolve(Program);
     }
+    return Task.CompletedTask;
   }
 
   public void AddSystemClass(TopLevelDeclWithMembers topLevelDeclWithMembers, Dictionary<string, MemberDecl> memberDictionary) {
@@ -130,7 +132,7 @@ public class ProgramResolver {
 
     // check for cycles in the import graph
     foreach (var cycle in dependencies.AllCycles()) {
-      ModuleResolver.ReportCycleError(Reporter, cycle, m => m.tok,
+      ModuleResolver.ReportCycleError(Reporter, cycle, m => m.Origin,
         m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
         "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
     }
@@ -159,7 +161,7 @@ public class ProgramResolver {
       var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
       systemModuleResolver.allTypeParameters.PushMarker();
       systemModuleResolver.ResolveTypeParameters(d.TypeArgs, true, d);
-      systemModuleResolver.ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
+      systemModuleResolver.ResolveType(d.Origin, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
       systemModuleResolver.allTypeParameters.PopMarker();
     }
 
@@ -196,34 +198,39 @@ public class ProgramResolver {
     // Check that none of the modules have the same CompileName.
     Dictionary<string, ModuleDefinition> compileNameMap = new Dictionary<string, ModuleDefinition>();
     foreach (ModuleDefinition m in program.CompileModules) {
-      var compileIt = true;
-      Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
-      if (!m.CanCompile() || !compileIt) {
+      if (!m.CanCompile() || !ShouldCompile(m)) {
         // the purpose of an abstract module is to skip compilation
         continue;
       }
 
       string compileName = m.GetCompileName(Options);
       if (compileNameMap.TryGetValue(compileName, out var priorModDef)) {
-        Reporter.Error(MessageSource.Resolver, m.tok,
+        Reporter.Error(MessageSource.Resolver, m.Origin,
           "modules '{0}' and '{1}' both have CompileName '{2}'",
-          priorModDef.tok.val, m.tok.val, compileName);
+          priorModDef.Origin.val, m.Origin.val, compileName);
       } else {
         compileNameMap.Add(compileName, m);
       }
     }
   }
 
+  public static bool ShouldCompile(IAttributeBearingDeclaration m) {
+    var compileIt = true;
+    Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
+    return compileIt;
+  }
+
   protected void InstantiateReplaceableModules(Program dafnyProgram) {
     foreach (var compiledModule in dafnyProgram.Modules().OrderByDescending(m => m.Height)) {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
         var target = compiledModule.Implements.Target.Def;
-        if (target.Replacement != null) {
-          Reporter!.Error(MessageSource.Compiler, new NestedToken(compiledModule.Tok, target.Replacement.Tok,
+        var replacement = Program.Replacements.GetValueOrDefault(target);
+        if (replacement != null) {
+          Reporter!.Error(MessageSource.Resolver, new NestedOrigin(compiledModule.Origin, replacement.Origin,
               $"other replacing module"),
             "a replaceable module may only be replaced once");
         } else {
-          target.Replacement = compiledModule.Replacement ?? compiledModule;
+          Program.Replacements[target] = Program.Replacements.GetValueOrDefault(compiledModule, compiledModule);
         }
       }
     }
@@ -285,7 +292,7 @@ public class ProgramResolver {
       var subBindings = bindings.SubBindings(moduleDecl.Name);
       ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
       if (module.ModuleKind == ModuleKindEnum.Concrete && (moduleDecl as AbstractModuleDecl)?.QId.Root != null) {
-        Reporter.Error(MessageSource.Resolver, moduleDecl.tok,
+        Reporter.Error(MessageSource.Resolver, moduleDecl.Origin,
           "The abstract import named {0} (using :) may only be used in an abstract or replaceable module declaration",
           moduleDecl.Name);
       }
@@ -302,7 +309,7 @@ public class ProgramResolver {
       // each enclosing module.
       if (!bindings.ResolveQualifiedModuleIdRootImport(aliasDecl, aliasDecl.TargetQId, out var root)) {
         //        if (!bindings.TryLookupFilter(alias.TargetQId.rootToken(), out root, m => alias != m)
-        Reporter.Error(MessageSource.Resolver, aliasDecl.TargetQId.Tok, ModuleNotFoundErrorMessage(0, aliasDecl.TargetQId.Path));
+        Reporter.Error(MessageSource.Resolver, aliasDecl.TargetQId.Origin, ModuleNotFoundErrorMessage(0, aliasDecl.TargetQId.Path));
       } else {
         aliasDecl.TargetQId.Root = root;
         declarationPointers.AddOrUpdate(root, v => aliasDecl.TargetQId.Root = v, Util.Concat);
@@ -312,7 +319,7 @@ public class ProgramResolver {
       if (!bindings.ResolveQualifiedModuleIdRootAbstract(abstractDecl, abstractDecl.QId, out var root)) {
         //if (!bindings.TryLookupFilter(abs.QId.rootToken(), out root,
         //  m => abs != m && (((abs.EnclosingModuleDefinition == m.EnclosingModuleDefinition) && (abs.Exports.Count == 0)) || m is LiteralModuleDecl)))
-        Reporter.Error(MessageSource.Resolver, abstractDecl.tok, ModuleNotFoundErrorMessage(0, abstractDecl.QId.Path));
+        Reporter.Error(MessageSource.Resolver, abstractDecl.Origin, ModuleNotFoundErrorMessage(0, abstractDecl.QId.Path));
       } else {
         abstractDecl.QId.Root = root;
         declarationPointers.AddOrUpdate(root, v => abstractDecl.QId.Root = v, Util.Concat);

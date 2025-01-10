@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyCore;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -25,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.logger = logger;
     }
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
+    public async Task<IReadOnlyList<IVerificationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
       ResolutionResult resolution,
       ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken) {
@@ -46,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           Type.ResetScopes();
           var translatorFlags = new BoogieGenerator.TranslatorFlags(errorReporter.Options) {
             InsertChecksums = 0 < engine.Options.VerifySnapshots,
-            ReportRanges = program.Options.Get(DafnyConsolePrinter.ShowSnippets)
+            ReportRanges = program.Options.Get(Snippets.ShowSnippets)
           };
           var translator = new BoogieGenerator(errorReporter, resolution.ResolvedProgram.ProofDependencyManager, translatorFlags);
           return translator.DoTranslation(resolution.ResolvedProgram, moduleDefinition);
@@ -61,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
         }
 
-        return engine.GetImplementationTasks(boogieProgram);
+        return await engine.GetVerificationTasks(boogieProgram, cancellationToken);
       }
       finally {
         mutex.Release();

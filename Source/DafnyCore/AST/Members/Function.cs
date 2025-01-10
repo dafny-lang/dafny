@@ -9,7 +9,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring, ISymbol, ICanAutoRevealDependencies, ICanVerify {
+public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring,
+  ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "function";
 
   public string GetFunctionDeclarationKeywords(DafnyOptions options) {
@@ -51,11 +52,8 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     return true;
   }
 
-  public bool HasPostcondition =>
+  public override bool HasPostcondition =>
     Ens.Count > 0 || ResultType.AsSubsetType is not null;
-
-  public bool HasPrecondition =>
-    Req.Count > 0 || Formals.Any(f => f.Type.AsSubsetType is not null);
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     foreach (var a in base.Assumptions(this)) {
@@ -63,18 +61,18 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     }
 
     if (Body is null && HasPostcondition && EnclosingClass.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
+      yield return new Assumption(this, Origin, AssumptionDescription.NoBody(IsGhost));
     }
 
     if (HasExternAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.ExternFunction);
+      yield return new Assumption(this, Origin, AssumptionDescription.ExternFunction);
       if (HasPostcondition && !HasAxiomAttribute) {
-        yield return new Assumption(this, tok, AssumptionDescription.ExternWithPostcondition);
+        yield return new Assumption(this, Origin, AssumptionDescription.ExternWithPostcondition);
       }
     }
 
     if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
+      yield return new Assumption(this, Origin, AssumptionDescription.ExternWithPrecondition);
     }
 
     foreach (var c in this.Descendants()) {
@@ -93,23 +91,30 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       TailStatus.NotTailRecursive; // NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
 
   public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
-  public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != Function.TailStatus.TailRecursive;
+  public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != TailStatus.TailRecursive;
   [FilledInDuringResolution] public bool IsFueled; // if anyone tries to adjust this function's fuel
-  public readonly List<TypeParameter> TypeArgs;
-  public readonly List<Formal> Formals;
   public readonly Formal Result;
   public PreType ResultPreType;
   public readonly Type ResultType;
-  public readonly List<AttributedExpression> Req;
-  public readonly Specification<FrameExpression> Reads;
-  public readonly List<AttributedExpression> Ens;
-  public readonly Specification<Expression> Decreases;
+  public Type OriginalResultTypeWithRenamings() {
+    if (OverriddenFunction == null) {
+      return ResultType;
+    }
+
+    Contract.Assert(TypeArgs.Count == OverriddenFunction.TypeArgs.Count);
+    var renamings = new Dictionary<TypeParameter, Type>();
+    for (var i = 0; i < TypeArgs.Count; i++) {
+      renamings.Add(OverriddenFunction.TypeArgs[i], new UserDefinedType(Origin, TypeArgs[i]));
+    }
+    return OverriddenFunction.ResultType.Subst(renamings);
+
+  }
   public Expression Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
-  public IToken /*?*/ ByMethodTok; // null iff ByMethodBody is null
+  public IOrigin /*?*/ ByMethodTok; // null iff ByMethodBody is null
   public BlockStmt /*?*/ ByMethodBody;
   [FilledInDuringResolution] public Method /*?*/ ByMethodDecl; // if ByMethodBody is non-null
   public bool SignatureIsOmitted => SignatureEllipsis != null; // is "false" for all Function objects that survive into resolution
-  public readonly IToken SignatureEllipsis;
+  public readonly IOrigin SignatureEllipsis;
   public Function OverriddenFunction;
   public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
@@ -143,7 +148,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     Concat<Node>(Req).
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
-    Concat(Formals).
+    Concat(Ins).
     Concat(Result != null ? new List<Node>() { Result } : new List<Node>()).
     Concat(ResultType != null ? new List<Node>() { ResultType } : new List<Node>()).
     Concat(Body == null ? Enumerable.Empty<Node>() : new[] { Body });
@@ -154,13 +159,13 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     Concat<Node>(Req).
     Concat(Ens).
     Concat(Decreases.Expressions.Where(expression => expression is not AutoGeneratedExpression)).
-    Concat(Formals).Concat(ResultType != null && ResultType.tok.line > 0 ? new List<Node>() { ResultType } : new List<Node>()).
+    Concat(Ins).Concat(ResultType != null && ResultType.Origin.line > 0 ? new List<Node>() { ResultType } : new List<Node>()).
     Concat(Body == null ? Enumerable.Empty<Node>() : new[] { Body }).
     Concat(ByMethodBody == null ? Enumerable.Empty<Node>() : new[] { ByMethodBody });
 
   public override IEnumerable<Expression> SubExpressions {
     get {
-      foreach (var formal in Formals.Where(f => f.DefaultValue != null)) {
+      foreach (var formal in Ins.Where(f => f.DefaultValue != null)) {
         yield return formal.DefaultValue;
       }
       foreach (var e in Req) {
@@ -183,10 +188,10 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
 
   public Type GetMemberType(ArrowTypeDecl atd) {
     Contract.Requires(atd != null);
-    Contract.Requires(atd.Arity == Formals.Count);
+    Contract.Requires(atd.Arity == Ins.Count);
 
     // Note, the following returned type can contain type parameters from the function and its enclosing class
-    return new ArrowType(tok, atd, Formals.ConvertAll(f => f.Type), ResultType);
+    return new ArrowType(Origin, atd, Ins.ConvertAll(f => f.Type), ResultType);
   }
 
   public bool AllowsNontermination {
@@ -194,6 +199,8 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
     }
   }
+
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
 
   /// <summary>
   /// The "AllCalls" field is used for non-ExtremePredicate, non-PrefixPredicate functions only (so its value should not be relied upon for ExtremePredicate and PrefixPredicate functions).
@@ -212,7 +219,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(TypeArgs));
-    Contract.Invariant(cce.NonNullElements(Formals));
+    Contract.Invariant(cce.NonNullElements(Ins));
     Contract.Invariant(ResultType != null);
     Contract.Invariant(cce.NonNullElements(Req));
     Contract.Invariant(Reads != null);
@@ -220,17 +227,17 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     Contract.Invariant(Decreases != null);
   }
 
-  public Function(RangeToken range, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
-    List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
+  public Function(IOrigin range, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
+    List<TypeParameter> typeArgs, List<Formal> ins, Formal result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-    Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
-    Attributes attributes, IToken/*?*/ signatureEllipsis)
-    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
+    Expression/*?*/ body, IOrigin/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
+    Attributes attributes, IOrigin/*?*/ signatureEllipsis)
+    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null, typeArgs, ins, req, ens, decreases) {
 
-    Contract.Requires(tok != null);
+    Contract.Requires(Origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(formals));
+    Contract.Requires(cce.NonNullElements(ins));
     Contract.Requires(resultType != null);
     Contract.Requires(cce.NonNullElements(req));
     Contract.Requires(reads != null);
@@ -238,14 +245,9 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     Contract.Requires(decreases != null);
     Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
     this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
-    this.TypeArgs = typeArgs;
-    this.Formals = formals;
     this.Result = result;
     this.ResultType = result != null ? result.Type : resultType;
-    this.Req = req;
     this.Reads = reads;
-    this.Ens = ens;
-    this.Decreases = decreases;
     this.Body = body;
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
@@ -258,23 +260,23 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
         if (args.Count == 1) {
           LiteralExpr literal = args[0] as LiteralExpr;
           if (literal != null && literal.Value is BigInteger) {
-            this.IsFueled = true;
+            IsFueled = true;
           }
         } else if (args.Count == 2) {
           LiteralExpr literalLow = args[0] as LiteralExpr;
           LiteralExpr literalHigh = args[1] as LiteralExpr;
 
           if (literalLow != null && literalLow.Value is BigInteger && literalHigh != null && literalHigh.Value is BigInteger) {
-            this.IsFueled = true;
+            IsFueled = true;
           }
         }
       }
     }
   }
 
-  bool ICodeContext.IsGhost { get { return this.IsGhost; } }
-  List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
-  List<Formal> ICodeContext.Ins { get { return this.Formals; } }
+  bool ICodeContext.IsGhost { get { return IsGhost; } }
+  List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
+  List<Formal> ICodeContext.Ins { get { return Ins; } }
   string ICallable.NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
@@ -284,13 +286,13 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       }
     }
   }
-  Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
+  Specification<Expression> ICallable.Decreases { get { return Decreases; } }
   bool _inferredDecr;
   bool ICallable.InferredDecreases {
     set { _inferredDecr = value; }
     get { return _inferredDecr; }
   }
-  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingClass.EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
 
   [Pure]
@@ -327,8 +329,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     DafnyOptions.RegisterLegacyBinding(FunctionSyntaxOption, (options, value) => {
       options.FunctionSyntax = functionSyntaxOptionsMap[value];
     });
-
-    DooFile.RegisterNoChecksNeeded(FunctionSyntaxOption);
+    OptionRegistry.RegisterOption(FunctionSyntaxOption, OptionScope.Module);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
@@ -336,8 +337,8 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     if (BodyStartTok.line > 0) {
       formatter.SetDelimiterIndentedRegions(BodyStartTok, indentBefore);
     }
-
-    formatter.SetFormalsIndentation(Formals);
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
+    formatter.SetFormalsIndentation(Ins);
     if (Result is { } outFormal) {
       formatter.SetTypeIndentation(outFormal.SyntacticType);
     }
@@ -368,13 +369,22 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     return true;
   }
 
+  protected override bool Bodyless => Body == null;
+  protected override string TypeName => "function";
+
+  public void ResolveNewOrOldPart(INewOrOldResolver resolver) {
+    ResolveMethodOrFunction(resolver);
+  }
+
   /// <summary>
   /// Assumes type parameters have already been pushed
   /// </summary>
-  public void Resolve(ModuleResolver resolver) {
+  public override void Resolve(ModuleResolver resolver) {
     Contract.Requires(this != null);
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
+
+    ResolveNewOrOldPart(resolver);
 
     // make note of the warnShadowing attribute
     bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
@@ -388,20 +398,21 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       resolver.scope.AllowInstance = false;
     }
 
-    foreach (Formal p in Formals) {
+    foreach (Formal p in Ins) {
       resolver.scope.Push(p.Name, p);
     }
 
-    resolver.ResolveParameterDefaultValues(Formals, ResolutionContext.FromCodeContext(this));
+    resolver.ResolveParameterDefaultValues(Ins, ResolutionContext.FromCodeContext(this));
 
+    var contractContext = new ResolutionContext(this, this is TwoStateFunction);
     foreach (var req in Req) {
-      resolver.ResolveAttributes(req, new ResolutionContext(this, this is TwoStateFunction));
+      resolver.ResolveAttributes(req, contractContext);
       Expression r = req.E;
-      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction));
+      resolver.ResolveExpression(r, contractContext);
       Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
       resolver.ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
     }
-    resolver.ResolveAttributes(Reads, new ResolutionContext(this, this is TwoStateFunction));
+    resolver.ResolveAttributes(Reads, contractContext);
     foreach (FrameExpression fr in Reads.Expressions) {
       resolver.ResolveFrameExpressionTopLevel(fr, FrameExpressionUse.Reads, this);
     }
@@ -412,16 +423,16 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     }
     foreach (AttributedExpression e in Ens) {
       Expression r = e.E;
-      resolver.ResolveAttributes(e, new ResolutionContext(this, this is TwoStateFunction));
-      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction) with { InFunctionPostcondition = true });
+      resolver.ResolveAttributes(e, contractContext);
+      resolver.ResolveExpression(r, contractContext with { InFunctionPostcondition = true });
       Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
       resolver.ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
     }
     resolver.scope.PopMarker(); // function result name
 
-    resolver.ResolveAttributes(Decreases, new ResolutionContext(this, this is TwoStateFunction));
+    resolver.ResolveAttributes(Decreases, contractContext);
     foreach (Expression r in Decreases.Expressions) {
-      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction));
+      resolver.ResolveExpression(r, contractContext);
       // any type is fine
     }
     resolver.SolveAllTypeConstraints(); // solve type constraints in the specification
@@ -441,7 +452,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       }
       resolver.ResolveExpression(Body, new ResolutionContext(this, this is TwoStateFunction));
       Contract.Assert(Body.Type != null);  // follows from postcondition of ResolveExpression
-      resolver.AddAssignableConstraint(tok, ResultType, Body.Type, "Function body type mismatch (expected {0}, got {1})");
+      resolver.AddAssignableConstraint(Origin, ResultType, Body.Type, "Function body type mismatch (expected {0}, got {1})");
       resolver.SolveAllTypeConstraints();
       resolver.DominatingStatementLabels.PopMarker();
     }
@@ -450,7 +461,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     if (Result != null) {
       resolver.scope.Push(Result.Name, Result);  // function return only visible in post-conditions (and in function attributes)
     }
-    resolver.ResolveAttributes(this, new ResolutionContext(this, this is TwoStateFunction), true);
+    resolver.ResolveAttributes(this, contractContext, true);
     resolver.scope.PopMarker(); // function result name
 
     resolver.scope.PopMarker(); // formals
@@ -464,7 +475,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
         // method should have been filled in by now,
         // unless there was a function by method and a method of the same name
         // but then this error must have been reported.
-        Contract.Assert(resolver.Reporter.ErrorCount > 0);
+        Contract.Assert(resolver.Reporter.HasErrors);
       }
     }
 
@@ -472,37 +483,54 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   }
 
   public string GetTriviaContainingDocstring() {
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
 
+    // Comments after the type, but before the clauses
     var endTokenDefinition =
-      OwnedTokens.LastOrDefault(token => token.val == ")" || token.pos == ResultType.EndToken.pos)
-      ?? EndToken;
-    if (endTokenDefinition.TrailingTrivia.Trim() != "") {
-      return endTokenDefinition.TrailingTrivia;
+      OwnedTokens.LastOrDefault(token => token.val == ")");
+    if (endTokenDefinition != null && endTokenDefinition.pos < ResultType.EndToken.pos) {
+      endTokenDefinition = ResultType.EndToken;
+    }
+    var tentativeTrivia = "";
+    if (endTokenDefinition != null) {
+      if (endTokenDefinition.pos < this.EndToken.pos) { // All comments are docstring
+        tentativeTrivia = (endTokenDefinition.TrailingTrivia + endTokenDefinition.Next.LeadingTrivia).Trim();
+      } else {
+        // Comments at the end of bodiless functions
+        tentativeTrivia = endTokenDefinition.TrailingTrivia.Trim();
+      }
+      if (tentativeTrivia != "") {
+        return tentativeTrivia;
+      }
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return StartToken.LeadingTrivia;
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
     }
+
     return null;
   }
 
-  public SymbolKind Kind => SymbolKind.Function;
+  public override SymbolKind? Kind => SymbolKind.Function;
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
-  public string GetDescription(DafnyOptions options) {
-    var formals = string.Join(", ", Formals.Select(f => f.AsText()));
+  public override string GetDescription(DafnyOptions options) {
+    var formals = string.Join(", ", Ins.Select(f => f.AsText()));
     var resultType = ResultType.TypeName(options, null, false);
     return $"{WhatKind} {AstExtensions.GetMemberQualification(this)}{Name}({formals}): {resultType}";
   }
 
-  public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options,
-    ErrorReporter Reporter) {
+  public void AutoRevealDependencies(AutoRevealFunctionDependencies rewriter, DafnyOptions options,
+    ErrorReporter reporter) {
     if (Body is null) {
       return;
     }
 
     if (ByMethodDecl is not null) {
-      ByMethodDecl.AutoRevealDependencies(Rewriter, Options, Reporter);
+      ByMethodDecl.AutoRevealDependencies(rewriter, options, reporter);
     }
 
     object autoRevealDepsVal = null;
@@ -510,7 +538,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
         Attributes.MatchingValueOption.Bool,
         Attributes.MatchingValueOption.Int
-      }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Tok, s));
+      }, s => reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Origin, s));
 
     // Default behavior is reveal all dependencies
     int autoRevealDepth = int.MaxValue;
@@ -526,9 +554,9 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     var currentClass = EnclosingClass;
     List<AutoRevealFunctionDependencies.RevealStmtWithDepth> addedReveals = new();
 
-    foreach (var func in Rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
+    foreach (var func in rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
       var revealStmt =
-        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Tok, EnclosingClass.EnclosingModuleDefinition);
+        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Origin, EnclosingClass.EnclosingModuleDefinition);
 
       if (revealStmt is not null) {
         addedReveals.Add(new AutoRevealFunctionDependencies.RevealStmtWithDepth(revealStmt, func.Depth));
@@ -536,18 +564,17 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     }
 
     if (autoRevealDepth > 0) {
-      Expression reqExpr = new LiteralExpr(Tok, true);
-      reqExpr.Type = Type.Bool;
+      Expression reqExpr = Expression.CreateBoolLiteral(Origin, true);
 
       var bodyExpr = Body;
 
       foreach (var revealStmt in addedReveals) {
         if (revealStmt.Depth <= autoRevealDepth) {
-          bodyExpr = new StmtExpr(Tok, revealStmt.RevealStmt, bodyExpr) {
+          bodyExpr = new StmtExpr(Origin, revealStmt.RevealStmt, bodyExpr) {
             Type = bodyExpr.Type
           };
 
-          reqExpr = new StmtExpr(reqExpr.tok, revealStmt.RevealStmt, reqExpr) {
+          reqExpr = new StmtExpr(reqExpr.Origin, revealStmt.RevealStmt, reqExpr) {
             Type = Type.Bool
           };
         } else {
@@ -563,8 +590,9 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     }
 
     if (addedReveals.Any()) {
-      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, tok,
+      reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Origin,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }
+  public string Designator => WhatKind;
 }

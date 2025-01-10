@@ -255,3 +255,27 @@ module NewMatchBehavior {
     case Blue: int => // error: because of the ": int", Blue is interpreted as a bound variable, and its type doesn't match that of "c"
   }
 }
+
+module MinusRegression {
+  method M(s: seq<int>, b: bool) {
+    var w := b - b; // error: - is not for bool
+    var u := s - s; // error: - is not for seq
+  }
+}
+
+module GreaterRegression {
+  method M(s: seq<int>, b: bool) {
+    var w := b > b; // error: > is not for bool
+    var u := s >= s; // error: >= is not for seq
+  }
+}
+
+module ArrayInitializer {
+  method TestFunctionInit(n: nat, init: nat -> nat) {
+    var a: array<bool> := new [n](init); // error: array<int> and array<bool> are incompatible
+  }
+
+  method TestDisplayInit(n: nat, init: nat -> nat) {
+    var a: array<bool> := new [n] [23]; // error: array<int> and array<bool> are incompatible
+  }
+}

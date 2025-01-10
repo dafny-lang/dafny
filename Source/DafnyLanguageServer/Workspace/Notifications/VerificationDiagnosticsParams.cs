@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -202,8 +203,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public List<TrackedNodeComponent> CoveredIds { get; set; } = new();
 
     // Sub-diagnostics if any
-    public List<VerificationTree> Children { get; set; } = new();
-    public List<VerificationTree> NewChildren { get; set; } = new();
+    public ConcurrentBag<VerificationTree> Children { get; set; } = new();
+    public ConcurrentBag<VerificationTree> NewChildren { get; set; } = new();
 
     public void Visit(Action<VerificationTree> action) {
       action(this);
@@ -354,7 +355,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public virtual VerificationTree GetCopyForNotification() {
       return this with {
-        Children = Children.Select(child => child.GetCopyForNotification()).ToList()
+        Children = new ConcurrentBag<VerificationTree>(Children.Select(child => child.GetCopyForNotification()))
       };
     }
   }
@@ -368,7 +369,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       if (node is not Program program) {
         return new Range(0, 0, -1, 0);
       }
-      var end = program.Files.FirstOrDefault(f => f.RangeToken.Uri == uri)?.EndToken ?? Token.NoToken;
+      var end = program.Files.FirstOrDefault(f => f.Origin.Uri == uri)?.EndToken ?? Token.NoToken;
       while (end.Next != null) {
         end = end.Next;
       }
@@ -400,7 +401,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public override VerificationTree GetCopyForNotification() {
       return this with {
-        Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
+        Children = new ConcurrentBag<VerificationTree>(Children.Select(child => child.GetCopyForNotification())),
         AssertionBatches = AssertionBatches
           .Select(keyValuePair =>
             (keyValuePair.Key, (AssertionBatchVerificationTree)keyValuePair.Value.GetCopyForNotification()))
@@ -414,8 +415,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       foreach (var implementationNode in Children.OfType<ImplementationVerificationTree>()) {
         implementationNumber++;
         foreach (var vcNum in implementationNode.AssertionBatchMetrics.Keys.OrderBy(x => x)) {
-          var children = implementationNode.Children.OfType<AssertionVerificationTree>().Where(
-            assertionNode => assertionNode.AssertionBatchNum == vcNum).Cast<VerificationTree>().ToList();
+          var children = new ConcurrentBag<VerificationTree>(implementationNode.Children.OfType<AssertionVerificationTree>().Where(
+            assertionNode => assertionNode.AssertionBatchNum == vcNum));
           var minPosition = children.Count > 0 ? children.MinBy(child => child.Position)!.Range.Start : Range.Start;
           var maxPosition = children.Count > 0 ? children.MaxBy(child => child.Range.End)!.Range.End : Range.Start;
           result[new AssertionBatchIndex(implementationNumber, vcNum)] = new AssertionBatchVerificationTree(
@@ -476,7 +477,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
     public override VerificationTree GetCopyForNotification() {
       return this with {
-        Children = Children.Select(child => child.GetCopyForNotification()).ToList()
+        Children = new ConcurrentBag<VerificationTree>(Children.Select(child => child.GetCopyForNotification()))
       };
     }
 
@@ -510,7 +511,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public override VerificationTree GetCopyForNotification() {
       return this with {
-        Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
+        Children = new ConcurrentBag<VerificationTree>(Children.Select(child => child.GetCopyForNotification())),
         AssertionBatchMetrics = new Dictionary<int, AssertionBatchMetrics>(AssertionBatchMetrics).ToImmutableDictionary()
       };
     }
@@ -597,7 +598,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       var tok = assertion.tok;
       var result = new List<Range>();
-      while (tok is NestedToken nestedToken) {
+      while (tok is NestedOrigin nestedToken) {
         tok = nestedToken.Inner;
         if (tok.filename == assertion.tok.filename) {
           result.Add(tok.GetLspRange());
@@ -607,7 +608,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       if (counterExample is ReturnCounterexample returnCounterexample) {
         tok = returnCounterexample.FailingReturn.tok;
         if (tok.filename == assertion.tok.filename) {
-          result.Add(returnCounterexample.FailingReturn.tok.GetLspRange());
+          result.Add(BoogieGenerator.ToDafnyToken(true, returnCounterexample.FailingReturn.tok).StartToken.GetLspRange());
         }
       }
 

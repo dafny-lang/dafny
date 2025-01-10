@@ -24,7 +24,7 @@ public static class DiagnosticUtil {
     };
   }
 
-  public static Location CreateLocation(IToken token) {
+  public static Location CreateLocation(IOrigin token) {
     var uri = DocumentUri.Parse(token.Uri.AbsoluteUri);
     return new Location {
       Range = token.GetLspRange(),

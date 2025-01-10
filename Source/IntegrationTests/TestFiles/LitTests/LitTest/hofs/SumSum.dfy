@@ -20,6 +20,7 @@ lemma ExchangeEta(n: nat, f: int -> int, g: int -> int)
   requires forall i :: 0 <= i < n ==> f(i) == g(i)
   ensures Sum(n, x => f(x)) == Sum(n, x => g(x))
 {
+  if n != 0 { ExchangeEta(n - 1, f, g); }
 }
 
 lemma NestedAlphaRenaming(n: nat, g: (int,int) -> int)
@@ -37,10 +38,10 @@ lemma Distribute(n: nat, f: int -> int, g: int -> int)
 {
 }
 
-lemma {:induction false} PrettyBasicBetaReduction(n: nat, g: (int,int) -> int, i: int)
+lemma PrettyBasicBetaReduction(n: nat, g: (int,int) -> int, i: int)
   ensures (x => Sum(n, y => g(x,y)))(i) == Sum(n, y => g(i,y))
 {
-  // NOTE: This proof is by induction on n (it can be done automatically)
+  // NOTE: This proof is by induction on n
   if n == 0 {
     calc {
       (x => Sum(n, y => g(x,y)))(i);
@@ -62,7 +63,6 @@ lemma {:induction false} PrettyBasicBetaReduction(n: nat, g: (int,int) -> int, i
 lemma BetaReduction0(n: nat, g: (int,int) -> int, i: int)
   ensures (x => Sum(n, y => g(x,y)))(i) == Sum(n, y => g(i,y))
 {
-  // automatic proof by induction on n
 }
 
 lemma BetaReduction1(n': nat, g: (int,int) -> int, i: int)
@@ -74,7 +74,7 @@ lemma BetaReductionInside(n': nat, g: (int,int) -> int)
   ensures Sum(n', x => g(x,n') + Sum(n', y => g(x,y)))
        == Sum(n', x => (w => g(w,n'))(x) + (w => Sum(n', y => g(w,y)))(x))
 {
-  forall i | 0 <= i < n'
+  forall i {:trigger} | 0 <= i < n'
   {
     calc {
       (x => g(x,n') + Sum(n', y => g(x,y)))(i);
@@ -103,7 +103,7 @@ lemma L(n: nat, n': nat, g: (int, int) -> int)
     { assert (y => g(n',y))(n') == g(n',n'); }
     g(n',n') + Sum(n', y => g(n',y)) + Sum(n', x => Sum(n, y => g(x,y)));
     {
-      forall i | 0 <= i < n' {
+      forall i {:trigger} | 0 <= i < n' {
         calc {
           (x => Sum(n, y => g(x,y)))(i);
           { PrettyBasicBetaReduction(n, g, i); }

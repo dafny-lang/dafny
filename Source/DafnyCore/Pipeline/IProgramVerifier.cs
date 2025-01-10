@@ -6,15 +6,13 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using VC;
 
 namespace Microsoft.Dafny {
-  public record AssertionBatchResult(Implementation Implementation, VCResult Result);
-
-  public record ProgramVerificationTasks(IReadOnlyList<IImplementationTask> Tasks);
+  public record AssertionBatchResult(Implementation Implementation, VerificationRunResult Result);
 
   /// <summary>
   /// Implementations of this interface are responsible to verify the correctness of a program.
   /// </summary>
   public interface IProgramVerifier {
-    Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
+    Task<IReadOnlyList<IVerificationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
       ResolutionResult resolution,
       ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken);

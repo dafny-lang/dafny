@@ -1,6 +1,6 @@
-TypeConstraintsRefresh.dfy(40,15): Error: RHS (of type bool) not assignable to LHS (of type int)
-TypeConstraintsRefresh.dfy(48,15): Error: RHS (of type bool) not assignable to LHS (of type int)
-TypeConstraintsRefresh.dfy(56,15): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraintsRefresh.dfy(40,9): Error: RHS (of type bool) not assignable to LHS (of type int)
+TypeConstraintsRefresh.dfy(48,9): Error: RHS (of type bool) not assignable to LHS (of type int)
+TypeConstraintsRefresh.dfy(56,9): Error: RHS (of type int) not assignable to LHS (of type bool)
 TypeConstraintsRefresh.dfy(65,6): Error: RHS (of type bool) not assignable to LHS (of type int)
 TypeConstraintsRefresh.dfy(80,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
 TypeConstraintsRefresh.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
@@ -12,4 +12,8 @@ TypeConstraintsRefresh.dfy(136,16): Error: type of + must be of a numeric type, 
 TypeConstraintsRefresh.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C?)
 TypeConstraintsRefresh.dfy(149,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C?)
 TypeConstraintsRefresh.dfy(176,6): Error: RHS (of type C) not assignable to LHS (of type R)
-14 resolution/type errors detected in TypeConstraintsRefresh.dfy
+TypeConstraintsRefresh.dfy(536,9): Error: the type of this is-expression is underspecified
+TypeConstraintsRefresh.dfy(542,9): Error: the type of this is-expression is underspecified
+TypeConstraintsRefresh.dfy(554,11): Error: the type ('UCell<int, ?1>') of this expression is underspecified
+TypeConstraintsRefresh.dfy(559,11): Error: the type ('Cell<?2>') of this expression is underspecified
+18 resolution/type errors detected in TypeConstraintsRefresh.dfy

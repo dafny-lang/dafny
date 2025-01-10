@@ -1,6 +1,6 @@
 // RUN: %baredafny doc --use-basename-for-filename "%s" > "%t"
-// RUN: %diff ./docs/index.html "%S"/docs-expected/index.html
-// RUN: %diff ./docs/TestModule_214638566.html "%S"/docs-expected/TestModule_214638566.html
+// RUN: %diff "%S"/docs-expected/index.html ./docs/index.html 
+// RUN: %diff "%S"/docs-expected/TestModule_214638566.html ./docs/TestModule_214638566.html 
 
 /** Test module. More about this test module. */
 module {:options "--function-syntax:4"} TestModule {
@@ -8,12 +8,9 @@ module {:options "--function-syntax:4"} TestModule {
   const c := 7 +
              if true then 8 else 9*1 /** Number of items. All of them. */
 
-  const {:myattribute} cc: real
-  // The distance.
-  const ccc: bool
-  /** Valid or not. */
-  const {:myattribute}{:otherattribute 5,6} cccc: A?
-  // The internal state.
+  const {:myattribute} cc: real // The distance.
+  const ccc: bool // Valid or not.
+  const {:myattribute}{:otherattribute 5,6} cccc: A? // The internal state.
 
   const f1: int -> int
   const f2: set<int> ~> seq<int>

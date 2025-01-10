@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Module {
@@ -12,7 +12,7 @@ module Module {
     } else {
       reveal M.Five;
       assert M.Five == 5;
-    }
+    }    
   }
 }
 

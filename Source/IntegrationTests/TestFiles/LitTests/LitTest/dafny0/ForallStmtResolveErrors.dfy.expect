@@ -1,0 +1,55 @@
+ForallStmtResolveErrors.dfy(210,15): Warning: the modify statement with a block statement is deprecated
+ForallStmtResolveErrors.dfy(247,7): Warning: the ... refinement feature in statements is deprecated
+ForallStmtResolveErrors.dfy(248,10): Warning: the ... refinement feature in statements is deprecated
+ForallStmtResolveErrors.dfy(249,13): Warning: the ... refinement feature in statements is deprecated
+ForallStmtResolveErrors.dfy(249,17): Warning: the modify statement with a block statement is deprecated
+ForallStmtResolveErrors.dfy(256,9): Warning: the ... refinement feature in statements is deprecated
+ForallStmtResolveErrors.dfy(263,7): Warning: the ... refinement feature in statements is deprecated
+ForallStmtResolveErrors.dfy(264,10): Warning: the ... refinement feature in statements is deprecated
+ForallStmtResolveErrors.dfy(265,15): Warning: the modify statement with a block statement is deprecated
+ForallStmtResolveErrors.dfy(272,9): Warning: the ... refinement feature in statements is deprecated
+ForallStmtResolveErrors.dfy(279,7): Warning: the ... refinement feature in statements is deprecated
+ForallStmtResolveErrors.dfy(280,10): Warning: the ... refinement feature in statements is deprecated
+ForallStmtResolveErrors.dfy(281,13): Warning: the ... refinement feature in statements is deprecated
+ForallStmtResolveErrors.dfy(281,17): Warning: the modify statement with a block statement is deprecated
+ForallStmtResolveErrors.dfy(288,9): Warning: the ... refinement feature in statements is deprecated
+ForallStmtResolveErrors.dfy(26,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForallStmtResolveErrors.dfy(8,6): Error: a forall statement is not allowed to update a variable it doesn't declare
+ForallStmtResolveErrors.dfy(25,6): Error: a forall statement is not allowed to update a variable it doesn't declare
+ForallStmtResolveErrors.dfy(26,6): Error: a forall statement is not allowed to update a variable it doesn't declare
+ForallStmtResolveErrors.dfy(36,6): Error: LHS of assignment must denote a mutable variable
+ForallStmtResolveErrors.dfy(48,15): Error: new allocation not supported in aggregate assignments
+ForallStmtResolveErrors.dfy(55,19): Error: a non-labeled 'break' statement is allowed only in loops
+ForallStmtResolveErrors.dfy(62,21): Error: a non-labeled 'break' statement is allowed only in loops
+ForallStmtResolveErrors.dfy(63,20): Error: a 'break break' statement is allowed only in loops
+ForallStmtResolveErrors.dfy(64,26): Error: break label is undefined or not in scope: OutsideLoop
+ForallStmtResolveErrors.dfy(73,24): Error: a 'break break' statement is allowed only in contexts with 2 enclosing loops, but the current context only has 1
+ForallStmtResolveErrors.dfy(74,30): Error: break label is undefined or not in scope: OutsideLoop
+ForallStmtResolveErrors.dfy(85,26): Error: a 'break break' statement is allowed only in contexts with 2 enclosing loops, but the current context only has 1
+ForallStmtResolveErrors.dfy(86,32): Error: break label is undefined or not in scope: WhileOutsideForall
+ForallStmtResolveErrors.dfy(129,15): Error: a forall statement is not allowed to use 'new'
+ForallStmtResolveErrors.dfy(130,15): Error: a forall statement is not allowed to use 'new'
+ForallStmtResolveErrors.dfy(130,21): Error: in a forall statement, calls are allowed only to lemmas
+ForallStmtResolveErrors.dfy(131,15): Error: a forall statement is not allowed to use 'new'
+ForallStmtResolveErrors.dfy(131,21): Error: in a forall statement, calls are allowed only to lemmas
+ForallStmtResolveErrors.dfy(132,15): Error: a forall statement is not allowed to use 'new'
+ForallStmtResolveErrors.dfy(132,21): Error: in a forall statement, calls are allowed only to lemmas
+ForallStmtResolveErrors.dfy(133,24): Error: in a forall statement, calls are allowed only to lemmas
+ForallStmtResolveErrors.dfy(134,22): Error: in a forall statement, calls are allowed only to lemmas
+ForallStmtResolveErrors.dfy(143,7): Error: cannot assign to array element in a ghost context
+ForallStmtResolveErrors.dfy(149,31): Error: in a forall statement, calls are allowed only to lemmas
+ForallStmtResolveErrors.dfy(154,31): Error: in a forall statement, calls are allowed only to lemmas
+ForallStmtResolveErrors.dfy(162,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ForallStmtResolveErrors.dfy(105,11): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
+ForallStmtResolveErrors.dfy(178,12): Error: in a forall statement, calls are allowed only to lemmas
+ForallStmtResolveErrors.dfy(174,6): Error: a forall statement is not allowed to update a variable it doesn't declare
+ForallStmtResolveErrors.dfy(176,6): Error: a forall statement is not allowed to update a variable it doesn't declare
+ForallStmtResolveErrors.dfy(178,6): Error: a forall statement is not allowed to update a variable it doesn't declare
+ForallStmtResolveErrors.dfy(190,18): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
+ForallStmtResolveErrors.dfy(251,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+ForallStmtResolveErrors.dfy(253,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+ForallStmtResolveErrors.dfy(267,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+ForallStmtResolveErrors.dfy(269,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+ForallStmtResolveErrors.dfy(283,10): Error: continue statement in skeleton is not allowed to break outside the skeleton fragment
+ForallStmtResolveErrors.dfy(285,10): Error: continue statement in skeleton is not allowed to break outside the skeleton fragment
+39 resolution/type errors detected in ForallStmtResolveErrors.dfy

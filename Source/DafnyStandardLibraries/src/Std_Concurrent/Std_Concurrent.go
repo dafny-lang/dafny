@@ -10,7 +10,21 @@ type Dummy__ struct{}
 
 // Definition of class MutableMap
 type MutableMap struct {
-  Internal sync.Map
+  // Default implementation - synchronized Dafny map<K, V>,
+  // which is just a list of key-value pairs
+  // with O(n) lookup.
+  mu sync.Mutex
+  dafnyInternal _dafny.Map
+
+  // Optimized for seq<bytes>
+  // The Dafny byte sequences are converted to Go strings,
+  // which can contain arbitrary bytes,
+  // and are comparable and hence can be used as map keys,
+  // whereas a Go byte array cannot.
+  goInternal sync.Map
+
+  // Switch to control which is active
+  bytesKeys bool
 }
 
 func New_MutableMap_() *MutableMap {
@@ -56,82 +70,157 @@ func (_this *MutableMap) ParentTraits_() []*_dafny.TraitID {
 }
 var _ _dafny.TraitOffspring = &MutableMap{}
 
-func (_this *MutableMap) Ctor__() {
+func (_this *MutableMap) Ctor__(bytesKeys bool) {
   {
+    _this.bytesKeys = bytesKeys
   }
 }
+
+// Converts a Dafny seq<byte> to a Go string,
+// which can contain artibitrary bytes.
+func dafnyBytesToGoString(b interface{}) string {
+  return string(_dafny.ToByteArray(b.(_dafny.Sequence)))
+}
+
+// Converts a Dafny seq<byte> from a Go string,
+// which can contain artibitrary bytes.
+func dafnyBytesFromGoString(b interface{}) _dafny.Sequence {
+  return _dafny.SeqOfBytes([]byte(b.(string)))
+}
+
 func (_this *MutableMap) Keys() _dafny.Set {
   {
-    keys := make([]interface{}, 0)
+    if _this.bytesKeys {
+      keys := make([]interface{}, 0)
 
-    _this.Internal.Range(func(key, value interface{}) bool {
-      keys = append(keys, key)
-      return true
-    })
+      _this.goInternal.Range(func(key, value interface{}) bool {
+        keys = append(keys, dafnyBytesFromGoString(key))
+        return true
+      })
+  
+      return _dafny.SetOf(keys[:]...)
+    } else {
+      _this.mu.Lock()
+      defer _this.mu.Unlock()
 
-    return _dafny.SetOf(keys[:]...)
+      return _this.dafnyInternal.Keys()
+    }
   }
 }
 func (_this *MutableMap) HasKey(k interface{}) bool {
   {
-    _, ok := _this.Internal.Load(k)
-    return ok
+    if _this.bytesKeys {
+      _, ok := _this.goInternal.Load(dafnyBytesToGoString(k))
+      return ok
+    } else {
+      _this.mu.Lock()
+      defer _this.mu.Unlock()
+
+      return _this.dafnyInternal.Contains(k)
+    }
   }
 }
 func (_this *MutableMap) Values() _dafny.Set {
   {
-    values := make([]interface{}, 0)
+    if _this.bytesKeys {
+      values := make([]interface{}, 0)
 
-    _this.Internal.Range(func(key, value interface{}) bool {
-      values = append(values, value)
-      return true
-    })
+      _this.goInternal.Range(func(key, value interface{}) bool {
+        values = append(values, value)
+        return true
+      })
 
-    return _dafny.SetOf(values[:]...)
+      return _dafny.SetOf(values[:]...)
+    } else {
+      _this.mu.Lock()
+      defer _this.mu.Unlock()
+
+      return _this.dafnyInternal.Values()
+    }
   }
 }
 func (_this *MutableMap) Items() _dafny.Set {
   {
-    items := make([]interface{}, 0)
+    if _this.bytesKeys {
+      items := make([]interface{}, 0)
 
-    _this.Internal.Range(func(key, value interface{}) bool {
-      items = append(items, _dafny.TupleOf(key, value))
-      return true
-    })
+      _this.goInternal.Range(func(key, value interface{}) bool {
+        items = append(items, _dafny.TupleOf(dafnyBytesFromGoString(key), value))
+        return true
+      })
 
-    return _dafny.SetOf(items[:]...)
+      return _dafny.SetOf(items[:]...)
+    } else {
+      _this.mu.Lock()
+      defer _this.mu.Unlock()
+
+      return _this.dafnyInternal.Items()
+    }
   }
 }
 func (_this *MutableMap) Get(k interface{}) Std_Wrappers.Option {
   {
-    value, ok := _this.Internal.Load(k)
-    if ok {
-      return Std_Wrappers.Companion_Option_.Create_Some_(value)
+    if _this.bytesKeys {
+      value, ok := _this.goInternal.Load(dafnyBytesToGoString(k))
+      if ok {
+        return Std_Wrappers.Companion_Option_.Create_Some_(value)
+      } else {
+        return Std_Wrappers.Companion_Option_.Create_None_()
+      }
     } else {
-      return Std_Wrappers.Companion_Option_.Create_None_()
+      _this.mu.Lock()
+      defer _this.mu.Unlock()
+
+      value, ok := _this.dafnyInternal.Find(k)
+      if ok {
+        return Std_Wrappers.Companion_Option_.Create_Some_(value)
+      } else {
+        return Std_Wrappers.Companion_Option_.Create_None_()
+      }
     }
   }
 }
 func (_this *MutableMap) Put(k interface{}, v interface{}) {
-  {
-    _this.Internal.Store(k, v)
+  if _this.bytesKeys {
+    _this.goInternal.Store(dafnyBytesToGoString(k), v)
+  } else {
+    _this.mu.Lock()
+    defer _this.mu.Unlock()
+
+    _this.dafnyInternal = _this.dafnyInternal.UpdateUnsafe(k, v)
   }
 }
 func (_this *MutableMap) Remove(k interface{}) {
   {
-    _this.Internal.Delete(k)
+    if _this.bytesKeys {
+      _this.goInternal.Delete(dafnyBytesToGoString(k))
+    } else {
+      _this.mu.Lock()
+      defer _this.mu.Unlock()
+
+      // This could be special-cased for a single remove to be a bit faster,
+      // but it's still going to be O(n) so likely not worth it.
+      _this.dafnyInternal = _this.dafnyInternal.Subtract(_dafny.SetOf(k))
+    }
   }
 }
 func (_this *MutableMap) Size() _dafny.Int {
   {
-    var c _dafny.Int = _dafny.Zero
+    if _this.bytesKeys {
+      var c _dafny.Int = _dafny.Zero
 
-    _this.Internal.Range(func(key, value interface{}) bool {
-      c = c.Plus(_dafny.One)
-      return true
-    })
+      _this.goInternal.Range(func(key, value interface{}) bool {
+        c = c.Plus(_dafny.One)
+        return true
+      })
 
-    return c
+      return c
+    } else {
+      _this.mu.Lock()
+      defer _this.mu.Unlock()
+
+      return _this.dafnyInternal.Cardinality()
+    }
   }
 }
 // End of class MutableMap

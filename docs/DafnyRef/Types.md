@@ -1085,9 +1085,10 @@ same name.
 
 #### 5.5.3.4. Other Sequence Expressions {#sec-other-sequence-expressions}
 In addition, for any sequence `s` of type `seq<T>`, expression `e`
-of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
-integer-based numerics `lo` and `hi` satisfying
-`0 <= lo <= hi <= |s|`, sequences support the following operations:
+of type `T`, integer-based numeric index `i` satisfying `0 <= i < |s|`, and
+integer-based numeric bounds `lo` and `hi` satisfying
+`0 <= lo <= hi <= |s|`, noting that bounds can equal the length of the sequence,
+sequences support the following operations:
 
  expression         | precedence | result type | description
  -------------------|:---:|:---:|----------------------------------------
@@ -1131,7 +1132,7 @@ colon, then the length of the last slice extends until the end of `s`,
 that is, its length is `|s|` minus the sum of the given length
 designators.  For example, the following equalities hold, for any
 sequence `s` of length at least `10`:
-<!-- %check-verify -->
+<!-- %check-verify %options --allow-axioms -->
 ```dafny
 method m(s: seq<int>) {
   var t := [3.14, 2.7, 1.41, 1985.44, 100.0, 37.2][1:0:3];
@@ -1293,7 +1294,7 @@ The `-` operator implements a map difference operator. Here the LHS
 is a `map<K,V>` or `imap<K,V>` and the RHS is a `set<K>` (but not an `iset`); the operation removes
 from the LHS all the (key,value) pairs whose key is a member of the RHS set.
 
-To avoid cuasing circular reasoning chains or providing too much informatino that might
+To avoid causing circular reasoning chains or providing too much information that might
 complicate Dafny's prover finding proofs, not all properties of maps are known by the prover by default.
 For example, the following does not prove:
 <!-- %check-verify Types.25.expect -->
@@ -1413,7 +1414,7 @@ type abstractly. There are several mechanisms in Dafny to do this:
 * ([Section 5.6.1](#sec-synonym-type)) A typical _synonym type_, in which a type name is a synonym for another type
 * ([Section 5.6.2](#sec-abstract-types)) An _abstract type_, in which a new type name is declared as an uninterpreted type
 * ([Section 5.6.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
-* ([Section 0.0){#sec-newtypes)) A _newtype_, in which a subset type is declared, but with restrictions on converting to and from its base type
+* ([Section 5.7](#sec-newtypes)) A _newtype_, in which a subset type is declared, but with restrictions on converting to and from its base type
 
 ### 5.6.1. Type synonyms ([grammar](#g-type-definition)) {#sec-synonym-type}
 
@@ -1775,7 +1776,7 @@ type BaseType
 predicate RHS(x: BaseType)
 type MySubset = x: BaseType | RHS(x) ghost witness MySubsetWitness()
 
-function MySubsetWitness(): BaseType
+function {:axiom} MySubsetWitness(): BaseType
   ensures RHS(MySubsetWitness())
 ```
 Here the type is given a ghost witness: the result of the expression
@@ -1859,7 +1860,7 @@ the newtype operations are defined only if the result satisfies the
 predicate `Q`, and likewise for the literals of the
 newtype.
 
-For example, suppose `lo` and `hi` are integer-based numerics that
+For example, suppose `lo` and `hi` are integer-based numeric bounds that
 satisfy `0 <= lo <= hi` and consider the following code fragment:
 <!-- %no-check -->
 ```dafny
@@ -1936,7 +1937,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 9.37](#sec-compile-time-constants).
+in [Section 9.39](#sec-compile-time-constants).
 
 ### 5.7.1. Conversion operations {#sec-conversion}
 
@@ -2408,8 +2409,9 @@ an error message is generated.
 
 One-dimensional arrays support operations that convert a stretch of
 consecutive elements into a sequence.  For any array `a` of type
-`array<T>`, integer-based numerics `lo` and `hi` satisfying
-`0 <= lo <= hi <= a.Length`, the following operations each yields a
+`array<T>`, integer-based numeric bounds `lo` and `hi` satisfying
+`0 <= lo <= hi <= a.Length`, noting that bounds can equal the array's length,
+the following operations each yields a
 `seq<T>`:
 
  expression          | description
@@ -4208,16 +4210,6 @@ default. To make it ghost, replace the keyword `function` with the two keywords 
 (See the [--function-syntax option](#sec-function-syntax) for a description 
 of the migration path for this change in behavior.}
 
-By default, the body of a function is transparent to its users, but
-sometimes it is useful to hide it. Functions (including predicates, function-by-methods, two-state functions, and extreme predicates) may be
-declared opaque using either the `opaque` keyword, or using the `--default-function-opacity` argument. If a function `foo` or `bar` is opaque, then Dafny hides the body of the function,
-so that it can only be seen within its recursive clique (if any),
-or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
-
-In that case, only the signature and specification of the method
-is known at its points of use, not its body. The body can be _revealed_ for reasoning
-purposes using the [reveal statment](#sec-reveal-statement).
-
 Like methods, functions can be either _instance_ (which they are by default when declared within a type) or
 _static_ (when the function declaration contains the keyword `static` or is declared in a module).
 An instance function, but not a static function, has an implicit receiver parameter, `this`.  
@@ -4295,22 +4287,13 @@ This means that the run-time evaluation of an expression may have print effects.
 If `--track-print-effects` is enabled, this use of print in a function context
 will be disallowed.
 
-### 6.4.4. Function Transparency {#sec-opaque}
-A function is said to be _transparent_ in a location if the
-body of the function is visible at that point.
-A function is said to be _opaque_ at a location if it is not
-transparent. However the specification of a function
-is always available.
+### 6.4.4. Function Hiding {#sec-opaque}
+A function is said to be _revealed_ at a location if the
+body of the function is visible for verification at that point, otherwise it is considered _hidden_.
 
-A function is usually transparent up to some unrolling level (up to
-1, or maybe 2 or 3). If its arguments are all literals it is
-transparent all the way.
+Functions are revealed by default, but can be hidden using the `hide` statement, which takes either a specific function or a wildcard, to hide all functions. Hiding a function can speed up verification of a proof if the body of that function is not needed for the proof. See the [hide statement](#hide-statement) for more information.
 
-The default transparency of a function can be set with the `--default-function-opacity` commandline flag. By default, the `--default-function-opacity` is transparent.
-The transparency of a function is also affected by
-whether the function was declared with an `opaque` modifier or [`transparent` attribute](#sec-transparent),
-the ([reveal statement](#sec-reveal-statement)),
-and whether it was `reveal`ed in an export set.
+Although mostly made obsolete by the hide statement, a function can also be hidden using the `opaque` keyword, or using the option `default-function-opacity`. Here are the rules regarding those:
 
 Inside the module where the function is declared:
   - If `--default-function-opacity` is set to `transparent` (default), then:
@@ -4326,13 +4309,12 @@ Inside the module where the function is declared:
     - if there is no [`{:transparent}` attribute](#sec-transparent), the function is opaque. However, the body of the function is available inside any callable that depends on this function via an implicitly inserted `reveal` statement, unless the callable has the [`{autoRevealDependencies k}` attribute](#sec-autorevealdependencies) for some natural number `k` which is too low.
     - if there is a [`{:transparent}` attribute](#sec-transparent), then the function is transparent.
 
-
 Outside the module where the function is declared, the function is
   visible only if it was listed in the export set by which the contents
   of its module was imported. In that case, if the function was exported
   with `reveals`, the rules are the same within the importing module as when the function is used inside
   its declaring module. If the function is exported only with `provides` it is
-  always opaque and is not permitted to be used in a reveal statement.
+  always hidden and is not permitted to be used in a reveal statement.
 
 More information about the Boogie implementation of opaquenes is [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 

@@ -1,15 +1,15 @@
-// RUN: %verify --filter-position='blaergaerga' %s > %t
-// RUN: %verify --filter-position='C:\windows\path.dfy' %s >> %t
-// RUN: ! %verify --filter-position='filter.dfy' %s >> %t
-// RUN: ! %verify --filter-position='filter.dfy:14' %s >> %t
+// RUN: %verify --allow-warnings --filter-position='C:\windows\path.dfy' %s > %t
 // RUN: ! %verify --filter-position='src/source1.dfy:5' %S/Inputs/dfyconfig.toml >> %t
-// RUN: %verify --filter-position='src/source1.dfy:2' %S/Inputs/dfyconfig.toml >> %t
+// RUN: %verify --filter-position='src/source1.dfy:1' %S/Inputs/dfyconfig.toml >> %t
+// RUN: ! %verify --filter-position='e.dfy' %S/Inputs/single-file.dfy >> %t
+// RUN: %verify --filter-position='e.dfy:2' %S/Inputs/single-file.dfy >> %t
+// RUN: %verify --filter-position='blaergaerga' %S/Inputs/single-file.dfy >> %t
+// RUN: ! %verify --isolate-assertions --filter-position='e.dfy:5' %S/Inputs/single-file.dfy >> %t
+// RUN: %verify --isolate-assertions --filter-position='e.dfy:6' %S/Inputs/single-file.dfy >> %t
+// RUN: %verify --isolate-assertions --filter-position='e.dfy:7' %S/Inputs/single-file.dfy >> %t
+// RUN: ! %verify --isolate-assertions --filter-position='e.dfy:8' %S/Inputs/single-file.dfy >> %t
+// RUN: %verify --isolate-assertions --filter-position='e.dfy:9' %S/Inputs/single-file.dfy >> %t
+// RUN: ! %verify --isolate-assertions --filter-position='e.dfy:16' %S/Inputs/single-file.dfy >> %t
+// RUN: %verify --isolate-assertions --filter-position='y:20' %S/Inputs/single-file.dfy >> %t
+// RUN: ! %verify --isolate-assertions --filter-position=':24' %S/Inputs/single-file.dfy >> %t
 // RUN: %diff "%s.expect" "%t"
-
-method Succeeds()
-  ensures true {
-}
-
-method Fails() 
-  ensures false {
-}

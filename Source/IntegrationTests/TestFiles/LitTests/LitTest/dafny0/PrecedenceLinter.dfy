@@ -1,4 +1,4 @@
-// RUN: %resolve "%s" > "%t"
+// RUN: %resolve "%s" --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost predicate P0(A: bool, B: bool, C: bool) {
@@ -580,4 +580,13 @@ module MatchAcrossMultipleLines {
       case Z => 3
     }
   }
+}
+
+datatype Result = Success | Failure(s: string)
+  
+function ValidateAction(b: bool): Result
+{
+  if b then Success
+  else Failure(
+      "hello")
 }

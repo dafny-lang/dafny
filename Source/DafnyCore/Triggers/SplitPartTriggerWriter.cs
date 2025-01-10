@@ -13,6 +13,7 @@ class SplitPartTriggerWriter {
   public List<TriggerTerm> CandidateTerms { get; set; }
   public List<TriggerCandidate> Candidates { get; set; }
   private List<TriggerCandidate> RejectedCandidates { get; }
+  public List<Tuple<Expression, IdentifierExpr>> NamedExpressions { get; }
   private List<TriggerMatch> loopingMatches;
 
   private bool AllowsLoops {
@@ -28,6 +29,7 @@ class SplitPartTriggerWriter {
   internal SplitPartTriggerWriter(ComprehensionExpr comprehension) {
     this.Comprehension = comprehension;
     this.RejectedCandidates = new List<TriggerCandidate>();
+    this.NamedExpressions = new();
   }
 
   internal void TrimInvalidTriggers() {
@@ -83,10 +85,8 @@ class SplitPartTriggerWriter {
           if (triggersCollector.IsTriggerKiller(sub) && (!triggersCollector.IsPotentialTriggerCandidate(sub))) {
             var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
             if (entry == null) {
-              var newBv = new BoundVar(sub.tok, "_t#" + substMap.Count, sub.Type);
-              var ie = new IdentifierExpr(sub.tok, newBv.Name);
-              ie.Var = newBv;
-              ie.Type = newBv.Type;
+              var newBv = new BoundVar(sub.Origin, "_t#" + substMap.Count, sub.Type);
+              var ie = new IdentifierExpr(sub.Origin, newBv.Name) { Var = newBv, Type = newBv.Type };
               substMap.Add(new Tuple<Expression, IdentifierExpr>(sub, ie));
             }
           }
@@ -98,13 +98,14 @@ class SplitPartTriggerWriter {
     if (substMap.Count > 0) {
       var s = new ExprSubstituter(substMap);
       expr = s.Substitute(Comprehension) as QuantifierExpr;
+      NamedExpressions.AddRange(substMap);
     } else {
       // make a copy of the expr
       if (expr is ForallExpr) {
-        expr = new ForallExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
+        expr = new ForallExpr(expr.Origin, expr.BoundVars, expr.Range, expr.Term,
           TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
       } else {
-        expr = new ExistsExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
+        expr = new ExistsExpr(expr.Origin, expr.BoundVars, expr.Range, expr.Term,
           TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
       }
     }
@@ -139,7 +140,7 @@ class SplitPartTriggerWriter {
 
   public void CommitTrigger(ErrorReporter errorReporter, int? splitPartIndex, SystemModuleManager systemModuleManager) {
     bool suppressWarnings = Attributes.Contains(Comprehension.Attributes, "nowarn");
-    var reportingToken = Comprehension.Tok;
+    var reportingToken = Comprehension.Origin;
     var warningLevel = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
 
     if (!WantsAutoTriggers()) {
@@ -151,6 +152,7 @@ class SplitPartTriggerWriter {
     }
 
     if (!NeedsAutoTriggers()) {
+      DisableEmptyTriggers(Comprehension.Attributes, "trigger");
       return;
     }
 
@@ -169,7 +171,8 @@ class SplitPartTriggerWriter {
       messages.Add($"Part #{splitPartIndex} is '{Comprehension.Term}'");
     }
     if (Candidates.Any()) {
-      messages.Add($"Selected triggers:{InfoFirstLineEnd(Candidates.Count)}{string.Join(", ", Candidates)}");
+      var subst = Util.Comma("", NamedExpressions, pair => $" where {pair.Item2} := {pair.Item1}");
+      messages.Add($"Selected triggers:{InfoFirstLineEnd(Candidates.Count)}{string.Join(", ", Candidates)}{subst}");
     }
     if (RejectedCandidates.Any()) {
       messages.Add($"Rejected triggers:{InfoFirstLineEnd(RejectedCandidates.Count)}{string.Join("\n  ", RejectedCandidates)}");
@@ -181,14 +184,24 @@ class SplitPartTriggerWriter {
 
     if (!CandidateTerms.Any() || !Candidates.Any()) {
       errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
-        $"Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. " +
+        "Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
-        $"For more information, see the section quantifier instantiation rules in the reference manual.");
+        "For more information, see the section quantifier instantiation rules in the reference manual.");
     } else if (!CouldSuppressLoops && !AllowsLoops) {
       errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
-        $"Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. " +
+        "Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
-        $"For more information, see the section quantifier instantiation rules in the reference manual.");
+        "For more information, see the section quantifier instantiation rules in the reference manual.");
+    }
+  }
+
+  public static void DisableEmptyTriggers(Attributes attribs, String attrName) {
+    foreach (var attr in attribs.AsEnumerable()) {
+      if (attr.Name == attrName && attr.Args.Count == 0) {
+        // Remove an empty trigger attribute, so it does not crash Boogie,
+        // and effectively becomes a way to silence a Dafny warning
+        attr.Name = $"deleted-{attrName}";
+      }
     }
   }
 

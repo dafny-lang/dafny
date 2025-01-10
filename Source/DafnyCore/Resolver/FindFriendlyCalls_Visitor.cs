@@ -14,7 +14,7 @@ class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition> {
     this.ContinuityIsImportant = continuityIsImportant;
   }
 
-  public void KNatMismatchError(IToken tok, string contextName, ExtremePredicate.KType contextK, ExtremePredicate.KType calleeK) {
+  public void KNatMismatchError(IOrigin tok, string contextName, ExtremePredicate.KType contextK, ExtremePredicate.KType calleeK) {
     var hint = contextK == ExtremePredicate.KType.Unspecified ? string.Format(" (perhaps try declaring '{0}' as '{0}[nat]')", contextName) : "";
     reporter.Error(MessageSource.Resolver, tok,
       "this call does not type check, because the context uses a _k parameter of type {0} whereas the callee uses a _k parameter of type {1}{2}",
@@ -92,7 +92,7 @@ class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition> {
       var cpos = IsCoContext ? cp : Invert(cp);
       if (ContinuityIsImportant) {
         if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
-          if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0)) {
+          if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & BoundedPool.PoolVirtues.Finite) == 0)) {
             // To ensure continuity of extreme predicates, don't allow calls under an existential (resp. universal) quantifier
             // for greatest (resp. least) predicates).
             cp = CallingPosition.Neither;

@@ -71,12 +71,12 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     var ideState = await projectManager.GetStateAfterResolutionAsync();
     var quickFixers = GetDafnyCodeActionProviders();
     var fixesWithId = GetFixesWithIds(quickFixers, ideState, request).ToArray();
-
-    documentUriToDafnyCodeActions.AddOrUpdate(uri.ToString(), _ => fixesWithId, (_, _) => fixesWithId);
+    var key = uri.ToString();
+    documentUriToDafnyCodeActions.AddOrUpdate(key, _ => fixesWithId, (_, _) => fixesWithId);
     var codeActions = fixesWithId.Select(fixWithId => {
       CommandOrCodeAction t = new CodeAction {
         Title = fixWithId.DafnyCodeAction.Title,
-        Data = new JArray(uri, fixWithId.Id),
+        Data = new JArray(key, fixWithId.Id),
         Diagnostics = fixWithId.DafnyCodeAction.Diagnostics,
         Kind = CodeActionKind.QuickFix
       };
@@ -88,9 +88,9 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 
   private DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
     return new List<DafnyCodeActionProvider>() {
-      new VerificationDafnyCodeActionProvider()
-    , new ErrorMessageDafnyCodeActionProvider()
-    , new ImplicitFailingAssertionCodeActionProvider(options)
+      new VerificationDafnyCodeActionProvider(logger)
+    , new ErrorMessageDafnyCodeActionProvider(logger)
+    , new ImplicitFailingAssertionCodeActionProvider(logger, options)
     }
     .Concat(
       options.Plugins.SelectMany(plugin =>
@@ -158,6 +158,6 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public Node Program => IdeState.Program;
   public IdeState IdeState { get; }
 
-  public IEnumerable<Diagnostic> Diagnostics => IdeState.GetDiagnosticsForUri(uri);
+  public IEnumerable<FileDiagnostic> Diagnostics => IdeState.GetAllDiagnostics();
   public VerificationTree? VerificationTree => IdeState.VerificationTrees.GetValueOrDefault(uri);
 }

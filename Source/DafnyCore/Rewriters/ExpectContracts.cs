@@ -18,8 +18,10 @@ namespace Microsoft.Dafny;
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new(true);
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
+  private readonly SystemModuleManager systemModuleManager;
 
-  public ExpectContracts(ErrorReporter reporter) : base(reporter) {
+  public ExpectContracts(ErrorReporter reporter, SystemModuleManager systemModuleManager) : base(reporter) {
+    this.systemModuleManager = systemModuleManager;
   }
 
   /// <summary>
@@ -35,18 +37,17 @@ public class ExpectContracts : IRewriter {
   /// failure message.</param>
   /// <returns>The newly-created expect statement.</returns>
   private Statement CreateContractExpectStatement(AttributedExpression expr, string exprType) {
-    var tok = expr.E.tok;
+    var tok = expr.E.Origin;
     var msg = $"Runtime failure of {exprType} clause from {tok.TokenToString(Reporter.Options)}";
     var exprToCheck = expr.E;
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
       ReportWarning(ErrorId.rw_clause_cannot_be_compiled, tok,
         $"The {exprType} clause at this location cannot be compiled to be tested at runtime because it references ghost state.");
-      exprToCheck = new LiteralExpr(tok, true);
-      exprToCheck.Type = Type.Bool;
+      exprToCheck = Expression.CreateBoolLiteral(tok, true);
       msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
-    return new ExpectStmt(expr.E.RangeToken, exprToCheck, msgExpr, null);
+    return new ExpectStmt(expr.E.Origin, exprToCheck, msgExpr, null);
   }
 
   /// <summary>
@@ -66,13 +67,11 @@ public class ExpectContracts : IRewriter {
       CreateContractExpectStatement(ens, "ensures"));
     var callStmtList = new List<Statement>() { callStmt };
     var bodyStatements = expectRequiresStmts.Concat(callStmtList).Concat(expectEnsuresStmts);
-    return new BlockStmt(callStmt.RangeToken, bodyStatements.ToList());
+    return new BlockStmt(callStmt.Origin, bodyStatements.ToList());
   }
 
   private bool ShouldGenerateWrapper(MemberDecl decl) {
-    return !decl.IsGhost &&
-           decl is not Constructor &&
-           CallRedirector.HasExternAttribute(decl);
+    return !decl.IsGhost && CallRedirector.HasExternAttribute(decl);
   }
 
   /// <summary>
@@ -84,7 +83,7 @@ public class ExpectContracts : IRewriter {
   /// <param name="parent">The declaration containing the on to be wrapped.</param>
   /// <param name="decl">The declaration to be wrapped.</param>
   private void GenerateWrapper(ModuleDefinition module, TopLevelDeclWithMembers parent, MemberDecl decl) {
-    var tok = decl.tok;
+    var tok = decl.Origin;
 
     var newName = decl.Name + "__dafny_checked";
     MemberDecl newDecl = null;
@@ -107,97 +106,69 @@ public class ExpectContracts : IRewriter {
   }
 
   private MemberDecl GenerateFunctionWrapper(TopLevelDeclWithMembers parent, MemberDecl decl, Function origFunc,
-    string newName, IToken tok) {
+    string newName, IOrigin tok) {
     var newFunc = cloner.CloneFunction(origFunc);
     newFunc.NameNode.Value = newName;
 
-    var args = newFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
-    var receiver = ModuleResolver.GetReceiver(parent, origFunc, decl.tok);
-    var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, null, null, args) {
-      Function = origFunc,
-      TypeApplication_JustFunction = newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
-      TypeApplication_AtEnclosingClass = parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
-      Type = newFunc.ResultType,
-    };
+    var args = newFunc.Ins.Select(Expression.CreateIdentExpr).ToList();
+    var receiver = ModuleResolver.GetReceiver(parent, origFunc, decl.Origin);
+    var callExpr = Expression.CreateResolvedCall(tok, receiver, origFunc, args,
+      newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(), systemModuleManager);
 
     newFunc.Body = callExpr;
 
-    var localName = origFunc.Result?.Name ?? "__result";
-    var localExpr = new IdentifierExpr(tok, localName) {
-      Type = newFunc.ResultType
-    };
+    var resultVar = origFunc.Result ?? new Formal(tok, "#result", newFunc.ResultType, false, false, null);
+    var localExpr = Expression.CreateIdentExpr(resultVar);
 
     var callRhs = new ExprRhs(callExpr);
-
-    var lhss = new List<Expression> { localExpr };
-    var rhss = new List<AssignmentRhs> { callRhs };
-
-    var assignStmt = new AssignStmt(decl.RangeToken, localExpr, callRhs);
-    Statement callStmt;
-    if (origFunc.Result?.Name is null) {
-      var local = new LocalVariable(decl.RangeToken, localName, newFunc.ResultType, false);
-      local.type = newFunc.ResultType;
-      var locs = new List<LocalVariable> { local };
-      var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new UpdateStmt(decl.RangeToken, lhss, rhss) {
-        ResolvedStatements = new List<Statement>() { assignStmt }
-      });
-      localExpr.Var = local;
-      callStmt = varDeclStmt;
-    } else {
-      localExpr.Var = origFunc.Result;
-      callStmt = assignStmt;
-    }
+    var callStmt = new SingleAssignStmt(decl.Origin, localExpr, callRhs);
 
     var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
-    if (origFunc.Result?.Name is null) {
-      body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
-    }
-
+    newFunc.ByMethodTok = Token.NoToken;
     newFunc.ByMethodBody = body;
     // We especially want to remove {:extern} from the wrapper, but also any other attributes.
     newFunc.Attributes = null;
-    RegisterResolvedByMethod(newFunc, parent);
+    RegisterResolvedByMethod(resultVar, newFunc, parent);
 
     return newFunc;
   }
 
   private MemberDecl GenerateMethodWrapper(TopLevelDeclWithMembers parent, MemberDecl decl, Method origMethod,
     string newName) {
-    MemberDecl newDecl;
     var newMethod = cloner.CloneMethod(origMethod);
     newMethod.NameNode.Value = newName;
 
     var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
     var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
-    var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.tok);
-    var memberSelectExpr = new MemberSelectExpr(decl.tok, receiver, origMethod.Name);
+    var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.Origin);
+    var memberSelectExpr = new MemberSelectExpr(decl.Origin, receiver, origMethod.NameNode);
     memberSelectExpr.Member = origMethod;
-    memberSelectExpr.TypeApplication_JustMember =
+    memberSelectExpr.TypeApplicationJustMember =
       newMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
-    memberSelectExpr.TypeApplication_AtEnclosingClass =
+    memberSelectExpr.TypeApplicationAtEnclosingClass =
       parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
-    var callStmt = new CallStmt(decl.RangeToken, outs, memberSelectExpr, args);
+    var callStmt = new CallStmt(decl.Origin, outs, memberSelectExpr, args);
 
     var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
     newMethod.Body = body;
-    newDecl = newMethod;
-    return newDecl;
+    return newMethod;
   }
 
 
-  private static void RegisterResolvedByMethod(Function f, TopLevelDeclWithMembers cl) {
+  private void RegisterResolvedByMethod(Formal resultVar, Function f, TopLevelDeclWithMembers cl) {
 
     var tok = f.ByMethodTok;
-    var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
     var r = Expression.CreateIdentExpr(resultVar);
     // To construct the receiver, we want to know if the function is static or instance. That information is ordinarily computed
     // by f.IsStatic, which looks at f.HasStaticKeyword and f.EnclosingClass. However, at this time, f.EnclosingClass hasn't yet
     // been set. Instead, we compute here directly from f.HasStaticKeyword and "cl".
     var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
-    var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
-    var fn = new FunctionCallExpr(tok, f.Name, receiver, null, null,
-      f.Formals.ConvertAll(Expression.CreateIdentExpr));
+    var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok) {
+      Type = UserDefinedType.FromTopLevelDecl(Token.NoToken, cl)
+    };
+    var fn = Expression.CreateResolvedCall(tok, receiver, f, f.Ins.ConvertAll(Expression.CreateIdentExpr),
+      f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.Origin, typeParameter)), systemModuleManager);
     var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
       Type = Type.Bool
     });
@@ -209,8 +180,8 @@ public class ExpectContracts : IRewriter {
       var emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
       reads.Expressions.Add(new FrameExpression(tok, emptySet, null));
     }
-    var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
-      f.Formals, new List<Formal>() { resultVar },
+    var method = new Method(f.Origin, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
+      f.Ins, new List<Formal>() { resultVar },
       f.Req, reads, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
       f.ByMethodBody, f.Attributes, null, true);
     Contract.Assert(f.ByMethodDecl == null);
@@ -283,7 +254,7 @@ public class ExpectContracts : IRewriter {
         module.CallRedirector.NewRedirections.ExceptBy(module.CallRedirector.CalledWrappers, x => x.Value);
       foreach (var uncalledRedirection in uncalledRedirections) {
         var uncalledOriginal = uncalledRedirection.Key;
-        ReportWarning(ErrorId.rw_unreachable_by_test, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
+        ReportWarning(ErrorId.rw_unreachable_by_test, uncalledOriginal.Origin, $"No :test code calls {uncalledOriginal.FullDafnyName}");
       }
     }
 
@@ -323,7 +294,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
     }
     // If there's no wrapper for the callee, don't try to call it, but warn.
     if (!NewRedirections.ContainsKey(callee)) {
-      reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper, caller.tok, $"Internal: no wrapper for {callee.FullDafnyName}");
+      reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper, caller.Origin, $"Internal: no wrapper for {callee.FullDafnyName}");
       return false;
     }
 
@@ -341,7 +312,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
         var newTarget = NewRedirections[f];
         var resolved = (FunctionCallExpr)fce.Resolved;
         resolved.Function = (Function)newTarget;
-        resolved.Name = newTarget.Name;
+        resolved.NameNode = newTarget.NameNode;
         CalledWrappers.Add(newTarget);
       }
     }
@@ -356,7 +327,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
         var newTarget = NewRedirections[m];
         var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
         resolved.Member = newTarget;
-        resolved.MemberName = newTarget.Name;
+        resolved.MemberNameNode = newTarget.NameNode;
         CalledWrappers.Add(newTarget);
       }
     }

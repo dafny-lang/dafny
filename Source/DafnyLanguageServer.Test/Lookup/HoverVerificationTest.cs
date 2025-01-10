@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task HoverPutsErrorsFirst() {
       var documentItem = await GetDocumentItem(@"
-method {:vcs_split_on_every_assert} Test(x: int, y: int)
+method {:isolate_assertions} Test(x: int, y: int)
   requires x < y
 {
   var callIt := giveIt(x, y);
@@ -118,7 +118,7 @@ Resource usage: ??? RU"
         // LineVerificationStatusOption.Instance.Set(o, true);
       });
       var documentItem = await GetDocumentItem(@"
-method {:vcs_split_on_every_assert} f(x: int) {
+method {:isolate_assertions} f(x: int) {
   assert x >= 2; // Hover #1
   assert x >= 1; // Hover #2
 }
@@ -137,9 +137,9 @@ This is the only assertion in [batch](???) #??? of ??? in method `f`
         @"**Verification performance metrics for method `f`**:
 
 - Total resource usage: ??? RU  
-- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements):  
-  - #???/??? with 1 assertion  at line ???, ??? RU  
-  - #???/??? with 1 assertion  at line ???, ??? RU  "
+- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-assertion-batches):  
+  - #???/??? with 1 assertion at line ???, ??? RU  
+  - #???/??? with 1 assertion at line ???, ??? RU"
       );
     }
 
@@ -223,7 +223,7 @@ This is assertion #1 of 2 in [batch](???) #2 of 2 in function `f`
         @"**Verification performance metrics for function `f`**:
 
 - Total resource usage: ??? RU  
-- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements):  
+- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-assertion-batches):  
   - #???/2 with 2 assertions at line ???, ??? RU  
   - #???/2 with 2 assertions at line ???, ??? RU"
       );
@@ -240,7 +240,7 @@ method f(x: int) {
 
 No assertions."
       );
-      await AssertVerificationHoverMatches(documentItem, (0, 10),
+      await AssertVerificationHoverMatches(documentItem, (0, 9),
         "```dafny\nx: int\n```");
     }
 

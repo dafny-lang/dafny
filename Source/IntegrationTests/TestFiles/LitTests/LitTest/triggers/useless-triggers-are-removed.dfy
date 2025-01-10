@@ -1,4 +1,4 @@
-// RUN: %verify --show-inference "%s" > "%t"
+// RUN: %verify --show-hints "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file ensures that Dafny does get rid of redundant triggers before

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /extractCounterexample "%s" > "%t"
+// RUN: %exits-with 4 %verify --extract-counterexample "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // NB: with recent Z3 versions (e.g., 4.12.1), this program no longer
@@ -15,8 +15,8 @@ method foo(n: nat) returns (ret: array<string>)
     var i := 0;
     while i < n - 1
         invariant 0 <= i < n
-        invariant forall j :: 0 <= j < i ==> j % 2 == 0 ==> ret[j] == "even"
         invariant forall j :: 0 <= j < i ==> j % 2 == 1 ==> ret[j] == "odd"
+        invariant forall j :: 0 <= j < i ==> j % 2 == 0 ==> ret[j] == "even"
     {
         if i % 2 == 0 {
             ret[i] := "odd";

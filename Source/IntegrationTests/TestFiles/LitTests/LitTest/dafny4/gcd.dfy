@@ -8,14 +8,21 @@ ghost predicate IsFactor(p: pos, x: pos) {
   exists q :: p * q == x
 }
 
+lemma GetOtherFactor(p: pos, x: pos) returns (q: pos)
+  requires IsFactor(p, x)
+  ensures p * q == x
+{
+  q :| p * q == x;
+}
+
 ghost function Factors(x: pos): set<pos> {
   set p: pos | p <= x && IsFactor(p, x)
 }
 
 // The following lemma proves that the conjunct "p <= x" in the
 // definition of Factors does not reduce the elements in the set.
-lemma FactorsHasAllFactors(x: pos)
-  ensures forall n :: n in Factors(x) <==> n in iset p: pos | IsFactor(p, x)
+lemma FactorIsInFactors(p: pos, x: pos)
+  ensures p in Factors(x) <==> IsFactor (p, x)
 {
 }
 
@@ -64,7 +71,7 @@ ghost function FindMax(s: set<pos>): (max: pos)
     if x < y then y else x
 }
 
-ghost function Gcd(x: pos, y: pos): pos {
+opaque ghost function Gcd(x: pos, y: pos): pos {
   var common := Factors(x) * Factors(y);
   assert 1 in common by {
     FactorsContains1(x);
@@ -73,21 +80,48 @@ ghost function Gcd(x: pos, y: pos): pos {
   Max(common)
 }
 
+lemma IsFactorGcdFirst(x: pos, y: pos)
+  ensures IsFactor(Gcd(x, y), x)
+{
+  reveal Gcd();
+}
+
+lemma IsFactorGcdSecond(x: pos, y: pos)
+  ensures IsFactor(Gcd(x, y), y)
+{
+  reveal Gcd();
+}
+
+lemma IsFactorGcdLess(x: pos, y: pos)
+  ensures forall p: pos :: IsFactor(p, x) && IsFactor(p, y) ==> p <= Gcd(x, y)
+{
+  hide IsFactor;
+  IsFactorGcdFirst(x, y);
+  IsFactorGcdSecond(x, y);
+  forall p: pos | IsFactor(p, x) && IsFactor(p, y)
+    ensures p <= Gcd(x, y)
+  {
+    var qx := GetOtherFactor(p, x);
+    var qy := GetOtherFactor(p, y);
+    reveal Gcd();
+    assert p in Factors(x) * Factors(y);
+  }
+}
+
 lemma AboutGcd(x: pos, y: pos)
   ensures IsFactor(Gcd(x, y), x)
   ensures IsFactor(Gcd(x, y), y)
   ensures forall p: pos :: IsFactor(p, x) && IsFactor(p, y) ==> p <= Gcd(x, y)
 {
-  forall p: pos | IsFactor(p, x) && IsFactor(p, y)
-    ensures p <= Gcd(x, y)
-  {
-    assert p in Factors(x) * Factors(y);
-  }
+  IsFactorGcdFirst(x, y);
+  IsFactorGcdSecond(x, y);
+  IsFactorGcdLess(x, y);
 }
 
 lemma GcdSymmetric(x: pos, y: pos)
   ensures Gcd(x, y) == Gcd(y, x)
 {
+  reveal Gcd();
   assert Factors(x) * Factors(y) == Factors(y) * Factors(x);
 }
 
@@ -95,18 +129,32 @@ lemma GcdIdempotent(x: pos)
   ensures Gcd(x, x) == x
 {
   FactorsContainsSelf(x);
+  reveal Gcd();
   assert x in Factors(x) * Factors(x);
 }
 
-lemma {:resource_limit "500e6"} GcdSubtract(x: pos, y: pos)
+lemma {:isolate_assertions} GcdSubtract (x: pos, y: pos)
   requires x < y
   ensures Gcd(x, y) == Gcd(x, y - x)
 {
   var p := Gcd(x, y);
 
+  assert IsFactor (p, x) by {
+    reveal Gcd();
+    assert p in Factors(x);
+    FactorIsInFactors(p, x);
+  }
+
+  assert IsFactor (p, y) by {
+    reveal Gcd();
+    assert p in Factors(y);
+    FactorIsInFactors(p, y);
+  }
+
   // By the definition of `Gcd`, we know that p is a factor of both x and y,
   // We now show that p is also a factor of y - x.
-  assert IsFactor(p, y - x) by {
+  assert IsFactor(p, y - x) by
+  {
     var a :| p * a == x;
     var b :| p * b == y;
     calc {
@@ -127,6 +175,7 @@ lemma {:resource_limit "500e6"} GcdSubtract(x: pos, y: pos)
   forall q | q in common
     ensures q <= p
   {
+    reveal Gcd();
     // q is a factor of both x and y - x, so a and b exist:
     var a :| q * a == x;
     var b :| q * b == y - x;
@@ -145,6 +194,7 @@ lemma {:resource_limit "500e6"} GcdSubtract(x: pos, y: pos)
     assert q in Factors(x) * Factors(y);
     // By the definition of Gcd(x, y), we then have that q <= p.
   }
+  assert Gcd(x, y) == Gcd(x, y - x) by {reveal Gcd();}
 }
 
 method EuclidGcd(X: pos, Y: pos) returns (gcd: pos)
@@ -177,33 +227,43 @@ method EuclidGcd(X: pos, Y: pos) returns (gcd: pos)
 // ------------------------------------------------------------------------------------------------------
 // The alternative definitions that follow allow the two cases in the GCD algorithm to look more similar.
 
-lemma GcdSubtractAlt(x: pos, y: pos)
+lemma {:isolate_assertions} GcdSubtractAlt(x: pos, y: pos)
   requires x < y
   ensures Gcd(y, x) == Gcd(x, y - x) // this says Gcd(y, x) instead of Gcd(x, y) as in GcdSubtract above
 {
   GcdSymmetric(x, y); // this is the difference from GcdSubtract above
   var p := Gcd(x, y);
 
+  assert IsFactor (p, x) by {
+    reveal Gcd();
+    assert p in Factors(x);
+    FactorIsInFactors(p, x);
+  }
+
+  assert IsFactor (p, y) by {
+    reveal Gcd();
+    assert p in Factors(y);
+    FactorIsInFactors(p, y);
+  }
+
   assert IsFactor(p, y - x) by {
     var a :| p * a == x;
     var b :| p * b == y;
-    calc {
-      y - x;
-    ==
-      p * b - p * a;
-    ==
-      p * (b - a);
+    assert y - x == p * (b - a) by {
+      assert p * b - p * a == p * (b - a);
     }
   }
 
   var common := Factors(x) * Factors(y - x);
   assert p in common;
+
   forall q | q in common
     ensures q <= p
   {
+    reveal Gcd();
     var a :| q * a == x;
     var b :| q * b == y - x;
-    assert IsFactor(q, y) by {
+    assert IsFactor(q, y)  by {
       calc {
         y;
       ==
@@ -216,6 +276,7 @@ lemma GcdSubtractAlt(x: pos, y: pos)
     }
     assert q in Factors(x) * Factors(y);
   }
+  assert Gcd(y, x) == Gcd(x, y - x) by { reveal Gcd(); }
 }
 
 method EuclidGcdAlt(X: pos, Y: pos) returns (gcd: pos)

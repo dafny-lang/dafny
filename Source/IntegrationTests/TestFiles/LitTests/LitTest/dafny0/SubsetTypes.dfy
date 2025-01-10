@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /print:"%t.print" "%s" > "%t"
+// RUN: %exits-with 4 %verify "%s" --performance-stats=100 --relax-definite-assignment --allow-axioms > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module AssignmentToNat {

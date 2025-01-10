@@ -9,10 +9,10 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Declaration = Microsoft.Boogie.Declaration;
 using Program = Microsoft.Dafny.Program;
 using Token = Microsoft.Dafny.Token;
@@ -27,7 +27,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static List<Microsoft.Boogie.Program> Translate(Program program) {
       var ret = new List<Microsoft.Boogie.Program> { };
-      var thread = new System.Threading.Thread(
+      var thread = new Thread(
         () => {
           var oldPrintInstrumented = program.Reporter.Options.PrintInstrumented;
           program.Reporter.Options.PrintInstrumented = true;
@@ -78,24 +78,25 @@ namespace DafnyTestGeneration {
       return DafnyModelTypeUtils.ReplaceType(type, _ => true,
         typ => replacements.TryGetValue(typ.Name, out var replacement) ?
           replacement :
-          new UserDefinedType(typ.tok, typ.Name, typ.TypeArgs));
+          new UserDefinedType(typ.Origin, typ.Name, typ.TypeArgs));
     }
 
     /// <summary>
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
-    public static Program/*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null) {
+    public static async Task<Program> /*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null, CancellationToken cancellationToken = default) {
       uri ??= new Uri(Path.Combine(Path.GetTempPath(), "parseUtils.dfy"));
 
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
-      var program = new ProgramParser().ParseFiles(uri.LocalPath,
-        new[] { DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken) }, reporter, CancellationToken.None);
+      var dafnyFile = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
+      var parseResult = await new ProgramParser().ParseFiles(uri.LocalPath,
+        new[] { dafnyFile }, reporter, cancellationToken);
 
       if (!resolve) {
-        return program;
+        return parseResult.Program;
       }
-      new ProgramResolver(program).Resolve(CancellationToken.None);
-      return program;
+      await new ProgramResolver(parseResult.Program).Resolve(cancellationToken);
+      return parseResult.Program;
     }
 
     /// <summary>
@@ -112,7 +113,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static Microsoft.Boogie.Program DeepCloneResolvedProgram(Microsoft.Boogie.Program program, DafnyOptions options) {
       program = DeepCloneProgram(options, program);
-      program.Resolve(options);
+      var resolutionErrors = program.Resolve(options);
       program.Typecheck(options);
       return program;
     }
@@ -142,7 +143,7 @@ namespace DafnyTestGeneration {
     [ItemCanBeNull]
     public static List<string> AllBlockIds(Block block, DafnyOptions options) {
       string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
-      var state = block.cmds.OfType<AssumeCmd>()
+      var state = block.Cmds.OfType<AssumeCmd>()
         .Where(
           cmd => cmd.Attributes != null &&
                  cmd.Attributes.Key == "captureState" &&

@@ -11,7 +11,7 @@ public class Constructor : Method {
     Contract.Invariant(Body == null || Body is DividedBlockStmt);
   }
 
-  public override SymbolKind Kind => SymbolKind.Constructor;
+  public override SymbolKind? Kind => SymbolKind.Constructor;
   protected override string GetQualifiedName() {
     return EnclosingClass.Name;
   }
@@ -34,7 +34,7 @@ public class Constructor : Method {
       }
     }
   }
-  public Constructor(RangeToken rangeToken, Name name,
+  public Constructor(IOrigin origin, Name name,
     bool isGhost,
     List<TypeParameter> typeArgs,
     List<Formal> ins,
@@ -44,9 +44,9 @@ public class Constructor : Method {
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
     DividedBlockStmt body,
-    Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
-    Contract.Requires(rangeToken != null);
+    Attributes attributes, IOrigin signatureEllipsis)
+    : base(origin, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));

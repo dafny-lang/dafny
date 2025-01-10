@@ -86,6 +86,8 @@ type ImapSimulator<!A, B> =
       this.testOutputHelper = testOutputHelper;
     }
 
+    private static bool updateProverLog = false; // Should always be false in committed code
+
     /// <summary>
     /// This test is meant to detect _any_ changes in Dafny's verification behavior.
     /// Dafny's verification is powered by an SMT solver. For difficult inputs, such solvers may change their behavior,
@@ -97,22 +99,32 @@ type ImapSimulator<!A, B> =
     ///
     /// If this test fails, that means a change was made to Dafny that changes the SMT input it sends.
     /// If this was intentional, you should update this test's expect file with the new SMT input.
+    /// To do so, set the static field above "updateProverLog" to true, run this test, set the flag back to false, and
+    /// run the test again to verify it works.
     /// The git history of updates to this test allows us to easily see when Dafny's verification has changed.
     ///
     /// If you make a change to Dafny verification and this test does not fail, then likely the Dafny code in the test
     /// does not sufficiently cover the language to detect your change. In that case, please update the test so it does.
     /// 
-    /// Note that this test does not detect changes in DafnyPrelude.bplf
+    /// Note that this test does not detect changes in DafnyPrelude.bpl
     /// 
     /// </summary>
     [Fact]
     public async Task ProverLogRegression() {
-      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.CreateUsingOldParser(new WriterFromOutputHelper(testOutputHelper));
 
       var filePath = Path.Combine(Directory.GetCurrentDirectory(), "expectedProverLog.smt2");
       var expectation = await File.ReadAllTextAsync(filePath);
-      var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, originalProgram));
-      Assert.Equal(expectation.Replace("\r", ""), regularProverLog.Replace("\r", ""));
+      expectation = expectation.Replace("\r", "");
+      var regularProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, originalProgram));
+      regularProverLog = regularProverLog.Replace("\r", "");
+      if (updateProverLog) {
+        var path = Path.GetFullPath(filePath).Replace("bin" + Path.DirectorySeparatorChar + "Debug" + Path.DirectorySeparatorChar + "net8.0" + Path.DirectorySeparatorChar, "");
+        await File.WriteAllTextAsync(path, regularProverLog);
+        await Console.Out.WriteLineAsync("Updated prover log file at " + path);
+      } else {
+        Assert.Equal(expectation, regularProverLog);
+      }
     }
 
     private async Task<string> GetProverLogForProgramAsync(DafnyOptions options, IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
@@ -127,19 +139,22 @@ type ImapSimulator<!A, B> =
       Directory.CreateDirectory(directory);
       var temp1 = directory + "/proverLog";
       options.ProverLogFilePath = temp1;
+      options.ProcessSolverOptions(new ErrorReporterSink(options), Microsoft.Dafny.Token.NoToken);
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
-          var (outcome, _) = await DafnyMain.BoogieOnce(options, options.OutputWriter, engine, "", "", boogieProgram, "programId");
+          var (outcome, _) = await DafnyMain.BoogieOnce(new ErrorReporterSink(options),
+            options, options.OutputWriter, engine, "", "", boogieProgram, "programId");
         }
       }
       foreach (var proverFile in Directory.GetFiles(directory)) {
         yield return await File.ReadAllTextAsync(proverFile);
       }
+      Directory.Delete(directory, true);
     }
 
-    IEnumerable<BoogieProgram> GetBoogie(DafnyOptions options, string dafnyProgramText) {
+    async Task<IReadOnlyList<BoogieProgram>> GetBoogie(DafnyOptions options, string dafnyProgramText) {
       var reporter = new BatchErrorReporter(options);
-      var dafnyProgram = Utils.Parse(reporter, dafnyProgramText, false);
+      var dafnyProgram = await Utils.Parse(reporter, dafnyProgramText, false);
       Assert.NotNull(dafnyProgram);
       DafnyMain.Resolve(dafnyProgram);
       Assert.Equal(0, reporter.ErrorCount);

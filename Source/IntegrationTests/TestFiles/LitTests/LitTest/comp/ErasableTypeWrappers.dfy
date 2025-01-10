@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment --spill-translation --allow-deprecation --unicode-char false --type-system-refresh=true --general-traits=datatype
 
 datatype SingletonRecord = SingletonRecord(u: int)
 datatype GhostOrNot = ghost Ghost(a: int, b: int) | Compiled(x: int)
@@ -18,6 +18,7 @@ method Main() {
   TestMembers();
   OptimizationChecks.Test();
   PrintRegressionTests.Test();
+  ConditionsThatDisableTheOptimization.Test();
 }
 
 method TestTargetTypesAndConstructors() {
@@ -410,5 +411,35 @@ module PrintRegressionTests {
   method PrintOne<X(0)>() {
     var x: X := *;
     print x, "\n";
+  }
+}
+
+// --------------------------------------------------------------------------------
+
+module ConditionsThatDisableTheOptimization {
+  trait Trait {
+    function F(): int
+  }
+  datatype WithTrait extends Trait = WithTrait(u: int)
+  {
+    function F(): int { 5 }
+  }
+
+  datatype WithCompiledField = WithCompiledField(u: int)
+  {
+    const n: int := 100
+  }
+
+  datatype WithGhostField = WithGhostField(u: int)
+  {
+    ghost const n: int := 100
+  }
+
+  method Test() {
+    var t0 := WithTrait(40);
+    var t1 := WithCompiledField(41);
+    var t2 := WithGhostField(42);
+    print t0, " ", t0.F(), " ", (t0 as Trait).F(), "\n"; // WithTrait(40) 5 5
+    print t1, " ", t1.n, " ", t2, "\n"; // WithCompiledField(41) 100 42
   }
 }

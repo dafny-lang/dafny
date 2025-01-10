@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Reactive.Subjects;
 using System.Threading;
+using DafnyCore;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny {
@@ -26,21 +27,21 @@ namespace Microsoft.Dafny {
       this.entryUri = entryUri;
     }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string? errorId, IToken rootTok, string msg) {
+    protected override bool MessageCore(MessageSource source, ErrorLevel level, string? errorId, IOrigin rootTok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
       var relatedInformation = new List<DafnyRelatedInformation>();
 
-      var usingSnippets = Options.Get(DafnyConsolePrinter.ShowSnippets);
-      if (rootTok is NestedToken nestedToken) {
+      var usingSnippets = Options.Get(Snippets.ShowSnippets);
+      if (rootTok is NestedOrigin nestedToken) {
         relatedInformation.AddRange(
           ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
             nestedToken.Inner, nestedToken.Message, usingSnippets)
         );
       }
 
-      var dafnyDiagnostic = new DafnyDiagnostic(errorId, rootTok, msg, source, level, relatedInformation);
+      var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, rootTok, msg, level, relatedInformation);
       AddDiagnosticForFile(dafnyDiagnostic, GetUriOrDefault(rootTok));
       return true;
     }
@@ -80,7 +81,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Uri GetUriOrDefault(IToken token) {
+    private Uri GetUriOrDefault(IOrigin token) {
       return token.Filepath == null
         ? entryUri
         : token.Uri;

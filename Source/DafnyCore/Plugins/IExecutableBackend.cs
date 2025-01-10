@@ -7,7 +7,9 @@ using System.Collections.ObjectModel;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny.Plugins;
@@ -110,6 +112,9 @@ public abstract class IExecutableBackend {
   protected ErrorReporter? Reporter;
   protected ReadOnlyCollection<string>? OtherFileNames;
 
+  // The following lists are the Options supported by the backend.
+  public virtual IEnumerable<Option> SupportedOptions => new List<Option>();
+
   protected IExecutableBackend(DafnyOptions options) {
     Options = options;
   }
@@ -130,7 +135,7 @@ public abstract class IExecutableBackend {
   /// <summary>
   /// Perform any required processing after generating code with <c>Compile</c> and <c>EmitCallToMain</c>.
   /// </summary>
-  public abstract bool OnPostCompile(string dafnyProgramName, string targetDirectory, TextWriter outputWriter);
+  public abstract Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter);
 
   /// <summary>
   /// Remove previously generated source files.  This is only applicable to compilers that put sources in a separate
@@ -139,7 +144,7 @@ public abstract class IExecutableBackend {
   /// <param name="sourceDirectory">Name of the directory to delete.</param>
   public virtual void CleanSourceDirectory(string sourceDirectory) { }
 
-  public abstract void Compile(Program dafnyProgram, ConcreteSyntaxTree output);
+  public abstract void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output);
 
   /// <summary>
   /// Emits a call to <c>mainMethod</c> as the program's entry point, if such an explicit call is
@@ -163,8 +168,10 @@ public abstract class IExecutableBackend {
   /// Returns <c>true</c> on success. Then, <c>compilationResult</c> is a value that can be passed in to
   /// the instance's <c>RunTargetProgram</c> method.
   /// </summary>
-  public abstract bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string targetFilename,
-    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult);
+  public abstract Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText, string callToMain,
+    string targetFilename,
+    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter);
 
   /// <summary>
   /// Runs a target program after it has been successfully compiled.
@@ -174,7 +181,7 @@ public abstract class IExecutableBackend {
   ///
   /// Returns <c>true</c> on success, <c>false</c> on error. Any errors are output to <c>outputWriter</c>.
   /// </summary>
-  public abstract bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+  public abstract Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
     string pathsFilename,
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
     TextWriter errorWriter);
@@ -187,16 +194,29 @@ public abstract class IExecutableBackend {
   public static readonly Option<string> OuterModule =
     new("--outer-module", "Nest all code in this module. Can be used to customize generated code. Use dots as separators (foo.baz.zoo) for deeper nesting. The first specified module will be the outermost one.");
 
-  public virtual IEnumerable<string> GetOuterModules() {
-    return Options.Get(OuterModule)?.Split(".") ?? Enumerable.Empty<string>();
-  }
+  public static readonly Option<IList<FileInfo>> TranslationRecords = new("--translation-record",
+    @"
+A translation record file for previously translated Dafny code. Can be specified multiple times. See https://dafny.org/dafny/DafnyRef/DafnyRef#sec-dtr-files for details.".TrimStart()) {
+  };
+
+  public static readonly Option<FileInfo> TranslationRecordOutput = new("--translation-record-output",
+    @"
+Where to output the translation record file. Defaults to the output directory. See https://dafny.org/dafny/DafnyRef/DafnyRef#sec-dtr-files for details.".TrimStart()) {
+  };
 
   static IExecutableBackend() {
-    DooFile.RegisterNoChecksNeeded(OuterModule);
+    OptionRegistry.RegisterOption(OuterModule, OptionScope.Cli);
+    OptionRegistry.RegisterOption(TranslationRecords, OptionScope.Cli);
+    OptionRegistry.RegisterOption(TranslationRecordOutput, OptionScope.Cli);
+    OptionRegistry.RegisterOption(OuterModule, OptionScope.Translation);
   }
 
   public virtual Command GetCommand() {
-    return new Command(TargetId, $"Translate Dafny sources to {TargetName} source and build files.");
+    var cmd = new Command(TargetId, $"Translate Dafny sources to {TargetName} source and build files.");
+    foreach (var supportedOption in SupportedOptions) {
+      cmd.AddOption(supportedOption);
+    }
+    return cmd;
   }
 
   public virtual void PopulateCoverageReport(CoverageReport coverageReport) {

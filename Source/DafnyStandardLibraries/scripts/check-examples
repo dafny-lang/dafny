@@ -219,6 +219,7 @@ do
           ec=2
         elif [ "$command" == "%check-resolve-warn" ]; then
           com=resolve
+          dOptions="$dOptions --allow-warnings"
           ec=0
         elif [ "$command" == "%check-translate" ]; then
           com=translate
@@ -267,7 +268,7 @@ do
               fi
               msg=
               if [ "$actualec" != "$ec" ]; then
-                echo EXPECTED EXIT CODE $ec, got $actualec
+                echo EXPECTED EXIT CODE $ec, got "$actualec"
                 FAIL=1
               fi
             else 

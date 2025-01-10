@@ -24,6 +24,7 @@ method Foo() returns (s: Option<int>) {
 
     var projectSource = @"
 [options]
+warn-deprecation = true
 standard-libraries = true";
 
     var withoutStandardLibraries = CreateAndOpenTestDocument(source);
@@ -51,7 +52,7 @@ method Foo() returns (s: ><Option<int>) {
 [options]
 standard-libraries = true";
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectSource);
 
@@ -63,6 +64,7 @@ standard-libraries = true";
     await AssertNoDiagnosticsAreComing(CancellationToken);
     var result = await RequestDefinition(documentItem, positions[0]);
     Assert.Equal(new Uri("dafny:DafnyStandardLibraries.dfy"), result.Single().Location.Uri);
+    Directory.Delete(directory, true);
   }
 
   public StandardLibraryTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {

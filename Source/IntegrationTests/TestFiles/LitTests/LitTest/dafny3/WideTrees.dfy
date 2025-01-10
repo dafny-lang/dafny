@@ -1,4 +1,4 @@
-// RUN: %verify --warn-deprecation false "%s" > "%t"
+// RUN: %verify --allow-deprecation "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 codatatype Stream<T> = SNil | SCons(head: T, tail: Stream)

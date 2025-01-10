@@ -13,5 +13,6 @@ GenFunctionTest: FAILED
 GenMethodTest: FAILED
 	CheckExtern.dfy(59,13): Runtime failure of requires clause from CheckExtern.dfy(59,13)
 BazTest: PASSED
+CallFunctionByMethod: PASSED
 [Program halted] AllExterns.dfy(8,0): Test failures occurred: see above.
 

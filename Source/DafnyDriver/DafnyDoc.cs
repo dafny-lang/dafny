@@ -23,10 +23,10 @@ class Info {
 
   public string Source; // information on where the entity is declared
 
-  public Info(bool register, DafnyDoc dd, string kind, IToken tok, string name, string fullname) : this(register, dd, kind, tok, name, fullname, fullname) {
+  public Info(bool register, DafnyDoc dd, string kind, IOrigin tok, string name, string fullname) : this(register, dd, kind, tok, name, fullname, fullname) {
   }
 
-  public Info(bool register, DafnyDoc dd, string kind, IToken tok, string name, string fullname, string id) {
+  public Info(bool register, DafnyDoc dd, string kind, IOrigin tok, string name, string fullname, string id) {
     this.Contents = null;
     this.Kind = kind;
     this.Name = name;
@@ -45,7 +45,7 @@ class DafnyDoc {
   public static async Task<ExitValue> DoDocumenting(DafnyOptions options) {
 
     var dafnyFolders = options.SourceFolders;
-    var code = SynchronousCliCompilation.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var (code, dafnyFiles, _) = await SynchronousCliCompilation.GetDafnyFiles(options);
     if (code != 0) {
       return code;
     }
@@ -59,9 +59,10 @@ class DafnyDoc {
 
     // Collect all the dafny files; dafnyFiles already includes files from a .toml project file
     var exitValue = ExitValue.SUCCESS;
-    dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath =>
-      FormatCommand.GetFilesForFolder(options, folderPath))).ToList();
-    await Console.Out.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
+    var folderFiles = dafnyFolders.Select(folderPath =>
+      FormatCommand.GetFilesForFolder(options, folderPath)).SelectMany(x => x);
+    dafnyFiles = dafnyFiles.Concat(folderFiles).ToList();
+    await options.OutputWriter.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {
       return exitValue;
     }
@@ -70,16 +71,16 @@ class DafnyDoc {
     string err = null;
     Program dafnyProgram = null;
     try {
-      err = DafnyMain.ParseCheck(options.Input, dafnyFiles, programName, options, out dafnyProgram);
+      (dafnyProgram, err) = await DafnyMain.ParseCheck(options.Input, dafnyFiles, programName, options);
     } catch (Exception e) {
       err = "Exception while parsing -- please report the error (use --verbose to see the call stack)";
       if (options.Verbose) {
-        await Console.Out.WriteLineAsync(e.ToString()).ConfigureAwait(false);
+        await options.OutputWriter.WriteLineAsync(e.ToString()).ConfigureAwait(false);
       }
     }
     if (err != null) {
       exitValue = ExitValue.DAFNY_ERROR;
-      await Console.Out.WriteLineAsync(err);
+      await options.OutputWriter.WriteLineAsync(err);
     } else {
       Contract.Assert(dafnyProgram != null);
 
@@ -92,7 +93,7 @@ class DafnyDoc {
       try {
         await File.Create(outputDir + "/index.html").DisposeAsync();
       } catch (Exception) {
-        await Console.Out.WriteLineAsync("Insufficient permission to create output files in " + outputDir);
+        await options.OutputWriter.WriteLineAsync("Insufficient permission to create output files in " + outputDir);
         return ExitValue.DAFNY_ERROR;
       }
       // Generate all the documentation
@@ -204,7 +205,7 @@ class DafnyDoc {
     }
     var defaultClass = moduleDef.TopLevelDecls.First(d => d is DefaultClassDecl cd) as DefaultClassDecl;
 
-    var info = new Info(register, this, "module", module == null ? null : module.Tok, moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
+    var info = new Info(register, this, "module", module == null ? null : module.Origin, moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
     info.Contents = new List<Info>();
 
     if (moduleDef.IsDefaultModule) {
@@ -216,7 +217,7 @@ class DafnyDoc {
         info.Source = FileInfo(dafnyFiles[0].CanonicalPath);
       }
     } else if (module != null) {
-      info.Source = FileInfo(module.Tok);
+      info.Source = FileInfo(module.Origin);
     }
 
     var docstring = Docstring(module);
@@ -269,7 +270,7 @@ class DafnyDoc {
 
 
   /** Returns printable info about the file containing the given token and the last modification time of the file */
-  public string FileInfo(IToken tok) {
+  public string FileInfo(IOrigin tok) {
     if (tok != null) {
       return FileInfo(tok.ActualFilename);
     }
@@ -316,7 +317,7 @@ class DafnyDoc {
   public Info ExportInfo(ModuleExportDecl ex, bool register) {
     var name = ex.Name;
     var docstring = Docstring(ex);
-    var info = new Info(register, this, "export", ex.Tok, name, ex.FullDafnyName, ExportId(ex.FullDafnyName));
+    var info = new Info(register, this, "export", ex.Origin, name, ex.FullDafnyName, ExportId(ex.FullDafnyName));
 
     info.HtmlSummary = Row($"{Keyword("export")} {Code(ex.EnclosingModuleDefinition.Name)}`{Link(info.Id, Code(Bold(ex.Name)))}",
      DashShortDocstring(ex));
@@ -386,7 +387,7 @@ class DafnyDoc {
   public Info ImportInfo(ModuleDecl md, bool register) {
     var name = md.Name;
     var docstring = Docstring(md);
-    var info = new Info(register, this, "import", md.Tok, name, md.FullDafnyName, md.FullDafnyName + "__import");
+    var info = new Info(register, this, "import", md.Origin, name, md.FullDafnyName, md.FullDafnyName + "__import");
 
     var styledName = Code(Bold(name));
     var details = new StringBuilder();
@@ -490,7 +491,7 @@ class DafnyDoc {
   }
 
   public Info ConstantInfo(bool register, ConstantField c) {
-    var info = new Info(register, this, "const", c.Tok, c.Name, c.FullDafnyName);
+    var info = new Info(register, this, "const", c.Origin, c.Name, c.FullDafnyName);
 
     var docstring = Docstring(c);
     var modifiers = c.ModifiersAsString();
@@ -510,7 +511,7 @@ class DafnyDoc {
   }
 
   public Info VarInfo(bool register, Field f) {
-    var info = new Info(register, this, "var", f.Tok, f.Name, f.FullDafnyName);
+    var info = new Info(register, this, "var", f.Origin, f.Name, f.FullDafnyName);
 
     var docstring = Docstring(f);
     var linkedName = Code(Link(f.FullDafnyName, Bold(f.Name)));
@@ -539,7 +540,7 @@ class DafnyDoc {
       }
     }
 
-    var info = new Info(register, this, m.WhatKind, m.Tok, name, m.FullDafnyName);
+    var info = new Info(register, this, m.WhatKind, m.Origin, name, m.FullDafnyName);
 
     var md = m as IHasDocstring;
     var docstring = Docstring(md);
@@ -564,7 +565,7 @@ class DafnyDoc {
         if (f.IsOpaque) {
           details.Append(br).Append(space4).Append("Function body is opaque").Append(br).Append(eol);
         }
-        var brackets = new RangeToken(body.StartToken.Prev, body.EndToken.Next);
+        var brackets = new SourceOrigin(body.StartToken.Prev, body.EndToken.Next);
         int column = brackets.StartToken.line != brackets.EndToken.line ? brackets.EndToken.col : 0;
         var offset = column <= 1 ? "" : new StringBuilder().Insert(0, " ", column - 1).ToString();
         details.Append(Pre(offset + brackets.PrintOriginal()));
@@ -578,7 +579,7 @@ class DafnyDoc {
   }
 
   public string ExpressionAsSource(Expression e) {
-    return e.RangeToken.PrintOriginal();
+    return e.Origin.PrintOriginal();
   }
 
   public Info TypeInfo(bool register, TopLevelDecl t, ModuleDefinition module, Info owner) {
@@ -590,7 +591,7 @@ class DafnyDoc {
     var typeparams = TypeFormals(t.TypeArgs);
     string kind = t.WhatKind.Replace("abstract ", "").Replace("opaque ", "").Replace("subset ", "").Replace(" synonym", "");
 
-    var info = new Info(register, this, t.WhatKind, t.Tok, t.Name, t.FullDafnyName);
+    var info = new Info(register, this, t.WhatKind, t.Origin, t.Name, t.FullDafnyName);
 
     var details = new StringBuilder();
 
@@ -641,7 +642,7 @@ class DafnyDoc {
       decl.Append(" = ");
       // datatype constructors are written out several lines down
     } else {
-      Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Tok, "Kind of type not handled in dafny doc");
+      Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Origin, "Kind of type not handled in dafny doc");
     }
     decl.Append(br).Append(eol);
     details.Append(AttrString(t.Attributes));
@@ -755,7 +756,7 @@ class DafnyDoc {
       var f = m as Function;
       var typeparams = TypeFormals(f.TypeArgs);
       var allowNew = m is TwoStateFunction;
-      var formals = String.Join(", ", f.Formals.Select(ff => FormalAsString(ff, allowNew)));
+      var formals = String.Join(", ", f.Ins.Select(ff => FormalAsString(ff, allowNew)));
       return (Bold(m.Name) + typeparams) + "(" + formals + "): " + TypeLink(f.ResultType);
     } else {
       return "";
@@ -805,7 +806,7 @@ class DafnyDoc {
   }
 
   public static bool IsGeneratedName(string name) {
-    return (name.Length > 1 && name[0] == '_') || name.StartsWith("reveal_");
+    return (name.Length > 1 && name[0] == '_') || name.StartsWith(HideRevealStmt.RevealLemmaPrefix);
   }
 
   public string IndentedHtml(string docstring, bool nothingIfNull = false) {
@@ -946,7 +947,7 @@ class DafnyDoc {
         return Code(s);
       }
     }
-    Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Tok, "Implementation missing for type " + t.GetType() + " " + t.ToString());
+    Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Origin, "Implementation missing for type " + t.GetType() + " " + t.ToString());
     return Code(t.ToString());
   }
 
@@ -1039,7 +1040,7 @@ class DafnyDoc {
 
   public void AnnounceFile(string filename) {
     if (Options.Verbose) {
-      Console.WriteLine("Writing " + filename);
+      Options.OutputWriter.WriteLine("Writing " + filename);
     }
   }
 

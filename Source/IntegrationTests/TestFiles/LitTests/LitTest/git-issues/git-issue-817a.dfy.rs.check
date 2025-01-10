@@ -1,0 +1,1 @@
+// CHECK-L: error[E0599]: no method named `borrow_mut` found for struct `DafnyInt` in the current scope

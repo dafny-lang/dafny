@@ -67,7 +67,7 @@ A requires clause can have [custom error and success messages](#sec-error-attrib
 Examples:
 <!-- %check-resolve -->
 ```dafny
-method m(i: int) returns (r: int)
+method {:axiom} m(i: int) returns (r: int)
   ensures r > 0
 ```
 
@@ -366,9 +366,9 @@ the decreases clause, the decreases tuple automatically decreases on any
 calls in a non-recursive context.
 
 Though Dafny fixes a well-founded order that it uses when checking
-termination, Dafny does not surface this ordering directly in
-expressions. That is, syntactically, there is no single operator that
-stands for the well-founded ordering.
+termination, Dafny does not normally surface this ordering directly in
+expressions. However, it is possible to write such ordering constraints
+using [`decreases to` expressions](#sec-termination-ordering-expressions).
 
 ### 7.1.4. Framing ([grammar](#g-frame-expression)) {#sec-frame-expression}
 
@@ -914,7 +914,7 @@ method Test(a: array<int>) returns (j: int)
 Dafny will split the verification in two [assertion batches](#sec-assertion-batches)
 that will roughly look like the following lemmas:
 
-<!-- %check-verify -->
+<!-- %check-verify %options --allow-axioms -->
 ```dafny
 lemma Test_WellFormed(a: array?<int>)
 {

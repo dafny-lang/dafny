@@ -109,12 +109,12 @@ module Std.JSON.Utils.Views.Core {
     // Compare endpoints first to short-circuit the potentially-costly string
     // comparison
     && lv.end == rv.beg
-       // We would prefer to use reference equality here, but doing so in a sound
-       // way is tricky (see chapter 9 of ‘Verasco: a Formally Verified C Static
-       // Analyzer’ by Jacques-Henri Jourdan for details).  The runtime optimizes
-       // the common case of physical equality and otherwise performs a length
-       // check, so the worst case (checking for adjacency in two slices that have
-       // equal but not physically-equal contents) is hopefully not too common.
+    // We would prefer to use reference equality here, but doing so in a sound
+    // way is tricky (see chapter 9 of ‘Verasco: a Formally Verified C Static
+    // Analyzer’ by Jacques-Henri Jourdan for details).  The runtime optimizes
+    // the common case of physical equality and otherwise performs a length
+    // check, so the worst case (checking for adjacency in two slices that have
+    // equal but not physically-equal contents) is hopefully not too common.
     && lv.s == rv.s
   }
 

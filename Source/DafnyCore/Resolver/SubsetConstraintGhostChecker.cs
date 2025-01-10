@@ -9,14 +9,14 @@ namespace Microsoft.Dafny;
 public class SubsetConstraintGhostChecker : ProgramTraverser {
   private class FirstErrorCollector : ErrorReporter {
     public string FirstCollectedMessage = "";
-    public IToken FirstCollectedToken = Token.NoToken;
+    public IOrigin FirstCollectedToken = Token.NoToken;
     public bool Collected = false;
 
-    public bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+    public bool Message(MessageSource source, ErrorLevel level, IOrigin tok, string msg) {
       return Message(source, level, ErrorRegistry.NoneId, tok, msg);
     }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
       if (!Collected && level == ErrorLevel.Error) {
         FirstCollectedMessage = msg;
         FirstCollectedToken = tok;
@@ -83,22 +83,22 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
 
     if (e is QuantifierExpr or SetComprehension or MapComprehension) {
       foreach (var boundVar in e.BoundVars) {
-        if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraint) {
-          if (!declWithConstraint.ConstraintIsCompilable) {
+        if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraints) {
+          if (!declWithConstraints.ConstraintIsCompilable) {
 
-            IToken finalToken = boundVar.tok;
-            if (declWithConstraint.Constraint != null && declWithConstraint.Constraint.tok.line != 0) {
+            IOrigin finalToken = boundVar.Origin;
+            if (declWithConstraints.Constraint != null && declWithConstraints.Constraint.Origin.line != 0) {
               var errorCollector = new FirstErrorCollector(reporter.Options);
-              ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraint.Constraint,
-                new CodeContextWrapper(declWithConstraint, true));
+              ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraints.Constraint,
+                new CodeContextWrapper(declWithConstraints, true));
               if (errorCollector.Collected) {
-                finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
+                finalToken = new NestedOrigin(finalToken, errorCollector.FirstCollectedToken,
                   "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
                 );
               }
             }
             this.reporter.Error(MessageSource.Resolver, finalToken,
-              $"{boundVar.Type} is a {declWithConstraint.WhatKind} and its constraint is not compilable, " +
+              $"{boundVar.Type} is a {declWithConstraints.WhatKind} and its constraint is not compilable, " +
               $"hence it cannot yet be used as the type of a bound variable in {e.WhatKind}.");
           }
         }

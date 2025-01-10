@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment --warn-deprecation false --print "%t.dprint.dfy" "%s" > "%t"
-// RUN: %resolve "%t.dprint.dfy" >> "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment --allow-axioms --allow-deprecation --print "%t.dprint.dfy" "%s" > "%t"
+// RUN: %resolve --allow-axioms --allow-warnings "%t.dprint.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Node {
@@ -880,7 +880,7 @@ module DatatypeTestZ {
 module ConstantFieldReceiverNonNull {
   newtype Six = x | 6 <= x witness 6
 
-  trait Trait {
+  trait Trait extends object {
     const x0: Six
     const x1: Six := 7
 

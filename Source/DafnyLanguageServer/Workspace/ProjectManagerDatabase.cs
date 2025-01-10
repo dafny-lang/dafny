@@ -2,19 +2,22 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Caching;
 using System.Threading.Tasks;
+using DafnyCore;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
+using Token = Microsoft.Boogie.Token;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Contains a collection of ProjectManagers
   /// </summary>
   public class ProjectManagerDatabase : IProjectDatabase {
+
     private readonly object myLock = new();
-    public const int ProjectFileCacheExpiryTime = 100;
 
     private readonly CreateProjectManager createProjectManager;
     private readonly ILogger<ProjectManagerDatabase> logger;
@@ -23,10 +26,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly Dictionary<Uri, ProjectManager> managersBySourceFile = new();
     private readonly LanguageServerFilesystem fileSystem;
     private readonly VerificationResultCache verificationCache = new();
-    private readonly CustomStackSizePoolTaskScheduler scheduler;
-    private readonly MemoryCache projectFilePerFolderCache = new("projectFiles");
-    private readonly object nullRepresentative = new(); // Needed because you can't store null in the MemoryCache, but that's a value we want to cache.
+    private readonly TaskScheduler scheduler;
     private readonly DafnyOptions serverOptions;
+    private CachingProjectFileOpener projectFileOpener;
 
     private const int stackSize = 10 * 1024 * 1024;
 
@@ -40,6 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.fileSystem = fileSystem;
       this.serverOptions = serverOptions;
       this.scheduler = CustomStackSizePoolTaskScheduler.Create(stackSize, serverOptions.VcsCores);
+      projectFileOpener = new CachingProjectFileOpener(fileSystem, serverOptions, Token.Ide);
     }
 
     public async Task OpenDocument(TextDocumentItem document) {
@@ -49,7 +52,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task UpdateDocument(DidChangeTextDocumentParams documentChange) {
-      fileSystem.UpdateDocument(documentChange);
+      var success = fileSystem.UpdateDocument(documentChange);
+      if (!success) {
+        throw new ArgumentException("the document change ranges did not match ranges inside the documents");
+      }
       var documentUri = documentChange.TextDocument.Uri;
       var manager = await GetProjectManager(documentUri, false);
       if (manager == null) {
@@ -109,6 +115,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<IdeState?> GetResolvedDocumentAsyncInternal(TextDocumentIdentifier documentId) {
       var manager = await GetProjectManager(documentId, false);
+      logger.LogDebug($"project manager found for {documentId.Uri}");
       if (manager != null) {
         return await manager.GetStateAfterResolutionAsync();
       }
@@ -121,114 +128,84 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId, bool createOnDemand, bool changedOnOpen = false) {
-      if (!fileSystem.Exists(documentId.Uri.ToUri())) {
+      var uri = documentId.Uri.ToUri();
+      if (!fileSystem.Exists(uri)) {
         return null;
       }
 
-      var project = await GetProject(documentId.Uri.ToUri());
+      var project = await GetProject(uri);
 
       lock (myLock) {
-        var projectManagerForFile = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
+        var projectManagerForFile = managersBySourceFile.GetValueOrDefault(uri);
 
+        if (projectManagerForFile is { IsDisposed: true }) {
+          // Defensive coding
+          logger.LogError("Found disposed project manager through managersBySourceFile.");
+          projectManagerForFile = null;
+        }
+
+        bool triggerCompilation = false;
         if (projectManagerForFile != null) {
+
           var filesProjectHasChanged = !projectManagerForFile.Project.Equals(project);
           if (filesProjectHasChanged) {
+            logger.LogDebug($"Migrating file {uri} from project {projectManagerForFile.Project.Uri} to project {project.Uri}");
+
             var projectFileContentHasChanged = projectManagerForFile.Project.Uri == project.Uri;
             if (projectFileContentHasChanged) {
-              // Scrap the project manager.
-              projectManagerForFile.CloseAsync();
               managersByProject.Remove(project.Uri);
-            } else {
-              var previousProjectHasNoDocuments = projectManagerForFile.CloseDocument(projectManagerForFile.Project.Uri);
-              if (previousProjectHasNoDocuments) {
-                // Enable garbage collection
-                managersByProject.Remove(projectManagerForFile.Project.Uri);
-              }
+            }
+            var previousProjectHasNoDocuments = projectManagerForFile.CloseDocument(projectManagerForFile.Project.Uri);
+            if (previousProjectHasNoDocuments) {
+              // Enable garbage collection
+              managersByProject.Remove(projectManagerForFile.Project.Uri);
             }
 
             projectManagerForFile = managersByProject.GetValueOrDefault(project.Uri) ??
                                     createProjectManager(scheduler, verificationCache, project);
-            projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
+            projectManagerForFile.OpenDocument(uri, true);
+            triggerCompilation = true;
           }
         } else {
           var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
+          if (managerForProject is { IsDisposed: true }) {
+            // Defensive coding
+            logger.LogError("Found disposed project manager through managersByProject.");
+            managerForProject = null;
+          }
+
           if (managerForProject != null) {
             projectManagerForFile = managerForProject;
-            if (changedOnOpen) {
-              projectManagerForFile.UpdateDocument(new DidChangeTextDocumentParams {
-                ContentChanges = Array.Empty<TextDocumentContentChangeEvent>(),
-                TextDocument = new OptionalVersionedTextDocumentIdentifier {
-                  Uri = documentId.Uri
-                }
-              });
-            }
+            triggerCompilation = changedOnOpen;
           } else {
             if (createOnDemand) {
               projectManagerForFile = createProjectManager(scheduler, verificationCache, project);
-              projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
+              triggerCompilation = true;
             } else {
               return null;
             }
           }
         }
 
-        managersBySourceFile[documentId.Uri.ToUri()] = projectManagerForFile;
+        managersBySourceFile[uri] = projectManagerForFile;
         managersByProject[project.Uri] = projectManagerForFile;
+        projectManagerForFile.OpenDocument(uri, triggerCompilation);
         return projectManagerForFile;
       }
     }
 
     public async Task<DafnyProject> GetProject(Uri uri) {
-      return uri.LocalPath.EndsWith(DafnyProject.FileName)
-        ? await DafnyProject.Open(fileSystem, serverOptions, uri)
-        : (await FindProjectFile(uri) ?? ImplicitProject(uri));
+      return await projectFileOpener.TryFindProject(uri) ?? ImplicitProject(uri);
     }
 
     public static DafnyProject ImplicitProject(Uri uri) {
-      var implicitProject = new DafnyProject {
-        Includes = new[] { uri.LocalPath },
-        Uri = uri
-      };
+      var implicitProject = new DafnyProject(
+        null,
+        uri, null,
+        new[] { uri.LocalPath }.ToHashSet(),
+        new HashSet<string>(),
+        new Dictionary<string, object>());
       return implicitProject;
-    }
-
-    private async Task<DafnyProject?> FindProjectFile(Uri sourceUri) {
-      DafnyProject? projectFile = null;
-
-      var folder = Path.GetDirectoryName(sourceUri.LocalPath);
-      while (!string.IsNullOrEmpty(folder) && projectFile == null) {
-        projectFile = await OpenProjectInFolder(folder);
-
-        if (projectFile != null && projectFile.Uri != sourceUri && projectFile.ContainsSourceFile(sourceUri) == false) {
-          projectFile = null;
-        }
-
-        folder = Path.GetDirectoryName(folder);
-      }
-
-      return projectFile;
-    }
-
-    private async Task<DafnyProject?> OpenProjectInFolder(string folderPath) {
-      var cachedResult = projectFilePerFolderCache.Get(folderPath);
-      if (cachedResult != null) {
-        return cachedResult == nullRepresentative ? null : ((DafnyProject?)cachedResult)?.Clone();
-      }
-
-      var result = await OpenProjectInFolderUncached(folderPath);
-      projectFilePerFolderCache.Set(new CacheItem(folderPath, (object?)result ?? nullRepresentative), new CacheItemPolicy {
-        AbsoluteExpiration = new DateTimeOffset(DateTime.Now.Add(TimeSpan.FromMilliseconds(ProjectFileCacheExpiryTime)))
-      });
-      return result?.Clone();
-    }
-
-    private Task<DafnyProject?> OpenProjectInFolderUncached(string folderPath) {
-      var configFileUri = new Uri(Path.Combine(folderPath, DafnyProject.FileName));
-      if (!fileSystem.Exists(configFileUri)) {
-        return Task.FromResult<DafnyProject?>(null);
-      }
-
-      return DafnyProject.Open(fileSystem, serverOptions, configFileUri);
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;

@@ -3,5 +3,5 @@ using System;
 
 namespace Microsoft.Dafny;
 
-public record InternalCompilationException(Exception Exception) : ICompilationEvent {
+public record InternalCompilationException(MessageSource Source, Exception Exception) : ICompilationEvent {
 }

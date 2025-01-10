@@ -93,7 +93,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.verifier = verifier;
     }
 
-    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
+    public Task<IReadOnlyList<IVerificationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
       ResolutionResult resolution, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
@@ -117,7 +117,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.loader = loader;
     }
 
-    public Task<Program> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
+    public Task<ProgramParseResult> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
       return loader.ParseAsync(compilation, cancellationToken);
     }
 

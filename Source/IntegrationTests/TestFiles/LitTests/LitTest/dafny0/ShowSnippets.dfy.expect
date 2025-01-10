@@ -1,9 +1,9 @@
-ShowSnippets.dfy(13,9): Error: assertion might not hold
+ShowSnippets.dfy(13,2): Error: assertion might not hold
    |
 13 |   assert false;
-   |          ^^^^^
+   |   ^^^^^^^^^^^^^
 
-ShowSnippets.dfy(17,2): Error: a precondition for this call could not be proved
+ShowSnippets.dfy(17,7): Error: a precondition for this call could not be proved
    |
 17 |   Never();
    |   ^^^^^^^^

@@ -193,14 +193,14 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
       this.value := value;
     }
 
-    method {:extern} Get() returns (t: T)
+    method {:axiom} Get() returns (t: T) // Axiom is needed because this incorrectly inherits {:extern}
       requires Valid()
       ensures inv(t)
     {
       return value;
     }
 
-    method {:extern} Put(t: T)
+    method {:axiom} Put(t: T) // Axiom is needed because this incorrectly inherits {:extern}
       requires Valid()
       requires inv(t)
     {

@@ -86,6 +86,26 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [Fact]
+    public async Task Crash() {
+      var source = @"
+module M {
+  method m()
+}
+module P refines M {
+  method m ... {
+    while true { ...; }
+  }
+}";
+
+      var document = CreateAndOpenTestDocument(source);
+      var hoverResult = await client.RequestHover(new HoverParams() {
+        Position = new Position(0, 20),
+        TextDocument = document
+      }, CancellationToken);
+      Assert.Null(hoverResult);
+    }
+
+    [Fact]
     public async Task RecoverableParseErrorTypeRhs() {
       var markup = @"
 class Bla { }
@@ -550,15 +570,15 @@ predicate pm()
   * @returns 1 no matter what*/
 function g(k: int, l: int): int { 1 }
 
-// No comment for pt
+/** A comment for pt */
 twostate predicate pt() { true }
 
 least predicate pl()
-  // No comment for pl
+  // A comment for pl
 { true }
 
-// A comment for pg
-// That spans two lines
+/** A comment for pg
+  * That spans two lines */
 greatest predicate pg() { true }
 
 /** Returns an integer without guarantee
@@ -582,8 +602,7 @@ class C {
   /** Should be the number of x in C */
   var x: int
 
-  const X: int
-  // The expected number of x
+  const X: int // The expected number of x
 }
 
 function f(): int
@@ -622,9 +641,9 @@ method test(d: D, t: T, e: Even) {
   var x2 := pg();
 //          ^[A comment for pg\nThat spans two lines]
   var x3 := pl();
-//          ^[No comment for pl]
+//          ^[A comment for pl]
   var x4 := pt();
-//          ^[No comment for pt]
+//          ^[A comment for pt]
   var xg := g(0, 1);
 //          ^[Rich comment\n@param k The input\n         that is ignored\n@param l The second input that is ignored\n@returns 1 no matter what]
   C.m(); // TODO
@@ -672,7 +691,7 @@ method test() {
 //         ^[Unformatted comment] // Does not work yet.
   var xf := f();
 //          ^[Rich comment\n|  |  |\n| --- | --- |\n| **Returns** | 1 no matter what |]
-}", true, o => o.Set(CommonOptionBag.UseJavadocLikeDocstringRewriterOption, true));
+}", true, o => o.Set(InternalDocstringRewritersPluginConfiguration.UseJavadocLikeDocstringRewriterOption, true));
     }
   }
 }

@@ -1,4 +1,4 @@
-method {:extern} Foo(x: int) returns (y: int)
+method {:axiom} {:extern} Foo(x: int) returns (y: int)
   requires 1 < x < 10
   ensures y >= 10
 
@@ -15,7 +15,7 @@ method {:test} FooTest()
   expect y == 30;
 }
 
-function {:extern} Bar(x: int, ghost z: int): (y: int)
+function {:axiom} {:extern} Bar(x: int, ghost z: int): (y: int)
   requires 1 < x < 10
   requires z > x
   ensures y >= 10
@@ -34,7 +34,7 @@ method {:test} BarTest()
   expect y == 30;
 }
 
-function {:extern} FunctionWithUnnamedResult(x: int): int 
+function {:axiom} {:extern} FunctionWithUnnamedResult(x: int): int 
   requires x > 3
   ensures x > 3
 
@@ -65,7 +65,7 @@ method {:test} GenMethodTest()
   expect false;
 }
 
-function {:extern} Baz(x: int): (y: int)
+function {:axiom} {:extern} Baz(x: int): (y: int)
   ensures y == x
 
 method {:test} BazTest()
@@ -74,4 +74,17 @@ method {:test} BazTest()
   // An extra check just for fun. The auto-generated wrapper should
   // already ensure that y == 3.
   expect y != 7;
+}
+
+predicate UnusedTypeParameterForFunctionByMethod<A(0)>() {
+  true
+} by method {
+  var a: A := *;
+  var b: A := a;
+  return true;
+}
+
+method {:test} CallFunctionByMethod() {
+  var t := UnusedTypeParameterForFunctionByMethod<real>();
+  expect t;
 }

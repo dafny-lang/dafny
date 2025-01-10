@@ -437,6 +437,7 @@ method {:testEntry} DontWarnAboutVacuousAssertFalse(x: int) {
 
 class C {
   var x: int
+  constructor() {}
 }
 
 function {:testEntry} GetX(c: C): int

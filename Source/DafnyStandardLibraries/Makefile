@@ -1,7 +1,8 @@
 
 # Invoking the CLI this way just to stay platform-independent
-DAFNY = dotnet run --project ../Dafny --no-build --
+DAFNY = dotnet run --project ../Dafny --no-build --roll-forward LatestMajor --
 
+NO_VERIFY := false # Use make update-binary NO_VERIFY=true to generate the binaries without verification
 DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
 DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
 
@@ -12,12 +13,12 @@ verify:
 	make -C src/Std/TargetSpecific verify-all
 
 build-binary:
-	$(DAFNY) build -t:lib src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
+	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
 
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current
-	unzip -o ${DOO_FILE_TARGET} -d build/rebuilt
-	diff build/current build/rebuilt
+	unzip -o ${DOO_FILE_TARGET} -d build/previous
+	diff build/previous build/current 
 	make -C src/Std/TargetSpecific check-binary-all
 
 update-binary: build-binary

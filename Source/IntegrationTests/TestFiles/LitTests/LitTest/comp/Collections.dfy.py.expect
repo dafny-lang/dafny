@@ -12,7 +12,7 @@ Sets: {} {17, 82} {17, 12}
   eq covariance: 1 true true
 false true
 |s|=4 |S|=16
-{{}, {a}, {b}, {c}, {d}, {a, b}, {a, c}, {b, c}, {a, d}, {b, d}, {c, d}, {a, b, c}, {a, b, d}, {a, c, d}, {b, c, d}, {a, b, c, d}}
+{{}, {'a'}, {'b'}, {'c'}, {'d'}, {'a', 'b'}, {'a', 'c'}, {'b', 'c'}, {'a', 'd'}, {'b', 'd'}, {'c', 'd'}, {'a', 'b', 'c'}, {'a', 'b', 'd'}, {'a', 'c', 'd'}, {'b', 'c', 'd'}, {'a', 'b', 'c', 'd'}}
 Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   cardinality: 0 4 2
   union: multiset{17, 17, 82, 82} multiset{17, 17, 17, 82, 82, 12}
@@ -48,7 +48,7 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
   membership: false true true
 Bound Bound Bound Bound Bound Bound
 ed ed ed ed ed ed
-e e e e e e
+'e' 'e' 'e' 'e' 'e' 'e'
 hello
 hEllo
 [2, 4, 6, 8, 10]

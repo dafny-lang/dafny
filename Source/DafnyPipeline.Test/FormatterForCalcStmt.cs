@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -7,8 +8,8 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForCalcStmt")]
 public class FormatterForCalcStmt : FormatterBaseTest {
   [Fact]
-  public void FormatterWorksForHintsInCalcStatements() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForHintsInCalcStatements() {
+    await FormatterWorksFor(@"
 class Test {
   ghost constructor CalcInInitializationPhase() {
     var c0 := new Cell; // fine here

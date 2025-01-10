@@ -8,6 +8,10 @@ let _System = (function() {
     static get Default() {
       return _dafny.ZERO;
     }
+    static _Is(__source) {
+      let _0_x = (__source);
+      return (_dafny.ZERO).isLessThanOrEqualTo(_0_x);
+    }
   };
 
   return $module;

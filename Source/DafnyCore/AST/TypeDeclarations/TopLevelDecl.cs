@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
+public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISymbol {
   public abstract string WhatKind { get; }
+  public string WhatKindAndName => $"{WhatKind} '{Name}'";
   public ModuleDefinition EnclosingModuleDefinition;
   public readonly List<TypeParameter> TypeArgs;
   [ContractInvariantMethod]
@@ -18,9 +20,9 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     EnclosingModuleDefinition = parent;
   }
 
-  protected TopLevelDecl(RangeToken rangeToken, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, attributes, isRefining) {
-    Contract.Requires(rangeToken != null);
+  protected TopLevelDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
+    : base(origin, name, attributes, isRefining) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     EnclosingModuleDefinition = enclosingModule;
@@ -96,8 +98,10 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   ///     class C<X> extends J<X, int>
   /// C.ParentTypes(real) = J<real, int>    // non-null types C and J
   /// C?.ParentTypes(real) = J?<real, int>  // possibly-null type C? and J?
+  /// 
+  /// If "includeTypeBounds" is "true", then for a type parameter, ParentTypes() returns the type bounds.
   /// </summary>
-  public virtual List<Type> ParentTypes(List<Type> typeArgs) {
+  public virtual List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
     Contract.Requires(typeArgs != null);
     Contract.Requires(this.TypeArgs.Count == typeArgs.Count);
     return new List<Type>();

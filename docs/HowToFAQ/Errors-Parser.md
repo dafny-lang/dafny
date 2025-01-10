@@ -248,14 +248,25 @@ module N refines M { datatype D = ... Y | Z }
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
 It is only allowed to add members to the body of the datatype.
 
-## **Error: datatype extending traits is a beta feature; use /generalTraits:datatype to engage** {#p_general_traits_beta}
+## **Error: datatype extending traits is not yet enabled by default; use --general-traits=datatype to enable it** {#p_general_traits_datatype}
 
 ```dafny
 trait Trait { }
 datatype D extends Trait = A | B
 ```
 
-Use of traits as non-reference types is a beta feature. To engage, use /generalTraits:datatype.
+A newtype extending a trait is not generally supported. The option --general-traits=full causes
+Dafny to allow them in the input, but is not recommended.
+
+## **Error: newtype extending traits is not fully supported (specifically, compilation of such types is not supported); to use them for verification only, use --general-traits=full** {#p_general_traits_full}
+
+```dafny
+trait Trait { }
+newtype N extends Trait = int
+```
+
+Use of traits as non-reference types is supported, but is not yet the default. Until it becomes the
+default, use --general--traits=datatype to enable it.
 
 ## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here {#p_module_level_const_always_static}
 
@@ -1002,25 +1013,6 @@ that assist in proving the validity of the asserted expression.
 
 <!-- TODO -->
 
-## **Error: a forall statement with an ensures clause must have a body** {#p_forall_with_ensures_must_have_body}
-
-<!-- TODO: This example does not yet work in the new CLI because there is no way to turn on /noCheating in the new CLI -->
-
-<!-- %check-legacy %options -compile:0 -noCheating:1 -->
-```dafny
-module M {
-  predicate f(i: int) { true }
-  method  m(a: seq<int>) {
-    forall i | 0 <= i < 10
-       ensures f(i)
-  }
-}
-```
-
-A forall statement without a body is like an assume statement: the ensures clause is assumed in the following code.
-Assumptions like that are a risk to soundness because there is no check that the assumption is true.
-Thus in a context in which open assumptions are not allowed, body-less forall statements are also not allowed.
-
 ## **Warning: the modify statement with a block statement is deprecated** {#p_deprecated_modify_statement_with_block}
 
 <!-- TODO-->
@@ -1273,7 +1265,7 @@ are grouped. The example `5 | 6 & 7` should be written as either `(5 | 6) & 7` o
 
 ## **Error: too many characters in character literal** {#p_invalid_char_literal}
 
-<!-- %check-resolve --unicode-char:false -->
+<!-- %check-resolve %options --allow-deprecation --unicode-char:false -->
 ```dafny
 const c := '🚀'
 ```
@@ -1466,7 +1458,7 @@ that is a single underscore is used as a wild-card match.
 
 ## **Warning: deprecated style: a semi-colon is not needed here {#p_deprecated_semicolon}
 
-<!-- %check-legacy %exit 0 %options /compile:0 /deprecation:2 -->
+<!-- %check-resolve %options -->
 ```dafny
 const c := 5;
 ```
@@ -1549,17 +1541,6 @@ The Dafny scanner saw a pragma -- the first character of the line is a # charact
 scanner recognizes. The only pragma ever recognized was `#line`.
 
 <!-- ./DafnyCore/AST/Grammar/ProgramParser.cs -->
-
-## **Warning: File contains no code** {#p_file_has_no_code}
-
-<!-- %check-resolve-warn -->
-```dafny
-// const c := 42
-```
-
-The indicated file has no code. This can be because the file is empty, because some parse error
-left the top-level module with no well-formed declarations, or because a unclosed comment
-has commented-out the whole file.
 
 ## **Error: [internal error] Parser exception: _message_** {#p_internal_exception}
 

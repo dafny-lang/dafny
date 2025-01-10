@@ -1,1 +1,0 @@
-Fix null dereference in constant-folding invalid string-indexing expressions

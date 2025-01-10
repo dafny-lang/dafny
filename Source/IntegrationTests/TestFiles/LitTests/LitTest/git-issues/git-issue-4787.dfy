@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --warn-redundant-assumptions --warn-contradictory-assumptions --show-snippets:true "%s" > "%t"
+// RUN: %exits-with 4 %verify --warn-redundant-assumptions --allow-axioms --warn-contradictory-assumptions --show-snippets:true "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M {

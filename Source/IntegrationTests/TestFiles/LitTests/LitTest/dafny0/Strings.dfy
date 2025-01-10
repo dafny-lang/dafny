@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --unicode-char=false
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --allow-deprecation --unicode-char=false
 
 method Char(a: char, s: string, i: int) returns (b: char)
 {
@@ -143,8 +143,8 @@ method WeirdChars() returns (c: char, d: char)
 
 method AllCharsTest() {
   var allChars := set c: char {:trigger Identity(c)} | true :: Identity(c);
-  var allUTF16CodeUnits := set cp: int {:trigger Identity(cp)} | 0 <= cp < 0x1_0000 :: Identity(cp as char);
-  assert forall c: char {:trigger Identity(c)} :: 0 <= Identity(c as int) < 0x1_0000;
+  var allUTF16CodeUnits := set cp: int {:trigger Identity(cp as char)} | 0 <= cp < 0x1_0000 :: Identity(cp as char);
+  assert forall c: char {:trigger Identity(c)} :: 0 <= Identity(c) as int < 0x1_0000;
   assert forall c: char :: Identity(c) in allChars;
   assert allChars == allUTF16CodeUnits;
 

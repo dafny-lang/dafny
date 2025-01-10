@@ -30,7 +30,7 @@ If you want to propose code changes for the Dafny project, please note:
 - To propose code changes, use the standard Github multi-user project process, which is described for Dafny on the [wiki](https://github.com/dafny-lang/dafny/wiki/Setting-up-a-development-copy-of-Dafny).
 
 If your change is user-visible, then part of the PR should be corresponding changes to the
-[`RELEASE_NOTES.md`](../RELEASE_NOTES.md) file and to the 
+[`RELEASE_NOTES.md`](./RELEASE_NOTES.md) file (by following [this](./docs/dev/README.md)) and to the 
 [Dafny Reference Manual](./docs/DafnyRef).
 
 Any PR should have tests that check whether the bug-fix fixes the problem addressed or that the new functionality 
@@ -40,7 +40,7 @@ is properly working.
 
     Each `.dfy` file in this directory is a test, with a  [`lit`](https://llvm.org/docs/CommandGuide/lit.html) header describing how to run it and a `.expect` file indicating the expected output.  See [this README.md file](Source/IntegrationTests/TestFiles/LitTests/LitTest/README.md) for more info on running Dafny' integration tests.
 
-  - Dafny's unit tests are in various `*.Test` directories in [`Source`](../Source).
+  - Dafny's unit tests are in various `*.Test` directories in [`Source`](./Source).
 
   Our CI is configured to run all tests when you create a PR.  To run tests locally, use `dotnet test Source/Dafny.sln` (but note that running the tests for our compiler backends requires installing lots of additional software).
 
@@ -74,7 +74,7 @@ After doing these steps once, for other PRs, one only needs to re-run deep check
 - If some required tests fail, investigate and push more commits, but know that each CI run takes a lot of time, so try to fix the problem with as few commits as possible (ideally 1)
   It is also possible you find some tests that fail randomly, in that case, re-run them and report to the team. Avoid using the re-run all failed jobs here, because it will re-run _all_ jobs, so select them individually instead.
 - Have someone approve the PR and merge it (or auto-merge).
-- Once the PR with the fix to the CI is merged to master, go to https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml
+- Once the PR with the fix to the CI is merged to master, go to https://github.com/dafny-lang/dafny/actions/workflows/nightly-build.yml
 - Select "Run workflow..."
 - Select master
 - Wait for this new run to succeed.
@@ -85,7 +85,7 @@ Subsequent CI runs should pick up the successful `deep-tests` run and make the `
 ### How can I write portions of Dafny in Dafny itself?
 
 Since https://github.com/dafny-lang/dafny/pull/2399, it is possible to add \*.dfy files next to other source files.
-The plugin `dafny-msbuild` takes all the dafny files and compiles them into a single file `Source/DafnyCore/obj/Debug/net6.0/GeneratedFromDafny.cs`
+The plugin `dafny-msbuild` takes all the dafny files and compiles them into a single file `Source/DafnyCore/obj/Debug/net8.0/GeneratedFromDafny.cs`
 that is automatically included in the build process. This file contains also the Dafny run-time in C#.
 One example of such file is `Source/DafnyCore/AST/Formatting.dfy`, and you can use it as a starting point.
 
@@ -101,3 +101,9 @@ For example, `Formatting.dfy`
 ### What is the release process?
 
 You can find a description of the release process in [docs/dev/RELEASE.md](https://github.com/dafny-lang/dafny/blob/master/docs/dev/RELEASE.md).
+
+### Backwards compatibility
+
+Dafny is still changing and backwards incompatible changes may be made. Any backwards compatibility breaking change must be easy to adapt to, such as by adding a command line option. In the future, we plan to add a `dafny migrate` command which should support migrating any Dafny codebase from the previous to the current CLI version. 
+
+As rule, Dafny features must be marked as deprecated, including migration instructions, at least one release before they are removed.

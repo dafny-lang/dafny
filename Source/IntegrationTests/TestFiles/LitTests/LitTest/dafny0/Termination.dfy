@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --relax-definite-assignment --unicode-char=false
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --relax-definite-assignment --allow-deprecation --unicode-char=false
 
 
 class Termination {
@@ -392,7 +392,7 @@ module MultisetTests {
     if n == 0 then 0 else F'(a, n-1)
   }
 
-  ghost method M(n: nat, b: multiset<int>)
+  lemma M(n: nat, b: multiset<int>)
     ensures F(b, n) == 0  // proved via automatic induction
   {
   }
@@ -410,7 +410,7 @@ module MapTests {
     if n == 0 then 0 else F'(a, n-1)
   }
 
-  ghost method M(n: nat, b: map<int,int>)
+  lemma M(n: nat, b: map<int,int>)
     ensures F(b, n) == 0  // proved via automatic induction
   {
   }
@@ -487,7 +487,7 @@ datatype Tree = Empty | Node(root: int, left: Tree, right: Tree)
       }
   }
 
-  lemma {:induction this} {:vcs_split_on_every_assert} EvensSumToEven()  // explicitly use "this" as quantified over by induction hypothesis
+  lemma {:induction this} {:isolate_assertions} EvensSumToEven()  // explicitly use "this" as quantified over by induction hypothesis
     requires forall u :: u in Elements() ==> u % 2 == 0
     ensures Sum() % 2 == 0
     // auto: decreases this
@@ -500,7 +500,7 @@ datatype Tree = Empty | Node(root: int, left: Tree, right: Tree)
       right.EvensSumToEven();
   }
 
-  lemma {:vcs_split_on_every_assert} EvensSumToEvenAutoInduction()  // {:induction this} is the default
+  lemma {:isolate_assertions} EvensSumToEvenAutoInduction()  // {:induction this} is the default
     requires forall u :: u in Elements() ==> u % 2 == 0
     ensures Sum() % 2 == 0
     // auto: decreases this
@@ -514,7 +514,7 @@ datatype Tree = Empty | Node(root: int, left: Tree, right: Tree)
   }
 }
 
-lemma ExtEvensSumToEven(t: Tree)
+lemma {:induction false} ExtEvensSumToEven(t: Tree)
   requires forall u :: u in t.Elements() ==> u % 2 == 0
   ensures t.Sum() % 2 == 0
   // auto: decreases t
@@ -523,11 +523,11 @@ lemma ExtEvensSumToEven(t: Tree)
   case Empty =>
   case Node(x, left, right) =>
     assert x in t.Elements();
-    assert left.Sum() % 2 == 0;
-    assert right.Sum() % 2 == 0;
-    assert t.Sum() % 2 == 0;
+    assert left.Elements() <= t.Elements();
+    assert right.Elements() <= t.Elements();
+    ExtEvensSumToEven(left);
+    ExtEvensSumToEven(right);
 }
-
 // ------ attempts to use a decreases term whose "less" relation is "false"
 
 method LoopyInt(x: int) {

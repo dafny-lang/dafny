@@ -3,15 +3,15 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
+public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, IFrameScope {
   public override string WhatKind => Reads.Expressions.Count != 0 ? "lambda" : Range != null ? "partial lambda" : "total lambda";
 
   public Expression Body => Term;
 
   public readonly Specification<FrameExpression> Reads;
 
-  public LambdaExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression requires, Specification<FrameExpression> reads, Expression body)
-    : base(tok, rangeToken, bvars, requires, body, null) {
+  public LambdaExpr(IOrigin origin, List<BoundVar> bvars, Expression requires, Specification<FrameExpression> reads, Expression body)
+    : base(origin, bvars, requires, body, null) {
     Contract.Requires(reads != null);
     Reads = reads;
   }
@@ -84,4 +84,6 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
 
     return true;
   }
+
+  public string Designator => "lambda";
 }

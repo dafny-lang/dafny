@@ -297,7 +297,11 @@ func (cp CodePoint) String() string {
   return fmt.Sprintf("'%s'", cp.Escape())
 }
 
-
+func IsCodePoint(i Int) bool {
+  return (
+    (i.Sign() != -1 && i.Cmp(IntOfInt32(0xD800)) < 0) ||
+    (IntOfInt32(0xE000).Cmp(i) <= 0 && i.Cmp(IntOfInt32(0x11_0000)) < 0))
+}
 
 // AllUnicodeChars returns an iterator that returns all Unicode scalar values.
 func AllUnicodeChars() Iterator {
@@ -795,7 +799,7 @@ type Array interface {
 /***** newArray *****/
 
 // Multiply the numbers in "dims" and return the product as an "int".
-// If the produce doesn't fit in an "int", panic with the message that the
+// If the product doesn't fit in an "int", panic with the message that the
 // array-size limit has been exceeded.
 // It is expected that len(dims) is at least 1 and that each number in
 // dims is non-negative.
@@ -2734,6 +2738,10 @@ func (x Real) Int() Int {
   }
 }
 
+func (x Real) IsInteger() bool {
+  return RealOfFrac(x.Int(), One).Cmp(x) == 0
+}
+
 // Num returns the given Real's numerator as an Int
 func (x Real) Num() Int {
   return intOf(x.impl.Num())
@@ -3146,20 +3154,20 @@ type GoAtomicBox struct {
   value interface{}
 }
 
-func (box GoAtomicBox) Get() interface{} {
+func (box *GoAtomicBox) Get() interface{} {
   return box.value
 }
 
-func (box GoAtomicBox) Put(value interface{}) {
+func (box *GoAtomicBox) Put(value interface{}) {
   box.value = value
 }
 
-func (box GoAtomicBox) String() string {
+func (box *GoAtomicBox) String() string {
   return "dafny.GoAtomicBox"
 }
 
 func (CompanionStruct_AtomicBox_) Make(value interface{}) AtomicBox {
-  return GoAtomicBox{
+  return &GoAtomicBox{
     value: value,
   }
 }

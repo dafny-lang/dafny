@@ -1,13 +1,13 @@
 // RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype List<T> = Nil | Cons(T, List<T>)
+datatype List<T> = Nil | Cons({:custom 3 } T, {:custom 3 } List<T>)
 
 class Node {
   var data: int
   var next: Node?
 
-  ghost function Repr(list: List<int>): bool
+  ghost function Repr({:custom} list: List<int>): bool
     reads *
     decreases list
   { match list
@@ -24,7 +24,7 @@ class Node {
     next := null;
   }
 
-  method Add(d: int, L: List<int>) returns (r: Node)
+  method Add(d: int, L: List<int>) returns ({:custom} r: Node)
     requires Repr(L)
     ensures r.Repr(Cons(d, L))
   {
@@ -399,7 +399,7 @@ module Exhaustiveness {
     } else if c == B {
     } else if c == C {
     } else {
-      assert false;  // used to fails :(, but now works :)
+      assert false;  // used to fail :(, but now works :)
     }
   }
 
@@ -418,7 +418,7 @@ module Exhaustiveness {
   {
     var c := s[i];
     if c != A && c != B && c != C {
-      assert false;  // used to fails :(, but now works :)
+      assert false;  // used to fail :(, but now works :)
     }
   }
 

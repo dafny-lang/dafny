@@ -1,4 +1,4 @@
-// RUN: %exits-with 3 %dafny /compile:1 "%s" > "%t"
+// RUN: ! %build "%s" &> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method StatementsInCompiledMethod() {

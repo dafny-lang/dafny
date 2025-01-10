@@ -1,5 +1,2 @@
-CloudMake-CachedBuilds.dfy(107,6): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
-CloudMake-CachedBuilds.dfy(447,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
-CloudMake-CachedBuilds.dfy(1249,8): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
 
 Dafny program verifier finished with 76 verified, 0 errors

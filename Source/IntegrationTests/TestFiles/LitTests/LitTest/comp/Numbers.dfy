@@ -1,5 +1,5 @@
 // NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4174
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment --unicode-char:false
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 
 method Main() {
   Literals();
@@ -16,6 +16,7 @@ method Main() {
   ComparisonRegressions();
   CastRegressions();
   EuclideanDivisionRegressions.Test();
+  TypeTests.Test();
 }
 
 method Print(description: string, x: int) {
@@ -658,4 +659,45 @@ module EuclideanDivisionRegressions {
     var p3: int32 := 100 % 3;
     print p0, " ", p1, " ", p2, " ", p3, "\n"; // 1 2 0 1
   }
+}
+
+module TypeTests {
+  method Test() {
+    var r := 3.14;
+    var i := 100;
+    var ch := 'c';
+    var ord: ORDINAL := 9876;
+    var b7: bv7 := 77;
+    var b129: bv129 := 129;
+
+    print r as real, " "; // 3.14
+    print i as real, " "; // 100.0
+    print ch as real, " "; // 99.0
+    print ord as real, " "; // 9876.0
+    print b7 as real, " "; // 77.0
+    print b129 as real, "\n"; // 129.0
+
+    var smallCharSet: set<char> := {'7', 'D', 'X', 'd', 'x', '@'};
+    var s := set d: char | d in smallCharSet;
+    print |s|, "\n"; // 6
+
+    var t := set e: MyChar | e in s;
+    print |t|, "\n"; // 2
+
+    var u := set ltl: Little | 3 <= ltl < 35 && ltl % 3 == 1; // {4, 7, 13, 19, 25, 28, 31}
+    print |u|, "\n"; // 7
+  }
+
+  predicate GoodChar(ch: char) { true }
+  type MyChar = chr: char | 'A' <= chr <= 'Z' witness 'B'
+
+  function EmptySequence<Y>(): seq<Y> {
+    []
+  }
+
+  newtype Big = x: int | 0 <= x < 10_000 && x != 22
+  type AnotherInBetween<HH(0), GG> = y: Big | y != 10
+  type SubsetInBetween<G, H(0)> = y: AnotherInBetween<H, G> | y != 34 && |EmptySequence<G>()| == |EmptySequence<H>()|
+  newtype Middle = SubsetInBetween<bool, char>
+  newtype Little = z: Middle | z < 200 && z != 16
 }

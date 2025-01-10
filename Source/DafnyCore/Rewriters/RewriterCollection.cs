@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -11,14 +12,14 @@ public static class RewriterCollection {
     if (reporter.Options.AuditProgram) {
       result.Add(new Auditor.Auditor(reporter));
     }
-
+    result.Add(new ExpandAtAttributes(program, reporter));
     result.Add(new AutoContractsRewriter(program, reporter));
     result.Add(new OpaqueMemberRewriter(reporter));
     result.Add(new AutoReqFunctionRewriter(program, reporter));
     result.Add(new TimeLimitRewriter(reporter));
     result.Add(new ForallStmtRewriter(reporter));
     result.Add(new ProvideRevealAllRewriter(reporter));
-    result.Add(new MatchFlattener(reporter, program.Compilation.IdGenerator));
+    result.Add(new MatchFlattener(reporter));
 
     if (reporter.Options.AutoTriggers) {
       result.Add(new QuantifierSplittingRewriter(reporter));
@@ -26,7 +27,7 @@ public static class RewriterCollection {
     }
 
     if (reporter.Options.TestContracts != DafnyOptions.ContractTestingMode.None) {
-      result.Add(new ExpectContracts(reporter));
+      result.Add(new ExpectContracts(reporter, program.SystemModuleManager));
     }
 
     if (reporter.Options.Get(RunAllTestsMainMethod.IncludeTestRunner)) {

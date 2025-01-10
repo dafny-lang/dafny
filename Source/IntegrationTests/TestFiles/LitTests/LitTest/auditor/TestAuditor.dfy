@@ -1,8 +1,8 @@
-// RUN: %baredafny audit --reads-clauses-on-methods --report-file "%t.md" "%s"
-// RUN: %baredafny audit --reads-clauses-on-methods --report-file "%t.md" --compare-report "%s"
-// RUN: %baredafny audit --reads-clauses-on-methods --report-file "%t.html" "%s"
-// RUN: %baredafny audit --reads-clauses-on-methods --report-file "%t-ietf.md" --report-format markdown-ietf "%s"
-// RUN: %baredafny audit --reads-clauses-on-methods --use-basename-for-filename "%s" > "%t"
+// RUN: %baredafny audit --reads-clauses-on-methods --allow-external-contracts --report-file "%t.md" "%s"
+// RUN: %baredafny audit --reads-clauses-on-methods --allow-external-contracts --report-file "%t.md" --compare-report "%s"
+// RUN: %baredafny audit --reads-clauses-on-methods --allow-external-contracts --report-file "%t.html" "%s"
+// RUN: %baredafny audit --reads-clauses-on-methods --allow-external-contracts --report-file "%t-ietf.md" --report-format markdown-ietf "%s"
+// RUN: %baredafny audit --reads-clauses-on-methods --allow-external-contracts --use-basename-for-filename "%s" > "%t"
 // RUN: %diff "%s.md.expect" "%t.md"
 // RUN: %diff "%s-ietf.md.expect" "%t-ietf.md"
 // RUN: %diff "%s.html.expect" "%t.html"
@@ -163,3 +163,16 @@ method {:extern} {:axiom} GenerateBytesWithAxiom(i: int32) returns (res: seq<uin
 
 function {:extern} {:axiom} ExternFunctionWithAxiom(i: int32): (res: int32)
   ensures res != i
+
+module A {
+  trait T {}
+}
+module B {
+  import opened A
+
+  @AssumeCrossModuleTermination
+  class ClassExtendingTraitFromOtherModule extends T {}
+
+  @AssumeCrossModuleTermination
+  trait TraitExtendingTraitFromOtherModule extends T {}
+}

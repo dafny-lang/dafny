@@ -35,12 +35,13 @@ module SimpleTest {
     } else if (|tseq| > 0 && tseq[0].1.1 == 'R') {
         return 2;
     }
+    return 3;
   }
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var program = await Parse(new BatchErrorReporter(options), source, false);
+      var methods = await GetTestMethodsForProgram(program);
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "SimpleTest.tuple"));
@@ -83,8 +84,8 @@ module C {
 
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var program = await Parse(new BatchErrorReporter(options), source, false);
+      var methods = await GetTestMethodsForProgram(program);
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "C.compareStringLengthToOne"));

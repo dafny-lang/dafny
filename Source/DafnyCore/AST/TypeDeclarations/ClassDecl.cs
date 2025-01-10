@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class ClassDecl : ClassLikeDecl, IHasDocstring {
+public class ClassDecl : ClassLikeDecl {
   public override string WhatKind => "class";
   public override bool IsReferenceTypeDecl => true;
   public override bool AcceptThis => true;
@@ -15,10 +15,10 @@ public class ClassDecl : ClassLikeDecl, IHasDocstring {
     Contract.Invariant(ParentTraits != null);
   }
 
-  public ClassDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
+  public ClassDecl(IOrigin origin, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {
-    Contract.Requires(rangeToken != null);
+    : base(origin, name, module, typeArgs, members, attributes, isRefining, traits) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

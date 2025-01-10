@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module ExampleA {
@@ -43,7 +43,7 @@ module ExampleB {
   export
     provides Test
 
-  trait D {
+  trait D extends object {
     lemma False()
       ensures false
   }
@@ -134,7 +134,7 @@ module OtherBindersInStatements {
     lemma False()
       ensures false
   }
-  trait C {
+  trait C extends object {
     lemma False()
       ensures false
   }

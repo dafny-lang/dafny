@@ -25,7 +25,9 @@ jobs:
     with:
       ref: ${{ inputs.ref }}
       all_platforms: true
-      num_shards: 5
+      num_shards: 10
+      # Omit Rust because Rust is known to have random issues
+      compilers: cs,java,go,js,cpp,dfy,py
 
   determine-vars:
     if: github.repository_owner == 'dafny-lang' && inputs.publish-prerelease

@@ -12,10 +12,14 @@ on:
       ref:
         required: true
         type: string
+      compilers:
+        description: 'Compilers to use'
+        type: string
+        required: false
+        default: ""
 
 env:
-  dotnet-version: 6.0.x # SDK Version for building Dafny
-
+  dotnet-version: 8.0.x # SDK Version for building Dafny
 
 jobs:
   # This job is used to dynamically calculate the matrix dimensions.
@@ -27,7 +31,7 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "os-list=[\"ubuntu-latest\", \"ubuntu-20.04\", \"macos-latest\", \"windows-2019\"]" >> $GITHUB_OUTPUT
+        run: echo "os-list=[\"ubuntu-20.04\", \"macos-13\", \"windows-2019\"]" >> $GITHUB_OUTPUT
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
@@ -35,7 +39,7 @@ jobs:
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "os-mapping={\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"macos\", \"windows-2019\": \"windows\"}" >> $GITHUB_OUTPUT
+          echo "os-mapping={\"ubuntu-20.04\": \"ubuntu\", \"macos-13\": \"macos\", \"windows-2019\": \"windows\"}" >> $GITHUB_OUTPUT
       - name: Populate target runtime version list (all platforms)
         id: populate-target-runtime-version-all
         if: inputs.all_platforms
@@ -68,6 +72,11 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.dotnet-version }}
+    #  Setup dotnet 6.0 for running Boogie. Alternatively we could try running Boogie with a roll forward policy, or updating Boogie.
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 6.0.x
     - name: C++ for ubuntu 20.04
       if: matrix.os == 'ubuntu-20.04'
       run: |
@@ -91,11 +100,12 @@ jobs:
     - name: Set up oldest supported Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.15'
+        go-version: '1.21'
+        cache: false
     - name: Set up goimports
       env:
         GO111MODULE: on
-      run: go get golang.org/x/tools/cmd/goimports@release-branch.go1.15
+      run: go install golang.org/x/tools/cmd/goimports@latest
     - name: Set up Python
       uses: actions/setup-python@v5
       with: 
@@ -123,6 +133,22 @@ jobs:
 #    - name: Clean up libraries for testing
 #      run: |
 #        rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
+    - name: Use the default Rust linker (Non-Windows)
+      if: runner.os != 'Windows'
+      run: rustup default stable
+    - name: Use specific Toolchain (Windows)
+      if: runner.os == 'Windows'
+      run: rustup default stable-x86_64-pc-windows-gnu
+    - name: Rust-related System information
+      run: |
+        echo "What is the Rust version?"
+        rustc -vV
+        echo "What is the cargo version?"
+        cargo --version
+        echo "What is the architecture?"
+        uname -m
+        echo "What are Rust toolchains installed?"
+        rustup toolchain list
     - name: Create release
       if: inputs.all_platforms
       run: |
@@ -137,7 +163,7 @@ jobs:
     - name: Load Z3
       if: "!inputs.all_platforms"
       run: |
-        sudo apt-get install -qq libarchive-tools
+        sudo apt-get update && sudo apt-get install -qq libarchive-tools
         mkdir -p dafny/Binaries/z3/bin
         wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-ubuntu-20.04-bin.zip | bsdtar -xf -
         mv z3-4.12.1 dafny/Binaries/z3/bin/
@@ -150,6 +176,7 @@ jobs:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
+        DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS: ${{ inputs.compilers }}
       run: |
         cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1.exe
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests/IntegrationTests.csproj
@@ -166,6 +193,7 @@ jobs:
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
+        DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS: ${{ inputs.compilers }}
       run: |
         ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests

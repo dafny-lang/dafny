@@ -9,6 +9,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using DafnyCore;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -23,12 +24,14 @@ namespace Microsoft.Dafny.LanguageServer {
         ProjectManager.Verification,
         GhostStateDiagnosticCollector.GhostIndicators,
         GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus,
-        LanguageServer.VerifySnapshots,
+        VerifySnapshots,
         DafnyLangSymbolResolver.UseCaching,
         ProjectManager.UpdateThrottling,
+        CachingProjectFileOpener.ProjectFileCacheExpiry,
+        DeveloperOptionBag.SplitPrint,
+        DeveloperOptionBag.PassivePrint,
         DeveloperOptionBag.BoogiePrint,
-        CommonOptionBag.EnforceDeterminism,
-        CommonOptionBag.UseJavadocLikeDocstringRewriterOption,
+        InternalDocstringRewritersPluginConfiguration.UseJavadocLikeDocstringRewriterOption,
         LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ResolverOptions);
@@ -46,18 +49,12 @@ namespace Microsoft.Dafny.LanguageServer {
     };
 
     public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
-      dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, true);
-      dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
-
-      // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
-      //      A dash means write to the textwriter instead of a file.
-      // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-      dafnyOptions.ModelViewFile = "-";
+      dafnyOptions.Set(Snippets.ShowSnippets, true);
     }
 
     public static async Task Start(DafnyOptions dafnyOptions) {
       var configuration = CreateConfiguration();
-      InitializeLogger(configuration);
+      InitializeLogger(dafnyOptions, configuration);
 
       dafnyOptions = new DafnyOptions(dafnyOptions, true);
       try {
@@ -70,7 +67,7 @@ namespace Microsoft.Dafny.LanguageServer {
             .ConfigureLogging(SetupLogging)
             .WithUnhandledExceptionHandler(LogException)
             // ReSharper disable once AccessToModifiedClosure
-            .WithDafnyLanguageServer(() => shutdownServer!())
+            .WithDafnyLanguageServer(dafnyOptions, () => shutdownServer!())
         );
         // Prevent any other parts of the language server to actually write to standard output.
         await using var logWriter = new LogWriter();
@@ -79,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer {
         await server.WaitForExit;
       }
       finally {
-        Log.CloseAndFlush();
+        await Log.CloseAndFlushAsync();
       }
     }
 
@@ -89,12 +86,20 @@ namespace Microsoft.Dafny.LanguageServer {
         .Build();
     }
 
-    private static void InitializeLogger(IConfiguration configuration) {
+    private static void InitializeLogger(DafnyOptions options, IConfiguration configuration) {
       // The environment variable is used so a log file can be explicitly created in the application dir.
-      Environment.SetEnvironmentVariable("DAFNYLS_APP_DIR", Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-      Log.Logger = new LoggerConfiguration()
+      var logLevel = options.Get(CommonOptionBag.LogLevelOption);
+      var logLocation = options.Get(CommonOptionBag.LogLocation) ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+      Environment.SetEnvironmentVariable("DAFNYLS_APP_DIR", logLocation);
+      LoggerConfiguration config = new LoggerConfiguration()
         .ReadFrom.Configuration(configuration)
-        .CreateLogger();
+        .MinimumLevel.Override("Microsoft.Dafny", logLevel);
+      if (logLocation != null) {
+        var logFile = Path.Combine(logLocation,
+          "DafnyLanguageServerLog" + DateTime.Now.ToString().Replace("/", "_").Replace("\\", "_") + ".txt");
+        config = config.WriteTo.File(logFile);
+      }
+      Log.Logger = config.CreateLogger();
     }
 
     private static void LogException(Exception exception) {

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading.Tasks;
 using DafnyCore.Test;
 using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
@@ -19,12 +20,12 @@ namespace DafnyPipeline.Test {
     }
 
     [Fact]
-    public void Test() {
-      var options = DafnyOptions.Create(output);
+    public async Task Test() {
+      var options = DafnyOptions.CreateUsingOldParser(output);
       options.DafnyPrelude = "../../../../../Binaries/DafnyPrelude.bpl";
 
       var programString = @"trait Trait<A, B> { }";
-      var dafnyProgram = Utils.Parse(new BatchErrorReporter(options), programString, false);
+      var dafnyProgram = await Utils.Parse(new BatchErrorReporter(options), programString, false);
       DafnyMain.Resolve(dafnyProgram);
       foreach (var prog in BoogieGenerator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
         var writer = new StringWriter();

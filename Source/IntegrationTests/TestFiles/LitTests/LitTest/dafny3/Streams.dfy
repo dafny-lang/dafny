@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation
 
 
 // ----- Stream
@@ -62,7 +62,7 @@ greatest lemma Theorem0_Alt(M: Stream<X>)
 lemma Theorem0_Par(M: Stream<X>)
   ensures map_fg(M) == map_f(map_g(M));
 {
-  forall k: nat {
+  forall k: nat {:trigger} {
     Theorem0_Ind(k, M);
   }
 }
@@ -102,7 +102,7 @@ greatest lemma Theorem1_Alt(M: Stream<X>, N: Stream<X>)
 lemma Theorem1_Par(M: Stream<X>, N: Stream<X>)
   ensures map_f(append(M, N)) == append(map_f(M), map_f(N));
 {
-  forall k: nat {
+  forall k: nat {:trigger} {
     Theorem1_Ind(k, M, N);
   }
 }

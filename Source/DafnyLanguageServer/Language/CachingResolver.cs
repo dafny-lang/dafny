@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -15,11 +16,8 @@ public class ResolutionCache {
   public PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> Modules { get; } = new(new HashEquality());
   public SystemModuleManager? Builtins { get; set; }
   public Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>? SystemClassMembers { get; set; }
-
-  public void Prune() {
-    Modules.Prune();
-  }
 }
+
 public class CachingResolver : ProgramResolver {
   private readonly ILogger<CachingResolver> logger;
   private readonly Dictionary<ModuleDecl, byte[]> hashes = new();
@@ -37,11 +35,11 @@ public class CachingResolver : ProgramResolver {
     this.telemetryPublisher = telemetryPublisher;
   }
 
-  public override void Resolve(CancellationToken cancellationToken) {
-    cache.Modules.ProfileAndPruneCache(() => {
-      base.Resolve(cancellationToken);
-      return Unit.Value;
-    }, telemetryPublisher, Program.FullName, "resolution");
+  public override Task Resolve(CancellationToken cancellationToken) {
+    return cache.Modules.ProfileAndPruneCache(async () => {
+      await base.Resolve(cancellationToken);
+      return Task.FromResult(Unit.Value);
+    }, logger, telemetryPublisher, Program.FullName, "resolution", cancellationToken);
   }
 
   protected override Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveSystemModule(Program program) {
@@ -64,8 +62,10 @@ public class CachingResolver : ProgramResolver {
 
     if (!cache.Modules.TryGet(hash, out var result)) {
       logger.LogDebug($"Resolution cache miss for {decl}");
+      var beforeResolution = DateTime.Now;
       result = base.ResolveModuleDeclaration(compilation, decl);
       cache.Modules.Set(hash, result);
+      telemetryPublisher.PublishTime("ModuleResolution", decl.FullName, DateTime.Now - beforeResolution);
     } else {
       logger.LogDebug($"Resolution cache hit for {decl}");
     }
@@ -75,7 +75,7 @@ public class CachingResolver : ProgramResolver {
   private byte[] GetHash(ModuleDecl moduleDeclaration) {
     if (!hashes.TryGetValue(moduleDeclaration, out var result)) {
       var moduleVertex = dependencies.FindVertex(moduleDeclaration);
-      var hashAlgorithm = HashAlgorithm.Create("SHA256")!;
+      var hashAlgorithm = SHA256.Create()!;
       hashAlgorithm.Initialize();
       // We don't want the order of Successors to influence the hash, so we order by the content hash, for which CloneId is currently a proxy
       var orderedSuccessors = moduleVertex.Successors.OrderBy(s => s.N.CloneId);

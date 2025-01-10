@@ -4,16 +4,16 @@ using System.Linq;
 namespace Microsoft.Dafny {
   public class FunctionCallSubstituter : Substituter {
     public readonly TraitDecl Tr;
-    public readonly TopLevelDeclWithMembers Cl;
+    public readonly TopLevelDeclWithMembers Impl;
 
     // We replace all occurrences of the trait version of the function with the class version. This is only allowed if
     // the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
     // expressions that evaluate to one.
     public FunctionCallSubstituter(Dictionary<IVariable, Expression /*!*/> /*!*/ substMap, Dictionary<TypeParameter, Type> typeMap,
-      TraitDecl parentTrait, TopLevelDeclWithMembers cl)
-      : base(new ThisExpr(cl.tok) { Type = UserDefinedType.FromTopLevelDecl(cl.tok, cl) }, substMap, typeMap) {
-      this.Tr = parentTrait;
-      this.Cl = cl;
+      TraitDecl parentTrait, TopLevelDeclWithMembers impl)
+      : base(new ThisExpr(impl.Origin) { Type = UserDefinedType.FromTopLevelDecl(impl.Origin, impl) }, substMap, typeMap) {
+      Tr = parentTrait;
+      Impl = impl;
     }
 
     public override Expression Substitute(Expression expr) {
@@ -24,14 +24,14 @@ namespace Microsoft.Dafny {
         Function function;
         if ((e.Function.EnclosingClass == Tr || Tr.InheritedMembers.Contains(e.Function)) &&
             e.Receiver.Resolved is ThisExpr && receiver.Resolved is ThisExpr &&
-            Cl.Members.Find(m => m.OverriddenMember == e.Function) is { } f) {
+            Impl.Members.Find(m => m.OverriddenMember == e.Function) is { } f) {
           receiver = new ThisExpr((TopLevelDeclWithMembers)f.EnclosingClass);
           function = (Function)f;
-          typeApplicationAtEnclosingClass = receiver.Type.AsParentType(Cl).TypeArgs.ToList();
+          typeApplicationAtEnclosingClass = receiver.Type.AsParentType(Impl).TypeArgs.ToList();
         } else {
           function = e.Function;
         }
-        return new FunctionCallExpr(e.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel) {
+        return new FunctionCallExpr(e.Origin, e.NameNode, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel) {
           Function = function,
           Type = e.Type.Subst(typeMap),
           TypeApplication_AtEnclosingClass = SubstituteTypeList(typeApplicationAtEnclosingClass), // resolve here

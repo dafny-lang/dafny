@@ -23,7 +23,7 @@ ConstantErrors.dfy(136,10): Error: recursive constraint dependency involving a n
 ConstantErrors.dfy(146,10): Error: recursive constraint dependency involving a newtype: A -> F -> B -> A
 ConstantErrors.dfy(156,10): Error: recursive constraint dependency involving a newtype: A -> F -> B -> A
 ConstantErrors.dfy(166,10): Error: recursive constraint dependency involving a newtype: A -> F -> B -> C -> A
-ConstantErrors.dfy(181,8): Error: const definition contains a cycle: b -> MakeC -> C -> D -> E -> f -> G -> H -> I -> j -> K -> L -> M -> n -> A -> MakeA -> b
+ConstantErrors.dfy(180,10): Error: recursive constraint dependency involving a newtype: A -> MakeA -> b -> MakeC -> C -> D -> E -> f -> G -> H -> I -> j -> K -> L -> M -> n -> A
 ConstantErrors.dfy(207,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> C -> D -> A
 ConstantErrors.dfy(215,8): Error: static non-ghost const field 'g' of type 'G' (which does not have a default compiled value) must give a defining value
 ConstantErrors.dfy[R0](220,8): Error: static non-ghost const field 'g' of type 'G' (which does not have a default compiled value) must give a defining value

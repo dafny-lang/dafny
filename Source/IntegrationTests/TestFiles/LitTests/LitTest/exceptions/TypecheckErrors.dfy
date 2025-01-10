@@ -36,15 +36,15 @@ trait BadOutcome3 {
 }
 
 method TestMissingMethods1(o: BadOutcome1) returns (res: BadOutcome1) {
-    var a :- o; return o; // TODO infers 'BadOutcome1?' for RHS of ':-' instead of 'BadOutcome1' (should not infer nullable)
+    var a :- o; return o;
 }
 
 method TestMissingMethods2(o: BadOutcome2) returns (res: BadOutcome2) {
-    var a :- o; return o; // TODO infers 'BadOutcome2?' for RHS of ':-' instead of 'BadOutcome2' (should not infer nullable)
+    var a :- o; return o;
 }
 
 method TestMissingMethods3(o: BadOutcome3) returns (res: BadOutcome3) {
-    var a :- o; return o; // TODO infers 'BadOutcome3?' for RHS of ':-' instead of 'BadOutcome3' (should not infer nullable)
+    var a :- o; return o;
 }
 
 method TestTypecheckingInDesugaredTerm_Void() returns (res: VoidOutcome) {
@@ -77,4 +77,14 @@ method TestMissingVoidMethods2(o: BadVoidOutcome2) returns (res: BadVoidOutcome2
 
 method TestMissingVoidMethods3(o: BadVoidOutcome3) returns (res: BadVoidOutcome3) {
     :- o; return o;
+}
+
+method TestMissingMethods2WithKeyword(o: BadOutcome2) returns (res: BadOutcome2) {
+  var a :- assert o; // with "assert" keyword, it's fine that PropagateFailure is missing
+  return o;
+}
+
+method TestMissingVoidMethods2WithKeyword(o: BadVoidOutcome2) returns (res: BadVoidOutcome2) {
+  :- assert o; // with "assert" keyword, it's fine that PropagateFailure is missing
+  return o;
 }

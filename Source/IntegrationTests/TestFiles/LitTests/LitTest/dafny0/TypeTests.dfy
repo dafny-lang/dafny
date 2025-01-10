@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify --warn-deprecation false "%s" > "%t"
+// RUN: %exits-with 2 %verify --allow-deprecation "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Tests {
@@ -226,10 +226,10 @@ module ArrayTests {
 // ---------------------
 
 module OtherCycles0 {
-  datatype A = Ctor(A -> A)  // warning: empty datatype
+  datatype A = Ctor(A -> A)  // error: cardinality error
   datatype B = Ctor(int -> B)  // warning: empty datatype
-
-  datatype Cycle = Cycle(Cyc)  // warning: empty datatype
+} module OtherCycles0' {
+  datatype Cycle = Cycle(Cyc) // (no instance possible, but this issue is masked by the cyclic-dependency error)
   type Cyc = c: Cycle | true // error: dependency: Cyc -> Cycle -> Cyc
 }
 
@@ -254,14 +254,14 @@ module OtherCycles2 {
 
 module OtherCycles3 {
   // the next line uses a partial arrow
-  datatype CycleW = CycleW(int -> CycW) // warning: no instance possible
+  datatype CycleW = CycleW(int -> CycW) // (no instance possible, but this issue is masked by the cyclic-dependency error)
   type CycW = c: CycleW | true witness W() // error: dependency cycle W -> CycW -> CycleW
   function W(): CycleW
 }
 
 module OtherCycles4 {
   // the next line uses a total arrow
-  datatype CycleW = CycleW(int -> CycW) // warning: because of cycle among constructor argument types, 'CycleW' is empty
+  datatype CycleW = CycleW(int -> CycW) // (no instance possible, but this issue is masked by the cyclic-dependency error)
   type CycW = c: CycleW | true witness W() // error: dependency cycle: CycW -> W -> CycleW -> CycW
   function W(): CycleW
 }
@@ -269,7 +269,7 @@ module OtherCycles4 {
 module OtherCycles5 {
   // the next line uses a subset type over a total arrow
   type MyTotalArrow<X, Y> = f: X -> Y | true
-  datatype CycleW = CycleW(MyTotalArrow<int, CycW>) // warning: because of cycle among constructor argument types, 'CycleW' is empty
+  datatype CycleW = CycleW(MyTotalArrow<int, CycW>)  // (no instance possible, but this issue is masked by the cyclic-dependency error)
   type CycW = c: CycleW | true witness W() // error: dependency cycle: CycW -> W -> CycleW -> CycW
   function W(): CycleW
 }
@@ -278,4 +278,15 @@ module NE {
   datatype NeverendingList = Cons(int, NeverendingList)  // warning: empty type
   datatype Growing<X> = Make(Growing<array<X>>) // warning: empty type
   datatype MaybeGrowing<X> = Make(array<MaybeGrowing<X>>) // okay, since it does not violate the cycle rule
+}
+
+module EmptinessAndCardinality {
+  datatype A = Ctor(A -> A) // error: cardinality
+  datatype B = Ctor(int -> B) // (empty, but not "obviously empty")
+  datatype C = More(C) // warning: empty
+  datatype D = More(int --> D)
+  datatype E = More(E --> int) // error: cardinality
+
+  datatype List<X> = Nil | Cons(X, List<X>)
+  datatype Expr = Node(List<Expr>)
 }

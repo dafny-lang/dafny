@@ -26,6 +26,23 @@ namespace Microsoft.Dafny {
   /// See also the description of https://github.com/dafny-lang/dafny/pull/3795.
   /// </summary>
   public abstract class PreType {
+    public const string TypeNameBool = "bool";
+    public const string TypeNameChar = "char";
+    public const string TypeNameInt = "int";
+    public const string TypeNameReal = "real";
+    public const string TypeNameORDINAL = "ORDINAL";
+    public const string TypeNameBvPrefix = "bv";
+    public const string TypeNameSet = "set";
+    public const string TypeNameIset = "iset";
+    public const string TypeNameSeq = "seq";
+    public const string TypeNameMultiset = "multiset";
+    public const string TypeNameMap = "map";
+    public const string TypeNameImap = "imap";
+    public const string TypeNameObjectQ = "object?";
+    public const string TypeNameArray = "array";
+
+    public static string SetTypeName(bool finite) => finite ? TypeNameSet : TypeNameIset;
+    public static string MapTypeName(bool finite) => finite ? TypeNameMap : TypeNameImap;
 
     /// <summary>
     /// Normalize() follows the pre-type to which a pre-type proxy has been resolved, if any.
@@ -81,7 +98,7 @@ namespace Microsoft.Dafny {
       var pt = this;
       while (true) {
         pt = pt.Normalize();
-        if (pt is DPreType preType && preType.Decl is NewtypeDecl newtypeDecl) {
+        if (pt is DPreType { Decl: NewtypeDecl newtypeDecl } preType) {
           // expand the newtype into its base type
           var subst = PreTypeSubstMap(newtypeDecl.TypeArgs, preType.Arguments);
           var basePreType = ptResolver.Type2PreType(newtypeDecl.BaseType);
@@ -96,12 +113,12 @@ namespace Microsoft.Dafny {
     public DPreType AsCollectionPreType() {
       if (Normalize() is DPreType dp) {
         switch (dp.Decl.Name) {
-          case "set":
-          case "iset":
-          case "seq":
-          case "multiset":
-          case "map":
-          case "imap":
+          case TypeNameSet:
+          case TypeNameIset:
+          case TypeNameSeq:
+          case TypeNameMultiset:
+          case TypeNameMap:
+          case TypeNameImap:
             return dp;
           default:
             break;
@@ -250,10 +267,19 @@ namespace Microsoft.Dafny {
     public readonly DPreType PrintablePreType;
 
     public DPreType(TopLevelDecl decl, List<PreType> arguments, DPreType printablePreType = null) {
+      Contract.Requires(decl.TypeArgs.Count == arguments.Count);
       Contract.Assume(decl != null);
       Decl = decl;
       Arguments = arguments;
       PrintablePreType = printablePreType;
+    }
+
+    public DPreType SansPrintablePreType() {
+      if (PrintablePreType == null) {
+        return this;
+      } else {
+        return new DPreType(Decl, Arguments);
+      }
     }
 
     public override string ToString() {
@@ -264,13 +290,11 @@ namespace Microsoft.Dafny {
       var name = Decl.Name;
       string s;
       if (IsArrowType(Decl)) {
-        var a0 = Arguments[0].Normalize() as DPreType;
-        if (Arguments.Count == 2 && (a0 == null || (!IsTupleType(a0.Decl) && !IsArrowType(a0.Decl)))) {
-          s = Arguments[0].ToString();
-        } else {
-          s = $"({Util.Comma(Arguments.GetRange(0, Arguments.Count - 1), arg => arg.ToString())})";
-        }
-        s += $" ~> {Arguments.Last()}";
+        s = AnyArrowTypeToString("~>");
+      } else if (ArrowType.IsPartialArrowTypeName(Decl.Name)) {
+        s = AnyArrowTypeToString("-->");
+      } else if (ArrowType.IsTotalArrowTypeName(Decl.Name)) {
+        s = AnyArrowTypeToString("->");
       } else if (IsTupleType(Decl)) {
         var tupleTypeDecl = (TupleTypeDecl)Decl;
         Contract.Assert(Arguments.Count == tupleTypeDecl.ArgumentGhostness.Count);
@@ -289,6 +313,18 @@ namespace Microsoft.Dafny {
         }
       }
 
+      return s;
+    }
+
+    private string AnyArrowTypeToString(string arrow) {
+      string s;
+      var a0 = Arguments[0].Normalize() as DPreType;
+      if (Arguments.Count == 2 && (a0 == null || (!IsTupleType(a0.Decl) && !IsArrowType(a0.Decl)))) {
+        s = Arguments[0].ToString();
+      } else {
+        s = $"({Util.Comma(Arguments.GetRange(0, Arguments.Count - 1), arg => arg.ToString())})";
+      }
+      s += $" {arrow} {Arguments.Last()}";
       return s;
     }
 
@@ -427,10 +463,13 @@ namespace Microsoft.Dafny {
   public class PreTypePlaceholderType : PreTypePlaceholder {
   }
 
-  public class UnusedPreType : PreTypePlaceholder {
+  /// Used for assigning a pre-type to MemberSelect expressions, such as "obj.method",
+  /// which is not considered an expression. This indicates that resolution has occurred,
+  /// even though the pre-type itself is not useful.
+  public class MethodPreType : PreTypePlaceholder {
     public readonly string Why;
 
-    public UnusedPreType(string why) {
+    public MethodPreType(string why) {
       Why = why;
     }
 

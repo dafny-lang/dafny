@@ -1,2 +1,3 @@
+git-issue-3496.dfy(5,2): Warning: assume statement has no {:axiom} annotation
 
 Dafny program verifier did not attempt verification

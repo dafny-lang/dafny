@@ -1,0 +1,1 @@
+// CHECK-L: error[E0277]: the type `[DafnyInt]` cannot be indexed by `&DafnyInt`

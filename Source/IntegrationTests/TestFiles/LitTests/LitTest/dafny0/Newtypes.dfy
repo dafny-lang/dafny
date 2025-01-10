@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %build "%s" --relax-definite-assignment > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype int32 = int
@@ -88,7 +88,7 @@ module PredicateTests {
   }
 
   method N() {
-    var y: char8;
+    var y: char8 := *;
     if * {
       y := y / 2;
       y := y + 1;
@@ -358,4 +358,17 @@ module SeqTests {
     ensures  data[0..25] == [data[0]] + data[1..25]
   {
   }
+}
+
+module SimpleNewtypeWitness {
+  newtype A = x: int | 100 <= x witness 102
+  newtype B = a: A | true witness 103
+
+  newtype C = A // error: default witness 0 does not satisfy constraint
+  newtype D = A witness 104
+  newtype E = A ghost witness 104
+  newtype F = A witness *
+
+  newtype G = A witness 13 // error: 13 does not satisfy constraint
+  newtype H = A ghost witness 13 // error: 13 does not satisfy constraint
 }

@@ -1,0 +1,9 @@
+[package]
+name = "ProjectDependingOnDafny"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "projectdependingondafny"
+path = "src/project_depending_on_dafny.rs"
+

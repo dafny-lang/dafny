@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -10,7 +11,7 @@ namespace XUnitExtensions.Lit {
   /// because 'diff' does not exist on Windows.
   /// </summary>
   public class DiffCommand : ILitCommand {
-    public static readonly bool UpdateExpectFile = false;
+    public static readonly bool UpdateExpectFile = "true" == Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE");
 
     public string ExpectedPath { get; }
     public string ActualPath { get; }
@@ -31,7 +32,10 @@ namespace XUnitExtensions.Lit {
 
     public static string? Run(string expectedOutputFile, string actualOutput) {
       if (UpdateExpectFile) {
-        var path = Path.GetFullPath(expectedOutputFile).Replace("bin/Debug/net6.0/", "");
+        if (Path.GetExtension(expectedOutputFile) == ".tmp") {
+          return "With DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE=true, first argument of %diff cannot be a *.tmp file, it should be an *.expect file";
+        }
+        var path = Path.GetFullPath(expectedOutputFile).Replace("bin" + Path.DirectorySeparatorChar + "Debug" + Path.DirectorySeparatorChar + "net8.0" + Path.DirectorySeparatorChar, "");
         File.WriteAllText(path, actualOutput);
         return null;
       }
@@ -39,11 +43,16 @@ namespace XUnitExtensions.Lit {
       return AssertWithDiff.GetDiffMessage(expected, actualOutput);
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public async Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
-      var actual = File.ReadAllText(ActualPath);
+      var actual = await File.ReadAllTextAsync(ActualPath);
       var diffMessage = Run(ExpectedPath, actual);
-      return diffMessage == null ? (0, "", "") : (1, diffMessage, "");
+      if (diffMessage != null) {
+        await outputWriter.WriteAsync(diffMessage);
+        return 1;
+      }
+
+      return 0;
     }
 
     public override string ToString() {

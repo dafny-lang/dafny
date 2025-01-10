@@ -25,10 +25,10 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
       options.Set(LanguageServer.VerifySnapshots, 1U);
     });
     await VerifyTrace(@"
- .  S  S  |  I  $  | :method test() {
- .  S  |  |  I  $  | :  assert true;
- .  S  S  |  I  $  | :  //Replace: 
- .  S  S  |  I  $  | :}", true);
+ .  S  |  I  $  | :method test() {
+ .  S  |  I  $  | :  assert true;
+ .  S  |  I  $  | :  //Replace: 
+ .  S  |  I  $  | :}", true);
   }
 
   [Fact]
@@ -38,11 +38,11 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
       options.Set(LanguageServer.VerifySnapshots, 1U);
     });
     await VerifyTrace(@"
- .  S [S][ ][I][S][S][ ]:method test() {
- .  S [O][O][o][Q][O][O]:  assert true;
- .  S [=][=][-][~][=][=]:  assert false;
- .  S [S][ ][I][S][S][ ]:  //Replace: 
- .  S [S][ ][I][S][S][ ]:}", false, "ensureCachingDoesNotHideErrors.dfy");
+ .  S [ ][I][S][ ]:method test() {
+ .  S [O][o][Q][O]:  assert true;
+ .  S [=][-][~][=]:  assert false;
+ .  S [ ][I][S][ ]:  //Replace: 
+ .  S [ ][I][S][ ]:}", false, "ensureCachingDoesNotHideErrors.dfy");
   }
 
   public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {

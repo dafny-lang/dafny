@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
+// RUN: %exits-with 2 %verify --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Resolution (for verification, see git-issue-19b.dfy)

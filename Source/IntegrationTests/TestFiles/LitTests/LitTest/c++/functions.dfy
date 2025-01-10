@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp /unicodeChar:0 "%s" ExternDefs.h > "%t"
+// RUN: %run --target cpp --unicode-char false "%s" --input ExternDefs.h > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "Extern"} Extern {
@@ -7,7 +7,7 @@ module {:extern "Extern"} Extern {
   method {:extern "Extern", "Caller"} Caller(inc:uint64-->uint64, x:uint64) returns (y:uint64)
     requires inc.requires(x)
 
-  method {:extern "Extern", "GenericCaller"} GenericCaller<A>(inc:A-->A, x:A) returns (y:A)
+method {:extern "Extern", "GenericCaller"} GenericCaller<A>(inc:A-->A, x:A) returns (y:A)
     requires inc.requires(x)
 
   class {:extern} GenericClass<A>
