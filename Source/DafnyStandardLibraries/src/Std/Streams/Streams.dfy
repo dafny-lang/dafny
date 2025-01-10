@@ -1,17 +1,14 @@
 
-module StandardLibrary.Streams {
+module Std.Streams {
 
-  import opened Std.Wrappers
-  import opened Std.Actions
-  import opened Std.Enumerators
-  import opened Std.BoundedInts
-  import opened Std.Collections.Seq
-
-  // Alias just for clarity
-  type EventStream<T> = Enumerator<T>
+  import opened Wrappers
+  import opened Actions
+  import opened Enumerators
+  import opened BoundedInts
+  import opened Collections.Seq
 
   //
-  // A Smithy data stream.
+  // A binary data stream.
   //
   // Allows for streams that can only be read once,
   // but see RewindableDataStream for a more specific trait
@@ -31,7 +28,7 @@ module StandardLibrary.Streams {
   //    but that currently ends up running into a conflict
   //    when trying to import Wrappers and Std.Wrappers at the same time.
   //
-  trait DataStream extends Enumerator<BoundedInts.bytes> {
+  trait ByteStream extends Enumerator<BoundedInts.bytes> {
 
     function ContentLength(): (res: uint64)
       requires Valid()
@@ -45,7 +42,7 @@ module StandardLibrary.Streams {
     // to ConcatenatedOutputs(history)
   }
 
-  trait RewindableDataStream extends DataStream {
+  trait RewindableByteStream extends ByteStream {
 
     ghost const data: BoundedInts.bytes
 
@@ -83,6 +80,7 @@ module StandardLibrary.Streams {
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
       requires forall i <- Consumed() :: i == t
+      reads Repr
       modifies Repr
       decreases Repr
       ensures Valid()
@@ -107,7 +105,7 @@ module StandardLibrary.Streams {
   /*
    * Wraps an Enumerator up as a non-rewindable DataStream.
    */
-  class EnumeratorDataStream extends DataStream {
+  class EnumeratorDataStream extends ByteStream {
 
     const wrapped: Enumerator<BoundedInts.bytes>
     const length: uint64
@@ -167,6 +165,7 @@ module StandardLibrary.Streams {
 
     method Invoke(t: ()) returns (r: Option<BoundedInts.bytes>)
       requires Requires(t)
+      reads Reads(t)
       modifies Modifies(t)
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
@@ -186,6 +185,7 @@ module StandardLibrary.Streams {
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
       requires forall i <- Consumed() :: i == t
+      reads Repr
       modifies Repr
       decreases Repr
       ensures Valid()
@@ -197,7 +197,7 @@ module StandardLibrary.Streams {
   /*
    * Rewindable stream of a sequence with a configured chunk size.
    */
-  class SeqDataStream extends RewindableDataStream {
+  class SeqDataStream extends RewindableByteStream {
 
     const s: BoundedInts.bytes
     const chunkSize: uint64
@@ -282,6 +282,7 @@ module StandardLibrary.Streams {
 
     method Invoke(t: ()) returns (r: Option<BoundedInts.bytes>)
       requires Requires(t)
+      reads Reads(t)
       modifies Modifies(t)
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
