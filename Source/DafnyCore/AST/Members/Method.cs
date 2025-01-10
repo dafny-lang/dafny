@@ -23,7 +23,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
     OptionRegistry.RegisterGlobalOption(ReadsClausesOnMethods, OptionCompatibility.CheckOptionLocalImpliesLibrary);
   }
-
   public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.Where(x => x != null).
     Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions);
