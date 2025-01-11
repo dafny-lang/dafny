@@ -1262,6 +1262,13 @@ namespace Microsoft.Dafny {
         FillInPostConditionsAndBodiesOfPrefixLemmas(declarations);
       }
 
+      // A function is not allowed to be used naked in its own SCC. Also, a function is not allowed to be used
+      // in any way inside a "decreases" clause its its own SCC.
+      foreach (var function in ModuleDefinition.AllFunctions(declarations)) {
+        var visitor = new FunctionEntanglementChecks_Visitor(this, function);
+        visitor.Visit(function);
+      }
+
       // An inductive datatype is allowed to be defined as an empty type. For example, in
       //     predicate P(x: int) { false }
       //     type Subset = x: int | P(x) witness *

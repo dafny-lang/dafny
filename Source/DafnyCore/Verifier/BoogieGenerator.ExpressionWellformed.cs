@@ -332,7 +332,6 @@ namespace Microsoft.Dafny {
           }
         case MemberSelectExpr selectExpr: {
             MemberSelectExpr e = selectExpr;
-            CheckFunctionSelectWF("naked function", builder, etran, e, " Possible solution: eta expansion.");
             CheckWellformed(e.Obj, wfOptions, locals, builder, etran);
             if (e.Obj.Type.IsRefType) {
               if (inBodyInitContext && Expression.AsThis(e.Obj) != null && !e.Member.IsInstanceIndependentConstant) {
@@ -681,8 +680,6 @@ namespace Microsoft.Dafny {
               CheckWellformed(e.Receiver, wfOptions, locals, builder, etran);
               if (!e.Function.IsStatic && !(e.Receiver is ThisExpr) && !e.Receiver.Type.IsArrowType) {
                 CheckNonNull(callExpr.Origin, e.Receiver, builder, etran, wfOptions.AssertKv);
-              } else if (e.Receiver.Type.IsArrowType) {
-                CheckFunctionSelectWF("function specification", builder, etran, e.Receiver, "");
               }
               if (!e.Function.IsStatic && !etran.UsesOldHeap) {
                 // the argument can't be assumed to be allocated for the old heap
