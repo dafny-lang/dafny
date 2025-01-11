@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using DafnyCore.Verifier;
-using DafnyServer;
 using Microsoft.Boogie;
 using VC;
 
