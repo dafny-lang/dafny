@@ -136,11 +136,12 @@ method Test() {
     public async Task TestForallIntroductionFunction() {
       await TestCodeAction(@"
 function Test(): int {
-  (>Insert a forall statement->forall i | i % 4 == 1 ensures i % 2 == 0 {
-    assert i % 2 == 0;
+  assert for><all i | i % 4 == 1 :: i % 2 == 0(>Insert a forall statement-> by {
+    forall i: int | i % 4 == 1 ensures i % 2 == 0 {
+      assert i % 2 == 0;
+    }
   }
-  <)assert for><all i | i % 4 == 1 :: i % 2 == 0;
-  1
+  :::;<)1
 }");
     }
 
@@ -396,7 +397,7 @@ method Foo(b: bool, i: int, j: int)
     [Fact]
     public async Task ExplicitDivisionAndFunction() {
       await TestCodeAction(@"
-function Foo(b: bool, i: int, j: int): int
+function Foo(b: bool, i: int, j: int): bool
 {
   var x := b && (>Insert explicit failing assertion->assert i + 1 != 0;
                 <)2 ></ (i + 1) == j;
@@ -410,16 +411,15 @@ function Foo(b: bool, i: int, j: int): int
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
-  var x := b && 2 ></ (i + 1) == j(>Insert explicit failing assertion-> by {
-    assert i + 1 != 0;
-  }:::;<)
+  var x := b && (>Insert explicit failing assertion->assert i + 1 != 0;
+                <)2 ></ (i + 1) == j;
 }");
     }
 
     [Fact]
     public async Task ExplicitDivisionAnd2Function() {
       await TestCodeAction(@"
-function Foo(b: bool, i: int, j: int): int
+function Foo(b: bool, i: int, j: int): bool
 {
   (>Insert explicit failing assertion->assert i + 1 != 0;
   <)var x := 2 ></ (i + 1) == j && b;
@@ -507,7 +507,7 @@ function Foo(b: bool, i: int, j: int): int
     [Fact]
     public async Task ExplicitDivisionExp2Function() {
       await TestCodeAction(@"
-function Foo(b: bool, i: int, j: int): int
+function Foo(b: bool, i: int, j: int): bool
 {
   var x := (>Insert explicit failing assertion->(assert i + 1 != 0;
             2 / (i + 1) == j):::2 ></ (i + 1) == j<) <== b;
@@ -520,9 +520,8 @@ function Foo(b: bool, i: int, j: int): int
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
-  var x := 2 ></ (i + 1) == j <== b(>Insert explicit failing assertion-> by {
-    assert i + 1 != 0;
-  }:::;<)
+  var x := (>Insert explicit failing assertion->(assert i + 1 != 0;
+            2 / (i + 1) == j):::2 ></ (i + 1) == j<) <== b;
 }");
     }
 
