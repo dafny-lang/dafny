@@ -1267,6 +1267,8 @@ namespace Microsoft.Dafny {
       foreach (var function in ModuleDefinition.AllFunctions(declarations)) {
         var visitor = new FunctionEntanglementChecks_Visitor(this, function);
         visitor.Visit(function);
+        visitor.DoDecreasesChecks = true;
+        visitor.Visit(function.Decreases.Expressions);
       }
 
       // An inductive datatype is allowed to be defined as an empty type. For example, in

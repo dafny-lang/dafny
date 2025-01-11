@@ -19,5 +19,19 @@ class FunctionEntanglementChecks_Visitor : ResolverBottomUpVisitor {
           "cannot use naked function in recursive setting. Possible solution: eta expansion.");
       }
     }
+
+    if (DoDecreasesChecks && expr is FunctionCallExpr callExpr) {
+      if (ModuleDefinition.InSameSCC(context, callExpr.Function)) {
+        string msg;
+        if (context == callExpr.Function) {
+          msg = "a decreases clause is not allowed to call the enclosing function";
+        } else {
+          msg = $"the decreases clause of {context.WhatKind} '{context.NameRelativeToModule}' is not allowed to call '{callExpr.Function}', " +
+                "because they are mutually recursive";
+        }
+
+        resolver.reporter.Error(MessageSource.Resolver, callExpr.Origin, msg);
+      }
+    }
   }
 }
