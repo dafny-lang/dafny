@@ -5,10 +5,10 @@ Reads.dfy(37,29): Error: insufficient reads clause to read field; Consider addin
 Reads.dfy(56,29): Error: insufficient reads clause to read field; Consider adding 'reads r' or 'reads r`r' in the enclosing function specification for resolution
 Reads.dfy(122,35): Error: function precondition could not be proved
 Reads.dfy(122,35): Error: insufficient reads clause to invoke function
-Reads.dfy(125,37): Error: insufficient reads clause to invoke function
+Reads.dfy(125,45): Error: insufficient reads clause to invoke function
 Reads.dfy(138,10): Error: insufficient reads clause to read field; Consider adding 'reads this' or 'reads this`Repr' in the enclosing predicate specification for resolution
 Reads.dfy(149,25): Error: insufficient reads clause to read field; Consider adding 'reads this' or 'reads this`y' in the enclosing function specification for resolution
 Reads.dfy(157,18): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
-Reads.dfy(159,18): Error: insufficient reads clause to invoke function
+Reads.dfy(159,19): Error: insufficient reads clause to invoke function
 
 Dafny program verifier finished with 19 verified, 12 errors

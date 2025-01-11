@@ -1756,8 +1756,7 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // resolve as a FunctionCallExpr instead of as an ApplyExpr(MemberSelectExpr)
-            // TODO use e.Origin instead of e.Lhs.Origin
-            var rr = new FunctionCallExpr(e.Lhs.Origin, mse.MemberNameNode, mse.Obj, e.Origin, e.CloseParen, e.Bindings, atLabel) {
+            var rr = new FunctionCallExpr(e.Origin, mse.MemberNameNode, mse.Obj, e.Origin, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
               PreTypeApplication_AtEnclosingClass = mse.PreTypeApplicationAtEnclosingClass,
               PreTypeApplication_JustFunction = mse.PreTypeApplicationJustMember
