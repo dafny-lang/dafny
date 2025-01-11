@@ -157,6 +157,44 @@ method Test() {
     }
 
     [Fact]
+    public async Task InsertIntoByStatement() {
+      await TestCodeAction(@"
+predicate P(i: int)
+
+function Test(i: int): int
+  requires P(i) {
+  i
+}
+
+method TestMethod() {
+  assert Test><(1) == 1 by {
+    (>Insert explicit failing assertion->assert P(1);
+    <)calc {
+      1;
+      1;
+    }
+  }
+}");
+    }
+
+    [Fact]
+    public async Task InsertIntoEmptyByStatement() {
+      await TestCodeAction(@"
+predicate P(i: int)
+
+function Test(i: int): int
+  requires P(i) {
+  i
+}
+
+method TestMethod() {
+  assert Test><(1) == 1 by {
+  (>Insert explicit failing assertion->  assert P(1);
+  <)}
+}");
+    }
+
+    [Fact]
     public async Task GitIssue4401CorrectInsertionPlaceModule() {
       await TestCodeAction(@"
 module Test {
@@ -525,7 +563,9 @@ function Foo(i: int): int
         out var ranges);
       var documentItem = await CreateOpenAndWaitForResolve(output);
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(ranges.Count, diagnostics.Length);
+      if (ranges.Count != diagnostics.Length) {
+        Assert.True(ranges.Count == diagnostics.Length, string.Join("\n", diagnostics.Select(d => d.ToString())));
+      }
 
       if (positions.Count != ranges.Count) {
         positions = ranges.Select(r => r.Range.Start).ToList();

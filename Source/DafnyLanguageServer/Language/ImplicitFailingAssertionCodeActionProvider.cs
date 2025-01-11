@@ -116,11 +116,22 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
                     indentation2 + GetStatementToInsert(indentation2) + "\n" +
                     indentation + "}";
         return ReplaceWith(endToken, block);
-      } else {// TODO: If there is already a by block, can we insert into it? 
+      } else if (insertionNode is AssertStmt or VarDeclStmt or CallStmt && insertionNode.OwnedTokens.FirstOrDefault(t => t.val == "by") is { Next: { val: "{" } braceToken } byToken) {
+        var start = braceToken.Next;
+        var isEmptyBy = start.Next is { val: "}" };
+        var innerCol = isEmptyBy ? start.col + 1 : start.col - 1;
+        var indentation = IndentationFormatter.Whitespace(Math.Max(innerCol, 0));
+        var indentationStart = IndentationFormatter.Whitespace(Math.Max(start.col - 1, 0));
+        var assertStr = GetStatementToInsert(indentation) + "\n" + indentationStart;
+        if (isEmptyBy) {
+          assertStr = "  " + assertStr;
+        }
+        return PrefixWithStatement(start, start, false, assertStr);
+      } else {
         var start = insertionNode.StartToken;
         var indentation = IndentationFormatter.Whitespace(Math.Max(start.col - 1 + (needsIsolation ? 1 : 0), 0));
         var assertStr = GetStatementToInsert(indentation) + "\n" + indentation;
-        return PrefixWithStatement(insertionNode, needsIsolation, assertStr);
+        return PrefixWithStatement(insertionNode.StartToken, insertionNode.EndToken, needsIsolation, assertStr);
       }
     }
 
@@ -131,18 +142,16 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
     /// Emit code editing instructions to insert the given statement before the given insertion node
     /// Wraps everything with parentheses if it requires isolationn, which is the case in expressions notably
-    protected static IEnumerable<DafnyCodeActionEdit> PrefixWithStatement(INode insertionNode, bool needsIsolation, string statement) {
-      var start = insertionNode.StartToken;
+    protected static IEnumerable<DafnyCodeActionEdit> PrefixWithStatement(Token start, Token end, bool needsIsolation, string statement) {
       if (needsIsolation) {
         statement = "(" + statement;
       }
       var suggestedEdits = new List<DafnyCodeActionEdit> {
-        new (
-          InsertBefore(start), statement)
+        new (InsertBefore(start), statement)
       };
       if (needsIsolation) {
         suggestedEdits.Add(new DafnyCodeActionEdit(
-          InsertAfter(insertionNode.EndToken), ")"));
+          InsertAfter(end), ")"));
       }
 
       return suggestedEdits.ToArray();
