@@ -365,8 +365,8 @@ function Foo(b: bool, i: int, j: int): int
   x
 }");
     }
-    
-    
+
+
     [Fact]
     public async Task ExplicitDivisionAndMethod() {
       await TestCodeAction(@"

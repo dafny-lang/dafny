@@ -39,9 +39,8 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
     return node.StartToken.line > 0 ? new List<INode> { node } : null;
   }
-  
-  public static INode? GetInsertionNode(Node program, Range selection, out List<INode>? nodesSinceFailure, out bool needsIsolation)
-  {
+
+  public static INode? GetInsertionNode(Node program, Range selection, out List<INode>? nodesSinceFailure, out bool needsIsolation) {
     nodesSinceFailure = FindInnermostNodeIntersecting(program, selection);
 
     needsIsolation = false;
@@ -105,10 +104,10 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     public override IEnumerable<DafnyCodeActionEdit> GetEdits() {
       var insertionNode = GetInsertionNode(program, selection, out var nodesTillFailure, out var needsIsolation);
       if (insertionNode == null || nodesTillFailure == null) {
-        return new DafnyCodeActionEdit[]{};
+        return new DafnyCodeActionEdit[] { };
       }
 
-      if (insertionNode is AssertStmt or VarDeclStmt or CallStmt && insertionNode.EndToken  is {val: ";" } endToken) {
+      if (insertionNode is AssertStmt or VarDeclStmt or CallStmt && insertionNode.EndToken is { val: ";" } endToken) {
         // We can insert a by block to keep the proof limited
         var start = insertionNode.StartToken;
         var indentation = IndentationFormatter.Whitespace(Math.Max(start.col - 1, 0));
@@ -129,7 +128,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     protected string S(Expression e) {
       return Printer.ExprToString(options, e, new PrintFlags(UseOriginalDafnyNames: true));
     }
-    
+
     /// Emit code editing instructions to insert the given statement before the given insertion node
     /// Wraps everything with parentheses if it requires isolationn, which is the case in expressions notably
     protected static IEnumerable<DafnyCodeActionEdit> PrefixWithStatement(INode insertionNode, bool needsIsolation, string statement) {
@@ -158,7 +157,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
       return suggestedEdits.ToArray();
     }
-    
+
 
     protected abstract string GetStatementToInsert(string indentation);
   }
@@ -171,7 +170,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       Range selection
       ) : base(options, program, failingImplicitAssertion, selection, "Insert explicit failing assertion") {
     }
-    
+
     protected override string GetStatementToInsert(string indentation) {
       return $"assert {S(failingImplicitAssertion)};";
     }
@@ -192,13 +191,13 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     protected override string GetStatementToInsert(string i) {
       var op = failingExplicit.Op is BinaryExpr.Opcode.Iff ? "<==> " : "";
       return /*
-         */$"calc {op}{{\n"+
-        $"{i}  {S(failingExplicit.E0)};\n"+
-        $"{i}  {S(failingExplicit.E1)};\n"+
+         */$"calc {op}{{\n" +
+        $"{i}  {S(failingExplicit.E0)};\n" +
+        $"{i}  {S(failingExplicit.E1)};\n" +
         $"{i}}}";
     }
   }
-  
+
   class ForallExprStatementCodeAction : StatementInsertingCodeAction {
     private readonly ForallExpr failingExplicit;
 
@@ -213,7 +212,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
     protected override string GetStatementToInsert(string i) {
       return "forall " + Printer.ForallExprRangeToString(options, failingExplicit) + " ensures " + S(failingExplicit.Term) + " {\n" +
-           $"{i}  assert {S(failingExplicit.Term)};\n"+
+           $"{i}  assert {S(failingExplicit.Term)};\n" +
            $"{i}}}";
     }
   }
@@ -247,8 +246,8 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     IEnumerable<DafnyCodeAction> suggestedExplicitAssertions = implicitlyFailing.Select(failingExpression =>
       new ExplicitAssertionDafnyCodeAction(options, input.Program, failingExpression, selection)
     );
-    IEnumerable<DafnyCodeAction> suggestedCalcStatements = 
-      explicitlyFailing.OfType<BinaryExpr>().Where(b => b.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Iff ).Select(failingEquality =>
+    IEnumerable<DafnyCodeAction> suggestedCalcStatements =
+      explicitlyFailing.OfType<BinaryExpr>().Where(b => b.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Iff).Select(failingEquality =>
       new BinaryExprToCalcStatementCodeAction(options, input.Program, failingEquality, selection));
     IEnumerable<DafnyCodeAction> suggestedForallStatements = explicitlyFailing
       .OfType<ForallExpr>()
