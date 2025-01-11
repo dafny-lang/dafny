@@ -1,6 +1,4 @@
-// NONUNIFORM: Test still fails on CS (https://github.com/dafny-lang/dafny/issues/5746)
-// RUN: %run --target java "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" 
 
 module State {
 
@@ -15,6 +13,49 @@ module Foo {
    const bar: State
 
    method Main() {
+     print "Hello!\n";
+  }
+}
+
+module Enclosing {
+
+  module A {
+    datatype A = Whatever
+  }
+
+}
+
+module UsingEnclosing {
+
+   import opened Enclosing
+
+   const bar: A.A
+
+   method Main2() {
+     print "Hello!\n";
+  }
+}
+
+module A {
+
+  trait T<X> {
+    var a: X
+  }
+
+  class A extends T<int> {
+    var x : int
+    constructor() {x := 0;}
+  }
+
+}
+
+module UsingA {
+
+   import opened A
+
+   method Main3() {
+     var b := new A();
+
      print "Hello!\n";
   }
 }
