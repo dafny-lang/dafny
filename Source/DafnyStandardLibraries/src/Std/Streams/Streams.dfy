@@ -170,6 +170,8 @@ module Std.Streams {
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
     {
+      assert Requires(t);
+
       // TODO: Not sure why this isn't provable from GenericAction?
       assume {:axiom} Valid();
       r := wrapped.Next();
@@ -287,7 +289,9 @@ module Std.Streams {
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
     {
-      assume {:axiom} Valid();
+      assert Requires(t);
+      
+      assert Valid();
       if position == |s| as uint64 {
         r := None;
       } else {

@@ -39,12 +39,14 @@ module Std.Enumerators {
 
     // For better readability
     method Next() returns (r: Option<T>) 
-      requires Valid()
+      requires Requires(())
       reads Reads(())
       modifies Modifies(())
       ensures Ensures((), r)
       ensures r.Some? ==> Remaining() < old(Remaining())
     {
+      assert Requires(());
+
       CanConsumeAll(history, ());
       label before:
       r := Invoke(());
@@ -137,6 +139,8 @@ module Std.Enumerators {
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, value)
     {
+      assert Requires(t);
+
       if |elements| <= index {
         value := None;
       } else {
@@ -156,7 +160,7 @@ module Std.Enumerators {
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
       requires forall i <- Consumed() :: i == t
-      reads Reads(t)
+      reads Repr
       modifies Repr
       decreases Repr
       ensures Valid()
@@ -256,7 +260,7 @@ module Std.Enumerators {
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
       requires forall i <- Consumed() :: i == t
-      reads Reads(t)
+      reads Repr
       modifies Repr
       decreases Repr
       ensures Valid()
@@ -298,7 +302,10 @@ module Std.Enumerators {
       modifies a.Repr
       ensures a.ValidAndDisjoint()
     {
+      assert a.Valid();
+
       if u.Some? {
+        a.CanConsumeAll(a.history, u.value);
         a.Accept(u.value);
       }
     }
@@ -346,7 +353,7 @@ module Std.Enumerators {
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
       requires forall i <- Consumed() :: i == t
-      reads Reads(t)
+      reads Repr
       modifies Repr
       decreases Repr
       ensures Valid()

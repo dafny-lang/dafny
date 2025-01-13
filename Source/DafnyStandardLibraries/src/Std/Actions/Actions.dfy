@@ -470,6 +470,7 @@ module Std.Actions {
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
     {
+      assert Requires(t);
       ghost var producedBefore := Produced();
 
       r := new Box(nextValue);
@@ -601,6 +602,8 @@ module Std.Actions {
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
     {
+      assert Requires(t);
+      
       EnumeratedCardinality();
       assert 0 < |remaining|;
 
