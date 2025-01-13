@@ -4,7 +4,7 @@ index 426b132e2..18db4aebb 100644
 +++ b/Source/Dafny.sln
 @@ -43,6 +43,32 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExte
  EndProject
- Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyCore.Test", "DafnyCore.Test\DafnyCore.Test.csproj", "{33C29F26-A27B-474D-B436-83EA615B09FC}"
+ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scripts", "Scripts\Scripts.csproj", "{3FAB051A-1745-497B-B4C0-D49194BB5D32}"
  EndProject
 +Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Boogie", "Boogie", "{60332269-9C5D-465E-8582-01F9B738BD90}"
 +EndProject
@@ -73,6 +73,6 @@ index 4a8b2f89b..a308be9bf 100644
 +      <ProjectReference Include="..\..\boogie\Source\Provers\SMTLib\SMTLib.csproj" />
 +      <ProjectReference Include="..\..\boogie\Source\Houdini\Houdini.csproj" />
 +      <ProjectReference Include="..\..\boogie\Source\Concurrency\Concurrency.csproj" />
-       <PackageReference Include="Tomlyn" Version="0.16.2" />
+       <PackageReference Include="Tomlyn" Version="0.17.0" />
    </ItemGroup>
  

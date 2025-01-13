@@ -19,5 +19,5 @@ ResolveError.dfy(68,24): Error: unresolved identifier: _
 ResolveError.dfy(86,6): Error: RHS (of type ((int, bool)) ~> real) not assignable to LHS (of type (int, bool) -> real)
 ResolveError.dfy(101,6): Error: RHS (of type (()) ~> real) not assignable to LHS (of type () -> real)
 ResolveError.dfy(102,6): Error: RHS (of type () ~> real) not assignable to LHS (of type (()) -> real)
-ResolveError.dfy(107,15): Error: incorrect argument type at index 0 for method in-parameter 'r' (expected ?12 -> ?13, found (int, bool) ~> real)
+ResolveError.dfy(107,16): Error: incorrect argument type at index 0 for method in-parameter 'r' (expected ?12 -> ?13, found (int, bool) ~> real)
 22 resolution/type errors detected in ResolveError.dfy

@@ -5,24 +5,13 @@
       <AssemblyName>DafnyDriver</AssemblyName>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
-      <TargetFramework>net6.0</TargetFramework>
-<RollForward>Major</RollForward>
+      <RollForward>Major</RollForward>
       <OutputPath>..\..\Binaries\</OutputPath>
       <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
 
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
       <IsPackable>true</IsPackable>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-  </PropertyGroup>
-
-  <!-- Working around some stange behavior in dotnet publish: https://github.com/dotnet/sdk/issues/10566 -->
-  <PropertyGroup Condition="$(RUNTIME_IDENTIFIER) != ''">
-    <RuntimeIdentifier>$(RUNTIME_IDENTIFIER)</RuntimeIdentifier>
   </PropertyGroup>
     
   <ItemGroup>
@@ -43,8 +32,8 @@
     
   <ItemGroup>
     <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
+    <ProjectReference Include="..\DafnyLanguageServer\DafnyLanguageServer.csproj" />
     <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
-    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
   </ItemGroup>
   
   <ItemGroup>
