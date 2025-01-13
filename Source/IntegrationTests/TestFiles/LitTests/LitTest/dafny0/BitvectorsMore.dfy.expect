@@ -490,7 +490,7 @@ BitvectorsMore.dfy(168,33): Error: when converting shift amount to a bit vector,
 BitvectorsMore.dfy(169,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
 BitvectorsMore.dfy(170,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
 BitvectorsMore.dfy(171,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
-BitvectorsMore.dfy(193,26): Error: rotate amount must not exceed the width of the result (5)
-BitvectorsMore.dfy(194,26): Error: rotate amount must not exceed the width of the result (5)
+BitvectorsMore.dfy(193,36): Error: rotate amount must not exceed the width of the result (5)
+BitvectorsMore.dfy(194,37): Error: rotate amount must not exceed the width of the result (5)
 
 Dafny program verifier finished with 9 verified, 41 errors

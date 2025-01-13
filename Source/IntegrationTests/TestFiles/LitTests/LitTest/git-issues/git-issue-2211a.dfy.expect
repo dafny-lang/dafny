@@ -1,5 +1,5 @@
 git-issue-2211a.dfy(18,0): Error: a postcondition could not be proved on this return path
-git-issue-2211a.dfy(17,10): Related location: this is the postcondition that could not be proved
+git-issue-2211a.dfy(17,11): Related location: this is the postcondition that could not be proved
 git-issue-2211a.dfy(9,2): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 2 verified, 1 error

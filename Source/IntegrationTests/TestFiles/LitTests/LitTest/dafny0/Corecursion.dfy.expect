@@ -1,10 +1,10 @@
-Corecursion.dfy(17,12): Error: cannot prove termination; try supplying a decreases clause (note that only functions without side effects can be called co-recursively)
-Corecursion.dfy(23,12): Error: cannot prove termination; try supplying a decreases clause (note that only functions without any ensures clause can be called co-recursively)
-Corecursion.dfy(58,4): Error: cannot prove termination; try supplying a decreases clause
-Corecursion.dfy(71,15): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context)
-Corecursion.dfy(93,14): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
-Corecursion.dfy(103,14): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
-Corecursion.dfy(148,12): Error: decreases clause might not decrease (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
-Corecursion.dfy(161,12): Error: decreases clause might not decrease (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
+Corecursion.dfy(17,33): Error: cannot prove termination; try supplying a decreases clause (note that only functions without side effects can be called co-recursively)
+Corecursion.dfy(23,42): Error: cannot prove termination; try supplying a decreases clause (note that only functions without any ensures clause can be called co-recursively)
+Corecursion.dfy(58,11): Error: cannot prove termination; try supplying a decreases clause
+Corecursion.dfy(71,16): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context)
+Corecursion.dfy(93,15): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
+Corecursion.dfy(103,15): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
+Corecursion.dfy(148,13): Error: decreases clause might not decrease (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
+Corecursion.dfy(161,13): Error: decreases clause might not decrease (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
 
 Dafny program verifier finished with 14 verified, 8 errors
