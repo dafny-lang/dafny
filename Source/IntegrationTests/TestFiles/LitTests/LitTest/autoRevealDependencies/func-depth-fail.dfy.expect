@@ -1,4 +1,4 @@
-func-depth-fail.dfy(12,2): Error: a postcondition could not be proved on this return path
+func-depth-fail.dfy(12,3): Error: a postcondition could not be proved on this return path
 func-depth-fail.dfy(10,10): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 3 verified, 1 error

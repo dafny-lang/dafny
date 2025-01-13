@@ -1,9 +1,9 @@
-ReadsReadsOnMethods.dfy(37,11): Error: function precondition could not be proved
-ReadsReadsOnMethods.dfy(37,11): Error: insufficient reads clause to invoke function
+ReadsReadsOnMethods.dfy(37,16): Error: function precondition could not be proved
+ReadsReadsOnMethods.dfy(37,16): Error: insufficient reads clause to invoke function
 ReadsReadsOnMethods.dfy(43,9): Error: function precondition could not be proved
 ReadsReadsOnMethods.dfy(43,9): Error: insufficient reads clause to invoke function
-ReadsReadsOnMethods.dfy(55,16): Error: function precondition could not be proved
-ReadsReadsOnMethods.dfy(55,16): Error: insufficient reads clause to invoke function
-ReadsReadsOnMethods.dfy(67,11): Error: insufficient reads clause to invoke function
+ReadsReadsOnMethods.dfy(55,21): Error: function precondition could not be proved
+ReadsReadsOnMethods.dfy(55,21): Error: insufficient reads clause to invoke function
+ReadsReadsOnMethods.dfy(67,19): Error: insufficient reads clause to invoke function
 
 Dafny program verifier finished with 20 verified, 7 errors

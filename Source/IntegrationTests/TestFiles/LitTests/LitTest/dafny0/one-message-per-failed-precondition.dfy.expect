@@ -1,10 +1,10 @@
 one-message-per-failed-precondition.dfy(13,3): Error: a precondition for this call could not be proved
-one-message-per-failed-precondition.dfy(9,13): Related location: this is the precondition that could not be proved
-one-message-per-failed-precondition.dfy(13,3): Error: a precondition for this call could not be proved
 one-message-per-failed-precondition.dfy(8,13): Related location: this is the precondition that could not be proved
-one-message-per-failed-precondition.dfy(20,33): Error: function precondition could not be proved
-one-message-per-failed-precondition.dfy(18,13): Related location: this proposition could not be proved
-one-message-per-failed-precondition.dfy(20,33): Error: function precondition could not be proved
+one-message-per-failed-precondition.dfy(13,3): Error: a precondition for this call could not be proved
+one-message-per-failed-precondition.dfy(9,13): Related location: this is the precondition that could not be proved
+one-message-per-failed-precondition.dfy(20,35): Error: function precondition could not be proved
 one-message-per-failed-precondition.dfy(17,13): Related location: this proposition could not be proved
+one-message-per-failed-precondition.dfy(20,35): Error: function precondition could not be proved
+one-message-per-failed-precondition.dfy(18,13): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 0 verified, 4 errors

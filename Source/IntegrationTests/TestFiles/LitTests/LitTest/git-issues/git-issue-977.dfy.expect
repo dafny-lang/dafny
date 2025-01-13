@@ -5,8 +5,8 @@ git-issue-977.dfy(237,36): Info: _k: ORDINAL
 git-issue-977.dfy(239,15): Info: Pos#[_k]
 git-issue-977.dfy(237,36): Info: Theorem2# with focal predicate Pos
 git-issue-977.dfy(241,4): Info: Theorem2#[_k - 1]
-git-issue-977.dfy(229,13): Info: co-recursive call
-git-issue-977.dfy(234,18): Info: Pos#[_k - 1]
+git-issue-977.dfy(229,20): Info: co-recursive call
+git-issue-977.dfy(234,21): Info: Pos#[_k - 1]
 git-issue-977.dfy(217,13): Info: Selected triggers: {AAA#[k](t)}
 git-issue-977.dfy(227,17): Info: decreases 1, n
 git-issue-977.dfy(237,36): Info: Theorem2# decreases _k, n
@@ -16,8 +16,8 @@ git-issue-977.dfy(84,16): Info: tail recursive
 git-issue-977.dfy(95,19): Info: tail recursive
 git-issue-977.dfy(113,19): Info: tail recursive
 git-issue-977.dfy(146,16): Info: tail recursive
-git-issue-977.dfy(97,21): Info: GreatestPredOrd#[_k - 1]
-git-issue-977.dfy(115,21): Info: GreatestPredNat#[_k - 1]
+git-issue-977.dfy(97,36): Info: GreatestPredOrd#[_k - 1]
+git-issue-977.dfy(115,36): Info: GreatestPredNat#[_k - 1]
 git-issue-977.dfy(71,4): Info: Selected triggers:
    {RicochetOrd(m, num)}, {GreatestManualOrd(m, num)}, {GreatestPredOrd#[m](num)}, {m < k}
 git-issue-977.dfy(138,4): Info: Selected triggers:
@@ -42,18 +42,18 @@ git-issue-977.dfy(77,6): Info: {:inductionTrigger RicochetNat(k, num)}
 git-issue-977.dfy(71,4): Info: ensures GreatestPredOrd#[m](num)
 git-issue-977.dfy(71,4): Info: ensures GreatestManualOrd(m, num)
 git-issue-977.dfy(71,4): Info: ensures RicochetOrd(m, num)
-git-issue-977.dfy(110,9): Info: Some instances of this call are not inlined.
-git-issue-977.dfy(143,9): Info: Some instances of this call are not inlined.
-git-issue-977.dfy(162,2): Info: Some instances of this call are not inlined.
-git-issue-977.dfy(39,11): Error: assertion might not hold
-git-issue-977.dfy(14,20): Related location: this proposition could not be proved
+git-issue-977.dfy(110,28): Info: Some instances of this call are not inlined.
+git-issue-977.dfy(143,26): Info: Some instances of this call are not inlined.
+git-issue-977.dfy(162,21): Info: Some instances of this call are not inlined.
+git-issue-977.dfy(39,25): Error: assertion might not hold
+git-issue-977.dfy(14,29): Related location: this proposition could not be proved
 git-issue-977.dfy(9,7): Related location: this proposition could not be proved
-git-issue-977.dfy(41,11): Error: assertion might not hold
-git-issue-977.dfy(22,4): Related location: this proposition could not be proved
+git-issue-977.dfy(41,31): Error: assertion might not hold
+git-issue-977.dfy(22,13): Related location: this proposition could not be proved
 git-issue-977.dfy(9,7): Related location: this proposition could not be proved
-git-issue-977.dfy(43,11): Error: assertion might not hold
-git-issue-977.dfy(30,20): Related location: this proposition could not be proved
+git-issue-977.dfy(43,26): Error: assertion might not hold
+git-issue-977.dfy(30,29): Related location: this proposition could not be proved
 git-issue-977.dfy(9,7): Related location: this proposition could not be proved
-git-issue-977.dfy(220,11): Info: Some instances of this call are not inlined.
+git-issue-977.dfy(220,18): Info: Some instances of this call are not inlined.
 
 Dafny program verifier finished with 20 verified, 3 errors
