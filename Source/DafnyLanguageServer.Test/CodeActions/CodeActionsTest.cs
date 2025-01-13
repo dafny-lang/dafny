@@ -140,8 +140,8 @@ function Test(): int {
     forall i: int | i % 4 == 1 ensures i % 2 == 0 {
       assert i % 2 == 0;
     }
-  }
-  :::;<)1
+  }:::;<)
+  1
 }");
     }
 
