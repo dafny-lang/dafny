@@ -1,9 +1,9 @@
 Twostate-Functions.dfy(11,27): Error: receiver could not be proved to be allocated in the state in which its fields are accessed
 Twostate-Functions.dfy(18,12): Error: receiver could not be proved to be allocated in the state in which its fields are accessed
 Twostate-Functions.dfy(23,8): Error: insufficient reads clause to read field; Consider adding 'reads u' or 'reads u`aa' in the enclosing twostate function specification for resolution
-Twostate-Functions.dfy(66,17): Error: assertion might not hold
+Twostate-Functions.dfy(66,29): Error: assertion might not hold
 Twostate-Functions.dfy(54,14): Related location: this proposition could not be proved
-Twostate-Functions.dfy(68,15): Error: assertion might not hold
+Twostate-Functions.dfy(68,27): Error: assertion might not hold
 Twostate-Functions.dfy(54,14): Related location: this proposition could not be proved
 Twostate-Functions.dfy(92,24): Error: argument for parameter 'u' could not be proved to be allocated in the two-state function's previous state -- if you add 'new' before the parameter declaration, like 'new u: U', arguments can refer to expressions possibly unallocated in the previous state
 Twostate-Functions.dfy(97,40): Error: argument at index 1 for parameter 'x' could not be proved to be allocated in the two-state function's previous state -- if you add 'new' before the parameter declaration, like 'new x: U', arguments can refer to expressions possibly unallocated in the previous state

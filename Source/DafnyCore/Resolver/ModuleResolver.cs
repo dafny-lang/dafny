@@ -1265,7 +1265,7 @@ namespace Microsoft.Dafny {
       // A function is not allowed to be used naked in its own SCC. Also, a function is not allowed to be used
       // in any way inside a "decreases" clause its its own SCC.
       foreach (var function in ModuleDefinition.AllFunctions(declarations)) {
-        var visitor = new FunctionEntanglementChecks_Visitor(this, function);
+        var visitor = new DetectUnsoundFunctionReferences_Visitor(this, function);
         visitor.Visit(function);
         visitor.DoDecreasesChecks = true;
         visitor.Visit(function.Decreases.Expressions);
