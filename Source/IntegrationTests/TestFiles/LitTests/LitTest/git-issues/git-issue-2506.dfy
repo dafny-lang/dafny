@@ -3,7 +3,7 @@
 
 module Class {
   class T {
-    static const a := 1 + b // const definition contains a cycle: T.a -> T.b -> T.a
+    static const a := 1 + b
     static const b := 2
 
     static ghost predicate F() decreases 0 { !L() }
@@ -24,7 +24,7 @@ module Class {
 
 module Datatype {
   datatype T = A {
-    static const a := 1 + b // const definition contains a cycle: T.a -> T.b -> T.a
+    static const a := 1 + b
     static const b := 2
 
     static ghost predicate F() decreases 0 { !L() }
@@ -45,7 +45,7 @@ module Datatype {
 
 module Newtype {
   newtype T = int {
-    static const a := 1 + b // const definition contains a cycle: T.a -> T.b -> T.a
+    static const a := 1 + b
     static const b := 2
 
     static ghost predicate F() decreases 0 { !L() }
@@ -66,7 +66,7 @@ module Newtype {
 
 module AbstractType {
   type T {
-    static const a := 1 + b // const definition contains a cycle: T.a -> T.b -> T.a
+    static const a := 1 + b
     static const b := 2
 
     static ghost predicate F() decreases 0 { !L() }

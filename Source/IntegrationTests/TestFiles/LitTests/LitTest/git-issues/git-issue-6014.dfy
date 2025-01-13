@@ -38,7 +38,7 @@ module UsingEnclosing {
 
 module A {
 
-  trait T<X> {
+  trait T<X> extends object {
     var a: X
   }
 

@@ -2,7 +2,7 @@ LetExpr.dfy(45,2): Warning: Could not find a trigger for this quantifier. Withou
 LetExpr.dfy(206,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 LetExpr.dfy(9,2): Error: assertion might not hold
 LetExpr.dfy(109,6): Error: assertion might not hold
-LetExpr.dfy(260,34): Error: value of expression (of type 'Tuple<int, bool>') is not known to be an instance of type 'Tuple<nat, bool>'
+LetExpr.dfy(260,42): Error: value of expression (of type 'Tuple<int, bool>') is not known to be an instance of type 'Tuple<nat, bool>'
 LetExpr.dfy(263,18): Error: value does not satisfy the subset constraints of 'nat'
 LetExpr.dfy(265,23): Error: value does not satisfy the subset constraints of 'nat'
 LetExpr.dfy(294,13): Error: RHS is not certain to look like the pattern 'Agnes'
