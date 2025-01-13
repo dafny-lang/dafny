@@ -19,7 +19,7 @@ ResolutionErrors0.dfy(94,16): Error: the name 'David' denotes a datatype constru
 ResolutionErrors0.dfy(96,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors0.dfy(98,20): Error: wrong number of arguments (got 2, but datatype constructor 'David' expects 1: (x: int))
 ResolutionErrors0.dfy(116,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors0.dfy(117,11): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors0.dfy(117,12): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ResolutionErrors0.dfy(121,13): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors0.dfy(122,12): Error: actual out-parameter is required to be a ghost variable
 ResolutionErrors0.dfy(133,25): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
@@ -37,9 +37,9 @@ ResolutionErrors0.dfy(345,27): Error: arguments must have comparable types (got 
 ResolutionErrors0.dfy(343,18): Error: arguments must have comparable types (got int and DTD_List)
 ResolutionErrors0.dfy(344,18): Error: arguments must have comparable types (got DTD_List and int)
 ResolutionErrors0.dfy(358,17): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors0.dfy(382,7): Error: incorrect argument type at index 1 for method in-parameter 'b' (expected GenericClass<int>, found GenericClass<bool>) (non-variant type parameter would require int = bool)
-ResolutionErrors0.dfy(396,13): Error: incorrect argument type at index 0 for datatype constructor parameter 'hd' (expected _T0, found int)
-ResolutionErrors0.dfy(397,9): Error: incorrect argument type at index 0 for datatype constructor parameter 'hd' (expected _T0, found int)
+ResolutionErrors0.dfy(382,11): Error: incorrect argument type at index 1 for method in-parameter 'b' (expected GenericClass<int>, found GenericClass<bool>) (non-variant type parameter would require int = bool)
+ResolutionErrors0.dfy(396,19): Error: incorrect argument type at index 0 for datatype constructor parameter 'hd' (expected _T0, found int)
+ResolutionErrors0.dfy(397,15): Error: incorrect argument type at index 0 for datatype constructor parameter 'hd' (expected _T0, found int)
 ResolutionErrors0.dfy(406,8): Error: all lines in a calculation must have the same type (got int after bool)
 ResolutionErrors0.dfy(410,8): Error: all lines in a calculation must have the same type (got int after bool)
 ResolutionErrors0.dfy(413,8): Error: first argument to ==> must be of type bool (instead got int)
