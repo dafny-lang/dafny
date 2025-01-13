@@ -158,6 +158,8 @@ module Std.Aggregators {
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
     {
+      assert Requires(t);
+
       value := f(value, t);
       r := ();
       Update(t, ());
@@ -176,7 +178,7 @@ module Std.Aggregators {
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
       requires forall i <- Consumed() :: i == t
-      reads Reads(t)
+      reads Repr
       modifies Repr
       decreases Repr
       ensures Valid()
