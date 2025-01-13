@@ -17,7 +17,7 @@ at-attributes-typos.dfy(5,0): Error: @AutoContracts attribute cannot be applied 
 at-attributes-typos.dfy(58,9): Error: the parameter named 'low' is already given positionally
 at-attributes-typos.dfy(56,14): Error: Argument to attribute Compile must be a literal
 at-attributes-typos.dfy(55,0): Error: wrong number of arguments (got 2, but attribute 'Compile' expects at most 1: (0: bool))
-at-attributes-typos.dfy(54,0): Error: incorrect argument type for attribute parameter '0' (expected bool, found string)
+at-attributes-typos.dfy(54,9): Error: incorrect argument type for attribute parameter '0' (expected bool, found string)
 at-attributes-typos.dfy(82,0): Error: @Transparent attribute cannot be applied to method
 at-attributes-typos.dfy(80,0): Error: wrong number of arguments (got 1, but attribute 'IsolateAssertions' expects 0)
 at-attributes-typos.dfy(49,0): Error: @Synthesize attribute cannot be applied to module definition
@@ -33,7 +33,7 @@ at-attributes-typos.dfy(40,0): Error: @Verify attribute cannot be applied to mod
 at-attributes-typos.dfy(39,0): Error: @TimeLimitMultiplier attribute cannot be applied to module definition
 at-attributes-typos.dfy(38,0): Error: @TimeLimit attribute cannot be applied to module definition
 at-attributes-typos.dfy(37,0): Error: @ResourceLimit attribute cannot be applied to module definition
-at-attributes-typos.dfy(37,0): Error: incorrect argument type for attribute parameter '0' (expected seq<char>, found int)
+at-attributes-typos.dfy(37,15): Error: incorrect argument type for attribute parameter '0' (expected seq<char>, found int)
 at-attributes-typos.dfy(36,0): Error: @Priority attribute cannot be applied to module definition
 at-attributes-typos.dfy(35,0): Error: @Print attribute cannot be applied to module definition
 at-attributes-typos.dfy(34,0): Error: @VerifyOnly attribute cannot be applied to module definition

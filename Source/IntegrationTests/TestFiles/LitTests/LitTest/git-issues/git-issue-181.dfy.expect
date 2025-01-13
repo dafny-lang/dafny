@@ -4,5 +4,5 @@ git-issue-181.dfy(13,10): Error: type parameter (T) passed to type ResultN must 
 git-issue-181.dfy(15,10): Error: type parameter (T) passed to type ResultN must contain no references (got array<int>)
 git-issue-181.dfy(22,13): Error: type parameter (T) passed to type D must support equality (got int -> int)
 git-issue-181.dfy(23,13): Error: type parameter (T) passed to type D must support equality (got E)
-git-issue-181.dfy(53,11): Error: type parameter (T) passed to function gg must support equality (got T) (perhaps try declaring type parameter 'T' on line 50 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+git-issue-181.dfy(53,13): Error: type parameter (T) passed to function gg must support equality (got T) (perhaps try declaring type parameter 'T' on line 50 as 'T(==)', which says it can only be instantiated with a type that supports equality)
 5 resolution/type errors detected in git-issue-181.dfy

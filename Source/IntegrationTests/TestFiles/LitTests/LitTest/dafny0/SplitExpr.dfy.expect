@@ -1,4 +1,4 @@
-SplitExpr.dfy(96,14): Error: loop invariant violation
+SplitExpr.dfy(96,26): Error: loop invariant violation
 SplitExpr.dfy(90,49): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 8 verified, 1 error

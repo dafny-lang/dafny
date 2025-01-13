@@ -1,4 +1,4 @@
-TriggerInPredicate.dfy(9,20): Info: Some instances of this call are not inlined.
-TriggerInPredicate.dfy(9,20): Info: Some instances of this call are not inlined.
+TriggerInPredicate.dfy(9,21): Info: Some instances of this call are not inlined.
+TriggerInPredicate.dfy(9,21): Info: Some instances of this call are not inlined.
 
 Dafny program verifier finished with 0 verified, 0 errors
