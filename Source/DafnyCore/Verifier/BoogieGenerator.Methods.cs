@@ -1095,10 +1095,8 @@ namespace Microsoft.Dafny {
 
 
     private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
-      Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap,
-      List<Bpl.Variable> implInParams,
-      Bpl.Variable/*?*/ resultVariable) {
+      Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap,
+      List<Bpl.Variable> implInParams, Bpl.Variable/*?*/ resultVariable) {
       Contract.Requires(f.Ins.Count <= implInParams.Count);
 
       var cco = new CanCallOptions(true, f);
@@ -1161,7 +1159,7 @@ namespace Microsoft.Dafny {
     }
 
     private void AddOverrideCheckTypeArgumentInstantiations(MemberDecl member, BoogieStmtListBuilder builder, Variables localVariables) {
-      Contract.Requires(member is Function || member is Method);
+      Contract.Requires(member is Function or Method);
       Contract.Requires(member.EnclosingClass is TopLevelDeclWithMembers);
       Contract.Requires(builder != null);
       Contract.Requires(localVariables != null);
@@ -1187,8 +1185,7 @@ namespace Microsoft.Dafny {
 
 
     private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables,
-      Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap) {
+      Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
       FunctionCallSubstituter sub = null;
@@ -1208,10 +1205,10 @@ namespace Microsoft.Dafny {
       Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of ReadsFrame
       var frame = localVariables.GetOrAdd(new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type)));
       // $_ReadsFrame := (lambda $o: ref, $f: Field :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
-      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", Predef.RefType));
-      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", Predef.FieldName(tok)));
-      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+      var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", Predef.RefType));
+      var o = new Bpl.IdentifierExpr(tok, oVar);
+      var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", Predef.FieldName(tok)));
+      var f = new Bpl.IdentifierExpr(tok, fVar);
       Bpl.Expr ante = BplAnd(Bpl.Expr.Neq(o, Predef.Null), etran.IsAlloced(tok, o));
       Bpl.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar }, null,
@@ -1230,8 +1227,7 @@ namespace Microsoft.Dafny {
     }
 
     private void AddFunctionOverrideReqsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
-      Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap) {
+      Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(f != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
@@ -1545,7 +1541,8 @@ namespace Microsoft.Dafny {
       }
       var allTraitReqs = subReqs.Count == 0 ? null : subReqs
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
-      //generating class pre-conditions
+
+      // generating class pre-conditions
       foreach (var req in ConjunctsOf(m.Req)) {
         foreach (var s in TrSplitExpr(new BodyTranslationContext(false), req.E, etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(TrAssumeCmd(m.Origin, etran.CanCallAssumption(req.E)));
@@ -1558,8 +1555,7 @@ namespace Microsoft.Dafny {
     }
 
     private void AddOverrideTerminationChk(ICallable original, ICallable overryd, BoogieStmtListBuilder builder, ExpressionTranslator etran,
-      Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap) {
+      Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(original != null);
       Contract.Requires(overryd != null);
       Contract.Requires(builder != null);
@@ -1638,8 +1634,7 @@ namespace Microsoft.Dafny {
     }
 
     private void AddMethodOverrideFrameSubsetChk(Method m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables,
-      Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap) {
+      Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap) {
 
       List<FrameExpression> classFrameExps;
       List<FrameExpression> originalTraitFrameExps;
@@ -1658,6 +1653,7 @@ namespace Microsoft.Dafny {
           // Trivially true
           return;
         }
+
         foreach (var e in originalTraitFrameExps) {
           var newE = Substitute(e.E, null, substMap, typeMap);
           var fe = new FrameExpression(e.Origin, newE, e.FieldName);
@@ -1665,13 +1661,12 @@ namespace Microsoft.Dafny {
         }
       }
 
-
-      var kv = etran.TrAttributes(m.Attributes, null);
       var tok = m.Origin;
       var canCalls = traitFrameExps.Concat(classFrameExps)
         .Select(e => etran.CanCallAssumption(e.E))
         .Aggregate((Bpl.Expr)Bpl.Expr.True, BplAnd);
       builder.Add(TrAssumeCmd(tok, canCalls));
+
       var oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", Predef.RefType));
       var o = new Boogie.IdentifierExpr(tok, oVar);
       var fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", Predef.FieldName(tok)));
@@ -1684,6 +1679,7 @@ namespace Microsoft.Dafny {
       var q = new Boogie.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
         BplImp(BplAnd(ante, oInCallee), consequent2));
       var description = new TraitFrame(m.WhatKind, isModifies, classFrameExps, traitFrameExps);
+      var kv = etran.TrAttributes(m.Attributes, null);
       builder.Add(Assert(m.Origin, q, description, builder.Context, kv));
     }
 
