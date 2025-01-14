@@ -250,6 +250,7 @@ It is only allowed to add members to the body of the datatype.
 
 ## **Error: datatype extending traits is not yet enabled by default; use --general-traits=datatype to enable it** {#p_general_traits_datatype}
 
+<!-- %check-resolve %options --general-traits=legacy -->
 ```dafny
 trait Trait { }
 datatype D extends Trait = A | B

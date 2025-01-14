@@ -84,11 +84,11 @@ namespace Microsoft.Dafny {
               for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
                 var other = dtor.CorrespondingFormals[i];
                 if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
-                  ReportError(other.Origin,
+                  ReportError(ResolutionErrors.ErrorId.r_shared_destructors_have_different_types, other.Origin,
                     "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
                     rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
                 } else if (rolemodel.IsGhost != other.IsGhost) {
-                  ReportError(other.Origin,
+                  ReportError(ResolutionErrors.ErrorId.r_shared_destructors_have_different_types, other.Origin,
                     "shared destructors must agree on whether or not they are ghost, but '{0}' is {1} in constructor '{2}' and {3} in constructor '{4}'",
                     rolemodel.Name,
                     rolemodel.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[0].Name,
@@ -289,13 +289,15 @@ namespace Microsoft.Dafny {
           var absN = n < 0 ? -n : n;
           // For bitvectors, check that the magnitude fits the width
           if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && ConstantFolder.MaxBv(width) < absN) {
-            cus.ReportError(e.Origin, "literal ({0}) is too large for the bitvector type {1}", absN, e.PreType);
+            cus.ReportError(ResolutionErrors.ErrorId.r_literal_too_large_for_bitvector, e.Origin,
+              "literal ({0}) is too large for the bitvector type {1}", absN, e.PreType);
           }
           // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
           // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
           if (n < 0 || e.Origin.val == "-0") {
             Contract.Assert(e.Origin.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
-            cus.ReportError(e.Origin, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.PreType);
+            cus.ReportError(ResolutionErrors.ErrorId.r_no_unary_minus_in_case_patterns, e.Origin,
+              "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.PreType);
           }
         }
 

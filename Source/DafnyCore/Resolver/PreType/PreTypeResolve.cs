@@ -50,6 +50,10 @@ namespace Microsoft.Dafny {
       resolver.Reporter.Error(MessageSource.Resolver, tok, msg, args);
     }
 
+    public void ReportError(ResolutionErrors.ErrorId errorId, IOrigin tok, string msg, params object[] args) {
+      resolver.Reporter.Error(MessageSource.Resolver, errorId, tok, msg, args);
+    }
+
     public void ReportWarning(IOrigin tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
