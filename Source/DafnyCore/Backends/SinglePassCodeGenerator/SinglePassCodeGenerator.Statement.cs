@@ -558,6 +558,9 @@ namespace Microsoft.Dafny.Compilers {
         case TryRecoverStatement h:
           EmitHaltRecoveryStmt(h.TryBody, IdName(h.HaltMessageVar), h.RecoverBody, wr);
           break;
+        case BlockByProofStmt blockByProofStmt:
+          TrStmt(blockByProofStmt.Body, wr, wStmts);
+          break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }

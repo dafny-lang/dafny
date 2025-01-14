@@ -1,2 +1,2 @@
-git-issue-847.dfy(48,14): Error: the decreases clause of function 'O.fr' is not allowed to call 'level', because they are mutually recursive
+git-issue-847.dfy(48,19): Error: the decreases clause of function 'O.fr' is not allowed to call 'level', because they are mutually recursive
 1 resolution/type errors detected in git-issue-847.dfy
