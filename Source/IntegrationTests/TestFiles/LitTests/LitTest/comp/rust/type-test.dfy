@@ -4,7 +4,7 @@
 // RUN: %baredafny run --target=rs --raw-pointers "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-trait T { }
+trait T extends object { }
 class A extends T { constructor() {} }
 class B extends T { }
 

@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %build --rprint:- "%s" > "%t"
+// RUN: %exits-with 2 %build --rprint:- --type-system-refresh=false --general-traits=legacy --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 module Tests {
 class CC {

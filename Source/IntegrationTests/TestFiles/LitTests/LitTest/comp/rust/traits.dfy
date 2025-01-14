@@ -43,9 +43,9 @@ module TraitDefinitions {
   }
 
 
-  trait NoMemberTrait {}
+  trait NoMemberTrait extends object {}
   
-  trait NoMemberTrait2 {}
+  trait NoMemberTrait2 extends object {}
   trait SuperTrait extends NoMemberTrait, NoMemberTrait2 {
     method GetC() returns (c: int)
     method SetC(newC: int)
@@ -143,7 +143,7 @@ module All {
   method ConsumeBorrows(y: SubTrait<int, int>) {
 
   }
-  trait TraitNoArgs {}
+  trait TraitNoArgs extends object {}
   class ClassNoArgs extends TraitNoArgs {
     var x: int
     constructor() {
@@ -195,8 +195,8 @@ module All {
     var aOwned := a;
     var o: TraitNoArgs := a as TraitNoArgs;
     expect o is ClassNoArgs;
-    ConsumeClassNoArgs(o);
-    ConsumeClassNoArgs(o);
+    ConsumeClassNoArgs(o as ClassNoArgs);
+    ConsumeClassNoArgs(o as ClassNoArgs);
     var oo: object := o as object;
     expect oo is ClassNoArgs;
     ConsumeClassNoArgs(oo as ClassNoArgs);

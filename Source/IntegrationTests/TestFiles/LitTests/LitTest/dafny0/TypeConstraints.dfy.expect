@@ -1,16 +1,16 @@
-TypeConstraints.dfy(40,9): Error: RHS (of type bool) not assignable to LHS (of type int)
-TypeConstraints.dfy(48,9): Error: RHS (of type bool) not assignable to LHS (of type int)
-TypeConstraints.dfy(56,9): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(42,6): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(49,6): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(56,15): Error: RHS (of type int) not assignable to LHS (of type bool)
 TypeConstraints.dfy(65,6): Error: RHS (of type bool) not assignable to LHS (of type int)
 TypeConstraints.dfy(80,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
 TypeConstraints.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
-TypeConstraints.dfy(78,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
-TypeConstraints.dfy(79,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
-TypeConstraints.dfy(95,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got ?2)
+TypeConstraints.dfy(77,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
+TypeConstraints.dfy(94,8): Error: the type of this local variable is underspecified
+TypeConstraints.dfy(94,11): Error: the type of this local variable is underspecified
 TypeConstraints.dfy(102,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 TypeConstraints.dfy(136,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C?)
-TypeConstraints.dfy(149,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C?)
+TypeConstraints.dfy(149,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C)
 TypeConstraints.dfy(176,6): Error: RHS (of type C) not assignable to LHS (of type R)
 TypeConstraints.dfy(424,8): Error: type array<nat> is not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
 TypeConstraints.dfy(426,8): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
@@ -627,7 +627,7 @@ module TraitStuff {
       z := new PartZ;
       Repr := {this, x, y, z};
       new;
-      var parts: set<Part> := {x, y};
+      var parts: set<object> := {x, y};
       var ooo: set<object> := {y, z};
     }
   }
