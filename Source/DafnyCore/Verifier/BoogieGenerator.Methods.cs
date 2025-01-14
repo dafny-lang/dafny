@@ -1645,8 +1645,9 @@ namespace Microsoft.Dafny {
           return;
         }
 
+        var sub = new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
         foreach (var e in originalTraitFrameExps) {
-          var newE = Substitute(e.E, null, substMap, typeMap);
+          var newE = sub.Substitute(e.E);
           var fe = new FrameExpression(e.Origin, newE, e.FieldName);
           traitFrameExps.Add(fe);
         }
