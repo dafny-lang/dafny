@@ -2,9 +2,9 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-class ExtremeLemmaChecks_Visitor : ResolverBottomUpVisitor {
+class ExtremeLemmaChecksVisitor : ResolverBottomUpVisitor {
   ExtremeLemma context;
-  public ExtremeLemmaChecks_Visitor(ModuleResolver resolver, ExtremeLemma context)
+  public ExtremeLemmaChecksVisitor(ModuleResolver resolver, ExtremeLemma context)
     : base(resolver) {
     Contract.Requires(resolver != null);
     Contract.Requires(context != null);

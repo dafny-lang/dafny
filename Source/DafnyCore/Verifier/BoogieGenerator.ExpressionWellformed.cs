@@ -1103,7 +1103,7 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.NeqCommon:
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
                 if (e.InCompiledContext) {
-                  if (CheckTypeCharacteristics_Visitor.CanCompareWith(e.E0) || CheckTypeCharacteristics_Visitor.CanCompareWith(e.E1)) {
+                  if (CheckTypeCharacteristicsVisitor.CanCompareWith(e.E0) || CheckTypeCharacteristicsVisitor.CanCompareWith(e.E1)) {
                     // everything's fine
                   } else {
                     Contract.Assert(!e.E0.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above

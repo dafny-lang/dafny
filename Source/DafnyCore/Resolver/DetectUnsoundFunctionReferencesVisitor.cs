@@ -2,10 +2,10 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-class DetectUnsoundFunctionReferences_Visitor : ResolverBottomUpVisitor {
+class DetectUnsoundFunctionReferencesVisitor : ResolverBottomUpVisitor {
   private readonly ICallable context;
   public bool DoDecreasesChecks;
-  public DetectUnsoundFunctionReferences_Visitor(ModuleResolver resolver, ICallable context)
+  public DetectUnsoundFunctionReferencesVisitor(ModuleResolver resolver, ICallable context)
     : base(resolver) {
     Contract.Requires(resolver != null);
     Contract.Requires(context != null);
