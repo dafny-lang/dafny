@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=false --general-newtypes=false --general-traits=legacy
 
 // Note, these tests seem to be specific to the old type system. With the new type system,
 // assignments that, in some way, involve a conversion from Number to Integer require an

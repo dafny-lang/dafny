@@ -1,5 +1,5 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --allow-deprecation
-
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --type-system-refresh=false --general-newtypes=false
+// NOTE: This test fails with the new resolver, because Cons(n, A(...)) in function B is inferred to have type Stream<nat>. This should be fixed.
 
 // --------------------------------------------------
 
@@ -12,13 +12,13 @@ module CoRecursion {
   }
 
   ghost function AscendingChainAndRead(n: nat): Stream<int>
-    reads null;  // with a reads clause, this function is not a co-recursive function
+    reads null  // with a reads clause, this function is not a co-recursive function
   {
     More(n, AscendingChainAndRead(n+1))  // error: cannot prove termination
   }
 
   ghost function AscendingChainAndPostcondition(n: nat): Stream<int>
-    ensures false;  // with an ensures clause, this function is not a co-recursive function
+    ensures false  // with an ensures clause, this function is not a co-recursive function
   {
     More(n, AscendingChainAndPostcondition(n+1))  // error: cannot prove termination
   }
@@ -38,12 +38,12 @@ module CoRecursionNotUsed {
   codatatype Stream<T> = More(T, Stream)
 
   ghost function F(s: Stream, n: nat): Stream
-    decreases n, true;
+    decreases n, true
   {
     G(s, n)
   }
   ghost function G(s: Stream, n: nat): Stream
-    decreases n, false;
+    decreases n, false
   {
     if n == 0 then s else Tail(F(s, n-1))
   }
@@ -105,8 +105,8 @@ module MixRecursiveAndCorecursive {
       H(n)
   }
   ghost function H(n: nat): Stream<int>
-    requires n != 0;
-    decreases n, 0;
+    requires n != 0
+    decreases n, 0
   {
     G(n-1).tail
   }
@@ -120,8 +120,8 @@ module MixRecursiveAndCorecursive {
       Y(n)
   }
   ghost function Y(n: nat): Stream<int>
-    requires n != 0;
-    decreases n, 0;
+    requires n != 0
+    decreases n, 0
   {
     X(n-1)
   }
@@ -133,7 +133,7 @@ module FunctionSCCsWithMethods {
   codatatype Stream<T> = Cons(head: T, tail: Stream)
 
   lemma M(n: nat)
-    decreases n, 0;
+    decreases n, 0
   {
     if n != 0 {
       var p := Cons(10, F(n-1));
@@ -141,7 +141,7 @@ module FunctionSCCsWithMethods {
   }
 
   ghost function F(n: nat): Stream<int>
-    decreases n;
+    decreases n
   {
     M(n);
     // the following call to F is not considered co-recursive, because the SCC contains a method
@@ -155,14 +155,14 @@ module FunctionSCCsWithMethods {
   }
 
   ghost function H(): Stream<int>
-    decreases 0;
+    decreases 0
   {
     // the following call to G is not considered co-recursive, because the SCC contains a method
     Cons(5, G())  // error: cannot prove termination
   }
 
   lemma Lemma()
-    decreases 1;
+    decreases 1
   {
     var h := H();
   }
