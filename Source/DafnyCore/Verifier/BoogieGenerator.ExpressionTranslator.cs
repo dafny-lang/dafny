@@ -2126,7 +2126,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       public Expression MakeAllowance(FunctionCallExpr e, CanCallOptions cco = null) {
         Expression allowance = Expression.CreateBoolLiteral(e.Origin, true);
         if (!e.Function.IsStatic) {
-          allowance = Expression.CreateAnd(allowance, Expression.CreateEq(e.Receiver, new ThisExpr(e.Function), e.Receiver.Type));
+          var formalThis = new ThisExpr(cco == null ? e.Function : cco.EnclosingFunction);
+          allowance = Expression.CreateAnd(allowance, Expression.CreateEq(e.Receiver, formalThis, e.Receiver.Type));
         }
         var formals = cco == null ? e.Function.Ins : cco.EnclosingFunction.Ins;
         for (int i = 0; i < e.Args.Count; i++) {
