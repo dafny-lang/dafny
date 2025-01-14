@@ -1262,8 +1262,8 @@ namespace Microsoft.Dafny {
         FillInPostConditionsAndBodiesOfPrefixLemmas(declarations);
       }
 
-      // A function is not allowed to be used naked in its own SCC. Also, a function is not allowed to be used
-      // in any way inside a "decreases" clause its its own SCC.
+      // A function is not allowed to be used naked (that is, without being applied to arguments) in its own SCC.
+      // Also, a function is not allowed to be used in any way inside a "decreases" clause its its own SCC.
       foreach (var function in ModuleDefinition.AllFunctions(declarations)) {
         var visitor = new DetectUnsoundFunctionReferencesVisitor(this, function);
         visitor.Visit(function);
