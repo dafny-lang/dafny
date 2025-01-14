@@ -37,10 +37,10 @@ SmallTests.dfy(338,2): Error: a postcondition could not be proved on this return
 SmallTests.dfy(332,10): Related location: this is the postcondition that could not be proved
 SmallTests.dfy(379,2): Error: assertion might not hold
 SmallTests.dfy(386,2): Error: assertion might not hold
-SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decreases clause
+SmallTests.dfy(396,8): Error: cannot prove termination; try supplying a decreases clause
 SmallTests.dfy(408,4): Error: assertion might not hold
 SmallTests.dfy(418,4): Error: assertion might not hold
-SmallTests.dfy(428,5): Error: cannot prove termination; try supplying a decreases clause
+SmallTests.dfy(428,10): Error: cannot prove termination; try supplying a decreases clause
 SmallTests.dfy(445,2): Error: a postcondition could not be proved on this return path
 SmallTests.dfy(443,40): Related location: this is the postcondition that could not be proved
 SmallTests.dfy(604,2): Error: assertion might not hold

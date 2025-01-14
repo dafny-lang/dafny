@@ -1,7 +1,7 @@
-precondition-satisfied.dfy(12,4): Error: function precondition could not be proved
+precondition-satisfied.dfy(12,7): Error: function precondition could not be proved
  Asserted expression: b != 0
 precondition-satisfied.dfy(5,15): Related location: this proposition could not be proved
-precondition-satisfied.dfy(23,4): Error: divisor must be nonzero
+precondition-satisfied.dfy(23,15): Error: divisor must be nonzero
  Asserted expression: b != 0
 precondition-satisfied.dfy(16,72): Related location: this proposition could not be proved
 precondition-satisfied.dfy(29,4): Error: function precondition could not be proved

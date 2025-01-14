@@ -373,7 +373,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
@@ -870,8 +870,9 @@ namespace Microsoft.Dafny.Compilers {
     //     }
     //   }
     //
-    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string /*?*/ fullPrintName,
+    protected override IClassWriter CreateClass(string moduleName, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> /*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
+      var name = IdName(cls);
       var javaName = isExtern ? FormatExternBaseClassName(name) : name;
       var filename = $"{ModulePath}/{javaName}.java";
       var w = wr.NewFile(filename);
@@ -2440,6 +2441,7 @@ namespace Microsoft.Dafny.Compilers {
         case "toString":
         case "equals":
         case "hashCode":
+        case "Default":
           return name + "_"; // TODO: figure out what to do here (C# uses @, Go uses _, JS uses _$$_)
         default:
           return name; // Package name is not a keyword, so it can be used
@@ -3602,7 +3604,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);
