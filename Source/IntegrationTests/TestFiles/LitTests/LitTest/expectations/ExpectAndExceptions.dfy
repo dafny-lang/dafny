@@ -8,7 +8,9 @@ include "../exceptions/NatOutcomeDt.dfy"
 include "../exceptions/GenericOutcomeDt.dfy"
 
 method TestAssignOrHalt() {
-    var stmt1: nat :- expect NatSuccess(42);
+    var stmt1: nat :- expect NatSuccess(42) by {
+       assert true;
+    }
     // Regression test for when assign-or-halt was also calling PropagateFailure, which led
     // to the error "type variable 'U' in the function call to 'PropagateFailure' could not be determined"
     // (because of the lack of type constraints).

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --show-hints "%s" > "%t"
+// RUN: %exits-with 2 %verify --show-hints "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost function fact(n: int): int

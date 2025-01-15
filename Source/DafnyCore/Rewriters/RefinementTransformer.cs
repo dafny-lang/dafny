@@ -336,7 +336,7 @@ namespace Microsoft.Dafny {
             // check that od's type characteristics are respected by nw's
             var newType = UserDefinedType.FromTopLevelDecl(nw.Origin,
               nw is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl } ? nonNullTypeDecl : nw);
-            if (!CheckTypeCharacteristics_Visitor.CheckCharacteristics(od.Characteristics, newType, false, out var whatIsNeeded, out var hint, out var errorId)) {
+            if (!CheckTypeCharacteristicsVisitor.CheckCharacteristics(od.Characteristics, newType, false, out var whatIsNeeded, out var hint, out var errorId)) {
               var typeCharacteristicsSyntax = od.Characteristics.ToString();
               Error(errorId, nw.Origin,
                 $"to be a refinement of {od.WhatKind} '{od.EnclosingModuleDefinition.Name}.{od.Name}' declared with {typeCharacteristicsSyntax}, " +

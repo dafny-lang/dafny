@@ -16,4 +16,4 @@ TypeParameters.dfy(175,23): Error: this invariant could not be proved to be main
 TypeParameters.dfy(175,37): Related location: this proposition could not be proved
 TypeParameters.dfy(376,20): Error: assertion might not hold
 
-Dafny program verifier finished with 31 verified, 9 errors
+Dafny program verifier finished with 30 verified, 9 errors

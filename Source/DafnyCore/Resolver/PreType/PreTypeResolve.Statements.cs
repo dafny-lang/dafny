@@ -1189,7 +1189,7 @@ namespace Microsoft.Dafny {
             // down to resolve this "lhs"; that's a no-op if the .PreType is already filled in, whereas it could cause a "'this' not allowed in
             // static context" error if the code tried to resolve this "this" against the enclosing environment.
             rr.PreType = Type2PreType(rr.EType);
-            var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) {
+            var lhs = new ImplicitThisExprConstructorCall(initCallTok) {
               Type = rr.EType,
               PreType = rr.PreType
             };
