@@ -1145,10 +1145,10 @@ public abstract class Type : NodeWithComputedRange {
           return true;
         }
       }
-    } else if (a is Resolver_IdentifierExpr.ResolverType_Module) {
-      return b is Resolver_IdentifierExpr.ResolverType_Module;
-    } else if (a is Resolver_IdentifierExpr.ResolverType_Type) {
-      return b is Resolver_IdentifierExpr.ResolverType_Type;
+    } else if (a is ResolverIdentifierExpr.ResolverTypeModule) {
+      return b is ResolverIdentifierExpr.ResolverTypeModule;
+    } else if (a is ResolverIdentifierExpr.ResolverTypeType) {
+      return b is ResolverIdentifierExpr.ResolverTypeType;
     } else {
       // this is an unexpected type; however, it may be that we get here during the resolution of an erroneous
       // program, so we'll just return false
@@ -2232,7 +2232,7 @@ public abstract class TypeProxy : Type {
   public enum Family { Unknown, Bool, Char, IntLike, RealLike, Ordinal, BitVector, ValueType, Ref, Opaque }
   public Family family = Family.Unknown;
   public static Family GetFamily(Type t) {
-    Contract.Ensures(Contract.Result<Family>() != Family.Unknown || t is TypeProxy || t is Resolver_IdentifierExpr.ResolverType);  // return Unknown ==> t is TypeProxy || t is ResolverType
+    Contract.Ensures(Contract.Result<Family>() != Family.Unknown || t is TypeProxy || t is ResolverIdentifierExpr.ResolverType);  // return Unknown ==> t is TypeProxy || t is ResolverType
     if (t.IsBoolType) {
       return Family.Bool;
     } else if (t.IsCharType) {

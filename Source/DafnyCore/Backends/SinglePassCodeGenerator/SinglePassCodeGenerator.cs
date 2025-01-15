@@ -1606,7 +1606,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
       var wr = CreateModule(module, module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, module.Attributes, programNode);
-      var v = new CheckHasNoAssumes_Visitor(this, wr);
+      var v = new CheckHasNoAssumesVisitor(this, wr);
       foreach (TopLevelDecl d in module.TopLevelDecls) {
         if (!ProgramResolver.ShouldCompile(d)) {
           continue;
@@ -2151,7 +2151,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(thisContext == null);
 
       var errorWr = classWriter.ErrorWriter();
-      var v = new CheckHasNoAssumes_Visitor(this, errorWr);
+      var v = new CheckHasNoAssumesVisitor(this, errorWr);
 
       var inheritedMembers = c.InheritedMembers;
       OrderedBySCC(inheritedMembers, c);
@@ -3263,10 +3263,10 @@ namespace Microsoft.Dafny.Compilers {
 
     // ----- Stmt ---------------------------------------------------------------------------------
 
-    public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
+    public class CheckHasNoAssumesVisitor : BottomUpVisitor {
       readonly SinglePassCodeGenerator codeGenerator;
       ConcreteSyntaxTree wr;
-      public CheckHasNoAssumes_Visitor(SinglePassCodeGenerator c, ConcreteSyntaxTree wr) {
+      public CheckHasNoAssumesVisitor(SinglePassCodeGenerator c, ConcreteSyntaxTree wr) {
         Contract.Requires(c != null);
         codeGenerator = c;
         this.wr = wr;

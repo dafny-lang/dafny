@@ -168,7 +168,7 @@ function U(x: int, ghost y: int): nat
 
 function {:tailrecursion} Q(n: nat): nat {
   if n % 5 == 0 then
-    var s := Q;  // error: this use of Q is not a tail call
+    var s := Q;  // error (x2): this use of Q is not a tail call, and cannot use Q as naked function here
     10
   else if n % 5 == 1 then
     Q(Q(n - 1))  // error: inner Q is not a tail call

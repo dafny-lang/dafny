@@ -540,10 +540,10 @@ namespace Microsoft.Dafny {
         var e = (NameSegment)expr;
         ResolveNameSegment(e, true, null, resolutionContext, false);
 
-        if (e.Type is Resolver_IdentifierExpr.ResolverType_Module) {
+        if (e.Type is ResolverIdentifierExpr.ResolverTypeModule) {
           reporter.Error(MessageSource.Resolver, e.Origin, "name of module ({0}) is used as a variable", e.Name);
           e.ResetTypeAssignment();  // the rest of type checking assumes actual types
-        } else if (e.Type is Resolver_IdentifierExpr.ResolverType_Type) {
+        } else if (e.Type is ResolverIdentifierExpr.ResolverTypeType) {
           reporter.Error(MessageSource.Resolver, e.Origin, "name of type ({0}) is used as a variable", e.Name);
           e.ResetTypeAssignment();  // the rest of type checking assumes actual types
         }
@@ -551,10 +551,10 @@ namespace Microsoft.Dafny {
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
         ResolveDotSuffix(e, false, true, null, resolutionContext, false);
-        if (e.Type is Resolver_IdentifierExpr.ResolverType_Module) {
+        if (e.Type is ResolverIdentifierExpr.ResolverTypeModule) {
           reporter.Error(MessageSource.Resolver, e.Origin, "name of module ({0}) is used as a variable", e.SuffixName);
           e.ResetTypeAssignment();  // the rest of type checking assumes actual types
-        } else if (e.Type is Resolver_IdentifierExpr.ResolverType_Type) {
+        } else if (e.Type is ResolverIdentifierExpr.ResolverTypeType) {
           reporter.Error(MessageSource.Resolver, e.Origin, "name of type ({0}) is used as a variable", e.SuffixName);
           e.ResetTypeAssignment();  // the rest of type checking assumes actual types
         }
@@ -709,7 +709,7 @@ namespace Microsoft.Dafny {
         var arrowType = new ArrowType(e.Origin, SystemModuleManager.ArrowTypeDecls[1], new List<Type>() { SystemModuleManager.Nat() }, elementType);
         var hintString = " (perhaps write '_ =>' in front of the expression you gave in order to make it an arrow type)";
         ConstrainSubtypeRelation(arrowType, e.Initializer.Type, e.Initializer, "sequence-construction initializer expression expected to have type '{0}' (instead got '{1}'){2}",
-          arrowType, e.Initializer.Type, new LazyString_OnTypeEquals(elementType, e.Initializer.Type, hintString));
+          arrowType, e.Initializer.Type, new LazyStringOnTypeEquals(elementType, e.Initializer.Type, hintString));
         expr.Type = new SeqType(elementType);
 
       } else if (expr is MultiSetFormingExpr) {
@@ -3410,8 +3410,8 @@ namespace Microsoft.Dafny {
       Expression r = null;  // the resolved expression, if successful
 
       var lhs = expr.Lhs.Resolved;
-      if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
-        var ri = (Resolver_IdentifierExpr)lhs;
+      if (lhs != null && lhs.Type is ResolverIdentifierExpr.ResolverTypeModule) {
+        var ri = (ResolverIdentifierExpr)lhs;
         var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(false);
         sig = GetSignature(sig);
         // For 0:
@@ -3441,8 +3441,8 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, expr.Origin, "module '{0}' does not declare a type '{1}'", ri.Decl.Name, expr.SuffixName);
         }
 
-      } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
-        var ri = (Resolver_IdentifierExpr)lhs;
+      } else if (lhs != null && lhs.Type is ResolverIdentifierExpr.ResolverTypeType) {
+        var ri = (ResolverIdentifierExpr)lhs;
         // ----- 2. Look up name in type
         var ty = new UserDefinedType(ri.Origin, ri.Decl.Name, ri.Decl, ri.TypeArgs);
         if (allowDanglingDotName && ty.IsRefType) {
@@ -3463,11 +3463,11 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    internal Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IOrigin tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
+    internal ResolverIdentifierExpr CreateResolver_IdentifierExpr(IOrigin tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(decl != null);
-      Contract.Ensures(Contract.Result<Resolver_IdentifierExpr>() != null);
+      Contract.Ensures(Contract.Result<ResolverIdentifierExpr>() != null);
 
       if (!moduleInfo.IsAbstract) {
         if (decl is ModuleDecl md && md.Signature.IsAbstract) {
@@ -3485,7 +3485,7 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < decl.TypeArgs.Count; i++) {
         tpArgs.Add(i < n ? optTypeArguments[i] : new InferredTypeProxy());
       }
-      return new Resolver_IdentifierExpr(tok, decl, tpArgs);
+      return new ResolverIdentifierExpr(tok, decl, tpArgs);
     }
 
     public void ResolveStatement(Statement stmt, ResolutionContext resolutionContext) {
@@ -4191,10 +4191,10 @@ namespace Microsoft.Dafny {
           ResolveNameSegment_Type(s, resolutionContext, option, defaultTypeArguments);
         }
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var r = t.NamePath.Resolved as Resolver_IdentifierExpr;
-          if (r == null || !(r.Type is Resolver_IdentifierExpr.ResolverType_Type)) {
+          var r = t.NamePath.Resolved as ResolverIdentifierExpr;
+          if (r == null || !(r.Type is ResolverIdentifierExpr.ResolverTypeType)) {
             reporter.Error(MessageSource.Resolver, t.Origin, "expected type");
-          } else if (r.Type is Resolver_IdentifierExpr.ResolverType_Type) {
+          } else if (r.Type is ResolverIdentifierExpr.ResolverTypeType) {
             var d = r.Decl;
             if (d is AbstractTypeDecl) {
               // resolve like a type parameter, and it may have type parameters if it's an abstract type
@@ -4366,7 +4366,7 @@ namespace Microsoft.Dafny {
             }
             var hintString = string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)", underscores);
             ConstrainSubtypeRelation(arrowType, rr.ElementInit.Type, rr.ElementInit, "array-allocation initialization expression expected to have type '{0}' (instead got '{1}'){2}",
-              arrowType, rr.ElementInit.Type, new LazyString_OnTypeEquals(rr.EType, rr.ElementInit.Type, hintString));
+              arrowType, rr.ElementInit.Type, new LazyStringOnTypeEquals(rr.EType, rr.ElementInit.Type, hintString));
           } else if (rr.InitDisplay != null) {
             foreach (var v in rr.InitDisplay) {
               ResolveExpression(v, resolutionContext);
@@ -4412,7 +4412,7 @@ namespace Microsoft.Dafny {
 
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
               // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
-              var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) { Type = rr.EType };
+              var lhs = new ImplicitThisExprConstructorCall(initCallTok) { Type = rr.EType };
               var callLhs = new ExprDotName(((UserDefinedType)rr.EType).Origin, lhs, new Name(initCallName), ret == null ? null : ret.LastComponent.OptTypeArguments);
               ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
@@ -5475,7 +5475,7 @@ namespace Microsoft.Dafny {
       if (tp != null) {
         // ----- 0. type parameter
         if (expr.OptTypeArguments == null) {
-          r = new Resolver_IdentifierExpr(expr.Origin, tp);
+          r = new ResolverIdentifierExpr(expr.Origin, tp);
         } else {
           reporter.Error(MessageSource.Resolver, expr.Origin, "Type parameter expects no type arguments: {0}", expr.Name);
         }
@@ -5601,8 +5601,8 @@ namespace Microsoft.Dafny {
         return null;
       }
       var lhs = expr.Lhs.Resolved;
-      if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
-        var ri = (Resolver_IdentifierExpr)lhs;
+      if (lhs != null && lhs.Type is ResolverIdentifierExpr.ResolverTypeModule) {
+        var ri = (ResolverIdentifierExpr)lhs;
         var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(false);
         sig = GetSignature(sig);
         // For 0:
@@ -5661,8 +5661,8 @@ namespace Microsoft.Dafny {
           ReportUnresolvedIdentifierError(expr.Origin, name, resolutionContext);
         }
 
-      } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
-        var ri = (Resolver_IdentifierExpr)lhs;
+      } else if (lhs != null && lhs.Type is ResolverIdentifierExpr.ResolverTypeType) {
+        var ri = (ResolverIdentifierExpr)lhs;
         // ----- 3. Look up name in type
         // expand any synonyms
         var ty = new UserDefinedType(expr.Origin, ri.Decl.Name, ri.Decl, ri.TypeArgs).NormalizeExpand();
@@ -5875,10 +5875,10 @@ namespace Microsoft.Dafny {
         var fnType = improvedType.AsArrowType;
         if (fnType == null) {
           var lhs = e.Lhs.Resolved;
-          if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
-            reporter.Error(MessageSource.Resolver, e.Origin, "name of module ({0}) is used as a function", ((Resolver_IdentifierExpr)lhs).Decl.Name);
-          } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
-            var ri = (Resolver_IdentifierExpr)lhs;
+          if (lhs != null && lhs.Type is ResolverIdentifierExpr.ResolverTypeModule) {
+            reporter.Error(MessageSource.Resolver, e.Origin, "name of module ({0}) is used as a function", ((ResolverIdentifierExpr)lhs).Decl.Name);
+          } else if (lhs != null && lhs.Type is ResolverIdentifierExpr.ResolverTypeType) {
+            var ri = (ResolverIdentifierExpr)lhs;
             reporter.Error(MessageSource.Resolver, e.Origin, "name of {0} ({1}) is used as a function", ri.Decl.WhatKind, ri.Decl.Name);
           } else {
             if (lhs is MemberSelectExpr mse && mse.Member is Method) {
