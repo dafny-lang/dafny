@@ -50,6 +50,8 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMultiArrayClassPrefix = "dafny.Array";
     const string DafnyTupleClassPrefix = "dafny.Tuple";
 
+    // Reserved name for Get method in co-datatypes. Starts with _ to avoid name clash
+    // with user-defined method
     const string CoDatatypeGet = "_Get";
 
     string DafnyMultiArrayClass(int dim) => DafnyMultiArrayClassPrefix + dim;
@@ -2031,7 +2033,7 @@ namespace Microsoft.Dafny.Compilers {
           if (dt.IsRecordType) {
             wDtor.WriteLine($"return this.{FieldName(arg, 0)};");
           } else {
-            wDtor.WriteLine("{0} d = this{1};", DtT_protected, dt is CoDatatypeDecl ? "."+CoDatatypeGet+"()" : "");
+            wDtor.WriteLine("{0} d = this{1};", DtT_protected, dt is CoDatatypeDecl ? "." + CoDatatypeGet + "()" : "");
             var compiledConstructorsProcessed = 0;
             for (var i = 0; i < dtor.EnclosingCtors.Count; i++) {
               var ctor_i = dtor.EnclosingCtors[i];
@@ -2098,7 +2100,7 @@ namespace Microsoft.Dafny.Compilers {
         wCtorBody.WriteLine($"super({wBaseCallArguments});");
         wCtorBody.WriteLine("this.c = c;");
         w.WriteLine($"public {dt.GetCompileName(Options)}{typeParams} {CoDatatypeGet}() {{ if (c != null) {{ d = c.run(); c = null; }} return d; }}");
-        w.WriteLine("public String toString() { return "+CoDatatypeGet+"().toString(); }");
+        w.WriteLine("public String toString() { return " + CoDatatypeGet + "().toString(); }");
       }
     }
 
@@ -3354,7 +3356,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       wr.Write("(({0})", DtCtorName(ctor, getTypeArgs(), wr));
       source(wr);
-      wr.Write("{0}).{1}", ctor.EnclosingDatatype is CoDatatypeDecl ? "."+CoDatatypeGet+"()" : "", dtorName);
+      wr.Write("{0}).{1}", ctor.EnclosingDatatype is CoDatatypeDecl ? "." + CoDatatypeGet + "()" : "", dtorName);
     }
 
     private void CreateLambdaFunctionInterface(int i, ConcreteSyntaxTree outputWr) {
