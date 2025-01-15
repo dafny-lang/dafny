@@ -116,10 +116,62 @@ class Concat:
             e = q.pop()
             if isinstance(e, list):
                 l += e
+            elif isinstance(e, ListView):
+                l += e
             elif isinstance(e, Concat):
                 q.append(e.r)
                 q.append(e.l)
         return l
+
+class ListView:
+    def __init__(self, source, start=0, stop=None, step=1):
+        if isinstance(source, ListView):
+            self._source = source._source
+            self._start = source._start + start * source._step
+            self._step = source._step * step
+            self._stop = (
+                source._start + (stop * source._step if stop is not None else len(source) * source._step)
+                if stop is not None
+                else source._stop
+            )
+        else:
+            self._source = source
+            self._start = start
+            self._stop = len(source) if stop is None else stop
+            self._step = step
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            # Slice in constant time by returning a reference to the source list
+            # with updated indices
+            start, stop, step = index.indices(len(self))
+            return ListView(
+                self._source,
+                self._start + start * self._step,
+                self._start + stop * self._step,
+                self._step * step,
+            )
+        # Access the corresponding element in the source list
+        return self._source[self._start + index * self._step]
+
+    def __len__(self):
+        return max(0, (self._stop - self._start + (self._step - 1)) // self._step)
+
+    def __iter__(self):
+        for i in range(self._start, self._stop, self._step):
+            yield self._source[i]
+
+    def __repr__(self):
+        return f"ListView({list(self)})"
+
+    def __contains__(self, item):
+        return any(x == item for x in self)
+
+    def index(self, value):
+        for i, x in enumerate(self):
+            if x == value:
+                return i
+        raise ValueError(f"{value} is not in list")
 
 class Seq:
     def __init__(self, iterable = None, isStr = False):
@@ -136,10 +188,20 @@ class Seq:
         '''
 
         if isinstance(iterable, Seq):
-            # avoid calling list() if iterable is a Seq; that can be expensive
+            # Seqs' elements are immutable.
+            # The new Seq can directly reference the original Seqs' properties.
             self.elems = iterable.elems
             self.len = iterable.len
             self.isStr = iterable.isStr
+        elif isinstance(iterable, list):
+            self.elems = iterable
+            self.len = len(iterable)
+            self.isStr = isStr
+        elif isinstance(iterable, ListView):
+            
+            self.elems = iterable
+            self.len = len(iterable)
+            self.isStr = isStr
         else:
             self.elems = iterable if isinstance(iterable, Concat) else (list(iterable) if iterable is not None else [])
             self.len = len(self.elems)
@@ -157,6 +219,8 @@ class Seq:
     def Elements(self):
         if isinstance(self.elems, Concat):
             self.elems = self.elems.flatten()
+        if isinstance(self.elems, ListView):
+            self.elems = list(self.elems)
         return self.elems
 
     @property
@@ -182,9 +246,18 @@ class Seq:
         return Seq(Concat(self.elems, other.elems), isStr=self.isStr and other.isStr)
 
     def __getitem__(self, key):
+        # if isinstance(key, slice):
+        #     return Seq(islice(self, *key.indices(len(self))), isStr=self.isStr)
         if isinstance(key, slice):
-            return Seq(islice(self.Elements, *key.indices(len(self))), isStr=self.isStr)
-        return self.Elements.__getitem__(key)
+            start, stop, step = key.indices(len(self))
+            if isinstance(self.elems, ListView):
+                return Seq(ListView(self.elems, start=start, stop=stop, step=step), isStr=self.isStr)
+            return Seq(ListView(self.Elements, start=start, stop=stop, step=step), isStr=self.isStr)
+        try:
+            return self.Elements.__getitem__(key)
+        except IndexError as e:
+            print(f"{self.Elements=}")
+            raise e
 
     def set(self, key, value):
         l = list(self.Elements)
@@ -205,6 +278,9 @@ class Seq:
 
     def __le__(self, other):
         return len(self) <= len(other) and self == other[:len(self)]
+
+    def __iter__(self):
+        return iter(self.Elements)
 
 # Convenience for translation when --unicode-char is enabled
 def SeqWithoutIsStrInference(__iterable = None):
