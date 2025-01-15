@@ -18,16 +18,16 @@ public static class FuelAdjustment {
         CheckForFuelAdjustments(reporter, clbl.Origin, iteratorDecl.Attributes, module);
       } else if (clbl is Function function) {
         CheckForFuelAdjustments(reporter, clbl.Origin, function.Attributes, module);
-        var c = new FuelAdjustment_Visitor(reporter);
+        var c = new FuelAdjustmentVisitor(reporter);
         var bodyExpr = function.Body;
         if (bodyExpr != null) {
-          c.Visit(bodyExpr, new FuelAdjustment_Context(module));
+          c.Visit(bodyExpr, new FuelAdjustmentContext(module));
         }
       }
 
       if (body != null) {
-        var c = new FuelAdjustment_Visitor(reporter);
-        c.Visit(body, new FuelAdjustment_Context(module));
+        var c = new FuelAdjustmentVisitor(reporter);
+        c.Visit(body, new FuelAdjustmentContext(module));
       }
     }
   }
@@ -68,22 +68,22 @@ public static class FuelAdjustment {
   }
 }
 
-class FuelAdjustment_Visitor : ResolverTopDownVisitor<FuelAdjustment_Context> {
+class FuelAdjustmentVisitor : ResolverTopDownVisitor<FuelAdjustmentContext> {
 
-  public FuelAdjustment_Visitor(ErrorReporter reporter)
+  public FuelAdjustmentVisitor(ErrorReporter reporter)
     : base(reporter) {
   }
 
-  protected override bool VisitOneStmt(Statement stmt, ref FuelAdjustment_Context st) {
+  protected override bool VisitOneStmt(Statement stmt, ref FuelAdjustmentContext st) {
     FuelAdjustment.CheckForFuelAdjustments(reporter, stmt.Origin, stmt.Attributes, st.currentModule);
     return true;
   }
 }
 
 
-public class FuelAdjustment_Context {
+public class FuelAdjustmentContext {
   public ModuleDefinition currentModule;
-  public FuelAdjustment_Context(ModuleDefinition currentModule) {
+  public FuelAdjustmentContext(ModuleDefinition currentModule) {
     this.currentModule = currentModule;
   }
 }
