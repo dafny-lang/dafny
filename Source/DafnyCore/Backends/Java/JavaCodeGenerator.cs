@@ -4001,9 +4001,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IOrigin tok, ConcreteSyntaxTree wr) {
       var w = new ConcreteSyntaxTree();
       if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
-        wr.Write($"(({to.AsNewtype.GetFullCompileName(Options)})({w}))");
+        wr.Format($"(({to.AsNewtype.GetFullCompileName(Options)})({w}))");
       } else if (from != null && to != null && from.AsNewtype != null && to.IsTraitType) {
-        wr.Write($"(({TypeName(to, wr, tok)})({w}))");
+        wr.Format($"(({TypeName(to, wr, tok)})({w}))");
       } else {
         wr.Write($"(({TypeName(to, wr, tok)})(java.lang.Object)(");
         w = wr.Fork();
