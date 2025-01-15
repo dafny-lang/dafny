@@ -282,8 +282,8 @@ namespace Microsoft.Dafny.Compilers {
           ? DAST.TraitType.create_ObjectTrait()
           : TraitType.create_GeneralTrait();
         var downcastableTraits = DowncastableTraitsTypes(trait);
-        var downcastableTratitTypes = downcastableTraits.Select(GenType).ToList();
-        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, parents, ParseAttributes(trait.Attributes), GetDocString(trait), traitType, downcastableTratitTypes));
+        var downcastableTraitTypes = downcastableTraits.Select(GenType).ToList();
+        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, parents, ParseAttributes(trait.Attributes), GetDocString(trait), traitType, downcastableTraitTypes));
       } else {
         throw new InvalidOperationException();
       }
