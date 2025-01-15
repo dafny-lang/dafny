@@ -821,7 +821,7 @@ module RAST
       || (TMetaData? && (copySemantics || display.CanReadWithoutClone()))
     }
     predicate IsRcOrBorrowedRc() {
-      (TypeApp? && baseName == RcType) ||
+      IsRc() ||
       (Borrowed? && underlying.IsRcOrBorrowedRc()) ||
       (TSynonym? && base.IsRcOrBorrowedRc())
     }
@@ -1053,7 +1053,7 @@ module RAST
     }
 
     predicate IsRc() {
-      this.TypeApp? && this.baseName == RcType && |arguments| == 1
+      TypeApp? && (baseName == RcType || baseName == ArcType) && |arguments| == 1
     }
     function RcUnderlying(): Type
       requires IsRc()

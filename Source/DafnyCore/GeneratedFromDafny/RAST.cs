@@ -3487,7 +3487,7 @@ namespace RAST {
       return (((((this).IsAutoSize()) || ((this).is_Bool)) || ((this).IsPointer())) || (((this).is_TSynonym) && (((this).dtor_base).CanReadWithoutClone()))) || (((this).is_TMetaData) && (((this).dtor_copySemantics) || (((this).dtor_display).CanReadWithoutClone())));
     }
     public bool IsRcOrBorrowedRc() {
-      return ((((this).is_TypeApp) && (object.Equals((this).dtor_baseName, RAST.__default.RcType))) || (((this).is_Borrowed) && (((this).dtor_underlying).IsRcOrBorrowedRc()))) || (((this).is_TSynonym) && (((this).dtor_base).IsRcOrBorrowedRc()));
+      return (((this).IsRc()) || (((this).is_Borrowed) && (((this).dtor_underlying).IsRcOrBorrowedRc()))) || (((this).is_TSynonym) && (((this).dtor_base).IsRcOrBorrowedRc()));
     }
     public Std.Wrappers._IOption<RAST._IType> ExtractMaybePlacebo() {
       RAST._IType _source0 = this;
@@ -3883,7 +3883,7 @@ namespace RAST {
       }
     }
     public bool IsRc() {
-      return (((this).is_TypeApp) && (object.Equals((this).dtor_baseName, RAST.__default.RcType))) && ((new BigInteger(((this).dtor_arguments).Count)) == (BigInteger.One));
+      return (((this).is_TypeApp) && ((object.Equals((this).dtor_baseName, RAST.__default.RcType)) || (object.Equals((this).dtor_baseName, RAST.__default.ArcType)))) && ((new BigInteger(((this).dtor_arguments).Count)) == (BigInteger.One));
     }
     public RAST._IType RcUnderlying() {
       return ((this).dtor_arguments).Select(BigInteger.Zero);
