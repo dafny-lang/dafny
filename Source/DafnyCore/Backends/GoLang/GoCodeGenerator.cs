@@ -2515,7 +2515,7 @@ namespace Microsoft.Dafny.Compilers {
         // Don't use Go_ because Capitalize might use it and we know there's a conflict
         return "Go__" + decl.GetCompileName(Options);
       } else {
-        return Capitalize(decl.GetCompileName(Options));
+        return IdProtect(Capitalize(decl.GetCompileName(Options)));
       }
     }
 
@@ -2579,6 +2579,7 @@ namespace Microsoft.Dafny.Compilers {
         case "String":
         case "Equals":
         case "EqualsGeneric":
+        case "Default":
 
         // Built-in types (can also be used as functions)
         case "bool":

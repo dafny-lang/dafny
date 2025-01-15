@@ -1,6 +1,7 @@
+Apply.dfy(95,4): Error: assertion might not hold
 Apply.dfy(46,23): Error: function could not be proved to be allocated in the state in which the function is invoked
 Apply.dfy(57,31): Error: argument could not be proved to be allocated in the state in which the function is invoked
 Apply.dfy(58,31): Error: argument could not be proved to be allocated in the state in which the function is invoked
 Apply.dfy(61,31): Error: argument could not be proved to be allocated in the state in which the function is invoked
 
-Dafny program verifier finished with 4 verified, 4 errors
+Dafny program verifier finished with 7 verified, 5 errors

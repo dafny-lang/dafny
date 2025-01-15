@@ -1,6 +1,6 @@
 git-issue-484.dfy(10,6): Error: type of corresponding source/RHS (int) does not match type of bound variable (MyInt)
 git-issue-484.dfy(19,6): Error: type of corresponding source/RHS (real) does not match type of bound variable (MyInt)
-git-issue-484.dfy(23,2): Error: incorrect argument type for datatype constructor parameter 'b' (expected MyInt, found int)
+git-issue-484.dfy(23,6): Error: incorrect argument type for datatype constructor parameter 'b' (expected MyInt, found int)
 git-issue-484.dfy(34,6): Error: type of corresponding source/RHS (int) does not match type of bound variable (byte)
-git-issue-484.dfy(40,2): Error: incorrect argument type for datatype constructor parameter 'b' (expected byte, found int)
+git-issue-484.dfy(40,6): Error: incorrect argument type for datatype constructor parameter 'b' (expected byte, found int)
 5 resolution/type errors detected in git-issue-484.dfy
