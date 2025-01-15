@@ -66,16 +66,16 @@ public class ImplicitThisExpr : ThisExpr, ICloneable<ImplicitThisExpr> {
 /// gives a way to distinguish this receiver from other receivers, which
 /// plays a role in checking the restrictions on divided block statements.
 /// </summary>
-public class ImplicitThisExpr_ConstructorCall : ImplicitThisExpr, ICloneable<ImplicitThisExpr_ConstructorCall> {
-  public ImplicitThisExpr_ConstructorCall(Cloner cloner, ImplicitThisExpr_ConstructorCall original) : base(cloner, original) {
+public class ImplicitThisExprConstructorCall : ImplicitThisExpr, ICloneable<ImplicitThisExprConstructorCall> {
+  public ImplicitThisExprConstructorCall(Cloner cloner, ImplicitThisExprConstructorCall original) : base(cloner, original) {
   }
 
-  public ImplicitThisExpr_ConstructorCall(IOrigin tok)
+  public ImplicitThisExprConstructorCall(IOrigin tok)
     : base(tok) {
     Contract.Requires(tok != null);
   }
 
-  public new ImplicitThisExpr_ConstructorCall Clone(Cloner cloner) {
-    return new ImplicitThisExpr_ConstructorCall(cloner, this);
+  public new ImplicitThisExprConstructorCall Clone(Cloner cloner) {
+    return new ImplicitThisExprConstructorCall(cloner, this);
   }
 }

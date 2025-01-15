@@ -1350,11 +1350,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IOrigin tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
+    private ResolverIdentifierExpr CreateResolver_IdentifierExpr(IOrigin tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(decl != null);
-      Contract.Ensures(Contract.Result<Resolver_IdentifierExpr>() != null);
+      Contract.Ensures(Contract.Result<ResolverIdentifierExpr>() != null);
 
       if (!resolver.moduleInfo.IsAbstract) {
         if (decl is ModuleDecl md && md.Signature.IsAbstract) {
@@ -1372,7 +1372,7 @@ namespace Microsoft.Dafny {
       for (var i = 0; i < decl.TypeArgs.Count; i++) {
         typeArguments.Add(i < n ? optTypeArguments[i] : new InferredTypeProxy());
       }
-      return new Resolver_IdentifierExpr(tok, decl, typeArguments);
+      return new ResolverIdentifierExpr(tok, decl, typeArguments);
     }
 
     private bool ResolveDatatypeConstructor(NameSegment expr, List<ActualBinding>/*?*/ args, ResolutionContext resolutionContext, bool complain,
@@ -1480,7 +1480,7 @@ namespace Microsoft.Dafny {
       var name = resolutionContext.InReveal ? HideRevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
       var lhs = expr.Lhs.Resolved ?? expr.Lhs; // Sometimes resolution comes later, but pre-types have already been set
       if (lhs is { PreType: PreTypePlaceholderModule }) {
-        var ri = (Resolver_IdentifierExpr)lhs;
+        var ri = (ResolverIdentifierExpr)lhs;
         var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(false);
         sig = ModuleResolver.GetSignatureExt(sig);
 
@@ -1538,7 +1538,7 @@ namespace Microsoft.Dafny {
         }
 
       } else if (lhs is { PreType: PreTypePlaceholderType }) {
-        var ri = (Resolver_IdentifierExpr)lhs;
+        var ri = (ResolverIdentifierExpr)lhs;
         // ----- 3. Look up name in type
         // expand any synonyms
         var ty = new UserDefinedType(expr.Origin, ri.Decl.Name, ri.Decl, ri.TypeArgs).NormalizeExpand();
@@ -1794,9 +1794,9 @@ namespace Microsoft.Dafny {
           // e.Lhs is used as if it were a function value, but it isn't
           var lhs = e.Lhs.Resolved;
           if (lhs != null && lhs.PreType is PreTypePlaceholderModule) {
-            ReportError(e.Origin, "name of module ({0}) is used as a function", ((Resolver_IdentifierExpr)lhs).Decl.Name);
+            ReportError(e.Origin, "name of module ({0}) is used as a function", ((ResolverIdentifierExpr)lhs).Decl.Name);
           } else if (lhs != null && lhs.PreType is PreTypePlaceholderType) {
-            var ri = (Resolver_IdentifierExpr)lhs;
+            var ri = (ResolverIdentifierExpr)lhs;
             ReportError(e.Origin, "name of {0} ({1}) is used as a function", ri.Decl.WhatKind, ri.Decl.Name);
           } else {
             if (lhs is MemberSelectExpr mse && mse.Member is Method) {

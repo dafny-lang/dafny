@@ -2447,13 +2447,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckFunctionSelectWF(string what, BoogieStmtListBuilder builder, ExpressionTranslator etran, Expression e, string hint) {
-      if (e is MemberSelectExpr sel && sel.Member is Function fn) {
-        Bpl.Expr assertion = !InVerificationScope(fn) ? Bpl.Expr.True : Bpl.Expr.Not(etran.HeightContext(fn));
-        builder.Add(Assert(GetToken(e), assertion, new ValidInRecursion(what, hint), builder.Context));
-      }
-    }
-
     void CloneVariableAsBoundVar(IOrigin tok, IVariable iv, string prefix, out BoundVar bv, out IdentifierExpr ie) {
       Contract.Requires(tok != null);
       Contract.Requires(iv != null);

@@ -2,9 +2,9 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-class ExtremePredicateChecks_Visitor : FindFriendlyCalls_Visitor {
+class ExtremePredicateChecksVisitor : FindFriendlyCallsVisitor {
   readonly ExtremePredicate context;
-  public ExtremePredicateChecks_Visitor(ErrorReporter reporter, ExtremePredicate context)
+  public ExtremePredicateChecksVisitor(ErrorReporter reporter, ExtremePredicate context)
     : base(reporter, context is GreatestPredicate, context.KNat) {
     Contract.Requires(reporter != null);
     Contract.Requires(context != null);
