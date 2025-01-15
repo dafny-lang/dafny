@@ -7,3 +7,16 @@ datatype List = Nil | Cons(head: string, m: map<int, int>, tail: List)
 function OfSize(n: nat, c: char): List {
   if n == 0 then Nil else Cons([c], map[], OfSize(n-1, c))
 }
+datatype Option<T> = None | Some(value: T)
+trait UpperTrait {
+}
+class UnderlyingObject extends UpperTrait {
+  constructor() {}
+}
+method Test() {
+  var n := new UnderlyingObject();
+  var c := Some(n);
+  var d: Option<UpperTrait> := c;
+  var e: object := d.value;
+  var f := e as UnderlyingObject;
+}

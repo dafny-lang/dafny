@@ -3780,22 +3780,10 @@ macro_rules! refcount {
 pub mod object {
     use std::any::Any;
 
-    #[cfg(not(feature = "sync"))]
-    pub fn downcast<T: 'static>(_self: crate::Object<dyn Any>) -> crate::Object<T> {
-        unsafe {
-            crate::Object(Some(crate::rcmut::downcast::<T>(_self.0.unwrap()).unwrap()))
-            // Use unwrap_unchecked?
-        }
-    }
-
-    #[cfg(feature = "sync")]
-    pub fn downcast<T: 'static + Send + Sync>(
-        _self: crate::Object<dyn Any + Send + Sync>,
+    pub fn downcast<T: 'static>(
+        _self: crate::Object<dyn Any>,
     ) -> crate::Object<T> {
-        unsafe {
-            crate::Object(Some(crate::rcmut::downcast::<T>(_self.0.unwrap()).unwrap()))
-            // Use unwrap_unchecked?
-        }
+        super::cast_object!(_self, T)
     }
 
     pub fn new<T>(val: T) -> crate::Object<T> {
