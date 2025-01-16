@@ -3,7 +3,7 @@
 // RUN: %exits-with -any %rm -f "%S/project_depending_on_dafny/src/more_dafny_extern.rs"
 // RUN: %mv "%S/more_dafny-rust/src/more_dafny.rs" "%S/project_depending_on_dafny/src/additional_module.rs"
 // RUN: %mv "%S/more_dafny-rust/src/more_dafny_extern.rs" "%S/project_depending_on_dafny/src/more_dafny_extern.rs"
-// RUN: "%S/project_depending_on_dafny/cargo" run > "%t"
+// RUN: cd "%S/project_depending_on_dafny" ; %cargo run > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module SubModule {

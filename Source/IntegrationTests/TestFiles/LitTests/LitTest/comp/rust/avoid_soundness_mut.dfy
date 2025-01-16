@@ -1,8 +1,8 @@
 // RUN: %baredafny build -t:rs "%s"
-// RUN: "%S/avoid_soundness_mut-rust/cargo" run --release > "%t"
+// RUN: cd "%S/avoid_soundness_mut-rust" ; %cargo run --release > "%t"
 // RUN: %diff "%s.expect" "%t"
 // RUN: %baredafny build -t:rs --raw-pointers "%s"
-// RUN: "%S/avoid_soundness_mut-rust/cargo" run --release > "%t"
+// RUN: cd "%S/avoid_soundness_mut-rust" ; %cargo run --release > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype u8 = x: int | 0 <= x < 256
