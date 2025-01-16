@@ -5,10 +5,14 @@
 
 datatype List = Nil | Cons(head: string, m: map<int, int>, tail: List)
 function OfSize(n: nat, c: char): List {
-  if n == 0 then Nil else Cons([c], map[], OfSize(n-1, c))
+  if n == 0 then Nil else
+  Cons([c] + [c], map[], OfSize(n-1, c))
 }
 datatype Option<+T> = None | Some(value: T)
 trait UpperTrait {
+  method ReturnWhatWasGiven(i: int) returns (j: int) {
+    j := i + 1;
+  }
 }
 class UnderlyingObject extends UpperTrait {
   constructor() {}

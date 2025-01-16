@@ -585,6 +585,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           ];
         }
       }
+      if syncType.Sync? {
+        parents := parents + [
+          R.std.MSel("marker").MSel("Sync").AsType(),
+          R.std.MSel("marker").MSel("Send").AsType()];
+      }
       s := [
         R.TraitDecl(
           R.Trait(
