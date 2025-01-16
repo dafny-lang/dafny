@@ -1,9 +1,9 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --general-traits=legacy "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module InterfaceHolder {
-  trait {:termination false} Interface extends object {
+  trait {:termination false} Interface {
     method PutCacheEntry'()
   }
 }
@@ -43,9 +43,9 @@ module TraitDefinitions {
   }
 
 
-  trait NoMemberTrait extends object {}
+  trait NoMemberTrait {}
   
-  trait NoMemberTrait2 extends object {}
+  trait NoMemberTrait2 {}
   trait SuperTrait extends NoMemberTrait, NoMemberTrait2 {
     method GetC() returns (c: int)
     method SetC(newC: int)
@@ -143,7 +143,7 @@ module All {
   method ConsumeBorrows(y: SubTrait<int, int>) {
 
   }
-  trait TraitNoArgs extends object {}
+  trait TraitNoArgs {}
   class ClassNoArgs extends TraitNoArgs {
     var x: int
     constructor() {
