@@ -435,9 +435,11 @@ method Multiply(x: int, y: int) returns (product: int)
       var documentItem = CreateTestDocument(source, "OpeningDocumentWithSemanticErrorReportsDiagnosticsWithSemanticErrors.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.Single(diagnostics);
-      Assert.Equal("Resolver", diagnostics[0].Source);
-      Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.Equal(2, diagnostics.Length);
+      Assert.Equal("Resolver", diagnostics[1].Source);
+      Assert.Equal(DiagnosticSeverity.Error, diagnostics[1].Severity);
+      Assert.Equal("Resolver", diagnostics[1].Source);
+      Assert.Equal(DiagnosticSeverity.Error, diagnostics[1].Severity);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
