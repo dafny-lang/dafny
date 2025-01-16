@@ -4,10 +4,10 @@ namespace Microsoft.Dafny;
 
 public enum CallingPosition { Positive, Negative, Neither }
 
-class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition> {
+class FindFriendlyCallsVisitor : ResolverTopDownVisitor<CallingPosition> {
   public readonly bool IsCoContext;
   public readonly bool ContinuityIsImportant;
-  public FindFriendlyCalls_Visitor(ErrorReporter reporter, bool co, bool continuityIsImportant)
+  public FindFriendlyCallsVisitor(ErrorReporter reporter, bool co, bool continuityIsImportant)
     : base(reporter) {
     Contract.Requires(reporter != null);
     this.IsCoContext = co;

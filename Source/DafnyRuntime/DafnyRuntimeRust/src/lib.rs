@@ -2178,7 +2178,7 @@ impl DafnyPrint for () {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct DafnyCharUTF16(pub u16);
 pub type DafnyStringUTF16 = Sequence<DafnyCharUTF16>;
 
@@ -2254,7 +2254,7 @@ impl Sub<DafnyCharUTF16> for DafnyCharUTF16 {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct DafnyChar(pub char);
 pub type DafnyString = Sequence<DafnyChar>;
 

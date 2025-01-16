@@ -4,8 +4,8 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int> {
-  public CheckDividedConstructorInit_Visitor(ErrorReporter reporter)
+class CheckDividedConstructorInitVisitor : ResolverTopDownVisitor<int> {
+  public CheckDividedConstructorInitVisitor(ErrorReporter reporter)
     : base(reporter) {
     Contract.Requires(reporter != null);
   }
@@ -65,7 +65,7 @@ class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int> {
       }
     } else if (expr is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Assigned }) {
       return false;  // don't continue the recursion
-    } else if (expr is ThisExpr && !(expr is ImplicitThisExpr_ConstructorCall)) {
+    } else if (expr is ThisExpr && !(expr is ImplicitThisExprConstructorCall)) {
       reporter.Error(MessageSource.Resolver, expr.Origin, "in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields");
     }
     return base.VisitOneExpr(expr, ref unused);

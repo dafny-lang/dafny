@@ -725,7 +725,7 @@ Twostate-Resolution.dfy(167,7): Error: two-state function ('P') can only be call
 Twostate-Resolution.dfy(218,6): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(183,21): Error: 'this' is not allowed in a 'static' context
 Twostate-Resolution.dfy(184,21): Error: 'this' is not allowed in a 'static' context
-Twostate-Resolution.dfy(229,9): Error: a call to a twostate predicate is allowed only in specification contexts
+Twostate-Resolution.dfy(229,10): Error: a call to a twostate predicate is allowed only in specification contexts
 Twostate-Resolution.dfy(230,30): Error: a twostate predicate is allowed only in specification contexts
 Twostate-Resolution.dfy(242,26): Error: two-state function ('F') can only be called in a two-state context
 Twostate-Resolution.dfy(243,27): Error: two-state lemmas can only be used in two-state contexts
