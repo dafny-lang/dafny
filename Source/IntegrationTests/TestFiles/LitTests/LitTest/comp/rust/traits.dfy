@@ -3,7 +3,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module InterfaceHolder {
-  trait {:termination false} Interface {
+  trait {:termination false} Interface extends object {
     method PutCacheEntry'()
   }
 }

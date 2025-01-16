@@ -26,7 +26,7 @@ module {:extern "url", "net/url"} {:dummyImportMember "URL", true} URL {
     var {:extern "RawQuery"} search: string
   }
 
-  trait {:extern "", "error"} Error { }
+  trait {:extern "", "error"} Error extends object { }
 }
 
 module {:extern "GoModuleConversions"} {:dummyImportMember "ParseURL", false} GoModuleConversions {

@@ -51,7 +51,7 @@ module {:extern "ExternWithOnlyAStaticMethodUninmplemented"} ExternWithOnlyAStat
 }
 
 module {:extern "ExternModuleWithOneClassToImport"} ExternModuleWithOneClassToImport {
-  trait {:termination false} TraitDefinedInModule {
+  trait {:termination false} TraitDefinedInModule extends object {
     function Get(): string
       reads this
 
