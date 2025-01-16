@@ -24,5 +24,6 @@ fn main() {
     let three_spawned = obj_spawn.join().unwrap();
     assert_eq!(tail_normal, tail_spawned);
     assert_eq!(three_normal, three_spawned);
+    _default::Test();
     println!("The two lists, which are the tail of the same list but treated in different threads, are the same!");
 }

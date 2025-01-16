@@ -10,8 +10,8 @@ function OfSize(n: nat, c: char): List {
 }
 datatype Option<+T> = None | Some(value: T)
 trait UpperTrait {
-  method ReturnWhatWasGiven(i: int) returns (j: int) {
-    j := i + 1;
+  function ReturnWhatWasGiven(i: int): int {
+    i
   }
 }
 class UnderlyingObject extends UpperTrait {
@@ -25,4 +25,7 @@ method Test() {
   var f := e as UnderlyingObject;
   var s := [c];
   var e_seq: seq<Option<UpperTrait>> := s;
+  var z := d.value.ReturnWhatWasGiven;
+  var u := z(1);
+  expect u == 1;
 }

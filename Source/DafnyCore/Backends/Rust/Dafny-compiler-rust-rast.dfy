@@ -1888,17 +1888,7 @@ module RAST
     MaybePlaceboPath.FSel("from").Apply1(underlying)
   }
 
-  const std_rc := std.MSel("rc")
-
-  const std_rc_Rc := std_rc.MSel("Rc")
-
-  const std_rc_Rc_new := std_rc_Rc.FSel("new")
-
   const std_default_Default_default := std_default_Default.FSel("default").Apply0()
-
-  function RcNew(underlying: Expr): Expr {
-    Call(std_rc_Rc_new, [underlying])
-  }
 
   function IntoUsize(underlying: Expr): Expr {
     dafny_runtime.MSel("DafnyUsize").FSel("into_usize").Apply1(underlying)

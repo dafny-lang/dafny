@@ -3591,7 +3591,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case SelectFn(on, field, isDatatype, isStatic, isConstant, arguments) => {
           // Transforms a function member into a lambda
           var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
-          var onString := onExpr.ToString(IND);
 
           var lEnv := env;
           var args := [];
@@ -3604,11 +3603,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             parameters := parameters + [R.Formal(name, bTy)];
             args := args + [(name, ty)];
           }
-          var body :=
-            if isStatic then
-              onExpr.FSel(escapeVar(field))
-            else
-              R.Identifier("callTarget").Sel(escapeVar(field));
+          var body;
+          if isStatic {
+            body := onExpr.FSel(escapeVar(field));
+          } else {
+            body := R.Identifier("callTarget");
+            if !isDatatype {
+              body := read_macro.Apply1(body);
+            }
+            body := body.Sel(escapeVar(field));
+          }
+              
           if isConstant {
             body := body.Apply0();
           }
@@ -3643,8 +3648,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var typeShape := R.DynType(R.FnType(typeShapeArgs, R.TIdentifier("_")));
 
           r := R.TypeAscription(
-            R.std_rc_Rc_new.Apply1(r),
-            R.std_rc_Rc.AsType().Apply([typeShape]));
+            rcNew(r),
+            rc(typeShape));
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := recIdents;
           return;

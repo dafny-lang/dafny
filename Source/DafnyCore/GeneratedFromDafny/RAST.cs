@@ -164,9 +164,6 @@ namespace RAST {
     public static RAST._IExpr MaybePlacebo(RAST._IExpr underlying) {
       return ((RAST.__default.MaybePlaceboPath).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("from"))).Apply1(underlying);
     }
-    public static RAST._IExpr RcNew(RAST._IExpr underlying) {
-      return RAST.Expr.create_Call(RAST.__default.std__rc__Rc__new, Dafny.Sequence<RAST._IExpr>.FromElements(underlying));
-    }
     public static RAST._IExpr IntoUsize(RAST._IExpr underlying) {
       return (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyUsize"))).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("into_usize"))).Apply1(underlying);
     }
@@ -295,15 +292,6 @@ namespace RAST {
     } }
     public static RAST._IExpr dafny__runtime__Multiset__from__array { get {
       return (RAST.__default.dafny__runtime__Multiset).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("from_array"));
-    } }
-    public static RAST._IPath std__rc { get {
-      return (RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("rc"));
-    } }
-    public static RAST._IPath std__rc__Rc { get {
-      return (RAST.__default.std__rc).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Rc"));
-    } }
-    public static RAST._IExpr std__rc__Rc__new { get {
-      return (RAST.__default.std__rc__Rc).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("new"));
     } }
     public static RAST._IExpr std__default__Default__default { get {
       return ((RAST.__default.std__default__Default).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("default"))).Apply0();
