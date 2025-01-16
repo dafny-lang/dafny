@@ -812,10 +812,10 @@ where
                 #[cfg(feature = "sync")]
                 let into_boxed_borrowed = into_boxed;
                 #[cfg(feature = "sync")]
-                let guard = into_boxed_borrowed.lock().unwrap();
+                let mut guard = into_boxed_borrowed.lock().unwrap();
                 #[cfg(feature = "sync")]
                 let borrowed: Option<&Rc<Vec<T>>> = guard.as_ref();
-                
+
                 #[cfg(not(feature = "sync"))]
                 let into_boxed = boxed.as_ref().clone();
                 #[cfg(not(feature = "sync"))]
@@ -828,17 +828,36 @@ where
                 // Let's create an array of size length and fill it up recursively
                 // We don't materialize nested arrays because most of the time they are forgotten
                 let mut array: Vec<T> = Vec::with_capacity(*length);
-                Sequence::<T>::append_recursive(&mut array, self);
+                Sequence::<T>::append_recursive_safe(&mut array, &borrowed, left, right);
                 let result = Rc::new(array);
                 let mutable_left: *mut Sequence<T> = left.get();
                 let mutable_right: *mut Sequence<T> = right.get();
                 // safety: Once the array is computed, left and right won't ever be read again.
                 unsafe { *mutable_left = seq!() };
                 unsafe { *mutable_right = seq!() };
-                Self::write_cache(boxed, result.clone());
+                #[cfg(not(feature = "sync"))]
+                let mut guard = boxed.borrow_mut();
+                *guard = Some(result.clone());
                 result
             }
         }
+    }
+
+    pub fn append_recursive_safe(
+        array: &mut Vec<T>,
+        borrowed: &Option<&Rc<Vec<T>>>,
+        left: &Rc<UnsafeCell<Sequence<T>>>,
+        right: &Rc<UnsafeCell<Sequence<T>>>,
+    ) {
+        if let Some(values) = borrowed.as_ref() {
+            for value in values.iter() {
+                array.push(value.clone());
+            }
+            return;
+        }
+        // safety: When a concat is initialized, the left and right are well defined
+        Sequence::<T>::append_recursive(array, unsafe { &mut *left.get() });
+        Sequence::<T>::append_recursive(array, unsafe { &mut *right.get() });
     }
 
     pub fn append_recursive(array: &mut Vec<T>, this: &Sequence<T>) {
@@ -863,7 +882,7 @@ where
                 let guard = into_boxed_borrowed.lock().unwrap();
                 #[cfg(feature = "sync")]
                 let borrowed: Option<&Rc<Vec<T>>> = guard.as_ref();
-                
+
                 #[cfg(not(feature = "sync"))]
                 let into_boxed = boxed.as_ref().clone();
                 #[cfg(not(feature = "sync"))]
@@ -937,28 +956,6 @@ where
             array: self.to_array(),
             index: 0,
         }
-    }
-}
-
-#[cfg(feature = "sync")]
-impl<T> Sequence<T>
-where
-    T: DafnyType,
-{
-    fn write_cache(boxed: &Rc<RefCell<Option<Rc<Vec<T>>>>>, array: Rc<Vec<T>>) {
-        let mut cache = boxed.lock().unwrap();
-        *cache = Some(array.clone());
-    }
-}
-
-#[cfg(not(feature = "sync"))]
-impl<T> Sequence<T>
-where
-    T: DafnyType,
-{
-    fn write_cache(boxed: &Rc<RefCell<Option<Rc<Vec<T>>>>>, array: Rc<Vec<T>>) {
-        let mut cache = boxed.borrow_mut();
-        *cache = Some(array.clone());
     }
 }
 
@@ -3780,9 +3777,7 @@ macro_rules! refcount {
 pub mod object {
     use std::any::Any;
 
-    pub fn downcast<T: 'static>(
-        _self: crate::Object<dyn Any>,
-    ) -> crate::Object<T> {
+    pub fn downcast<T: 'static>(_self: crate::Object<dyn Any>) -> crate::Object<T> {
         super::cast_object!(_self, T)
     }
 
