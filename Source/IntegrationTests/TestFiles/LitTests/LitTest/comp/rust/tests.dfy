@@ -2,7 +2,7 @@
 // RUN: %baredafny test --target=rs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // RUN: %baredafny build --compile-suffix --target=rs "%s" > "%t"
-// RUN: cd "%S/tests-rust" ; %cargo run -- Hello > "%t"
+// RUN: "%S/tests-rust/cargo" run -- Hello > "%t"
 // RUN: %diff "%s.main.expect" "%t"
 
 method {:test} TestIfTestsAreWorking() {

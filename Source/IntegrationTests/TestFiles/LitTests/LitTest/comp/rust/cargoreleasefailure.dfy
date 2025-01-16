@@ -2,7 +2,7 @@
 // RUN: %baredafny build --target=rs --general-traits=legacy "%s"
 // If there is no '#[inline(never)]' in front of ::dafny_runtime::increment_strong_count
 // then the release will think it's safe to remove the strong count increment, resulting ins a segfault
-// RUN: cd "%S/cargoreleasefailure-rust" ; %cargo run --release
+// RUN: "%S/cargoreleasefailure-rust/cargo" run --release
 
 module  TraitModule {
   trait {:termination false} MyTrait {
