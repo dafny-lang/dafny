@@ -1,4 +1,4 @@
-shift-lower-bound.dfy(5,6): Error: rotate amount must be non-negative
+shift-lower-bound.dfy(5,16): Error: rotate amount must be non-negative
  Asserted expression: 0 <= -1
 
 Dafny program verifier finished with 0 verified, 1 error

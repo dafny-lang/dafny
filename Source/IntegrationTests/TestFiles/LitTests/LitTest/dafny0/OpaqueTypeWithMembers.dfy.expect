@@ -8,10 +8,10 @@ OpaqueTypeWithMembers.dfy(90,22): Error: index out of range
 OpaqueTypeWithMembers.dfy(93,18): Error: index out of range
 OpaqueTypeWithMembers.dfy(100,8): Error: possible division by zero
 OpaqueTypeWithMembers.dfy(107,17): Error: possible division by zero
-OpaqueTypeWithMembers.dfy(139,15): Error: function precondition could not be proved
+OpaqueTypeWithMembers.dfy(139,22): Error: function precondition could not be proved
 OpaqueTypeWithMembers.dfy(120,13): Related location: this proposition could not be proved
-OpaqueTypeWithMembers.dfy(141,16): Error: function precondition could not be proved
-OpaqueTypeWithMembers.dfy(115,13): Related location: this proposition could not be proved
+OpaqueTypeWithMembers.dfy(141,32): Error: function precondition could not be proved
+OpaqueTypeWithMembers.dfy(115,22): Related location: this proposition could not be proved
 OpaqueTypeWithMembers.dfy(113,28): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 17 verified, 9 errors

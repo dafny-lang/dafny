@@ -79,10 +79,6 @@ namespace Microsoft.Dafny {
       var mod = new List<Bpl.IdentifierExpr>();
       var ens = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
-      if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
-        // free requires mh == ModuleContextHeight && fh = FunctionContextHeight;
-        req.Add(FreeRequires(iter.Origin, etran.HeightContext(iter), null));
-      }
       mod.Add(etran.HeapCastToIdentifierExpr);
 
       if (kind != MethodTranslationKind.SpecWellformedness) {
