@@ -1645,8 +1645,9 @@ namespace Microsoft.Dafny {
 
       receiverPreTypeBound ??= (DPreType)receiver.PreType.Normalize();
 
-      var rr = new MemberSelectExpr(tok, receiver, name);
-      rr.Member = member;
+      var rr = new MemberSelectExpr(tok, receiver, name) {
+        Member = member
+      };
 
       // Now, fill in rr.PreType.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
       // parameters used in this NameSegment/ExprDotName.
