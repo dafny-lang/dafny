@@ -12,7 +12,7 @@ DTypes.dfy(121,11): Error: assertion might not hold
 DTypes.dfy(93,29): Related location: this proposition could not be proved
 DTypes.dfy(127,11): Error: assertion might not hold
 DTypes.dfy(93,19): Related location: this proposition could not be proved
-DTypes.dfy(137,11): Error: assertion might not hold
+DTypes.dfy(137,20): Error: assertion might not hold
 DTypes.dfy(132,4): Related location: this proposition could not be proved
 DTypes.dfy(93,19): Related location: this proposition could not be proved
 DTypes.dfy(156,4): Error: assertion might not hold

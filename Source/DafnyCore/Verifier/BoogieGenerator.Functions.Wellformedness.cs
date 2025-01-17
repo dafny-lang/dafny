@@ -372,13 +372,9 @@ public partial class BoogieGenerator {
 
     private List<Bpl.Requires> GetWellformednessProcedureRequires(Function f, ExpressionTranslator etran) {
       var requires = new List<Bpl.Requires>();
-      // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-      requires.Add(generator.FreeRequires(f.Origin, etran.HeightContext(f), null));
-
       foreach (var typeBoundAxiom in generator.TypeBoundAxioms(f.Origin, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
         requires.Add(generator.Requires(f.Origin, true, null, typeBoundAxiom, null, null, null));
       }
-
       return requires;
     }
 

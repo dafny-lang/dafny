@@ -168,7 +168,7 @@ and optimizing tail-recursion opportunities in mutually recursive functions.
 ```dafny
 function {:tailrecursion} f(n: nat): nat
 {
-  if n == 0 then n else var ff := f; ff(n-1)
+  if n == 0 then n else var r := f(n-1); r
 }
 ```
 
