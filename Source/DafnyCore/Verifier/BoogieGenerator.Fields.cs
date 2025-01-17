@@ -188,8 +188,6 @@ namespace Microsoft.Dafny {
 
       // the procedure itself
       var req = new List<Bpl.Requires>();
-      // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(FreeRequires(decl.Origin, etran.HeightContext(decl), null));
       foreach (var typeBoundAxiom in TypeBoundAxioms(decl.Origin, decl.EnclosingClass.TypeArgs)) {
         req.Add(FreeRequires(decl.Origin, typeBoundAxiom, null));
       }
