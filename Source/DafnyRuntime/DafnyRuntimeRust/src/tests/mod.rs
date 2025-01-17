@@ -1022,6 +1022,18 @@ mod tests {
         assert_eq!(gtsgt._as_Datatype(), x);
         assert_eq!(gtsgt._as_Datatype(), x);
     }
+
+    #[test]
+    fn test_chars_copy() {
+        let c = DafnyChar('a');
+        let c2 = c;
+        let c3 = c;
+        assert_eq!(c3, c2);
+        let c = DafnyCharUTF16(213);
+        let c2 = c;
+        let c3 = c;
+        assert_eq!(c3, c2);
+    }
     /*impl GeneralTrait for Rc<ADatatype> {
         fn _clone(&self) -> Box<dyn GeneralTrait> {
             Box::new(self.as_ref().clone())

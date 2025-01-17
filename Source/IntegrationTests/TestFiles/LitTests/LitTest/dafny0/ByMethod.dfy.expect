@@ -3,9 +3,9 @@ ByMethod.dfy(38,18): Error: this invariant could not be proved to be maintained 
 ByMethod.dfy(42,4): Error: a postcondition could not be proved on this return path
 ByMethod.dfy(35,4): Related location: this is the postcondition that could not be proved
 ByMethod.dfy(50,4): Error: a postcondition could not be proved on this return path
-ByMethod.dfy(48,12): Related location: this is the postcondition that could not be proved
+ByMethod.dfy(48,13): Related location: this is the postcondition that could not be proved
 ByMethod.dfy(58,4): Error: a postcondition could not be proved on this return path
-ByMethod.dfy(56,12): Related location: this is the postcondition that could not be proved
+ByMethod.dfy(56,13): Related location: this is the postcondition that could not be proved
 ByMethod.dfy(60,4): Error: a postcondition could not be proved on this return path
 ByMethod.dfy(59,4): Related location: this is the postcondition that could not be proved
 ByMethod.dfy(66,12): Error: a postcondition could not be proved on this return path
@@ -14,13 +14,13 @@ ByMethod.dfy(68,4): Error: a postcondition could not be proved on this return pa
 ByMethod.dfy(67,4): Related location: this is the postcondition that could not be proved
 ByMethod.dfy(74,12): Error: a postcondition could not be proved on this return path
 ByMethod.dfy(72,27): Related location: this is the postcondition that could not be proved
-ByMethod.dfy(93,11): Error: decreases clause might not decrease
-ByMethod.dfy(102,11): Error: decreases clause might not decrease
-ByMethod.dfy(111,11): Error: decreases clause might not decrease
+ByMethod.dfy(93,13): Error: decreases clause might not decrease
+ByMethod.dfy(102,12): Error: decreases clause might not decrease
+ByMethod.dfy(111,12): Error: decreases clause might not decrease
 ByMethod.dfy(126,10): Error: cannot prove termination; try supplying a decreases clause
-ByMethod.dfy(132,13): Error: cannot prove termination; try supplying a decreases clause
+ByMethod.dfy(132,14): Error: cannot prove termination; try supplying a decreases clause
 ByMethod.dfy(148,11): Error: cannot prove termination; try supplying a decreases clause
-ByMethod.dfy(152,13): Error: cannot prove termination; try supplying a decreases clause
-ByMethod.dfy(175,13): Error: decreases clause might not decrease
+ByMethod.dfy(152,14): Error: cannot prove termination; try supplying a decreases clause
+ByMethod.dfy(175,18): Error: decreases clause might not decrease
 
 Dafny program verifier finished with 15 verified, 16 errors

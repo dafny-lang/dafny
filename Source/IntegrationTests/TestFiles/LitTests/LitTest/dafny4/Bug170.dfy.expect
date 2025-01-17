@@ -4,14 +4,14 @@ Bug170.dfy(18,14): Info: _k: ORDINAL
 Bug170.dfy(26,14): Info: _k: ORDINAL
 Bug170.dfy(19,14): Info: A#[_k]
 Bug170.dfy(18,14): Info: AA# with focal predicates A, B
-Bug170.dfy(21,7): Info: B#[_k - 1]
+Bug170.dfy(21,8): Info: B#[_k - 1]
 Bug170.dfy(22,6): Info: BB#[_k - 1]
 Bug170.dfy(27,14): Info: B#[_k]
 Bug170.dfy(26,14): Info: BB# with focal predicates B, A
-Bug170.dfy(29,7): Info: A#[_k - 1]
+Bug170.dfy(29,8): Info: A#[_k - 1]
 Bug170.dfy(30,6): Info: AA#[_k - 1]
-Bug170.dfy(10,12): Info: B#[_k - 1]
-Bug170.dfy(15,12): Info: A#[_k - 1]
+Bug170.dfy(10,13): Info: B#[_k - 1]
+Bug170.dfy(15,13): Info: A#[_k - 1]
 Bug170.dfy(18,14): Info: AA# decreases _k, x
 Bug170.dfy(26,14): Info: BB# decreases _k, x
 Bug170.dfy(36,21): Info: _k: ORDINAL
@@ -21,13 +21,13 @@ Bug170.dfy(53,17): Info: _k: ORDINAL
 Bug170.dfy(47,13): Info: A#[_k]
 Bug170.dfy(46,17): Info: AA# with focal predicates A, B
 Bug170.dfy(49,4): Info: BB#[_k - 1]
-Bug170.dfy(50,11): Info: B#[_k - 1]
+Bug170.dfy(50,12): Info: B#[_k - 1]
 Bug170.dfy(54,13): Info: B#[_k]
 Bug170.dfy(53,17): Info: BB# with focal predicates B, A
 Bug170.dfy(56,4): Info: AA#[_k - 1]
-Bug170.dfy(57,11): Info: A#[_k - 1]
-Bug170.dfy(38,4): Info: B#[_k - 1]
-Bug170.dfy(43,4): Info: A#[_k - 1]
+Bug170.dfy(57,12): Info: A#[_k - 1]
+Bug170.dfy(38,5): Info: B#[_k - 1]
+Bug170.dfy(43,5): Info: A#[_k - 1]
 Bug170.dfy(46,17): Info: AA# decreases _k, x
 Bug170.dfy(53,17): Info: BB# decreases _k, x
 Bug170.dfy(46,17): Info: AA# {:induction _k, x}
@@ -38,11 +38,11 @@ Bug170.dfy(64,18): Info: _k: ORDINAL
 Bug170.dfy(69,14): Info: _k: ORDINAL
 Bug170.dfy(70,14): Info: A#[_k]
 Bug170.dfy(69,14): Info: AA# with focal predicate A
-Bug170.dfy(72,7): Info: A#[_k - 1]
+Bug170.dfy(72,8): Info: A#[_k - 1]
 Bug170.dfy(73,6): Info: AA#[_k - 1]
-Bug170.dfy(66,12): Info: A#[_k - 1]
+Bug170.dfy(66,13): Info: A#[_k - 1]
 Bug170.dfy(69,14): Info: AA# decreases _k, x
-Bug170.dfy(50,11): Info: Some instances of this call are not inlined.
-Bug170.dfy(57,11): Info: Some instances of this call are not inlined.
+Bug170.dfy(50,12): Info: Some instances of this call are not inlined.
+Bug170.dfy(57,12): Info: Some instances of this call are not inlined.
 
 Dafny program verifier finished with 5 verified, 0 errors

@@ -290,20 +290,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-      public Boogie.IdentifierExpr FunctionContextHeight() {
-        Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
-        return new Boogie.IdentifierExpr(Token.NoToken, "$FunctionContextHeight", Boogie.Type.Int);
-      }
-
-      public Boogie.Expr HeightContext(ICallable m) {
-        Contract.Requires(m != null);
-        // free requires fh == FunctionContextHeight;
-        var module = m.EnclosingModule;
-        Boogie.Expr context =
-          Boogie.Expr.Eq(Boogie.Expr.Literal(module.CallGraph.GetSCCRepresentativePredecessorCount(m)), FunctionContextHeight());
-        return context;
-      }
-
       public Expression GetSubstitutedBody(LetExpr e) {
         Contract.Requires(e != null);
         Contract.Requires(e.Exact);

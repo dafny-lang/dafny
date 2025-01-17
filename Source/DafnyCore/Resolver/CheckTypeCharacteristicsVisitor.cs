@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 /// In addition, this visitor checks that operations that require equality are applied to
 /// types that really do support equality; this, too, is checked only in compiled contexts.
 /// </summary>
-class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
-  public CheckTypeCharacteristics_Visitor(ErrorReporter reporter)
+class CheckTypeCharacteristicsVisitor : ResolverTopDownVisitor<bool> {
+  public CheckTypeCharacteristicsVisitor(ErrorReporter reporter)
     : base(reporter) {
     Contract.Requires(reporter != null);
   }
