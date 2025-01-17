@@ -37,15 +37,10 @@ public partial class BoogieGenerator {
   ///   forall args :: (QQQ k: nat :: P#[k](args)) ==> P(args)
   ///   forall args,k :: k == 0 ==> NNN P#[k](args)
   /// where "args" is "heap, formals".  In more details:
-  ///   AXIOM_ACTIVATION ==> forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
-  ///   AXIOM_ACTIVATION ==> forall args :: { P(args) } args-have-appropriate-values && (QQQ k :: 0 ATMOST k HHH P#[k](args)) ==> P(args)
-  ///   AXIOM_ACTIVATION ==> forall args,k :: args-have-appropriate-values && k == 0 ==> NNN P#0#[k](args)
-  ///   AXIOM_ACTIVATION ==> forall args,k,m :: args-have-appropriate-values && 0 ATMOST k LESS m ==> (P#[k](args) EEE P#[m](args))  (*)
-  /// where
-  /// AXIOM_ACTIVATION
-  /// means:
-  ///   mh LESS ModuleContextHeight ||
-  ///   (mh == ModuleContextHeight && fh ATMOST FunctionContextHeight)
+  ///   forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
+  ///   forall args :: { P(args) } args-have-appropriate-values && (QQQ k :: 0 ATMOST k HHH P#[k](args)) ==> P(args)
+  ///   forall args,k :: args-have-appropriate-values && k == 0 ==> NNN P#0#[k](args)
+  ///   forall args,k,m :: args-have-appropriate-values && 0 ATMOST k LESS m ==> (P#[k](args) EEE P#[m](args))  (*)
   /// There is also a specialized version of (*) for least predicates.
   /// </summary>
   void AddPrefixPredicateAxioms(PrefixPredicate pp) {
@@ -155,8 +150,6 @@ public partial class BoogieGenerator {
     funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
     var prefixAppl = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgs);
 
-    var activation = AxiomActivation(pp, etran);
-
     // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
     var tr = BplTrigger(prefixAppl);
     var qqqK = pp.ExtremePred is GreatestPredicate
@@ -166,13 +159,11 @@ public partial class BoogieGenerator {
         kWhere == null ? prefixAppl : BplAnd(kWhere, prefixAppl));
     tr = BplTriggerHeap(this, tok, coAppl, pp.ReadsHeap ? null : h);
     var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), qqqK));
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, BplImp(activation, allS),
-      "1st prefix predicate axiom for " + pp.FullSanitizedName));
+    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, allS, "1st prefix predicate axiom for " + pp.FullSanitizedName));
 
     // forall args :: { P(args) } args-have-appropriate-values && (QQQ k :: 0 ATMOST k HHH P#[k](args)) ==> P(args)
     allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, qqqK), coAppl));
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, BplImp(activation, allS),
-      "2nd prefix predicate axiom"));
+    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, allS, "2nd prefix predicate axiom"));
 
     // forall args,k :: args-have-appropriate-values && k == 0 ==> NNN P#0#[k](args)
     var moreBvs = new List<Variable>();
@@ -188,8 +179,7 @@ public partial class BoogieGenerator {
 
     var trigger = BplTriggerHeap(this, prefixLimitedBody.tok, prefixLimitedBody, pp.ReadsHeap ? null : h);
     var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, trigger, BplImp(BplAnd(ante, z), prefixLimited));
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, BplImp(activation, trueAtZero),
-      "3rd prefix predicate axiom"));
+    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, trueAtZero, "3rd prefix predicate axiom"));
 
 #if WILLING_TO_TAKE_THE_PERFORMANCE_HIT
       // forall args,k,m :: args-have-appropriate-values && 0 <= k <= m ==> (P#[k](args) EEE P#[m](args))
@@ -211,8 +201,7 @@ public partial class BoogieGenerator {
 
       var trigger2 = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixPred_K, prefixPred_M });
       var monotonicity = new Bpl.ForallExpr(tok, moreBvs, trigger2, BplImp(smaller, direction));
-      AddRootAxiom(new Bpl.Axiom(tok, BplImp(activation, monotonicity),
-        "prefix predicate monotonicity axiom"));
+      AddRootAxiom(new Bpl.Axiom(tok, monotonicity, "prefix predicate monotonicity axiom"));
 #endif
     // A more targeted monotonicity axiom used to increase the power of automation for proving the limit case for
     // least predicates that have more than one focal-predicate term.
@@ -237,8 +226,7 @@ public partial class BoogieGenerator {
 
       var trigger3 = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixPred_K, kLessLimit, mLessLimit });
       var monotonicity = new Bpl.ForallExpr(tok, moreBvs, trigger3, BplImp(kLessM, direction));
-      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, BplImp(activation, monotonicity),
-        "targeted prefix predicate monotonicity axiom"));
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, monotonicity, "targeted prefix predicate monotonicity axiom"));
     }
   }
 

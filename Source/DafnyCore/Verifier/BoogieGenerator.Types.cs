@@ -1580,8 +1580,6 @@ public partial class BoogieGenerator {
 
     // the procedure itself
     var req = new List<Bpl.Requires>();
-    // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-    req.Add(FreeRequires(decl.Tok, etran.HeightContext(decl), null));
     // modifies $Heap
     var mod = new List<Bpl.IdentifierExpr> {
         etran.HeapCastToIdentifierExpr,
