@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from functools import reduce
 from types import GeneratorType, FunctionType
 from math import floor
-from itertools import chain, combinations, count, islice
+from itertools import chain, combinations, count
 
 class classproperty(property):
     def __get__(self, instance, owner):
