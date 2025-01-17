@@ -2391,11 +2391,6 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             canCall = BplAnd(CanCallAssumption(range, cco), BplImp(TrExpr(range), canCall));
           }
 
-          if (this.HeapExpr != null) {
-            var alloced = BoogieGenerator.MkIsAlloc(TrExpr(e), e.Type, this.HeapExpr);
-            canCall = BplAnd(canCall, alloced);
-          }
-
           // It's important to add the heap last to "bvarsAndAntecedents", because the heap may occur in the antecedents of
           // the other variables and BplForallTrim processes the given tuples in order.
           var goodHeap = BoogieGenerator.FunctionCall(e.Origin, BuiltinFunction.IsGoodHeap, null, heap);
