@@ -485,9 +485,9 @@ namespace Defs {
     {
       return RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(rTypeParamsDecls, RAST.__default.DafnyPrint, datatypeType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(RAST.__default.NoDoc, RAST.__default.NoAttr, RAST.Visibility.create_PRIV(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fmt_print"), Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(), Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.selfBorrowed, RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_formatter"), RAST.Type.create_BorrowedMut((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fmt"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Formatter"))).AsType())), RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_in_seq"), RAST.Type.create_Bool())), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.RawType(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("std::fmt::Result"))), Std.Wrappers.Option<RAST._IExpr>.create_Some(printImplBody))))));
     }
-    public static RAST._IModDecl CoerceImpl(Dafny.ISequence<RAST._ITypeParamDecl> rTypeParamsDecls, Dafny.ISequence<Dafny.Rune> datatypeName, RAST._IType datatypeType, Dafny.ISequence<RAST._ITypeParamDecl> rCoerceTypeParams, Dafny.ISequence<RAST._IFormal> coerceArguments, Dafny.ISequence<RAST._IType> coerceTypes, RAST._IExpr coerceImplBody)
+    public static RAST._IModDecl CoerceImpl(Func<RAST._IType, RAST._IType> rc, Func<RAST._IExpr, RAST._IExpr> rcNew, Dafny.ISequence<RAST._ITypeParamDecl> rTypeParamsDecls, Dafny.ISequence<Dafny.Rune> datatypeName, RAST._IType datatypeType, Dafny.ISequence<RAST._ITypeParamDecl> rCoerceTypeParams, Dafny.ISequence<RAST._IFormal> coerceArguments, Dafny.ISequence<RAST._IType> coerceTypes, RAST._IExpr coerceImplBody)
     {
-      return RAST.ModDecl.create_ImplDecl(RAST.Impl.create_Impl(rTypeParamsDecls, datatypeType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Given type parameter conversions, returns a lambda to convert this structure"), RAST.__default.NoAttr, RAST.Visibility.create_PUB(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("coerce"), rCoerceTypeParams, coerceArguments, Std.Wrappers.Option<RAST._IType>.create_Some(RAST.__default.Rc(RAST.Type.create_ImplType(RAST.Type.create_FnType(Dafny.Sequence<RAST._IType>.FromElements(datatypeType), RAST.Type.create_TypeApp(RAST.Type.create_TIdentifier(datatypeName), coerceTypes))))), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.__default.RcNew(RAST.Expr.create_Lambda(Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("this"), RAST.__default.SelfOwned)), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_TypeApp(RAST.Type.create_TIdentifier(datatypeName), coerceTypes)), coerceImplBody))))))));
+      return RAST.ModDecl.create_ImplDecl(RAST.Impl.create_Impl(rTypeParamsDecls, datatypeType, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_FnDecl(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Given type parameter conversions, returns a lambda to convert this structure"), RAST.__default.NoAttr, RAST.Visibility.create_PUB(), RAST.Fn.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("coerce"), rCoerceTypeParams, coerceArguments, Std.Wrappers.Option<RAST._IType>.create_Some(Dafny.Helpers.Id<Func<RAST._IType, RAST._IType>>(rc)(RAST.Type.create_ImplType(RAST.Type.create_FnType(Dafny.Sequence<RAST._IType>.FromElements(datatypeType), RAST.Type.create_TypeApp(RAST.Type.create_TIdentifier(datatypeName), coerceTypes))))), Std.Wrappers.Option<RAST._IExpr>.create_Some(Dafny.Helpers.Id<Func<RAST._IExpr, RAST._IExpr>>(rcNew)(RAST.Expr.create_Lambda(Dafny.Sequence<RAST._IFormal>.FromElements(RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("this"), RAST.__default.SelfOwned)), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_TypeApp(RAST.Type.create_TIdentifier(datatypeName), coerceTypes)), coerceImplBody))))))));
     }
     public static RAST._IModDecl SingletonsImpl(Dafny.ISequence<RAST._ITypeParamDecl> rTypeParamsDecls, RAST._IType datatypeType, RAST._IType instantiationType, Dafny.ISequence<RAST._IExpr> singletonConstructors)
     {
@@ -1198,6 +1198,81 @@ namespace Defs {
       s += "(";
       s += this._moduleName.ToVerbatimString(true);
       s += ")";
+      return s;
+    }
+  }
+
+  public interface _ISyncType {
+    bool is_NoSync { get; }
+    bool is_Sync { get; }
+    _ISyncType DowncastClone();
+  }
+  public abstract class SyncType : _ISyncType {
+    public SyncType() {
+    }
+    private static readonly Defs._ISyncType theDefault = create_NoSync();
+    public static Defs._ISyncType Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<Defs._ISyncType> _TYPE = new Dafny.TypeDescriptor<Defs._ISyncType>(Defs.SyncType.Default());
+    public static Dafny.TypeDescriptor<Defs._ISyncType> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _ISyncType create_NoSync() {
+      return new SyncType_NoSync();
+    }
+    public static _ISyncType create_Sync() {
+      return new SyncType_Sync();
+    }
+    public bool is_NoSync { get { return this is SyncType_NoSync; } }
+    public bool is_Sync { get { return this is SyncType_Sync; } }
+    public static System.Collections.Generic.IEnumerable<_ISyncType> AllSingletonConstructors {
+      get {
+        yield return SyncType.create_NoSync();
+        yield return SyncType.create_Sync();
+      }
+    }
+    public abstract _ISyncType DowncastClone();
+  }
+  public class SyncType_NoSync : SyncType {
+    public SyncType_NoSync() : base() {
+    }
+    public override _ISyncType DowncastClone() {
+      if (this is _ISyncType dt) { return dt; }
+      return new SyncType_NoSync();
+    }
+    public override bool Equals(object other) {
+      var oth = other as Defs.SyncType_NoSync;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DafnyToRustCompilerDefinitions.SyncType.NoSync";
+      return s;
+    }
+  }
+  public class SyncType_Sync : SyncType {
+    public SyncType_Sync() : base() {
+    }
+    public override _ISyncType DowncastClone() {
+      if (this is _ISyncType dt) { return dt; }
+      return new SyncType_Sync();
+    }
+    public override bool Equals(object other) {
+      var oth = other as Defs.SyncType_Sync;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 1;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DafnyToRustCompilerDefinitions.SyncType.Sync";
       return s;
     }
   }
