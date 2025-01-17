@@ -1745,18 +1745,25 @@ public class LetSuchThatUnique : ProofObligationDescription {
 public class LetSuchThatExists : ProofObligationDescription {
   private readonly Expression condition;
   private readonly List<BoundVar> bvars;
+  private bool autoTriggerSearchFailed;
 
   public override string SuccessDescription =>
     "a value exists that satisfies this let-such-that expression";
 
   public override string FailureDescription =>
-    "cannot establish the existence of LHS values that satisfy the such-that predicate";
+    "cannot establish the existence of LHS values that satisfy the such-that predicate" +
+    (autoTriggerSearchFailed
+      ? ". Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. " +
+        "To give a trigger explicitly, use the {:trigger} attribute. " +
+        "For more information, see the section on quantifier instantiation rules in the reference manual."
+      : "");
 
   public override string ShortDescription => "let-such-that exists";
 
-  public LetSuchThatExists(List<BoundVar> bvars, Expression condition) {
+  public LetSuchThatExists(List<BoundVar> bvars, Expression condition, bool autoTriggerSearchFailed) {
     this.condition = condition;
     this.bvars = bvars;
+    this.autoTriggerSearchFailed = autoTriggerSearchFailed;
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
     return new ExistsExpr(bvars[0].Origin, bvars,
@@ -1871,7 +1878,7 @@ internal class Utils {
 
   public static void MakeQuantifierVarsForDims(List<Expression> dims, out List<BoundVar> vars, out List<Expression> varExprs, out Expression range) {
     var zero = new LiteralExpr(Token.NoToken, 0);
-    vars = dims.Select((_, i) => new BoundVar("i" + i, Type.Int)).ToList();
+    vars = dims.Select((dim, i) => new BoundVar(dim.Origin, "i" + i, Type.Int)).ToList();
 
     // can't assign to out-param immediately, since it's accessed in the lambda below
     var tempVarExprs = vars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();

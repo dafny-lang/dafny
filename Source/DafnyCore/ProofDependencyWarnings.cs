@@ -276,9 +276,7 @@ public class ProofDependencyWarnings {
       // it must be vacuous, but it's also probably an attempt to prove that a
       // given branch is unreachable (often, but not always, in ghost code).
       var assertedExpr = poDep.ProofObligation.GetAssertedExpr(options);
-      if (assertedExpr is not null &&
-          Expression.IsBoolLiteral(assertedExpr, out var lit) &&
-          lit == false) {
+      if (assertedExpr is not null && LiteralExpr.IsFalse(assertedExpr)) {
         return false;
       }
 
@@ -314,9 +312,7 @@ public class ProofDependencyWarnings {
   /// dependency, true otherwise</returns>
   private static bool ShouldWarnUnused(ProofDependency dep) {
     if (dep is AssumptionDependency assumeDep) {
-      if (assumeDep.Expr is not null &&
-          Expression.IsBoolLiteral(assumeDep.Expr, out var lit) &&
-          lit) {
+      if (assumeDep.Expr is not null && LiteralExpr.IsTrue(assumeDep.Expr)) {
         return false;
       }
 

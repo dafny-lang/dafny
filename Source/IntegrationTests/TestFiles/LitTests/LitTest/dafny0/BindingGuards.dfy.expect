@@ -159,8 +159,7 @@ method P3(m: int, n: int)
 
 ghost function f(s: set<int>): int
 {
-  if exists x :: x in s then
-    var x :| x in s;
+  if x :| x in s then
     x
   else
     0

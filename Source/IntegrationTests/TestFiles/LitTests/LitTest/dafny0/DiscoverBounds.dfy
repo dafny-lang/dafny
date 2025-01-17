@@ -80,13 +80,13 @@ predicate LessThanFour(x: int) {
 
 method EnumerateOverInfiniteCollections() {
   // ===== iset
-  
   var s := {3, 3, 3, 5};
 
   // Once, the following RHS caused "u" to be auto-ghost. (Oddly enough, when using the same RHS as a
   // separate assignment, the RHS was not considered to be ghost. So, we test both here.)
   var u := iset x | x in s;
   u := iset x | x in s;
+  assert 3 in u;
 
   // Once, the compilation of the following was rejected, because an iset was not considered enumerable. But it is.
   var y :| y in u && LessThanFour(y); // an iset is enumerable, so it's compilable

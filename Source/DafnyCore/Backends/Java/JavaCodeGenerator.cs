@@ -1294,12 +1294,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write($"{DafnyMapClass}.fromElements");
-      wr.Write("(");
-      string sep = "";
+      wr.Write($"{DafnyMapClass}.fromElements(");
+      var tuple2 = DafnyTupleClass(2);
+      wr.Write($"({tuple2}<{BoxedTypeName(mt.Domain, wr, tok)}, {BoxedTypeName(mt.Range, wr, tok)}>[])new {tuple2}[]{{");
+      string sep = " ";
       foreach (ExpressionPair p in elements) {
         wr.Write(sep);
-        wr.Write($"new {DafnyTupleClass(2)}(");
+        wr.Write($"new {tuple2}(");
         var coercedW = EmitCoercionIfNecessary(from: p.A.Type, to: NativeObjectType, tok: p.A.Origin, wr: wr);
         coercedW.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(", ");
@@ -1308,7 +1309,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(")");
         sep = ", ";
       }
-      wr.Write(")");
+      wr.Write(" })");
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType, out string compiledName, out string preString, out string postString) {

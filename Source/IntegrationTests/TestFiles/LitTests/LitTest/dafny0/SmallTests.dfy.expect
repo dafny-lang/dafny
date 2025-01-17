@@ -6,7 +6,7 @@ SmallTests.dfy(411,25): Warning: The {:verify false} attribute should only be us
 SmallTests.dfy(421,30): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless constructor together with the {:axiom} attribute instead
 SmallTests.dfy(431,33): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless function together with the {:axiom} attribute instead
 SmallTests.dfy(599,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-SmallTests.dfy(548,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+SmallTests.dfy(548,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 SmallTests.dfy(34,11): Error: index out of range
 SmallTests.dfy(65,35): Error: possible division by zero
 SmallTests.dfy(66,50): Error: possible division by zero
@@ -50,8 +50,8 @@ SmallTests.dfy(627,24): Error: target object might be null
 SmallTests.dfy(640,2): Error: assertion might not hold
 SmallTests.dfy(664,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SmallTests.dfy(687,2): Error: assertion might not hold
-SmallTests.dfy(701,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SmallTests.dfy(701,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 SmallTests.dfy(716,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SmallTests.dfy(733,4): Error: assertion might not hold
 SmallTests.dfy(754,6): Error: assertion might not hold
@@ -68,6 +68,6 @@ SmallTests.dfy.tmp.dprint.dfy(590,25): Warning: The {:verify false} attribute sh
 SmallTests.dfy.tmp.dprint.dfy(600,30): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless constructor together with the {:axiom} attribute instead
 SmallTests.dfy.tmp.dprint.dfy(610,33): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless function together with the {:axiom} attribute instead
 SmallTests.dfy.tmp.dprint.dfy(121,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-SmallTests.dfy.tmp.dprint.dfy(685,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+SmallTests.dfy.tmp.dprint.dfy(685,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 
 Dafny program verifier did not attempt verification
