@@ -222,19 +222,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(is_array == (f == null));
       Contract.Requires(sink != null && Predef != null);
 
-      Bpl.Expr heightAntecedent = Bpl.Expr.True;
       if (f is ConstantField cf) {
         AddWellformednessCheck(cf);
-        if (InVerificationScope(cf)) {
-          var etran = new ExpressionTranslator(this, Predef, f.Origin, null);
-          heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(cf)), etran.FunctionContextHeight());
-        }
       }
 
       if (f is ConstantField && f.IsStatic) {
-        AddStaticConstFieldAllocationAxiom(fieldDeclaration, f, c, heightAntecedent);
+        AddStaticConstFieldAllocationAxiom(fieldDeclaration, f, c);
       } else {
-        AddInstanceFieldAllocationAxioms(fieldDeclaration, f, c, is_array, heightAntecedent);
+        AddInstanceFieldAllocationAxioms(fieldDeclaration, f, c, is_array);
       }
     }
 
@@ -245,7 +240,7 @@ namespace Microsoft.Dafny {
     ///     // If "c" is an array declaration, then the bound variables also include the index variables "ii" and "h[o, f]" has the form "h[o, Index(ii)]".
     ///     // If "f" is readonly, then "h[o, f]" has the form "f(o)" (for special fields) or "f(G,o)" (for programmer-declared const fields),
     ///     // so "h" and $IsHeap(h) are omitted.
-    ///     axiom fh < FunctionContextHeight ==>
+    ///     axiom
     ///       (forall o: ref, h: Heap, G : Ty ::
     ///         { h[o, f], TClassA(G) }
     ///         $IsHeap(h) &&
@@ -255,7 +250,7 @@ namespace Microsoft.Dafny {
     ///
     ///     // allocation axiom:
     ///     // As above for "G" and "ii", but "h" is included no matter what.
-    ///     axiom fh < FunctionContextHeight ==>
+    ///     axiom
     ///       (forall o: ref, h: Heap, G : Ty ::
     ///         { h[o, f], TClassA(G) }
     ///         $IsHeap(h) &&
@@ -264,8 +259,7 @@ namespace Microsoft.Dafny {
     ///         ==>
     ///         $IsAlloc(h[o, f], TT(PP), h));
     /// </summary>
-    private void AddInstanceFieldAllocationAxioms(Bpl.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c,
-      bool is_array, Expr heightAntecedent) {
+    private void AddInstanceFieldAllocationAxioms(Bpl.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c, bool is_array) {
       var bvsTypeAxiom = new List<Bpl.Variable>();
       var bvsAllocationAxiom = new List<Bpl.Variable>();
 
@@ -382,7 +376,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf));
-      AddOtherDefinition(fieldDeclaration, new Bpl.Axiom(c.Origin, BplImp(heightAntecedent, ax), $"{c}.{f}: Type axiom"));
+      AddOtherDefinition(fieldDeclaration, new Bpl.Axiom(c.Origin, ax, $"{c}.{f}: Type axiom"));
 
       if (isalloc_hf != null) {
         if (!is_array && !f.IsMutable) {
@@ -407,7 +401,7 @@ namespace Microsoft.Dafny {
         tr = new Bpl.Trigger(c.Origin, true, t_es);
 
         ax = BplForall(bvsAllocationAxiom, tr, BplImp(ante, isalloc_hf));
-        AddOtherDefinition(fieldDeclaration, new Boogie.Axiom(c.Origin, BplImp(heightAntecedent, ax), $"{c}.{f}: Allocation axiom"));
+        AddOtherDefinition(fieldDeclaration, new Boogie.Axiom(c.Origin, ax, $"{c}.{f}: Allocation axiom"));
       }
     }
 
@@ -415,7 +409,7 @@ namespace Microsoft.Dafny {
     /// For a static (necessarily "const") field "f" in a class "c(G)", the expression corresponding to "h[o, f]" or "f(G,o)" above is "f(G)",
     /// so generate:
     ///     // type axiom:
-    ///     axiom fh < FunctionContextHeight ==>
+    ///     axiom
     ///       (forall G : Ty ::
     ///         { f(G) }
     ///         $Is(f(G), TT(PP)));
@@ -423,7 +417,7 @@ namespace Microsoft.Dafny {
     ///     axiom $Is(f(G), TT);
     ///
     ///     // allocation axiom:
-    ///     axiom fh < FunctionContextHeight ==>
+    ///     axiom
     ///       (forall h: Heap, G : Ty ::
     ///         { $IsAlloc(f(G), TT(PP), h) }
     ///         $IsHeap(h)
@@ -432,15 +426,15 @@ namespace Microsoft.Dafny {
     ///
     ///
     /// The axioms above could be optimised to something along the lines of:
-    ///     axiom fh < FunctionContextHeight ==>
+    ///     axiom
     ///       (forall o: ref, h: Heap ::
     ///         { h[o, f] }
     ///         $IsHeap(h) && o != null && Tag(dtype(o)) = TagClass
     ///         ==>
     ///         (h[o, alloc] ==> $IsAlloc(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h)) &&
     ///         $Is(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h);
-    /// <summary>
-    private void AddStaticConstFieldAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c, Expr heightAntecedent) {
+    /// </summary>
+    private void AddStaticConstFieldAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c) {
 
       var bvsTypeAxiom = new List<Bpl.Variable>();
       var bvsAllocationAxiom = new List<Bpl.Variable>();
@@ -452,7 +446,7 @@ namespace Microsoft.Dafny {
       var oDotF = new Boogie.NAryExpr(c.Origin, new Boogie.FunctionCall(GetReadonlyField(f)), tyexprs);
       var is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
       Boogie.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf);
-      var isAxiom = new Boogie.Axiom(c.Origin, BplImp(heightAntecedent, ax), $"{c}.{f}: Type axiom");
+      var isAxiom = new Boogie.Axiom(c.Origin, ax, $"{c}.{f}: Type axiom");
       AddOtherDefinition(fieldDeclaration, isAxiom);
 
       {
@@ -461,7 +455,7 @@ namespace Microsoft.Dafny {
         var isGoodHeap = FunctionCall(c.Origin, BuiltinFunction.IsGoodHeap, null, h);
         var isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
         ax = BplForall(bvsAllocationAxiom, BplTrigger(isalloc_hf), BplImp(isGoodHeap, isalloc_hf));
-        var isAllocAxiom = new Boogie.Axiom(c.Origin, BplImp(heightAntecedent, ax), $"{c}.{f}: Allocation axiom");
+        var isAllocAxiom = new Boogie.Axiom(c.Origin, ax, $"{c}.{f}: Allocation axiom");
         sink.AddTopLevelDeclaration(isAllocAxiom);
       }
     }
@@ -1000,8 +994,6 @@ namespace Microsoft.Dafny {
       }
       // the procedure itself
       var req = new List<Boogie.Requires>();
-      // free requires fh == FunctionContextHeight;
-      req.Add(FreeRequires(f.Origin, etran.HeightContext(f), null));
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
@@ -1441,9 +1433,8 @@ namespace Microsoft.Dafny {
       // The axiom
       Boogie.Expr ax = BplForall(f.Origin, new List<Boogie.TypeVariable>(), forallFormals, null, tr,
         BplImp(ante, BplAnd(canCallImp, synonyms)));
-      var activate = AxiomActivation(overridingFunction, etran);
       var comment = $"override axiom for {f.FullSanitizedName} in {overridingFunction.EnclosingClass.WhatKind} {overridingFunction.EnclosingClass.FullSanitizedName}";
-      return new Boogie.Axiom(f.Origin, BplImp(activate, ax), comment);
+      return new Boogie.Axiom(f.Origin, ax, comment);
     }
 
     /// <summary>
@@ -1776,8 +1767,6 @@ namespace Microsoft.Dafny {
         var req = new List<Boogie.Requires>();
         // FREE PRECONDITIONS
         if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
-          // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-          req.Add(FreeRequires(m.Origin, etran.HeightContext(m), null));
           if (m is TwoStateLemma) {
             // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
             var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
