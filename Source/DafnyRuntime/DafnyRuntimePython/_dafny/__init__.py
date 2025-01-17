@@ -216,8 +216,8 @@ class Seq:
             self.isStr = None
         else:
             self.isStr = isStr \
-                or isinstance(iterable, str) \
-                or (isinstance(iterable, Seq) and iterable.isStr)
+                    or isinstance(iterable, str) \
+                    or (isinstance(iterable, Seq) and iterable.isStr)
             # delay expensive computation
             if not self.isStr and isinstance(iterable, Concat):
                 self.isStr = 0
@@ -280,9 +280,6 @@ class Seq:
 
     def __le__(self, other):
         return len(self) <= len(other) and self == other[:len(self)]
-
-    def __iter__(self):
-        return iter(self.Elements)
 
 # Convenience for translation when --unicode-char is enabled
 def SeqWithoutIsStrInference(__iterable = None):
