@@ -1564,22 +1564,6 @@ namespace Microsoft.Dafny {
       return (olderParameterCount, olderCondition);
     }
 
-    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran, bool strict = false) {
-      Contract.Requires(f != null);
-      Contract.Requires(etran != null);
-      Contract.Requires(VisibleInScope(f));
-      if (InVerificationScope(f)) {
-        if (strict) {
-          return Bpl.Expr.Lt(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
-        } else {
-          return Bpl.Expr.Le(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
-        }
-      } else {
-        return Bpl.Expr.True;
-      }
-    }
-
-
     Bpl.Type TrReceiverType(MemberDecl f) {
       Contract.Requires(f != null);
       return TrType(ModuleResolver.GetReceiverType(f.Origin, f));
