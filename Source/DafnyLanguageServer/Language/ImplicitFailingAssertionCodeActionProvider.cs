@@ -40,46 +40,25 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     return node.StartToken.line > 0 ? new List<INode> { node } : null;
   }
 
-  class ExplicitAssertionDafnyCodeAction : DafnyCodeAction {
-    private readonly DafnyOptions options;
-    private readonly Expression failingImplicitAssertion;
-    private readonly Node program;
-    private readonly Range selection;
+  public static INode? GetInsertionNode(Node program, Range selection, out List<INode>? nodesSinceFailure, out bool needsIsolation) {
+    nodesSinceFailure = FindInnermostNodeIntersecting(program, selection);
 
-    public ExplicitAssertionDafnyCodeAction(
-      DafnyOptions options,
-      Node program,
-      Expression failingImplicitAssertion,
-      Range selection
-      ) : base("Insert explicit failing assertion") {
-      this.options = options;
-      this.failingImplicitAssertion = failingImplicitAssertion;
-      this.program = program;
-      this.selection = selection;
-    }
+    needsIsolation = false;
 
-    public override IEnumerable<DafnyCodeActionEdit> GetEdits() {
-      var nodesTillFailure = FindInnermostNodeIntersecting(program, selection);
-
-      var suggestedEdits = new List<DafnyCodeActionEdit>();
-      var needsIsolation = false;
-      if (nodesTillFailure == null) {
-        return suggestedEdits.ToArray();
-      }
-
-      INode? insertionNode = null;
-      for (var i = 0; i < nodesTillFailure.Count; i++) {
-        var node = nodesTillFailure[i];
-        var nextNode = i < nodesTillFailure.Count - 1 ? nodesTillFailure[i + 1] : null;
+    INode? insertionNode = null;
+    if (nodesSinceFailure != null) {
+      for (var i = 0; i < nodesSinceFailure.Count; i++) {
+        var node = nodesSinceFailure[i];
+        var nextNode = i < nodesSinceFailure.Count - 1 ? nodesSinceFailure[i + 1] : null;
         if (node is Statement or LetExpr &&
             ((node is AssignStatement or AssignSuchThatStmt && nextNode is not VarDeclStmt) ||
-            (node is not AssignStatement && nextNode is not VarDeclStmt && nextNode is not AssignSuchThatStmt))) {
+             (node is not AssignStatement && nextNode is not VarDeclStmt && nextNode is not AssignSuchThatStmt))) {
           insertionNode = node;
           break;
         }
 
         if (nextNode is TopLevelDecl or MemberDecl or ITEExpr or MatchExpr or NestedMatchExpr
-            or NestedMatchCase) {
+            or NestedMatchCase) { // Nodes that change the path condition
           insertionNode = node;
           break;
         }
@@ -95,20 +74,155 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         }
       }
 
-      insertionNode ??= nodesTillFailure[0];
+      insertionNode ??= nodesSinceFailure[0];
+    } else {
+      insertionNode = null;
+    }
 
-      var start = insertionNode.StartToken;
-      var assertStr = $"{(needsIsolation ? "(" : "")}assert {Printer.ExprToString(options, failingImplicitAssertion, new PrintFlags(UseOriginalDafnyNames: true))};\n" +
-                      IndentationFormatter.Whitespace(Math.Max(start.col - 1 + (needsIsolation ? 1 : 0), 0));
-      suggestedEdits.Add(
-        new DafnyCodeActionEdit(
-          InsertBefore(start), assertStr));
+    return insertionNode;
+  }
+
+  abstract class StatementInsertingCodeAction : DafnyCodeAction {
+    protected readonly DafnyOptions options;
+    protected readonly Expression failingImplicitAssertion;
+    protected readonly Node program;
+    protected readonly Range selection;
+
+    public StatementInsertingCodeAction(
+      DafnyOptions options,
+      Node program,
+      Expression failingImplicitAssertion,
+      Range selection,
+      string message
+    ) : base(message) {
+      this.options = options;
+      this.failingImplicitAssertion = failingImplicitAssertion;
+      this.program = program;
+      this.selection = selection;
+    }
+
+    public override IEnumerable<DafnyCodeActionEdit> GetEdits() {
+      var insertionNode = GetInsertionNode(program, selection, out var nodesTillFailure, out var needsIsolation);
+      if (insertionNode == null || nodesTillFailure == null) {
+        return new DafnyCodeActionEdit[] { };
+      }
+
+      if (insertionNode is AssertStmt or VarDeclStmt or CallStmt && insertionNode.EndToken is { val: ";" } endToken) {
+        // We can insert a by block to keep the proof limited
+        var start = insertionNode.StartToken;
+        var indentation = IndentationFormatter.Whitespace(Math.Max(start.col - 1, 0));
+        var indentation2 = indentation + "  ";
+        var block = " by {\n" +
+                    indentation2 + GetStatementToInsert(indentation2) + "\n" +
+                    indentation + "}";
+        return ReplaceWith(endToken, block);
+      } else if (insertionNode is AssertStmt or VarDeclStmt or CallStmt && insertionNode.OwnedTokens.FirstOrDefault(t => t.val == "by") is { Next: { val: "{" } braceToken } byToken) {
+        var start = braceToken.Next;
+        var isEmptyBy = start.Next is { val: "}" };
+        var innerCol = isEmptyBy ? start.col + 1 : start.col - 1;
+        var indentation = IndentationFormatter.Whitespace(Math.Max(innerCol, 0));
+        var indentationStart = IndentationFormatter.Whitespace(Math.Max(start.col - 1, 0));
+        var assertStr = GetStatementToInsert(indentation) + "\n" + indentationStart;
+        if (isEmptyBy) {
+          assertStr = "  " + assertStr;
+        }
+        return PrefixWithStatement(start, start, false, assertStr);
+      } else {
+        var start = insertionNode.StartToken;
+        var indentation = IndentationFormatter.Whitespace(Math.Max(start.col - 1 + (needsIsolation ? 1 : 0), 0));
+        var assertStr = GetStatementToInsert(indentation) + "\n" + indentation;
+        return PrefixWithStatement(insertionNode.StartToken, insertionNode.EndToken, needsIsolation, assertStr);
+      }
+    }
+
+    /// Helper for subclasses to print an expression
+    protected string S(Expression e) {
+      return Printer.ExprToString(options, e, new PrintFlags(UseOriginalDafnyNames: true));
+    }
+
+    /// Emit code editing instructions to insert the given statement before the given insertion node
+    /// Wraps everything with parentheses if it requires isolationn, which is the case in expressions notably
+    protected static IEnumerable<DafnyCodeActionEdit> PrefixWithStatement(Token start, Token end, bool needsIsolation, string statement) {
+      if (needsIsolation) {
+        statement = "(" + statement;
+      }
+      var suggestedEdits = new List<DafnyCodeActionEdit> {
+        new (InsertBefore(start), statement)
+      };
       if (needsIsolation) {
         suggestedEdits.Add(new DafnyCodeActionEdit(
-            InsertAfter(insertionNode.EndToken), ")"));
+          InsertAfter(end), ")"));
       }
 
       return suggestedEdits.ToArray();
+    }
+
+    /// Emit code editing instructions to insert the given statement before the given insertion node
+    /// Wraps everything with parentheses if it requires isolationn, which is the case in expressions notably
+    protected static IEnumerable<DafnyCodeActionEdit> ReplaceWith(Token tokenToReplace, string block) {
+      var suggestedEdits = new List<DafnyCodeActionEdit> {
+        new (Replace(tokenToReplace), block)
+      };
+
+      return suggestedEdits.ToArray();
+    }
+
+
+    protected abstract string GetStatementToInsert(string indentation);
+  }
+
+  class ExplicitAssertionDafnyCodeAction : StatementInsertingCodeAction {
+    public ExplicitAssertionDafnyCodeAction(
+      DafnyOptions options,
+      Node program,
+      Expression failingImplicitAssertion,
+      Range selection
+      ) : base(options, program, failingImplicitAssertion, selection, "Insert explicit failing assertion") {
+    }
+
+    protected override string GetStatementToInsert(string indentation) {
+      return $"assert {S(failingImplicitAssertion)};";
+    }
+  }
+
+  class BinaryExprToCalcStatementCodeAction : StatementInsertingCodeAction {
+    private readonly BinaryExpr failingExplicit;
+
+    public BinaryExprToCalcStatementCodeAction(
+      DafnyOptions options,
+      Node program,
+      BinaryExpr failingExplicit,
+      Range selection
+      ) : base(options, program, failingExplicit, selection, "Insert a calc statement") {
+      this.failingExplicit = failingExplicit;
+    }
+
+    protected override string GetStatementToInsert(string i) {
+      var op = failingExplicit.Op is BinaryExpr.Opcode.Iff ? "<==> " : "";
+      return /*
+         */$"calc {op}{{\n" +
+        $"{i}  {S(failingExplicit.E0)};\n" +
+        $"{i}  {S(failingExplicit.E1)};\n" +
+        $"{i}}}";
+    }
+  }
+
+  class ForallExprStatementCodeAction : StatementInsertingCodeAction {
+    private readonly ForallExpr failingExplicit;
+
+    public ForallExprStatementCodeAction(
+      DafnyOptions options,
+      Node program,
+      ForallExpr failingExplicit,
+      Range selection
+    ) : base(options, program, failingExplicit, selection, "Insert a forall statement") {
+      this.failingExplicit = failingExplicit;
+    }
+
+    protected override string GetStatementToInsert(string i) {
+      return "forall " + Printer.ForallExprRangeToString(options, failingExplicit) + " ensures " + S(failingExplicit.Term) + " {\n" +
+           $"{i}  assert {S(failingExplicit.Term)};\n" +
+           $"{i}}}";
     }
   }
 
@@ -118,25 +232,37 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       return null;
     }
 
-    var failingExpressions = new List<Expression>() { };
+    var implicitlyFailing = new List<Expression>() { };
+    var explicitlyFailing = new List<Expression>() { };
     input.VerificationTree?.Visit(tree => {
       if (tree is AssertionVerificationTree assertTree &&
           assertTree.Finished &&
-            assertTree.Range.Intersects(selection) &&
-            assertTree.StatusVerification is GutterVerificationStatus.Error or GutterVerificationStatus.Inconclusive &&
-            assertTree.GetAssertion()?.Description is ProofObligationDescription description &&
-            description.GetAssertedExpr(options) is { } assertedExpr) {
+          assertTree.Range.Intersects(selection) &&
+          assertTree.StatusVerification is GutterVerificationStatus.Error or GutterVerificationStatus.Inconclusive &&
+          assertTree.GetAssertion()?.Description is ProofObligationDescription description &&
+          description.GetAssertedExpr(options) is { } assertedExpr) {
         if (description.IsImplicit) {
-          failingExpressions.Add(assertedExpr);
+          implicitlyFailing.Add(assertedExpr);
+        } else {
+          explicitlyFailing.Add(assertedExpr);
         }
       }
     });
-    if (failingExpressions.Count == 0) {
+    if (implicitlyFailing.Count == 0 && explicitlyFailing.Count == 0) {
       return null;
     }
 
-    return failingExpressions.Select(failingExpression =>
+    IEnumerable<DafnyCodeAction> suggestedExplicitAssertions = implicitlyFailing.Select(failingExpression =>
       new ExplicitAssertionDafnyCodeAction(options, input.Program, failingExpression, selection)
     );
+    IEnumerable<DafnyCodeAction> suggestedCalcStatements =
+      explicitlyFailing.OfType<BinaryExpr>().Where(b => b.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Iff).Select(failingEquality =>
+      new BinaryExprToCalcStatementCodeAction(options, input.Program, failingEquality, selection));
+    IEnumerable<DafnyCodeAction> suggestedForallStatements = explicitlyFailing
+      .OfType<ForallExpr>()
+      .Select(failingForall =>
+      new ForallExprStatementCodeAction(options, input.Program, failingForall, selection));
+
+    return suggestedExplicitAssertions.Concat(suggestedCalcStatements).Concat(suggestedForallStatements);
   }
 }
