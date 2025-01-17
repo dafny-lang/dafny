@@ -116,17 +116,24 @@ class Concat:
             e = q.pop()
             if isinstance(e, list):
                 l += e
-            elif isinstance(e, ListView):
+            elif isinstance(e, _SeqSlice):
                 l += e
             elif isinstance(e, Concat):
                 q.append(e.r)
                 q.append(e.l)
         return l
 
-class ListView:
+class _SeqSlice:
+    """
+    Internal class enabling constant time slices of Seqs.
+    This should only be used internally from the Seq class when a Seq is sliced.
+    This class assumes the source data is immutable, which is true for Seqs.
+    """
     def __init__(self, source, start=0, stop=None, step=1):
-        if isinstance(source, ListView):
+        if isinstance(source, _SeqSlice):
+            # A SeqSlice constructed from a SeqSlice shares the same underlying source list,
             self._source = source._source
+            # but updates its indices based on the original SeqSlice's indices:
             self._start = source._start + start * source._step
             self._step = source._step * step
             self._stop = (
@@ -135,6 +142,7 @@ class ListView:
                 else source._stop
             )
         else:
+            # source will not change if it is constructed from a Seq because Dafny Seqs are immutable.
             self._source = source
             self._start = start
             self._stop = len(source) if stop is None else stop
@@ -142,10 +150,9 @@ class ListView:
 
     def __getitem__(self, index):
         if isinstance(index, slice):
-            # Slice in constant time by returning a reference to the source list
-            # with updated indices
+            # Slice in constant time by returning a reference to the source list with updated indices
             start, stop, step = index.indices(len(self))
-            return ListView(
+            return _SeqSlice(
                 self._source,
                 self._start + start * self._step,
                 self._start + stop * self._step,
@@ -155,6 +162,7 @@ class ListView:
         return self._source[self._start + index * self._step]
 
     def __len__(self):
+        # Constant-time len
         return max(0, (self._stop - self._start + (self._step - 1)) // self._step)
 
     def __iter__(self):
@@ -162,7 +170,7 @@ class ListView:
             yield self._source[i]
 
     def __repr__(self):
-        return f"ListView({list(self)})"
+        return f"_SeqSlice({list(self)})"
 
     def __contains__(self, item):
         return any(x == item for x in self)
@@ -189,28 +197,27 @@ class Seq:
 
         if isinstance(iterable, Seq):
             # Seqs' elements are immutable.
-            # The new Seq can directly reference the original Seqs' properties.
+            # The new Seq can reference the original Seq's properties.
             self.elems = iterable.elems
             self.len = iterable.len
             self.isStr = iterable.isStr
-        elif isinstance(iterable, list):
-            self.elems = iterable
-            self.len = len(iterable)
-            self.isStr = isStr
-        elif isinstance(iterable, ListView):
-            
+        elif isinstance(iterable, _SeqSlice):
+            # SeqSlices are lazy slices.
+            # Accessing self.elems returns the underlying SeqSlice in constant time.
+            # Turning this into a list, or accessing self.Elements, returns a list of the SeqSlice's elements in linear time.
             self.elems = iterable
             self.len = len(iterable)
             self.isStr = isStr
         else:
             self.elems = iterable if isinstance(iterable, Concat) else (list(iterable) if iterable is not None else [])
             self.len = len(self.elems)
+
         if isStr is None:
             self.isStr = None
         else:
             self.isStr = isStr \
-                        or isinstance(iterable, str) \
-                        or (isinstance(iterable, Seq) and iterable.isStr)
+                or isinstance(iterable, str) \
+                or (isinstance(iterable, Seq) and iterable.isStr)
             # delay expensive computation
             if not self.isStr and isinstance(iterable, Concat):
                 self.isStr = 0
@@ -219,7 +226,7 @@ class Seq:
     def Elements(self):
         if isinstance(self.elems, Concat):
             self.elems = self.elems.flatten()
-        if isinstance(self.elems, ListView):
+        if isinstance(self.elems, _SeqSlice):
             self.elems = list(self.elems)
         return self.elems
 
@@ -246,18 +253,13 @@ class Seq:
         return Seq(Concat(self.elems, other.elems), isStr=self.isStr and other.isStr)
 
     def __getitem__(self, key):
-        # if isinstance(key, slice):
-        #     return Seq(islice(self, *key.indices(len(self))), isStr=self.isStr)
         if isinstance(key, slice):
             start, stop, step = key.indices(len(self))
-            if isinstance(self.elems, ListView):
-                return Seq(ListView(self.elems, start=start, stop=stop, step=step), isStr=self.isStr)
-            return Seq(ListView(self.Elements, start=start, stop=stop, step=step), isStr=self.isStr)
-        try:
-            return self.Elements.__getitem__(key)
-        except IndexError as e:
-            print(f"{self.Elements=}")
-            raise e
+            if isinstance(self.elems, _SeqSlice):
+                # Avoiding .Elements call on SeqSlice avoids creating a list, which is expensive
+                return Seq(_SeqSlice(self.elems, start=start, stop=stop, step=step), isStr=self.isStr)
+            return Seq(_SeqSlice(self.Elements, start=start, stop=stop, step=step), isStr=self.isStr)
+        return self.Elements.__getitem__(key)
 
     def set(self, key, value):
         l = list(self.Elements)
