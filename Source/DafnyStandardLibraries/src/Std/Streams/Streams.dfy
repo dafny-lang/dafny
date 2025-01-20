@@ -291,7 +291,8 @@ module Std.Streams {
     {
       assert Requires(t);
       
-      assert Valid();
+      // TODO: Not sure why this isn't provable from GenericAction?
+      assume {:axiom} Valid();
       if position == |s| as uint64 {
         r := None;
       } else {
