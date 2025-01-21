@@ -68,9 +68,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     const rcNew := (underlying: R.Expr) => rcExpr.FSel("new").Apply([underlying])
     const SyncSendType := R.IntersectionType(R.SyncType, R.SendType)
     const AnyTrait := if syncType.NoSync? then
-        R.dafny_runtime.MSel("Any").AsType()
-      else
-        R.IntersectionType(R.dafny_runtime.MSel("Any").AsType(), SyncSendType)
+                        R.dafny_runtime.MSel("Any").AsType()
+                      else
+                        R.IntersectionType(R.dafny_runtime.MSel("Any").AsType(), SyncSendType)
     const DynAny := R.dafny_runtime.MSel("DynAny").AsType()
 
     var error: Option<string>
@@ -3618,7 +3618,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
             body := body.Sel(escapeVar(field));
           }
-              
+
           if isConstant {
             body := body.Apply0();
           }
@@ -3651,6 +3651,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
 
           var typeShape := R.DynType(R.FnType(typeShapeArgs, R.TIdentifier("_")));
+          if syncType.Sync? {
+            typeShape := R.IntersectionType(typeShape, SyncSendType);
+          }
 
           r := R.TypeAscription(
             rcNew(r),

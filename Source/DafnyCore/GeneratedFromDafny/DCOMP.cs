@@ -5673,6 +5673,9 @@ namespace DCOMP {
             }
             RAST._IType _216_typeShape;
             _216_typeShape = RAST.Type.create_DynType(RAST.Type.create_FnType(_214_typeShapeArgs, RAST.Type.create_TIdentifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"))));
+            if (((this).syncType).is_Sync) {
+              _216_typeShape = RAST.Type.create_IntersectionType(_216_typeShape, (this).SyncSendType);
+            }
             r = RAST.Expr.create_TypeAscription(Dafny.Helpers.Id<Func<RAST._IExpr, RAST._IExpr>>((this).rcNew)(r), Dafny.Helpers.Id<Func<RAST._IType, RAST._IType>>((this).rc)(_216_typeShape));
             RAST._IExpr _out184;
             Defs._IOwnership _out185;
