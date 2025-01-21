@@ -79,9 +79,18 @@ impl<T: ?Sized> UnsafeCell<T> {
 // An atomic box is just a RefCell in Rust
 pub type SizeT = usize;
 
+#[cfg(feature = "sync")]
+pub trait DafnyType: Clone + DafnyPrint + Send + Sync + 'static {}
+
+#[cfg(not(feature = "sync"))]
 pub trait DafnyType: Clone + DafnyPrint + 'static {}
 
+#[cfg(feature = "sync")]
+impl<T> DafnyType for T where T: Clone + DafnyPrint + Send + Sync + 'static {}
+
+#[cfg(not(feature = "sync"))]
 impl<T> DafnyType for T where T: Clone + DafnyPrint + 'static {}
+
 pub trait DafnyTypeEq: DafnyType + Hash + Eq {}
 
 impl<T> DafnyTypeEq for T where T: DafnyType + Hash + Eq {}
