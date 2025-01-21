@@ -6,7 +6,6 @@ pub use mem::MaybeUninit;
 use num::{bigint::ParseBigIntError, Integer, Num, One, Signed};
 pub use once_cell::unsync::Lazy;
 use std::{
-    any::Any,
     borrow::Borrow,
     boxed::Box,
     clone::Clone,
@@ -40,6 +39,15 @@ pub use num::NumCast;
 pub use num::ToPrimitive;
 pub use num::Zero;
 pub use std::convert::Into;
+
+pub use ::std::any::Any;
+pub use ::std::marker::Send;
+pub use ::std::marker::Sync;
+
+#[cfg(not(feature = "sync"))]
+pub type DynAny = dyn Any;
+#[cfg(feature = "sync")]
+pub type DynAny = dyn Any + Send + Sync;
 
 #[cfg(not(feature = "sync"))]
 pub use ::std::cell::UnsafeCell;
@@ -3197,7 +3205,7 @@ macro_rules! is_object {
 #[macro_export]
 macro_rules! cast_any {
     ($raw:expr) => {
-        $crate::Upcast::<dyn ::std::any::Any>::upcast($crate::read!($raw))
+        $crate::Upcast::<$crate::DynAny>::upcast($crate::read!($raw))
     };
 }
 // cast_any_object is meant to be used on references only, to convert any references (classes or traits)*
@@ -3205,9 +3213,10 @@ macro_rules! cast_any {
 #[macro_export]
 macro_rules! cast_any_object {
     ($obj:expr) => {
-        $crate::UpcastObject::<dyn ::std::any::Any>::upcast($crate::md!($obj))
+        $crate::UpcastObject::<$crate::DynAny>::upcast($crate::md!($obj))
     };
 }
+
 
 // When initializing an uninitialized field for the first time,
 // we ensure we don't drop the previous content
@@ -3351,12 +3360,12 @@ impl<T: ?Sized> Ptr<T> {
     }
 }
 
-impl<T: ?Sized + 'static + Upcast<dyn Any>> Ptr<T> {
+impl<T: ?Sized + 'static + Upcast<DynAny>> Ptr<T> {
     pub fn is_instance_of<U: 'static>(self) -> bool {
         if self.is_null() {
             false
         } else {
-            read!(Upcast::<dyn Any>::upcast(read!(self)))
+            read!(Upcast::<DynAny>::upcast(read!(self)))
                 .downcast_ref::<U>()
                 .is_some()
         }
@@ -3487,10 +3496,10 @@ impl<T: ?Sized> Object<T> {
         self.0.is_none()
     }
 }
-impl<T: ?Sized + 'static + UpcastObject<dyn Any>> Object<T> {
+impl<T: ?Sized + 'static + UpcastObject<DynAny>> Object<T> {
     pub fn is_instance_of<U: 'static>(self) -> bool {
         // safety: Dafny won't call this function unless it can guarantee the object is still allocated
-        rd!(UpcastObject::<dyn Any>::upcast(rd!(self)))
+        rd!(UpcastObject::<DynAny>::upcast(rd!(self)))
             .downcast_ref::<U>()
             .is_some()
     }
@@ -3514,14 +3523,14 @@ impl<T: ?Sized> Default for Object<T> {
     }
 }
 
-impl<T: ?Sized + UpcastObject<dyn Any>> Debug for Object<T> {
+impl<T: ?Sized + UpcastObject<DynAny>> Debug for Object<T> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         self.fmt_print(f, false)
     }
 }
-impl<T: ?Sized + UpcastObject<dyn Any>> DafnyPrint for Object<T> {
+impl<T: ?Sized + UpcastObject<DynAny>> DafnyPrint for Object<T> {
     fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-        let obj_any = UpcastObject::<dyn Any>::upcast(self.as_ref());
+        let obj_any = UpcastObject::<DynAny>::upcast(self.as_ref());
         let option_string = obj_any.as_ref().downcast_ref::<String>();
         match option_string {
             Some(s) => write!(f, "{}", s),
@@ -3535,11 +3544,10 @@ impl<T: DafnyType> DafnyPrint for Object<[T]> {
         write!(f, "<object>")
     }
 }
-
-impl UpcastObject<dyn Any> for String {
-    fn upcast(&self) -> Object<dyn Any> {
+impl UpcastObject<DynAny> for String {
+    fn upcast(&self) -> Object<DynAny> {
         // SAFETY: RC was just created
-        unsafe { Object::from_rc(Rc::new(self.clone()) as Rc<dyn Any>) }
+        unsafe { Object::from_rc(Rc::new(self.clone()) as Rc<DynAny>) }
     }
 }
 
@@ -3627,9 +3635,18 @@ pub fn allocate_object<T>() -> Object<T> {
 }
 
 pub struct AllocationTracker {
-    allocations: Vec<Weak<dyn Any>>,
+    allocations: Vec<Weak<DynAny>>,
 }
 
+#[cfg(feature = "sync")]
+pub fn allocate_object_track<T: 'static + Sync + Send>(allocation_tracker: &mut AllocationTracker) -> Object<T> {
+    let res = allocate_object::<T>();
+    allocation_tracker
+        .allocations
+        .push(Rc::<UnsafeCell<T>>::downgrade(&res.0.clone().unwrap()));
+    res
+}
+#[cfg(not(feature = "sync"))]
 pub fn allocate_object_track<T: 'static>(allocation_tracker: &mut AllocationTracker) -> Object<T> {
     let res = allocate_object::<T>();
     allocation_tracker
@@ -3775,9 +3792,9 @@ macro_rules! refcount {
 }
 
 pub mod object {
-    use std::any::Any;
+    use crate::{Any, DynAny};
 
-    pub fn downcast<T: 'static>(_self: crate::Object<dyn Any>) -> crate::Object<T> {
+    pub fn downcast<T: 'static>(_self: crate::Object<DynAny>) -> crate::Object<T> {
         super::cast_object!(_self, T)
     }
 
@@ -3785,7 +3802,7 @@ pub mod object {
         crate::Object(Some(crate::rcmut::new(val)))
     }
     #[inline]
-    pub fn is<T: 'static + ::std::any::Any>(_self: crate::Object<dyn Any>) -> bool {
+    pub fn is<T: 'static + Any>(_self: crate::Object<DynAny>) -> bool {
         is_object!(_self, T)
     }
 }
@@ -3858,16 +3875,16 @@ pub mod rcmut {
 
     #[cfg(feature = "sync")]
     pub unsafe fn downcast<T: 'static + Send + Sync>(
-        this: RcMut<dyn ::std::any::Any + Send + Sync>,
+        this: RcMut<crate::DynAny>,
     ) -> Option<RcMut<T>> {
-        let t: Rc<dyn ::std::any::Any + Send + Sync> = to_rc(this);
+        let t: Rc<crate::DynAny> = to_rc(this);
         let t: Rc<T> = Rc::downcast::<T>(t).ok()?;
         mem::transmute(t)
     }
 
     #[cfg(not(feature = "sync"))]
-    pub unsafe fn downcast<T: 'static>(this: RcMut<dyn ::std::any::Any>) -> Option<RcMut<T>> {
-        let t: Rc<dyn ::std::any::Any> = to_rc(this);
+    pub unsafe fn downcast<T: 'static>(this: RcMut<crate::DynAny>) -> Option<RcMut<T>> {
+        let t: Rc<crate::DynAny> = to_rc(this);
         let t: Rc<T> = Rc::downcast::<T>(t).ok()?;
         mem::transmute(t)
     }

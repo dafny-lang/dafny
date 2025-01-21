@@ -44,7 +44,10 @@ mod tests {
                 assert_eq!(*length, 6);
                 assert_eq!(unsafe { &*left.get() }.cardinality_usize(), 3);
                 // Test that boxed is None
+                #[cfg(not(feature = "sync"))]
                 assert!(boxed.as_ref().clone().borrow().as_ref().is_none());
+                #[cfg(feature = "sync")]
+                assert!(boxed.as_ref().clone().borrow().lock().unwrap().as_ref().is_none());
             }
             _ => panic!("This should never happen"),
         }

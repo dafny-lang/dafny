@@ -492,7 +492,7 @@ namespace DCOMP {
       _out13 = (this).GenPathType(path);
       _28_genSelfPath = _out13;
       if (!(_16_className).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_default"))) {
-        s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_2_rTypeParamsDecls, (((RAST.__default.dafny__runtime).MSel((this).Upcast)).AsType()).Apply(Dafny.Sequence<RAST._IType>.FromElements(RAST.Type.create_DynType(RAST.__default.AnyTrait))), RAST.Type.create_TypeApp(_28_genSelfPath, _1_rTypeParams), Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_ImplMemberMacro((((RAST.__default.dafny__runtime).MSel((this).UpcastFnMacro)).AsExpr()).Apply1(RAST.Expr.create_ExprFromType(RAST.Type.create_DynType(RAST.__default.AnyTrait)))))))));
+        s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_2_rTypeParamsDecls, (((RAST.__default.dafny__runtime).MSel((this).Upcast)).AsType()).Apply(Dafny.Sequence<RAST._IType>.FromElements(RAST.Type.create_DynType((this).AnyTrait))), RAST.Type.create_TypeApp(_28_genSelfPath, _1_rTypeParams), Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_ImplMemberMacro((((RAST.__default.dafny__runtime).MSel((this).UpcastFnMacro)).AsExpr()).Apply1(RAST.Expr.create_ExprFromType(RAST.Type.create_DynType((this).AnyTrait)))))))));
       }
       Dafny.ISequence<DAST._IType> _29_superTraitTypes;
       if ((_16_className).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_default"))) {
@@ -580,7 +580,7 @@ namespace DCOMP {
         }
       }
       if (((this).syncType).is_Sync) {
-        _14_parents = Dafny.Sequence<RAST._IType>.Concat(_14_parents, Dafny.Sequence<RAST._IType>.FromElements((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("marker"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Sync"))).AsType(), (((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("marker"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Send"))).AsType()));
+        _14_parents = Dafny.Sequence<RAST._IType>.Concat(_14_parents, Dafny.Sequence<RAST._IType>.FromElements(RAST.__default.SyncType, RAST.__default.SendType));
       }
       s = Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_TraitDecl(RAST.Trait.create((t).dtor_docString, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), _1_rTypeParamsDecls, _10_traitFulltype, _14_parents, _12_implBody)));
       if (((t).dtor_traitType).is_GeneralTrait) {
@@ -1420,7 +1420,7 @@ namespace DCOMP {
                 if (traitType1.is_ObjectTrait) {
                   {
                     if (((_0_resolved).dtor_path).Equals(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_System"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("object")))) {
-                      s = RAST.__default.AnyTrait;
+                      s = (this).AnyTrait;
                     }
                     if (!((genTypeContext))) {
                       s = (this).Object(RAST.Type.create_DynType(s));
@@ -1473,7 +1473,7 @@ namespace DCOMP {
       {
         if (_source0.is_Object) {
           {
-            s = RAST.__default.AnyTrait;
+            s = (this).AnyTrait;
             if (!((genTypeContext))) {
               s = (this).Object(RAST.Type.create_DynType(s));
             }
@@ -7016,6 +7016,16 @@ namespace DCOMP {
       return ((System.Func<RAST._IExpr, RAST._IExpr>)((_0_underlying) => {
         return (((this).rcExpr).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("new"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(_0_underlying));
       }));
+    } }
+    public RAST._IType SyncSendType { get {
+      return RAST.Type.create_IntersectionType(RAST.__default.SyncType, RAST.__default.SendType);
+    } }
+    public RAST._IType AnyTrait { get {
+      if (((this).syncType).is_NoSync) {
+        return RAST.__default.AnyTrait;
+      } else {
+        return RAST.Type.create_IntersectionType(RAST.__default.AnyTrait, (this).SyncSendType);
+      }
     } }
     public RAST._IExpr read__mutable__field__macro { get {
       return ((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("read_field!"))).AsExpr();

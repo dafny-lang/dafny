@@ -66,6 +66,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     const rc := (underlying: R.Type) => rcType.Apply([underlying])
     const rcNew := (underlying: R.Expr) => rcExpr.FSel("new").Apply([underlying])
+    const SyncSendType := R.IntersectionType(R.SyncType, R.SendType)
+    const AnyTrait := if syncType.NoSync? then
+        R.dafny_runtime.MSel("Any").AsType()
+      else
+        R.IntersectionType(R.dafny_runtime.MSel("Any").AsType(), SyncSendType);
+    const DynAny := R.dafny_runtime.MSel("DynAny").AsType()
 
     var error: Option<string>
 
@@ -487,13 +493,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           R.ImplDecl(
             R.ImplFor(
               rTypeParamsDecls,
-              R.dafny_runtime.MSel(Upcast).AsType().Apply([R.DynType(R.AnyTrait)]),
+              R.dafny_runtime.MSel(Upcast).AsType().Apply([DynAny]),
               R.TypeApp(genSelfPath, rTypeParams),
               [
                 R.ImplMemberMacro(
                   R.dafny_runtime
                   .MSel(UpcastFnMacro).AsExpr()
-                  .Apply1(R.ExprFromType(R.DynType(R.AnyTrait))))
+                  .Apply1(R.ExprFromType(DynAny)))
               ]
             )
           )
@@ -586,9 +592,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
       }
       if syncType.Sync? {
-        parents := parents + [
-          R.std.MSel("marker").MSel("Sync").AsType(),
-          R.std.MSel("marker").MSel("Send").AsType()];
+        parents := parents + [R.SyncType, R.SendType];
       }
       s := [
         R.TraitDecl(
@@ -1411,7 +1415,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
             case Trait(ObjectTrait()) => {
               if resolved.path == [Ident.Ident(Name("_System")), Ident.Ident(Name("object"))] {
-                s := R.AnyTrait;
+                s := AnyTrait;
               }
               if !genTypeContext.forTraitParents {
                 s := Object(R.DynType(s));
@@ -1437,7 +1441,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
         }
         case Object() => {
-          s := R.AnyTrait;
+          s := AnyTrait;
           if !genTypeContext.forTraitParents {
             s := Object(R.DynType(s));
           }

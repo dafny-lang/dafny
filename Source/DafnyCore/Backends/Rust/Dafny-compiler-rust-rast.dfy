@@ -1082,6 +1082,8 @@ module RAST
   const Eq := std.MSel("cmp").MSel("Eq").AsType()
   const Hash := std.MSel("hash").MSel("Hash").AsType()
   const DafnyInt := dafny_runtime.MSel("DafnyInt").AsType()
+  const SyncType := std.MSel("marker").MSel("Sync").AsType()
+  const SendType := std.MSel("marker").MSel("Send").AsType()
 
   function SystemTuple(elements: seq<Expr>): Expr {
     var size := Strings.OfNat(|elements|);

@@ -254,6 +254,12 @@ namespace RAST {
     public static RAST._IType DafnyInt { get {
       return ((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyInt"))).AsType();
     } }
+    public static RAST._IType SyncType { get {
+      return (((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("marker"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Sync"))).AsType();
+    } }
+    public static RAST._IType SendType { get {
+      return (((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("marker"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Send"))).AsType();
+    } }
     public static RAST._IPath MaybeUninitPath { get {
       return ((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("mem"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("MaybeUninit"));
     } }
