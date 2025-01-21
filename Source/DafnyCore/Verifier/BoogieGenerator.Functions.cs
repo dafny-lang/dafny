@@ -87,28 +87,15 @@ public partial class BoogieGenerator {
     // return type and postconditions
     //
     // axiom  // consequence axiom
-    //   AXIOM_ACTIVATION
-    //   ==>
     //   (forall s, $Heap, formals ::                  // let args := $Heap,formals
     //       { f(s, args) }
-    //       f#canCall(args) || USE_VIA_CONTEXT
+    //       f#canCall(args)
     //       ==>
     //       ens &&
     //       OlderCondition &&
     //       f(s, args)-has-the-expected type);
     //
     // where:
-    //
-    // AXIOM_ACTIVATION
-    // means:
-    //   fh <= FunctionContextHeight
-    //
-    // USE_VIA_CONTEXT
-    //   fh < FunctionContextHeight &&
-    //   GOOD_PARAMETERS
-    // where GOOD_PARAMETERS means:
-    //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
-    //   Pre($Heap,formals)
     //
     // OlderCondition is added if the function has some 'older' parameters.
     //
@@ -233,10 +220,6 @@ public partial class BoogieGenerator {
     foreach (AttributedExpression req in ConjunctsOf(f.Req)) {
       pre = BplAnd(pre, etran.TrExpr(req.E));
     }
-    // useViaContext: fh < FunctionContextHeight
-    Expr useViaContext = !(InVerificationScope(f) || (f.EnclosingClass is TraitDecl))
-      ? Bpl.Expr.True
-      : Bpl.Expr.Lt(Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
     // useViaCanCall: f#canCall(args)
     var canCallFuncID = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
     var useViaCanCall = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
@@ -268,10 +251,8 @@ public partial class BoogieGenerator {
 
     Bpl.Expr axBody = BplImp(ante, post);
     Bpl.Expr ax = BplForall(f.Origin, new List<Bpl.TypeVariable>(), formals, null, tr, axBody);
-    var activate = AxiomActivation(f, etran);
     if (RemoveLit(axBody) != Bpl.Expr.True) {
-      AddOtherDefinition(boogieFunction, new Bpl.Axiom(f.Origin, BplImp(activate, ax),
-        "consequence axiom for " + f.FullSanitizedName));
+      AddOtherDefinition(boogieFunction, new Bpl.Axiom(f.Origin, ax, "consequence axiom for " + f.FullSanitizedName));
     }
 
     if (f.ResultType.MayInvolveReferences) {
@@ -289,8 +270,7 @@ public partial class BoogieGenerator {
         ax = BplForall(f.Origin, new List<Bpl.TypeVariable>(), formals, null, BplTrigger(whr), axBody);
 
         if (RemoveLit(axBody) != Bpl.Expr.True) {
-          var comment = "alloc consequence axiom for " + f.FullSanitizedName;
-          var allocConsequenceAxiom = new Bpl.Axiom(f.Origin, BplImp(activate, ax), comment);
+          var allocConsequenceAxiom = new Bpl.Axiom(f.Origin, ax, "alloc consequence axiom for " + f.FullSanitizedName);
           AddOtherDefinition(boogieFunction, allocConsequenceAxiom);
         }
       }
@@ -310,32 +290,12 @@ public partial class BoogieGenerator {
     // This method generates the Definition Axiom, suitably modified according to the optional "lits".
     //
     // axiom  // definition axiom
-    //   AXIOM_ACTIVATION
-    //   ==>
     //   (forall s, $Heap, formals ::                  // let args := $Heap,formals
     //       { f(Succ(s), args) }                      // (*)
-    //       (f#canCall(args) || USE_VIA_CONTEXT)
+    //       f#canCall(args)
     //       ==>
     //       BODY-can-make-its-calls &&
     //       f(Succ(s), args) == BODY);                // (*)
-    //
-    // where:
-    //
-    // AXIOM_ACTIVATION
-    // for visibility==ForeignModuleOnly, means:
-    //   true
-    // for visibility==IntraModuleOnly, means:
-    //   fh <= FunctionContextHeight
-    //
-    // USE_VIA_CONTEXT
-    // for visibility==ForeignModuleOnly, means:
-    //   GOOD_PARAMETERS
-    // for visibility==IntraModuleOnly, means:
-    //   fh < FunctionContextHeight &&
-    //   GOOD_PARAMETERS
-    // where GOOD_PARAMETERS means:
-    //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
-    //   Pre($Heap,formals)
     //
     // NOTE: this is lifted out to a #requires function for intra module calls,
     //       and used in the function pseudo-handles for top level functions.
@@ -609,7 +569,6 @@ public partial class BoogieGenerator {
 
     Bpl.Expr ax = BplForall(f.Origin, new List<Bpl.TypeVariable>(), forallFormals, kv, tr,
       BplImp(ante, tastyVegetarianOption));
-    var activate = AxiomActivation(f, etran);
     string comment;
     comment = "definition axiom for " + f.FullSanitizedName;
     if (lits != null) {
@@ -625,7 +584,7 @@ public partial class BoogieGenerator {
     } else {
       comment += " (opaque)";
     }
-    var axe = new Axiom(f.Origin, BplImp(activate, ax), comment) {
+    var axe = new Axiom(f.Origin, ax, comment) {
       CanHide = true
     };
     if (proofDependencies == null) {
