@@ -825,8 +825,6 @@ namespace Microsoft.Dafny {
 
       // the procedure itself
       var req = new List<Bpl.Requires>();
-      // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(ctor.Origin, true, null, etran.HeightContext(ctor.EnclosingDatatype), null, null, null));
       var heapVar = new Bpl.IdentifierExpr(ctor.Origin, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var proc = new Bpl.Procedure(ctor.Origin, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
