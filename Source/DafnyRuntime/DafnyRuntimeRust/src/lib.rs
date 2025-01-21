@@ -79,9 +79,16 @@ impl<T: ?Sized> UnsafeCell<T> {
 // An atomic box is just a RefCell in Rust
 pub type SizeT = usize;
 
+#[cfg(not(feature = "sync"))]
 pub trait DafnyType: Clone + DafnyPrint + 'static {}
+#[cfg(feature = "sync")]
+pub trait DafnyType: Clone + DafnyPrint + Send + Sync + 'static {}
 
+#[cfg(not(feature = "sync"))]
 impl<T> DafnyType for T where T: Clone + DafnyPrint + 'static {}
+#[cfg(feature = "sync")]
+impl<T> DafnyType for T where T: Clone + DafnyPrint + Send + Sync + 'static {}
+
 pub trait DafnyTypeEq: DafnyType + Hash + Eq {}
 
 impl<T> DafnyTypeEq for T where T: DafnyType + Hash + Eq {}
@@ -2062,6 +2069,18 @@ impl<A: DafnyPrint> DafnyPrint for LazyFieldWrapper<A> {
     }
 }
 
+#[cfg(feature = "sync")]
+// Convert the DafnyPrint above into a macro so that we can create it for functions of any input arity
+macro_rules! dafny_print_function {
+    ($($n:tt)*) => {
+        impl <B, $($n),*> $crate::DafnyPrint for $crate::Rc<dyn ::std::ops::Fn($($n),*) -> B + Send + Sync> {
+            fn fmt_print(&self, f: &mut ::std::fmt::Formatter<'_>, _in_seq: bool) -> ::std::fmt::Result {
+                write!(f, "<function>")
+            }
+        }
+    }
+}
+#[cfg(not(feature = "sync"))]
 // Convert the DafnyPrint above into a macro so that we can create it for functions of any input arity
 macro_rules! dafny_print_function {
     ($($n:tt)*) => {
@@ -2072,6 +2091,7 @@ macro_rules! dafny_print_function {
         }
     }
 }
+
 // Now create a loop like impl_tuple_print_loop so that we can create functions up to size 32
 macro_rules! dafny_print_function_loop {
     ($first:ident $($rest:ident)*) => {
@@ -3331,6 +3351,12 @@ macro_rules! update_field_mut_if_uninit {
 
 // This Ptr has the same run-time space as *mut
 pub struct Ptr<T: ?Sized>(pub Option<NonNull<UnsafeCell<T>>>);
+
+#[cfg(feature = "sync")]
+unsafe impl<T: ?Sized> Send for Ptr<T> {}
+
+#[cfg(feature = "sync")]
+unsafe impl<T: ?Sized> Sync for Ptr<T> {}
 
 impl<T: ?Sized> Ptr<T> {
     pub fn null() -> Self {

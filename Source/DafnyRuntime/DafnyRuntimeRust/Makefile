@@ -19,4 +19,5 @@ update-system-module: build-system-module
 
 test:
 	cargo test
+	cargo test --features sync
 	(cd ../../DafnyRuntime.Tests/DafnyRuntimeRustTest; cargo test)

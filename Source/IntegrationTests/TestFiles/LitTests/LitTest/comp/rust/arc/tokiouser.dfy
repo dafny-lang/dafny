@@ -8,6 +8,9 @@ function OfSize(n: nat, c: char): List {
   if n == 0 then Nil else
   Cons([c] + [c], map[], OfSize(n-1, c))
 }
+function CreateConstant(n: nat): int -> nat {
+  i => n
+}
 datatype Option<+T> = None | Some(value: T)
 trait UpperTrait {
   function ReturnWhatWasGiven(i: int): int {

@@ -70,7 +70,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     const AnyTrait := if syncType.NoSync? then
         R.dafny_runtime.MSel("Any").AsType()
       else
-        R.IntersectionType(R.dafny_runtime.MSel("Any").AsType(), SyncSendType);
+        R.IntersectionType(R.dafny_runtime.MSel("Any").AsType(), SyncSendType)
     const DynAny := R.dafny_runtime.MSel("DynAny").AsType()
 
     var error: Option<string>
@@ -590,9 +590,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   )]))
           ];
         }
-      }
-      if syncType.Sync? {
-        parents := parents + [R.SyncType, R.SendType];
       }
       s := [
         R.TraitDecl(
@@ -1508,8 +1505,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
 
           var resultType := GenType(result, GenTypeContext.default());
+          var fnType := R.DynType(R.FnType(argTypes, resultType));
+          if syncType.Sync? {
+            fnType := R.IntersectionType(fnType, SyncSendType);
+          }
           s :=
-            rc(R.DynType(R.FnType(argTypes, resultType)));
+            rc(fnType);
         }
         case TypeArg(Ident(name)) => s := R.TIdentifier(escapeName(name));
         case Primitive(p) => {
