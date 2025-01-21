@@ -825,23 +825,6 @@ module {:options "--function-syntax:4"} Std.Collections.Seq {
     else FoldLeft(f, f(init, xs[0]), xs[1..])
   }
 
-  lemma {:verify false} FoldLeftNewRightElement<A,T>(f: (A, T) -> A, init: A, xs: seq<T>, x: T)
-    ensures FoldLeft(f, init, xs + [x]) == f(FoldLeft(f, init, xs), x)
-  {
-    reveal FoldLeft();
-    if |xs| == 0 {
-    } else {
-      FoldLeftNewRightElement(f, init, xs[1..], x);
-      assert FoldLeft(f, init, xs[1..] + [x]) == f(FoldLeft(f, init, xs[1..]), x);
-
-      reveal FoldLeft();
-      assert FoldLeft(f, init, xs) == FoldLeft(f, f(init, xs[0]), xs[1..]);
-      assert xs == [xs[0]] + xs[1..];
-      assert FoldLeft(f, f(init, xs[0]), xs[1..]) == f(FoldLeft(f, f(init, xs[0]), xs), x);
-      assert FoldLeft(f, init, xs + [x]) == f(FoldLeft(f, init, xs), x);
-    }
-  }
-
   /* Folding to the left is distributive over concatenation. That is, concatenating two
      sequences and then folding them to the left, is the same as folding to the left the
      first sequence and using the result to fold to the left the second sequence. */

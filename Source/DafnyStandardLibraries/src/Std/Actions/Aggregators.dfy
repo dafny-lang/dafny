@@ -167,7 +167,7 @@ module Std.Aggregators {
       assert old(value) == Seq.FoldLeft(f, init, old(Consumed()));
       assert Consumed() == old(Consumed()) + [t];
       reveal Seq.FoldLeft();
-      Seq.FoldLeftNewRightElement(f, init, old(Consumed()), t);
+      Seq.LemmaFoldLeftDistributesOverConcat(f, init, old(Consumed()), [t]);
       assert value == Seq.FoldLeft(f, init, Consumed());
       assert Valid();
     }
@@ -228,8 +228,18 @@ module Std.Aggregators {
       true
     }
 
-    method {:verify false} Invoke(t: T) returns (nothing: ()) {
+    method Invoke(t: T) returns (r: ()) 
+      requires Requires(t)
+      reads Repr
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal()
+      ensures Ensures(t, r)
+    {
       values := values + [t];
+      r := ();
+
+      Update(t, r);
+      assert Valid();
     }
 
     method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, ()>)

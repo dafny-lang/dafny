@@ -112,17 +112,6 @@ module Std.Actions {
     }
   }
 
-  // method Next<T>(e: Action<(), T>) returns (t: T)
-  //   requires e.Valid()
-  //   requires e.CanConsume(e.history, ())
-  //   reads e.Repr
-  //   modifies e.Repr
-  //   ensures e.Valid()
-  // {
-  //   assert e.Valid();
-  //   t := e.Invoke(());
-  // }
-
   method DefaultRepeatUntil<T, R>(a: Action<T, R>, t: T, stop: R -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, R>) 
     requires a.Valid()
     requires eventuallyStopsProof.Action() == a
