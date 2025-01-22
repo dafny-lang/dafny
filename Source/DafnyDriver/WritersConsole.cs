@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Microsoft.Dafny;
 
-class WritersConsole : IConsole {
+public class WritersConsole : IConsole {
   public TextReader InputWriter { get; }
   public TextWriter ErrWriter { get; }
   public TextWriter OutWriter { get; }

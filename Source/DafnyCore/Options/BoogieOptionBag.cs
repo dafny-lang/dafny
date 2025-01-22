@@ -46,6 +46,8 @@ public static class BoogieOptionBag {
 
   public static readonly Option<bool> NoVerify = new("--no-verify", "Skip verification");
 
+  public static readonly Option<bool> DoBoogieTranslation = new("--do-boogie-translation", "Requires --no-verify. Does translation to Boogie but Boogie won't verify it.");
+
   public static readonly Option<bool> HiddenNoVerify = new("--hidden-no-verify",
     "Allows building unverified libraries without recording that they were not verified.") {
     IsHidden = true
@@ -107,9 +109,14 @@ public static class BoogieOptionBag {
     });
     DafnyOptions.RegisterLegacyBinding(Cores,
       (o, f) => o.VcsCores = f == 0 ? (1 + System.Environment.ProcessorCount) / 2 : (int)f);
-    DafnyOptions.RegisterLegacyBinding(NoVerify, (options, value) => {
-      var shouldVerify = !value && !options.Get(HiddenNoVerify);
-      options.Verify = shouldVerify;
+    DafnyOptions.RegisterLegacyBinding(NoVerify, (options, dotNotVerify) => {
+      var shouldVerify = !dotNotVerify && !options.Get(HiddenNoVerify);
+      options.Verify = shouldVerify; // Boogie won't verify
+    });
+    // Previously /dafnyVerify
+    DafnyOptions.RegisterLegacyBinding(DoBoogieTranslation, (options, doBoogieTranslation) => {
+      options.DafnyVerify = (!options.Get(NoVerify) && !options.Get(HiddenNoVerify))
+        || doBoogieTranslation || options.Get(DeveloperOptionBag.BoogiePrint) != null; // Dafny won't translate the code to Boogie
     });
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
 
@@ -144,6 +151,7 @@ public static class BoogieOptionBag {
 
     OptionRegistry.RegisterGlobalOption(BoogieArguments, OptionCompatibility.CheckOptionMatches);
     OptionRegistry.RegisterGlobalOption(NoVerify, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterGlobalOption(DoBoogieTranslation, OptionCompatibility.OptionLibraryImpliesLocalError);
     OptionRegistry.RegisterOption(HiddenNoVerify, OptionScope.Cli);
     OptionRegistry.RegisterOption(Cores, OptionScope.Cli);
     OptionRegistry.RegisterOption(VerificationTimeLimit, OptionScope.Cli);

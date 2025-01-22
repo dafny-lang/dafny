@@ -2294,6 +2294,8 @@ and what information it produces about the verification process.
 
 * `--no-verify` - turns off verification (for translate, build, run commands)
 
+* `--do-boogie-translation` - turns on translation to Boogie after resolving or if `--no-verify` is set. Automatically set if `--bprint` is set.
+
 * `--verify-included-files` (was `-verifyAllModules`) - verify modules that come from include directives.
 
   By default, Dafny only verifies files explicitly listed on the command

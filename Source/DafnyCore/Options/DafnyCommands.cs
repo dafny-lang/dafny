@@ -52,6 +52,7 @@ public static class DafnyCommands {
 
   public static readonly IReadOnlyList<Option> TranslationOptions = new Option[] {
     BoogieOptionBag.NoVerify,
+    BoogieOptionBag.DoBoogieTranslation,
     BoogieOptionBag.HiddenNoVerify,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
