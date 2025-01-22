@@ -1,6 +1,4 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --allow-deprecation --performance-stats=100
-
-
 codatatype Stream<T> = Cons(head: T, tail: Stream)
 
 ghost function Upward(n: int): Stream<int>
