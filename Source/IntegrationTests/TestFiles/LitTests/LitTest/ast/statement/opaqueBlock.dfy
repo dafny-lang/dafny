@@ -134,6 +134,12 @@ method DefiniteAssignment()
     }
   }
   target := z;
+
+  var q: int; 
+  opaque
+    ensures q == 3
+  {
+  } 
 }
 
 method EnsuresDoesNotHold() {
