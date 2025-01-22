@@ -600,7 +600,10 @@ mod tests {
 
     #[test]
     fn test_function_wrappers() {
+        #[cfg(feature="sync")]
         let f: Rc<dyn Fn(i32) -> i32 + Send + Sync> = Rc::new(|i: i32| i + 1);
+        #[cfg(not(feature="sync"))]
+        let f: Rc<dyn Fn(i32) -> i32> = Rc::new(|i: i32| i + 1);
         let g = f.clone();
         let _h = seq![g];
     }
