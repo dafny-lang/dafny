@@ -199,7 +199,7 @@ module Std.Streams {
   /*
    * Rewindable stream of a sequence with a configured chunk size.
    */
-  class SeqDataStream extends RewindableByteStream {
+  class SeqByteStream extends RewindableByteStream {
 
     const s: BoundedInts.bytes
     const chunkSize: uint64
