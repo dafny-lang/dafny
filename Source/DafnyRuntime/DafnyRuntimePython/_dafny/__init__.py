@@ -257,10 +257,8 @@ class Seq:
     def __getitem__(self, key):
         if isinstance(key, slice):
             start, stop, step = key.indices(len(self))
-            if isinstance(self.elems, _SeqSlice):
-                # Avoiding .Elements call on SeqSlice avoids creating a list, which is expensive
-                return Seq(_SeqSlice(self.elems, start=start, stop=stop, step=step), isStr=self.isStr)
-            return Seq(_SeqSlice(self.Elements, start=start, stop=stop, step=step), isStr=self.isStr)
+            elements = self.elems if isinstance(self.elems, _SeqSlice) else self.Elements
+            return Seq(_SeqSlice(elements, start=start, stop=stop, step=step), isStr=self.isStr)
         return self.Elements.__getitem__(key)
 
     def set(self, key, value):
