@@ -1,4 +1,13 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" 
+// %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
+// Extra check for the C# compiler with the --compile-suffix option.
+// RUN: %baredafny build -t:cs --compile-suffix "%s"
+// RUN: %OutputCheck --file-to-check "%S/git-issue-6014.cs" "%s"
+// Just to make sure that if we use --compile-suffix, we don't do the escape
+// CHECK: .*A_Compile\.A.*
+// With the class named B_Compile, it becomes B__Compile so there should be no conflict
+// Adding this test in case someone changes the underscore escaping rules to account for this possibility
+// CHECK: .*B_Compile\.B__Compile.*
+
 
 module State {
 
@@ -23,6 +32,9 @@ module Enclosing {
     datatype A = Whatever
   }
 
+  module B {
+    datatype B_Compile = Whatever
+  }
 }
 
 module UsingEnclosing {
