@@ -1,4 +1,4 @@
-// %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 // Extra check for the C# compiler with the --compile-suffix option.
 // RUN: %baredafny build -t:cs --compile-suffix "%s"
 // RUN: %OutputCheck --file-to-check "%S/git-issue-6014.cs" "%s"
