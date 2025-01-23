@@ -11,7 +11,7 @@ NoMoreAssume2Less2.dfy(86,2): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(92,18): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(95,2): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(104,2): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(110,11): Error: assertion might not hold
+NoMoreAssume2Less2.dfy(110,16): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(78,26): Related location: this proposition could not be proved
 NoMoreAssume2Less2.dfy(113,2): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(119,19): Error: assertion might not hold

@@ -3,10 +3,10 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-class CollectFriendlyCallsInSpec_Visitor : FindFriendlyCalls_Visitor {
+class CollectFriendlyCallsInSpecVisitor : FindFriendlyCallsVisitor {
   readonly ISet<Expression> friendlyCalls;
   readonly ExtremeLemma Context;
-  public CollectFriendlyCallsInSpec_Visitor(ErrorReporter reporter, ISet<Expression> friendlyCalls, bool co, ExtremeLemma context)
+  public CollectFriendlyCallsInSpecVisitor(ErrorReporter reporter, ISet<Expression> friendlyCalls, bool co, ExtremeLemma context)
     : base(reporter, co, context.KNat) {
     Contract.Requires(reporter != null);
     Contract.Requires(friendlyCalls != null);

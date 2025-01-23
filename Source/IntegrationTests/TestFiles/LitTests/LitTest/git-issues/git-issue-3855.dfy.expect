@@ -1,5 +1,5 @@
 git-issue-3855.dfy(799,0): Warning: attribute :ignore is deprecated
-git-issue-3855.dfy(799,11): Error: Verification of 'Memory.dynMove' timed out after <redacted> seconds
+git-issue-3855.dfy(799,11): Error: Verification of 'Memory.dynMove' timed out after <redacted> seconds. (the limit can be increased using --verification-time-limit)
 git-issue-3855.dfy(942,17): Error: a precondition for this call could not be proved
 git-issue-3855.dfy(430,29): Related location: this is the precondition that could not be proved
 git-issue-3855.dfy(942,17): Error: a precondition for this call could not be proved

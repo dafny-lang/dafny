@@ -244,8 +244,8 @@ GeneralNewtypeResolution.dfy(277,6): Error: RHS (of type Big) not assignable to 
 GeneralNewtypeResolution.dfy(282,16): Error: type of left argument to << (bv32) must agree with the result type (BV)
 GeneralNewtypeResolution.dfy(283,16): Error: type of left argument to >> (bv32) must agree with the result type (BV)
 GeneralNewtypeResolution.dfy(267,11): Error: type of right argument to - (BV) must agree with the result type (Big)
-GeneralNewtypeResolution.dfy(286,36): Error: incorrect argument type for function parameter 'w' (expected nat, found int32)
-GeneralNewtypeResolution.dfy(287,22): Error: incorrect argument type for function parameter 'w' (expected nat, found int32)
+GeneralNewtypeResolution.dfy(286,37): Error: incorrect argument type for function parameter 'w' (expected nat, found int32)
+GeneralNewtypeResolution.dfy(287,23): Error: incorrect argument type for function parameter 'w' (expected nat, found int32)
 GeneralNewtypeResolution.dfy(289,6): Error: RHS (of type bv32) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(294,11): Error: arguments to <= must have a common supertype (got BV and bv32)
 GeneralNewtypeResolution.dfy(295,11): Error: arguments to >= must have a common supertype (got BV and bv1024)
@@ -266,7 +266,7 @@ GeneralNewtypeResolution.dfy(308,6): Error: RHS (of type int32) not assignable t
 GeneralNewtypeResolution.dfy(399,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(403,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(422,15): Error: GhostBits is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
-GeneralNewtypeResolution.dfy(411,33): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+GeneralNewtypeResolution.dfy(411,47): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
 GeneralNewtypeResolution.dfy(434,13): Error: type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got bv5)
 GeneralNewtypeResolution.dfy(441,30): Error: :nativeType can only be used on a newtype based on integers or bitvectors
 GeneralNewtypeResolution.dfy(443,31): Error: The width of bitvector type bv325 cannot fit into native type 'uint'. Note: constraints of bitvector-based newtypes are not considered when determining native types.

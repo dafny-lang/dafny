@@ -1,4 +1,4 @@
-ComputationsLoop.dfy(7,2): Error: decreases clause might not decrease
+ComputationsLoop.dfy(7,13): Error: decreases clause might not decrease
 ComputationsLoop.dfy(12,25): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 2 errors
