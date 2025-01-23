@@ -19,8 +19,7 @@ public class MutableMap<K, V> {
         this.td_V = td_V;
         map = new ConcurrentHashMap<K, V>();
     }
-    
-    public void __ctor() { }
+    public void __ctor(boolean bytesKeys) { }
 
     public dafny.DafnySet<K> Keys() {
         return new dafny.DafnySet<K>(Collections.list(map.keys()));

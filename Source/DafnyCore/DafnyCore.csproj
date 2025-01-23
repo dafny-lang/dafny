@@ -17,11 +17,12 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <TargetFramework>net6.0</TargetFramework>
     <RollForward>Major</RollForward>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     
-    <NoWarn>$(NoWarn);NU5104</NoWarn> <!-- Required because System.CommandLine is in beta. -->
+    <NoWarn>$(NoWarn);NU5104;CS8981</NoWarn>
+    <!-- NU5104 required because System.CommandLine is in beta. -->
+    <!-- CS8981 required because Dafny code can use lowercase type names -->
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   
@@ -35,8 +36,8 @@
       <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
       <PackageReference Include="System.Collections.Immutable" Version="1.7.1" />
-      <PackageReference Include="Boogie.ExecutionEngine" Version="3.2.5" />
-      <PackageReference Include="Tomlyn" Version="0.16.2" />
+      <PackageReference Include="Boogie.ExecutionEngine" Version="3.4.3" />
+      <PackageReference Include="Tomlyn" Version="0.17.0" />
   </ItemGroup>
 
   <ItemGroup>

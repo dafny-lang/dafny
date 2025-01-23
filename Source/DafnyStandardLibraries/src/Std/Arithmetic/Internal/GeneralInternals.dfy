@@ -6,7 +6,8 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.GeneralInternals {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.GeneralInternals {
 
   /* this predicate is primarily used as a trigger */
   ghost predicate IsLe(x: int, y: int)

@@ -7,13 +7,16 @@
 class Y {
   var c: int
   ghost var Repr: set<object>
-  constructor(c: int) ensures this.c == c {
+  const d: int
+  constructor(c: int) ensures this.c == c && d == c {
     this.c := c;
+    this.d := c;
     this.Repr := {this};
   }
 
-  constructor Two() ensures c == 2 {
+  constructor Two() ensures c == 2 == d {
     this.c := 2;
+    this.d := c;
     this.Repr := {this};
   }
 }

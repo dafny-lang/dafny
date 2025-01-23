@@ -17,8 +17,12 @@ output = sys.argv[1]
 
 # test if the file exists before opening it. If not, fail gracefully
 if not os.path.exists(output + '.cs'):
-  print(f"File {output} was not generated. Fix issues and re-run ./DafnyGeneratedFromDafny.sh")
+  print(f"File {output}.cs was not generated. Fix issues and re-run ./DafnyGeneratedFromDafny.sh")
   exit()
+
+if os.path.exists(output + '-cs.dtr'):
+    os.remove(output + '-cs.dtr')
+    print("File deleted: " + output + '-cs.dtr')
 
 with open(output + '.cs', 'r' ) as f:
   content = f.read()
@@ -66,6 +70,18 @@ with open(output + '.cs', 'r' ) as f:
       file.write(file_content)
 
     print(f"File generated: {file_path}")
+
+  # Special-case the FuncExtensions class, which isn't declared inside a namespace
+  func_extensions_pattern = re.compile(r'(internal\s+static\s+class\s+FuncExtensions\s*{[\s\S]*?}\s*//\s*end\s*of\s*class\s*FuncExtensions)')
+  match = func_extensions_pattern.search(content)
+  func_extensions_content = match[0]
+
+  file_content = f"{prelude}\n\n{func_extensions_content}"
+  file_path = f"{output}/FuncExtensions.cs"
+  with open(file_path, 'w') as file:
+    file.write(file_content)
+
+  print(f"File generated: {file_path}")
 
 # Now delete the file output.cs
 os.remove(output + '.cs')

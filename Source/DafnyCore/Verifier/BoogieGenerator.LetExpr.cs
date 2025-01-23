@@ -17,7 +17,7 @@ namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     public partial class ExpressionTranslator {
 
-      private Expr LetCanCallAssumption(LetExpr expr) {
+      private Expr LetCanCallAssumption(LetExpr expr, CanCallOptions cco) {
         if (!expr.Exact) {
           // CanCall[[ var b0,b1 :| RHS(b0,b1,g); Body(b0,b1,g,h) ]] =
           //   $let$canCall(g) &&
@@ -30,12 +30,12 @@ namespace Microsoft.Dafny {
           foreach (var bv in expr.BoundVars) {
             // create a call to $let$x(g)
             var args = info.SkolemFunctionArgs(bv, BoogieGenerator, this);
-            var call = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, info.UsesHeapAt, args.Item1, args.Item2);
+            var call = new BoogieFunctionCall(bv.Origin, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, info.UsesHeapAt, args.Item1, args.Item2);
             call.Type = bv.Type;
             substMap.Add(bv, call);
           }
           var p = Substitute(expr.Body, null, substMap);
-          var cc = BplAnd(canCall, CanCallAssumption(p));
+          var cc = BplAnd(canCall, CanCallAssumption(p, cco));
           return cc;
         } else {
           // CanCall[[ var b := RHS(g); Body(b,g,h) ]] =
@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
           //   (var lhs0,lhs1,... := rhs0,rhs1,...;  CanCall[[ Body ]])
           Boogie.Expr canCallRHS = Boogie.Expr.True;
           foreach (var rhs in expr.RHSs) {
-            canCallRHS = BplAnd(canCallRHS, CanCallAssumption(rhs));
+            canCallRHS = BplAnd(canCallRHS, CanCallAssumption(rhs, cco));
           }
 
           var bodyCanCall = CanCallAssumption(expr.Body);
@@ -69,7 +69,7 @@ namespace Microsoft.Dafny {
               rhssPruned.Add(rhssAll[i]);
             }
           }
-          Boogie.Expr let = lhssPruned.Count == 0 ? bodyCanCall : new Boogie.LetExpr(expr.tok, lhssPruned, rhssPruned, null, bodyCanCall);
+          Boogie.Expr let = lhssPruned.Count == 0 ? bodyCanCall : new Boogie.LetExpr(expr.Origin, lhssPruned, rhssPruned, null, bodyCanCall);
           return BplAnd(canCallRHS, let);
         }
       }
@@ -115,7 +115,7 @@ namespace Microsoft.Dafny {
         rhss = new List<Boogie.Expr>();
         foreach (var v in let.BoundVars) {
           var rhs = substMap[v];  // this should succeed (that is, "v" is in "substMap"), because the AddCasePatternVarSubstitutions calls above should have added a mapping for each bound variable in let.BoundVars
-          var bv = BplBoundVar(v.AssignUniqueName(BoogieGenerator.currentDeclaration.IdGenerator), BoogieGenerator.TrType(v.Type), out var bvIde);
+          var bv = BplBoundVar(v.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(v.Type), out var bvIde);
           lhss.Add(bv);
           rhss.Add(TrExpr(rhs));
         }
@@ -173,17 +173,17 @@ namespace Microsoft.Dafny {
               }
 
               ComputeFreeTypeVariables(e.RHSs[0], FTVs);
-              info = new LetSuchThatExprInfo(e.tok, BoogieGenerator.letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap,
-                usesOldHeap, FVsHeapAt, usesThis, BoogieGenerator.currentDeclaration);
+              info = new LetSuchThatExprInfo(e.Origin, BoogieGenerator.letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap,
+                usesOldHeap, FVsHeapAt, usesThis, BoogieGenerator.CurrentDeclaration);
               BoogieGenerator.letSuchThatExprInfo.Add(e, info);
             }
 
             foreach (var bv in e.BoundVars) {
-              Bpl.Variable resType = new Bpl.Formal(bv.tok,
-                new Bpl.TypedIdent(bv.tok, Bpl.TypedIdent.NoName, BoogieGenerator.TrType(bv.Type)), false);
+              Bpl.Variable resType = new Bpl.Formal(bv.Origin,
+                new Bpl.TypedIdent(bv.Origin, Bpl.TypedIdent.NoName, BoogieGenerator.TrType(bv.Type)), false);
               Bpl.Expr ante;
               List<Variable> formals = info.GAsVars(BoogieGenerator, true, out ante, null);
-              var fn = new Bpl.Function(bv.tok, info.SkolemFunctionName(bv), formals, resType);
+              var fn = new Bpl.Function(bv.Origin, info.SkolemFunctionName(bv), formals, resType);
 
               if (BoogieGenerator.InsertChecksums) {
                 BoogieGenerator.InsertChecksum(e.Body, fn);
@@ -197,17 +197,17 @@ namespace Microsoft.Dafny {
 
             // now that we've declared the functions and axioms, let's prepare the let-such-that desugaring
             {
-              var etran = new ExpressionTranslator(BoogieGenerator, predef, e.tok, null);
+              var etran = new ExpressionTranslator(BoogieGenerator, Predef, e.Origin, null);
               var rhss = new List<Expression>();
               foreach (var bv in e.BoundVars) {
                 var args = info.SkolemFunctionArgs(bv, BoogieGenerator, etran);
-                var rhs = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap,
+                var rhs = new BoogieFunctionCall(bv.Origin, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap,
                   info.UsesHeapAt, args.Item1, args.Item2);
                 rhs.Type = bv.Type;
                 rhss.Add(rhs);
               }
 
-              var expr = new LetExpr(e.tok, e.LHSs, rhss, e.Body, true);
+              var expr = new LetExpr(e.Origin, e.LHSs, rhss, e.Body, true);
               expr.Type = e.Type; // resolve here
               e.SetTranslationDesugaring(BoogieGenerator, expr);
             }
@@ -218,10 +218,10 @@ namespace Microsoft.Dafny {
       }
 
       private Bpl.Function AddLetSuchThatCanCallFunction(LetExpr e, LetSuchThatExprInfo info) {
-        Bpl.Variable resType = new Bpl.Formal(e.tok, new Bpl.TypedIdent(e.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool),
+        Bpl.Variable resType = new Bpl.Formal(e.Origin, new Bpl.TypedIdent(e.Origin, Bpl.TypedIdent.NoName, Bpl.Type.Bool),
           false);
         List<Variable> formals = info.GAsVars(BoogieGenerator, true, out var ante, null);
-        var canCallFunction = new Bpl.Function(e.tok, info.CanCallFunctionName(), formals, resType);
+        var canCallFunction = new Bpl.Function(e.Origin, info.CanCallFunctionName(), formals, resType);
 
         if (BoogieGenerator.InsertChecksums) {
           BoogieGenerator.InsertChecksum(e.Body, canCallFunction);
@@ -233,7 +233,7 @@ namespace Microsoft.Dafny {
 
       private void AddLetSuchThenCanCallAxiom(LetExpr e, LetSuchThatExprInfo info, Bpl.Function canCallFunction) {
         var etranCC =
-          new ExpressionTranslator(BoogieGenerator, predef, info.HeapExpr(BoogieGenerator, false), info.HeapExpr(BoogieGenerator, true), null);
+          new ExpressionTranslator(BoogieGenerator, Predef, info.HeapExpr(BoogieGenerator, false), info.HeapExpr(BoogieGenerator, true), null);
         Bpl.Expr typeAntecedents; // later ignored
         List<Variable> gg = info.GAsVars(BoogieGenerator, false, out typeAntecedents, etranCC);
         var gExprs = new List<Bpl.Expr>();
@@ -246,11 +246,11 @@ namespace Microsoft.Dafny {
         Bpl.Expr antecedent = Bpl.Expr.True;
         foreach (var bv in e.BoundVars) {
           // create a call to $let$x(g)
-          var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), BoogieGenerator.TrType(bv.Type), gExprs);
-          tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { call }, tr);
+          var call = FunctionCall(e.Origin, info.SkolemFunctionName(bv), BoogieGenerator.TrType(bv.Type), gExprs);
+          tr = new Bpl.Trigger(e.Origin, true, new List<Bpl.Expr> { call }, tr);
           substMap.Add(bv, new BoogieWrapper(call, bv.Type));
-          if (!(bv.Type.IsTypeParameter)) {
-            Bpl.Expr wh = BoogieGenerator.GetWhereClause(bv.tok, call, bv.Type, etranCC, NOALLOC);
+          if (!bv.Type.IsTypeParameter) {
+            Bpl.Expr wh = BoogieGenerator.GetWhereClause(bv.Origin, call, bv.Type, etranCC, NOALLOC);
             if (wh != null) {
               antecedent = BplAnd(antecedent, wh);
             }
@@ -272,18 +272,19 @@ namespace Microsoft.Dafny {
           i++;
         }
 
-        var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
+        var canCall = FunctionCall(e.Origin, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
         var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-        Bpl.Expr ax = BplImp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
+        var canCallBody = etranCC.CanCallAssumption(p);
+        Bpl.Expr ax = BplImp(canCall, BplAnd(antecedent, BplAnd(canCallBody, etranCC.TrExpr(p))));
         ax = BplForall(gg, tr, ax);
-        BoogieGenerator.AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.tok, ax));
+        BoogieGenerator.AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.Origin, ax));
       }
     }
 
     public Dictionary<LetExpr, LetSuchThatExprInfo> letSuchThatExprInfo = new();
 
     public class LetSuchThatExprInfo {
-      public readonly IToken Tok;
+      public readonly IOrigin Tok;
       public readonly int LetId;
       public readonly List<IVariable> FVs;
 
@@ -297,7 +298,7 @@ namespace Microsoft.Dafny {
       public readonly List<Label> UsesHeapAt;
       public readonly Type ThisType; // null if 'this' is not used
 
-      public LetSuchThatExprInfo(IToken tok, int uniqueLetId,
+      public LetSuchThatExprInfo(IOrigin tok, int uniqueLetId,
         List<IVariable> freeVariables, List<TypeParameter> freeTypeVars,
         bool usesHeap, bool usesOldHeap, ISet<Label> usesHeapAt, Type thisType, Declaration currentDeclaration) {
         Tok = tok;
@@ -307,7 +308,7 @@ namespace Microsoft.Dafny {
         FVs = freeVariables;
         FV_Exprs = new List<Expression>();
         foreach (var v in FVs) {
-          var idExpr = new IdentifierExpr(v.Tok, v.AssignUniqueName(currentDeclaration.IdGenerator));
+          var idExpr = new IdentifierExpr(v.Origin, v.AssignUniqueName(currentDeclaration.IdGenerator));
           idExpr.Var = v;
           idExpr.Type = v.Type; // resolve here
           FV_Exprs.Add(idExpr);
@@ -345,7 +346,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(etran != null);
         var args = new List<Expression>();
         if (ThisType != null) {
-          var th = new ThisExpr(bv.tok);
+          var th = new ThisExpr(bv.Origin);
           th.Type = ThisType;
           args.Add(th);
         }
@@ -375,7 +376,7 @@ namespace Microsoft.Dafny {
         foreach (var heapAtLabel in UsesHeapAt) {
           Bpl.Expr ve;
           var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(boogieGenerator.CurrentIdGenerator),
-            boogieGenerator.predef.HeapType, out ve);
+            boogieGenerator.Predef.HeapType, out ve);
           gExprs.Add(ve);
         }
 
@@ -397,7 +398,7 @@ namespace Microsoft.Dafny {
 
       public Bpl.Expr HeapExpr(BoogieGenerator boogieGenerator, bool old) {
         Contract.Requires(boogieGenerator != null);
-        return new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", boogieGenerator.predef.HeapType);
+        return new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", boogieGenerator.Predef.HeapType);
       }
 
       /// <summary>
@@ -412,10 +413,10 @@ namespace Microsoft.Dafny {
         Contract.Requires(boogieGenerator != null);
         var vv = new List<Variable>();
         // first, add the type variables
-        vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), boogieGenerator.predef.Ty, wantFormals)));
+        vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), boogieGenerator.Predef.Ty, wantFormals)));
         typeAntecedents = Bpl.Expr.True;
         if (UsesHeap) {
-          var nv = NewVar("$heap", boogieGenerator.predef.HeapType, wantFormals);
+          var nv = NewVar("$heap", boogieGenerator.Predef.HeapType, wantFormals);
           vv.Add(nv);
           if (etran != null) {
             var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null,
@@ -425,7 +426,7 @@ namespace Microsoft.Dafny {
         }
 
         if (UsesOldHeap) {
-          var nv = NewVar("$heap$old", boogieGenerator.predef.HeapType, wantFormals);
+          var nv = NewVar("$heap$old", boogieGenerator.Predef.HeapType, wantFormals);
           vv.Add(nv);
           if (etran != null) {
             var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null,
@@ -436,7 +437,7 @@ namespace Microsoft.Dafny {
 
         foreach (var heapAtLabel in UsesHeapAt) {
           var nv = NewVar("$Heap_at_" + heapAtLabel.AssignUniqueId(boogieGenerator.CurrentIdGenerator),
-            boogieGenerator.predef.HeapType, wantFormals);
+            boogieGenerator.Predef.HeapType, wantFormals);
           vv.Add(nv);
           if (etran != null) {
             // TODO: It's not clear to me that $IsGoodHeap predicates are needed for these axioms. (Same comment applies above for $heap$old.)

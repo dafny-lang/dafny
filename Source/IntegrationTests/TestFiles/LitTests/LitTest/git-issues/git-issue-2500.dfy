@@ -31,7 +31,7 @@ class Cl extends M.Tr {
     ensures ActuallyTrue()
   { true }
   predicate ActuallyTrue''()
-     // This is logically correct, but the disguised receiver in the Tr spec prevents the override check from passing.
+     // This is logically correct. (Before CanCall, the disguised receiver in the Tr spec had prevented the override check from passing.)
      ensures ActuallyTrue''()
    { true }
   predicate Other(x: nat, free: M.Tr)

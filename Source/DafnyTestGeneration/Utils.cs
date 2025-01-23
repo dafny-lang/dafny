@@ -78,7 +78,7 @@ namespace DafnyTestGeneration {
       return DafnyModelTypeUtils.ReplaceType(type, _ => true,
         typ => replacements.TryGetValue(typ.Name, out var replacement) ?
           replacement :
-          new UserDefinedType(typ.tok, typ.Name, typ.TypeArgs));
+          new UserDefinedType(typ.Origin, typ.Name, typ.TypeArgs));
     }
 
     /// <summary>
@@ -89,14 +89,14 @@ namespace DafnyTestGeneration {
 
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
       var dafnyFile = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
-      var program = await new ProgramParser().ParseFiles(uri.LocalPath,
+      var parseResult = await new ProgramParser().ParseFiles(uri.LocalPath,
         new[] { dafnyFile }, reporter, cancellationToken);
 
       if (!resolve) {
-        return program;
+        return parseResult.Program;
       }
-      await new ProgramResolver(program).Resolve(cancellationToken);
-      return program;
+      await new ProgramResolver(parseResult.Program).Resolve(cancellationToken);
+      return parseResult.Program;
     }
 
     /// <summary>
@@ -143,7 +143,7 @@ namespace DafnyTestGeneration {
     [ItemCanBeNull]
     public static List<string> AllBlockIds(Block block, DafnyOptions options) {
       string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
-      var state = block.cmds.OfType<AssumeCmd>()
+      var state = block.Cmds.OfType<AssumeCmd>()
         .Where(
           cmd => cmd.Attributes != null &&
                  cmd.Attributes.Key == "captureState" &&

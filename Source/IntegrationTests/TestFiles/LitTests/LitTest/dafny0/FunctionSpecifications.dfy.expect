@@ -1,18 +1,16 @@
-FunctionSpecifications.dfy(35,45): Error: a postcondition could not be proved on this return path
+FunctionSpecifications.dfy(35,59): Error: a postcondition could not be proved on this return path
 FunctionSpecifications.dfy(31,12): Related location: this is the postcondition that could not be proved
-FunctionSpecifications.dfy(45,16): Error: a postcondition could not be proved on this return path
-FunctionSpecifications.dfy(40,23): Related location: this is the postcondition that could not be proved
-FunctionSpecifications.dfy(61,10): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(61,23): Error: cannot prove termination; try supplying a decreases clause
 FunctionSpecifications.dfy(71,4): Error: a postcondition could not be proved on this return path
-FunctionSpecifications.dfy(69,21): Related location: this is the postcondition that could not be proved
-FunctionSpecifications.dfy(117,22): Error: assertion might not hold
-FunctionSpecifications.dfy(120,22): Error: assertion might not hold
+FunctionSpecifications.dfy(69,40): Related location: this is the postcondition that could not be proved
+FunctionSpecifications.dfy(117,2): Error: assertion might not hold
+FunctionSpecifications.dfy(120,2): Error: assertion might not hold
 FunctionSpecifications.dfy(135,26): Error: assertion might not hold
 FunctionSpecifications.dfy(139,26): Error: assertion might not hold
 FunctionSpecifications.dfy(148,4): Error: a postcondition could not be proved on this return path
 FunctionSpecifications.dfy(146,28): Related location: this is the postcondition that could not be proved
-FunctionSpecifications.dfy(155,2): Error: decreases clause might not decrease
-FunctionSpecifications.dfy(162,2): Error: decreases clause might not decrease
-FunctionSpecifications.dfy(167,2): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(155,3): Error: decreases clause might not decrease
+FunctionSpecifications.dfy(162,3): Error: decreases clause might not decrease
+FunctionSpecifications.dfy(167,3): Error: cannot prove termination; try supplying a decreases clause
 
-Dafny program verifier finished with 10 verified, 12 errors
+Dafny program verifier finished with 11 verified, 11 errors

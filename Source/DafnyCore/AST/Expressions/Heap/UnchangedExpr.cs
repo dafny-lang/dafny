@@ -24,9 +24,9 @@ public class UnchangedExpr : Expression, ICloneable<UnchangedExpr>, ICanFormat {
     }
   }
 
-  public UnchangedExpr(IToken tok, List<FrameExpression> frame, string/*?*/ at)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public UnchangedExpr(IOrigin origin, List<FrameExpression> frame, string/*?*/ at)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(frame != null);
     this.Frame = frame;
     this.At = at;

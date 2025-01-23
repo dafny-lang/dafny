@@ -382,8 +382,10 @@ lemma sorted_reverse(xs: List<G>, ys: List<G>)
 {
   match xs
   case Nil =>
-  case Cons(x, rest) =>
+  case Cons(x, rest) => {
     sorted_reverse(rest, Cons(x, ys));
+    assert forall a,b :: a in multiset_of(xs) && b in multiset_of(ys) ==> Below(a, b);
+  }
 }
 
 lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
@@ -472,6 +474,17 @@ lemma stable_sequences(g: G, xs: List<G>)
     case Cons(a, ys) =>
       match ys {
         case Nil =>
+          calc {
+            flatten(sequences(xs));
+            // def. sequences, since xs == Cons(a, Nil)
+            flatten(Cons(xs, Nil));
+            // def. flatten
+            append(xs, flatten(Nil));
+            // def. flatten
+            append(xs, Nil);
+            { append_Nil(xs); }
+            xs;
+          }
         case Cons(b, zs) =>
           if !Below(a, b) {
             calc {

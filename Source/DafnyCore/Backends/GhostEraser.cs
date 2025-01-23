@@ -61,7 +61,7 @@ public static class GhostEraser {
             var member = withMembers.Members[i];
             if (member.IsGhost) {
               if (member is Method && Attributes.Contains(member.Attributes, "test")) {
-                program.Reporter.Error(MessageSource.Compiler, GeneratorErrors.ErrorId.c_test_function_must_be_compilable, member.tok,
+                program.Reporter.Error(MessageSource.Compiler, GeneratorErrors.ErrorId.c_test_function_must_be_compilable, member.Origin,
                   $"Function {member.FullName} must be compiled to use the {{:test}} attribute");
               }
 
@@ -116,14 +116,13 @@ public static class GhostEraser {
         formals.RemoveAt(i);
       }
     }
-    
+
     RemoveGhostParameters(program, symbolTable, member, removalLocations);
     return removalLocations;
   }
 
-  private static void RemoveGhostParameters(Program program, SymbolTable symbolTable, IHasNavigationToken member, List<int> removalLocations)
-  {
-    var references = symbolTable.GetReferences(member);
+  private static void RemoveGhostParameters(Program program, SymbolTable symbolTable, IHasNavigationToken member, List<int> removalLocations) {
+    var references = symbolTable.GetReferences(member.NavigationToken);
     foreach (var reference in references) {
       if (reference is MatchCase matchCase) {
         RemoveElementsAtGhostPositions(matchCase.Arguments, removalLocations);
@@ -139,7 +138,7 @@ public static class GhostEraser {
 
       }
       if (reference is MemberSelectExpr memberSelectExpr) {
-        var applySuffix = program.FindNode<ApplySuffix>(memberSelectExpr.Tok.Uri, memberSelectExpr.Tok.ToDafnyPosition());
+        var applySuffix = program.FindNode<ApplySuffix>(memberSelectExpr.Origin.Uri, memberSelectExpr.Origin.ToDafnyPosition());
         if (applySuffix != null) {
           if (applySuffix.Lhs == memberSelectExpr) {
             RemoveElementsAtGhostPositions(applySuffix.Args, removalLocations);

@@ -16,16 +16,16 @@ namespace Microsoft.Dafny {
     private static Bpl.Cmd CaptureState(DafnyOptions options, Statement stmt) {
       Contract.Requires(stmt != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      return CaptureState(options, stmt.RangeToken.EndToken, true, null);
+      return CaptureState(options, stmt.Origin.EndToken, true, null);
     }
 
-    internal static void AddCaptureState(this BoogieStmtListBuilder builder, IToken tok, bool isEndToken, string /*?*/ additionalInfo) {
+    internal static void AddCaptureState(this BoogieStmtListBuilder builder, IOrigin tok, bool isEndToken, string /*?*/ additionalInfo) {
       if (builder.Options.ExpectingModel || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.Add(CaptureState(builder.Options, tok, isEndToken, additionalInfo));
       }
     }
 
-    private static Bpl.Cmd CaptureState(DafnyOptions options, IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
+    private static Bpl.Cmd CaptureState(DafnyOptions options, IOrigin tok, bool isEndToken, string/*?*/ additionalInfo) {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       string description;

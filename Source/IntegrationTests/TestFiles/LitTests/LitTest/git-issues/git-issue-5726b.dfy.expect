@@ -1,5 +1,5 @@
 git-issue-5726b.dfy(15,16): Error: value of expression (of type 'G1') is not known to be an instance of type 'G'
-git-issue-5726b.dfy(24,14): Error: assertion might not hold
+git-issue-5726b.dfy(24,4): Error: assertion might not hold
 git-issue-5726b.dfy(42,12): Error: target object might be null
 
 Dafny program verifier finished with 3 verified, 3 errors

@@ -19,7 +19,7 @@ ResolutionErrors0.dfy(94,16): Error: the name 'David' denotes a datatype constru
 ResolutionErrors0.dfy(96,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors0.dfy(98,20): Error: wrong number of arguments (datatype constructor 'David' expects 1, got 2)
 ResolutionErrors0.dfy(116,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors0.dfy(117,11): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors0.dfy(117,12): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ResolutionErrors0.dfy(121,13): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors0.dfy(122,12): Error: actual out-parameter is required to be a ghost variable
 ResolutionErrors0.dfy(133,25): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.

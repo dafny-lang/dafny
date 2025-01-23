@@ -38,6 +38,20 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   }
 
   [Fact]
+  public async Task ConstantWithoutRhsMarkedAsVerified() {
+    await VerifyTrace(@"
+ | :class Test {
+ | :  const x: int
+ | :
+ | :  method Testing()
+ | :    requires x > 0
+ | :    ensures x != 0
+ | :  {
+ | :  }
+ | :}", false, intermediates: false);
+  }
+
+  [Fact]
   public async Task Fields() {
     var markedSource = @"
 | :method Test() {

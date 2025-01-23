@@ -1,19 +1,19 @@
-git-issue-2299.dfy(37,11): Error: assertion might not hold
+git-issue-2299.dfy(37,21): Error: assertion might not hold
 git-issue-2299.dfy(10,11): Related location: this proposition could not be proved
-git-issue-2299.dfy(48,11): Error: assertion might not hold
+git-issue-2299.dfy(48,21): Error: assertion might not hold
 git-issue-2299.dfy(16,4): Related location: this proposition could not be proved
-git-issue-2299.dfy(58,11): Error: assertion might not hold
+git-issue-2299.dfy(58,20): Error: assertion might not hold
 git-issue-2299.dfy(21,4): Related location: this proposition could not be proved
-git-issue-2299.dfy(67,13): Error: assertion might not hold
+git-issue-2299.dfy(67,22): Error: assertion might not hold
 git-issue-2299.dfy(21,4): Related location: this proposition could not be proved
-git-issue-2299.dfy(81,11): Error: assertion might not hold
-git-issue-2299.dfy(27,4): Related location: this proposition could not be proved
+git-issue-2299.dfy(81,16): Error: assertion might not hold
+git-issue-2299.dfy(27,12): Related location: this proposition could not be proved
 git-issue-2299.dfy(10,11): Related location: this proposition could not be proved
-git-issue-2299.dfy(81,11): Error: assertion might not hold
-git-issue-2299.dfy(27,32): Related location: this proposition could not be proved
-git-issue-2299.dfy(21,4): Related location: this proposition could not be proved
-git-issue-2299.dfy(81,11): Error: assertion might not hold
-git-issue-2299.dfy(27,18): Related location: this proposition could not be proved
+git-issue-2299.dfy(81,16): Error: assertion might not hold
+git-issue-2299.dfy(27,26): Related location: this proposition could not be proved
 git-issue-2299.dfy(16,4): Related location: this proposition could not be proved
+git-issue-2299.dfy(81,16): Error: assertion might not hold
+git-issue-2299.dfy(27,39): Related location: this proposition could not be proved
+git-issue-2299.dfy(21,4): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 7 verified, 7 errors

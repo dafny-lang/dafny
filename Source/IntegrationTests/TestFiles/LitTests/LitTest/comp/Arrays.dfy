@@ -204,7 +204,7 @@ method More() {
   var a3 := new nLong[5];
   PrintArray(a3);
 
-  var kitchenSink: (lowercase, BV10, Yes, nByte, nShort, nInt, nLong);
+  var kitchenSink: (lowercase, BV10, Yes, nByte, nShort, nInt, nLong) := *;
   if kitchenSink.0 == '\0' {
     kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
   }
@@ -241,7 +241,7 @@ method MoreWithDefaults() {
   var a3 := new xnLong[5];
   PrintArray(a3);
 
-  var kitchenSink: (xchar, xBV10, xYes, xnByte, xnShort, xnInt, xnLong);
+  var kitchenSink: (xchar, xBV10, xYes, xnByte, xnShort, xnInt, xnLong) := *;
   if kitchenSink.0 == '\0' {
     kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
   }
@@ -351,7 +351,7 @@ method CharValues() {
   }
   PrintArray(cc);  // r r r
 
-  var e0: char, e1: ychar, e2: zchar, ee: (char, ychar, zchar);
+  var e0: char, e1: ychar, e2: zchar, ee: (char, ychar, zchar) := *, *, *, *;
   print e0, " ", e1, " ", e2, " ", ee, "\n";  // D D r (D, D, r)
 
   var mm := new char[3, 3];
@@ -492,7 +492,9 @@ module NativeArrays {
     var iIndex: int, bIndex: byte, bvIndex: bv9 := 3, 4, 5;
     m[iIndex, bIndex] := arr[iIndex];
     arr[iIndex] := m[iIndex, bvIndex - 1];
-    assert arr[iIndex] == 17;
+    assert arr[iIndex] == 17 by {
+       assert true;
+    }
     print arr[iIndex], " "; // 17
     m[bIndex, iIndex] := arr[bIndex];
     arr[bIndex] := m[bvIndex - 1, iIndex];

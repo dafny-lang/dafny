@@ -1,6 +1,6 @@
-CustomErrorMesage.dfy(6,45): Error: m: x must be positive
-CustomErrorMesage.dfy(10,45): Error: f: x must be positive
-CustomErrorMesage.dfy(15,2): Error: when calling foo, you must supply a positive x
+CustomErrorMesage.dfy(6,2): Error: m: x must be positive
+CustomErrorMesage.dfy(10,2): Error: f: x must be positive
+CustomErrorMesage.dfy(15,5): Error: when calling foo, you must supply a positive x
 CustomErrorMesage.dfy(19,71): Related location: this proposition could not be proved
 CustomErrorMesage.dfy(22,2): Error: a postcondition could not be proved on this return path
 CustomErrorMesage.dfy(20,85): Related location: cannot establish that return value of foo is always negative

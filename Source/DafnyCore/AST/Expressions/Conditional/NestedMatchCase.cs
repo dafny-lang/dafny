@@ -2,13 +2,12 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class NestedMatchCase : TokenNode {
+public abstract class NestedMatchCase : NodeWithComputedRange {
   public readonly ExtendedPattern Pat;
 
-  public NestedMatchCase(IToken tok, ExtendedPattern pat) {
-    Contract.Requires(tok != null);
+  protected NestedMatchCase(IOrigin origin, ExtendedPattern pat) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(pat != null);
-    this.tok = tok;
     this.Pat = pat;
   }
 

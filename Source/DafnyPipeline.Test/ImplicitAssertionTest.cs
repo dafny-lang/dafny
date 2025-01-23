@@ -148,7 +148,8 @@ method Test(m: map<int, int>, x: int) {
     options = options ?? new DafnyOptions(TextReader.Null, TextWriter.Null, TextWriter.Null);
     var uri = new Uri("virtual:///virtual");
     BatchErrorReporter reporter = new BatchErrorReporter(options);
-    var dafnyProgram = await new ProgramParser().Parse(program, uri, reporter);
+    var parseResult = await new ProgramParser().Parse(program, uri, reporter);
+    var dafnyProgram = parseResult.Program;
     if (reporter.HasErrors) {
       var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
@@ -166,7 +167,7 @@ method Test(m: map<int, int>, x: int) {
     var found = false;
     foreach (var implementation in boogieProgram.Implementations) {
       foreach (var block in implementation.Blocks) {
-        foreach (var cmd in block.cmds) {
+        foreach (var cmd in block.Cmds) {
           if (cmd is Bpl.AssertCmd { tok: { line: var line } } assertCmd && line == expectedLine) {
             if (assertCmd.Description is ProofObligationDescription description) {
               var assertedExpr = description.GetAssertedExpr(options);

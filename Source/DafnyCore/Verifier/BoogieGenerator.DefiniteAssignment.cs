@@ -49,13 +49,13 @@ namespace Microsoft.Dafny {
 
       Bpl.Variable tracker;
       if (isOutParam) {
-        tracker = new Bpl.Formal(p.Tok, new Bpl.TypedIdent(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool), false);
+        tracker = new Bpl.Formal(p.Origin, new Bpl.TypedIdent(p.Origin, DefassPrefix + p.UniqueName, Bpl.Type.Bool), false);
       } else {
-        tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool));
+        tracker = new Bpl.LocalVariable(p.Origin, new Bpl.TypedIdent(p.Origin, DefassPrefix + p.UniqueName, Bpl.Type.Bool));
       }
 
       tracker = localVariables.GetOrAdd(tracker);
-      var ie = new Bpl.IdentifierExpr(p.Tok, tracker);
+      var ie = new Bpl.IdentifierExpr(p.Origin, tracker);
       DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
       return ie;
     }
@@ -71,7 +71,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var ie = new Bpl.IdentifierExpr(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool);
+      var ie = new Bpl.IdentifierExpr(p.Origin, DefassPrefix + p.UniqueName, Bpl.Type.Bool);
       DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
     }
 
@@ -86,18 +86,18 @@ namespace Microsoft.Dafny {
       }
 
       var nm = SurrogateName(field);
-      var tracker = localVariables.GetOrAdd(new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, DefassPrefix + nm, Bpl.Type.Bool)));
-      var ie = new Bpl.IdentifierExpr(field.tok, tracker);
+      var tracker = localVariables.GetOrAdd(new Bpl.LocalVariable(field.Origin, new Bpl.TypedIdent(field.Origin, DefassPrefix + nm, Bpl.Type.Bool)));
+      var ie = new Bpl.IdentifierExpr(field.Origin, tracker);
       DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(nm, ie);
     }
 
     void MarkDefiniteAssignmentTracker(IdentifierExpr expr, BoogieStmtListBuilder builder) {
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);
-      MarkDefiniteAssignmentTracker(expr.tok, expr.Var.UniqueName, builder);
+      MarkDefiniteAssignmentTracker(expr.Origin, expr.Var.UniqueName, builder);
     }
 
-    void MarkDefiniteAssignmentTracker(IToken tok, string name, BoogieStmtListBuilder builder) {
+    void MarkDefiniteAssignmentTracker(IOrigin tok, string name, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
       Contract.Requires(builder != null);
 
@@ -107,24 +107,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal IToken GetToken(INode node) {
-      if (flags.ReportRanges) {
-        // Filter against IHasUsages to only select declarations, not usages.
-        if (node is IHasNavigationToken declarationOrUsage && node is not IHasReferences) {
-          return new BoogieRangeToken(node.StartToken, node.EndToken, declarationOrUsage.NavigationToken);
-        }
-
-        return new BoogieRangeToken(node.StartToken, node.EndToken, node.Tok);
-      } else {
-        // The commented line is what we want, but it changes what is translated.
-        // Seems to relate to refinement and possibly RefinementToken.IsInherited and or ForceCheckToken
-        // It might be better to remove calls to RefinementToken.IsInherited from this file, and instead
-        // add generic attributes like {:verify false} in the refinement phases, so that refinement does not complicate
-        // translation,
-        //
-        // return new BoogieRangeToken(node.StartToken, node.EndToken, node.Tok);
-        return node.Tok;
-      }
+    internal IOrigin GetToken(INode node) {
+      return node is IHasNavigationToken hasNavigationToken ? hasNavigationToken.NavigationToken : node.Origin;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
@@ -150,7 +134,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    void CheckDefiniteAssignmentSurrogate(IToken tok, Field field, bool atNew, BoogieStmtListBuilder builder) {
+    void CheckDefiniteAssignmentSurrogate(IOrigin tok, Field field, bool atNew, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
       Contract.Requires(field != null);
       Contract.Requires(builder != null);
@@ -171,8 +155,8 @@ namespace Microsoft.Dafny {
         // fnCall == (m.Ens[0].E as BinaryExpr).E1;
         // fn == new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
         Bpl.IdentifierExpr canCallFuncID =
-          new Bpl.IdentifierExpr(method.tok, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-        var etran = new ExpressionTranslator(this, predef, method.tok, method);
+          new Bpl.IdentifierExpr(method.Origin, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+        var etran = new ExpressionTranslator(this, Predef, method.Origin, method);
         List<Bpl.Expr> args = arguments.Select(arg => etran.TrExpr(arg)).ToList();
         var formals = MkTyParamBinders(GetTypeParams(method), out var tyargs);
         if (method.FunctionFromWhichThisIsByMethodDecl.ReadsHeap) {
@@ -186,14 +170,14 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr boogieAssumeCanCall =
-          new Bpl.NAryExpr(method.tok, new FunctionCall(canCallFuncID), Concat(tyargs, args));
-        builder.Add(new AssumeCmd(method.tok, boogieAssumeCanCall));
+          new Bpl.NAryExpr(method.Origin, new FunctionCall(canCallFuncID), Concat(tyargs, args));
+        builder.Add(new AssumeCmd(method.Origin, boogieAssumeCanCall));
       } else {
         Contract.Assert(false, "Error in shape of by-method");
       }
     }
 
-    void CheckDefiniteAssignmentReturn(IToken tok, Formal p, BoogieStmtListBuilder builder) {
+    void CheckDefiniteAssignmentReturn(IOrigin tok, Formal p, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
       Contract.Requires(p != null && !p.InParam);
       Contract.Requires(builder != null);

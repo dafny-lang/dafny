@@ -51,8 +51,8 @@ public static class BoogieOptionBag {
     IsHidden = true
   };
 
-  public static readonly Option<uint> VerificationTimeLimit = new("--verification-time-limit",
-    "Limit the number of seconds spent trying to verify each procedure") {
+  public static readonly Option<uint> VerificationTimeLimit = new("--verification-time-limit", () => 30,
+    "Limit the number of seconds spent trying to verify each assertion batch. A value of 0 indicates no limit") {
     ArgumentHelpName = "seconds",
   };
 
@@ -141,7 +141,6 @@ public static class BoogieOptionBag {
     DafnyOptions.RegisterLegacyBinding(SolverOptionHelp, (o, v) => o.ProverHelpRequested = v);
     DafnyOptions.RegisterLegacyBinding(VerificationErrorLimit, (options, value) => { options.ErrorLimit = value; });
     DafnyOptions.RegisterLegacyBinding(IsolateAssertions, (o, v) => o.VcsSplitOnEveryAssert = v);
-
 
     OptionRegistry.RegisterGlobalOption(BoogieArguments, OptionCompatibility.CheckOptionMatches);
     OptionRegistry.RegisterGlobalOption(NoVerify, OptionCompatibility.OptionLibraryImpliesLocalError);

@@ -15,6 +15,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using VC;
+using VCGeneration;
 using Token = Microsoft.Dafny.Token;
 
 namespace DafnyDriver.Commands;
@@ -36,7 +37,7 @@ public class CliCompilation {
     if (options.DafnyProject == null) {
       var firstFile = options.CliRootSourceUris.FirstOrDefault();
       var uri = firstFile ?? new Uri(Directory.GetCurrentDirectory());
-      options.DafnyProject = new DafnyProject(uri, null, new HashSet<string>() { uri.LocalPath }, new HashSet<string>(),
+      options.DafnyProject = new DafnyProject(null, uri, null, new HashSet<string>() { uri.LocalPath }, new HashSet<string>(),
         new Dictionary<string, object>()) {
         ImplicitFromCli = true
       };
@@ -45,7 +46,7 @@ public class CliCompilation {
     options.RunningBoogieFromCommandLine = true;
 
     var input = new CompilationInput(options, 0, options.DafnyProject);
-    var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
+    var executionEngine = new ExecutionEngine(options, new EmptyVerificationResultCache(), DafnyMain.LargeThreadScheduler);
     Compilation = createCompilation(executionEngine, input);
   }
 
@@ -126,7 +127,7 @@ public class CliCompilation {
           dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
-          var programName = finishedParsing.Program.Name;
+          var programName = finishedParsing.ParseResult.Program.Name;
           Options.OutputWriter.WriteLine($"{errorCount} parse errors detected in {programName}");
         }
       } else if (ev is FinishedResolution finishedResolution) {
@@ -150,7 +151,7 @@ public class CliCompilation {
 
   public bool VerifiedAssertions { get; private set; }
 
-  public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed) {
+  public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed = null) {
     if (!Options.Get(CommonOptionBag.UnicodeCharacters) && Options.Backend is not CppBackend) {
       Compilation.Reporter.Deprecated(MessageSource.Verifier, "unicodeCharDeprecated", Token.Cli,
         "the option unicode-char has been deprecated.");
@@ -162,10 +163,10 @@ public class CliCompilation {
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
         var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify];
         foreach (var part in canVerifyPartsIdentified.Parts.Where(canVerifyResult.TaskFilter)) {
-          canVerifyResult.Tasks.Add(part);
+          Interlocked.Increment(ref canVerifyResult.TaskCount);
         }
 
-        if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
+        if (canVerifyResult.CompletedParts.Count == canVerifyResult.TaskCount) {
           canVerifyResult.Finished.SetResult();
         }
       }
@@ -183,18 +184,46 @@ public class CliCompilation {
       if (ev is BoogieUpdate { BoogieStatus: Completed completed } boogieUpdate) {
         var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
+        var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
 
-        if (Options.Get(CommonOptionBag.ProgressOption)) {
-          var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
+        if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.VerificationJobs) {
+          var partOrigin = boogieUpdate.VerificationTask.Split.Token;
+
+          var wellFormedness = boogieUpdate.VerificationTask.Split.Implementation.Name.Contains("CheckWellFormed$");
+
+          string OriginDescription(IImplementationPartOrigin origin, bool outer) {
+            if (outer && origin is ImplementationRootOrigin) {
+              return (wellFormedness ? "contract consistency" : "entire body");
+            }
+            var result = origin switch {
+              PathOrigin pathOrigin => $"{OriginDescription(pathOrigin.Inner, false)}" +
+                                       $"after executing lines {string.Join(", ", pathOrigin.BranchTokens.Select(b => b.line))}",
+              RemainingAssertionsOrigin remainingAssertions => OriginDescription(remainingAssertions.Origin, false) + (outer ? "remaining assertions" : ""),
+              IsolatedAssertionOrigin isolateOrigin => $"{OriginDescription(isolateOrigin.Origin, false)}assertion at line {isolateOrigin.line}",
+              JumpOrigin returnOrigin => $"{OriginDescription(returnOrigin.Origin, false)}{JumpOriginKind(returnOrigin)} at line {returnOrigin.line}",
+              AfterSplitOrigin splitOrigin => $"{OriginDescription(splitOrigin.Inner, false)}assertions after split_here at line {splitOrigin.line}",
+              FocusOrigin focusOrigin =>
+                $"{OriginDescription(focusOrigin.Inner, false)}with focus " +
+                $"{string.Join(", ", focusOrigin.FocusChoices.Select(b => (b.DidFocus ? "+" : "-") + b.Token.line))}",
+              UntilFirstSplitOrigin untilFirstSplit => $"{OriginDescription(untilFirstSplit.Inner, false)}assertions until first split",
+              ImplementationRootOrigin => "",
+              _ => throw new ArgumentOutOfRangeException(nameof(origin), origin, null)
+            };
+            if (!outer && !string.IsNullOrEmpty(result)) {
+              result += ", ";
+            }
+            return result;
+          }
+
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
           Options.OutputWriter.WriteLine(
-            $"Verified part #{boogieUpdate.VerificationTask.Split.SplitIndex}, {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
-            $", on line {token.line}, " +
+            $"Verified {completedPartsCount}/{canVerifyResult.TaskCount} of {boogieUpdate.CanVerify.FullDafnyName}: " +
+            $"{OriginDescription(partOrigin, true)} - " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
             $" (time: {timeString}, resource count: {runResult.ResourceCount})");
         }
-        if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
+        if (completedPartsCount == canVerifyResult.TaskCount) {
           canVerifyResult.Finished.TrySetResult();
         }
       }
@@ -205,7 +234,7 @@ public class CliCompilation {
       yield break;
     }
 
-    var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
+    var canVerifies = resolution.CanVerifies?.ToList();
 
     if (canVerifies == null) {
       yield break;
@@ -216,49 +245,64 @@ public class CliCompilation {
     canVerifies = FilterCanVerifies(canVerifies, out var line);
     VerifiedAssertions = line != null;
 
-    var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
-    foreach (var canVerify in orderedCanVerifies) {
-      var results = new CliCanVerifyState();
-      canVerifyResults[canVerify] = results;
-      if (line != null) {
-        results.TaskFilter = t => KeepVerificationTask(t, line.Value);
-      }
-
-      var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
-      if (!shouldVerify) {
-        orderedCanVerifies.Remove(canVerify);
-      }
-    }
-
     int done = 0;
-    foreach (var canVerify in orderedCanVerifies) {
-      var results = canVerifyResults[canVerify];
-      try {
-        if (Options.Get(CommonOptionBag.ProgressOption)) {
-          await Options.OutputWriter.WriteLineAsync($"Verified {done}/{orderedCanVerifies.Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
+
+    var canVerifiesPerModule = canVerifies.GroupBy(c => c.ContainingModule);
+    foreach (var canVerifiesForModule in canVerifiesPerModule.
+               OrderBy(v => v.Key.Origin.pos)) {
+      var toAwait = new List<ICanVerify>();
+      foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Origin.pos)) {
+        var results = new CliCanVerifyState();
+        canVerifyResults[canVerify] = results;
+        if (line != null) {
+          results.TaskFilter = t => KeepVerificationTask(t, line.Value);
         }
-        await results.Finished.Task;
-        done++;
-      } catch (ProverException e) {
-        Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
-        yield break;
-      } catch (OperationCanceledException) {
 
-      } catch (Exception e) {
-        Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
-          $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
-        throw;
+        var shouldVerify = await Compilation.VerifyLocation(canVerify.Origin.GetFilePosition(), results.TaskFilter, randomSeed);
+        if (shouldVerify) {
+          toAwait.Add(canVerify);
+        }
       }
-      yield return new CanVerifyResult(canVerify, results.CompletedParts.Select(c => new VerificationTaskResult(c.Task, c.Result.Result)).ToList());
 
-      canVerifyResults.Remove(canVerify); // Free memory
+      foreach (var canVerify in toAwait) {
+        var results = canVerifyResults[canVerify];
+        try {
+          if (Options.Get(CommonOptionBag.ProgressOption) > CommonOptionBag.ProgressLevel.None) {
+            await Options.OutputWriter.WriteLineAsync(
+              $"Verified {done}/{canVerifies.ToList().Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
+          }
+
+          await results.Finished.Task;
+          done++;
+        } catch (ProverException e) {
+          Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Origin, e.Message);
+          yield break;
+        } catch (OperationCanceledException) {
+
+        } catch (Exception e) {
+          Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Origin,
+            $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
+          throw;
+        }
+
+        yield return new CanVerifyResult(canVerify,
+          results.CompletedParts.Select(c => new VerificationTaskResult(c.Task, c.Result.Result)).ToList());
+
+        canVerifyResults.Remove(canVerify); // Free memory
+        Compilation.ClearCanVerifyCache(canVerify);
+      }
+      Compilation.ClearModuleCache(canVerifiesForModule.Key);
     }
+  }
+
+  private static string JumpOriginKind(JumpOrigin returnOrigin) {
+    return returnOrigin.IsolatedReturn is GotoCmd ? "continue" : "return";
   }
 
   public static string DescribeOutcome(VcOutcome outcome) {
     return outcome switch {
       VcOutcome.Correct => "verified successfully",
-      VcOutcome.Errors => "could not prove all assertions",
+      VcOutcome.Errors => "could not be verified",
       VcOutcome.Inconclusive => "was inconclusive",
       VcOutcome.TimedOut => "timed out",
       VcOutcome.OutOfResource => "ran out of resources",
@@ -294,7 +338,7 @@ public class CliCompilation {
     }
     var filePart = result.Groups[1].Value;
     string? linePart = result.Groups.Count > 2 ? result.Groups[2].Value : null;
-    var fileFiltered = canVerifies.Where(c => c.Tok.Uri.ToString().EndsWith(filePart)).ToList();
+    var fileFiltered = canVerifies.Where(c => c.Origin.Uri.ToString().EndsWith(filePart)).ToList();
     if (string.IsNullOrEmpty(linePart)) {
       line = null;
       return fileFiltered;
@@ -303,7 +347,7 @@ public class CliCompilation {
     var parsedLine = int.Parse(linePart);
     line = parsedLine;
     return fileFiltered.Where(c =>
-        c.RangeToken.StartToken.line <= parsedLine && parsedLine <= c.RangeToken.EndToken.line).ToList();
+        c.Origin.StartToken.line <= parsedLine && parsedLine <= c.Origin.EndToken.line).ToList();
   }
 
   private bool KeepVerificationTask(IVerificationTask task, int line) {

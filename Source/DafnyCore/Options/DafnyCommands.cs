@@ -41,6 +41,8 @@ public static class DafnyCommands {
     CommonOptionBag.DefaultFunctionOpacity,
     CommonOptionBag.WarnContradictoryAssumptions,
     CommonOptionBag.WarnRedundantAssumptions,
+    CommonOptionBag.SuggestProofRefactoring,
+    CommonOptionBag.AnalyzeProofs,
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
     CommonOptionBag.ExtractCounterexample,
@@ -57,7 +59,8 @@ public static class DafnyCommands {
     CommonOptionBag.AddCompileSuffix,
     CommonOptionBag.SystemModule,
     IExecutableBackend.TranslationRecords,
-    ModuleDefinition.LegacyModuleNames
+    ModuleDefinition.LegacyModuleNames,
+    CommonOptionBag.TranslateStandardLibrary,
   }.Concat(VerificationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ExecutionOptions = new Option[] {

@@ -25,11 +25,13 @@ jobs:
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     runs-on: ubuntu-latest
 
-    steps:
+    steps: 
+    # The Windows image was recently updated with a .NET 9 CLI which made CI fail, 
+    # We added a global.json to force it to use any .NET CLI with 8 as a major version
     - name: Setup dotnet
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
     - name: Checkout Dafny
       uses: actions/checkout@v4
       with:
@@ -37,7 +39,7 @@ jobs:
         path: dafny
     - name: Load Z3
       run: |
-        sudo apt-get install -qq libarchive-tools
+        sudo apt-get update && sudo apt-get install -qq libarchive-tools
         mkdir -p dafny/Binaries/z3/bin
         wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-ubuntu-20.04-bin.zip | bsdtar -xf -
         mv z3-* dafny/Binaries/z3/bin/

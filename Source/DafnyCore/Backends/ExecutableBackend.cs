@@ -60,14 +60,14 @@ public abstract class ExecutableBackend : IExecutableBackend {
     foreach (var compiledModule in dafnyProgram.Modules()) {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
         if (compiledModule.IsExtern(Options, out _, out var name) && name != null) {
-          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Origin,
             "inside a module that replaces another, {:extern} attributes may only be used without arguments");
         }
       }
 
       if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && dafnyProgram.Replacements.GetValueOrDefault(compiledModule) == null) {
         if (compiledModule.ShouldCompile(dafnyProgram.Compilation)) {
-          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Origin,
             $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
         }
       }
@@ -110,7 +110,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
     ModuleDefinition module = null;
     foreach (var outerModule in outerModules) {
-      var thisModule = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
+      var thisModule = new ModuleDefinition(SourceOrigin.NoToken, new Name(outerModule), new List<IOrigin>(),
         ModuleKindEnum.Concrete, false,
         null, null, null) {
         EnclosingModule = module

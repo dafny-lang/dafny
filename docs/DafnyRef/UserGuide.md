@@ -135,7 +135,7 @@ Note that the library backend only supports the [newer command-style CLI interfa
 
 Some options, such as `--outer-module` or `--optimize-erasable-datatype-wrapper`,
 affect what target language code the same Dafny code is translated to.
-In order to translate Dafny libaries separately from their consuming codebases,
+In order to translate Dafny libraries separately from their consuming codebases,
 the translation process for consuming code needs to be aware
 of what options were used when translating the library.
 
@@ -221,7 +221,7 @@ the language that the Dafny files are being compiled to. The kind of file is det
 - Boolean options can take the values `true` and `false` (or any case-insensitive version of those words). For example, the value of `--no-verify` is by default `false` (that is, do verification). 
 It can be explicitly set to true (no verification) using `--no-verify`, `--no-verify:true`, `--no-verify=true`, `--noverify true`; 
 it can be explicitly set false (do verification) using `--no-verify:false` or `--no-verify=false` or `--no-verify false`.
-- There is a potential ambiguity when the form `--option value` is used if the value is optional (such as for boolean values). In such a case an argument afer an option (that does not have an argument given with `:` or `=`) is interpreted as the value if it is indeed a valid value for that option. However, better style advises always using a ':' or '=' to set option values.
+- There is a potential ambiguity when the form `--option value` is used if the value is optional (such as for boolean values). In such a case an argument after an option (that does not have an argument given with `:` or `=`) is interpreted as the value if it is indeed a valid value for that option. However, better style advises always using a ':' or '=' to set option values.
 No valid option values in dafny look like filenames or begin with `--`.
 
 #### 13.6.1.1. Options that are not associated with a command
@@ -418,7 +418,7 @@ _This command is under development._
 
 The command executes the `dafny resolve` phase (accepting its options) and has the following additional options:
 
-- `--report-file:<report-file>` --- spcifies the path where the audit
+- `--report-file:<report-file>` --- specifies the path where the audit
    report file will be stored. Without this option, the report
     will be issued as standard warnings, written to standard-out.
 - `--report-format:<format>` --- specifies the file format to use for
@@ -683,7 +683,7 @@ module UnitTests {
 ```
 
 Without the use of the `{:testInline}` attribute in the example above, Dafny will only generate a single test 
-because there is only one basic-block within the `Max` method itself -- all the branching occurs withing the `Min` function.
+because there is only one basic-block within the `Max` method itself -- all the branching occurs within the `Min` function.
 Note also that Dafny automatically converts all non-ghost postconditions on the method under tests into `expect` statements,
 which the compiler translates to runtime checks in the target language of choice.
 
@@ -730,7 +730,7 @@ The following is a list of command-line-options supported by Dafny during test g
 
 - `--verification-time-limit` - the value is an integer that sets a timeout for generating a single test. 
   The default is 20 seconds.
-- `--length-limit` - the value is an integer that is used to limit the lenghts or all sequences and sizes of all 
+- `--length-limit` - the value is an integer that is used to limit the lengths or all sequences and sizes of all 
   maps and sets that test generation will consider as valid test inputs. This can sometimes be necessary to 
   prevent test generation from creating unwieldy tests with excessively long strings or large maps. This option is
   disabled by default
@@ -946,7 +946,7 @@ method FailingPostcondition(b: bool) returns (i: int)
 }
 ```
 To debug why this assert might not hold, we need to _move this assert up_, which is similar to [_computing the weakest precondition_](https://en.wikipedia.org/wiki/Predicate_transformer_semantics#Weakest_preconditions).
-For example, if we have `x := Y; assert F;` and the `assert F;` might not hold, the weakest precondition for it to hold before `x := Y;` can be written as the assertion `assert F[x:= Y];`, where we replace every occurence of `x` in `F` into `Y`.
+For example, if we have `x := Y; assert F;` and the `assert F;` might not hold, the weakest precondition for it to hold before `x := Y;` can be written as the assertion `assert F[x:= Y];`, where we replace every occurrence of `x` in `F` into `Y`.
 Let's do it in our example:
 <!-- %check-verify UserGuide.5.expect -->
 ```dafny
@@ -1294,7 +1294,7 @@ There are two solutions to this for now. First, one can define a [subset type](#
 type byte = x | 0 <= x < 256
 ```
 
-One of the problems of this approach is that additions, substractions and multiplications do not enforce the result to be in the same bounds, so it would have to be checked, and possibly truncated with modulos. For example:
+One of the problems of this approach is that additions, subtractions and multiplications do not enforce the result to be in the same bounds, so it would have to be checked, and possibly truncated with modulos. For example:
 
 <!-- %check-resolve -->
 ```dafny
@@ -1412,7 +1412,7 @@ assert c != 5/a;     // Correctness
 
 Well-formedness is proved at the same time as correctness, except for
 [well-formedness of requires and ensures clauses](#sec-well-formedness-specifications)
-which is proved separatedly from the well-formedness and correctness of the rest of the method/function.
+which is proved separately from the well-formedness and correctness of the rest of the method/function.
 For the rest of this section, we don't differentiate between well-formedness assertions and correctness assertions.
 
 We can also classify the assertions extracted by Dafny in a few categories:
@@ -1480,17 +1480,11 @@ The fundamental unit of verification in `dafny` is an _assertion batch_, which c
 
 #### 13.7.3.1. Controlling assertion batches {#sec-assertion-batches-control}
 
-Here is how you can control how `dafny` partitions assertions into batches.
+When Dafny verifies a symbol, such as a method, a function or a constant with a subset type, that verification may contain multiple assertions. A symbol is generally verified the fastest when all assertions it in are verified together, in what we call a single 'assertion batch'. However, is it possible to split verification of a symbol into multiple batches, and doing so makes the individual batches simpler, which can lead to less brittle verification behavior. Dafny contains several attributes that allow you to customize how verification is split into batches.
 
-* [`{:focus}`](#sec-focus) on an assert generates a separate assertion batch for the assertions of the enclosing block.
-* [`{:split_here}`](#sec-split_here) on an assert generates a separate assertion batch for assertions after this point.
-* [`{:isolate_assertions}`](#sec-isolate_assertions) on a function or a method generates one assertion batch per assertion
+Firstly, you can instruct Dafny to verify individual assertions in separate batches. You can place the `{:isolate}` attribute on a single assertion to place it in a separate batch, or you can place `{:isolate_assertions}` on a symbol, such as a function or method declaration, to place all assertions in it into separate batches. The CLI option `--isolate-assertions` will place all assertions into separate batches for all symbols. `{:isolate}` can be used on `assert`, `return` and `continue` statements. When placed on a `return` statement, it will verify the postconditions for all paths leading to that `return` in a separate batch. When placed on a `continue`, it will verify the loop invariants for all paths leading to that `continue` in a separate batch. 
 
-We discourage the use of the following _heuristics attributes_ to partition assertions into batches.
-The effect of these attributes may vary, because they are low-level attributes and tune low-level heuristics, and will result in splits that could be manually controlled anyway.
-* [`{:vcs_max_cost N}`](#sec-vcs_max_cost) on a function or method enables splitting the assertion batch until the "cost" of each batch is below N.
-  Usually, you would set [`{:vcs_max_cost 0}`](#sec-vcs_max_cost) and [`{:vcs_max_splits N}`](#sec-vcs_max_splits) to ensure it generates N assertion batches.
-* [`{:vcs_max_keep_going_splits N}`](#sec-vcs_max_keep_going_splits) where N > 1 on a method dynamically splits the initial assertion batch up to N components if the verifier is stuck the first time.
+Given an assertion that is placed into a separate batch, you can then further simplify the verification of this assertion by placing each control flow path that leads to this assertion into a separate batch. You can do this using the attribute `{:isolate "paths"}`.
 
 ### 13.7.4. Command-line options and other attributes to control verification {#sec-command-line-options-and-attributes-for-verification}
 
@@ -1601,7 +1595,7 @@ the global random seed `S` specified with `-randomSeed:S`, which
 defaults to `0`. The random seed affects the structure of the SMT
 queries sent to the solver, changing the ordering of SMT commands, the
 variable names used, and the random seed the solver itself uses when
-making decisions that can be arbitary.
+making decisions that can be arbitrary.
 
 For most use cases, it also makes sense to specify the
 `--log-format csv` flag, to log verification cost statistics to a
@@ -1958,7 +1952,7 @@ migrated to the POSIX-compliant `--` form as needed.
 
 These options emit general information about commands, options and attributes.
 When present, the dafny program will terminates after emitting the requested information
-but without processig any files.
+but without processing any files.
 
 * `--help`, `-h` - shows the various commands (which have help information under them as `dafny <command> -h`
 
@@ -2001,7 +1995,7 @@ a list of all .dfy files contained, recursively, in those folders
   the translator from Dafny to Boogie. Using an alternative prelude is
   primarily useful if you're extending the Dafny language or changing
   how Dafny constructs are modeled. The default prelude is 
-  [here](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/DafnyPrelude.bpl).
+  [here](https://github.com/dafny-lang/dafny/blob/master/Source/DafnyCore/DafnyPrelude.bpl).
 
 ### 13.9.3. Controlling plugins {#sec-controlling-plugins}
 
@@ -2181,7 +2175,7 @@ or the Dafny 4 syntax (`ghost function` and `function`)
 * `--unicode-char` - if false, the `char` type represents any UTF-16 code unit,
   that is, any 16-bit value, including surrogate code points and
   allows `\uXXXX` escapes in string and character literals.
-  If true, `char` represnts any Unicode scalar value,
+  If true, `char` represents any Unicode scalar value,
   that is, any Unicode code point excluding surrogates and
   allows `\U{X..X}` escapes in string and character literals. 
   The default is false for Dafny version 3 and true for version 4.
@@ -2346,7 +2340,7 @@ and what information it produces about the verification process.
   by placing the attribute [`{:disable-nonlinear-arithmetic}`](#sec-disable-nonlinear-arithmetic) after the module keyword.
   The attribute optionally takes the value `false` to enable nonlinear arithmetic.
 
-* `--manual-lemma-induction` - diables automatic inducntion for lemmas
+* `--manual-lemma-induction` - disables automatic inducntion for lemmas
 
 * `--isolate-assertions` - verify assertions individually
 
@@ -2738,7 +2732,7 @@ If you have Boogie installed locally, you can run the printed Boogie file with t
 DOTNET=$(which dotnet)
 
 BOOGIE_ROOT="path/to/boogie/Source"
-BOOGIE="$BOOGIE_ROOT/BoogieDriver/bin/Debug/net6.0/BoogieDriver.dll"
+BOOGIE="$BOOGIE_ROOT/BoogieDriver/bin/Debug/net8.0/BoogieDriver.dll"
 
 if [[ ! -x "$DOTNET" ]]; then
     echo "Error: Dafny requires .NET Core to run on non-Windows systems."
@@ -2775,7 +2769,7 @@ The following options are also commonly used:
   but a large positive number reports more errors per run
 
 * `--verification-time-limit:<n>` (was `-timeLimit:<n>`) - limits 
-  the number of seconds spent trying to verify each procedure.
+  the number of seconds spent trying to verify each assertion batch.
 
 
 ### 13.9.11. Controlling test generation {#sec-controlling-test-gen}

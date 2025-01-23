@@ -11,7 +11,7 @@ public class DefaultModuleDefinition : ModuleDefinition, ICloneable<DefaultModul
   }
 
   public DefaultModuleDefinition()
-    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), ModuleKindEnum.Concrete, false,
+    : base(SourceOrigin.NoToken, new Name("_module"), new List<IOrigin>(), ModuleKindEnum.Concrete, false,
       null, null, null) {
   }
 

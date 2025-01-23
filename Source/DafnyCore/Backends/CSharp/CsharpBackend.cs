@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
@@ -90,7 +92,7 @@ public class CsharpBackend : ExecutableBackend {
 
   <PropertyGroup>
     <OutputType>{outputType}</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <NoWarn>CS8600;CS8603;CS8604;CS8605;CS8625;CS8629;CS8714;CS8765;CS8769;CS8981</NoWarn>
@@ -131,7 +133,10 @@ public class CsharpBackend : ExecutableBackend {
 
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) == ".dll") {
-        File.Copy(otherFileName, Path.Combine(dllFolder, Path.GetFileName(otherFileName)), true);
+        var destination = Path.Combine(dllFolder, Path.GetFileName(otherFileName));
+        if (Path.GetFullPath(otherFileName) != Path.GetFullPath(destination)) {
+          File.Copy(otherFileName, destination, true);
+        }
       }
     }
 

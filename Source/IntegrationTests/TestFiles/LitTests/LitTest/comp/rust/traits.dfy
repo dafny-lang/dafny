@@ -127,14 +127,45 @@ module All {
     r := Some(true);
   }
 
+  method AcceptSubtraitIntInt(t: SubTrait<int, int>) {
+  }
+
+  datatype ObjectContainer = ObjectContainer(y: Y<int>)
+
+  method ParameterBorrows(y: Y<int>, o: ObjectContainer) { // y is borrowed
+    var z: SubTrait<int, int> := y as SubTrait<int, int>;
+    var p: SuperTrait := y;
+    var y2 := o.y; // y2 is owned
+    ConsumeBorrows(y2 as SubTrait<int, int>);
+    ConsumeBorrows(y2 as SubTrait<int, int>);
+  }
+
+  method ConsumeBorrows(y: SubTrait<int, int>) {
+
+  }
+  trait TraitNoArgs {}
+  class ClassNoArgs extends TraitNoArgs {
+    var x: int
+    constructor() {
+      x := 0;
+    }
+  }
+  method ConsumeClassNoArgs(a: ClassNoArgs) {
+  }
+
   method Main() {
     var rts := Test(Some(2));
     expect rts == Some(true);
 
     var y := new Y<int>(7);
+    var yOwned := y;
     expect y.GetDFunc() == 2;
-    var z: SubTrait<int, int> := y as SubTrait<int, int>;
+    AcceptSubtraitIntInt(yOwned);
+    AcceptSubtraitIntInt(yOwned);
+    var z: SubTrait<int, int> := yOwned as SubTrait<int, int>;
+    var z2: SubTrait<int, int> := yOwned as SubTrait<int, int>;
     var w: SuperTrait := z;
+    var w2: SuperTrait := z;
     var p: SuperTrait := y;
     /*var zy := z as Y<int>;
     var wy := w as Y<int>;
@@ -158,6 +189,18 @@ module All {
     expect f == 42;
     expect y as object == w as object;
     expect y as object == p as object;
+    expect yOwned as object == w as object;
+    expect yOwned as object == p as object;
+    var a := new ClassNoArgs();
+    var aOwned := a;
+    var o: TraitNoArgs := a as TraitNoArgs;
+    expect o is ClassNoArgs;
+    ConsumeClassNoArgs(o);
+    ConsumeClassNoArgs(o);
+    var oo: object := o as object;
+    expect oo is ClassNoArgs;
+    ConsumeClassNoArgs(oo as ClassNoArgs);
+    ConsumeClassNoArgs(oo as ClassNoArgs);
     var objects := {y as object, w as object, p as object};
     expect |objects| == 1;
     var q := y as NoMemberTrait;

@@ -3,6 +3,7 @@
 # nmake that.  --KRML
 GENERATED_FROM_DAFNY=GeneratedFromDafny
 REGENERATED_FROM_DAFNY=GeneratedFromDafnyRegenerated
+DAFNY = dotnet run --project ../Dafny --no-build --roll-forward LatestMajor --
 
 all: Parser.cs
 
@@ -23,11 +24,13 @@ test: build-regenerated-from-dafny
 	rm -rf ../DafnyCore.Test/$(REGENERATED_FROM_DAFNY)
 
 format:
-	../../Scripts/dafny format .
+	$(DAFNY) format .
 
 check-format:
-	../../Scripts/dafny format . --check
+	$(DAFNY) format . --check
 
 extract:
-	(cd Prelude; make; cd ..)
-	cp Prelude/DafnyPrelude.bpl .
+	(cd Prelude; make update; cd ..)
+
+check-extract:
+	(cd Prelude; make check; cd ..)

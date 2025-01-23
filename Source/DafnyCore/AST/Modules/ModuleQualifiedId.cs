@@ -37,7 +37,7 @@ public class ModuleQualifiedId : Node, IHasReferences {
     return Path[0].Value;
   }
 
-  public IToken RootToken() {
+  public IOrigin RootToken() {
     return Path[0].StartToken;
   }
 
@@ -62,21 +62,20 @@ public class ModuleQualifiedId : Node, IHasReferences {
     }
   }
 
-  public override IToken Tok => Path.Last().Tok;
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public override RangeToken RangeToken {
-    get => new(Path.First().StartToken, Path.Last().EndToken);
-    set => throw new NotSupportedException();
+  public override IOrigin Origin {
+    get => new SourceOrigin(Path.First().StartToken, Path.Last().EndToken, Path.Last().Center);
   }
 
-  public IToken NavigationToken => Path.Last().StartToken;
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
+  public IEnumerable<Reference> GetReferences() {
     // Normally the target should already have been resolved, but in certain conditions like an unused alias module decl,
     // Decl might not be set yet so we need to resolve it here.
-    return Enumerable.Repeat(ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)), 1);
+
+    var reference = new Reference(Path.Last().StartToken, ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)));
+    return Enumerable.Repeat(reference, 1);
   }
 
   /// <summary>

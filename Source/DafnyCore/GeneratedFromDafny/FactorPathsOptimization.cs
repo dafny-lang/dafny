@@ -1,7 +1,7 @@
 // Dafny program the_program compiled into C#
 // To recompile, you will need the libraries
 //     System.Runtime.Numerics.dll System.Collections.Immutable.dll
-// but the 'dotnet' tool in net6.0 should pick those up automatically.
+// but the 'dotnet' tool in .NET should pick those up automatically.
 // Optionally, you may want to include compiler switches like
 //     /debug /nowarn:162,164,168,183,219,436,1717,1718
 
@@ -31,7 +31,7 @@ namespace FactorPathsOptimization {
         RAST._IMod _3_mod = (FactorPathsOptimization.__default.PathSimplifier(_1_pathsToRemove)).ReplaceMod(mod, SelfPath);
         RAST._IMod _4_dt__update__tmp_h0 = _3_mod;
         Dafny.ISequence<RAST._IModDecl> _5_dt__update_hbody_h0 = Dafny.Sequence<RAST._IModDecl>.Concat(_2_imports, (_3_mod).dtor_body);
-        return RAST.Mod.create_Mod((_4_dt__update__tmp_h0).dtor_name, (_4_dt__update__tmp_h0).dtor_attributes, _5_dt__update_hbody_h0);
+        return RAST.Mod.create_Mod((_4_dt__update__tmp_h0).dtor_docString, (_4_dt__update__tmp_h0).dtor_attributes, (_4_dt__update__tmp_h0).dtor_name, _5_dt__update_hbody_h0);
       }
     }
     public static __T UniqueElementOf<__T>(Dafny.ISet<__T> s) {

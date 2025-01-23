@@ -14,10 +14,12 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
-  public static readonly Option<bool> ProgressOption =
-    new("--progress", "While verifying, output information that helps track progress") {
-      IsHidden = true
-    };
+  public enum ProgressLevel { None, Symbol, VerificationJobs }
+  public static readonly Option<ProgressLevel> ProgressOption =
+    new("--progress", $"While verifying, output information that helps track progress. " +
+                      $"Use '{ProgressLevel.Symbol}' to show progress across symbols such as methods and functions. " +
+                      $"Verification of a symbol is usually split across several jobs. " +
+                      $"Use {ProgressLevel.VerificationJobs} to additionally show progress across jobs.");
 
   public static readonly Option<string> LogLocation =
     new("--log-location", "Sets the directory where to store log files") {
@@ -288,6 +290,20 @@ May slow down verification slightly, or make it more brittle.
 May produce spurious warnings.") {
     IsHidden = true
   };
+  public static readonly Option<bool> SuggestProofRefactoring = new("--suggest-proof-refactoring", @"
+(experimental) Emits suggestions for moving assertions into by-proofs and hiding unused function definitions.
+May produce spurious suggestions. Use with --show-hints on the CLI.") {
+    IsHidden = true
+  };
+  public static readonly Option<bool> AnalyzeProofs = new("--analyze-proofs", @"
+Uses data from the verifier to suggest ways to refine the proof:
+Warning if any assertions are proved based on contradictory assumptions (vacuously).
+Warning if any `requires` clause or `assume` statement was not needed to complete verification.
+Suggestions for moving assertions into by-proofs and hiding unused function definitions.
+May slow down verification slightly, or make it more brittle.
+May produce spurious warnings.
+Use the `{:contradiction}` attribute to mark any `assert` statement intended to be part of a proof by contradiction.
+");
   public static readonly Option<string> VerificationCoverageReport = new("--verification-coverage-report",
     "Emit verification coverage report to a given directory, in the same format as a test coverage report.") {
     ArgumentHelpName = "directory"
@@ -349,6 +365,10 @@ Change the default opacity of functions.
 `autoRevealDependencies` makes all functions not explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`. 
 `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.".TrimStart()) {
   };
+
+  public static readonly Option<bool> TranslateStandardLibrary = new("--translate-standard-library", () => true,
+    @"When translating Dafny code to another language, Dafny will, for now, include the standard library as if these were source files. This causes conflicts when multiple such translated projects are combined. When combining such projects, please ensure that only one of them has --translate-standard-library set to true.
+");
 
   public static readonly Option<bool> UseStandardLibraries = new("--standard-libraries", () => false,
     @"
@@ -461,6 +481,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyUi(WarnContradictoryAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnContradictoryAssumptions");
     DafnyOptions.RegisterLegacyUi(WarnRedundantAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnRedundantAssumptions");
+    DafnyOptions.RegisterLegacyUi(SuggestProofRefactoring, DafnyOptions.ParseImplicitEnable, "Verification options", "suggestProofRefactoring");
 
     void ParsePrintMode(Option<PrintModes> option, Boogie.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
@@ -512,6 +533,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (value) { options.TrackVerificationCoverage = true; }
     });
     DafnyOptions.RegisterLegacyBinding(WarnRedundantAssumptions, (options, value) => {
+      if (value) { options.TrackVerificationCoverage = true; }
+    });
+    DafnyOptions.RegisterLegacyBinding(SuggestProofRefactoring, (options, value) => {
+      if (value) { options.TrackVerificationCoverage = true; }
+    });
+    DafnyOptions.RegisterLegacyBinding(AnalyzeProofs, (options, value) => {
       if (value) { options.TrackVerificationCoverage = true; }
     });
 
@@ -587,6 +614,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterGlobalOption(AllowDeprecation, OptionCompatibility.OptionLibraryImpliesLocalWarning);
     OptionRegistry.RegisterGlobalOption(WarnShadowing, OptionCompatibility.OptionLibraryImpliesLocalWarning);
     OptionRegistry.RegisterGlobalOption(UseStandardLibraries, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterOption(TranslateStandardLibrary, OptionScope.Cli);
     OptionRegistry.RegisterOption(WarnAsErrors, OptionScope.Cli);
     OptionRegistry.RegisterOption(ProgressOption, OptionScope.Cli);
     OptionRegistry.RegisterOption(LogLocation, OptionScope.Cli);
@@ -621,6 +649,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(InternalIncludeRuntimeOptionForExecution, OptionScope.Cli);
     OptionRegistry.RegisterOption(WarnContradictoryAssumptions, OptionScope.Module);
     OptionRegistry.RegisterOption(WarnRedundantAssumptions, OptionScope.Module);
+    OptionRegistry.RegisterOption(SuggestProofRefactoring, OptionScope.Module);
+    OptionRegistry.RegisterOption(AnalyzeProofs, OptionScope.Module);
     OptionRegistry.RegisterOption(VerificationCoverageReport, OptionScope.Cli);
     OptionRegistry.RegisterOption(NoTimeStampForCoverageReport, OptionScope.Cli);
     OptionRegistry.RegisterOption(DefaultFunctionOpacity, OptionScope.Module);

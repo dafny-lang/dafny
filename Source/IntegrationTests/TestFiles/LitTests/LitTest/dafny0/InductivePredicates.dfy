@@ -259,10 +259,37 @@ module SomeCoolDisjunctionTests {
     P(x)
   }
 
-  least lemma L[ORDINAL](x: int)
-    requires P(x) || Q(x)
+  least lemma L[ORDINAL](x: int, b: bool)
+    requires (b && P(x)) || (!b && Q(x))
     ensures false  // fine
   {
+    // The following proof should not be necessary. This lemma used to verify
+    // automatically, but after a change with CanCall, it stopped verifying.
+    // The problem may be due to https://github.com/Z3Prover/z3/issues/7444.
+    // After it is fixed, we should try removing the following lines again.
+
+    // After some more changes to Dafny, this test is failing again. And again,
+    // the problem seems to be due an issue in Z3. Annoyingly, the part Z3
+    // can't figure out is in the _k.IsLimit case, which Dafny fills in automatically
+    // and gives no way for a user to interact with. By introducing an "if" statement
+    //     if (_module.__default.P_h($LS($LS($LZ)), _k#0, x#1)) {
+    //     } else {
+    //       assert _module.__default.Q_h($LS($LS($LZ)), _k#0, x#1);
+    //     }
+    // in Boogie (inside the _k.IsLimit branch), Z3 completes the proof. So, it
+    // seems the boolean that Boogie introduces for the control flow somehow helps.
+    // For this reason, the parameter "b: bool" was introduced above. Apparently,
+    // it is enough to get Z3 in a better mood to complete the proof. Once this has
+    // been fixed in Z3, this boolean parameter should be removed from this test again.
+
+    assert !_k.IsLimit;
+    if b && P#[_k](x) {
+      assert P#[_k](x) == Q#[_k - 1](x);
+      L(x, !b);
+    } else {
+      assert !b && Q#[_k](x);
+      L(x, !b);
+    }
   }
 
   least predicate Pn[nat](x: int)
