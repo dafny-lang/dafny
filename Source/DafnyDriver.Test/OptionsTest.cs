@@ -38,6 +38,16 @@ public class OptionsTest {
       Assert.False(options.Verify);
       return 0;
     });
+    await TestCliRunArgs(["--no-verify", "--sprint=-"], options => {
+      Assert.True(options.DafnyVerify);
+      Assert.False(options.Verify);
+      return 0;
+    });
+    await TestCliRunArgs(["--no-verify", "--pprint=-"], options => {
+      Assert.True(options.DafnyVerify);
+      Assert.False(options.Verify);
+      return 0;
+    });
   }
 
   private static async Task TestCliRunArgs(string[] cmdArgs, Func<DafnyOptions, int> optionsCallback) {
