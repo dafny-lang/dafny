@@ -53,7 +53,7 @@ public class QuantifiedVar : BoundVar {
   /// Some quantification contexts (such as comprehensions) will replace this with "true".
   /// </summary>
   public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, [CanBeNull] out Expression range) {
-    bvars = new List<BoundVar>();
+    bvars = [];
     range = null;
 
     foreach (var qvar in qvars) {

@@ -192,7 +192,7 @@ namespace Microsoft.Dafny.Compilers {
 
         List<string> TypeParameterList(string prefix) {
           var l = arity switch {
-            1 => new List<string> { prefix },
+            1 => [prefix],
             _ => Enumerable.Range(1, arity).Select(i => $"{prefix}{i}").ToList()
           };
           l.Add($"{prefix}Result");
@@ -424,7 +424,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private ConcreteSyntaxTree WriteTypeHeader(string kind, string name, List<TypeParameter> typeParameters, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
       wr.Write($"public {kind} {IdProtect(name)}{TypeParameters(typeParameters)}");
-      var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? new List<Type>();
+      var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? [];
       if (realSuperClasses.Any()) {
         wr.Write($" : {realSuperClasses.Comma(trait => TypeName(trait, wr, tok))}");
       }
@@ -2874,7 +2874,7 @@ namespace Microsoft.Dafny.Compilers {
       var ixVar = IdName(boundVar);
       wrLoopBody.WriteLine("var {0} = ({1}) {2};",
         ixVar, TypeName(indexType, wrLoopBody, body.Origin), intIxVar);
-      var wrArrName = EmitArrayUpdate(new List<Action<ConcreteSyntaxTree>> { wr => wr.Write(ixVar) }, body, wrLoopBody);
+      var wrArrName = EmitArrayUpdate([wr => wr.Write(ixVar)], body, wrLoopBody);
       wrArrName.Write(arrVar);
       EndStmt(wrLoopBody);
 

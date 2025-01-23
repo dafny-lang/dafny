@@ -13,7 +13,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public readonly bool IsDefault;
   public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
   public List<IOrigin> Extends; // list of exports that are extended
-  [FilledInDuringResolution] public readonly List<ModuleExportDecl> ExtendDecls = new();
+  [FilledInDuringResolution] public readonly List<ModuleExportDecl> ExtendDecls = [];
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
   public override IEnumerable<INode> Children => Exports;

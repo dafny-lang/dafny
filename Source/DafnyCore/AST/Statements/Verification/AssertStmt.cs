@@ -18,7 +18,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   public static AssertStmt CreateErrorAssert(INode node, string message, Expression guard = null) {
     var errorMessage = new StringLiteralExpr(node.Origin, message, true);
     errorMessage.Type = new SeqType(Type.Char);
-    var attr = new Attributes("error", new List<Expression> { errorMessage }, null);
+    var attr = new Attributes("error", [errorMessage], null);
     guard ??= Expression.CreateBoolLiteral(node.Origin, false);
     var assertFalse = new AssertStmt(node.Origin, guard, null, attr);
     assertFalse.IsGhost = true;

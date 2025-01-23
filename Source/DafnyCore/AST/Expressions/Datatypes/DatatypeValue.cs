@@ -13,8 +13,8 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
   public override IEnumerable<INode> Children => new Node[] { Bindings };
 
   [FilledInDuringResolution] public DatatypeCtor Ctor;
-  [FilledInDuringResolution] public List<Type> InferredTypeArgs = new List<Type>();
-  [FilledInDuringResolution] public List<PreType> InferredPreTypeArgs = new List<PreType>();
+  [FilledInDuringResolution] public List<Type> InferredTypeArgs = [];
+  [FilledInDuringResolution] public List<PreType> InferredPreTypeArgs = [];
   [FilledInDuringResolution] public bool IsCoCall;
   [ContractInvariantMethod]
   void ObjectInvariant() {

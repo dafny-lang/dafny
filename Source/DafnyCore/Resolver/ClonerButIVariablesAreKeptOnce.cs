@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny;
 
 class ClonerButIVariablesAreKeptOnce : ClonerKeepParensExpressions {
-  private readonly HashSet<IVariable> alreadyCloned = new();
+  private readonly HashSet<IVariable> alreadyCloned = [];
 
   private VT CloneIVariableHelper<VT>(VT local, Func<VT, VT> returnMethod) where VT : IVariable {
     if (!alreadyCloned.Contains(local)) {

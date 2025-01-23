@@ -26,7 +26,7 @@ public class CasePattern<VT> : NodeWithComputedRange
   [FilledInDuringResolution] public Expression Expr;  // an r-value version of the CasePattern;
 
   public void MakeAConstructor() {
-    this.Arguments = new List<CasePattern<VT>>();
+    this.Arguments = [];
   }
 
   public CasePattern(Cloner cloner, CasePattern<VT> original) : base(cloner, original) {
@@ -75,7 +75,7 @@ public class CasePattern<VT> : NodeWithComputedRange
       this.Expr = new IdentifierExpr(this.Origin, this.Var);
     } else {
       var dtValue = new DatatypeValue(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Id,
-        this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr));
+        this.Arguments == null ? [] : this.Arguments.ConvertAll(arg => arg.Expr));
       dtValue.Ctor = this.Ctor;  // resolve here
       dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
       dtValue.Type = new UserDefinedType(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
@@ -96,7 +96,7 @@ public class CasePattern<VT> : NodeWithComputedRange
       };
     } else {
       var dtValue = new DatatypeValue(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Id,
-        this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr)) {
+        this.Arguments == null ? [] : this.Arguments.ConvertAll(arg => arg.Expr)) {
         Ctor = this.Ctor,
         PreType = new DPreType(this.Ctor.EnclosingDatatype, dtvPreTypeArgs)
       };
