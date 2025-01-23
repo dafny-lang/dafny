@@ -4068,6 +4068,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     {
       s := "#![allow(warnings, unconditional_panic)]\n";
       s := s + "#![allow(nonstandard_style)]\n";
+      s := s + "#![cfg_attr(any(), rustfmt::skip)]\n"; // Because Rustfmt crashes on some generated files
 
       var externUseDecls := [];
 
