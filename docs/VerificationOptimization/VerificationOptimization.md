@@ -627,7 +627,7 @@ verifies slower than
     }
 ```
 This is because the well-formedness of `&& b` adds an extra proof obligation, which is empty in this case but not trimmed, so there is an extra `if (a) {}` in the encoding.
-Therefore, for verification performance, the nested ifs _could_ verify faster, and we have witnessed one case where it does. For other codes, this difference in translation might trigger butterfly effects and uncover brittleness.
+Therefore, for verification performance, the nested ifs _could_ verify faster, and we have witnessed one case where it does. In other cases, this difference in translation might trigger butterfly effects and uncover brittleness.
 
 # Summary
 
