@@ -20,6 +20,57 @@ mod tests {
         assert_eq!(x.to_i128().unwrap(), truncate!(x.clone(), i128));
     }
 
+    #[cfg(feature = "sync")]
+    #[test]
+    fn test_sequence_sync() {
+        // We are going to create 2 sequences of length 5, a and b.
+        // From these two, we create 2 new sequences a + b and b + a
+        // Two threads will transform the first a + b to a vec while two more threads will transform the second one to a vec
+        // At the end, everything should work fine, the sequences of each pair of thread should be equal
+        // and there should have been no run-time issue.
+        // We are going to repeat this 100 times
+        let a: Sequence<i32> = seq![0, 1, 2, 3, 4];
+        let b: Sequence<i32> = seq![5, 6, 7, 8, 9];
+        for _ in 0..100 {
+            let a_copy_1 = a.clone();
+            let b_copy_1 = b.clone();
+            let a_copy_2 = a.clone();
+            let b_copy_2 = b.clone();
+            let a_copy_3 = a.clone();
+            let b_copy_3 = b.clone();
+            let a_copy_4 = a.clone();
+            let b_copy_4 = b.clone();
+            let handle_ab = std::thread::spawn(move || {
+                let a_plus_b = a_copy_1.concat(&b_copy_1);
+                let a_plus_b_vec = a_plus_b.to_array();
+                a_plus_b_vec
+            });
+            let handle_ba = std::thread::spawn(move || {
+                let b_plus_a = b_copy_2.concat(&a_copy_2);
+                let b_plus_a_vec = b_plus_a.to_array();
+                b_plus_a_vec
+            });
+            let handle_ab_2 = std::thread::spawn(move || {
+                let a_plus_b = a_copy_3.concat(&b_copy_3);
+                let a_plus_b_vec = a_plus_b.to_array();
+                a_plus_b_vec
+            });
+            let handle_ba_2 = std::thread::spawn(move || {
+                let b_plus_a = b_copy_4.concat(&a_copy_4);
+                let b_plus_a_vec = b_plus_a.to_array();
+                b_plus_a_vec
+            });
+            // Now let's join on all these threads
+            let a_plus_b_vec = handle_ab.join().unwrap();
+            let b_plus_a_vec = handle_ba.join().unwrap();
+            let a_plus_b_vec_2 = handle_ab_2.join().unwrap();
+            let b_plus_a_vec_2 = handle_ba_2.join().unwrap();
+            // Let's test equalities
+            assert_eq!(a_plus_b_vec, a_plus_b_vec_2);
+            assert_eq!(b_plus_a_vec, b_plus_a_vec_2);
+        }
+    }
+
     #[test]
     fn test_sequence() {
         let values = vec![1, 2, 3];
@@ -42,7 +93,10 @@ mod tests {
                 ..
             } => {
                 assert_eq!(*length, 6);
-                assert_eq!(unsafe { &*left.get() }.cardinality_usize(), 3);
+                #[cfg(not(feature = "sync"))]
+                assert_eq!(left.as_ref().borrow().cardinality_usize(), 3);
+                #[cfg(feature = "sync")]
+                assert_eq!(left.as_ref().lock().unwrap().cardinality_usize(), 3);
                 // Test that boxed is None
                 #[cfg(not(feature = "sync"))]
                 assert!(boxed.as_ref().clone().borrow().as_ref().is_none());
@@ -317,7 +371,6 @@ mod tests {
         array::update_usize(v2, 1, 10);
         assert_eq!(array::get_usize(v2, 1), 10);
 
-
         let v3 = array::initialize(&int!(3), Rc::new(|i| i.clone() + int!(1)));
         assert_eq!(array::length_usize(v3), 3);
         assert_eq!(array::get_usize(v3, 0), int!(1));
@@ -344,10 +397,14 @@ mod tests {
         assert_eq!(read!(p).length1_usize(), 4);
         let v = read!(p).to_vec();
         assert_eq!(v.len(), 3);
-        assert_eq!(v, vec![
-            vec![int!(0), int!(1), int!(2), int!(3)],
-              vec![int!(1), int!(2), int!(3), int!(4)],
-              vec![int!(2), int!(3), int!(4), int!(5)]]);
+        assert_eq!(
+            v,
+            vec![
+                vec![int!(0), int!(1), int!(2), int!(3)],
+                vec![int!(1), int!(2), int!(3), int!(4)],
+                vec![int!(2), int!(3), int!(4), int!(5)]
+            ]
+        );
 
         deallocate(p);
         // Allocate an array whose first dimension is zero
@@ -418,7 +475,7 @@ mod tests {
             update_field_mut_uninit!(this, x, x_assigned, int!(2));
             update_field_mut_uninit!(this, x, x_assigned, int!(1));
             // If we can prove that x is assigned, we can even write this
-            modify_field!(read!(this).x,int!(0));
+            modify_field!(read!(this).x, int!(0));
             update_field_nodrop!(this, constant, int!(42));
             update_field_mut_if_uninit!(this, x, x_assigned, int!(0));
             assert_eq!(x_assigned, true);
@@ -438,21 +495,26 @@ mod tests {
             update_field_mut_uninit_object!(this, x, x_assigned, int!(2));
             update_field_mut_uninit_object!(this, x, x_assigned, int!(1));
             // If we can prove that x is assigned, we can even write this
-            modify_field!(rd!(this).x,int!(0));
+            modify_field!(rd!(this).x, int!(0));
             update_field_nodrop_object!(this, constant, int!(42));
             update_field_mut_if_uninit_object!(this, x, x_assigned, int!(0));
             assert_eq!(x_assigned, true);
             let mut next_assigned = true;
-            update_field_if_uninit_object!(this, next, next_assigned, Ptr::from_raw_nonnull(this.as_mut()));
+            update_field_if_uninit_object!(
+                this,
+                next,
+                next_assigned,
+                Ptr::from_raw_nonnull(this.as_mut())
+            );
             assert_eq!(next_assigned, true);
             this
         }
     }
 
-    impl <T: DafnyType> Upcast<crate::DynAny> for ClassWrapper<T> {
+    impl<T: DafnyType> Upcast<crate::DynAny> for ClassWrapper<T> {
         UpcastFn!(crate::DynAny);
     }
-    impl <T: DafnyType> UpcastObject<crate::DynAny> for ClassWrapper<T> {
+    impl<T: DafnyType> UpcastObject<crate::DynAny> for ClassWrapper<T> {
         UpcastObjectFn!(crate::DynAny);
     }
 
@@ -467,16 +529,15 @@ mod tests {
         assert_eq!(read!(c).constant_plus_x(), int!(42));
         modify!(c).increment_x();
         assert_eq!(read!(c).constant_plus_x(), int!(43));
-        modify_field!(read!(c).x,int!(40));
+        modify_field!(read!(c).x, int!(40));
         assert_eq!(read!(c).constant_plus_x(), int!(82));
-        modify_field!(read!(c).t,54);
+        modify_field!(read!(c).t, 54);
         assert_eq!(read_field!(read!(c).t), 54);
         let x_copy = read_field!(read!(c).x);
         assert_eq!(Rc::strong_count(&x_copy.data), 2);
         deallocate(c);
         assert_eq!(Rc::strong_count(&x_copy.data), 1);
     }
-
 
     #[test]
     #[allow(unused_unsafe)]
@@ -490,10 +551,10 @@ mod tests {
         md!(c).increment_x();
         assert_eq!(rd!(c).constant_plus_x(), int!(43));
         if true {
-          modify_field!(rd!(c).x,int!(40))
+            modify_field!(rd!(c).x, int!(40))
         }
         assert_eq!(rd!(c).constant_plus_x(), int!(82));
-        modify_field!(rd!(c).t,54);
+        modify_field!(rd!(c).t, 54);
         assert_eq!(read_field!(rd!(c).t), 54);
     }
 
@@ -558,16 +619,27 @@ mod tests {
         let a: Ptr<crate::DynAny> = Upcast::<crate::DynAny>::upcast(read!(o));
         assert_eq!(cast!(a, ClassWrapper<i32>), o);
         let seq_o = seq![o];
-        let seq_a = Sequence::<Ptr<ClassWrapper<i32>>>::coerce(upcast::<ClassWrapper<i32>, crate::DynAny>())(seq_o);
+        let seq_a = Sequence::<Ptr<ClassWrapper<i32>>>::coerce(upcast::<
+            ClassWrapper<i32>,
+            crate::DynAny,
+        >())(seq_o);
         assert_eq!(cast!(seq_a.get_usize(0), ClassWrapper<i32>), o);
         let set_o = set! {o};
-        let set_a = Set::<Ptr<ClassWrapper<i32>>>::coerce(upcast::<ClassWrapper<i32>, crate::DynAny>())(set_o);
+        let set_a = Set::<Ptr<ClassWrapper<i32>>>::coerce(
+            upcast::<ClassWrapper<i32>, crate::DynAny>(),
+        )(set_o);
         assert_eq!(cast!(set_a.peek(), ClassWrapper<i32>), o);
         let multiset_o = multiset! {o, o};
-        let multiset_a = Multiset::<Ptr<ClassWrapper<i32>>>::coerce(upcast::<ClassWrapper<i32>, crate::DynAny>())(multiset_o);
+        let multiset_a = Multiset::<Ptr<ClassWrapper<i32>>>::coerce(upcast::<
+            ClassWrapper<i32>,
+            crate::DynAny,
+        >())(multiset_o);
         assert_eq!(cast!(multiset_a.peek(), ClassWrapper<i32>), o);
         let map_o = map![1 => o, 2 => o];
-        let map_a = Map::<i32, Ptr<ClassWrapper<i32>>>::coerce(upcast::<ClassWrapper<i32>, crate::DynAny>())(map_o);
+        let map_a = Map::<i32, Ptr<ClassWrapper<i32>>>::coerce(upcast::<
+            ClassWrapper<i32>,
+            crate::DynAny,
+        >())(map_o);
         assert_eq!(cast!(map_a.get(&1), ClassWrapper<i32>), o);
         deallocate(o);
     }
@@ -600,9 +672,9 @@ mod tests {
 
     #[test]
     fn test_function_wrappers() {
-        #[cfg(feature="sync")]
+        #[cfg(feature = "sync")]
         let f: Rc<dyn Fn(i32) -> i32 + Send + Sync> = Rc::new(|i: i32| i + 1);
-        #[cfg(not(feature="sync"))]
+        #[cfg(not(feature = "sync"))]
         let f: Rc<dyn Fn(i32) -> i32> = Rc::new(|i: i32| i + 1);
         let g = f.clone();
         let _h = seq![g];
@@ -695,20 +767,19 @@ mod tests {
             .any(Rc::new(|i: u32| i % 2 == 0).as_ref()));
         let count = Rc::new(RefCell::new(0));
         let count_inner = count.clone();
-        multiset!{1, 1, 5, 7, 8}
-            .iter().for_each(move |_i: u32| {
-                #[cfg(not(feature = "sync"))]
-                {
-                    let c: i32 = *count_inner.as_ref().borrow();
-                    *count_inner.borrow_mut() = c + 1;
-                }
-                #[cfg(feature = "sync")]
-                {
-                    let mut guard = count_inner.as_ref().lock().unwrap();
-                    let c: i32 = *guard;
-                    *guard = c + 1;
-                }
-             });
+        multiset! {1, 1, 5, 7, 8}.iter().for_each(move |_i: u32| {
+            #[cfg(not(feature = "sync"))]
+            {
+                let c: i32 = *count_inner.as_ref().borrow();
+                *count_inner.borrow_mut() = c + 1;
+            }
+            #[cfg(feature = "sync")]
+            {
+                let mut guard = count_inner.as_ref().lock().unwrap();
+                let c: i32 = *guard;
+                *guard = c + 1;
+            }
+        });
         #[cfg(not(feature = "sync"))]
         assert_eq!(*count.as_ref().borrow(), 5);
         #[cfg(feature = "sync")]
@@ -769,11 +840,9 @@ mod tests {
         assert_eq!(sum, 55);
     }
 
-    trait SuperTrait: Upcast<crate::DynAny> + UpcastObject<crate::DynAny> {
-    }
+    trait SuperTrait: Upcast<crate::DynAny> + UpcastObject<crate::DynAny> {}
 
-    trait NodeRcMutTrait: SuperTrait + Upcast<dyn SuperTrait> + UpcastObject<dyn SuperTrait>{
-    }
+    trait NodeRcMutTrait: SuperTrait + Upcast<dyn SuperTrait> + UpcastObject<dyn SuperTrait> {}
 
     pub struct NodeRcMut {
         val: DafnyInt,
@@ -831,13 +900,16 @@ mod tests {
         assert_eq!(rd!(a3).val, int!(42));
 
         // Other way to create objects
-        let direct: Object<NodeRcMut> = Object::<NodeRcMut>::new(NodeRcMut {val: int!(1), next: Object::<NodeRcMut>::null()});
+        let direct: Object<NodeRcMut> = Object::<NodeRcMut>::new(NodeRcMut {
+            val: int!(1),
+            next: Object::<NodeRcMut>::null(),
+        });
         assert_eq!(rd!(direct).val, int!(1));
         let tail: Object<NodeRcMut> = Object::<NodeRcMut>::null();
         assert_eq!(tail, rd!(direct).next);
         assert!(tail.is_null());
         assert!(!direct.is_null());
-        
+
         let a: Object<[i32]> = rcmut::array_object_from_rc(Rc::new([42, 43, 44]));
         assert_eq!(rd!(a).len(), 3);
         assert_eq!(rd!(a)[0], 42);
@@ -855,7 +927,8 @@ mod tests {
         }
         assert_eq!(refcount!(x), previous_count);
 
-        let objects: Set<Object<crate::DynAny>> = crate::set!{y.clone(), cast_any_object!(x.clone())};
+        let objects: Set<Object<crate::DynAny>> =
+            crate::set! {y.clone(), cast_any_object!(x.clone())};
         assert_eq!(objects.cardinality_usize(), 1);
         test_dafny_type(a.clone());
     }
@@ -871,8 +944,18 @@ mod tests {
         }
     }
     impl NodeRcMutTrait for NodeRawMut {}
-    UpcastDefObject!(NodeRawMut, dyn NodeRcMutTrait, dyn SuperTrait, crate::DynAny);
-    UpcastDef!(NodeRawMut, dyn NodeRcMutTrait, dyn SuperTrait, crate::DynAny);
+    UpcastDefObject!(
+        NodeRawMut,
+        dyn NodeRcMutTrait,
+        dyn SuperTrait,
+        crate::DynAny
+    );
+    UpcastDef!(
+        NodeRawMut,
+        dyn NodeRcMutTrait,
+        dyn SuperTrait,
+        crate::DynAny
+    );
 
     impl SuperTrait for NodeRawMut {}
 
@@ -917,11 +1000,9 @@ mod tests {
     }
 
     // Tests that we can compose Dafny types, like a sequence of maps
-    fn _test<X: DafnyTypeEq, Y: DafnyType>(_input: Sequence<Map<X, Y>>) {
-    }
+    fn _test<X: DafnyTypeEq, Y: DafnyType>(_input: Sequence<Map<X, Y>>) {}
     // Tests that the input type is a DafnyType
-    fn test_dafny_type<X: DafnyType>(_input: X) {
-    }
+    fn test_dafny_type<X: DafnyType>(_input: X) {}
 
     #[derive(Clone)]
     pub struct InternalOpaqueError {
@@ -932,7 +1013,9 @@ mod tests {
 
     #[test]
     fn test_native_string_upcast() {
-        let s = InternalOpaqueError { message: "Hello, World!".to_string() };
+        let s = InternalOpaqueError {
+            message: "Hello, World!".to_string(),
+        };
         let o: Object<InternalOpaqueError> = Object::new(s);
         let n: Object<crate::DynAny> = upcast_object::<InternalOpaqueError, crate::DynAny>()(o);
         let x = cast_object!(n, InternalOpaqueError);
@@ -944,7 +1027,8 @@ mod tests {
     fn test_native_string_upcast_raw() {
         let message = "Hello, World!".to_string();
         let object = Object::new(message.clone());
-        let object_any: Object<crate::DynAny> = UpcastObject::<crate::DynAny>::upcast(object.as_ref());
+        let object_any: Object<crate::DynAny> =
+            UpcastObject::<crate::DynAny>::upcast(object.as_ref());
         let resulting_message = format!("{:?}", object_any);
         assert_eq!(resulting_message, message);
     }
@@ -957,12 +1041,12 @@ mod tests {
         fn _is_Datatype(&self) -> bool;
         fn _as_Datatype(&self) -> ADatatype;
     }
-    impl <T> Clone for Box<dyn GeneralTraitSuper<T>> {
+    impl<T> Clone for Box<dyn GeneralTraitSuper<T>> {
         fn clone(&self) -> Self {
             GeneralTraitSuper::_clone(self.as_ref())
         }
     }
-    impl <T> DafnyPrint for Box<dyn GeneralTraitSuper<T>> {
+    impl<T> DafnyPrint for Box<dyn GeneralTraitSuper<T>> {
         fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
             write!(f, "GeneralTraitSuper")
         }
@@ -988,7 +1072,9 @@ mod tests {
     }
 
     #[derive(Clone, PartialEq, Debug)]
-    struct ADatatype{i: i32}
+    struct ADatatype {
+        i: i32,
+    }
     impl GeneralTrait for ADatatype {
         fn _clone(&self) -> Box<dyn GeneralTrait> {
             Box::new(self.clone()) as Box<dyn GeneralTrait>
@@ -998,19 +1084,19 @@ mod tests {
         fn _clone(&self) -> Box<dyn GeneralTraitSuper<i32>> {
             Box::new(self.clone())
         }
-        
+
         fn _is_GeneralTrait(&self) -> bool {
             true
         }
-        
+
         fn _as_GeneralTrait(&self) -> Box<dyn GeneralTrait> {
             GeneralTrait::_clone(self)
         }
-        
+
         fn _is_Datatype(&self) -> bool {
             true
         }
-        
+
         fn _as_Datatype(&self) -> ADatatype {
             self.clone()
         }
@@ -1027,7 +1113,7 @@ mod tests {
     }
     #[test]
     fn test_general_traits() {
-        let x = ADatatype{i: 3};
+        let x = ADatatype { i: 3 };
         let gt = upcast_box::<ADatatype, dyn GeneralTrait>()(x.clone());
         let gts = upcast_box::<ADatatype, dyn GeneralTraitSuper<i32>>()(x.clone());
         let gtgts = upcast_box_box::<dyn GeneralTrait, dyn GeneralTraitSuper<i32>>()(gt.clone());
@@ -1063,6 +1149,4 @@ mod tests {
             Box::new(self.as_ref().clone())
         }
     }*/
-
-
 }
