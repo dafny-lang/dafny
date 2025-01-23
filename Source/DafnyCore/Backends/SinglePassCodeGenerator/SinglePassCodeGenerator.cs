@@ -218,15 +218,15 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
     protected virtual bool InstanceMethodsAllowedToCallTraitMethods => true;
-    protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl cls, ConcreteSyntaxTree wr) {
-      return CreateClass(moduleName, name, false, null, cls.TypeArgs,
+    protected IClassWriter CreateClass(string moduleName, TopLevelDecl cls, ConcreteSyntaxTree wr) {
+      return CreateClass(moduleName, false, null, cls.TypeArgs,
         cls, (cls as TopLevelDeclWithMembers)?.ParentTypeInformation.UniqueParentTraits(), null, wr);
     }
 
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
+    protected abstract IClassWriter CreateClass(string moduleName, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr);
 
     /// <summary>
@@ -1606,7 +1606,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
       var wr = CreateModule(module, module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, module.Attributes, programNode);
-      var v = new CheckHasNoAssumes_Visitor(this, wr);
+      var v = new CheckHasNoAssumesVisitor(this, wr);
       foreach (TopLevelDecl d in module.TopLevelDecls) {
         if (!ProgramResolver.ShouldCompile(d)) {
           continue;
@@ -1685,7 +1685,6 @@ namespace Microsoft.Dafny.Compilers {
 
           if (include) {
             var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
-              IdName(defaultClassDecl),
               classIsExtern, defaultClassDecl.FullName,
               defaultClassDecl.TypeArgs, defaultClassDecl,
               defaultClassDecl.ParentTypeInformation.UniqueParentTraits(), defaultClassDecl.Origin, wr);
@@ -1700,7 +1699,7 @@ namespace Microsoft.Dafny.Compilers {
           var (classIsExtern, include) = GetIsExternAndIncluded(cl);
 
           if (include) {
-            var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl),
+            var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
               classIsExtern, cl.FullName,
               cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.Origin, wr);
             CompileClassMembers(program, cl, cw);
@@ -2152,7 +2151,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(thisContext == null);
 
       var errorWr = classWriter.ErrorWriter();
-      var v = new CheckHasNoAssumes_Visitor(this, errorWr);
+      var v = new CheckHasNoAssumesVisitor(this, errorWr);
 
       var inheritedMembers = c.InheritedMembers;
       OrderedBySCC(inheritedMembers, c);
@@ -3264,10 +3263,10 @@ namespace Microsoft.Dafny.Compilers {
 
     // ----- Stmt ---------------------------------------------------------------------------------
 
-    public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
+    public class CheckHasNoAssumesVisitor : BottomUpVisitor {
       readonly SinglePassCodeGenerator codeGenerator;
       ConcreteSyntaxTree wr;
-      public CheckHasNoAssumes_Visitor(SinglePassCodeGenerator c, ConcreteSyntaxTree wr) {
+      public CheckHasNoAssumesVisitor(SinglePassCodeGenerator c, ConcreteSyntaxTree wr) {
         Contract.Requires(c != null);
         codeGenerator = c;
         this.wr = wr;

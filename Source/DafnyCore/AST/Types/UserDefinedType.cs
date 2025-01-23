@@ -165,7 +165,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     this.TypeArgs = typeArgs;
     if (namePath == null) {
       var ns = new NameSegment(origin, name, typeArgs.Count == 0 ? null : typeArgs);
-      var r = new Resolver_IdentifierExpr(origin, cd, typeArgs);
+      var r = new ResolverIdentifierExpr(origin, cd, typeArgs);
       ns.ResolvedExpression = r;
       ns.Type = r.Type;
       this.NamePath = ns;
@@ -218,7 +218,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     this.TypeArgs = new List<Type>();
     this.ResolvedClass = tp;
     var ns = new NameSegment(origin, tp.Name, null);
-    var r = new Resolver_IdentifierExpr(origin, tp);
+    var r = new ResolverIdentifierExpr(origin, tp);
     ns.ResolvedExpression = r;
     ns.Type = r.Type;
     this.NamePath = ns;

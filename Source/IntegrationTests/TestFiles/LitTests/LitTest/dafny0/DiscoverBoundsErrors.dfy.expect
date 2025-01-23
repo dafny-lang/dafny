@@ -4,7 +4,7 @@ DiscoverBoundsErrors.dfy(13,7): Error: quantifiers in non-ghost contexts must be
 DiscoverBoundsErrors.dfy(31,2): Error: forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
 DiscoverBoundsErrors.dfy(34,2): Error: forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
 DiscoverBoundsErrors.dfy(52,2): Error: forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'k'
-DiscoverBoundsErrors.dfy(96,44): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+DiscoverBoundsErrors.dfy(96,51): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 DiscoverBoundsErrors.dfy(104,8): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
 DiscoverBoundsErrors.dfy(105,8): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
 DiscoverBoundsErrors.dfy(106,8): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'

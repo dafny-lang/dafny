@@ -1564,22 +1564,6 @@ namespace Microsoft.Dafny {
       return (olderParameterCount, olderCondition);
     }
 
-    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran, bool strict = false) {
-      Contract.Requires(f != null);
-      Contract.Requires(etran != null);
-      Contract.Requires(VisibleInScope(f));
-      if (InVerificationScope(f)) {
-        if (strict) {
-          return Bpl.Expr.Lt(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
-        } else {
-          return Bpl.Expr.Le(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
-        }
-      } else {
-        return Bpl.Expr.True;
-      }
-    }
-
-
     Bpl.Type TrReceiverType(MemberDecl f) {
       Contract.Requires(f != null);
       return TrType(ModuleResolver.GetReceiverType(f.Origin, f));
@@ -2444,13 +2428,6 @@ namespace Microsoft.Dafny {
       } else {
         builder.Add(Assert(tok, Bpl.Expr.Neq(etran.TrExpr(e), Predef.Null),
           new NonNull("target object", e), builder.Context, kv));
-      }
-    }
-
-    void CheckFunctionSelectWF(string what, BoogieStmtListBuilder builder, ExpressionTranslator etran, Expression e, string hint) {
-      if (e is MemberSelectExpr sel && sel.Member is Function fn) {
-        Bpl.Expr assertion = !InVerificationScope(fn) ? Bpl.Expr.True : Bpl.Expr.Not(etran.HeightContext(fn));
-        builder.Add(Assert(GetToken(e), assertion, new ValidInRecursion(what, hint), builder.Context));
       }
     }
 

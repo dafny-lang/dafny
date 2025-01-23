@@ -478,7 +478,7 @@ namespace DafnyTestGeneration {
           return null;
         }
         switch (expr) {
-          case ImplicitThisExpr_ConstructorCall:
+          case ImplicitThisExprConstructorCall:
             isValidExpression = false;
             return base.CloneExpr(expr);
           case ThisExpr:
