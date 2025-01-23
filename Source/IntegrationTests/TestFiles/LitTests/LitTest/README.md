@@ -68,6 +68,14 @@ will be flagged by CI, and should be fixed by either converting it to use
 to flag it as intentionally inconsistent,
 for tests of backend-specific externs for example.
 
+If a platform is not supported, please use the following command:
+
+```
+// UNSUPPORTED: windows, macosx
+```
+
+You can specify one or multiple platforms separated by a comma among `windows`, `posix`, `macosx`
+
 ## Executing Tests from JetBrains Rider
 
 You will likely find it more convenient to run tests from an IDE such as

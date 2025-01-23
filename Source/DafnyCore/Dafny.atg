@@ -2391,18 +2391,15 @@ AssignStatement<out Statement/*!*/ s>
        s = new AssignSuchThatStmt(rangeToken, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionRhs != null) {
        s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss);
-       if (proof != null) {
-         s = new BlockByProofStmt(rangeToken, proof, s);
-       }
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
        } else {
          s = new AssignStatement(rangeToken, lhss, rhss);
-         if (proof != null) {
-           s = new BlockByProofStmt(rangeToken, proof, s);
-         }
        }
+     }
+     if (proof != null) {
+       s = new BlockByProofStmt(rangeToken, proof, s);
      }
   .)
   .
