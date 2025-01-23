@@ -430,15 +430,12 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    private class PreTypeInferenceModuleState {
-      public readonly ISet<Declaration> StillNeedsPreTypeSignature;
+    private class PreTypeInferenceModuleState(
+      List<Declaration> declarations,
+      Dictionary<string, TopLevelDecl> preTypeBuiltins) {
+      public readonly ISet<Declaration> StillNeedsPreTypeSignature = new HashSet<Declaration>(declarations);
       public readonly Stack<Declaration> InFirstPhase = new Stack<Declaration>();
-      public readonly Dictionary<string, TopLevelDecl> PreTypeBuiltins;
-
-      public PreTypeInferenceModuleState(List<Declaration> declarations, Dictionary<string, TopLevelDecl> preTypeBuiltins) {
-        StillNeedsPreTypeSignature = new HashSet<Declaration>(declarations);
-        PreTypeBuiltins = preTypeBuiltins;
-      }
+      public readonly Dictionary<string, TopLevelDecl> PreTypeBuiltins = preTypeBuiltins;
     }
 
     private readonly PreTypeInferenceModuleState preTypeInferenceModuleState;
@@ -1655,13 +1652,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    class PreTypeSanityChecker : BottomUpVisitor {
-      private PreTypeResolver preTypeResolver;
-
-      public PreTypeSanityChecker(PreTypeResolver preTypeResolver) {
-        this.preTypeResolver = preTypeResolver;
-      }
-
+    class PreTypeSanityChecker(PreTypeResolver preTypeResolver) : BottomUpVisitor {
       protected override void VisitOneExpr(Expression expr) {
         // compare expr.PreType and expr.Type
         if (expr.PreType == null) {

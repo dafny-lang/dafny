@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
-  public class CodeActionTest : ClientBasedLanguageServerTest {
+  public class CodeActionTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
     private async Task<List<CommandOrCodeAction>> RequestCodeActionAsync(TextDocumentItem documentItem, Range range) {
       var completionList = await client.RequestCodeAction(
         new CodeActionParams {
@@ -444,9 +444,6 @@ function Foo(i: int): int
         Assert.True(found,
           $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
       }
-    }
-
-    public CodeActionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

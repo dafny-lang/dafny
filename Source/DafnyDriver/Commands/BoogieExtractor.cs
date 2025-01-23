@@ -16,12 +16,8 @@ using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Compilers {
-  public class ExtractorError : Exception {
-    public readonly IToken Tok;
-    public ExtractorError(IToken tok, string message)
-      : base(message) {
-      Tok = tok;
-    }
+  public class ExtractorError(IToken tok, string message) : Exception(message) {
+    public readonly IToken Tok = tok;
   }
 
   public class BoogieExtractor : ASTVisitor<IASTVisitorContext> {

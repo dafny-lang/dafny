@@ -466,12 +466,8 @@ namespace Microsoft.Dafny {
   /// Used for assigning a pre-type to MemberSelect expressions, such as "obj.method",
   /// which is not considered an expression. This indicates that resolution has occurred,
   /// even though the pre-type itself is not useful.
-  public class MethodPreType : PreTypePlaceholder {
-    public readonly string Why;
-
-    public MethodPreType(string why) {
-      Why = why;
-    }
+  public class MethodPreType(string why) : PreTypePlaceholder {
+    public readonly string Why = why;
 
     public override string ToString() {
       return $"(unused -- {Why})";

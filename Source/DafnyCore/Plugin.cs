@@ -32,13 +32,7 @@ record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
     return [];
   }
 
-  class ErrorRewriter : IRewriter {
-    private readonly ErrorPlugin errorPlugin;
-
-    public ErrorRewriter(ErrorReporter reporter, ErrorPlugin errorPlugin) : base(reporter) {
-      this.errorPlugin = errorPlugin;
-    }
-
+  class ErrorRewriter(ErrorReporter reporter, ErrorPlugin errorPlugin) : IRewriter(reporter) {
     internal override void PreResolve(Program program) {
       program.Reporter.Error(MessageSource.Resolver, Token.NoToken, $"Error while instantiating plugin '{errorPlugin.AssemblyAndArgument}':\n{errorPlugin.Exception}");
       base.PreResolve(program);
@@ -46,12 +40,8 @@ record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
   }
 }
 
-public class ConfiguredPlugin : Plugin {
-  public PluginConfiguration Configuration { get; }
-
-  public ConfiguredPlugin(PluginConfiguration configuration) {
-    Configuration = configuration;
-  }
+public class ConfiguredPlugin(PluginConfiguration configuration) : Plugin {
+  public PluginConfiguration Configuration { get; } = configuration;
 
   public IEnumerable<IExecutableBackend> GetCompilers(DafnyOptions options) {
     return Configuration.GetCompilers(options);
@@ -74,10 +64,7 @@ public class ConfiguredPlugin : Plugin {
 /// This class wraps an assembly and an extracted configuration from this assembly,
 /// The configuration provides the methods to parse command-line arguments and obtain Rewriters 
 /// </summary>
-public class AssemblyPlugin : ConfiguredPlugin {
-  public AssemblyPlugin(Assembly assembly, string[] args) : base(LoadConfiguration(assembly, args)) {
-  }
-
+public class AssemblyPlugin(Assembly assembly, string[] args) : ConfiguredPlugin(LoadConfiguration(assembly, args)) {
   public static Plugin Load(string pluginPath, string[] args) {
     return new AssemblyPlugin(Assembly.LoadFrom(pluginPath), args);
   }

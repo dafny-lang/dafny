@@ -6,15 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols;
 
-internal class SymbolDeclarationResolver {
-  private readonly ILogger logger;
-  private readonly CancellationToken cancellationToken;
-
-  public SymbolDeclarationResolver(ILogger logger, CancellationToken cancellationToken) {
-    this.logger = logger;
-    this.cancellationToken = cancellationToken;
-  }
-
+internal class SymbolDeclarationResolver(ILogger logger, CancellationToken cancellationToken) {
   public CompilationUnit ProcessProgram(Uri entryDocument, Dafny.Program program) {
     var compilationUnit = new CompilationUnit(entryDocument, program);
     // program.CompileModules would probably more suitable here, since we want the symbols of the System module as well.

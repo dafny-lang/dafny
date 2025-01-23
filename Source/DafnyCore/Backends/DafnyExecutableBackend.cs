@@ -6,7 +6,7 @@ using Dafny;
 
 namespace Microsoft.Dafny.Compilers;
 
-public abstract class DafnyExecutableBackend : ExecutableBackend {
+public abstract class DafnyExecutableBackend(DafnyOptions options) : ExecutableBackend(options) {
 
   protected virtual bool PreventShadowing => true;
   protected virtual bool CanEmitUncompilableCode => true;
@@ -17,9 +17,6 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   protected DafnyWrittenCodeGenerator DafnyCodeGenerator;
 
   public List<string> ImportedFiles = [];
-
-  protected DafnyExecutableBackend(DafnyOptions options) : base(options) {
-  }
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     // becomes this.compiler

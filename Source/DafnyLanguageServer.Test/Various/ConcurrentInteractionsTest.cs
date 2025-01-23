@@ -16,7 +16,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
   [Collection("Sequential Collection")]
-  public class ConcurrentInteractionsTest : ClientBasedLanguageServerTest {
+  public class ConcurrentInteractionsTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
     // Implementation note: These tests assume that no diagnostics are published
     // when a document (re-load) was canceled.
     private const int MaxTestExecutionTimeMs = 240_000;
@@ -198,9 +198,6 @@ method Multiply(x: int, y: int) returns (product: int)
         client.CloseDocument(loadingDocument);
       }
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
-    }
-
-    public ConcurrentInteractionsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

@@ -13,7 +13,8 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Performance;
 
 [Collection("Sequential Collection")]  // Seems to deadlock when run in parallel
-public class ThreadUsageTest : ClientBasedLanguageServerTest {
+public class ThreadUsageTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
+  : ClientBasedLanguageServerTest(output, dafnyLogLevel) {
 
   [Fact]
   public async Task NoExtraThreadAfterEachChange() {
@@ -42,9 +43,5 @@ public class ThreadUsageTest : ClientBasedLanguageServerTest {
 
     logger.LogInformation("Difference history: " + string.Join(", ", history));
     throw lastException!;
-  }
-
-  public ThreadUsageTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
-    : base(output, dafnyLogLevel) {
   }
 }

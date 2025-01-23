@@ -8,21 +8,15 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
-  public class DafnySignatureHelpHandler : SignatureHelpHandlerBase {
+  public class DafnySignatureHelpHandler(
+    ILogger<DafnySignatureHelpHandler> logger,
+    IProjectDatabase projects,
+    ISymbolGuesser symbolGuesser,
+    DafnyOptions options)
+    : SignatureHelpHandlerBase {
     // TODO this is a very basic implementation that only displays the signature when typing an opening parenthese.
     //      It should be enriched to show information about the actual parameter depending on the cursor's position.
-    private readonly ILogger logger;
-    private readonly IProjectDatabase projects;
-    private readonly ISymbolGuesser symbolGuesser;
-    private DafnyOptions options;
-
-    public DafnySignatureHelpHandler(ILogger<DafnySignatureHelpHandler> logger, IProjectDatabase projects,
-      ISymbolGuesser symbolGuesser, DafnyOptions options) {
-      this.logger = logger;
-      this.projects = projects;
-      this.symbolGuesser = symbolGuesser;
-      this.options = options;
-    }
+    private readonly ILogger logger = logger;
 
     protected override SignatureHelpRegistrationOptions CreateRegistrationOptions(SignatureHelpCapability capability, ClientCapabilities clientCapabilities) {
       return new SignatureHelpRegistrationOptions {
@@ -41,25 +35,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return new SignatureHelpProcessor(logger, symbolGuesser, state, request, cancellationToken, options).Process();
     }
 
-    private class SignatureHelpProcessor {
-      private DafnyOptions options;
-      private readonly ILogger logger;
-      private readonly ISymbolGuesser symbolGuesser;
-      private readonly IdeState state;
-      private readonly SignatureHelpParams request;
-      private readonly CancellationToken cancellationToken;
-
-      public SignatureHelpProcessor(ILogger logger, ISymbolGuesser symbolGuesser, IdeState state,
-        SignatureHelpParams request,
-        CancellationToken cancellationToken, DafnyOptions options) {
-        this.logger = logger;
-        this.symbolGuesser = symbolGuesser;
-        this.state = state;
-        this.request = request;
-        this.cancellationToken = cancellationToken;
-        this.options = options;
-      }
-
+    private class SignatureHelpProcessor(
+      ILogger logger,
+      ISymbolGuesser symbolGuesser,
+      IdeState state,
+      SignatureHelpParams request,
+      CancellationToken cancellationToken,
+      DafnyOptions options) {
       public SignatureHelp? Process() {
         if (!symbolGuesser.TryGetSymbolBefore(state,
               request.TextDocument.Uri.ToUri(), GetOpenParenthesisPosition(), cancellationToken, out var symbol)) {

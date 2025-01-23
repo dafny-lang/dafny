@@ -22,16 +22,10 @@ public record DfyParseFileResult(
   IReadOnlyList<Action<SystemModuleManager>> ModifyBuiltins
   );
 
-public class ProgramParser {
-  protected readonly ILogger<ProgramParser> logger;
-  private readonly IFileSystem fileSystem;
+public class ProgramParser(ILogger<ProgramParser> logger, IFileSystem fileSystem) {
+  protected readonly ILogger<ProgramParser> logger = logger;
 
   public ProgramParser() : this(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance) {
-  }
-
-  public ProgramParser(ILogger<ProgramParser> logger, IFileSystem fileSystem) {
-    this.logger = logger;
-    this.fileSystem = fileSystem;
   }
 
   public virtual async Task<ProgramParseResult> ParseFiles(string programName, IReadOnlyList<DafnyFile> files,

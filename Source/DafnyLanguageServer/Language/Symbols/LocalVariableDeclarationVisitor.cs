@@ -3,16 +3,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols;
 
-internal class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
-  private readonly ILogger logger;
-
-  private ScopeSymbol block;
-
-  public LocalVariableDeclarationVisitor(ILogger logger, ScopeSymbol rootBlock) {
-    // TODO support cancellation
-    this.logger = logger;
-    block = rootBlock;
-  }
+internal class LocalVariableDeclarationVisitor(ILogger logger, ScopeSymbol rootBlock) : SyntaxTreeVisitor {
+  // TODO support cancellation
 
   public void Resolve(BlockStmt blockStatement) {
     // The base is directly visited to avoid doubly nesting the root block of the method.
@@ -30,15 +22,15 @@ internal class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
   }
 
   public override void Visit(BlockStmt blockStatement) {
-    var oldBlock = block;
-    block = new ScopeSymbol(block, blockStatement);
-    oldBlock.Symbols.Add(block);
+    var oldBlock = rootBlock;
+    rootBlock = new ScopeSymbol(rootBlock, blockStatement);
+    oldBlock.Symbols.Add(rootBlock);
     base.Visit(blockStatement);
-    block = oldBlock;
+    rootBlock = oldBlock;
   }
 
   public override void Visit(LocalVariable localVariable) {
-    block.Symbols.Add(new VariableSymbol(block, localVariable));
+    rootBlock.Symbols.Add(new VariableSymbol(rootBlock, localVariable));
   }
 
   public override void Visit(LambdaExpr lambdaExpression) {
@@ -68,20 +60,20 @@ internal class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
   private void ProcessBoundVariableBearingExpression<TExpr>(
     TExpr boundVarExpression, System.Action baseVisit
   ) where TExpr : Expression, IBoundVarsBearingExpression {
-    var oldBlock = block;
+    var oldBlock = rootBlock;
     // To prevent two scope symbols from pointing to the same node,
     // (this crashes `declarations[nodes]` later on)
     // we reuse the existing scope symbol if it happens to be a top-level
     // bounded variable bearing expression that otherwise would create a new scope symbol
-    if (block.Node != boundVarExpression) {
-      block = new ScopeSymbol(block, boundVarExpression);
-      oldBlock.Symbols.Add(block);
+    if (rootBlock.Node != boundVarExpression) {
+      rootBlock = new ScopeSymbol(rootBlock, boundVarExpression);
+      oldBlock.Symbols.Add(rootBlock);
     }
     foreach (var parameter in boundVarExpression.AllBoundVars) {
-      block.Symbols.Add(ProcessBoundVar(block, parameter));
+      rootBlock.Symbols.Add(ProcessBoundVar(rootBlock, parameter));
     }
     baseVisit();
-    block = oldBlock;
+    rootBlock = oldBlock;
   }
 
   private static VariableSymbol ProcessBoundVar(Symbol scope, BoundVar formal) {

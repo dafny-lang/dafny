@@ -16,25 +16,11 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
-  class DafnyHelper {
-    private string fname;
-    private string source;
-    private readonly DafnyOptions options;
-    private readonly ExecutionEngine engine;
-    private string[] args;
-
+  class DafnyHelper(DafnyOptions options, ExecutionEngine engine, string[] args, string fname, string source) {
     private ErrorReporter reporter;
     private Program dafnyProgram;
     private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
     private readonly CounterExampleProvider counterExampleProvider = new();
-
-    public DafnyHelper(DafnyOptions options, ExecutionEngine engine, string[] args, string fname, string source) {
-      this.options = options;
-      this.engine = engine;
-      this.args = args;
-      this.fname = fname;
-      this.source = source;
-    }
 
     public async Task<bool> Verify() {
       ServerUtils.ApplyArgs(args, options);

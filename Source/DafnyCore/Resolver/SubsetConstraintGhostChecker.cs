@@ -6,8 +6,8 @@ namespace Microsoft.Dafny;
 /// Looks for every non-ghost comprehensions, and if they are using a subset type,
 /// check that the subset constraint is compilable. If it is not compilable, raises an error.
 /// </summary>
-public class SubsetConstraintGhostChecker : ProgramTraverser {
-  private class FirstErrorCollector : ErrorReporter {
+public class SubsetConstraintGhostChecker(ErrorReporter reporter) : ProgramTraverser {
+  private class FirstErrorCollector(DafnyOptions options) : ErrorReporter(options) {
     public string FirstCollectedMessage = "";
     public IOrigin FirstCollectedToken = Token.NoToken;
     public bool Collected = false;
@@ -32,16 +32,9 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
     public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
       return Count(level);
     }
-
-    public FirstErrorCollector(DafnyOptions options) : base(options) {
-    }
   }
 
-  public ErrorReporter reporter;
-
-  public SubsetConstraintGhostChecker(ErrorReporter reporter) {
-    this.reporter = reporter;
-  }
+  public ErrorReporter reporter = reporter;
 
   protected override ContinuationStatus OnEnter(Statement stmt, string field, object parent) {
     return stmt != null && stmt.IsGhost ? skip : ok;

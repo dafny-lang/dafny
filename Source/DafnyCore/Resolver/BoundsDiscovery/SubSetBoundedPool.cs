@@ -7,13 +7,10 @@
 
 namespace Microsoft.Dafny;
 
-public class SubSetBoundedPool : BoundedPool {
-  public readonly Expression UpperBound;
-  public readonly bool IsFiniteCollection;
-  public SubSetBoundedPool(Expression set, bool isFiniteCollection) {
-    UpperBound = set;
-    IsFiniteCollection = isFiniteCollection;
-  }
+public class SubSetBoundedPool(Expression set, bool isFiniteCollection) : BoundedPool {
+  public readonly Expression UpperBound = set;
+  public readonly bool IsFiniteCollection = isFiniteCollection;
+
   public override PoolVirtues Virtues {
     get {
       if (IsFiniteCollection) {

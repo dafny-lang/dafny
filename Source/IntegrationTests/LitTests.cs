@@ -17,7 +17,7 @@ using XUnitExtensions.Lit;
 
 namespace IntegrationTests {
 
-  public class LitTests {
+  public class LitTests(ITestOutputHelper output) {
 
     private static readonly bool InvokeMainMethodsDirectly;
 
@@ -251,12 +251,6 @@ namespace IntegrationTests {
 
       var dafnyCliPath = Path.Join(dafnyReleaseDir, "dafny");
       return new ShellLitCommand(dafnyCliPath, arguments, config.PassthroughEnvironmentVariables);
-    }
-
-    private readonly ITestOutputHelper output;
-
-    public LitTests(ITestOutputHelper output) {
-      this.output = output;
     }
 
     [FileTheory]

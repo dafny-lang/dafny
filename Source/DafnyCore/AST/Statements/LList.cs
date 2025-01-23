@@ -1,13 +1,8 @@
 namespace Microsoft.Dafny;
 
-public class LList<T> {
-  public readonly T Data;
-  public readonly LList<T> Next;
-
-  public LList(T d, LList<T> next) {
-    Data = d;
-    Next = next;
-  }
+public class LList<T>(T d, LList<T> next) {
+  public readonly T Data = d;
+  public readonly LList<T> Next = next;
 
   public static LList<T> Append(LList<T> a, LList<T> b) {
     if (a == null) {

@@ -2,14 +2,9 @@
 using System.Collections.Generic;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
-  public class CounterExampleItem {
-    public Position Position { get; }
+  public class CounterExampleItem(Position position, string assumption) {
+    public Position Position { get; } = position;
 
-    public string Assumption { get; }
-
-    public CounterExampleItem(Position position, string assumption) {
-      Position = position;
-      Assumption = assumption;
-    }
+    public string Assumption { get; } = assumption;
   }
 }

@@ -15,22 +15,13 @@ using System.Threading.Tasks;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
-  public class DafnyCompletionHandler : CompletionHandlerBase {
-    private readonly ILogger<DafnyCompletionHandler> logger;
-    private readonly IProjectDatabase projects;
-    private readonly LanguageServerFilesystem filesystem;
-    private readonly ISymbolGuesser symbolGuesser;
-    private DafnyOptions options;
-
-    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IProjectDatabase projects,
-      ISymbolGuesser symbolGuesser, DafnyOptions options, LanguageServerFilesystem filesystem) {
-      this.logger = logger;
-      this.projects = projects;
-      this.symbolGuesser = symbolGuesser;
-      this.options = options;
-      this.filesystem = filesystem;
-    }
-
+  public class DafnyCompletionHandler(
+    ILogger<DafnyCompletionHandler> logger,
+    IProjectDatabase projects,
+    ISymbolGuesser symbolGuesser,
+    DafnyOptions options,
+    LanguageServerFilesystem filesystem)
+    : CompletionHandlerBase {
     protected override CompletionRegistrationOptions CreateRegistrationOptions(CompletionCapability capability, ClientCapabilities clientCapabilities) {
       return new CompletionRegistrationOptions {
         DocumentSelector = DocumentSelector.ForLanguage("dafny"),
@@ -55,27 +46,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return new CompletionProcessor(symbolGuesser, logger, document, request, cancellationToken, options, filesystem).Process();
     }
 
-    private class CompletionProcessor {
-      private DafnyOptions options;
-      private ILogger<DafnyCompletionHandler> logger;
-      private readonly ISymbolGuesser symbolGuesser;
-      private readonly IdeState state;
-      private readonly CompletionParams request;
-      private readonly CancellationToken cancellationToken;
-      private readonly LanguageServerFilesystem filesystem;
-
-      public CompletionProcessor(ISymbolGuesser symbolGuesser, ILogger<DafnyCompletionHandler> logger, IdeState state,
-        CompletionParams request, CancellationToken cancellationToken, DafnyOptions options,
-        LanguageServerFilesystem filesystem) {
-        this.symbolGuesser = symbolGuesser;
-        this.state = state;
-        this.request = request;
-        this.cancellationToken = cancellationToken;
-        this.options = options;
-        this.logger = logger;
-        this.filesystem = filesystem;
-      }
-
+    private class CompletionProcessor(
+      ISymbolGuesser symbolGuesser,
+      ILogger<DafnyCompletionHandler> logger,
+      IdeState state,
+      CompletionParams request,
+      CancellationToken cancellationToken,
+      DafnyOptions options,
+      LanguageServerFilesystem filesystem) {
       public CompletionList Process() {
         if (IsDotExpression()) {
           return CreateDotCompletionList();

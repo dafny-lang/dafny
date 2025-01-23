@@ -15,13 +15,9 @@ namespace XUnitExtensions.Lit {
 
   public enum Kind { Verbatim, MustGlob }
 
-  public class DelayedLitCommand : ILitCommand {
-    public Func<ILitCommand> Factory { get; }
+  public class DelayedLitCommand(Func<ILitCommand> factory) : ILitCommand {
+    public Func<ILitCommand> Factory { get; } = factory;
     public ILitCommand? command;
-
-    public DelayedLitCommand(Func<ILitCommand> factory) {
-      this.Factory = factory;
-    }
 
     public Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter,

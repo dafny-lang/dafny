@@ -10,7 +10,8 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public class StandardLibraryTest : ClientBasedLanguageServerTest {
+public class StandardLibraryTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
+  : ClientBasedLanguageServerTest(output, dafnyLogLevel) {
   [Fact]
   public async Task CanUseWrappers() {
     var source = @"
@@ -65,8 +66,5 @@ standard-libraries = true";
     var result = await RequestDefinition(documentItem, positions[0]);
     Assert.Equal(new Uri("dafny:DafnyStandardLibraries.dfy"), result.Single().Location.Uri);
     Directory.Delete(directory, true);
-  }
-
-  public StandardLibraryTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
   }
 }

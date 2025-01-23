@@ -8,7 +8,8 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
 [Collection("Sequential Collection")]
-public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
+public class SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output)
+  : LinearVerificationGutterStatusTester(output) {
   private const int MaxTestExecutionTimeMs = 10000;
 
   // To add a new test, just call VerifyTrace on a given program,
@@ -276,8 +277,5 @@ method Foo() ensures false { } ";
  .  .  |  |  | :predicate test2(x: nat) {
  .  .  |  |  | :  true
  .  .  |  |  | :}", true);
-  }
-
-  public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }

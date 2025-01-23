@@ -8,16 +8,13 @@ using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
-  public class ShellLitCommand : ILitCommand {
-    private string shellCommand;
-    public string[] Arguments { get; }
-    private string[] passthroughEnvironmentVariables;
-
-    public ShellLitCommand(string shellCommand, IEnumerable<string> arguments, IEnumerable<string> passthroughEnvironmentVariables) {
-      this.shellCommand = shellCommand;
-      this.Arguments = arguments.ToArray();
-      this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
-    }
+  public class ShellLitCommand(
+    string shellCommand,
+    IEnumerable<string> arguments,
+    IEnumerable<string> passthroughEnvironmentVariables)
+    : ILitCommand {
+    public string[] Arguments { get; } = arguments.ToArray();
+    private string[] passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
 
     public async Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {

@@ -11,15 +11,16 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
 
-  class EqualityConstraint : OptionalErrorPreTypeConstraint {
-    public PreType A;
-    public PreType B;
-
-    public EqualityConstraint(PreType a, PreType b, IOrigin tok, string msgFormat, PreTypeConstraint baseError = null, bool reportErrors = true)
-      : base(tok, msgFormat, baseError, reportErrors) {
-      A = a;
-      B = b;
-    }
+  class EqualityConstraint(
+    PreType a,
+    PreType b,
+    IOrigin tok,
+    string msgFormat,
+    PreTypeConstraint baseError = null,
+    bool reportErrors = true)
+    : OptionalErrorPreTypeConstraint(tok, msgFormat, baseError, reportErrors) {
+    public PreType A = a;
+    public PreType B = b;
 
     public override string ErrorMessage() {
       return string.Format(ErrorFormatString, A, B);

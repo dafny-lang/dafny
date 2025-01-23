@@ -13,23 +13,19 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this resolver serializes all invocations.
   /// </remarks>
-  public class DafnyLangSymbolResolver : ISymbolResolver {
+  public class DafnyLangSymbolResolver(
+    ILogger<DafnyLangSymbolResolver> logger,
+    ILogger<CachingResolver> innerLogger,
+    TelemetryPublisherBase telemetryPublisher)
+    : ISymbolResolver {
 
     public static readonly Option<bool> UseCaching = new("--use-caching", () => true,
       "Use caching to speed up analysis done by the Dafny IDE after each text edit.") {
       IsHidden = true
     };
 
-    private readonly ILogger logger;
-    private readonly ILogger<CachingResolver> innerLogger;
+    private readonly ILogger logger = logger;
     private readonly SemaphoreSlim resolverMutex = new(1);
-    private readonly TelemetryPublisherBase telemetryPublisher;
-
-    public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger, ILogger<CachingResolver> innerLogger, TelemetryPublisherBase telemetryPublisher) {
-      this.logger = logger;
-      this.innerLogger = innerLogger;
-      this.telemetryPublisher = telemetryPublisher;
-    }
 
     private readonly ResolutionCache resolutionCache = new();
     public async Task ResolveSymbols(Compilation compilation, Program program, CancellationToken cancellationToken) {

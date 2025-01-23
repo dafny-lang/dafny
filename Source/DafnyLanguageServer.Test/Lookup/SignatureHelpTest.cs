@@ -10,7 +10,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  public class SignatureHelpTest : ClientBasedLanguageServerTest {
+  public class SignatureHelpTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
     [ItemCanBeNull]
     private async Task<SignatureHelp> RequestSignatureHelpAsync(TextDocumentItem documentItem, Position position, bool allowNull = false) {
@@ -200,9 +200,6 @@ class B {
       var markup = signatures[0].Documentation.MarkupContent;
       Assert.Equal(MarkupKind.Markdown, markup.Kind);
       Assert.Equal("```dafny\nfunction A.Multiply(n: int, m: int): int\n```", markup.Value);
-    }
-
-    public SignatureHelpTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

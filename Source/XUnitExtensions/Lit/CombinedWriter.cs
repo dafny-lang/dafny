@@ -8,15 +8,8 @@ using System.Threading.Tasks;
 
 namespace XUnitExtensions.Lit;
 
-class CombinedWriter : TextWriter {
-  private readonly IEnumerable<TextWriter> writers;
-
-  public CombinedWriter(Encoding encoding, IEnumerable<TextWriter> writers) {
-    this.Encoding = encoding;
-    this.writers = writers;
-  }
-
-  public override Encoding Encoding { get; }
+class CombinedWriter(Encoding encoding, IEnumerable<TextWriter> writers) : TextWriter {
+  public override Encoding Encoding { get; } = encoding;
 
   public override void Flush() {
     foreach (var writer in writers) {

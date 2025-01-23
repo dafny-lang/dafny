@@ -25,13 +25,8 @@ public interface ICodeContext : IASTVisitorContext {
 /// (which is a ghost context) and a witness (which may be a compiled context). To distinguish
 /// between these two, the declaration is wrapped inside a CodeContextWrapper.
 /// </summary>
-public class CodeContextWrapper : ICodeContext {
-  protected readonly ICodeContext inner;
-  private readonly bool isGhostContext;
-  public CodeContextWrapper(ICodeContext inner, bool isGhostContext) {
-    this.inner = inner;
-    this.isGhostContext = isGhostContext;
-  }
+public class CodeContextWrapper(ICodeContext inner, bool isGhostContext) : ICodeContext {
+  protected readonly ICodeContext inner = inner;
 
   public bool ContainsHide {
     get => inner.ContainsHide;
@@ -81,11 +76,8 @@ public interface ICallable : ICodeContext, ISymbol, IFrameScope {
 ///
 /// This class is to ICallable what CodeContextWrapper is to ICodeContext.
 /// </summary>
-public class CallableWrapper : CodeContextWrapper, ICallable {
-  public CallableWrapper(ICallable callable, bool isGhostContext)
-    : base(callable, isGhostContext) {
-  }
-
+public class CallableWrapper(ICallable callable, bool isGhostContext)
+  : CodeContextWrapper(callable, isGhostContext), ICallable {
   public ICallable CwInner => (ICallable)inner;
   public IEnumerable<INode> Children => CwInner.Children;
   public IEnumerable<INode> PreResolveChildren => CwInner.PreResolveChildren;
@@ -124,11 +116,8 @@ public interface IMethodCodeContext : ICallable {
 /// <summary>
 /// Applies when we are not inside an ICallable.  In particular, a NoContext is used to resolve the attributes of declarations with no other context.
 /// </summary>
-public class NoContext : ICodeContext {
-  public readonly ModuleDefinition Module;
-  public NoContext(ModuleDefinition module) {
-    this.Module = module;
-  }
+public class NoContext(ModuleDefinition module) : ICodeContext {
+  public readonly ModuleDefinition Module = module;
 
   public bool ContainsHide {
     get => throw new NotSupportedException();

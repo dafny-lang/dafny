@@ -4,14 +4,10 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class OrderedDictionary<TKey, TValue> {
+public class OrderedDictionary<TKey, TValue>(Func<TValue, TKey> getKey) {
   private readonly Dictionary<TKey, TValue> keyToValue = new();
   private readonly List<TKey> keyOrder = [];
-  private readonly Func<TValue, TKey> getKey;
 
-  public OrderedDictionary(Func<TValue, TKey> getKey) {
-    this.getKey = getKey;
-  }
   public IEnumerable<TValue> Values => keyOrder.Select(key => keyToValue[key]);
 
   public void AddRange(IEnumerable<TValue> values) {

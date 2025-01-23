@@ -11,7 +11,7 @@ using DafnyCore.Options;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class PythonBackend : ExecutableBackend {
+public class PythonBackend(DafnyOptions options) : ExecutableBackend(options) {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
 
@@ -135,8 +135,5 @@ public class PythonBackend : ExecutableBackend {
     var psi = PrepareProcessStartInfo(DefaultPythonCommand, Options.MainArgs.Prepend(targetFilename));
     psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
     return 0 == await RunProcess(psi, outputWriter, errorWriter);
-  }
-
-  public PythonBackend(DafnyOptions options) : base(options) {
   }
 }

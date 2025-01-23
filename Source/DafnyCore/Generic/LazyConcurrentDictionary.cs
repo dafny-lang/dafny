@@ -23,13 +23,7 @@ public class LazyConcurrentDictionary<TKey, TValue> : IEnumerable<KeyValuePair<T
     return new Enumerator(underlyingDictionary.GetEnumerator());
   }
 
-  class Enumerator : IEnumerator<KeyValuePair<TKey, TValue>> {
-    private readonly IEnumerator<KeyValuePair<TKey, Lazy<TValue>>> underlying;
-
-    public Enumerator(IEnumerator<KeyValuePair<TKey, Lazy<TValue>>> underlying) {
-      this.underlying = underlying;
-    }
-
+  class Enumerator(IEnumerator<KeyValuePair<TKey, Lazy<TValue>>> underlying) : IEnumerator<KeyValuePair<TKey, TValue>> {
     public bool MoveNext() {
       return underlying.MoveNext();
     }

@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace DafnyPipeline.Test;
 
 [Collection("Singleton Test Collection - FormatterForComprehensions")]
-public class FormatterForComprehensions : FormatterBaseTest {
+public class FormatterForComprehensions([NotNull] ITestOutputHelper output) : FormatterBaseTest(output) {
   [Fact]
   public async Task FormatWorksForMatchExpression() {
     await FormatterWorksFor(@"
@@ -208,9 +208,5 @@ function test(): int {
     :: i |
 }
 ");
-  }
-
-
-  public FormatterForComprehensions([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

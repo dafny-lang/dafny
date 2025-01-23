@@ -9,9 +9,7 @@ namespace Microsoft.Dafny.Plugins {
   /// of Rewriter from the plugin, providing them with an ErrorReporter in the constructor
   /// as the first and only argument.
   /// </summary>
-  public abstract class Rewriter : ErrorReportingBase {
-    public Rewriter(ErrorReporter reporter) : base(reporter) { }
-
+  public abstract class Rewriter(ErrorReporter reporter) : ErrorReportingBase(reporter) {
     /// <summary>
     /// Override this method to obtain a module definition after the entire resolution pipeline
     /// You can then report errors using reporter.Error (see above)

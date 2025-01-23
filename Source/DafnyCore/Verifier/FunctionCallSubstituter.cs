@@ -2,19 +2,21 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.Dafny {
-  public class FunctionCallSubstituter : Substituter {
-    public readonly TraitDecl Tr;
-    public readonly TopLevelDeclWithMembers Impl;
+  public class FunctionCallSubstituter(
+    Dictionary<IVariable, Expression> substMap,
+    Dictionary<TypeParameter, Type> typeMap,
+    TraitDecl parentTrait,
+    TopLevelDeclWithMembers impl)
+    : Substituter(new ThisExpr(impl.Origin) { Type = UserDefinedType.FromTopLevelDecl(impl.Origin, impl) }, substMap,
+      typeMap) {
+    public readonly TraitDecl Tr = parentTrait;
+    public readonly TopLevelDeclWithMembers Impl = impl;
 
     // We replace all occurrences of the trait version of the function with the class version. This is only allowed if
     // the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
     // expressions that evaluate to one.
-    public FunctionCallSubstituter(Dictionary<IVariable, Expression /*!*/> /*!*/ substMap, Dictionary<TypeParameter, Type> typeMap,
-      TraitDecl parentTrait, TopLevelDeclWithMembers impl)
-      : base(new ThisExpr(impl.Origin) { Type = UserDefinedType.FromTopLevelDecl(impl.Origin, impl) }, substMap, typeMap) {
-      Tr = parentTrait;
-      Impl = impl;
-    }
+    /*!*/
+    /*!*/
 
     public override Expression Substitute(Expression expr) {
       if (expr is FunctionCallExpr e) {

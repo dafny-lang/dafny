@@ -12,12 +12,8 @@ namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
   // so we can't execute tests that use it in parallel.
   [Collection("Singleton Test Collection - Resolution")]
-  public class Issue1355 {
-    private readonly TextWriter output;
-
-    public Issue1355(ITestOutputHelper output) {
-      this.output = new WriterFromOutputHelper(output);
-    }
+  public class Issue1355(ITestOutputHelper output) {
+    private readonly TextWriter output = new WriterFromOutputHelper(output);
 
     [Fact]
     public async Task Test() {

@@ -5,15 +5,7 @@ using System.Threading.Tasks;
 namespace XUnitExtensions.Lit;
 
 
-public class ExitCommand : ILitCommand {
-  private readonly string expectedExitCode;
-  private readonly ILitCommand operand;
-
-  public ExitCommand(string exitCode, ILitCommand operand) {
-    this.expectedExitCode = exitCode;
-    this.operand = operand;
-  }
-
+public class ExitCommand(string expectedExitCode, ILitCommand operand) : ILitCommand {
   public async Task<int> Execute(TextReader inputReader,
     TextWriter outputWriter, TextWriter errorWriter) {
     var exitCode = 1;

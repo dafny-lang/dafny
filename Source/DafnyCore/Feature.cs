@@ -190,37 +190,28 @@ public enum Feature {
   RuntimeCoverageReport
 }
 
-public class UnsupportedFeatureException : Exception {
+public class UnsupportedFeatureException(IOrigin token, Feature feature, string message) : Exception(message) {
 
   public const string MessagePrefix =
     "Feature not supported for this compilation target: ";
 
-  public readonly IOrigin Token;
-  public readonly Feature Feature;
+  public readonly IOrigin Token = token;
+  public readonly Feature Feature = feature;
 
   public UnsupportedFeatureException(IOrigin token, Feature feature)
     : this(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description) {
 
   }
-
-  public UnsupportedFeatureException(IOrigin token, Feature feature, string message) : base(message) {
-    Token = token;
-    Feature = feature;
-  }
 }
 
 
 
-public class RecoverableUnsupportedFeatureException : UnsupportedFeatureException {
+public class RecoverableUnsupportedFeatureException(IOrigin token, Feature feature) : UnsupportedFeatureException(token,
+  feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description + MessageSuffix) {
 
   public static readonly string MessageSuffix = ". To continue despite this issue, you can compile with the option --" +
                                        CommonOptionBag.EmitUncompilableCode.Name;
-  public RecoverableUnsupportedFeatureException(IOrigin token, Feature feature)
-    : base(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description + MessageSuffix) {
-  }
 }
 
-public class UnsupportedInvalidOperationException : InvalidOperationException {
-  public UnsupportedInvalidOperationException(string why) : base(typeof(UnsupportedInvalidOperationException).FullName! + ": " + why) {
-  }
-}
+public class UnsupportedInvalidOperationException(string why)
+  : InvalidOperationException(typeof(UnsupportedInvalidOperationException).FullName! + ": " + why);

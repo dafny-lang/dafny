@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
-  public class WorkspaceSymbolTest : ClientBasedLanguageServerTest {
+  public class WorkspaceSymbolTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
     [Fact]
     public async Task WorkspaceSymbolsAcrossFiles() {
@@ -134,9 +134,5 @@ method prefixFoo() returns (x: int) {
       Assert.Contains("prefixFoo", items[0].Name);
       Assert.Contains("longerNameWithFooInIt", items[1].Name);
     }
-
-    public WorkspaceSymbolTest(ITestOutputHelper output) : base(output) {
-    }
-
   }
 }

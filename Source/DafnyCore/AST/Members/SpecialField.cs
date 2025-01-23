@@ -60,13 +60,17 @@ public class SpecialField : Field {
   }
 }
 
-public class DatatypeDiscriminator : SpecialField {
+public class DatatypeDiscriminator(
+  IOrigin origin,
+  Name name,
+  SpecialField.ID specialId,
+  object idParam,
+  bool isGhost,
+  Type type,
+  Attributes attributes)
+  : SpecialField(origin, name, specialId, idParam, false, isGhost, false, false, type, attributes) {
   public override string WhatKind {
     get { return "discriminator"; }
-  }
-
-  public DatatypeDiscriminator(IOrigin origin, Name name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
-    : base(origin, name, specialId, idParam, false, isGhost, false, false, type, attributes) {
   }
 }
 

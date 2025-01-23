@@ -8,7 +8,8 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  public class SynchronizationTestBase : DafnyLanguageServerTestBase, IAsyncLifetime {
+  public class SynchronizationTestBase(ITestOutputHelper output, LogLevel logLevel = LogLevel.Information)
+    : DafnyLanguageServerTestBase(output, logLevel), IAsyncLifetime {
     protected ILanguageClient Client { get; set; }
 
     public virtual async Task InitializeAsync() {
@@ -56,9 +57,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
         ContentChanges = changes
       });
       return Client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-    }
-
-    public SynchronizationTestBase(ITestOutputHelper output, LogLevel logLevel = LogLevel.Information) : base(output, logLevel) {
     }
   }
 }

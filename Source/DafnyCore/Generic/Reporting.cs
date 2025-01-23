@@ -16,9 +16,7 @@ namespace Microsoft.Dafny {
 
   public record DafnyRelatedInformation(IOrigin Token, string Message);
 
-  public class ErrorReporterSink : ErrorReporter {
-    public ErrorReporterSink(DafnyOptions options) : base(options) { }
-
+  public class ErrorReporterSink(DafnyOptions options) : ErrorReporter(options) {
     protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
       return false;
     }
@@ -36,15 +34,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ErrorReporterWrapper : BatchErrorReporter {
-
-    private string msgPrefix;
-    public readonly ErrorReporter WrappedReporter;
-
-    public ErrorReporterWrapper(ErrorReporter reporter, string msgPrefix) : base(reporter.Options) {
-      this.msgPrefix = msgPrefix;
-      this.WrappedReporter = reporter;
-    }
+  public class ErrorReporterWrapper(ErrorReporter reporter, string msgPrefix) : BatchErrorReporter(reporter.Options) {
+    public readonly ErrorReporter WrappedReporter = reporter;
 
     protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
       if (level == ErrorLevel.Warning) {

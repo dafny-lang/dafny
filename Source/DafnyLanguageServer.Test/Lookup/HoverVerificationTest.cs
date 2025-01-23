@@ -19,7 +19,7 @@ using Assert = Xunit.Assert;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [Collection("Sequential Collection")] // Let slow tests run sequentially
-  public class HoverVerificationTest : ClientBasedLanguageServerTest {
+  public class HoverVerificationTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
     private const int MaxTestExecutionTimeMs = 30000;
 
@@ -497,10 +497,6 @@ lemma{:resource_limit 10000000} L()
 
 - Total resource usage: ??? RU [⚠](???)"
       );
-    }
-
-
-    public HoverVerificationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

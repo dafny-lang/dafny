@@ -13,7 +13,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 
-public class ProjectFilesTest : ClientBasedLanguageServerTest {
+public class ProjectFilesTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
   [Fact]
   public async Task ProducerLibrary() {
@@ -233,8 +233,5 @@ warn-shadowing = true
     var diagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(diagnostics);
     Assert.Contains("Shadowed", diagnostics[0].Message);
-  }
-
-  public ProjectFilesTest(ITestOutputHelper output) : base(output) {
   }
 }

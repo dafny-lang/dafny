@@ -337,17 +337,17 @@ namespace RAST {
     T VisitMember(T acc, RAST._IImplMember member);
     T VisitFn(T acc, RAST._IFn fn);
   }
-  public class RASTTopDownVisitor<T> : _IRASTTopDownVisitor<T> {
-    public readonly Func<T, RAST._IType, T> _VisitTypeSingle;
-    public readonly Func<T, RAST._IExpr, T> _VisitExprSingle;
-    public readonly Func<T, RAST._IModDecl, RAST._IPath, T> _VisitModDeclSingle;
-    public readonly bool _recurseSubmodules;
-    public RASTTopDownVisitor(Func<T, RAST._IType, T> VisitTypeSingle, Func<T, RAST._IExpr, T> VisitExprSingle, Func<T, RAST._IModDecl, RAST._IPath, T> VisitModDeclSingle, bool recurseSubmodules) {
-      this._VisitTypeSingle = VisitTypeSingle;
-      this._VisitExprSingle = VisitExprSingle;
-      this._VisitModDeclSingle = VisitModDeclSingle;
-      this._recurseSubmodules = recurseSubmodules;
-    }
+  public class RASTTopDownVisitor<T>(
+    Func<T, RAST._IType, T> VisitTypeSingle,
+    Func<T, RAST._IExpr, T> VisitExprSingle,
+    Func<T, RAST._IModDecl, RAST._IPath, T> VisitModDeclSingle,
+    bool recurseSubmodules)
+    : _IRASTTopDownVisitor<T> {
+    public readonly Func<T, RAST._IType, T> _VisitTypeSingle = VisitTypeSingle;
+    public readonly Func<T, RAST._IExpr, T> _VisitExprSingle = VisitExprSingle;
+    public readonly Func<T, RAST._IModDecl, RAST._IPath, T> _VisitModDeclSingle = VisitModDeclSingle;
+    public readonly bool _recurseSubmodules = recurseSubmodules;
+
     public _IRASTTopDownVisitor<__T> DowncastClone<__T>(Func<T, __T> converter0) {
       if (this is _IRASTTopDownVisitor<__T> dt) { return dt; }
       return new RASTTopDownVisitor<__T>((_VisitTypeSingle).DowncastClone<T, RAST._IType, T, __T, RAST._IType, __T>(Dafny.Helpers.CastConverter<__T, T>, Dafny.Helpers.Id<RAST._IType>, Dafny.Helpers.CastConverter<T, __T>), (_VisitExprSingle).DowncastClone<T, RAST._IExpr, T, __T, RAST._IExpr, __T>(Dafny.Helpers.CastConverter<__T, T>, Dafny.Helpers.Id<RAST._IExpr>, Dafny.Helpers.CastConverter<T, __T>), (_VisitModDeclSingle).DowncastClone<T, RAST._IModDecl, RAST._IPath, T, __T, RAST._IModDecl, RAST._IPath, __T>(Dafny.Helpers.CastConverter<__T, T>, Dafny.Helpers.Id<RAST._IModDecl>, Dafny.Helpers.Id<RAST._IPath>, Dafny.Helpers.CastConverter<T, __T>), _recurseSubmodules);
@@ -666,15 +666,15 @@ namespace RAST {
     RAST._IType ReplaceType(RAST._IType t);
     RAST._IFields ReplaceFields(RAST._IFields fields);
   }
-  public class RASTBottomUpReplacer : _IRASTBottomUpReplacer {
-    public readonly Func<RAST._IMod, RAST._IPath, RAST._IMod> _ReplaceModSingle;
-    public readonly Func<RAST._IType, RAST._IType> _ReplaceTypeSingle;
-    public readonly Func<RAST._IExpr, RAST._IExpr> _ReplaceExprSingle;
-    public RASTBottomUpReplacer(Func<RAST._IMod, RAST._IPath, RAST._IMod> ReplaceModSingle, Func<RAST._IType, RAST._IType> ReplaceTypeSingle, Func<RAST._IExpr, RAST._IExpr> ReplaceExprSingle) {
-      this._ReplaceModSingle = ReplaceModSingle;
-      this._ReplaceTypeSingle = ReplaceTypeSingle;
-      this._ReplaceExprSingle = ReplaceExprSingle;
-    }
+  public class RASTBottomUpReplacer(
+    Func<RAST._IMod, RAST._IPath, RAST._IMod> ReplaceModSingle,
+    Func<RAST._IType, RAST._IType> ReplaceTypeSingle,
+    Func<RAST._IExpr, RAST._IExpr> ReplaceExprSingle)
+    : _IRASTBottomUpReplacer {
+    public readonly Func<RAST._IMod, RAST._IPath, RAST._IMod> _ReplaceModSingle = ReplaceModSingle;
+    public readonly Func<RAST._IType, RAST._IType> _ReplaceTypeSingle = ReplaceTypeSingle;
+    public readonly Func<RAST._IExpr, RAST._IExpr> _ReplaceExprSingle = ReplaceExprSingle;
+
     public _IRASTBottomUpReplacer DowncastClone() {
       if (this is _IRASTBottomUpReplacer dt) { return dt; }
       return new RASTBottomUpReplacer(_ReplaceModSingle, _ReplaceTypeSingle, _ReplaceExprSingle);
@@ -1074,17 +1074,17 @@ namespace RAST {
       }
     }
   }
-  public class Mod_Mod : Mod {
-    public readonly Dafny.ISequence<Dafny.Rune> _docString;
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._IModDecl> _body;
-    public Mod_Mod(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IModDecl> body) : base() {
-      this._docString = docString;
-      this._attributes = attributes;
-      this._name = name;
-      this._body = body;
-    }
+  public class Mod_Mod(
+    Dafny.ISequence<Dafny.Rune> docString,
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes,
+    Dafny.ISequence<Dafny.Rune> name,
+    Dafny.ISequence<RAST._IModDecl> body)
+    : Mod {
+    public readonly Dafny.ISequence<Dafny.Rune> _docString = docString;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes = attributes;
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly Dafny.ISequence<RAST._IModDecl> _body = body;
+
     public override _IMod DowncastClone() {
       if (this is _IMod dt) { return dt; }
       return new Mod_Mod(_docString, _attributes, _name, _body);
@@ -1116,11 +1116,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Mod_ExternMod : Mod {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public Mod_ExternMod(Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._name = name;
-    }
+  public class Mod_ExternMod(Dafny.ISequence<Dafny.Rune> name) : Mod {
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+
     public override _IMod DowncastClone() {
       if (this is _IMod dt) { return dt; }
       return new Mod_ExternMod(_name);
@@ -1290,11 +1288,9 @@ namespace RAST {
       }
     }
   }
-  public class ModDecl_ModDecl : ModDecl {
-    public readonly RAST._IMod _mod;
-    public ModDecl_ModDecl(RAST._IMod mod) : base() {
-      this._mod = mod;
-    }
+  public class ModDecl_ModDecl(RAST._IMod mod) : ModDecl {
+    public readonly RAST._IMod _mod = mod;
+
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
       return new ModDecl_ModDecl(_mod);
@@ -1317,11 +1313,9 @@ namespace RAST {
       return s;
     }
   }
-  public class ModDecl_StructDecl : ModDecl {
-    public readonly RAST._IStruct _struct;
-    public ModDecl_StructDecl(RAST._IStruct @struct) : base() {
-      this._struct = @struct;
-    }
+  public class ModDecl_StructDecl(RAST._IStruct @struct) : ModDecl {
+    public readonly RAST._IStruct _struct = @struct;
+
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
       return new ModDecl_StructDecl(_struct);
@@ -1344,11 +1338,9 @@ namespace RAST {
       return s;
     }
   }
-  public class ModDecl_TypeDecl : ModDecl {
-    public readonly RAST._ITypeSynonym _tpe;
-    public ModDecl_TypeDecl(RAST._ITypeSynonym tpe) : base() {
-      this._tpe = tpe;
-    }
+  public class ModDecl_TypeDecl(RAST._ITypeSynonym tpe) : ModDecl {
+    public readonly RAST._ITypeSynonym _tpe = tpe;
+
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
       return new ModDecl_TypeDecl(_tpe);
@@ -1371,11 +1363,9 @@ namespace RAST {
       return s;
     }
   }
-  public class ModDecl_ConstDecl : ModDecl {
-    public readonly RAST._IConstant _c;
-    public ModDecl_ConstDecl(RAST._IConstant c) : base() {
-      this._c = c;
-    }
+  public class ModDecl_ConstDecl(RAST._IConstant c) : ModDecl {
+    public readonly RAST._IConstant _c = c;
+
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
       return new ModDecl_ConstDecl(_c);
@@ -1398,11 +1388,9 @@ namespace RAST {
       return s;
     }
   }
-  public class ModDecl_EnumDecl : ModDecl {
-    public readonly RAST._IEnum _enum;
-    public ModDecl_EnumDecl(RAST._IEnum @enum) : base() {
-      this._enum = @enum;
-    }
+  public class ModDecl_EnumDecl(RAST._IEnum @enum) : ModDecl {
+    public readonly RAST._IEnum _enum = @enum;
+
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
       return new ModDecl_EnumDecl(_enum);
@@ -1425,11 +1413,9 @@ namespace RAST {
       return s;
     }
   }
-  public class ModDecl_ImplDecl : ModDecl {
-    public readonly RAST._IImpl _impl;
-    public ModDecl_ImplDecl(RAST._IImpl impl) : base() {
-      this._impl = impl;
-    }
+  public class ModDecl_ImplDecl(RAST._IImpl impl) : ModDecl {
+    public readonly RAST._IImpl _impl = impl;
+
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
       return new ModDecl_ImplDecl(_impl);
@@ -1452,11 +1438,9 @@ namespace RAST {
       return s;
     }
   }
-  public class ModDecl_TraitDecl : ModDecl {
-    public readonly RAST._ITrait _tr;
-    public ModDecl_TraitDecl(RAST._ITrait tr) : base() {
-      this._tr = tr;
-    }
+  public class ModDecl_TraitDecl(RAST._ITrait tr) : ModDecl {
+    public readonly RAST._ITrait _tr = tr;
+
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
       return new ModDecl_TraitDecl(_tr);
@@ -1479,11 +1463,9 @@ namespace RAST {
       return s;
     }
   }
-  public class ModDecl_TopFnDecl : ModDecl {
-    public readonly RAST._ITopFnDecl _fn;
-    public ModDecl_TopFnDecl(RAST._ITopFnDecl fn) : base() {
-      this._fn = fn;
-    }
+  public class ModDecl_TopFnDecl(RAST._ITopFnDecl fn) : ModDecl {
+    public readonly RAST._ITopFnDecl _fn = fn;
+
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
       return new ModDecl_TopFnDecl(_fn);
@@ -1506,11 +1488,9 @@ namespace RAST {
       return s;
     }
   }
-  public class ModDecl_UseDecl : ModDecl {
-    public readonly RAST._IUse _use;
-    public ModDecl_UseDecl(RAST._IUse use) : base() {
-      this._use = use;
-    }
+  public class ModDecl_UseDecl(RAST._IUse use) : ModDecl {
+    public readonly RAST._IUse _use = use;
+
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
       return new ModDecl_UseDecl(_use);
@@ -1541,13 +1521,10 @@ namespace RAST {
     _IUse DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class Use : _IUse {
-    public readonly RAST._IVisibility _visibility;
-    public readonly RAST._IPath _path;
-    public Use(RAST._IVisibility visibility, RAST._IPath path) {
-      this._visibility = visibility;
-      this._path = path;
-    }
+  public class Use(RAST._IVisibility visibility, RAST._IPath path) : _IUse {
+    public readonly RAST._IVisibility _visibility = visibility;
+    public readonly RAST._IPath _path = path;
+
     public _IUse DowncastClone() {
       if (this is _IUse dt) { return dt; }
       return new Use(_visibility, _path);
@@ -1611,17 +1588,17 @@ namespace RAST {
     _ITopFnDecl DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class TopFnDecl : _ITopFnDecl {
-    public readonly Dafny.ISequence<Dafny.Rune> _docString;
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
-    public readonly RAST._IVisibility _visibility;
-    public readonly RAST._IFn _fn;
-    public TopFnDecl(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, RAST._IVisibility visibility, RAST._IFn fn) {
-      this._docString = docString;
-      this._attributes = attributes;
-      this._visibility = visibility;
-      this._fn = fn;
-    }
+  public class TopFnDecl(
+    Dafny.ISequence<Dafny.Rune> docString,
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes,
+    RAST._IVisibility visibility,
+    RAST._IFn fn)
+    : _ITopFnDecl {
+    public readonly Dafny.ISequence<Dafny.Rune> _docString = docString;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes = attributes;
+    public readonly RAST._IVisibility _visibility = visibility;
+    public readonly RAST._IFn _fn = fn;
+
     public _ITopFnDecl DowncastClone() {
       if (this is _ITopFnDecl dt) { return dt; }
       return new TopFnDecl(_docString, _attributes, _visibility, _fn);
@@ -1696,11 +1673,9 @@ namespace RAST {
     bool is_RawAttribute { get; }
     Dafny.ISequence<Dafny.Rune> dtor_content { get; }
   }
-  public class Attribute : _IAttribute {
-    public readonly Dafny.ISequence<Dafny.Rune> _content;
-    public Attribute(Dafny.ISequence<Dafny.Rune> content) {
-      this._content = content;
-    }
+  public class Attribute(Dafny.ISequence<Dafny.Rune> content) : _IAttribute {
+    public readonly Dafny.ISequence<Dafny.Rune> _content = content;
+
     public static Dafny.ISequence<Dafny.Rune> DowncastClone(Dafny.ISequence<Dafny.Rune> _this) {
       return _this;
     }
@@ -1759,19 +1734,19 @@ namespace RAST {
     _IStruct DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class Struct : _IStruct {
-    public readonly Dafny.ISequence<Dafny.Rune> _docString;
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
-    public readonly RAST._IFields _fields;
-    public Struct(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IFields fields) {
-      this._docString = docString;
-      this._attributes = attributes;
-      this._name = name;
-      this._typeParams = typeParams;
-      this._fields = fields;
-    }
+  public class Struct(
+    Dafny.ISequence<Dafny.Rune> docString,
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes,
+    Dafny.ISequence<Dafny.Rune> name,
+    Dafny.ISequence<RAST._ITypeParamDecl> typeParams,
+    RAST._IFields fields)
+    : _IStruct {
+    public readonly Dafny.ISequence<Dafny.Rune> _docString = docString;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes = attributes;
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams = typeParams;
+    public readonly RAST._IFields _fields = fields;
+
     public _IStruct DowncastClone() {
       if (this is _IStruct dt) { return dt; }
       return new Struct(_docString, _attributes, _name, _typeParams, _fields);
@@ -1860,19 +1835,19 @@ namespace RAST {
     _ITypeSynonym DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class TypeSynonym : _ITypeSynonym {
-    public readonly Dafny.ISequence<Dafny.Rune> _docString;
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
-    public readonly RAST._IType _tpe;
-    public TypeSynonym(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe) {
-      this._docString = docString;
-      this._attributes = attributes;
-      this._name = name;
-      this._typeParams = typeParams;
-      this._tpe = tpe;
-    }
+  public class TypeSynonym(
+    Dafny.ISequence<Dafny.Rune> docString,
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes,
+    Dafny.ISequence<Dafny.Rune> name,
+    Dafny.ISequence<RAST._ITypeParamDecl> typeParams,
+    RAST._IType tpe)
+    : _ITypeSynonym {
+    public readonly Dafny.ISequence<Dafny.Rune> _docString = docString;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes = attributes;
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams = typeParams;
+    public readonly RAST._IType _tpe = tpe;
+
     public _ITypeSynonym DowncastClone() {
       if (this is _ITypeSynonym dt) { return dt; }
       return new TypeSynonym(_docString, _attributes, _name, _typeParams, _tpe);
@@ -1961,19 +1936,19 @@ namespace RAST {
     _IConstant DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class Constant : _IConstant {
-    public readonly Dafny.ISequence<Dafny.Rune> _docString;
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly RAST._IType _tpe;
-    public readonly RAST._IExpr _value;
-    public Constant(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, RAST._IType tpe, RAST._IExpr @value) {
-      this._docString = docString;
-      this._attributes = attributes;
-      this._name = name;
-      this._tpe = tpe;
-      this._value = @value;
-    }
+  public class Constant(
+    Dafny.ISequence<Dafny.Rune> docString,
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes,
+    Dafny.ISequence<Dafny.Rune> name,
+    RAST._IType tpe,
+    RAST._IExpr @value)
+    : _IConstant {
+    public readonly Dafny.ISequence<Dafny.Rune> _docString = docString;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes = attributes;
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly RAST._IType _tpe = tpe;
+    public readonly RAST._IExpr _value = @value;
+
     public _IConstant DowncastClone() {
       if (this is _IConstant dt) { return dt; }
       return new Constant(_docString, _attributes, _name, _tpe, _value);
@@ -2059,13 +2034,10 @@ namespace RAST {
     _INamelessField DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class NamelessField : _INamelessField {
-    public readonly RAST._IVisibility _visibility;
-    public readonly RAST._IType _tpe;
-    public NamelessField(RAST._IVisibility visibility, RAST._IType tpe) {
-      this._visibility = visibility;
-      this._tpe = tpe;
-    }
+  public class NamelessField(RAST._IVisibility visibility, RAST._IType tpe) : _INamelessField {
+    public readonly RAST._IVisibility _visibility = visibility;
+    public readonly RAST._IType _tpe = tpe;
+
     public _INamelessField DowncastClone() {
       if (this is _INamelessField dt) { return dt; }
       return new NamelessField(_visibility, _tpe);
@@ -2128,13 +2100,10 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
     RAST._INamelessField ToNamelessField();
   }
-  public class Field : _IField {
-    public readonly RAST._IVisibility _visibility;
-    public readonly RAST._IFormal _formal;
-    public Field(RAST._IVisibility visibility, RAST._IFormal formal) {
-      this._visibility = visibility;
-      this._formal = formal;
-    }
+  public class Field(RAST._IVisibility visibility, RAST._IFormal formal) : _IField {
+    public readonly RAST._IVisibility _visibility = visibility;
+    public readonly RAST._IFormal _formal = formal;
+
     public _IField DowncastClone() {
       if (this is _IField dt) { return dt; }
       return new Field(_visibility, _formal);
@@ -2262,11 +2231,9 @@ namespace RAST {
       }
     }
   }
-  public class Fields_NamedFields : Fields {
-    public readonly Dafny.ISequence<RAST._IField> _fields;
-    public Fields_NamedFields(Dafny.ISequence<RAST._IField> fields) : base() {
-      this._fields = fields;
-    }
+  public class Fields_NamedFields(Dafny.ISequence<RAST._IField> fields) : Fields {
+    public readonly Dafny.ISequence<RAST._IField> _fields = fields;
+
     public override _IFields DowncastClone() {
       if (this is _IFields dt) { return dt; }
       return new Fields_NamedFields(_fields);
@@ -2289,11 +2256,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Fields_NamelessFields : Fields {
-    public readonly Dafny.ISequence<RAST._INamelessField> _types;
-    public Fields_NamelessFields(Dafny.ISequence<RAST._INamelessField> types) : base() {
-      this._types = types;
-    }
+  public class Fields_NamelessFields(Dafny.ISequence<RAST._INamelessField> types) : Fields {
+    public readonly Dafny.ISequence<RAST._INamelessField> _types = types;
+
     public override _IFields DowncastClone() {
       if (this is _IFields dt) { return dt; }
       return new Fields_NamelessFields(_types);
@@ -2325,15 +2290,12 @@ namespace RAST {
     _IEnumCase DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine);
   }
-  public class EnumCase : _IEnumCase {
-    public readonly Dafny.ISequence<Dafny.Rune> _docString;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly RAST._IFields _fields;
-    public EnumCase(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.Rune> name, RAST._IFields fields) {
-      this._docString = docString;
-      this._name = name;
-      this._fields = fields;
-    }
+  public class EnumCase(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.Rune> name, RAST._IFields fields)
+    : _IEnumCase {
+    public readonly Dafny.ISequence<Dafny.Rune> _docString = docString;
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly RAST._IFields _fields = fields;
+
     public _IEnumCase DowncastClone() {
       if (this is _IEnumCase dt) { return dt; }
       return new EnumCase(_docString, _name, _fields);
@@ -2407,19 +2369,19 @@ namespace RAST {
     _IEnum DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class Enum : _IEnum {
-    public readonly Dafny.ISequence<Dafny.Rune> _docString;
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
-    public readonly Dafny.ISequence<RAST._IEnumCase> _variants;
-    public Enum(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.ISequence<RAST._IEnumCase> variants) {
-      this._docString = docString;
-      this._attributes = attributes;
-      this._name = name;
-      this._typeParams = typeParams;
-      this._variants = variants;
-    }
+  public class Enum(
+    Dafny.ISequence<Dafny.Rune> docString,
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes,
+    Dafny.ISequence<Dafny.Rune> name,
+    Dafny.ISequence<RAST._ITypeParamDecl> typeParams,
+    Dafny.ISequence<RAST._IEnumCase> variants)
+    : _IEnum {
+    public readonly Dafny.ISequence<Dafny.Rune> _docString = docString;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes = attributes;
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams = typeParams;
+    public readonly Dafny.ISequence<RAST._IEnumCase> _variants = variants;
+
     public _IEnum DowncastClone() {
       if (this is _IEnum dt) { return dt; }
       return new Enum(_docString, _attributes, _name, _typeParams, _variants);
@@ -2508,13 +2470,11 @@ namespace RAST {
     RAST._ITypeParamDecl AddConstraints(Dafny.ISequence<RAST._IType> constraints);
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class TypeParamDecl : _ITypeParamDecl {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._IType> _constraints;
-    public TypeParamDecl(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IType> constraints) {
-      this._name = name;
-      this._constraints = constraints;
-    }
+  public class TypeParamDecl(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IType> constraints)
+    : _ITypeParamDecl {
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly Dafny.ISequence<RAST._IType> _constraints = constraints;
+
     public _ITypeParamDecl DowncastClone() {
       if (this is _ITypeParamDecl dt) { return dt; }
       return new TypeParamDecl(_name, _constraints);
@@ -2793,13 +2753,10 @@ namespace RAST {
       return s;
     }
   }
-  public class Path_PMemberSelect : Path {
-    public readonly RAST._IPath _base;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public Path_PMemberSelect(RAST._IPath @base, Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._base = @base;
-      this._name = name;
-    }
+  public class Path_PMemberSelect(RAST._IPath @base, Dafny.ISequence<Dafny.Rune> name) : Path {
+    public readonly RAST._IPath _base = @base;
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+
     public override _IPath DowncastClone() {
       if (this is _IPath dt) { return dt; }
       return new Path_PMemberSelect(_base, _name);
@@ -4138,11 +4095,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_TIdentifier : Type {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public Type_TIdentifier(Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._name = name;
-    }
+  public class Type_TIdentifier(Dafny.ISequence<Dafny.Rune> name) : Type {
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_TIdentifier(_name);
@@ -4165,11 +4120,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_TypeFromPath : Type {
-    public readonly RAST._IPath _path;
-    public Type_TypeFromPath(RAST._IPath path) : base() {
-      this._path = path;
-    }
+  public class Type_TypeFromPath(RAST._IPath path) : Type {
+    public readonly RAST._IPath _path = path;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_TypeFromPath(_path);
@@ -4192,13 +4145,11 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_TypeApp : Type {
-    public readonly RAST._IType _baseName;
-    public readonly Dafny.ISequence<RAST._IType> _arguments;
-    public Type_TypeApp(RAST._IType baseName, Dafny.ISequence<RAST._IType> arguments) : base() {
-      this._baseName = baseName;
-      this._arguments = arguments;
-    }
+  public class Type_TypeApp(RAST._IType baseName, Dafny.ISequence<RAST._IType> arguments)
+    : Type {
+    public readonly RAST._IType _baseName = baseName;
+    public readonly Dafny.ISequence<RAST._IType> _arguments = arguments;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_TypeApp(_baseName, _arguments);
@@ -4224,11 +4175,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_Borrowed : Type {
-    public readonly RAST._IType _underlying;
-    public Type_Borrowed(RAST._IType underlying) : base() {
-      this._underlying = underlying;
-    }
+  public class Type_Borrowed(RAST._IType underlying) : Type {
+    public readonly RAST._IType _underlying = underlying;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_Borrowed(_underlying);
@@ -4251,11 +4200,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_BorrowedMut : Type {
-    public readonly RAST._IType _underlying;
-    public Type_BorrowedMut(RAST._IType underlying) : base() {
-      this._underlying = underlying;
-    }
+  public class Type_BorrowedMut(RAST._IType underlying) : Type {
+    public readonly RAST._IType _underlying = underlying;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_BorrowedMut(_underlying);
@@ -4278,11 +4225,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_ImplType : Type {
-    public readonly RAST._IType _underlying;
-    public Type_ImplType(RAST._IType underlying) : base() {
-      this._underlying = underlying;
-    }
+  public class Type_ImplType(RAST._IType underlying) : Type {
+    public readonly RAST._IType _underlying = underlying;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_ImplType(_underlying);
@@ -4305,11 +4250,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_DynType : Type {
-    public readonly RAST._IType _underlying;
-    public Type_DynType(RAST._IType underlying) : base() {
-      this._underlying = underlying;
-    }
+  public class Type_DynType(RAST._IType underlying) : Type {
+    public readonly RAST._IType _underlying = underlying;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_DynType(_underlying);
@@ -4332,11 +4275,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_TupleType : Type {
-    public readonly Dafny.ISequence<RAST._IType> _arguments;
-    public Type_TupleType(Dafny.ISequence<RAST._IType> arguments) : base() {
-      this._arguments = arguments;
-    }
+  public class Type_TupleType(Dafny.ISequence<RAST._IType> arguments) : Type {
+    public readonly Dafny.ISequence<RAST._IType> _arguments = arguments;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_TupleType(_arguments);
@@ -4359,13 +4300,11 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_FnType : Type {
-    public readonly Dafny.ISequence<RAST._IType> _arguments;
-    public readonly RAST._IType _returnType;
-    public Type_FnType(Dafny.ISequence<RAST._IType> arguments, RAST._IType returnType) : base() {
-      this._arguments = arguments;
-      this._returnType = returnType;
-    }
+  public class Type_FnType(Dafny.ISequence<RAST._IType> arguments, RAST._IType returnType)
+    : Type {
+    public readonly Dafny.ISequence<RAST._IType> _arguments = arguments;
+    public readonly RAST._IType _returnType = returnType;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_FnType(_arguments, _returnType);
@@ -4391,13 +4330,10 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_IntersectionType : Type {
-    public readonly RAST._IType _left;
-    public readonly RAST._IType _right;
-    public Type_IntersectionType(RAST._IType left, RAST._IType right) : base() {
-      this._left = left;
-      this._right = right;
-    }
+  public class Type_IntersectionType(RAST._IType left, RAST._IType right) : Type {
+    public readonly RAST._IType _left = left;
+    public readonly RAST._IType _right = right;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_IntersectionType(_left, _right);
@@ -4423,13 +4359,11 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_Array : Type {
-    public readonly RAST._IType _underlying;
-    public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _size;
-    public Type_Array(RAST._IType underlying, Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> size) : base() {
-      this._underlying = underlying;
-      this._size = size;
-    }
+  public class Type_Array(RAST._IType underlying, Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> size)
+    : Type {
+    public readonly RAST._IType _underlying = underlying;
+    public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _size = size;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_Array(_underlying, _size);
@@ -4455,13 +4389,10 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_TSynonym : Type {
-    public readonly RAST._IType _display;
-    public readonly RAST._IType _base;
-    public Type_TSynonym(RAST._IType display, RAST._IType @base) : base() {
-      this._display = display;
-      this._base = @base;
-    }
+  public class Type_TSynonym(RAST._IType display, RAST._IType @base) : Type {
+    public readonly RAST._IType _display = display;
+    public readonly RAST._IType _base = @base;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_TSynonym(_display, _base);
@@ -4487,15 +4418,11 @@ namespace RAST {
       return s;
     }
   }
-  public class Type_TMetaData : Type {
-    public readonly RAST._IType _display;
-    public readonly bool _copySemantics;
-    public readonly bool _overflow;
-    public Type_TMetaData(RAST._IType display, bool copySemantics, bool overflow) : base() {
-      this._display = display;
-      this._copySemantics = copySemantics;
-      this._overflow = overflow;
-    }
+  public class Type_TMetaData(RAST._IType display, bool copySemantics, bool overflow) : Type {
+    public readonly RAST._IType _display = display;
+    public readonly bool _copySemantics = copySemantics;
+    public readonly bool _overflow = overflow;
+
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
       return new Type_TMetaData(_display, _copySemantics, _overflow);
@@ -4536,21 +4463,21 @@ namespace RAST {
     _ITrait DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class Trait : _ITrait {
-    public readonly Dafny.ISequence<Dafny.Rune> _docString;
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
-    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
-    public readonly RAST._IType _tpe;
-    public readonly Dafny.ISequence<RAST._IType> _parents;
-    public readonly Dafny.ISequence<RAST._IImplMember> _body;
-    public Trait(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe, Dafny.ISequence<RAST._IType> parents, Dafny.ISequence<RAST._IImplMember> body) {
-      this._docString = docString;
-      this._attributes = attributes;
-      this._typeParams = typeParams;
-      this._tpe = tpe;
-      this._parents = parents;
-      this._body = body;
-    }
+  public class Trait(
+    Dafny.ISequence<Dafny.Rune> docString,
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes,
+    Dafny.ISequence<RAST._ITypeParamDecl> typeParams,
+    RAST._IType tpe,
+    Dafny.ISequence<RAST._IType> parents,
+    Dafny.ISequence<RAST._IImplMember> body)
+    : _ITrait {
+    public readonly Dafny.ISequence<Dafny.Rune> _docString = docString;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes = attributes;
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams = typeParams;
+    public readonly RAST._IType _tpe = tpe;
+    public readonly Dafny.ISequence<RAST._IType> _parents = parents;
+    public readonly Dafny.ISequence<RAST._IImplMember> _body = body;
+
     public _ITrait DowncastClone() {
       if (this is _ITrait dt) { return dt; }
       return new Trait(_docString, _attributes, _typeParams, _tpe, _parents, _body);
@@ -4712,17 +4639,17 @@ namespace RAST {
       })))(ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), (((new BigInteger(((this).dtor_body).Count)).Sign == 0) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
     }
   }
-  public class Impl_ImplFor : Impl {
-    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
-    public readonly RAST._IType _tpe;
-    public readonly RAST._IType _forType;
-    public readonly Dafny.ISequence<RAST._IImplMember> _body;
-    public Impl_ImplFor(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe, RAST._IType forType, Dafny.ISequence<RAST._IImplMember> body) : base() {
-      this._typeParams = typeParams;
-      this._tpe = tpe;
-      this._forType = forType;
-      this._body = body;
-    }
+  public class Impl_ImplFor(
+    Dafny.ISequence<RAST._ITypeParamDecl> typeParams,
+    RAST._IType tpe,
+    RAST._IType forType,
+    Dafny.ISequence<RAST._IImplMember> body)
+    : Impl {
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams = typeParams;
+    public readonly RAST._IType _tpe = tpe;
+    public readonly RAST._IType _forType = forType;
+    public readonly Dafny.ISequence<RAST._IImplMember> _body = body;
+
     public override _IImpl DowncastClone() {
       if (this is _IImpl dt) { return dt; }
       return new Impl_ImplFor(_typeParams, _tpe, _forType, _body);
@@ -4754,15 +4681,15 @@ namespace RAST {
       return s;
     }
   }
-  public class Impl_Impl : Impl {
-    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
-    public readonly RAST._IType _tpe;
-    public readonly Dafny.ISequence<RAST._IImplMember> _body;
-    public Impl_Impl(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe, Dafny.ISequence<RAST._IImplMember> body) : base() {
-      this._typeParams = typeParams;
-      this._tpe = tpe;
-      this._body = body;
-    }
+  public class Impl_Impl(
+    Dafny.ISequence<RAST._ITypeParamDecl> typeParams,
+    RAST._IType tpe,
+    Dafny.ISequence<RAST._IImplMember> body)
+    : Impl {
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams = typeParams;
+    public readonly RAST._IType _tpe = tpe;
+    public readonly Dafny.ISequence<RAST._IImplMember> _body = body;
+
     public override _IImpl DowncastClone() {
       if (this is _IImpl dt) { return dt; }
       return new Impl_Impl(_typeParams, _tpe, _body);
@@ -4896,11 +4823,9 @@ namespace RAST {
       }
     }
   }
-  public class ImplMember_RawImplMember : ImplMember {
-    public readonly Dafny.ISequence<Dafny.Rune> _content;
-    public ImplMember_RawImplMember(Dafny.ISequence<Dafny.Rune> content) : base() {
-      this._content = content;
-    }
+  public class ImplMember_RawImplMember(Dafny.ISequence<Dafny.Rune> content) : ImplMember {
+    public readonly Dafny.ISequence<Dafny.Rune> _content = content;
+
     public override _IImplMember DowncastClone() {
       if (this is _IImplMember dt) { return dt; }
       return new ImplMember_RawImplMember(_content);
@@ -4923,13 +4848,10 @@ namespace RAST {
       return s;
     }
   }
-  public class ImplMember_TypeDeclMember : ImplMember {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly RAST._IType _rhs;
-    public ImplMember_TypeDeclMember(Dafny.ISequence<Dafny.Rune> name, RAST._IType rhs) : base() {
-      this._name = name;
-      this._rhs = rhs;
-    }
+  public class ImplMember_TypeDeclMember(Dafny.ISequence<Dafny.Rune> name, RAST._IType rhs) : ImplMember {
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly RAST._IType _rhs = rhs;
+
     public override _IImplMember DowncastClone() {
       if (this is _IImplMember dt) { return dt; }
       return new ImplMember_TypeDeclMember(_name, _rhs);
@@ -4955,17 +4877,17 @@ namespace RAST {
       return s;
     }
   }
-  public class ImplMember_FnDecl : ImplMember {
-    public readonly Dafny.ISequence<Dafny.Rune> _docString;
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
-    public readonly RAST._IVisibility _pub;
-    public readonly RAST._IFn _fun;
-    public ImplMember_FnDecl(Dafny.ISequence<Dafny.Rune> docString, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, RAST._IVisibility pub, RAST._IFn fun) : base() {
-      this._docString = docString;
-      this._attributes = attributes;
-      this._pub = pub;
-      this._fun = fun;
-    }
+  public class ImplMember_FnDecl(
+    Dafny.ISequence<Dafny.Rune> docString,
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes,
+    RAST._IVisibility pub,
+    RAST._IFn fun)
+    : ImplMember {
+    public readonly Dafny.ISequence<Dafny.Rune> _docString = docString;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes = attributes;
+    public readonly RAST._IVisibility _pub = pub;
+    public readonly RAST._IFn _fun = fun;
+
     public override _IImplMember DowncastClone() {
       if (this is _IImplMember dt) { return dt; }
       return new ImplMember_FnDecl(_docString, _attributes, _pub, _fun);
@@ -4997,11 +4919,9 @@ namespace RAST {
       return s;
     }
   }
-  public class ImplMember_ImplMemberMacro : ImplMember {
-    public readonly RAST._IExpr _expr;
-    public ImplMember_ImplMemberMacro(RAST._IExpr expr) : base() {
-      this._expr = expr;
-    }
+  public class ImplMember_ImplMemberMacro(RAST._IExpr expr) : ImplMember {
+    public readonly RAST._IExpr _expr = expr;
+
     public override _IImplMember DowncastClone() {
       if (this is _IImplMember dt) { return dt; }
       return new ImplMember_ImplMemberMacro(_expr);
@@ -5117,13 +5037,10 @@ namespace RAST {
     __T Fold<__T>(__T acc, Func<__T, RAST._IType, __T> ft);
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class Formal : _IFormal {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly RAST._IType _tpe;
-    public Formal(Dafny.ISequence<Dafny.Rune> name, RAST._IType tpe) {
-      this._name = name;
-      this._tpe = tpe;
-    }
+  public class Formal(Dafny.ISequence<Dafny.Rune> name, RAST._IType tpe) : _IFormal {
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly RAST._IType _tpe = tpe;
+
     public _IFormal DowncastClone() {
       if (this is _IFormal dt) { return dt; }
       return new Formal(_name, _tpe);
@@ -5211,11 +5128,9 @@ namespace RAST {
     bool is_RawPattern { get; }
     Dafny.ISequence<Dafny.Rune> dtor_content { get; }
   }
-  public class Pattern : _IPattern {
-    public readonly Dafny.ISequence<Dafny.Rune> _content;
-    public Pattern(Dafny.ISequence<Dafny.Rune> content) {
-      this._content = content;
-    }
+  public class Pattern(Dafny.ISequence<Dafny.Rune> content) : _IPattern {
+    public readonly Dafny.ISequence<Dafny.Rune> _content = content;
+
     public static Dafny.ISequence<Dafny.Rune> DowncastClone(Dafny.ISequence<Dafny.Rune> _this) {
       return _this;
     }
@@ -5270,13 +5185,10 @@ namespace RAST {
     __T Fold<__T>(__T acc, Func<__T, RAST._IExpr, __T> f, Func<__T, RAST._IType, __T> ft);
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class MatchCase : _IMatchCase {
-    public readonly Dafny.ISequence<Dafny.Rune> _pattern;
-    public readonly RAST._IExpr _rhs;
-    public MatchCase(Dafny.ISequence<Dafny.Rune> pattern, RAST._IExpr rhs) {
-      this._pattern = pattern;
-      this._rhs = rhs;
-    }
+  public class MatchCase(Dafny.ISequence<Dafny.Rune> pattern, RAST._IExpr rhs) : _IMatchCase {
+    public readonly Dafny.ISequence<Dafny.Rune> _pattern = pattern;
+    public readonly RAST._IExpr _rhs = rhs;
+
     public _IMatchCase DowncastClone() {
       if (this is _IMatchCase dt) { return dt; }
       return new MatchCase(_pattern, _rhs);
@@ -5350,13 +5262,10 @@ namespace RAST {
     __T Fold<__T>(__T acc, Func<__T, RAST._IExpr, __T> f, Func<__T, RAST._IType, __T> ft);
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class AssignIdentifier : _IAssignIdentifier {
-    public readonly Dafny.ISequence<Dafny.Rune> _identifier;
-    public readonly RAST._IExpr _rhs;
-    public AssignIdentifier(Dafny.ISequence<Dafny.Rune> identifier, RAST._IExpr rhs) {
-      this._identifier = identifier;
-      this._rhs = rhs;
-    }
+  public class AssignIdentifier(Dafny.ISequence<Dafny.Rune> identifier, RAST._IExpr rhs) : _IAssignIdentifier {
+    public readonly Dafny.ISequence<Dafny.Rune> _identifier = identifier;
+    public readonly RAST._IExpr _rhs = rhs;
+
     public _IAssignIdentifier DowncastClone() {
       if (this is _IAssignIdentifier dt) { return dt; }
       return new AssignIdentifier(_identifier, _rhs);
@@ -5705,11 +5614,9 @@ namespace RAST {
       return s;
     }
   }
-  public class PrintingInfo_Precedence : PrintingInfo {
-    public readonly BigInteger _precedence;
-    public PrintingInfo_Precedence(BigInteger precedence) : base() {
-      this._precedence = precedence;
-    }
+  public class PrintingInfo_Precedence(BigInteger precedence) : PrintingInfo {
+    public readonly BigInteger _precedence = precedence;
+
     public override _IPrintingInfo DowncastClone() {
       if (this is _IPrintingInfo dt) { return dt; }
       return new PrintingInfo_Precedence(_precedence);
@@ -5732,11 +5639,9 @@ namespace RAST {
       return s;
     }
   }
-  public class PrintingInfo_SuffixPrecedence : PrintingInfo {
-    public readonly BigInteger _precedence;
-    public PrintingInfo_SuffixPrecedence(BigInteger precedence) : base() {
-      this._precedence = precedence;
-    }
+  public class PrintingInfo_SuffixPrecedence(BigInteger precedence) : PrintingInfo {
+    public readonly BigInteger _precedence = precedence;
+
     public override _IPrintingInfo DowncastClone() {
       if (this is _IPrintingInfo dt) { return dt; }
       return new PrintingInfo_SuffixPrecedence(_precedence);
@@ -5759,13 +5664,11 @@ namespace RAST {
       return s;
     }
   }
-  public class PrintingInfo_PrecedenceAssociativity : PrintingInfo {
-    public readonly BigInteger _precedence;
-    public readonly RAST._IAssociativity _associativity;
-    public PrintingInfo_PrecedenceAssociativity(BigInteger precedence, RAST._IAssociativity associativity) : base() {
-      this._precedence = precedence;
-      this._associativity = associativity;
-    }
+  public class PrintingInfo_PrecedenceAssociativity(BigInteger precedence, RAST._IAssociativity associativity)
+    : PrintingInfo {
+    public readonly BigInteger _precedence = precedence;
+    public readonly RAST._IAssociativity _associativity = associativity;
+
     public override _IPrintingInfo DowncastClone() {
       if (this is _IPrintingInfo dt) { return dt; }
       return new PrintingInfo_PrecedenceAssociativity(_precedence, _associativity);
@@ -5870,11 +5773,9 @@ namespace RAST {
     }
     public abstract _IAssignLhs DowncastClone();
   }
-  public class AssignLhs_LocalVar : AssignLhs {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public AssignLhs_LocalVar(Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._name = name;
-    }
+  public class AssignLhs_LocalVar(Dafny.ISequence<Dafny.Rune> name) : AssignLhs {
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+
     public override _IAssignLhs DowncastClone() {
       if (this is _IAssignLhs dt) { return dt; }
       return new AssignLhs_LocalVar(_name);
@@ -5897,13 +5798,10 @@ namespace RAST {
       return s;
     }
   }
-  public class AssignLhs_SelectMember : AssignLhs {
-    public readonly RAST._IExpr _on;
-    public readonly Dafny.ISequence<Dafny.Rune> _field;
-    public AssignLhs_SelectMember(RAST._IExpr @on, Dafny.ISequence<Dafny.Rune> field) : base() {
-      this._on = @on;
-      this._field = field;
-    }
+  public class AssignLhs_SelectMember(RAST._IExpr on, Dafny.ISequence<Dafny.Rune> field) : AssignLhs {
+    public readonly RAST._IExpr _on = on;
+    public readonly Dafny.ISequence<Dafny.Rune> _field = field;
+
     public override _IAssignLhs DowncastClone() {
       if (this is _IAssignLhs dt) { return dt; }
       return new AssignLhs_SelectMember(_on, _field);
@@ -5929,11 +5827,9 @@ namespace RAST {
       return s;
     }
   }
-  public class AssignLhs_ExtractTuple : AssignLhs {
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _names;
-    public AssignLhs_ExtractTuple(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> names) : base() {
-      this._names = names;
-    }
+  public class AssignLhs_ExtractTuple(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> names) : AssignLhs {
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _names = names;
+
     public override _IAssignLhs DowncastClone() {
       if (this is _IAssignLhs dt) { return dt; }
       return new AssignLhs_ExtractTuple(_names);
@@ -5956,13 +5852,10 @@ namespace RAST {
       return s;
     }
   }
-  public class AssignLhs_Index : AssignLhs {
-    public readonly RAST._IExpr _expr;
-    public readonly Dafny.ISequence<RAST._IExpr> _indices;
-    public AssignLhs_Index(RAST._IExpr expr, Dafny.ISequence<RAST._IExpr> indices) : base() {
-      this._expr = expr;
-      this._indices = indices;
-    }
+  public class AssignLhs_Index(RAST._IExpr expr, Dafny.ISequence<RAST._IExpr> indices) : AssignLhs {
+    public readonly RAST._IExpr _expr = expr;
+    public readonly Dafny.ISequence<RAST._IExpr> _indices = indices;
+
     public override _IAssignLhs DowncastClone() {
       if (this is _IAssignLhs dt) { return dt; }
       return new AssignLhs_Index(_expr, _indices);
@@ -7802,11 +7695,9 @@ namespace RAST {
       }
     } }
   }
-  public class Expr_RawExpr : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _content;
-    public Expr_RawExpr(Dafny.ISequence<Dafny.Rune> content) : base() {
-      this._content = content;
-    }
+  public class Expr_RawExpr(Dafny.ISequence<Dafny.Rune> content) : Expr {
+    public readonly Dafny.ISequence<Dafny.Rune> _content = content;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_RawExpr(_content);
@@ -7829,11 +7720,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_ExprFromType : Expr {
-    public readonly RAST._IType _tpe;
-    public Expr_ExprFromType(RAST._IType tpe) : base() {
-      this._tpe = tpe;
-    }
+  public class Expr_ExprFromType(RAST._IType tpe) : Expr {
+    public readonly RAST._IType _tpe = tpe;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_ExprFromType(_tpe);
@@ -7856,11 +7745,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Identifier : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public Expr_Identifier(Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._name = name;
-    }
+  public class Expr_Identifier(Dafny.ISequence<Dafny.Rune> name) : Expr {
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Identifier(_name);
@@ -7883,13 +7770,11 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Match : Expr {
-    public readonly RAST._IExpr _matchee;
-    public readonly Dafny.ISequence<RAST._IMatchCase> _cases;
-    public Expr_Match(RAST._IExpr matchee, Dafny.ISequence<RAST._IMatchCase> cases) : base() {
-      this._matchee = matchee;
-      this._cases = cases;
-    }
+  public class Expr_Match(RAST._IExpr matchee, Dafny.ISequence<RAST._IMatchCase> cases)
+    : Expr {
+    public readonly RAST._IExpr _matchee = matchee;
+    public readonly Dafny.ISequence<RAST._IMatchCase> _cases = cases;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Match(_matchee, _cases);
@@ -7915,13 +7800,10 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_StmtExpr : Expr {
-    public readonly RAST._IExpr _stmt;
-    public readonly RAST._IExpr _rhs;
-    public Expr_StmtExpr(RAST._IExpr stmt, RAST._IExpr rhs) : base() {
-      this._stmt = stmt;
-      this._rhs = rhs;
-    }
+  public class Expr_StmtExpr(RAST._IExpr stmt, RAST._IExpr rhs) : Expr {
+    public readonly RAST._IExpr _stmt = stmt;
+    public readonly RAST._IExpr _rhs = rhs;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_StmtExpr(_stmt, _rhs);
@@ -7947,11 +7829,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Block : Expr {
-    public readonly RAST._IExpr _underlying;
-    public Expr_Block(RAST._IExpr underlying) : base() {
-      this._underlying = underlying;
-    }
+  public class Expr_Block(RAST._IExpr underlying) : Expr {
+    public readonly RAST._IExpr _underlying = underlying;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Block(_underlying);
@@ -7974,13 +7854,11 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_StructBuild : Expr {
-    public readonly RAST._IExpr _underlying;
-    public readonly Dafny.ISequence<RAST._IAssignIdentifier> _assignments;
-    public Expr_StructBuild(RAST._IExpr underlying, Dafny.ISequence<RAST._IAssignIdentifier> assignments) : base() {
-      this._underlying = underlying;
-      this._assignments = assignments;
-    }
+  public class Expr_StructBuild(RAST._IExpr underlying, Dafny.ISequence<RAST._IAssignIdentifier> assignments)
+    : Expr {
+    public readonly RAST._IExpr _underlying = underlying;
+    public readonly Dafny.ISequence<RAST._IAssignIdentifier> _assignments = assignments;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_StructBuild(_underlying, _assignments);
@@ -8006,11 +7884,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Tuple : Expr {
-    public readonly Dafny.ISequence<RAST._IExpr> _arguments;
-    public Expr_Tuple(Dafny.ISequence<RAST._IExpr> arguments) : base() {
-      this._arguments = arguments;
-    }
+  public class Expr_Tuple(Dafny.ISequence<RAST._IExpr> arguments) : Expr {
+    public readonly Dafny.ISequence<RAST._IExpr> _arguments = arguments;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Tuple(_arguments);
@@ -8033,15 +7909,12 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_UnaryOp : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _op1;
-    public readonly RAST._IExpr _underlying;
-    public readonly DAST.Format._IUnaryOpFormat _format;
-    public Expr_UnaryOp(Dafny.ISequence<Dafny.Rune> op1, RAST._IExpr underlying, DAST.Format._IUnaryOpFormat format) : base() {
-      this._op1 = op1;
-      this._underlying = underlying;
-      this._format = format;
-    }
+  public class Expr_UnaryOp(Dafny.ISequence<Dafny.Rune> op1, RAST._IExpr underlying, DAST.Format._IUnaryOpFormat format)
+    : Expr {
+    public readonly Dafny.ISequence<Dafny.Rune> _op1 = op1;
+    public readonly RAST._IExpr _underlying = underlying;
+    public readonly DAST.Format._IUnaryOpFormat _format = format;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_UnaryOp(_op1, _underlying, _format);
@@ -8070,17 +7943,17 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_BinaryOp : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _op2;
-    public readonly RAST._IExpr _left;
-    public readonly RAST._IExpr _right;
-    public readonly DAST.Format._IBinaryOpFormat _format2;
-    public Expr_BinaryOp(Dafny.ISequence<Dafny.Rune> op2, RAST._IExpr left, RAST._IExpr right, DAST.Format._IBinaryOpFormat format2) : base() {
-      this._op2 = op2;
-      this._left = left;
-      this._right = right;
-      this._format2 = format2;
-    }
+  public class Expr_BinaryOp(
+    Dafny.ISequence<Dafny.Rune> op2,
+    RAST._IExpr left,
+    RAST._IExpr right,
+    DAST.Format._IBinaryOpFormat format2)
+    : Expr {
+    public readonly Dafny.ISequence<Dafny.Rune> _op2 = op2;
+    public readonly RAST._IExpr _left = left;
+    public readonly RAST._IExpr _right = right;
+    public readonly DAST.Format._IBinaryOpFormat _format2 = format2;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_BinaryOp(_op2, _left, _right, _format2);
@@ -8112,13 +7985,10 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_TypeAscription : Expr {
-    public readonly RAST._IExpr _left;
-    public readonly RAST._IType _tpe;
-    public Expr_TypeAscription(RAST._IExpr left, RAST._IType tpe) : base() {
-      this._left = left;
-      this._tpe = tpe;
-    }
+  public class Expr_TypeAscription(RAST._IExpr left, RAST._IType tpe) : Expr {
+    public readonly RAST._IExpr _left = left;
+    public readonly RAST._IType _tpe = tpe;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_TypeAscription(_left, _tpe);
@@ -8144,13 +8014,10 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_TraitCast : Expr {
-    public readonly RAST._IType _leftTpe;
-    public readonly RAST._IType _tpe;
-    public Expr_TraitCast(RAST._IType leftTpe, RAST._IType tpe) : base() {
-      this._leftTpe = leftTpe;
-      this._tpe = tpe;
-    }
+  public class Expr_TraitCast(RAST._IType leftTpe, RAST._IType tpe) : Expr {
+    public readonly RAST._IType _leftTpe = leftTpe;
+    public readonly RAST._IType _tpe = tpe;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_TraitCast(_leftTpe, _tpe);
@@ -8176,11 +8043,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_LiteralInt : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _value;
-    public Expr_LiteralInt(Dafny.ISequence<Dafny.Rune> @value) : base() {
-      this._value = @value;
-    }
+  public class Expr_LiteralInt(Dafny.ISequence<Dafny.Rune> @value) : Expr {
+    public readonly Dafny.ISequence<Dafny.Rune> _value = @value;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_LiteralInt(_value);
@@ -8203,11 +8068,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_LiteralBool : Expr {
-    public readonly bool _bvalue;
-    public Expr_LiteralBool(bool bvalue) : base() {
-      this._bvalue = bvalue;
-    }
+  public class Expr_LiteralBool(bool bvalue) : Expr {
+    public readonly bool _bvalue = bvalue;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_LiteralBool(_bvalue);
@@ -8230,15 +8093,12 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_LiteralString : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _value;
-    public readonly bool _binary;
-    public readonly bool _verbatim;
-    public Expr_LiteralString(Dafny.ISequence<Dafny.Rune> @value, bool binary, bool verbatim) : base() {
-      this._value = @value;
-      this._binary = binary;
-      this._verbatim = verbatim;
-    }
+  public class Expr_LiteralString(Dafny.ISequence<Dafny.Rune> @value, bool binary, bool verbatim)
+    : Expr {
+    public readonly Dafny.ISequence<Dafny.Rune> _value = @value;
+    public readonly bool _binary = binary;
+    public readonly bool _verbatim = verbatim;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_LiteralString(_value, _binary, _verbatim);
@@ -8267,17 +8127,17 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_DeclareVar : Expr {
-    public readonly RAST._IDeclareType _declareType;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Std.Wrappers._IOption<RAST._IType> _optType;
-    public readonly Std.Wrappers._IOption<RAST._IExpr> _optRhs;
-    public Expr_DeclareVar(RAST._IDeclareType declareType, Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<RAST._IType> optType, Std.Wrappers._IOption<RAST._IExpr> optRhs) : base() {
-      this._declareType = declareType;
-      this._name = name;
-      this._optType = optType;
-      this._optRhs = optRhs;
-    }
+  public class Expr_DeclareVar(
+    RAST._IDeclareType declareType,
+    Dafny.ISequence<Dafny.Rune> name,
+    Std.Wrappers._IOption<RAST._IType> optType,
+    Std.Wrappers._IOption<RAST._IExpr> optRhs)
+    : Expr {
+    public readonly RAST._IDeclareType _declareType = declareType;
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly Std.Wrappers._IOption<RAST._IType> _optType = optType;
+    public readonly Std.Wrappers._IOption<RAST._IExpr> _optRhs = optRhs;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_DeclareVar(_declareType, _name, _optType, _optRhs);
@@ -8309,13 +8169,11 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Assign : Expr {
-    public readonly Std.Wrappers._IOption<RAST._IAssignLhs> _names;
-    public readonly RAST._IExpr _rhs;
-    public Expr_Assign(Std.Wrappers._IOption<RAST._IAssignLhs> names, RAST._IExpr rhs) : base() {
-      this._names = names;
-      this._rhs = rhs;
-    }
+  public class Expr_Assign(Std.Wrappers._IOption<RAST._IAssignLhs> names, RAST._IExpr rhs)
+    : Expr {
+    public readonly Std.Wrappers._IOption<RAST._IAssignLhs> _names = names;
+    public readonly RAST._IExpr _rhs = rhs;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Assign(_names, _rhs);
@@ -8341,15 +8199,11 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_IfExpr : Expr {
-    public readonly RAST._IExpr _cond;
-    public readonly RAST._IExpr _thn;
-    public readonly RAST._IExpr _els;
-    public Expr_IfExpr(RAST._IExpr cond, RAST._IExpr thn, RAST._IExpr els) : base() {
-      this._cond = cond;
-      this._thn = thn;
-      this._els = els;
-    }
+  public class Expr_IfExpr(RAST._IExpr cond, RAST._IExpr thn, RAST._IExpr els) : Expr {
+    public readonly RAST._IExpr _cond = cond;
+    public readonly RAST._IExpr _thn = thn;
+    public readonly RAST._IExpr _els = els;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_IfExpr(_cond, _thn, _els);
@@ -8378,13 +8232,11 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Loop : Expr {
-    public readonly Std.Wrappers._IOption<RAST._IExpr> _optCond;
-    public readonly RAST._IExpr _underlying;
-    public Expr_Loop(Std.Wrappers._IOption<RAST._IExpr> optCond, RAST._IExpr underlying) : base() {
-      this._optCond = optCond;
-      this._underlying = underlying;
-    }
+  public class Expr_Loop(Std.Wrappers._IOption<RAST._IExpr> optCond, RAST._IExpr underlying)
+    : Expr {
+    public readonly Std.Wrappers._IOption<RAST._IExpr> _optCond = optCond;
+    public readonly RAST._IExpr _underlying = underlying;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Loop(_optCond, _underlying);
@@ -8410,15 +8262,12 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_For : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly RAST._IExpr _range;
-    public readonly RAST._IExpr _body;
-    public Expr_For(Dafny.ISequence<Dafny.Rune> name, RAST._IExpr range, RAST._IExpr body) : base() {
-      this._name = name;
-      this._range = range;
-      this._body = body;
-    }
+  public class Expr_For(Dafny.ISequence<Dafny.Rune> name, RAST._IExpr range, RAST._IExpr body)
+    : Expr {
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly RAST._IExpr _range = range;
+    public readonly RAST._IExpr _body = body;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_For(_name, _range, _body);
@@ -8447,13 +8296,10 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Labelled : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _lbl;
-    public readonly RAST._IExpr _underlying;
-    public Expr_Labelled(Dafny.ISequence<Dafny.Rune> lbl, RAST._IExpr underlying) : base() {
-      this._lbl = lbl;
-      this._underlying = underlying;
-    }
+  public class Expr_Labelled(Dafny.ISequence<Dafny.Rune> lbl, RAST._IExpr underlying) : Expr {
+    public readonly Dafny.ISequence<Dafny.Rune> _lbl = lbl;
+    public readonly RAST._IExpr _underlying = underlying;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Labelled(_lbl, _underlying);
@@ -8479,11 +8325,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Break : Expr {
-    public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _optLbl;
-    public Expr_Break(Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> optLbl) : base() {
-      this._optLbl = optLbl;
-    }
+  public class Expr_Break(Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> optLbl) : Expr {
+    public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _optLbl = optLbl;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Break(_optLbl);
@@ -8506,11 +8350,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Continue : Expr {
-    public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _optLbl;
-    public Expr_Continue(Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> optLbl) : base() {
-      this._optLbl = optLbl;
-    }
+  public class Expr_Continue(Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> optLbl) : Expr {
+    public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _optLbl = optLbl;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Continue(_optLbl);
@@ -8533,11 +8375,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Return : Expr {
-    public readonly Std.Wrappers._IOption<RAST._IExpr> _optExpr;
-    public Expr_Return(Std.Wrappers._IOption<RAST._IExpr> optExpr) : base() {
-      this._optExpr = optExpr;
-    }
+  public class Expr_Return(Std.Wrappers._IOption<RAST._IExpr> optExpr) : Expr {
+    public readonly Std.Wrappers._IOption<RAST._IExpr> _optExpr = optExpr;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Return(_optExpr);
@@ -8560,13 +8400,11 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_CallType : Expr {
-    public readonly RAST._IExpr _obj;
-    public readonly Dafny.ISequence<RAST._IType> _typeArguments;
-    public Expr_CallType(RAST._IExpr obj, Dafny.ISequence<RAST._IType> typeArguments) : base() {
-      this._obj = obj;
-      this._typeArguments = typeArguments;
-    }
+  public class Expr_CallType(RAST._IExpr obj, Dafny.ISequence<RAST._IType> typeArguments)
+    : Expr {
+    public readonly RAST._IExpr _obj = obj;
+    public readonly Dafny.ISequence<RAST._IType> _typeArguments = typeArguments;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_CallType(_obj, _typeArguments);
@@ -8592,13 +8430,10 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Call : Expr {
-    public readonly RAST._IExpr _obj;
-    public readonly Dafny.ISequence<RAST._IExpr> _arguments;
-    public Expr_Call(RAST._IExpr obj, Dafny.ISequence<RAST._IExpr> arguments) : base() {
-      this._obj = obj;
-      this._arguments = arguments;
-    }
+  public class Expr_Call(RAST._IExpr obj, Dafny.ISequence<RAST._IExpr> arguments) : Expr {
+    public readonly RAST._IExpr _obj = obj;
+    public readonly Dafny.ISequence<RAST._IExpr> _arguments = arguments;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Call(_obj, _arguments);
@@ -8624,13 +8459,10 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Select : Expr {
-    public readonly RAST._IExpr _obj;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public Expr_Select(RAST._IExpr obj, Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._obj = obj;
-      this._name = name;
-    }
+  public class Expr_Select(RAST._IExpr obj, Dafny.ISequence<Dafny.Rune> name) : Expr {
+    public readonly RAST._IExpr _obj = obj;
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Select(_obj, _name);
@@ -8656,13 +8488,10 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_SelectIndex : Expr {
-    public readonly RAST._IExpr _obj;
-    public readonly RAST._IExpr _range;
-    public Expr_SelectIndex(RAST._IExpr obj, RAST._IExpr range) : base() {
-      this._obj = obj;
-      this._range = range;
-    }
+  public class Expr_SelectIndex(RAST._IExpr obj, RAST._IExpr range) : Expr {
+    public readonly RAST._IExpr _obj = obj;
+    public readonly RAST._IExpr _range = range;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_SelectIndex(_obj, _range);
@@ -8688,11 +8517,9 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_ExprFromPath : Expr {
-    public readonly RAST._IPath _path;
-    public Expr_ExprFromPath(RAST._IPath path) : base() {
-      this._path = path;
-    }
+  public class Expr_ExprFromPath(RAST._IPath path) : Expr {
+    public readonly RAST._IPath _path = path;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_ExprFromPath(_path);
@@ -8715,13 +8542,10 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_FunctionSelect : Expr {
-    public readonly RAST._IExpr _obj;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public Expr_FunctionSelect(RAST._IExpr obj, Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._obj = obj;
-      this._name = name;
-    }
+  public class Expr_FunctionSelect(RAST._IExpr obj, Dafny.ISequence<Dafny.Rune> name) : Expr {
+    public readonly RAST._IExpr _obj = obj;
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_FunctionSelect(_obj, _name);
@@ -8747,15 +8571,15 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Lambda : Expr {
-    public readonly Dafny.ISequence<RAST._IFormal> _params;
-    public readonly Std.Wrappers._IOption<RAST._IType> _retType;
-    public readonly RAST._IExpr _body;
-    public Expr_Lambda(Dafny.ISequence<RAST._IFormal> @params, Std.Wrappers._IOption<RAST._IType> retType, RAST._IExpr body) : base() {
-      this._params = @params;
-      this._retType = retType;
-      this._body = body;
-    }
+  public class Expr_Lambda(
+    Dafny.ISequence<RAST._IFormal> @params,
+    Std.Wrappers._IOption<RAST._IType> retType,
+    RAST._IExpr body)
+    : Expr {
+    public readonly Dafny.ISequence<RAST._IFormal> _params = @params;
+    public readonly Std.Wrappers._IOption<RAST._IType> _retType = retType;
+    public readonly RAST._IExpr _body = body;
+
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
       return new Expr_Lambda(_params, _retType, _body);
@@ -8795,19 +8619,19 @@ namespace RAST {
     _IFn DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class Fn : _IFn {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
-    public readonly Dafny.ISequence<RAST._IFormal> _formals;
-    public readonly Std.Wrappers._IOption<RAST._IType> _returnType;
-    public readonly Std.Wrappers._IOption<RAST._IExpr> _body;
-    public Fn(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.ISequence<RAST._IFormal> formals, Std.Wrappers._IOption<RAST._IType> returnType, Std.Wrappers._IOption<RAST._IExpr> body) {
-      this._name = name;
-      this._typeParams = typeParams;
-      this._formals = formals;
-      this._returnType = returnType;
-      this._body = body;
-    }
+  public class Fn(
+    Dafny.ISequence<Dafny.Rune> name,
+    Dafny.ISequence<RAST._ITypeParamDecl> typeParams,
+    Dafny.ISequence<RAST._IFormal> formals,
+    Std.Wrappers._IOption<RAST._IType> returnType,
+    Std.Wrappers._IOption<RAST._IExpr> body)
+    : _IFn {
+    public readonly Dafny.ISequence<Dafny.Rune> _name = name;
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams = typeParams;
+    public readonly Dafny.ISequence<RAST._IFormal> _formals = formals;
+    public readonly Std.Wrappers._IOption<RAST._IType> _returnType = returnType;
+    public readonly Std.Wrappers._IOption<RAST._IExpr> _body = body;
+
     public _IFn DowncastClone() {
       if (this is _IFn dt) { return dt; }
       return new Fn(_name, _typeParams, _formals, _returnType, _body);

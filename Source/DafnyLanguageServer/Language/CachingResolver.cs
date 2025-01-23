@@ -18,22 +18,13 @@ public class ResolutionCache {
   public Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>? SystemClassMembers { get; set; }
 }
 
-public class CachingResolver : ProgramResolver {
-  private readonly ILogger<CachingResolver> logger;
+public class CachingResolver(
+  Program program,
+  ILogger<CachingResolver> logger,
+  TelemetryPublisherBase telemetryPublisher,
+  ResolutionCache cache)
+  : ProgramResolver(program) {
   private readonly Dictionary<ModuleDecl, byte[]> hashes = new();
-  private readonly ResolutionCache cache;
-  private readonly TelemetryPublisherBase telemetryPublisher;
-
-  public CachingResolver(
-    Program program,
-    ILogger<CachingResolver> logger,
-    TelemetryPublisherBase telemetryPublisher,
-    ResolutionCache cache)
-    : base(program) {
-    this.logger = logger;
-    this.cache = cache;
-    this.telemetryPublisher = telemetryPublisher;
-  }
 
   public override Task Resolve(CancellationToken cancellationToken) {
     return cache.Modules.ProfileAndPruneCache(async () => {

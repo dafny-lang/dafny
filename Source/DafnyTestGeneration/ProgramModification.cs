@@ -14,15 +14,11 @@ using Microsoft.Dafny;
 using Program = Microsoft.Boogie.Program;
 
 namespace DafnyTestGeneration {
-  public class Modifications {
-    private readonly DafnyOptions options;
+  public class Modifications(DafnyOptions options) {
     internal HashSet<int> preprocessedPrograms = [];
     // List of all types for which a {:synthesize} - annotated method is needed
     // These methods are used to get fresh instances of the corresponding types
     internal readonly List<UserDefinedType> TypesToSynthesize = [];
-    public Modifications(DafnyOptions options) {
-      this.options = options;
-    }
 
     private readonly Dictionary<string, ProgramModification> idToModification = new();
     public ProgramModification GetProgramModification(Program program,
@@ -50,35 +46,26 @@ namespace DafnyTestGeneration {
   /// program has an assertion that should fail provided a certain block is
   /// visited / path is taken.
   /// </summary>
-  public class ProgramModification {
-    private DafnyOptions Options { get; }
+  public class ProgramModification(
+    DafnyOptions options,
+    Program program,
+    Implementation impl,
+    HashSet<string> capturedStates,
+    HashSet<string> testEntryNames,
+    string uniqueId) {
+    private DafnyOptions Options { get; } = options;
 
     internal enum Status { Success, Failure, Untested }
 
-    internal Status CounterexampleStatus;
-    public readonly Implementation Implementation; // implementation under test
+    internal Status CounterexampleStatus = Status.Untested;
+    public readonly Implementation Implementation = impl; // implementation under test
 
-    internal readonly string uniqueId;
-    public readonly HashSet<string> CapturedStates;
+    internal readonly string uniqueId = uniqueId;
+    public readonly HashSet<string> CapturedStates = capturedStates;
 
-    private readonly HashSet<string> testEntryNames;
-    private Program/*?*/ program;
-    private string/*?*/ counterexampleLog;
-    internal TestMethod TestMethod;
-
-    public ProgramModification(DafnyOptions options, Program program, Implementation impl,
-      HashSet<string> capturedStates,
-      HashSet<string> testEntryNames, string uniqueId) {
-      Options = options;
-      Implementation = impl;
-      CounterexampleStatus = Status.Untested;
-      this.program = program;
-      this.testEntryNames = testEntryNames;
-      CapturedStates = capturedStates;
-      this.uniqueId = uniqueId;
-      counterexampleLog = null;
-      TestMethod = null;
-    }
+    /*?*/
+    private string/*?*/ counterexampleLog = null;
+    internal TestMethod TestMethod = null;
 
     /// <summary>
     /// Setup DafnyOptions to prepare for counterexample extraction

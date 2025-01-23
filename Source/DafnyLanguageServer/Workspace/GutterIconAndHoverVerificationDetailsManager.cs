@@ -10,18 +10,12 @@ using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class GutterIconAndHoverVerificationDetailsManager {
+public class GutterIconAndHoverVerificationDetailsManager(ILogger logger) {
 
   public static readonly Option<bool> LineVerificationStatus = new("--notify-line-verification-status", @"
 (experimental, API will change)
 Send notifications about the verification status of each line in the program.
 ".TrimStart());
-
-  private readonly ILogger logger;
-
-  public GutterIconAndHoverVerificationDetailsManager(ILogger logger) {
-    this.logger = logger;
-  }
 
   public static DocumentVerificationTree UpdateTree(DafnyOptions options, Program program, DocumentVerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;

@@ -11,7 +11,8 @@ using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
-  public class CancelVerificationTest : ClientBasedLanguageServerTest {
+  public class CancelVerificationTest(ITestOutputHelper output)
+    : ClientBasedLanguageServerTest(output, LogLevel.Debug) {
 
     [Fact]
     public async Task ChangingTheDocumentStopsOnChangeVerification() {
@@ -104,9 +105,6 @@ method {:resource_limit ""10e6""} test() {
 
         status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       }
-    }
-
-    public CancelVerificationTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
     }
   }
 }

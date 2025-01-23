@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class CppBackend : ExecutableBackend {
+public class CppBackend(DafnyOptions options) : ExecutableBackend(options) {
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     return new CppCodeGenerator(Options, Reporter, OtherFileNames);
@@ -70,7 +70,4 @@ and advanced features like traits or co-inductive types.";
   public override bool SupportsInMemoryCompilation => false;
 
   public override bool TextualTargetIsExecutable => false;
-
-  public CppBackend(DafnyOptions options) : base(options) {
-  }
 }

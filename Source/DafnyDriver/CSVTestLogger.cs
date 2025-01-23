@@ -8,16 +8,11 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 
 namespace Microsoft.Dafny {
-  public class CSVTestLogger : ITestLoggerWithParameters {
+  public class CSVTestLogger(TextWriter logWriter) : ITestLoggerWithParameters {
 
     private readonly ConcurrentBag<TestResult> results = [];
     private TextWriter writer;
-    private readonly TextWriter logWriter;
     private string writerFilename;
-
-    public CSVTestLogger(TextWriter logWriter) {
-      this.logWriter = logWriter;
-    }
 
     public void Initialize(TestLoggerEvents events, string testRunDirectory) {
     }

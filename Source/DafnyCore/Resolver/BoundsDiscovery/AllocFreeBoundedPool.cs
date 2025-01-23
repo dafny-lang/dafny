@@ -7,11 +7,9 @@
 
 namespace Microsoft.Dafny;
 
-public class AllocFreeBoundedPool : BoundedPool {
-  public Type Type;
-  public AllocFreeBoundedPool(Type t) {
-    Type = t;
-  }
+public class AllocFreeBoundedPool(Type t) : BoundedPool {
+  public Type Type = t;
+
   public override PoolVirtues Virtues {
     get {
       if (Type.IsRefType) {

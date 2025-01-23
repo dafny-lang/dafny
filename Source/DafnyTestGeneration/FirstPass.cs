@@ -13,11 +13,10 @@ using Type = Microsoft.Dafny.Type;
 namespace DafnyTestGeneration;
 
 // This AST pass is run before test generation to detect any potential issues and report them to the user
-public class FirstPass {
+public class FirstPass(DafnyOptions options) {
   private List<DafnyDiagnostic> diagnostics;
   private IEnumerable<DafnyDiagnostic> Errors => diagnostics.Where(diagnostic => diagnostic.Level == ErrorLevel.Error);
   private IEnumerable<DafnyDiagnostic> Warnings => diagnostics.Where(diagnostic => diagnostic.Level == ErrorLevel.Warning);
-  private readonly DafnyOptions options;
   public bool NonZeroExitCode { get; private set; }
 
   // Errors always lead to preemptive termination of test generation and cannot be bypassed
@@ -34,10 +33,6 @@ public class FirstPass {
 
   // List of all types that have been checked for being supported. Used to prevent infinite recursion
   private HashSet<Type> typesConsidered = [];
-
-  public FirstPass(DafnyOptions options) {
-    this.options = options;
-  }
 
   /// <summary>
   /// Check that test generation will be able to process the program.

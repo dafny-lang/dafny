@@ -5,11 +5,7 @@ using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace XUnitExtensions {
-  public class FileTheoryDiscoverer : TheoryDiscoverer {
-
-    public FileTheoryDiscoverer(IMessageSink diagnosticMessageSink) : base(diagnosticMessageSink) {
-    }
-
+  public class FileTheoryDiscoverer(IMessageSink diagnosticMessageSink) : TheoryDiscoverer(diagnosticMessageSink) {
     public override IEnumerable<IXunitTestCase> Discover(ITestFrameworkDiscoveryOptions discoveryOptions, ITestMethod testMethod, IAttributeInfo factAttribute) {
       // This discoverer requires pre-enumeration in order to assign a collection to each test case.
       discoveryOptions.SetValue("xunit.discovery.PreEnumerateTheories", true);

@@ -5,19 +5,15 @@ using System.Threading.Tasks;
 using DafnyCore;
 using Microsoft.Dafny;
 
-public class CachingProjectFileOpener : ProjectFileOpener {
+public class CachingProjectFileOpener(IFileSystem fileSystem, DafnyOptions serverOptions, IOrigin origin)
+  : ProjectFileOpener(fileSystem, origin) {
   public const int DefaultProjectFileCacheExpiryTime = 100;
   private readonly object nullRepresentative = new(); // Needed because you can't store null in the MemoryCache, but that's a value we want to cache.
-  private readonly DafnyOptions serverOptions;
   private readonly MemoryCache projectFilePerFolderCache = new("projectFiles");
 
 
   static CachingProjectFileOpener() {
     OptionRegistry.RegisterOption(ProjectFileCacheExpiry, OptionScope.Cli);
-  }
-
-  public CachingProjectFileOpener(IFileSystem fileSystem, DafnyOptions serverOptions, IOrigin origin) : base(fileSystem, origin) {
-    this.serverOptions = serverOptions;
   }
 
   public static readonly Option<int> ProjectFileCacheExpiry = new("--project-file-cache-expiry", () => DefaultProjectFileCacheExpiryTime,

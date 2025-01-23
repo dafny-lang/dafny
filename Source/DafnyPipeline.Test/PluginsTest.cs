@@ -14,12 +14,8 @@ using Xunit.Abstractions;
 namespace DafnyPipeline.Test;
 
 [Collection("Dafny plug-ins tests")]
-public class PluginsTest {
-  private readonly TextWriter output;
-
-  public PluginsTest(ITestOutputHelper output) {
-    this.output = new WriterFromOutputHelper(output);
-  }
+public class PluginsTest(ITestOutputHelper output) {
+  private readonly TextWriter output = new WriterFromOutputHelper(output);
 
   /// <summary>
   /// This method creates a library and returns the path to that library.

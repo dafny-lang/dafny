@@ -168,29 +168,18 @@ public abstract class DefinitionConstraint : Constraint {
   }
 }
 
-public class IdentifierExprConstraint : DefinitionConstraint {
-  private readonly string name;
-
-  public IdentifierExprConstraint(PartialValue definedValue, string name)
-    : base(new List<PartialValue>(), definedValue, []) {
-    this.name = name;
-  }
-
+public class IdentifierExprConstraint(PartialValue definedValue, string name)
+  : DefinitionConstraint(new List<PartialValue>(), definedValue, []) {
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return new IdentifierExpr(Token.NoToken, name);
   }
 }
 
-public class ArraySelectionConstraint : DefinitionConstraint {
-  public PartialValue Array;
-  public List<LiteralExpr> indices;
-
-  public ArraySelectionConstraint(PartialValue definedValue, PartialValue array, List<LiteralExpr> indices)
-    : base(new List<PartialValue>() { array }, definedValue,
-      [new ArrayLengthConstraint(array, indices)]) {
-    Array = array;
-    this.indices = indices;
-  }
+public class ArraySelectionConstraint(PartialValue definedValue, PartialValue array, List<LiteralExpr> indices)
+  : DefinitionConstraint(new List<PartialValue>() { array }, definedValue,
+    [new ArrayLengthConstraint(array, indices)]) {
+  public PartialValue Array = array;
+  public List<LiteralExpr> indices = indices;
 
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     if (indices.Count == 1) {
@@ -200,65 +189,45 @@ public class ArraySelectionConstraint : DefinitionConstraint {
   }
 }
 
-public class LiteralExprConstraint : DefinitionConstraint {
+public class LiteralExprConstraint(PartialValue definedValue, Expression literalExpr)
+  : DefinitionConstraint(new List<PartialValue>(), definedValue, []) {
 
-  public readonly Expression LiteralExpr;
-  public LiteralExprConstraint(PartialValue definedValue, Expression literalExpr)
-    : base(new List<PartialValue>(), definedValue, []) {
-    LiteralExpr = literalExpr;
-  }
+  public readonly Expression LiteralExpr = literalExpr;
 
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return LiteralExpr;
   }
 }
 
-public abstract class MemberSelectExprConstraint : DefinitionConstraint {
+public abstract class MemberSelectExprConstraint(
+  PartialValue definedValue,
+  PartialValue obj,
+  string memberName,
+  List<Constraint> constraint)
+  : DefinitionConstraint(new List<PartialValue> { obj }, definedValue, constraint) {
 
-  public readonly PartialValue Obj;
-  public readonly string MemberName;
-
-  protected MemberSelectExprConstraint(
-    PartialValue definedValue,
-    PartialValue obj,
-    string memberName,
-    List<Constraint> constraint) : base(new List<PartialValue> { obj }, definedValue, constraint) {
-    Obj = obj;
-    MemberName = memberName;
-  }
+  public readonly PartialValue Obj = obj;
+  public readonly string MemberName = memberName;
 
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return new MemberSelectExpr(Token.NoToken, definitions[Obj], new Name(MemberName));
   }
 }
 
-public class MemberSelectExprDatatypeConstraint : MemberSelectExprConstraint {
-  public MemberSelectExprDatatypeConstraint(PartialValue definedValue, PartialValue obj, string memberName)
-    : base(definedValue, obj, memberName, []) { }
-}
+public class MemberSelectExprDatatypeConstraint(PartialValue definedValue, PartialValue obj, string memberName)
+  : MemberSelectExprConstraint(definedValue, obj, memberName, []);
 
-public class MemberSelectExprClassConstraint : MemberSelectExprConstraint {
-  public MemberSelectExprClassConstraint(PartialValue definedValue, PartialValue obj, string memberName)
-    : base(definedValue, obj, memberName, [new NotNullConstraint(obj)]) {
-  }
-}
+public class MemberSelectExprClassConstraint(PartialValue definedValue, PartialValue obj, string memberName)
+  : MemberSelectExprConstraint(definedValue, obj, memberName, [new NotNullConstraint(obj)]);
 
-public class DatatypeValueConstraint : DefinitionConstraint {
+public class DatatypeValueConstraint(
+  PartialValue definedValue,
+  string datatypeName,
+  string constructorName,
+  IReadOnlyCollection<PartialValue> unnamedDestructors)
+  : DefinitionConstraint(unnamedDestructors, definedValue, []) {
 
-  public readonly IEnumerable<PartialValue> UnnamedDestructors;
-  private readonly string constructorName;
-  private readonly string datatypeName;
-
-  public DatatypeValueConstraint(
-    PartialValue definedValue,
-    string datatypeName,
-    string constructorName,
-    IReadOnlyCollection<PartialValue> unnamedDestructors)
-    : base(unnamedDestructors, definedValue, []) {
-    UnnamedDestructors = unnamedDestructors;
-    this.constructorName = constructorName;
-    this.datatypeName = datatypeName;
-  }
+  public readonly IEnumerable<PartialValue> UnnamedDestructors = unnamedDestructors;
 
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return new DatatypeValue(Token.NoToken, datatypeName,
@@ -267,18 +236,13 @@ public class DatatypeValueConstraint : DefinitionConstraint {
   }
 }
 
-public class SeqSelectExprConstraint : DefinitionConstraint {
-
-  public readonly PartialValue Seq;
-  public readonly PartialValue Index;
-
-
-  public SeqSelectExprConstraint(PartialValue definedValue, PartialValue seq, PartialValue index) : base(
-    new List<PartialValue> { seq, index }, definedValue,
+public class SeqSelectExprConstraint(PartialValue definedValue, PartialValue seq, PartialValue index)
+  : DefinitionConstraint(new List<PartialValue> { seq, index }, definedValue,
     [new CardinalityGtThanConstraint(seq, index)]) {
-    Seq = seq;
-    Index = index;
-  }
+
+  public readonly PartialValue Seq = seq;
+  public readonly PartialValue Index = index;
+
 
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return new SeqSelectExpr(
@@ -291,80 +255,52 @@ public class SeqSelectExprConstraint : DefinitionConstraint {
   }
 }
 
-public class MapSelectExprConstraint : DefinitionConstraint {
+public class MapSelectExprConstraint(PartialValue definedValue, PartialValue map, PartialValue key)
+  : DefinitionConstraint(new List<PartialValue> { map, key }, definedValue,
+    [new ContainmentConstraint(key, map, true)]) {
 
-  public readonly PartialValue Map;
-  public readonly PartialValue Key;
+  public readonly PartialValue Map = map;
+  public readonly PartialValue Key = key;
 
-
-  public MapSelectExprConstraint(PartialValue definedValue, PartialValue map, PartialValue key) : base(
-    new List<PartialValue> { map, key }, definedValue, [new ContainmentConstraint(key, map, true)]) {
-    Map = map;
-    Key = key;
-  }
 
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return new SeqSelectExpr(Token.NoToken, true, definitions[Map], definitions[Key], null, Token.NoToken);
   }
 }
 
-public class SeqSelectExprWithLiteralConstraint : DefinitionConstraint {
-
-  public readonly PartialValue Seq;
-  public readonly LiteralExpr Index;
-
-
-  public SeqSelectExprWithLiteralConstraint(PartialValue definedValue, PartialValue seq, LiteralExpr index) : base(
-    new List<PartialValue> { seq }, definedValue,
+public class SeqSelectExprWithLiteralConstraint(PartialValue definedValue, PartialValue seq, LiteralExpr index)
+  : DefinitionConstraint(new List<PartialValue> { seq }, definedValue,
     [new CardinalityGtThanLiteralConstraint(seq, index)]) {
-    Seq = seq;
-    Index = index;
-  }
+
+  public readonly PartialValue Seq = seq;
+  public readonly LiteralExpr Index = index;
+
 
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return new SeqSelectExpr(Token.NoToken, true, definitions[Seq], Index, null, Token.NoToken);
   }
 }
 
-public class CardinalityConstraint : DefinitionConstraint {
+public class CardinalityConstraint(PartialValue definedValue, PartialValue collection)
+  : DefinitionConstraint(new List<PartialValue> { collection }, definedValue, []) {
 
-  public readonly PartialValue Collection;
+  public readonly PartialValue Collection = collection;
 
-
-  public CardinalityConstraint(PartialValue definedValue, PartialValue collection) : base(
-    new List<PartialValue> { collection }, definedValue, []) {
-    Collection = collection;
-  }
 
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, definitions[Collection]);
   }
 }
 
-public class SeqDisplayConstraint : DefinitionConstraint {
-  private readonly List<PartialValue> elements;
-
-
-  public SeqDisplayConstraint(PartialValue definedValue, List<PartialValue> elements) : base(elements, definedValue,
-    []) {
-    this.elements = elements;
-  }
-
+public class SeqDisplayConstraint(PartialValue definedValue, List<PartialValue> elements) : DefinitionConstraint(
+  elements, definedValue,
+  []) {
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return new SeqDisplayExpr(Token.NoToken, elements.ConvertAll(element => definitions[element]));
   }
 }
 
-public class SetDisplayConstraint : Constraint {
-  private readonly List<PartialValue> elements;
-  private readonly PartialValue set;
-
-
-  public SetDisplayConstraint(PartialValue set, List<PartialValue> elements) : base(elements.Append(set)) {
-    this.elements = elements;
-    this.set = set;
-  }
-
+public class SetDisplayConstraint(PartialValue set, List<PartialValue> elements) : Constraint(elements.Append(set)) {
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     var setDisplayExpr = new SetDisplayExpr(Token.NoToken, true, elements.ConvertAll(element => definitions[element]));
     setDisplayExpr.Type = set.Type;
@@ -372,16 +308,8 @@ public class SetDisplayConstraint : Constraint {
   }
 }
 
-public class MapKeysDisplayConstraint : Constraint {
-  private readonly List<PartialValue> elements;
-  private readonly PartialValue map;
-
-
-  public MapKeysDisplayConstraint(PartialValue map, List<PartialValue> elements) : base(elements.Append(map)) {
-    this.elements = elements;
-    this.map = map;
-  }
-
+public class MapKeysDisplayConstraint(PartialValue map, List<PartialValue> elements)
+  : Constraint(elements.Append(map)) {
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     var setDisplayExpr = new SetDisplayExpr(Token.NoToken, true, elements.ConvertAll(element => definitions[element]));
     setDisplayExpr.Type = new SetType(true, map.Type.TypeArgs[0]);
@@ -391,26 +319,16 @@ public class MapKeysDisplayConstraint : Constraint {
   }
 }
 
-public class FunctionCallConstraint : DefinitionConstraint {
-  private readonly List<PartialValue> args;
-  private readonly PartialValue receiver;
-  private readonly string functionName;
-
-
-  public FunctionCallConstraint(
-    PartialValue definedValue,
-    PartialValue receiver,
-    List<PartialValue> args,
-    string functionName,
-    bool receiverIsReferenceType) : base(args.Append(receiver), definedValue,
+public class FunctionCallConstraint(
+  PartialValue definedValue,
+  PartialValue receiver,
+  List<PartialValue> args,
+  string functionName,
+  bool receiverIsReferenceType)
+  : DefinitionConstraint(args.Append(receiver), definedValue,
     receiverIsReferenceType
       ? [new NotNullConstraint(receiver), new FunctionCallRequiresConstraint(receiver, args, functionName)]
       : [new FunctionCallRequiresConstraint(receiver, args, functionName)]) {
-    this.args = args;
-    this.receiver = receiver;
-    this.functionName = functionName;
-  }
-
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return new ApplySuffix(
       Token.NoToken,
@@ -422,19 +340,8 @@ public class FunctionCallConstraint : DefinitionConstraint {
   }
 }
 
-public class FunctionCallRequiresConstraint : Constraint {
-  private readonly List<PartialValue> args;
-  private readonly PartialValue receiver;
-  private readonly string functionName;
-
-
-  public FunctionCallRequiresConstraint(PartialValue receiver, List<PartialValue> args, string functionName)
-    : base(args.Append(receiver), true) {
-    this.args = args;
-    this.receiver = receiver;
-    this.functionName = functionName;
-  }
-
+public class FunctionCallRequiresConstraint(PartialValue receiver, List<PartialValue> args, string functionName)
+  : Constraint(args.Append(receiver), true) {
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     return new ApplySuffix(
       Token.NoToken,
@@ -446,16 +353,11 @@ public class FunctionCallRequiresConstraint : Constraint {
   }
 }
 
-public class ContainmentConstraint : Constraint {
+public class ContainmentConstraint(PartialValue element, PartialValue set, bool isIn)
+  : Constraint(new List<PartialValue> { element, set }) {
 
-  public readonly PartialValue Element, Set;
-  public readonly bool IsIn;
-  public ContainmentConstraint(PartialValue element, PartialValue set, bool isIn)
-    : base(new List<PartialValue> { element, set }) {
-    Element = element;
-    Set = set;
-    this.IsIn = isIn;
-  }
+  public readonly PartialValue Element = element, Set = set;
+  public readonly bool IsIn = isIn;
 
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     return new BinaryExpr(
@@ -466,16 +368,11 @@ public class ContainmentConstraint : Constraint {
   }
 }
 
-public class ArrayLengthConstraint : Constraint {
+public class ArrayLengthConstraint(PartialValue array, List<LiteralExpr> indices)
+  : Constraint(new List<PartialValue> { array }) {
 
-  public PartialValue Array;
-  public List<LiteralExpr> indices;
-
-  public ArrayLengthConstraint(PartialValue array, List<LiteralExpr> indices)
-    : base(new List<PartialValue> { array }) {
-    Array = array;
-    this.indices = indices;
-  }
+  public PartialValue Array = array;
+  public List<LiteralExpr> indices = indices;
 
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     var length0 = new MemberSelectExpr(Token.NoToken, definitions[Array], new Name(indices.Count == 1 ? "Length" : "Length0"));
@@ -494,14 +391,7 @@ public class ArrayLengthConstraint : Constraint {
   }
 }
 
-public class NeqConstraint : Constraint {
-  private readonly PartialValue value;
-  private readonly PartialValue neq;
-  public NeqConstraint(PartialValue value, PartialValue neq) : base(new List<PartialValue> { value, neq }) {
-    this.value = value;
-    this.neq = neq;
-  }
-
+public class NeqConstraint(PartialValue value, PartialValue neq) : Constraint(new List<PartialValue> { value, neq }) {
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     return new BinaryExpr(
       Token.NoToken,
@@ -512,31 +402,17 @@ public class NeqConstraint : Constraint {
 }
 
 
-public class DatatypeConstructorCheckConstraint : Constraint {
-  private readonly PartialValue obj;
-  public readonly string ConstructorName;
-
-  public DatatypeConstructorCheckConstraint(PartialValue obj, string constructorName)
-    : base(new List<PartialValue> { obj }) {
-    this.obj = obj;
-    ConstructorName = constructorName;
-  }
+public class DatatypeConstructorCheckConstraint(PartialValue obj, string constructorName)
+  : Constraint(new List<PartialValue> { obj }) {
+  public readonly string ConstructorName = constructorName;
 
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     return new MemberSelectExpr(Token.NoToken, definitions[obj], new Name(ConstructorName + "?"));
   }
 }
 
-public class CardinalityGtThanConstraint : Constraint {
-  private readonly PartialValue collection;
-  private readonly PartialValue bound;
-
-  public CardinalityGtThanConstraint(PartialValue collection, PartialValue bound)
-    : base(new List<PartialValue> { collection, bound }) {
-    this.collection = collection;
-    this.bound = bound;
-  }
-
+public class CardinalityGtThanConstraint(PartialValue collection, PartialValue bound)
+  : Constraint(new List<PartialValue> { collection, bound }) {
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     var cardinalityExpr = new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, definitions[collection]) {
       Type = Type.Int
@@ -545,16 +421,8 @@ public class CardinalityGtThanConstraint : Constraint {
   }
 }
 
-public class CardinalityGtThanLiteralConstraint : Constraint {
-  private readonly PartialValue collection;
-  private readonly LiteralExpr bound;
-
-  public CardinalityGtThanLiteralConstraint(PartialValue collection, LiteralExpr bound)
-    : base(new List<PartialValue> { collection }) {
-    this.collection = collection;
-    this.bound = bound;
-  }
-
+public class CardinalityGtThanLiteralConstraint(PartialValue collection, LiteralExpr bound)
+  : Constraint(new List<PartialValue> { collection }) {
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     var cardinalityExpr = new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, definitions[collection]) {
       Type = Type.Int
@@ -563,26 +431,15 @@ public class CardinalityGtThanLiteralConstraint : Constraint {
   }
 }
 
-public class TypeTestConstraint : Constraint {
-  public readonly Type Type;
-  private readonly PartialValue value;
-  public TypeTestConstraint(PartialValue value, Type type) : base(new List<PartialValue> { value }) {
-    Type = type;
-    this.value = value;
-  }
+public class TypeTestConstraint(PartialValue value, Type type) : Constraint(new List<PartialValue> { value }) {
+  public readonly Type Type = type;
 
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     return new TypeTestExpr(Token.NoToken, definitions[value], Type);
   }
 }
 
-public class NotNullConstraint : Constraint {
-  private readonly PartialValue value;
-
-  public NotNullConstraint(PartialValue value) : base(new List<PartialValue> { value }) {
-    this.value = value;
-  }
-
+public class NotNullConstraint(PartialValue value) : Constraint(new List<PartialValue> { value }) {
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     var nullValue = new LiteralExpr(Token.NoToken) {
       Type = new InferredTypeProxy()

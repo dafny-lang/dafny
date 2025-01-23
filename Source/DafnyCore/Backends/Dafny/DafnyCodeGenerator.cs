@@ -524,23 +524,15 @@ namespace Microsoft.Dafny.Compilers {
       return false;
     }
 
-    private class ClassWriter : IClassWriter {
-      private readonly DafnyCodeGenerator compiler;
-      private readonly ClassLike builder;
-      private readonly bool hasTypeArgs;
+    private class ClassWriter(DafnyCodeGenerator compiler, bool hasTypeArgs, ClassLike builder)
+      : IClassWriter {
       private readonly List<MethodBuilder> methods = [];
-
-      public ClassWriter(DafnyCodeGenerator compiler, bool hasTypeArgs, ClassLike builder) {
-        this.compiler = compiler;
-        this.hasTypeArgs = hasTypeArgs;
-        this.builder = builder;
-      }
 
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
-        if (m.IsStatic && this.hasTypeArgs) {
+        if (m.IsStatic && hasTypeArgs) {
           compiler.AddUnsupported(m.Origin, "<i>Static methods with type arguments</i>");
-          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
+          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), compiler);
         }
 
         var astTypeArgs = typeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg.Formal)).ToList();
@@ -577,7 +569,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var attributes = compiler.ParseAttributes(m.Attributes);
-        var builder = this.builder.Method(
+        var builder1 = builder.Method(
           m.IsStatic, createBody, m is Constructor, false,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
           compiler.GetDocString(m),
@@ -586,10 +578,10 @@ namespace Microsoft.Dafny.Compilers {
           astTypeArgs, params_,
           outTypes, outVars
         );
-        methods.Add(builder);
+        methods.Add(builder1);
 
         if (createBody) {
-          return new BuilderSyntaxTree<StatementContainer>(builder, this.compiler);
+          return new BuilderSyntaxTree<StatementContainer>(builder1, compiler);
         } else {
           // TODO(shadaj): actually create a trait
           return null;
@@ -598,15 +590,15 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         compiler.AddUnsupportedFeature(m.Origin, Feature.MethodSynthesis);
-        return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
+        return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), compiler);
       }
 
       public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
           List<Formal> formals, Type resultType, IOrigin tok, bool isStatic, bool createBody, MemberDecl member,
           bool forBodyInheritance, bool lookasideBody) {
-        if (isStatic && this.hasTypeArgs) {
+        if (isStatic && hasTypeArgs) {
           compiler.AddUnsupported(tok, "<i>Static functions with type arguments</i>");
-          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
+          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), compiler);
         }
 
         var astTypeArgs = typeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg.Formal)).ToList();
@@ -615,7 +607,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var overridingTrait = member.OverriddenMember?.EnclosingClass;
         var attributes = compiler.ParseAttributes(member.Attributes);
-        var builder = this.builder.Method(
+        var builder1 = builder.Method(
           isStatic, createBody, false, true,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
           compiler.GetDocString(member),
@@ -624,10 +616,10 @@ namespace Microsoft.Dafny.Compilers {
           astTypeArgs, params_,
           [compiler.GenType(resultType)], null
         );
-        methods.Add(builder);
+        methods.Add(builder1);
 
         if (createBody) {
-          return new BuilderSyntaxTree<StatementContainer>(builder, this.compiler);
+          return new BuilderSyntaxTree<StatementContainer>(builder1, compiler);
         } else {
           return null;
         }
@@ -635,16 +627,16 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IOrigin tok,
           bool isStatic, bool isConst, bool createBody, MemberDecl member, bool forBodyInheritance) {
-        if (isStatic && this.hasTypeArgs) {
+        if (isStatic && hasTypeArgs) {
           compiler.AddUnsupported(tok, "<i>Static fields with type arguments</i>");
-          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
+          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), compiler);
         }
 
         var overridingTrait = member.OverriddenMember?.EnclosingClass;
 
         var attributes = compiler.ParseAttributes(enclosingDecl.Attributes);
 
-        var builder = this.builder.Method(
+        var builder1 = builder.Method(
           isStatic, createBody, false, true,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
           compiler.GetDocString(member),
@@ -653,10 +645,10 @@ namespace Microsoft.Dafny.Compilers {
           [], (Sequence<DAST.Formal>)Sequence<DAST.Formal>.Empty,
           [compiler.GenType(resultType)], null
         );
-        methods.Add(builder);
+        methods.Add(builder1);
 
         if (createBody) {
-          return new BuilderSyntaxTree<StatementContainer>(builder, this.compiler);
+          return new BuilderSyntaxTree<StatementContainer>(builder1, compiler);
         } else {
           return null;
         }
@@ -666,8 +658,8 @@ namespace Microsoft.Dafny.Compilers {
           bool createBody, MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
         compiler.AddUnsupported(tok, "<i>Create Getter Setter</i>");
         if (createBody) {
-          setterWriter = new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
-          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
+          setterWriter = new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), compiler);
+          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), compiler);
         } else {
           setterWriter = null;
           return null;
@@ -1081,15 +1073,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private class BuilderLvalue : ILvalue {
-      readonly string name;
-      private readonly DafnyCodeGenerator compiler;
-
-      public BuilderLvalue(string name, DafnyCodeGenerator compiler) {
-        this.name = name;
-        this.compiler = compiler;
-      }
-
+    private class BuilderLvalue(string name, DafnyCodeGenerator compiler) : ILvalue {
       public void EmitRead(ConcreteSyntaxTree wr) {
         throw new InvalidOperationException();
       }
@@ -1098,24 +1082,15 @@ namespace Microsoft.Dafny.Compilers {
         if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
           var assign = stmtContainer.Builder.Assign();
           assign.AddLhs((DAST.AssignLhs)DAST.AssignLhs.create_Ident(Sequence<Rune>.UnicodeFromString(name)));
-          return new BuilderSyntaxTree<ExprContainer>(assign, this.compiler);
+          return new BuilderSyntaxTree<ExprContainer>(assign, compiler);
         } else {
           throw new InvalidOperationException();
         }
       }
     }
 
-    private class ExprLvalue : ILvalue {
-      readonly DAST.Expression expr;
-      readonly DAST.AssignLhs assignExpr;
-      private readonly DafnyCodeGenerator compiler;
-
-      public ExprLvalue(DAST.Expression expr, DAST.AssignLhs assignExpr, DafnyCodeGenerator compiler) {
-        this.expr = expr;
-        this.assignExpr = assignExpr;
-        this.compiler = compiler;
-      }
-
+    private class ExprLvalue(DAST.Expression expr, DAST.AssignLhs assignExpr, DafnyCodeGenerator compiler)
+      : ILvalue {
       public void EmitRead(ConcreteSyntaxTree wr) {
         if (GetExprBuilder(wr, out var exprContainer)) {
           exprContainer.Builder.AddExpr(expr);
@@ -1132,7 +1107,7 @@ namespace Microsoft.Dafny.Compilers {
         if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
           var assign = stmtContainer.Builder.Assign();
           assign.AddLhs(assignExpr);
-          return new BuilderSyntaxTree<ExprContainer>(assign, this.compiler);
+          return new BuilderSyntaxTree<ExprContainer>(assign, compiler);
         } else {
           throw new InvalidOperationException();
         }

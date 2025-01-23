@@ -10,9 +10,8 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
   public partial class ModuleResolver {
-    private class BoundsDiscoveryVisitor : ASTVisitor<BoundsDiscoveryVisitor.BoundsDiscoveryContext> {
-      private readonly ModuleResolver resolver;
-
+    private class BoundsDiscoveryVisitor(ModuleResolver resolver)
+      : ASTVisitor<BoundsDiscoveryVisitor.BoundsDiscoveryContext> {
       public class BoundsDiscoveryContext : IASTVisitorContext {
         private readonly IASTVisitorContext astVisitorContext;
         readonly bool inLambdaExpression;
@@ -55,10 +54,6 @@ namespace Microsoft.Dafny {
       }
 
       private ErrorReporter Reporter => resolver.Reporter;
-
-      public BoundsDiscoveryVisitor(ModuleResolver resolver) {
-        this.resolver = resolver;
-      }
 
       public override BoundsDiscoveryContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
         return new BoundsDiscoveryContext(astVisitorContext);

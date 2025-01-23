@@ -9,10 +9,7 @@ using DafnyCore;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class LibraryBackend : ExecutableBackend {
-  public LibraryBackend(DafnyOptions options) : base(options) {
-  }
-
+public class LibraryBackend(DafnyOptions options) : ExecutableBackend(options) {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { };
 
   public override string TargetName => "Dafny Library (.doo)";

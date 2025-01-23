@@ -4,18 +4,12 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class Include : NodeWithComputedRange, IComparable {
-  public DafnyOptions ParseOptions { get; }
-  public Uri IncluderFilename { get; }
-  public Uri IncludedFilename { get; }
-  public string CanonicalPath { get; }
-
-  public Include(IOrigin origin, Uri includer, Uri theFilename, DafnyOptions parseOptions) : base(origin) {
-    this.IncluderFilename = includer;
-    this.IncludedFilename = theFilename;
-    ParseOptions = parseOptions;
-    this.CanonicalPath = DafnyFile.Canonicalize(theFilename.LocalPath).LocalPath;
-  }
+public class Include(IOrigin origin, Uri includer, Uri theFilename, DafnyOptions parseOptions)
+  : NodeWithComputedRange(origin), IComparable {
+  public DafnyOptions ParseOptions { get; } = parseOptions;
+  public Uri IncluderFilename { get; } = includer;
+  public Uri IncludedFilename { get; } = theFilename;
+  public string CanonicalPath { get; } = DafnyFile.Canonicalize(theFilename.LocalPath).LocalPath;
 
   public IOrigin PathOrigin => new SourceOrigin(Center, EndToken);
 

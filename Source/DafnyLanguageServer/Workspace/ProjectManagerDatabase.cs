@@ -15,35 +15,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Contains a collection of ProjectManagers
   /// </summary>
-  public class ProjectManagerDatabase : IProjectDatabase {
+  public class ProjectManagerDatabase(
+    LanguageServerFilesystem fileSystem,
+    DafnyOptions serverOptions,
+    CreateProjectManager createProjectManager,
+    ILogger<ProjectManagerDatabase> logger)
+    : IProjectDatabase {
 
     private readonly object myLock = new();
 
-    private readonly CreateProjectManager createProjectManager;
-    private readonly ILogger<ProjectManagerDatabase> logger;
-
     private readonly Dictionary<Uri, ProjectManager> managersByProject = new();
     private readonly Dictionary<Uri, ProjectManager> managersBySourceFile = new();
-    private readonly LanguageServerFilesystem fileSystem;
     private readonly VerificationResultCache verificationCache = new();
-    private readonly TaskScheduler scheduler;
-    private readonly DafnyOptions serverOptions;
-    private CachingProjectFileOpener projectFileOpener;
+    private readonly TaskScheduler scheduler = CustomStackSizePoolTaskScheduler.Create(stackSize, serverOptions.VcsCores);
+    private readonly DafnyOptions serverOptions = serverOptions;
+    private CachingProjectFileOpener projectFileOpener = new(fileSystem, serverOptions, Token.Ide);
 
     private const int stackSize = 10 * 1024 * 1024;
-
-    public ProjectManagerDatabase(
-      LanguageServerFilesystem fileSystem,
-      DafnyOptions serverOptions,
-      CreateProjectManager createProjectManager,
-      ILogger<ProjectManagerDatabase> logger) {
-      this.createProjectManager = createProjectManager;
-      this.logger = logger;
-      this.fileSystem = fileSystem;
-      this.serverOptions = serverOptions;
-      this.scheduler = CustomStackSizePoolTaskScheduler.Create(stackSize, serverOptions.VcsCores);
-      projectFileOpener = new CachingProjectFileOpener(fileSystem, serverOptions, Token.Ide);
-    }
 
     public async Task OpenDocument(TextDocumentItem document) {
       // When we have caching of all compilation components, we might not need to do this change detection at the start

@@ -18,7 +18,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public class ExceptionTests : ClientBasedLanguageServerTest {
+public class ExceptionTests(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
   public bool CrashOnPrepareVerification { get; set; }
   public bool CrashOnLoad { get; set; }
@@ -84,15 +84,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     Assert.True(recoveredDiagnostics[0].Message.Contains("might not"), recoveredDiagnostics[0].Message);
   }
 
-  class CrashingVerifier : IProgramVerifier {
-    private readonly ExceptionTests tests;
-    private readonly IProgramVerifier verifier;
-
-    public CrashingVerifier(ExceptionTests tests, IProgramVerifier verifier) {
-      this.tests = tests;
-      this.verifier = verifier;
-    }
-
+  class CrashingVerifier(ExceptionTests tests, IProgramVerifier verifier) : IProgramVerifier {
     public Task<IReadOnlyList<IVerificationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
       ResolutionResult resolution, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
 
@@ -103,20 +95,9 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
   }
 
-  class TestException : Exception {
-    public TestException([CanBeNull] string message) : base(message) {
-    }
-  }
+  class TestException([CanBeNull] string message) : Exception(message);
 
-  class CrashingLoader : ITextDocumentLoader {
-    private readonly ExceptionTests tests;
-    private readonly TextDocumentLoader loader;
-
-    public CrashingLoader(ExceptionTests tests, TextDocumentLoader loader) {
-      this.tests = tests;
-      this.loader = loader;
-    }
-
+  class CrashingLoader(ExceptionTests tests, TextDocumentLoader loader) : ITextDocumentLoader {
     public Task<ProgramParseResult> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
       return loader.ParseAsync(compilation, cancellationToken);
     }
@@ -129,8 +110,5 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       }
       return loader.ResolveAsync(compilation, program, cancellationToken);
     }
-  }
-
-  public ExceptionTests(ITestOutputHelper output) : base(output) {
   }
 }

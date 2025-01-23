@@ -15,12 +15,8 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace DafnyTestGeneration.Test {
-  public class BasicTypes : Setup {
-    private readonly TextWriter output;
-
-    public BasicTypes(ITestOutputHelper output) {
-      this.output = new WriterFromOutputHelper(output);
-    }
+  public class BasicTypes(ITestOutputHelper output) : Setup {
+    private readonly TextWriter output = new WriterFromOutputHelper(output);
 
     [Theory]
     [MemberData(nameof(OptionSettings))]

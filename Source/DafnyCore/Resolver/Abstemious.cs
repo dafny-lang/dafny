@@ -4,13 +4,7 @@ using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny;
 
-public class Abstemious {
-  private readonly ErrorReporter reporter;
-
-  public Abstemious(ErrorReporter reporter) {
-    this.reporter = reporter;
-  }
-
+public class Abstemious(ErrorReporter reporter) {
   public void Check(Function fn) {
     if (fn.Body != null) {
       var abstemious = true;

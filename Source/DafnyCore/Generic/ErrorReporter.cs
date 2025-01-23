@@ -3,12 +3,8 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class ErrorReporter {
-  public DafnyOptions Options { get; }
-
-  protected ErrorReporter(DafnyOptions options) {
-    this.Options = options;
-  }
+public abstract class ErrorReporter(DafnyOptions options) {
+  public DafnyOptions Options { get; } = options;
 
   public bool ErrorsOnly { get; set; }
 

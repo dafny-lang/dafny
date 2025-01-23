@@ -130,11 +130,9 @@ namespace Std.Wrappers {
       return s;
     }
   }
-  public class Option_Some<T> : Option<T> {
-    public readonly T _value;
-    public Option_Some(T @value) : base() {
-      this._value = @value;
-    }
+  public class Option_Some<T>(T @value) : Option<T> {
+    public readonly T _value = @value;
+
     public override _IOption<__T> DowncastClone<__T>(Func<T, __T> converter0) {
       if (this is _IOption<__T> dt) { return dt; }
       return new Option_Some<__T>(converter0(_value));
@@ -265,11 +263,9 @@ namespace Std.Wrappers {
       }
     }
   }
-  public class Result_Success<R, E> : Result<R, E> {
-    public readonly R _value;
-    public Result_Success(R @value) : base() {
-      this._value = @value;
-    }
+  public class Result_Success<R, E>(R @value) : Result<R, E> {
+    public readonly R _value = @value;
+
     public override _IResult<__R, __E> DowncastClone<__R, __E>(Func<R, __R> converter0, Func<E, __E> converter1) {
       if (this is _IResult<__R, __E> dt) { return dt; }
       return new Result_Success<__R, __E>(converter0(_value));
@@ -292,11 +288,9 @@ namespace Std.Wrappers {
       return s;
     }
   }
-  public class Result_Failure<R, E> : Result<R, E> {
-    public readonly E _error;
-    public Result_Failure(E error) : base() {
-      this._error = error;
-    }
+  public class Result_Failure<R, E>(E error) : Result<R, E> {
+    public readonly E _error = error;
+
     public override _IResult<__R, __E> DowncastClone<__R, __E>(Func<R, __R> converter0, Func<E, __E> converter1) {
       if (this is _IResult<__R, __E> dt) { return dt; }
       return new Result_Failure<__R, __E>(converter1(_error));
@@ -430,11 +424,9 @@ namespace Std.Wrappers {
       return s;
     }
   }
-  public class Outcome_Fail<E> : Outcome<E> {
-    public readonly E _error;
-    public Outcome_Fail(E error) : base() {
-      this._error = error;
-    }
+  public class Outcome_Fail<E>(E error) : Outcome<E> {
+    public readonly E _error = error;
+
     public override _IOutcome<__E> DowncastClone<__E>(Func<E, __E> converter0) {
       if (this is _IOutcome<__E> dt) { return dt; }
       return new Outcome_Fail<__E>(converter0(_error));
@@ -518,11 +510,9 @@ namespace Std.Wrappers {
       return s;
     }
   }
-  public class OutcomeResult_Fail_k<E> : OutcomeResult<E> {
-    public readonly E _error;
-    public OutcomeResult_Fail_k(E error) : base() {
-      this._error = error;
-    }
+  public class OutcomeResult_Fail_k<E>(E error) : OutcomeResult<E> {
+    public readonly E _error = error;
+
     public override _IOutcomeResult<__E> DowncastClone<__E>(Func<E, __E> converter0) {
       if (this is _IOutcomeResult<__E> dt) { return dt; }
       return new OutcomeResult_Fail_k<__E>(converter0(_error));

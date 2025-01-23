@@ -10,8 +10,8 @@ namespace Microsoft.Dafny {
 
   public class Graph<Node> where Node : class {
     public enum VisitedStatus { Unvisited, OnStack, Visited }
-    public class Vertex {
-      public readonly Node N;
+    public class Vertex(Node n) {
+      public readonly Node N = n;
       public readonly List<Vertex/*!*/>/*!*/ Successors = [];
       public List<Vertex/*!*/> SccMembers;  // non-null only for the representative of the SCC
       [ContractInvariantMethod]
@@ -32,9 +32,6 @@ namespace Microsoft.Dafny {
       // the following field is used during a Reaches computation
       public int Gen;  // generation <= Gen means this vertex has been visited in the current generation
 
-      public Vertex(Node n) {
-        N = n;
-      }
       public void AddSuccessor(Vertex v) {
         Contract.Requires(v != null);
         Successors.Add(v);

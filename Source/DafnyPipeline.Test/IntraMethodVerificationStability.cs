@@ -16,10 +16,7 @@ namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
   // so we can't execute tests that use it in parallel.
   [Collection("Singleton Test Collection - Resolution")]
-  public class IntraMethodVerificationStability {
-
-    private readonly ITestOutputHelper testOutputHelper;
-
+  public class IntraMethodVerificationStability(ITestOutputHelper testOutputHelper) {
     // All types of top level declarations.
     readonly string originalProgram = @"
 module SomeModule {
@@ -144,10 +141,6 @@ module SomeModule {
   }
 }
 ";
-
-    public IntraMethodVerificationStability(ITestOutputHelper testOutputHelper) {
-      this.testOutputHelper = testOutputHelper;
-    }
 
     [Fact]
     public async Task NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {

@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class ResolvedDesugaredExecutableDafnyBackend : DafnyExecutableBackend {
+public class ResolvedDesugaredExecutableDafnyBackend(DafnyOptions options) : DafnyExecutableBackend(options) {
   protected override bool CanEmitUncompilableCode => false;
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".dfy" };
   public override string TargetName => "ResolvedDesugaredExecutableDafny";
@@ -19,8 +19,5 @@ public class ResolvedDesugaredExecutableDafnyBackend : DafnyExecutableBackend {
 
   protected override DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler() {
     return new ResolvedDesugaredExecutableDafnyCodeGenerator();
-  }
-
-  public ResolvedDesugaredExecutableDafnyBackend(DafnyOptions options) : base(options) {
   }
 }

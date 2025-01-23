@@ -447,18 +447,9 @@ namespace DafnyTestGeneration {
       }
     }
 
-    private class ClonerWithSubstitution : Cloner {
-
-      private readonly Dictionary<IVariable, string> subst;
-      private bool isValidExpression;
-      private readonly string receiver;
-      private readonly DafnyInfo dafnyInfo;
-      public ClonerWithSubstitution(DafnyInfo dafnyInfo, Dictionary<IVariable, string> subst, string receiver) {
-        this.subst = subst;
-        this.receiver = receiver;
-        this.dafnyInfo = dafnyInfo;
-        isValidExpression = true;
-      }
+    private class ClonerWithSubstitution(DafnyInfo dafnyInfo, Dictionary<IVariable, string> subst, string receiver)
+      : Cloner {
+      private bool isValidExpression = true;
 
       public override Type CloneType(Type type) {
         if (type is not UserDefinedType userDefinedType) {

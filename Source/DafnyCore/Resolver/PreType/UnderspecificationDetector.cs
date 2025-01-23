@@ -13,11 +13,7 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  public class UnderspecificationDetector : ResolverPass {
-    public UnderspecificationDetector(ModuleResolver resolver)
-      : base(resolver) {
-    }
-
+  public class UnderspecificationDetector(ModuleResolver resolver) : ResolverPass(resolver) {
     /// <summary>
     /// This method
     ///     * checks that type inference was able to determine all types
@@ -212,13 +208,9 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class UnderspecificationDetectorContext {
-    private Declaration declaration;
+  public class UnderspecificationDetectorContext(Declaration declaration) {
     public bool IsExtremePredicate => declaration is ExtremePredicate;
     public bool IsExtremeLemma => declaration is ExtremeLemma;
-    public UnderspecificationDetectorContext(Declaration declaration) {
-      this.declaration = declaration;
-    }
   }
 
   public class DetectUnderspecificationVisitor : BottomUpVisitor {

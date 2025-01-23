@@ -307,18 +307,11 @@ public class PartialState {
     return res;
   }
 
-  private class SourceLocation {
-    public readonly string Filename;
-    public readonly string AddInfo;
-    public readonly int Line;
-    public readonly int Column;
-
-    public SourceLocation(string filename, string addInfo, int line, int column) {
-      Filename = filename;
-      AddInfo = addInfo;
-      Line = line;
-      Column = column;
-    }
+  private class SourceLocation(string filename, string addInfo, int line, int column) {
+    public readonly string Filename = filename;
+    public readonly string AddInfo = addInfo;
+    public readonly int Line = line;
+    public readonly int Column = column;
   }
 
 }

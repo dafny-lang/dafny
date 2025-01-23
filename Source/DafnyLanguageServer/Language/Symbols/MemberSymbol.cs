@@ -1,5 +1,6 @@
 ﻿namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
-  public abstract class MemberSymbol : Symbol {
+  public abstract class MemberSymbol(ILegacySymbol? scope, MemberDecl memberDeclaration)
+    : Symbol(scope, memberDeclaration.Name) {
     /// <summary>
     /// Gets the name of the enclosing class (if any). It will return <c>null</c> if
     /// there's no enclosing class or the member is part of the default class.
@@ -20,9 +21,6 @@
         var className = EnclosingTypeName;
         return className == null ? string.Empty : $"{className}.";
       }
-    }
-
-    public MemberSymbol(ILegacySymbol? scope, MemberDecl memberDeclaration) : base(scope, memberDeclaration.Name) {
     }
   }
 }

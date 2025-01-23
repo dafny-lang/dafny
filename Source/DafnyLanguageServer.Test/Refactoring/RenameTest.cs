@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Refactoring {
-  public class RenameTest : ClientBasedLanguageServerTest {
+  public class RenameTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
     [Fact]
     public async Task ImplicitProjectFails() {
       var source = @"
@@ -178,9 +178,6 @@ abstract module B { import [>><A<] }
           Position = position,
           NewName = newName,
         }, CancellationToken);
-    }
-
-    public RenameTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

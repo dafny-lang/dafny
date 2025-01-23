@@ -11,7 +11,8 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
-public class VerificationDiagnostics : ClientBasedLanguageServerTest {
+public class VerificationDiagnostics(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
+  : ClientBasedLanguageServerTest(output, dafnyLogLevel) {
 
   [Fact]
   public async Task SubExpression() {
@@ -192,8 +193,5 @@ method ImplicitAssertions(x: int) {
     Assert.Contains(diagnostics, d => d.Message.Contains("Implicit assertion: non-zero divisor"));
     Assert.Contains(diagnostics, d => d.Message.Contains("Explicit assertion: assert statement")
                                       && d.Range == new Range(2, 4, 2, 17));
-  }
-
-  public VerificationDiagnostics(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
   }
 }

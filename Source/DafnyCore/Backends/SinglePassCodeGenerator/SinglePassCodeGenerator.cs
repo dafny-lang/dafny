@@ -3692,16 +3692,12 @@ namespace Microsoft.Dafny.Compilers {
       return checker.Passing;
     }
 
-    private class Checker<E> : TopDownVisitor<object> where E : Expression {
-      private readonly Predicate<E> Pred;
+    private class Checker<E>(Predicate<E> pred) : TopDownVisitor<object>
+      where E : Expression {
       public bool Passing = true;
 
-      public Checker(Predicate<E> pred) {
-        Pred = pred;
-      }
-
       protected override bool VisitOneExpr(Expression expr, ref object st) {
-        if (expr is E e && !Pred(e)) {
+        if (expr is E e && !pred(e)) {
           Passing = false;
           return false;
         } else {
@@ -3861,45 +3857,32 @@ namespace Microsoft.Dafny.Compilers {
       return new GetterSetterLvalueImpl(obj, getterName, setterName);
     }
 
-    private class SimpleLvalueImpl : ILvalue {
-      private readonly SinglePassCodeGenerator codeGenerator;
-      private readonly Action<ConcreteSyntaxTree> LvalueAction, RvalueAction;
-
-      public SimpleLvalueImpl(SinglePassCodeGenerator codeGenerator, Action<ConcreteSyntaxTree> action) {
-        this.codeGenerator = codeGenerator;
-        LvalueAction = action;
-        RvalueAction = action;
-      }
-
-      public SimpleLvalueImpl(SinglePassCodeGenerator codeGenerator, Action<ConcreteSyntaxTree> lvalueAction, Action<ConcreteSyntaxTree> rvalueAction) {
-        this.codeGenerator = codeGenerator;
-        LvalueAction = lvalueAction;
-        RvalueAction = rvalueAction;
+    private class SimpleLvalueImpl(
+      SinglePassCodeGenerator codeGenerator,
+      Action<ConcreteSyntaxTree> lvalueAction,
+      Action<ConcreteSyntaxTree> rvalueAction)
+      : ILvalue {
+      public SimpleLvalueImpl(SinglePassCodeGenerator codeGenerator, Action<ConcreteSyntaxTree> action) : this(codeGenerator, action, action) {
       }
 
       public void EmitRead(ConcreteSyntaxTree wr) {
-        RvalueAction(wr);
+        rvalueAction(wr);
       }
 
       public ConcreteSyntaxTree EmitWrite(ConcreteSyntaxTree wr) {
         codeGenerator.EmitAssignment(out var wLhs, null, out var wRhs, null, wr);
-        LvalueAction(wLhs);
+        lvalueAction(wLhs);
         return wRhs;
       }
     }
 
-    private class CoercedLvalueImpl : ILvalue {
-      private readonly SinglePassCodeGenerator codeGenerator;
-      private readonly ILvalue lvalue;
-      private readonly Type /*?*/ from;
-      private readonly Type /*?*/ to;
+    private class CoercedLvalueImpl(SinglePassCodeGenerator codeGenerator, ILvalue lvalue, Type from, Type to)
+      : ILvalue {
+      /*?*/
+      /*?*/
 
-      public CoercedLvalueImpl(SinglePassCodeGenerator codeGenerator, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
-        this.codeGenerator = codeGenerator;
-        this.lvalue = lvalue;
-        this.from = from;
-        this.to = to;
-      }
+      /*?*/
+      /*?*/
 
       public void EmitRead(ConcreteSyntaxTree wr) {
         wr = codeGenerator.EmitCoercionIfNecessary(from, to, Token.NoToken, wr);
@@ -3911,17 +3894,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private class GetterSetterLvalueImpl : ILvalue {
-      private readonly Action<ConcreteSyntaxTree> obj;
-      private readonly string getterName;
-      private readonly string setterName;
-
-      public GetterSetterLvalueImpl(Action<ConcreteSyntaxTree> obj, string getterName, string setterName) {
-        this.obj = obj;
-        this.getterName = getterName;
-        this.setterName = setterName;
-      }
-
+    private class GetterSetterLvalueImpl(Action<ConcreteSyntaxTree> obj, string getterName, string setterName)
+      : ILvalue {
       public void EmitRead(ConcreteSyntaxTree wr) {
         obj(wr);
         wr.Write($".{getterName}()");

@@ -660,11 +660,7 @@ namespace Microsoft.Dafny {
   }
 
   public class DependencyMap {
-    private Dictionary<string, SortedSet<string>> dependencies;
-
-    public DependencyMap() {
-      dependencies = new Dictionary<string, SortedSet<string>>();
-    }
+    private Dictionary<string, SortedSet<string>> dependencies = new();
 
     public void AddInclude(Include include) {
       SortedSet<string> existingDependencies = null;
@@ -1000,15 +996,9 @@ namespace Microsoft.Dafny {
     }
   }
 
-  class LinesEnumerable : IEnumerable<string> {
-    private readonly TextReader Reader;
-
-    public LinesEnumerable(TextReader reader) {
-      Reader = reader;
-    }
-
+  class LinesEnumerable(TextReader reader) : IEnumerable<string> {
     public IEnumerator<string> GetEnumerator() {
-      return new LinesEnumerator(Reader);
+      return new LinesEnumerator(reader);
     }
 
     IEnumerator IEnumerable.GetEnumerator() {
@@ -1016,16 +1006,9 @@ namespace Microsoft.Dafny {
     }
   }
 
-  class LinesEnumerator : IEnumerator<string> {
-
-    private readonly TextReader Reader;
-
-    public LinesEnumerator(TextReader reader) {
-      Reader = reader;
-    }
-
+  class LinesEnumerator(TextReader reader) : IEnumerator<string> {
     public bool MoveNext() {
-      Current = Reader.ReadLine();
+      Current = reader.ReadLine();
       return Current != null;
     }
 

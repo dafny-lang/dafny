@@ -19,18 +19,12 @@ namespace DafnyTestGeneration {
   /// A version of ProgramModifier that inserts assertions into the code
   /// that fail when a particular path is taken
   /// </summary>
-  public class PathBasedModifier : ProgramModifier {
-    private readonly Modifications modifications;
-
+  public class PathBasedModifier(Modifications modifications) : ProgramModifier {
     // prefix given to variables indicating whether or not a block was visited
     private const string BlockVarNamePrefix = "block";
     // Dafny will try to generate tests for paths through the program of increasingly greater length,
     // PathLengthStep determines the increments by which Dafny should increase maximum path length in-between attempts
     private const int PathLengthStep = 20;
-
-    public PathBasedModifier(Modifications modifications) {
-      this.modifications = modifications;
-    }
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
       var implementations = p.Implementations.ToList();

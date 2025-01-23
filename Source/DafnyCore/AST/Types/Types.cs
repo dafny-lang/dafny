@@ -1907,11 +1907,8 @@ public class BitvectorType : BasicType {
 }
 
 public class SelfType : NonProxyType {
-  public TypeParameter TypeArg;
+  public TypeParameter TypeArg = new(SourceOrigin.NoToken, new Name("selfType"), TypeParameter.TPVarianceSyntax.NonVariant_Strict);
   public Type ResolvedType;
-  public SelfType() : base() {
-    TypeArg = new TypeParameter(SourceOrigin.NoToken, new Name("selfType"), TypeParameter.TPVarianceSyntax.NonVariant_Strict);
-  }
 
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
@@ -2035,17 +2032,12 @@ public abstract class CollectionType : NonProxyType {
   public abstract CollectionBoundedPool GetBoundedPool(Expression source);
 }
 
-public class SetType : CollectionType {
-  private bool finite;
-
+public class SetType(bool finite, Type arg) : CollectionType(arg) {
   public bool Finite {
     get { return finite; }
     set { finite = value; }
   }
 
-  public SetType(bool finite, Type arg) : base(arg) {
-    this.finite = finite;
-  }
   public override string CollectionTypeName { get { return finite ? "set" : "iset"; } }
   [System.Diagnostics.Contracts.Pure]
   public override bool Equals(Type that, bool keepConstraints = false) {
@@ -2078,9 +2070,7 @@ public class SetType : CollectionType {
   }
 }
 
-public class MultiSetType : CollectionType {
-  public MultiSetType(Type arg) : base(arg) {
-  }
+public class MultiSetType(Type arg) : CollectionType(arg) {
   public override string CollectionTypeName { get { return "multiset"; } }
   public override bool Equals(Type that, bool keepConstraints = false) {
     var t = that.NormalizeExpand(keepConstraints) as MultiSetType;
@@ -2112,9 +2102,7 @@ public class MultiSetType : CollectionType {
   }
 }
 
-public class SeqType : CollectionType {
-  public SeqType(Type arg) : base(arg) {
-  }
+public class SeqType(Type arg) : CollectionType(arg) {
   public override string CollectionTypeName { get { return "seq"; } }
   public override bool Equals(Type that, bool keepConstraints = false) {
     var t = that.NormalizeExpand(keepConstraints) as SeqType;
@@ -2347,10 +2335,7 @@ public abstract class TypeProxy : Type {
 /// This proxy stands for any type.
 /// </summary>
 public class InferredTypeProxy : TypeProxy {
-  public bool KeepConstraints;
-  public InferredTypeProxy() : base() {
-    KeepConstraints = false; // whether the typeProxy should be inferred to base type or as subset type
-  }
+  public bool KeepConstraints = false; // whether the typeProxy should be inferred to base type or as subset type
 }
 
 /// <summary>

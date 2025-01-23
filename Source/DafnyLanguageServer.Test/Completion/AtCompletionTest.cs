@@ -9,7 +9,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Completion {
-  public class AtCompletionTest : ClientBasedLanguageServerTest {
+  public class AtCompletionTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
     private async Task<List<CompletionItem>> RequestCompletionAsync(TextDocumentItem documentItem, Position position) {
       var completionList = await client.RequestCompletion(
@@ -68,9 +68,6 @@ method Foo() { label start: previous@(x); }".TrimStart();
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var completionList = await RequestCompletionAsync(documentItem, (1, 1));
       AssertEqualToAllCompletions(completionList);
-    }
-
-    public AtCompletionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

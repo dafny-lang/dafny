@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
 
-  public class OpenDocumentTest : ClientBasedLanguageServerTest {
+  public class OpenDocumentTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
     [Fact]
     public async Task CorrectDocumentCanBeParsedResolvedAndVerifiedWithoutErrors() {
@@ -115,9 +115,6 @@ method Recurse(x: int) returns (r: int) {
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken, forDocument: documentItem);
-    }
-
-    public OpenDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

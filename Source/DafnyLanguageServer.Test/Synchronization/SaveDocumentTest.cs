@@ -7,7 +7,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  public class SaveDocumentTest : ClientBasedLanguageServerTest {
+  public class SaveDocumentTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
     [Fact]
     public async Task LeavesDocumentUnchangedIfVerifyOnChange() {
@@ -93,9 +93,6 @@ method DoIt() {
       Assert.Single(afterSaveDiagnostics);
       var message = afterSaveDiagnostics.First();
       Assert.Equal(MessageSource.Verifier.ToString(), message.Source);
-    }
-
-    public SaveDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

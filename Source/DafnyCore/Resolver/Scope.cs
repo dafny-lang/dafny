@@ -3,8 +3,8 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class Scope<Thing> where Thing : class {
-  private DafnyOptions options;
+public class Scope<Thing>(DafnyOptions options)
+  where Thing : class {
   [Rep]
   readonly List<string> names = [];  // a null means a marker
   [Rep]
@@ -18,10 +18,6 @@ public class Scope<Thing> where Thing : class {
   }
 
   int scopeSizeWhereInstancesWereDisallowed = -1;
-
-  public Scope(DafnyOptions options) {
-    this.options = options;
-  }
 
   public bool AllowInstance {
     get { return scopeSizeWhereInstancesWereDisallowed == -1; }

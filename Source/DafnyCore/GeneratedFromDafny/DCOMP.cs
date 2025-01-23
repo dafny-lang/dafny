@@ -16,13 +16,6 @@ namespace DCOMP {
 
 
   public partial class COMP {
-    public COMP() {
-      this.error = Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.Default();
-      this.optimizations = Dafny.Sequence<Func<RAST._IMod, RAST._IMod>>.Empty;
-      this._rootType = Defs.RootType.Default();
-      this._charType = Defs.CharType.Default();
-      this._pointerType = Defs.PointerType.Default();
-    }
     public RAST._IType Object(RAST._IType underlying) {
       if (((this).pointerType).is_Raw) {
         return RAST.__default.PtrType(underlying);
@@ -30,8 +23,9 @@ namespace DCOMP {
         return RAST.__default.ObjectType(underlying);
       }
     }
-    public Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> error {get; set;}
-    public Dafny.ISequence<Func<RAST._IMod, RAST._IMod>> optimizations {get; set;}
+    public Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> error {get; set;} = Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.Default();
+    public Dafny.ISequence<Func<RAST._IMod, RAST._IMod>> optimizations {get; set;} = Dafny.Sequence<Func<RAST._IMod, RAST._IMod>>.Empty;
+
     public void __ctor(Defs._ICharType charType, Defs._IPointerType pointerType, Defs._IRootType rootType)
     {
       (this)._charType = charType;
@@ -6847,7 +6841,8 @@ namespace DCOMP {
       s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(s, (_0_call)._ToString(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";\n}"));
       return s;
     }
-    public Defs._IRootType _rootType {get; set;}
+    public Defs._IRootType _rootType {get; set;} = Defs.RootType.Default();
+
     public Defs._IRootType rootType { get {
       return this._rootType;
     } }
@@ -6858,7 +6853,8 @@ namespace DCOMP {
         return (RAST.__default.crate).MSel(((this).rootType).dtor_moduleName);
       }
     } }
-    public Defs._ICharType _charType {get; set;}
+    public Defs._ICharType _charType {get; set;} = Defs.CharType.Default();
+
     public Defs._ICharType charType { get {
       return this._charType;
     } }
@@ -6890,7 +6886,8 @@ namespace DCOMP {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("string_utf16_of");
       }
     } }
-    public Defs._IPointerType _pointerType {get; set;}
+    public Defs._IPointerType _pointerType {get; set;} = Defs.PointerType.Default();
+
     public Defs._IPointerType pointerType { get {
       return this._pointerType;
     } }

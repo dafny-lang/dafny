@@ -3,14 +3,7 @@ using Microsoft.Dafny.Plugins;
 
 namespace DafnyBenchmarkingPlugin;
 
-public class JavaBenchmarkCompilationInstrumenter : GenericCompilationInstrumenter {
-
-  private readonly ErrorReporter Reporter;
-
-  public JavaBenchmarkCompilationInstrumenter(ErrorReporter reporter) {
-    Reporter = reporter;
-  }
-
+public class JavaBenchmarkCompilationInstrumenter(ErrorReporter reporter) : GenericCompilationInstrumenter {
   public override void BeforeClass(TopLevelDecl cls, ConcreteSyntaxTree wr) {
     if (Attributes.Contains(cls.Attributes, "benchmarks")) {
       wr.WriteLine("@org.openjdk.jmh.annotations.State(org.openjdk.jmh.annotations.Scope.Benchmark)");
@@ -21,7 +14,7 @@ public class JavaBenchmarkCompilationInstrumenter : GenericCompilationInstrument
     if (Attributes.Contains(m.EnclosingClass.Attributes, "benchmarks")) {
       if (m is Constructor) {
         if (m.Ins.Any()) {
-          Reporter.Error(MessageSource.Compiler, ResolutionErrors.ErrorId.none, m.Origin,
+          reporter.Error(MessageSource.Compiler, ResolutionErrors.ErrorId.none, m.Origin,
             $"Classes with {{:benchmarks}} can not accept parameters in their constructors");
         }
 
@@ -34,7 +27,7 @@ public class JavaBenchmarkCompilationInstrumenter : GenericCompilationInstrument
         wr.WriteLine("@org.openjdk.jmh.annotations.Setup(org.openjdk.jmh.annotations.Level.Iteration)");
       } else if (Attributes.Contains(m.Attributes, "benchmarkTearDown")) {
         if (m.Ins.Any()) {
-          Reporter.Error(MessageSource.Compiler, ResolutionErrors.ErrorId.none, m.Origin,
+          reporter.Error(MessageSource.Compiler, ResolutionErrors.ErrorId.none, m.Origin,
             $"Methods with {{:benchmarkTearDown}} can not accept parameters");
         }
         wr.WriteLine("@org.openjdk.jmh.annotations.TearDown(org.openjdk.jmh.annotations.Level.Iteration)");

@@ -16,17 +16,10 @@ namespace Microsoft.Dafny;
 /// The purpose of the TypeRefinementVisitor is to incorporate subset types into the types that were inferred during
 /// pre-type inference. The visitor collects constraints, which are solved by the Solve() method.
 /// </summary>
-public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
-  private string moduleDescription;
+public class TypeRefinementVisitor(string moduleDescription, SystemModuleManager systemModuleManager)
+  : ASTVisitor<IASTVisitorContext> {
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return astVisitorContext;
-  }
-
-  private readonly SystemModuleManager systemModuleManager;
-
-  public TypeRefinementVisitor(string moduleDescription, SystemModuleManager systemModuleManager) {
-    this.moduleDescription = moduleDescription;
-    this.systemModuleManager = systemModuleManager;
   }
 
   private readonly List<Flow> flows = [];

@@ -5,15 +5,8 @@ using DafnyDriver.Commands;
 
 namespace Microsoft.Dafny;
 
-public class LegacyTextVerificationLogger {
+public class LegacyTextVerificationLogger(ProofDependencyManager depManager, TextWriter outWriter) {
   private TextWriter tw;
-  private TextWriter outWriter;
-  private ProofDependencyManager depManager;
-
-  public LegacyTextVerificationLogger(ProofDependencyManager depManager, TextWriter outWriter) {
-    this.depManager = depManager;
-    this.outWriter = outWriter;
-  }
 
   public void Initialize(Dictionary<string, string> parameters) {
     tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter;

@@ -40,19 +40,14 @@ public class GhostStateDiagnosticCollectorTest {
       new DummyLogger());
   }
 
-  class CollectingErrorReporter : BatchErrorReporter {
+  class CollectingErrorReporter(DafnyOptions options) : BatchErrorReporter(options) {
     public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
       return this.AllMessagesByLevel;
     }
-
-    public CollectingErrorReporter(DafnyOptions options) : base(options) {
-    }
   }
 
-  class DummyModuleDecl : LiteralModuleDecl {
-    public DummyModuleDecl(DafnyOptions options) : base(options,
-      new DefaultModuleDefinition(), null, Guid.NewGuid()) {
-    }
+  class DummyModuleDecl(DafnyOptions options) : LiteralModuleDecl(options,
+    new DefaultModuleDefinition(), null, Guid.NewGuid()) {
     public override object Dereference() {
       return this;
     }

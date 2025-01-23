@@ -11,7 +11,13 @@ using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
-  public class LitCommandWithRedirection : ILitCommand {
+  public class LitCommandWithRedirection(
+    ILitCommand command,
+    string? inputFile,
+    string? outputFile,
+    bool append,
+    string? errorFile)
+    : ILitCommand {
 
     public static LitCommandWithRedirection Parse(Token[] tokens, LitTestConfiguration config) {
       var commandSymbol = tokens[0].Value;
@@ -78,19 +84,11 @@ namespace XUnitExtensions.Lit {
       return new LitCommandWithRedirection(new DelayedLitCommand(CreateCommand), inputFile, outputFile, appendOutput, errorFile);
     }
 
-    public ILitCommand Command;
-    public string? InputFile;
-    public string? OutputFile;
-    public bool Append;
-    public string? ErrorFile;
-
-    public LitCommandWithRedirection(ILitCommand command, string? inputFile, string? outputFile, bool append, string? errorFile) {
-      this.Command = command;
-      this.InputFile = inputFile;
-      this.OutputFile = outputFile;
-      this.Append = append;
-      this.ErrorFile = errorFile;
-    }
+    public ILitCommand Command = command;
+    public string? InputFile = inputFile;
+    public string? OutputFile = outputFile;
+    public bool Append = append;
+    public string? ErrorFile = errorFile;
 
     public async Task<int> Execute(TextReader inputReader, TextWriter outWriter, TextWriter errWriter) {
       var outputWriters = new List<TextWriter> { outWriter };

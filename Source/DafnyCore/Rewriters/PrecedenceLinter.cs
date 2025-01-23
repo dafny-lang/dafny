@@ -12,8 +12,7 @@ using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny {
 
-  public class PrecedenceLinter : IRewriter {
-    private readonly CompilationData compilation;
+  public class PrecedenceLinter(ErrorReporter reporter, CompilationData compilation) : IRewriter(reporter) {
     // Don't perform linting on doo files in general, since the source has already been processed.
     internal override void PreResolve(ModuleDefinition moduleDefinition) {
       if (moduleDefinition.Origin.Uri != null && !moduleDefinition.ShouldVerify(compilation)) {
@@ -26,18 +25,10 @@ namespace Microsoft.Dafny {
         }
       }
     }
-
-    public PrecedenceLinter(ErrorReporter reporter, CompilationData compilation) : base(reporter) {
-      this.compilation = compilation;
-    }
   }
 
-  class LeftMargin {
-    public int Column;
-
-    public LeftMargin(int column) {
-      Column = column;
-    }
+  class LeftMargin(int column) {
+    public int Column = column;
   }
 
   /// <summary>
@@ -68,15 +59,8 @@ namespace Microsoft.Dafny {
   /// functionality, we could use it. Such a TopDownVisitor would then declare st (or, then more appropriately named "context") as
   /// an ordinary in-parameter to VisitOneExpr, since the method would only need to return a bool.
   /// </summary>
-  class PrecedenceLinterVisitor : TopDownVisitor<LeftMargin> {
-    private readonly CompilationData compilation;
-    private readonly ErrorReporter reporter;
-
-    public PrecedenceLinterVisitor(CompilationData compilation, ErrorReporter reporter) : base(false) {
-      this.compilation = compilation;
-      this.reporter = reporter;
-    }
-
+  class PrecedenceLinterVisitor(CompilationData compilation, ErrorReporter reporter)
+    : TopDownVisitor<LeftMargin>(false) {
     /// <summary>
     /// Regarding the "st" parameter, see the comment above the class.
     /// </summary>

@@ -141,13 +141,8 @@ namespace DafnyTestGeneration {
     ///         and values leading to assertion or post-condition violation.
     /// (2)     the end of each block, to get execution trace.
     /// </summary>
-    private class AnnotationVisitor : StandardVisitor {
+    private class AnnotationVisitor(DafnyOptions options) : StandardVisitor {
       private Implementation/*?*/ implementation;
-      private DafnyOptions options;
-
-      public AnnotationVisitor(DafnyOptions options) {
-        this.options = options;
-      }
 
       public override Block VisitBlock(Block node) {
         int afterPartition = node.Cmds.FindIndex(cmd =>
@@ -189,13 +184,7 @@ namespace DafnyTestGeneration {
     /// Replace assertions with assumptions and ensures with free ensures to
     /// alleviate the verification burden. Return a reresolved copy of the AST.
     /// </summary>
-    internal class RemoveChecks : StandardVisitor {
-      private readonly DafnyOptions options;
-
-      public RemoveChecks(DafnyOptions options) {
-        this.options = options;
-      }
-
+    internal class RemoveChecks(DafnyOptions options) : StandardVisitor {
       public override Block VisitBlock(Block node) {
         var toRemove = node.Cmds.OfType<AssertCmd>().ToList();
         foreach (var cmd in toRemove) {

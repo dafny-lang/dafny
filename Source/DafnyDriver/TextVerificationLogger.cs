@@ -8,15 +8,9 @@ using VC;
 
 namespace Microsoft.Dafny;
 
-public class TextVerificationLogger : IVerificationResultFormatLogger {
+public class TextVerificationLogger(ProofDependencyManager depManager, TextWriter fallbackWriter)
+  : IVerificationResultFormatLogger {
   private TextWriter output;
-  private TextWriter fallbackWriter;
-  private ProofDependencyManager depManager;
-
-  public TextVerificationLogger(ProofDependencyManager depManager, TextWriter fallbackWriter) {
-    this.depManager = depManager;
-    this.fallbackWriter = fallbackWriter;
-  }
 
   public void Initialize(Dictionary<string, string> parameters) {
     output = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : fallbackWriter;

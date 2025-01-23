@@ -17,13 +17,7 @@ public interface IFileSystem {
   DirectoryInfoBase GetDirectoryInfoBase(string root);
 }
 
-public class InMemoryFileSystem : IFileSystem {
-  private readonly IReadOnlyDictionary<Uri, string> files;
-
-  public InMemoryFileSystem(IReadOnlyDictionary<Uri, string> files) {
-    this.files = files;
-  }
-
+public class InMemoryFileSystem(IReadOnlyDictionary<Uri, string> files) : IFileSystem {
   public FileSnapshot ReadFile(Uri uri) {
     if (files.TryGetValue(uri, out var entry)) {
       return new FileSnapshot(new StringReader(entry), null);

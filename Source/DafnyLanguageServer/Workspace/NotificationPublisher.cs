@@ -14,21 +14,13 @@ using System.Collections.Immutable;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
-  public class NotificationPublisher : INotificationPublisher {
-    private readonly ILogger<NotificationPublisher> logger;
-    private readonly LanguageServerFilesystem filesystem;
-    private readonly ILanguageServerFacade languageServer;
-    private readonly DafnyOptions options;
-
-    public NotificationPublisher(
-      ILogger<NotificationPublisher> logger,
-      ILanguageServerFacade languageServer,
-      DafnyOptions options, LanguageServerFilesystem filesystem) {
-      this.logger = logger;
-      this.languageServer = languageServer;
-      this.options = options;
-      this.filesystem = filesystem;
-    }
+  public class NotificationPublisher(
+    ILogger<NotificationPublisher> logger,
+    ILanguageServerFacade languageServer,
+    DafnyOptions options,
+    LanguageServerFilesystem filesystem)
+    : INotificationPublisher {
+    private readonly LanguageServerFilesystem filesystem = filesystem;
 
     public void PublishNotifications(IdeState previousState, IdeState state) {
       if (state.Version < previousState.Version) {

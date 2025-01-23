@@ -6,13 +6,7 @@ using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
-public class OutputLogger : OutputPrinter {
-  private readonly ILogger logger;
-
-  public OutputLogger(ILogger logger) {
-    this.logger = logger;
-  }
-
+public class OutputLogger(ILogger logger) : OutputPrinter {
   public void AdvisoryWriteLine(TextWriter writer, string format, params object[] args) {
   }
 

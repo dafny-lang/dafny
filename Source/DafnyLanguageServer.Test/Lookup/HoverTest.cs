@@ -14,7 +14,7 @@ using Xunit;
 using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  public class HoverTest : ClientBasedLanguageServerTest {
+  public class HoverTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
     protected override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
       void ModifyOptions(DafnyOptions options) {
         options.ProverOptions.Add("SOLVER=noop");
@@ -551,9 +551,6 @@ method test(opt: int) {
 //      ^[```dafny\ns: int\n```]
 }
 ", true);
-    }
-
-    public HoverTest(ITestOutputHelper output) : base(output) {
     }
 
     [Fact]

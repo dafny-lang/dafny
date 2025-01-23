@@ -3,11 +3,12 @@ using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
-  public class MethodSymbol : MemberSymbol, ILocalizableSymbol {
+  public class MethodSymbol(ILegacySymbol? scope, Method method) : MemberSymbol(scope, method), ILocalizableSymbol {
     /// <summary>
     /// Gets the method node representing the declaration of this symbol.
     /// </summary>
-    public Method Declaration { get; }
+    public Method Declaration { get; } = method;
+
     public INode Node => Declaration;
 
     /// <summary>
@@ -39,10 +40,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         .Concat(Reads)
         .Concat(Modifies)
         .Concat(Decreases);
-
-    public MethodSymbol(ILegacySymbol? scope, Method method) : base(scope, method) {
-      Declaration = method;
-    }
 
     public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       var signatureWithoutReturn = $"{Declaration.WhatKind} {TypePrefix}{Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()})";

@@ -48,13 +48,8 @@ public abstract class DafnyCodeActionProvider {
 /// Implement this class if you need to compute code actions only for the diagnostics
 /// that are being touched by the selection
 /// </summary>
-public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvider {
-  private ILogger<DafnyCodeActionHandler> logger;
-
-  protected DiagnosticDafnyCodeActionProvider(ILogger<DafnyCodeActionHandler> logger) {
-    this.logger = logger;
-  }
-
+public abstract class DiagnosticDafnyCodeActionProvider(ILogger<DafnyCodeActionHandler> logger)
+  : DafnyCodeActionProvider {
   public override IEnumerable<DafnyCodeAction> GetDafnyCodeActions(IDafnyCodeActionInput input, Range selection) {
     if (input.Program == null) {
       return System.Array.Empty<DafnyCodeAction>();

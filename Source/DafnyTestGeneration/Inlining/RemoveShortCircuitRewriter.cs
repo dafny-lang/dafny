@@ -18,7 +18,8 @@ using Type = Microsoft.Dafny.Type;
 
 namespace DafnyTestGeneration.Inlining;
 
-public class RemoveShortCircuitingRewriter : Cloner {
+public class RemoveShortCircuitingRewriter(Func<MemberDecl, bool> shouldProcessPredicate)
+  : Cloner(cloneLiteralModuleDefinition: false, cloneResolvedFields: false) {
 
   // At any point during the AST traversal, newStmtStack.Last() contains the list of statements that must be inserted
   // before the currently processed expression/statement. E.g. when cloning the statement x := f1(f0(a)),
@@ -36,11 +37,6 @@ public class RemoveShortCircuitingRewriter : Cloner {
   // the result is stored in an already existing variable.
   private bool processingRhs;
   // determines whether short circuiting should be removed from method/function
-  private readonly Func<MemberDecl, bool> shouldProcessPredicate;
-  public RemoveShortCircuitingRewriter(Func<MemberDecl, bool> shouldProcessPredicate)
-    : base(cloneLiteralModuleDefinition: false, cloneResolvedFields: false) {
-    this.shouldProcessPredicate = shouldProcessPredicate;
-  }
 
   private void ResetVariableIds() {
     nextVariableId = 0;

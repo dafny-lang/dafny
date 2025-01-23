@@ -4,13 +4,8 @@ using Xunit.Abstractions;
 
 namespace DafnyCore.Test;
 
-public class WriterFromOutputHelper : TextWriter {
+public class WriterFromOutputHelper(ITestOutputHelper output) : TextWriter {
   private readonly StringBuilder buffer = new();
-  private readonly ITestOutputHelper output;
-
-  public WriterFromOutputHelper(ITestOutputHelper output) {
-    this.output = output;
-  }
 
   public override void Write(string? value) {
     if (value != null) {

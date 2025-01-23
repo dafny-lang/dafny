@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 [Collection("Sequential Collection")]
-public class VerificationOrderTest : ClientBasedLanguageServerTest {
+public class VerificationOrderTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
   [Fact]
   public async Task VerificationOrderStaysCorrectAfterMigrationOfSymbolHeaders() {
@@ -98,8 +98,5 @@ method Bar() {
       Assert.Equal(new Range(3, 7, 3, 19), errorRange.NameRange);
       Assert.Contains(firstErrorStatus.NamedVerifiables, v => v.Status != PublishedVerificationStatus.Error);
     }
-  }
-
-  public VerificationOrderTest(ITestOutputHelper output) : base(output) {
   }
 }

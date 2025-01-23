@@ -24,12 +24,8 @@ namespace DafnyPipeline.Test {
   //
   // Every test is performed with all three newline styles
   // Every formatted program is formatted again to verify that it stays the same.
-  public class FormatterBaseTest {
-    private readonly TextWriter output;
-
-    public FormatterBaseTest(ITestOutputHelper output) {
-      this.output = new WriterFromOutputHelper(output);
-    }
+  public class FormatterBaseTest(ITestOutputHelper output) {
+    private readonly TextWriter output = new WriterFromOutputHelper(output);
 
     enum Newlines {
       LF,

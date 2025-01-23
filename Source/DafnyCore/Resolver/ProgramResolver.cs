@@ -8,8 +8,8 @@ using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
-public class ProgramResolver {
-  public Program Program { get; }
+public class ProgramResolver(Program program) {
+  public Program Program { get; } = program;
 
   private readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new();
 
@@ -17,10 +17,6 @@ public class ProgramResolver {
   public DafnyOptions Options => Program.Options;
   public SystemModuleManager SystemModuleManager => Program.SystemModuleManager;
   public ErrorReporter Reporter => Program.Reporter;
-
-  public ProgramResolver(Program program) {
-    Program = program;
-  }
 
   public Dictionary<string, MemberDecl> GetClassMembers(TopLevelDeclWithMembers key) {
     if (classMembers.TryGetValue(key, out var result)) {

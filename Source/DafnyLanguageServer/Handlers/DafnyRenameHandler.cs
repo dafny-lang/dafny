@@ -12,14 +12,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP handler responsible for project-wide symbol renames.
   /// </summary>
-  public class DafnyRenameHandler : RenameHandlerBase {
-    private readonly ILogger logger;
-    private readonly IProjectDatabase projects;
-
-    public DafnyRenameHandler(ILogger<DafnyRenameHandler> logger, IProjectDatabase projects) {
-      this.logger = logger;
-      this.projects = projects;
-    }
+  public class DafnyRenameHandler(ILogger<DafnyRenameHandler> logger, IProjectDatabase projects)
+    : RenameHandlerBase {
+    private readonly ILogger logger = logger;
 
     protected override RenameRegistrationOptions CreateRegistrationOptions(
       RenameCapability capability, ClientCapabilities clientCapabilities) {

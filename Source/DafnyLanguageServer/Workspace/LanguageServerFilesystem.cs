@@ -9,21 +9,10 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class LanguageServerFilesystem : IFileSystem {
-  private readonly ILogger<LanguageServerFilesystem> logger;
-
-  public LanguageServerFilesystem(ILogger<LanguageServerFilesystem> logger) {
-    this.logger = logger;
-  }
-
-  private class Entry {
-    public TextBuffer Buffer { get; set; }
-    public int? Version { get; set; }
-
-    public Entry(TextBuffer buffer, int? version) {
-      Buffer = buffer;
-      Version = version;
-    }
+public class LanguageServerFilesystem(ILogger<LanguageServerFilesystem> logger) : IFileSystem {
+  private class Entry(TextBuffer buffer, int? version) {
+    public TextBuffer Buffer { get; set; } = buffer;
+    public int? Version { get; set; } = version;
   }
 
   private readonly ConcurrentDictionary<Uri, Entry> openFiles = new();

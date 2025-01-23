@@ -7,9 +7,8 @@
 
 namespace Microsoft.Dafny;
 
-public class SuperSetBoundedPool : BoundedPool {
-  public readonly Expression LowerBound;
-  public SuperSetBoundedPool(Expression set) { LowerBound = set; }
+public class SuperSetBoundedPool(Expression set) : BoundedPool {
+  public readonly Expression LowerBound = set;
   public override int Preference() => 2;
   public override BoundedPool Clone(Cloner cloner) {
     return new SuperSetBoundedPool(cloner.CloneExpr(LowerBound));

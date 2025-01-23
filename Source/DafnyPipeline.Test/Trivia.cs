@@ -14,13 +14,9 @@ using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
   [Collection("Singleton Test Collection - Trivia")]
-  public class Trivia {
+  public class Trivia(ITestOutputHelper output) {
 
-    private readonly TextWriter output;
-
-    public Trivia(ITestOutputHelper output) {
-      this.output = new WriterFromOutputHelper(output);
-    }
+    private readonly TextWriter output = new WriterFromOutputHelper(output);
 
     enum Newlines { LF, CR, CRLF };
 

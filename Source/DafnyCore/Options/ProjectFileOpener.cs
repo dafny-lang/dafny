@@ -4,15 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Dafny;
 
-public class ProjectFileOpener {
-  private readonly IFileSystem fileSystem;
-  private readonly IOrigin origin;
-
-  public ProjectFileOpener(IFileSystem fileSystem, IOrigin origin) {
-    this.fileSystem = fileSystem;
-    this.origin = origin;
-  }
-
+public class ProjectFileOpener(IFileSystem fileSystem, IOrigin origin) {
   public async Task<DafnyProject?> TryFindProject(Uri uri) {
     return uri.LocalPath.EndsWith(DafnyProject.FileName)
       ? await DafnyProject.Open(fileSystem, uri, origin)

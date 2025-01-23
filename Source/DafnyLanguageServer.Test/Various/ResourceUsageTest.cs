@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 [Collection("Sequential Collection")] // Because this a performance test, we can't run in in parallel with others
-public class ResourceUsageTest : ClientBasedLanguageServerTest {
+public class ResourceUsageTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
   [Fact]
   public async Task SolverProcessCountDoesNotIncreaseOnEachVerification() {
@@ -30,8 +30,5 @@ method Foo()
     await GetLastDiagnostics(documentItem);
     var processes3 = Process.GetProcessesByName(solverProcessName);
     Assert.Equal(processes2.Length, processes3.Length);
-  }
-
-  public ResourceUsageTest(ITestOutputHelper output) : base(output) {
   }
 }

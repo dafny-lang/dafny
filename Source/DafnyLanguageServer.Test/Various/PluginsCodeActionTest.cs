@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public class PluginsDafnyCodeActionTest : PluginsTestBase {
+public class PluginsDafnyCodeActionTest(ITestOutputHelper output) : PluginsTestBase(output) {
 
   protected override string LibraryName =>
     "PluginsDafnyCodeActionTest";
@@ -32,8 +32,5 @@ method firstMethod() {
     Assert.NotNull(codeAction);
     Assert.Equal("Insert file header", codeAction.Title);
     // The rest is tested elsewhere
-  }
-
-  public PluginsDafnyCodeActionTest(ITestOutputHelper output) : base(output) {
   }
 }

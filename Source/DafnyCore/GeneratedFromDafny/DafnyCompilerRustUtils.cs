@@ -83,13 +83,10 @@ namespace DafnyCompilerRustUtils {
     Dafny.IMap<K,V> dtor_values { get; }
     _ISeqMap<__K, __V> DowncastClone<__K, __V>(Func<K, __K> converter0, Func<V, __V> converter1);
   }
-  public class SeqMap<K, V> : _ISeqMap<K, V> {
-    public readonly Dafny.ISequence<K> _keys;
-    public readonly Dafny.IMap<K,V> _values;
-    public SeqMap(Dafny.ISequence<K> keys, Dafny.IMap<K,V> values) {
-      this._keys = keys;
-      this._values = values;
-    }
+  public class SeqMap<K, V>(Dafny.ISequence<K> keys, Dafny.IMap<K, V> values) : _ISeqMap<K, V> {
+    public readonly Dafny.ISequence<K> _keys = keys;
+    public readonly Dafny.IMap<K,V> _values = values;
+
     public _ISeqMap<__K, __V> DowncastClone<__K, __V>(Func<K, __K> converter0, Func<V, __V> converter1) {
       if (this is _ISeqMap<__K, __V> dt) { return dt; }
       return new SeqMap<__K, __V>((_keys).DowncastClone<__K>(Dafny.Helpers.CastConverter<K, __K>), (_values).DowncastClone<__K, __V>(Dafny.Helpers.CastConverter<K, __K>, Dafny.Helpers.CastConverter<V, __V>));
@@ -266,13 +263,13 @@ namespace DafnyCompilerRustUtils {
       }
     }
   }
-  public class GatheringModule_GatheringModule : GatheringModule {
-    public readonly RAST._IMod _existingMod;
-    public readonly DafnyCompilerRustUtils._ISeqMap<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule> _submodules;
-    public GatheringModule_GatheringModule(RAST._IMod existingMod, DafnyCompilerRustUtils._ISeqMap<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule> submodules) : base() {
-      this._existingMod = existingMod;
-      this._submodules = submodules;
-    }
+  public class GatheringModule_GatheringModule(
+    RAST._IMod existingMod,
+    DafnyCompilerRustUtils._ISeqMap<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule> submodules)
+    : GatheringModule {
+    public readonly RAST._IMod _existingMod = existingMod;
+    public readonly DafnyCompilerRustUtils._ISeqMap<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule> _submodules = submodules;
+
     public override _IGatheringModule DowncastClone() {
       if (this is _IGatheringModule dt) { return dt; }
       return new GatheringModule_GatheringModule(_existingMod, _submodules);
@@ -298,11 +295,9 @@ namespace DafnyCompilerRustUtils {
       return s;
     }
   }
-  public class GatheringModule_ExternMod : GatheringModule {
-    public readonly RAST._IMod _m;
-    public GatheringModule_ExternMod(RAST._IMod m) : base() {
-      this._m = m;
-    }
+  public class GatheringModule_ExternMod(RAST._IMod m) : GatheringModule {
+    public readonly RAST._IMod _m = m;
+
     public override _IGatheringModule DowncastClone() {
       if (this is _IGatheringModule dt) { return dt; }
       return new GatheringModule_ExternMod(_m);

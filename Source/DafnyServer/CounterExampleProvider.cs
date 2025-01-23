@@ -112,27 +112,21 @@ namespace DafnyServer {
     [DataContract]
     public class CounterExample {
       [DataMember]
-      public List<CounterExampleState> States { get; set; }
-
-      public CounterExample() {
-        States = [];
-      }
+      public List<CounterExampleState> States { get; set; } = [];
     }
 
     [Serializable]
     [DataContract]
     public class CounterExampleState {
       [DataMember]
-      public List<CounterExampleVariable> Variables { get; set; }
+      public List<CounterExampleVariable> Variables { get; set; } = [];
+
       [DataMember]
       public string Name { get; set; }
       [DataMember]
       public int Line { get; set; }
       [DataMember]
       public int Column { get; set; }
-      public CounterExampleState() {
-        Variables = [];
-      }
     }
 
     [Serializable]

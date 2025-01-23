@@ -11,16 +11,11 @@ using Function = Microsoft.Dafny.Function;
 using Program = Microsoft.Dafny.Program;
 
 namespace DafnyServer {
-  public class SuperLegacySymbolTable {
-    private readonly Program _dafnyProgram;
+  public class SuperLegacySymbolTable(Program dafnyProgram) {
     private readonly List<SymbolInformation> _information = [];
 
-    public SuperLegacySymbolTable(Program dafnyProgram) {
-      _dafnyProgram = dafnyProgram;
-    }
-
     public List<SymbolInformation> CalculateSymbols() {
-      foreach (var module in _dafnyProgram.Modules()) {
+      foreach (var module in dafnyProgram.Modules()) {
         AddMethods(module, _information);
         AddFields(module, _information);
         AddClasses(module, _information);
@@ -30,7 +25,7 @@ namespace DafnyServer {
 
     private void AddMethods(ModuleDefinition module, List<SymbolInformation> information) {
       foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
-                 Where(e => e != null && !e.Origin.FromIncludeDirective(_dafnyProgram))) {
+                 Where(e => e != null && !e.Origin.FromIncludeDirective(dafnyProgram))) {
 
         if (clbl is Predicate) {
           var predicate = clbl as Predicate;
@@ -87,7 +82,7 @@ namespace DafnyServer {
 
     private void AddFields(ModuleDefinition module, List<SymbolInformation> information) {
       foreach (var fs in ModuleDefinition.AllFields(module.TopLevelDecls).
-                 Where(e => e != null && !e.Origin.FromIncludeDirective(_dafnyProgram))) {
+                 Where(e => e != null && !e.Origin.FromIncludeDirective(dafnyProgram))) {
 
         var fieldSymbol = new SymbolInformation {
           Module = fs.EnclosingClass.EnclosingModuleDefinition.Name,
@@ -108,7 +103,7 @@ namespace DafnyServer {
 
     private void AddClasses(ModuleDefinition module, List<SymbolInformation> information) {
       foreach (var cs in module.TopLevelDecls.Where(t => t is ClassLikeDecl or DefaultClassDecl).
-                 Where(cl => !cl.Origin.FromIncludeDirective(_dafnyProgram))) {
+                 Where(cl => !cl.Origin.FromIncludeDirective(dafnyProgram))) {
         if (cs.EnclosingModuleDefinition != null && cs.Origin != null) {
           var classSymbol = new SymbolInformation {
             Module = cs.EnclosingModuleDefinition.Name,
@@ -125,7 +120,7 @@ namespace DafnyServer {
     private ICollection<string> ParseContracts(IEnumerable<AttributedExpression> contractClauses) {
       var requires = new List<string>();
       foreach (var maybeFreeExpression in contractClauses) {
-        requires.Add(Printer.ExprToString(_dafnyProgram.Options, maybeFreeExpression.E));
+        requires.Add(Printer.ExprToString(dafnyProgram.Options, maybeFreeExpression.E));
       }
       return requires;
     }
@@ -251,9 +246,9 @@ namespace DafnyServer {
         string moduleName) {
       var information = new List<ReferenceInformation>();
 
-      foreach (var module in _dafnyProgram.Modules()) {
+      foreach (var module in dafnyProgram.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
-                   Where(e => !e.Origin.FromIncludeDirective(_dafnyProgram))) {
+                   Where(e => !e.Origin.FromIncludeDirective(dafnyProgram))) {
           if (!(clbl is Method)) {
             continue;
           }
@@ -270,9 +265,9 @@ namespace DafnyServer {
     private List<ReferenceInformation> FindMethodReferencesInternal(string methodToFind) {
       var information = new List<ReferenceInformation>();
 
-      foreach (var module in _dafnyProgram.Modules()) {
+      foreach (var module in dafnyProgram.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
-                   Where(e => !e.Origin.FromIncludeDirective(_dafnyProgram))) {
+                   Where(e => !e.Origin.FromIncludeDirective(dafnyProgram))) {
           if (!(clbl is Method)) {
             continue;
           }
@@ -392,7 +387,8 @@ namespace DafnyServer {
       [DataMember(Name = "EndColumn")]
       public int? EndColumn { get; set; }
       [DataMember(Name = "References")]
-      public ICollection<ReferenceInformation> References { get; set; }
+      public ICollection<ReferenceInformation> References { get; set; } = new List<ReferenceInformation>();
+
       [DataMember(Name = "Requires")]
       public ICollection<string> Requires { get; set; }
       [DataMember(Name = "Ensures")]
@@ -433,10 +429,6 @@ namespace DafnyServer {
         Call,
         Definition,
         Predicate
-      }
-
-      public SymbolInformation() {
-        References = new List<ReferenceInformation>();
       }
     }
 

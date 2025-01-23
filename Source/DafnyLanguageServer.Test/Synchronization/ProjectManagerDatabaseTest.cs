@@ -13,7 +13,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 [Collection("Sequential Collection")]
-public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
+public class ProjectManagerDatabaseTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
   [Fact]
   public async Task CloseAndReopenProject() {
@@ -112,8 +112,5 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     }
 
     await Task.WhenAll(tasks);
-  }
-
-  public ProjectManagerDatabaseTest(ITestOutputHelper output) : base(output) {
   }
 }

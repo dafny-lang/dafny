@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// To avoid diagnostic overload, the recursion will stop once a ghost state has been identified. Otherwise,
   /// diagnostics may overlap with each other, creating a large list of hover texts.
   /// </remarks>
-  public class GhostStateDiagnosticCollector : IGhostStateDiagnosticCollector {
+  public class GhostStateDiagnosticCollector(DafnyOptions options, ILogger logger) : IGhostStateDiagnosticCollector {
 
     public static readonly Option<bool> GhostIndicators = new("--notify-ghostness",
       @"
@@ -28,13 +28,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 Send notifications that indicate which lines are ghost.".TrimStart());
 
     private const string GhostStatementMessage = "Ghost statement";
-
-    private readonly DafnyOptions options;
-    private readonly ILogger logger;
-    public GhostStateDiagnosticCollector(DafnyOptions options, ILogger logger) {
-      this.options = options;
-      this.logger = logger;
-    }
 
     public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GetGhostStateDiagnostics(
       LegacySignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
@@ -57,14 +50,8 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       }
     }
 
-    private class GhostStateSyntaxTreeVisitor : SyntaxTreeVisitor {
-      private readonly CancellationToken cancellationToken;
-
+    private class GhostStateSyntaxTreeVisitor(CancellationToken cancellationToken) : SyntaxTreeVisitor {
       public Dictionary<Uri, List<Range>> GhostDiagnostics { get; } = new();
-
-      public GhostStateSyntaxTreeVisitor(CancellationToken cancellationToken) {
-        this.cancellationToken = cancellationToken;
-      }
 
       public override void VisitUnknown(object node, IOrigin token) { }
 

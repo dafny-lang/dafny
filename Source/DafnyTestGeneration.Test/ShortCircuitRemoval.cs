@@ -16,13 +16,9 @@ using Xunit.Abstractions;
 
 namespace DafnyTestGeneration.Test;
 
-public class ShortCircuitRemoval : Setup {
+public class ShortCircuitRemoval(ITestOutputHelper output) : Setup {
 
-  private readonly TextWriter output;
-
-  public ShortCircuitRemoval(ITestOutputHelper output) {
-    this.output = new WriterFromOutputHelper(output);
-  }
+  private readonly TextWriter output = new WriterFromOutputHelper(output);
 
   private static string RemoveSpaces(string input) {
     return Regex.Replace(input, "[ \t\n\r]", "");

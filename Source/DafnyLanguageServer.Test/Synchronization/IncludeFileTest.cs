@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public class IncludeFileTest : ClientBasedLanguageServerTest {
+public class IncludeFileTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
   private static readonly string TestFileDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization", "TestFiles");
   private static readonly string TestFilePath = Path.Combine(TestFileDirectory, "testFile.dfy");
 
@@ -136,8 +136,5 @@ ensures Foo(x) {{
     var verificationDiagnostics = await GetLastDiagnostics(documentItem2);
     Assert.Single(verificationDiagnostics);
     await AssertNoDiagnosticsAreComing(CancellationToken);
-  }
-
-  public IncludeFileTest(ITestOutputHelper output) : base(output) {
   }
 }

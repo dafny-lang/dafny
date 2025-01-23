@@ -4,10 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DafnyDriver.Commands;
 
-class CliTelemetryPublisher : TelemetryPublisherBase {
-  public CliTelemetryPublisher(ILogger<TelemetryPublisherBase> logger) : base(logger) {
-  }
-
+class CliTelemetryPublisher(ILogger<TelemetryPublisherBase> logger) : TelemetryPublisherBase(logger) {
   public override void PublishTelemetry(ImmutableDictionary<string, object> data) {
   }
 }

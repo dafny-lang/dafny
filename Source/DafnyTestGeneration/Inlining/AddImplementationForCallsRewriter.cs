@@ -19,16 +19,10 @@ namespace DafnyTestGeneration.Inlining;
 /// call the respective "Impl$$ implementations. This allows to implement
 /// inlining of Dafny methods further down the road.
 /// </summary>
-public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
-
-  private readonly DafnyOptions options;
+public class AddImplementationsForCallsRewriter(DafnyOptions options) : ReadOnlyVisitor {
   private List<Implementation> implsToAdd = [];
 
   private Program /*?*/ program;
-
-  public AddImplementationsForCallsRewriter(DafnyOptions options) {
-    this.options = options;
-  }
 
   public override Procedure /*?*/ VisitProcedure(Procedure /*?*/ node) {
     if (node == null || !node.Name.StartsWith(BoogieGenerator.CallPrefix + BoogieGenerator.NameSeparator) ||

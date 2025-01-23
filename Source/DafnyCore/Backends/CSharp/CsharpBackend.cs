@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class CsharpBackend : ExecutableBackend {
+public class CsharpBackend(DafnyOptions options) : ExecutableBackend(options) {
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     return new CsharpCodeGenerator(Options, Reporter);
@@ -146,8 +146,5 @@ public class CsharpBackend : ExecutableBackend {
 
   public override void PopulateCoverageReport(CoverageReport coverageReport) {
     codeGenerator.Coverage.PopulateCoverageReport(coverageReport);
-  }
-
-  public CsharpBackend(DafnyOptions options) : base(options) {
   }
 }

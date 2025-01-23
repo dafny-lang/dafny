@@ -9,7 +9,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer;
-public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
+public class ErrorMessageDafnyCodeActionProvider(ILogger<DafnyCodeActionHandler> logger)
+  : DiagnosticDafnyCodeActionProvider(logger) {
 
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
     Diagnostic diagnostic, Range selection) {
@@ -29,8 +30,5 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
       }
     }
     return actions;
-  }
-
-  public ErrorMessageDafnyCodeActionProvider(ILogger<DafnyCodeActionHandler> logger) : base(logger) {
   }
 }

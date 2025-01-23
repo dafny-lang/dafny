@@ -25,21 +25,14 @@ namespace Microsoft.Dafny.Compilers;
 ///           | BOUNDVARS, BOUNDVARS
 /// 
 /// </summary>
-public class CsharpSynthesizer {
-
-  private readonly CsharpCodeGenerator codeGenerator;
-  private readonly ConcreteSyntaxTree ErrorWriter;
+public class CsharpSynthesizer(CsharpCodeGenerator codeGenerator, ConcreteSyntaxTree errorWriter) {
+  private readonly ConcreteSyntaxTree ErrorWriter = errorWriter;
   // maps identifiers to the names of the corresponding mock:
   private Dictionary<IVariable, string> objectToMockName = new();
   // associates a bound variable with the lambda passed to argument matcher
   private Dictionary<IVariable, string> bounds = new();
   private Method lastSynthesizedMethod = null;
   private DafnyOptions Options => codeGenerator.Options;
-
-  public CsharpSynthesizer(CsharpCodeGenerator codeGenerator, ConcreteSyntaxTree errorWriter) {
-    this.codeGenerator = codeGenerator;
-    ErrorWriter = errorWriter;
-  }
 
   /// <summary>
   /// Create a body of a method that synthesizes one or more objects.

@@ -10,7 +10,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  public class CloseDocumentTest : ClientBasedLanguageServerTest {
+  public class CloseDocumentTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
 
     [Fact]
     public async Task DiagnosticsAreClearedUponCloseWhenUsingProject() {
@@ -68,9 +68,6 @@ function GetConstant(): int {
       var documentItem = CreateTestDocument(source, "DocumentStaysUnloadedWhenClosed.dfy");
       client.CloseDocument(documentItem);
       Assert.Null(await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri));
-    }
-
-    public CloseDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

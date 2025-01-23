@@ -4,16 +4,9 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class ModuleBindings {
-  private ModuleBindings parent;
-  private Dictionary<string, ModuleDecl> modules;
-  private Dictionary<string, ModuleBindings> bindings;
-
-  public ModuleBindings(ModuleBindings p) {
-    parent = p;
-    modules = new Dictionary<string, ModuleDecl>();
-    bindings = new Dictionary<string, ModuleBindings>();
-  }
+public class ModuleBindings(ModuleBindings p) {
+  private Dictionary<string, ModuleDecl> modules = new();
+  private Dictionary<string, ModuleBindings> bindings = new();
 
   public bool BindName(string name, ModuleDecl subModule, ModuleBindings b) {
     if (modules.ContainsKey(name)) {
@@ -34,8 +27,8 @@ public class ModuleBindings {
     Contract.Requires(name != null);
     if (modules.TryGetValue(name, out m) && filter(m)) {
       return true;
-    } else if (parent != null) {
-      return parent.TryLookupFilter(name, out m, filter);
+    } else if (p != null) {
+      return p.TryLookupFilter(name, out m, filter);
     } else {
       return false;
     }

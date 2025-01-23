@@ -24,16 +24,13 @@ public interface IMigrator {
   LegacySignatureAndCompletionTable MigrateSymbolTable(LegacySignatureAndCompletionTable table);
 }
 
-class NoopMigrator : IMigrator {
-  public NoopMigrator(Uri migratedUri) {
-    MigratedUri = migratedUri;
-  }
-
+class NoopMigrator(Uri migratedUri) : IMigrator {
   public VerificationTree RelocateVerificationTree(VerificationTree tree) {
     return tree;
   }
 
-  public Uri MigratedUri { get; }
+  public Uri MigratedUri { get; } = migratedUri;
+
   public Range MigrateRange(Range range, bool isFullRange = false) {
     return range;
   }
@@ -48,27 +45,15 @@ class NoopMigrator : IMigrator {
 }
 
 
-public class Migrator : IMigrator {
-  private readonly ILogger<Migrator> logger;
-  private readonly DidChangeTextDocumentParams changeParams;
-  private readonly CancellationToken cancellationToken;
-  private readonly ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable;
-
+public class Migrator(
+  ILogger<Migrator> logger,
+  ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable,
+  DidChangeTextDocumentParams changeParams,
+  CancellationToken cancellationToken)
+  : IMigrator {
   private readonly Dictionary<TextDocumentContentChangeEvent, Position> getPositionAtEndOfAppliedChangeCache = new();
 
   public Uri MigratedUri => changeParams.TextDocument.Uri.ToUri();
-
-  public Migrator(
-    ILogger<Migrator> logger,
-    ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable,
-    DidChangeTextDocumentParams changeParams,
-    CancellationToken cancellationToken
-  ) {
-    this.logger = logger;
-    this.changeParams = changeParams;
-    this.cancellationToken = cancellationToken;
-    this.loggerSymbolTable = loggerSymbolTable;
-  }
 
   public Position MigratePosition(Position position) {
     return changeParams.ContentChanges.Aggregate(position, (partiallyMigratedPosition, change) => {

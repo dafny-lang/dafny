@@ -92,13 +92,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       return base.Initialize(clientOptionsAction, GetServerOptionsAction(serverOptionsAction));
     }
 
-    private sealed class AnonymousDisposable : IDisposable {
-      private Action action;
-
-      public AnonymousDisposable(Action action) {
-        this.action = action;
-      }
-
+    private sealed class AnonymousDisposable(Action action) : IDisposable {
       public void Dispose() => Interlocked.Exchange(ref action, null)?.Invoke();
     }
 

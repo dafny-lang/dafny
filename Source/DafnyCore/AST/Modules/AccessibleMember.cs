@@ -9,18 +9,11 @@ namespace Microsoft.Dafny;
 /// For example, if "A" is a module, a function "A.f()" will be stored in the AccessibleMembers dictionary as
 /// the declaration "f" pointing to an AccessibleMember whose AccessPath list contains the NameSegments "A" and "_default".
 /// </summary>
-public class AccessibleMember {
-  public List<NameSegment> AccessPath;
-  public bool IsRevealed;
+public class AccessibleMember(List<NameSegment> accessPath, bool isRevealed = true) {
+  public List<NameSegment> AccessPath = accessPath;
+  public bool IsRevealed = isRevealed;
 
-  public AccessibleMember(List<NameSegment> accessPath, bool isRevealed = true) {
-    AccessPath = accessPath;
-    IsRevealed = isRevealed;
-  }
-
-  public AccessibleMember(bool isRevealed = true) {
-    AccessPath = [];
-    IsRevealed = isRevealed;
+  public AccessibleMember(bool isRevealed = true) : this([], isRevealed) {
   }
 
   public AccessibleMember Clone() {

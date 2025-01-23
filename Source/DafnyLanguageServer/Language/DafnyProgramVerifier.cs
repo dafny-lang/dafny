@@ -18,13 +18,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this verifier serializes all invocations.
   /// </remarks>
-  public class DafnyProgramVerifier : IProgramVerifier {
-    private readonly ILogger<DafnyProgramVerifier> logger;
+  public class DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) : IProgramVerifier {
+    private readonly ILogger<DafnyProgramVerifier> logger = logger;
     private readonly SemaphoreSlim mutex = new(1);
-
-    public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
-      this.logger = logger;
-    }
 
     public async Task<IReadOnlyList<IVerificationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
       ResolutionResult resolution,

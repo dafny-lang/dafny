@@ -5,14 +5,9 @@ namespace Microsoft.Dafny;
 public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
   public readonly Expression/*?*/ Guard;
 
-  public class LoopBodySurrogate {
-    public readonly List<IVariable> LocalLoopTargets;
-    public readonly bool UsesHeap;
-
-    public LoopBodySurrogate(List<IVariable> localLoopTargets, bool usesHeap) {
-      LocalLoopTargets = localLoopTargets;
-      UsesHeap = usesHeap;
-    }
+  public class LoopBodySurrogate(List<IVariable> localLoopTargets, bool usesHeap) {
+    public readonly List<IVariable> LocalLoopTargets = localLoopTargets;
+    public readonly bool UsesHeap = usesHeap;
   }
 
   public WhileStmt Clone(Cloner cloner) {

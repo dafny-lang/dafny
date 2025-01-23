@@ -14,13 +14,7 @@ namespace Microsoft.Dafny;
 /// functions to memory, but only the ones that are know to have a 
 /// read frame.
 /// </summary>
-class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
-  private readonly ErrorReporter reporter;
-
-  public HigherOrderHeapAllocationChecker(ErrorReporter reporter) {
-    this.reporter = reporter;
-  }
-
+class HigherOrderHeapAllocationChecker(ErrorReporter reporter) : ASTVisitor<IASTVisitorContext> {
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return astVisitorContext;
   }

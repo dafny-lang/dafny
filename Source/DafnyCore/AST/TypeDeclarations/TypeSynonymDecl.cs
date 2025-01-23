@@ -18,11 +18,16 @@ public class TypeSynonymDecl : TypeSynonymDeclBase, RevealableTypeDecl {
   }
 }
 
-public class InternalTypeSynonymDecl : TypeSynonymDeclBase {
+public class InternalTypeSynonymDecl(
+  IOrigin origin,
+  Name name,
+  TypeParameter.TypeParameterCharacteristics characteristics,
+  List<TypeParameter> typeArgs,
+  ModuleDefinition module,
+  Type rhs,
+  Attributes attributes)
+  : TypeSynonymDeclBase(origin, name, characteristics, typeArgs, module, rhs, attributes) {
   public override string WhatKind { get { return "export-provided type"; } }
-  public InternalTypeSynonymDecl(IOrigin origin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(origin, name, characteristics, typeArgs, module, rhs, attributes) {
-  }
 
   public override SymbolKind? Kind => SymbolKind.Class;
   public override string GetDescription(DafnyOptions options) {

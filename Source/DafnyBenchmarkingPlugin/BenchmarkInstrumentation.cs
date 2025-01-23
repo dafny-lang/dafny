@@ -3,9 +3,7 @@ using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 
-public class BenchmarkingCompilerInstrumenter : CompilerInstrumenter {
-  public BenchmarkingCompilerInstrumenter(ErrorReporter reporter) : base(reporter) { }
-
+public class BenchmarkingCompilerInstrumenter(ErrorReporter reporter) : CompilerInstrumenter(reporter) {
   public override void Instrument(IExecutableBackend backend, SinglePassCodeGenerator codeGenerator, Program program) {
     if (codeGenerator is JavaCodeGenerator javaCompiler) {
       javaCompiler.AddInstrumenter(new JavaBenchmarkCompilationInstrumenter(Reporter));
