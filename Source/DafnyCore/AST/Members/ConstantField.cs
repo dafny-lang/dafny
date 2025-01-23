@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -11,9 +12,9 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
 
   public override bool IsOpaque { get; }
 
-  public ConstantField(RangeToken rangeToken, Name name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
-    : base(rangeToken, name, ID.UseIdParam, NonglobalVariable.SanitizeName(name.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
-    Contract.Requires(tok != null);
+  public ConstantField(IOrigin origin, Name name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
+    : base(origin, name, ID.UseIdParam, NonglobalVariable.SanitizeName(name.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
+    Contract.Requires(Origin != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
     this.Rhs = rhs;
@@ -24,12 +25,16 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
     return true;
   }
 
+  public bool ContainsHide { get; set; }
+
   public new bool IsGhost { get { return this.isGhost; } }
   public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
   public List<Formal> Ins { get { return new List<Formal>(); } }
   public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   public bool MustReverify { get { return false; } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
+
   public string NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
@@ -46,7 +51,8 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
   }
   public bool AllowsAllocation => true;
 
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+  public override IEnumerable<INode> Children =>
+    base.Children.Concat(new[] { Rhs }.Where(x => x != null));
   public override SymbolKind? Kind => SymbolKind.Constant;
 
   public override IEnumerable<INode> PreResolveChildren => Children;
@@ -61,7 +67,7 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
     Rhs = Rewriter.AddRevealStmtsToExpression(Rhs, addedReveals);
 
     if (addedReveals.Any()) {
-      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, tok,
+      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Origin,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
     }
   }

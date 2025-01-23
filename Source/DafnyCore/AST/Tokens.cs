@@ -1,64 +1,21 @@
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Text;
 
 namespace Microsoft.Dafny;
-
-public interface IToken : Microsoft.Boogie.IToken, IComparable<IToken> {
-  public RangeToken To(IToken end) => new RangeToken(this, end);
-
-  /*
-  int kind { get; set; }
-  int pos { get; set; }
-  int col { get; set; }
-  int line { get; set; }
-  string val { get; set; }
-  bool IsValid { get; }*/
-  string Boogie.IToken.filename {
-    get => Uri == null ? null : Path.GetFileName(Uri.LocalPath);
-    set => throw new NotSupportedException();
-  }
-
-  public string ActualFilename => Uri.LocalPath;
-  string Filepath => Uri.LocalPath;
-
-  Uri Uri { get; set; }
-
-  /// <summary>
-  /// TrailingTrivia contains everything after the token,
-  /// until and including two newlines between which there is no commment
-  /// All the remaining trivia is for the LeadingTrivia of the next token
-  ///
-  /// ```
-  /// const /*for const*/ x /*for x*/ := /* for := */ 1/* for 1 */
-  /// // for 1 again
-  /// // for 1 again
-  ///
-  /// // Two newlines, now all the trivia is for var y
-  /// // this line as well.
-  /// var y := 2
-  /// ```
-  /// </summary>
-  string TrailingTrivia { get; set; }
-  string LeadingTrivia { get; set; }
-  IToken Next { get; set; } // The next token
-  IToken Prev { get; set; } // The previous token
-
-  public IToken WithVal(string val);  // create a new token by setting the given val.
-}
 
 /// <summary>
 /// Has one-indexed line and column fields
 /// </summary>
-public class Token : IToken {
+public class Token : IOrigin {
 
   public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normally null at the end of parsing
   public static readonly Token NoToken = new();
   public static readonly Token Cli = new(1, 1);
   public static readonly Token Ide = new(1, 1);
+  public string filename => Path.GetFileName(Filepath);
+
   public Token() : this(0, 0) { }
 
   public Token(int linenum, int colnum) {
@@ -67,11 +24,22 @@ public class Token : IToken {
     this.val = "";
   }
 
+  public bool IsSourceToken => this != NoToken;
   public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
+  public bool IsInherited(ModuleDefinition m) {
+    return false;
+  }
+
+  public bool InclusiveEnd => true;
+  public bool IncludesRange => false;
   public string ActualFilename => Filepath;
   public string Filepath => Uri?.LocalPath;
   public Uri Uri { get; set; }
+  public Token StartToken => this;
+  public Token EndToken => this;
+
+  public Token Center => this;
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos
 
@@ -91,13 +59,15 @@ public class Token : IToken {
 
   public string TrailingTrivia { get; set; } = "";
 
-  public IToken Next { get; set; } // The next token
+  public Token Next { get; set; } // The next token
 
-  public IToken Prev { get; set; } // The previous token
+  public Token Prev { get; set; } // The previous token
 
   public bool IsValid => this.ActualFilename != null;
 
-  public IToken WithVal(string newVal) {
+  public SourceOrigin To(Token end) => new(this, end);
+
+  public IOrigin WithVal(string newVal) {
     return new Token {
       pos = pos,
       col = col,
@@ -109,6 +79,8 @@ public class Token : IToken {
       val = newVal
     };
   }
+
+  public bool IsCopy => false;
 
   public int CompareTo(Boogie.IToken other) {
     if (line != other.line) {
@@ -125,7 +97,7 @@ public class Token : IToken {
     return $"'{val}': {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
   }
 
-  public int CompareTo(IToken other) {
+  public int CompareTo(IOrigin other) {
     if (line != other.line) {
       return line.CompareTo(other.line);
     }
@@ -133,83 +105,55 @@ public class Token : IToken {
   }
 }
 
-public abstract class TokenWrapper : IToken {
-
-  public readonly IToken WrappedToken;
-  protected TokenWrapper(IToken wrappedToken) {
-    Contract.Requires(wrappedToken != null);
-    WrappedToken = wrappedToken;
-  }
-
-  public abstract IToken WithVal(string newVal);
-
-  public virtual int col {
-    get { return WrappedToken.col; }
-    set { WrappedToken.col = value; }
-  }
-
-  public string ActualFilename => WrappedToken.ActualFilename;
-
-  public virtual string Filepath => WrappedToken.Filepath;
-
-  public Uri Uri {
-    get => WrappedToken.Uri;
-    set => WrappedToken.Uri = value;
-  }
-
-  public bool IsValid {
-    get { return WrappedToken.IsValid; }
-  }
-  public int kind {
-    get { return WrappedToken.kind; }
-    set { WrappedToken.kind = value; }
-  }
-  public virtual int line {
-    get { return WrappedToken.line; }
-    set { WrappedToken.line = value; }
-  }
-  public virtual int pos {
-    get { return WrappedToken.pos; }
-    set { WrappedToken.pos = value; }
-  }
-
-  public virtual string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
-  }
-  public virtual string LeadingTrivia {
-    get { return WrappedToken.LeadingTrivia; }
-    set { throw new NotSupportedException(); }
-  }
-  public virtual string TrailingTrivia {
-    get { return WrappedToken.TrailingTrivia; }
-    set { throw new NotSupportedException(); }
-  }
-  public virtual IToken Next {
-    get { return WrappedToken.Next; }
-    set { throw new NotSupportedException(); }
-  }
-  public virtual IToken Prev {
-    get { return WrappedToken.Prev; }
-    set { throw new NotSupportedException(); }
-  }
-
-  public int CompareTo(IToken other) {
-    return WrappedToken.CompareTo(other);
-  }
-
-  public int CompareTo(Boogie.IToken other) {
-    return WrappedToken.CompareTo(other);
-  }
-}
-
 public static class TokenExtensions {
 
 
-  public static bool IsSet(this IToken token) => token.Uri != null;
+  public static DafnyRange ToDafnyRange(this IOrigin origin, bool includeTrailingWhitespace = false) {
+    var startLine = origin.StartToken.line - 1;
+    var startColumn = origin.StartToken.col - 1;
+    var endLine = origin.EndToken.line - 1;
+    int whitespaceOffset = 0;
+    if (includeTrailingWhitespace) {
+      string trivia = origin.EndToken.TrailingTrivia;
+      // Don't want to remove newlines or comments -- just spaces and tabs
+      while (whitespaceOffset < trivia.Length && (trivia[whitespaceOffset] == ' ' || trivia[whitespaceOffset] == '\t')) {
+        whitespaceOffset++;
+      }
+    }
 
-  public static string TokenToString(this IToken tok, DafnyOptions options) {
-    if (tok == Token.Cli) {
+    var endColumn = origin.EndToken.col + (origin.InclusiveEnd ? origin.EndToken.val.Length : 0) + whitespaceOffset - 1;
+    return new DafnyRange(
+      new DafnyPosition(startLine, startColumn),
+      new DafnyPosition(endLine, endColumn));
+  }
+
+  public static IOrigin MakeAutoGenerated(this IOrigin origin) {
+    return new AutoGeneratedOrigin(origin);
+  }
+
+  public static IOrigin MakeRefined(this IOrigin origin, ModuleDefinition module) {
+    return new RefinementOrigin(origin, module);
+  }
+
+  public static bool Contains(this IOrigin container, IOrigin otherToken) {
+    return container.StartToken.Uri == otherToken.Uri &&
+           container.StartToken.pos <= otherToken.pos &&
+           (container.EndToken == null || otherToken.pos <= container.EndToken.pos);
+  }
+
+  public static bool Intersects(this IOrigin origin, IOrigin other) {
+    return !(other.EndToken.pos + other.EndToken.val.Length <= origin.StartToken.pos
+             || origin.EndToken.pos + origin.EndToken.val.Length <= other.StartToken.pos);
+  }
+
+  public static string PrintOriginal(this IOrigin origin) {
+    return new SourceOrigin(origin.StartToken, origin.EndToken).PrintOriginal();
+  }
+
+  public static bool IsSet(this IOrigin token) => token.Uri != null;
+
+  public static string TokenToString(this IOrigin tok, DafnyOptions options) {
+    if (ReferenceEquals(tok, Token.Cli)) {
       return "CLI";
     }
 
@@ -228,139 +172,21 @@ public static class TokenExtensions {
 
     return $"{filename}({tok.line},{tok.col - 1})";
   }
-
-  public static RangeToken ToRange(this IToken token) {
-    if (token is BoogieRangeToken boogieRangeToken) {
-      return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
-    }
-
-    if (token is NestedToken nestedToken) {
-      return ToRange(nestedToken.Outer);
-    }
-    return token as RangeToken ?? new RangeToken(token, token);
-  }
 }
 
-public class RangeToken : TokenWrapper {
-  public IToken StartToken => WrappedToken;
-
-  public IToken EndToken => endToken ?? StartToken;
-
-  public bool InclusiveEnd => endToken != null;
-
-  public DafnyRange ToDafnyRange(bool includeTrailingWhitespace = false) {
-    var startLine = StartToken.line - 1;
-    var startColumn = StartToken.col - 1;
-    var endLine = EndToken.line - 1;
-    int whitespaceOffset = 0;
-    if (includeTrailingWhitespace) {
-      string trivia = EndToken.TrailingTrivia;
-      // Don't want to remove newlines or comments -- just spaces and tabs
-      while (whitespaceOffset < trivia.Length && (trivia[whitespaceOffset] == ' ' || trivia[whitespaceOffset] == '\t')) {
-        whitespaceOffset++;
-      }
-    }
-
-    var endColumn = EndToken.col + (InclusiveEnd ? EndToken.val.Length : 0) + whitespaceOffset - 1;
-    return new DafnyRange(
-      new DafnyPosition(startLine, startColumn),
-      new DafnyPosition(endLine, endColumn));
-  }
-
-  public RangeToken(IToken startToken, IToken endToken) : base(startToken) {
-    this.endToken = endToken;
-  }
-
-  public string PrintOriginal() {
-    var token = StartToken;
-    var originalString = new StringBuilder();
-    originalString.Append(token.val);
-    while (token.Next != null && token.pos < EndToken.pos) {
-      originalString.Append(token.TrailingTrivia);
-      token = token.Next;
-      originalString.Append(token.LeadingTrivia);
-      originalString.Append(token.val);
-    }
-
-    return originalString.ToString();
-  }
-
-  public int Length() {
-    return EndToken.pos - StartToken.pos;
-  }
-
-  public RangeToken MakeAutoGenerated() {
-    return new RangeToken(new AutoGeneratedToken(StartToken), EndToken);
-  }
-
-  public RangeToken MakeRefined(ModuleDefinition module) {
-    return new RangeToken(new RefinementToken(StartToken, module), EndToken);
-  }
-
-  // TODO rename to Generated, and Token.NoToken to Token.Generated, and remove AutoGeneratedToken.
-  public static RangeToken NoToken = new(Token.NoToken, Token.NoToken);
-  private readonly IToken endToken;
-
-  public override IToken WithVal(string newVal) {
-    throw new NotImplementedException();
-  }
-
-  public BoogieRangeToken ToToken() {
-    return new BoogieRangeToken(StartToken, EndToken, null);
-  }
-
-  public bool Contains(int position) {
-    return StartToken.pos <= position && (EndToken == null || position <= EndToken.pos);
-  }
-
-  public bool Intersects(RangeToken other) {
-    return !(other.EndToken.pos + other.EndToken.val.Length <= StartToken.pos
-             || EndToken.pos + EndToken.val.Length <= other.StartToken.pos);
-  }
-}
-
-public class BoogieRangeToken : TokenWrapper {
-  // The wrapped token is the startTok
-  public IToken StartToken { get; }
-  public IToken EndToken { get; }
-
-  /// <summary>
-  /// If only a single position is used to refer to this piece of code, this position is the best
-  /// </summary>
-  public IToken Center { get; }
-
-  // Used for range reporting
-  public override string val => new(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
-
-  public BoogieRangeToken(IToken startTok, IToken endTok, IToken center) : base(
-    center ?? startTok) {
-    StartToken = startTok;
-    EndToken = endTok;
-    Center = center;
-  }
-
-  public override IToken WithVal(string newVal) {
-    return this;
-  }
-
-  public string PrintOriginal() {
-    return new RangeToken(StartToken, EndToken).PrintOriginal();
-  }
-}
-
-public class NestedToken : TokenWrapper {
-  public NestedToken(IToken outer, IToken inner, string message = null)
+public class NestedOrigin : OriginWrapper {
+  public NestedOrigin(IOrigin outer, IOrigin inner, string message = null)
     : base(outer) {
     Contract.Requires(outer != null);
     Contract.Requires(inner != null);
     Inner = inner;
     this.Message = message;
   }
-  public IToken Outer { get { return WrappedToken; } }
-  public readonly IToken Inner;
+  public IOrigin Outer { get { return WrappedToken; } }
+  public readonly IOrigin Inner;
   public readonly string Message;
 
-  public override IToken WithVal(string newVal) {
+  public override IOrigin WithVal(string newVal) {
     return this;
   }
 }
@@ -369,8 +195,8 @@ public class NestedToken : TokenWrapper {
 /// A token wrapper used to produce better type checking errors
 /// for quantified variables. See QuantifierVar.ExtractSingleRange()
 /// </summary>
-public class QuantifiedVariableDomainToken : TokenWrapper {
-  public QuantifiedVariableDomainToken(IToken wrappedToken)
+public class QuantifiedVariableDomainOrigin : OriginWrapper {
+  public QuantifiedVariableDomainOrigin(IOrigin wrappedToken)
     : base(wrappedToken) {
     Contract.Requires(wrappedToken != null);
   }
@@ -380,8 +206,8 @@ public class QuantifiedVariableDomainToken : TokenWrapper {
     set { WrappedToken.val = value; }
   }
 
-  public override IToken WithVal(string newVal) {
-    return new QuantifiedVariableDomainToken((WrappedToken.WithVal(newVal)));
+  public override IOrigin WithVal(string newVal) {
+    return new QuantifiedVariableDomainOrigin((WrappedToken.WithVal(newVal)));
   }
 }
 
@@ -389,8 +215,8 @@ public class QuantifiedVariableDomainToken : TokenWrapper {
 /// A token wrapper used to produce better type checking errors
 /// for quantified variables. See QuantifierVar.ExtractSingleRange()
 /// </summary>
-public class QuantifiedVariableRangeToken : TokenWrapper {
-  public QuantifiedVariableRangeToken(IToken wrappedToken)
+public class QuantifiedVariableRangeOrigin : OriginWrapper {
+  public QuantifiedVariableRangeOrigin(IOrigin wrappedToken)
     : base(wrappedToken) {
     Contract.Requires(wrappedToken != null);
   }
@@ -400,7 +226,7 @@ public class QuantifiedVariableRangeToken : TokenWrapper {
     set { WrappedToken.val = value; }
   }
 
-  public override IToken WithVal(string newVal) {
-    return new QuantifiedVariableRangeToken(WrappedToken.WithVal(newVal));
+  public override IOrigin WithVal(string newVal) {
+    return new QuantifiedVariableRangeOrigin(WrappedToken.WithVal(newVal));
   }
 }

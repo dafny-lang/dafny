@@ -1142,6 +1142,19 @@ CalcOp =
   )
 ````
 
+#### 17.2.6.24. Opaque block {#g-opaque-block}
+
+([discussion](#sec-opaque-block))
+
+````grammar
+OpaqueBlock = "opaque" OpaqueSpec BlockStmt
+  
+OpaqueSpec = {
+  | ModifiesClause(allowLambda: false)
+  | EnsuresClause(allowLambda: false)
+}
+````
+
 ### 17.2.7. Expressions
 
 #### 17.2.7.1. Top-level expression {#g-top-level-expression}
@@ -1618,7 +1631,7 @@ MapComprehensionExpr(allowLemma, allowLambda) =
 
 ````grammar
 StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
-             | RevealStmt | CalcStmt
+             | RevealStmt | CalcStmt | ForallStmt
              )
 ````
 

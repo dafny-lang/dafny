@@ -24,10 +24,10 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public ClassLikeDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
+  public ClassLikeDecl(IOrigin origin, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {
-    Contract.Requires(rangeToken != null);
+    : base(origin, name, module, typeArgs, members, attributes, isRefining, traits) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -35,15 +35,17 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
-    IToken classToken = null;
+    IOrigin classToken = null;
     var parentTraitIndent = indentBefore + formatter.SpaceTab;
     var commaIndent = indentBefore;
     var extraIndent = 0;
 
     foreach (var token in OwnedTokens) {
       switch (token.val) {
+        case "trait":
         case "class": {
             classToken = token;
+            formatter.SetOpeningIndentedRegion(token, indentBefore);
             break;
           }
         case "extends": {
@@ -66,6 +68,8 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
       }
     }
 
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
+
     foreach (var parent in ParentTraits) {
       formatter.SetTypeIndentation(parent);
     }
@@ -74,20 +78,22 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public virtual string GetTriviaContainingDocstring() {
-    IToken candidate = null;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
+
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
-        candidate = token.Prev;
-        if (candidate.TrailingTrivia.Trim() != "") {
-          return candidate.TrailingTrivia;
+        if ((token.Prev.TrailingTrivia + token.LeadingTrivia).Trim() is { } tentativeTrivia and not "") {
+          return tentativeTrivia;
         }
       }
     }
 
-    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia2 and not "") {
+      return tentativeTrivia2;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 }

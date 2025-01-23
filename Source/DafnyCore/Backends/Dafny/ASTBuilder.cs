@@ -35,27 +35,37 @@ namespace Microsoft.Dafny.Compilers {
   interface ModuleContainer : Container {
     void AddModule(Module item);
 
-    public ModuleBuilder Module(string name, Sequence<Attribute> attributes) {
-      return new ModuleBuilder(this, name, attributes);
+    public ModuleBuilder Module(string name, string docString, Sequence<Attribute> attributes, bool requiresExterns) {
+      return new ModuleBuilder(this, name, docString, attributes, requiresExterns);
     }
 
-    static public Module UnsupportedToModule(string why) {
-      return new Module(Sequence<Rune>.UnicodeFromString(why), Sequence<Attribute>.FromElements((Attribute)Attribute.create_Attribute(
-          Sequence<Rune>.UnicodeFromString(why), Sequence<Sequence<Rune>>.Empty)),
+    public static Module UnsupportedToModule(string why) {
+      return new Module(
+        Sequence<Rune>.UnicodeFromString($"uncompilable/*{why.Replace(".", ",")}*/"),
+        Sequence<Rune>.UnicodeFromString(""),
+        Sequence<Attribute>.FromElements(
+          (Attribute)Attribute.create_Attribute(
+            Sequence<Rune>.UnicodeFromString("extern"),
+            Sequence<Sequence<Rune>>.FromElements(
+              (Sequence<Rune>)Sequence<Rune>.UnicodeFromString($"uncompilable/*{why}*/")))), false,
         Std.Wrappers.Option<Sequence<ModuleItem>>.create_None());
     }
   }
 
-  class ModuleBuilder : ClassContainer, TraitContainer, NewtypeContainer, DatatypeContainer {
+  class ModuleBuilder : ClassContainer, TraitContainer, NewtypeContainer, DatatypeContainer, SynonymTypeContainer {
     readonly ModuleContainer parent;
     readonly string name;
     readonly Sequence<Attribute> attributes;
     readonly List<ModuleItem> body = new();
+    private readonly bool requiresExterns;
+    private string docString;
 
-    public ModuleBuilder(ModuleContainer parent, string name, Sequence<Attribute> attributes) {
+    public ModuleBuilder(ModuleContainer parent, string name, string docString, Sequence<Attribute> attributes, bool requiresExterns) {
       this.parent = parent;
       this.name = name;
       this.attributes = attributes;
+      this.requiresExterns = requiresExterns;
+      this.docString = docString;
     }
 
     public void AddModule(Module item) {
@@ -81,11 +91,17 @@ namespace Microsoft.Dafny.Compilers {
     public object Finish() {
       parent.AddModule((Module)Module.create(
         Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<Rune>.UnicodeFromString(this.docString),
         attributes,
+        requiresExterns,
         Std.Wrappers.Option<Sequence<ModuleItem>>.create_Some((Sequence<ModuleItem>)Sequence<ModuleItem>.FromArray(body.ToArray()))
       ));
 
       return parent;
+    }
+
+    public void AddSynonymType(SynonymType item) {
+      body.Add((ModuleItem)ModuleItem.create_SynonymType(item));
     }
 
     public void AddUnsupported(string why) {
@@ -96,8 +112,8 @@ namespace Microsoft.Dafny.Compilers {
   interface ClassContainer : Container {
     void AddClass(Class item);
 
-    public ClassBuilder Class(string name, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> superClasses, ISequence<_IAttribute> attributes) {
-      return new ClassBuilder(this, name, enclosingModule, typeParams, superClasses, attributes);
+    public ClassBuilder Class(string name, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> superClasses, ISequence<_IAttribute> attributes, string docString) {
+      return new ClassBuilder(this, name, docString, enclosingModule, typeParams, superClasses, attributes);
     }
   }
 
@@ -112,27 +128,30 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<DAST.Field> fields = new();
     readonly List<DAST.Method> body = new();
     readonly ISequence<_IAttribute> attributes;
+    private string docString;
 
-    public ClassBuilder(ClassContainer parent, string name, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> superClasses, ISequence<_IAttribute> attributes) {
+    public ClassBuilder(ClassContainer parent, string name, string docString, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> superClasses, ISequence<_IAttribute> attributes) {
       this.parent = parent;
       this.name = name;
       this.enclosingModule = enclosingModule;
       this.typeParams = typeParams;
       this.superClasses = superClasses;
       this.attributes = attributes;
+      this.docString = docString;
     }
 
     public void AddMethod(DAST.Method item) {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
-      fields.Add((DAST.Field)DAST.Field.create_Field(item, defaultValue));
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic) {
+      fields.Add((DAST.Field)DAST.Field.create_Field(item, isConstant, defaultValue, isStatic));
     }
 
     public object Finish() {
       parent.AddClass((Class)Class.create(
         Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<Rune>.UnicodeFromString(this.docString),
         Sequence<Rune>.UnicodeFromString(this.enclosingModule),
         Sequence<DAST.TypeArgDecl>.FromArray(this.typeParams.ToArray()),
         Sequence<DAST.Type>.FromArray(this.superClasses.ToArray()),
@@ -147,8 +166,9 @@ namespace Microsoft.Dafny.Compilers {
   interface TraitContainer : Container {
     void AddTrait(Trait item);
 
-    public TraitBuilder Trait(string name, List<DAST.TypeArgDecl> typeParams, ISequence<_IAttribute> attributes) {
-      return new TraitBuilder(this, name, typeParams, attributes);
+    public TraitBuilder Trait(string name, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents,
+      ISequence<_IAttribute> attributes, string docString, _ITraitType traitType) {
+      return new TraitBuilder(this, name, docString, typeParams, parents, attributes, traitType);
     }
   }
 
@@ -156,14 +176,20 @@ namespace Microsoft.Dafny.Compilers {
     readonly TraitContainer parent;
     readonly string name;
     readonly List<DAST.TypeArgDecl> typeParams;
+    private readonly List<DAST.Type> parents;
     readonly List<DAST.Method> body = new();
     private ISequence<_IAttribute> attributes;
+    private string docString;
+    private _ITraitType traitType;
 
-    public TraitBuilder(TraitContainer parent, string name, List<DAST.TypeArgDecl> typeParams, ISequence<_IAttribute> attributes) {
+    public TraitBuilder(TraitContainer parent, string name, string docString, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents, ISequence<_IAttribute> attributes, _ITraitType traitType) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
       this.attributes = attributes;
+      this.docString = docString;
+      this.traitType = traitType;
+      this.parents = parents;
     }
 
     public void AddMethod(DAST.Method item) {
@@ -178,14 +204,17 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic) {
+      this.parent.AddUnsupported("var/const fro trait - " + item.dtor_name);
     }
 
     public object Finish() {
       parent.AddTrait((Trait)Trait.create(
         Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<Rune>.UnicodeFromString(this.docString),
         Sequence<DAST.TypeArgDecl>.FromArray(typeParams.ToArray()),
+        traitType,
+        Sequence<DAST.Type>.FromArray(parents.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),
         attributes)
       );
@@ -197,9 +226,9 @@ namespace Microsoft.Dafny.Compilers {
     void AddNewtype(Newtype item);
 
     public NewtypeBuilder Newtype(string name, List<DAST.TypeArgDecl> typeParams,
-      DAST.Type baseType, NewtypeRange newtypeRange, List<DAST.Statement> witnessStmts, DAST.Expression witness,
-      ISequence<_IAttribute> attributes) {
-      return new NewtypeBuilder(this, name, typeParams, newtypeRange, baseType, witnessStmts, witness, attributes);
+      DAST.Type baseType, NewtypeRange newtypeRange, Option<DAST.NewtypeConstraint> constraint, List<DAST.Statement> witnessStmts, DAST.Expression witness,
+      ISequence<_IAttribute> attributes, string docString) {
+      return new NewtypeBuilder(this, name, typeParams, newtypeRange, baseType, constraint, witnessStmts, witness, attributes, docString);
     }
   }
 
@@ -208,38 +237,97 @@ namespace Microsoft.Dafny.Compilers {
     readonly string name;
     readonly List<DAST.TypeArgDecl> typeParams;
     readonly DAST.Type baseType;
+    private readonly Option<DAST.NewtypeConstraint> constraint;
     private readonly DAST.NewtypeRange newtypeRange;
     readonly List<DAST.Statement> witnessStmts;
     readonly DAST.Expression witness;
     private ISequence<_IAttribute> attributes;
+    private readonly List<DAST._IMethod> methods;
+    private string docString;
 
-    public NewtypeBuilder(NewtypeContainer parent, string name, List<DAST.TypeArgDecl> typeParams,
-      DAST.NewtypeRange newtypeRange, DAST.Type baseType, List<DAST.Statement> statements, DAST.Expression witness,
-      ISequence<_IAttribute> attributes) {
+    public NewtypeBuilder(NewtypeContainer parent, string name, List<TypeArgDecl> typeParams,
+      NewtypeRange newtypeRange, DAST.Type baseType, Option<DAST.NewtypeConstraint> constraint, List<DAST.Statement> statements,
+      DAST.Expression witness,
+      ISequence<_IAttribute> attributes, string docString) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
       this.newtypeRange = newtypeRange;
       this.baseType = baseType;
+      this.constraint = constraint;
       this.witnessStmts = statements;
       this.witness = witness;
       this.attributes = attributes;
+      this.docString = docString;
+      this.methods = new();
     }
 
     public void AddMethod(DAST.Method item) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      methods.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic) {
+      parent.AddUnsupported("Newtype field " + item.dtor_name);
     }
 
     public object Finish() {
       parent.AddNewtype((Newtype)Newtype.create(
         Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<Rune>.UnicodeFromString(this.docString),
         Sequence<DAST.TypeArgDecl>.FromArray(this.typeParams.ToArray()),
         this.baseType,
         newtypeRange,
+        constraint,
+        Sequence<DAST.Statement>.FromArray(this.witnessStmts.ToArray()),
+        this.witness == null
+          ? Option<DAST._IExpression>.create_None()
+          : Option<DAST._IExpression>.create_Some(this.witness),
+        attributes,
+        Sequence<DAST._IMethod>.FromArray(methods.ToArray())
+      ));
+      return parent;
+    }
+  }
+
+  interface SynonymTypeContainer : Container {
+    void AddSynonymType(SynonymType item);
+
+    public SynonymTypeBuilder SynonymType(string name, List<DAST.TypeArgDecl> typeParams,
+      DAST.Type rhsType, List<DAST.Statement> witnessStmts, DAST.Expression witness,
+      ISequence<_IAttribute> attributes, string docString) {
+      return new SynonymTypeBuilder(this, name, typeParams, rhsType, witnessStmts, witness, attributes, docString);
+    }
+  }
+
+  class SynonymTypeBuilder {
+    readonly SynonymTypeContainer parent;
+    readonly string name;
+    readonly List<DAST.TypeArgDecl> typeParams;
+    readonly DAST.Type rhsType;
+    readonly List<DAST.Statement> witnessStmts;
+    readonly DAST.Expression witness;
+    private ISequence<_IAttribute> attributes;
+    private string docString;
+
+    public SynonymTypeBuilder(SynonymTypeContainer parent, string name, List<DAST.TypeArgDecl> typeParams,
+      DAST.Type rhsType, List<DAST.Statement> statements, DAST.Expression witness,
+      ISequence<_IAttribute> attributes, string docString) {
+      this.parent = parent;
+      this.name = name;
+      this.typeParams = typeParams;
+      this.rhsType = rhsType;
+      this.witnessStmts = statements;
+      this.witness = witness;
+      this.attributes = attributes;
+      this.docString = docString;
+    }
+
+    public object Finish() {
+      parent.AddSynonymType((SynonymType)SynonymType.create(
+        Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<Rune>.UnicodeFromString(this.docString),
+        Sequence<DAST.TypeArgDecl>.FromArray(this.typeParams.ToArray()),
+        this.rhsType,
         Sequence<DAST.Statement>.FromArray(this.witnessStmts.ToArray()),
         this.witness == null
           ? Option<DAST._IExpression>.create_None()
@@ -254,8 +342,8 @@ namespace Microsoft.Dafny.Compilers {
     void AddDatatype(Datatype item);
 
     public DatatypeBuilder Datatype(string name, string enclosingModule, List<DAST.TypeArgDecl> typeParams,
-      List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes) {
-      return new DatatypeBuilder(this, name, enclosingModule, typeParams, ctors, isCo, attributes);
+      List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, string docString, List<DAST.Type> superTraitTypes) {
+      return new DatatypeBuilder(this, name, docString, enclosingModule, typeParams, ctors, isCo, attributes, superTraitTypes);
     }
   }
 
@@ -268,33 +356,39 @@ namespace Microsoft.Dafny.Compilers {
     readonly bool isCo;
     readonly List<DAST.Method> body = new();
     private ISequence<_IAttribute> attributes;
+    private string docString;
+    private List<DAST.Type> superTraitTypes;
 
-    public DatatypeBuilder(DatatypeContainer parent, string name, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes) {
+    public DatatypeBuilder(DatatypeContainer parent, string name, string docString, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, List<DAST.Type> superTraitTypes) {
       this.parent = parent;
       this.name = name;
+      this.docString = docString;
       this.typeParams = typeParams;
       this.enclosingModule = enclosingModule;
       this.ctors = ctors;
       this.isCo = isCo;
       this.attributes = attributes;
+      this.superTraitTypes = superTraitTypes;
     }
 
     public void AddMethod(DAST.Method item) {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic) {
+      parent.AddUnsupported("Datatype field " + item.dtor_name);
     }
 
     public object Finish() {
       parent.AddDatatype((Datatype)Datatype.create(
         Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<Rune>.UnicodeFromString(this.docString),
         Sequence<Rune>.UnicodeFromString(this.enclosingModule),
         Sequence<DAST.TypeArgDecl>.FromArray(typeParams.ToArray()),
         Sequence<DAST.DatatypeCtor>.FromArray(ctors.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),
-        this.isCo, attributes
+        this.isCo, attributes,
+        Sequence<DAST.Type>.FromArray(superTraitTypes.ToArray())
       ));
       return parent;
     }
@@ -303,17 +397,17 @@ namespace Microsoft.Dafny.Compilers {
   interface ClassLike {
     void AddMethod(DAST.Method item);
 
-    void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue);
+    void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue, bool isStatic);
 
-    public MethodBuilder Method(
-      bool isStatic, bool hasBody,
+    public MethodBuilder Method(bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,
+      string docString,
+      ISequence<_IAttribute> attributes,
       string name,
-      List<DAST.TypeArgDecl> typeArgs,
+      List<TypeArgDecl> typeArgs,
       Sequence<DAST.Formal> params_,
-      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars
-    ) {
-      return new MethodBuilder(this, isStatic, hasBody, overridingPath, name, typeArgs, params_, outTypes, outVars);
+      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
+      return new MethodBuilder(this, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, docString, attributes, name, typeArgs, params_, outTypes, outVars);
     }
 
     public object Finish();
@@ -324,17 +418,23 @@ namespace Microsoft.Dafny.Compilers {
     readonly string name;
     readonly bool isStatic;
     readonly bool hasBody;
+    readonly bool outVarsAreUninitFieldsToAssign;
+    readonly bool wasFunction;
     readonly ISequence<ISequence<Rune>> overridingPath;
     readonly List<DAST.TypeArgDecl> typeArgs;
     readonly Sequence<DAST.Formal> params_;
     readonly List<DAST.Type> outTypes;
     readonly List<ISequence<Rune>> outVars;
     readonly List<object> body = new();
+    private ISequence<_IAttribute> attributes;
+    private ISequence<Rune> docString;
 
     public MethodBuilder(
       ClassLike parent,
-      bool isStatic, bool hasBody,
+      bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,
+      string docString,
+      ISequence<_IAttribute> attributes,
       string name,
       List<DAST.TypeArgDecl> typeArgs,
       Sequence<DAST.Formal> params_,
@@ -343,7 +443,11 @@ namespace Microsoft.Dafny.Compilers {
       this.parent = parent;
       this.isStatic = isStatic;
       this.hasBody = hasBody;
+      this.outVarsAreUninitFieldsToAssign = outVarsAreUninitFieldsToAssign;
+      this.wasFunction = wasFunction;
       this.overridingPath = overridingPath;
+      this.docString = Sequence<Rune>.UnicodeFromString(docString);
+      this.attributes = attributes;
       this.name = name;
       this.typeArgs = typeArgs;
       this.params_ = params_;
@@ -368,10 +472,13 @@ namespace Microsoft.Dafny.Compilers {
     public DAST.Method Build() {
       List<DAST.Statement> builtStatements = new();
       StatementContainer.RecursivelyBuild(body, builtStatements);
-
       return (DAST.Method)DAST.Method.create(
+        docString,
+        attributes,
         isStatic,
         hasBody,
+        outVarsAreUninitFieldsToAssign,
+        wasFunction,
         overridingPath != null ? Option<ISequence<ISequence<Rune>>>.create_Some(overridingPath) : Option<ISequence<ISequence<Rune>>>.create_None(),
         Sequence<Rune>.UnicodeFromString(this.name),
         Sequence<DAST.TypeArgDecl>.FromArray(typeArgs.ToArray()),
@@ -607,6 +714,8 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<object> ifBody = new();
     readonly List<object> elseBody = new();
 
+    public object Condition => condition;
+
     public IfElseBuilder() { }
 
     public void AddExpr(DAST.Expression value) {
@@ -708,6 +817,7 @@ namespace Microsoft.Dafny.Compilers {
   class WhileBuilder : ExprContainer, StatementContainer, BuildableStatement {
     object condition = null;
     readonly List<object> body = new();
+    public object Condition => condition;
 
     public void AddExpr(DAST.Expression value) {
       if (condition != null) {
@@ -941,7 +1051,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr value) {
       if (this.value != null) {
-        throw new InvalidOperationException();
+        AddUnsupported("Second value for ReturnBuilder");
       } else {
         this.value = value;
       }
@@ -1050,6 +1160,55 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
+  class ExprWrapper : ExprContainer, BuildableExpr {
+    public Func<DAST.Expression, DAST.Expression> InternalWrapper;
+    [CanBeNull] public object Expr;
+
+    public ExprWrapper(Func<DAST.Expression, DAST.Expression> internalWrapper = null) {
+      this.InternalWrapper = internalWrapper;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (Expr == null) {
+        Expr = item;
+      } else {
+        throw new InvalidOperationException("AddExpr already had an object");
+      }
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      if (Expr == null) {
+        Expr = item;
+      } else {
+        throw new InvalidOperationException("AddExpr already had an object");
+      }
+    }
+
+    public DAST.Expression Finish() {
+      if (Expr == null) {
+        return ExprContainer.UnsupportedToExpr("Expected exactly one expression for ExprWrapper, got none");
+      } else if (Expr is BuildableExpr b) {
+        return b.Build();
+      } else if (Expr is DAST.Expression e) {
+        return e;
+      } else {
+        return ExprContainer.UnsupportedToExpr("Expected exactly one expression for ExprWrapper, got " + Expr);
+      }
+    }
+
+    public void AddUnsupported(string why) {
+      AddExpr(ExprContainer.UnsupportedToExpr(why));
+    }
+
+    public DAST.Expression Build() {
+      if (InternalWrapper == null) {
+        return Finish();
+      } else {
+        return InternalWrapper(Finish());
+      }
+    }
+  }
+
   class ExprBuffer : ExprContainer, BuildableExpr {
     Stack<object> exprs = new();
     public readonly object parent;
@@ -1109,8 +1268,14 @@ namespace Microsoft.Dafny.Compilers {
 
     void AddBuildable(BuildableExpr item);
 
-    BinOpBuilder BinOp(DAST.BinOp op) {
-      var ret = new BinOpBuilder(op);
+    ExprWrapper Wrapper(Func<DAST.Expression, DAST.Expression> wrapper) {
+      var ret = new ExprWrapper(wrapper);
+      AddBuildable(ret);
+      return ret;
+    }
+
+    BinOpBuilder BinOp(DAST.BinOp op, DAST.Type leftType, DAST.Type rightType, DAST.Type resType) {
+      var ret = new BinOpBuilder(op, leftType, rightType, resType);
       AddBuildable(ret);
       return ret;
     }
@@ -1181,7 +1346,7 @@ namespace Microsoft.Dafny.Compilers {
 
     static DAST.Expression UnsupportedToExpr(string why) {
       return (DAST.Expression)DAST.Expression.create_Ident(
-        Sequence<ISequence<Rune>>.UnicodeFromString($"<i>Unsupported: {why}</i>")
+        Sequence<ISequence<Rune>>.UnicodeFromString($"uncompilable(\"<i>Unsupported: {why}</i>\")")
       );
     }
   }
@@ -1261,9 +1426,10 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<object> operands = new();
     private readonly string op;
 
-    public BinOpBuilder(DAST.BinOp op) {
+    public BinOpBuilder(DAST.BinOp op, DAST.Type leftType, DAST.Type rightType, DAST.Type resType) {
       this.internalBuilder = (DAST.Expression left, DAST.Expression right) =>
-        (DAST.Expression)DAST.Expression.create_BinOp(op, left, right, new BinaryOpFormat_NoFormat());
+        (DAST.Expression)DAST.Expression.create_BinOp(
+          DAST.TypedBinOp.create_TypedBinOp(op, leftType, rightType, resType), left, right, new BinaryOpFormat_NoFormat());
       this.op = op.ToString();
     }
 
@@ -1657,4 +1823,119 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
+  class NativeRangeBuilder : ExprContainer, BuildableExpr {
+    [CanBeNull] readonly string start;
+    [CanBeNull] object bound;
+
+    public NativeRangeBuilder(string start = null) {
+      this.start = start;
+      bound = null;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (bound != null) {
+        throw new InvalidOperationException();
+      } else {
+        bound = item;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      if (bound != null) {
+        throw new InvalidOperationException();
+      } else {
+        bound = item;
+      }
+    }
+
+    public static DAST.Expression ToNativeUsize(int number) {
+      var origType = DAST.Type.create_Primitive(DAST.Primitive.create_Int());
+      var numberExpr = (DAST.Expression)DAST.Expression.create_Literal(
+        DAST.Literal.create_IntLiteral(Sequence<Rune>.UnicodeFromString($"{number}"),
+          origType)
+      );
+      return (DAST.Expression)DAST.Expression.create_Convert(numberExpr, origType, DAST.Type.create_UserDefined(
+        DAST.ResolvedType.create_ResolvedType(
+        Sequence<Sequence<Rune>>.FromElements((Sequence<Rune>)Sequence<Rune>.UnicodeFromString("usize")),
+        Sequence<_IType>.Empty,
+        DAST.ResolvedTypeBase.create_Newtype(origType, DAST.NewtypeRange.create_NativeArrayIndex(), true), Sequence<_IAttribute>.Empty,
+        Sequence<Sequence<Rune>>.Empty, Sequence<_IType>.Empty)
+      ));
+    }
+
+    public DAST.Expression Build() {
+      var builtValue = new List<DAST.Expression>();
+      DAST.Expression endExpr;
+      if (bound == null) {
+        endExpr = ExprContainer.UnsupportedToExpr($"NativeRangeBuilder has no upper bound");
+      } else {
+        ExprContainer.RecursivelyBuild(new List<object> { bound }, builtValue);
+        endExpr = builtValue[0];
+      }
+
+      DAST.Expression startExpr;
+      if (start == null) {
+        startExpr = ToNativeUsize(0);
+      } else {
+        startExpr = (DAST.Expression)DAST.Expression.create_Ident(
+          Sequence<Rune>.UnicodeFromString(start));
+      }
+
+      return (DAST.Expression)DAST.Expression.create_IntRange(
+        DAST.Type.create_Primitive(DAST.Primitive.create_Native()),
+        startExpr, endExpr, true);
+    }
+
+    public void AddUnsupported(string why) {
+      AddExpr(ExprContainer.UnsupportedToExpr(why));
+    }
+  }
+
+  class ArrayLengthBuilder : ExprContainer, BuildableExpr {
+    private readonly DAST.Type arrayType;
+    private readonly int dim;
+    private object array;
+    private readonly bool native;
+
+    public ArrayLengthBuilder(DAST.Type arrayType, int dim, bool native) {
+      this.arrayType = arrayType;
+      this.dim = dim;
+      this.native = native;
+      array = null;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (array != null) {
+        throw new InvalidOperationException();
+      } else {
+        array = item;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      if (array != null) {
+        throw new InvalidOperationException();
+      } else {
+        array = item;
+      }
+    }
+
+    public DAST.Expression Build() {
+      var builtValue = new List<DAST.Expression>();
+      DAST.Expression arrayExpr;
+      if (array == null) {
+        arrayExpr = ExprContainer.UnsupportedToExpr($"ArrayLengthBuilder has no array");
+      } else {
+        ExprContainer.RecursivelyBuild(new List<object> { array }, builtValue);
+        arrayExpr = builtValue[0];
+      }
+
+      return (DAST.Expression)DAST.Expression.create_ArrayLen(
+        arrayExpr, arrayType, new BigInteger(dim), native);
+    }
+
+    public void AddUnsupported(string why) {
+      AddExpr(ExprContainer.UnsupportedToExpr(why));
+    }
+  }
 }

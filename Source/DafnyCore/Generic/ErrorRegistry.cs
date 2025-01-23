@@ -29,14 +29,14 @@ public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd) {
 /// <param name="Range">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
 /// <param name="Replacement"></param>
 public record DafnyCodeActionEdit(DafnyRange Range, string Replacement = "") {
-  public DafnyCodeActionEdit(RangeToken rangeToken, string replacement = "", bool includeTrailingWhitespace = false)
-    : this(rangeToken.ToDafnyRange(includeTrailingWhitespace), replacement) {
+  public DafnyCodeActionEdit(IOrigin rangeOrigin, string replacement = "", bool includeTrailingWhitespace = false)
+    : this(rangeOrigin.ToDafnyRange(includeTrailingWhitespace), replacement) {
   }
 }
 
 
-public delegate List<DafnyAction> ActionSignature(RangeToken range);
-public delegate bool TokenPredicate(IToken token);
+public delegate List<DafnyAction> ActionSignature(SourceOrigin range);
+public delegate bool TokenPredicate(IOrigin token);
 
 public record DafnyAction(string Title, IReadOnlyList<DafnyCodeActionEdit> Edits);
 
@@ -66,27 +66,27 @@ public static class ErrorRegistry {
   }
 
 
-  public static DafnyCodeActionEdit[] OneEdit(RangeToken range, string newContent, bool includeTrailingWhitespace = false) {
+  public static DafnyCodeActionEdit[] OneEdit(SourceOrigin range, string newContent, bool includeTrailingWhitespace = false) {
     return new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) };
   }
 
-  public static DafnyAction OneAction(string title, RangeToken range, string newContent, bool includeTrailingWhitespace = false) {
+  public static DafnyAction OneAction(string title, IOrigin range, string newContent, bool includeTrailingWhitespace = false) {
     return new(title, new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) });
   }
 
-  public static RangeToken IncludeComma(RangeToken range) {
+  public static SourceOrigin IncludeComma(SourceOrigin range) {
     if (range.EndToken.Next.val == ",") {
-      return new RangeToken(range.StartToken, range.EndToken.Next);
+      return new SourceOrigin(range.StartToken, range.EndToken.Next);
     }
     if (range.StartToken.Prev.val == ",") {
-      return new RangeToken(range.StartToken.Prev, range.EndToken);
+      return new SourceOrigin(range.StartToken.Prev, range.EndToken);
     }
     return range;
   }
 
-  public static RangeToken ExpandStart(RangeToken range, TokenPredicate pred, bool include) {
+  public static SourceOrigin ExpandStart(SourceOrigin range, TokenPredicate pred, bool include) {
     var t = range.StartToken;
-    IToken p = null;
+    Token p = null;
     while (!pred(t)) {
       p = t;
       t = t.Prev;
@@ -94,12 +94,12 @@ public static class ErrorRegistry {
         return range;
       }
     }
-    return new RangeToken(include ? t : p, range.EndToken);
+    return new SourceOrigin(include ? t : p, range.EndToken);
   }
 
-  public static RangeToken ExpandEnd(RangeToken range, TokenPredicate pred, bool include) {
+  public static SourceOrigin ExpandEnd(SourceOrigin range, TokenPredicate pred, bool include) {
     var t = range.EndToken;
-    IToken p = null;
+    Token p = null;
     while (!pred(t)) {
       p = t;
       t = t.Prev;
@@ -107,7 +107,7 @@ public static class ErrorRegistry {
         return range;
       }
     }
-    return new RangeToken(range.StartToken, include ? t : p);
+    return new SourceOrigin(range.StartToken, include ? t : p);
   }
 
   public static ActionSignature Replacements(IEnumerable<(string NewContent, string Title)> replacements) {
@@ -148,31 +148,31 @@ public static class ErrorRegistry {
     }
   }
 
-  private static List<DafnyAction> ReplacementAction(string title, RangeToken range, string newText) {
+  private static List<DafnyAction> ReplacementAction(string title, SourceOrigin range, string newText) {
     var edit = new[] { new DafnyCodeActionEdit(range, newText) };
     var action = new DafnyAction(title, edit);
     return new List<DafnyAction> { action };
   }
 
-  private static List<DafnyAction> ReplacementAction(RangeToken range, string newText) {
+  private static List<DafnyAction> ReplacementAction(SourceOrigin range, string newText) {
     string toBeReplaced = range.PrintOriginal();
     string title = "replace '" + toBeReplaced + "' with '" + newText + "'";
     return ReplacementAction(title, range, newText);
   }
 
-  private static List<DafnyAction> InsertAction(string title, RangeToken range, string newText) {
+  private static List<DafnyAction> InsertAction(string title, SourceOrigin range, string newText) {
     var edits = new[] { new DafnyCodeActionEdit(range, range.PrintOriginal() + newText) };
     var action = new DafnyAction(title, edits);
     return new List<DafnyAction> { action };
   }
 
-  private static List<DafnyAction> RemoveAction(string title, RangeToken range, bool includeTrailingSpaces) {
+  private static List<DafnyAction> RemoveAction(string title, SourceOrigin range, bool includeTrailingSpaces) {
     var edit = new[] { new DafnyCodeActionEdit(range, "", includeTrailingSpaces) };
     var action = new DafnyAction(title, edit);
     return new List<DafnyAction> { action };
   }
 
-  private static List<DafnyAction> RemoveAction(RangeToken range, bool includeTrailingSpaces) {
+  private static List<DafnyAction> RemoveAction(SourceOrigin range, bool includeTrailingSpaces) {
     string toBeRemoved = range.PrintOriginal();
     string title = "remove '" + toBeRemoved + "'";
     return RemoveAction(title, range, includeTrailingSpaces);

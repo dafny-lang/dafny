@@ -547,7 +547,9 @@ namespace Dafny {
       return s + "}";
     }
     public static bool IsProperSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
-      return th.Count < other.Count && IsSubsetOf(th, other);
+      // Be sure to use ElementCount to avoid casting into 32 bits
+      // integers that could lead to overflows (see https://github.com/dafny-lang/dafny/issues/5554)
+      return th.ElementCount < other.ElementCount && IsSubsetOf(th, other);
     }
     public static bool IsSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
       var a = FromIMultiSet(th);
@@ -1280,8 +1282,8 @@ namespace Dafny {
   internal class ConcatSequence<T> : Sequence<T> {
     // INVARIANT: Either left != null, right != null, and elmts's underlying array == null or
     // left == null, right == null, and elmts's underlying array != null
-    private volatile ISequence<T> left, right;
-    private ImmutableArray<T> elmts;
+    internal volatile ISequence<T> left, right;
+    internal ImmutableArray<T> elmts;
     private readonly int count;
 
     internal ConcatSequence(ISequence<T> left, ISequence<T> right) {
@@ -1311,7 +1313,7 @@ namespace Dafny {
       }
     }
 
-    private ImmutableArray<T> ComputeElements() {
+    internal ImmutableArray<T> ComputeElements() {
       // Traverse the tree formed by all descendants which are ConcatSequences
       var ansBuilder = ImmutableArray.CreateBuilder<T>(count);
       var toVisit = new Stack<ISequence<T>>();

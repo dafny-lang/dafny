@@ -13,20 +13,20 @@ public class NonNullTypeDecl : SubsetTypeDecl {
   /// in order to build values that depend on previously computed parameters.
   /// </summary>
   public NonNullTypeDecl(ClassLikeDecl cl)
-    : this(cl, cl.TypeArgs.ConvertAll(tp => new TypeParameter(tp.RangeToken, tp.NameNode, tp.VarianceSyntax, tp.Characteristics))) {
+    : this(cl, TypeParameter.CloneTypeParameters(cl.TypeArgs)) {
     Contract.Requires(cl != null);
   }
 
   private NonNullTypeDecl(ClassLikeDecl cl, List<TypeParameter> tps)
     : this(cl, tps,
-      new BoundVar(cl.Tok, "c", new UserDefinedType(cl.Tok, cl.Name + "?", tps.Count == 0 ? null : tps.ConvertAll(tp => (Type)new UserDefinedType(tp))))) {
+      new BoundVar(cl.Origin, "c", new UserDefinedType(cl.Origin, cl.Name + "?", tps.Count == 0 ? null : tps.ConvertAll(tp => (Type)new UserDefinedType(tp))))) {
     Contract.Requires(cl != null);
     Contract.Requires(tps != null);
   }
 
   private NonNullTypeDecl(ClassLikeDecl cl, List<TypeParameter> tps, BoundVar id)
-    : base(cl.RangeToken, cl.NameNode, new TypeParameter.TypeParameterCharacteristics(), tps, cl.EnclosingModuleDefinition, id,
-      new BinaryExpr(cl.Tok, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.Tok, id), new LiteralExpr(cl.Tok)),
+    : base(cl.Origin, cl.NameNode, new TypeParameter.TypeParameterCharacteristics(), tps, cl.EnclosingModuleDefinition, id,
+      new BinaryExpr(cl.Origin, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.Origin, id), new LiteralExpr(cl.Origin)),
       SubsetTypeDecl.WKind.Special, null, SystemModuleManager.AxiomAttribute()) {
     Contract.Requires(cl != null);
     Contract.Requires(tps != null);
@@ -34,10 +34,10 @@ public class NonNullTypeDecl : SubsetTypeDecl {
     Class = cl;
   }
 
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
-    List<Type> result = new List<Type>(base.ParentTypes(typeArgs));
+  public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
+    var result = new List<Type>(base.ParentTypes(typeArgs, includeTypeBounds));
 
-    foreach (var rhsParentType in Class.ParentTypes(typeArgs)) {
+    foreach (var rhsParentType in Class.ParentTypes(typeArgs, includeTypeBounds)) {
       var rhsParentUdt = (UserDefinedType)rhsParentType; // all parent types of .Class are expected to be possibly-null class types
       Contract.Assert(rhsParentUdt.ResolvedClass is TraitDecl);
       result.Add(UserDefinedType.CreateNonNullTypeIfReferenceType(rhsParentUdt));

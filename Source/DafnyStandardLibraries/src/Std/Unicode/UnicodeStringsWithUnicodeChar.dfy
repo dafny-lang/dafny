@@ -14,7 +14,8 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
   import Utf8EncodingForm
   import Utf16EncodingForm
 
-  lemma {:isolate_assertions} CharIsUnicodeScalarValue(c: char)
+  @IsolateAssertions
+  lemma CharIsUnicodeScalarValue(c: char)
     ensures
       && var asBits := c as int as bv24;
       && asBits <= 0x10_FFFF
@@ -25,6 +26,7 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
     // but is clearly true given the above.
     assume {:axiom} c as int as bv24 < 0x11_0000 as bv24;
     var asBits := c as int as bv24;
+    assert asBits < 0x11_0000 as bv24;
     assert (asBits < Base.HIGH_SURROGATE_MIN || asBits > Base.LOW_SURROGATE_MAX);
     assert asBits <= 0x10_FFFF;
   }

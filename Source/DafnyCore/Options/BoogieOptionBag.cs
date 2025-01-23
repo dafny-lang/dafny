@@ -51,8 +51,8 @@ public static class BoogieOptionBag {
     IsHidden = true
   };
 
-  public static readonly Option<uint> VerificationTimeLimit = new("--verification-time-limit",
-    "Limit the number of seconds spent trying to verify each procedure") {
+  public static readonly Option<uint> VerificationTimeLimit = new("--verification-time-limit", () => 30,
+    "Limit the number of seconds spent trying to verify each assertion batch. A value of 0 indicates no limit") {
     ArgumentHelpName = "seconds",
   };
 
@@ -142,24 +142,19 @@ public static class BoogieOptionBag {
     DafnyOptions.RegisterLegacyBinding(VerificationErrorLimit, (options, value) => { options.ErrorLimit = value; });
     DafnyOptions.RegisterLegacyBinding(IsolateAssertions, (o, v) => o.VcsSplitOnEveryAssert = v);
 
-
-    DooFile.RegisterLibraryChecks(
-      new Dictionary<Option, OptionCompatibility.OptionCheck> {
-        { BoogieArguments, OptionCompatibility.CheckOptionMatches },
-        { NoVerify, OptionCompatibility.OptionLibraryImpliesLocalError },
-      }
-    );
-    DooFile.RegisterNoChecksNeeded(HiddenNoVerify, false);
-    DooFile.RegisterNoChecksNeeded(Cores, false);
-    DooFile.RegisterNoChecksNeeded(VerificationTimeLimit, false);
-    DooFile.RegisterNoChecksNeeded(VerificationErrorLimit, false);
-    DooFile.RegisterNoChecksNeeded(IsolateAssertions, false);
-    DooFile.RegisterNoChecksNeeded(SolverLog, false);
-    DooFile.RegisterNoChecksNeeded(SolverOption, false);
-    DooFile.RegisterNoChecksNeeded(SolverOptionHelp, false);
-    DooFile.RegisterNoChecksNeeded(SolverPath, false);
-    DooFile.RegisterNoChecksNeeded(SolverPlugin, false);
-    DooFile.RegisterNoChecksNeeded(SolverResourceLimit, false);
+    OptionRegistry.RegisterGlobalOption(BoogieArguments, OptionCompatibility.CheckOptionMatches);
+    OptionRegistry.RegisterGlobalOption(NoVerify, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterOption(HiddenNoVerify, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Cores, OptionScope.Cli);
+    OptionRegistry.RegisterOption(VerificationTimeLimit, OptionScope.Cli);
+    OptionRegistry.RegisterOption(VerificationErrorLimit, OptionScope.Cli);
+    OptionRegistry.RegisterOption(IsolateAssertions, OptionScope.Cli);
+    OptionRegistry.RegisterOption(SolverLog, OptionScope.Cli);
+    OptionRegistry.RegisterOption(SolverOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(SolverOptionHelp, OptionScope.Cli);
+    OptionRegistry.RegisterOption(SolverPath, OptionScope.Cli);
+    OptionRegistry.RegisterOption(SolverPlugin, OptionScope.Cli);
+    OptionRegistry.RegisterOption(SolverResourceLimit, OptionScope.Cli);
   }
 
   private static IReadOnlyList<string> SplitArguments(string commandLine) {

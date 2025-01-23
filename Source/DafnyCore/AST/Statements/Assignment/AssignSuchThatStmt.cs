@@ -5,23 +5,15 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt>, ICanResolveNewAndOld {
+/// <summary>
+/// Parsed from ":|"
+/// </summary>
+public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuchThatStmt>, ICanResolveNewAndOld {
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
 
   public override IEnumerable<INode> PreResolveChildren =>
     Lhss.Concat<Node>(new List<Node>() { Expr });
-
-  public override IToken Tok {
-    get {
-      var result = Expr.StartToken.Prev;
-      if (char.IsLetter(result.val[0])) {
-        // Jump to operator if we're on an assume keyword.
-        result = result.Prev;
-      }
-      return result;
-    }
-  }
 
   [FilledInDuringResolution] public List<BoundedPool> Bounds;  // null for a ghost statement
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
@@ -55,9 +47,9 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
   /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
   /// </summary>
-  public AssignSuchThatStmt(RangeToken rangeToken, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
-    : base(rangeToken, lhss, attrs) {
-    Contract.Requires(rangeToken != null);
+  public AssignSuchThatStmt(IOrigin origin, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
+    : base(origin, lhss, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(lhss.Count != 0);
     Contract.Requires(expr != null);
@@ -77,6 +69,10 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     Contract.Requires(this != null);
     Contract.Requires(resolutionContext != null);
 
+    if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
+      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_assign_such_that_forbidden,
+        Origin, "assign-such-that statement forbidden by the --enforce-determinism option");
+    }
     base.GenResolve(resolver, resolutionContext);
 
     if (AssumeToken != null) {
@@ -108,5 +104,28 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
 
     resolver.ResolveExpression(Expr, resolutionContext);
     resolver.ConstrainTypeExprBool(Expr, "type of RHS of assign-such-that statement must be boolean (got {0})");
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable || AssumeToken != null || Lhss.Any(SingleAssignStmt.LhsIsToGhost);
+    if (mustBeErasable && !codeContext.IsGhost) {
+      foreach (var lhs in Lhss) {
+        var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
+        if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_to_var_in_ghost, lhs,
+            "cannot assign to {0} in a ghost context", SingleAssignStmt.NonGhostKind_To_String(gk));
+        }
+      }
+    } else if (!mustBeErasable && AssumeToken == null && ExpressionTester.UsesSpecFeatures(Expr)) {
+      foreach (var lhs in Lhss) {
+        var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
+        if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_ghost_to_var, lhs,
+            "{0} cannot be assigned a value that depends on a ghost", SingleAssignStmt.NonGhostKind_To_String(gk));
+        }
+      }
+    }
   }
 }

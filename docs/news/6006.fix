@@ -1,0 +1,1 @@
+Fix soundness bug that could occur for opaque blocks with empty modifies clauses

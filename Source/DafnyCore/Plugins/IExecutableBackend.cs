@@ -205,14 +205,10 @@ Where to output the translation record file. Defaults to the output directory. S
   };
 
   static IExecutableBackend() {
-    DooFile.RegisterNoChecksNeeded(OuterModule, false);
-    DooFile.RegisterNoChecksNeeded(TranslationRecords, false);
-    DooFile.RegisterNoChecksNeeded(TranslationRecordOutput, false);
-    TranslationRecord.RegisterLibraryChecks(
-      new Dictionary<Option, OptionCompatibility.OptionCheck> {
-        { OuterModule, OptionCompatibility.NoOpOptionCheck },
-      }
-    );
+    OptionRegistry.RegisterOption(OuterModule, OptionScope.Cli);
+    OptionRegistry.RegisterOption(TranslationRecords, OptionScope.Cli);
+    OptionRegistry.RegisterOption(TranslationRecordOutput, OptionScope.Cli);
+    OptionRegistry.RegisterOption(OuterModule, OptionScope.Translation);
   }
 
   public virtual Command GetCommand() {

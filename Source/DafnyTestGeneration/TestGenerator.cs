@@ -90,8 +90,8 @@ namespace DafnyTestGeneration {
     private static void AddVerificationGoalsToEntryPoints(Program program) {
       foreach (var entryPoint in Utils.AllMemberDeclarationsWithAttribute(program.DefaultModule,
                  TestGenerationOptions.TestEntryAttribute)) {
-        var trivialAssertion = new AssertStmt(entryPoint.RangeToken,
-          new LiteralExpr(entryPoint.StartToken, true), null, null, null);
+        var trivialAssertion = new AssertStmt(entryPoint.Origin,
+          new LiteralExpr(entryPoint.StartToken, true), null, null);
         if (entryPoint is Method method && method.Body != null && method.Body.Body != null) {
           method.Body.Body.Insert(0, trivialAssertion);
         } else if (entryPoint is Function function && function.Body != null) {
@@ -170,8 +170,9 @@ namespace DafnyTestGeneration {
 
       foreach (var uri in lineCoverageLabels.Keys) {
         foreach (var lineNumber in lineCoverageLabels[uri].Keys) {
-          var rangeToken = new RangeToken(new Token(lineNumber, 1), new Token(lineNumber + 1, 0));
-          rangeToken.Uri = uri;
+          var rangeToken = new SourceOrigin(
+              new Token(lineNumber, 1) { Uri = uri },
+              new Token(lineNumber + 1, 1));
           coverageReport.LabelCode(rangeToken,
             lineCoverageLabels[uri][lineNumber]);
         }

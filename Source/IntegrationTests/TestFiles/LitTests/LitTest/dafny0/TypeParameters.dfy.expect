@@ -1,19 +1,19 @@
-TypeParameters.dfy(44,21): Error: assertion might not hold
-TypeParameters.dfy(66,26): Error: assertion might not hold
-TypeParameters.dfy(153,11): Error: assertion might not hold
+TypeParameters.dfy(44,4): Error: assertion might not hold
+TypeParameters.dfy(66,4): Error: assertion might not hold
+TypeParameters.dfy(153,15): Error: assertion might not hold
 TypeParameters.dfy(153,27): Related location: this proposition could not be proved
-TypeParameters.dfy(155,11): Error: assertion might not hold
+TypeParameters.dfy(155,20): Error: assertion might not hold
 TypeParameters.dfy(155,32): Related location: this proposition could not be proved
-TypeParameters.dfy(157,11): Error: assertion might not hold
+TypeParameters.dfy(157,18): Error: assertion might not hold
 TypeParameters.dfy(137,2): Related location: this proposition could not be proved
-TypeParameters.dfy(159,11): Error: assertion might not hold
-TypeParameters.dfy(144,4): Related location: this proposition could not be proved
+TypeParameters.dfy(159,17): Error: assertion might not hold
+TypeParameters.dfy(144,13): Related location: this proposition could not be proved
 TypeParameters.dfy(144,14): Related location: this proposition could not be proved
-TypeParameters.dfy(161,11): Error: assertion might not hold
+TypeParameters.dfy(161,17): Error: assertion might not hold
 TypeParameters.dfy(146,7): Related location: this proposition could not be proved
-TypeParameters.dfy(175,14): Error: this invariant could not be proved to be maintained by the loop
+TypeParameters.dfy(175,23): Error: this invariant could not be proved to be maintained by the loop
  Related message: loop invariant violation
 TypeParameters.dfy(175,37): Related location: this proposition could not be proved
 TypeParameters.dfy(376,20): Error: assertion might not hold
 
-Dafny program verifier finished with 31 verified, 9 errors
+Dafny program verifier finished with 30 verified, 9 errors

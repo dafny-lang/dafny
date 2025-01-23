@@ -30,9 +30,9 @@ public class SeqUpdateExpr : Expression, ICloneable<SeqUpdateExpr> {
     Value = cloner.CloneExpr(original.Value);
   }
 
-  public SeqUpdateExpr(IToken tok, Expression seq, Expression index, Expression val)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public SeqUpdateExpr(IOrigin origin, Expression seq, Expression index, Expression val)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(seq != null);
     Contract.Requires(index != null);
     Contract.Requires(val != null);

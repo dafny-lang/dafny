@@ -47,7 +47,7 @@ public class ExpressionTester {
     reporter?.Error(MessageSource.Resolver, errorId, e, msg, args);
   }
 
-  private void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+  private void ReportError(ErrorId errorId, IOrigin t, string msg, params object[] args) {
     reporter?.Error(MessageSource.Resolver, errorId, t, msg, args);
   }
 
@@ -345,7 +345,7 @@ public class ExpressionTester {
     } else if (expr is MatchExpr matchExpr) {
       var mc = FirstCaseThatDependsOnGhostCtor(matchExpr.Cases);
       if (mc != null) {
-        ReportError(ErrorId.r_match_not_compilable, mc.tok, "match expression is not compilable, because it depends on a ghost constructor");
+        ReportError(ErrorId.r_match_not_compilable, mc.Origin, "match expression is not compilable, because it depends on a ghost constructor");
         isCompilable = false;
       }
       // other conditions are checked below
@@ -382,7 +382,8 @@ public class ExpressionTester {
   ///
   /// 0. If "toType" is a supertype of "fromType", then a type test would always return "true". A similar situation
   /// is when "toType" is a non-null type and the nullable version of "toType" is a supertype of "from"; then,
-  /// the run-time type tests consists simply of a non-null check.
+  /// the run-time type tests consists simply of a non-null check. Else, if "toType" is a type parameter, then we
+  /// never allow the check in compiled code.
   ///
   /// If those simple cases don't apply, there the compilability of the type test comes down to two remaining parts:
   ///
@@ -414,6 +415,10 @@ public class ExpressionTester {
       // this requires no run-time work or a simple null comparison, so it can trivially be compiled
       return true;
     }
+    if (toType.IsTypeParameter) {
+      // this is never allowed in compiled code
+      return false;
+    }
 
     // part 1
     if (toType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: RedirectingTypeDecl { ConstraintIsCompilable: false } }) {
@@ -430,7 +435,7 @@ public class ExpressionTester {
       // calling "AsParentType"). Let's say the result is A<U> for some type expression U. If U contains all type parameters from T, then the
       // mapping from B<T> to A<U> is unique, which means the mapping from B<Y> to A<X> is unique.
       var B = udtTo.ResolvedClass;
-      var B_T = UserDefinedType.FromTopLevelDecl(B.tok, B);
+      var B_T = UserDefinedType.FromTopLevelDecl(B.Origin, B);
 
       var A = fromType.NormalizeExpand(); // important to NOT keep constraints here, since they won't be evident at run time
       Type A_U;

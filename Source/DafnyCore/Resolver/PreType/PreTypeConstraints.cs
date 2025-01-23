@@ -25,6 +25,7 @@ namespace Microsoft.Dafny {
     private Queue<EqualityConstraint> equalityConstraints = new();
     private List<Func<bool>> guardedConstraints = new();
     private readonly List<Advice> defaultAdvice = new();
+    private readonly List<(PreTypeProxy, PreType)> compatibleBounds = new();
     private List<Confirmation> confirmations = new();
 
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
@@ -87,6 +88,15 @@ namespace Microsoft.Dafny {
             return super;
           } else if (memberName == null && md is not TraitDecl) {
             return super;
+          }
+        }
+      }
+
+      // As a final possibility, if there is a compatible-types constraint "ty ~~ proxy", then pick "ty" as the bound
+      foreach (var (compatibleBoundsProxy, compatibleBoundsType) in compatibleBounds) {
+        if (compatibleBoundsProxy.Normalize() == proxy && compatibleBoundsType.Normalize() is DPreType { Decl: TopLevelDeclWithMembers md } dPreType) {
+          if (memberName == null || PreTypeResolver.resolver.GetClassMembers(md).ContainsKey(memberName)) {
+            return dPreType;
           }
         }
       }
@@ -157,6 +167,8 @@ namespace Microsoft.Dafny {
         return true;
       } else if (TryApplyDefaultAdvice()) {
         return true;
+      } else if (TryUseCompatibleTypesAsBounds()) {
+        return true;
       }
       return false;
     }
@@ -177,6 +189,7 @@ namespace Microsoft.Dafny {
       equalityConstraints.Clear();
       guardedConstraints.Clear();
       defaultAdvice.Clear();
+      compatibleBounds.Clear();
       confirmations.Clear();
       PreTypeResolver.allPreTypeProxies.Clear();
     }
@@ -231,7 +244,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null, bool reportErrors = true) {
+    public void AddEqualityConstraint(PreType a, PreType b, IOrigin tok, string msgFormat, PreTypeConstraint baseError = null, bool reportErrors = true) {
       equalityConstraints.Enqueue(new EqualityConstraint(a, b, tok, msgFormat, baseError, reportErrors));
     }
 
@@ -249,11 +262,11 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString, PreTypeConstraint baseError = null, bool reportErrors = true) {
+    public void AddSubtypeConstraint(PreType super, PreType sub, IOrigin tok, string errorFormatString, PreTypeConstraint baseError = null, bool reportErrors = true) {
       unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatString, baseError, reportErrors));
     }
 
-    public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, Func<string> errorFormatStringProducer) {
+    public void AddSubtypeConstraint(PreType super, PreType sub, IOrigin tok, Func<string> errorFormatStringProducer) {
       unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatStringProducer));
     }
 
@@ -398,11 +411,14 @@ namespace Microsoft.Dafny {
         // object is at height 0
         return 0;
       }
+
       if (decl is TopLevelDeclWithMembers { ParentTraitHeads: { Count: > 0 } } topLevelDeclWithMembers) {
         // Note, if "decl" is a reference type, then its parents include "object", whether or not "object" is explicitly
         // included in "ParentTraitHeads". Since the "Max" in the following line will return a number 0 or
         // higher, the "Max" would be the same whether or not "object" is in the "ParentTraitHeads" list.
         return topLevelDeclWithMembers.ParentTraitHeads.Max(Height) + 1;
+      } else if (decl is TypeParameter { TypeBounds: { Count: > 0 } } typeParameter) {
+        return typeParameter.TypeBoundHeads.Max(Height) + 1;
       } else {
         // Other other declarations have height 1.
         // Note, an ostensibly parent-less reference type still has the implicit "object" as a parent trait, but
@@ -509,7 +525,20 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction) {
+    bool TryUseCompatibleTypesAsBounds() {
+      // if there is a compatible-types constraint "ty ~~ proxy", then decide on the bound "ty :> proxy"
+      bool anythingChanged = false;
+      foreach (var (compatibleBoundsProxy, compatibleBoundsType) in compatibleBounds) {
+        if (compatibleBoundsProxy.Normalize() is PreTypeProxy proxy && compatibleBoundsType.Normalize() is DPreType dPreType) {
+          // make a decision to set this proxy
+          proxy.Set(dPreType);
+          anythingChanged = true;
+        }
+      }
+      return anythingChanged;
+    }
+
+    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IOrigin tok, string errorFormatString, Action onProxyAction) {
       confirmations.Add(new Confirmation(
         () => ConfirmConstraint(check, preType, null),
         () => string.Format(errorFormatString, preType),
@@ -522,9 +551,17 @@ namespace Microsoft.Dafny {
         }));
     }
 
-    public void AddConfirmation(IToken tok, Func<bool> check, Func<string> errorMessage) {
+    public void AddConfirmation(IOrigin tok, Func<bool> check, Func<string> errorMessage) {
       confirmations.Add(new Confirmation(check, errorMessage,
         (ResolverPass reporter) => { reporter.ReportError(tok, errorMessage()); }));
+    }
+
+    /// <summary>
+    /// Make a note that a possible super bound for "proxy" is "possibleSuperBound". It can later be consulted and
+    /// acted on if "proxy" is not constrained in any other way.
+    /// </summary>
+    public void AddCompatibleBounds(PreTypeProxy proxy, PreType possibleSuperBound) {
+      compatibleBounds.Add((proxy, possibleSuperBound));
     }
 
     void ConfirmTypeConstraints() {
@@ -754,12 +791,22 @@ namespace Microsoft.Dafny {
         }
       }
 
+      if (sub.Decl is TypeParameter typeParameter) {
+        foreach (var preTypeBound in PreTypeResolver.TypeParameterBounds2PreTypes(typeParameter)) {
+          var arguments = GetTypeArgumentsForSuperType(super, preTypeBound, allowBaseTypeCast);
+          if (arguments != null) {
+            return arguments;
+          }
+        }
+      }
+
       if (allowBaseTypeCast && sub.Decl is NewtypeDecl newtypeDecl) {
         var subst = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, sub.Arguments);
-        var basePreType = (DPreType)newtypeDecl.BasePreType.Substitute(subst);
-        var arguments = GetTypeArgumentsForSuperType(super, basePreType, true);
-        if (arguments != null) {
-          return arguments;
+        if (newtypeDecl.BasePreType.Substitute(subst) is DPreType basePreType) {
+          var arguments = GetTypeArgumentsForSuperType(super, basePreType, true);
+          if (arguments != null) {
+            return arguments;
+          }
         }
       }
 
@@ -791,7 +838,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string TokToShortLocation(IToken tok) {
+    public static string TokToShortLocation(IOrigin tok) {
       return $"{System.IO.Path.GetFileName(tok.filename)}({tok.line},{tok.col - 1})";
     }
 

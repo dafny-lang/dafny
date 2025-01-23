@@ -6,24 +6,17 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
-  public override IToken Tok => PostLabelToken ?? StartToken;
-  public IToken PostLabelToken { get; set; }
+  public Token PostLabelToken { get; set; }
 
+  public int ScopeDepth { get; set; }
   public LList<Label> Labels;  // mutable during resolution
 
-  private Attributes attributes;
-  public Attributes Attributes {
-    get {
-      return attributes;
-    }
-    set {
-      attributes = value;
-    }
-  }
+  public Attributes Attributes { get; set; }
+  string IAttributeBearingDeclaration.WhatKind => "statement";
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(Tok != null);
+    Contract.Invariant(Origin != null);
   }
 
   [FilledInDuringResolution] public bool IsGhost { get; set; }
@@ -32,9 +25,9 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     resolver.ResolveAttributes(this, resolutionContext);
   }
 
-  protected Statement(Cloner cloner, Statement original) : base(cloner.Tok(original.RangeToken)) {
+  protected Statement(Cloner cloner, Statement original) : base(cloner.Origin(original.Origin)) {
     cloner.AddStatementClone(original, this);
-    this.attributes = cloner.CloneAttributes(original.Attributes);
+    this.Attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
       IsGhost = original.IsGhost;
@@ -42,13 +35,13 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     }
   }
 
-  protected Statement(RangeToken rangeToken, Attributes attrs) : base(rangeToken) {
-    this.attributes = attrs;
+  protected Statement(IOrigin origin, Attributes attrs) : base(origin) {
+    this.Attributes = attrs;
   }
 
-  protected Statement(RangeToken rangeToken)
-    : this(rangeToken, null) {
-    Contract.Requires(rangeToken != null);
+  protected Statement(IOrigin origin)
+    : this(origin, null) {
+    Contract.Requires(origin != null);
   }
 
   /// <summary>
@@ -74,6 +67,23 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// </summary>
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }
+  }
+
+  public IEnumerable<Statement> DescendantsAndSelf {
+    get {
+      Stack<Statement> todo = new();
+      List<Statement> result = new();
+      todo.Push(this);
+      while (todo.Any()) {
+        var current = todo.Pop();
+        result.Add(current);
+        foreach (var child in current.SubStatements) {
+          todo.Push(child);
+        }
+      }
+
+      return result;
+    }
   }
 
   /// <summary>
@@ -127,36 +137,34 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// <summary>
   /// Create a resolved statement for an uninitialized local variable.
   /// </summary>
-  public static VarDeclStmt CreateLocalVariable(IToken tok, string name, Type type) {
+  public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Type type) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
-    var variable = new LocalVariable(tok.ToRange(), name, type, false);
+    var variable = new LocalVariable(tok, name, type, false);
     variable.type = type;
-    return new VarDeclStmt(tok.ToRange(), Util.Singleton(variable), null);
+    return new VarDeclStmt(tok, Util.Singleton(variable), null);
   }
 
   /// <summary>
   /// Create a resolved statement for a local variable with an initial value.
   /// </summary>
-  public static VarDeclStmt CreateLocalVariable(IToken tok, string name, Expression value) {
+  public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Expression value) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(value != null);
-    var rangeToken = new RangeToken(tok, tok);
-    var variable = new LocalVariable(rangeToken, name, value.Type, false);
+    var variable = new LocalVariable(tok, name, value.Type, false);
     variable.type = value.Type;
     Expression variableExpr = new IdentifierExpr(tok, variable);
-    var variableUpdateStmt = new UpdateStmt(rangeToken, Util.Singleton(variableExpr),
+    var variableUpdateStmt = new AssignStatement(tok, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
-    var variableAssignStmt = new AssignStmt(rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
+    var variableAssignStmt = new SingleAssignStmt(tok, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
     variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
-    return new VarDeclStmt(rangeToken, Util.Singleton(variable), variableUpdateStmt);
+    return new VarDeclStmt(tok, Util.Singleton(variable), variableUpdateStmt);
   }
 
-  public static PrintStmt CreatePrintStmt(IToken tok, params Expression[] exprs) {
-    var rangeToken = new RangeToken(tok, tok);
-    return new PrintStmt(rangeToken, exprs.ToList());
+  public static PrintStmt CreatePrintStmt(IOrigin tok, params Expression[] exprs) {
+    return new PrintStmt(tok, exprs.ToList());
   }
 
   public override string ToString() {
@@ -168,10 +176,50 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   }
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       SubStatements.Concat<Node>(SubExpressions));
 
   public override IEnumerable<INode> PreResolveChildren =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
+
+  public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => Enumerable.Empty<IdentifierExpr>();
+
+
+  /// <summary>
+  /// There are three kinds of contexts for statements.
+  ///   - compiled contexts, where the statement must be compilable
+  ///     -- !mustBeErasable && proofContext == null
+  ///   - ghost contexts that allow the allocation of new object
+  ///     -- mustBeErasable && proofContext == null
+  ///   - lemma/proof contexts, which are ghost and are not allowed to allocate new objects
+  ///     -- mustBeErasable && proofContext != null
+  /// 
+  /// This method does three things, in order:
+  /// 0. Sets .IsGhost to "true" if the statement is ghost.  This often depends on some guard of the statement
+  ///    (like the guard of an "if" statement) or the LHS of the statement (if it is an assignment).
+  ///    Note, if "mustBeErasable", then the statement is already in a ghost context.
+  /// 1. Determines if the statement and all its subparts are legal under its computed .IsGhost setting.
+  /// 2. ``Upgrades'' .IsGhost to "true" if, after investigation of the substatements of the statement, it
+  ///    turns out that the statement can be erased during compilation.
+  /// Notes:
+  /// * Both step (0) and step (2) sets the .IsGhost field.  What step (0) does affects only the
+  ///   rules of resolution, whereas step (2) makes a note for the later compilation phase.
+  /// * It is important to do step (0) before step (1)--that is, it is important to set the statement's ghost
+  ///   status before descending into its substatements--because break statements look at the ghost status of
+  ///   its enclosing statements.
+  /// * The method called by a StmtExpr must be ghost; however, this is checked elsewhere.  For
+  ///   this reason, it is not necessary to visit all subexpressions, unless the subexpression
+  ///   matter for the ghost checking/recording of "stmt".
+  ///
+  /// If "proofContext" is non-null, then this method also checks that "stmt" does not allocate
+  /// memory or modify the heap, either directly or indirectly using a statement like "modify", a loop with
+  /// an explicit "modifies" clause, or a call to a method that may allocate memory or modify the heap.
+  /// The "proofContext" string is something that can be printed as part of an error message.
+  /// </summary>
+  public abstract void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase);
 }

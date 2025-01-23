@@ -1,6 +1,6 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --allow-deprecation
-
-
+// UNSUPPORTED: macosx
+// Unsupported because the resource count is slightly different on macosx
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --allow-deprecation --performance-stats=1
 codatatype Stream<T> = Cons(head: T, tail: Stream)
 
 ghost function Upward(n: int): Stream<int>

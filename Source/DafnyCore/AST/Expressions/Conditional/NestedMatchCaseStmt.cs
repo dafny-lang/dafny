@@ -8,19 +8,19 @@ namespace Microsoft.Dafny;
 public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration, ICloneable<NestedMatchCaseStmt> {
   public readonly List<Statement> Body;
   public Attributes Attributes { get; set; }
-  public NestedMatchCaseStmt(RangeToken rangeToken, ExtendedPattern pat, List<Statement> body) : base(rangeToken.StartToken, pat) {
-    RangeToken = rangeToken;
+  string IAttributeBearingDeclaration.WhatKind => "match statement case";
+  public NestedMatchCaseStmt(IOrigin rangeOrigin, ExtendedPattern pat, List<Statement> body) : base(rangeOrigin, pat) {
     Contract.Requires(body != null);
     this.Body = body;
     this.Attributes = null;
   }
-  public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body, Attributes attrs) : base(tok, pat) {
+  public NestedMatchCaseStmt(IOrigin origin, ExtendedPattern pat, List<Statement> body, Attributes attrs) : base(origin, pat) {
     Contract.Requires(body != null);
     this.Body = body;
     this.Attributes = attrs;
   }
 
-  private NestedMatchCaseStmt(Cloner cloner, NestedMatchCaseStmt original) : base(original.tok, original.Pat) {
+  private NestedMatchCaseStmt(Cloner cloner, NestedMatchCaseStmt original) : base(original.Origin, original.Pat) {
     this.Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     this.Attributes = cloner.CloneAttributes(original.Attributes);
   }

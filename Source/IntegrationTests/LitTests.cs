@@ -25,7 +25,7 @@ namespace IntegrationTests {
     private static readonly Assembly TestDafnyAssembly = typeof(MultiBackendTest).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
-    private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
+    private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net8.0/
 
     private static readonly string[] DefaultBoogieArguments = new[] {
       "/infer:j",
@@ -132,6 +132,12 @@ namespace IntegrationTests {
           "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
         }, {
           "%sed", (args, config) => SedCommand.Parse(args.ToArray())
+        }, {
+          "%mv", (args, config) => MvCommand.Parse(args.ToArray())
+        }, {
+          "%rm", (args, config) => RmCommand.Parse(args.ToArray())
+        }, {
+          "%cp", (args, config) => CpCommand.Parse(args.ToArray())
         }, {
           "%OutputCheck", OutputCheckCommand.Parse
         }

@@ -41,6 +41,8 @@ public static class DafnyCommands {
     CommonOptionBag.DefaultFunctionOpacity,
     CommonOptionBag.WarnContradictoryAssumptions,
     CommonOptionBag.WarnRedundantAssumptions,
+    CommonOptionBag.SuggestProofRefactoring,
+    CommonOptionBag.AnalyzeProofs,
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
     CommonOptionBag.ExtractCounterexample,
@@ -51,13 +53,14 @@ public static class DafnyCommands {
   public static readonly IReadOnlyList<Option> TranslationOptions = new Option[] {
     BoogieOptionBag.NoVerify,
     BoogieOptionBag.HiddenNoVerify,
-    CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
     DeveloperOptionBag.Bootstrapping,
     CommonOptionBag.AddCompileSuffix,
     CommonOptionBag.SystemModule,
     IExecutableBackend.TranslationRecords,
+    ModuleDefinition.LegacyModuleNames,
+    CommonOptionBag.TranslateStandardLibrary,
   }.Concat(VerificationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ExecutionOptions = new Option[] {
@@ -71,6 +74,8 @@ public static class DafnyCommands {
     Snippets.ShowSnippets,
     DeveloperOptionBag.PrintOption,
     DeveloperOptionBag.ResolvedPrint,
+    DeveloperOptionBag.SplitPrint,
+    DeveloperOptionBag.PassivePrint,
     DeveloperOptionBag.BoogiePrint,
     Printer.PrintMode,
     CommonOptionBag.AllowWarnings,
@@ -88,6 +93,7 @@ public static class DafnyCommands {
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
+    CommonOptionBag.RawPointers,
     CommonOptionBag.UseBaseFileName,
     CommonOptionBag.EmitUncompilableCode,
     CommonOptionBag.GeneralTraits,
@@ -107,6 +113,7 @@ public static class DafnyCommands {
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
     CommonOptionBag.AllowAxioms,
+    CommonOptionBag.EnforceDeterminism,
     MethodOrFunction.AllowExternalContracts,
     DafnyProject.FindProjectOption
   }).Concat(ParserOptions).ToList();

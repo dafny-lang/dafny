@@ -66,6 +66,8 @@ public class RefinementErrors {
     ref_mismatched_type_parameter_nonempty,
     ref_mismatched_type_parameter_not_reference,
     ref_mismatched_type_parameter_variance,
+    ref_mismatched_type_bounds_count,
+    ref_mismatched_type_parameter_bound,
     ref_mismatched_kind_count,
     ref_mismatched_kind_name,
     ref_mismatched_kind_ghost,

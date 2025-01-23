@@ -19,7 +19,7 @@ on:
         default: ""
 
 env:
-  dotnet-version: 6.0.x # SDK Version for building Dafny
+  dotnet-version: 8.0.x # SDK Version for building Dafny
 
 jobs:
   # This job is used to dynamically calculate the matrix dimensions.
@@ -72,6 +72,11 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.dotnet-version }}
+    #  Setup dotnet 6.0 for running Boogie. Alternatively we could try running Boogie with a roll forward policy, or updating Boogie.
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 6.0.x
     - name: C++ for ubuntu 20.04
       if: matrix.os == 'ubuntu-20.04'
       run: |
@@ -128,6 +133,22 @@ jobs:
 #    - name: Clean up libraries for testing
 #      run: |
 #        rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
+    - name: Use the default Rust linker (Non-Windows)
+      if: runner.os != 'Windows'
+      run: rustup default stable
+    - name: Use specific Toolchain (Windows)
+      if: runner.os == 'Windows'
+      run: rustup default stable-x86_64-pc-windows-gnu
+    - name: Rust-related System information
+      run: |
+        echo "What is the Rust version?"
+        rustc -vV
+        echo "What is the cargo version?"
+        cargo --version
+        echo "What is the architecture?"
+        uname -m
+        echo "What are Rust toolchains installed?"
+        rustup toolchain list
     - name: Create release
       if: inputs.all_platforms
       run: |
@@ -142,7 +163,7 @@ jobs:
     - name: Load Z3
       if: "!inputs.all_platforms"
       run: |
-        sudo apt-get install -qq libarchive-tools
+        sudo apt-get update && sudo apt-get install -qq libarchive-tools
         mkdir -p dafny/Binaries/z3/bin
         wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-ubuntu-20.04-bin.zip | bsdtar -xf -
         mv z3-4.12.1 dafny/Binaries/z3/bin/

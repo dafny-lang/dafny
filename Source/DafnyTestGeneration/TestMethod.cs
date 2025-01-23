@@ -171,8 +171,8 @@ namespace DafnyTestGeneration {
           type = DafnyModelTypeUtils.ReplaceType(type,
             _ => true,
             type => DafnyInfo.GetSupersetType(type) != null && type.Name.StartsWith("_System") ?
-              new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs) :
-              new UserDefinedType(type.tok, type.Name, type.TypeArgs));
+              new UserDefinedType(type.Origin, type.Name[8..], type.TypeArgs) :
+              new UserDefinedType(type.Origin, type.Name, type.TypeArgs));
         } else {
           type = null;
         }
@@ -189,7 +189,7 @@ namespace DafnyTestGeneration {
           } else {
             baseValue = printOutput[i];
           }
-          result.Add(GetPrimitiveAsType(baseValue, type));
+          result.Add(GetPrimitiveAsType(baseValue, type, type));
           continue;
         }
         foreach (var variable in vars) {
@@ -248,7 +248,7 @@ namespace DafnyTestGeneration {
         asType = DafnyModelTypeUtils.ReplaceType(asType,
           type => DafnyInfo.GetSupersetType(type) != null &&
                   type.Name.StartsWith("_System"),
-          type => new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs));
+          type => new UserDefinedType(type.Origin, type.Name[8..], type.TypeArgs));
       }
       if (mockedVarId.ContainsKey(variable)) {
         return mockedVarId[variable];
@@ -260,7 +260,7 @@ namespace DafnyTestGeneration {
       variableType = DafnyModelTypeUtils.ReplaceType(variableType,
         type => DafnyInfo.GetSupersetType(type) != null &&
                 type.Name.StartsWith("_System"),
-        type => new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs));
+        type => new UserDefinedType(type.Origin, type.Name[8..], type.TypeArgs));
       if (variableType.ToString() == defaultType.ToString() &&
           variableType.ToString() != variable.Type.ToString()) {
         return GetADefaultTypeValue(variable);
@@ -271,7 +271,7 @@ namespace DafnyTestGeneration {
         case BoolType:
         case CharType:
         case BitvectorType:
-          return GetPrimitiveAsType(variable.PrimitiveLiteral, asType);
+          return GetPrimitiveAsType(variable.PrimitiveLiteral, variableType, asType);
         case SeqType seqType:
           var asBasicSeqType = GetBasicType(asType, type => type is SeqType) as SeqType;
           if (variable?.Cardinality() == -1) {
@@ -478,16 +478,19 @@ namespace DafnyTestGeneration {
       return GetDefaultValue(field.type, field.type);
     }
 
-    private static string GetPrimitiveAsType(string value, Type/*?*/ asType) {
-      if ((asType is null or IntType or RealType or BoolType or CharType
-          or BitvectorType) || value is "[]" or "{}" or "map[]") {
+    private static string GetPrimitiveAsType(string value, Type type, Type/*?*/ asType) {
+      if ((type is null) || (asType is null) || value is "[]" or "{}" or "map[]") {
         return value;
       }
-      var typeString = asType.ToString();
-      if (typeString.StartsWith("_System.")) {
-        typeString = typeString[8..];
+      var typeString = type.ToString();
+      var asTypeString = asType.ToString();
+      if (typeString == asTypeString) {
+        return value;
       }
-      return $"({value} as {typeString})";
+      if (asTypeString.StartsWith("_System.")) {
+        asTypeString = asTypeString[8..];
+      }
+      return $"({value} as {asTypeString})";
     }
 
     /// <summary>
@@ -508,15 +511,15 @@ namespace DafnyTestGeneration {
       }
       switch (type) {
         case IntType:
-          return GetPrimitiveAsType("0", asType);
+          return GetPrimitiveAsType("0", type, asType);
         case RealType:
-          return GetPrimitiveAsType("0.0", asType);
+          return GetPrimitiveAsType("0.0", type, asType);
         case BoolType:
-          return GetPrimitiveAsType("false", asType);
+          return GetPrimitiveAsType("false", type, asType);
         case CharType:
-          return GetPrimitiveAsType("\'a\'", asType);
+          return GetPrimitiveAsType("\'a\'", type, asType);
         case BitvectorType bitvectorType:
-          return GetPrimitiveAsType($"(0 as bv{bitvectorType.Width})", asType);
+          return GetPrimitiveAsType($"(0 as bv{bitvectorType.Width})", type, asType);
         case SeqType seqType:
           return seqType.Arg is CharType ? "\"\"" : AddValue(asType ?? type, "[]");
         case SetType:

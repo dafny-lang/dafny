@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
@@ -13,10 +14,12 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
-  public static readonly Option<bool> ProgressOption =
-    new("--progress", "While verifying, output information that helps track progress") {
-      IsHidden = true
-    };
+  public enum ProgressLevel { None, Symbol, VerificationJobs }
+  public static readonly Option<ProgressLevel> ProgressOption =
+    new("--progress", $"While verifying, output information that helps track progress. " +
+                      $"Use '{ProgressLevel.Symbol}' to show progress across symbols such as methods and functions. " +
+                      $"Verification of a symbol is usually split across several jobs. " +
+                      $"Use {ProgressLevel.VerificationJobs} to additionally show progress across jobs.");
 
   public static readonly Option<string> LogLocation =
     new("--log-location", "Sets the directory where to store log files") {
@@ -196,6 +199,13 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
     IsHidden = true
   };
 
+  public static readonly Option<bool> RawPointers = new("--raw-pointers", () => false,
+    @"(backend-specific: Rust)
+false - All class instances are reference-counted or garbage collected
+true - All class instances are raw pointers and need to be manually deallocated") {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
     "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
   };
@@ -280,6 +290,20 @@ May slow down verification slightly, or make it more brittle.
 May produce spurious warnings.") {
     IsHidden = true
   };
+  public static readonly Option<bool> SuggestProofRefactoring = new("--suggest-proof-refactoring", @"
+(experimental) Emits suggestions for moving assertions into by-proofs and hiding unused function definitions.
+May produce spurious suggestions. Use with --show-hints on the CLI.") {
+    IsHidden = true
+  };
+  public static readonly Option<bool> AnalyzeProofs = new("--analyze-proofs", @"
+Uses data from the verifier to suggest ways to refine the proof:
+Warning if any assertions are proved based on contradictory assumptions (vacuously).
+Warning if any `requires` clause or `assume` statement was not needed to complete verification.
+Suggestions for moving assertions into by-proofs and hiding unused function definitions.
+May slow down verification slightly, or make it more brittle.
+May produce spurious warnings.
+Use the `{:contradiction}` attribute to mark any `assert` statement intended to be part of a proof by contradiction.
+");
   public static readonly Option<string> VerificationCoverageReport = new("--verification-coverage-report",
     "Emit verification coverage report to a given directory, in the same format as a test coverage report.") {
     ArgumentHelpName = "directory"
@@ -341,6 +365,10 @@ Change the default opacity of functions.
 `autoRevealDependencies` makes all functions not explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`. 
 `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.".TrimStart()) {
   };
+
+  public static readonly Option<bool> TranslateStandardLibrary = new("--translate-standard-library", () => true,
+    @"When translating Dafny code to another language, Dafny will, for now, include the standard library as if these were source files. This causes conflicts when multiple such translated projects are combined. When combining such projects, please ensure that only one of them has --translate-standard-library set to true.
+");
 
   public static readonly Option<bool> UseStandardLibraries = new("--standard-libraries", () => false,
     @"
@@ -453,6 +481,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyUi(WarnContradictoryAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnContradictoryAssumptions");
     DafnyOptions.RegisterLegacyUi(WarnRedundantAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnRedundantAssumptions");
+    DafnyOptions.RegisterLegacyUi(SuggestProofRefactoring, DafnyOptions.ParseImplicitEnable, "Verification options", "suggestProofRefactoring");
 
     void ParsePrintMode(Option<PrintModes> option, Boogie.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
@@ -461,7 +490,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         } else if (ps.args[ps.i].Equals("NoIncludes")) {
           options.Set(option, PrintModes.NoIncludes);
         } else if (ps.args[ps.i].Equals("NoGhost")) {
-          options.Set(option, PrintModes.NoGhost);
+          options.Set(option, PrintModes.NoGhostOrIncludes);
         } else if (ps.args[ps.i].Equals("DllEmbed")) {
           // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
           // but it is now used by the LibraryBackend when building .doo files as well. 
@@ -506,6 +535,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(WarnRedundantAssumptions, (options, value) => {
       if (value) { options.TrackVerificationCoverage = true; }
     });
+    DafnyOptions.RegisterLegacyBinding(SuggestProofRefactoring, (options, value) => {
+      if (value) { options.TrackVerificationCoverage = true; }
+    });
+    DafnyOptions.RegisterLegacyBinding(AnalyzeProofs, (options, value) => {
+      if (value) { options.TrackVerificationCoverage = true; }
+    });
 
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => { options.CompilerName = value; });
 
@@ -537,7 +572,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
       options.ForbidNondeterminism = value;
-      options.DefiniteAssignmentLevel = 4;
+      if (!options.Get(RelaxDefiniteAssignment)) {
+        options.DefiniteAssignmentLevel = 4;
+      }
     });
     RelaxDefiniteAssignment.AddValidator(optionResult => {
       var enforceDeterminismResult = optionResult.FindResultFor(EnforceDeterminism);
@@ -562,62 +599,67 @@ NoGhost - disable printing of functions, ghost methods, and proof
       options.ShowProofObligationExpressions = value;
     });
 
-    DooFile.RegisterLibraryChecks(
-      new Dictionary<Option, OptionCompatibility.OptionCheck>() {
-        { UnicodeCharacters, OptionCompatibility.CheckOptionMatches },
-        { EnforceDeterminism, OptionCompatibility.CheckOptionLocalImpliesLibrary },
-        { RelaxDefiniteAssignment, OptionCompatibility.OptionLibraryImpliesLocalError },
-        { AllowAxioms, OptionCompatibility.OptionLibraryImpliesLocalError },
-        { AllowWarnings, OptionCompatibility.OptionLibraryImpliesLocalWarning },
-        { AllowDeprecation, OptionCompatibility.OptionLibraryImpliesLocalWarning },
-        { WarnShadowing, OptionCompatibility.OptionLibraryImpliesLocalWarning },
-        { UseStandardLibraries, OptionCompatibility.OptionLibraryImpliesLocalError },
+    DafnyOptions.RegisterLegacyBinding(RawPointers, (options, value) => {
+      if (value && options.Get(CommonOptionBag.Target) != "rs") {
+        Console.Error.WriteLine("Error:  --raw-pointers can only be used with --target:rs or -t:rs");
+        System.Environment.Exit(1);
       }
-    );
-    DooFile.RegisterNoChecksNeeded(WarnAsErrors, false);
-    DooFile.RegisterNoChecksNeeded(ProgressOption, false);
-    DooFile.RegisterNoChecksNeeded(LogLocation, false);
-    DooFile.RegisterNoChecksNeeded(LogLevelOption, false);
-    DooFile.RegisterNoChecksNeeded(ManualTriggerOption, true);
-    DooFile.RegisterNoChecksNeeded(ShowHints, false);
-    DooFile.RegisterNoChecksNeeded(Libraries, true);
-    DooFile.RegisterNoChecksNeeded(Output, false);
-    DooFile.RegisterNoChecksNeeded(PluginOption, false);
-    DooFile.RegisterNoChecksNeeded(Prelude, false);
-    DooFile.RegisterNoChecksNeeded(Target, false);
-    DooFile.RegisterNoChecksNeeded(Verbose, false);
-    DooFile.RegisterNoChecksNeeded(JsonDiagnostics, false);
-    DooFile.RegisterNoChecksNeeded(QuantifierSyntax, true);
-    DooFile.RegisterNoChecksNeeded(SpillTranslation, false);
-    DooFile.RegisterNoChecksNeeded(StdIn, false);
-    DooFile.RegisterNoChecksNeeded(TestAssumptions, false);
-    DooFile.RegisterNoChecksNeeded(ManualLemmaInduction, true);
-    DooFile.RegisterNoChecksNeeded(TypeInferenceDebug, false);
-    DooFile.RegisterNoChecksNeeded(GeneralTraits, false);
-    DooFile.RegisterNoChecksNeeded(GeneralNewtypes, false);
-    DooFile.RegisterNoChecksNeeded(TypeSystemRefresh, false);
-    DooFile.RegisterNoChecksNeeded(VerificationLogFormat, false);
-    DooFile.RegisterNoChecksNeeded(VerifyIncludedFiles, false);
-    DooFile.RegisterNoChecksNeeded(DisableNonLinearArithmetic, true);
-    DooFile.RegisterNoChecksNeeded(NewTypeInferenceDebug, false);
-    DooFile.RegisterNoChecksNeeded(UseBaseFileName, false);
-    DooFile.RegisterNoChecksNeeded(EmitUncompilableCode, false);
-    DooFile.RegisterNoChecksNeeded(WarnMissingConstructorParenthesis, true);
-    DooFile.RegisterNoChecksNeeded(IncludeRuntimeOption, false);
-    DooFile.RegisterNoChecksNeeded(InternalIncludeRuntimeOptionForExecution, false);
-    DooFile.RegisterNoChecksNeeded(WarnContradictoryAssumptions, true);
-    DooFile.RegisterNoChecksNeeded(WarnRedundantAssumptions, true);
-    DooFile.RegisterNoChecksNeeded(VerificationCoverageReport, false);
-    DooFile.RegisterNoChecksNeeded(NoTimeStampForCoverageReport, false);
-    DooFile.RegisterNoChecksNeeded(DefaultFunctionOpacity, true);
-    DooFile.RegisterNoChecksNeeded(OptimizeErasableDatatypeWrapper, false); // TODO needs translation record registration
-    DooFile.RegisterNoChecksNeeded(AddCompileSuffix, false);  // TODO needs translation record registration
-    DooFile.RegisterNoChecksNeeded(SystemModule, false);
-    DooFile.RegisterNoChecksNeeded(ExecutionCoverageReport, false);
-    DooFile.RegisterNoChecksNeeded(ExtractCounterexample, false);
-    DooFile.RegisterNoChecksNeeded(ShowProofObligationExpressions, false);
-    DooFile.RegisterNoChecksNeeded(GoBackend.GoModuleNameCliOption, false);
-    DooFile.RegisterNoChecksNeeded(PythonBackend.PythonModuleNameCliOption, false);
+    });
+
+    OptionRegistry.RegisterGlobalOption(UnicodeCharacters, OptionCompatibility.CheckOptionMatches);
+    OptionRegistry.RegisterGlobalOption(EnforceDeterminism, OptionCompatibility.CheckOptionLocalImpliesLibrary);
+    OptionRegistry.RegisterGlobalOption(RelaxDefiniteAssignment, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterGlobalOption(AllowAxioms, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterGlobalOption(AllowWarnings, OptionCompatibility.OptionLibraryImpliesLocalWarning);
+    OptionRegistry.RegisterGlobalOption(AllowDeprecation, OptionCompatibility.OptionLibraryImpliesLocalWarning);
+    OptionRegistry.RegisterGlobalOption(WarnShadowing, OptionCompatibility.OptionLibraryImpliesLocalWarning);
+    OptionRegistry.RegisterGlobalOption(UseStandardLibraries, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterOption(TranslateStandardLibrary, OptionScope.Cli);
+    OptionRegistry.RegisterOption(WarnAsErrors, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ProgressOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(LogLocation, OptionScope.Cli);
+    OptionRegistry.RegisterOption(LogLevelOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ManualTriggerOption, OptionScope.Module);
+    OptionRegistry.RegisterOption(ShowHints, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Libraries, OptionScope.Module);
+    OptionRegistry.RegisterOption(Output, OptionScope.Cli);
+    OptionRegistry.RegisterOption(PluginOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Prelude, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Target, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Verbose, OptionScope.Cli);
+    OptionRegistry.RegisterOption(JsonDiagnostics, OptionScope.Cli);
+    OptionRegistry.RegisterOption(QuantifierSyntax, OptionScope.Module);
+    OptionRegistry.RegisterOption(SpillTranslation, OptionScope.Cli);
+    OptionRegistry.RegisterOption(StdIn, OptionScope.Cli);
+    OptionRegistry.RegisterOption(TestAssumptions, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ManualLemmaInduction, OptionScope.Module);
+    OptionRegistry.RegisterOption(TypeInferenceDebug, OptionScope.Cli);
+    OptionRegistry.RegisterOption(GeneralTraits, OptionScope.Cli);
+    OptionRegistry.RegisterOption(GeneralNewtypes, OptionScope.Cli);
+    OptionRegistry.RegisterOption(TypeSystemRefresh, OptionScope.Cli);
+    OptionRegistry.RegisterOption(VerificationLogFormat, OptionScope.Cli);
+    OptionRegistry.RegisterOption(VerifyIncludedFiles, OptionScope.Cli);
+    OptionRegistry.RegisterOption(DisableNonLinearArithmetic, OptionScope.Module);
+    OptionRegistry.RegisterOption(NewTypeInferenceDebug, OptionScope.Cli);
+    OptionRegistry.RegisterOption(UseBaseFileName, OptionScope.Cli);
+    OptionRegistry.RegisterOption(EmitUncompilableCode, OptionScope.Cli);
+    OptionRegistry.RegisterOption(RawPointers, OptionScope.Cli);
+    OptionRegistry.RegisterOption(WarnMissingConstructorParenthesis, OptionScope.Module);
+    OptionRegistry.RegisterOption(IncludeRuntimeOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(InternalIncludeRuntimeOptionForExecution, OptionScope.Cli);
+    OptionRegistry.RegisterOption(WarnContradictoryAssumptions, OptionScope.Module);
+    OptionRegistry.RegisterOption(WarnRedundantAssumptions, OptionScope.Module);
+    OptionRegistry.RegisterOption(SuggestProofRefactoring, OptionScope.Module);
+    OptionRegistry.RegisterOption(AnalyzeProofs, OptionScope.Module);
+    OptionRegistry.RegisterOption(VerificationCoverageReport, OptionScope.Cli);
+    OptionRegistry.RegisterOption(NoTimeStampForCoverageReport, OptionScope.Cli);
+    OptionRegistry.RegisterOption(DefaultFunctionOpacity, OptionScope.Module);
+    OptionRegistry.RegisterOption(OptimizeErasableDatatypeWrapper, OptionScope.Cli); // TODO needs translation record registration
+    OptionRegistry.RegisterOption(AddCompileSuffix, OptionScope.Cli);  // TODO needs translation record registration
+    OptionRegistry.RegisterOption(SystemModule, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ExecutionCoverageReport, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ExtractCounterexample, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ShowProofObligationExpressions, OptionScope.Cli);
   }
 }
 

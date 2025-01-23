@@ -79,13 +79,13 @@ public static class PreType2TypeUtil {
 
     var arguments = pt.Arguments.ConvertAll(preType => PreType2RefinableType(preType, futureRefinements));
     if (pt.Decl is ArrowTypeDecl arrowTypeDecl) {
-      return new ArrowType(pt.Decl.tok, arrowTypeDecl, arguments);
+      return new ArrowType(pt.Decl.Origin, arrowTypeDecl, arguments);
     } else if (pt.Decl is ValuetypeDecl valuetypeDecl) {
       return valuetypeDecl.CreateType(arguments);
     } else if (pt.Decl is ClassLikeDecl { IsReferenceTypeDecl: true }) {
-      return new UserDefinedType(pt.Decl.tok, pt.Decl.Name + "?", pt.Decl, arguments);
+      return new UserDefinedType(pt.Decl.Origin, pt.Decl.Name + "?", pt.Decl, arguments);
     } else {
-      return new UserDefinedType(pt.Decl.tok, pt.Decl.Name, pt.Decl, arguments);
+      return new UserDefinedType(pt.Decl.Origin, pt.Decl.Name, pt.Decl, arguments);
     }
   }
 
@@ -130,11 +130,21 @@ public static class PreType2TypeUtil {
       // Even if the head type of preTypeConverted is a refinement wrapper, we're going to stick with the user-defined type, so we Normalize() here.
       preTypeConverted = preTypeConverted.Normalize();
 
-      Contract.Assert((type as UserDefinedType)?.ResolvedClass == (preTypeConverted as UserDefinedType)?.ResolvedClass);
-      Contract.Assert(type.TypeArgs.Count == preTypeConverted.TypeArgs.Count);
-      for (var i = 0; i < type.TypeArgs.Count; i++) {
-        // TODO: the following should take variance into consideration
-        Combine(type.TypeArgs[i], preTypeConverted.TypeArgs[i]);
+      if ((type as UserDefinedType)?.ResolvedClass == (preTypeConverted as UserDefinedType)?.ResolvedClass) {
+        Contract.Assert(type.TypeArgs.Count == preTypeConverted.TypeArgs.Count);
+        for (var i = 0; i < type.TypeArgs.Count; i++) {
+          Combine(type.TypeArgs[i], preTypeConverted.TypeArgs[i]);
+        }
+      } else {
+        // The only way this can happen is if the user-supplied "type" is a type synonym, subset type, or newtype that expands to one of its
+        // type parameters. If so, expand "type" and recurse.
+        var udt = (UserDefinedType)type;
+        if (udt.ResolvedClass is TypeSynonymDecl typeSynonymDecl) {
+          type = typeSynonymDecl.RhsWithArgumentIgnoringScope(udt.TypeArgs);
+        } else {
+          type = ((NewtypeDecl)udt.ResolvedClass).RhsWithArgument(udt.TypeArgs);
+        }
+        Combine(type, preTypeConverted);
       }
     }
   }

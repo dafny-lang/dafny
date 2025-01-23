@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -24,6 +25,15 @@ public class RustBackend : DafnyExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
 
+  public static readonly Option<string> RustModuleNameOption = new("--rust-module-name",
+    @"The enclosing Rust module name for the currently translated code, i.e. what goes between crate:: ...  ::module_name".TrimStart()) {
+  };
+  public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { RustModuleNameOption };
+
+  static RustBackend() {
+    OptionRegistry.RegisterOption(RustModuleNameOption, OptionScope.Translation);
+  }
+
   public override IReadOnlySet<string> SupportedNativeTypes =>
     new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long", "udoublelong", "doublelong" };
 
@@ -35,6 +45,57 @@ public class RustBackend : DafnyExecutableBackend {
 
   protected override DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler() {
     return new RustCodeGenerator(Options);
+  }
+
+  // Knowing that the result of the compilation will be placed in a dafnyProgramName.rs,
+  // and that Dafny needs to import all the OtherFileNames into the same folder, but does not really care about their names,
+  // this function returns a mapping from full paths of Rust files to a unique resulting name.
+  //
+  // For example, if OtherFiles == ["C:\Users\myextern.rs", "C:\Users\path\myextern.rs", "C:\Users\nonconflictextern.rs"] and dafnyProgramName == "myextern.dfy", it will create the dictionary
+  // new Dictionary() {
+  // { "C:\Users\myextern.rs", "myextern_1.rs" },
+  // { "C:\Users\path\myextern.rs", "myextern_2.rs" },
+  // { "C:\Users\myotherextern.rs", "nonconflictingextern.rs" }
+  // }
+  public override Dictionary<string, string> ImportFilesMapping(string dafnyProgramName) {
+    Dictionary<string, string> importedFilesMapping = new();
+    var baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
+    importedFilesMapping["dummy"] = baseName + ".rs";
+    var keyToRemove = "dummy to lower";
+    importedFilesMapping[keyToRemove] = baseName.ToLower() + ".rs";
+    var toRemove = new List<string> { "dummy", keyToRemove };
+    if (OtherFileNames != null) {
+      foreach (var otherFileFullPath in OtherFileNames) {
+        var otherFileName = Path.GetFileName(otherFileFullPath);
+        if (importedFilesMapping.ContainsValue(otherFileName) || importedFilesMapping.ContainsValue(otherFileName.ToLower())) {
+          var newOtherFileBase = Path.GetFileNameWithoutExtension(otherFileName);
+          var i = 0;
+          do {
+            i++;
+            otherFileName = newOtherFileBase + $"_{i}.rs";
+          } while (importedFilesMapping.ContainsValue(otherFileName) || importedFilesMapping.ContainsValue(otherFileName.ToLower()));
+        }
+        // Ensures we don't have overwrites in case-insensitive systems such as Windows
+        importedFilesMapping[otherFileFullPath] = otherFileName;
+        importedFilesMapping["to lower " + otherFileFullPath] = otherFileName.ToLower();
+        toRemove.Add("to lower " + otherFileFullPath);
+      }
+    }
+
+    foreach (var path in toRemove) {
+      importedFilesMapping.Remove(path);
+    }
+    return importedFilesMapping;
+  }
+
+
+  public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
+    foreach (var keyValue in ImportFilesMapping(dafnyProgramName)) {
+      var fullRustExternName = keyValue.Key;
+      var expectedRustName = keyValue.Value;
+      File.Copy(fullRustExternName, Path.Combine(targetDirectory, expectedRustName), true);
+    }
+    return await base.OnPostGenerate(dafnyProgramName, targetDirectory, outputWriter);
   }
 
   private string ComputeExeName(string targetFilename) {

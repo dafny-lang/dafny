@@ -138,8 +138,8 @@ This is the only assertion in [batch](???) #??? of ??? in method `f`
 
 - Total resource usage: ??? RU  
 - Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-assertion-batches):  
-  - #???/??? with 1 assertion  at line ???, ??? RU  
-  - #???/??? with 1 assertion  at line ???, ??? RU  "
+  - #???/??? with 1 assertion at line ???, ??? RU  
+  - #???/??? with 1 assertion at line ???, ??? RU"
       );
     }
 
@@ -240,7 +240,7 @@ method f(x: int) {
 
 No assertions."
       );
-      await AssertVerificationHoverMatches(documentItem, (0, 10),
+      await AssertVerificationHoverMatches(documentItem, (0, 9),
         "```dafny\nx: int\n```");
     }
 

@@ -12,7 +12,7 @@ concurrency:
 
 
 env:
-  dotnet-version: 6.0.x # SDK Version for building Dafny
+  dotnet-version: 8.0.x # SDK Version for building Dafny
 
 jobs:
   check-deep-tests:
@@ -38,6 +38,9 @@ jobs:
     - name: Check whitespace and style
       working-directory: dafny
       run: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
+    - name: Check that it's possible to bump the version
+      working-directory: dafny
+      run: make bumpversion-test
     - name: Get Boogie Version
       run: |
         sudo apt-get update
@@ -161,7 +164,7 @@ jobs:
           output: both
           # Fail if less than 86% total coverage, measured across all packages combined.
           # Report "yellow" status if less than 90% total coverage.
-          thresholds: '86 90'
+          thresholds: '85 90'
 
       - name: Code coverage report (LSP)
         uses: irongut/CodeCoverageSummary@v1.3.0

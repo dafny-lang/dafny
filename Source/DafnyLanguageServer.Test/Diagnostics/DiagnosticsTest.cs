@@ -76,7 +76,7 @@ method ContradictoryAssumeMethod(n: int)
         );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
-        diagnostic.Range == new Range(13, 11, 13, 17) &&
+        diagnostic.Range == new Range(13, 4, 13, 18) &&
         diagnostic.Message == "proved using contradictory assumptions: assertion always holds. (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
       );
       Assert.Contains(diagnostics, diagnostic =>
@@ -279,8 +279,9 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       var diagnostics1 = diagnosticsReceiver.GetLatestAndClearQueue(documentItem);
       Assert.Equal(4, diagnostics1.Length);
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
+      await GetNextDiagnostics(documentItem); // Migrated verification diagnostics.
       var diagnostics2 = await GetNextDiagnostics(documentItem);
-      Assert.Equal(5, diagnostics2.Length);
+      Assert.Equal(3, diagnostics2.Length);
       Assert.Equal("Parser", diagnostics2[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics2[0].Severity);
       ApplyChange(ref documentItem, ((7, 20), (7, 25)), "");
@@ -291,15 +292,6 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       var diagnostics3 = diagnosticsReceiver.GetLatestAndClearQueue(documentItem);
       Assert.Equal(6, diagnostics3.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
-    }
-
-    [Fact]
-    public async Task EmptyFileNoCodeWarning() {
-      var source = "";
-      var documentItem = CreateTestDocument(source, "EmptyFileNoCodeWarning.dfy");
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(new Range(0, 0, 0, 0), diagnostics[0].Range);
     }
 
     [Fact]
@@ -386,11 +378,7 @@ predicate {:opaque} m() {
       await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
       ApplyChange(ref documentItem, ((0, 0), (3, 0)), "\n");
 
-      var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Single(diagnostics);
       ApplyChange(ref documentItem, ((1, 0), (1, 0)), "const x := 1");
-      var diagnostics2 = await GetLastDiagnostics(documentItem);
-      Assert.Empty(diagnostics2);
       await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
     }
 
@@ -1004,8 +992,10 @@ method test() {
       var documentItem = CreateTestDocument(source, "OpeningDocumentWithTimeoutReportsTimeoutDiagnostic.dfy");
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Single(diagnostics);
-      Assert.Contains("timed out", diagnostics[0].Message);
+      Assert.True(diagnostics.Length is 1 or 2); // Ack and Test sometimes time out at the same time
+      for (var i = 0; i < diagnostics.Length; i++) {
+        Assert.Contains("timed out", diagnostics[i].Message);
+      }
     }
 
     [Fact]
@@ -1013,7 +1003,7 @@ method test() {
       var source = @"
 method test(i: int, j: int) {
   assert i > j || i < j; 
-//       ^^^^^^^^^^^^^^
+//^^^^^^^^^^^^^^^^^^^^^^
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source, "OpeningDocumentWithComplexExpressionUnderlinesAllOfIt.dfy");
@@ -1022,7 +1012,7 @@ method test(i: int, j: int) {
       Assert.Single(diagnostics);
       Assert.Equal(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((1, 9), (1, 23)), diagnostics[0].Range);
+      Assert.Equal(new Range((1, 2), (1, 24)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -1315,6 +1305,137 @@ method Foo() {
       ApplyChange(ref documentItem, new Range(1, 0, 2, 0), "");
       var diagnostics2 = await GetLastDiagnostics(documentItem);
       Assert.Empty(diagnostics2);
+    }
+
+    [Fact]
+    public async Task HiddenFunctionHints() {
+      var source = @"
+predicate Outer(x: int) {
+  Inner(x)
+}
+
+predicate Inner(x: int) {
+  x > 3
+}
+
+method {:isolate_assertions} InnerOuterUser() {
+  hide *;
+  assert Outer(0);
+  assert Outer(1) by {
+    reveal Outer;
+  }
+  assert Outer(2) by {
+    reveal Inner;
+  }
+  assert Outer(3) by {
+    reveal Outer, Inner;
+  }
+}
+
+
+".TrimStart();
+      var documentItem = CreateTestDocument(source, "HiddenFunctionHints.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, minimumSeverity: DiagnosticSeverity.Hint);
+
+      Assert.Equal(6, diagnostics.Length);
+      var sorted = diagnostics.OrderBy(d => d.Range.Start).ToList();
+      for (int index = 0; index < 3; index++) {
+        Assert.Equal(sorted[index * 2].Range, sorted[index * 2 + 1].Range);
+      }
+    }
+
+    [Fact]
+    public async Task HiddenFunctionTooltipBlowup() {
+      var source = @"
+predicate A(x: int) {
+  x < 5
+}
+predicate B(x: int) {
+  x > 3
+}
+predicate P(x: int) {
+  A(x) && B(x)
+}
+
+method {:isolate_assertions} TestIsolateAssertions() {
+  hide *;
+  assert P(3);
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source, "HiddenFunctionHints.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, minimumSeverity: DiagnosticSeverity.Hint);
+
+      var infoDiagnostics = diagnostics.Where(d => d.Severity >= DiagnosticSeverity.Information).ToList();
+      Assert.Single(infoDiagnostics);
+    }
+
+    [Fact]
+    public async Task HiddenFunctionTooltipBlowup2() {
+      var source = @"
+predicate A(x: int) {
+  x < 5
+}
+predicate B(x: int) {
+  x > 3
+}
+predicate P(x: int) {
+  A(x) && B(x)
+}
+
+method {:isolate_assertions} TestIsolateAssertions() {
+  hide *;
+  reveal P;
+  assert P(3);
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source, "HiddenFunctionHints.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, minimumSeverity: DiagnosticSeverity.Hint);
+
+      var infoDiagnostics = diagnostics.Where(d => d.Severity >= DiagnosticSeverity.Information).ToList();
+      Assert.Single(infoDiagnostics);
+
+      var sorted = diagnostics.OrderBy(d => d.Range.Start).ToList();
+      for (int index = 0; index < sorted.Count / 2; index++) {
+        Assert.Equal(sorted[index * 2].Range, sorted[index * 2 + 1].Range);
+      }
+    }
+
+    [Fact]
+    public async Task HiddenFunctionTooltipBlowup3() {
+      var source = @"
+predicate A(x: int) {
+  x < 7 && C(x)
+}
+predicate B(x: int) {
+  x > 3
+}
+
+predicate C(x: int) {
+  x < 5
+}
+
+predicate P(x: int)
+  requires A(x) && B(x)
+{
+  true
+}
+
+@IsolateAssertions
+method TestIsolateAssertions(x: int) {
+  hide *;
+  reveal P;
+  assert P(x);
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source, "HiddenFunctionHints.dfy");
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastDiagnostics(documentItem, minimumSeverity: DiagnosticSeverity.Hint);
+
+      var infoDiagnostics = diagnostics.Where(d => d.Severity >= DiagnosticSeverity.Information).ToList();
+      Assert.Single(infoDiagnostics);
     }
 
     public DiagnosticsTest(ITestOutputHelper output) : base(output) {

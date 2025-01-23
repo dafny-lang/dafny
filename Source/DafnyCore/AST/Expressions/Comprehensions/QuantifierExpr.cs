@@ -17,7 +17,7 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
     Expression accumulator = SplitQuantifier[0];
     for (int tid = 1; tid < SplitQuantifier.Count; tid++) {
-      accumulator = new BinaryExpr(Term.tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
+      accumulator = new BinaryExpr(Term.Origin, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
     }
     return accumulator;
   }
@@ -50,9 +50,9 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     return idGen.FreshId(prefix);
   }
 
-  public QuantifierExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok, rangeToken, bvars, range, term, attrs) {
-    Contract.Requires(tok != null);
+  protected QuantifierExpr(IOrigin origin, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    : base(origin, bvars, range, term, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(term != null);
     this.UniqueId = FreshQuantId();

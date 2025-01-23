@@ -1,17 +1,5 @@
-git-issue-370.dfy(45,0): Error: a postcondition could not be proved on this return path
-git-issue-370.dfy(43,7): Related location: this is the postcondition that could not be proved
-git-issue-370.dfy(19,5): Related location: this proposition could not be proved
-git-issue-370.dfy(45,0): Error: a postcondition could not be proved on this return path
-git-issue-370.dfy(44,7): Related location: this is the postcondition that could not be proved
-git-issue-370.dfy(29,9): Related location: this proposition could not be proved
-git-issue-370.dfy(45,0): Error: a postcondition could not be proved on this return path
-git-issue-370.dfy(44,7): Related location: this is the postcondition that could not be proved
-git-issue-370.dfy(30,9): Related location: this proposition could not be proved
-git-issue-370.dfy(45,0): Error: a postcondition could not be proved on this return path
-git-issue-370.dfy(44,7): Related location: this is the postcondition that could not be proved
-git-issue-370.dfy(31,9): Related location: this proposition could not be proved
-git-issue-370.dfy(45,0): Error: a postcondition could not be proved on this return path
-git-issue-370.dfy(44,7): Related location: this is the postcondition that could not be proved
-git-issue-370.dfy(32,9): Related location: this proposition could not be proved
+git-issue-370.dfy(48,0): Error: a postcondition could not be proved on this return path
+git-issue-370.dfy(46,17): Related location: this is the postcondition that could not be proved
+git-issue-370.dfy(22,6): Related location: this proposition could not be proved
 
-Dafny program verifier finished with 1 verified, 5 errors
+Dafny program verifier finished with 1 verified, 1 error

@@ -9,6 +9,7 @@ namespace DafnyDriver.Commands;
 public record CliCanVerifyState {
   public Func<IVerificationTask, bool> TaskFilter = _ => true;
   public readonly TaskCompletionSource Finished = new();
+  public int CompletedCount = 0;
   public readonly ConcurrentQueue<(IVerificationTask Task, Completed Result)> CompletedParts = new();
-  public readonly ConcurrentBag<IVerificationTask> Tasks = new();
+  public int TaskCount;
 }

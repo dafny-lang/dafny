@@ -1,13 +1,16 @@
 // Dafny program the_program compiled into C#
 // To recompile, you will need the libraries
 //     System.Runtime.Numerics.dll System.Collections.Immutable.dll
-// but the 'dotnet' tool in net6.0 should pick those up automatically.
+// but the 'dotnet' tool in .NET should pick those up automatically.
 // Optionally, you may want to include compiler switches like
 //     /debug /nowarn:162,164,168,183,219,436,1717,1718
 
 using System;
 using System.Numerics;
 using System.Collections;
+#pragma warning disable CS0164 // This label has not been referenced
+#pragma warning disable CS0162 // Unreachable code detected
+#pragma warning disable CS1717 // Assignment made to same variable
 
 namespace DAST.Format {
 
@@ -17,12 +20,12 @@ namespace DAST.Format {
       if ((new BigInteger((s).Count)).Sign == 0) {
         return BigInteger.Zero;
       } else {
-        BigInteger _759_i = Dafny.Helpers.Id<Func<__T, BigInteger>>(f)((s).Select(BigInteger.Zero));
-        BigInteger _760_j = DAST.Format.__default.SeqToHeight<__T>((s).Drop(BigInteger.One), f);
-        if ((_759_i) < (_760_j)) {
-          return _760_j;
+        BigInteger _0_i = Dafny.Helpers.Id<Func<__T, BigInteger>>(f)((s).Select(BigInteger.Zero));
+        BigInteger _1_j = DAST.Format.__default.SeqToHeight<__T>((s).Drop(BigInteger.One), f);
+        if ((_0_i) < (_1_j)) {
+          return _1_j;
         } else {
-          return _759_i;
+          return _0_i;
         }
       }
     }

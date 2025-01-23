@@ -26,7 +26,7 @@ namespace Microsoft.Dafny {
     public readonly List<PartialState> States = new();
     public static readonly UserDefinedType UnknownType =
       new(new Token(), "?", null);
-    private readonly ModelFuncWrapper fSetSelect, fSeqLength, fSeqIndex, fBox,
+    private readonly ModelFuncWrapper fSelect, fSetMember, fSeqLength, fSeqIndex, fBox,
       fDim, fIndexField, fMultiIndexField, fDtype, fCharToInt, fTag, fBv,
       fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake,
@@ -50,7 +50,8 @@ namespace Microsoft.Dafny {
         CoreOptions.TypeEncoding.Arguments => 1,
         _ => 0
       };
-      fSetSelect = ModelFuncWrapper.MergeFunctions(this, new List<string> { "MapType0Select", "MapType1Select" }, 2);
+      fSelect = ModelFuncWrapper.MergeFunctions(this, new List<string> { "MapType0Select", "MapType1Select" }, 2);
+      fSetMember = new ModelFuncWrapper(this, "Set#IsMember", 2, 0);
       fSeqLength = new ModelFuncWrapper(this, "Seq#Length", 1, 0);
       fSeqBuild = new ModelFuncWrapper(this, "Seq#Build", 2, 0);
       fSeqAppend = new ModelFuncWrapper(this, "Seq#Append", 2, 0);
@@ -72,7 +73,7 @@ namespace Microsoft.Dafny {
       fMapEmpty = new ModelFuncWrapper(this, "Map#Empty", 0, 0);
       fIs = new ModelFuncWrapper(this, "$Is", 2, tyArgMultiplier);
       fIsBox = new ModelFuncWrapper(this, "$IsBox", 2, 0);
-      fBox = new ModelFuncWrapper(this, "$Box", 1, tyArgMultiplier);
+      fBox = new ModelFuncWrapper(this, BoogieGenerator.BoxFunctionName, 1, tyArgMultiplier);
       fDim = new ModelFuncWrapper(this, "FDim", 1, 0);
       fIndexField = new ModelFuncWrapper(this, "IndexField", 1, 0);
       fMultiIndexField = new ModelFuncWrapper(this, "MultiIndexField", 2, 0);
@@ -84,7 +85,7 @@ namespace Microsoft.Dafny {
       fU2Int = new ModelFuncWrapper(this, "U_2_int", 1, 0);
       fTag = new ModelFuncWrapper(this, "Tag", 1, 0);
       fBv = new ModelFuncWrapper(this, "TBitvector", 1, 0);
-      fUnbox = new ModelFuncWrapper(this, "$Unbox", 2, 0);
+      fUnbox = new ModelFuncWrapper(this, BoogieGenerator.UnboxFunctionName, 2, 0);
       fLs = new ModelFuncWrapper(this, "$LS", 1, 0);
       fLz = new ModelFuncWrapper(this, "$LZ", 0, 0);
       InitDataTypes();
@@ -538,7 +539,7 @@ namespace Microsoft.Dafny {
               return;
             }
 
-            foreach (var tpl in fSetSelect.AppsWithArg(0, value.Element)) {
+            foreach (var tpl in fSetMember.AppsWithArg(0, value.Element)) {
               var setElement = PartialValue.Get(UnboxNotNull(tpl.Args[1]), state);
               var containment = tpl.Result;
               if (containment is Model.Boolean boolean) {
@@ -584,8 +585,8 @@ namespace Microsoft.Dafny {
             var mapDomain = fMapDomain.OptEval(current);
             var mapElements = fMapElements.OptEval(current);
             if (mapDomain != null && mapElements != null) {
-              foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
-                var valueElement = fSetSelect.OptEval(mapElements, app.Args[1]);
+              foreach (var app in fSetMember.AppsWithArg(0, mapDomain)) {
+                var valueElement = fSelect.OptEval(mapElements, app.Args[1]);
                 if (valueElement != null) {
                   valueElement = Unbox(valueElement);
                 }
@@ -615,7 +616,7 @@ namespace Microsoft.Dafny {
             }
 
             var constantFields = GetDestructorFunctions(value.Element).OrderBy(f => f.Name).ToList();
-            var fields = fSetSelect.AppsWithArgs(0, heap, 1, value.Element).ToList();
+            var fields = fSelect.AppsWithArgs(0, heap, 1, value.Element).ToList();
 
             foreach (var fieldFunc in constantFields) {
               if (fieldFunc.OptEval(value.Element) is not { } modelElement) {
@@ -633,7 +634,7 @@ namespace Microsoft.Dafny {
               return;
             }
 
-            foreach (var tpl in fSetSelect.AppsWithArg(0, fields.ToList()[0].Result)) {
+            foreach (var tpl in fSelect.AppsWithArg(0, fields.ToList()[0].Result)) {
               foreach (var fieldName in GetFieldNames(tpl.Args[1])) {
                 if (fieldName != "alloc") {
                   var field = PartialValue.Get(UnboxNotNull(tpl.Result), state);

@@ -13,9 +13,9 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   }
   public readonly Type Rhs;
 
-  protected TypeSynonymDeclBase(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(rangeToken, name, module, typeArgs, attributes, false) {
-    Contract.Requires(rangeToken != null);
+  protected TypeSynonymDeclBase(IOrigin origin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
+    : base(origin, name, module, typeArgs, attributes, false) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(module != null);
@@ -60,10 +60,12 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
     Rhs != null ? new List<Node>() { Rhs } : Enumerable.Empty<Node>());
 
   string RedirectingTypeDecl.Name { get { return Name; } }
-  IToken RedirectingTypeDecl.tok { get { return tok; } }
+  IOrigin RedirectingTypeDecl.Tok { get { return Origin; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }
+  PreType RedirectingTypeDecl.BasePreType { get { return null; } }
+  Type RedirectingTypeDecl.BaseType { get { return null; } }
   Expression RedirectingTypeDecl.Constraint { get { return null; } }
 
   bool RedirectingTypeDecl.ConstraintIsCompilable {
@@ -73,16 +75,17 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
 
   SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return SubsetTypeDecl.WKind.CompiledZero; } }
   Expression RedirectingTypeDecl.Witness { get { return null; } }
-  FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
+  VerificationIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
-  bool ICodeContext.IsGhost {
-    get { throw new NotSupportedException(); }  // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
-  }
-  List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
-  List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
+  public bool ContainsHide { get; set; }
+
+  bool ICodeContext.IsGhost => throw new NotSupportedException(); // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
+  List<TypeParameter> ICodeContext.TypeArgs => TypeArgs;
+  List<Formal> ICodeContext.Ins => new();
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {
@@ -105,22 +108,23 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   }
 
   public string GetTriviaContainingDocstring() {
-    IToken openingBlock = null;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
+
     foreach (var token in OwnedTokens) {
-      if (token.val == "{") {
-        openingBlock = token;
+      if (token.val == "=") {
+        if ((token.Prev.TrailingTrivia + token.LeadingTrivia).Trim() is { } tentativeTrivia and not "") {
+          return tentativeTrivia;
+        }
       }
     }
 
-    if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
-      return openingBlock.Prev.TrailingTrivia;
+    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia2 and not "") {
+      return tentativeTrivia2;
     }
 
-    if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
-    }
-
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 
   public abstract override SymbolKind? Kind { get; }

@@ -2,50 +2,65 @@ module {:extern} Std.JavaConcurrent replaces Concurrent {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 
-    constructor {:extern} {:axiom} (ghost inv: (K, V) -> bool)
+    @Axiom
+    constructor {:extern} (ghost inv: (K, V) -> bool, bytesKeys: bool)
 
     ghost predicate Valid()
     {
       true
     }
 
-    method {:extern} {:axiom} Keys() returns (keys: set<K>)
+    @Axiom
+    method {:extern} Keys() returns (keys: set<K>)
 
-    method {:extern} {:axiom} HasKey(k: K) returns (used: bool)
+    @Axiom
+    method {:extern} HasKey(k: K) returns (used: bool)
 
-    method {:extern} {:axiom} Values() returns (values: set<V>)
+    @Axiom
+    method {:extern} Values() returns (values: set<V>)
 
-    method {:extern} {:axiom} Items() returns (items: set<(K,V)>)
+    @Axiom
+    method {:extern} Items() returns (items: set<(K,V)>)
 
-    method {:extern} {:axiom} Put(k: K, v: V)
+    @Axiom
+    method {:extern} Put(k: K, v: V)
 
-    method {:extern} {:axiom} Get(k: K) returns (r: Option<V>)
+    @Axiom
+    method {:extern} Get(k: K) returns (r: Option<V>)
 
-    method {:extern} {:axiom} Remove(k: K)
+    @Axiom
+    method {:extern} Remove(k: K)
 
-    method {:extern} {:axiom} Size() returns (c: nat)
+    @Axiom
+    method {:extern} Size() returns (c: nat)
 
   }
 
   class {:extern "AtomicBox"} AtomicBox<T> ... {
 
-    constructor {:extern} {:axiom} (ghost inv: T -> bool, t: T)
+    @Axiom
+    constructor {:extern} (ghost inv: T -> bool, t: T)
 
     ghost predicate Valid() { true }
 
-    method {:extern} {:axiom} Get() returns (t: T)
+    @Axiom
+    method {:extern} Get() returns (t: T)
 
-    method {:extern} {:axiom} Put(t: T)
+    @Axiom
+    method {:extern} Put(t: T)
 
   }
 
   class {:extern "Lock"} Lock ... {
 
-    constructor {:extern} {:axiom} ()
+    @Axiom
+    constructor {:extern} ()
 
-    method {:extern} {:axiom} Lock()
+    @Axiom
+    method {:extern} Lock()
 
-    method {:extern} {:axiom} Unlock()
+    @Axiom
+    method {:extern} Unlock()
 
   }
 }
