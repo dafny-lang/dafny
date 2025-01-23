@@ -201,6 +201,7 @@ class Seq:
             self.elems = iterable.elems
             self.len = iterable.len
             self.isStr = iterable.isStr
+            return
         elif isinstance(iterable, _SeqSlice):
             # SeqSlices are lazy slices.
             # Accessing self.elems returns the underlying SeqSlice in constant time.
