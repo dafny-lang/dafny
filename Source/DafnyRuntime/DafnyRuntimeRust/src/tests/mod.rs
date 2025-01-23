@@ -87,7 +87,7 @@ mod tests {
         assert_eq!(concat.cardinality_usize(), 6);
         match &concat {
             Sequence::ConcatSequence {
-                boxed,
+                cache: boxed,
                 length,
                 left,
                 ..
@@ -108,7 +108,7 @@ mod tests {
         let value = concat.get_usize(0);
         assert_eq!(value, 1);
         match &concat {
-            crate::Sequence::ConcatSequence { boxed, .. } => {
+            crate::Sequence::ConcatSequence { cache: boxed, .. } => {
                 #[cfg(not(feature = "sync"))]
                 assert_eq!(
                     *boxed.as_ref().clone().borrow().as_ref().unwrap().as_ref(),

@@ -29,7 +29,7 @@ public class RustBackend : DafnyExecutableBackend {
     @"The enclosing Rust module name for the currently translated code, i.e. what goes between crate:: ...  ::module_name") {
   };
   public static readonly Option<bool> RustSyncOption = new("--rust-sync",
-    @"Ensures that both datatypes and Dafny collections use structures that implement the Sync and Send traits") {
+    @"Ensures that all values implement the Sync and Send traits") {
   };
   public override IEnumerable<Option> SupportedOptions => new List<Option> { RustModuleNameOption, RustSyncOption };
 
@@ -101,7 +101,7 @@ public class RustBackend : DafnyExecutableBackend {
     }
 
     if (Options.IncludeRuntime) {
-      ImportRustRuntimeTo(Path.GetDirectoryName(targetDirectory));
+      ImportRuntimeTo(Path.GetDirectoryName(targetDirectory));
     }
     return await base.OnPostGenerate(dafnyProgramName, targetDirectory, outputWriter);
   }
@@ -120,7 +120,7 @@ public class RustBackend : DafnyExecutableBackend {
     string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter) {
     var targetDirectory = Path.GetDirectoryName(Path.GetDirectoryName(targetFilename));
-    ImportRustRuntimeTo(targetDirectory);
+    ImportRuntimeTo(targetDirectory);
 
     await WriteCargoFile(callToMain, targetFilename, targetDirectory);
 
@@ -171,7 +171,7 @@ public class RustBackend : DafnyExecutableBackend {
     }
   }
 
-  private static void ImportRustRuntimeTo(string targetDirectory) {
+  private static void ImportRuntimeTo(string targetDirectory) {
     var runtimeDirectory = Path.Combine(targetDirectory, "runtime");
     if (Directory.Exists(runtimeDirectory)) {
       Directory.Delete(runtimeDirectory, true);

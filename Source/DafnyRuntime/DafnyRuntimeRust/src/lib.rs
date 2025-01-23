@@ -746,7 +746,7 @@ where
         left: Rc<RefCell<Sequence<T>>>,
         right: Rc<RefCell<Sequence<T>>>,
         length: SizeT,
-        boxed: Rc<RefCell<Option<Rc<Vec<T>>>>>,
+        cache: Rc<RefCell<Option<Rc<Vec<T>>>>>,
     },
 }
 
@@ -808,7 +808,7 @@ where
             left: Rc::new(RefCell::new(left.clone())),
             right: Rc::new(RefCell::new(right.clone())),
             length: left.cardinality_usize() + right.cardinality_usize(),
-            boxed: Rc::new(RefCell::new(None)),
+            cache: Rc::new(RefCell::new(None)),
         }
     }
     pub fn to_array(&self) -> Rc<Vec<T>> {
@@ -821,32 +821,32 @@ where
             }
             Sequence::ConcatSequence {
                 length,
-                boxed,
+                cache,
                 left,
                 right,
             } => {
                 #[cfg(feature = "sync")]
-                let into_boxed = boxed.as_ref();
-                #[cfg(feature = "sync")]
-                let into_boxed_borrowed = into_boxed;
-                #[cfg(feature = "sync")]
-                let mut guard = into_boxed_borrowed.lock().unwrap();
-                #[cfg(feature = "sync")]
-                let borrowed: Option<&Rc<Vec<T>>> = guard.as_ref();
+                {
+                    let mut guard = cache.as_ref().lock().unwrap();
+                    let cache_borrow: Option<&Rc<Vec<T>>> = guard.as_ref();
+                    if let Some(cache) = cache_borrow {
+                        return Rc::clone(cache);
+                    }
+                }
 
                 #[cfg(not(feature = "sync"))]
-                let into_boxed = boxed.as_ref().clone();
-                #[cfg(not(feature = "sync"))]
-                let into_boxed_borrowed = into_boxed.borrow();
-                #[cfg(not(feature = "sync"))]
-                let borrowed: Option<&Rc<Vec<T>>> = into_boxed_borrowed.as_ref();
-                if let Some(cache) = borrowed.as_ref() {
-                    return Rc::clone(cache);
+                {
+                    let cache_opened = cache.as_ref().clone();
+                    let cache_opened_borrowed = cache_opened.borrow();
+                    let cache_borrow: Option<&Rc<Vec<T>>> = cache_opened_borrowed.as_ref();
+                    if let Some(cache) = cache_borrow {
+                        return Rc::clone(cache);
+                    }
                 }
                 // Let's create an array of size length and fill it up recursively
                 // We don't materialize nested arrays because most of the time they are forgotten
                 let mut array: Vec<T> = Vec::with_capacity(*length);
-                Sequence::<T>::append_recursive_safe(&mut array, &borrowed, left, right);
+                Sequence::<T>::append_recursive_safe(&mut array, &None, left, right);
                 let result = Rc::new(array);
                 #[cfg(not(feature = "sync"))]
                 {
@@ -861,7 +861,9 @@ where
                     *right_guard = seq!();
                 }
                 #[cfg(not(feature = "sync"))]
-                let mut guard = boxed.borrow_mut();
+                let mut guard = cache.borrow_mut();
+                #[cfg(feature = "sync")]
+                let mut guard = cache.as_ref().lock().unwrap();
                 *guard = Some(result.clone());
                 result
             }
@@ -870,11 +872,11 @@ where
 
     pub fn append_recursive_safe(
         array: &mut Vec<T>,
-        borrowed: &Option<&Rc<Vec<T>>>,
+        cache_borrow: &Option<&Rc<Vec<T>>>,
         left: &Rc<RefCell<Sequence<T>>>,
         right: &Rc<RefCell<Sequence<T>>>,
     ) {
-        if let Some(values) = borrowed.as_ref() {
+        if let Some(values) = cache_borrow.as_ref() {
             for value in values.iter() {
                 array.push(value.clone());
             }
@@ -904,7 +906,7 @@ where
                 }
             }
             Sequence::ConcatSequence {
-                boxed, left, right, ..
+                cache: boxed, left, right, ..
             } =>
             // Let's create an array of size length and fill it up recursively
             {

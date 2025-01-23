@@ -9,4 +9,7 @@ num = "0.4"
 itertools = "0.11.0"
 
 [features]
+# Use `dafny translate rs --rust-sync --include-runtime file.dfy`
+# to compile to code where values can be sent safely through threads
+# This will include the runtime with the sync feature
 sync = []
