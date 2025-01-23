@@ -209,6 +209,7 @@ class Seq:
             self.elems = iterable
             self.len = len(iterable)
             self.isStr = isStr
+            return
         else:
             self.elems = iterable if isinstance(iterable, Concat) else (list(iterable) if iterable is not None else [])
             self.len = len(self.elems)
