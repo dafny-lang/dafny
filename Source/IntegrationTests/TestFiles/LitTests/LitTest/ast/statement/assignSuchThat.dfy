@@ -6,3 +6,11 @@ method ByClause(b: bool) {
     assume {:axiom} false;
   }
 }
+
+function F(x: int): int
+method ByClauseSeparateAssignment() {
+  var a;
+  a :| F(a) == 2 by {
+    assume {:axiom} F(10) == 2;
+  }
+}
