@@ -12,8 +12,8 @@ module RAST
   // Past that, we use Dafny system tuples (see https://www.reddit.com/r/rust/comments/11gvkda/why_rust_std_only_provides_trait_implementation/)
   const MAX_TUPLE_SIZE := 12
 
-  // Default Indentation
-  const IND := "  "
+  // Default Rust-like indentation
+  const IND := "    "
 
   datatype RASTTopDownVisitor<!T(!new)> =
     RASTTopDownVisitor(

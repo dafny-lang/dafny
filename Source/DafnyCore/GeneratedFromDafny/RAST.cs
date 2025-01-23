@@ -168,7 +168,7 @@ namespace RAST {
       return (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyUsize"))).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("into_usize"))).Apply1(underlying);
     }
     public static Dafny.ISequence<Dafny.Rune> IND { get {
-      return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("  ");
+      return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("    ");
     } }
     public static RAST._IType SelfOwned { get {
       return (RAST.Path.create_Self()).AsType();
