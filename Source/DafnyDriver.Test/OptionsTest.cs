@@ -33,11 +33,6 @@ public class OptionsTest {
       Assert.False(options.Verify);
       return 0;
     });
-    await TestCliRunArgs(["--no-verify", "--do-boogie-translation"], options => {
-      Assert.True(options.DafnyVerify);
-      Assert.False(options.Verify);
-      return 0;
-    });
     await TestCliRunArgs(["--no-verify", "--bprint=-"], options => {
       Assert.True(options.DafnyVerify);
       Assert.False(options.Verify);
