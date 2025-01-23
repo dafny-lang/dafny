@@ -2732,7 +2732,7 @@ If you have Boogie installed locally, you can run the printed Boogie file with t
 DOTNET=$(which dotnet)
 
 BOOGIE_ROOT="path/to/boogie/Source"
-BOOGIE="$BOOGIE_ROOT/BoogieDriver/bin/Debug/net6.0/BoogieDriver.dll"
+BOOGIE="$BOOGIE_ROOT/BoogieDriver/bin/Debug/net8.0/BoogieDriver.dll"
 
 if [[ ! -x "$DOTNET" ]]; then
     echo "Error: Dafny requires .NET Core to run on non-Windows systems."
@@ -2769,7 +2769,7 @@ The following options are also commonly used:
   but a large positive number reports more errors per run
 
 * `--verification-time-limit:<n>` (was `-timeLimit:<n>`) - limits 
-  the number of seconds spent trying to verify each procedure.
+  the number of seconds spent trying to verify each assertion batch.
 
 
 ### 13.9.11. Controlling test generation {#sec-controlling-test-gen}

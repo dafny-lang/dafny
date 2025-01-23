@@ -492,7 +492,9 @@ module NativeArrays {
     var iIndex: int, bIndex: byte, bvIndex: bv9 := 3, 4, 5;
     m[iIndex, bIndex] := arr[iIndex];
     arr[iIndex] := m[iIndex, bvIndex - 1];
-    assert arr[iIndex] == 17;
+    assert arr[iIndex] == 17 by {
+       assert true;
+    }
     print arr[iIndex], " "; // 17
     m[bIndex, iIndex] := arr[bIndex];
     arr[bIndex] := m[bvIndex - 1, iIndex];

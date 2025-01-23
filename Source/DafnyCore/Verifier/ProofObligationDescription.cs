@@ -1423,26 +1423,6 @@ public class ForRangeAssignable : ProofObligationDescription {
   }
 }
 
-public class ValidInRecursion : ProofObligationDescription {
-  public override string SuccessDescription =>
-    $"{what} is valid in recursive setting";
-
-  public override string FailureDescription =>
-    $"cannot use {what} in recursive setting.{hint ?? ""}";
-
-  public override string ShortDescription => "valid in recursion";
-
-  public override bool ProvedOutsideUserCode => true;
-
-  private readonly string what;
-  private readonly string hint;
-
-  public ValidInRecursion(string what, string hint) {
-    this.what = what;
-    this.hint = hint;
-  }
-}
-
 public class IsNonRecursive : ProofObligationDescription {
   public override string SuccessDescription =>
     "default value is non-recursive";

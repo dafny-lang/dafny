@@ -3,9 +3,9 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
+class FillInDefaultLoopDecreasesVisitor : ResolverBottomUpVisitor {
   readonly ICallable EnclosingMethod;
-  public FillInDefaultLoopDecreases_Visitor(ModuleResolver resolver, ICallable enclosingMethod)
+  public FillInDefaultLoopDecreasesVisitor(ModuleResolver resolver, ICallable enclosingMethod)
     : base(resolver) {
     Contract.Requires(resolver != null);
     Contract.Requires(enclosingMethod != null);

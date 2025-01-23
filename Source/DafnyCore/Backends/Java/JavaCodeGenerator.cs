@@ -67,16 +67,6 @@ namespace Microsoft.Dafny.Compilers {
 
     private string ModuleName;
     private string ModulePath;
-    private int FileCount = 0;
-    private Import ModuleImport;
-
-    private readonly List<Import> Imports = new List<Import>();
-
-    //RootImportWriter writes additional imports to the main file.
-    private ConcreteSyntaxTree RootImportWriter;
-
-    private record Import(string Name, string Path);
-
     private readonly List<GenericCompilationInstrumenter> Instrumenters = new();
 
     public void AddInstrumenter(GenericCompilationInstrumenter compilationInstrumenter) {
@@ -310,9 +300,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");
       ModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
       wr.WriteLine();
-      // Keep the import writers so that we can import subsequent modules into the main one
-      EmitImports(wr, out RootImportWriter);
-      wr.WriteLine();
     }
 
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
@@ -362,18 +349,6 @@ namespace Microsoft.Dafny.Compilers {
       Coverage.EmitTearDown(wBody);
     }
 
-    void EmitImports(ConcreteSyntaxTree wr, out ConcreteSyntaxTree importWriter) {
-      importWriter = wr.Fork();
-      foreach (var import in Imports) {
-        if (import.Name != ModuleName) {
-          EmitImport(import, importWriter);
-        }
-      }
-    }
-
-    private void EmitImport(Import import, ConcreteSyntaxTree importWriter) {
-      importWriter.WriteLine($"import {import.Path.Replace('/', '.')}.*;");
-    }
 
     string IdProtectModule(string moduleName) {
       return string.Join(".", moduleName.Split(".").Select(IdProtect));
@@ -389,30 +364,16 @@ namespace Microsoft.Dafny.Compilers {
       }
       var pkgName = libraryName ?? IdProtect(moduleName);
       var path = pkgName.Replace('.', '/');
-      var import = new Import(moduleName, path);
       ModuleName = IdProtect(moduleName);
       ModulePath = path;
-      ModuleImport = import;
-      FileCount = 0;
       return wr;
     }
 
     protected override void FinishModule() {
-      if (FileCount > 0) {
-        AddImport(ModuleImport);
-      }
-      FileCount = 0;
-    }
-
-    private void AddImport(Import import) {
-      if (!Imports.Contains(import)) {
-        EmitImport(import, RootImportWriter);
-        Imports.Add(import);
-      }
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
@@ -909,17 +870,15 @@ namespace Microsoft.Dafny.Compilers {
     //     }
     //   }
     //
-    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string /*?*/ fullPrintName,
+    protected override IClassWriter CreateClass(string moduleName, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> /*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
+      var name = IdName(cls);
       var javaName = isExtern ? FormatExternBaseClassName(name) : name;
       var filename = $"{ModulePath}/{javaName}.java";
       var w = wr.NewFile(filename);
-      FileCount += 1;
       w.WriteLine($"// Class {javaName}");
       w.WriteLine($"// Dafny class {name} compiled into Java");
       w.WriteLine($"package {ModuleName};");
-      w.WriteLine();
-      EmitImports(w, out _);
       w.WriteLine();
       //TODO: Fix implementations so they do not need this suppression
       EmitSuppression(w);
@@ -1898,12 +1857,9 @@ namespace Microsoft.Dafny.Compilers {
 
       var filename = $"{ModulePath}/{IdName(dt)}.java";
       wr = wr.NewFile(filename);
-      FileCount += 1;
       wr.WriteLine($"// Class {DtT_protected}");
       wr.WriteLine($"// Dafny class {DtT_protected} compiled into Java");
       wr.WriteLine($"package {ModuleName};");
-      wr.WriteLine();
-      EmitImports(wr, out _);
       wr.WriteLine();
       //TODO: Figure out how to resolve type checking warnings
       // from here on, write everything into the new block created here:
@@ -2110,12 +2066,9 @@ namespace Microsoft.Dafny.Compilers {
       foreach (DatatypeCtor ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         var filename = $"{ModulePath}/{DtCtorDeclarationName(ctor)}.java";
         var wr = wrx.NewFile(filename);
-        FileCount += 1;
         wr.WriteLine($"// Class {DtCtorDeclarationName(ctor, dt.TypeArgs)}");
         wr.WriteLine($"// Dafny class {DtCtorDeclarationName(ctor, dt.TypeArgs)} compiled into Java");
         wr.WriteLine($"package {ModuleName};");
-        wr.WriteLine();
-        EmitImports(wr, out _);
         wr.WriteLine();
         EmitSuppression(wr);
         var w = wr.NewNamedBlock($"public class {DtCtorDeclarationName(ctor, dt.TypeArgs)} extends {IdName(dt)}{typeParams}");
@@ -2125,12 +2078,9 @@ namespace Microsoft.Dafny.Compilers {
       if (dt is CoDatatypeDecl) {
         var filename = $"{ModulePath}/{dt.GetCompileName(Options)}__Lazy.java";
         var wr = wrx.NewFile(filename);
-        FileCount += 1;
         wr.WriteLine($"// Class {dt.GetCompileName(Options)}__Lazy");
         wr.WriteLine($"// Dafny class {dt.GetCompileName(Options)}__Lazy compiled into Java");
         wr.WriteLine($"package {ModuleName};");
-        wr.WriteLine();
-        EmitImports(wr, out _);
         wr.WriteLine();
         EmitSuppression(wr); //TODO: Fix implementations so they do not need this suppression
         var w = wr.NewNamedBlock($"public class {dt.GetCompileName(Options)}__Lazy{typeParams} extends {IdName(dt)}{typeParams}");
@@ -2490,6 +2440,7 @@ namespace Microsoft.Dafny.Compilers {
         case "toString":
         case "equals":
         case "hashCode":
+        case "Default":
           return name + "_"; // TODO: figure out what to do here (C# uses @, Go uses _, JS uses _$$_)
         default:
           return name; // Package name is not a keyword, so it can be used
@@ -2729,9 +2680,11 @@ namespace Microsoft.Dafny.Compilers {
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type> typeArgs, bool isCoCall,
       string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
+      var modname = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options));
+      modname = (modname == ModuleName ? "" : modname + ".");
       var dtName = dt is TupleTypeDecl tupleDecl
         ? DafnyTupleClass(tupleDecl.NonGhostDims)
-        : IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdName(dt);
+        : modname + IdName(dt);
       var typeParams = typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.Origin)}>";
       var sep = typeDescriptorArguments.Length != 0 && arguments.Length != 0 ? ", " : "";
       if (!isCoCall) {
@@ -2740,7 +2693,8 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"{dtName}.{typeParams}{DtCreateName(ctor)}({typeDescriptorArguments}{sep}{arguments})");
       } else {
         var sep0 = typeDescriptorArguments.Length != 0 ? ", " : "";
-        wr.Write($"new {dt.GetCompileName(Options)}__Lazy({typeDescriptorArguments}{sep0}");
+
+        wr.Write($"new {modname}{IdName(dt)}__Lazy({typeDescriptorArguments}{sep0}");
         wr.Write("() -> { return ");
         wr.Write($"new {DtCtorName(ctor)}{typeParams}({typeDescriptorArguments}{sep}{arguments})");
         wr.Write("; })");
@@ -3345,12 +3299,9 @@ namespace Microsoft.Dafny.Compilers {
       TraitDecl trait, List<Type> superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
       var filename = $"{ModulePath}/{IdProtect(name)}.java";
       var w = wr.NewFile(filename);
-      FileCount += 1;
       w.WriteLine($"// Interface {name}");
       w.WriteLine($"// Dafny trait {name} compiled into Java");
       w.WriteLine($"package {ModuleName};");
-      w.WriteLine();
-      EmitImports(w, out _);
       w.WriteLine();
       EmitSuppression(w); //TODO: Fix implementations so they do not need this suppression
       var typeParamString = TypeParameters(typeParameters);
@@ -3368,12 +3319,9 @@ namespace Microsoft.Dafny.Compilers {
       //writing the _Companion class
       filename = $"{ModulePath}/_Companion_{name}.java";
       w = w.NewFile(filename);
-      FileCount += 1;
       w.WriteLine($"// Interface {name}");
       w.WriteLine($"// Dafny trait {name} compiled into Java");
       w.WriteLine($"package {ModuleName};");
-      w.WriteLine();
-      EmitImports(w, out _);
       w.WriteLine();
       EmitSuppression(w); //TODO: Fix implementations so they do not need this suppression
       w.Write($"public class _Companion_{name}{typeParamString}");
@@ -3655,7 +3603,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);

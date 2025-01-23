@@ -115,7 +115,7 @@ namespace Microsoft.Dafny {
         }
 
         if (body != null) {
-          var c = new ReportOtherAdditionalInformation_Visitor(this);
+          var c = new ReportOtherAdditionalInformationVisitor(this);
           c.Visit(body);
         }
       }
@@ -134,7 +134,7 @@ namespace Microsoft.Dafny {
         }
 
         if (body != null) {
-          var c = new FillInDefaultLoopDecreases_Visitor(this, clbl);
+          var c = new FillInDefaultLoopDecreasesVisitor(this, clbl);
           c.Visit(body);
         }
       }
@@ -1262,6 +1262,12 @@ namespace Microsoft.Dafny {
         FillInPostConditionsAndBodiesOfPrefixLemmas(declarations);
       }
 
+      // A function is not allowed to be used naked (that is, without being applied to arguments) in its own SCC.
+      // Also, a function is not allowed to be used in any way inside a "decreases" clause its its own SCC.
+      foreach (var function in ModuleDefinition.AllFunctions(declarations)) {
+        DetectUnsoundFunctionReferencesVisitor.Check(function, this);
+      }
+
       // An inductive datatype is allowed to be defined as an empty type. For example, in
       //     predicate P(x: int) { false }
       //     type Subset = x: int | P(x) witness *
@@ -1492,7 +1498,7 @@ namespace Microsoft.Dafny {
         // Check that usage of "this" is restricted before "new;" in constructor bodies,
         // and that a class without any constructor only has fields with known initializers.
         // Also check that static fields (which are necessarily const) have initializers.
-        var cdci = new CheckDividedConstructorInit_Visitor(reporter);
+        var cdci = new CheckDividedConstructorInitVisitor(reporter);
         foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
           // only reference types (classes and reference-type traits) are allowed to declare mutable fields
           if (cl is not ClassLikeDecl { IsReferenceTypeDecl: true }) {
@@ -2015,14 +2021,14 @@ namespace Microsoft.Dafny {
     void ExtremePredicateChecks(Expression expr, ExtremePredicate context, CallingPosition cp) {
       Contract.Requires(expr != null);
       Contract.Requires(context != null);
-      var v = new ExtremePredicateChecks_Visitor(reporter, context);
+      var v = new ExtremePredicateChecksVisitor(reporter, context);
       v.Visit(expr, cp);
     }
 
     void ExtremeLemmaChecks(Statement stmt, ExtremeLemma context) {
       Contract.Requires(stmt != null);
       Contract.Requires(context != null);
-      var v = new ExtremeLemmaChecks_Visitor(this, context);
+      var v = new ExtremeLemmaChecksVisitor(this, context);
       v.Visit(stmt);
     }
     void ExtremeLemmaChecks(Expression expr, ExtremeLemma context) {
@@ -2031,7 +2037,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var v = new ExtremeLemmaChecks_Visitor(this, context);
+      var v = new ExtremeLemmaChecksVisitor(this, context);
       v.Visit(expr);
     }
 
@@ -2042,8 +2048,8 @@ namespace Microsoft.Dafny {
         codeContext is Method, false);
     }
 
-    class ReportOtherAdditionalInformation_Visitor : ResolverBottomUpVisitor {
-      public ReportOtherAdditionalInformation_Visitor(ModuleResolver resolver)
+    class ReportOtherAdditionalInformationVisitor : ResolverBottomUpVisitor {
+      public ReportOtherAdditionalInformationVisitor(ModuleResolver resolver)
         : base(resolver) {
         Contract.Requires(resolver != null);
       }
@@ -3328,11 +3334,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    class LazyString_OnTypeEquals {
+    class LazyStringOnTypeEquals {
       Type t0;
       Type t1;
       string s;
-      public LazyString_OnTypeEquals(Type t0, Type t1, string s) {
+      public LazyStringOnTypeEquals(Type t0, Type t1, string s) {
         Contract.Requires(t0 != null);
         Contract.Requires(t1 != null);
         Contract.Requires(s != null);
@@ -3969,7 +3975,7 @@ namespace Microsoft.Dafny {
     void CollectFriendlyCallsInExtremeLemmaSpecification(Expression expr, bool position, ISet<Expression> friendlyCalls, bool co, ExtremeLemma context) {
       Contract.Requires(expr != null);
       Contract.Requires(friendlyCalls != null);
-      var visitor = new CollectFriendlyCallsInSpec_Visitor(reporter, friendlyCalls, co, context);
+      var visitor = new CollectFriendlyCallsInSpecVisitor(reporter, friendlyCalls, co, context);
       visitor.Visit(expr, position ? CallingPosition.Positive : CallingPosition.Negative);
     }
   }
