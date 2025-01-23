@@ -839,15 +839,15 @@ namespace Defs {
     Defs._IEnvironment AddAssignmentStatus(Dafny.ISequence<Dafny.Rune> name, Defs._IAssignmentStatus assignmentStatus);
     bool IsAssignmentStatusKnown(Dafny.ISequence<Dafny.Rune> name);
   }
-  public class Environment(
-    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> names,
-    Dafny.IMap<Dafny.ISequence<Dafny.Rune>, RAST._IType> types,
-    Dafny.ISet<Dafny.ISequence<Dafny.Rune>> assignmentStatusKnown)
-    : _IEnvironment {
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _names = names;
-    public readonly Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IType> _types = types;
-    public readonly Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _assignmentStatusKnown = assignmentStatusKnown;
-
+  public class Environment : _IEnvironment {
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _names;
+    public readonly Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IType> _types;
+    public readonly Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _assignmentStatusKnown;
+    public Environment(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> names, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IType> types, Dafny.ISet<Dafny.ISequence<Dafny.Rune>> assignmentStatusKnown) {
+      this._names = names;
+      this._types = types;
+      this._assignmentStatusKnown = assignmentStatusKnown;
+    }
     public _IEnvironment DowncastClone() {
       if (this is _IEnvironment dt) { return dt; }
       return new Environment(_names, _types, _assignmentStatusKnown);
@@ -1174,9 +1174,11 @@ namespace Defs {
       return s;
     }
   }
-  public class RootType_RootPath(Dafny.ISequence<Dafny.Rune> moduleName) : RootType {
-    public readonly Dafny.ISequence<Dafny.Rune> _moduleName = moduleName;
-
+  public class RootType_RootPath : RootType {
+    public readonly Dafny.ISequence<Dafny.Rune> _moduleName;
+    public RootType_RootPath(Dafny.ISequence<Dafny.Rune> moduleName) : base() {
+      this._moduleName = moduleName;
+    }
     public override _IRootType DowncastClone() {
       if (this is _IRootType dt) { return dt; }
       return new RootType_RootPath(_moduleName);
@@ -1204,9 +1206,11 @@ namespace Defs {
     bool is_GenTypeContext { get; }
     bool dtor_forTraitParents { get; }
   }
-  public class GenTypeContext(bool forTraitParents) : _IGenTypeContext {
-    public readonly bool _forTraitParents = forTraitParents;
-
+  public class GenTypeContext : _IGenTypeContext {
+    public readonly bool _forTraitParents;
+    public GenTypeContext(bool forTraitParents) {
+      this._forTraitParents = forTraitParents;
+    }
     public static bool DowncastClone(bool _this) {
       return _this;
     }
@@ -1320,11 +1324,13 @@ namespace Defs {
       return s;
     }
   }
-  public class SelfInfo_ThisTyped(Dafny.ISequence<Dafny.Rune> rSelfName, DAST._IType dafnyType)
-    : SelfInfo {
-    public readonly Dafny.ISequence<Dafny.Rune> _rSelfName = rSelfName;
-    public readonly DAST._IType _dafnyType = dafnyType;
-
+  public class SelfInfo_ThisTyped : SelfInfo {
+    public readonly Dafny.ISequence<Dafny.Rune> _rSelfName;
+    public readonly DAST._IType _dafnyType;
+    public SelfInfo_ThisTyped(Dafny.ISequence<Dafny.Rune> rSelfName, DAST._IType dafnyType) : base() {
+      this._rSelfName = rSelfName;
+      this._dafnyType = dafnyType;
+    }
     public override _ISelfInfo DowncastClone() {
       if (this is _ISelfInfo dt) { return dt; }
       return new SelfInfo_ThisTyped(_rSelfName, _dafnyType);
@@ -1430,9 +1436,11 @@ namespace Defs {
       return s;
     }
   }
-  public class ExternAttribute_SimpleExtern(Dafny.ISequence<Dafny.Rune> overrideName) : ExternAttribute {
-    public readonly Dafny.ISequence<Dafny.Rune> _overrideName = overrideName;
-
+  public class ExternAttribute_SimpleExtern : ExternAttribute {
+    public readonly Dafny.ISequence<Dafny.Rune> _overrideName;
+    public ExternAttribute_SimpleExtern(Dafny.ISequence<Dafny.Rune> overrideName) : base() {
+      this._overrideName = overrideName;
+    }
     public override _IExternAttribute DowncastClone() {
       if (this is _IExternAttribute dt) { return dt; }
       return new ExternAttribute_SimpleExtern(_overrideName);
@@ -1455,13 +1463,13 @@ namespace Defs {
       return s;
     }
   }
-  public class ExternAttribute_AdvancedExtern(
-    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> enclosingModule,
-    Dafny.ISequence<Dafny.Rune> overrideName)
-    : ExternAttribute {
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _enclosingModule = enclosingModule;
-    public readonly Dafny.ISequence<Dafny.Rune> _overrideName = overrideName;
-
+  public class ExternAttribute_AdvancedExtern : ExternAttribute {
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _enclosingModule;
+    public readonly Dafny.ISequence<Dafny.Rune> _overrideName;
+    public ExternAttribute_AdvancedExtern(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> enclosingModule, Dafny.ISequence<Dafny.Rune> overrideName) : base() {
+      this._enclosingModule = enclosingModule;
+      this._overrideName = overrideName;
+    }
     public override _IExternAttribute DowncastClone() {
       if (this is _IExternAttribute dt) { return dt; }
       return new ExternAttribute_AdvancedExtern(_enclosingModule, _overrideName);
@@ -1487,9 +1495,11 @@ namespace Defs {
       return s;
     }
   }
-  public class ExternAttribute_UnsupportedExtern(Dafny.ISequence<Dafny.Rune> reason) : ExternAttribute {
-    public readonly Dafny.ISequence<Dafny.Rune> _reason = reason;
-
+  public class ExternAttribute_UnsupportedExtern : ExternAttribute {
+    public readonly Dafny.ISequence<Dafny.Rune> _reason;
+    public ExternAttribute_UnsupportedExtern(Dafny.ISequence<Dafny.Rune> reason) : base() {
+      this._reason = reason;
+    }
     public override _IExternAttribute DowncastClone() {
       if (this is _IExternAttribute dt) { return dt; }
       return new ExternAttribute_UnsupportedExtern(_reason);

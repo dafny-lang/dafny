@@ -236,13 +236,13 @@ namespace FactorPathsOptimization {
     Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> ToFinalReplacement(RAST._IPath SelfPath);
     Dafny.ISequence<RAST._IModDecl> ToUseStatements(Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> finalReplacement, RAST._IPath SelfPath);
   }
-  public class Mapping(
-    Dafny.IMap<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>> provenance,
-    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> keys)
-    : _IMapping {
-    public readonly Dafny.IMap<Dafny.ISequence<Dafny.Rune>,Dafny.ISet<RAST._IPath>> _provenance = provenance;
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _keys = keys;
-
+  public class Mapping : _IMapping {
+    public readonly Dafny.IMap<Dafny.ISequence<Dafny.Rune>,Dafny.ISet<RAST._IPath>> _provenance;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _keys;
+    public Mapping(Dafny.IMap<Dafny.ISequence<Dafny.Rune>,Dafny.ISet<RAST._IPath>> provenance, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> keys) {
+      this._provenance = provenance;
+      this._keys = keys;
+    }
     public _IMapping DowncastClone() {
       if (this is _IMapping dt) { return dt; }
       return new Mapping(_provenance, _keys);
