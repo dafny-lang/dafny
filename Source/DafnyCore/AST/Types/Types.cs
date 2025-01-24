@@ -493,7 +493,7 @@ public abstract class Type : NodeWithComputedRange {
             // This requires more recursion and bookkeeping than we care to try out
             return AutoInitInfo.MaybeEmpty;
           }
-          coDatatypesBeingVisited = [..coDatatypesBeingVisited];
+          coDatatypesBeingVisited = [.. coDatatypesBeingVisited];
         } else {
           coDatatypesBeingVisited = [];
         }

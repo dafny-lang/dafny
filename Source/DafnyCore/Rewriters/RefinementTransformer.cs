@@ -418,9 +418,9 @@ namespace Microsoft.Dafny {
         if (derivedPointer == original.OriginalSignature.ModuleDef) {
           HashSet<string> exports;
           if (derived is AliasModuleDecl) {
-            exports = [..((AliasModuleDecl)derived).Exports.ConvertAll(t => t.val)];
+            exports = [.. ((AliasModuleDecl)derived).Exports.ConvertAll(t => t.val)];
           } else if (derived is AbstractModuleDecl) {
-            exports = [..((AbstractModuleDecl)derived).Exports.ConvertAll(t => t.val)];
+            exports = [.. ((AbstractModuleDecl)derived).Exports.ConvertAll(t => t.val)];
           } else {
             Error(ErrorId.ref_base_module_must_be_abstract_or_alias, derived, "a module ({0}) can only be refined by an alias module or a module facade", original.Name);
             return false;

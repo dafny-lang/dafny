@@ -168,7 +168,7 @@ namespace Microsoft.Dafny.LanguageServer {
       GetIndexAndSpans(input, out output, out var positionIndices, out var spans);
       var buffer = new TextBuffer(output);
       positions = positionIndices.Select(index => buffer.FromIndex(index)).ToList();
-      ranges = [..spans.Select(span => new Range(buffer.FromIndex(span.Span.Start), buffer.FromIndex(span.Span.End)))];
+      ranges = [.. spans.Select(span => new Range(buffer.FromIndex(span.Span.Start), buffer.FromIndex(span.Span.End)))];
     }
 
     public static void GetPositionAndRanges(string input, out string output, out Position cursorPosition, out ImmutableArray<Range> ranges) {

@@ -443,7 +443,7 @@ namespace Microsoft.Dafny {
       src.Input, src.OutputWriter, src.ErrorWriter) {
       src.CopyTo(this, useNullWriters);
       CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
-      ProverOptions = [..src.ProverOptions];
+      ProverOptions = [.. src.ProverOptions];
       Options = new Options(
         src.Options.OptionArguments.ToDictionary(kv => kv.Key, kv => kv.Value),
         src.Options.Arguments.ToDictionary(kv => kv.Key, kv => kv.Value));

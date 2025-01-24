@@ -1109,7 +1109,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.Write("[");
         PrintFormal(ff[0], false);
         wr.Write("]");
-        ff = [..ff.Skip(1)];
+        ff = [.. ff.Skip(1)];
       }
       wr.Write("(");
       string sep = "";

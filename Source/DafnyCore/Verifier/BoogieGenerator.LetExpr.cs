@@ -317,7 +317,7 @@ namespace Microsoft.Dafny {
         UsesHeap = usesHeap;
         UsesOldHeap = usesOldHeap;
         // we convert the set of heap-at variables to a list here, once and for all; the order itself is not material, what matters is that we always use the same order
-        UsesHeapAt = [..usesHeapAt];
+        UsesHeapAt = [.. usesHeapAt];
         ThisType = thisType;
       }
 

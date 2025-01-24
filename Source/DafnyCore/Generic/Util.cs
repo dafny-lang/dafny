@@ -172,7 +172,7 @@ namespace Microsoft.Dafny {
     }
 
     public static List<A> Concat<A>(List<A> xs, List<A> ys) {
-      List<A> cpy = [..xs];
+      List<A> cpy = [.. xs];
       cpy.AddRange(ys);
       return cpy;
     }

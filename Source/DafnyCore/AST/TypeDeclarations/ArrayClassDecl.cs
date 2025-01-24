@@ -10,7 +10,7 @@ public class ArrayClassDecl : ClassDecl {
   public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
     : base(SourceOrigin.NoToken, new Name(SystemModuleManager.ArrayClassName(dims)), module,
       [
-        ..new TypeParameter[]
+        .. new TypeParameter[]
           { new TypeParameter(SourceOrigin.NoToken, new Name("arg"), TypeParameter.TPVarianceSyntax.NonVariant_Strict) }
       ],
       [], attrs, false, null) {

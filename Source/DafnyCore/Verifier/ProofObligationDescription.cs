@@ -1541,8 +1541,8 @@ public class InRange : ProofObligationDescription {
         : new UnaryOpExpr(sequence.Origin, UnaryOpExpr.Opcode.Cardinality, sequence);
       return new ChainingExpression(sequence.Origin, [
           new LiteralExpr(sequence.Origin, 0),
-          index,
-          bound
+        index,
+        bound
         ], [
           BinaryExpr.Opcode.Le,
           upperExcluded ? BinaryExpr.Opcode.Lt : BinaryExpr.Opcode.Le

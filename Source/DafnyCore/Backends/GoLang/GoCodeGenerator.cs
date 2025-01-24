@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private readonly Dictionary<ModuleDefinition, Import> ModuleImports = new();
-    private readonly List<Import> ImportsNotFromDafnyModules = [..StandardImports];
+    private readonly List<Import> ImportsNotFromDafnyModules = [.. StandardImports];
     private string ModuleName;
     private ModuleDefinition CurrentModule;
     private ConcreteSyntaxTree RootImportWriter;

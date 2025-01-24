@@ -1873,7 +1873,7 @@ namespace Microsoft.Dafny {
                 ProcessOneSubtypingConstraintAndItsSubs(c, processed, fullStrength, ref anyNewConstraints);
               }
 
-              allTypeConstraints = [..AllTypeConstraints];  // copy the list
+              allTypeConstraints = [.. AllTypeConstraints];  // copy the list
               foreach (var c in allTypeConstraints) {
                 var super = c.Super.NormalizeExpand() as TypeProxy;
                 if (AssignKnownEnd(super, true, fullStrength)) {

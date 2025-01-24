@@ -67,7 +67,7 @@ internal class TriggerTermSet {
   /// </summary>
   private TriggerTermSet CopyWithAdd(TriggerTerm term, IEnumerable<BoundVar> relevantVariables) {
     var copy = new TriggerTermSet();
-    copy.Terms = [..Terms];
+    copy.Terms = [.. Terms];
     copy.variables = new HashSet<BoundVar>(variables);
     copy.termOwningAUniqueVar = new Dictionary<BoundVar, TriggerTerm>(termOwningAUniqueVar);
     copy.uniqueVarsOwnedByATerm = new Dictionary<TriggerTerm, ISet<BoundVar>>(uniqueVarsOwnedByATerm);

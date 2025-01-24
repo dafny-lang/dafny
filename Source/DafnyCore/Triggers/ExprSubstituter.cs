@@ -49,7 +49,7 @@ namespace Microsoft.Dafny {
           newBounds = [];
         } else if (newBounds == e.Bounds) {
           // create a new list with the same elements, since the .Add operations below would otherwise add elements to the original e.Bounds
-          newBounds = [..newBounds];
+          newBounds = [.. newBounds];
         }
 
         // conjoin all the new equalities to the range of the quantifier

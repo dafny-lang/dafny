@@ -520,7 +520,7 @@ public class Compilation : IDisposable {
     }
     // TODO: end position doesn't take into account trailing trivia: https://github.com/dafny-lang/dafny/issues/3415
     return new TextEditContainer([
-      new() {NewText = result, Range = new Range(new Position(0,0), lastToken.GetLspPosition())}
+      new() { NewText = result, Range = new Range(new Position(0, 0), lastToken.GetLspPosition()) }
     ]);
 
   }

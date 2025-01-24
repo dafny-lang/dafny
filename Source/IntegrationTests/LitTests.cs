@@ -60,15 +60,40 @@ namespace IntegrationTests {
       // These explicit defaults are here, and should remain here independent of the user-facing defaults.
       // The metatests/StdLibsOffByDefaultInTests.dfy test directly enforces this.
 
-      string[] defaultResolveArgs = ["resolve", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false"
+      string[] defaultResolveArgs = ["resolve",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false"
       ];
-      string[] defaultVerifyArgs = ["verify", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6"
+      string[] defaultVerifyArgs = ["verify",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false",
+        "--cores:2",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
       ];
-      string[] defaultTranslateArgs = ["--use-basename-for-filename", "--cores:2", "--standard-libraries:false", "--verification-time-limit:300", "--resource-limit:50e6"
+      string[] defaultTranslateArgs = ["--use-basename-for-filename",
+        "--cores:2",
+        "--standard-libraries:false",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
       ];
-      string[] defaultBuildArgs = ["build", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6"
+      string[] defaultBuildArgs = ["build",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false",
+        "--cores:2",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
       ];
-      string[] defaultRunArgs = ["run", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6"
+      string[] defaultRunArgs = ["run",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false",
+        "--cores:2",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
       ];
 
       var substitutions = new Dictionary<string, object> {
@@ -237,7 +262,9 @@ namespace IntegrationTests {
     [FileTheory]
     [FileData(Includes = ["**/*.dfy", "**/*.transcript"],
               Excludes = [
-                "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
+                "**/Inputs/**/*",
+                "**/Output/**/*",
+                "libraries/**/*"
               ])]
     public void LitTest(string path) {
       var testPath = path.Replace("TestFiles/LitTests/LitTest", "");
