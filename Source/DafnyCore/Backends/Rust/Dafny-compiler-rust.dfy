@@ -19,6 +19,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     const charType: CharType
     const pointerType: PointerType
     const rootType: RootType
+    const syncType: SyncType
 
     const thisFile: R.Path := if rootType.RootCrate? then R.crate else R.crate.MSel(rootType.moduleName)
     const DafnyChar := if charType.UTF32? then "DafnyChar" else "DafnyCharUTF16"
@@ -59,15 +60,28 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     const downcast :=
       if pointerType.Raw? then "cast!" else "cast_object!"
 
+    const rcPath := if syncType.NoSync? then R.RcPath else R.ArcPath
+    const rcType := rcPath.AsType()
+    const rcExpr := rcPath.AsExpr()
+
+    const rc := (underlying: R.Type) => rcType.Apply([underlying])
+    const rcNew := (underlying: R.Expr) => rcExpr.FSel("new").Apply([underlying])
+    const SyncSendType := R.IntersectionType(R.SyncType, R.SendType)
+    const AnyTrait := if syncType.NoSync? then
+                        R.dafny_runtime.MSel("Any").AsType()
+                      else
+                        R.IntersectionType(R.dafny_runtime.MSel("Any").AsType(), SyncSendType)
+    const DynAny := R.dafny_runtime.MSel("DynAny").AsType()
 
     var error: Option<string>
 
     var optimizations: seq<R.Mod -> R.Mod>
 
-    constructor(charType: CharType, pointerType: PointerType, rootType: RootType) {
+    constructor(charType: CharType, pointerType: PointerType, rootType: RootType, syncType: SyncType) {
       this.charType := charType;
       this.pointerType := pointerType;
       this.rootType := rootType;
+      this.syncType := syncType;
       this.error := None; // If error, then the generated code contains <i>Unsupported: .*</i>
       this.optimizations := [
         ExpressionOptimization.apply,
@@ -510,13 +524,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           R.ImplDecl(
             R.ImplFor(
               rTypeParamsDecls,
-              R.dafny_runtime.MSel(Upcast).AsType().Apply([R.DynType(R.AnyTrait)]),
+              R.dafny_runtime.MSel(Upcast).AsType().Apply([DynAny]),
               R.TypeApp(genSelfPath, rTypeParams),
               [
                 R.ImplMemberMacro(
                   R.dafny_runtime
                   .MSel(UpcastFnMacro).AsExpr()
-                  .Apply1(R.ExprFromType(R.DynType(R.AnyTrait))))
+                  .Apply1(R.ExprFromType(DynAny)))
               ]
             )
           )
@@ -1040,7 +1054,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         if |ctor.args| == 0 {
           var instantiation := R.StructBuild(R.Identifier(datatypeName).FSel(escapeName(ctor.name)), []);
           if isRcWrapped {
-            instantiation := R.RcNew(instantiation);
+            instantiation := rcNew(instantiation);
           }
           singletonConstructors := singletonConstructors + [
             instantiation
@@ -1204,7 +1218,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           coerceArguments := coerceArguments + [
             R.Formal(
               coerceFormal,
-              R.Rc(R.IntersectionType(R.ImplType(R.FnType([rTypeArg], rCoerceType)), R.StaticTrait)))
+              rc(R.IntersectionType(R.ImplType(R.FnType([rTypeArg], rCoerceType)), R.StaticTrait)))
           ];
         }
         if |unusedTypeParams| > 0 {
@@ -1439,14 +1453,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           R.Identifier("this"),
           coerceImplBodyCases);
         s := s + [
-          CoerceImpl(rTypeParamsDecls, datatypeName, datatypeType, rCoerceTypeParams, coerceArguments, coerceTypes, coerceImplBody)
+          CoerceImpl(rc, rcNew, rTypeParamsDecls, datatypeName, datatypeType, rCoerceTypeParams, coerceArguments, coerceTypes, coerceImplBody)
         ];
       }
 
       if |singletonConstructors| == |c.ctors| {
         var instantiationType :=
           if isRcWrapped then
-            R.Rc(datatypeType)
+            rc(datatypeType)
           else
             datatypeType;
         s := s + [
@@ -1593,7 +1607,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
             case Datatype(_, _) => {
               if IsRcWrapped(resolved.attributes) {
-                s := R.Rc(s);
+                s := rc(s);
               }
             }
             case Trait(GeneralTrait()) => {
@@ -1603,7 +1617,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
             case Trait(ObjectTrait()) => {
               if resolved.path == [Ident.Ident(Name("_System")), Ident.Ident(Name("object"))] {
-                s := R.AnyTrait;
+                s := AnyTrait;
               }
               if !genTypeContext.forTraitParents {
                 s := Object(R.DynType(s));
@@ -1629,7 +1643,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
         }
         case Object() => {
-          s := R.AnyTrait;
+          s := AnyTrait;
           if !genTypeContext.forTraitParents {
             s := Object(R.DynType(s));
           }
@@ -1696,8 +1710,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
 
           var resultType := GenType(result, GenTypeContext.default());
+          var fnType := R.DynType(R.FnType(argTypes, resultType));
+          if syncType.Sync? {
+            fnType := R.IntersectionType(fnType, SyncSendType);
+          }
           s :=
-            R.Rc(R.DynType(R.FnType(argTypes, resultType)));
+            rc(fnType);
         }
         case TypeArg(Ident(name)) => s := R.TIdentifier(escapeName(name));
         case Primitive(p) => {
@@ -2974,7 +2992,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       assert !IsNewtype(fromTpe);
       match (fromTpe, toTpe) {
         case (Primitive(Int), Primitive(Real)) => {
-          r := R.RcNew(R.dafny_runtime.MSel("BigRational").AsExpr().FSel("from_integer").Apply1(r));
+          r := rcNew(R.dafny_runtime.MSel("BigRational").AsExpr().FSel("from_integer").Apply1(r));
           r, resultingOwnership := FromOwned(r, expectedOwnership);
         }
         case (Primitive(Real), Primitive(Int)) => {
@@ -3634,7 +3652,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
           r := R.StructBuild(r, assignments);
           if IsRcWrapped(datatypeType.attributes) {
-            r := R.RcNew(r);
+            r := rcNew(r);
           }
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
@@ -3891,7 +3909,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case SelectFn(on, field, isDatatype, isStatic, isConstant, arguments) => {
           // Transforms a function member into a lambda
           var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
-          var onString := onExpr.ToString(IND);
 
           var lEnv := env;
           var args := [];
@@ -3904,11 +3921,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             parameters := parameters + [R.Formal(name, bTy)];
             args := args + [(name, ty)];
           }
-          var body :=
-            if isStatic then
-              onExpr.FSel(escapeVar(field))
-            else
-              R.Identifier("callTarget").Sel(escapeVar(field));
+          var body;
+          if isStatic {
+            body := onExpr.FSel(escapeVar(field));
+          } else {
+            body := R.Identifier("callTarget");
+            if !isDatatype {
+              body := read_macro.Apply1(body);
+            }
+            body := body.Sel(escapeVar(field));
+          }
+
           if isConstant {
             body := body.Apply0();
           }
@@ -3941,10 +3964,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
 
           var typeShape := R.DynType(R.FnType(typeShapeArgs, R.TIdentifier("_")));
+          if syncType.Sync? {
+            typeShape := R.IntersectionType(typeShape, SyncSendType);
+          }
 
           r := R.TypeAscription(
-            R.std_rc_Rc_new.Apply1(r),
-            R.std_rc_Rc.AsType().Apply([typeShape]));
+            rcNew(r),
+            rc(typeShape));
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := recIdents;
           return;
@@ -4162,7 +4188,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var retTypeGen := GenType(retType, GenTypeContext.default());
           r := R.Block(
             allReadCloned.Then(
-              R.RcNew(
+              rcNew(
                 R.Lambda(params, Some(retTypeGen), R.Block(recursiveGen))
               )
             ));
@@ -4423,6 +4449,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     {
       s := "#![allow(warnings, unconditional_panic)]\n";
       s := s + "#![allow(nonstandard_style)]\n";
+      s := s + "#![cfg_attr(any(), rustfmt::skip)]\n"; // Because Rustfmt crashes on some generated files
 
       var externUseDecls := [];
 

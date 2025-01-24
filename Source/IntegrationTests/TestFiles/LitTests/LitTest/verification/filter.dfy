@@ -5,11 +5,15 @@
 // RUN: %verify --filter-position='e.dfy:2' %S/Inputs/single-file.dfy >> %t
 // RUN: %verify --filter-position='blaergaerga' %S/Inputs/single-file.dfy >> %t
 // RUN: ! %verify --isolate-assertions --filter-position='e.dfy:5' %S/Inputs/single-file.dfy >> %t
+// RUN: ! %verify --isolate-assertions --filter-position='e.dfy:-5' %S/Inputs/single-file.dfy >> %t
 // RUN: %verify --isolate-assertions --filter-position='e.dfy:6' %S/Inputs/single-file.dfy >> %t
 // RUN: %verify --isolate-assertions --filter-position='e.dfy:7' %S/Inputs/single-file.dfy >> %t
 // RUN: ! %verify --isolate-assertions --filter-position='e.dfy:8' %S/Inputs/single-file.dfy >> %t
+// RUN: ! %verify --isolate-assertions --filter-position='e.dfy:8-9' %S/Inputs/single-file.dfy >> %t
 // RUN: %verify --isolate-assertions --filter-position='e.dfy:9' %S/Inputs/single-file.dfy >> %t
+// RUN: %verify --isolate-assertions --filter-position='e.dfy:9-11' %S/Inputs/single-file.dfy >> %t
 // RUN: ! %verify --isolate-assertions --filter-position='e.dfy:16' %S/Inputs/single-file.dfy >> %t
 // RUN: %verify --isolate-assertions --filter-position='y:20' %S/Inputs/single-file.dfy >> %t
 // RUN: ! %verify --isolate-assertions --filter-position=':24' %S/Inputs/single-file.dfy >> %t
+// RUN: ! %verify --isolate-assertions --filter-position=':24-' %S/Inputs/single-file.dfy >> %t
 // RUN: %diff "%s.expect" "%t"

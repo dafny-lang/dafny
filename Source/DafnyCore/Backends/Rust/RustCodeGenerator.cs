@@ -26,7 +26,10 @@ namespace Microsoft.Dafny.Compilers {
       var rootType = Options.Get(RustBackend.RustModuleNameOption) is { } opt && opt != "" ?
         Defs.RootType.create_RootPath(Sequence<Rune>.UnicodeFromString(opt))
         : Defs.RootType.create_RootCrate();
-      c.__ctor(charType, pointerType, rootType);
+      var syncType = Options.Get(RustBackend.RustSyncOption)
+        ? Defs.SyncType.create_Sync()
+        : Defs.SyncType.create_NoSync();
+      c.__ctor(charType, pointerType, rootType, syncType);
       return c;
     }
 

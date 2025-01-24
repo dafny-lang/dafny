@@ -1807,11 +1807,11 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var file in files.Where(f => f.StartsWith(header))) {
         var parts = file.Split('.');
         var realName = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
-        ReadRuntimeSystem(file, useFiles ? wr.NewFile(realName) : wr);
+        ImportRuntimeTo(file, useFiles ? wr.NewFile(realName) : wr);
       }
     }
 
-    private void ReadRuntimeSystem(string filename, ConcreteSyntaxTree wr) {
+    private void ImportRuntimeTo(string filename, ConcreteSyntaxTree wr) {
       Contract.Requires(filename != null);
       Contract.Requires(wr != null);
 

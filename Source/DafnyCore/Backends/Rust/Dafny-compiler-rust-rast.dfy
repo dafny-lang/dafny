@@ -12,8 +12,8 @@ module RAST
   // Past that, we use Dafny system tuples (see https://www.reddit.com/r/rust/comments/11gvkda/why_rust_std_only_provides_trait_implementation/)
   const MAX_TUPLE_SIZE := 12
 
-  // Default Indentation
-  const IND := "  "
+  // Default Rust-like indentation
+  const IND := "    "
 
   datatype RASTTopDownVisitor<!T(!new)> =
     RASTTopDownVisitor(
@@ -628,8 +628,10 @@ module RAST
   const SelfBorrowedMut := BorrowedMut(SelfOwned)
 
   const RcPath := std.MSel("rc").MSel("Rc")
+  const ArcPath := std.MSel("sync").MSel("Arc")
 
   const RcType := RcPath.AsType()
+  const ArcType := ArcPath.AsType()
 
   const ObjectPath: Path := dafny_runtime.MSel("Object")
 
@@ -651,9 +653,6 @@ module RAST
     PtrPath.AsType().Apply([underlying])
   }
 
-  function Rc(underlying: Type): Type {
-    TypeApp(RcType, [underlying])
-  }
   function RefCell(underlying: Type): Type {
     TypeApp(RefcellType, [underlying])
   }
@@ -900,7 +899,7 @@ module RAST
       || (TMetaData? && (copySemantics || display.CanReadWithoutClone()))
     }
     predicate IsRcOrBorrowedRc() {
-      (TypeApp? && baseName == RcType) ||
+      IsRc() ||
       (Borrowed? && underlying.IsRcOrBorrowedRc()) ||
       (TSynonym? && base.IsRcOrBorrowedRc())
     }
@@ -1134,7 +1133,7 @@ module RAST
     /** Returns true if the type has the shape Rc<T>, so that one can extract T = .arguments[0]
       * Useful to detect rc-wrapped datatypes */
     predicate IsRc() {
-      this.TypeApp? && this.baseName == RcType && |arguments| == 1
+      TypeApp? && (baseName == RcType || baseName == ArcType) && |arguments| == 1
     }
     function RcUnderlying(): (t: Type)
       requires IsRc()
@@ -1178,6 +1177,8 @@ module RAST
   const Hash := std.MSel("hash").MSel("Hash").AsType()
   const PartialEq := std.MSel("cmp").MSel("PartialEq").AsType()
   const DafnyInt := dafny_runtime.MSel("DafnyInt").AsType()
+  const SyncType := std.MSel("marker").MSel("Sync").AsType()
+  const SendType := std.MSel("marker").MSel("Send").AsType()
 
   function SystemTuple(elements: seq<Expr>): Expr {
     var size := Strings.OfNat(|elements|);
@@ -1993,17 +1994,7 @@ module RAST
     MaybePlaceboPath.FSel("from").Apply1(underlying)
   }
 
-  const std_rc := std.MSel("rc")
-
-  const std_rc_Rc := std_rc.MSel("Rc")
-
-  const std_rc_Rc_new := std_rc_Rc.FSel("new")
-
   const std_default_Default_default := std_default_Default.FSel("default").Apply0()
-
-  function RcNew(underlying: Expr): Expr {
-    Call(std_rc_Rc_new, [underlying])
-  }
 
   function IntoUsize(underlying: Expr): Expr {
     dafny_runtime.MSel("DafnyUsize").FSel("into_usize").Apply1(underlying)
