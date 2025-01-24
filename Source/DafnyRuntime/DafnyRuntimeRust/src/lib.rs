@@ -827,7 +827,7 @@ where
             } => {
                 #[cfg(feature = "sync")]
                 {
-                    let mut guard = cache.as_ref().lock().unwrap();
+                    let guard = cache.as_ref().lock().unwrap();
                     let cache_borrow: Option<&Rc<Vec<T>>> = guard.as_ref();
                     if let Some(cache) = cache_borrow {
                         return Rc::clone(cache);
