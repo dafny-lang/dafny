@@ -6,7 +6,8 @@ module Std.Enumerators {
   import opened Wrappers
   import opened Math
 
-  trait {:termination false} Enumerator<T> extends Action<(), Option<T>>, ProducesTerminatedProof<(), Option<T>> {
+  @AssumeCrossModuleTermination
+  trait Enumerator<T> extends Action<(), Option<T>>, ProducesTerminatedProof<(), Option<T>> {
     ghost function Action(): Action<(), Option<T>> {
       this
     }
@@ -149,7 +150,7 @@ module Std.Enumerators {
       }
       Update((), value);
       // TODO: Doable but annoying
-      assume CanProduce(history);
+      assume {:axiom} CanProduce(history);
       assert Valid();
     }
 
@@ -182,7 +183,7 @@ module Std.Enumerators {
 
   }
 
-  trait {:termination false} Pipeline<U, T> extends Enumerator<T> {
+  trait Pipeline<U, T> extends Enumerator<T> {
     
     const upstream: Enumerator<U>
     const buffer: Collector<T>
@@ -207,9 +208,9 @@ module Std.Enumerators {
       true
     }
 
-    method {:verify false} Invoke(t: ()) returns (r: Option<T>) 
+    method Invoke(t: ()) returns (r: Option<T>) 
       requires Requires(t)
-      reads Reads(t)
+      reads Repr
       modifies Modifies(t)
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
@@ -223,17 +224,18 @@ module Std.Enumerators {
         invariant Valid()
         invariant buffer.ValidAndDisjoint()
         invariant upstream.ValidAndDisjoint()
+        invariant history == old(history)
         modifies Repr
         decreases upstream.Remaining()
       {
         var u := upstream.Next();
-        Process(u, buffer);
+        Repr := {this} + upstream.Repr + buffer.Repr;
 
+        assume {:axiom} Repr !! buffer.Repr;
+        Process(u, buffer);
         if u.None? {
           break;
         }
-
-        Repr := {this} + upstream.Repr + buffer.Repr;
       }
 
       if 0 < |buffer.values| {
@@ -243,6 +245,8 @@ module Std.Enumerators {
         r := None;
       }
       Update(t, r);
+
+      assume {:axiom} Valid();
     }
 
     method Process(u: Option<U>, a: Accumulator<T>)
@@ -310,54 +314,4 @@ module Std.Enumerators {
       }
     }
   }
-
-  class PipelineProcessor<U, T> extends Action<Option<U>, ()> {
-
-    const pipeline: Pipeline<U, T>
-    const accumulator: Accumulator<T>
-
-    constructor(pipeline: Pipeline<U, T>, accumulator: Accumulator<T>) {
-      this.pipeline := pipeline;
-      this.accumulator := accumulator;
-    }
-
-    ghost predicate Valid() 
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
-      ensures Valid() ==> CanProduce(history)
-      decreases height, 0
-    {
-      this in Repr 
-    }
-
-    ghost predicate CanConsume(history: seq<(Option<U>, ())>, next: Option<U>)
-      requires CanProduce(history)
-      decreases height
-    {
-      true
-    }
-
-    ghost predicate CanProduce(history: seq<(Option<U>, ())>)
-      decreases height
-    {
-      true
-    }
-
-    method {:verify false} Invoke(u: Option<U>) returns (nothing: ()) {
-      pipeline.Process(u, accumulator);
-    }
-
-    method RepeatUntil(t: Option<U>, stop: (()) -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<Option<U>, ()>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
-    }
-  }
+}

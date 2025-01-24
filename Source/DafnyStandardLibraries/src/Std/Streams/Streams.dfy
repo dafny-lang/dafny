@@ -1,3 +1,7 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT
+ *******************************************************************************/
 
 module Std.Streams {
 
@@ -28,6 +32,7 @@ module Std.Streams {
   //    but that currently ends up running into a conflict
   //    when trying to import Wrappers and Std.Wrappers at the same time.
   //
+  @AssumeCrossModuleTermination
   trait ByteStream extends Enumerator<BoundedInts.bytes> {
 
     function ContentLength(): (res: uint64)
@@ -172,8 +177,7 @@ module Std.Streams {
     {
       assert Requires(t);
 
-      // TODO: Not sure why this isn't provable from GenericAction?
-      assume {:axiom} Valid();
+      assert Valid();
       r := wrapped.Next();
       Update(t, r);
 
@@ -291,8 +295,7 @@ module Std.Streams {
     {
       assert Requires(t);
       
-      // TODO: Not sure why this isn't provable from GenericAction?
-      assume {:axiom} Valid();
+      assert Valid();
       if position == |s| as uint64 {
         r := None;
       } else {

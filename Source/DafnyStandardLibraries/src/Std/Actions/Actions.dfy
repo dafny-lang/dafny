@@ -1,5 +1,9 @@
-
-module Std.Actions {
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT
+ *******************************************************************************/
+ 
+ module Std.Actions {
 
   import opened Wrappers
   import opened Frames
@@ -10,7 +14,8 @@ module Std.Actions {
   import Collections.Seq
 
   // TODO: Documentation, especially overall design
-  trait {:termination false} Action<T, R> extends GenericAction<T, R>, Validatable {
+  @AssumeCrossModuleTermination
+  trait Action<T, R> extends GenericAction<T, R>, Validatable {
 
     ghost var history: seq<(T, R)>
 
@@ -89,7 +94,7 @@ module Std.Actions {
       ensures Valid()
       //ensures history == old(history) + (n copies of t)/(n - 1 not stop values + stop)
 
-    // Helpers
+    // Convenience methods for specifications
 
     ghost method Update(t: T, r: R)
       reads `history
@@ -153,7 +158,9 @@ module Std.Actions {
     Seq.Map((e: (T, R)) => e.1, history)
   }
 
-  trait {:termination false} ConsumesAllProof<T, R> {
+  // A proof that a given action accepts any T value as input,
+  // independent of history.
+  trait ConsumesAllProof<T, R> {
     ghost function Action(): Action<T, R>
 
     lemma CanConsumeAll(history: seq<(T, R)>, next: T)
@@ -184,7 +191,7 @@ module Std.Actions {
     assert forall i | 0 <= i < |right| :: right[i] == (left + right)[i + |left|];
   }
 
-  trait {:termination false} ProducesTerminatedProof<T, R> extends ConsumesAllProof<T, R> {
+  trait ProducesTerminatedProof<T, R> extends ConsumesAllProof<T, R> {
 
     ghost function FixedInput(): T
     ghost function StopFn(): R -> bool
@@ -426,6 +433,7 @@ module Std.Actions {
     ensures prefix + [n] == SeqRange(n + 1) 
   {}
 
+  // TODO: move to examples
   class BoxEnumerator extends Action<(), Box> {
 
     var nextValue: nat
@@ -513,6 +521,8 @@ module Std.Actions {
 
   }
 
+  // A proof that a given action only produces
+  // elements from a given set.
   trait ProducesSetProof<T> {
     ghost function Action(): Action<(), T>
     ghost function Set(): set<T>
@@ -524,6 +534,7 @@ module Std.Actions {
       ensures Seq.ToSet(Outputs(history)) <= Set()
   }
 
+  // TODO: Rename/relocate, this isn't a finite Enumerator of Option<T>
   class SetEnumerator<T(==)> extends Action<(), T>, ProducesSetProof<T> {
     ghost const original: set<T>
     var remaining: set<T>

@@ -1,5 +1,5 @@
 
-module {:options "--function-syntax:4"} Std.Termination {
+module Std.Termination {
 
   datatype ClauseTail = More(next: TerminationMetric) | Top
 

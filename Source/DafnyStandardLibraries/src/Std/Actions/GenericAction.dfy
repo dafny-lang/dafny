@@ -1,9 +1,13 @@
-
-module {:options "--function-syntax:4"} Std.GenericActions {
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT
+ *******************************************************************************/
+ 
+ module Std.GenericActions {
 
   import opened Termination
 
-  trait {:termination false} GenericAction<T, R> {
+  trait GenericAction<T, R> {
 
     // Specification predicates
 

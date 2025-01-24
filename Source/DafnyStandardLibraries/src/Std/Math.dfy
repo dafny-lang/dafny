@@ -4,7 +4,7 @@
  *******************************************************************************/
 
 /** Defines various integer-math functions */
-module {:options "--function-syntax:4"} Std.Math {
+module Std.Math {
 
   /** Minimum of two integers  */
   function Min(a: int, b: int): int

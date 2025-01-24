@@ -1,11 +1,16 @@
-
-module Std.Aggregators {
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT
+ *******************************************************************************/
+ 
+ module Std.Aggregators {
 
   import opened Actions
   import opened Wrappers
   import opened DynamicArray
   import Collections.Seq
 
+  @AssumeCrossModuleTermination
   trait Accumulator<T> extends Action<T, ()>, ConsumesAllProof<T, ()> {
 
     ghost function Action(): Action<T, ()> {
