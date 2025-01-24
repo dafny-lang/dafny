@@ -10,7 +10,7 @@ public record CompilationData(
   IList<Uri> RootSourceUris,
   ISet<Uri> AlreadyVerifiedRoots,
   ISet<Uri> AlreadyCompiledRoots) {
-  
+
   public DafnyOptions Options => ErrorReporter.Options;
   public ErrorReporter ErrorReporter { get; } = ErrorReporter;
   public IList<Uri> RootSourceUris { get; } = RootSourceUris;
