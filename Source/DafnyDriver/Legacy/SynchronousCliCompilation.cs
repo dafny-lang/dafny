@@ -292,12 +292,12 @@ namespace Microsoft.Dafny {
         bool verified;
         PipelineOutcome outcome;
         IDictionary<string, PipelineStatistics> moduleStats;
+        dafnyProgram.ProofDependencyManager = depManager;
         if (!options.DafnyVerify) {
           verified = false;
           outcome = PipelineOutcome.Done;
           moduleStats = new Dictionary<string, PipelineStatistics>();
         } else {
-          dafnyProgram.ProofDependencyManager = depManager;
           var boogiePrograms =
             await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
 
@@ -338,7 +338,7 @@ namespace Microsoft.Dafny {
         }
 
         var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilationMessage;
-        if (!verified) {
+        if (!verified && options.DafnyVerify) {
           exitValue = ExitValue.VERIFICATION_ERROR;
         } else if (!compiled) {
           exitValue = ExitValue.COMPILE_ERROR;
