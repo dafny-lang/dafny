@@ -278,6 +278,8 @@ module Std.JSON.ZeroCopy.Serializer {
   function StructuralView(st: Structural<View>, writer: Writer) : (wr: Writer)
     ensures wr.Bytes() == writer.Bytes() + Spec.Structural(st, Spec.View)
   {
+    hide *;
+    reveal Spec.View, Spec.Structural;
     writer.Append(st.before).Append(st.t).Append(st.after)
   }
 
