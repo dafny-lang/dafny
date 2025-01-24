@@ -367,6 +367,7 @@ module Std.Actions {
     }
   }
 
+  // TODO: Move to Enumerators?
   class FunctionalEnumerator<S, T> extends Action<(), Option<T>> {
 
     const stepFn: S -> Option<(S, T)>
@@ -431,114 +432,6 @@ module Std.Actions {
     {
       DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
-  }
-
-  class Box {
-    const i: nat
-
-    constructor(i: nat)
-      reads {}
-      ensures this.i == i
-    {
-      this.i := i;
-    }
-  }
-
-  function SeqRange(n: nat): seq<nat> {
-    seq(n, i => i)
-  }
-
-  lemma SeqRangeIncr(prefix: seq<nat>, n: nat)
-    requires prefix == SeqRange(n)
-    ensures prefix + [n] == SeqRange(n + 1)
-  {}
-
-  // TODO: move to examples
-  class BoxEnumerator extends Action<(), Box> {
-
-    var nextValue: nat
-
-    ghost predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
-      decreases height, 0
-    {
-      && this in Repr
-      && CanProduce(history)
-      && nextValue == |history|
-    }
-
-    constructor()
-      ensures Valid()
-      ensures fresh(Repr)
-      ensures history == []
-    {
-      nextValue := 0;
-      history := [];
-      Repr := {this};
-      height := 1;
-    }
-
-    ghost predicate CanConsume(history: seq<((), Box)>, next: ())
-      decreases height
-    {
-      true
-    }
-    ghost predicate CanProduce(history: seq<((), Box)>)
-      decreases height
-    {
-      Seq.Map((b: Box) => b.i, Outputs(history)) == SeqRange(|history|)
-    }
-
-    method Invoke(t: ()) returns (r: Box)
-      requires Requires(t)
-      reads Reads(t)
-      modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
-      ensures Ensures(t, r)
-    {
-      assert Requires(t);
-      ghost var producedBefore := Produced();
-
-      r := new Box(nextValue);
-      Update(t, r);
-      Repr := {this};
-      nextValue := nextValue + 1;
-
-      SeqRangeIncr(Seq.Map((b: Box) => b.i, producedBefore), |producedBefore|);
-      assert Valid();
-    }
-
-    method RepeatUntil(t: (), stop: Box -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Box>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
-    }
-  }
-
-  method {:rlimit 0} BoxEnumeratorExample() {
-    var enum: BoxEnumerator := new BoxEnumerator();
-    assert |enum.Produced()| == 0;
-    var a := enum.Invoke(());
-
-    assert enum.Produced() == [a];
-    assert Seq.Map((b: Box) => b.i, enum.Produced()) == SeqRange(1) == [0];
-    // assert a.i == 0;
-
-    // var b := enum.Invoke(());
-    // var c := enum.Invoke(());
-    // var d := enum.Invoke(());
-    // var e := enum.Invoke(());
-
   }
 
   // A proof that a given action only produces
@@ -666,35 +559,11 @@ module Std.Actions {
     }
   }
 
-  method SetEnumeratorExample() {
-    var s: set<nat> := {1, 2, 3, 4, 5};
-    var copy: set<nat> := {};
-    var e: SetEnumerator<nat> := new SetEnumerator(s);
-
-    label before:
-    for enumerated := 0 to 5
-      invariant e.Valid()
-      invariant enumerated == |e.history|
-      invariant fresh(e.Repr - old@before(e.Repr))
-    {
-      var x := e.Invoke(());
-      copy := copy + {x};
-    }
-
-    // TODO: cool enough that we can statically invoke
-    // the enumerator the right number of times!
-    // But now prove that copy == s!
-    // assert |copy| == 5;
-    // assert copy == s;
-  }
-
   // Other primitives/examples todo:
   //  * Promise-like single-use Action<T, ()> to capture a value for reading later
   //  * datatype/codatatype-based enumerations
   //  * How to state the invariant that a constructor as an action creates a new object every time?
   //    * Lemma that takes produced as input, instead of forall produced?
-  //  * Enumerable ==> defines e.Enumerator()
-  //    * BUT can have infinite containers, probably need IEnumerable as well? (different T for the Action)
   //  * Expressing that an Action "Eventually produces something" (look at how VMC models this for randomness)
   //    * IsEnumerator(a) == "a eventually produces None" && "a then only produces None"
   //    * Build on that to make CrossProduct(enumerable1, enumerable2)

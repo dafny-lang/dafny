@@ -3,6 +3,7 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
+// TODO: Relocate under Actions/ instead, I don't think Streams has to be a separate library?
 module Std.Streams {
 
   import opened Wrappers
@@ -50,8 +51,6 @@ module Std.Streams {
   trait RewindableByteStream extends ByteStream {
 
     ghost const data: BoundedInts.bytes
-
-    // TODO: Probably need content type too
 
     ghost predicate Valid()
       reads this, Repr

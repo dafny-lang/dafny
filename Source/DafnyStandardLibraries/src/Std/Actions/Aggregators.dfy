@@ -296,16 +296,4 @@ module Std.Aggregators {
       ensures Action().CanConsume(history, next)
     {}
   }
-
-  method {:rlimit 0} AggregatorExample() {
-    var a: ArrayAggregator<nat> := new ArrayAggregator();
-    var _ := a.Invoke(1);
-    var _ := a.Invoke(2);
-    var _ := a.Invoke(3);
-    var _ := a.Invoke(4);
-    var _ := a.Invoke(5);
-    var _ := a.Invoke(6);
-    assert a.Consumed() == [1, 2, 3, 4, 5, 6];
-    assert a.storage.items == [1, 2, 3, 4, 5, 6];
-  }
 }

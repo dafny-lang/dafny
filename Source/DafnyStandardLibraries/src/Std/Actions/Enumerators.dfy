@@ -285,33 +285,4 @@ module Std.Enumerators {
       assume {:axiom} false;
     }
   }
-
-  class ExamplePipeline<T> extends Pipeline<T, T> {
-    constructor(upstream: Enumerator<T>)
-      requires upstream.Valid()
-      ensures Valid()
-    {
-      this.upstream := upstream;
-      var buffer := new Collector<T>();
-
-      Repr := {this} + upstream.Repr + buffer.Repr;
-      history := [];
-      this.buffer := buffer;
-      this.height := upstream.height + buffer.height + 1;
-    }
-
-    method Process(u: Option<T>, a: Accumulator<T>)
-      requires a.Valid()
-      reads a.Repr
-      modifies a.Repr
-      ensures a.ValidAndDisjoint()
-    {
-      assert a.Valid();
-
-      if u.Some? {
-        a.CanConsumeAll(a.history, u.value);
-        a.Accept(u.value);
-      }
-    }
-  }
 }
