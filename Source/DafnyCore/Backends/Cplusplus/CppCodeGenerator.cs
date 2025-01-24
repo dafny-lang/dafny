@@ -352,11 +352,9 @@ namespace Microsoft.Dafny.Compilers {
         var i = 0;
         var argNames = new List<string>();
         foreach (Formal arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            ws.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Origin), FormalName(arg, i));
-            argNames.Add(FormalName(arg, i));
-            i++;
-          }
+          ws.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Origin), FormalName(arg, i));
+          argNames.Add(FormalName(arg, i));
+          i++;
         }
 
         if (argNames.Count > 0) {
@@ -377,9 +375,7 @@ namespace Microsoft.Dafny.Compilers {
         ws.WriteLine("{0}();", DtT_protected);
         var wc = wdef.NewNamedBlock("{1}\n{0}{2}::{0}()", DtT_protected, DeclareTemplate(dt.TypeArgs), InstantiateTemplate(dt.TypeArgs));
         foreach (var arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            wc.WriteLine("{0} = {1};", arg.CompileName, DefaultValue(arg.Type, wc, arg.Origin));
-          }
+          wc.WriteLine("{0} = {1};", arg.CompileName, DefaultValue(arg.Type, wc, arg.Origin));
         }
 
         // Overload the comparison operator
@@ -402,9 +398,7 @@ namespace Microsoft.Dafny.Compilers {
         var owr = hwr.NewBlock(string.Format("std::size_t operator()(const {0}& x) const", fullName));
         owr.WriteLine("size_t seed = 0;");
         foreach (var arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
-          }
+          owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
         }
         owr.WriteLine("return seed;");
       } else {
@@ -416,14 +410,12 @@ namespace Microsoft.Dafny.Compilers {
           // Declare the struct members
           var i = 0;
           foreach (Formal arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive declaration needs to use a pointer
-                wstruct.WriteLine("std::shared_ptr<{0}> {1};", TypeName(arg.Type, wdecl, arg.Origin), FormalName(arg, i));
-              } else {
-                wstruct.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Origin), FormalName(arg, i));
-              }
-              i++;
+            if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive declaration needs to use a pointer
+              wstruct.WriteLine("std::shared_ptr<{0}> {1};", TypeName(arg.Type, wdecl, arg.Origin), FormalName(arg, i));
+            } else {
+              wstruct.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Origin), FormalName(arg, i));
             }
+            i++;
           }
 
           // Overload the comparison operator
@@ -433,14 +425,12 @@ namespace Microsoft.Dafny.Compilers {
           wstruct.Write("\treturn true ");
           i = 0;
           foreach (Formal arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive destructor needs to use a pointer
-                wstruct.WriteLine("\t\t&& *(left.{0}) == *(right.{0})", FormalName(arg, i));
-              } else {
-                wstruct.WriteLine("\t\t&& left.{0} == right.{0}", FormalName(arg, i));
-              }
-              i++;
+            if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive destructor needs to use a pointer
+              wstruct.WriteLine("\t\t&& *(left.{0}) == *(right.{0})", FormalName(arg, i));
+            } else {
+              wstruct.WriteLine("\t\t&& left.{0} == right.{0}", FormalName(arg, i));
             }
+            i++;
           }
 
           if (i == 0) { // Avoid a warning from the C++ compiler
@@ -460,15 +450,13 @@ namespace Microsoft.Dafny.Compilers {
           owr.WriteLine("size_t seed = 0;");
           int argCount = 0;
           foreach (var arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
-                // Recursive destructor needs to use a pointer
-                owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
-              } else {
-                owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
-              }
-              argCount++;
+            if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
+              // Recursive destructor needs to use a pointer
+              owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
+            } else {
+              owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
             }
+            argCount++;
           }
           if (argCount == 0) {
             owr.WriteLine("(void)x;");
@@ -489,14 +477,12 @@ namespace Microsoft.Dafny.Compilers {
           wc.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(ctor, true));
 
           foreach (Formal arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
-                // This is a recursive destuctor, so we need to allocate space and copy the input in
-                wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", arg.CompileName,
-                  DtT_protected);
-              } else {
-                wc.WriteLine("COMPILER_result_subStruct.{0} = {0};", arg.CompileName);
-              }
+            if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
+              // This is a recursive destuctor, so we need to allocate space and copy the input in
+              wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", arg.CompileName,
+                DtT_protected);
+            } else {
+              wc.WriteLine("COMPILER_result_subStruct.{0} = {0};", arg.CompileName);
             }
           }
 
@@ -510,10 +496,8 @@ namespace Microsoft.Dafny.Compilers {
         var default_ctor = dt.Ctors[0]; // Arbitrarily choose the first one
         wd.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(default_ctor, true));
         foreach (Formal arg in default_ctor.Formals) {
-          if (!arg.IsGhost) {
-            wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", arg.CompileName,
-              DefaultValue(arg.Type, wd, arg.Origin));
-          }
+          wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", arg.CompileName,
+            DefaultValue(arg.Type, wd, arg.Origin));
         }
 
         wd.WriteLine("v = COMPILER_result_subStruct;");
@@ -552,7 +536,7 @@ namespace Microsoft.Dafny.Compilers {
           foreach (var dtor in ctor.Destructors) {
             if (dtor.EnclosingCtors[0] == ctor) {
               var arg = dtor.CorrespondingFormals[0];
-              if (!arg.IsGhost && arg.HasName) {
+              if (arg.HasName) {
                 var returnType = TypeName(arg.Type, ws, arg.Origin);
                 if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                   // This is a recursive destuctor, so return a pointer
@@ -1180,15 +1164,13 @@ namespace Microsoft.Dafny.Compilers {
       var ret = "";
       var sep = "";
       foreach (Formal arg in formals) {
-        if (!arg.IsGhost) {
-          string name = FormalName(arg, i);
-          string decl = DeclareFormalString(sep, name, arg.Type, arg.Origin, arg.InParam);
-          if (decl != null) {
-            ret += decl;
-            sep = ", ";
-          }
-          i++;
+        string name = FormalName(arg, i);
+        string decl = DeclareFormalString(sep, name, arg.Type, arg.Origin, arg.InParam);
+        if (decl != null) {
+          ret += decl;
+          sep = ", ";
         }
+        i++;
       }
       return ret;
     }
@@ -1422,12 +1404,9 @@ namespace Microsoft.Dafny.Compilers {
         if (ctor != null && ctor.IsExtern(Options, out var q, out var n)) {
           // the arguments of any external constructor are placed here
           for (int i = 0; i < ctor.Ins.Count; i++) {
-            Formal p = ctor.Ins[i];
-            if (!p.IsGhost) {
-              wr.Write(sep);
-              wr.Append(Expr(initCall.Args[i], false, wStmts));
-              sep = ", ";
-            }
+            wr.Write(sep);
+            wr.Append(Expr(initCall.Args[i], false, wStmts));
+            sep = ", ";
           }
         }
         wr.Write(")");

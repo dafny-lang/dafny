@@ -4364,6 +4364,7 @@ namespace Microsoft.Dafny.Compilers {
       if (match.Cases.Count == 0) {
         base.EmitNestedMatchStmt(match, writer);
       } else {
+        // If we can get rid if this, we won't have to update NestedMatch.Children
         TrStmt(match.Flattened, writer);
       }
     }

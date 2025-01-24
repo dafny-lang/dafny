@@ -43,7 +43,15 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
   }
 
-  public override IEnumerable<INode> Children => new[] { Source }.Concat<Node>(Cases);
+  public override IEnumerable<INode> Children {
+    get {
+      var result = new[] { Source }.Concat<Node>(Cases);
+      if (Flattened != null) {
+        result = result.Concat(new[] { Flattened });
+      }
+      return result;
+    }
+  }
 
   public override IEnumerable<Statement> SubStatements {
     get {

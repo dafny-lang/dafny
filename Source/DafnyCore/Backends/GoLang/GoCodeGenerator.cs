@@ -593,7 +593,7 @@ namespace Microsoft.Dafny.Compilers {
 
       Constructor ct = null;
       foreach (var member in iter.Members) {
-        if (member is Field f && !f.IsGhost) {
+        if (member is Field f) {
           cw.DeclareField(IdName(f), iter, false, false, f.Type, f.Origin, PlaceboValue(f.Type, wr, f.Origin, true), f);
         } else if (member is Constructor c) {
           Contract.Assert(ct == null);
@@ -605,11 +605,9 @@ namespace Microsoft.Dafny.Compilers {
       cw.ConcreteMethodWriter.Write("func (_this * {0}) {1}(", IdName(iter), IdName(ct));
       string sep = "";
       foreach (var p in ct.Ins) {
-        if (!p.IsGhost) {
-          // here we rely on the parameters and the corresponding fields having the same names
-          cw.ConcreteMethodWriter.Write("{0}{1} {2}", sep, IdName(p), TypeName(p.Type, wr, p.Origin));
-          sep = ", ";
-        }
+        // here we rely on the parameters and the corresponding fields having the same names
+        cw.ConcreteMethodWriter.Write("{0}{1} {2}", sep, IdName(p), TypeName(p.Type, wr, p.Origin));
+        sep = ", ";
       }
       var wCtor = cw.ConcreteMethodWriter.NewBlock(")");
       wCtor.WriteLine("_cont := make(chan struct{})");
@@ -1179,7 +1177,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
 
       if (declWithConstraints.ConstraintIsCompilable) {
-        var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.Tok, (TopLevelDecl)declWithConstraints);
+        var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.Origin, (TopLevelDecl)declWithConstraints);
 
         wr.Write($"func (_this *{FormatCompanionTypeName(IdName((TopLevelDecl)declWithConstraints))}) Is_(");
 
@@ -1188,8 +1186,8 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write($"{wrFormals}, ");
         }
 
-        var sourceFormal = new Formal(declWithConstraints.Tok, "_source", type, true, false, null);
-        var typeName = TypeName(type, wr, declWithConstraints.Tok);
+        var sourceFormal = new Formal(declWithConstraints.Origin, "_source", type, true, false, null);
+        var typeName = TypeName(type, wr, declWithConstraints.Origin);
         var wrBody = wr.NewBlock($"{IdName(sourceFormal)} {typeName}) bool");
         GenerateIsMethodBody(declWithConstraints, sourceFormal, wrBody);
       }

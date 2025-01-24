@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -115,11 +116,17 @@ public class SymbolTable {
 
   public IEnumerable<Location> GetReferences(Uri uri, Position position) {
     if (navigationRanges.TryGetValue(uri, out var rangesForFile)) {
-      return rangesForFile.Query(position).
-        SelectMany(node => NodeToReferences.GetOrDefault(node, () => (ISet<IOrigin>)new HashSet<IOrigin>())).
-        Select(u => new Location { Uri = u.Filepath, Range = u.GetLspRange() }).Distinct();
+      return rangesForFile.Query(position).SelectMany(GetReferenceLocations).Distinct();
     }
-    return Enumerable.Empty<Location>();
+    return [];
+  }
+
+  public IEnumerable<IOrigin> GetReferences(IOrigin node) {
+    return NodeToReferences.GetOrDefault(node, () => (ISet<IOrigin>)new HashSet<IOrigin>());
+  }
+
+  public IEnumerable<Location> GetReferenceLocations(IOrigin node) {
+    return GetReferences(node).Select(u => new Location { Uri = u.Filepath, Range = u.GetLspRange() });
   }
 
   public Location? GetDeclaration(Uri uri, Position position) {
@@ -127,7 +134,7 @@ public class SymbolTable {
     return node == null ? null : NodeToLocation(node);
   }
 
-  internal static Location? NodeToLocation(IHasNavigationToken node) {
+  public static Location? NodeToLocation(IHasNavigationToken node) {
     var origin = node.NavigationToken;
     if (origin.Uri == null) {
       return null;

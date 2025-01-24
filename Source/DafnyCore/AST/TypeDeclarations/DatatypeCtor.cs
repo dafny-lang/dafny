@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 
 public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring, ICanVerify {
   public readonly bool IsGhost;
-  public readonly List<Formal> Formals;
+  public List<Formal> Formals;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Formals));

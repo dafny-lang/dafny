@@ -230,6 +230,9 @@ namespace Microsoft.Dafny {
             }
           }
 
+          foreach (var pattern in letExpr.LHSs) {
+            VisitCasePattern(pattern);
+          }
         } else if (expr is QuantifierExpr quantifierExpr) {
           foreach (BoundVar v in quantifierExpr.BoundVars) {
             VisitUserProvidedType(v.Type, context);
@@ -259,6 +262,10 @@ namespace Microsoft.Dafny {
         } else if (expr is NestedMatchExpr nestedMatchExpr) {
           foreach (var mc in nestedMatchExpr.Cases) {
             VisitExtendedPattern(mc.Pat, context);
+          }
+
+          if (nestedMatchExpr.Flattened != null) {
+            VisitExpression(nestedMatchExpr.Flattened, context);
           }
         }
 
@@ -336,6 +343,8 @@ namespace Microsoft.Dafny {
             VisitUserProvidedType(local.SyntacticType, context);
           }
 
+          VisitCasePattern(varDeclPattern.LHS);
+
         } else if (stmt is SingleAssignStmt assignStmt) {
           if (assignStmt.Rhs is TypeRhs typeRhs) {
             if (typeRhs.EType != null) {
@@ -358,6 +367,9 @@ namespace Microsoft.Dafny {
             VisitExtendedPattern(mc.Pat, context);
           }
 
+          if (nestedMatchStmt.Flattened != null) {
+            VisitStatement(nestedMatchStmt.Flattened, context);
+          }
         } else if (stmt is MatchStmt matchStmt) {
           foreach (MatchCaseStmt mc in matchStmt.Cases) {
             if (mc.Arguments != null) {
@@ -375,6 +387,16 @@ namespace Microsoft.Dafny {
         stmt.SubStatements.ForEach(ss => VisitStatement(ss, context));
 
         PostVisitOneStatement(stmt, context);
+      }
+    }
+
+    protected virtual void VisitCasePattern<T>(CasePattern<T> pattern) where T : class, IVariable {
+      if (pattern.Arguments == null) {
+        return;
+      }
+
+      foreach (var argument in pattern.Arguments) {
+        VisitCasePattern(argument);
       }
     }
 
