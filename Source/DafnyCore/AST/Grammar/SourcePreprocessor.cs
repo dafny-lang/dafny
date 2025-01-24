@@ -33,15 +33,7 @@ namespace Microsoft.Dafny;
 /// recover existing newlines to ensure that, if there is no pre-processing directives,
 /// the program string is exactly the same as the original one.
 public static class SourcePreprocessor {
-  struct IfDirectiveState {
-    public bool hasSeenElse;
-    public bool mayStillIncludeAnotherAlternative;
-
-    public IfDirectiveState(bool hasSeenElse, bool mayStillIncludeAnotherAlternative) {
-      this.hasSeenElse = hasSeenElse;
-      this.mayStillIncludeAnotherAlternative = mayStillIncludeAnotherAlternative;
-    }
-  }
+  record struct IfDirectiveState(bool HasSeenElse, bool MayStillIncludeAnotherAlternative);
 
   // "arg" is assumed to be trimmed
   private static bool IfdefConditionSaysToInclude(string arg, List<string> /*!*/ defines) {
@@ -87,13 +79,13 @@ public static class SourcePreprocessor {
           // include this branch
         } else {
           ignoreCutoff = ifDirectiveStates.Count; // start ignoring
-          rs.mayStillIncludeAnotherAlternative = true; // allow some later "elsif" or "else" branch to be included
+          rs.MayStillIncludeAnotherAlternative = true; // allow some later "elsif" or "else" branch to be included
         }
 
         ifDirectiveStates.Add(rs);
       } else if (trimmedLine.StartsWith("#elsif")) {
         IfDirectiveState rs;
-        if (ifDirectiveStates.Count == 0 || (rs = ifDirectiveStates[^1]).hasSeenElse) {
+        if (ifDirectiveStates.Count == 0 || (rs = ifDirectiveStates[^1]).HasSeenElse) {
           sb.Append("#MalformedInput: misplaced #elsif" + addedNewline); // malformed input
           break;
         }
@@ -102,30 +94,30 @@ public static class SourcePreprocessor {
           // we had included the previous branch
           //Contract.Assert(!rs.mayStillIncludeAnotherAlternative);
           ignoreCutoff = ifDirectiveStates.Count - 1; // start ignoring
-        } else if (rs.mayStillIncludeAnotherAlternative &&
+        } else if (rs.MayStillIncludeAnotherAlternative &&
                    IfdefConditionSaysToInclude(trimmedLine.Substring(6).TrimStart(), defines)) {
           // include this branch, but no subsequent branch at this level
           ignoreCutoff = -1;
-          rs.mayStillIncludeAnotherAlternative = false;
+          rs.MayStillIncludeAnotherAlternative = false;
           ifDirectiveStates[^1] = rs;
         }
 
       } else if (trimmedLine == "#else") {
         IfDirectiveState rs;
-        if (ifDirectiveStates.Count == 0 || (rs = ifDirectiveStates[ifDirectiveStates.Count - 1]).hasSeenElse) {
+        if (ifDirectiveStates.Count == 0 || (rs = ifDirectiveStates[ifDirectiveStates.Count - 1]).HasSeenElse) {
           sb.Append("#MalformedInput: misplaced #else" + addedNewline); // malformed input
           break;
         }
 
-        rs.hasSeenElse = true;
+        rs.HasSeenElse = true;
         if (ignoreCutoff == -1) {
           // we had included the previous branch
           //Contract.Assert(!rs.mayStillIncludeAnotherAlternative);
           ignoreCutoff = ifDirectiveStates.Count - 1; // start ignoring
-        } else if (rs.mayStillIncludeAnotherAlternative) {
+        } else if (rs.MayStillIncludeAnotherAlternative) {
           // include this branch
           ignoreCutoff = -1;
-          rs.mayStillIncludeAnotherAlternative = false;
+          rs.MayStillIncludeAnotherAlternative = false;
         }
 
         ifDirectiveStates[^1] = rs;

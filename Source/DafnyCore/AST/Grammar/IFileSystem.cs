@@ -17,15 +17,9 @@ public interface IFileSystem {
   DirectoryInfoBase GetDirectoryInfoBase(string root);
 }
 
-public class InMemoryFileSystem : IFileSystem {
-  private readonly IReadOnlyDictionary<Uri, string> files;
-
-  public InMemoryFileSystem(IReadOnlyDictionary<Uri, string> files) {
-    this.files = files;
-  }
-
+public record InMemoryFileSystem(IReadOnlyDictionary<Uri, string> Files) : IFileSystem {
   public FileSnapshot ReadFile(Uri uri) {
-    if (files.TryGetValue(uri, out var entry)) {
+    if (Files.TryGetValue(uri, out var entry)) {
       return new FileSnapshot(new StringReader(entry), null);
     }
 
@@ -33,11 +27,11 @@ public class InMemoryFileSystem : IFileSystem {
   }
 
   public bool Exists(Uri path) {
-    return files.ContainsKey(path) || OnDiskFileSystem.Instance.Exists(path);
+    return Files.ContainsKey(path) || OnDiskFileSystem.Instance.Exists(path);
   }
 
   public DirectoryInfoBase GetDirectoryInfoBase(string root) {
-    var inMemoryFiles = files.Keys.Select(openFileUri => openFileUri.LocalPath);
+    var inMemoryFiles = Files.Keys.Select(openFileUri => openFileUri.LocalPath);
     var inMemory = new InMemoryDirectoryInfoFromDotNet8(root, inMemoryFiles);
     return new CombinedDirectoryInfo([inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root)]);
   }

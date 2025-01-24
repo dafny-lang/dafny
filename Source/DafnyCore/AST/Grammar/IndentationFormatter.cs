@@ -7,17 +7,12 @@ using Formatting;
 
 namespace Microsoft.Dafny;
 
-public class IndentationFormatter : IIndentationFormatter {
+public class IndentationFormatter(TokenNewIndentCollector formatter) : IIndentationFormatter {
   // If we ever decide that blank lines should keep spaces, we can set this to false. 
   public static readonly bool BlankNewlinesWithoutSpaces = true;
 
   // If we remove whitespace (tabs or space) at the end of lines. 
   public static readonly bool RemoveTrailingWhitespace = true;
-
-  private TokenNewIndentCollector formatter;
-  public IndentationFormatter(TokenNewIndentCollector formatter) {
-    this.formatter = formatter;
-  }
 
   /// <summary>
   /// Creates an IndentationFormatter for the given program,
