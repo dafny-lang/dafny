@@ -135,8 +135,8 @@ public class NoContext : ICodeContext {
     set => throw new NotSupportedException();
   }
   bool ICodeContext.IsGhost { get { return true; } }
-  List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
-  List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
+  List<TypeParameter> ICodeContext.TypeArgs { get { return []; } }
+  List<Formal> ICodeContext.Ins { get { return []; } }
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return Module; } }
   bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }

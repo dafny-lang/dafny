@@ -115,7 +115,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
     }
   }
 
-  public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
+  public virtual IEnumerable<Expression> SubExpressions => [];
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     foreach (var a in base.Assumptions(this)) {
@@ -148,7 +148,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
       receiver.Type = ModuleResolver.GetReceiverType(tok, this);  // resolve here
     }
 
-    arguments = new List<Expression>();
+    arguments = [];
     foreach (var inFormal in ins) {
       Expression inE;
       if (substMap.TryGetValue(inFormal, out inE)) {

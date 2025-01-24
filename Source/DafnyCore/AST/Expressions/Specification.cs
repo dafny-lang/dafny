@@ -13,7 +13,7 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
   }
 
   public Specification() {
-    Expressions = new List<T>();
+    Expressions = [];
     Attributes = null;
   }
 

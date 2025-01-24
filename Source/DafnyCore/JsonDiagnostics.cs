@@ -75,7 +75,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
   }
 
   public JsonNode ToJson() {
-    var auxRelated = related?.SelectMany(SerializeAuxInfo) ?? Enumerable.Empty<JsonNode>();
+    var auxRelated = related?.SelectMany(SerializeAuxInfo) ?? [];
     var innerRelated = SerializeInnerTokens(tok);
     return new JsonObject {
       ["location"] = SerializeToken(tok),

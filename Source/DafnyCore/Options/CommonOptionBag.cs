@@ -124,18 +124,18 @@ The value may be a comma-separated list of files and folders.".TrimStart());
     return result;
   }
 
-  public static readonly Option<FileInfo> BuildFile = new(new[] { "--build", "-b" },
+  public static readonly Option<FileInfo> BuildFile = new(["--build", "-b"],
     "Specify the filepath that determines where to place and how to name build files.") {
     ArgumentHelpName = "file",
     IsHidden = true
   };
 
-  public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
+  public static readonly Option<FileInfo> Output = new(["--output", "-o"],
     "Specify the filename and location for the generated target language files.") {
     ArgumentHelpName = "file",
   };
 
-  public static readonly Option<IList<string>> PluginOption = new(new[] { "--plugin" },
+  public static readonly Option<IList<string>> PluginOption = new(["--plugin"],
     @"
 (experimental) One path to an assembly that contains at least one
 instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
@@ -179,7 +179,7 @@ Note that quantifier variable domains (<- <Domain>) are available in both syntax
     ArgumentHelpName = "version",
   };
 
-  public static readonly Option<string> Target = new(new[] { "--target", "-t" }, () => "cs", @"
+  public static readonly Option<string> Target = new(["--target", "-t"], () => "cs", @"
 cs - Compile to .NET via C#.
 go - Compile to Go.
 js - Compile to JavaScript.

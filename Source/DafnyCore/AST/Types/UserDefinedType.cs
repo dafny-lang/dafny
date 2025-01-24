@@ -62,7 +62,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
       this.TypeArgs = n.OptTypeArguments;
     }
     if (this.TypeArgs == null) {
-      this.TypeArgs = new List<Type>();  // TODO: is this really the thing to do?
+      this.TypeArgs = [];  // TODO: is this really the thing to do?
     }
     this.NamePath = namePath;
   }
@@ -215,7 +215,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(origin != null);
     Contract.Requires(tp != null);
     this.Name = tp.Name;
-    this.TypeArgs = new List<Type>();
+    this.TypeArgs = [];
     this.ResolvedClass = tp;
     var ns = new NameSegment(origin, tp.Name, null);
     var r = new ResolverIdentifierExpr(origin, tp);
@@ -265,7 +265,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
         }
         if (s != p && newArgs == null) {
           // lazily construct newArgs
-          newArgs = new List<Type>();
+          newArgs = [];
           for (int j = 0; j < i; j++) {
             newArgs.Add(TypeArgs[j]);
           }

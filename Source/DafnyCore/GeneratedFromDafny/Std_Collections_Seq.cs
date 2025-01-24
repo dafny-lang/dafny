@@ -29,7 +29,7 @@ namespace Std.Collections.Seq {
     }
     public static __T[] ToArray<__T>(Dafny.ISequence<__T> xs)
     {
-      __T[] a = new __T[0];
+      __T[] a = [];
       Func<BigInteger, __T> _init0 = Dafny.Helpers.Id<Func<Dafny.ISequence<__T>, Func<BigInteger, __T>>>((_0_xs) => ((System.Func<BigInteger, __T>)((_1_i) => {
         return (_0_xs).Select(_1_i);
       })))(xs);

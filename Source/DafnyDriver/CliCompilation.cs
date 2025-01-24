@@ -334,7 +334,7 @@ public class CliCompilation {
     if (result.Length != filterPosition.Length || !result.Success) {
       Compilation.Reporter.Error(MessageSource.Project, Token.Cli, "Could not parse value passed to --filter-position");
       line = null;
-      return new List<ICanVerify>();
+      return [];
     }
     var filePart = result.Groups[1].Value;
     string? linePart = result.Groups.Count > 2 ? result.Groups[2].Value : null;

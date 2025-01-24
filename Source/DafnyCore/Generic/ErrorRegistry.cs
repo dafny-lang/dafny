@@ -46,7 +46,7 @@ public static class ErrorRegistry {
   public static string NoneId => "none";
 #nullable enable
   public static List<ActionSignature>? GetAction(string? errorId) {
-    return errorId != null && codeActionMap.TryGetValue(errorId, out var value) ? new List<ActionSignature> { value } : null;
+    return errorId != null && codeActionMap.TryGetValue(errorId, out var value) ? [value] : null;
   }
 #nullable disable
 
@@ -67,7 +67,7 @@ public static class ErrorRegistry {
 
 
   public static DafnyCodeActionEdit[] OneEdit(SourceOrigin range, string newContent, bool includeTrailingWhitespace = false) {
-    return new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) };
+    return [new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace)];
   }
 
   public static DafnyAction OneAction(string title, IOrigin range, string newContent, bool includeTrailingWhitespace = false) {
@@ -151,7 +151,7 @@ public static class ErrorRegistry {
   private static List<DafnyAction> ReplacementAction(string title, SourceOrigin range, string newText) {
     var edit = new[] { new DafnyCodeActionEdit(range, newText) };
     var action = new DafnyAction(title, edit);
-    return new List<DafnyAction> { action };
+    return [action];
   }
 
   private static List<DafnyAction> ReplacementAction(SourceOrigin range, string newText) {
@@ -163,13 +163,13 @@ public static class ErrorRegistry {
   private static List<DafnyAction> InsertAction(string title, SourceOrigin range, string newText) {
     var edits = new[] { new DafnyCodeActionEdit(range, range.PrintOriginal() + newText) };
     var action = new DafnyAction(title, edits);
-    return new List<DafnyAction> { action };
+    return [action];
   }
 
   private static List<DafnyAction> RemoveAction(string title, SourceOrigin range, bool includeTrailingSpaces) {
     var edit = new[] { new DafnyCodeActionEdit(range, "", includeTrailingSpaces) };
     var action = new DafnyAction(title, edit);
-    return new List<DafnyAction> { action };
+    return [action];
   }
 
   private static List<DafnyAction> RemoveAction(SourceOrigin range, bool includeTrailingSpaces) {

@@ -44,7 +44,7 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
     CloseParen = closeParen;
     Bindings = new ActualBindings(args);
     if (closeParen != null) {
-      FormatTokens = new[] { closeParen };
+      FormatTokens = [closeParen];
     }
   }
 

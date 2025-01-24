@@ -36,7 +36,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
   private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
     : base(SourceOrigin.NoToken, new Name(SystemModuleManager.TupleTypeName(argumentGhostness)), systemModule, typeArgs,
       CreateConstructors(typeArgs, argumentGhostness),
-      new List<Type>(), new List<MemberDecl>(), attributes, false) {
+      [], [], attributes, false) {
     Contract.Requires(systemModule != null);
     Contract.Requires(typeArgs != null);
     Contract.Assert(Ctors.Count == 1);
@@ -88,7 +88,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
     }
     string ctorName = SystemModuleManager.TupleTypeCtorName(typeArgs.Count);
     var ctor = new DatatypeCtor(SourceOrigin.NoToken, new Name(ctorName), false, formals, null);
-    return new List<DatatypeCtor>() { ctor };
+    return [ctor];
   }
 
   public override string SanitizedName =>

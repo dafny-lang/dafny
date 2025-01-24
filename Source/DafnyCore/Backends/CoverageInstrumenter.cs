@@ -14,7 +14,7 @@ public class CoverageInstrumenter {
     this.codeGenerator = codeGenerator;
     if (codeGenerator.Options?.CoverageLegendFile != null
         || codeGenerator.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
-      legend = new List<(IOrigin, string)>();
+      legend = [];
     }
 
     if (codeGenerator.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {

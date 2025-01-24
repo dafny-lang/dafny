@@ -42,7 +42,7 @@ namespace DafnyTestGeneration {
         return;
       }
       if (!stateToBlocks.ContainsKey(state)) {
-        stateToBlocks[state] = new();
+        stateToBlocks[state] = [];
       }
       stateToBlocks[state].Add(block);
     }
@@ -56,7 +56,7 @@ namespace DafnyTestGeneration {
       }
       var testEntryNames = Utils.DeclarationHasAttribute(implementation, TestGenerationOptions.TestInlineAttribute)
         ? TestEntries
-        : new() { implementation.VerboseName };
+        : [implementation.VerboseName];
       var blocks = node.Blocks.ToList();
       blocks.Reverse();
       var stateToBlocksMap = new Dictionary<string, HashSet<Block>>();

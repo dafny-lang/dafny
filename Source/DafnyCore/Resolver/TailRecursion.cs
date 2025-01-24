@@ -117,7 +117,7 @@ class TailRecursion {
         }
         return TailRecursionStatus.NotTailRecursive;
       } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && fce.Function.ByMethodDecl == enclosingMethod) {
-        var status = ConfirmTailCall(s.Origin, enclosingMethod, fce.TypeApplication_JustFunction, new List<Expression>() { s.Lhs }, reportErrors);
+        var status = ConfirmTailCall(s.Origin, enclosingMethod, fce.TypeApplication_JustFunction, [s.Lhs], reportErrors);
         if (status == TailRecursionStatus.TailCallSpent) {
           tailCall = s;
           fce.Args.ForEach(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
