@@ -28,18 +28,18 @@ module Std.Enumerators {
       true
     }
 
-    lemma CanConsumeAll(history: seq<((), Option<T>)>, next: ()) 
-      requires Action().CanProduce(history) 
+    lemma CanConsumeAll(history: seq<((), Option<T>)>, next: ())
+      requires Action().CanProduce(history)
       ensures Action().CanConsume(history, next)
     {}
 
     lemma ProducesTerminated(history: seq<((), Option<T>)>)
-      requires Action().CanProduce(history) 
+      requires Action().CanProduce(history)
       requires (forall i <- Inputs(history) :: i == FixedInput())
       ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
 
     // For better readability
-    method Next() returns (r: Option<T>) 
+    method Next() returns (r: Option<T>)
       requires Requires(())
       reads Reads(())
       modifies Modifies(())
@@ -70,8 +70,8 @@ module Std.Enumerators {
   // Compose(e, a).RepeatUntil((), o -> o.None?)
   //
   // so that extern implementations of Enumerator that are push-based
-  // can implement this by attaching `a` as a callback.  
-  method ForEach<T>(e: Enumerator<T>, a: Accumulator<T>) 
+  // can implement this by attaching `a` as a callback.
+  method ForEach<T>(e: Enumerator<T>, a: Accumulator<T>)
     requires e.Valid()
     requires a.Valid()
     requires e.Repr !! a.Repr
@@ -80,7 +80,7 @@ module Std.Enumerators {
     // ensures Enumerated(e.Produced()) == a.Consumed()
   {
     var t := e.Next();
-    while t != None 
+    while t != None
       invariant e.ValidAndDisjoint()
       invariant a.ValidAndDisjoint()
       invariant e.Repr !! a.Repr
@@ -101,7 +101,7 @@ module Std.Enumerators {
     const elements: seq<T>
     var index: nat
 
-    constructor(elements: seq<T>) 
+    constructor(elements: seq<T>)
       ensures Valid()
       ensures history == []
       ensures fresh(Repr)
@@ -113,9 +113,9 @@ module Std.Enumerators {
       history := [];
     }
 
-    ghost predicate Valid() 
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
       ensures Valid() ==> CanProduce(history)
       decreases height, 0
     {
@@ -133,7 +133,7 @@ module Std.Enumerators {
       && Outputs(history) == Seq.Map(x => Some(x), elements[..values]) + Seq.Repeat(None, nones)
     }
 
-    method Invoke(t: ()) returns (value: Option<T>) 
+    method Invoke(t: ()) returns (value: Option<T>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -174,7 +174,7 @@ module Std.Enumerators {
     }
 
     lemma ProducesTerminated(history: seq<((), Option<T>)>)
-      requires Action().CanProduce(history) 
+      requires Action().CanProduce(history)
       requires (forall i <- Inputs(history) :: i == FixedInput())
       ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
     {
@@ -184,13 +184,13 @@ module Std.Enumerators {
   }
 
   trait Pipeline<U, T> extends Enumerator<T> {
-    
+
     const upstream: Enumerator<U>
     const buffer: Collector<T>
 
-    ghost predicate Valid() 
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
       ensures Valid() ==> CanProduce(history)
       decreases height, 0
     {
@@ -208,7 +208,7 @@ module Std.Enumerators {
       true
     }
 
-    method Invoke(t: ()) returns (r: Option<T>) 
+    method Invoke(t: ()) returns (r: Option<T>)
       requires Requires(t)
       reads Repr
       modifies Modifies(t)
@@ -216,7 +216,7 @@ module Std.Enumerators {
       ensures Ensures(t, r)
     {
       label start:
-      while (|buffer.values| == 0) 
+      while (|buffer.values| == 0)
         invariant upstream.Repr !! buffer.Repr
         invariant fresh(Repr - old(Repr))
         invariant fresh(buffer.Repr - old(buffer.Repr))
@@ -256,7 +256,7 @@ module Std.Enumerators {
       reads Repr, a.Repr
       modifies Repr, a.Repr
       ensures a.ValidAndDisjoint()
-      // TODO: need a postcondition that a was invoked at least once etc
+    // TODO: need a postcondition that a was invoked at least once etc
 
     method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<T>>)
       requires Valid()
@@ -277,7 +277,7 @@ module Std.Enumerators {
     }
 
     lemma {:axiom} ProducesTerminated(history: seq<((), Option<T>)>)
-      requires Action().CanProduce(history) 
+      requires Action().CanProduce(history)
       requires (forall i <- Inputs(history) :: i == FixedInput())
       ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
     {
@@ -287,7 +287,7 @@ module Std.Enumerators {
   }
 
   class ExamplePipeline<T> extends Pipeline<T, T> {
-    constructor(upstream: Enumerator<T>) 
+    constructor(upstream: Enumerator<T>)
       requires upstream.Valid()
       ensures Valid()
     {
@@ -296,11 +296,11 @@ module Std.Enumerators {
 
       Repr := {this} + upstream.Repr + buffer.Repr;
       history := [];
-      this.buffer := buffer; 
+      this.buffer := buffer;
       this.height := upstream.height + buffer.height + 1;
     }
 
-    method Process(u: Option<T>, a: Accumulator<T>) 
+    method Process(u: Option<T>, a: Accumulator<T>)
       requires a.Valid()
       reads a.Repr
       modifies a.Repr

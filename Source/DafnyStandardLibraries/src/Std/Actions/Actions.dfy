@@ -2,8 +2,8 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
- 
- module Std.Actions {
+
+module Std.Actions {
 
   import opened Wrappers
   import opened Frames
@@ -70,28 +70,28 @@
       decreases height
 
     ghost predicate Requires(t: T)
-      reads Reads(t) 
+      reads Reads(t)
     {
       && Valid()
       && CanConsume(history, t)
     }
-    ghost function Reads(t: T): set<object> 
+    ghost function Reads(t: T): set<object>
       reads this
       ensures this in Reads(t)
     {
       {this} + Repr
     }
-    ghost function Modifies(t: T): set<object> 
+    ghost function Modifies(t: T): set<object>
       reads Reads(t)
     {
       Repr
     }
-    ghost function Decreases(t: T): TerminationMetric 
+    ghost function Decreases(t: T): TerminationMetric
       reads Reads(t)
     {
       NatTerminationMetric(height)
     }
-    twostate predicate Ensures(t: T, new r: R) 
+    twostate predicate Ensures(t: T, new r: R)
       reads Reads(t)
     {
       && Valid()
@@ -112,7 +112,7 @@
       modifies Repr
       decreases Repr
       ensures Valid()
-      //ensures history == old(history) + (n copies of t)/(n - 1 not stop values + stop)
+    //ensures history == old(history) + (n copies of t)/(n - 1 not stop values + stop)
 
     // Convenience methods for specifications
 
@@ -124,20 +124,20 @@
       history := history + [(t, r)];
     }
 
-    ghost function Consumed(): seq<T> 
+    ghost function Consumed(): seq<T>
       reads this
     {
       Inputs(history)
     }
 
-    ghost function Produced(): seq<R> 
+    ghost function Produced(): seq<R>
       reads this
     {
       Outputs(history)
     }
   }
 
-  method DefaultRepeatUntil<T, R>(a: Action<T, R>, t: T, stop: R -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, R>) 
+  method DefaultRepeatUntil<T, R>(a: Action<T, R>, t: T, stop: R -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, R>)
     requires a.Valid()
     requires eventuallyStopsProof.Action() == a
     requires eventuallyStopsProof.FixedInput() == t
@@ -147,7 +147,7 @@
     modifies a.Repr
     ensures a.Valid()
   {
-    while (true) 
+    while (true)
       modifies a.Repr
       invariant fresh(a.Repr - old(a.Repr))
       invariant a.Valid()
@@ -217,8 +217,8 @@
     ghost function StopFn(): R -> bool
     ghost function Limit(): nat
 
-    lemma ProducesTerminated(history: seq<(T, R)>) 
-      requires Action().CanProduce(history) 
+    lemma ProducesTerminated(history: seq<(T, R)>)
+      requires Action().CanProduce(history)
       requires (forall i <- Inputs(history) :: i == FixedInput())
       ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
 
@@ -272,7 +272,7 @@
       1 + NonTerminalCount(produced[1..], stop)
   }
 
-  lemma TerminatedDefinesNonTerminalCount<T>(s: seq<T>, stop: T -> bool, n: nat) 
+  lemma TerminatedDefinesNonTerminalCount<T>(s: seq<T>, stop: T -> bool, n: nat)
     requires Terminated(s, stop, n)
     ensures NonTerminalCount(s, stop) == Min(|s|, n)
   {
@@ -285,17 +285,17 @@
       }
     }
   }
-  
+
   class FunctionAction<T, R> extends Action<T, R> {
 
     // TODO: Can we support ~>?
     const f: T --> R
 
     ghost predicate Valid()
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
-      ensures Valid() ==> 
-        && CanProduce(history)
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==>
+                && CanProduce(history)
       decreases height, 0
     {
       && this in Repr
@@ -303,12 +303,12 @@
       && Produced() == Seq.MapPartialFunction(f, Consumed())
     }
 
-    constructor(f: T -> R) 
+    constructor(f: T -> R)
       ensures Valid()
       ensures this.f == f
       ensures fresh(Repr)
       ensures history == []
-    { 
+    {
       this.f := f;
 
       history := [];
@@ -327,7 +327,7 @@
       forall e <- history :: f.requires(e.0) && e.1 == f(e.0)
     }
 
-    method {:rlimit 0} Invoke(t: T) returns (r: R) 
+    method {:rlimit 0} Invoke(t: T) returns (r: R)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -372,9 +372,9 @@
     const stepFn: S -> Option<(S, T)>
     var state: S
 
-    ghost predicate Valid() 
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
       ensures Valid() ==> CanProduce(history)
       decreases height, 0
     {
@@ -397,7 +397,7 @@
       true
     }
 
-    method Invoke(t: ()) returns (r: Option<T>) 
+    method Invoke(t: ()) returns (r: Option<T>)
       requires Requires(t)
       reads Repr
       modifies Modifies(t)
@@ -432,11 +432,11 @@
       DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
   }
-  
+
   class Box {
     const i: nat
 
-    constructor(i: nat) 
+    constructor(i: nat)
       reads {}
       ensures this.i == i
     {
@@ -450,7 +450,7 @@
 
   lemma SeqRangeIncr(prefix: seq<nat>, n: nat)
     requires prefix == SeqRange(n)
-    ensures prefix + [n] == SeqRange(n + 1) 
+    ensures prefix + [n] == SeqRange(n + 1)
   {}
 
   // TODO: move to examples
@@ -458,9 +458,9 @@
 
     var nextValue: nat
 
-    ghost predicate Valid() 
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
       ensures Valid() ==> CanProduce(history)
       decreases height, 0
     {
@@ -469,7 +469,7 @@
       && nextValue == |history|
     }
 
-    constructor() 
+    constructor()
       ensures Valid()
       ensures fresh(Repr)
       ensures history == []
@@ -491,7 +491,7 @@
       Seq.Map((b: Box) => b.i, Outputs(history)) == SeqRange(|history|)
     }
 
-    method Invoke(t: ()) returns (r: Box) 
+    method Invoke(t: ()) returns (r: Box)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -533,7 +533,7 @@
     assert enum.Produced() == [a];
     assert Seq.Map((b: Box) => b.i, enum.Produced()) == SeqRange(1) == [0];
     // assert a.i == 0;
-    
+
     // var b := enum.Invoke(());
     // var c := enum.Invoke(());
     // var d := enum.Invoke(());
@@ -547,8 +547,8 @@
     ghost function Action(): Action<(), T>
     ghost function Set(): set<T>
 
-    lemma ProducesSet(history: seq<((), T)>) 
-      requires Action().CanProduce(history) 
+    lemma ProducesSet(history: seq<((), T)>)
+      requires Action().CanProduce(history)
       ensures |history| <= |Set()|
       ensures Seq.HasNoDuplicates(Outputs(history))
       ensures Seq.ToSet(Outputs(history)) <= Set()
@@ -559,9 +559,9 @@
     ghost const original: set<T>
     var remaining: set<T>
 
-    ghost predicate Valid() 
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
       ensures Valid() ==> CanProduce(history)
       decreases height, 0
     {
@@ -570,7 +570,7 @@
       && remaining == original - Enumerated(history)
     }
 
-    constructor(s: set<T>) 
+    constructor(s: set<T>)
       ensures Valid()
       ensures fresh(Repr)
       ensures history == []
@@ -595,8 +595,8 @@
       original
     }
 
-    lemma ProducesSet(history: seq<((), T)>) 
-      requires Action().CanProduce(history) 
+    lemma ProducesSet(history: seq<((), T)>)
+      requires Action().CanProduce(history)
       ensures |history| <= |Set()|
       ensures Seq.ToSet(Outputs(history)) <= Set()
     {}
@@ -626,7 +626,7 @@
       Seq.LemmaCardinalityOfSetNoDuplicates(Outputs(history));
     }
 
-    method Invoke(t: ()) returns (r: T) 
+    method Invoke(t: ()) returns (r: T)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -634,7 +634,7 @@
       ensures Ensures(t, r)
     {
       assert Requires(t);
-      
+
       EnumeratedCardinality();
       assert 0 < |remaining|;
 

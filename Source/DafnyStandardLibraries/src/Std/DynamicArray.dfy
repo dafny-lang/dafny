@@ -1,4 +1,4 @@
-module {:options "--function-syntax:4"} Std.DynamicArray {
+module Std.DynamicArray {
   import opened BoundedInts
   import opened Wrappers
 

@@ -2,8 +2,8 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
- 
- module Std.Aggregators {
+
+module Std.Aggregators {
 
   import opened Actions
   import opened Wrappers
@@ -36,11 +36,11 @@
 
     var storage: DynamicArray<T>
 
-    ghost predicate Valid() 
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
-      ensures Valid() ==> 
-        && CanProduce(history)
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==>
+                && CanProduce(history)
       decreases height, 0
     {
       && this in Repr
@@ -51,7 +51,7 @@
       && Consumed() == storage.items
     }
 
-    constructor() 
+    constructor()
       ensures Valid()
       ensures fresh(Repr - {this})
       ensures history == []
@@ -75,7 +75,7 @@
       true
     }
 
-    method Invoke(t: T) returns (r: ()) 
+    method Invoke(t: T) returns (r: ())
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -83,7 +83,7 @@
       ensures Ensures(t, r)
     {
       assert Requires(t);
-      
+
       assert Consumed() == storage.items;
       storage.Push(t);
 
@@ -108,9 +108,9 @@
       DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
 
-    lemma CanConsumeAll(history: seq<(T, ())>, next: T) 
+    lemma CanConsumeAll(history: seq<(T, ())>, next: T)
       requires Action().CanProduce(history)
-      ensures Action().CanConsume(history, next) 
+      ensures Action().CanConsume(history, next)
     {}
   }
 
@@ -120,7 +120,7 @@
     const f: (R, T) -> R
     var value: R
 
-    constructor(init: R, f: (R, T) -> R) 
+    constructor(init: R, f: (R, T) -> R)
       ensures Valid()
       ensures fresh(Repr)
     {
@@ -134,11 +134,11 @@
       assert value == Seq.FoldLeft(f, init, Consumed());
     }
 
-    ghost predicate Valid() 
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
-      ensures Valid() ==> 
-        && CanProduce(history)
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==>
+                && CanProduce(history)
       decreases height, 0
     {
       && this in Repr
@@ -156,7 +156,7 @@
       true
     }
 
-    method Invoke(t: T) returns (r: ()) 
+    method Invoke(t: T) returns (r: ())
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -191,9 +191,9 @@
       DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
 
-    lemma CanConsumeAll(history: seq<(T, ())>, next: T) 
+    lemma CanConsumeAll(history: seq<(T, ())>, next: T)
       requires Action().CanProduce(history)
-      ensures Action().CanConsume(history, next) 
+      ensures Action().CanConsume(history, next)
     {}
   }
 
@@ -202,7 +202,7 @@
 
     var values: seq<T>
 
-    constructor() 
+    constructor()
       ensures Valid()
       ensures fresh(Repr)
     {
@@ -211,13 +211,13 @@
       Repr := {this};
     }
 
-    ghost predicate Valid() 
-      reads this, Repr 
-      ensures Valid() ==> this in Repr 
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
       ensures Valid() ==> CanProduce(history)
       decreases height, 0
     {
-      this in Repr 
+      this in Repr
     }
 
     ghost predicate CanConsume(history: seq<(T, ())>, next: T)
@@ -233,7 +233,7 @@
       true
     }
 
-    method Invoke(t: T) returns (r: ()) 
+    method Invoke(t: T) returns (r: ())
       requires Requires(t)
       reads Repr
       modifies Modifies(t)
@@ -261,7 +261,7 @@
       DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
 
-    method Pop() returns (t: T) 
+    method Pop() returns (t: T)
       requires Valid()
       requires 0 < |values|
       reads Repr
@@ -272,9 +272,9 @@
       values := values[1..];
     }
 
-    lemma CanConsumeAll(history: seq<(T, ())>, next: T) 
+    lemma CanConsumeAll(history: seq<(T, ())>, next: T)
       requires Action().CanProduce(history)
-      ensures Action().CanConsume(history, next) 
+      ensures Action().CanConsume(history, next)
     {}
   }
 

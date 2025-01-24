@@ -17,7 +17,7 @@ module Frames {
     // Convenience predicate for when your object's validity depends on one
     // or more other objects.
     ghost predicate ValidComponent(component: Validatable)
-      reads this, Repr 
+      reads this, Repr
     {
       && component in Repr
       && component.Repr <= Repr
@@ -26,7 +26,7 @@ module Frames {
       && component.height < height
     }
 
-    // Convenience predicate, since you often want to assert that 
+    // Convenience predicate, since you often want to assert that
     // new objects in Repr are fresh as well in most postconditions.
     twostate predicate ValidAndDisjoint()
       reads this, Repr

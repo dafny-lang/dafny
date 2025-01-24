@@ -294,7 +294,7 @@ module Std.Streams {
       ensures Ensures(t, r)
     {
       assert Requires(t);
-      
+
       assert Valid();
       if position == |s| as uint64 {
         r := None;

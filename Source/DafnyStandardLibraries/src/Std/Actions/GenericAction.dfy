@@ -2,8 +2,8 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
- 
- module Std.GenericActions {
+
+module Std.GenericActions {
 
   import opened Termination
 
@@ -11,8 +11,8 @@
   // This is essentially a reflective interface for a method,
   // with all possible specifications attached.
   // It can also be thought of as the logical last step
-  // in the progression of arrow types, 
-  // from the total, heap-independent ->, 
+  // in the progression of arrow types,
+  // from the total, heap-independent ->,
   // to the partial but still heap-independent -->,
   // to the heap-reading ~>.
   // A generic action is thus like a function that can also modify the heap.
@@ -47,7 +47,7 @@
 
     // Actual action implementation
 
-    method Invoke(t: T) returns (r: R) 
+    method Invoke(t: T) returns (r: R)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)

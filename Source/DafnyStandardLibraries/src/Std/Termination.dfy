@@ -18,7 +18,7 @@ module Std.Termination {
 
     ghost function {:axiom} Ordinal(): ORDINAL
   }
-  
+
   // Convenience constructors
   function TerminationMetric1(value1: TMValue): TerminationMetric {
     TerminationMetric(value1, Top)
@@ -31,17 +31,17 @@ module Std.Termination {
   }
 
   // Heterogeneous encoding of the essential features of individual
-  // decreases clause list elements. 
-  datatype TMValue = 
+  // decreases clause list elements.
+  datatype TMValue =
     | TMNat(natValue: nat)
     | TMChar(charValue: nat)
-    | TMSeq(seqValue: seq<TMValue>) 
+    | TMSeq(seqValue: seq<TMValue>)
     | TMDatatype(children: seq<TMValue>)
-    // TODO: All other supported kinds of Dafny values
+  // TODO: All other supported kinds of Dafny values
   {
     predicate DecreasesTo(other: TMValue) {
       match (this, other) {
-        // Simple well-ordered types 
+        // Simple well-ordered types
         case (TMNat(left), TMNat(right)) => left > right
         case (TMChar(left), TMChar(right)) => left > right
         // TODO: etc.
@@ -52,13 +52,13 @@ module Std.Termination {
           || (exists i, j | 0 <= i < j <= |left| :: left[..i] + left[j..] == right)
         // This is a sequence and other is a datatype and structurally included
         // (treating a sequence as a datatype with N children)
-        case (TMSeq(leftSeq), TMDatatype(_)) => 
+        case (TMSeq(leftSeq), TMDatatype(_)) =>
           || other in leftSeq
         // Structural inclusion inside a datatype
         // TODO: Does other have to be a datatype too?
-        case (TMDatatype(leftChildren), _) => 
+        case (TMDatatype(leftChildren), _) =>
           || other in leftChildren
-         
+
         // TODO: other cases
         case _ => false
       }
@@ -73,7 +73,7 @@ module Std.Termination {
   // and technically has to be defined for a whole program.
   // It's sound to just assume it exists to convince Dafny that
   // `decreases terminationMetric.Ordinal()` is valid.
-  lemma {:axiom} OrdinalOrdered(left: TerminationMetric, right: TerminationMetric) 
+  lemma {:axiom} OrdinalOrdered(left: TerminationMetric, right: TerminationMetric)
     requires left.DecreasesTo(right)
     ensures left.Ordinal() > right.Ordinal()
 }
