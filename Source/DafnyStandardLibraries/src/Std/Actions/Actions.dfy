@@ -13,7 +13,43 @@
   import opened Math
   import Collections.Seq
 
-  // TODO: Documentation, especially overall design
+  // A composable imperative action.
+  //
+  // Specializes GenericAction to assume its behavior can be specified
+  // independently from most other actions,
+  // and therefore fits into the Valid()/Repr idiom
+  // (and hence extends the Validatable trait).
+  // Its specified behavior is allowed to depend on only
+  // what inputs it consumed and outputs it produced in the past.
+  // 
+  // A key design point for making this possible in Dafny:
+  // the CanConsume and CanProduce predicates,
+  // which the action's specification of behavior are drawn from,
+  // specifically avoid reading the current state of the action.
+  // That is so extrisnic properties of an action do NOT depend on their current state.
+  // This is key to ensure that you can prove properties of a given action that
+  // will continue to hold as the Dafny heap changes.
+  // This approach works because Dafny understands that for a given object,
+  // the implementation of CanConsume/CanProduce cannot change over time.
+  //
+  // The downside is that these are then forced to use quantifiers
+  // to talk about all possible states of an action.
+  // The solution is the trait proof pattern,
+  // where a trait is passed around with an abstract lemma
+  // that can be invoked on the otherwise quantified state as needed.
+  // TODO: see (somewhere I can talk about that pattern more generally)
+  //
+  // This trait is intended to be applicable for any imperative action
+  // regardless of how many input or output values it consumes and produces,
+  // despite only defining two type parameters.
+  // Implementors should feel free to use the () unit type or tuple types
+  // for T and R, under the assumption that
+  // future Dafny backends will be able to easily optimize
+  // away the overhead of passing around a pointless () value
+  // or wrapping up multiple values into a tuple.
+  //
+  // TODO: Better type parameter names for T and R?
+  // 
   @AssumeCrossModuleTermination
   trait Action<T, R> extends GenericAction<T, R>, Validatable {
 
@@ -25,23 +61,7 @@
       ensures Valid() ==> CanProduce(history)
       decreases height, 0
 
-    // KEY DESIGN POINT: these predicates specifically avoid reading the current
-    // state of the action.
-    // That's so extrisnic properties of an action do NOT depend on their current state.
-    // This is key to ensure that you can prove properties of a given action that
-    // will continue to hold as the Dafny heap changes.
-    // This approach works because Dafny understands that for a given object,
-    // the implementation of CanConsume/CanProduce cannot change over time.
-    //
-    // The downside is that these are then forced to use quantifiers
-    // to talk about all possible states of an action.
-    // The solution is the trait proof pattern,
-    // where a trait is passed around with an abstract lemma
-    // that can be invoked on the otherwise quantified state as needed.
 
-    // TODO: Necessary but not sufficient that:
-    // CanConsume(history, nextIn) ==> exists nextOut :: CanProduce(history + [(nextIn, nextOut)])
-    // Does that need to be explicitly part of the spec?
     ghost predicate CanConsume(history: seq<(T, R)>, next: T)
       requires CanProduce(history)
       decreases height

@@ -1,4 +1,5 @@
 
+
 module Std.Termination {
 
   datatype ClauseTail = More(next: TerminationMetric) | Top
