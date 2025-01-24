@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ModuleQualifiedId : Node, IHasUsages {
+public class ModuleQualifiedId : Node, IHasReferences {
   public readonly List<Name> Path; // Path != null && Path.Count > 0
 
   // The following are filled in during resolution
@@ -28,13 +28,16 @@ public class ModuleQualifiedId : Node, IHasUsages {
 
   public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) {
     Path = original.Path.Select(n => n.Clone(cloner)).ToList();
+    if (cloner.CloneResolvedFields) {
+      Root = original.Root;
+    }
   }
 
   public string RootName() {
     return Path[0].Value;
   }
 
-  public IToken RootToken() {
+  public IOrigin RootToken() {
     return Path[0].StartToken;
   }
 
@@ -59,19 +62,20 @@ public class ModuleQualifiedId : Node, IHasUsages {
     }
   }
 
-  public override IToken Tok => Path.Last().Tok;
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public override RangeToken RangeToken {
-    get => new(Path.First().StartToken, Path.Last().EndToken);
-    set => throw new NotSupportedException();
+  public override IOrigin Origin {
+    get => new SourceOrigin(Path.First().StartToken, Path.Last().EndToken, Path.Last().Center);
   }
 
-  public IToken NameToken => Path.Last().StartToken;
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
-    return Enumerable.Repeat(Decl, 1);
+  public IEnumerable<Reference> GetReferences() {
+    // Normally the target should already have been resolved, but in certain conditions like an unused alias module decl,
+    // Decl might not be set yet so we need to resolve it here.
+
+    var reference = new Reference(Path.Last().StartToken, ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)));
+    return Enumerable.Repeat(reference, 1);
   }
 
   /// <summary>
@@ -92,6 +96,10 @@ public class ModuleQualifiedId : Node, IHasUsages {
   }
 
   private ModuleDecl ResolveTargetUncached(ErrorReporter reporter) {
+    if (Root == null) {
+      return null;
+    }
+
     var decl = Root;
     for (int k = 1; k < Path.Count; k++) {
       ModuleSignature p;

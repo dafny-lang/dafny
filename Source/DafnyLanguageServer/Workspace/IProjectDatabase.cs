@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// The task represents any outstanding work of the document. It should be awaited to ensure
     /// that no processing occurs after the document is closed.
     /// </remarks>
-    Task CloseDocumentAsync(TextDocumentIdentifier documentId);
+    void CloseDocument(TextDocumentIdentifier documentId);
 
     /// <summary>
     /// Loads (or updates if newer) the specified document into the database.
@@ -41,6 +41,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <exception cref="ArgumentException">Thrown if the specified document does not exist.</exception>
     Task SaveDocument(TextDocumentIdentifier documentId);
 
+    Task<IdeState?> GetParsedDocumentNormalizeUri(TextDocumentIdentifier documentId);
+
     /// <summary>
     /// Tries to resolve a document with the specified identifier.
     /// </summary>
@@ -48,13 +50,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</returns>
     Task<IdeState?> GetResolvedDocumentAsyncNormalizeUri(TextDocumentIdentifier documentId);
     internal Task<IdeState?> GetResolvedDocumentAsyncInternal(TextDocumentIdentifier documentId);
-
-    /// <summary>
-    /// Tries to resolve a verified document with the specified identifier.
-    /// </summary>
-    /// <param name="documentId">The ID of the document to resolve.</param>
-    /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</returns>
-    Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId);
 
     Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId);
 

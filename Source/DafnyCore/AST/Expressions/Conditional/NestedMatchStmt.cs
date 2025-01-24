@@ -8,19 +8,22 @@ namespace Microsoft.Dafny;
 public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanFormat, INestedMatch, ICanResolve {
   public Expression Source { get; }
   public string MatchTypeName => "statement";
-  public readonly List<NestedMatchCaseStmt> Cases;
+  public List<NestedMatchCaseStmt> Cases { get; }
+
+  IReadOnlyList<NestedMatchCase> INestedMatch.Cases => Cases;
+
   public readonly bool UsesOptionalBraces;
 
   [FilledInDuringResolution] public Statement Flattened { get; set; }
 
   private void InitializeAttributes() {
     // Default case for match is false
-    bool splitMatch = Attributes.Contains(this.Attributes, "split");
-    Attributes.ContainsBool(this.Attributes, "split", ref splitMatch);
-    foreach (var c in this.Cases) {
+    bool splitMatch = Attributes.Contains(Attributes, "split");
+    Attributes.ContainsBool(Attributes, "split", ref splitMatch);
+    foreach (var c in Cases) {
       if (!Attributes.Contains(c.Attributes, "split")) {
         List<Expression> args = new List<Expression>();
-        args.Add(new LiteralExpr(c.Tok, splitMatch));
+        args.Add(Expression.CreateBoolLiteral(c.Origin, splitMatch));
         Attributes attrs = new Attributes("split", args, c.Attributes);
         c.Attributes = attrs;
       }
@@ -36,16 +39,23 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     Cases = original.Cases.ConvertAll(cloner.CloneNestedMatchCaseStmt);
     UsesOptionalBraces = original.UsesOptionalBraces;
     if (cloner.CloneResolvedFields) {
-      Flattened = cloner.CloneStmt(original.Flattened);
+      Flattened = cloner.CloneStmt(original.Flattened, false);
     }
   }
 
   public override IEnumerable<INode> Children => new[] { Source }.Concat<Node>(Cases);
 
-  public override IEnumerable<Statement> SubStatements => Cases.SelectMany(c => c.Body);
+  public override IEnumerable<Statement> SubStatements {
+    get {
+      if (Flattened != null) {
+        return Flattened.SubStatements;
+      }
+      return Cases.SelectMany(c => c.Body);
+    }
+  }
 
   public override IEnumerable<Statement> PreResolveSubStatements {
-    get => this.Cases.SelectMany(oneCase => oneCase.Body);
+    get => Cases.SelectMany(oneCase => oneCase.Body);
   }
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
@@ -62,13 +72,13 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
   }
 
-  public NestedMatchStmt(RangeToken rangeToken, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
-    : base(rangeToken, attrs) {
+  public NestedMatchStmt(IOrigin origin, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
+    : base(origin, attrs) {
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
-    this.Source = source;
-    this.Cases = cases;
-    this.UsesOptionalBraces = usesOptionalBraces;
+    Source = source;
+    Cases = cases;
+    UsesOptionalBraces = usesOptionalBraces;
     InitializeAttributes();
   }
 
@@ -78,22 +88,22 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
   /// 2 - desugaring it into a decision tree of MatchStmt and IfStmt (for constant matching)
   /// 3 - resolving the generated (sub)statement.
   /// </summary>
-  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
+  public void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     resolver.ResolveExpression(Source, resolutionContext);
 
     if (Source.Type is TypeProxy) {
       resolver.PartiallySolveTypeConstraints(true);
 
       if (Source.Type is TypeProxy) {
-        resolver.reporter.Error(MessageSource.Resolver, Tok, "Could not resolve the type of the source of the match statement. Please provide additional typing annotations.");
+        resolver.Reporter.Error(MessageSource.Resolver, Origin, "Could not resolve the type of the source of the match statement. Please provide additional typing annotations.");
         return;
       }
     }
 
-    var errorCount = resolver.reporter.Count(ErrorLevel.Error);
-    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.tok, Source.Type).NormalizeExpand();
-    this.CheckLinearNestedMatchStmt(sourceType, resolutionContext, resolver);
-    if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
+    var errorCount = resolver.Reporter.Count(ErrorLevel.Error);
+    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.Origin, Source.Type).NormalizeExpand();
+    CheckLinearNestedMatchStmt(sourceType, resolutionContext, resolver);
+    if (resolver.Reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
     }
 
@@ -105,14 +115,14 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
 
     foreach (var _case in Cases) {
-      resolver.scope.PushMarker();
+      resolver.Scope.PushMarker();
       _case.Resolve(resolver, resolutionContext, subst, sourceType);
-      resolver.scope.PopMarker();
+      resolver.Scope.PopMarker();
     }
   }
 
   public void CheckLinearNestedMatchStmt(Type dtd, ResolutionContext resolutionContext, ModuleResolver resolver) {
-    foreach (NestedMatchCaseStmt mc in this.Cases) {
+    foreach (NestedMatchCaseStmt mc in Cases) {
       resolver.scope.PushMarker();
       resolver.ResolveAttributes(mc, resolutionContext);
       mc.CheckLinearNestedMatchCase(dtd, resolutionContext, resolver);
@@ -129,5 +139,32 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
         formatter.Visit(s, indentBefore);
       }
     });
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    var hasGhostPattern = Cases.
+      SelectMany(caze => caze.Pat.DescendantsAndSelf)
+      .OfType<IdPattern>().Any(idPattern => idPattern.Ctor != null && idPattern.Ctor.IsGhost);
+    IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(Source) || hasGhostPattern;
+
+    foreach (var kase in Cases) {
+      ExpressionTester.MakeGhostAsNeeded(kase.Pat, IsGhost);
+    }
+
+    if (!mustBeErasable && IsGhost) {
+      reporter.Info(MessageSource.Resolver, Origin, "ghost match");
+    }
+
+    Cases.ForEach(kase => kase.Body.ForEach(ss =>
+      ss.ResolveGhostness(resolver, reporter, IsGhost, codeContext,
+      proofContext, allowAssumptionVariables, inConstructorInitializationPhase)));
+    IsGhost = IsGhost || Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
+    if (!IsGhost) {
+      // If there were features in the source expression that are treated differently in ghost and non-ghost
+      // contexts, make sure they get treated for non-ghost use.
+      ExpressionTester.CheckIsCompilable(resolver, reporter, Source, codeContext);
+    }
   }
 }

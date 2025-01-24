@@ -11,7 +11,7 @@ using Function = Microsoft.Dafny.Function;
 using Program = Microsoft.Dafny.Program;
 
 
-namespace DafnyTestGeneration.Inlining; 
+namespace DafnyTestGeneration.Inlining;
 
 /// <summary>
 /// Change by-method function calls to method calls (after resolution)
@@ -31,7 +31,7 @@ public class FunctionCallToMethodCallRewriter : Cloner {
 
   private void Visit(TopLevelDecl d) {
     if (d is LiteralModuleDecl moduleDecl) {
-      moduleDecl.ModuleDef.TopLevelDecls.ForEach(Visit);
+      moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>().ForEach(Visit);
     } else if (d is TopLevelDeclWithMembers withMembers) {
       withMembers.Members.Where(shouldProcessPredicate).OfType<Function>().ForEach(Visit);
       withMembers.Members.Where(shouldProcessPredicate).OfType<Method>().ForEach(Visit);
@@ -55,23 +55,23 @@ public class FunctionCallToMethodCallRewriter : Cloner {
     }
   }
 
-  public override Statement CloneStmt(Statement stmt) {
-    if (stmt == null || stmt is not UpdateStmt updateStmt) {
-      return base.CloneStmt(stmt);
+  public override Statement CloneStmt(Statement stmt, bool isReference) {
+    if (stmt == null || stmt is not AssignStatement updateStmt) {
+      return base.CloneStmt(stmt, isReference);
     }
-    var clonedUpdate = (UpdateStmt)base.CloneStmt(updateStmt);
+    var clonedUpdate = (AssignStatement)base.CloneStmt(updateStmt, isReference);
     var newResolvedStmts = new List<Statement>();
     foreach (var resolvedStmt in clonedUpdate.ResolvedStatements) {
       if (!resolvedStmt.IsGhost &&
-          resolvedStmt is AssignStmt { Rhs: ExprRhs exprRhs } &&
+          resolvedStmt is SingleAssignStmt { Rhs: ExprRhs exprRhs } &&
           exprRhs.Expr.Resolved is FunctionCallExpr { IsByMethodCall: true } funcCallExpr) {
         var memberSelectExpr = new MemberSelectExpr(
-          funcCallExpr.tok,
+          funcCallExpr.Origin,
           CloneExpr(funcCallExpr.Receiver.Resolved),
-          funcCallExpr.Function.ByMethodDecl.Name);
+          funcCallExpr.Function.ByMethodDecl.NameNode);
         memberSelectExpr.Member = funcCallExpr.Function.ByMethodDecl;
-        memberSelectExpr.TypeApplication_JustMember = funcCallExpr.TypeApplication_JustFunction;
-        newResolvedStmts.Add(new CallStmt(stmt.RangeToken,
+        memberSelectExpr.TypeApplicationJustMember = funcCallExpr.TypeApplication_JustFunction;
+        newResolvedStmts.Add(new CallStmt(stmt.Origin,
           updateStmt.Lhss.Select(lhs => CloneExpr(lhs.Resolved)).ToList(), memberSelectExpr,
           funcCallExpr.Args.ConvertAll(e => CloneExpr(e.Resolved))));
       } else {

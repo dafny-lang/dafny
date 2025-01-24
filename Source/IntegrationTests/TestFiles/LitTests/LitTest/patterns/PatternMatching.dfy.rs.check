@@ -1,0 +1,1 @@
+// CHECK: .*<i>Coercion\ from\ ::std::rc::Rc<super::_module::List<::dafny_runtime::DafnyInt>>\ to\ ::std::rc::Rc<super::_module::List<super::_System::nat>></i>.*

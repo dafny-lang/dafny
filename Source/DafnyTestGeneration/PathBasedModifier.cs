@@ -26,14 +26,15 @@ namespace DafnyTestGeneration {
     private const string BlockVarNamePrefix = "block";
     // Dafny will try to generate tests for paths through the program of increasingly greater length,
     // PathLengthStep determines the increments by which Dafny should increase maximum path length in-between attempts
-    private const int PathLengthStep = 5;
+    private const int PathLengthStep = 20;
 
     public PathBasedModifier(Modifications modifications) {
       this.modifications = modifications;
     }
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
-      foreach (var implementation in p.Implementations) {
+      var implementations = p.Implementations.ToList();
+      foreach (var implementation in implementations) {
         if (!ImplementationIsToBeTested(implementation) ||
             !DafnyInfo.IsAccessible(implementation.VerboseName.Split(" ")[0])) {
           continue;
@@ -42,10 +43,12 @@ namespace DafnyTestGeneration {
         int pathLength = PathLengthStep;
         bool newPathsFound = true;
         // Consider paths of increasing length, pruning out infeasible sub-paths in the process:
+        var blockToVariable = InitBlockVars(implementation);
+        var firstBlock = implementation.Blocks[0]; // 
         while (newPathsFound) {
           List<Path> pathsToConsider = new(); // paths without known unfeasible subpaths
           var totalPaths = 0;
-          foreach (var path in GeneratePaths(implementation, pathLength - PathLengthStep, pathLength)) {
+          foreach (var path in GeneratePaths(implementation, pathLength - PathLengthStep, pathLength, blockToVariable, firstBlock)) {
             totalPaths++;
             var pathId = path.ToString(DafnyInfo.Options);
             if (pathLength <= PathLengthStep || !modifications.Values.Any(modification =>
@@ -65,7 +68,8 @@ namespace DafnyTestGeneration {
             var testEntryNames = Utils.DeclarationHasAttribute(path.Impl, TestGenerationOptions.TestInlineAttribute)
               ? TestEntries
               : new() { path.Impl.VerboseName };
-            yield return modifications.GetProgramModification(p, path.Impl, new HashSet<string>(), testEntryNames,
+            var programCopy = Utils.DeepCloneResolvedProgram(p, DafnyInfo.Options);
+            yield return modifications.GetProgramModification(programCopy, path.Impl, new HashSet<string>(), testEntryNames,
               path.ToString(DafnyInfo.Options));
             path.NoAssertPath();
           }
@@ -85,12 +89,12 @@ namespace DafnyTestGeneration {
         // variable declaration:
         var variable = GetNewLocalVariable(node, Type.Bool, varName);
         // set variable to false when visiting a block
-        block.cmds.Insert(0, new AssignCmd(new Token(),
+        block.Cmds.Insert(0, new AssignCmd(new Token(),
           new List<AssignLhs>() { new SimpleAssignLhs(new Token(), new IdentifierExpr(new Token(), variable)) },
           new List<Expr>() { new LiteralExpr(new Token(), false) }));
         blockToVariable[block] = variable;
         // initialization:
-        node.Blocks[0].cmds.Insert(0, new AssignCmd(new Token(),
+        node.Blocks[0].Cmds.Insert(0, new AssignCmd(new Token(),
           new List<AssignLhs>() { new SimpleAssignLhs(new Token(), new IdentifierExpr(new Token(), variable)) },
           new List<Expr>() { new LiteralExpr(new Token(), true) }));
       }
@@ -100,26 +104,25 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Iterate over paths through an implementation in a depth-first search fashion
     /// </summary>
-    private IEnumerable<Path> GeneratePaths(Implementation impl, int minPathLength, int maxPathLength) {
+    private IEnumerable<Path> GeneratePaths(Implementation impl, int minPathLength, int maxPathLength, Dictionary<Block, Variable> blockToVariable, Block firstBlock) {
       List<Block> currPath = new(); // list of basic blocks along the current path
       // remember alternative paths that could have been taken at every goto: 
       List<List<Block>> otherGotos = new() { new() };
       // set of boolean variables indicating that blocks in currPath list have been visited:
       HashSet<Variable> currPathVariables = new();
-      var blockToVariable = InitBlockVars(impl);
-      var block = impl.Blocks[0];
+      var block = firstBlock;
       while (block != null) {
         if ((block.TransferCmd is ReturnCmd && currPath.Count >= minPathLength) || currPath.Count == maxPathLength - 1) {
           yield return new Path(impl, currPathVariables.ToList(), new() { block },
             currPath.Append(block).ToList());
         } else {
-          if (currPath.Count != 0 && ((GotoCmd)currPath.Last().TransferCmd).labelTargets.Count != 1) {
+          if (currPath.Count != 0 && ((GotoCmd)currPath.Last().TransferCmd).LabelTargets.Count != 1) {
             currPathVariables.Add(blockToVariable[block]); // only constrain the path if there is more than one goto
           }
           currPath.Add(block);
           otherGotos.Add(new List<Block>());
           var gotoCmd = block.TransferCmd as GotoCmd;
-          foreach (var nextBlock in gotoCmd?.labelTargets ?? new List<Block>()) {
+          foreach (var nextBlock in gotoCmd?.LabelTargets ?? new List<Block>()) {
             if (currPathVariables.Contains(blockToVariable[nextBlock])) { // this prevents cycles
               continue;
             }
@@ -189,7 +192,7 @@ namespace DafnyTestGeneration {
       internal void AssertPath() {
         foreach (var returnBlock in returnBlocks) {
           if (path.Count == 0) {
-            returnBlock.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+            returnBlock.Cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
             return;
           }
         }
@@ -198,13 +201,13 @@ namespace DafnyTestGeneration {
           ConstructDisjunction(path.Select(variable => new IdentifierExpr(new Token(), variable) as Expr).ToList());
 
         foreach (var returnBlock in returnBlocks) {
-          returnBlock.cmds.Add(new AssertCmd(new Token(), condition));
+          returnBlock.Cmds.Add(new AssertCmd(new Token(), condition));
         }
       }
 
       internal void NoAssertPath() {
         foreach (var returnBlock in returnBlocks) {
-          returnBlock.cmds.RemoveAt(returnBlock.cmds.Count - 1);
+          returnBlock.Cmds.RemoveAt(returnBlock.Cmds.Count - 1);
         }
       }
     }

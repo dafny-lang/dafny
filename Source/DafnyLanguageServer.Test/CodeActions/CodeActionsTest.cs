@@ -1,4 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
 using Xunit.Abstractions;
-using XunitAssertMessages;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
   public class CodeActionTest : ClientBasedLanguageServerTest {
@@ -25,6 +25,87 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
 
     private async Task<CodeAction> RequestResolveCodeAction(CodeAction codeAction) {
       return await client.ResolveCodeAction(codeAction, CancellationToken);
+    }
+
+    [Fact]
+    public async Task MethodKeywordCodeAction() {
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
+
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(@"
+method><".TrimStart(), out var source, out var positions,
+        out var ranges);
+      var documentItem = await CreateOpenAndWaitForResolve(source);
+      var position = positions[0];
+      var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
+      Assert.Empty(completionList);
+    }
+
+    [Fact]
+    public async Task TypeTestCodeAction() {
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
+
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(@"module M {
+  trait Object {
+   ghost function typeId() : (id: string)
+  }
+
+  type A extends Object {
+   ghost function typeId() : (id: string)  { ""A"" }
+  }
+
+  type B extends Object {
+   ghost function typeId() : (id: string)  { ""B"" }
+  }
+  type C extends Object {
+   ghost function typeId() : (id: string)  { ""C"" }
+  }
+
+  lemma test(x: Object)
+    ensures multiset{x is A, x is B, x is C}[true] == 1
+  {
+    var _ := x.typeId();
+    if (x is A) {
+      assert x !is B.><
+    }
+  }
+}".TrimStart(), out var source, out var positions,
+        out var ranges);
+      var documentItem = await CreateOpenAndWaitForResolve(source);
+      var position = positions[0];
+      var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
+      Assert.Empty(completionList);
+    }
+
+    [Fact]
+    public async Task TestAssertFalseNotSuggestingItself() {
+      await TestNoCodeAction(@"
+method NoCodeAction() {
+  assert fal><se;
+}");
+    }
+
+    [Fact]
+    public async Task TestEnsureFalseNotSuggestingItself() {
+      await TestNoCodeAction(@"
+method NoCodeAction() ensures f><alse {
+}", excepted: message => message == "Assert postcondition at return location where it fails");
+    }
+
+    [Fact]
+    public async Task TestInsertion() {
+      await TestCodeAction(@"
+datatype L = N | C(t: L)
+
+method Dec(c: L)
+  decreases c, 1, 1
+{(>Insert explicit failing assertion->
+  assert (old(c), old(1) decreases to c, 1);<)
+  Da><c(c);
+}
+method Dac(c: L) 
+  decreases c, 1 {
+    Dec(c);
+}");
     }
 
     [Fact]
@@ -305,13 +386,30 @@ function Foo(i: int): int
 
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
+    private async Task TestNoCodeAction(string source, Func<string, bool> excepted = null) {
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions,
+        out var ranges);
+      var documentItem = await CreateOpenAndWaitForResolve(output);
+      var diagnostics = await GetLastDiagnostics(documentItem);
+      Assert.Equal(0, ranges.Count);
+      foreach (var position in positions) {
+        var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
+        completionList = excepted == null
+          ? completionList
+          : completionList.Where(completion =>
+            completion.CodeAction is not { Title: var title } || !excepted(title)).ToList();
+        Assert.Empty(completionList);
+      }
+    }
+
     private async Task TestCodeAction(string source) {
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
 
       MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions,
         out var ranges);
-      var documentItem = await CreateAndOpenTestDocument(output);
-      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      var documentItem = await CreateOpenAndWaitForResolve(output);
+      var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Equal(ranges.Count, diagnostics.Length);
 
       if (positions.Count != ranges.Count) {

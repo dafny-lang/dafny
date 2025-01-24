@@ -43,7 +43,7 @@ class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContex
   /// cardinality test.
   /// </summary>
   private bool Occurs(Type obj, Type rhs, bool left) {
-    Type type = rhs.NormalizeExpandKeepConstraints();
+    Type type = rhs.NormalizeExpand();
     if (type is BasicType) {
       return false;
     } else if (type is MapType) {
@@ -60,6 +60,9 @@ class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContex
       if (left && Type.Equal_Improved(obj, t)) {
         return true;
       }
+      if (left && t.IsTraitType) {
+        return true;
+      }
       var b = false;
       if (t.IsArrowType) {
         var arrow = type.AsArrowType;
@@ -72,7 +75,7 @@ class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContex
   protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
 
     // Assigments to constant fields in constructors boil down to an assignment.
-    if (stmt is AssignStmt assign) {
+    if (stmt is SingleAssignStmt assign) {
 
       var lhs = assign.Lhs;
       Type lhsType;
@@ -84,7 +87,7 @@ class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContex
       // of type . -> . during the object's construction.
       if (lhs is MemberSelectExpr mseLhs) {
 
-        lhsType = mseLhs.Obj.Type.NormalizeExpandKeepConstraints();
+        lhsType = mseLhs.Obj.Type.NormalizeExpand();
 
         var rhs = assign.Rhs;
         if (rhs is ExprRhs eRhs) {

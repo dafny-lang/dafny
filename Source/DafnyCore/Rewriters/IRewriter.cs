@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
     ///     reporter.Error(MessageSource.Compiler, token, "[Your plugin] Your error message here");
     ///
     /// The token is usually obtained on expressions and statements in the field `tok`
-    /// If you do not have access to them, use moduleDefinition.GetFirstTopLevelToken()
+    /// If you do not have access to them, use moduleDefinition.GetStartOfFirstFileToken()
     /// </summary>
     /// <param name="reporter">The error reporter. Usually outputs automatically to IDE or command-line</param>
     protected internal IRewriter(ErrorReporter reporter) {
@@ -74,7 +74,8 @@ namespace Microsoft.Dafny {
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
     /// <param name="moduleDefinition">A module definition after it
-    /// is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
+    ///   is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
+    /// <param name="errorReporter"></param>
     internal virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition) {
       Contract.Requires(moduleDefinition != null);
     }
@@ -120,11 +121,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(program != null);
     }
 
-    public virtual void ReportWarning(ErrorId errorId, IToken t, string msg, params object[] args) {
+    public virtual void ReportWarning(ErrorId errorId, IOrigin t, string msg, params object[] args) {
       Reporter.Warning(MessageSource.Rewriter, errorId, t, msg, args);
     }
 
-    public virtual void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+    public virtual void ReportError(ErrorId errorId, IOrigin t, string msg, params object[] args) {
       Reporter.Error(MessageSource.Rewriter, errorId, t, msg, args);
     }
   }

@@ -1,0 +1,45 @@
+**/Output/
+
+# C# output
+**/*.cs
+**/*.dll
+**/*.runtimeconfig.json
+**/*.mdb
+**/*.pdb
+**/bin
+**/obj
+
+# JavaScript output
+**/*.js
+
+# Go output
+**/*-go
+
+# Java output
+**/*-java
+**/*.jar
+
+# C++ output
+**/*.h
+**/*.cpp
+**/*.dSYM
+**/*.exe
+
+# Python output
+**/*-py
+
+# Rust output
+**/*-rust
+
+node_modules/
+package-lock.json
+packages
+
+server/model.bvd
+git-issues/git-issue-622$f/**
+comp/compile1verbose/CompileAndThenRun
+comp/compile1quiet/CompileRunQuietly
+docexamples
+
+**/Build/**
+**/.lit_test_times.txt

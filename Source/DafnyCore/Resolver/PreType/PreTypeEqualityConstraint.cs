@@ -11,12 +11,12 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
 
-  class EqualityConstraint : PreTypeConstraint {
+  class EqualityConstraint : OptionalErrorPreTypeConstraint {
     public PreType A;
     public PreType B;
 
-    public EqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat)
-      : base(tok, msgFormat) {
+    public EqualityConstraint(PreType a, PreType b, IOrigin tok, string msgFormat, PreTypeConstraint baseError = null, bool reportErrors = true)
+      : base(tok, msgFormat, baseError, reportErrors) {
       A = a;
       B = b;
     }
@@ -32,8 +32,8 @@ namespace Microsoft.Dafny {
     /// in particular, that this method cannot be called in middle of constraints.ApplySubtypeConstraints.
     /// </summary>
     public IEnumerable<EqualityConstraint> Apply(PreTypeConstraints constraints) {
-      var a = A.Normalize();
-      var b = B.Normalize();
+      var a = A.NormalizeWrtScope();
+      var b = B.NormalizeWrtScope();
       if (a == b) {
         // we're already there
       } else if (a is PreTypeProxy pa && !b.Contains(pa, 1, new HashSet<PreTypeProxy>(), constraints, 0)) {
@@ -44,9 +44,9 @@ namespace Microsoft.Dafny {
         Contract.Assert(da.Arguments.Count == db.Arguments.Count);
         for (var i = 0; i < da.Arguments.Count; i++) {
           // TODO: should the error message in the following line be more specific?
-          yield return new EqualityConstraint(da.Arguments[i], db.Arguments[i], tok, ErrorFormatString);
+          yield return new EqualityConstraint(da.Arguments[i], db.Arguments[i], tok, ErrorFormatString, null, ReportErrors);
         }
-      } else {
+      } else if (ReportErrors) {
         constraints.PreTypeResolver.ReportError(tok, ErrorFormatString, a, b);
       }
     }

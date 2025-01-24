@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Dafny.Compilers;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class ProgramResolver {
   public Program Program { get; }
@@ -27,7 +29,7 @@ public class ProgramResolver {
     return null;
   }
 
-  public virtual void Resolve(CancellationToken cancellationToken) {
+  public virtual Task Resolve(CancellationToken cancellationToken) {
     Type.ResetScopes();
 
     Type.EnableScopes();
@@ -42,7 +44,7 @@ public class ProgramResolver {
     ComputeModuleDependencyGraph(Program, out var moduleDeclarationPointers);
 
     if (Reporter.ErrorCount != startingErrorCount) {
-      return;
+      return Task.CompletedTask;
     }
 
     var sortedDecls = dependencies.TopologicallySortedComponents();
@@ -55,8 +57,10 @@ public class ProgramResolver {
       classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
     }
 
+    var rewriters = RewriterCollection.GetRewriters(Reporter, Program);
+
     var compilation = Program.Compilation;
-    foreach (var rewriter in compilation.Rewriters) {
+    foreach (var rewriter in rewriters) {
       cancellationToken.ThrowIfCancellationRequested();
       rewriter.PreResolve(Program);
     }
@@ -68,17 +72,19 @@ public class ProgramResolver {
     }
 
     if (Reporter.ErrorCount != startingErrorCount) {
-      return;
+      return Task.CompletedTask;
     }
 
     Type.DisableScopes();
 
+    InstantiateReplaceableModules(Program);
     CheckDuplicateModuleNames(Program);
 
-    foreach (var rewriter in compilation.Rewriters) {
+    foreach (var rewriter in rewriters) {
       cancellationToken.ThrowIfCancellationRequested();
       rewriter.PostResolve(Program);
     }
+    return Task.CompletedTask;
   }
 
   public void AddSystemClass(TopLevelDeclWithMembers topLevelDeclWithMembers, Dictionary<string, MemberDecl> memberDictionary) {
@@ -126,14 +132,14 @@ public class ProgramResolver {
 
     // check for cycles in the import graph
     foreach (var cycle in dependencies.AllCycles()) {
-      ModuleResolver.ReportCycleError(Reporter, cycle, m => m.tok,
+      ModuleResolver.ReportCycleError(Reporter, cycle, m => m.Origin,
         m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
         "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
     }
   }
 
   protected virtual Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveSystemModule(Program program) {
-    var systemModuleResolver = new ModuleResolver(this);
+    var systemModuleResolver = new ModuleResolver(this, Options);
 
     SystemModuleManager.systemNameInfo = SystemModuleManager.SystemModule.RegisterTopLevelDecls(systemModuleResolver, false);
     systemModuleResolver.moduleInfo = SystemModuleManager.systemNameInfo;
@@ -155,19 +161,19 @@ public class ProgramResolver {
       var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
       systemModuleResolver.allTypeParameters.PushMarker();
       systemModuleResolver.ResolveTypeParameters(d.TypeArgs, true, d);
-      systemModuleResolver.ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
+      systemModuleResolver.ResolveType(d.Origin, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
       systemModuleResolver.allTypeParameters.PopMarker();
     }
 
     systemModuleResolver.ResolveTopLevelDecls_Core(
       ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
-      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), SystemModuleManager.SystemModule.Name);
+      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), SystemModuleManager.SystemModule.Name, false);
 
     return systemModuleResolver.moduleClassMembers;
   }
 
   protected virtual ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
-    var moduleResolver = new ModuleResolver(this);
+    var moduleResolver = new ModuleResolver(this, decl.Options);
     return moduleResolver.ResolveModuleDeclaration(compilation, decl);
   }
 
@@ -183,7 +189,7 @@ public class ProgramResolver {
   }
 
   /// <summary>
-  /// Check that now two modules that are being compiled have the same CompileName.
+  /// Check that no two modules that are being compiled have the same CompileName.
   ///
   /// This could happen if they are given the same name using the 'extern' declaration modifier.
   /// </summary>
@@ -192,20 +198,40 @@ public class ProgramResolver {
     // Check that none of the modules have the same CompileName.
     Dictionary<string, ModuleDefinition> compileNameMap = new Dictionary<string, ModuleDefinition>();
     foreach (ModuleDefinition m in program.CompileModules) {
-      var compileIt = true;
-      Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
-      if (m.IsAbstract || !compileIt) {
+      if (!m.CanCompile() || !ShouldCompile(m)) {
         // the purpose of an abstract module is to skip compilation
         continue;
       }
 
       string compileName = m.GetCompileName(Options);
       if (compileNameMap.TryGetValue(compileName, out var priorModDef)) {
-        Reporter.Error(MessageSource.Resolver, m.tok,
+        Reporter.Error(MessageSource.Resolver, m.Origin,
           "modules '{0}' and '{1}' both have CompileName '{2}'",
-          priorModDef.tok.val, m.tok.val, compileName);
+          priorModDef.Origin.val, m.Origin.val, compileName);
       } else {
         compileNameMap.Add(compileName, m);
+      }
+    }
+  }
+
+  public static bool ShouldCompile(IAttributeBearingDeclaration m) {
+    var compileIt = true;
+    Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
+    return compileIt;
+  }
+
+  protected void InstantiateReplaceableModules(Program dafnyProgram) {
+    foreach (var compiledModule in dafnyProgram.Modules().OrderByDescending(m => m.Height)) {
+      if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
+        var target = compiledModule.Implements.Target.Def;
+        var replacement = Program.Replacements.GetValueOrDefault(target);
+        if (replacement != null) {
+          Reporter!.Error(MessageSource.Resolver, new NestedOrigin(compiledModule.Origin, replacement.Origin,
+              $"other replacing module"),
+            "a replaceable module may only be replaced once");
+        } else {
+          Program.Replacements[target] = Program.Replacements.GetValueOrDefault(compiledModule, compiledModule);
+        }
       }
     }
   }
@@ -221,17 +247,18 @@ public class ProgramResolver {
   private void ProcessDependenciesDefinition(LiteralModuleDecl literalDecl, ModuleBindings bindings,
     IDictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers) {
     var module = literalDecl.ModuleDef;
-    if (module.RefinementQId != null) {
-      bool res = bindings.ResolveQualifiedModuleIdRootRefines(literalDecl.ModuleDef, module.RefinementQId, out var other);
-      module.RefinementQId.Root = other;
+    if (module.Implements != null) {
+      var refinementTarget = module.Implements.Target;
+      bool res = bindings.ResolveQualifiedModuleIdRootRefines(literalDecl.ModuleDef, refinementTarget, out var other);
+      refinementTarget.Root = other;
       if (!res) {
-        Reporter.Error(MessageSource.Resolver, module.RefinementQId.RootToken(),
-          $"module {module.RefinementQId} named as refinement base does not exist");
+        Reporter.Error(MessageSource.Resolver, refinementTarget.RootToken(),
+          $"module {module.Implements.Target} named as {module.Implements.Kind.ToString().ToLower()} base does not exist");
       } else {
-        declarationPointers.AddOrUpdate(other, v => module.RefinementQId.Root = v, Util.Concat);
+        declarationPointers.AddOrUpdate(other, v => refinementTarget.Root = v, Util.Concat);
         if (other is LiteralModuleDecl otherLiteral && otherLiteral.ModuleDef == module) {
-          Reporter.Error(MessageSource.Resolver, module.RefinementQId.RootToken(), "module cannot refine itself: {0}",
-            module.RefinementQId.ToString());
+          Reporter.Error(MessageSource.Resolver, refinementTarget.RootToken(), "module cannot refine itself: {0}",
+            module.Implements.Target.ToString());
         } else {
           Contract.Assert(other != null); // follows from postcondition of TryGetValue
           dependencies.AddEdge(literalDecl, other);
@@ -256,12 +283,17 @@ public class ProgramResolver {
         continue;
       }
 
-      dependencies.AddEdge(literalDecl, moduleDecl);
+      if (toplevel is ModuleExportDecl) {
+        dependencies.AddEdge(moduleDecl, literalDecl);
+      } else {
+        dependencies.AddEdge(literalDecl, moduleDecl);
+      }
+
       var subBindings = bindings.SubBindings(moduleDecl.Name);
       ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
-      if (!module.IsAbstract && moduleDecl is AbstractModuleDecl && ((AbstractModuleDecl)moduleDecl).QId.Root != null) {
-        Reporter.Error(MessageSource.Resolver, moduleDecl.tok,
-          "The abstract import named {0} (using :) may only be used in an abstract module declaration",
+      if (module.ModuleKind == ModuleKindEnum.Concrete && (moduleDecl as AbstractModuleDecl)?.QId.Root != null) {
+        Reporter.Error(MessageSource.Resolver, moduleDecl.Origin,
+          "The abstract import named {0} (using :) may only be used in an abstract or replaceable module declaration",
           moduleDecl.Name);
       }
     }
@@ -277,7 +309,7 @@ public class ProgramResolver {
       // each enclosing module.
       if (!bindings.ResolveQualifiedModuleIdRootImport(aliasDecl, aliasDecl.TargetQId, out var root)) {
         //        if (!bindings.TryLookupFilter(alias.TargetQId.rootToken(), out root, m => alias != m)
-        Reporter.Error(MessageSource.Resolver, aliasDecl.tok, ModuleNotFoundErrorMessage(0, aliasDecl.TargetQId.Path));
+        Reporter.Error(MessageSource.Resolver, aliasDecl.TargetQId.Origin, ModuleNotFoundErrorMessage(0, aliasDecl.TargetQId.Path));
       } else {
         aliasDecl.TargetQId.Root = root;
         declarationPointers.AddOrUpdate(root, v => aliasDecl.TargetQId.Root = v, Util.Concat);
@@ -287,7 +319,7 @@ public class ProgramResolver {
       if (!bindings.ResolveQualifiedModuleIdRootAbstract(abstractDecl, abstractDecl.QId, out var root)) {
         //if (!bindings.TryLookupFilter(abs.QId.rootToken(), out root,
         //  m => abs != m && (((abs.EnclosingModuleDefinition == m.EnclosingModuleDefinition) && (abs.Exports.Count == 0)) || m is LiteralModuleDecl)))
-        Reporter.Error(MessageSource.Resolver, abstractDecl.tok, ModuleNotFoundErrorMessage(0, abstractDecl.QId.Path));
+        Reporter.Error(MessageSource.Resolver, abstractDecl.Origin, ModuleNotFoundErrorMessage(0, abstractDecl.QId.Path));
       } else {
         abstractDecl.QId.Root = root;
         declarationPointers.AddOrUpdate(root, v => abstractDecl.QId.Root = v, Util.Concat);

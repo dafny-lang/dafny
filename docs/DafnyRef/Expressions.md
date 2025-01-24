@@ -459,7 +459,7 @@ The _specification_ is a list of clauses `requires E` or
 expression.
 
 _body_ is an expression that defines the function's return
-value.  The body must be well-formed for all possible values of the
+value.  The body must be [well-formed](#sec-assertion-batches) for all possible values of the
 parameters that satisfy the precondition (just like the bodies of
 named functions and methods).  In some cases, this means it is
 necessary to write explicit `requires` and `reads` clauses.  For
@@ -468,7 +468,7 @@ example, the lambda expression
 ```dafny
 x requires x != 0 => 100 / x
 ```
-would not be well-formed if the `requires` clause were omitted,
+would not be [well-formed](#sec-assertion-batches) if the `requires` clause were omitted,
 because of the possibility of division-by-zero.
 
 In settings where functions cannot be partial and there are no
@@ -632,6 +632,7 @@ old(x)
 allocated(x)
 unchanged(x)
 fresh(e)
+assigned(x)
 ```
 
 These expressions are never l-values. They include
@@ -644,6 +645,7 @@ These expressions are never l-values. They include
 - [unchanged expressions](#sec-unchanged-expression)
 - [old expressions](#sec-old-expression)
 - [cardinality expressions](#sec-cardinality-expression)
+- [assigned expressions](#sec-assigned-expression)
 
 ## 9.20. Literal Expressions ([grammar](#g-literal-expression)} {#sec-literal-expression}
 
@@ -900,7 +902,6 @@ Examples:
 ```dafny
 allocated(c)
 allocated({c1,c2})
-allocated@L(c)
 ```
 
 For any expression `e`, the expression `allocated(e)` evaluates to `true`
@@ -1374,7 +1375,7 @@ where the bound variable is of a reference type. In non-ghost contexts,
 it is not allowed, because--even though the resulting set would be
 finite--it is not pleasant or practical to compute at run time.
 
-[^set-of-objects-not-in-functions]: In order to be deterministic, the result of a function should only depend on the arguments and of the objects  it [reads](#sec-reads-clause), and Dafny does not provide a way to explicitly pass the entire heap as the argument to a function. See [this post](https://github.com/dafny-lang/dafny/issues/1366#issuecomment-906785889) for more insights.
+[^set-of-objects-not-in-functions]: In order to be deterministic, the result of a function should only depend on the arguments and of the objects  it [reads](#sec-reads-clause), and Dafny does not provide a way to explicitly pass the entire heap as the argument to a function. See [this post](https://github.com/dafny-lang/dafny/issues/1366) for more insights.
 
 The universe in which set comprehensions are evaluated is the set of all
 _allocated_ objects, of the appropriate type and satisfying the given predicate.
@@ -1717,7 +1718,7 @@ e[ .. ]
 A subsequence suffix applied to a sequence produces a new sequence whose
 elements are taken from a contiguous part of the original sequence. For
 example, expression `s[lo..hi]` for sequence `s`, and integer-based
-numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
+numeric bounds `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
 [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
 A subsequence suffix applied to an array produces a _sequence_ consisting of 
@@ -1852,7 +1853,54 @@ value for each optional parameter, and must never name
 non-existent formals. Any optional parameter that is not given a value
 takes on the default value declared in the callee for that optional parameter.
 
-## 9.37. Compile-Time Constants {#sec-compile-time-constants}
+## 9.37. Assigned Expressions {#sec-assigned-expression}
+
+Examples:
+<!-- %no-check -->
+```dafny
+assigned(x)
+```
+
+For any variable, constant, out-parameter, or object field `x`,
+the expression `assigned(x)` evaluates to `true` in a state
+if `x` is definitely assigned in that state.
+
+See [Section 12.6](#sec-definite-assignment) for more details on definite assignment.
+
+## 9.38. Termination Ordering Expressions {#sec-termination-ordering-expressions}
+
+When proving that a loop or recursive callable terminates, Dafny
+automatically generates a proof obligation that the sequence of
+expressions listed in a `decreases` clause gets smaller (in the
+[lexicographic termination ordering](#sec-decreases-clause)) with each
+iteration or recursive call. Normally, this proof obligation is purely
+internal. However, it can be written as a Dafny expression using the
+`decreases to` operator.
+
+The Boolean expression `(a, ..., b decreases to a', ..., b')` encodes
+this ordering. (The parentheses can be omitted if there is exactly 1 left-hand side
+and exactly 1 right-hand side.) For example, the following assertions are valid:
+<!-- %check-verify -->
+```dafny
+method M(x: int, y: int) {
+  assert 1 decreases to 0;
+  assert (true, false decreases to false, true);
+  assert (x, y decreases to x - 1, y);
+}
+```
+
+Conversely, the following assertion is invalid:
+<!-- %check-verify Expressions.5.expect -->
+```dafny
+method M(x: int, y: int) {
+  assert x decreases to x + 1;
+}
+```
+
+The `decreases to` operator is strict, that is, it means "strictly greater than".
+The `nonincreases to` operator is the non-strict ("greater than or equal") version of it.
+
+## 9.39. Compile-Time Constants {#sec-compile-time-constants}
 
 In certain situations in Dafny it is helpful to know what the value of a
 constant is during program analysis, before verification or execution takes
@@ -1893,7 +1941,7 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 
 [^CTC]: This set of operations that are constant-folded may be enlarged in future versions of `dafny`.
 
-## 9.38. List of specification expressions {#sec-list-of-specification-expressions}
+## 9.40. List of specification expressions {#sec-list-of-specification-expressions}
 
 The following is a list of expressions that can only appear in specification contexts or in ghost blocks.
 
@@ -1901,5 +1949,7 @@ The following is a list of expressions that can only appear in specification con
 * [Allocated expressions](#sec-allocated-expression)
 * [Unchanged expressions](#sec-unchanged-expression)
 * [Old expressions](#sec-old-expression)
+- [Assigned expressions](#sec-assigned-expression)
 * [Assert and calc expressions](#sec-statement-in-an-expression)
 * [Hash Calls](#sec-hash-call)
+* [Termination ordering expression](#sec-termination-ordering-expressions)

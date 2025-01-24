@@ -1,2 +1,0 @@
-Dafny can now produce coverage reports indicating which parts of the program are expected to be covered by automatically generated tests. 
-The same functionality can be used to report other forms of coverage.

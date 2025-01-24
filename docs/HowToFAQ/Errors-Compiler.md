@@ -74,7 +74,7 @@ For example, [`type T(00)` indicates that the type `T` is non-empty](../DafnyRef
 
 ## **Error: since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option** {#c_iterators_are_not_deterministic}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 iterator Gen(start: int) yields (x: int)
   yield ensures |xs| <= 10 && x == start + |xs| - 1
@@ -106,11 +106,11 @@ Programs containing iterators without bodies can be verified.
 However, a body-less iterator is an unchecked assumption (even if it is ghost).
 Consequently, like body-less functions and loops, dafny will not
 compile a program containing an iterator without a body.
-Furthermore, if the iterator is non-ghost, it cannot be executed if it does not have a body.
+Furthermore, if the iterator is non-ghost, it cannot be compiled if it does not have a body.
 
 ## **Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option** {#c_constructorless_class_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 class A { var j: int }
 ```
@@ -121,7 +121,7 @@ Consequently an explicit constructor is required.
 
 ## **Error: The method '_name_' is not permitted as a main method (_reason_).** {#c_method_may_not_be_main_method}
 
-<!-- %check-legacy %options -compile:2 -Main:mmm -->
+<!-- %check-run %options --main-method:mmm -->
 ```dafny
 method mmm(i: int) {}
 ```
@@ -140,7 +140,7 @@ Most commonly and for clarity, the intended main method is marked with the attri
 
 ## **Error: Could not find the method named by the -Main option: _name_** {#c_could_not_find_stipulated_main_method}
 
-<!-- %check-legacy %options /compile:2 -Main:m -->
+<!-- %check-run %options --main-method:m -->
 ```dafny
 class A { static method mm() {} }
 ```
@@ -209,7 +209,7 @@ This error occurs if the `Main` method that is found
 does not qualify as a main entry point because it violates one or more of the [rules](#sec-user-guide-main),
 as given by the reason in the error message.
 
-## **Error: Function _name_ has no body** {#c_function_has_no_body}
+## **Error: Function _name_ has no body so it cannot be compiled** {#c_function_has_no_body}
 
 <!-- %check-run -->
 ```dafny
@@ -242,7 +242,7 @@ a mock object for methods that do not have bodies.
 It is currently only available for compiling to C# and in conjunction with the Moq library.
 See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
 
-## **Error: Method _name_ has no body** {#c_method_has_no_body}
+## **Error: Method _name_ has no body so it cannot be compiled** {#c_method_has_no_body}
 
 <!-- %check-run -->
 ```dafny
@@ -253,7 +253,7 @@ To be part of a compiled program, each method must have a body.
 Ghost methods are the equivalent of unchecked assumptions
 so they too must have bodies.
 
-## **Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)** {#c_assume_statement_may_not_be_compiled}
+## **Warning: assume statement has no {:axiom} annotation** {#r_assume_statement_without_axiom}
 
 <!-- %check-run -->
 ```dafny
@@ -262,13 +262,6 @@ method m(x: int) {
 }
 ```
 
-A method may be parsed and verified even if an [assume statement](../DafnyRef/DafnyRef#sec-assume-statement) is present. 
-However, the assume statement is an explicit, unchecked assumption.
-Dafny does not allow programs with unchecked assumptions, that is, incompletely verified programs, to be compiled.
-The `{:axiom}` attribute can be used to tell Dafny that the assumption is to be considered an
-externally verified _axiom_, with the program author taking responsibility for its validity.
-
-If the assumption marked with `{:axiom}` is not actually valid, then the validity of the entire program is in question.
 
 ## **Error: a forall statement without a body cannot be compiled** {#c_forall_statement_has_no_body}
 
@@ -305,7 +298,7 @@ Body-less loops in ghost methods are similar to unchecked assumptions.
 
 ## **Error: nondeterministic assignment forbidden by the --enforce-determinism option** {#c_nondeterminism_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m() {
   var x: int;
@@ -326,7 +319,7 @@ There are a few different forms of this kind of assignment:
 
 ## **Error: assign-such-that statement forbidden by the --enforce-determinism option** {#c_assign_such_that_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m() {
   var x: int;
@@ -349,7 +342,7 @@ However, in this case the expression is too complex for Dafny's heuristics.
 
 ## **Error: nondeterministic if statement forbidden by the --enforce-determinism option** {#c_nondeterministic_if_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m() {
 var y: int;
@@ -386,7 +379,7 @@ whether there is a reasonable way to compute a value.)
 
 ## **Error: case-based if statement forbidden by the --enforce-determinism option** {#c_case_based_if_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m(k: int) {
   var i := k;
@@ -408,7 +401,7 @@ To enforce a deterministic order to the evaluation, use a chain of if-then-else 
 
 ## **Error: nondeterministic loop forbidden by the --enforce-determinism option** {#c_non_deterministic_loop_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m(b: bool) decreases * {
   while * 
@@ -423,7 +416,7 @@ Hence this 'non-deterministic while' (`while *`) statement is not permitted with
 
 ## **Error: case-based loop forbidden by the --enforce-determinism option** {#c_case_based_loop_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m(k: int) {
   var i := k;
@@ -452,7 +445,7 @@ _The documentation of this problem is in progress._
 
 ## **Error: modify statement without a body forbidden by the --enforce-determinism option** {#c_bodyless_modify_statement_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 class A { constructor A(){}}
 

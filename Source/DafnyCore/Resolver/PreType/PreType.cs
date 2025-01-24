@@ -26,18 +26,49 @@ namespace Microsoft.Dafny {
   /// See also the description of https://github.com/dafny-lang/dafny/pull/3795.
   /// </summary>
   public abstract class PreType {
+    public const string TypeNameBool = "bool";
+    public const string TypeNameChar = "char";
+    public const string TypeNameInt = "int";
+    public const string TypeNameReal = "real";
+    public const string TypeNameORDINAL = "ORDINAL";
+    public const string TypeNameBvPrefix = "bv";
+    public const string TypeNameSet = "set";
+    public const string TypeNameIset = "iset";
+    public const string TypeNameSeq = "seq";
+    public const string TypeNameMultiset = "multiset";
+    public const string TypeNameMap = "map";
+    public const string TypeNameImap = "imap";
+    public const string TypeNameObjectQ = "object?";
+    public const string TypeNameArray = "array";
+
+    public static string SetTypeName(bool finite) => finite ? TypeNameSet : TypeNameIset;
+    public static string MapTypeName(bool finite) => finite ? TypeNameMap : TypeNameImap;
 
     /// <summary>
     /// Normalize() follows the pre-type to which a pre-type proxy has been resolved, if any.
-    ///
-    /// This method is analogous to Type.Normalize(). Since pre-types don't keep track of
-    /// type synonyms or subset types, there is no need for PreType methods that are analogous
-    /// to Type.NormalizeExpandKeepConstraints() and Type.NormalizeExpand().
     /// </summary>
     public PreType Normalize() {
       var t = this;
-      while (t is PreTypeProxy proxy && proxy.PT != null) {
-        t = proxy.PT;
+      while (t is PreTypeProxy { PT: { } proxyFor }) {
+        t = proxyFor;
+      }
+      return t;
+    }
+
+    /// <summary>
+    /// NormalizeWrtScope() does a little more than Normalize(). Namely, if the normalized
+    /// pre-type refers to a declaration that is not in scope, then what is returned is a
+    /// pre-type around the InternalSynonymDecl that stands for the out-of-scope type.
+    /// </summary>
+    public PreType NormalizeWrtScope() {
+      var t = Normalize();
+      if (t is DPreType dPreType) {
+        if (dPreType.PrintablePreType != null) {
+          dPreType = dPreType.PrintablePreType;
+        }
+        if (dPreType.Decl is RevealableTypeDecl rtd && !rtd.IsRevealedInScope(Type.GetScope())) {
+          return new DPreType(rtd.SynonymInfo.SelfSynonymDecl, dPreType.Arguments, dPreType.PrintablePreType);
+        }
       }
       return t;
     }
@@ -67,7 +98,7 @@ namespace Microsoft.Dafny {
       var pt = this;
       while (true) {
         pt = pt.Normalize();
-        if (pt is DPreType preType && preType.Decl is NewtypeDecl newtypeDecl) {
+        if (pt is DPreType { Decl: NewtypeDecl newtypeDecl } preType) {
           // expand the newtype into its base type
           var subst = PreTypeSubstMap(newtypeDecl.TypeArgs, preType.Arguments);
           var basePreType = ptResolver.Type2PreType(newtypeDecl.BaseType);
@@ -82,12 +113,12 @@ namespace Microsoft.Dafny {
     public DPreType AsCollectionPreType() {
       if (Normalize() is DPreType dp) {
         switch (dp.Decl.Name) {
-          case "set":
-          case "iset":
-          case "seq":
-          case "multiset":
-          case "map":
-          case "imap":
+          case TypeNameSet:
+          case TypeNameIset:
+          case TypeNameSeq:
+          case TypeNameMultiset:
+          case TypeNameMap:
+          case TypeNameImap:
             return dp;
           default:
             break;
@@ -95,6 +126,8 @@ namespace Microsoft.Dafny {
       }
       return null;
     }
+
+    public bool IsRefType => Normalize() is DPreType { Decl: ClassLikeDecl { IsReferenceTypeDecl: true } };
 
     /// <summary>
     /// Returns "true" if "proxy" is among the free variables of "this".
@@ -121,7 +154,7 @@ namespace Microsoft.Dafny {
 
     public bool IsLeafType() {
       var t = Normalize();
-      if (!(t is DPreType pt)) {
+      if (t is not DPreType pt) {
         return false;
       } else if (pt.Decl is TraitDecl) {
         return false;
@@ -150,7 +183,7 @@ namespace Microsoft.Dafny {
 
     public bool IsRootType() {
       var t = Normalize();
-      if (!(t is DPreType pt)) {
+      if (t is not DPreType pt) {
         return false;
       } else if (PreTypeResolver.HasTraitSupertypes(pt)) {
         return false;
@@ -180,7 +213,8 @@ namespace Microsoft.Dafny {
 
   public class PreTypeProxy : PreType {
     public readonly int UniqueId;
-    public PreType PT; // filled in by resolution
+
+    [FilledInDuringResolution] public PreType PT { get; private set; }
 
     /// <summary>
     /// There should be just one call to this constructor, namely from PreTypeResolver.CreatePreTypeProxy.
@@ -233,10 +267,19 @@ namespace Microsoft.Dafny {
     public readonly DPreType PrintablePreType;
 
     public DPreType(TopLevelDecl decl, List<PreType> arguments, DPreType printablePreType = null) {
+      Contract.Requires(decl.TypeArgs.Count == arguments.Count);
       Contract.Assume(decl != null);
       Decl = decl;
       Arguments = arguments;
       PrintablePreType = printablePreType;
+    }
+
+    public DPreType SansPrintablePreType() {
+      if (PrintablePreType == null) {
+        return this;
+      } else {
+        return new DPreType(Decl, Arguments);
+      }
     }
 
     public override string ToString() {
@@ -247,16 +290,18 @@ namespace Microsoft.Dafny {
       var name = Decl.Name;
       string s;
       if (IsArrowType(Decl)) {
-        var a0 = Arguments[0].Normalize() as DPreType;
-        if (Arguments.Count == 2 && (a0 == null || (!IsTupleType(a0.Decl) && !IsArrowType(a0.Decl)))) {
-          s = Arguments[0].ToString();
-        } else {
-          s = $"({Util.Comma(Arguments.GetRange(0, Arguments.Count - 1), arg => arg.ToString())})";
-        }
-        s += $" ~> {Arguments.Last()}";
+        s = AnyArrowTypeToString("~>");
+      } else if (ArrowType.IsPartialArrowTypeName(Decl.Name)) {
+        s = AnyArrowTypeToString("-->");
+      } else if (ArrowType.IsTotalArrowTypeName(Decl.Name)) {
+        s = AnyArrowTypeToString("->");
       } else if (IsTupleType(Decl)) {
-        // TODO: for tuple types, sometimes use prefix "ghost"
-        s = $"({Util.Comma(Arguments, arg => arg.ToString())})";
+        var tupleTypeDecl = (TupleTypeDecl)Decl;
+        Contract.Assert(Arguments.Count == tupleTypeDecl.ArgumentGhostness.Count);
+        s = Arguments.Zip(tupleTypeDecl.ArgumentGhostness).Comma(argAndGhost =>
+          (argAndGhost.Second ? "ghost " : "") + argAndGhost.First.ToString()
+        );
+        s = "(" + s + ")";
       } else {
         if (IsReferenceTypeDecl(Decl)) {
           name = name + "?";
@@ -268,6 +313,18 @@ namespace Microsoft.Dafny {
         }
       }
 
+      return s;
+    }
+
+    private string AnyArrowTypeToString(string arrow) {
+      string s;
+      var a0 = Arguments[0].Normalize() as DPreType;
+      if (Arguments.Count == 2 && (a0 == null || (!IsTupleType(a0.Decl) && !IsArrowType(a0.Decl)))) {
+        s = Arguments[0].ToString();
+      } else {
+        s = $"({Util.Comma(Arguments.GetRange(0, Arguments.Count - 1), arg => arg.ToString())})";
+      }
+      s += $" {arrow} {Arguments.Last()}";
       return s;
     }
 
@@ -304,9 +361,21 @@ namespace Microsoft.Dafny {
     }
 
     public override PreType Substitute(Dictionary<TypeParameter, PreType> subst) {
+      DPreType printablePreType = (DPreType)PrintablePreType?.Substitute(subst);
+
       if (Decl is TypeParameter typeParameter) {
         Contract.Assert(Arguments.Count == 0);
-        return subst.GetValueOrDefault(typeParameter, this);
+        var afterSubstitution = subst.GetValueOrDefault(typeParameter, this);
+        if (printablePreType == null) {
+          return afterSubstitution;
+        } else if (printablePreType == PrintablePreType && afterSubstitution == this) {
+          return this;
+        } else if (afterSubstitution is DPreType dPreType) {
+          return new DPreType(dPreType.Decl, dPreType.Arguments, printablePreType);
+        } else {
+          // TODO: it would be nice to have a place to include "printablePreType" as part of what's returned, but currently only DPreType allows that
+          return afterSubstitution;
+        }
       }
 
       // apply substitutions to arguments
@@ -327,7 +396,10 @@ namespace Microsoft.Dafny {
         }
       }
 
-      return newArguments == null ? this : new DPreType(Decl, newArguments);
+      if (newArguments == null && printablePreType == PrintablePreType) {
+        return this;
+      }
+      return new DPreType(Decl, newArguments ?? Arguments, printablePreType);
     }
 
     /// <summary>
@@ -344,13 +416,20 @@ namespace Microsoft.Dafny {
         // we expect the .RHS of an InternalTypeSynonymDecl to be a UserDefinedType whose type arguments
         // are exactly the type parameters
         Contract.Assert(rhsType != null);
-        var cl = rhsType.ResolvedClass;
+        TopLevelDeclWithMembers cl;
+        if (rhsType.ResolvedClass is NonNullTypeDecl nntd) {
+          cl = (TopLevelDeclWithMembers)nntd.ViewAsClass;
+        } else {
+          cl = (TopLevelDeclWithMembers)rhsType.ResolvedClass;
+        }
+
         Contract.Assert(isyn.TypeArgs.Count == cl.TypeArgs.Count);
         for (var i = 0; i < isyn.TypeArgs.Count; i++) {
           var typeParameter = isyn.TypeArgs[i];
           Contract.Assert(typeParameter == cl.TypeArgs[i]);
           Contract.Assert(rhsType.TypeArgs[i] is UserDefinedType { ResolvedClass: var tpDecl } && tpDecl == typeParameter);
         }
+
         decl = cl;
       }
       if (decl == parent) {
@@ -384,10 +463,13 @@ namespace Microsoft.Dafny {
   public class PreTypePlaceholderType : PreTypePlaceholder {
   }
 
-  public class UnusedPreType : PreTypePlaceholder {
+  /// Used for assigning a pre-type to MemberSelect expressions, such as "obj.method",
+  /// which is not considered an expression. This indicates that resolution has occurred,
+  /// even though the pre-type itself is not useful.
+  public class MethodPreType : PreTypePlaceholder {
     public readonly string Why;
 
-    public UnusedPreType(string why) {
+    public MethodPreType(string why) {
       Why = why;
     }
 

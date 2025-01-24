@@ -7,7 +7,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
+using DafnyCore.Test;
 using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
@@ -35,8 +37,9 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = await Parse(new BatchErrorReporter(options), source, false);
+      var methods = await GetTestMethodsForProgram(program);
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "SimpleTest.compareToZero"));
@@ -64,8 +67,9 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = await Parse(new BatchErrorReporter(options), source, false);
+      var methods = await GetTestMethodsForProgram(program);
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.checkIfTrue"));
       Assert.True(methods.All(m =>
@@ -99,8 +103,9 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = await Parse(new BatchErrorReporter(options), source, false);
+      var methods = await GetTestMethodsForProgram(program);
       Assert.True(7 <= methods.Count);
       Assert.True(
         methods.All(m => m.MethodName == "SimpleTest.compareToZero"));
@@ -133,8 +138,9 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = await Parse(new BatchErrorReporter(options), source, false);
+      var methods = await GetTestMethodsForProgram(program);
       Assert.True(3 <= methods.Count);
       Assert.True(
         methods.All(m => m.MethodName == "SimpleTest.compareToBase"));
@@ -165,8 +171,9 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = await Parse(new BatchErrorReporter(options), source, false);
+      var methods = await GetTestMethodsForProgram(program);
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
       Assert.True(methods.All(m =>
@@ -197,8 +204,9 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = await Parse(new BatchErrorReporter(options), source, false);
+      var methods = await GetTestMethodsForProgram(program);
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
       Assert.True(methods.All(m =>
@@ -207,7 +215,7 @@ module SimpleTest {
       Assert.True(methods.All(m => m.ValueCreation.Count == 0));
       Assert.True(methods.Exists(m => m.ArgValues[0] == "'B'"));
       Assert.True(methods.Exists(m =>
-        Regex.IsMatch(m.ArgValues[0], "'[^B]'")));
+        Regex.IsMatch(m.ArgValues[0], "'[^B]+'")));
     }
 
   }

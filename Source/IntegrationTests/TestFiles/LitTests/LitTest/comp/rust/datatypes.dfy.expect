@@ -1,0 +1,8 @@
+
+Dafny program verifier finished with 5 verified, 0 errors
+DatatypeTests.Recursive.Recursive(1, DatatypeTests.Recursive.Recursive(0, null))
+3
+None
+3
+null
+3

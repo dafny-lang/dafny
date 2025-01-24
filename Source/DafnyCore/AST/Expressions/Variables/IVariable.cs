@@ -19,20 +19,27 @@ public interface IVariable : ISymbol {
   bool HasBeenAssignedUniqueName {  // unique names are not assigned until the Translator; if you don't already know if that stage has run, this boolean method will tell you
     get;
   }
-  static FreshIdGenerator CompileNameIdGenerator = new FreshIdGenerator();
-  string AssignUniqueName(FreshIdGenerator generator);
-  string SanitizedName {
-    get;
-  }
-  string CompileName {
-    get;
-  }
+  string AssignUniqueName(VerificationIdGenerator generator);
+
+  /// <summary>
+  /// A name suitable for compilation, but without the unique identifier.
+  /// Useful to generate readable identifiers in the generated source code.
+  /// </summary>
+  string CompileNameShadowable { get; }
+  string GetOrCreateCompileName(CodeGenIdGenerator generator);
 
   PreType PreType {
     get;
     set;
   }
   Type Type {
+    get;
+  }
+
+  /// <summary>
+  /// For a description of the difference between .Type and .UnnormalizedType, see Expression.UnnormalizedType.
+  /// </summary>
+  Type UnnormalizedType {
     get;
   }
   Type OptionalType {

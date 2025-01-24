@@ -15,13 +15,12 @@ using Token = Microsoft.Boogie.Token;
 namespace DafnyTestGeneration.Inlining;
 
 /// <summary>
-/// Create implementations for all "Call$$" procedures by making them
+/// Create implementations for all "CallPost$$" procedures by making them
 /// call the respective "Impl$$ implementations. This allows to implement
 /// inlining of Dafny methods further down the road.
 /// </summary>
 public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
 
-  private const string CallPrefix = "Call$$";
   private readonly DafnyOptions options;
   private List<Implementation> implsToAdd = new();
 
@@ -32,7 +31,7 @@ public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
   }
 
   public override Procedure /*?*/ VisitProcedure(Procedure /*?*/ node) {
-    if (node == null || !node.Name.StartsWith(CallPrefix) ||
+    if (node == null || !node.Name.StartsWith(BoogieGenerator.CallPrefix + BoogieGenerator.NameSeparator) ||
         node.Name.EndsWith(ProgramModifier.CtorPostfix)) {
       return node;
     }
@@ -80,6 +79,19 @@ public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
     callerImpl.Proc = node;
     implsToAdd.Add(callerImpl);
     return node;
+  }
+
+  public override Implementation VisitImplementation(Implementation node) {
+    this.VisitVariableSeq(node.LocVars);
+    this.VisitBlockList(node.Blocks);
+    if (node.Proc is not null) {
+      // TODO: The overall test generation code should be refactored so that
+      // this case can't occur. The default visitor for Implementation nodes
+      // has an invariant that node.Proc is never null. That invariant did
+      // not lead to an NPE until Boogie 3.0.1, however.
+      node.Proc = (Procedure)node.Proc.StdDispatch((StandardVisitor)this);
+    }
+    return (Implementation)this.VisitDeclWithFormals((DeclWithFormals)node);
   }
 
   public override Program VisitProgram(Program node) {

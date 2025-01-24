@@ -1,0 +1,8 @@
+git-issue-952.dfy(35,6): Error: assertion might not hold
+git-issue-952.dfy(38,6): Error: assertion might not hold
+git-issue-952.dfy(71,6): Error: assertion might not hold
+git-issue-952.dfy(74,6): Error: assertion might not hold
+git-issue-952.dfy(100,6): Error: assertion might not hold
+git-issue-952.dfy(103,6): Error: assertion might not hold
+
+Dafny program verifier finished with 4 verified, 6 errors

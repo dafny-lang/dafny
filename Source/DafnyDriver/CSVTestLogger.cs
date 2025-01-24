@@ -12,7 +12,7 @@ namespace Microsoft.Dafny {
 
     private readonly ConcurrentBag<TestResult> results = new();
     private TextWriter writer;
-    private TextWriter logWriter;
+    private readonly TextWriter logWriter;
     private string writerFilename;
 
     public CSVTestLogger(TextWriter logWriter) {
@@ -70,14 +70,16 @@ namespace Microsoft.Dafny {
     }
 
     private void TestRunCompleteHandler(object sender, TestRunCompleteEventArgs e) {
-      writer.WriteLine("TestResult.DisplayName,TestResult.Outcome,TestResult.Duration,TestResult.ResourceCount");
+      writer.WriteLine("TestResult.DisplayName,TestResult.Outcome,TestResult.Duration,TestResult.ResourceCount,RandomSeed");
       foreach (var result in results.OrderByDescending(r => r.Duration)) {
-        var resCount = result.GetPropertyValue(VerificationResultLogger.ResourceCountProperty);
-        writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration},{resCount}");
+        var resourceCount = result.GetPropertyValue(VerificationResultLogger.ResourceCountProperty);
+        var randomSeed = result.GetPropertyValue(VerificationResultLogger.RandomSeedProperty) ?? "unknown";
+        writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration},{resourceCount},{randomSeed}");
       }
 
-      writer.Close();
+      writer.Flush();
       logWriter.WriteLine("Results File: " + Path.GetFullPath(writerFilename));
+      logWriter.Flush();
     }
   }
 }

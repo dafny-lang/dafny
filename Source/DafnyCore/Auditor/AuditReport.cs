@@ -36,7 +36,7 @@ public class AuditReport {
     }
   }
   public void AddAssumptions(Declaration decl, IEnumerable<Assumption> assumptions) {
-    var explicitAssumptions = assumptions.Where(a => a.desc.isExplicit);
+    var explicitAssumptions = assumptions.Where(a => a.desc.IsExplicit);
     var assumptionsToAdd = explicitAssumptions.Any() ? explicitAssumptions : assumptions;
     if (assumptionsToAdd.Any()) {
       assumptionsByDecl.Add(decl, assumptionsToAdd);
@@ -81,7 +81,7 @@ public class AuditReport {
 
   private string RenderAssumptionRows(Declaration decl, IEnumerable<Assumption> assumptions, string beg, string sep, string end, Func<string, string> targetFormatter) {
     var rows = assumptions
-      .Select(a => RenderRow(beg, sep, end, IssueRow(decl, a, a.desc.issue, a.desc.mitigation, targetFormatter)));
+      .Select(a => RenderRow(beg, sep, end, IssueRow(decl, a, a.desc.Issue, a.desc.Mitigation, targetFormatter)));
     return String.Concat(rows);
   }
 
@@ -112,8 +112,8 @@ public class AuditReport {
   }
 
   private void AppendMarkdownIETFDescription(AssumptionDescription desc, StringBuilder text) {
-    var issue = Assumption.UpdateVerbatim(desc.issue, "`", "`");
-    var mitigation = Assumption.UpdateVerbatim(desc.mitigationIETF, "`", "`");
+    var issue = Assumption.UpdateVerbatim(desc.Issue, "`", "`");
+    var mitigation = Assumption.UpdateVerbatim(desc.MitigationIetf, "`", "`");
     text.AppendLine("");
     text.AppendLine($"* {issue} {mitigation}");
   }
@@ -122,7 +122,7 @@ public class AuditReport {
     StringBuilder text = new StringBuilder();
 
     foreach (var module in modulesWithEntries) {
-      if (module.IsDefaultModule) {
+      if (module.TryToAvoidName) {
         text.AppendLine($"# Default module");
       } else {
         text.AppendLine($"# Module `{module.Name}`");
@@ -167,7 +167,7 @@ public class AuditReport {
 
     foreach (var (decl, assumptions) in assumptionsByDecl) {
       foreach (var assumption in assumptions) {
-        text.AppendLine($"{decl.tok.TokenToString(options)}:{assumption.Warning()}");
+        text.AppendLine($"{decl.Origin.TokenToString(options)}:{assumption.Warning()}");
       }
     }
 
@@ -190,7 +190,7 @@ public class AuditReport {
           continue;
         }
         foreach (var decl in topLevelDeclWithMembers.Members) {
-          if (decl.tok.FromIncludeDirective(program)) {
+          if (decl.Origin.FromIncludeDirective(program)) {
             // Don't audit included code
             continue;
           }

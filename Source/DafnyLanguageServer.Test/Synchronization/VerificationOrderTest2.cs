@@ -161,6 +161,7 @@ method m5() { assert false; } //Remove4:
         await CompareWithExpectation(expectedSymbols);
       }
     }
+    WriteVerificationHistory();
   }
 
   private IEnumerable<string> GetSymbols(string code, List<Position> positions) {

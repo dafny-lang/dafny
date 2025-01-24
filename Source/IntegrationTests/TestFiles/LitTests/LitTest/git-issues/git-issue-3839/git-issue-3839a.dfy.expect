@@ -1,0 +1,5 @@
+git-issue-3839a.dfy(4,15): Error: Methods with the :test attribute may not have input arguments
+git-issue-3839a.dfy(10,15): Error: Methods with the :test attribute may not have type parameters
+git-issue-3839a.dfy(14,15): Error: Methods with the :test attribute may not have type parameters
+git-issue-3839a.dfy(18,18): Error: Methods with the :test attribute may not have type parameters
+4 resolution/type errors detected in git-issue-3839a.dfy

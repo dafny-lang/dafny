@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 env:
-  dotnet-version: 6.0.x # SDK Version for running Dafny (TODO: should this be an older version?)
+  dotnet-version: 8.0.x # SDK Version for running Dafny (TODO: should this be an older version?)
   z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02
 
 concurrency:
@@ -32,18 +32,18 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-22.04, ubuntu-20.04, macos-11, windows-2019 ]
+        os: [ ubuntu-22.04, ubuntu-20.04, macos-13, windows-2019 ]
 
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
     - name: Set up JDK 18
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: 18
         distribution: corretto
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: Load Z3
@@ -85,13 +85,13 @@ jobs:
         excludes: prerelease, draft
     - name: Verify Dafny version
       if: "${{ steps.dafny.outputs.release != '' }}"
-      run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -iE "Dafny "${version:1}".[0-9]{5}"
+      run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -iE "Dafny "${version:1}".[0-9]+"
       shell: bash
     ## Check that a simple program compiles and runs on each supported platform
     ## Now that the dotnet tool distribution doesn't include the Scripts,
     ## so we need to clone the repository to get them.
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         path: dafny-repo
@@ -111,7 +111,7 @@ jobs:
         # but note we need to skip Dafny since nuget install doesn't work for dotnet tools.
         library-name: [ DafnyPipeline, DafnyServer, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-13, windows-2019 ]
 
     steps:
     # Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)

@@ -11,10 +11,10 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
   public readonly List<AttributedExpression> Ens;
   public readonly Statement Body;
   [FilledInDuringResolution]
-  public List<Expression> ForallExpressions;   // fill in by rewriter.
+  public List<Expression> EffectiveEnsuresClauses;   // fill in by rewriter.
   public bool CanConvert = true; //  can convert to ForallExpressions
 
-  [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Bounds;
+  [FilledInDuringResolution] public List<BoundedPool> Bounds;
   // invariant: if successfully resolved, Bounds.Count == BoundVars.Count;
 
   /// <summary>
@@ -53,40 +53,40 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
     BoundVars = original.BoundVars.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
     Range = cloner.CloneExpr(original.Range);
     Ens = original.Ens.Select(cloner.CloneAttributedExpr).ToList();
-    Body = cloner.CloneStmt(original.Body);
+    Body = cloner.CloneStmt(original.Body, false);
     Attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
       Bounds = original.Bounds.ConvertAll(bp => bp.Clone(cloner));
       Kind = original.Kind;
-      ForallExpressions = original.ForallExpressions?.Select(cloner.CloneExpr).ToList();
+      EffectiveEnsuresClauses = original.EffectiveEnsuresClauses?.Select(cloner.CloneExpr).ToList();
     }
   }
 
-  public ForallStmt(RangeToken rangeToken, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
-    : base(rangeToken, attrs) {
-    Contract.Requires(rangeToken != null);
+  public ForallStmt(IOrigin origin, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
+    : base(origin, attrs) {
+    Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(boundVars));
     Contract.Requires(range != null);
     Contract.Requires(boundVars.Count != 0 || LiteralExpr.IsTrue(range));
     Contract.Requires(cce.NonNullElements(ens));
-    this.BoundVars = boundVars;
-    this.Range = range;
-    this.Ens = ens;
-    this.Body = body;
+    BoundVars = boundVars;
+    Range = range;
+    Ens = ens;
+    Body = body;
   }
 
   public Statement S0 {
     get {
       // dig into Body to find a single statement
-      Statement s = this.Body;
+      Statement s = Body;
       while (true) {
         var block = s as BlockStmt;
         if (block != null && block.Body.Count == 1) {
           s = block.Body[0];
           // dig further into s
-        } else if (s is UpdateStmt) {
-          var update = (UpdateStmt)s;
+        } else if (s is AssignStatement) {
+          var update = (AssignStatement)s;
           if (update.ResolvedStatements?.Count == 1) {
             s = update.ResolvedStatements[0];
             // dig further into s
@@ -126,19 +126,25 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
         foreach (var e in Attributes.SubExpressions(ee.Attributes)) { yield return e; }
         yield return ee.E;
       }
+
+      if (EffectiveEnsuresClauses != null) {
+        foreach (var e in EffectiveEnsuresClauses) {
+          yield return e;
+        }
+      }
     }
   }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (Body is null) {
-      yield return new Assumption(decl, tok, AssumptionDescription.ForallWithoutBody);
+      yield return new Assumption(decl, Origin, AssumptionDescription.ForallWithoutBody);
     }
   }
 
   public List<BoundVar> UncompilableBoundVars() {
     Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
-    var v = ComprehensionExpr.BoundedPool.PoolVirtues.Finite | ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable;
-    return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
+    var v = BoundedPool.PoolVirtues.Finite | BoundedPool.PoolVirtues.Enumerable;
+    return BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
@@ -152,5 +158,32 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
 
     formatter.SetClosingIndentedRegion(EndToken, indentBefore);
     return false;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable || Kind != BodyKind.Assign || ExpressionTester.UsesSpecFeatures(Range);
+    if (proofContext != null && Kind == BodyKind.Assign) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_aggregate_heap_update_in_proof, this, $"{proofContext} is not allowed to perform an aggregate heap update");
+    } else if (Body != null) {
+      Body.ResolveGhostness(resolver, reporter, IsGhost, codeContext,
+        Kind == BodyKind.Assign ? proofContext : "a forall statement", allowAssumptionVariables, inConstructorInitializationPhase);
+    }
+    IsGhost = IsGhost || Body == null || Body.IsGhost;
+
+    if (!IsGhost) {
+      // Since we've determined this is a non-ghost forall statement, we now check that the bound variables have compilable bounds.
+      var uncompilableBoundVars = UncompilableBoundVars();
+      if (uncompilableBoundVars.Count != 0) {
+        foreach (var bv in uncompilableBoundVars) {
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_unknown_bounds_for_forall, this, "forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{0}'", bv.Name);
+        }
+      }
+
+      // If there were features in the range that are treated differently in ghost and non-ghost
+      // contexts, make sure they get treated for non-ghost use.
+      ExpressionTester.CheckIsCompilable(resolver, reporter, Range, codeContext);
+    }
   }
 }

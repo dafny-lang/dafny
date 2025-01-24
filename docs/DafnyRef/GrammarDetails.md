@@ -584,9 +584,9 @@ MethodSignature_(isGhost, isExtreme) =
 KType = "[" ( "nat" | "ORDINAL" ) "]"
 
 Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
-  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, 
+  "(" [ { Attribute } GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword,
                    allowNameOnlyKeyword: true, allowDefault)
-        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword,
+        { "," { Attribute } GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword,
                          allowNameOnlyKeyword: true, allowDefault) }
       ]
   ")"
@@ -782,8 +782,7 @@ InvariantClause_ =
 
 ````grammar
 ReadsClause(allowLemma, allowLambda, allowWild) =
-  "reads"
-  { Attribute }
+  "reads" { Attribute }
   PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild)
   { "," PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) }
 ````
@@ -1143,6 +1142,19 @@ CalcOp =
   )
 ````
 
+#### 17.2.6.24. Opaque block {#g-opaque-block}
+
+([discussion](#sec-opaque-block))
+
+````grammar
+OpaqueBlock = "opaque" OpaqueSpec BlockStmt
+  
+OpaqueSpec = {
+  | ModifiesClause(allowLambda: false)
+  | EnsuresClause(allowLambda: false)
+}
+````
+
 ### 17.2.7. Expressions
 
 #### 17.2.7.1. Top-level expression {#g-top-level-expression}
@@ -1327,7 +1339,7 @@ LambdaExpression(allowLemma, allowBitwiseOps) =
   Expression(allowLemma, allowLambda: true, allowBitwiseOps)
 ````
 
-#### 17.2.7.14. Left-hand-side expression #g-lhs-expression}
+#### 17.2.7.14. Left-hand-side expression {#g-lhs-expression}
 ([discussion](#sec-lhs-expression)) {
 
 ````grammar
@@ -1619,7 +1631,7 @@ MapComprehensionExpr(allowLemma, allowLambda) =
 
 ````grammar
 StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
-             | RevealStmt | CalcStmt
+             | RevealStmt | CalcStmt | ForallStmt
              )
 ````
 
@@ -1824,6 +1836,7 @@ LocalIdentTypeOptional = WildIdent [ ":" Type ]
 IdentTypeOptional = WildIdent [ ":" Type ]
 
 TypeIdentOptional =
+  { Attribute }
   { "ghost" | "nameonly" } [ NoUSIdentOrDigits ":" ] Type
   [ ":=" Expression(allowLemma: true, allowLambda: true) ]
 

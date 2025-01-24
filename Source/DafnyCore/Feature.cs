@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -98,8 +97,7 @@ public enum Feature {
     with the statement's body directly inside. The alternative, default compilation strategy
     is to calculate the quantified variable bindings separately as a collection of tuples,
     and then execute the statement's body for each tuple.
-    Not all `forall` statements can be sequentialized; See [the implementation](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/Compilers/SinglePassCompiler.cs#L3493-L3528)
-    for details.")]
+    Not all `forall` statements can be sequentialized.")]
   NonSequentializableForallStatements,
 
   [FeatureDescription("Taking an array's length", "sec-array-type")]
@@ -163,8 +161,14 @@ public enum Feature {
   [FeatureDescription("Subtype constraints in quantifiers", "sec-quantifier-expression")]
   SubtypeConstraintsInQuantifiers,
 
-  [FeatureDescription("Tuples with more than 20 arguments", "sec-tuple-types")]
+  [FeatureDescription("Tuples with more than 20 arguments", "#sec-compilation-built-ins")]
   TuplesWiderThan20,
+
+  [FeatureDescription("Arrays with more than 16 dimensions", "#sec-compilation-built-ins")]
+  ArraysWithMoreThan16Dims,
+
+  [FeatureDescription("Arrow types with more than 16 arguments", "#sec-compilation-built-ins")]
+  ArrowsWithMoreThan16Arguments,
 
   [FeatureDescription("Unicode chars", "#sec-characters")]
   UnicodeChars,
@@ -177,7 +181,13 @@ public enum Feature {
   LegacyCLI,
 
   [FeatureDescription("Separate compilation", "sec-compilation")]
-  SeparateCompilation
+  SeparateCompilation,
+
+  [FeatureDescription("All built-in types in runtime library", "sec-compilation-built-ins")]
+  BuiltinsInRuntime,
+
+  [FeatureDescription("Execution coverage report", "sec-dafny-test")]
+  RuntimeCoverageReport
 }
 
 public class UnsupportedFeatureException : Exception {
@@ -185,16 +195,32 @@ public class UnsupportedFeatureException : Exception {
   public const string MessagePrefix =
     "Feature not supported for this compilation target: ";
 
-  public readonly IToken Token;
+  public readonly IOrigin Token;
   public readonly Feature Feature;
 
-  public UnsupportedFeatureException(IToken token, Feature feature)
+  public UnsupportedFeatureException(IOrigin token, Feature feature)
     : this(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description) {
 
   }
 
-  public UnsupportedFeatureException(IToken token, Feature feature, string message) : base(message) {
+  public UnsupportedFeatureException(IOrigin token, Feature feature, string message) : base(message) {
     Token = token;
     Feature = feature;
+  }
+}
+
+
+
+public class RecoverableUnsupportedFeatureException : UnsupportedFeatureException {
+
+  public static readonly string MessageSuffix = ". To continue despite this issue, you can compile with the option --" +
+                                       CommonOptionBag.EmitUncompilableCode.Name;
+  public RecoverableUnsupportedFeatureException(IOrigin token, Feature feature)
+    : base(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description + MessageSuffix) {
+  }
+}
+
+public class UnsupportedInvalidOperationException : InvalidOperationException {
+  public UnsupportedInvalidOperationException(string why) : base(typeof(UnsupportedInvalidOperationException).FullName! + ": " + why) {
   }
 }

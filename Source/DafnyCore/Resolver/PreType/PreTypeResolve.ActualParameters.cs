@@ -8,7 +8,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
-using Microsoft.Boogie;
 using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 
 namespace Microsoft.Dafny {
@@ -19,7 +18,7 @@ namespace Microsoft.Dafny {
     /// "typeMap" is applied to the type of each formal.
     /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
     /// </summary>
-    void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext opts,
+    internal void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IOrigin callTok, object context, ResolutionContext opts,
       Dictionary<TypeParameter, PreType> typeMap, Expression/*?*/ receiver) {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);
@@ -88,13 +87,13 @@ namespace Microsoft.Dafny {
             ReportError(binding.FormalParameterName, $"duplicate binding for parameter name '{pname}'");
           }
         } else if (!stillAcceptingPositionalArguments) {
-          ReportError(arg.tok, "a positional argument is not allowed to follow named arguments");
+          ReportError(arg.Origin, "a positional argument is not allowed to follow named arguments");
         } else if (bindingIndex < formals.Count) {
           // use the name of formal corresponding to this positional argument, unless the parameter is name-only
           var formal = formals[bindingIndex];
           var pname = formal.Name;
           if (formal.IsNameOnly) {
-            ReportError(arg.tok, $"nameonly parameter '{pname}' must be passed using a name binding; it cannot be passed positionally");
+            ReportError(arg.Origin, $"nameonly parameter '{pname}' must be passed using a name binding; it cannot be passed positionally");
           }
           Contract.Assert(namesToActuals[pname] == null); // we expect this, since we've only filled parameters positionally so far
           namesToActuals[pname] = binding;
@@ -119,7 +118,6 @@ namespace Microsoft.Dafny {
       var formalIndex = 0;
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (var formal in formals) {
-        formal.PreType = Type2PreType(formal.Type);
         var b = namesToActuals[formal.Name];
         if (b != null) {
           actuals.Add(b.Actual);
@@ -129,30 +127,26 @@ namespace Microsoft.Dafny {
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
           Constraints.AddSubtypeConstraint(
-            formal.PreType.Substitute(typeMap), b.Actual.PreType, callTok,
+            formal.PreType.Substitute(typeMap), b.Actual.PreType, b.Actual.Origin,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
           // end of this foreach loop. Still, that's soon enough, because DefaultValueExpression won't use it
-          // until FillInDefaultValueExpressions at the end of Pass 1 of the Resolver.
-          var n = new DefaultValueExpressionPreType(callTok, formal, receiver, substMap, typeMap);
-#if SOON
+          // until FillInDefaultValueExpressions at the end of Pass 0 of the Resolver.
+          var n = new DefaultValueExpressionPreType(callTok, formal, receiver, substMap, typeMap) { PreType = formal.PreType.Substitute(typeMap) };
           resolver.allDefaultValueExpressions.Add(n);
-#endif
           actuals.Add(n);
           substMap.Add(formal, n);
         } else {
           // parameter has no value
-          if (onlyPositionalArguments) {
-            // a simple error message has already been reported
-            Contract.Assert(simpleErrorReported);
-          } else {
+          if (!simpleErrorReported) {
             var formalDescription = whatKind + (context is Method ? " in-parameter" : " parameter");
             var nameWithIndex = formal.HasName && formal is not ImplicitFormal ? "'" + formal.Name + "'" : "";
             if (formals.Count > 1 || nameWithIndex == "") {
               nameWithIndex += nameWithIndex == "" ? "" : " ";
               nameWithIndex += $"at index {formalIndex}";
             }
+
             var message = $"{formalDescription} {nameWithIndex} requires an argument of type {formal.Type}";
             ReportError(callTok, message);
           }

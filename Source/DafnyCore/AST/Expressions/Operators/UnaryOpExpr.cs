@@ -9,6 +9,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     Fresh, // fresh also has a(n optional) second argument, namely the @-label
     Allocated,
     Lit,  // there is no syntax for this operator, but it is sometimes introduced during translation
+    Assigned,
   }
   public readonly Opcode Op;
 
@@ -22,7 +23,8 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     MapCard,
     Fresh,
     Allocated,
-    Lit
+    Lit,
+    Assigned,
   }
 
   private ResolvedOpcode _ResolvedOp = ResolvedOpcode.YetUndetermined;
@@ -32,7 +34,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     if (_ResolvedOp == ResolvedOpcode.YetUndetermined) {
       Contract.Assert(Type != null);
       Contract.Assert(Type is not TypeProxy);
-      _ResolvedOp = (Op, E.Type.NormalizeExpand()) switch {
+      _ResolvedOp = (Op, E.Type.NormalizeToAncestorType()) switch {
         (Opcode.Not, BoolType _) => ResolvedOpcode.BoolNot,
         (Opcode.Not, BitvectorType _) => ResolvedOpcode.BVNot,
         (Opcode.Cardinality, SeqType _) => ResolvedOpcode.SeqLength,
@@ -42,6 +44,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
         (Opcode.Fresh, _) => ResolvedOpcode.Fresh,
         (Opcode.Allocated, _) => ResolvedOpcode.Allocated,
         (Opcode.Lit, _) => ResolvedOpcode.Lit,
+        (Opcode.Assigned, _) => ResolvedOpcode.Assigned,
         _ => ResolvedOpcode.YetUndetermined // Unreachable
       };
       Contract.Assert(_ResolvedOp != ResolvedOpcode.YetUndetermined);
@@ -56,9 +59,9 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     _ResolvedOp = resolvedOpcode;
   }
 
-  public UnaryOpExpr(IToken tok, Opcode op, Expression e)
-    : base(tok, e) {
-    Contract.Requires(tok != null);
+  public UnaryOpExpr(IOrigin origin, Opcode op, Expression e)
+    : base(origin, e) {
+    Contract.Requires(origin != null);
     Contract.Requires(e != null);
     Contract.Requires(op != Opcode.Fresh || this is FreshExpr);
     this.Op = op;

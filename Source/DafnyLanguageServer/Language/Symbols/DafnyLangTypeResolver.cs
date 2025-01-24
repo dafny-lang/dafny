@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using AstElement = System.Object;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -26,8 +27,20 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return userDefinedType.ResolvedClass switch {
         NonNullTypeDecl nonNullTypeDeclaration => GetSymbolByDeclaration(nonNullTypeDeclaration.Class),
         IndDatatypeDecl dataTypeDeclaration => GetSymbolByDeclaration(dataTypeDeclaration),
+        TypeSynonymDecl typeSynonymDeclaration => GetTypeSynonymSymbol(userDefinedType, typeSynonymDeclaration),
         _ => null
       };
+    }
+
+    private ILegacySymbol? GetTypeSynonymSymbol(UserDefinedType userDefinedType, TypeSynonymDecl typeSynonymDeclaration) {
+      ILegacySymbol? symbol = null;
+      // It would probably be less brittle to reuse Dafny's type resolution logic here
+      var typeSubstitutions = typeSynonymDeclaration.TypeArgs
+        .Zip(userDefinedType.TypeArgs)
+        .ToDictionary(pair => pair.First, pair => pair.Second);
+      var rhsAfterSubstitution = typeSynonymDeclaration.Rhs.Subst(typeSubstitutions);
+      TryGetTypeSymbol(rhsAfterSubstitution, out symbol);
+      return symbol;
     }
 
     private ILegacySymbol? GetSymbolByDeclaration(AstElement node) {

@@ -1,2 +1,0 @@
-Add support for Rename LSP request
-- Support requires enabling project mode and defining a Dafny project file

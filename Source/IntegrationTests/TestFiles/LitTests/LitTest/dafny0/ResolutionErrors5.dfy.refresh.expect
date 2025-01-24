@@ -1,0 +1,108 @@
+ResolutionErrors5.dfy(50,33): Error: type of yield-parameter must support auto-initialization (got 'T')
+ResolutionErrors5.dfy(58,13): Error: a ghost function is allowed only in specification contexts
+ResolutionErrors5.dfy(72,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(73,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(75,20): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(76,20): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(77,27): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(78,18): Error: type parameter 'G' (passed in as 'ORDINAL') to the function 'F'' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(79,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the method 'ParameterizedMethod' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(83,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(85,14): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(86,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(87,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(88,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(90,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(93,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(93,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(94,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(94,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(94,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(94,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(96,25): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(127,36): Error: Name of yield-parameter is used by another member of the iterator: u
+ResolutionErrors5.dfy(128,37): Error: Name of implicit yield-history variable 'u' is already used by another member of the iterator
+ResolutionErrors5.dfy(142,13): Error: prefix-equality limit argument must be an ORDINAL or integer expression (got ?5)
+ResolutionErrors5.dfy(153,15): Error: To access members of class 'MyClass', write 'MyClass', not 'MyClass?'
+ResolutionErrors5.dfy(167,15): Error: name of type (MyClass) is used as a variable
+ResolutionErrors5.dfy(168,15): Error: name of type (MyClass?) is used as a variable
+ResolutionErrors5.dfy(182,17): Error: To access members of class 'MyClass', write 'MyClass', not 'MyClass?'
+ResolutionErrors5.dfy(196,17): Error: name of type (MyClass) is used as a variable
+ResolutionErrors5.dfy(197,17): Error: name of type (MyClass?) is used as a variable
+ResolutionErrors5.dfy(206,8): Error: static non-ghost const field 'X' of type 'Odd' (which does not have a default compiled value) must give a defining value
+ResolutionErrors5.dfy(209,8): Error: static non-ghost const field 'Y' of type 'MyClass' (which does not have a default compiled value) must give a defining value
+ResolutionErrors5.dfy(210,14): Error: static ghost const field 'Y'' of type 'MyClass' (which may be empty) must give a defining value
+ResolutionErrors5.dfy(214,17): Error: static non-ghost const field 'W' of type 'MyClass' (which does not have a default compiled value) must give a defining value
+ResolutionErrors5.dfy(216,17): Error: static non-ghost const field 'O' of type 'Odd' (which does not have a default compiled value) must give a defining value
+ResolutionErrors5.dfy(222,17): Error: static non-ghost const field 'W' of type 'MyClass' (which does not have a default compiled value) must give a defining value
+ResolutionErrors5.dfy(224,17): Error: static non-ghost const field 'O' of type 'Odd' (which does not have a default compiled value) must give a defining value
+ResolutionErrors5.dfy(234,8): Error: class 'Instance' with fields without known initializers, like 'w' of type 'MyClass', must declare a constructor
+ResolutionErrors5.dfy(241,8): Error: class 'GhostCl' with fields without known initializers, like 'z' of type 'MyClass', must declare a constructor
+ResolutionErrors5.dfy(251,6): Error: LHS of assignment must denote a mutable field
+ResolutionErrors5.dfy(252,10): Error: LHS of assignment must denote a mutable field
+ResolutionErrors5.dfy(260,6): Error: LHS of assignment must denote a mutable field
+ResolutionErrors5.dfy(268,8): Error: LHS of assignment must denote a mutable field of 'this'
+ResolutionErrors5.dfy(287,18): Error: a ghost const field is allowed only in specification contexts
+ResolutionErrors5.dfy(283,20): Error: a ghost const field is allowed only in specification contexts
+ResolutionErrors5.dfy(305,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
+ResolutionErrors5.dfy(309,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
+ResolutionErrors5.dfy(318,22): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
+ResolutionErrors5.dfy(315,24): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
+ResolutionErrors5.dfy(320,36): Error: a set comprehension involved in a newtype definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
+ResolutionErrors5.dfy(321,34): Error: a set comprehension involved in a subset type definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
+ResolutionErrors5.dfy(328,18): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+ResolutionErrors5.dfy(329,18): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+ResolutionErrors5.dfy(337,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
+ResolutionErrors5.dfy(346,35): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(343,37): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(348,49): Error: a newtype definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(349,47): Error: a subset type definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(356,32): Error: a predicate definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(365,39): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(362,41): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(367,53): Error: a newtype definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(368,51): Error: a subset type definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(375,36): Error: a predicate definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(382,31): Error: the value returned by an abstemious function must come from invoking a co-constructor
+ResolutionErrors5.dfy(418,31): Error: the value returned by an abstemious function must come from invoking a co-constructor
+ResolutionErrors5.dfy(425,32): Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters
+ResolutionErrors5.dfy(430,12): Error: an abstemious function is allowed to codatatype-match only on its parameters
+ResolutionErrors5.dfy(437,9): Error: an abstemious function is not allowed to check codatatype equality
+ResolutionErrors5.dfy(439,14): Error: an abstemious function is not allowed to check codatatype equality
+ResolutionErrors5.dfy(464,20): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(465,24): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(466,31): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(467,18): Error: type parameter 'G' (passed in as 'ORDINAL') to the function 'F'' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(472,17): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors5.dfy(473,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors5.dfy(474,24): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors5.dfy(485,25): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(487,17): Error: type of bound variable 'yt' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors5.dfy(483,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(483,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(482,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(479,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(477,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(476,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(475,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(474,14): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(472,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(471,26): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors5.dfy(470,18): Error: type of bound variable 'r' ('(ORDINAL, int)') is not allowed to use type ORDINAL
+ResolutionErrors5.dfy(469,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors5.dfy(468,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the lemma 'ParameterizedLemma' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(462,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(461,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(522,11): Error: no label 'L' in scope at this time
+ResolutionErrors5.dfy(525,10): Error: label shadows a dominating label
+ResolutionErrors5.dfy(533,10): Error: label shadows a dominating label
+ResolutionErrors5.dfy(607,23): Error: no label 'Treasure' in scope at this time
+ResolutionErrors5.dfy(608,19): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors5.dfy(610,23): Error: no label 'FutureLabel' in scope at this time
+ResolutionErrors5.dfy(620,13): Error: no label 'Treasure' in scope at this time
+ResolutionErrors5.dfy(621,13): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors5.dfy(623,13): Error: no label 'FutureLabel' in scope at this time
+ResolutionErrors5.dfy(633,13): Error: no label 'Treasure' in scope at this time
+ResolutionErrors5.dfy(634,13): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors5.dfy(636,13): Error: no label 'FutureLabel' in scope at this time
+107 resolution/type errors detected in ResolutionErrors5.dfy

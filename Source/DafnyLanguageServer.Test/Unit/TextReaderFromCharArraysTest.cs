@@ -2,7 +2,7 @@ using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language;
 using Xunit;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 
 public class TextReaderFromCharArraysTest {
 

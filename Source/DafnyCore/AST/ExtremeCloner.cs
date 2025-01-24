@@ -17,7 +17,7 @@ abstract class ExtremeCloner : Cloner {
     Contract.Requires(reporter != null);
     this.k = k;
     this.reporter = reporter;
-    this.suffix = string.Format("#[{0}]", Printer.ExprToString(reporter.Options, k));
+    this.suffix = $"#[{Printer.ExprToString(reporter.Options, k)}]";
   }
   protected Expression CloneCallAndAddK(ApplySuffix e) {
     Contract.Requires(e != null);
@@ -31,19 +31,19 @@ abstract class ExtremeCloner : Cloner {
     string name;
     if (e.Lhs is NameSegment ns) {
       name = ns.Name;
-      lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
+      lhs = new NameSegment(Origin(ns.Origin), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
     } else {
       var edn = (ExprDotName)e.Lhs;
       name = edn.SuffixName;
-      lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
+      lhs = new ExprDotName(Origin(edn.Origin), CloneExpr(edn.Lhs), new Name(name + "#"), edn.OptTypeArguments?.ConvertAll(CloneType));
     }
     var args = new List<ActualBinding>();
     args.Add(new ActualBinding(null, k));
     foreach (var arg in e.Bindings.ArgumentBindings) {
       args.Add(CloneActualBinding(arg));
     }
-    var apply = new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
-    reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
+    var apply = new ApplySuffix(Origin(e.Origin), e.AtTok == null ? null : Origin(e.AtTok), lhs, args, e.CloseParen);
+    reporter.Info(MessageSource.Cloner, e.Origin, name + suffix);
     return apply;
   }
 
@@ -59,8 +59,20 @@ abstract class ExtremeCloner : Cloner {
     foreach (var binding in e.Bindings.ArgumentBindings) {
       args.Add(CloneActualBinding(binding));
     }
-    var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
-    reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
+    var fexp = new FunctionCallExpr(Origin(e.Origin), e.NameNode.Append("#"), receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
+    reporter.Info(MessageSource.Cloner, e.Origin, e.Name + suffix);
     return fexp;
+  }
+
+  protected Expression CloneEqualityAndAddK(BinaryExpr binaryExpr) {
+    if (this.CloneResolvedFields) {
+      throw new NotImplementedException();
+    }
+
+    var eq = new TernaryExpr(Origin(binaryExpr.Origin),
+      binaryExpr.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp,
+      k, CloneExpr(binaryExpr.E0), CloneExpr(binaryExpr.E1));
+    reporter.Info(MessageSource.Cloner, binaryExpr.Origin, "==" + suffix);
+    return eq;
   }
 }

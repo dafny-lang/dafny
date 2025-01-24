@@ -13,7 +13,10 @@ public static class ShouldCompileOrVerify {
     }
 
     if (module.FullName == "_System") {
-      return true;
+      return program.Options.SystemModuleTranslationMode != CommonOptionBag.SystemModuleMode.Omit;
+    }
+    if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+      return false;
     }
 
     if (module is DefaultModuleDefinition) {
@@ -21,18 +24,25 @@ public static class ShouldCompileOrVerify {
       // https://github.com/dafny-lang/dafny/issues/4009
       return true;
     }
-    return program.UrisToCompile.Contains(module.Tok.Uri);
+
+    if (program.Options.Backend?.TargetId != "lib") {
+      if (!ProgramResolver.ShouldCompile(module)) {
+        return false;
+      }
+    }
+
+    return program.UrisToCompile.Contains(module.Origin.Uri);
   }
 
   public static bool ShouldVerify(this INode declaration, CompilationData compilation) {
-    if (declaration.Tok == Token.NoToken) {
+    if (ReferenceEquals(declaration.Origin, Token.NoToken)) {
       // Required for DefaultModuleDefinition.
       return true;
     }
     if (compilation.UrisToVerify == null) {
       compilation.UrisToVerify = ComputeUrisToVerify(compilation);
     }
-    if (!compilation.UrisToVerify.Contains(declaration.Tok.Uri)) {
+    if (!compilation.UrisToVerify.Contains(declaration.Origin.Uri)) {
       return false;
     }
 
@@ -40,11 +50,11 @@ public static class ShouldCompileOrVerify {
       return true;
     }
 
-    return !declaration.Tok.FromIncludeDirective(compilation);
+    return !declaration.Origin.FromIncludeDirective(compilation);
   }
 
-  public static bool FromIncludeDirective(this IToken token, CompilationData outerModule) {
-    if (token is RefinementToken) {
+  public static bool FromIncludeDirective(this IOrigin token, CompilationData outerModule) {
+    if (token is RefinementOrigin) {
       return false;
     }
 
@@ -60,7 +70,7 @@ public static class ShouldCompileOrVerify {
     return true;
   }
 
-  public static bool FromIncludeDirective(this IToken token, Program program) {
+  public static bool FromIncludeDirective(this IOrigin token, Program program) {
     return token.FromIncludeDirective(program.Compilation);
   }
 

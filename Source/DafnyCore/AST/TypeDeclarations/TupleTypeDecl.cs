@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using JetBrains.Annotations;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -35,11 +34,12 @@ public class TupleTypeDecl : IndDatatypeDecl {
   }
 
   private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
-    : base(RangeToken.NoToken, new Name(SystemModuleManager.TupleTypeName(argumentGhostness)), systemModule, typeArgs,
+    : base(SourceOrigin.NoToken, new Name(SystemModuleManager.TupleTypeName(argumentGhostness)), systemModule, typeArgs,
       CreateConstructors(typeArgs, argumentGhostness),
       new List<Type>(), new List<MemberDecl>(), attributes, false) {
     Contract.Requires(systemModule != null);
     Contract.Requires(typeArgs != null);
+    Contract.Assert(Ctors.Count == 1);
     ArgumentGhostness = argumentGhostness;
     foreach (var ctor in Ctors) {
       ctor.EnclosingDatatype = this;  // resolve here
@@ -50,17 +50,24 @@ public class TupleTypeDecl : IndDatatypeDecl {
       }
     }
     this.EqualitySupport = argumentGhostness.Contains(true) ? ES.Never : ES.ConsultTypeArguments;
+
+    // Resolve parent type information - not currently possible for tuples to have any parent traits
+    ParentTypeInformation = new InheritanceInformationClass();
   }
   private static List<TypeParameter> CreateCovariantTypeParameters(int dims) {
     Contract.Requires(0 <= dims);
     var ts = new List<TypeParameter>();
     for (int i = 0; i < dims; i++) {
-      var tp = new TypeParameter(RangeToken.NoToken, new Name("T" + i), TypeParameter.TPVarianceSyntax.Covariant_Strict);
+      var tp = new TypeParameter(SourceOrigin.NoToken, new Name("T" + i), TypeParameter.TPVarianceSyntax.Covariant_Strict);
       tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
       ts.Add(tp);
     }
     return ts;
   }
+
+  /// <summary>
+  /// Creates the one and only constructor of the tuple type.
+  /// </summary>
   private static List<DatatypeCtor> CreateConstructors(List<TypeParameter> typeArgs, List<bool> argumentGhostness) {
     Contract.Requires(typeArgs != null);
     var formals = new List<Formal>();
@@ -80,7 +87,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
       formals.Add(f);
     }
     string ctorName = SystemModuleManager.TupleTypeCtorName(typeArgs.Count);
-    var ctor = new DatatypeCtor(RangeToken.NoToken, new Name(ctorName), false, formals, null);
+    var ctor = new DatatypeCtor(SourceOrigin.NoToken, new Name(ctorName), false, formals, null);
     return new List<DatatypeCtor>() { ctor };
   }
 

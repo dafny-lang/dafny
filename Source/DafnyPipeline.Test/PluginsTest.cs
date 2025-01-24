@@ -2,6 +2,8 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
+using DafnyCore.Test;
 using DafnyTestGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -54,15 +56,15 @@ public class PluginsTest {
   }
 
   [Fact]
-  public void EnsurePluginIsExecuted() {
+  public async Task EnsurePluginIsExecuted() {
     var library = GetLibrary("rewriterPreventingVerificationWithArgument");
 
-    var options = DafnyOptions.Create(output);
+    var options = DafnyOptions.CreateUsingOldParser(output);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = Utils.Parse(options, programString, false);
-    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+    var reporter = new BatchErrorReporter(options);
+    var dafnyProgram = await Utils.Parse(reporter, programString, false);
     DafnyMain.Resolve(dafnyProgram);
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
@@ -70,30 +72,30 @@ public class PluginsTest {
   }
 
   [Fact]
-  public void EnsurePluginIsExecutedEvenWithoutConfiguration() {
+  public async Task EnsurePluginIsExecutedEvenWithoutConfiguration() {
     var library = GetLibrary("rewriterPreventingVerification");
 
-    var options = DafnyOptions.Create(output);
+    var options = DafnyOptions.CreateUsingOldParser(output);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = Utils.Parse(options, programString, false);
-    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+    var reporter = new BatchErrorReporter(options);
+    var dafnyProgram = await Utils.Parse(reporter, programString, false);
     DafnyMain.Resolve(dafnyProgram);
     Assert.Equal(1, reporter.ErrorCount);
     Assert.Equal("Impossible to continue", reporter.AllMessagesByLevel[ErrorLevel.Error][0].Message);
   }
 
   [Fact]
-  public void EnsurePluginIsExecutedAndAllowsVerification() {
+  public async Task EnsurePluginIsExecutedAndAllowsVerification() {
     var library = GetLibrary("rewriterAllowingVerification");
 
-    var options = DafnyOptions.Create(output);
+    var options = DafnyOptions.CreateUsingOldParser(output);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = Utils.Parse(options, programString, false);
-    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+    var reporter = new BatchErrorReporter(options);
+    var dafnyProgram = await Utils.Parse(reporter, programString, false);
     DafnyMain.Resolve(dafnyProgram);
     Assert.Equal(0, reporter.ErrorCountUntilResolver);
     Assert.Equal(1, reporter.ErrorCount);

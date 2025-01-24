@@ -1,0 +1,13 @@
+Verified 0/2 symbols. Waiting for Foo to verify.
+Verified 1/6 of Foo: assertion at line 10 - verified successfully <redacted>
+Verified 2/6 of Foo: assertion at line 11 - verified successfully <redacted>
+Verified 3/6 of Foo: return at line 15, assertion at line 7 - verified successfully <redacted>
+Verified 4/6 of Foo: return at line 15, assertion at line 8 - could not be verified <redacted>
+Verified 5/6 of Foo: return at line 13, assertion at line 7 - verified successfully <redacted>
+Verified 6/6 of Foo: return at line 13, assertion at line 8 - verified successfully <redacted>
+isolateAllAssertions.dfy(15,4): Error: a postcondition could not be proved on this return path
+isolateAllAssertions.dfy(8,12): Related location: this is the postcondition that could not be proved
+Verified 1/2 symbols. Waiting for Bar to verify.
+Verified 1/1 of Bar: entire body - verified successfully <redacted>
+
+Dafny program verifier finished with 6 verified, 1 error

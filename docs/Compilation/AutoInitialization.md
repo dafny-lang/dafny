@@ -1,4 +1,6 @@
-<p></p> <!-- avoids duplicate title -->
+---
+title: Automatic Initialization of Variables
+---
 
 Automatic Initialization of Variables
 =====================================

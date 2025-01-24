@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DafnyCore.Test;
 using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
@@ -34,12 +35,13 @@ module SimpleTest {
     } else if (|tseq| > 0 && tseq[0].1.1 == 'R') {
         return 2;
     }
+    return 3;
   }
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(options, source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var program = await Parse(new BatchErrorReporter(options), source, false);
+      var methods = await GetTestMethodsForProgram(program);
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "SimpleTest.tuple"));
@@ -81,8 +83,9 @@ module C {
 }
 
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = await Parse(new BatchErrorReporter(options), source, false);
+      var methods = await GetTestMethodsForProgram(program);
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "C.compareStringLengthToOne"));

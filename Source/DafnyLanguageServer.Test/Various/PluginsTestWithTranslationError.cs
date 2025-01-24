@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
 using XunitAssertMessages;
@@ -22,11 +23,7 @@ public class PluginsTestWithTranslationError : PluginsTestBase {
     // This code will run with the plugin from PluginsAdvancedTest, but that plugin won't throw an exception on the code below.
     var documentItem = CreateTestDocument("function test(): nat { -1 }");// No resolution error
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(documentItem.Uri, resolutionReport.Uri);
-    var verificationReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(documentItem.Uri, verificationReport.Uri);
-    var diagnostics = verificationReport.Diagnostics.ToArray();
+    var diagnostics = await GetLastDiagnostics(documentItem);
     AssertM.Equal(2, diagnostics.Length, LibraryPath + " did not return two errors.");
     Assert.Equal("Translation error that should appear in the code", diagnostics[0].Message);
   }

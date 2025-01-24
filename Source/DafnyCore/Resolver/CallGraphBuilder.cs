@@ -204,16 +204,16 @@ namespace Microsoft.Dafny {
       /// </summary>
       private bool IsFunctionReturnValue(Function fn, Expression receiver, List<Expression> args, CallGraphBuilderContext context) {
         if (context.CodeContext == fn && context.InFunctionPostcondition) {
-          Contract.Assert(fn.Formals.Count == args.Count);
+          Contract.Assert(fn.Ins.Count == args.Count);
           return
             (fn.IsStatic || receiver.Resolved is ThisExpr) &&
-            Enumerable.Range(0, args.Count).All(i => (args[i].Resolved as IdentifierExpr)?.Var == fn.Formals[i]);
+            Enumerable.Range(0, args.Count).All(i => (args[i].Resolved as IdentifierExpr)?.Var == fn.Ins[i]);
         }
         return false;
       }
 
       protected override bool VisitOneStatement(Statement stmt, CallGraphBuilderContext context) {
-        if (stmt is AssignStmt assignStmt) {
+        if (stmt is SingleAssignStmt assignStmt) {
           // check on assumption variables
           if (context.CodeContext is Method currentMethod &&
               (assignStmt.Lhs.Resolved as IdentifierExpr)?.Var is LocalVariable localVar &&
@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
         if (field is ConstantField cf) {
           if (cf == callingContext) {
             // detect self-loops here, since they don't show up in the graph's SSC methods
-            reporter.Error(MessageSource.Resolver, cf.tok, "recursive dependency involving constant initialization: {0} -> {0}", cf.Name);
+            reporter.Error(MessageSource.Resolver, cf.Origin, "recursive dependency involving constant initialization: {0} -> {0}", cf.Name);
           } else {
             AddCallGraphEdge(callingContext, cf, e, false);
           }
@@ -266,7 +266,16 @@ namespace Microsoft.Dafny {
         ModuleDefinition callerModule = context.CodeContext.EnclosingModule;
         ModuleDefinition calleeModule = ((IASTVisitorContext)callee).EnclosingModule;
         if (callerModule != calleeModule) {
-          // inter-module call; don't record in call graph
+          // inter-module call; add edge in module's inter-module call graph
+          if (context.CodeContext is ICallable caller0) {
+            if (caller0 is IteratorDecl iteratorDecl) {
+              // use the MoveNext() method as the caller
+              callerModule.InterModuleCallGraph.AddEdge(iteratorDecl.Member_MoveNext, callee);
+            } else {
+              callerModule.InterModuleCallGraph.AddEdge(caller0, callee);
+            }
+          }
+
           return;
         }
 
@@ -294,10 +303,19 @@ namespace Microsoft.Dafny {
         ModuleDefinition callerModule = callingContext.EnclosingModule;
         ModuleDefinition calleeModule = callable is SpecialFunction ? null : callable.EnclosingModule;
         if (callerModule != calleeModule) {
-          // inter-module call; don't record in call graph
+          // inter-module call; add edge in module's inter-module call graph
           if (callingContext is ICallable context && callable is Function { EnclosingClass: TraitDecl }) {
             callerModule.CallGraph.AddEdge(context, callable);
           }
+          if (callingContext is ICallable caller0) {
+            callerModule.InterModuleCallGraph.AddEdge(caller0, callable);
+            if (caller0 is Function f) {
+              if (e is FunctionCallExpr ee) {
+                // f.AllCalls.Add(ee);
+              }
+            }
+          }
+
           return;
         }
 

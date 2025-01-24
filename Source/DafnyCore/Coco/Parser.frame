@@ -33,10 +33,11 @@ Coco/R itself) does not fall under the GNU General Public License.
 
 using System;
 using System.Diagnostics.Contracts;
+using System.Threading;
 
 -->namespace
 
-public class Parser {
+public partial class Parser {
 -->constants
   const bool _T = true;
   const bool _x = false;
@@ -44,16 +45,18 @@ public class Parser {
 
   public Scanner scanner;
   public Errors  errors;
+  CancellationToken cancellationToken;
 
-  public IToken t;    // last recognized token
-  public IToken la;   // lookahead token
+  public Token t;    // last recognized token
+  public Token la;   // lookahead token
   int errDist = minErrDist;
 
 -->declarations
 
-  public Parser(Scanner scanner, Errors errors) {
+  public Parser(Scanner scanner, Errors errors, CancellationToken cancellationToken) {
     this.scanner = scanner;
     this.errors = errors;
+    this.cancellationToken = cancellationToken;
     this.la = scanner.FirstToken;
     this.t = scanner.FirstToken; // just to satisfy its non-null constraint
   }
@@ -65,13 +68,14 @@ public class Parser {
     errDist = 0;
   }
   
-  public void SemErr(Enum errorId, IToken tok, string msg) {
+  public void SemErr(Enum errorId, IOrigin tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     errors.SemErr(errorId, tok, msg);
   }
 
   void Get() {
+    cancellationToken.ThrowIfCancellationRequested();
     for (; ; ) {
       var tmp = la;
       la = scanner.Scan();
@@ -167,14 +171,14 @@ public class Errors {
     return s;
   }
 
-  public void SemErr(string errorId, IToken tok, string msg) {  // semantic errors
+  public void SemErr(string errorId, IOrigin tok, string msg) {  // semantic errors
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
     Reporting.Error(MessageSource.Parser, errorId, tok, msg);
   }
   
-  public void SemErr(Enum errorId, IToken tok, string msg) {  // semantic errors
+  public void SemErr(Enum errorId, IOrigin tok, string msg) {  // semantic errors
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
@@ -187,13 +191,13 @@ public class Errors {
     Reporting.Error(MessageSource.Parser, errorId, uri, line, col, msg);
   }
 
-  public void Deprecated(Enum errorId, IToken tok, string msg) {
+  public void Deprecated(Enum errorId, IOrigin tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Reporting.Deprecated(MessageSource.Parser, errorId, tok, msg);
   }
 
-  public void Warning(ErrorId errorId, IToken tok, string msg) {
+  public void Warning(ErrorId errorId, IOrigin tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Reporting.Warning(MessageSource.Parser, errorId, tok, msg);

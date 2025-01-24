@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 
 public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   public readonly List<LocalVariable> Locals;
-  public readonly ConcreteUpdateStatement Update;
+  public readonly ConcreteAssignStatement Assign;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Locals));
@@ -19,20 +19,20 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
 
   public VarDeclStmt(Cloner cloner, VarDeclStmt original) : base(cloner, original) {
     Locals = original.Locals.Select(l => cloner.CloneLocalVariable(l, false)).ToList();
-    Update = (ConcreteUpdateStatement)cloner.CloneStmt(original.Update);
+    Assign = (ConcreteAssignStatement)cloner.CloneStmt(original.Assign, false);
   }
 
-  public VarDeclStmt(RangeToken rangeToken, List<LocalVariable> locals, ConcreteUpdateStatement update)
-    : base(rangeToken) {
+  public VarDeclStmt(IOrigin origin, List<LocalVariable> locals, ConcreteAssignStatement assign)
+    : base(origin) {
     Contract.Requires(locals != null);
     Contract.Requires(locals.Count != 0);
 
     Locals = locals;
-    Update = update;
+    Assign = assign;
   }
 
   public override IEnumerable<Statement> SubStatements {
-    get { if (Update != null) { yield return Update; } }
+    get { if (Assign != null) { yield return Assign; } }
   }
 
   public override IEnumerable<Expression> SpecificationSubExpressions {
@@ -40,12 +40,6 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
       foreach (var e in base.SpecificationSubExpressions) { yield return e; }
       foreach (var v in Locals) {
         foreach (var e in Attributes.SubExpressions(v.Attributes)) {
-          yield return e;
-        }
-      }
-
-      if (this.Update != null) {
-        foreach (var e in this.Update.NonSpecificationSubExpressions) {
           yield return e;
         }
       }
@@ -57,6 +51,40 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   public override IEnumerable<INode> PreResolveChildren => Children;
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var result = formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, false);
-    return Update != null ? formatter.SetIndentUpdateStmt(Update, indentBefore, true) : result;
+    return Assign != null ? formatter.SetIndentUpdateStmt(Assign, indentBefore, true) : result;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    if (mustBeErasable) {
+      foreach (var local in Locals) {
+        // a local variable in a specification-only context might as well be ghost
+        local.MakeGhost();
+      }
+    }
+    if (Assign != null) {
+      Assign.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
+    }
+    IsGhost = (Assign == null || Assign.IsGhost) && Locals.All(v => v.IsGhost);
+
+    // Check on "assumption" variables
+    foreach (var local in Locals) {
+      if (Attributes.Contains(local.Attributes, "assumption")) {
+        if (allowAssumptionVariables) {
+          if (!local.Type.IsBoolType) {
+            reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_assumption_var_must_be_bool, local.Origin,
+              "assumption variable must be of type 'bool'");
+          }
+          if (!local.IsGhost) {
+            reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_assumption_var_must_be_ghost, local.Origin,
+              "assumption variable must be ghost");
+          }
+        } else {
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_assumption_var_must_be_in_method, local.Origin,
+            "assumption variable can only be declared in a method");
+        }
+      }
+    }
   }
 }

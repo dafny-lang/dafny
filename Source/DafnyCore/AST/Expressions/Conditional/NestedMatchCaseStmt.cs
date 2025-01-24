@@ -7,22 +7,21 @@ namespace Microsoft.Dafny;
 
 public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration, ICloneable<NestedMatchCaseStmt> {
   public readonly List<Statement> Body;
-  public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-  public NestedMatchCaseStmt(RangeToken rangeToken, ExtendedPattern pat, List<Statement> body) : base(rangeToken.StartToken, pat) {
-    RangeToken = rangeToken;
+  public Attributes Attributes { get; set; }
+  string IAttributeBearingDeclaration.WhatKind => "match statement case";
+  public NestedMatchCaseStmt(IOrigin rangeOrigin, ExtendedPattern pat, List<Statement> body) : base(rangeOrigin, pat) {
     Contract.Requires(body != null);
     this.Body = body;
     this.Attributes = null;
   }
-  public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body, Attributes attrs) : base(tok, pat) {
+  public NestedMatchCaseStmt(IOrigin origin, ExtendedPattern pat, List<Statement> body, Attributes attrs) : base(origin, pat) {
     Contract.Requires(body != null);
     this.Body = body;
     this.Attributes = attrs;
   }
 
-  private NestedMatchCaseStmt(Cloner cloner, NestedMatchCaseStmt original) : base(original.tok, original.Pat) {
-    this.Body = original.Body.Select(cloner.CloneStmt).ToList();
+  private NestedMatchCaseStmt(Cloner cloner, NestedMatchCaseStmt original) : base(original.Origin, original.Pat) {
+    this.Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     this.Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
@@ -37,16 +36,16 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     ResolutionContext resolutionContext,
     Dictionary<TypeParameter, Type> subst,
     Type sourceType) {
-    var beforeResolveErrorCount = resolver.reporter.ErrorCount;
+    var beforeResolveErrorCount = resolver.Reporter.ErrorCount;
 
     Pat.Resolve(resolver, resolutionContext, sourceType, resolutionContext.IsGhost, true, false, false);
 
     // In Dafny, any bound variables introduced in a pattern are in scope throughout the case body, and cannot be shadowed at the top-level
     // of the case body. Because the machinery above creates, for each bound variable, a local variable with the same name and declares that
     // local variable in the case body, we introduce a new scope boundary around the body.
-    resolver.scope.PushMarker();
+    resolver.Scope.PushMarker();
     resolver.ResolveAttributes(this, resolutionContext);
-    var afterResolveErrorCount = resolver.reporter.ErrorCount;
+    var afterResolveErrorCount = resolver.Reporter.ErrorCount;
     if (beforeResolveErrorCount == afterResolveErrorCount) {
       resolver.DominatingStatementLabels.PushMarker();
       foreach (Statement ss in Body) {
@@ -54,6 +53,6 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
       }
       resolver.DominatingStatementLabels.PopMarker();
     }
-    resolver.scope.PopMarker();
+    resolver.Scope.PopMarker();
   }
 }

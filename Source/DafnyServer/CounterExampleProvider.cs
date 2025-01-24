@@ -9,11 +9,9 @@ using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 namespace DafnyServer {
   public sealed class CounterExampleProvider {
-    private const int maximumCounterexampleDepth = 5;
     public readonly string ModelBvd;
 
     public CounterExampleProvider() {
@@ -69,14 +67,14 @@ namespace DafnyServer {
           };
           AddLineInformation(counterExampleState, state.FullStateName);
 
-          var vars = state.ExpandedVariableSet(maximumCounterexampleDepth);
+          var vars = state.ExpandedVariableSet();
 
           foreach (var variableNode in vars) {
             counterExampleState.Variables.Add(new CounterExampleVariable {
-              Name = variableNode.ShortName,
-              Value = variableNode.Value,
-              // CanonicalName is same as Value now but keeping this for legacy
-              CanonicalName = variableNode.Value
+              Name = "",
+              Value = variableNode.ToString(),
+              // DatatypeConstructorName is same as Value now but keeping this for legacy
+              CanonicalName = variableNode.ToString()
             });
           }
           var index = counterExample.States.FindIndex(c => c.Column == counterExampleState.Column && c.Line == counterExampleState.Line);

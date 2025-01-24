@@ -5,21 +5,22 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
     private readonly DafnyOptions options;
     private readonly ILogger logger;
     private readonly IProjectDatabase projects;
-    private readonly ITelemetryPublisher telemetryPublisher;
+    private readonly TelemetryPublisherBase telemetryPublisher;
 
     public DafnyCounterExampleHandler(DafnyOptions options,
       ILogger<DafnyCounterExampleHandler> logger,
       IProjectDatabase projects,
-      ITelemetryPublisher telemetryPublisher) {
+      TelemetryPublisherBase telemetryPublisher) {
       this.logger = logger;
       this.projects = projects;
       this.telemetryPublisher = telemetryPublisher;
@@ -30,10 +31,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       try {
         var projectManager = await projects.GetProjectManager(request.TextDocument);
         if (projectManager != null) {
-          await projectManager.VerifyEverythingAsync(request.TextDocument.Uri.ToUri());
+          var uri = request.TextDocument.Uri.ToUri();
+          await projectManager.VerifyEverythingAsync(uri);
 
-          var state = await projectManager.GetIdeStateAfterVerificationAsync();
-          logger.LogDebug("counter-example handler retrieved IDE state");
+          var state = await projectManager.States.
+            Where(s => FinishedVerifyingUri(s, uri)).FirstAsync();
+          logger.LogDebug($"counter-example handler retrieved IDE state, " +
+                          $"canVerify count: {state.CanVerifyStates[uri].Count}, " +
+                          $"counterExample count: {state.Counterexamples.Count}");
           return new CounterExampleLoader(options, logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }
 
@@ -48,6 +53,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         telemetryPublisher.PublishUnhandledException(e);
         return new CounterExampleList();
       }
+    }
+
+    private static bool FinishedVerifyingUri(IdeState s, Uri uri) {
+      return s.Status == CompilationStatus.ResolutionSucceeded &&
+             s.CanVerifyStates[uri].Values.All(r =>
+               r.PreparationProgress == VerificationPreparationState.Done &&
+               r.VerificationTasks.Values.All(v => v.Status >= PublishedVerificationStatus.Error));
     }
 
     private class CounterExampleLoader {
@@ -67,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       public CounterExampleList GetCounterExamples() {
         if (!ideState.Counterexamples.Any()) {
-          logger.LogDebug($"got no counter-examples for compilation {ideState.Compilation}");
+          logger.LogDebug($"got no counter-examples for version {ideState.Version}");
           return new CounterExampleList();
         }
 
@@ -83,7 +95,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private DafnyModel GetLanguageSpecificModel(Model model) {
-        return new(model, options);
+        var dafnyModel = new DafnyModel(model, options);
+        dafnyModel.AssignConcretePrimitiveValues();
+        return dafnyModel;
       }
 
       private IEnumerable<CounterExampleItem> GetCounterExamples(DafnyModel model) {
@@ -92,15 +106,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           .Select(GetCounterExample);
       }
 
-      private CounterExampleItem GetCounterExample(DafnyModelState state) {
-        HashSet<DafnyModelVariable> vars = state.ExpandedVariableSet(counterExampleDepth);
+      private CounterExampleItem GetCounterExample(PartialState state) {
         return new(
           new Position(state.GetLineId() - 1, state.GetCharId()),
-          vars.WithCancellation(cancellationToken).ToDictionary(
-            variable => variable.ShortName + ":" + DafnyModelTypeUtils.GetInDafnyFormat(variable.Type),
-            variable => variable.Value
-          )
-        );
+           state.AsAssumption().ToString()
+         );
       }
     }
   }

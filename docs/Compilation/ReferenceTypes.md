@@ -1,4 +1,6 @@
-<p></p> <!-- avoids duplicate title -->
+---
+title: Dafny compilation of trait and class
+---
 
 Dafny compilation of trait and class
 ====================================

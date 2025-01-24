@@ -16,9 +16,9 @@ public class MultiSetFormingExpr : Expression, ICloneable<MultiSetFormingExpr> {
   }
 
   [Captured]
-  public MultiSetFormingExpr(IToken tok, Expression expr)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public MultiSetFormingExpr(IOrigin origin, Expression expr)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     cce.Owner.AssignSame(this, expr);
     E = expr;

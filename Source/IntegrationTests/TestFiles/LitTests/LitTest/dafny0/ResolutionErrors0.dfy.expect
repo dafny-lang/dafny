@@ -1,0 +1,70 @@
+ResolutionErrors0.dfy(323,33): Warning: constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors0.dfy(13,18): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
+ResolutionErrors0.dfy(25,13): Error: array selection requires an array2 (got array3<T>)
+ResolutionErrors0.dfy(27,13): Error: array selection requires an array4 (got array<T>)
+ResolutionErrors0.dfy(26,14): Error: element selection requires a sequence, array, multiset, or map (got array3<T>)
+ResolutionErrors0.dfy(57,16): Error: accessing member 'X' requires an instance expression
+ResolutionErrors0.dfy(58,9): Error: unresolved identifier: F
+ResolutionErrors0.dfy(59,16): Error: accessing member 'F' requires an instance expression
+ResolutionErrors0.dfy(60,9): Error: unresolved identifier: G
+ResolutionErrors0.dfy(62,9): Error: unresolved identifier: M
+ResolutionErrors0.dfy(63,16): Error: accessing member 'M' requires an instance expression
+ResolutionErrors0.dfy(64,9): Error: unresolved identifier: N
+ResolutionErrors0.dfy(67,10): Error: non-function expression (of type int) is called with parameters
+ResolutionErrors0.dfy(68,16): Error: member 'z' does not exist in non-null type 'Global'
+ResolutionErrors0.dfy(51,15): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors0.dfy(88,16): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
+ResolutionErrors0.dfy(93,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
+ResolutionErrors0.dfy(94,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
+ResolutionErrors0.dfy(96,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
+ResolutionErrors0.dfy(98,20): Error: wrong number of arguments (got 2, but datatype constructor 'David' expects 1: (x: int))
+ResolutionErrors0.dfy(116,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors0.dfy(117,12): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors0.dfy(121,13): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors0.dfy(122,12): Error: actual out-parameter is required to be a ghost variable
+ResolutionErrors0.dfy(133,25): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors0.dfy(140,6): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors0.dfy(154,12): Error: only ghost methods can be called from this context
+ResolutionErrors0.dfy(244,29): Error: ghost-context break statement is not allowed to break out of non-ghost structure
+ResolutionErrors0.dfy(267,14): Error: ghost-context break statement is not allowed to break out of non-ghost loop
+ResolutionErrors0.dfy(281,14): Error: ghost-context break statement is not allowed to break out of non-ghost loop
+ResolutionErrors0.dfy(286,10): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
+ResolutionErrors0.dfy(306,12): Error: label shadows an enclosing label
+ResolutionErrors0.dfy(311,10): Error: duplicate label
+ResolutionErrors0.dfy(313,10): Error: label shadows a dominating label
+ResolutionErrors0.dfy(329,11): Error: a constructor is allowed to be called only when an object is being allocated
+ResolutionErrors0.dfy(345,27): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors0.dfy(343,18): Error: arguments must have comparable types (got int and DTD_List)
+ResolutionErrors0.dfy(344,18): Error: arguments must have comparable types (got DTD_List and int)
+ResolutionErrors0.dfy(358,17): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors0.dfy(382,11): Error: incorrect argument type at index 1 for method in-parameter 'b' (expected GenericClass<int>, found GenericClass<bool>) (non-variant type parameter would require int = bool)
+ResolutionErrors0.dfy(396,19): Error: incorrect argument type at index 0 for datatype constructor parameter 'hd' (expected _T0, found int)
+ResolutionErrors0.dfy(397,15): Error: incorrect argument type at index 0 for datatype constructor parameter 'hd' (expected _T0, found int)
+ResolutionErrors0.dfy(406,8): Error: all lines in a calculation must have the same type (got int after bool)
+ResolutionErrors0.dfy(410,8): Error: all lines in a calculation must have the same type (got int after bool)
+ResolutionErrors0.dfy(413,8): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(413,8): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(414,12): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(414,12): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(415,12): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(415,12): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(413,8): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(413,8): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(419,12): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(419,12): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(418,8): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(418,8): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors0.dfy(405,8): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+ResolutionErrors0.dfy(405,8): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors0.dfy(405,8): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors0.dfy(409,8): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors0.dfy(409,8): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors0.dfy(443,13): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors0.dfy(445,10): Error: a hint is not allowed to make heap updates
+ResolutionErrors0.dfy(447,10): Error: a hint is not allowed to update a variable it doesn't declare
+ResolutionErrors0.dfy(468,4): Error: More than one anonymous constructor
+ResolutionErrors0.dfy(481,15): Error: class Lamb does not have an anonymous constructor
+ResolutionErrors0.dfy(532,15): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors0.dfy(540,21): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors0.dfy(541,35): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
+68 resolution/type errors detected in ResolutionErrors0.dfy

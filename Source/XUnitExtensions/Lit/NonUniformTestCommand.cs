@@ -1,7 +1,8 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
-namespace XUnitExtensions.Lit; 
+namespace XUnitExtensions.Lit;
 
 public class NonUniformTestCommand : ILitCommand {
   private NonUniformTestCommand(string reason) {
@@ -17,8 +18,8 @@ public class NonUniformTestCommand : ILitCommand {
     return new NonUniformTestCommand(line);
   }
 
-  public (int, string, string) Execute(TextReader inputReader,
+  public Task<int> Execute(TextReader inputReader,
     TextWriter outputWriter, TextWriter errorWriter) {
-    return (0, "", "");
+    return Task.FromResult(0);
   }
 }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.CommandLine;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -20,22 +21,28 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// diagnostics may overlap with each other, creating a large list of hover texts.
   /// </remarks>
   public class GhostStateDiagnosticCollector : IGhostStateDiagnosticCollector {
+
+    public static readonly Option<bool> GhostIndicators = new("--notify-ghostness",
+      @"
+(experimental, API will change)
+Send notifications that indicate which lines are ghost.".TrimStart());
+
     private const string GhostStatementMessage = "Ghost statement";
 
     private readonly DafnyOptions options;
-    private readonly ILogger<GhostStateDiagnosticCollector> logger;
-    public GhostStateDiagnosticCollector(DafnyOptions options, ILogger<GhostStateDiagnosticCollector> logger) {
+    private readonly ILogger logger;
+    public GhostStateDiagnosticCollector(DafnyOptions options, ILogger logger) {
       this.options = options;
       this.logger = logger;
     }
 
     public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GetGhostStateDiagnostics(
       LegacySignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
-      if (!options.Get(ServerCommand.GhostIndicators)) {
+      if (!options.Get(GhostIndicators)) {
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
 
-      if (signatureAndCompletionTable.CompilationUnit.Program.Reporter.HasErrors) {
+      if (signatureAndCompletionTable.CompilationUnit.Program.Reporter.FailCompilation) {
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty; // TODO improve?
       }
       try {
@@ -59,12 +66,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         this.cancellationToken = cancellationToken;
       }
 
-      public override void VisitUnknown(object node, IToken token) { }
+      public override void VisitUnknown(object node, IOrigin token) { }
 
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
         if (IsGhostStatementToMark(statement)) {
-          var list = GhostDiagnostics.GetOrCreate(statement.Tok.Uri, () => new List<Range>());
+          var list = GhostDiagnostics.GetOrCreate(statement.Origin.Uri, () => new List<Range>());
           list.Add(GetRange(statement));
         } else {
           base.Visit(statement);
@@ -72,38 +79,38 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       private bool IsGhostStatementToMark(Statement statement) {
-        return statement.IsGhost && statement.Tok.line > 0;
+        return statement.IsGhost && statement.Origin.line > 0;
       }
 
       private static Range GetRange(Statement statement) {
         return statement switch {
-          UpdateStmt updateStatement => GetRange(updateStatement),
-          _ => CreateRange(statement.RangeToken.StartToken, statement.RangeToken.EndToken)
+          AssignStatement updateStatement => GetRange(updateStatement),
+          _ => CreateRange(statement.Origin.StartToken, statement.Origin.EndToken)
         };
       }
 
-      private static Range GetRange(UpdateStmt updateStatement) {
-        IToken startToken;
+      private static Range GetRange(AssignStatement updateStatement) {
+        IOrigin startToken;
         if (updateStatement.Lhss.Count > 0) {
-          startToken = updateStatement.Lhss[0].tok;
+          startToken = updateStatement.Lhss[0].Origin;
         } else if (updateStatement.ResolvedStatements.Count > 0) {
           // This branch handles the case where the UpdateStmt consists of an CallStmt without of left hand side.
           // otherwise, we'd only mark parentheses and the semi-colon of the CallStmt. 
           startToken = GetStartTokenFromResolvedStatement(updateStatement.ResolvedStatements[0]);
         } else {
-          startToken = updateStatement.Tok;
+          startToken = updateStatement.Origin;
         }
-        return CreateRange(startToken, updateStatement.RangeToken.EndToken);
+        return CreateRange(startToken, updateStatement.Origin.EndToken);
       }
 
-      private static IToken GetStartTokenFromResolvedStatement(Statement resolvedStatement) {
+      private static IOrigin GetStartTokenFromResolvedStatement(Statement resolvedStatement) {
         return resolvedStatement switch {
-          CallStmt callStatement => callStatement.MethodSelect.tok,
-          _ => resolvedStatement.Tok
+          CallStmt callStatement => callStatement.MethodSelect.Origin,
+          _ => resolvedStatement.Origin
         };
       }
 
-      private static Range CreateRange(IToken startToken, IToken endToken) {
+      private static Range CreateRange(IOrigin startToken, IOrigin endToken) {
         var endPosition = endToken.GetLspPosition();
         return new Range(
           startToken.GetLspPosition(),

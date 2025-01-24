@@ -1,0 +1,12 @@
+precondition-satisfied.dfy(12,7): Error: function precondition could not be proved
+ Asserted expression: b != 0
+precondition-satisfied.dfy(5,15): Related location: this proposition could not be proved
+precondition-satisfied.dfy(23,15): Error: divisor must be nonzero
+ Asserted expression: b != 0
+precondition-satisfied.dfy(16,72): Related location: this proposition could not be proved
+precondition-satisfied.dfy(29,4): Error: function precondition could not be proved
+ Asserted expression: lam.requires(a, b)
+precondition-satisfied.dfy(34,4): Error: function precondition could not be proved
+ Asserted expression: ((x: int, y: int) requires y != 0 => x / y).requires(a, b)
+
+Dafny program verifier finished with 2 verified, 4 errors

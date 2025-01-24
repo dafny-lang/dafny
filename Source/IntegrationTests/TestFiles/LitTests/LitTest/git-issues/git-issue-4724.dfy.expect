@@ -1,0 +1,3 @@
+git-issue-4724.dfy(8,10): Error: cannot prove termination; try supplying a decreases clause
+
+Dafny program verifier finished with 2 verified, 1 error

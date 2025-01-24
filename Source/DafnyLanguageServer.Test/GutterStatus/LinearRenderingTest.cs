@@ -9,6 +9,8 @@ public class LinearRenderingTest {
       bool isSingleLine, bool contextHasErrors, bool contextIsPending,
       CurrentStatus currentStatus, GutterVerificationStatus verificationStatus) {
     return verificationStatus switch {
+      GutterVerificationStatus.Skipped =>
+        LineVerificationStatus.Skipped,
       GutterVerificationStatus.Nothing =>
         currentStatus switch {
           CurrentStatus.Current => LineVerificationStatus.Nothing,

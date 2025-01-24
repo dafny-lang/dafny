@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -12,8 +11,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
     <PackageReference Include="DiffPlex" Version="1.7.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -26,14 +26,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DafnyCore.Test\DafnyCore.Test.csproj" />
     <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="..\..\Binaries\z3\**\*.*" LinkBase="z3">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\..\Test\dafny0\warnings-as-errors.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -42,5 +40,11 @@
 	  <Content Remove="_plugins/**" />
 	  <EmbeddedResource Include="_plugins/**" />
     <None Remove="_plugins\**" />
+    <None Update="expectedProverLog.smt2">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="testFile2.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
 	</ItemGroup>
 </Project>

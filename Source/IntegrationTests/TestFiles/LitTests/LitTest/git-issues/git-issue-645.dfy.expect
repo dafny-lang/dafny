@@ -1,0 +1,2 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
+*** Error: Command-line argument 'xyz' is neither a recognized option nor a filename with a supported extension (.dfy, .cs, .dll).

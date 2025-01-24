@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ master, main-* ]
-
+  merge_group:
+  
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -12,8 +13,6 @@ concurrency:
 jobs:
   check-deep-tests:
      uses: ./.github/workflows/check-deep-tests-reusable.yml
-     with:
-       branch: master
 
   build:
     needs: check-deep-tests
@@ -23,14 +22,29 @@ jobs:
 
     steps:
       - name: Checkout Dafny
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
+      # The Windows image was recently updated with a .NET 9 CLI which made CI fail, 
+      # We added a global.json to force it to use any .NET CLI with 8 as a major version
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
       - name: Set up JDK 18
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: 18
           distribution: corretto
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: false
+      - name: Set up goimports
+        env:
+          GO111MODULE: on
+        run: go install golang.org/x/tools/cmd/goimports@latest
       - name: Build Dafny
         run: dotnet build Source/Dafny.sln
       - name: Get Z3
@@ -40,18 +54,36 @@ jobs:
           cd ./Source/DafnyCore
           make test
           make check-format
+          make check-extract
+      - name: Test DafnyRuntime (C#, Rust)
+        run: |
+          cd ./Source/DafnyRuntime
+          make all
       - name: Test DafnyRuntimeDafny
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeDafny
-          make test
-          make check-format
+          make all
       - name: Test DafnyRuntimeGo
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeGo
-          make test
-      # This isn't strictly necessary since the Java runtime has to be built into a jar,
-      # which also runs the tests.
-      # But I prefer the simplicity of testing every testable runtime in this workflow
+          make all
+      - name: Test DafnyRuntimeGo-gomod
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeGo-gomod
+          make all
       - name: Test DafnyRuntimeJava
-        run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew -p ./Source/DafnyRuntime/DafnyRuntimeJava test
-      
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeJava
+          make all
+      - name: Test DafnyRuntimePython
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimePython
+          make all
+      - name: Test DafnyRuntimeJs
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeJs
+          make all
+      - name: Test DafnyRuntimeRust
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeRust
+          make all

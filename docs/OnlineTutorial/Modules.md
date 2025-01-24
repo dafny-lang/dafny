@@ -1,4 +1,6 @@
-<p></p> <!-- avoids duplicate title -->
+---
+title: Modules
+---
 
 # Modules
 

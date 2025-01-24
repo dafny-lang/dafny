@@ -1146,3 +1146,29 @@ method TestD(dd: D) {
   }
 }
 ```
+
+## 12.8. Quantifier instantiation rules {#sec-quantifier-triggers}
+During verification, when Dafny knows that a universal quantifier is true, such as when verifying the body of a function that has the requires clause `forall x :: f(x) == 1`, it may instantiate the quantifier. Instantiation means Dafny will pick a value for all the variables of the quantifier, leading to a new expression, which it hopes to use to prove an assertion. In the above example, instantiating using `3` for `x` will lead to the expression `f(3) == 1`.
+
+For each universal quantifier, Dafny generates rules to determine which instantiations are worthwhile doing. We call these rules triggers, a term that originates from SMT solvers. If Dafny can not generate triggers for a specific quantifier, it falls back to a set of generic rules. However, this is likely to be problematic, since the generic rules can cause many useless instantiations, leading to verification timing out or failing to proof a valid assertion. When the generic rules are used, Dafny emits a warning telling the user no triggers were found for the quantifier, indicating the Dafny program should be changed so Dafny can find triggers for this quantifier.
+
+Here follows the approach Dafny uses to generate triggers based on a quantifier. Dafny finds terms in the quantifier body where a quantified variable is used in an operation, such as in a function application `P(x)`, array access `a[x]`, member accesses `x.someField`, or set membership tests `x in S`. To find a trigger, Dafny must find a set of such terms so that each quantified variable is used. You can investigate which triggers Dafny finds by hovering over quantifiers in the IDE and looking for 'Selected triggers', or by using the options `--show-tooltips` when using the LCI.
+
+There are particular expressions which, for technical reasons, Dafny can not use as part of a trigger. Among others, these expression include: [match](#sec-match-expression), [let](#sec-let-expression), [arithmetic operations and logical connectives](#sec-expressions). For example, in the quantifier `forall x :: x in S ⇐⇒ f(x) > f(x+1)`, Dafny will use `x in S` and `f(x)` as trigger terms, but will not use `x+1` or any terms that contain it. You can investigate which triggers Dafny can not use by hovering over quantifiers in the IDE and looking for 'Rejected triggers', or by using the options `--show-tooltips` when using the LCI.
+
+Besides not finding triggers, another problematic situation is when Dafny was able to generate triggers, but believes the triggers it found may still cause useless instantiations because they create matching loops. Dafny emits a warning when this happens, indicating the Dafny program should be changed so Dafny can find triggers for this quantifier that do not cause matching loops.
+
+To understand matching loops, one needs to understand how triggers are used. During a single verification run, such as verifying a method or function, Dafny maintains a set of expressions which it believes to be true, which we call the ground terms. For example, in the body of a method, Dafny knows the requires clauses of that method hold, so the expressions in those will be ground terms. When Dafny steps through the statements of the body, the set of ground terms grows. For example, when an assignment `var x := 3` is evaluated, a ground term `x == 3` will be added. Given a universal quantifier that's a ground term, Dafny will try to pattern match its triggers on sub-expressions of other ground terms. If the pattern matches, that sub-expression is used to instantiate the quantifier. 
+
+Dafny makes sure not to perform the exact same instantiation twice. However, if an instantiation leads to a new term that also matches the trigger, but is different from the term used for the instantiation, the quantifier may be instantiated too often, an event we call a matching loop. For example, given the ground terms `f(3)` and `forall x {f(x)} :: f(x) + f(f(x))`, where `{f(x)}` indicates the trigger for the quantifier, Dafny may instantiate the quantifier using `3` for `x`. This creates a new ground term `f(3) + f(f(3))`, of which the right hand side again matches the trigger, allowing Dafny to instantiate the quantifier again using `f(3)` for `x`, and again and again, leading to an unbounded amount of instantiations.
+
+Even existential quantifiers need triggers. This is because when Dafny determines an existential quantifier is false, for example in the body of a method that has `requires !exists x :: f(x) == 2`, Dafny will use a logical rewrite rule to change this existential into a universal quantifier, so it becomes `requires forall x :: f(x) != 2`. Before verification, Dafny can not determine whether quantifiers will be determined to be true or false, so it must assume any quantifier may turn into a universal quantifier, and thus they all need triggers. Besides quantifiers, comprehensions such as set and map comprehensions also need triggers, since these are modeled using universal quantifiers.
+
+Dafny may report 'Quantifier was split into X parts'. This occurs when Dafny determines it can only generate good triggers for a quantifier by splitting it into multiple smaller quantifiers, whose aggregation is logically equivalent to the original one. To maintain logical equivalence, Dafny may have to generate more triggers than if the split had been done manually in the Dafny source file. An example is the expression `forall x :: P(x) && (Q(x) =⇒ P(x+1))`, which Dafny will split into
+<!-- %no-check -->
+```dafny
+forall x {P(x)} {Q(x)} :: P(x) &&
+forall x {(Q(x)} :: Q(x) =⇒ P(x+1)
+```
+
+Note the trigger `{Q(x)}` in the first quantifier, which was added to maintain equivalence with the original quantifier. If the quantifier had been split in source, only the trigger `{P(x)}` would have been added for `forall x :: P(x)`.

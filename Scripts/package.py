@@ -161,7 +161,6 @@ class Release:
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
         run(["make", "--quiet", "clean"])
-        self.run_publish("DafnyLanguageServer")
         self.run_publish("DafnyServer")
         self.run_publish("DafnyRuntime", "netstandard2.0")
         self.run_publish("DafnyRuntime", "net452")

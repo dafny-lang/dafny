@@ -51,14 +51,14 @@ class B {
 
   function GetX()
 }";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesLinesOfSymbolsBeforeUnchangedWhenChangingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
         new Range((3, 0), (4, 1)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      var document = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.Equal(new Range((0, 6), (0, 7)), location.Name);
@@ -78,14 +78,14 @@ class C {
 }".TrimStart();
 
       var change = "";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesLinesOfSymbolsBeforeUnchangedWhenRemovingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
         new Range((3, 0), (4, 0)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      var document = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.Equal(new Range((0, 6), (0, 7)), location.Name);
@@ -111,7 +111,7 @@ class B {
 
   function GetX()
 }";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesLinesOfSymbolsAfterWhenChangingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       await ApplyChangeAndWaitCompletionAsync(
@@ -119,14 +119,14 @@ class B {
         new Range((3, 0), (4, 1)),
         change
       );
-      var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      var state = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(state);
       try {
         Assert.True(TryFindSymbolDeclarationByName(state, "C", out var location));
         Assert.Equal(new Range((10, 6), (10, 7)), location.Name);
         Assert.Equal(new Range((10, 0), (11, 0)), location.Declaration);
       } catch (AssertActualExpectedException) {
-        await output.WriteLineAsync($"state version is {state.Version}, diagnostics: {state.GetDiagnostics().Values.Stringify()}");
+        await output.WriteLineAsync($"state version is {state.Version}, diagnostics: {state.GetAllDiagnostics().Stringify()}");
         var programString = new StringWriter();
         var printer = new Printer(programString, DafnyOptions.Default);
         printer.PrintProgram((Program)state.Program, true);
@@ -147,14 +147,14 @@ class C {
 }".TrimStart();
 
       var change = "";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesLinesOfSymbolsAfterWhenRemovingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
         new Range((3, 0), (4, 0)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      var document = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "C", out var location));
       Assert.Equal(new Range((5, 6), (5, 7)), location.Name);
@@ -173,7 +173,7 @@ class A {
 }".TrimStart();
 
       var change = "string reads thi";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesLocationUnchangedWhenChangingAtTheEndOfTheSignature.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       await ApplyChangeAndWaitCompletionAsync(
@@ -181,9 +181,9 @@ class A {
         new Range((3, 19), (3, 22)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
-      Assert.NotNull(document);
-      Assert.True(TryFindSymbolDeclarationByName(document, "GetX", out var location));
+      var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(state);
+      Assert.True(TryFindSymbolDeclarationByName(state, "GetX", out var location));
       Assert.Equal(new Range((3, 11), (3, 15)), location.Name);
       Assert.Equal(new Range((3, 2), (5, 2)), location.Declaration);
     }
@@ -198,14 +198,14 @@ class A {
       var change = @"var y: int;
 
   function GetY()";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationExpandsDeclarationRangeWhenChangingTheContents.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
         new Range((1, 2), (1, 13)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      var document = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.Equal(new Range((0, 6), (0, 7)), location.Name);
@@ -216,14 +216,14 @@ class A {
     public async Task MigrationExpandsDeclarationRangeWhenChangingTheContentsOnTheSameLine() {
       var source = "class A { var x: int; }";
       var change = "var y: int; function GetY()";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationExpandsDeclarationRangeWhenChangingTheContentsOnTheSameLine.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
         new Range((0, 10), (0, 21)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      var document = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.Equal(new Range((0, 6), (0, 7)), location.Name);
@@ -240,14 +240,14 @@ class A {
       var change = @"var y: int;
 
   function GetY()";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationRemovesLocationsWithinTheChangedRange.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
         new Range((1, 2), (1, 13)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      var document = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.False(TryFindSymbolDeclarationByName(document, "x", out var _));
     }
@@ -262,7 +262,7 @@ class B {
   var y: int;
 }".TrimStart();
 
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesDeclarationWhenApplyingMultipleChangesAtOnce.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangesAndWaitCompletionAsync(
         documentItem,
@@ -279,20 +279,20 @@ class A {
 }".TrimStart()
         }
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      var document = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "B", out var bLocation));
       Assert.Equal(new Range((4, 6), (4, 7)), bLocation.Name);
       Assert.Equal(new Range((4, 0), (7, 0)), bLocation.Declaration);
       Assert.True(TryFindSymbolDeclarationByName(document, "y", out var yLocation));
       Assert.Equal(new Range((6, 6), (6, 7)), yLocation.Name);
-      Assert.Equal(new Range((6, 6), (6, 7)), yLocation.Declaration);
+      Assert.Equal(new Range((6, 2), (6, 12)), yLocation.Declaration);
     }
 
     [Fact]
     public async Task PassingANullChangeRangeClearsSymbolsTable() {
       var source = "class X {}";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "PassingANullChangeRangeClearsSymbolsTable.dfy");
 
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
@@ -310,7 +310,7 @@ class A {
       // Next try a change that breaks resolution.
       // In this case symbols are relocated.  Since the change range is `null` all symbols for "test.dfy" are lost.
       await ApplyChangeAndWaitCompletionAsync(ref documentItem, null, "; class Y {}");
-      state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem);
+      state = await Projects.GetParsedDocumentNormalizeUri(documentItem);
       Assert.NotNull(state);
       // Relocation happens due to the syntax error; range is null so table is cleared
       Assert.False(TryFindSymbolDeclarationByName(state, "X", out var _));
@@ -333,7 +333,7 @@ class A {
 
       // Try a change that breaks resolution.  Symbols for `foreign.dfy` are kept.
       await ApplyChangeAndWaitCompletionAsync(ref documentItem, null, "; include \"foreign.dfy\"\nclass Y {}");
-      document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem);
+      document = await Projects.GetParsedDocumentNormalizeUri(documentItem);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var _, new Uri(includePath)));
 

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -23,9 +24,9 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   [FilledInDuringResolution] public SpecialField QueryField;
   [FilledInDuringResolution] public List<DatatypeDestructor> Destructors = new List<DatatypeDestructor>();  // includes both implicit (not mentionable in source) and explicit destructors
 
-  public DatatypeCtor(RangeToken rangeToken, Name name, bool isGhost, [Captured] List<Formal> formals, Attributes attributes)
-    : base(rangeToken, name, attributes, false) {
-    Contract.Requires(rangeToken != null);
+  public DatatypeCtor(IOrigin origin, Name name, bool isGhost, [Captured] List<Formal> formals, Attributes attributes)
+    : base(origin, name, attributes, false) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(formals));
     this.Formals = formals;
@@ -42,19 +43,25 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   }
 
   public string GetTriviaContainingDocstring() {
-    if (EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    var tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
+    }
+
+    return null;
   }
 
-  public DafnySymbolKind Kind => DafnySymbolKind.EnumMember;
-  public string GetDescription(DafnyOptions options) {
+  public override SymbolKind? Kind => SymbolKind.EnumMember;
+  public override string GetDescription(DafnyOptions options) {
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
     return $"{EnclosingDatatype.Name}.{Name}({formals})";
   }
 
   public ModuleDefinition ContainingModule => EnclosingDatatype.EnclosingModuleDefinition;
   public bool ShouldVerify => Formals.Any(f => f.DefaultValue != null);
+  public string FullDafnyName => FullName;
 }

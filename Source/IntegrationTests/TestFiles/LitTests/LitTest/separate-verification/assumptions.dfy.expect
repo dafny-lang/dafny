@@ -1,0 +1,18 @@
+TestAuditor.dfy(24,25): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+TestAuditor.dfy(38,2): Warning: assume statement has no {:axiom} annotation
+TestAuditor.dfy(45,17): Warning: when a method is imported, meaning it has no body and an {:extern} annotation, Dafny can not guarantee that its implementation satisfies its post-conditions (its ensures clauses and outputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'.
+TestAuditor.dfy(50,17): Warning: when a method is exported, meaning it has a body and an {:extern} annotation, Dafny can not guarantee that it is called with arguments that satisfy its preconditions (its requires clauses and inputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'
+TestAuditor.dfy(72,19): Warning: when a function is imported, meaning it has no body and an {:extern} annotation, Dafny can not guarantee that its implementation satisfies its post-conditions (its ensures clauses and outputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'.
+TestAuditor.dfy(136,2): Warning: assume statement has no {:axiom} annotation
+TestAuditor.dfy(150,11): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+TestAuditor.dfy(154,9): Warning: Members with {:only} temporarily disable the verification of other members in the entire file
+TestAuditor.dfy(95,4): Warning: this forall statement has no body
+TestAuditor.dfy(102,4): Warning: this loop has no body (loop frame: i)
+TestAuditor.dfy(139,2): Warning: this forall statement has no body
+TestAuditor.dfy(143,2): Warning: this loop has no body (loop frame: i)
+TestAuditor.dfy(93,10): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TestAuditor.dfy(95,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TestAuditor.dfy(139,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+
+Dafny program verifier did not attempt verification
+Translation was aborted because warnings were found and --allow-warnings was not specified

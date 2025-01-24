@@ -15,6 +15,12 @@ namespace Microsoft.Dafny {
     NewlineBrace
   }
 
+  public static class CanRenderExtensions {
+    public static ConcreteSyntaxTree InParens(this ICanRender canRender) {
+      return ConcreteSyntaxTree.Create($"({canRender})");
+    }
+  }
+
   public class ConcreteSyntaxTree : ICanRender {
     public ConcreteSyntaxTree(int relativeIndent = 0) {
       RelativeIndentLevel = relativeIndent;
@@ -152,10 +158,6 @@ namespace Microsoft.Dafny {
       return this;
     }
 
-    public ConcreteSyntaxTree InParens() {
-      return Create($"({this})");
-    }
-
     // ----- Nested blocks ------------------------------
 
     public virtual ConcreteSyntaxTree ForkInParens() {
@@ -166,7 +168,7 @@ namespace Microsoft.Dafny {
       return result;
     }
 
-    public ConcreteSyntaxTree NewBlock(string header = "", string footer = "",
+    public virtual ConcreteSyntaxTree NewBlock(string header = "", string footer = "",
       BlockStyle open = BlockStyle.SpaceBrace,
       BlockStyle close = BlockStyle.NewlineBrace) {
       Contract.Requires(header != null);

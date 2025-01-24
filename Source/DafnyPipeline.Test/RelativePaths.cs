@@ -1,4 +1,6 @@
 using System.IO;
+using System.Threading.Tasks;
+using DafnyCore.Test;
 using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
@@ -14,9 +16,9 @@ namespace DafnyPipeline.Test {
     }
 
     [Fact]
-    public void Test() {
-      Assert.Equal(0, DafnyDriver.MainWithWriters(output, output,
-        TextReader.Null, new[] { "/spillTargetCode:3", "warnings-as-errors.dfy" }));
+    public async Task Test() {
+      Assert.Equal(0, await DafnyBackwardsCompatibleCli.MainWithWriters(output, output,
+        TextReader.Null, new[] { "/spillTargetCode:3", "testFile2.dfy" }));
     }
 
     [Fact]

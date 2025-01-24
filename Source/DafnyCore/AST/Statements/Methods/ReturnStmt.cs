@@ -14,8 +14,8 @@ public class ReturnStmt : ProduceStmt, ICloneable<ReturnStmt> {
     ReverifyPost = original.ReverifyPost;
   }
 
-  public ReturnStmt(RangeToken rangeToken, List<AssignmentRhs> rhss)
-    : base(rangeToken, rhss) {
-    Contract.Requires(rangeToken != null);
+  public ReturnStmt(IOrigin origin, List<AssignmentRhs> rhss, Attributes attributes = null)
+    : base(origin, rhss, attributes) {
+    Contract.Requires(origin != null);
   }
 }

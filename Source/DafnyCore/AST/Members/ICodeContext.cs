@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -7,12 +9,14 @@ namespace Microsoft.Dafny;
 /// An ICodeContext is an ICallable or a NoContext.
 /// </summary>
 public interface ICodeContext : IASTVisitorContext {
+  bool ContainsHide { get; set; }
   bool IsGhost { get; }
   List<TypeParameter> TypeArgs { get; }
   List<Formal> Ins { get; }
   bool MustReverify { get; }
   string FullSanitizedName { get; }
   bool AllowsNontermination { get; }
+  CodeGenIdGenerator CodeGenIdGenerator { get; }
 }
 
 
@@ -29,6 +33,11 @@ public class CodeContextWrapper : ICodeContext {
     this.isGhostContext = isGhostContext;
   }
 
+  public bool ContainsHide {
+    get => inner.ContainsHide;
+    set => inner.ContainsHide = value;
+  }
+
   public bool IsGhost => isGhostContext;
   public List<TypeParameter> TypeArgs => inner.TypeArgs;
   public List<Formal> Ins => inner.Ins;
@@ -36,6 +45,7 @@ public class CodeContextWrapper : ICodeContext {
   public bool MustReverify => inner.MustReverify;
   public string FullSanitizedName => inner.FullSanitizedName;
   public bool AllowsNontermination => inner.AllowsNontermination;
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => inner.CodeGenIdGenerator;
 
   public static ICodeContext Unwrap(ICodeContext codeContext) {
     while (codeContext is CodeContextWrapper ccw) {
@@ -45,11 +55,13 @@ public class CodeContextWrapper : ICodeContext {
   }
 }
 
+interface ICodeContainer {
+}
 
 /// <summary>
 /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
 /// </summary>
-public interface ICallable : ICodeContext, INode {
+public interface ICallable : ICodeContext, ISymbol, IFrameScope {
   string WhatKind { get; }
   string NameRelativeToModule { get; }
   Specification<Expression> Decreases { get; }
@@ -74,53 +86,31 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
     : base(callable, isGhostContext) {
   }
 
-  protected ICallable cwInner => (ICallable)inner;
-  public IToken Tok => cwInner.Tok;
-  public IEnumerable<INode> Children => cwInner.Children;
-  public IEnumerable<INode> PreResolveChildren => cwInner.PreResolveChildren;
+  public ICallable CwInner => (ICallable)inner;
+  public IEnumerable<INode> Children => CwInner.Children;
+  public IEnumerable<INode> PreResolveChildren => CwInner.PreResolveChildren;
 
-  public string WhatKind => cwInner.WhatKind;
-  public string NameRelativeToModule => cwInner.NameRelativeToModule;
-  public Specification<Expression> Decreases => cwInner.Decreases;
+  public string WhatKind => CwInner.WhatKind;
+  public string NameRelativeToModule => CwInner.NameRelativeToModule;
+  public Specification<Expression> Decreases => CwInner.Decreases;
 
   public bool InferredDecreases {
-    get => cwInner.InferredDecreases;
-    set { cwInner.InferredDecreases = value; }
+    get => CwInner.InferredDecreases;
+    set { CwInner.InferredDecreases = value; }
   }
 
-  public bool AllowsAllocation => cwInner.AllowsAllocation;
+  public bool AllowsAllocation => CwInner.AllowsAllocation;
 
-  public IEnumerable<IToken> OwnedTokens => cwInner.OwnedTokens;
-  public RangeToken RangeToken => cwInner.RangeToken;
-}
-
-
-public class DontUseICallable : ICallable {
-  public string WhatKind { get { throw new cce.UnreachableException(); } }
-  public bool IsGhost { get { throw new cce.UnreachableException(); } }
-  public List<TypeParameter> TypeArgs { get { throw new cce.UnreachableException(); } }
-  public List<Formal> Ins { get { throw new cce.UnreachableException(); } }
-  public ModuleDefinition EnclosingModule { get { throw new cce.UnreachableException(); } }
-  public bool MustReverify { get { throw new cce.UnreachableException(); } }
-  public string FullSanitizedName { get { throw new cce.UnreachableException(); } }
-  public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
-  public IToken Tok { get { throw new cce.UnreachableException(); } }
-  public IEnumerable<INode> Children => throw new cce.UnreachableException();
-  public IEnumerable<INode> PreResolveChildren => throw new cce.UnreachableException();
-
-  public string NameRelativeToModule { get { throw new cce.UnreachableException(); } }
-  public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
-  public bool InferredDecreases {
-    get { throw new cce.UnreachableException(); }
-    set { throw new cce.UnreachableException(); }
-  }
-  public bool AllowsAllocation => throw new cce.UnreachableException();
-  public IEnumerable<INode> GetConcreteChildren() {
-    throw new cce.UnreachableException();
+  public bool SingleFileToken => CwInner.SingleFileToken;
+  public IEnumerable<IOrigin> OwnedTokens => CwInner.OwnedTokens;
+  public IOrigin Origin => CwInner.Origin;
+  public IOrigin NavigationToken => CwInner.NavigationToken;
+  public SymbolKind? Kind => CwInner.Kind;
+  public string GetDescription(DafnyOptions options) {
+    return CwInner.GetDescription(options);
   }
 
-  public IEnumerable<IToken> OwnedTokens => throw new cce.UnreachableException();
-  public RangeToken RangeToken => throw new cce.UnreachableException();
+  public string Designator => WhatKind;
 }
 
 /// <summary>
@@ -139,6 +129,11 @@ public class NoContext : ICodeContext {
   public NoContext(ModuleDefinition module) {
     this.Module = module;
   }
+
+  public bool ContainsHide {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
@@ -146,18 +141,26 @@ public class NoContext : ICodeContext {
   bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator { get; } = new();
+
   public bool AllowsAllocation => true;
 }
 
 public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
 
-  IToken tok { get; }
+  string FullDafnyName { get; }
+  IOrigin Tok { get; }
+
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }
+  PreType BasePreType { get; }
+  Type BaseType { get; }
   Expression/*?*/ Constraint { get; }
   SubsetTypeDecl.WKind WitnessKind { get; }
   Expression/*?*/ Witness { get; }  // non-null iff WitnessKind is Compiled or Ghost
-  FreshIdGenerator IdGenerator { get; }
+  VerificationIdGenerator IdGenerator { get; }
+
+  [FilledInDuringResolution] bool ConstraintIsCompilable { get; set; }
 }

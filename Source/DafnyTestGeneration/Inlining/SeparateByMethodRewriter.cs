@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #nullable disable
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
@@ -18,12 +17,9 @@ namespace DafnyTestGeneration.Inlining;
 public class SeparateByMethodRewriter : IRewriter {
 
   private readonly List<Method> methodsToAdd = new();
-  // determines whether the given function-by-method should be split into a function and a method
-  private readonly Func<MemberDecl, bool> shouldProcessPredicate;
 
-  protected internal SeparateByMethodRewriter(ErrorReporter reporter, Func<MemberDecl, bool> shouldProcessPredicate) :
+  protected internal SeparateByMethodRewriter(ErrorReporter reporter) :
     base(reporter) {
-    this.shouldProcessPredicate = shouldProcessPredicate;
   }
 
   internal void PostResolve(Program program) {
@@ -32,10 +28,10 @@ public class SeparateByMethodRewriter : IRewriter {
 
   private void SeparateByMethod(TopLevelDecl d) {
     if (d is LiteralModuleDecl moduleDecl) {
-      moduleDecl.ModuleDef.TopLevelDecls.ForEach(SeparateByMethod);
+      moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>().ForEach(SeparateByMethod);
     } else if (d is TopLevelDeclWithMembers withMembers) {
       methodsToAdd.Clear();
-      withMembers.Members.Where(shouldProcessPredicate).OfType<Function>().ForEach(SeparateByMethod);
+      withMembers.Members.OfType<Function>().ForEach(SeparateByMethod);
       withMembers.Members.AddRange(methodsToAdd);
     }
   }

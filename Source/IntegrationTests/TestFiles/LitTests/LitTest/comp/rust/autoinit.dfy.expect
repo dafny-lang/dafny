@@ -1,0 +1,3 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+(0,-1): Error: Microsoft.Dafny.UnsupportedInvalidOperationException: Creation of object of type Test<Positive> requires a constructor
