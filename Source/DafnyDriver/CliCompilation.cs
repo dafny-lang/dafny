@@ -317,7 +317,7 @@ public class CliCompilation {
     public int End { get; } = end;
 
     public bool Contains(int value) {
-      return start <= value && value <= end;
+      return Start <= value && value <= End;
     }
     public bool Filters => Start != int.MinValue || End != int.MaxValue;
   }
