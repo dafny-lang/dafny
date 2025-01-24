@@ -40,48 +40,6 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     return node.StartToken.line > 0 ? new List<INode> { node } : null;
   }
 
-  public static INode? GetInsertionNode(Node program, Range selection, out List<INode>? nodesSinceFailure, out bool needsIsolation) {
-    nodesSinceFailure = FindInnermostNodeIntersecting(program, selection);
-
-    needsIsolation = false;
-
-    INode? insertionNode = null;
-    if (nodesSinceFailure != null) {
-      for (var i = 0; i < nodesSinceFailure.Count; i++) {
-        var node = nodesSinceFailure[i];
-        var nextNode = i < nodesSinceFailure.Count - 1 ? nodesSinceFailure[i + 1] : null;
-        if (node is Statement or LetExpr &&
-            ((node is AssignStatement or AssignSuchThatStmt && nextNode is not VarDeclStmt) ||
-             (node is not AssignStatement && nextNode is not VarDeclStmt && nextNode is not AssignSuchThatStmt))) {
-          insertionNode = node;
-          break;
-        }
-
-        if (nextNode is TopLevelDecl or MemberDecl or ITEExpr or MatchExpr or NestedMatchExpr
-            or NestedMatchCase) { // Nodes that change the path condition
-          insertionNode = node;
-          break;
-        }
-
-        if (nextNode is BinaryExpr { Op: var op } binaryExpr &&
-            ((op == BinaryExpr.Opcode.Imp && node == binaryExpr.E1) ||
-             (op == BinaryExpr.Opcode.Exp && node == binaryExpr.E1) ||
-             (op == BinaryExpr.Opcode.And && node == binaryExpr.E1) ||
-             (op == BinaryExpr.Opcode.Or && node == binaryExpr.E1))) {
-          insertionNode = node;
-          needsIsolation = (op == BinaryExpr.Opcode.Exp && node == binaryExpr.E1);
-          break;
-        }
-      }
-
-      insertionNode ??= nodesSinceFailure[0];
-    } else {
-      insertionNode = null;
-    }
-
-    return insertionNode;
-  }
-
   abstract class StatementInsertingCodeAction : DafnyCodeAction {
     protected readonly DafnyOptions options;
     protected readonly Expression failingImplicitAssertion;
@@ -102,12 +60,16 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     }
 
     public override IEnumerable<DafnyCodeActionEdit> GetEdits() {
-      var insertionNode = GetInsertionNode(program, selection, out var nodesTillFailure, out var needsIsolation);
+      var insertionNode = GetFarthestNodeBeforeWhichAssertionCanBeInserted(program, selection, out var nodesTillFailure, out var needsIsolation);
       if (insertionNode == null || nodesTillFailure == null) {
         return new DafnyCodeActionEdit[] { };
       }
 
-      if (insertionNode is AssertStmt or VarDeclStmt or CallStmt && insertionNode.EndToken is { val: ";" } endToken) {
+      var canHaveByBlock = insertionNode is AssertStmt or VarDeclStmt or CallStmt;
+      var canReplaceSemicolonWithByBlock =
+        canHaveByBlock &&
+        insertionNode.EndToken is { val: ";" };
+      if (canReplaceSemicolonWithByBlock) {
         // We can insert a by block to keep the proof limited
         var start = insertionNode.StartToken;
         var indentation = IndentationFormatter.Whitespace(Math.Max(start.col - 1, 0));
@@ -115,9 +77,14 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         var block = " by {\n" +
                     indentation2 + GetStatementToInsert(indentation2) + "\n" +
                     indentation + "}";
-        return ReplaceWith(endToken, block);
-      } else if (insertionNode is AssertStmt or VarDeclStmt or CallStmt && insertionNode.OwnedTokens.FirstOrDefault(t => t.val == "by") is { Next: { val: "{" } braceToken } byToken) {
-        var start = braceToken.Next;
+        return ReplaceWith(insertionNode.EndToken, block);
+      }
+
+      var braceAfterByToken = canHaveByBlock && insertionNode.OwnedTokens.FirstOrDefault(t => t.val == "by") is { Next: { val: "{" } b }
+        ? b
+        : null;
+      if (braceAfterByToken != null) {
+        var start = braceAfterByToken.Next;
         var isEmptyBy = start.Next is { val: "}" };
         var innerCol = isEmptyBy ? start.col + 1 : start.col - 1;
         var indentation = IndentationFormatter.Whitespace(Math.Max(innerCol, 0));
@@ -133,6 +100,66 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         var assertStr = GetStatementToInsert(indentation) + "\n" + indentation;
         return PrefixWithStatement(insertionNode.StartToken, insertionNode.EndToken, needsIsolation, assertStr);
       }
+    }
+
+    // Returns the node before which an implicit assertion can be inserted that should fix a failing assertion
+    // nodesSinceFailures is a list of node where the first node is the innermost one whose Range intersects with the selection range, and then each next node is the parent of the previous node.
+    // needsIsolation indicates if that insertion node will require parentheses because of associativity
+    // For example:
+    //   B ==> 1 / x == y
+    // if x is not proved to be nonzero, the insertion point has to be after the implication and before the 1/x, either
+    //   B ==> assert x != 0; (1 / x == y)
+    //   B ==> (assert x != 0; 1 / x) == y
+    // We prefer the first one, because it does not require parentheses. Moreover, if it is a top-level assertion, such as in:
+    //   assert 1 / x == y;
+    // Then rather than having a weird
+    //   assert assert x != 0; 1 / x == y;
+    // we can actually detect that the insertion point is surrounded by a node that supports
+    // by clauses and nicely push the assertion there
+    //   assert 1 / x == y by {
+    //     assert x != 0;
+    //   }
+
+    public static INode? GetFarthestNodeBeforeWhichAssertionCanBeInserted(Node program, Range selection, out List<INode>? nodesSinceFailure, out bool needsIsolation) {
+      nodesSinceFailure = FindInnermostNodeIntersecting(program, selection);
+
+      needsIsolation = false;
+
+      INode? insertionNode = null;
+      if (nodesSinceFailure != null) {
+        for (var i = 0; i < nodesSinceFailure.Count; i++) {
+          var node = nodesSinceFailure[i];
+          var nextNode = i < nodesSinceFailure.Count - 1 ? nodesSinceFailure[i + 1] : null;
+          if (node is Statement or LetExpr &&
+              ((node is AssignStatement or AssignSuchThatStmt && nextNode is not VarDeclStmt) ||
+               (node is not AssignStatement && nextNode is not VarDeclStmt && nextNode is not AssignSuchThatStmt))) {
+            insertionNode = node;
+            break;
+          }
+
+          if (nextNode is TopLevelDecl or MemberDecl or ITEExpr or MatchExpr or NestedMatchExpr
+              or NestedMatchCase) { // Nodes that change the path condition
+            insertionNode = node;
+            break;
+          }
+
+          if (nextNode is BinaryExpr { Op: var op } binaryExpr &&
+              ((op == BinaryExpr.Opcode.Imp && node == binaryExpr.E1) ||
+               (op == BinaryExpr.Opcode.Exp && node == binaryExpr.E1) ||
+               (op == BinaryExpr.Opcode.And && node == binaryExpr.E1) ||
+               (op == BinaryExpr.Opcode.Or && node == binaryExpr.E1))) {
+            insertionNode = node;
+            needsIsolation = (op == BinaryExpr.Opcode.Exp && node == binaryExpr.E1);
+            break;
+          }
+        }
+
+        insertionNode ??= nodesSinceFailure[0];
+      } else {
+        insertionNode = null;
+      }
+
+      return insertionNode;
     }
 
     /// Helper for subclasses to print an expression
