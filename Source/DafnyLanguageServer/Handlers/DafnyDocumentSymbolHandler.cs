@@ -15,14 +15,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP Synchronization handler for symbol based events, i.e. the client requests the symbols of the specified document.
   /// </summary>
-  public class DafnyDocumentSymbolHandler(
-    ILogger<DafnyDocumentSymbolHandler> logger,
-    IProjectDatabase projects,
-    DafnyOptions serverOptions)
-    : DocumentSymbolHandlerBase {
+  public class DafnyDocumentSymbolHandler : DocumentSymbolHandlerBase {
     private static readonly SymbolInformationOrDocumentSymbol[] EmptySymbols = [];
 
-    private readonly ILogger logger = logger;
+    private readonly ILogger logger;
+    private readonly IProjectDatabase projects;
+    private readonly DafnyOptions serverOptions;
+
+    public DafnyDocumentSymbolHandler(ILogger<DafnyDocumentSymbolHandler> logger, IProjectDatabase projects, DafnyOptions serverOptions) {
+      this.logger = logger;
+      this.projects = projects;
+      this.serverOptions = serverOptions;
+    }
 
     protected override DocumentSymbolRegistrationOptions CreateRegistrationOptions(DocumentSymbolCapability capability, ClientCapabilities clientCapabilities) {
       return new DocumentSymbolRegistrationOptions {

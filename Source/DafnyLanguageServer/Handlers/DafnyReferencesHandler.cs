@@ -11,9 +11,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP handler responsible for resolving the locations of references to the identifier at the specified position.
   /// </summary>
-  public class DafnyReferencesHandler(ILogger<DafnyReferencesHandler> logger, IProjectDatabase projects)
-    : ReferencesHandlerBase {
-    private readonly ILogger logger = logger;
+  public class DafnyReferencesHandler : ReferencesHandlerBase {
+    private readonly ILogger logger;
+    private readonly IProjectDatabase projects;
+
+    public DafnyReferencesHandler(ILogger<DafnyReferencesHandler> logger, IProjectDatabase projects) {
+      this.logger = logger;
+      this.projects = projects;
+    }
 
     protected override ReferenceRegistrationOptions CreateRegistrationOptions(
       ReferenceCapability capability, ClientCapabilities clientCapabilities) {

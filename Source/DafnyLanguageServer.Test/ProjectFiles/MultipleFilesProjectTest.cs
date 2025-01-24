@@ -14,8 +14,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
-public class MultipleFilesProjectTest(ITestOutputHelper output)
-  : ClientBasedLanguageServerTest(output, LogLevel.Trace) {
+public class MultipleFilesProjectTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task OnDiskProducerResolutionErrors() {
@@ -328,5 +327,8 @@ method Bar() {
     var consumer3Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer3);
     Assert.Single(consumer3Diagnostics);
     Assert.Contains("not found", consumer3Diagnostics[0].Message);
+  }
+
+  public MultipleFilesProjectTest(ITestOutputHelper output) : base(output, LogLevel.Trace) {
   }
 }

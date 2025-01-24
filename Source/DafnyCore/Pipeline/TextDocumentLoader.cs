@@ -14,12 +14,19 @@ namespace Microsoft.Dafny {
   /// <remarks>
   /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
   /// </remarks>
-  public class TextDocumentLoader(
-    ILogger<ITextDocumentLoader> documentLoader,
-    IDafnyParser parser,
-    ISymbolResolver symbolResolver)
-    : ITextDocumentLoader {
-    private readonly ILogger<ITextDocumentLoader> logger = documentLoader;
+  public class TextDocumentLoader : ITextDocumentLoader {
+    private readonly ILogger<ITextDocumentLoader> logger;
+    private readonly IDafnyParser parser;
+    private readonly ISymbolResolver symbolResolver;
+
+    public TextDocumentLoader(
+      ILogger<ITextDocumentLoader> documentLoader,
+      IDafnyParser parser,
+      ISymbolResolver symbolResolver) {
+      this.logger = documentLoader;
+      this.parser = parser;
+      this.symbolResolver = symbolResolver;
+    }
 
     public async Task<ProgramParseResult> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
 #pragma warning disable CS1998

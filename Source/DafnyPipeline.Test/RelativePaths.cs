@@ -8,8 +8,12 @@ using Xunit.Abstractions;
 namespace DafnyPipeline.Test {
   [Collection("Singleton Test Collection - Resolution")]
 
-  public class RelativePaths(ITestOutputHelper output) {
-    private readonly TextWriter output = new WriterFromOutputHelper(output);
+  public class RelativePaths {
+    private readonly TextWriter output;
+
+    public RelativePaths(ITestOutputHelper output) {
+      this.output = new WriterFromOutputHelper(output);
+    }
 
     [Fact]
     public async Task Test() {

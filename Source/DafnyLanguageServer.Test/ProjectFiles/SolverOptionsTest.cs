@@ -9,8 +9,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
-public class SolverOptionsTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
-  : ClientBasedLanguageServerTest(output, dafnyLogLevel) {
+public class SolverOptionsTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task DisableNonLinearArithmeticIsUsed() {
@@ -31,5 +30,8 @@ lemma Test(a: real, b: real)
     var diagnostics = await GetLastDiagnostics(sourceDocument);
     Assert.Single(diagnostics);
     Assert.Contains("a postcondition", diagnostics.First().Message);
+  }
+
+  public SolverOptionsTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
   }
 }

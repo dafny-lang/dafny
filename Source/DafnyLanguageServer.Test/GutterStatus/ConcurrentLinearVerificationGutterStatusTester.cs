@@ -11,8 +11,7 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
 [Collection("Sequential Collection")] // Because this class contains tests that can easily time out
-public class ConcurrentLinearVerificationGutterStatusTester(ITestOutputHelper output)
-  : LinearVerificationGutterStatusTester(output) {
+public class ConcurrentLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxSimultaneousVerificationTasks = 5;
 
   protected TestNotificationReceiver<VerificationStatusGutter>[] verificationStatusGutterReceivers =
@@ -59,5 +58,8 @@ public class ConcurrentLinearVerificationGutterStatusTester(ITestOutputHelper ou
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
       await result[i];
     }
+  }
+
+  public ConcurrentLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }

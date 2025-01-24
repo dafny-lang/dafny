@@ -125,19 +125,23 @@ public class TypeParameter : TopLevelDecl {
   }
 
   public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
-  public struct TypeParameterCharacteristics(
-    EqualitySupportValue eqSupport,
-    Type.AutoInitInfo autoInit,
-    bool containsNoReferenceTypes) {
+  public struct TypeParameterCharacteristics {
     public SourceOrigin SourceOrigin = null;
-    public EqualitySupportValue EqualitySupport = eqSupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
-    public Type.AutoInitInfo AutoInit = autoInit;
+    public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
+    public Type.AutoInitInfo AutoInit;
     public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
     public bool IsNonempty => AutoInit != Type.AutoInitInfo.MaybeEmpty;
-    public bool ContainsNoReferenceTypes = containsNoReferenceTypes;
-    public TypeParameterCharacteristics(bool dummy) : this(EqualitySupportValue.Unspecified, Type.AutoInitInfo.MaybeEmpty, false) {
+    public bool ContainsNoReferenceTypes;
+    public TypeParameterCharacteristics(bool dummy) {
+      EqualitySupport = EqualitySupportValue.Unspecified;
+      AutoInit = Type.AutoInitInfo.MaybeEmpty;
+      ContainsNoReferenceTypes = false;
     }
-
+    public TypeParameterCharacteristics(EqualitySupportValue eqSupport, Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
+      EqualitySupport = eqSupport;
+      AutoInit = autoInit;
+      ContainsNoReferenceTypes = containsNoReferenceTypes;
+    }
     public override string ToString() {
       string result = "";
       if (EqualitySupport == EqualitySupportValue.Required) {

@@ -13,7 +13,13 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-class CheckTypeInferenceVisitor(ModuleResolver resolver) : ASTVisitor<TypeInferenceCheckingContext> {
+class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
+  private readonly ModuleResolver resolver;
+
+  public CheckTypeInferenceVisitor(ModuleResolver resolver) {
+    this.resolver = resolver;
+  }
+
   public override TypeInferenceCheckingContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return new TypeInferenceCheckingContext(astVisitorContext);
   }

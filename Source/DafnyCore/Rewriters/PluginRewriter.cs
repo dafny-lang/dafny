@@ -1,6 +1,12 @@
 namespace Microsoft.Dafny;
 
-class PluginRewriter(ErrorReporter reporter, Plugins.Rewriter internalRewriter) : IRewriter(reporter) {
+class PluginRewriter : IRewriter {
+  private Plugins.Rewriter internalRewriter;
+
+  public PluginRewriter(ErrorReporter reporter, Plugins.Rewriter internalRewriter) : base(reporter) {
+    this.internalRewriter = internalRewriter;
+  }
+
   internal override void PostResolve(ModuleDefinition moduleDefinition) {
     internalRewriter.PostResolve(moduleDefinition);
   }

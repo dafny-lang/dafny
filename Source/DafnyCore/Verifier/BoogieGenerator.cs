@@ -63,8 +63,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public class TranslatorFlags(DafnyOptions options) {
-      public bool InsertChecksums { get; init; } = 0 < options.VerifySnapshots;
+    public class TranslatorFlags {
+      public TranslatorFlags(DafnyOptions options) {
+        InsertChecksums = 0 < options.VerifySnapshots;
+      }
+
+      public bool InsertChecksums { get; init; }
       public string UniqueIdPrefix = null;
       public bool ReportRanges = false;
     }
@@ -4117,22 +4121,32 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal class FuelSettingPair(
-      int low = (int)FuelSetting.FuelAmount.LOW,
-      int high = (int)FuelSetting.FuelAmount.HIGH) {
-      public int low = low;
-      public int high = high;
+    internal class FuelSettingPair {
+      public int low;
+      public int high;
+
+      public FuelSettingPair(int low = (int)FuelSetting.FuelAmount.LOW, int high = (int)FuelSetting.FuelAmount.HIGH) {
+        this.low = low;
+        this.high = high;
+      }
     }
 
     // C#'s version of a type alias
     internal class FuelContext : Dictionary<Function, FuelSettingPair> { }
     internal class CustomFuelSettings : Dictionary<Function, FuelSetting> { }
 
-    internal class FuelConstant(Function f, Bpl.Expr baseFuel, Bpl.Expr startFuel, Bpl.Expr startFuelAssert) {
-      public Function f = f;
-      public Bpl.Expr baseFuel = baseFuel;
-      public Bpl.Expr startFuel = startFuel;
-      public Bpl.Expr startFuelAssert = startFuelAssert;
+    internal class FuelConstant {
+      public Function f;
+      public Bpl.Expr baseFuel;
+      public Bpl.Expr startFuel;
+      public Bpl.Expr startFuelAssert;
+
+      public FuelConstant(Function f, Bpl.Expr baseFuel, Bpl.Expr startFuel, Bpl.Expr startFuelAssert) {
+        this.f = f;
+        this.baseFuel = baseFuel;
+        this.startFuel = startFuel;
+        this.startFuelAssert = startFuelAssert;
+      }
 
       public Bpl.Expr MoreFuel(Bpl.Program sink, PredefinedDecls predef, FreshIdGenerator idGen) {
         string uniqueId = idGen.FreshId("MoreFuel_" + f.FullName);
@@ -4143,11 +4157,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal class FuelSetting(
-      BoogieGenerator boogieGenerator,
-      int amount,
-      Bpl.Expr start = null,
-      CustomFuelSettings customFuelSettings = null) {
+    internal class FuelSetting {
 
       public enum FuelAmount { NONE, LOW, HIGH };
       public static AsyncLocal<Stack<FuelContext>> SavedContexts = new();
@@ -4183,9 +4193,17 @@ namespace Microsoft.Dafny {
         return setting;
       }
 
-      public int amount = amount;        // Amount of fuel above that represented by start
+      public int amount;        // Amount of fuel above that represented by start
+      private Bpl.Expr start;   // Starting fuel argument (null indicates LZ)
+      private BoogieGenerator boogieGenerator;
+      private CustomFuelSettings customFuelSettings;
 
-      // Starting fuel argument (null indicates LZ)
+      public FuelSetting(BoogieGenerator boogieGenerator, int amount, Bpl.Expr start = null, CustomFuelSettings customFuelSettings = null) {
+        this.boogieGenerator = boogieGenerator;
+        this.amount = amount;
+        this.start = start;
+        this.customFuelSettings = customFuelSettings;
+      }
 
       public FuelSetting Offset(int offset) {
         return new FuelSetting(boogieGenerator, this.amount + offset, start);
@@ -4838,6 +4856,10 @@ namespace Microsoft.Dafny {
 
 public enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
 
-class FromDafnyNode(INode node) : VCGeneration.TokenWrapper(node.Origin) {
-  public INode Node { get; } = node;
+class FromDafnyNode : VCGeneration.TokenWrapper {
+  public INode Node { get; }
+
+  public FromDafnyNode(INode node) : base(node.Origin) {
+    this.Node = node;
+  }
 }

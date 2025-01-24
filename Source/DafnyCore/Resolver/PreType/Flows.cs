@@ -27,7 +27,9 @@ record FlowContext(SystemModuleManager SystemModuleManager, ErrorReporter Report
 ///
 /// For more information about type refinements, flow, and the whole type inference process, see docs/dev/TypeSystemRefresh.md.
 /// </summary>
-abstract class Flow(IOrigin tok, string description) {
+abstract class Flow {
+  private readonly IOrigin tok;
+  private readonly string description;
   public bool HasError;
 
   protected string TokDescription() {
@@ -38,6 +40,11 @@ abstract class Flow(IOrigin tok, string description) {
   /// Start flow from source to sink and return whether or not anything changed.
   /// </summary>
   public abstract bool Update(FlowContext context);
+
+  protected Flow(IOrigin tok, string description) {
+    this.tok = tok;
+    this.description = description;
+  }
 
   public abstract void DebugPrint(TextWriter output);
 
@@ -291,10 +298,15 @@ abstract class Flow(IOrigin tok, string description) {
 }
 
 
-class FlowIntoVariable(IVariable variable, Expression source, IOrigin tok, string description = ":=")
-  : Flow(tok, description) {
-  protected readonly Type sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(variable.UnnormalizedType);
-  protected readonly Expression source = source;
+class FlowIntoVariable : Flow {
+  protected readonly Type sink;
+  protected readonly Expression source;
+
+  public FlowIntoVariable(IVariable variable, Expression source, IOrigin tok, string description = ":=")
+    : base(tok, description) {
+    this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(variable.UnnormalizedType);
+    this.source = source;
+  }
 
   public override bool Update(FlowContext context) {
     return UpdateTypeHeldByRefinementWrapper(sink, TypeRefinementWrapper.NormalizeSansBottom(source), context);
@@ -309,13 +321,15 @@ class FlowIntoVariable(IVariable variable, Expression source, IOrigin tok, strin
   }
 }
 
-class FlowIntoVariableFromComputedType(
-  IVariable variable,
-  System.Func<Type> getType,
-  IOrigin tok,
-  string description = ":=")
-  : Flow(tok, description) {
-  protected readonly Type sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(variable.UnnormalizedType);
+class FlowIntoVariableFromComputedType : Flow {
+  protected readonly Type sink;
+  private readonly System.Func<Type> getType;
+
+  public FlowIntoVariableFromComputedType(IVariable variable, System.Func<Type> getType, IOrigin tok, string description = ":=")
+    : base(tok, description) {
+    this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(variable.UnnormalizedType);
+    this.getType = getType;
+  }
 
   public override bool Update(FlowContext context) {
     return UpdateTypeHeldByRefinementWrapper(sink, getType(), context);
@@ -329,8 +343,14 @@ class FlowIntoVariableFromComputedType(
   }
 }
 
-class FlowBetweenComputedTypes(System.Func<(Type, Type)> getTypes, IOrigin tok, string description)
-  : Flow(tok, description) {
+class FlowBetweenComputedTypes : Flow {
+  private readonly System.Func<(Type, Type)> getTypes;
+
+  public FlowBetweenComputedTypes(System.Func<(Type, Type)> getTypes, IOrigin tok, string description)
+    : base(tok, description) {
+    this.getTypes = getTypes;
+  }
+
   public override bool Update(FlowContext context) {
     var (sink, source) = getTypes();
     return UpdateTypeHeldByRefinementWrapper(sink, source, context);
@@ -425,22 +445,40 @@ class FlowFromTypeArgumentOfComputedSource : FlowIntoExpr {
   }
 }
 
-class FlowFromComputedType(Expression sink, System.Func<Type> getType, string description = "")
-  : FlowIntoExpr(sink, sink.Origin, description) {
+class FlowFromComputedType : FlowIntoExpr {
+  private readonly System.Func<Type> getType;
+
+  public FlowFromComputedType(Expression sink, System.Func<Type> getType, string description = "")
+    : base(sink, sink.Origin, description) {
+    this.getType = getType;
+  }
+
   protected override Type GetSourceType() {
     return getType();
   }
 }
 
-class FlowFromComputedTypeIgnoreHeadTypes(Expression sink, System.Func<Type> getType, string description = "")
-  : FlowIntoExpr(sink.Type.NormalizeToAncestorType(), sink.Origin, description) {
+class FlowFromComputedTypeIgnoreHeadTypes : FlowIntoExpr {
+  private readonly System.Func<Type> getType;
+
+  public FlowFromComputedTypeIgnoreHeadTypes(Expression sink, System.Func<Type> getType, string description = "")
+    : base(sink.Type.NormalizeToAncestorType(), sink.Origin, description) {
+    this.getType = getType;
+  }
+
   protected override Type GetSourceType() {
     return getType();
   }
 }
 
-class FlowBetweenExpressions(Expression sink, Expression source, string description = "")
-  : FlowIntoExpr(sink, sink.Origin, description) {
+class FlowBetweenExpressions : FlowIntoExpr {
+  private readonly Expression source;
+
+  public FlowBetweenExpressions(Expression sink, Expression source, string description = "")
+    : base(sink, sink.Origin, description) {
+    this.source = source;
+  }
+
   protected override Type GetSourceType() {
     return TypeRefinementWrapper.NormalizeSansBottom(source);
   }

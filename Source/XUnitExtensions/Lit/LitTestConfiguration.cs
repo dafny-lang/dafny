@@ -5,19 +5,25 @@ using System.Linq;
 namespace XUnitExtensions.Lit {
 
   // TODO: Make safely immutable
-  public class LitTestConfiguration(
-    Dictionary<string, object> substitutions,
-    Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> commands,
-    string[] features,
-    IEnumerable<string> passthroughEnvironmentVariables) {
+  public class LitTestConfiguration {
     // Values can be either a string or an IEnumerable<string>
-    public readonly Dictionary<string, object> Substitutions = substitutions;
+    public readonly Dictionary<string, object> Substitutions;
 
-    public readonly Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> Commands = commands;
+    public readonly Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> Commands;
 
-    public readonly string[] Features = features;
+    public readonly string[] Features;
 
-    public readonly IEnumerable<string> PassthroughEnvironmentVariables = passthroughEnvironmentVariables;
+    public readonly IEnumerable<string> PassthroughEnvironmentVariables;
+
+    public LitTestConfiguration(Dictionary<string, object> substitutions,
+            Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> commands,
+            string[] features,
+            IEnumerable<string> passthroughEnvironmentVariables) {
+      Substitutions = substitutions;
+      Commands = commands;
+      Features = features;
+      PassthroughEnvironmentVariables = passthroughEnvironmentVariables;
+    }
 
     public IEnumerable<string> ApplySubstitutions(string s) {
       if (Substitutions.TryGetValue(s, out var result)) {

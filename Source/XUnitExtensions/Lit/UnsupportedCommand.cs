@@ -7,14 +7,18 @@ using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
-  public class UnsupportedCommand(IEnumerable<string> features) : ILitCommand {
+  public class UnsupportedCommand : ILitCommand {
 
     public static UnsupportedCommand Parse(string line, LitTestConfiguration config) {
       var features = line.Split(",", StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim());
       return new UnsupportedCommand(features);
     }
 
-    public IEnumerable<string> Features { get; } = features;
+    public IEnumerable<string> Features { get; }
+
+    public UnsupportedCommand(IEnumerable<string> features) {
+      Features = features;
+    }
 
     public Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {

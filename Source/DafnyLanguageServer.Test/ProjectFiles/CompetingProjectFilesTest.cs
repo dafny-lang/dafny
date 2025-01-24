@@ -13,8 +13,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
-public class CompetingProjectFilesTest(ITestOutputHelper output)
-  : ClientBasedLanguageServerTest(output, LogLevel.Debug) {
+public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
 
 
   /// <summary>
@@ -78,5 +77,8 @@ warn-shadowing = true
     var diagnostics1 = await GetLastDiagnostics(sourceFile);
     Assert.Empty(diagnostics1);
     Directory.Delete(tempDirectory, true);
+  }
+
+  public CompetingProjectFilesTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
   }
 }

@@ -11,13 +11,18 @@ namespace Microsoft.Dafny.Auditor;
 /// the final assurance argument for the verification of that program. For the moment, it consists
 /// of a set of assumptions that can be rendered in several formats.
 /// </summary>
-public class AuditReport(DafnyOptions options) {
+public class AuditReport {
+  private DafnyOptions options;
   private Dictionary<Declaration, IEnumerable<Assumption>> allAssumptionsByDecl = new();
 
   // All three fields below are filtered by AddAssumptions()
   private HashSet<Declaration> declsWithEntries = [];
   private HashSet<ModuleDefinition> modulesWithEntries = [];
   private Dictionary<Declaration, IEnumerable<Assumption>> assumptionsByDecl = new();
+
+  public AuditReport(DafnyOptions options) {
+    this.options = options;
+  }
 
   private void UseDecl(Declaration decl) {
     declsWithEntries.Add(decl);

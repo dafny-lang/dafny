@@ -16,9 +16,14 @@ namespace DafnyTestGeneration {
   /// A version of ProgramModifier that inserts assertions into the code
   /// that fail when a particular basic block is visited
   /// </summary>
-  public class BlockBasedModifier(Modifications modifications) : ProgramModifier {
+  public class BlockBasedModifier : ProgramModifier {
+    private readonly Modifications modifications;
     private Implementation/*?*/ implementation; // the implementation currently traversed
     private Program/*?*/ program; // the original program
+
+    public BlockBasedModifier(Modifications modifications) {
+      this.modifications = modifications;
+    }
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
       return VisitProgram(p);

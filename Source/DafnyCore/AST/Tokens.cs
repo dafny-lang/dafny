@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Has one-indexed line and column fields
 /// </summary>
-public class Token(int linenum, int colnum) : IOrigin {
+public class Token : IOrigin {
 
   public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normally null at the end of parsing
   public static readonly Token NoToken = new();
@@ -17,6 +17,12 @@ public class Token(int linenum, int colnum) : IOrigin {
   public string filename => Path.GetFileName(Filepath);
 
   public Token() : this(0, 0) { }
+
+  public Token(int linenum, int colnum) {
+    this.line = linenum;
+    this.col = colnum;
+    this.val = "";
+  }
 
   public bool IsSourceToken => this != NoToken;
   public int kind { get; set; } // Used by coco, so we can't rename it to Kind
@@ -40,14 +46,14 @@ public class Token(int linenum, int colnum) : IOrigin {
   /// <summary>
   /// One-indexed
   /// </summary>
-  public int col { get; set; } = colnum; // Used by coco, so we can't rename it to Col
+  public int col { get; set; } // Used by coco, so we can't rename it to Col
 
   /// <summary>
   /// One-indexed
   /// </summary>
-  public int line { get; set; } = linenum; // Used by coco, so we can't rename it to Line
+  public int line { get; set; } // Used by coco, so we can't rename it to Line
 
-  public string val { get; set; } = ""; // Used by coco, so we can't rename it to Val
+  public string val { get; set; } // Used by coco, so we can't rename it to Val
 
   public string LeadingTrivia { get; set; } = "";
 

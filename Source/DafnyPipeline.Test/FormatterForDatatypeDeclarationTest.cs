@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace DafnyPipeline.Test;
 
 [Collection("Singleton Test Collection - FormatterForDatatypeDeclaration")]
-public class FormatterForDatatypeDeclarationTest([NotNull] ITestOutputHelper output) : FormatterBaseTest(output) {
+public class FormatterForDatatypeDeclarationTest : FormatterBaseTest {
   [Fact]
   public async Task FormatterWorksForFinalSpaceAfterDatatype() {
     await FormatterWorksFor(@"
@@ -145,5 +145,8 @@ datatype C = C(
                arg2: int
              )
 ", reduceBlockiness: false);
+  }
+
+  public FormatterForDatatypeDeclarationTest([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

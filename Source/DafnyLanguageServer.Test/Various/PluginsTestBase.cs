@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public abstract class PluginsTestBase(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
   protected string LibraryPath;
 
   /// <summary>
@@ -75,5 +75,8 @@ public abstract class PluginsTestBase(ITestOutputHelper output) : ClientBasedLan
       modifyOptions?.Invoke(options);
     }
     return base.SetUp(ModifyOptions);
+  }
+
+  protected PluginsTestBase(ITestOutputHelper output) : base(output) {
   }
 }

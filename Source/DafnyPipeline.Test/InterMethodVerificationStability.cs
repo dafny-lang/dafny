@@ -14,7 +14,9 @@ namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
   // so we can't execute tests that use it in parallel.
   [Collection("Singleton Test Collection - Resolution")]
-  public class InterMethodVerificationStability(ITestOutputHelper output) {
+  public class InterMethodVerificationStability {
+    private readonly ITestOutputHelper output;
+
     [Fact]
     public void CreatingBoogieVariableNameCollisionsHasExpectedDiff() {
       var beforeChange = @"
@@ -183,6 +185,10 @@ method M(heap: object)
     }
 
     private static readonly string dafnyDirectory;
+
+    public InterMethodVerificationStability(ITestOutputHelper output) {
+      this.output = output;
+    }
 
     private static string DafnyProjectFile => Path.Combine(dafnyDirectory, "Source", "Dafny", "Dafny.csproj");
     private static string DefaultDafnyArgs => $"run --no-build --project \"{DafnyProjectFile}\" -- -useBaseNameForFileName -compileVerbose:0 /errorTrace:0";

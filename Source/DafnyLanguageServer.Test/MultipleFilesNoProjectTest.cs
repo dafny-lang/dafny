@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 
-public class MultipleFilesNoProjectTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+public class MultipleFilesNoProjectTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task OpenUpdateCloseIncludedFile() {
     var producerSource = @"
@@ -45,5 +45,8 @@ method Bar() {
     var consumer3Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer3);
     Assert.Single(consumer3Diagnostics);
     Assert.Contains("not found", consumer3Diagnostics[0].Message);
+  }
+
+  public MultipleFilesNoProjectTest(ITestOutputHelper output) : base(output) {
   }
 }

@@ -5,8 +5,12 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-class LinkedListEnumerator<T>(Cons<T> list) : IEnumerator<T> {
-  private Cons<T> list = new(default, list);
+class LinkedListEnumerator<T> : IEnumerator<T> {
+  private Cons<T> list;
+
+  public LinkedListEnumerator(Cons<T> list) {
+    this.list = new Cons<T>(default, list);
+  }
 
   public bool MoveNext() {
     if (list.Tail is Cons<T> tailCons) {

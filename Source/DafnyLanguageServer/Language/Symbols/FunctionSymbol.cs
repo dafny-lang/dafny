@@ -3,9 +3,8 @@ using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
-  public class FunctionSymbol(ILegacySymbol? scope, Function function)
-    : MemberSymbol(scope, function), ILocalizableSymbol {
-    public Function Declaration { get; } = function;
+  public class FunctionSymbol : MemberSymbol, ILocalizableSymbol {
+    public Function Declaration { get; }
     public INode Node => Declaration;
 
     public IList<VariableSymbol> Parameters { get; } = new List<VariableSymbol>();
@@ -27,6 +26,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         .Concat(Reads)
         .Concat(Decreases)
         .Concat(Parameters);
+
+    public FunctionSymbol(ILegacySymbol? scope, Function function) : base(scope, function) {
+      Declaration = function;
+    }
 
     public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       return $"{Declaration.WhatKind} {TypePrefix}{Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()}): {Declaration.ResultType.AsText(options)}";

@@ -91,7 +91,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
   }
 }
 
-public class DafnyJsonConsolePrinter(DafnyOptions options) : DafnyConsolePrinter(options) {
+public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
   public override void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, string? category = null) {
     var level = error ? ErrorLevel.Error : ErrorLevel.Warning;
     new DiagnosticMessageData(MessageSource.Verifier, level, tok, category, message, null).WriteJsonTo(tw);
@@ -104,9 +104,12 @@ public class DafnyJsonConsolePrinter(DafnyOptions options) : DafnyConsolePrinter
       errorInfo.Tok, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(tw);
     tw.Flush();
   }
+
+  public DafnyJsonConsolePrinter(DafnyOptions options) : base(options) {
+  }
 }
 
-public class JsonConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter(options) {
+public class JsonConsoleErrorReporter : BatchErrorReporter {
   protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorID, Dafny.IOrigin tok, string msg) {
     if (base.MessageCore(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
       new DiagnosticMessageData(source, level, tok, level == ErrorLevel.Error ? "Error" : null, msg, null).WriteJsonTo(Options.OutputWriter);
@@ -114,5 +117,8 @@ public class JsonConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter
     }
 
     return false;
+  }
+
+  public JsonConsoleErrorReporter(DafnyOptions options) : base(options) {
   }
 }

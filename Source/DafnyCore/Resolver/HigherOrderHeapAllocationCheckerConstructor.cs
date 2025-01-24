@@ -21,7 +21,13 @@ namespace Microsoft.Dafny;
 /// To understand this checker, it is recommended to first look at
 /// HigherOrderHeapAllocationChecker.
 /// </summary>
-class HigherOrderHeapAllocationCheckerConstructor(ErrorReporter reporter) : ASTVisitor<IASTVisitorContext> {
+class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContext> {
+  private readonly ErrorReporter reporter;
+
+  public HigherOrderHeapAllocationCheckerConstructor(ErrorReporter reporter) {
+    this.reporter = reporter;
+  }
+
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return astVisitorContext;
   }

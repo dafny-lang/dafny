@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 namespace DafnyPipeline.Test;
 
 [Collection("Singleton Test Collection - FormatterForTopLevelDeclarations")]
-public class FormatterIssues([NotNull] ITestOutputHelper output) : FormatterBaseTest(output) {
+public class FormatterIssues : FormatterBaseTest {
   [Fact]
   public async Task GitIssue4269FormatLemmaIde() {
     await FormatterWorksFor(@"
@@ -156,5 +156,8 @@ lemma Try(i: int)
   public async Task FormatterWorksForEmptyDocument() {
     await FormatterWorksFor(@"
 ", null, true);
+  }
+
+  public FormatterIssues([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

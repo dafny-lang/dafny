@@ -13,7 +13,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.Formatting;
-public class FormattingTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+public class FormattingTest : ClientBasedLanguageServerTest {
   public override async Task InitializeAsync() {
     await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
   }
@@ -181,5 +181,8 @@ module A {
                       buffer.Extract(new Range(edit.Range.End, end));
       Assert.Equal(target, finalText);
     }
+  }
+
+  public FormattingTest(ITestOutputHelper output) : base(output) {
   }
 }

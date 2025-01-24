@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class JavaScriptBackend(DafnyOptions options) : ExecutableBackend(options) {
+public class JavaScriptBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".js" };
 
   public override string TargetName => "JavaScript";
@@ -85,5 +85,8 @@ public class JavaScriptBackend(DafnyOptions options) : ExecutableBackend(options
       await outputWriter.WriteLineAsync($"Error: Unable to start node.js ({psi.FileName}): {e.Message}");
       return false;
     }
+  }
+
+  public JavaScriptBackend(DafnyOptions options) : base(options) {
   }
 }

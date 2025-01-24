@@ -11,12 +11,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
-public class CachingParser(
-  ILogger<ProgramParser> logger,
-  IFileSystem fileSystem,
-  TelemetryPublisherBase telemetryPublisher)
-  : ProgramParser(logger, fileSystem) {
+public class CachingParser : ProgramParser {
   private readonly PruneIfNotUsedSinceLastPruneCache<byte[], DfyParseFileResult> parseCache = new(new HashEquality());
+  private readonly TelemetryPublisherBase telemetryPublisher;
+
+  public CachingParser(ILogger<ProgramParser> logger,
+    IFileSystem fileSystem,
+    TelemetryPublisherBase telemetryPublisher) : base(logger, fileSystem) {
+    this.telemetryPublisher = telemetryPublisher;
+  }
 
   public override Task<ProgramParseResult> ParseFiles(string programName, IReadOnlyList<DafnyFile> files,
     ErrorReporter errorReporter,

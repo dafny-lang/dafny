@@ -8,8 +8,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Refinement;
 
-public class RefinementTests(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
-  : ClientBasedLanguageServerTest(output, dafnyLogLevel) {
+public class RefinementTests : ClientBasedLanguageServerTest {
   [Fact]
   public async Task RefinedLemmaNewEnsuresIsVerified() {
     var source = @"
@@ -33,5 +32,8 @@ module B refines A {
     var document = await CreateOpenAndWaitForResolve(source);
     var diagnostics = await GetLastDiagnostics(document, DiagnosticSeverity.Error);
     Assert.Equal(2, diagnostics.Length);
+  }
+
+  public RefinementTests(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
   }
 }

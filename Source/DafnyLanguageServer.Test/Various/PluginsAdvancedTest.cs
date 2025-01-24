@@ -8,7 +8,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public class PluginsAdvancedTest(ITestOutputHelper output) : PluginsTestBase(output) {
+public class PluginsAdvancedTest : PluginsTestBase {
 
   protected override string LibraryName =>
     "PluginsAdvancedTest";
@@ -38,5 +38,8 @@ method {:test} myMethodWrongName() {
     Assert.Equal("You might want to just rename this method", related.Current.Message);
     Assert.Equal(new Range((3, 15), (3, 32)), related.Current.Location.Range);
     related.Dispose();
+  }
+
+  public PluginsAdvancedTest(ITestOutputHelper output) : base(output) {
   }
 }

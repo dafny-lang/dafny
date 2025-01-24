@@ -10,10 +10,15 @@ public static class Lists {
   }
 }
 
-public class ConcatReadOnlyLists<T>(IReadOnlyList<T> left, IReadOnlyList<T> right) : IReadOnlyList<T> {
-  public IReadOnlyList<T> Left { get; } = left;
-  public IReadOnlyList<T> Right { get; } = right;
+public class ConcatReadOnlyLists<T> : IReadOnlyList<T> {
+  public ConcatReadOnlyLists(IReadOnlyList<T> left, IReadOnlyList<T> right) {
+    Left = left;
+    Right = right;
+    Count = left.Count + right.Count;
+  }
 
+  public IReadOnlyList<T> Left { get; }
+  public IReadOnlyList<T> Right { get; }
   public IEnumerator<T> GetEnumerator() {
     return Enumerable.Range(0, Count).Select(index => this[index]).GetEnumerator();
   }
@@ -22,7 +27,7 @@ public class ConcatReadOnlyLists<T>(IReadOnlyList<T> left, IReadOnlyList<T> righ
     return GetEnumerator();
   }
 
-  public int Count { get; private set; } = left.Count + right.Count;
+  public int Count { get; private set; }
 
   public T this[int index] => index < Left.Count ? Left[index] : Right[index - Left.Count];
 }

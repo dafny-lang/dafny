@@ -109,11 +109,16 @@ class ModelFuncWrapper {
     return result;
   }
 
-  public class ModelFuncTupleWrapper(Model.Element res, Model.Element[] args) {
+  public class ModelFuncTupleWrapper {
 
     static readonly Model.Element[] EmptyArgs = [];
 
-    public readonly Model.Element Result = res;
-    public readonly Model.Element[] Args = args ?? EmptyArgs;
+    public readonly Model.Element Result;
+    public readonly Model.Element[] Args;
+
+    public ModelFuncTupleWrapper(Model.Element res, Model.Element[] args) {
+      Args = args ?? EmptyArgs;
+      Result = res;
+    }
   }
 }

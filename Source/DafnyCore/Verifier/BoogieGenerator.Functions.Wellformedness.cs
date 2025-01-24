@@ -10,7 +10,13 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
-  class FunctionWellformednessChecker(BoogieGenerator generator) {
+  class FunctionWellformednessChecker {
+    private readonly BoogieGenerator generator;
+
+    public FunctionWellformednessChecker(BoogieGenerator generator) {
+      this.generator = generator;
+    }
+
     public void Check(Function f) {
 
       Contract.Assert(generator.InVerificationScope(f));

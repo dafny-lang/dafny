@@ -8,7 +8,7 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
 
-public class NoExecutableBackend([NotNull] DafnyOptions options) : IExecutableBackend(options) {
+public class NoExecutableBackend : IExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
   public override string TargetName => throw new NotSupportedException();
   public override bool IsStable => throw new NotSupportedException();
@@ -50,5 +50,8 @@ public class NoExecutableBackend([NotNull] DafnyOptions options) : IExecutableBa
 
   public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
     throw new NotSupportedException();
+  }
+
+  public NoExecutableBackend([NotNull] DafnyOptions options) : base(options) {
   }
 }

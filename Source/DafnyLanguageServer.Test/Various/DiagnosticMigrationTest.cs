@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public class DiagnosticMigrationTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
 
   private const string FastToFailVerification = "function GetConstant(): int ensures false { 1 }";
   private const string FastToPassVerification = "function GetConstant2(): int { 1 }";
@@ -163,5 +163,8 @@ public class DiagnosticMigrationTest(ITestOutputHelper output) : ClientBasedLang
     var verificationDiagnostics2 = await GetLastDiagnostics(documentItem);
     Assert.Equal(verificationDiagnostics[0].Message, verificationDiagnostics2[0].Message);
     await AssertNoDiagnosticsAreComing(CancellationToken);
+  }
+
+  public DiagnosticMigrationTest(ITestOutputHelper output) : base(output) {
   }
 }

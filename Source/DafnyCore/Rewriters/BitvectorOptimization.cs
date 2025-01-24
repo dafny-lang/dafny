@@ -7,8 +7,11 @@ using System.Numerics;
 
 namespace Microsoft.Dafny;
 
-public class BitvectorOptimization(Program program, ErrorReporter reporter) : IRewriter(reporter) {
-  private readonly SystemModuleManager systemModuleManager = program.SystemModuleManager;
+public class BitvectorOptimization : IRewriter {
+  private readonly SystemModuleManager systemModuleManager;
+  public BitvectorOptimization(Program program, ErrorReporter reporter) : base(reporter) {
+    systemModuleManager = program.SystemModuleManager;
+  }
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {
     var visitor = new BitvectorOptimizationVisitor(Reporter.Options, systemModuleManager);
@@ -18,8 +21,15 @@ public class BitvectorOptimization(Program program, ErrorReporter reporter) : IR
   }
 }
 
-public class BitvectorOptimizationVisitor(DafnyOptions options, SystemModuleManager systemModuleManager)
-  : BottomUpVisitor {
+public class BitvectorOptimizationVisitor : BottomUpVisitor {
+  private readonly DafnyOptions options;
+  private readonly SystemModuleManager systemModuleManager;
+
+  public BitvectorOptimizationVisitor(DafnyOptions options, SystemModuleManager systemModuleManager) {
+    this.options = options;
+    this.systemModuleManager = systemModuleManager;
+  }
+
   private bool IsShiftOp(BinaryExpr.Opcode op) {
     return op is BinaryExpr.Opcode.LeftShift or BinaryExpr.Opcode.RightShift;
   }

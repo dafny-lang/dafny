@@ -21,8 +21,12 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ConcreteSyntaxTree(int relativeIndent = 0) : ICanRender {
-    public readonly int RelativeIndentLevel = relativeIndent;
+  public class ConcreteSyntaxTree : ICanRender {
+    public ConcreteSyntaxTree(int relativeIndent = 0) {
+      RelativeIndentLevel = relativeIndent;
+    }
+
+    public readonly int RelativeIndentLevel;
 
     private readonly IList<ICanRender> _nodes = new List<ICanRender>();
 

@@ -12,10 +12,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP handler responsible to resolve the location of a designator at the specified position.
   /// </summary>
-  public class DafnyDefinitionHandler(ILogger<DafnyDefinitionHandler> logger, IProjectDatabase projects)
-    : DefinitionHandlerBase {
-    private readonly ILogger logger = logger;
+  public class DafnyDefinitionHandler : DefinitionHandlerBase {
+    private readonly ILogger logger;
+    private readonly IProjectDatabase projects;
 
+    public DafnyDefinitionHandler(ILogger<DafnyDefinitionHandler> logger, IProjectDatabase projects) {
+      this.logger = logger;
+      this.projects = projects;
+    }
     protected override DefinitionRegistrationOptions CreateRegistrationOptions(DefinitionCapability capability, ClientCapabilities clientCapabilities) {
       return new DefinitionRegistrationOptions {
         DocumentSelector = DocumentSelector.ForLanguage("dafny")

@@ -12,17 +12,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public delegate IdeStateObserver CreateIdeStateObserver(IdeState initialState);
 
-public class IdeStateObserver(
-  ILogger logger,
-  TelemetryPublisherBase telemetryPublisher,
-  INotificationPublisher notificationPublisher,
-  IdeState initialState)
-  : IObserver<IdeState> { // Inheriting from ObserverBase prevents this observer from recovering after a problem
+public class IdeStateObserver : IObserver<IdeState> { // Inheriting from ObserverBase prevents this observer from recovering after a problem
+  private readonly ILogger logger;
+  private readonly TelemetryPublisherBase telemetryPublisher;
+  private readonly INotificationPublisher notificationPublisher;
 
   private readonly object lastPublishedStateLock = new();
-  private readonly IdeState initialState = initialState;
+  private readonly IdeState initialState;
 
-  public IdeState LastPublishedState { get; private set; } = initialState;
+  public IdeState LastPublishedState { get; private set; }
+
+  public IdeStateObserver(ILogger logger,
+    TelemetryPublisherBase telemetryPublisher,
+    INotificationPublisher notificationPublisher,
+    IdeState initialState) {
+    this.initialState = initialState;
+    LastPublishedState = initialState;
+    this.logger = logger;
+    this.telemetryPublisher = telemetryPublisher;
+    this.notificationPublisher = notificationPublisher;
+  }
 
   public void Clear() {
     var ideState = initialState with {

@@ -11,7 +11,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  public class ReferencesTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+  public class ReferencesTest : ClientBasedLanguageServerTest {
     private async Task<LocationContainer> RequestReferences(
       TextDocumentItem documentItem, Position position, bool includeDeclaration = false) {
       // We don't want resolution errors, but other diagnostics (like a cyclic-include warning) are okay
@@ -354,6 +354,9 @@ method M(c: C) {
 
       var refFromB = (await RequestReferences(documentItemB, new Position(2, 9))).Single();
       Assert.Equal(expectedRef, refFromB);
+    }
+
+    public ReferencesTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

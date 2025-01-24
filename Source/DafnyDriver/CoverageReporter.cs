@@ -10,7 +10,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class CoverageReporter(DafnyOptions options) {
+public class CoverageReporter {
 
   private static readonly Regex LabeledCodeRegex = new(@"\{\{LABELED_CODE\}\}\r?\n");
   private static readonly Regex PathToRootRegex = new(@"\{\{PATH_TO_ROOT\}\}");
@@ -30,12 +30,8 @@ public class CoverageReporter(DafnyOptions options) {
   private const string CoverageReportIndexTemplatePath = "coverage_report_index_template.html";
   private const string CoverageReportSupportingFilesPath = ".resources";
 
-  private readonly ErrorReporter reporter = options.DiagnosticsFormat switch {
-    DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
-    DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
-    _ => throw new ArgumentOutOfRangeException()
-  };
-
+  private readonly ErrorReporter reporter;
+  private readonly DafnyOptions options;
   private readonly Dictionary<(CoverageReport, string), string> paths = new();
 
   public string GetPath(CoverageReport report, string desiredPath) {
@@ -51,6 +47,14 @@ public class CoverageReporter(DafnyOptions options) {
 
       return actualPath;
     });
+  }
+  public CoverageReporter(DafnyOptions options) {
+    reporter = options.DiagnosticsFormat switch {
+      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
+      DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
+      _ => throw new ArgumentOutOfRangeException()
+    };
+    this.options = options;
   }
 
 

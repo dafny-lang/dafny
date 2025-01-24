@@ -33,9 +33,14 @@ namespace Microsoft.Dafny;
 /// recover existing newlines to ensure that, if there is no pre-processing directives,
 /// the program string is exactly the same as the original one.
 public static class SourcePreprocessor {
-  struct IfDirectiveState(bool hasSeenElse, bool mayStillIncludeAnotherAlternative) {
-    public bool hasSeenElse = hasSeenElse;
-    public bool mayStillIncludeAnotherAlternative = mayStillIncludeAnotherAlternative;
+  struct IfDirectiveState {
+    public bool hasSeenElse;
+    public bool mayStillIncludeAnotherAlternative;
+
+    public IfDirectiveState(bool hasSeenElse, bool mayStillIncludeAnotherAlternative) {
+      this.hasSeenElse = hasSeenElse;
+      this.mayStillIncludeAnotherAlternative = mayStillIncludeAnotherAlternative;
+    }
   }
 
   // "arg" is assumed to be trimmed

@@ -15,8 +15,14 @@ using System.IO;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
-  class CppCodeGenerator(DafnyOptions options, ErrorReporter reporter, ReadOnlyCollection<string> headers)
-    : SinglePassCodeGenerator(options, reporter) {
+  class CppCodeGenerator : SinglePassCodeGenerator {
+
+    private readonly ReadOnlyCollection<string> headers;
+
+    public CppCodeGenerator(DafnyOptions options, ErrorReporter reporter, ReadOnlyCollection<string> headers) : base(options, reporter) {
+      this.headers = headers;
+    }
+
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.UnboundedIntegers,
       Feature.RealNumbers,
@@ -93,7 +99,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
       wr.WriteLine("#include \"DafnyRuntime.h\"");
-      foreach (var header in headers) {
+      foreach (var header in this.headers) {
         wr.WriteLine("#include \"{0}\"", Path.GetFileName(header));
       }
 

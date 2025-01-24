@@ -34,8 +34,12 @@ namespace Microsoft.Dafny {
   /// So, a piece of "Advice" is saying that a given "PreType" should have a specific type *if* the program does not have any other
   /// specific type for it.
   /// </summary>
-  public abstract class Advice(PreType pretype) {
-    public readonly PreType PreType = pretype;
+  public abstract class Advice {
+    public readonly PreType PreType;
+
+    public Advice(PreType pretype) {
+      PreType = pretype;
+    }
 
     public abstract string WhatString { get; }
 
@@ -67,7 +71,13 @@ namespace Microsoft.Dafny {
     protected abstract PreType GetAdviceType(PreTypeResolver preTypeResolver);
   }
 
-  public class TypeAdvice(PreType preType, PreType adviceType) : Advice(preType) {
+  public class TypeAdvice : Advice {
+    private readonly PreType adviceType;
+    public TypeAdvice(PreType preType, PreType adviceType)
+      : base(preType) {
+      this.adviceType = adviceType;
+    }
+
     public override string WhatString => adviceType.ToString();
 
     protected override PreType GetAdviceType(PreTypeResolver preTypeResolver) {
@@ -75,7 +85,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class CommonAdvice(PreType preType, CommonAdvice.Target advice) : Advice(preType) {
+  public class CommonAdvice : Advice {
     public enum Target {
       Bool,
       Char,
@@ -85,7 +95,14 @@ namespace Microsoft.Dafny {
       Object
     }
 
-    public override string WhatString => advice == Target.Object ? PreType.TypeNameObjectQ : advice.ToString().ToLower();
+    private readonly Target what;
+
+    public override string WhatString => what == Target.Object ? PreType.TypeNameObjectQ : what.ToString().ToLower();
+
+    public CommonAdvice(PreType preType, Target advice)
+      : base(preType) {
+      what = advice;
+    }
 
     protected override PreType GetAdviceType(PreTypeResolver preTypeResolver) {
       Type StringDecl() {
@@ -93,7 +110,7 @@ namespace Microsoft.Dafny {
         return new UserDefinedType(s.Origin, s.Name, s, []);
       }
 
-      var target = advice switch {
+      var target = what switch {
         Target.Bool => preTypeResolver.Type2PreType(Type.Bool),
         Target.Char => preTypeResolver.Type2PreType(Type.Char),
         Target.Int => preTypeResolver.Type2PreType(Type.Int),

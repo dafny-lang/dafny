@@ -12,8 +12,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
-public class ProjectFileDiagnosticsTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
-  : ClientBasedLanguageServerTest(output, dafnyLogLevel) {
+public class ProjectFileDiagnosticsTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ProjectFileErrorIsShown() {
@@ -64,5 +63,9 @@ library = [""doesNotExist.dfy""]
     var diagnostics = await GetLastDiagnostics(project, DiagnosticSeverity.Error);
     Assert.Equal(2, diagnostics.Length);
     Assert.Contains(diagnostics, d => d.Message.Contains("not found"));
+  }
+
+  public ProjectFileDiagnosticsTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
+    : base(output, dafnyLogLevel) {
   }
 }

@@ -5,8 +5,14 @@ using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit;
 
-public class StdInCommand(string stdin, ILitCommand operand) : ILitCommand {
-  private readonly string stdin = stdin.Replace("\\n", "\n");
+public class StdInCommand : ILitCommand {
+  private readonly string stdin;
+  private readonly ILitCommand operand;
+
+  public StdInCommand(string stdin, ILitCommand operand) {
+    this.stdin = stdin.Replace("\\n", "\n");
+    this.operand = operand;
+  }
 
   public Task<int> Execute(TextReader inputReader,
     TextWriter outputWriter, TextWriter errorWriter) {

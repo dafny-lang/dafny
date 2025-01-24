@@ -11,7 +11,7 @@ using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
-public class GoBackend(DafnyOptions options) : ExecutableBackend(options) {
+public class GoBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".go" };
 
@@ -236,4 +236,7 @@ public class GoBackend(DafnyOptions options) : ExecutableBackend(options) {
   }
 
   private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*$");
+
+  public GoBackend(DafnyOptions options) : base(options) {
+  }
 }

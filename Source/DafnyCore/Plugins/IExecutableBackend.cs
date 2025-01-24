@@ -20,8 +20,8 @@ namespace Microsoft.Dafny.Plugins;
 /// If the plugin defines no PluginConfiguration, then Dafny will instantiate every sub-class
 /// of IExecutableBackend from the plugin.
 /// </summary>
-public abstract class IExecutableBackend(DafnyOptions options) {
-  protected DafnyOptions Options { get; } = options;
+public abstract class IExecutableBackend {
+  protected DafnyOptions Options { get; }
 
   /// <summary>
   /// Supported file extensions for additional compilation units (e.g. <c>.cs</c> for C#).
@@ -114,6 +114,10 @@ public abstract class IExecutableBackend(DafnyOptions options) {
 
   // The following lists are the Options supported by the backend.
   public virtual IEnumerable<Option> SupportedOptions => new List<Option>();
+
+  protected IExecutableBackend(DafnyOptions options) {
+    Options = options;
+  }
 
   /// <summary>
   /// Initialize <c>Reporter</c> and <c>OtherFileNames</c>.

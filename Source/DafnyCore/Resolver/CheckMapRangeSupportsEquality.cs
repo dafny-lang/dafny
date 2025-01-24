@@ -11,7 +11,13 @@ namespace Microsoft.Dafny;
 /// This checker ensures that if the set of values or the set of items
 /// of a map is used, then its range type supports equality.
 /// </summary>
-class CheckMapRangeSupportsEquality(ErrorReporter reporter) : ASTVisitor<IASTVisitorContext> {
+class CheckMapRangeSupportsEquality : ASTVisitor<IASTVisitorContext> {
+  private readonly ErrorReporter reporter;
+
+  public CheckMapRangeSupportsEquality(ErrorReporter reporter) {
+    this.reporter = reporter;
+  }
+
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return astVisitorContext;
   }

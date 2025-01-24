@@ -10,7 +10,7 @@ using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
-public class DiagnosticsReceiver(ILogger logger) : TestNotificationReceiver<PublishDiagnosticsParams>(logger) {
+public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsParams> {
 
 
   static DiagnosticsReceiver() {
@@ -47,5 +47,8 @@ public class DiagnosticsReceiver(ILogger logger) : TestNotificationReceiver<Publ
       Assert.Equal(textDocumentItem.Uri, result.Uri);
     }
     return result.Diagnostics.ToArray();
+  }
+
+  public DiagnosticsReceiver(ILogger logger) : base(logger) {
   }
 }

@@ -9,7 +9,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  public class GoToDefinitionTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+  public class GoToDefinitionTest : ClientBasedLanguageServerTest {
 
     [Fact]
     public async Task DatatypeFields() {
@@ -564,6 +564,9 @@ module B refines ><A {
   }
 }".TrimStart();
       await AssertPositionsLineUpWithRanges(source);
+    }
+
+    public GoToDefinitionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

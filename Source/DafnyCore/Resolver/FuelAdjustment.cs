@@ -68,7 +68,12 @@ public static class FuelAdjustment {
   }
 }
 
-class FuelAdjustmentVisitor(ErrorReporter reporter) : ResolverTopDownVisitor<FuelAdjustmentContext>(reporter) {
+class FuelAdjustmentVisitor : ResolverTopDownVisitor<FuelAdjustmentContext> {
+
+  public FuelAdjustmentVisitor(ErrorReporter reporter)
+    : base(reporter) {
+  }
+
   protected override bool VisitOneStmt(Statement stmt, ref FuelAdjustmentContext st) {
     FuelAdjustment.CheckForFuelAdjustments(reporter, stmt.Origin, stmt.Attributes, st.currentModule);
     return true;
@@ -76,6 +81,9 @@ class FuelAdjustmentVisitor(ErrorReporter reporter) : ResolverTopDownVisitor<Fue
 }
 
 
-public class FuelAdjustmentContext(ModuleDefinition currentModule) {
-  public ModuleDefinition currentModule = currentModule;
+public class FuelAdjustmentContext {
+  public ModuleDefinition currentModule;
+  public FuelAdjustmentContext(ModuleDefinition currentModule) {
+    this.currentModule = currentModule;
+  }
 }

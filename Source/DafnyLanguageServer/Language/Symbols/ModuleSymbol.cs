@@ -2,14 +2,17 @@
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
-  public class ModuleSymbol(ILegacySymbol? scope, ModuleDefinition moduleDefinition)
-    : Symbol(scope, moduleDefinition.Name), ILocalizableSymbol {
-    public ModuleDefinition Declaration { get; } = moduleDefinition;
+  public class ModuleSymbol : Symbol, ILocalizableSymbol {
+    public ModuleDefinition Declaration { get; }
     public INode Node => Declaration;
 
     public ISet<ILegacySymbol> Declarations { get; } = new HashSet<ILegacySymbol>();
 
     public override IEnumerable<ILegacySymbol> Children => Declarations;
+
+    public ModuleSymbol(ILegacySymbol? scope, ModuleDefinition moduleDefinition) : base(scope, moduleDefinition.Name) {
+      Declaration = moduleDefinition;
+    }
 
     public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       return $"module {Declaration.Name}";

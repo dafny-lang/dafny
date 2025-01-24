@@ -11,21 +11,30 @@ namespace Microsoft.Dafny;
 
 public record PruneResult<T>(T Result, int Pruned, int Hits, int Total);
 
-public class PruneIfNotUsedSinceLastPruneCache<TKey, TValue>(IEqualityComparer<TKey> comparer)
+public class PruneIfNotUsedSinceLastPruneCache<TKey, TValue>
   where TValue : class
   where TKey : notnull {
   private SemaphoreSlim semaphoreSlim = new(1);
 
 
-  class Item(TValue value) {
-    public bool Accessed { get; set; } = true;
-    public TValue Value { get; } = value;
+  class Item {
+    public Item(TValue value) {
+      Value = value;
+      Accessed = true;
+    }
+
+    public bool Accessed { get; set; }
+    public TValue Value { get; }
   }
 
-  private readonly ConcurrentDictionary<TKey, Item> items = new(comparer);
+  private readonly ConcurrentDictionary<TKey, Item> items;
 
   public IEnumerable<TValue> Values => items.Select(i => i.Value.Value);
   public int Count => items.Count;
+
+  public PruneIfNotUsedSinceLastPruneCache(IEqualityComparer<TKey> comparer) {
+    items = new(comparer);
+  }
 
   public async Task<PruneResult<T>> UseAndPrune<T>(Func<Task<T>> use, CancellationToken cancellationToken) {
     await semaphoreSlim.WaitAsync(cancellationToken);

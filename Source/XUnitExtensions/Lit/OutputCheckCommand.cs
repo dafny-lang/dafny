@@ -120,11 +120,19 @@ namespace XUnitExtensions.Lit {
       }
     }
 
-    private class CheckingEnumerator(IEnumerator<string> wrapped, Action<string> check) : IEnumerator<string> {
+    private class CheckingEnumerator : IEnumerator<string> {
+      private readonly IEnumerator<string> Wrapped;
+      private readonly Action<string> Check;
+
+      public CheckingEnumerator(IEnumerator<string> wrapped, Action<string> check) {
+        Wrapped = wrapped;
+        Check = check;
+      }
+
       public bool MoveNext() {
-        var result = wrapped.MoveNext();
+        var result = Wrapped.MoveNext();
         if (result) {
-          check.Invoke(wrapped.Current);
+          Check.Invoke(Wrapped.Current);
         }
         return result;
       }
@@ -135,9 +143,9 @@ namespace XUnitExtensions.Lit {
 
       object IEnumerator.Current => Current;
 
-      public string Current => wrapped.Current;
+      public string Current => Wrapped.Current;
 
-      public void Dispose() => wrapped.Dispose();
+      public void Dispose() => Wrapped.Dispose();
     }
 
     private record CheckNotRegexp(string File, int LineNumber, Regex Pattern) : CheckDirective(File, LineNumber) {

@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace DafnyPipeline.Test;
 
 [Collection("Singleton Test Collection - FormatterForApplySuffixRelated")]
-public class FormatterForApplySuffixRelated([NotNull] ITestOutputHelper output) : FormatterBaseTest(output) {
+public class FormatterForApplySuffixRelated : FormatterBaseTest {
   [Fact]
   public async Task FormatterWorksForArguments() {
     await FormatterWorksFor(@"
@@ -42,5 +42,8 @@ method Test()
    func2());
 }
 ");
+  }
+
+  public FormatterForApplySuffixRelated([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

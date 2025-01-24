@@ -15,8 +15,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 [Collection("Sequential Collection")]
-public class EditDocumentTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
-  : ClientBasedLanguageServerTest(output, dafnyLogLevel) {
+public class EditDocumentTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task SlowlyTypeFile() {
@@ -266,5 +265,8 @@ module MiscLemma {
       CancellationToken
     ).AsTask();
     return completionList.OrderBy(completion => completion.Label).ToList();
+  }
+
+  public EditDocumentTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
   }
 }

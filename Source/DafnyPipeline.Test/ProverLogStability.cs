@@ -15,7 +15,10 @@ namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
   // so we can't execute tests that use it in parallel.
   [Collection("Singleton Test Collection - Resolution")]
-  public class ProverLogStabilityTest(ITestOutputHelper testOutputHelper) {
+  public class ProverLogStabilityTest {
+
+    private readonly ITestOutputHelper testOutputHelper;
+
     // All types of top level declarations.
     readonly string originalProgram = @"
 module SomeModule {
@@ -78,6 +81,10 @@ type ImapSimulator<!A, B> =
   X: ImapSimulator_<A, B> |
   X.Valid() witness ImapSimulator(iset{}, (x: A) requires false => match() {})
 ";
+
+    public ProverLogStabilityTest(ITestOutputHelper testOutputHelper) {
+      this.testOutputHelper = testOutputHelper;
+    }
 
     private static bool updateProverLog = false; // Should always be false in committed code
 

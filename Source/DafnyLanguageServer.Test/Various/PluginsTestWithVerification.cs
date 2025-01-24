@@ -10,7 +10,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public class PluginsTestWithVerification(ITestOutputHelper output) : PluginsTestBase(output) {
+public class PluginsTestWithVerification : PluginsTestBase {
 
   protected override string LibraryName =>
     "PluginsTestVerification";
@@ -28,5 +28,8 @@ public class PluginsTestWithVerification(ITestOutputHelper output) : PluginsTest
     Assert.Equal("Plugin Error that does not prevent verification", diagnostics[0].Message);
     Assert.Equal("value does not satisfy the subset constraints of 'nat'", diagnostics[1].Message);
     Assert.Equal(new Range((0, 23), (0, 25)), diagnostics[1].Range);
+  }
+
+  public PluginsTestWithVerification(ITestOutputHelper output) : base(output) {
   }
 }

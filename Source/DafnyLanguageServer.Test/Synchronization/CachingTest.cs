@@ -22,8 +22,8 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
-public class CachingTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output, LogLevel.Debug) {
-  private InMemorySink sink = null!;
+public class CachingTest : ClientBasedLanguageServerTest {
+  private InMemorySink sink;
 
   protected override void ServerOptionsAction(LanguageServerOptions serverOptions) {
     sink = InMemorySink.Instance;
@@ -432,5 +432,9 @@ method Foo() {
     contentBuilder.AppendLine("}");
     var largeImport = contentBuilder.ToString();
     return largeImport;
+  }
+
+  public CachingTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
+    sink = null!;
   }
 }

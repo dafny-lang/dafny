@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  public class LookupMigrationTest(ITestOutputHelper output) : SynchronizationTestBase(output) {
+  public class LookupMigrationTest : SynchronizationTestBase {
     // The assertion Assert.False(document.SymbolTable.Resolved) is used to ensure that
     // we're working on a migrated symbol table. If that's not the case, the test case has
     // to be adapted.
@@ -316,6 +316,9 @@ class Test {
       Assert.NotNull(document);
       Assert.True(document.SignatureAndCompletionTable.TryGetSymbolAt((12, 7), out var symbol));
       Assert.Equal("x", symbol.Name);
+    }
+
+    public LookupMigrationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

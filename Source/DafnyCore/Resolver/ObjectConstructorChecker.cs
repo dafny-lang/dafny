@@ -7,7 +7,13 @@
 
 namespace Microsoft.Dafny;
 
-class ObjectConstructorChecker(ErrorReporter reporter) : ASTVisitor<IASTVisitorContext> {
+class ObjectConstructorChecker : ASTVisitor<IASTVisitorContext> {
+  private readonly ErrorReporter reporter;
+
+  public ObjectConstructorChecker(ErrorReporter reporter) {
+    this.reporter = reporter;
+  }
+
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return astVisitorContext;
   }

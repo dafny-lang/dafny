@@ -17,8 +17,7 @@ using Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
-  public class CsharpCodeGenerator(DafnyOptions options, ErrorReporter reporter)
-    : SinglePassCodeGenerator(options, reporter) {
+  public class CsharpCodeGenerator : SinglePassCodeGenerator {
     protected bool Synthesize = false;
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
@@ -27,6 +26,9 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ArraysWithMoreThan16Dims,
       Feature.ArrowsWithMoreThan16Arguments
     };
+
+    public CsharpCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+    }
 
     const string DafnyISet = "Dafny.ISet";
     const string DafnyIMultiset = "Dafny.IMultiSet";

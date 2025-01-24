@@ -7,11 +7,11 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
-  public class LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
+  public class LitTestCase {
     private static readonly TimeSpan IndividualTestTimeout = TimeSpan.FromMinutes(15);
-    public string FilePath { get; } = filePath;
-    public IEnumerable<ILitCommand> Commands { get; } = commands;
-    public bool ExpectFailure { get; } = expectFailure;
+    public string FilePath { get; }
+    public IEnumerable<ILitCommand> Commands { get; }
+    public bool ExpectFailure { get; }
 
     private static LitTestCase Parse(string filePath, LitTestConfiguration config) {
       ILitCommand[] commands = File.ReadAllLines(filePath)
@@ -59,6 +59,12 @@ namespace XUnitExtensions.Lit {
       var litTestCase = Read(filePath, config);
       var task = Task.Run(() => litTestCase.Execute(outputHelper));
       task.Wait(IndividualTestTimeout);
+    }
+
+    public LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
+      this.FilePath = filePath;
+      this.Commands = commands;
+      this.ExpectFailure = expectFailure;
     }
 
     public async Task Execute(ITestOutputHelper outputHelper) {

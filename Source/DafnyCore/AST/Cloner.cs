@@ -13,13 +13,13 @@ namespace Microsoft.Dafny {
     T Clone(Cloner cloner);
   }
 
-  public class Cloner(bool cloneLiteralModuleDefinition = false, bool cloneResolvedFields = false) {
-    public bool CloneResolvedFields { get; } = cloneResolvedFields;
+  public class Cloner {
+    public bool CloneResolvedFields { get; }
     private readonly Dictionary<Statement, Statement> statementClones = new();
     private readonly Dictionary<IVariable, IVariable> clones = new();
     private readonly Dictionary<MemberDecl, MemberDecl> memberClones = new();
     private readonly Dictionary<TopLevelDecl, TopLevelDecl> typeParameterClones = new();
-    public bool CloneLiteralModuleDefinition { get; } = cloneLiteralModuleDefinition;
+    public bool CloneLiteralModuleDefinition { get; }
 
     public void AddStatementClone(Statement original, Statement clone) {
       statementClones.Add(original, clone);
@@ -27,6 +27,11 @@ namespace Microsoft.Dafny {
 
     public TopLevelDecl GetCloneIfAvailable(TopLevelDecl topLevelDecl) {
       return typeParameterClones.GetOrDefault(topLevelDecl, () => topLevelDecl);
+    }
+
+    public Cloner(bool cloneLiteralModuleDefinition = false, bool cloneResolvedFields = false) {
+      this.CloneLiteralModuleDefinition = cloneLiteralModuleDefinition;
+      CloneResolvedFields = cloneResolvedFields;
     }
 
     public virtual ModuleDefinition CloneModuleDefinition(ModuleDefinition m, ModuleDefinition newParent) {
@@ -618,7 +623,10 @@ namespace Microsoft.Dafny {
   /// <summary>
   /// This cloner copies the origin module signatures to their cloned declarations
   /// </summary>
-  class DeepModuleSignatureCloner(bool cloneResolvedFields = false) : Cloner(false, cloneResolvedFields) {
+  class DeepModuleSignatureCloner : Cloner {
+    public DeepModuleSignatureCloner(bool cloneResolvedFields = false) : base(false, cloneResolvedFields) {
+    }
+
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition newParent) {
       var dd = base.CloneDeclaration(d, newParent);
       if (d is ModuleDecl) {
@@ -649,7 +657,10 @@ namespace Microsoft.Dafny {
   /// This cloner is used during the creation of a module signature for a method facade.
   /// It does not clone method bodies, and it copies module signatures.
   /// </summary>
-  class ClonerButDropMethodBodies(bool cloneResolvedFields = false) : DeepModuleSignatureCloner(cloneResolvedFields) {
+  class ClonerButDropMethodBodies : DeepModuleSignatureCloner {
+    public ClonerButDropMethodBodies(bool cloneResolvedFields = false) : base(cloneResolvedFields) {
+    }
+
     public override BlockStmt CloneBlockStmt(BlockStmt stmt) {
       return null;
     }

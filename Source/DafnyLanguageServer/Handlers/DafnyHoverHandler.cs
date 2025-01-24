@@ -14,14 +14,19 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
-  public class DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IProjectDatabase projects)
-    : HoverHandlerBase {
+  public class DafnyHoverHandler : HoverHandlerBase {
     // TODO add the range of the name to the hover.
-    private readonly ILogger logger = logger;
+    private readonly ILogger logger;
+    private readonly IProjectDatabase projects;
 
     private const long RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
+
+    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IProjectDatabase projects) {
+      this.logger = logger;
+      this.projects = projects;
+    }
 
     protected override HoverRegistrationOptions CreateRegistrationOptions(HoverCapability capability, ClientCapabilities clientCapabilities) {
       return new HoverRegistrationOptions {

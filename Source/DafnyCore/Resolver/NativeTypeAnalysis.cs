@@ -11,7 +11,13 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-class NativeTypeAnalysis(ErrorReporter reporter) {
+class NativeTypeAnalysis {
+  private readonly ErrorReporter reporter;
+
+  public NativeTypeAnalysis(ErrorReporter reporter) {
+    this.reporter = reporter;
+  }
+
   public void FigureOutNativeType(NewtypeDecl dd, DafnyOptions options) {
 
     // Look at the :nativeType attribute, if any

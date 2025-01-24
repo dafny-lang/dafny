@@ -22,12 +22,18 @@ namespace DafnyPipeline.Test {
   //
   // Every test is performed with all three newline styles
   // Every formatted program is formatted again to verify that it stays the same.
-  public class DocstringTest(ITestOutputHelper output) {
+  public class DocstringTest {
+    private readonly ITestOutputHelper output;
+
     enum Newlines {
       LF,
       CR,
       CRLF
     };
+
+    public DocstringTest(ITestOutputHelper output) {
+      this.output = output;
+    }
 
     private Newlines currentNewlines;
 

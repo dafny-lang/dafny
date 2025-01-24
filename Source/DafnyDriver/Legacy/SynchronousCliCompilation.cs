@@ -35,8 +35,12 @@ namespace Microsoft.Dafny {
   /// 
   /// Will be replaced by CompilationManager
   /// </summary>
-  public class SynchronousCliCompilation(DafnyOptions dafnyOptions) : IDisposable {
-    private readonly ExecutionEngine engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
+  public class SynchronousCliCompilation : IDisposable {
+    private readonly ExecutionEngine engine;
+
+    public SynchronousCliCompilation(DafnyOptions dafnyOptions) {
+      engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
+    }
 
     public static async Task<int> Run(DafnyOptions options) {
       options.RunningBoogieFromCommandLine = true;

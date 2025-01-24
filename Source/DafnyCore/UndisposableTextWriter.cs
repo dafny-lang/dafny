@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny;
 
-public class UndisposableTextWriter(TextWriter textWriterImplementation) : TextWriter {
+public class UndisposableTextWriter : TextWriter {
+  public UndisposableTextWriter(TextWriter textWriterImplementation) {
+    this.textWriterImplementation = textWriterImplementation;
+  }
+
   public override void Close() {
     textWriterImplementation.Close();
   }
@@ -235,6 +239,7 @@ public class UndisposableTextWriter(TextWriter textWriterImplementation) : TextW
     set => textWriterImplementation.NewLine = value;
   }
 
+  private TextWriter textWriterImplementation;
   public override Encoding Encoding => textWriterImplementation.Encoding;
 
 

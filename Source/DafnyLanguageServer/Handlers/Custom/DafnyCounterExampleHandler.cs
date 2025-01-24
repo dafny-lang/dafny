@@ -11,13 +11,21 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
-  public class DafnyCounterExampleHandler(
-    DafnyOptions options,
-    ILogger<DafnyCounterExampleHandler> logger,
-    IProjectDatabase projects,
-    TelemetryPublisherBase telemetryPublisher)
-    : ICounterExampleHandler {
-    private readonly ILogger logger = logger;
+  public class DafnyCounterExampleHandler : ICounterExampleHandler {
+    private readonly DafnyOptions options;
+    private readonly ILogger logger;
+    private readonly IProjectDatabase projects;
+    private readonly TelemetryPublisherBase telemetryPublisher;
+
+    public DafnyCounterExampleHandler(DafnyOptions options,
+      ILogger<DafnyCounterExampleHandler> logger,
+      IProjectDatabase projects,
+      TelemetryPublisherBase telemetryPublisher) {
+      this.logger = logger;
+      this.projects = projects;
+      this.telemetryPublisher = telemetryPublisher;
+      this.options = options;
+    }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       try {
@@ -54,13 +62,20 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
                r.VerificationTasks.Values.All(v => v.Status >= PublishedVerificationStatus.Error));
     }
 
-    private class CounterExampleLoader(
-      DafnyOptions options,
-      ILogger logger,
-      IdeState ideState,
-      int counterExampleDepth,
-      CancellationToken cancellationToken) {
-      private readonly int counterExampleDepth = counterExampleDepth;
+    private class CounterExampleLoader {
+      private readonly DafnyOptions options;
+      private readonly ILogger logger;
+      private readonly IdeState ideState;
+      private readonly CancellationToken cancellationToken;
+      private readonly int counterExampleDepth;
+
+      public CounterExampleLoader(DafnyOptions options, ILogger logger, IdeState ideState, int counterExampleDepth, CancellationToken cancellationToken) {
+        this.options = options;
+        this.logger = logger;
+        this.ideState = ideState;
+        this.cancellationToken = cancellationToken;
+        this.counterExampleDepth = counterExampleDepth;
+      }
 
       public CounterExampleList GetCounterExamples() {
         if (!ideState.Counterexamples.Any()) {

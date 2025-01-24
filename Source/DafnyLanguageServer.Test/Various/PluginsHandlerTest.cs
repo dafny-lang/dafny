@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public class PluginsHandlerTest(ITestOutputHelper output) : PluginsTestBase(output) {
+public class PluginsHandlerTest : PluginsTestBase {
 
   protected override string LibraryName =>
     "PluginsHandlerTest";
@@ -23,5 +23,8 @@ method firstMethod() {
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var requestResult = await client.SendRequest("dafny/request/dummy").Returning<string>(cancellationToken);
     Assert.Equal("dummy", requestResult);
+  }
+
+  public PluginsHandlerTest(ITestOutputHelper output) : base(output) {
   }
 }

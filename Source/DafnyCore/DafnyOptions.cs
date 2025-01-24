@@ -205,8 +205,13 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Needed because the Boogie version writes to Console.Error
     /// </summary>
-    class TextWriterParseState(string[] args, string toolName, TextWriter errorWriter)
-      : Bpl.CommandLineParseState(args, toolName) {
+    class TextWriterParseState : Bpl.CommandLineParseState {
+      private readonly TextWriter errorWriter;
+
+      public TextWriterParseState(string[] args, string toolName, TextWriter errorWriter) : base(args, toolName) {
+        this.errorWriter = errorWriter;
+      }
+
       public override void Error(string message, params string[] args) {
         errorWriter.WriteLine("{0}: Error: {1}", ToolName, string.Format(message, args));
         EncounteredErrors = true;
@@ -1557,8 +1562,16 @@ for a similar Boogie program.
   }
 }
 
-class ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, IOrigin token)
-  : Bpl.CommandLineParseState(args, toolName) {
+class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
+  private readonly Errors errors;
+  private IOrigin token;
+
+  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, IOrigin token)
+    : base(args, toolName) {
+    this.errors = errors;
+    this.token = token;
+  }
+
   public override void Error(string message, params string[] args) {
     errors.SemErr(GenericErrors.ErrorId.g_option_error, token, string.Format(message, args));
     EncounteredErrors = true;
@@ -1569,13 +1582,19 @@ class ErrorReportingCommandLineParseState(string[] args, string toolName, Errors
 /// Wrapper object that restricts which options may be applied.
 /// Used by the parser to parse <c>:options</c> strings.
 /// </summary>
-class DafnyAttributeOptions(DafnyOptions opts, Errors errors) : DafnyOptions(opts) {
+class DafnyAttributeOptions : DafnyOptions {
   public static readonly HashSet<string> KnownOptions = [
     "functionSyntax",
     "quantifierSyntax"
   ];
 
-  public IOrigin Token { get; set; } = null;
+  private readonly Errors errors;
+  public IOrigin Token { get; set; }
+
+  public DafnyAttributeOptions(DafnyOptions opts, Errors errors) : base(opts) {
+    this.errors = errors;
+    Token = null;
+  }
 
   protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
     return new ErrorReportingCommandLineParseState(args, ToolName, errors, Token ?? Microsoft.Dafny.Token.NoToken);

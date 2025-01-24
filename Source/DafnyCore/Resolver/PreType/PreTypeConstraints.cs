@@ -17,9 +17,9 @@ namespace Microsoft.Dafny {
   /// it consists of lists of constraints, advice, and conditions to be confirmed.
   /// The class also contains methods for solving or partially solving these constraints.
   /// </summary>
-  public class PreTypeConstraints(PreTypeResolver preTypeResolver) {
-    public readonly PreTypeResolver PreTypeResolver = preTypeResolver;
-    private readonly DafnyOptions options = preTypeResolver.resolver.Options;
+  public class PreTypeConstraints {
+    public readonly PreTypeResolver PreTypeResolver;
+    private readonly DafnyOptions options;
 
     private List<SubtypeConstraint> unnormalizedSubtypeConstraints = [];
     private Queue<EqualityConstraint> equalityConstraints = new();
@@ -27,6 +27,11 @@ namespace Microsoft.Dafny {
     private readonly List<Advice> defaultAdvice = [];
     private readonly List<(PreTypeProxy, PreType)> compatibleBounds = [];
     private List<Confirmation> confirmations = [];
+
+    public PreTypeConstraints(PreTypeResolver preTypeResolver) {
+      this.PreTypeResolver = preTypeResolver;
+      this.options = preTypeResolver.resolver.Options;
+    }
 
     /// <summary>
     /// Try to find the receiver pre-type that corresponds to "preType".

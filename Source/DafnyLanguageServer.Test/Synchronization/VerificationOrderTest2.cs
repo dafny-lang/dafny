@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 /// This class tests whether editing a file results in
 /// methods priorities for verification being set automatically.
 /// </summary>
-public class VerificationOrderTest2(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+public class VerificationOrderTest2 : ClientBasedLanguageServerTest {
   private const int MaxTestExecutionTimeMs = 10000;
 
   [Fact/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
@@ -235,5 +235,8 @@ method m5() { assert false; } //Remove4:
 
       yield return newlyReported.ToList();
     } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
+  }
+
+  public VerificationOrderTest2(ITestOutputHelper output) : base(output) {
   }
 }

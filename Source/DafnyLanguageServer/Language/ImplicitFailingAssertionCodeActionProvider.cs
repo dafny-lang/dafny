@@ -17,8 +17,13 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 /// For now, it offers to inline a failing postcondition if its failure is
 /// indicated on the '{' -- meaning there is no explicit return.
 /// </summary>
-class ImplicitFailingAssertionCodeActionProvider(ILogger<DafnyCodeActionHandler> logger, DafnyOptions options)
-  : DiagnosticDafnyCodeActionProvider(logger) {
+class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProvider {
+  private readonly DafnyOptions options;
+
+  public ImplicitFailingAssertionCodeActionProvider(ILogger<DafnyCodeActionHandler> logger, DafnyOptions options) : base(logger) {
+    this.options = options;
+  }
+
   protected static List<INode>? FindInnermostNodeIntersecting(INode node, Range range) {
     if (node.StartToken.line > 0 && !node.Origin.ToLspRange().Intersects(range)) {
       return null;
@@ -35,12 +40,24 @@ class ImplicitFailingAssertionCodeActionProvider(ILogger<DafnyCodeActionHandler>
     return node.StartToken.line > 0 ? [node] : null;
   }
 
-  class ExplicitAssertionDafnyCodeAction(
-    DafnyOptions options,
-    Node program,
-    Expression failingImplicitAssertion,
-    Range selection)
-    : DafnyCodeAction("Insert explicit failing assertion") {
+  class ExplicitAssertionDafnyCodeAction : DafnyCodeAction {
+    private readonly DafnyOptions options;
+    private readonly Expression failingImplicitAssertion;
+    private readonly Node program;
+    private readonly Range selection;
+
+    public ExplicitAssertionDafnyCodeAction(
+      DafnyOptions options,
+      Node program,
+      Expression failingImplicitAssertion,
+      Range selection
+      ) : base("Insert explicit failing assertion") {
+      this.options = options;
+      this.failingImplicitAssertion = failingImplicitAssertion;
+      this.program = program;
+      this.selection = selection;
+    }
+
     public override IEnumerable<DafnyCodeActionEdit> GetEdits() {
       var nodesTillFailure = FindInnermostNodeIntersecting(program, selection);
 

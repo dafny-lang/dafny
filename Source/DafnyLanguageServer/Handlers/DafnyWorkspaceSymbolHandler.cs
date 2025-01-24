@@ -11,13 +11,16 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
-  public class DafnyWorkspaceSymbolHandler(
-    ILogger<DafnyWorkspaceSymbolHandler> logger,
-    IProjectDatabase projects,
-    DafnyOptions dafnyOptions)
-    : WorkspaceSymbolsHandlerBase {
-    private readonly ILogger logger = logger;
-    private readonly DafnyOptions dafnyOptions = dafnyOptions;
+  public class DafnyWorkspaceSymbolHandler : WorkspaceSymbolsHandlerBase {
+    private readonly ILogger logger;
+    private readonly IProjectDatabase projects;
+    private readonly DafnyOptions dafnyOptions;
+
+    public DafnyWorkspaceSymbolHandler(ILogger<DafnyWorkspaceSymbolHandler> logger, IProjectDatabase projects, DafnyOptions dafnyOptions) {
+      this.logger = logger;
+      this.projects = projects;
+      this.dafnyOptions = dafnyOptions;
+    }
 
     protected override WorkspaceSymbolRegistrationOptions CreateRegistrationOptions(WorkspaceSymbolCapability capability,
       ClientCapabilities clientCapabilities) {

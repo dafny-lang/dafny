@@ -15,10 +15,14 @@ namespace Microsoft.Dafny;
 /// 3. replacing calls to the original definition with calls to the new
 ///    wrapper definition.
 /// </summary>
-public class ExpectContracts(ErrorReporter reporter, SystemModuleManager systemModuleManager)
-  : IRewriter(reporter) {
+public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new(true);
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
+  private readonly SystemModuleManager systemModuleManager;
+
+  public ExpectContracts(ErrorReporter reporter, SystemModuleManager systemModuleManager) : base(reporter) {
+    this.systemModuleManager = systemModuleManager;
+  }
 
   /// <summary>
   /// Create an expect statement that checks the given contract clause
@@ -262,10 +266,15 @@ public class ExpectContracts(ErrorReporter reporter, SystemModuleManager systemM
 /// function and method calls with calls to wrappers that dynamically
 /// check contracts using expect statements.
 /// </summary>
-public class CallRedirector(ErrorReporter reporter) : TopDownVisitor<MemberDecl> {
+public class CallRedirector : TopDownVisitor<MemberDecl> {
   public Dictionary<MemberDecl, MemberDecl> NewRedirections { get; set; } = new();
   private readonly Dictionary<MemberDecl, string> newFullNames = new();
+  private readonly ErrorReporter reporter;
   public HashSet<MemberDecl> CalledWrappers { get; } = [];
+
+  public CallRedirector(ErrorReporter reporter) {
+    this.reporter = reporter;
+  }
 
   internal void AddFullName(MemberDecl decl, string fullName) {
     newFullNames.Add(decl, fullName);

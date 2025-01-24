@@ -8,7 +8,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public class PluginsTest(ITestOutputHelper output) : PluginsTestBase(output) {
+public class PluginsTest : PluginsTestBase {
 
   protected override string LibraryName =>
     "PluginsTest";
@@ -27,5 +27,8 @@ public class PluginsTest(ITestOutputHelper output) : PluginsTestBase(output) {
     Assert.Single(diagnostics);
     Assert.Equal("Impossible to continue because\\ \"whatever", diagnostics[0].Message);
     Assert.Equal(new Range((0, 0), (0, 8)), diagnostics[0].Range);
+  }
+
+  public PluginsTest(ITestOutputHelper output) : base(output) {
   }
 }

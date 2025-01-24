@@ -8,8 +8,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
-public class StandardLibrary(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
-  : ClientBasedLanguageServerTest(output, dafnyLogLevel) {
+public class StandardLibrary : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task EditWhenUsingStandardLibrary() {
@@ -28,5 +27,8 @@ method Foo() ensures false { }
     ApplyChange(ref document, new Range(0, 0, 1, 0), "method Bar() ensures true { }");
     var diagnostics2 = await GetLastDiagnostics(document);
     Assert.Empty(diagnostics2);
+  }
+
+  public StandardLibrary(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
   }
 }

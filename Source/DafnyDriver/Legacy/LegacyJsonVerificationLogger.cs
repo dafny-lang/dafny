@@ -9,15 +9,26 @@ using VC;
 
 namespace Microsoft.Dafny;
 
-public class LegacyJsonVerificationLogger(ProofDependencyManager depManager, TextWriter outWriter) {
+public class LegacyJsonVerificationLogger {
   private TextWriter tw;
+  private readonly TextWriter outWriter;
+  private readonly ProofDependencyManager depManager;
+
+  public LegacyJsonVerificationLogger(ProofDependencyManager depManager, TextWriter outWriter) {
+    this.depManager = depManager;
+    this.outWriter = outWriter;
+  }
 
   public void Initialize(Dictionary<string, string> parameters) {
     tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter;
   }
 
-  class DummyProofObligationDescription(string success) : Boogie.ProofObligationDescription {
-    public override string SuccessDescription { get; } = success;
+  class DummyProofObligationDescription : Boogie.ProofObligationDescription {
+    public DummyProofObligationDescription(string success) {
+      SuccessDescription = success;
+    }
+
+    public override string SuccessDescription { get; }
 
     public override string ShortDescription => throw new NotSupportedException();
   }

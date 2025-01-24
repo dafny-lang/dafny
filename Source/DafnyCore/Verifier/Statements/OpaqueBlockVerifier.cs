@@ -93,8 +93,16 @@ public static class OpaqueBlockVerifier {
     public override bool IsImplicit => false;
   }
 
-  class OpaqueBlockContext(IMethodCodeContext callable, OpaqueBlock opaqueBlock)
-    : CallableWrapper(callable, callable.IsGhost), IMethodCodeContext {
+  class OpaqueBlockContext : CallableWrapper, IMethodCodeContext {
+    private readonly IMethodCodeContext callable;
+    private readonly OpaqueBlock opaqueBlock;
+
+    public OpaqueBlockContext(IMethodCodeContext callable, OpaqueBlock opaqueBlock)
+      : base(callable, callable.IsGhost) {
+      this.callable = callable;
+      this.opaqueBlock = opaqueBlock;
+    }
+
     public List<Formal> Outs => callable.Outs;
 
     public Specification<FrameExpression> Modifies => opaqueBlock.Modifies;

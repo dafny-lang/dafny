@@ -3,7 +3,13 @@ using System.IO;
 
 namespace Microsoft.Dafny {
 
-  class LineSegment(string value) : ICanRender {
+  class LineSegment : ICanRender {
+    private readonly string _value;
+
+    public LineSegment(string value) {
+      this._value = value;
+    }
+
     public static implicit operator LineSegment(string value) => new LineSegment(value);
 
     public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files, int indentSize = 2) {
@@ -12,7 +18,7 @@ namespace Microsoft.Dafny {
         writerState.HasNewLine = false;
       }
 
-      writer.Write(value);
+      writer.Write(_value);
     }
   }
 }

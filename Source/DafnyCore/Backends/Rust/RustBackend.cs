@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class RustBackend(DafnyOptions options) : DafnyExecutableBackend(options) {
+public class RustBackend : DafnyExecutableBackend {
   protected override bool PreventShadowing => false;
   protected override string InternalFieldPrefix => "_i_";
 
@@ -196,5 +196,8 @@ public class RustBackend(DafnyOptions options) : DafnyExecutableBackend(options)
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
     return 0 == await RunProcess(psi, outputWriter, errorWriter);
+  }
+
+  public RustBackend(DafnyOptions options) : base(options) {
   }
 }

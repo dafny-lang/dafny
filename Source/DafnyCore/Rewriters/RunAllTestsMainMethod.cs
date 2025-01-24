@@ -8,7 +8,7 @@ using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny;
 
-public class RunAllTestsMainMethod(ErrorReporter reporter) : IRewriter(reporter) {
+public class RunAllTestsMainMethod : IRewriter {
 
   static RunAllTestsMainMethod() {
     OptionRegistry.RegisterOption(IncludeTestRunner, OptionScope.Cli);
@@ -21,6 +21,9 @@ public class RunAllTestsMainMethod(ErrorReporter reporter) : IRewriter(reporter)
       that Dafny will not use as a mangled Dafny name for any backend, and that is not likely
       to be chosen by the user as an extern name. **/
   public static string SyntheticTestMainName = "_Test__Main_";
+
+  public RunAllTestsMainMethod(ErrorReporter reporter) : base(reporter) {
+  }
 
   /// <summary>
   /// Verifies that there isn't already a main method, and then creates

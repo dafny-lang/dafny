@@ -65,11 +65,19 @@ public interface INameRewriter {
   string Rewrite(string name);
 }
 
-internal class SemanticModel(
-  string rootModule,
-  INameRewriter nameRewriter,
-  IList<string> skippedInterfaces,
-  CA.SemanticModel model) {
+internal class SemanticModel {
+  private readonly string rootModule;
+  private readonly INameRewriter nameRewriter;
+  private readonly IList<string> skippedInterfaces;
+  private readonly CA.SemanticModel model;
+
+  public SemanticModel(string rootModule, INameRewriter nameRewriter, IList<string> skippedInterfaces, CA.SemanticModel model) {
+    this.rootModule = rootModule;
+    this.nameRewriter = nameRewriter;
+    this.skippedInterfaces = skippedInterfaces;
+    this.model = model;
+  }
+
   public ISymbol? GetSymbol(SyntaxNode syntax) {
     return model.GetDeclaredSymbol(syntax);
   }
@@ -176,8 +184,16 @@ internal class CSharpFile : PrettyPrintable {
   }
 }
 
-internal class TypeDecl(TypeDeclarationSyntax syntax, SemanticModel model) : PrettyPrintable {
+internal class TypeDecl : PrettyPrintable {
+  private readonly TypeDeclarationSyntax syntax;
+  private readonly SemanticModel model;
+
   protected override string ChildSeparator => "";
+
+  public TypeDecl(TypeDeclarationSyntax syntax, SemanticModel model) {
+    this.syntax = syntax;
+    this.model = model;
+  }
 
   public Name IntfName => Name.OfSyntax(syntax, model);
 
@@ -213,8 +229,16 @@ internal class TypeDecl(TypeDeclarationSyntax syntax, SemanticModel model) : Pre
   }
 }
 
-internal class Enum(EnumDeclarationSyntax syntax, SemanticModel model) : PrettyPrintable {
+internal class Enum : PrettyPrintable {
+  private readonly EnumDeclarationSyntax syntax;
+  private readonly SemanticModel model;
+
   protected override string ChildSeparator => "";
+
+  public Enum(EnumDeclarationSyntax syntax, SemanticModel model) {
+    this.syntax = syntax;
+    this.model = model;
+  }
 
   private IEnumerable<EnumMember> Members =>
     syntax.Members.Select(m => new EnumMember(m, model));
@@ -228,17 +252,33 @@ internal class Enum(EnumDeclarationSyntax syntax, SemanticModel model) : PrettyP
   }
 }
 
-internal class EnumMember(EnumMemberDeclarationSyntax syntax, SemanticModel model) : PrettyPrintable {
+internal class EnumMember : PrettyPrintable {
+  private readonly EnumMemberDeclarationSyntax syntax;
+  private readonly SemanticModel model;
+
+  public EnumMember(EnumMemberDeclarationSyntax syntax, SemanticModel model) {
+    this.syntax = syntax;
+    this.model = model;
+  }
+
   public override void Pp(TextWriter wr, string indent) {
     var decl = Name.OfSyntax(syntax, model).AsDecl(forceExtern: true);
-    var type = Name.OfSyntax(syntax.Parent!, model).DafnyId;
+    var type = Name.OfSyntax(this.syntax.Parent!, model).DafnyId;
     wr.WriteLine($"{indent}static const {decl}: {type}");
   }
 }
 
-internal class Field(FieldDeclarationSyntax syntax, SemanticModel model) : PrettyPrintable {
+internal class Field : PrettyPrintable {
+  private readonly FieldDeclarationSyntax syntax;
+  private readonly SemanticModel model;
+
   protected override string ChildSeparator => "";
   protected override string ChildIndent => "";
+
+  public Field(FieldDeclarationSyntax syntax, SemanticModel model) {
+    this.syntax = syntax;
+    this.model = model;
+  }
 
   private IEnumerable<Variable> Variables =>
     syntax.Declaration.Variables.Where(v => model.IsPublic(v))
@@ -249,12 +289,21 @@ internal class Field(FieldDeclarationSyntax syntax, SemanticModel model) : Prett
   }
 }
 
-internal class Property(PropertyDeclarationSyntax syntax, SemanticModel model, TypeDecl? parentInterface)
-  : PrettyPrintable {
-  private readonly Type type = new(syntax.Type, model);
+internal class Property : PrettyPrintable {
+  private readonly PropertyDeclarationSyntax syntax;
+  private readonly SemanticModel model;
+  private readonly Type type;
+  private readonly TypeDecl? parentInterface;
 
   protected override string ChildSeparator => "";
   protected override string ChildIndent => "";
+
+  public Property(PropertyDeclarationSyntax syntax, SemanticModel model, TypeDecl? parentInterface) {
+    this.syntax = syntax;
+    this.model = model;
+    this.parentInterface = parentInterface;
+    this.type = new Type(syntax.Type, model);
+  }
 
   private bool ExistsInAncestor(ITypeSymbol? typeSymbol) {
     var baseType = typeSymbol?.BaseType;
@@ -284,7 +333,15 @@ internal class Property(PropertyDeclarationSyntax syntax, SemanticModel model, T
   }
 }
 
-internal class Type(TypeSyntax syntax, SemanticModel model) {
+internal class Type {
+  private readonly TypeSyntax syntax;
+  private readonly SemanticModel model;
+
+  public Type(TypeSyntax syntax, SemanticModel model) {
+    this.syntax = syntax;
+    this.model = model;
+  }
+
   private string GenericNameToString(GenericNameSyntax s) {
     var name = s.Identifier.Text switch {
       "Tuple" => $"System.Tuple{s.TypeArgumentList.Arguments.Count}",
@@ -314,17 +371,21 @@ internal class Type(TypeSyntax syntax, SemanticModel model) {
   }
 }
 
-internal class Variable(TypeSyntax type, VariableDeclaratorSyntax syntax, SemanticModel model)
-  : PrettyPrintable {
-  private readonly Type type = new Type(type, model);
-  private readonly SyntaxToken identifier = syntax.Identifier;
+internal class Variable : PrettyPrintable {
+  private readonly Type type;
+  private readonly SyntaxToken identifier;
+
+  public Variable(TypeSyntax type, VariableDeclaratorSyntax syntax, SemanticModel model) {
+    this.type = new Type(type, model);
+    this.identifier = syntax.Identifier;
+  }
 
   public override void Pp(TextWriter wr, string indent) {
     wr.WriteLine($"{indent}var {new Name(identifier).AsDecl()}: {type}");
   }
 }
 
-internal class Name(string cSharpId, string dafnyId) {
+internal class Name {
   private const string EscapePrefix = "CSharp_";
 
   private static readonly List<string> DisallowedNameWords =
@@ -332,9 +393,14 @@ internal class Name(string cSharpId, string dafnyId) {
   private static readonly Regex DisallowedNameRe =
     new Regex($"^(_|({String.Join("|", DisallowedNameWords)})$)");
 
-  public readonly string DafnyId = dafnyId.StartsWith(EscapePrefix) || DisallowedNameRe.IsMatch(dafnyId) ?
-    EscapePrefix + dafnyId : dafnyId;
-  public readonly string CSharpId = cSharpId;
+  public readonly string DafnyId;
+  public readonly string CSharpId;
+
+  public Name(string cSharpId, string dafnyId) {
+    this.CSharpId = cSharpId;
+    this.DafnyId = dafnyId.StartsWith(EscapePrefix) || DisallowedNameRe.IsMatch(dafnyId) ?
+      EscapePrefix + dafnyId : dafnyId;
+  }
 
   public Name(string cSharpId) : this(cSharpId, cSharpId) {
   }

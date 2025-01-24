@@ -13,9 +13,12 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
 
-public abstract class ExecutableBackend(DafnyOptions options) : IExecutableBackend(options) {
+public abstract class ExecutableBackend : IExecutableBackend {
   // May be null for backends that don't use the single-pass compiler logic
   protected SinglePassCodeGenerator codeGenerator;
+
+  protected ExecutableBackend(DafnyOptions options) : base(options) {
+  }
 
   public override IReadOnlySet<Feature> UnsupportedFeatures => CreateCodeGenerator().UnsupportedFeatures;
 

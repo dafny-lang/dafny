@@ -17,42 +17,38 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Represents the symbol table
   /// </summary>
-  public class LegacySignatureAndCompletionTable(
-    ILogger iLogger,
-    CompilationUnit compilationUnit,
-    IDictionary<AstElement, ILocalizableSymbol> declarations,
-    ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> locationsPerUri,
-    ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>> lookupTreePerUri,
-    bool symbolsResolved) {
+  public class LegacySignatureAndCompletionTable {
 
     public static readonly Option<bool> MigrateSignatureAndCompletionTable = new("--migrate-signature-and-completion-table", () => true) {
       IsHidden = true
     };
 
+    private readonly ILogger logger;
+
     // TODO Guard the properties from changes
-    public CompilationUnit CompilationUnit { get; } = compilationUnit;
+    public CompilationUnit CompilationUnit { get; }
 
     /// <summary>
     /// Gets the dictionary providing a mapping from an Ast Element to the symbol backing it.
     /// </summary>
-    public IDictionary<AstElement, ILocalizableSymbol> Declarations { get; } = declarations;
+    public IDictionary<AstElement, ILocalizableSymbol> Declarations { get; }
 
     /// <summary>
     /// Gets the dictionary allowing to resolve the location of a specified symbol. Do not modify this instance.
     /// </summary>
-    public ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> LocationsPerUri { get; } = locationsPerUri;
+    public ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> LocationsPerUri { get; }
 
     /// <summary>
     /// Gets the interval tree backing this symbol table. Do not modify this instance.
     /// </summary>
-    public ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>> LookupTreePerUri { get; } = lookupTreePerUri;
+    public ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>> LookupTreePerUri { get; }
 
     /// <summary>
     /// <c>true</c> if the symbol table results from a successful resolution by the dafny resolver.
     /// </summary>
-    public bool Resolved { get; } = symbolsResolved;
+    public bool Resolved { get; }
 
-    private readonly DafnyLangTypeResolver typeResolver = new(declarations);
+    private readonly DafnyLangTypeResolver typeResolver;
 
     public static LegacySignatureAndCompletionTable Empty(DafnyOptions options, DafnyProject project) {
       var emptyProgram = GetEmptyProgram(options, project.Uri);
@@ -91,6 +87,23 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return emptyProgram;
     }
 
+    public LegacySignatureAndCompletionTable(
+        ILogger iLogger,
+        CompilationUnit compilationUnit,
+        IDictionary<AstElement, ILocalizableSymbol> declarations,
+        ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> locationsPerUri,
+        ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>> lookupTreePerUri,
+        bool symbolsResolved
+    ) {
+      CompilationUnit = compilationUnit;
+      Declarations = declarations;
+      LocationsPerUri = locationsPerUri;
+      LookupTreePerUri = lookupTreePerUri;
+      Resolved = symbolsResolved;
+      typeResolver = new DafnyLangTypeResolver(declarations);
+      logger = iLogger;
+    }
+
     /// <summary>
     /// Tries to get a symbol at the specified location.
     /// Only used for testing.
@@ -103,7 +116,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       // Use case: function f(a: int) {}, and hover over a.
       foreach (var potentialSymbol in symbolsAtPosition) {
         if (symbol != null) {
-          iLogger.Log(LogLevel.Warning, "Two registered symbols as the same position (line {Line}, character {Character})", position.Line, position.Character);
+          logger.Log(LogLevel.Warning, "Two registered symbols as the same position (line {Line}, character {Character})", position.Line, position.Character);
           break;
         }
 

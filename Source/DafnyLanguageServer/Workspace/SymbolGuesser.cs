@@ -10,8 +10,12 @@ using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
-  public class SymbolGuesser(ILogger<SymbolGuesser> logger) : ISymbolGuesser {
-    private readonly ILogger logger = logger;
+  public class SymbolGuesser : ISymbolGuesser {
+    private readonly ILogger logger;
+
+    public SymbolGuesser(ILogger<SymbolGuesser> logger) {
+      this.logger = logger;
+    }
 
     public bool TryGetSymbolBefore(IdeState state, Uri uri, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ILegacySymbol? symbol) {
       (symbol, _) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(uri, position);
@@ -23,7 +27,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return typeSymbol != null;
     }
 
-    private class Guesser(ILogger logger, IdeState state, CancellationToken cancellationToken) {
+    private class Guesser {
+      private readonly ILogger logger;
+      private readonly IdeState state;
+      private readonly CancellationToken cancellationToken;
+
+      public Guesser(ILogger logger, IdeState state, CancellationToken cancellationToken) {
+        this.logger = logger;
+        this.state = state;
+        this.cancellationToken = cancellationToken;
+      }
+
       public (ILegacySymbol? Designator, ILegacySymbol? Type) GetSymbolAndItsTypeBefore(Uri uri, Position requestPosition) {
         var position = GetLinePositionBefore(requestPosition);
         if (position == null) {

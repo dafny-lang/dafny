@@ -14,8 +14,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 /// If any top-level declaration has an attribute `{:neverVerify}`,
 /// this verifier will return a task that only completes when cancelled
 /// which can be useful to test against race conditions
-class SlowVerifier(ILogger<DafnyProgramVerifier> logger) : IProgramVerifier {
-  private readonly DafnyProgramVerifier verifier = new(logger);
+class SlowVerifier : IProgramVerifier {
+  public SlowVerifier(ILogger<DafnyProgramVerifier> logger) {
+    verifier = new DafnyProgramVerifier(logger);
+  }
+
+  private readonly DafnyProgramVerifier verifier;
 
   public async Task<IReadOnlyList<IVerificationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
     ResolutionResult resolution, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
@@ -32,8 +36,14 @@ class SlowVerifier(ILogger<DafnyProgramVerifier> logger) : IProgramVerifier {
     return tasks;
   }
 
-  class NeverVerifiesImplementationTask(IVerificationTask original) : IVerificationTask {
-    private readonly Subject<IVerificationStatus> source = new();
+  class NeverVerifiesImplementationTask : IVerificationTask {
+    private readonly IVerificationTask original;
+    private readonly Subject<IVerificationStatus> source;
+
+    public NeverVerifiesImplementationTask(IVerificationTask original) {
+      this.original = original;
+      source = new();
+    }
 
     public IVerificationTask FromSeed(int newSeed) {
       return this;

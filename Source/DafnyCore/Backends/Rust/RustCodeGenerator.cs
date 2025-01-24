@@ -8,8 +8,12 @@ using DCOMP;
 
 namespace Microsoft.Dafny.Compilers {
 
-  class RustCodeGenerator(DafnyOptions options) : DafnyWrittenCodeGenerator {
-    public DafnyOptions Options { get; set; } = options;
+  class RustCodeGenerator : DafnyWrittenCodeGenerator {
+    public DafnyOptions Options { get; set; }
+
+    public RustCodeGenerator(DafnyOptions options) {
+      this.Options = options;
+    }
 
     private COMP CreateCompiler() {
       var c = new DCOMP.COMP();

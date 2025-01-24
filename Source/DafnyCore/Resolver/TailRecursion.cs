@@ -5,7 +5,14 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-class TailRecursion(ErrorReporter reporter) {
+class TailRecursion {
+
+  private readonly ErrorReporter reporter;
+
+  public TailRecursion(ErrorReporter reporter) {
+    this.reporter = reporter;
+  }
+
   // ------------------------------------------------------------------------------------------------------
   // ----- CheckTailRecursive -----------------------------------------------------------------------------
   // ------------------------------------------------------------------------------------------------------

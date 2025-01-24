@@ -17,8 +17,14 @@ public record VerificationParams : TextDocumentPositionParams, IRequest<bool>;
 [Method(DafnyRequestNames.CancelVerifySymbol, Direction.ClientToServer)]
 public record CancelVerificationParams : TextDocumentPositionParams, IRequest<bool>;
 
-public class VerificationHandler(IProjectDatabase projects) : IJsonRpcRequestHandler<VerificationParams, bool>,
-  IJsonRpcRequestHandler<CancelVerificationParams, bool> {
+public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bool>, IJsonRpcRequestHandler<CancelVerificationParams, bool> {
+  private readonly IProjectDatabase projects;
+
+  public VerificationHandler(
+    IProjectDatabase projects) {
+    this.projects = projects;
+  }
+
   public async Task<bool> Handle(VerificationParams request, CancellationToken cancellationToken) {
     var projectManager = await projects.GetProjectManager(request.TextDocument);
     if (projectManager == null) {

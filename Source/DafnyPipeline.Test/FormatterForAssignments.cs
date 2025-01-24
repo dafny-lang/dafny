@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace DafnyPipeline.Test;
 
 [Collection("Singleton Test Collection - FormatterForAssignments")]
-public class FormatterForAssignments([NotNull] ITestOutputHelper output) : FormatterBaseTest(output) {
+public class FormatterForAssignments : FormatterBaseTest {
   [Fact]
   public async Task FormatterWorksForAssignments() {
     await FormatterWorksFor(@"method test() {
@@ -181,5 +181,8 @@ method Test() {
     );
 }
 ", reduceBlockiness: false);
+  }
+
+  public FormatterForAssignments([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

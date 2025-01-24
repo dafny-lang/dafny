@@ -16,7 +16,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
-  public class CounterExampleTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+  public class CounterExampleTest : ClientBasedLanguageServerTest {
 
     private Task<CounterExampleList> RequestCounterExamples(DocumentUri documentUri) {
       return client.SendRequest(
@@ -1481,6 +1481,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var documentItem = CreateTestDocument(source, "GetDafnyTypeInfiniteRecursion.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       (await RequestCounterExamples(documentItem.Uri)).ToList();
+    }
+
+    public CounterExampleTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

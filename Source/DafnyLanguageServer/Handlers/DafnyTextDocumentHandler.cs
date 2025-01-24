@@ -30,16 +30,23 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// However, the cancellation token is marked as cancelled upon request completion. If it was used for the background processing, it would
   /// break the background processing if used.
   /// </remarks>
-  public class DafnyTextDocumentHandler(
-    ILogger<DafnyTextDocumentHandler> logger,
-    IProjectDatabase projects,
-    TelemetryPublisherBase telemetryPublisher,
-    INotificationPublisher notificationPublisher)
-    : TextDocumentSyncHandlerBase {
+  public class DafnyTextDocumentHandler : TextDocumentSyncHandlerBase {
     private const string DafnyLanguage = "dafny";
 
-    private readonly ILogger logger = logger;
-    private readonly INotificationPublisher notificationPublisher = notificationPublisher;
+    private readonly ILogger logger;
+    private readonly IProjectDatabase projects;
+    private readonly TelemetryPublisherBase telemetryPublisher;
+    private readonly INotificationPublisher notificationPublisher;
+
+    public DafnyTextDocumentHandler(
+      ILogger<DafnyTextDocumentHandler> logger, IProjectDatabase projects,
+      TelemetryPublisherBase telemetryPublisher, INotificationPublisher notificationPublisher
+    ) {
+      this.logger = logger;
+      this.projects = projects;
+      this.telemetryPublisher = telemetryPublisher;
+      this.notificationPublisher = notificationPublisher;
+    }
 
     protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(SynchronizationCapability capability, ClientCapabilities clientCapabilities) {
       return new TextDocumentSyncRegistrationOptions {

@@ -10,7 +10,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  public class DocumentSymbolTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+  public class DocumentSymbolTest : ClientBasedLanguageServerTest {
 
     [Fact]
     public async Task ExportImport() {
@@ -222,6 +222,9 @@ class Y {
       Assert.Equal(new Range((0, 0), (0, 24)), methodSymbol.Range);
       Assert.Equal(new Range((0, 9), (0, 17)), methodSymbol.SelectionRange);
       Assert.Equal(SymbolKind.Function, methodSymbol.Kind);
+    }
+
+    public DocumentSymbolTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

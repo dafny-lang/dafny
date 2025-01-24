@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   /// that for example syntax nodes are correctly visited.
   /// </summary>
   [Collection("Sequential Collection")] // Let slow tests run sequentially
-  public class StabilityTest(ITestOutputHelper output) : DafnyLanguageServerTestBase(output), IAsyncLifetime {
+  public class StabilityTest : DafnyLanguageServerTestBase, IAsyncLifetime {
     private const int MaxTestExecutionTimeMs = 60000;
 
     private ILanguageClient client;
@@ -57,6 +57,9 @@ method NestedExpression() {
       var documentItem = CreateTestDocument(source, "StrongNestingDoesNotCauseStackOverlfow.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.NotNull(await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri));
+    }
+
+    public StabilityTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

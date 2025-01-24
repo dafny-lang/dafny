@@ -18,8 +18,10 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
-  class JavaScriptCodeGenerator(DafnyOptions options, ErrorReporter reporter)
-    : SinglePassCodeGenerator(options, reporter) {
+  class JavaScriptCodeGenerator : SinglePassCodeGenerator {
+    public JavaScriptCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+    }
+
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.MethodSynthesis,
       Feature.ExternalConstructors,

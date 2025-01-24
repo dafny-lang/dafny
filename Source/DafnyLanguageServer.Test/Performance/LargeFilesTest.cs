@@ -15,7 +15,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Performance;
 
-public class LargeFilesTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+public class LargeFilesTest : ClientBasedLanguageServerTest {
   protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
     return base.SetUp(options => {
       modifyOptions?.Invoke(options);
@@ -120,5 +120,8 @@ public class LargeFilesTest(ITestOutputHelper output) : ClientBasedLanguageServe
     var averageTimeToSchedule = totalSchedulingTime / ticks;
     // await output.WriteLineAsync($"averageTimeToSchedule: {averageTimeToSchedule:0.##}");
     return averageTimeToSchedule;
+  }
+
+  public LargeFilesTest(ITestOutputHelper output) : base(output) {
   }
 }

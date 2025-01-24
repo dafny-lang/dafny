@@ -121,11 +121,19 @@ public class InMemoryDirectoryInfoFromDotNet8 : DirectoryInfoBase {
 
     return null;
   }
-  internal sealed class InMemoryFileInfo(string file, InMemoryDirectoryInfoFromDotNet8 parent) : FileInfoBase {
-    public override string FullName { get; } = file;
+  internal sealed class InMemoryFileInfo : FileInfoBase {
+    private readonly InMemoryDirectoryInfoFromDotNet8 _parent;
 
-    public override string Name { get; } = Path.GetFileName(file);
+    public InMemoryFileInfo(string file, InMemoryDirectoryInfoFromDotNet8 parent) {
+      FullName = file;
+      Name = Path.GetFileName(file);
+      _parent = parent;
+    }
 
-    public override DirectoryInfoBase ParentDirectory => parent;
+    public override string FullName { get; }
+
+    public override string Name { get; }
+
+    public override DirectoryInfoBase ParentDirectory => _parent;
   }
 }

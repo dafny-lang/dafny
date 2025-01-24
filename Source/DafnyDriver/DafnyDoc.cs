@@ -41,7 +41,7 @@ class Info {
     }
   }
 }
-class DafnyDoc(Program dafnyProgram, DafnyOptions options, string outputdir) {
+class DafnyDoc {
   public static async Task<ExitValue> DoDocumenting(DafnyOptions options) {
 
     var dafnyFolders = options.SourceFolders;
@@ -108,13 +108,20 @@ class DafnyDoc(Program dafnyProgram, DafnyOptions options, string outputdir) {
     script.Append(ScriptEntry(info.Id));
   }
 
-  public Program DafnyProgram = dafnyProgram;
-  public ErrorReporter Reporter = dafnyProgram.Reporter;
-  public DafnyOptions Options = options;
-  public string Outputdir = outputdir;
+  public Program DafnyProgram;
+  public ErrorReporter Reporter;
+  public DafnyOptions Options;
+  public string Outputdir;
   List<Info> AllInfo = [];
   public StringBuilder sidebar = new StringBuilder();
   public StringBuilder script = new StringBuilder().Append(ScriptStart());
+
+  public DafnyDoc(Program dafnyProgram, DafnyOptions options, string outputdir) {
+    this.DafnyProgram = dafnyProgram;
+    this.Reporter = dafnyProgram.Reporter;
+    this.Options = options;
+    this.Outputdir = outputdir;
+  }
 
   public ExitValue GenerateDocs(IReadOnlyList<DafnyFile> dafnyFiles) {
     try {

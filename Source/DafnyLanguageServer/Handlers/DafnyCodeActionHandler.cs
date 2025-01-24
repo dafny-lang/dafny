@@ -17,11 +17,17 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers;
 
-public class DafnyCodeActionHandler(
-  DafnyOptions options,
-  ILogger<DafnyCodeActionHandler> logger,
-  IProjectDatabase projects)
-  : CodeActionHandlerBase {
+public class DafnyCodeActionHandler : CodeActionHandlerBase {
+  private readonly DafnyOptions options;
+  private readonly ILogger<DafnyCodeActionHandler> logger;
+  private readonly IProjectDatabase projects;
+
+  public DafnyCodeActionHandler(DafnyOptions options, ILogger<DafnyCodeActionHandler> logger, IProjectDatabase projects) {
+    this.options = options;
+    this.logger = logger;
+    this.projects = projects;
+  }
+
   public record DafnyCodeActionWithId(DafnyCodeAction DafnyCodeAction, int Id);
 
   protected override CodeActionRegistrationOptions CreateRegistrationOptions(CodeActionCapability capability,
@@ -139,11 +145,18 @@ public class DafnyCodeActionHandler(
   }
 }
 
-public class DafnyCodeActionInput(IdeState state, Uri uri) : IDafnyCodeActionInput {
+public class DafnyCodeActionInput : IDafnyCodeActionInput {
+  private readonly Uri uri;
+
+  public DafnyCodeActionInput(IdeState state, Uri uri) {
+    this.uri = uri;
+    IdeState = state;
+  }
+
   public DocumentUri Uri => uri;
 
   public Node Program => IdeState.Program;
-  public IdeState IdeState { get; } = state;
+  public IdeState IdeState { get; }
 
   public IEnumerable<FileDiagnostic> Diagnostics => IdeState.GetAllDiagnostics();
   public VerificationTree? VerificationTree => IdeState.VerificationTrees.GetValueOrDefault(uri);

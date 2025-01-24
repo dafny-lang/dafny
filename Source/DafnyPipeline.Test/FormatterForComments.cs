@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace DafnyPipeline.Test;
 
 [Collection("Singleton Test Collection - FormatterForComments")]
-public class FormatterForComments([NotNull] ITestOutputHelper output) : FormatterBaseTest(output) {
+public class FormatterForComments : FormatterBaseTest {
   [Fact]
   public async Task FormatterWorksForCommentsHoldingTogether() {
     await FormatterWorksFor(@"
@@ -270,5 +270,8 @@ module RefinedF refines BaseF {
 //  x ∈ a[..3] Dafny won’t prove, Wüstholz would, Mikaël doesn’t voilà Great job 
 const x: int
 ");
+  }
+
+  public FormatterForComments([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

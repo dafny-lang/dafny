@@ -15,7 +15,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [Collection("Sequential Collection")] // Sequential because we saw test failures after switching to parallel execution
-  public class CompilationStatusNotificationTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+  public class CompilationStatusNotificationTest : ClientBasedLanguageServerTest {
     private const int MaxTestExecutionTimeMs = 10000;
 
     [Fact]
@@ -280,6 +280,9 @@ method Abs(x: int) returns (y: int)
       var documentItem = CreateTestDocument(source, "MultisetShouldNotCrashParser.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ParsingFailed);
+    }
+
+    public CompilationStatusNotificationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

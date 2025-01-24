@@ -5,7 +5,13 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class InferDecreasesClause(ModuleResolver resolver) {
+public class InferDecreasesClause {
+  private readonly ModuleResolver resolver;
+
+  public InferDecreasesClause(ModuleResolver resolver) {
+    this.resolver = resolver;
+  }
+
   public void FillInDefaultDecreasesClauses(ModuleDefinition module) {
 
     Contract.Assert(Type.GetScope() != null);

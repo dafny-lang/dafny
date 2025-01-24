@@ -13,7 +13,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
-public class VerificationStatusTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ParentModuleProjectFileVerification() {
@@ -717,5 +717,8 @@ module Refinement2 refines BaseModule {
 
     var errorStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(migratedRange, errorStatus.NamedVerifiables[0].NameRange);
+  }
+
+  public VerificationStatusTest(ITestOutputHelper output) : base(output) {
   }
 }

@@ -9,8 +9,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Implementations of this interface are responsible to publish telemetry events
   /// of a <see cref="CompilationInput"/> to the LSP client.
   /// </summary>
-  public abstract class TelemetryPublisherBase(ILogger<TelemetryPublisherBase> logger) {
-    protected ILogger<TelemetryPublisherBase> logger = logger;
+  public abstract class TelemetryPublisherBase {
+    protected ILogger<TelemetryPublisherBase> logger;
 
     public enum TelemetryEventKind {
       UpdateComplete,
@@ -18,6 +18,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       SolverPath,
       Z3Version,
       Time
+    }
+
+    protected TelemetryPublisherBase(ILogger<TelemetryPublisherBase> logger) {
+      this.logger = logger;
     }
 
     protected void PublishTelemetry(TelemetryEventKind kind, object? payload) {

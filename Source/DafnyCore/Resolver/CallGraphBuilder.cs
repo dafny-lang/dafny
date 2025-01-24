@@ -81,15 +81,25 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private class CallGraphBuilderContext(IASTVisitorContext codeContext, bool inFunctionPostcondition)
-      : IASTVisitorContext {
-      public readonly IASTVisitorContext CodeContext = codeContext;
-      public readonly bool InFunctionPostcondition = inFunctionPostcondition;
+    private class CallGraphBuilderContext : IASTVisitorContext {
+      public readonly IASTVisitorContext CodeContext;
+      public readonly bool InFunctionPostcondition;
+
+      public CallGraphBuilderContext(IASTVisitorContext codeContext, bool inFunctionPostcondition) {
+        CodeContext = codeContext;
+        InFunctionPostcondition = inFunctionPostcondition;
+      }
 
       public ModuleDefinition EnclosingModule => CodeContext.EnclosingModule;
     }
 
-    private class CallGraphASTVisitor(ErrorReporter reporter) : ASTVisitor<CallGraphBuilderContext> {
+    private class CallGraphASTVisitor : ASTVisitor<CallGraphBuilderContext> {
+      private readonly ErrorReporter reporter;
+
+      public CallGraphASTVisitor(ErrorReporter reporter) {
+        this.reporter = reporter;
+      }
+
       public override CallGraphBuilderContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
         return new CallGraphBuilderContext(astVisitorContext, inFunctionPostcondition);
       }

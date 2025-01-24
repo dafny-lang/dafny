@@ -140,8 +140,12 @@ namespace Microsoft.Dafny {
   ///      Jason Koenig and K. Rustan M. Leino.
   ///      In EPTCS, 2016. (Post-workshop proceedings of REFINE 2015.) 
   /// </summary>
-  public class RefinementTransformer(ErrorReporter reporter) : IRewriter(reporter) {
+  public class RefinementTransformer : IRewriter {
     RefinementCloner refinementCloner; // This cloner wraps things in a RefinementToken
+
+    public RefinementTransformer(ErrorReporter reporter)
+      : base(reporter) {
+    }
 
     public RefinementTransformer(Program p)
       : this(p.Reporter) {
@@ -1588,8 +1592,13 @@ namespace Microsoft.Dafny {
     }
   }
 
-  class RefinementCloner(ModuleDefinition m) : Cloner(false, false) {
+  class RefinementCloner : Cloner {
+    readonly ModuleDefinition moduleUnderConstruction;
     private bool wrapWithRefinementToken = true;
+
+    public RefinementCloner(ModuleDefinition m) : base(false, false) {
+      moduleUnderConstruction = m;
+    }
 
     public override BlockStmt CloneMethodBody(Method m) {
       if (m.Body is DividedBlockStmt) {
@@ -1614,7 +1623,7 @@ namespace Microsoft.Dafny {
       }
 
       if (wrapWithRefinementToken) {
-        return new RefinementOrigin(tok, m);
+        return new RefinementOrigin(tok, moduleUnderConstruction);
       }
 
       return tok;

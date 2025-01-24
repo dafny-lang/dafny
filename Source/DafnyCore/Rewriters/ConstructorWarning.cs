@@ -14,7 +14,7 @@ using static Microsoft.Dafny.RewriterErrors;
         }
    */
 
-class ConstructorWarning(ErrorReporter reporter) : IRewriter(reporter) {
+class ConstructorWarning : IRewriter {
   internal override void PostResolve(ModuleDefinition moduleDefinition) {
     foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
       foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
@@ -23,9 +23,16 @@ class ConstructorWarning(ErrorReporter reporter) : IRewriter(reporter) {
       }
     }
   }
+
+  public ConstructorWarning(ErrorReporter reporter) : base(reporter) {
+  }
 }
 
-class ConstructorWarningVisitor(ErrorReporter reporter) : TopDownVisitor<Unit> {
+class ConstructorWarningVisitor : TopDownVisitor<Unit> {
+  private readonly ErrorReporter reporter;
+  public ConstructorWarningVisitor(ErrorReporter reporter) {
+    this.reporter = reporter;
+  }
   // Implements warning for constructors in match which ensures constructor is followed by parentheses. 
   protected override bool VisitOneExpr(Expression expr, ref Unit st) {
     if (expr is NestedMatchExpr matchExpr) {

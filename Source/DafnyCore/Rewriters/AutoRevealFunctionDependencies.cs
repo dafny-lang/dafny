@@ -28,7 +28,10 @@ namespace Microsoft.Dafny;
 ///
 /// assuming that g() and h() don't have the `{:transparent}` attribute.
 /// </summary>
-public class AutoRevealFunctionDependencies(ErrorReporter reporter) : IRewriter(reporter) {
+public class AutoRevealFunctionDependencies : IRewriter {
+  public AutoRevealFunctionDependencies(ErrorReporter reporter) : base(reporter) {
+  }
+
   internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
     Contract.Requires(moduleDefinition != null);
 
@@ -51,10 +54,16 @@ public class AutoRevealFunctionDependencies(ErrorReporter reporter) : IRewriter(
   /// Wrapper class created for traversing call graphs of modules. It stores the actual call graph vertex and
   /// a boolean flag `local` indicating whether the callable is in the same module as its predecessor in the traversal.
   /// </summary>
-  private class GraphTraversalVertex(Graph<ICallable>.Vertex vertex, bool local, int depth) {
-    public readonly Graph<ICallable>.Vertex Vertex = vertex;
-    public readonly bool Local = local;
-    public readonly int Depth = depth;
+  private class GraphTraversalVertex {
+    public readonly Graph<ICallable>.Vertex Vertex;
+    public readonly bool Local;
+    public readonly int Depth;
+
+    public GraphTraversalVertex(Graph<ICallable>.Vertex vertex, bool local, int depth) {
+      Vertex = vertex;
+      Local = local;
+      Depth = depth;
+    }
 
     public override bool Equals(object obj) {
       var other = obj as GraphTraversalVertex;
@@ -107,7 +116,12 @@ public class AutoRevealFunctionDependencies(ErrorReporter reporter) : IRewriter(
     return message;
   }
 
-  public class RevealStmtWithDepth(HideRevealStmt RevealStmt, int Depth) {
+  public class RevealStmtWithDepth {
+    public RevealStmtWithDepth(HideRevealStmt RevealStmt, int Depth) {
+      this.RevealStmt = RevealStmt;
+      this.Depth = Depth;
+    }
+
     public override bool Equals(object obj) {
       var item = obj as RevealStmtWithDepth;
       return item != null && this.RevealStmt.ToString().Equals(item.RevealStmt.ToString());
@@ -117,8 +131,8 @@ public class AutoRevealFunctionDependencies(ErrorReporter reporter) : IRewriter(
       return HashCode.Combine(RevealStmt.ToString());
     }
 
-    public HideRevealStmt RevealStmt { get; } = RevealStmt;
-    public int Depth { get; } = Depth;
+    public HideRevealStmt RevealStmt { get; }
+    public int Depth { get; }
   };
 
   public record FunctionWithDepth(Function Function, int Depth);

@@ -4,7 +4,13 @@ using System.Linq;
 using AstElement = System.Object;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
-  public class DafnyLangTypeResolver(IDictionary<AstElement, ILocalizableSymbol> declarations) {
+  public class DafnyLangTypeResolver {
+    private readonly IDictionary<AstElement, ILocalizableSymbol> declarations;
+
+    public DafnyLangTypeResolver(IDictionary<AstElement, ILocalizableSymbol> declarations) {
+      this.declarations = declarations;
+    }
+
     public bool TryGetTypeSymbol(Expression expression, [NotNullWhen(true)] out ILegacySymbol? typeSymbol) {
       return TryGetTypeSymbol(expression.Type, out typeSymbol);
     }

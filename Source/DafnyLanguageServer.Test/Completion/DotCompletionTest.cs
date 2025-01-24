@@ -9,7 +9,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Completion {
-  public class DotCompletionTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+  public class DotCompletionTest : ClientBasedLanguageServerTest {
 
     private async Task<List<CompletionItem>> RequestCompletionAsync(TextDocumentItem documentItem, Position position) {
       // TODO at this time we do not set the context since it appears that's also the case when used within VSCode.
@@ -313,6 +313,9 @@ class A {
       Assert.Single(completionList);
       Assert.Equal(CompletionItemKind.Field, completionList[0].Kind);
       Assert.Equal("Length", completionList[0].Label);
+    }
+
+    public DotCompletionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

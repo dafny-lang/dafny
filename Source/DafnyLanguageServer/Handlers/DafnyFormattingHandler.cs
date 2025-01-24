@@ -9,9 +9,14 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers;
 
-public class DafnyFormattingHandler(ILogger<DafnyFormattingHandler> logger, IProjectDatabase projects)
-  : DocumentFormattingHandlerBase {
-  private readonly ILogger<DafnyFormattingHandler> logger = logger;
+public class DafnyFormattingHandler : DocumentFormattingHandlerBase {
+  private readonly ILogger<DafnyFormattingHandler> logger;
+  private readonly IProjectDatabase projects;
+
+  public DafnyFormattingHandler(ILogger<DafnyFormattingHandler> logger, IProjectDatabase projects) {
+    this.logger = logger;
+    this.projects = projects;
+  }
 
   protected override DocumentFormattingRegistrationOptions CreateRegistrationOptions(DocumentFormattingCapability capability,
     ClientCapabilities clientCapabilities) {

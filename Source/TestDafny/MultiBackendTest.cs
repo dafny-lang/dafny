@@ -57,12 +57,21 @@ public class ForEachResolverOptions {
   public int? RefreshExitCode { get; set; } = null;
 }
 
-public class MultiBackendTest(TextReader input, TextWriter output, TextWriter errorWriter) {
+public class MultiBackendTest {
   private static readonly Assembly DafnyAssembly = typeof(Dafny.Dafny).Assembly;
+  private readonly TextReader input;
+  private readonly TextWriter output;
+  private readonly TextWriter errorWriter;
 
   private static readonly string? IntegrationTestsRootDir =
     Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR");
   private static readonly bool UpdateTargetExpectFile = DiffCommand.UpdateExpectFile;
+
+  public MultiBackendTest(TextReader input, TextWriter output, TextWriter errorWriter) {
+    this.input = input;
+    this.output = output;
+    this.errorWriter = errorWriter;
+  }
 
   public static Task<int> Main(string[] args) {
     return new MultiBackendTest(Console.In, Console.Out, Console.Error).Start(args.ToList());

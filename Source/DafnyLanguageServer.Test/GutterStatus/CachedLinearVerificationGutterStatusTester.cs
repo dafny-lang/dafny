@@ -11,8 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 public class NonParallelCollection { }
 
 [Collection("Sequential Collection")]
-public class CachedLinearVerificationGutterStatusTester(ITestOutputHelper output)
-  : LinearVerificationGutterStatusTester(output) {
+public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxTestExecutionTimeMs = 10000;
 
   // To add a new test, just call VerifyTrace on a given program,
@@ -44,5 +43,8 @@ public class CachedLinearVerificationGutterStatusTester(ITestOutputHelper output
  .  S [=][-][~][=]:  assert false;
  .  S [ ][I][S][ ]:  //Replace: 
  .  S [ ][I][S][ ]:}", false, "ensureCachingDoesNotHideErrors.dfy");
+  }
+
+  public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }

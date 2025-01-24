@@ -10,7 +10,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public class PluginsTestWithTranslationError(ITestOutputHelper output) : PluginsTestBase(output) {
+public class PluginsTestWithTranslationError : PluginsTestBase {
 
   protected override string LibraryName =>
     "PluginsTestTranslationError";
@@ -26,5 +26,8 @@ public class PluginsTestWithTranslationError(ITestOutputHelper output) : Plugins
     var diagnostics = await GetLastDiagnostics(documentItem);
     AssertM.Equal(2, diagnostics.Length, LibraryPath + " did not return two errors.");
     Assert.Equal("Translation error that should appear in the code", diagnostics[0].Message);
+  }
+
+  public PluginsTestWithTranslationError(ITestOutputHelper output) : base(output) {
   }
 }

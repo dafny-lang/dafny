@@ -3,9 +3,15 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
-  public class ExprSubstituter(List<Tuple<Expression, IdentifierExpr>> exprSubstMap) : Substituter(null,
-    new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>()) {
-    List<Tuple<Expression, IdentifierExpr>> usedSubstMap = [];
+  public class ExprSubstituter : Substituter {
+    readonly List<Tuple<Expression, IdentifierExpr>> exprSubstMap;
+    List<Tuple<Expression, IdentifierExpr>> usedSubstMap;
+
+    public ExprSubstituter(List<Tuple<Expression, IdentifierExpr>> exprSubstMap)
+      : base(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>()) {
+      this.exprSubstMap = exprSubstMap;
+      this.usedSubstMap = [];
+    }
 
     public bool TryGetExprSubst(Expression expr, out IdentifierExpr ie) {
       var entry = usedSubstMap.Find(x => Triggers.ExprExtensions.ExpressionEq(expr, x.Item1));

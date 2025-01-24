@@ -4,7 +4,13 @@ using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit;
 
-public class NotCommand(ILitCommand operand) : ILitCommand {
+public class NotCommand : ILitCommand {
+  private readonly ILitCommand operand;
+
+  public NotCommand(ILitCommand operand) {
+    this.operand = operand;
+  }
+
   public async Task<int> Execute(TextReader inputReader,
     TextWriter outputWriter, TextWriter errorWriter) {
     var exitCode = await operand.Execute(inputReader, outputWriter, errorWriter);

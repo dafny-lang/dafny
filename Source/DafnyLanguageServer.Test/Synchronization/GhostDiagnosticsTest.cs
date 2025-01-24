@@ -9,7 +9,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  public class GhostDiagnosticsTest(ITestOutputHelper output) : ClientBasedLanguageServerTest(output) {
+  public class GhostDiagnosticsTest : ClientBasedLanguageServerTest {
 
     [Fact]
     public async Task ExplicitProject() {
@@ -247,6 +247,9 @@ method Test() {
       ApplyChange(ref documentItem, ((1, 0), (2, 0)), "");
       report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Empty(report.Diagnostics.ToArray());
+    }
+
+    public GhostDiagnosticsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

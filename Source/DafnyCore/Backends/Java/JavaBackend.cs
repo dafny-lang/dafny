@@ -12,7 +12,7 @@ using DafnyCore.Options;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class JavaBackend(DafnyOptions options) : ExecutableBackend(options) {
+public class JavaBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
 
@@ -202,4 +202,7 @@ for backwards compatibility with Java code generated with Dafny versions earlier
   }
 
   private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*;$");
+
+  public JavaBackend(DafnyOptions options) : base(options) {
+  }
 }

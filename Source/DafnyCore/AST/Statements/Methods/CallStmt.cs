@@ -19,8 +19,12 @@ namespace Microsoft.Dafny;
 /// ^       ^
 /// future  old
 /// </summary>
-class OverrideCenter(IOrigin wrappedToken, Token newCenter) : OriginWrapper(wrappedToken) {
-  public override Token Center { get; } = newCenter;
+class OverrideCenter : OriginWrapper {
+  public OverrideCenter(IOrigin wrappedToken, Token newCenter) : base(wrappedToken) {
+    this.Center = newCenter;
+  }
+
+  public override Token Center { get; }
 
   public override IOrigin WithVal(string newVal) {
     throw new System.NotImplementedException();

@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace DafnyPipeline.Test;
 
 [Collection("Singleton Test Collection - FormatterForExpressions")]
-public class FormatterForExpressions([NotNull] ITestOutputHelper output) : FormatterBaseTest(output) {
+public class FormatterForExpressions : FormatterBaseTest {
   [Fact]
   public async Task FormatterWorksForFunctionsIfExprAndMatchCases() {
     await FormatterWorksFor(@"
@@ -378,5 +378,8 @@ predicate Valid()
 }
 ";
     await FormatterWorksFor(testCase, testCase);
+  }
+
+  public FormatterForExpressions([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

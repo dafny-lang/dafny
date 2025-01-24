@@ -9,13 +9,20 @@ namespace Microsoft.Dafny;
 /// If the edits can be provided instantly, you can use the derived class
 /// `new InstantDafnyCodeAction(title, edits)`
 /// </summary>
-public abstract class DafnyCodeAction(string title, Container<Diagnostic> diagnostics) {
+public abstract class DafnyCodeAction {
   // The title to display in the quickfix interface
-  public readonly string Title = title;
+  public readonly string Title;
 
-  public readonly Container<Diagnostic> Diagnostics = diagnostics;
+  public readonly Container<Diagnostic> Diagnostics;
 
-  protected DafnyCodeAction(string title) : this(title, new()) {
+  protected DafnyCodeAction(string title) {
+    Title = title;
+    Diagnostics = new();
+  }
+
+  protected DafnyCodeAction(string title, Container<Diagnostic> diagnostics) {
+    Title = title;
+    Diagnostics = diagnostics;
   }
 
   // Edits are all performed at the same time

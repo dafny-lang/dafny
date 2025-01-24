@@ -153,12 +153,12 @@ public class AutoReqFunctionRewriter : IRewriter {
     return translated_f_reqs;
   }
 
-  class AutoReqSubstituter(
-    Expression receiverReplacement,
-    Dictionary<IVariable, Expression> substMap,
-    Dictionary<TypeParameter, Type> typeMap,
-    SystemModuleManager systemModuleManager)
-    : Substituter(receiverReplacement, substMap, typeMap, null, systemModuleManager) {
+  class AutoReqSubstituter : Substituter {
+    public AutoReqSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap,
+      SystemModuleManager systemModuleManager)
+      : base(receiverReplacement, substMap, typeMap, null, systemModuleManager) {
+    }
+
     public override Expression Substitute(Expression expr) {
       var r = base.Substitute(expr);
       if (r is MemberSelectExpr memberSelectExpr) {

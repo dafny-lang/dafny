@@ -11,9 +11,15 @@ using VC;
 
 namespace Microsoft.Dafny;
 
-public class JsonVerificationLogger(ProofDependencyManager dependencyManager, TextWriter fallbackOutput)
-  : IVerificationResultFormatLogger {
+public class JsonVerificationLogger : IVerificationResultFormatLogger {
   private TextWriter output;
+  private readonly TextWriter fallbackOutput;
+  private readonly ProofDependencyManager dependencyManager;
+
+  public JsonVerificationLogger(ProofDependencyManager dependencyManager, TextWriter fallbackOutput) {
+    this.dependencyManager = dependencyManager;
+    this.fallbackOutput = fallbackOutput;
+  }
 
   public void Initialize(Dictionary<string, string> parameters) {
     output = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : fallbackOutput;

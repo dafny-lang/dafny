@@ -39,9 +39,13 @@ namespace Microsoft.Dafny;
 ///
 /// 
 /// </summary>
-public class MatchFlattener(ErrorReporter reporter) : IRewriter(reporter) {
+public class MatchFlattener : IRewriter {
   private const string NoCasesMessage = "match has no cases and this is only allowed when the verifier can prove the match is unreachable";
   private ResolutionContext resolutionContext;
+
+  public MatchFlattener(ErrorReporter reporter)
+    : base(reporter) {
+  }
 
   internal override void PostResolve(ModuleDefinition module) {
     FlattenNode(module);

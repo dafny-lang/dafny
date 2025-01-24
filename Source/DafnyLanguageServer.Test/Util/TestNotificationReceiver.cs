@@ -14,10 +14,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
   /// Test-class to receive and handle notifications sent by the language server.
   /// </summary>
   /// <typeparam name="TNotification">The type of the notifications sent by the language server.</typeparam>
-  public class TestNotificationReceiver<TNotification>(ILogger logger) {
+  public class TestNotificationReceiver<TNotification> {
 
     private readonly AsyncQueue<TNotification> notifications = new();
     private readonly List<TNotification> notificationHistory = [];
+    private readonly ILogger logger;
+
+    public TestNotificationReceiver(ILogger logger) {
+      this.logger = logger;
+    }
 
     public void NotificationReceived(TNotification request) {
       Assert.NotNull(request);

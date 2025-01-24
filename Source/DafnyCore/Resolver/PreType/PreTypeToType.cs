@@ -23,9 +23,15 @@ namespace Microsoft.Dafny;
 ///    - TypeRefinementWrapper
 ///    - BottomTypePlaceholder
 /// </summary>
-class PreTypeToTypeVisitor(SystemModuleManager systemModuleManager) : ASTVisitor<IASTVisitorContext> {
+class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return astVisitorContext;
+  }
+
+  private readonly SystemModuleManager systemModuleManager;
+
+  public PreTypeToTypeVisitor(SystemModuleManager systemModuleManager) {
+    this.systemModuleManager = systemModuleManager;
   }
 
   /// <summary>
