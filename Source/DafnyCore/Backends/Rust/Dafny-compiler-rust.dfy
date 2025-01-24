@@ -1253,14 +1253,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
              implBody
            ))];
       if |c.superTraitTypes| > 0 { // We will need to downcast
-        var fullType := if isRcWrapped then R.Rc(datatypeType) else datatypeType;
+        var fullType := if isRcWrapped then rc(datatypeType) else datatypeType;
         var downcastDefinitionOpt := DowncastTraitDeclFor(rTypeParamsDecls, fullType);
         if downcastDefinitionOpt.None? {
           var dummy := Error("Could not generate downcast definition for " + fullType.ToString(""));
         } else {
           s := s + [downcastDefinitionOpt.value];
         }
-        var downcastImplementationsOpt := DowncastImplFor(rTypeParamsDecls, fullType);
+        var downcastImplementationsOpt := DowncastImplFor(rcNew, rTypeParamsDecls, fullType);
         if downcastImplementationsOpt.None? {
           var dummy := Error("Could not generate downcast implementation for " + fullType.ToString(""));
         } else {
@@ -3334,7 +3334,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         if needsObjectFromRef {
           r := R.dafny_runtime.MSel("Object").AsExpr().ApplyType([R.TIdentifier("_")]).FSel("from_ref").Apply([r]);
         } else if needsRcWrapping {
-          r := R.RcNew(r.Clone());
+          r := rcNew(r.Clone());
         } else {
           if !noNeedOfClone {
             var needUnderscoreClone := isSelf && selfIdent.IsGeneralTrait();

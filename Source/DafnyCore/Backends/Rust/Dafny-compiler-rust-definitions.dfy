@@ -960,6 +960,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     }
   } */
   function DowncastImplFor(
+    rcNew: R.Expr -> R.Expr,
     rTypeParamsDecls: seq<R.TypeParamDecl>,
     datatypeType: R.Type
   ): Option<R.ModDecl> {
@@ -970,7 +971,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       R.self.Sel("downcast_ref").ApplyType([datatypeTypeRaw]).Apply0().Sel("is_some").Apply0();
     var asBody :=
       R.self.Sel("downcast_ref").ApplyType([datatypeTypeRaw]).Apply0().Sel("unwrap").Apply0().Sel("clone").Apply0();
-    var asBody := if isRc then R.RcNew(asBody) else asBody;
+    var asBody := if isRc then rcNew(asBody) else asBody;
     Some(
       R.ImplDecl(
         R.ImplFor(
