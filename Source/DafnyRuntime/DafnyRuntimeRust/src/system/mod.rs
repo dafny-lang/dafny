@@ -10,13 +10,13 @@ pub mod _System {
     pub use ::std::fmt::Result;
     pub use crate::DafnyPrint;
     #[cfg(feature = "sync")] pub use ::std::sync::{Arc as Rc}; #[cfg(not(feature = "sync"))] pub use ::std::rc::Rc;
-  pub use ::std::cmp::Eq;
-  pub use ::std::hash::Hash;
-  pub use ::std::hash::Hasher;
-  pub use ::std::default::Default;
-  pub use ::std::convert::AsRef;
-  pub use crate::SequenceIter;
-  pub use crate::seq;
+    pub use ::std::cmp::Eq;
+    pub use ::std::hash::Hash;
+    pub use ::std::hash::Hasher;
+    pub use ::std::default::Default;
+    pub use ::std::convert::AsRef;
+    pub use crate::SequenceIter;
+    pub use crate::seq;
 
     pub type nat = DafnyInt;
 
