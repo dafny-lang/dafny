@@ -242,8 +242,8 @@ public class CliCompilation {
 
     DidVerification = true;
 
-    canVerifies = FilterCanVerifies(canVerifies, out var line);
-    VerifiedAssertions = line != null;
+    canVerifies = FilterCanVerifies(canVerifies, out var filterRange);
+    VerifiedAssertions = filterRange.Filters;
 
     int done = 0;
 
@@ -254,8 +254,8 @@ public class CliCompilation {
       foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Origin.pos)) {
         var results = new CliCanVerifyState();
         canVerifyResults[canVerify] = results;
-        if (line != null) {
-          results.TaskFilter = t => KeepVerificationTask(t, line.Value);
+        if (VerifiedAssertions) {
+          results.TaskFilter = t => KeepVerificationTask(t, filterRange);
         }
 
         var shouldVerify = await Compilation.VerifyLocation(canVerify.Origin.GetFilePosition(), results.TaskFilter, randomSeed);
@@ -312,8 +312,20 @@ public class CliCompilation {
     };
   }
 
-  private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {
+  class LineRange(int start, int end) {
+    public int Start { get; } = start;
+    public int End { get; } = end;
+
+    public bool Contains(int value) {
+      return start <= value && value <= end;
+    }
+    public bool Filters => Start != int.MinValue || End != int.MaxValue;
+  }
+
+  private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out LineRange range) {
     var symbolFilter = Options.Get(VerifyCommand.FilterSymbol);
+    int start = int.MinValue;
+    int end = int.MaxValue;
     if (symbolFilter != null) {
       if (symbolFilter.EndsWith(".")) {
         var withoutDot = new string(symbolFilter.SkipLast(1).ToArray());
@@ -325,33 +337,44 @@ public class CliCompilation {
 
     var filterPosition = Options.Get(VerifyCommand.FilterPosition);
     if (filterPosition == null) {
-      line = null;
+      range = new LineRange(start, end);
       return canVerifies;
     }
 
-    var regex = new Regex(@"(.*)(?::(\d+))?", RegexOptions.RightToLeft);
+    var regex = new Regex(@"(.*)(?::(\d+)?(-?)(\d+)?)?", RegexOptions.RightToLeft);
     var result = regex.Match(filterPosition);
     if (result.Length != filterPosition.Length || !result.Success) {
       Compilation.Reporter.Error(MessageSource.Project, Token.Cli, "Could not parse value passed to --filter-position");
-      line = null;
+      range = new LineRange(start, end);
       return new List<ICanVerify>();
     }
     var filePart = result.Groups[1].Value;
-    string? linePart = result.Groups.Count > 2 ? result.Groups[2].Value : null;
+    string? lineStart = result.Groups[2].Value;
+    bool hasRange = result.Groups[3].Value == "-";
+    string lineEnd = result.Groups[4].Value;
     var fileFiltered = canVerifies.Where(c => c.Origin.Uri.ToString().EndsWith(filePart)).ToList();
-    if (string.IsNullOrEmpty(linePart)) {
-      line = null;
+    if (string.IsNullOrEmpty(lineStart) && string.IsNullOrEmpty(lineEnd)) {
+      range = new LineRange(start, end);
       return fileFiltered;
     }
 
-    var parsedLine = int.Parse(linePart);
-    line = parsedLine;
+    if (!string.IsNullOrEmpty(lineEnd)) {
+      end = int.Parse(lineEnd);
+      if (!hasRange) {
+        start = end;
+      }
+    }
+    if (!string.IsNullOrEmpty(lineStart)) {
+      start = int.Parse(lineStart);
+    }
+
+    range = new LineRange(start, end);
     return fileFiltered.Where(c =>
-        c.Origin.StartToken.line <= parsedLine && parsedLine <= c.Origin.EndToken.line).ToList();
+        c.Origin.StartToken.line <= end && start <= c.Origin.EndToken.line).ToList();
   }
 
-  private bool KeepVerificationTask(IVerificationTask task, int line) {
-    return task.ScopeToken.line == line || task.Token.line == line;
+  private bool KeepVerificationTask(IVerificationTask task, LineRange range) {
+    return range.Contains(task.ScopeToken.line) || range.Contains(task.Token.line);
   }
 }
 
