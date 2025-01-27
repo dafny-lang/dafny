@@ -21,12 +21,12 @@ namespace Microsoft.Dafny {
     public readonly PreTypeResolver PreTypeResolver;
     private readonly DafnyOptions options;
 
-    private List<SubtypeConstraint> unnormalizedSubtypeConstraints = new();
+    private List<SubtypeConstraint> unnormalizedSubtypeConstraints = [];
     private Queue<EqualityConstraint> equalityConstraints = new();
-    private List<Func<bool>> guardedConstraints = new();
-    private readonly List<Advice> defaultAdvice = new();
-    private readonly List<(PreTypeProxy, PreType)> compatibleBounds = new();
-    private List<Confirmation> confirmations = new();
+    private List<Func<bool>> guardedConstraints = [];
+    private readonly List<Advice> defaultAdvice = [];
+    private readonly List<(PreTypeProxy, PreType)> compatibleBounds = [];
+    private List<Confirmation> confirmations = [];
 
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
       this.PreTypeResolver = preTypeResolver;
@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
     [CanBeNull]
     private DPreType ApproximateReceiverTypeViaBounds(PreTypeProxy proxy, [CanBeNull] string memberName, out HashSet<PreTypeProxy> subProxies) {
       // If there is a subtype constraint "proxy :> sub<X>", then (if the program is legal at all, then) "sub" must have the member "memberName".
-      subProxies = new HashSet<PreTypeProxy>();
+      subProxies = [];
       foreach (var sub in AllSubBounds(proxy, subProxies)) {
         return sub;
       }
@@ -276,7 +276,7 @@ namespace Microsoft.Dafny {
         return false;
       }
       var constraints = unnormalizedSubtypeConstraints;
-      unnormalizedSubtypeConstraints = new();
+      unnormalizedSubtypeConstraints = [];
       var anythingChanged = false;
       foreach (var constraint in constraints) {
         if (constraint.Apply(this)) {
@@ -488,7 +488,7 @@ namespace Microsoft.Dafny {
         return false;
       }
       var constraints = guardedConstraints;
-      guardedConstraints = new();
+      guardedConstraints = [];
       var anythingChanged = false;
       foreach (var constraint in constraints) {
         if (constraint()) {

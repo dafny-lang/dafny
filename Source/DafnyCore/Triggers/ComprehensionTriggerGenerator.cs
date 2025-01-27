@@ -156,7 +156,7 @@ namespace Microsoft.Dafny.Triggers {
     private void CombineSplitQuantifier() {
       if (partWriters.Count > 1) {
         var groups = new List<QuantifierGroup>();
-        groups.Add(new QuantifierGroup(partWriters[0], new List<ComprehensionExpr> { partWriters[0].Comprehension }));
+        groups.Add(new QuantifierGroup(partWriters[0], [partWriters[0].Comprehension]));
         for (int i = 1; i < partWriters.Count; i++) {
           bool found = false;
           for (int j = 0; j < groups.Count; j++) {
@@ -169,7 +169,7 @@ namespace Microsoft.Dafny.Triggers {
           }
           if (!found) {
             // start a new group
-            groups.Add(new QuantifierGroup(partWriters[i], new List<ComprehensionExpr> { partWriters[i].Comprehension }));
+            groups.Add(new QuantifierGroup(partWriters[i], [partWriters[i].Comprehension]));
           }
         }
         if (groups.Count == partWriters.Count) {
@@ -177,8 +177,8 @@ namespace Microsoft.Dafny.Triggers {
           return;
         }
         // merge expressions in each group back to one quantifier.
-        List<SplitPartTriggerWriter> list = new List<SplitPartTriggerWriter>();
-        List<Expression> splits = new List<Expression>();
+        List<SplitPartTriggerWriter> list = [];
+        List<Expression> splits = [];
         foreach (var group in groups) {
           SplitPartTriggerWriter q = group.Quantifier;
           if (q.Comprehension is ForallExpr forallExpr) {

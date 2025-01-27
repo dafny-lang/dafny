@@ -46,7 +46,7 @@ namespace DafnyTestGeneration {
         var blockToVariable = InitBlockVars(implementation);
         var firstBlock = implementation.Blocks[0]; // 
         while (newPathsFound) {
-          List<Path> pathsToConsider = new(); // paths without known unfeasible subpaths
+          List<Path> pathsToConsider = []; // paths without known unfeasible subpaths
           var totalPaths = 0;
           foreach (var path in GeneratePaths(implementation, pathLength - PathLengthStep, pathLength, blockToVariable, firstBlock)) {
             totalPaths++;
@@ -67,9 +67,9 @@ namespace DafnyTestGeneration {
             path.AssertPath();
             var testEntryNames = Utils.DeclarationHasAttribute(path.Impl, TestGenerationOptions.TestInlineAttribute)
               ? TestEntries
-              : new() { path.Impl.VerboseName };
+              : [path.Impl.VerboseName];
             var programCopy = Utils.DeepCloneResolvedProgram(p, DafnyInfo.Options);
-            yield return modifications.GetProgramModification(programCopy, path.Impl, new HashSet<string>(), testEntryNames,
+            yield return modifications.GetProgramModification(programCopy, path.Impl, [], testEntryNames,
               path.ToString(DafnyInfo.Options));
             path.NoAssertPath();
           }
@@ -105,24 +105,24 @@ namespace DafnyTestGeneration {
     /// Iterate over paths through an implementation in a depth-first search fashion
     /// </summary>
     private IEnumerable<Path> GeneratePaths(Implementation impl, int minPathLength, int maxPathLength, Dictionary<Block, Variable> blockToVariable, Block firstBlock) {
-      List<Block> currPath = new(); // list of basic blocks along the current path
+      List<Block> currPath = []; // list of basic blocks along the current path
       // remember alternative paths that could have been taken at every goto: 
-      List<List<Block>> otherGotos = new() { new() };
+      List<List<Block>> otherGotos = [[]];
       // set of boolean variables indicating that blocks in currPath list have been visited:
-      HashSet<Variable> currPathVariables = new();
+      HashSet<Variable> currPathVariables = [];
       var block = firstBlock;
       while (block != null) {
         if ((block.TransferCmd is ReturnCmd && currPath.Count >= minPathLength) || currPath.Count == maxPathLength - 1) {
-          yield return new Path(impl, currPathVariables.ToList(), new() { block },
+          yield return new Path(impl, currPathVariables.ToList(), [block],
             currPath.Append(block).ToList());
         } else {
           if (currPath.Count != 0 && ((GotoCmd)currPath.Last().TransferCmd).LabelTargets.Count != 1) {
             currPathVariables.Add(blockToVariable[block]); // only constrain the path if there is more than one goto
           }
           currPath.Add(block);
-          otherGotos.Add(new List<Block>());
+          otherGotos.Add([]);
           var gotoCmd = block.TransferCmd as GotoCmd;
-          foreach (var nextBlock in gotoCmd?.LabelTargets ?? new List<Block>()) {
+          foreach (var nextBlock in gotoCmd?.LabelTargets ?? []) {
             if (currPathVariables.Contains(blockToVariable[nextBlock])) { // this prevents cycles
               continue;
             }
@@ -158,7 +158,7 @@ namespace DafnyTestGeneration {
 
       internal Path(Implementation impl, IEnumerable<Variable> path, List<Block> returnBlocks, List<Block> pathBlocks) {
         Impl = impl;
-        this.path = new();
+        this.path = [];
         this.path.AddRange(path); // deepcopy is necessary here
         this.returnBlocks = returnBlocks;
         this.pathBlocks = pathBlocks;

@@ -71,7 +71,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
         if (IsGhostStatementToMark(statement)) {
-          var list = GhostDiagnostics.GetOrCreate(statement.Origin.Uri, () => new List<Range>());
+          var list = GhostDiagnostics.GetOrCreate(statement.Origin.Uri, () => []);
           list.Add(GetRange(statement));
         } else {
           base.Visit(statement);

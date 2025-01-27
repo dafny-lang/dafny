@@ -119,8 +119,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             .ToList();
 
         // Put errors in the front. Put assertions with the highest resource count first
-        List<(string content, long resources)> errors = new();
-        List<(string content, long resources)> other = new();
+        List<(string content, long resources)> errors = [];
+        List<(string content, long resources)> other = [];
 
         foreach (var assertionBatch in orderedAssertionBatches) {
           if (!assertionBatch.Range.Contains(position)) {

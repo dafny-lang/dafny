@@ -165,7 +165,7 @@ public record IdeState(
       };
       result = new[] { new FileDiagnostic(Input.Project.Uri, diagnostic) };
     } else {
-      result = Enumerable.Empty<FileDiagnostic>();
+      result = [];
     }
 
     return result;
@@ -482,7 +482,7 @@ public record IdeState(
     if (allTasksAreCompleted) {
 
       var errorReporter = new ObservableErrorReporter(options, uri);
-      List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
+      List<DafnyDiagnostic> verificationCoverageDiagnostics = [];
       errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
 
       ProofDependencyWarnings.ReportSuspiciousDependencies(options,

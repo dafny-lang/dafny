@@ -69,8 +69,8 @@ public class DafnyProject : IEquatable<DafnyProject> {
         var directory = Path.GetDirectoryName(uri.LocalPath)!;
 
         result = new DafnyProject(fileSnapshot.Version, uri, model.Base == null ? null : new Uri(Path.GetFullPath(model.Base, directory!)),
-          model.Includes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? new HashSet<string>(),
-          model.Excludes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? new HashSet<string>(),
+          model.Includes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? [],
+          model.Excludes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? [],
           model.Options ?? new Dictionary<string, object>());
 
         if (result.Base != null) {

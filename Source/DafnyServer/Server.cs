@@ -233,7 +233,7 @@ namespace Microsoft.Dafny {
     VerificationTask ReadVerificationTask(bool inputIsPlaintext) {
       var payload = ReadPayload(inputIsPlaintext);
       if (inputIsPlaintext) {
-        return new VerificationTask(Array.Empty<string>(), "transcript", payload, false);
+        return new VerificationTask([], "transcript", payload, false);
       } else {
         return VerificationTask.ReadTask(payload);
       }

@@ -518,7 +518,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(lhss.Count == lhsTypes.Count);
       Contract.Assert(lhsTypes.Count == rhsTypes.Count);
 
-      wRhss = new List<ConcreteSyntaxTree>();
+      wRhss = [];
       var rhsVars = new List<string>();
       foreach (var rhsType in rhsTypes) {
         string target = ProtectedFreshId("_rhs");
@@ -528,7 +528,7 @@ namespace Microsoft.Dafny.Compilers {
 
       List<ILvalue> lhssn;
       if (lhss.Count > 1) {
-        lhssn = new List<ILvalue>();
+        lhssn = [];
         for (int i = 0; i < lhss.Count; ++i) {
           Expression lexpr = lhsExprs[i].Resolved;
           ILvalue lhs = lhss[i];
@@ -549,7 +549,7 @@ namespace Microsoft.Dafny.Compilers {
             if (selectExpr.Seq.Type.IsArrayType || selectExpr.Seq.Type.NormalizeToAncestorType().AsSeqType != null) {
               targetIndex = ArrayIndexToNativeInt(targetIndex, selectExpr.E0.Type);
             }
-            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, new List<Action<ConcreteSyntaxTree>>() { wIndex => EmitIdentifier(targetIndex, wIndex) }, lhsTypes[i]);
+            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, [wIndex => EmitIdentifier(targetIndex, wIndex)], lhsTypes[i]);
             lhssn.Add(newLhs);
 
           } else if (lexpr is MultiSelectExpr multiSelectExpr) {
@@ -2076,7 +2076,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     void OrderedBySCC(List<MemberDecl> decls, TopLevelDeclWithMembers c) {
-      List<ConstantField> consts = new List<ConstantField>();
+      List<ConstantField> consts = [];
       foreach (var decl in decls) {
         if (decl is ConstantField) {
           consts.Add((ConstantField)decl);
@@ -2254,7 +2254,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
             if (cf.IsStatic && !SupportsStaticsInGenericClasses && cf.EnclosingClass.TypeArgs.Count != 0) {
-              var wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), new List<Formal>(), cf.Type, cf.Origin, true, true, member, false, false);
+              var wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), [], cf.Type, cf.Origin, true, true, member, false, false);
               Contract.Assert(wBody != null);  // since the previous line asked for a body
               if (cf.Rhs != null) {
                 CompileReturnBody(cf.Rhs, f.Type, wBody, null);
@@ -2271,7 +2271,7 @@ namespace Microsoft.Dafny.Compilers {
                 // because a newtype value is always represented as some existing type.
                 // Likewise, an instance const with a RHS in a trait needs to be modeled as a static function (in the companion class)
                 // that takes a parameter, because trait-equivalents in target languages don't allow implementations.
-                wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), new List<Formal>(), cf.Type, cf.Origin, InstanceConstAreStatic(), true, cf, false, true);
+                wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), [], cf.Type, cf.Origin, InstanceConstAreStatic(), true, cf, false, true);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
                 if (c is TraitDecl) {
                   // also declare a function for the field in the interface
@@ -2400,7 +2400,7 @@ namespace Microsoft.Dafny.Compilers {
       var typeArgs = CombineAllTypeArguments(cf);
       var typeDescriptors = ForTypeDescriptors(typeArgs, cf.EnclosingClass, cf, false);
       if (NeedsTypeDescriptors(typeDescriptors)) {
-        return classWriter.CreateFunction(name, typeArgs, new List<Formal>(), cf.Type, cf.Origin, isStatic, createBody, cf, forBodyInheritance, false);
+        return classWriter.CreateFunction(name, typeArgs, [], cf.Type, cf.Origin, isStatic, createBody, cf, forBodyInheritance, false);
       } else {
         return classWriter.CreateGetter(name, enclosingDecl, cf.Type, cf.Origin, isStatic, true, createBody, cf, forBodyInheritance);
       }
@@ -2684,7 +2684,7 @@ namespace Microsoft.Dafny.Compilers {
     /// <seealso cref="HasCapitalizationConflict"/>
     private void CheckForCapitalizationConflicts<T>(IEnumerable<T> canChange, IEnumerable<T> cantChange = null) where T : Declaration {
       if (cantChange == null) {
-        cantChange = Enumerable.Empty<T>();
+        cantChange = [];
       }
       IDictionary<string, T> declsByCapName = new Dictionary<string, T>();
       ISet<string> fixedNames = new HashSet<string>(from decl in cantChange select Capitalize(decl.GetCompileName(Options)));
@@ -2732,7 +2732,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual string PrefixForForcedCapitalization { get => "Cap_"; }
 
     private static void MarkCapitalizationConflict(Declaration decl) {
-      decl.Attributes = new Attributes(CapitalizationConflictAttribute, new List<Expression>(), decl.Attributes);
+      decl.Attributes = new Attributes(CapitalizationConflictAttribute, [], decl.Attributes);
     }
 
     protected static bool HasCapitalizationConflict(Declaration decl) {
@@ -2769,13 +2769,13 @@ namespace Microsoft.Dafny.Compilers {
               unit = new LiteralExpr(f.Origin, n);
               unit.Type = f.ResultType;
             } else if (resultType.AsSetType != null) {
-              unit = new SetDisplayExpr(f.Origin, !resultType.IsISetType, new List<Expression>());
+              unit = new SetDisplayExpr(f.Origin, !resultType.IsISetType, []);
               unit.Type = f.ResultType;
             } else if (resultType.AsMultiSetType != null) {
-              unit = new MultiSetDisplayExpr(f.Origin, new List<Expression>());
+              unit = new MultiSetDisplayExpr(f.Origin, []);
               unit.Type = f.ResultType;
             } else if (resultType.AsSeqType != null) {
-              unit = new SeqDisplayExpr(f.Origin, new List<Expression>());
+              unit = new SeqDisplayExpr(f.Origin, []);
               unit.Type = f.ResultType;
             } else {
               Contract.Assert(false);  // unexpected type
@@ -3292,7 +3292,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
       TrStmt(stmt, wr, wStmts);
       if (stmt.IsGhost) {
-        TrStmtList(new List<Statement>(), EmitBlock(wr));
+        TrStmtList([], EmitBlock(wr));
       }
     }
 
@@ -3502,7 +3502,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (bound is DatatypeBoundedPool) {
         var b = (DatatypeBoundedPool)bound;
         collectionWriter = (wr) => EmitDatatypeBoundedPool(bv, propertySuffix, inLetExprBody, wr, wStmts);
-        return new UserDefinedType(bv.Origin, new NameSegment(bv.Origin, b.Decl.Name, new())) {
+        return new UserDefinedType(bv.Origin, new NameSegment(bv.Origin, b.Decl.Name, [])) {
           ResolvedClass = b.Decl
         };
       } else {
@@ -3822,7 +3822,7 @@ namespace Microsoft.Dafny.Compilers {
       if (ll.Seq.Type.IsArrayType || ll.Seq.Type.NormalizeToAncestorType().AsSeqType != null) {
         index = ArrayIndexToNativeInt(index, ll.E0.Type);
       }
-      return new ArrayLvalueImpl(this, arr, new List<Action<ConcreteSyntaxTree>>() { wIndex => wIndex.Write(index) }, ll.Type);
+      return new ArrayLvalueImpl(this, arr, [wIndex => wIndex.Write(index)], ll.Type);
     }
 
     protected virtual ILvalue MultiSelectLvalue(MultiSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -4157,9 +4157,11 @@ namespace Microsoft.Dafny.Compilers {
         var ii = 0;
         foreach (var v in typeRhs.InitDisplay) {
           pwStmts = wStmts.Fork();
-          var (wArray, wElement) = EmitArrayUpdate(new List<Action<ConcreteSyntaxTree>> { wIndex => EmitExprAsNativeInt(new LiteralExpr(null, ii) {
-            Type = Type.Int
-          }, false, wIndex, wStmts) }, v.Type, wStmts);
+          var (wArray, wElement) = EmitArrayUpdate([
+            wIndex => EmitExprAsNativeInt(new LiteralExpr(null, ii) {
+              Type = Type.Int
+            }, false, wIndex, wStmts)
+          ], v.Type, wStmts);
           if (ii == 0 && nwElement0 != null) {
             EmitIdentifier(nwElement0, wElement);
           } else {
@@ -5150,8 +5152,8 @@ namespace Microsoft.Dafny.Compilers {
       var fvs = FreeVariablesUtil.ComputeFreeVariables(Options, expr);
       var sm = new Dictionary<IVariable, Expression>();
 
-      bvars = new List<BoundVar>();
-      fexprs = new List<Expression>();
+      bvars = [];
+      fexprs = [];
       foreach (var fv in fvs) {
         if (fv.IsGhost) {
           continue;

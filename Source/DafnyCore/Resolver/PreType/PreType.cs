@@ -385,7 +385,7 @@ namespace Microsoft.Dafny {
         var pt = arg.Substitute(subst);
         if (pt != arg && newArguments == null) {
           // lazily construct newArguments
-          newArguments = new();
+          newArguments = [];
           // copy all previous items, all of which were unaffected by substitution
           for (var j = 0; j < i; j++) {
             newArguments.Add(Arguments[j]);
