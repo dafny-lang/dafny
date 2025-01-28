@@ -16,7 +16,7 @@ public class ValuetypeDecl : TopLevelDeclWithMembers {
   public override bool AcceptThis => true;
 
   public ValuetypeDecl(string name, ModuleDefinition module, Func<Type, bool> typeTester, Func<List<Type>, Type> typeCreator /*?*/)
-    : base(SourceOrigin.NoToken, new Name(name), module, new List<TypeParameter>(), new List<MemberDecl>(), null, false, null) {
+    : base(SourceOrigin.NoToken, new Name(name), module, [], [], null, false, null) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeTester != null);

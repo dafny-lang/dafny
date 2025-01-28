@@ -122,7 +122,7 @@ namespace Microsoft.Dafny {
       }
 
       var name = MethodName(iter, kind);
-      var proc = new Bpl.Procedure(iter.Origin, name, new List<Bpl.TypeVariable>(),
+      var proc = new Bpl.Procedure(iter.Origin, name, [],
         inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
       AddVerboseNameAttribute(proc, iter.FullDafnyName, kind);
 
@@ -152,7 +152,7 @@ namespace Microsoft.Dafny {
       // See comment inside GenerateIteratorImplPrelude().
       etran = etran.WithReadsFrame(null);
       var localVariables = new Variables();
-      GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
+      GenerateIteratorImplPrelude(iter, inParams, [], builder, localVariables, etran);
 
       // check well-formedness of any default-value expressions (before assuming preconditions)
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
@@ -184,15 +184,15 @@ namespace Microsoft.Dafny {
       var rds = new MemberSelectExpr(iter.Origin, th, iter.Member_Reads);
       var mod = new MemberSelectExpr(iter.Origin, th, iter.Member_Modifies);
       builder.Add(Call(builder.Context, iter.Origin, "$IterHavoc0",
-        new List<Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod) },
-        new List<Bpl.IdentifierExpr>()));
+        [etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod)],
+        []));
 
       // assume the automatic yield-requires precondition (which is always well-formed):  this.Valid()
       var validCall = new FunctionCallExpr(iter.Origin, new Name("Valid"), th, iter.Origin, Token.NoToken, new List<Expression>());
       validCall.Function = iter.Member_Valid;  // resolve here
       validCall.Type = Type.Bool;  // resolve here
       validCall.TypeApplication_AtEnclosingClass = iter.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));  // resolve here
-      validCall.TypeApplication_JustFunction = new List<Type>(); // resolved here
+      validCall.TypeApplication_JustFunction = []; // resolved here
 
       builder.Add(TrAssumeCmd(iter.Origin, etran.TrExpr(validCall)));
 
@@ -207,8 +207,8 @@ namespace Microsoft.Dafny {
       // simulate a modifies this, this._modifies, this._new;
       var nw = new MemberSelectExpr(iter.Origin, th, iter.Member_New);
       builder.Add(Call(builder.Context, iter.Origin, "$IterHavoc1",
-        new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(mod), etran.TrExpr(nw) },
-        new List<Bpl.IdentifierExpr>()));
+        [etran.TrExpr(th), etran.TrExpr(mod), etran.TrExpr(nw)],
+        []));
       // assume the implicit postconditions promised by MoveNext:
       // assume fresh(_new - old(_new));
       var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.Origin, "$_OldIterHeap", Predef.HeapType), iter);
@@ -233,7 +233,7 @@ namespace Microsoft.Dafny {
         var thisYs = new MemberSelectExpr(iter.Origin, th, ys);
         var oldThisYs = new OldExpr(iter.Origin, thisYs);
         oldThisYs.Type = thisYs.Type;  // resolve here
-        var singleton = new SeqDisplayExpr(iter.Origin, new List<Expression>() { thisY });
+        var singleton = new SeqDisplayExpr(iter.Origin, [thisY]);
         singleton.Type = thisYs.Type;  // resolve here
         var concat = new BinaryExpr(iter.Origin, BinaryExpr.Opcode.Add, oldThisYs, singleton);
         concat.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat; concat.Type = oldThisYs.Type;  // resolve here
@@ -256,7 +256,7 @@ namespace Microsoft.Dafny {
 
       if (EmitImplementation(iter.Attributes)) {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
-        AddImplementationWithAttributes(GetToken(iter), proc, inParams, new List<Variable>(),
+        AddImplementationWithAttributes(GetToken(iter), proc, inParams, [],
           localVariables, stmts, kv);
       }
 
@@ -285,7 +285,7 @@ namespace Microsoft.Dafny {
       // See comment inside GenerateIteratorImplPrelude().
       etran = etran.WithReadsFrame(null);
       var localVariables = new Variables();
-      GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
+      GenerateIteratorImplPrelude(iter, inParams, [], builder, localVariables, etran);
 
       // add locals for the yield-history variables and the extra variables
       // Assume the precondition and postconditions of the iterator constructor method
@@ -324,7 +324,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
 
         AddImplementationWithAttributes(GetToken(iter), proc, inParams,
-          new List<Variable>(), localVariables, stmts, kv);
+          [], localVariables, stmts, kv);
       }
 
       yieldCountVariable = null;
@@ -387,8 +387,8 @@ namespace Microsoft.Dafny {
       var rds = new MemberSelectExpr(tok, th, iter.Member_Reads);
       var nw = new MemberSelectExpr(tok, th, iter.Member_New);
       builder.Add(Call(builder.Context, tok, "$YieldHavoc",
-        new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(nw) },
-        new List<Bpl.IdentifierExpr>()));
+        [etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(nw)],
+        []));
       // assume YieldRequires;
       foreach (var p in iter.YieldRequires) {
         builder.Add(TrAssumeCmdWithDependencies(etran, tok, p.E, "iterator yield-requires clause"));

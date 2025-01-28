@@ -29,7 +29,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
     this.systemModuleManager = systemModuleManager;
   }
 
-  private readonly List<Flow> flows = new();
+  private readonly List<Flow> flows = [];
 
   public void DebugPrint() {
     systemModuleManager.Options.OutputWriter.WriteLine($"--------------------------- type-refinement flows, {moduleDescription}:");

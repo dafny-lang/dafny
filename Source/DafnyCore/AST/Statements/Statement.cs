@@ -72,7 +72,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public IEnumerable<Statement> DescendantsAndSelf {
     get {
       Stack<Statement> todo = new();
-      List<Statement> result = new();
+      List<Statement> result = [];
       todo.Push(this);
       while (todo.Any()) {
         var current = todo.Pop();
@@ -159,7 +159,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     var variableUpdateStmt = new AssignStatement(tok, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
     var variableAssignStmt = new SingleAssignStmt(tok, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
-    variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
+    variableUpdateStmt.ResolvedStatements = [variableAssignStmt];
     return new VarDeclStmt(tok, Util.Singleton(variable), variableUpdateStmt);
   }
 
@@ -185,7 +185,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
       Concat<Node>(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
 
-  public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => Enumerable.Empty<IdentifierExpr>();
+  public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => [];
 
 
   /// <summary>

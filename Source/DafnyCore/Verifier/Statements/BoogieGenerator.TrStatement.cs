@@ -88,7 +88,7 @@ public partial class BoogieGenerator {
         dafnyOutExprs.Add(dafnyY);
         var ys = iter.OutsHistoryFields[i];
         var dafnyYs = new MemberSelectExpr(s.Origin, th, ys);
-        var dafnySingletonY = new SeqDisplayExpr(s.Origin, new List<Expression>() { dafnyY });
+        var dafnySingletonY = new SeqDisplayExpr(s.Origin, [dafnyY]);
         dafnySingletonY.Type = ys.Type;  // resolve here
         var rhs = new BinaryExpr(s.Origin, BinaryExpr.Opcode.Add, dafnyYs, dafnySingletonY);
         rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;
@@ -327,7 +327,7 @@ public partial class BoogieGenerator {
         // preModifyHeap := $Heap;
         builder.Add(Bpl.Cmd.SimpleAssign(s.Origin, preModifyHeap, etran.HeapExpr));
         // havoc $Heap;
-        builder.Add(new Bpl.HavocCmd(s.Origin, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+        builder.Add(new Bpl.HavocCmd(s.Origin, [etran.HeapCastToIdentifierExpr]));
         // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
         builder.Add(TrAssumeCmd(s.Origin, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
         // assume nothing outside the frame was changed
@@ -360,10 +360,7 @@ public partial class BoogieGenerator {
           new Bpl.TypedIdent(dafnyLocal.Origin, dafnyLocal.AssignUniqueName(CurrentDeclaration.IdGenerator),
             TrType(dafnyLocal.Type))));
         var variableReference = new Bpl.IdentifierExpr(boogieLocal.tok, boogieLocal);
-        builder.Add(new Bpl.HavocCmd(dafnyLocal.Origin, new List<Bpl.IdentifierExpr>
-        {
-          variableReference
-        }));
+        builder.Add(new Bpl.HavocCmd(dafnyLocal.Origin, [variableReference]));
         var wh = GetWhereClause(dafnyLocal.Origin, variableReference, dafnyLocal.Type, etran,
           IsAllocContext.Var(varDeclPattern.IsGhost, dafnyLocal));
         if (wh != null) {
@@ -410,7 +407,7 @@ public partial class BoogieGenerator {
       builder.Add(new ChangeScope(breakOrContinueStmt.Origin, ChangeScope.Modes.Pop));
     }
     var lbl = (breakOrContinueStmt.IsContinue ? "continue_" : "after_") + breakOrContinueStmt.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
-    builder.Add(new GotoCmd(breakOrContinueStmt.Origin, new List<string> { lbl }) {
+    builder.Add(new GotoCmd(breakOrContinueStmt.Origin, [lbl]) {
       Attributes = etran.TrAttributes(breakOrContinueStmt.Attributes)
     });
   }
@@ -617,7 +614,7 @@ public partial class BoogieGenerator {
     };
     Expression CheckContext(Expression check) => new ForallExpr(
       Token.NoToken,
-      new() { bvar },
+      [bvar],
       bounds,
       check,
       null
@@ -695,8 +692,8 @@ public partial class BoogieGenerator {
     var th = new Bpl.IdentifierExpr(iter.Origin, etran.This, Predef.RefType);
     var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
     Cmd cmd = Call(builder.Context, iter.Origin, "$IterCollectNewObjects",
-      new List<Bpl.Expr>() { initHeap, etran.HeapExpr, th, nwField },
-      new List<Bpl.IdentifierExpr>() { updatedSetIE });
+      [initHeap, etran.HeapExpr, th, nwField],
+      [updatedSetIE]);
     builder.Add(cmd);
     // $Heap[this, _new] := $iter_newUpdate;
     cmd = Bpl.Cmd.SimpleAssign(iter.Origin, currentHeap, UpdateHeap(iter.Origin, currentHeap, th, nwField, updatedSetIE));
@@ -740,7 +737,7 @@ public partial class BoogieGenerator {
 
     if (includeHavoc) {
       // havoc $nw;
-      builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
+      builder.Add(new Bpl.HavocCmd(tok, [nw]));
     }
 
     // assume $nw != null && $Is($nw, type);
@@ -863,9 +860,10 @@ public partial class BoogieGenerator {
     if (subsumption) {
       kv = null;  // this is the default behavior of Boogie's assert
     } else {
-      List<object> args = new List<object>();
+      List<object> args = [
+        Bpl.Expr.Literal(0)
+      ];
       // {:subsumption 0}
-      args.Add(Bpl.Expr.Literal(0));
       kv = new Bpl.QKeyValue(expr.Origin, "subsumption", args, null);
     }
     var options = new WFOptions(kv);
@@ -882,10 +880,10 @@ public partial class BoogieGenerator {
   }
 
   List<FrameExpression> GetContextReadsFrames() {
-    return (codeContext as MethodOrFunction)?.Reads?.Expressions ?? new();
+    return (codeContext as MethodOrFunction)?.Reads?.Expressions ?? [];
   }
 
   List<FrameExpression> GetContextModifiesFrames() {
-    return (codeContext as IMethodCodeContext)?.Modifies?.Expressions ?? new();
+    return (codeContext as IMethodCodeContext)?.Modifies?.Expressions ?? [];
   }
 }

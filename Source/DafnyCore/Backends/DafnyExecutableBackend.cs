@@ -16,7 +16,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
 
   protected DafnyWrittenCodeGenerator DafnyCodeGenerator;
 
-  public List<string> ImportedFiles = new();
+  public List<string> ImportedFiles = [];
 
   protected DafnyExecutableBackend(DafnyOptions options) : base(options) {
   }

@@ -37,6 +37,10 @@ public abstract class DafnyCodeActionProvider {
   protected static SourceOrigin InsertBefore(Token tok) {
     return new SourceOrigin(tok, null);
   }
+
+  protected static SourceOrigin Replace(Token tok) {
+    return new SourceOrigin(tok, tok);
+  }
   protected static SourceOrigin InsertAfter(IOrigin tok) {
     return new SourceOrigin(new Token(tok.line, tok.col + tok.val.Length) {
       pos = tok.pos + tok.val.Length,

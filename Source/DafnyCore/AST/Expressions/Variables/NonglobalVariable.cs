@@ -40,7 +40,7 @@ public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
     return uniqueName ??= generator.FreshId(Name + "#");
   }
 
-  static char[] specialChars = { '\'', '_', '?', '\\', '#' };
+  static char[] specialChars = ['\'', '_', '?', '\\', '#'];
   /// <summary>
   /// Mangle name <c>nm</c> by replacing and escaping characters most likely to cause issues when compiling and
   /// when translating to Boogie.  This transformation is injective.
