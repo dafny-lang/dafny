@@ -16,12 +16,12 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions =>
-    ResolvedStatements == null ? Rhss.SelectMany(r => r.NonSpecificationSubExpressions) : Enumerable.Empty<Expression>();
+    ResolvedStatements == null ? Rhss.SelectMany(r => r.NonSpecificationSubExpressions) : [];
 
   public override IEnumerable<INode> Children => ResolvedStatements ?? Lhss.Concat<Node>(Rhss);
   public override IEnumerable<INode> PreResolveChildren => Lhss.Concat<Node>(Rhss);
 
-  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
+  public override IEnumerable<Statement> PreResolveSubStatements => [];
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -86,7 +86,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
 
     IOrigin firstEffectfulRhs = null;
     MethodCallInformation methodCallInfo = null;
-    ResolvedStatements = new();
+    ResolvedStatements = [];
     foreach (var rhs in Rhss) {
       bool isEffectful;
       if (rhs is TypeRhs) {

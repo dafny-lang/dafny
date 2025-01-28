@@ -628,7 +628,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     var rhss = stmt is AssignStatement updateStmt ? updateStmt.Rhss
       : stmt is AssignOrReturnStmt assignOrReturnStmt ? new List<AssignmentRhs> { assignOrReturnStmt.Rhs }
         .Concat(assignOrReturnStmt.Rhss).ToList()
-      : new List<AssignmentRhs>();
+      : [];
 
     // For single Rhs that are of the form [new] X(args....),
     // we can even further decrease the indent so that the last parenthesis

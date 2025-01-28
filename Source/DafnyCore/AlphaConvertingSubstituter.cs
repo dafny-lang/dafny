@@ -15,7 +15,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeMap != null);
     }
     protected override List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfBoundVars) {
-      var newBoundVars = vars.Count == 0 ? vars : new List<BoundVar>();
+      var newBoundVars = vars.Count == 0 ? vars : [];
       foreach (var bv in vars) {
         var tt = bv.Type.Subst(typeMap);
         var newBv = new BoundVar(bv.Origin, "_'" + bv.Name, tt);

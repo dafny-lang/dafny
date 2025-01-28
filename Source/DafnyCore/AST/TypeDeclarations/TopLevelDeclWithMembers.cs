@@ -14,14 +14,14 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   public ImmutableList<MemberDecl> MembersBeforeResolution;
 
   // The following fields keep track of parent traits
-  public readonly List<MemberDecl> InheritedMembers = new();  // these are instance members declared in parent traits
+  public readonly List<MemberDecl> InheritedMembers = [];  // these are instance members declared in parent traits
   public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
   public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
   /// <summary>
   /// TraitParentHeads contains the head of each distinct trait parent. It is initialized during resolution.
   /// </summary>
-  public readonly List<TraitDecl> ParentTraitHeads = new List<TraitDecl>();
+  public readonly List<TraitDecl> ParentTraitHeads = [];
 
   internal bool HeadDerivesFrom(TopLevelDecl b) {
     Contract.Requires(b != null);
@@ -53,10 +53,10 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
       Contract.Requires(parentType.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass == traitHead);
 
       if (!info.TryGetValue(traitHead, out var list)) {
-        list = new List<(Type, List<TraitDecl>)>();
+        list = [];
         info.Add(traitHead, list);
       }
-      list.Add((parentType, new List<TraitDecl>()));
+      list.Add((parentType, []));
     }
 
     public void Extend(TraitDecl parent, InheritanceInformationClass parentInfo, Dictionary<TypeParameter, Type> typeMap) {
@@ -67,7 +67,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
       foreach (var entry in parentInfo.info) {
         var traitHead = entry.Key;
         if (!info.TryGetValue(traitHead, out var list)) {
-          list = new List<(Type, List<TraitDecl>)>();
+          list = [];
           info.Add(traitHead, list);
         }
         foreach (var pair in entry.Value) {
@@ -96,7 +96,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     Members = members;
-    ParentTraits = traits ?? new List<Type>();
+    ParentTraits = traits ?? [];
     SetMembersBeforeResolution();
   }
 
@@ -236,7 +236,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
               extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
               cloner.CloneSpecFrameExpr(extremePredicate.Reads),
               extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
-              new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.Origin, k.Name) }, null),
+              new Specification<Expression>([new IdentifierExpr(extremePredicate.Origin, k.Name)], null),
               cloner.CloneExpr(extremePredicate.Body),
               SystemModuleManager.AxiomAttribute(),
               extremePredicate);

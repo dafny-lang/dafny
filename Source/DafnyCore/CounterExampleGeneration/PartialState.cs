@@ -14,7 +14,7 @@ public class PartialState {
 
   public bool IsLoopEntryState => FullStateName.Contains(CaptureStateExtensions.AfterLoopIterationsStateMarker);
   // ghost variables introduced by the counterexample whose values must be true for the counterexample to hold:
-  public List<string> LoopGuards = new();
+  public List<string> LoopGuards = [];
   public readonly Dictionary<PartialValue, List<string>> KnownVariableNames = new();
   private readonly List<PartialValue> initialPartialValues;
   internal readonly DafnyModel Model;
@@ -31,7 +31,7 @@ public class PartialState {
   internal PartialState(DafnyModel model, Model.CapturedState state) {
     Model = model;
     State = state;
-    initialPartialValues = new List<PartialValue>();
+    initialPartialValues = [];
     SetupBoundVars();
     SetupVars();
   }
@@ -42,10 +42,10 @@ public class PartialState {
   /// </summary>
   /// <returns>Set of partial values</returns>
   public HashSet<PartialValue> ExpandedVariableSet() {
-    HashSet<PartialValue> expandedSet = new();
+    HashSet<PartialValue> expandedSet = [];
     // The following is the queue for elements to be added to the set. The 2nd
     // element of a tuple is the depth of the variable w.r.t. the original set
-    List<Tuple<PartialValue, int>> varsToAdd = new();
+    List<Tuple<PartialValue, int>> varsToAdd = [];
     initialPartialValues.ForEach(variable => varsToAdd.Add(new(variable, 0)));
     while (varsToAdd.Count != 0) {
       var (next, depth) = varsToAdd[0];
@@ -150,8 +150,8 @@ public class PartialState {
     if (!IsLoopEntryState) {
       return new AssumeStmt(SourceOrigin.NoToken, expression, null);
     }
-    return new AssignStatement(SourceOrigin.NoToken, new List<Expression>() { new IdentifierExpr(Token.NoToken, LoopGuards.Last()) },
-        new List<AssignmentRhs>() { new ExprRhs(expression) });
+    return new AssignStatement(SourceOrigin.NoToken, [new IdentifierExpr(Token.NoToken, LoopGuards.Last())],
+      [new ExprRhs(expression)]);
   }
 
   /// <summary>
@@ -187,7 +187,7 @@ public class PartialState {
       initialPartialValues.Add(value);
       var _ = new IdentifierExprConstraint(value, v.Split("#").First());
       if (!KnownVariableNames.ContainsKey(value)) {
-        KnownVariableNames[value] = new List<string>();
+        KnownVariableNames[value] = [];
       }
       KnownVariableNames[value].Add(v.Split("#").First());
     }
@@ -221,7 +221,7 @@ public class PartialState {
       initialPartialValues.Add(value);
       var _ = new IdentifierExprConstraint(value, name);
       if (!KnownVariableNames.ContainsKey(value)) {
-        KnownVariableNames[value] = new();
+        KnownVariableNames[value] = [];
       }
       KnownVariableNames[value].Add(name);
     }
@@ -259,7 +259,7 @@ public class PartialState {
     var loc = TryParseSourceLocation(name);
     if (loc != null) {
       var fn = loc.Filename;
-      int idx = fn.LastIndexOfAny(new[] { '\\', '/' });
+      int idx = fn.LastIndexOfAny(['\\', '/']);
       if (idx > 0) {
         fn = fn[(idx + 1)..];
       }

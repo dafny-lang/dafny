@@ -401,7 +401,7 @@ public class Compilation : IDisposable {
 
   public static IEnumerable<(IOrigin Group, List<IVerificationTask> Tasks)> GroupOverlappingRanges(IReadOnlyList<IVerificationTask> ranges) {
     if (!ranges.Any()) {
-      return Enumerable.Empty<(IOrigin Group, List<IVerificationTask> Tasks)>();
+      return [];
     }
     var sortedTasks = ranges.OrderBy(r =>
       BoogieGenerator.ToDafnyToken(true, r.Token).StartToken).ToList();
@@ -421,7 +421,7 @@ public class Compilation : IDisposable {
         currentGroup.Add(currentTask);
       } else {
         groups.Add((currentGroupRange, currentGroup));
-        currentGroup = new List<IVerificationTask> { currentTask };
+        currentGroup = [currentTask];
         currentGroupRange = currentTaskRange;
       }
     }
@@ -519,9 +519,9 @@ public class Compilation : IDisposable {
       lastToken = lastToken.Next;
     }
     // TODO: end position doesn't take into account trailing trivia: https://github.com/dafny-lang/dafny/issues/3415
-    return new TextEditContainer(new TextEdit[] {
-      new() {NewText = result, Range = new Range(new Position(0,0), lastToken.GetLspPosition())}
-    });
+    return new TextEditContainer([
+      new() { NewText = result, Range = new Range(new Position(0, 0), lastToken.GetLspPosition()) }
+    ]);
 
   }
 
@@ -537,7 +537,7 @@ public class Compilation : IDisposable {
   public static List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, Uri uri, ICanVerify canVerify,
     IVerificationTask task, VerificationRunResult result) {
     var errorReporter = new ObservableErrorReporter(options, uri);
-    List<DafnyDiagnostic> diagnostics = new();
+    List<DafnyDiagnostic> diagnostics = [];
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
     ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),

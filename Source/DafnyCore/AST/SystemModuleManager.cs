@@ -73,7 +73,7 @@ public class SystemModuleManager {
   [FilledInDuringResolution] public SpecialField ORDINAL_Offset;  // used by the translator
 
   public readonly SubsetTypeDecl NatDecl;
-  public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, new List<Type>()); }
+  public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, []); }
   public readonly TraitDecl ObjectDecl;
   public UserDefinedType ObjectQ() {
     Contract.Assume(ObjectDecl != null);
@@ -87,14 +87,14 @@ public class SystemModuleManager {
   }
 
   public SystemModuleManager(DafnyOptions options) {
-    SystemModule = new(SourceOrigin.NoToken, new Name("_System"), new List<IOrigin>(),
+    SystemModule = new(SourceOrigin.NoToken, new Name("_System"), [],
       ModuleKindEnum.Concrete, false, null, null, null);
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
     var str = new TypeSynonymDecl(SourceOrigin.NoToken, new Name("string"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
-      new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
+      [], SystemModule, new SeqType(new CharType()), null);
     SystemModule.SourceDecls.Add(str);
     // create subset type 'nat'
     var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
@@ -102,11 +102,11 @@ public class SystemModuleManager {
     var ax = AxiomAttribute();
     NatDecl = new SubsetTypeDecl(SourceOrigin.NoToken, new Name("nat"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
-      new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
+      [], SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
     ((RedirectingTypeDecl)NatDecl).ConstraintIsCompilable = true;
     SystemModule.SourceDecls.Add(NatDecl);
     // create trait 'object'
-    ObjectDecl = new TraitDecl(SourceOrigin.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
+    ObjectDecl = new TraitDecl(SourceOrigin.NoToken, new Name("object"), SystemModule, [], [], DontCompile(), false, null);
     SystemModule.SourceDecls.Add(ObjectDecl);
     // add one-dimensional arrays, since they may arise during type checking
     // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -121,7 +121,7 @@ public class SystemModuleManager {
     // Several methods and fields rely on 1-argument arrow types
     CreateArrowTypeDecl(1);
 
-    valuetypeDecls = new[] {
+    valuetypeDecls = [
       new ValuetypeDecl("bool", SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
       new ValuetypeDecl("char", SystemModule, t => t.IsCharType, typeArgs => Type.Char),
       new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
@@ -130,26 +130,24 @@ public class SystemModuleManager {
       new ValuetypeDecl("_bv", SystemModule, t => t.IsBitVectorType && !Options.Get(CommonOptionBag.TypeSystemRefresh),
         null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied (it's used only in the legacy resolver)
       new ValuetypeDecl("set", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        [TypeParameter.TPVarianceSyntax.Covariant_Strict],
         t => t.AsSetType is { Finite: true }, typeArgs => new SetType(true, typeArgs[0])),
       new ValuetypeDecl("iset", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive },
+        [TypeParameter.TPVarianceSyntax.Covariant_Permissive],
         t => t.IsISetType, typeArgs => new SetType(false, typeArgs[0])),
       new ValuetypeDecl("seq", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        [TypeParameter.TPVarianceSyntax.Covariant_Strict],
         t => t.AsSeqType != null, typeArgs => new SeqType(typeArgs[0])),
       new ValuetypeDecl("multiset", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        [TypeParameter.TPVarianceSyntax.Covariant_Strict],
         t => t.AsMultiSetType != null, typeArgs => new MultiSetType(typeArgs[0])),
       new ValuetypeDecl("map", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>()
-          { TypeParameter.TPVarianceSyntax.Covariant_Strict, TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        [TypeParameter.TPVarianceSyntax.Covariant_Strict, TypeParameter.TPVarianceSyntax.Covariant_Strict],
         t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
       new ValuetypeDecl("imap", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>()
-          { TypeParameter.TPVarianceSyntax.Covariant_Permissive, TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        [TypeParameter.TPVarianceSyntax.Covariant_Permissive, TypeParameter.TPVarianceSyntax.Covariant_Strict],
         t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
-    };
+    ];
     SystemModule.SourceDecls.AddRange(valuetypeDecls);
     // Resolution error handling relies on being able to get to the 0-tuple declaration
     TupleType(Token.NoToken, 0, true);
@@ -210,9 +208,9 @@ public class SystemModuleManager {
   public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
     var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null) };
     var rotateMember = new SpecialFunction(SourceOrigin.NoToken, name, SystemModule, false, false,
-      new List<TypeParameter>(), formals, resultType,
-      new List<AttributedExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>(),
-      new Specification<Expression>(new List<Expression>(), null), null, null, null);
+      [], formals, resultType,
+      [], new Specification<FrameExpression>([], null), [],
+      new Specification<Expression>([], null), null, null, null);
     rotateMember.EnclosingClass = enclosingType;
     rotateMember.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(rotateMember);
@@ -220,11 +218,11 @@ public class SystemModuleManager {
 
   private Attributes DontCompile() {
     var flse = Expression.CreateBoolLiteral(Token.NoToken, false);
-    return new Attributes("compile", new List<Expression>() { flse }, null);
+    return new Attributes("compile", [flse], null);
   }
 
   public static Attributes AxiomAttribute(Attributes prev = null) {
-    return new Attributes("axiom", new List<Expression>(), prev);
+    return new Attributes("axiom", [], prev);
   }
 
   /// <summary>
@@ -233,7 +231,7 @@ public class SystemModuleManager {
   public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
     Contract.Requires(1 <= dims);
     Contract.Requires(arg != null);
-    var (result, mod) = ArrayType(Token.NoToken, dims, new List<Type> { arg }, allowCreationOfNewClass);
+    var (result, mod) = ArrayType(Token.NoToken, dims, [arg], allowCreationOfNewClass);
     mod(this);
     return result;
   }
@@ -307,13 +305,13 @@ public class SystemModuleManager {
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
       var function = new Function(SourceOrigin.NoToken, new Name(name), false, true, false,
-        new List<TypeParameter>(), args, null, resultType,
-        new List<AttributedExpression>(), new Specification<FrameExpression>(readsFrame, null), new List<AttributedExpression>(),
-        new Specification<Expression>(new List<Expression>(), null),
+        [], args, null, resultType,
+        [], new Specification<FrameExpression>(readsFrame, null), [],
+        new Specification<Expression>([], null),
         null, null, null, null, null);
       readsIS.Function = readsFunction ?? function; // just so we can really claim the member declarations are resolved
       readsIS.TypeApplication_AtEnclosingClass = tys; // ditto
-      readsIS.TypeApplication_JustFunction = new List<Type>(); // ditto
+      readsIS.TypeApplication_JustFunction = []; // ditto
       return function;
     }
 
@@ -378,10 +376,10 @@ public class SystemModuleManager {
       args.Add(new IdentifierExpr(tok, bv));
       bounds.Add(new SpecialAllocIndependenceAllocatedBoundedPool());
     }
-    Expression body = Expression.CreateResolvedCall(tok, f, member, args, new List<Type>(), this);
+    Expression body = Expression.CreateResolvedCall(tok, f, member, args, [], this);
     body.Type = member.ResultType;  // resolve here
     if (!total) {
-      Expression emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
+      Expression emptySet = new SetDisplayExpr(tok, true, []);
       emptySet.Type = member.ResultType;  // resolve here
       body = Expression.CreateEq(body, emptySet, member.ResultType);
     }
