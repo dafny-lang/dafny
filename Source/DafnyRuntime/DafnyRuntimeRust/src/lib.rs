@@ -929,8 +929,7 @@ where
             }
         }
     }
-    /// Returns the cardinality of this [`Sequence<T>`].
-    // The cardinality returns the length of the sequence
+    /// Returns the cardinality or length of this [`Sequence<T>`].
     pub fn cardinality_usize(&self) -> SizeT {
         match self {
             Sequence::ArraySequence { values, .. } =>

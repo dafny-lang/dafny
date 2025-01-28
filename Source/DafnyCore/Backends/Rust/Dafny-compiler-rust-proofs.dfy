@@ -1,7 +1,28 @@
 include "../Dafny/AST.dfy"
 
-/*This module does not contain any compiled code because it
+/*These modules do not contain any compiled code because they
   only proves properties about DCOMP. In a sense, it's a test file. */
+@Compile(false)
+module {:extern "RASTProofs"} RASTProofs {
+  import opened RAST
+  lemma AboutGatherSimpleQuotes(docstring: string, acc: string)
+    ensures
+      var r := GatherSimpleQuotes(docstring, acc);
+      && |acc| <= |r|
+      && |r[|acc|..]| <= |docstring|
+      && r == acc + docstring[..|r[|acc|..]|]
+      && (forall i | |acc| <= i < |r| :: r[i] == '`')
+      && (|docstring| > |r[|acc|..]| ==>
+            docstring[|r[|acc|..]|] != '`')
+  {
+    var r := GatherSimpleQuotes(docstring, acc);
+    if |docstring| == 0 || docstring[0] != '`' {
+
+    } else {
+
+    }
+  }
+}
 @Compile(false)
 module {:extern "DafnyToRustCompilerProofs"} DafnyToRustCompilerProofs {
   import opened DafnyToRustCompiler
