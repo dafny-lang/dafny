@@ -712,7 +712,7 @@ namespace Microsoft.Dafny.Compilers {
           name,
           [], (Sequence<DAST.Formal>)Sequence<DAST.Formal>.Empty,
           (Sequence<DAST.Formal>)Sequence<DAST.Formal>.Empty,
-          [ compiler.GenType(resultType) ], null);
+          [compiler.GenType(resultType)], null);
         methods.Add(builder);
 
         if (createBody) {
