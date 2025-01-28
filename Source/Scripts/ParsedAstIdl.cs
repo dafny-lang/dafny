@@ -12,7 +12,11 @@ using Type = System.Type;
 namespace IntegrationTests;
 
 public class GenerateParsedAst {
-
+  private static HashSet<Type> excludedTypes = [typeof(DafnyOptions)];
+  private static Dictionary<Type,Type> mappedTypes = new() {
+    { typeof(Guid), typeof(string) }
+  };
+  
   public static Command GetCommand() {
     var result = new Command("generate-parsed-ast", "");
     var fileArgument = new Argument<FileInfo>();
@@ -75,12 +79,21 @@ public class GenerateParsedAst {
       return compilationUnit.ToFullString();
   }
 
-  private static ClassDeclarationSyntax? GenerateClass(Type type, Stack<Type> toVisit, IDictionary<Type, ISet<Type>> inheritors)
+  private static BaseTypeDeclarationSyntax? GenerateClass(Type type, Stack<Type> toVisit, IDictionary<Type, ISet<Type>> inheritors)
   {
+    if (type.IsEnum) {
+      var enumm = EnumDeclaration(type.Name);
+      foreach (var name in Enum.GetNames(type)) {
+        enumm = enumm.AddMembers(EnumMemberDeclaration(name));
+      }
+
+      return enumm;
+    }
+    
     // Create a class
     var classDeclaration = ClassDeclaration(type.Name)
       .AddModifiers(Token(SyntaxKind.PublicKeyword));
-    List<MemberDeclarationSyntax> fields = new();
+    List<MemberDeclarationSyntax> newFields = new();
 
     if (type.BaseType != null) {
       toVisit.Push(type.BaseType);
@@ -99,11 +112,30 @@ public class GenerateParsedAst {
     if (constructor == null) {
       return null;
     }
+
+    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
+    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
     
     foreach (var parameter in constructor.GetParameters()) {
-      fields.Add(FieldDeclaration(VariableDeclaration(
+      if (excludedTypes.Contains(parameter.ParameterType)) {
+        continue;
+      }
+
+      var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
+                       (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
+
+      if (memberInfo != null && memberInfo.DeclaringType != type) {
+        continue;
+      }
+      
+      var usedTyped = parameter.ParameterType;
+      if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
+        usedTyped = newType;
+      }
+      
+      newFields.Add(FieldDeclaration(VariableDeclaration(
           
-          ParseTypeName(parameter.ParameterType.ToGenericTypeString()),
+          ParseTypeName(usedTyped.ToGenericTypeString()),
         SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
       
       toVisit.Push(parameter.ParameterType);
@@ -111,7 +143,7 @@ public class GenerateParsedAst {
 
     // Combine everything
     classDeclaration = classDeclaration
-      .AddMembers(fields.ToArray());
+      .AddMembers(newFields.ToArray());
     return classDeclaration;
   }
 }

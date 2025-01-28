@@ -53,6 +53,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
     Opened = opened;
     CloneId = cloneId;
   }
+  
   public abstract object Dereference();
 
   public override bool IsEssentiallyEmpty() {
