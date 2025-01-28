@@ -14,6 +14,7 @@ public abstract class Type : NodeWithComputedRange {
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
 
+  [ParseConstructor]
   protected Type(IOrigin origin = null) : base(origin) {
   }
 

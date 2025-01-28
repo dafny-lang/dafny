@@ -134,7 +134,7 @@ public class TypeParameter : TopLevelDecl {
     public bool IsNonempty => AutoInit != Type.AutoInitInfo.MaybeEmpty;
     public bool ContainsNoReferenceTypes;
     
-    [JsonConstructor]
+    [ParseConstructor]
     public TypeParameterCharacteristics() {
       EqualitySupport = EqualitySupportValue.Unspecified;
       AutoInit = Type.AutoInitInfo.MaybeEmpty;

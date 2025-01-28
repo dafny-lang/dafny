@@ -11,6 +11,7 @@ public abstract class NodeWithComputedRange : Node {
 
   private IOrigin origin;
 
+  [ParseConstructor]
   protected NodeWithComputedRange(IOrigin? origin = null) {
     this.origin = origin ?? Token.NoToken;
   }

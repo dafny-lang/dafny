@@ -144,3 +144,6 @@ public class Program : NodeWithComputedRange {
 public class FilledInDuringTranslationAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public class FilledInDuringResolutionAttribute : Attribute { }
+
+[AttributeUsage(AttributeTargets.Constructor)]
+public class ParseConstructorAttribute : Attribute { }

@@ -14,7 +14,9 @@ namespace IntegrationTests;
 public class GenerateParsedAst {
   private static HashSet<Type> excludedTypes = [typeof(DafnyOptions)];
   private static Dictionary<Type,Type> mappedTypes = new() {
-    { typeof(Guid), typeof(string) }
+    { typeof(Guid), typeof(string) },
+    { typeof(IOrigin), typeof(SourceOrigin) },
+    { typeof(Uri), typeof(string) }
   };
   
   public static Command GetCommand() {
@@ -36,16 +38,16 @@ public class GenerateParsedAst {
       g => g.Key, 
       g => (ISet<Type>)g.ToHashSet());
     
-      // Create a namespace
-      var namespaceDeclaration = NamespaceDeclaration(
-          IdentifierName("GeneratedCode"))
-          .NormalizeWhitespace();
+      var compilationUnit = CompilationUnit();
 
       var toVisit = new Stack<Type>();
       toVisit.Push(rootType);
       var visited = new HashSet<Type>();
       while (toVisit.Any()) {
         var current = toVisit.Pop();
+        if (current.IsGenericType) {
+          current = current.GetGenericTypeDefinition();
+        }
         if (!visited.Add(current)) {
           continue;
         }
@@ -55,34 +57,57 @@ public class GenerateParsedAst {
         }
         var classDeclaration = GenerateClass(current, toVisit, inheritors);
         if (classDeclaration != null) {
-          namespaceDeclaration = namespaceDeclaration.AddMembers(classDeclaration);
+          compilationUnit = compilationUnit.AddMembers(classDeclaration);
         }
       }
 
-      // Create the compilation unit
-      var compilationUnit = CompilationUnit()
-          .AddUsings(UsingDirective(IdentifierName("System")))
-          .AddMembers(namespaceDeclaration)
-          .NormalizeWhitespace();
-
-      // using (var workspace = new AdhocWorkspace())
-      // {
-      //   // Get formatting options
-      //   OptionSet options = workspace.Options;
-      //       
-      //   // Format the compilation unit
-      //   SyntaxNode formattedNode = Formatter.Format(compilationUnit, workspace, options);
-      //       
-      //   // Return the formatted code
-      //   return formattedNode.ToFullString();
+      compilationUnit = compilationUnit.NormalizeWhitespace();
+      
+      
+      var hasErrors = CheckCorrectness(compilationUnit);
+      // if (hasErrors) {
+      //   throw new Exception("Exception");
       // }
       return compilationUnit.ToFullString();
+  }
+
+  private static bool CheckCorrectness(CompilationUnitSyntax compilationUnit) {
+    var namespaceDeclaration = NamespaceDeclaration(ParseName("Testing"));
+    namespaceDeclaration = namespaceDeclaration.WithMembers(compilationUnit.Members);
+    compilationUnit = CompilationUnit().AddMembers(namespaceDeclaration);
+    compilationUnit = compilationUnit.AddUsings(
+      UsingDirective(ParseName("System"))).AddUsings(
+      UsingDirective(ParseName("System.Collections.Generic")));
+    
+    // Create a list of basic references that most code will need
+    var references = new List<MetadataReference>
+    {
+      MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+      MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
+      MetadataReference.CreateFromFile(typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location),
+      MetadataReference.CreateFromFile(typeof(List<>).Assembly.Location)
+    };
+    var syntaxTree = CSharpSyntaxTree.Create(compilationUnit);
+    var compilation = CSharpCompilation.Create(
+      assemblyName: "DynamicAssembly",
+      syntaxTrees: new[] { syntaxTree },
+      references: references,
+      options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+    var diagnostics = compilation.GetDiagnostics();
+    var significantDiagnostics = diagnostics.Where(d => 
+      d.Severity == DiagnosticSeverity.Error).ToList();
+    var hasErrors = significantDiagnostics.Any();
+    foreach (var diagnostic in significantDiagnostics) {
+      Console.WriteLine(diagnostic.ToString());
+    }
+    return hasErrors;
   }
 
   private static BaseTypeDeclarationSyntax? GenerateClass(Type type, Stack<Type> toVisit, IDictionary<Type, ISet<Type>> inheritors)
   {
     if (type.IsEnum) {
-      var enumm = EnumDeclaration(type.Name);
+      var enumName = type.ToGenericTypeString();
+      var enumm = EnumDeclaration(enumName);
       foreach (var name in Enum.GetNames(type)) {
         enumm = enumm.AddMembers(EnumMemberDeclaration(name));
       }
@@ -91,8 +116,7 @@ public class GenerateParsedAst {
     }
     
     // Create a class
-    var classDeclaration = ClassDeclaration(type.Name)
-      .AddModifiers(Token(SyntaxKind.PublicKeyword));
+    var classDeclaration = ConvertTypeToSyntax(type);
     List<MemberDeclarationSyntax> newFields = new();
 
     if (type.BaseType != null) {
@@ -107,45 +131,138 @@ public class GenerateParsedAst {
       }
     }
 
-    var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
-    var constructor = constructors.MaxBy(c => c.GetParameters().Length);
-    if (constructor == null) {
-      return null;
-    }
-
-    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
-    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
-    
-    foreach (var parameter in constructor.GetParameters()) {
-      if (excludedTypes.Contains(parameter.ParameterType)) {
-        continue;
-      }
-
-      var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
-                       (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
-
-      if (memberInfo != null && memberInfo.DeclaringType != type) {
-        continue;
-      }
+    var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+    var constructor = constructors.Where(c => !c.IsPrivate).MaxBy(c => 
+      c.GetCustomAttribute<ParseConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue);
+    if (constructor != null) {
+      var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
+      var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
       
-      var usedTyped = parameter.ParameterType;
-      if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
-        usedTyped = newType;
+      foreach (var parameter in constructor.GetParameters()) {
+        if (excludedTypes.Contains(parameter.ParameterType)) {
+          continue;
+        }
+
+        var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
+                         (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
+
+        if (memberInfo != null && memberInfo.DeclaringType != type) {
+          continue;
+        }
+        
+        var usedTyped = parameter.ParameterType;
+        if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
+          usedTyped = newType;
+        }
+        
+        newFields.Add(FieldDeclaration(VariableDeclaration(
+            
+            ParseTypeName(usedTyped.ToGenericTypeString()),
+          SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
+        
+        toVisit.Push(usedTyped);
       }
-      
-      newFields.Add(FieldDeclaration(VariableDeclaration(
-          
-          ParseTypeName(usedTyped.ToGenericTypeString()),
-        SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
-      
-      toVisit.Push(parameter.ParameterType);
     }
 
     // Combine everything
-    classDeclaration = classDeclaration
-      .AddMembers(newFields.ToArray());
+    classDeclaration = classDeclaration.AddMembers(newFields.ToArray());
     return classDeclaration;
   }
+
+  private static string GetTypeName(Type type)
+  {
+    var enumName = type.Name;
+    if (type.IsNested) {
+      enumName = type.DeclaringType.Name + enumName;
+    }
+
+    return enumName;
+  }
+
+  public static ClassDeclarationSyntax ConvertTypeToSyntax(Type type)
+    {
+        // Get the base class name without generic parameters
+        string className = type.IsGenericType ? 
+            type.Name.Substring(0, type.Name.IndexOf('`')) : 
+            type.Name;
+
+        if (type.IsNested) {
+          className = type.DeclaringType.Name + className;
+        }
+
+        // Create the class declaration with public modifier
+        var classDecl = ClassDeclaration(className);
+
+        // If the type is generic, add type parameters
+        if (type.IsGenericType)
+        {
+            // Get generic type parameters
+            var typeParameters = type.GetGenericArguments();
+            
+            // Create type parameter list
+            var typeParamList = TypeParameterList(
+                SeparatedList(
+                    typeParameters.Select(tp => 
+                        TypeParameter(tp.Name))));
+
+            // Add type parameter list to class declaration
+            classDecl = classDecl.WithTypeParameterList(typeParamList);
+
+            // Add constraints if any
+            var constraintClauses = new List<TypeParameterConstraintClauseSyntax>();
+            
+            foreach (var typeParam in typeParameters)
+            {
+                var constraints = new List<TypeParameterConstraintSyntax>();
+
+                // Get generic parameter constraints
+                var paramConstraints = type.GetGenericArguments()
+                    .First(t => t.Name == typeParam.Name)
+                    .GetGenericParameterConstraints();
+
+                // Add class/struct constraint if applicable
+                var attributes = typeParam.GenericParameterAttributes;
+                if ((attributes & GenericParameterAttributes.ReferenceTypeConstraint) != 0)
+                {
+                    constraints.Add(ClassOrStructConstraint(SyntaxKind.ClassConstraint));
+                }
+                if ((attributes & GenericParameterAttributes.NotNullableValueTypeConstraint) != 0)
+                {
+                    constraints.Add(ClassOrStructConstraint(SyntaxKind.StructConstraint));
+                }
+
+                // Add type constraints
+                foreach (var constraint in paramConstraints)
+                {
+                    constraints.Add(
+                        TypeConstraint(ParseTypeName(constraint.Name)));
+                }
+
+                // Add constructor constraint if applicable
+                if ((attributes & GenericParameterAttributes.DefaultConstructorConstraint) != 0)
+                {
+                    constraints.Add(ConstructorConstraint());
+                }
+
+                // If we have any constraints, create the constraint clause
+                if (constraints.Any())
+                {
+                    var constraintClause = TypeParameterConstraintClause(
+                        IdentifierName(typeParam.Name),
+                        SeparatedList(constraints));
+                    
+                    constraintClauses.Add(constraintClause);
+                }
+            }
+
+            if (constraintClauses.Any())
+            {
+                classDecl = classDecl.WithConstraintClauses(List(constraintClauses));
+            }
+        }
+
+        return classDecl;
+    }
 }
   
 public static class TypeExtensions
@@ -153,15 +270,22 @@ public static class TypeExtensions
   public static string ToGenericTypeString(this Type t)
   {
     if (!t.IsGenericType) {
-      return t.Name;
+      var name = t.Name;
+      if (t.IsNested) {
+        name = t.DeclaringType.Name + name;
+      }
+      return name;
     }
 
     string genericTypeName = t.GetGenericTypeDefinition().Name;
+    if (t.IsNested) {
+      genericTypeName = t.DeclaringType.Name + genericTypeName;
+    }
     genericTypeName = genericTypeName.Substring(0,
       genericTypeName.IndexOf('`'));
     string genericArgs = string.Join(",",
       t.GetGenericArguments()
-        .Select(ta => ToGenericTypeString(ta)).ToArray());
+        .Select(ToGenericTypeString).ToArray());
     return genericTypeName + "<" + genericArgs + ">";
   }
 }
