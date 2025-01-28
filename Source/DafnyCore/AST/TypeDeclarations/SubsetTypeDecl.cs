@@ -60,7 +60,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
     return new List<Type> { RhsWithArgument(typeArgs) };
   }
   public bool ShouldVerify => true; // This could be made more accurate
-  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public ModuleDefinition ContainingModule => EnclosingModule;
   public override SymbolKind? Kind => SymbolKind.Class;
   public override string GetDescription(DafnyOptions options) {
     return "subset type";
@@ -79,12 +79,12 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
 
       var func = funcExpr.Function;
 
-      if (!AutoRevealFunctionDependencies.IsRevealable(EnclosingModuleDefinition.AccessibleMembers, func)) {
+      if (!AutoRevealFunctionDependencies.IsRevealable(EnclosingModule.AccessibleMembers, func)) {
         continue;
       }
 
       if (func.IsMadeImplicitlyOpaque(Options)) {
-        var revealStmt0 = AutoRevealFunctionDependencies.BuildRevealStmt(func, Witness.Origin, EnclosingModuleDefinition);
+        var revealStmt0 = AutoRevealFunctionDependencies.BuildRevealStmt(func, Witness.Origin, EnclosingModule);
 
         if (revealStmt0 is not null) {
           var newExpr = new StmtExpr(Witness.Origin, revealStmt0, Witness) {
@@ -94,9 +94,9 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
         }
       }
 
-      foreach (var newFunc in Rewriter.GetEnumerator(func, func.EnclosingClass, new List<Expression>(), EnclosingModuleDefinition)) {
+      foreach (var newFunc in Rewriter.GetEnumerator(func, func.EnclosingClass, new List<Expression>(), EnclosingModule)) {
         var origExpr = Witness;
-        var revealStmt = AutoRevealFunctionDependencies.BuildRevealStmt(newFunc.Function, Witness.Origin, EnclosingModuleDefinition);
+        var revealStmt = AutoRevealFunctionDependencies.BuildRevealStmt(newFunc.Function, Witness.Origin, EnclosingModule);
 
         if (revealStmt is null) {
           continue;

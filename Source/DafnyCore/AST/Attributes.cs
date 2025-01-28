@@ -140,7 +140,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     }
 
     // Check the entire stack of modules
-    var mod = decl.EnclosingClass.EnclosingModuleDefinition;
+    var mod = decl.EnclosingClass.EnclosingModule;
     while (mod != null) {
       if (Attributes.ContainsBool(mod.Attributes, attribName, ref setting)) {
         return setting;

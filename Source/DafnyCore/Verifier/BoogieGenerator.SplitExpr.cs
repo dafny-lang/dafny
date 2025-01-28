@@ -479,7 +479,7 @@ namespace Microsoft.Dafny {
       bool applyInduction, ExpressionTranslator etran, FunctionCallExpr fexp) {
       var f = fexp.Function;
       Contract.Assert(f != null); // filled in during resolution
-      var module = f.EnclosingClass.EnclosingModuleDefinition;
+      var module = f.EnclosingClass.EnclosingModule;
       var functionHeight = module.CallGraph.GetSCCRepresentativePredecessorCount(f);
 
       if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f)) {

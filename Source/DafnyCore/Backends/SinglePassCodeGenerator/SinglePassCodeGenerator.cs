@@ -1567,7 +1567,7 @@ namespace Microsoft.Dafny.Compilers {
       if (include) {
         classIsExtern =
           (!Options.DisallowExterns && Attributes.Contains(defaultClassDecl.Attributes, "extern")) ||
-          Attributes.Contains(defaultClassDecl.EnclosingModuleDefinition.Attributes, "extern");
+          Attributes.Contains(defaultClassDecl.EnclosingModule.Attributes, "extern");
         if (classIsExtern && defaultClassDecl.Members.TrueForAll(member =>
               member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
           include = false;
@@ -1684,7 +1684,7 @@ namespace Microsoft.Dafny.Compilers {
           var (classIsExtern, include) = GetIsExternAndIncluded(defaultClassDecl);
 
           if (include) {
-            var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
+            var cw = CreateClass(IdProtect(d.EnclosingModule.GetCompileName(Options)),
               classIsExtern, defaultClassDecl.FullName,
               defaultClassDecl.TypeArgs, defaultClassDecl,
               defaultClassDecl.ParentTypeInformation.UniqueParentTraits(), defaultClassDecl.Origin, wr);
@@ -1699,7 +1699,7 @@ namespace Microsoft.Dafny.Compilers {
           var (classIsExtern, include) = GetIsExternAndIncluded(cl);
 
           if (include) {
-            var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
+            var cw = CreateClass(IdProtect(d.EnclosingModule.GetCompileName(Options)),
               classIsExtern, cl.FullName,
               cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.Origin, wr);
             CompileClassMembers(program, cl, cw);
@@ -2082,7 +2082,7 @@ namespace Microsoft.Dafny.Compilers {
           consts.Add((ConstantField)decl);
         }
       }
-      consts.Sort((a, b) => c.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativeId(a) - c.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativeId(b));
+      consts.Sort((a, b) => c.EnclosingModule.CallGraph.GetSCCRepresentativeId(a) - c.EnclosingModule.CallGraph.GetSCCRepresentativeId(b));
       foreach (var con in consts) {
         decls.Remove(con);
       }

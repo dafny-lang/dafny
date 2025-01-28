@@ -122,7 +122,7 @@ public partial class BoogieGenerator {
     // termination check and the need to include an implicit _k-1 argument.
     bool isRecursiveCall = false;
     // consult the call graph to figure out if this is a recursive call
-    var module = method.EnclosingClass.EnclosingModuleDefinition;
+    var module = method.EnclosingClass.EnclosingModule;
     if (codeContext != null && module == currentModule) {
       // Note, prefix lemmas are not recorded in the call graph, but their corresponding greatest lemmas are.
       // Similarly, an iterator is not recorded in the call graph, but its MoveNext method is.

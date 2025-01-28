@@ -117,7 +117,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   string RedirectingTypeDecl.Name { get { return Name; } }
   IOrigin RedirectingTypeDecl.Tok { get { return Origin; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
-  ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModule; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
   Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
   SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
@@ -134,7 +134,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModule; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
@@ -178,7 +178,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     return null;
   }
 
-  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public ModuleDefinition ContainingModule => EnclosingModule;
   public bool ShouldVerify => true; // This could be made more accurate
   public string Designator => WhatKind;
 }

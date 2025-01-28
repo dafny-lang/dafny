@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using NJsonSchema.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -10,6 +11,7 @@ namespace Microsoft.Dafny;
 /// https://github.com/dafny-lang/dafny/issues/3027
 /// </summary>
 public class FileModuleDefinition : ModuleDefinition {
+  [JsonSchemaIgnore]
   public List<Include> Includes { get; } = new();
 
   public FileModuleDefinition(IOrigin token) :

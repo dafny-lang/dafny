@@ -6,8 +6,11 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using DafnyCore;
 using DafnyCore.Options;
+using JetBrains.Annotations;
 using Microsoft.Dafny.Auditor;
 using Microsoft.Dafny.Compilers;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
@@ -42,7 +45,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   public IOrigin BodyStartTok = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
-  public Name NameNode; // (Last segment of the) module name
+  public Name NameNode { get; set; }
 
   public override bool SingleFileToken => !ResolvedPrefixNamedModules.Any();
 
@@ -79,7 +82,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   public DefaultClassDecl DefaultClass { get; set; }
 
-  public readonly List<TopLevelDecl> SourceDecls = new();
+  public readonly List<TopLevelDecl> SourceDecls;
   [FilledInDuringResolution]
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
@@ -156,17 +159,19 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  public ModuleDefinition(IOrigin tok, Name name, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
-    Implements implements, ModuleDefinition parent, Attributes attributes) : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    this.NameNode = name;
+  [JsonConstructor]
+  public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
+    Implements implements, ModuleDefinition enclosingModule, Attributes attributes, [CanBeNull] List<TopLevelDecl> sourceDecls = null) : base(origin) {
+    Contract.Requires(origin != null);
+    Contract.Requires(nameNode != null);
+    this.NameNode = nameNode;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;
-    this.EnclosingModule = parent;
+    this.EnclosingModule = enclosingModule;
     this.Implements = implements;
     this.ModuleKind = moduleKind;
     this.IsFacade = isFacade;
+    this.SourceDecls = sourceDecls ?? new();
 
     if (Name != "_System") {
       DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
@@ -276,7 +281,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     foreach (var d in declarations) {
       var cl = d as TopLevelDeclWithMembers;
       if (cl != null) {
-        var module = cl.EnclosingModuleDefinition;
+        var module = cl.EnclosingModule;
         foreach (var member in cl.Members) {
           var fn = member as Function;
           if (fn != null) {
@@ -1044,7 +1049,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         foreach (var parent in traitDecl.ParentTraits) {
           if (parent is UserDefinedType udt) {
             if (ResolveNamePath(udt.NamePath) is TraitDecl parentTrait) {
-              if (parentTrait.EnclosingModuleDefinition == this) {
+              if (parentTrait.EnclosingModule == this) {
                 inheritsFromObject = InheritsFromObject(parentTrait) || inheritsFromObject;
               } else {
                 inheritsFromObject = parentTrait.IsReferenceTypeDecl || inheritsFromObject;

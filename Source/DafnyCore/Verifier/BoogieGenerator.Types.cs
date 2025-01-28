@@ -541,7 +541,7 @@ public partial class BoogieGenerator {
     var inner = FunctionCall(tok, name, Predef.Ty, argExprs);
     Bpl.Expr body = Bpl.Expr.True;
 
-    if (!td.EnclosingModuleDefinition.IsFacade) {
+    if (!td.EnclosingModule.IsFacade) {
       var tagName = "Tag" + inner_name;
       var tag = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, tagName, Predef.TyTag), true);
       sink.AddTopLevelDeclaration(tag);
@@ -929,7 +929,7 @@ public partial class BoogieGenerator {
     AddWellformednessCheck(dd);
 
     // Add $Is and $IsAlloc axioms for the newtype
-    currentModule = dd.EnclosingModuleDefinition;
+    currentModule = dd.EnclosingModule;
     AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
     AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
     currentModule = null;
@@ -947,7 +947,7 @@ public partial class BoogieGenerator {
     if (!Attributes.Contains(dd.Attributes, "axiom")) {
       AddWellformednessCheck(dd);
     }
-    currentModule = dd.EnclosingModuleDefinition;
+    currentModule = dd.EnclosingModule;
     // Add $Is and $IsAlloc axioms for the subset type
     AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
     AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);

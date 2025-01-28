@@ -50,7 +50,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   protected abstract string TypeName { get; }
 
   public bool IsVirtual => EnclosingClass is TraitDecl && !IsStatic;
-  public bool IsAbstract => EnclosingClass.EnclosingModuleDefinition.ModuleKind != ModuleKindEnum.Concrete;
+  public bool IsAbstract => EnclosingClass.EnclosingModule.ModuleKind != ModuleKindEnum.Concrete;
 
   public virtual void Resolve(ModuleResolver resolver) {
     ResolveMethodOrFunction(resolver);

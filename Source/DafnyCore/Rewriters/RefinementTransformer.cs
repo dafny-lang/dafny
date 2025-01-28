@@ -339,7 +339,7 @@ namespace Microsoft.Dafny {
             if (!CheckTypeCharacteristicsVisitor.CheckCharacteristics(od.Characteristics, newType, false, out var whatIsNeeded, out var hint, out var errorId)) {
               var typeCharacteristicsSyntax = od.Characteristics.ToString();
               Error(errorId, nw.Origin,
-                $"to be a refinement of {od.WhatKind} '{od.EnclosingModuleDefinition.Name}.{od.Name}' declared with {typeCharacteristicsSyntax}, " +
+                $"to be a refinement of {od.WhatKind} '{od.EnclosingModule.Name}.{od.Name}' declared with {typeCharacteristicsSyntax}, " +
                 $"{nw.WhatKind} '{m.Name}.{nw.Name}' must {whatIsNeeded}{hint}");
             }
           });
@@ -1575,7 +1575,7 @@ namespace Microsoft.Dafny {
 
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        if (e.Function.EnclosingClass.EnclosingModuleDefinition == m) {
+        if (e.Function.EnclosingClass.EnclosingModule == m) {
           var p = e.Function as Predicate;
           if (p != null && p.BodyOrigin == Predicate.BodyOriginKind.Extension) {
             return true;

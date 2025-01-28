@@ -523,7 +523,7 @@ namespace Microsoft.Dafny {
 
       foreach (var vertex in functionCallGraph.GetVertices()) {
         var func = vertex.N;
-        program.Options.OutputWriter.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
+        program.Options.OutputWriter.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModule.SanitizedName);
         foreach (var callee in vertex.Successors) {
           program.Options.OutputWriter.Write("{0} ", callee.N.SanitizedName);
         }

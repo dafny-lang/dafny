@@ -313,7 +313,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new ClassWriter(this, typeParams.Count > 0, builder.Datatype(
           dt.GetCompileName(Options),
-          dt.EnclosingModuleDefinition.GetCompileName(Options),
+          dt.EnclosingModule.GetCompileName(Options),
           typeParams,
           ctors.ToList(),
           dt is CoDatatypeDecl,
@@ -1685,7 +1685,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private ISequence<ISequence<Rune>> PathFromTopLevel(TopLevelDecl topLevel) {
       List<ISequence<Rune>> path = new();
-      path.Add(Sequence<Rune>.UnicodeFromString(topLevel.EnclosingModuleDefinition.GetCompileName(Options)));
+      path.Add(Sequence<Rune>.UnicodeFromString(topLevel.EnclosingModule.GetCompileName(Options)));
       path.Add(Sequence<Rune>.UnicodeFromString(topLevel.GetCompileName(Options)));
       return Sequence<ISequence<Rune>>.FromArray(path.ToArray());
     }

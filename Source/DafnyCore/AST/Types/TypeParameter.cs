@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using Newtonsoft.Json;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
@@ -132,7 +133,9 @@ public class TypeParameter : TopLevelDecl {
     public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
     public bool IsNonempty => AutoInit != Type.AutoInitInfo.MaybeEmpty;
     public bool ContainsNoReferenceTypes;
-    public TypeParameterCharacteristics(bool dummy) {
+    
+    [JsonConstructor]
+    public TypeParameterCharacteristics() {
       EqualitySupport = EqualitySupportValue.Unspecified;
       AutoInit = Type.AutoInitInfo.MaybeEmpty;
       ContainsNoReferenceTypes = false;
@@ -186,18 +189,19 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
+  [JsonConstructor]
+  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
     : base(origin, name, null, new List<TypeParameter>(), null, false) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Characteristics = characteristics;
-    VarianceSyntax = varianceS;
+    VarianceSyntax = varianceSyntax;
     TypeBounds = typeBounds;
   }
 
-  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceS)
-    : this(origin, name, varianceS, new TypeParameterCharacteristics(false), new List<Type>()) {
+  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax)
+    : this(origin, name, varianceSyntax, new TypeParameterCharacteristics(), new List<Type>()) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
   }
@@ -233,7 +237,7 @@ public class TypeParameter : TopLevelDecl {
 
   public static TypeParameterCharacteristics GetExplicitCharacteristics(TopLevelDecl d) {
     Contract.Requires(d != null);
-    TypeParameterCharacteristics characteristics = new TypeParameterCharacteristics(false);
+    TypeParameterCharacteristics characteristics = new TypeParameterCharacteristics();
     if (d is AbstractTypeDecl) {
       var dd = (AbstractTypeDecl)d;
       characteristics = dd.Characteristics;

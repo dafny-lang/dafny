@@ -319,7 +319,7 @@ class DafnyDoc {
     var docstring = Docstring(ex);
     var info = new Info(register, this, "export", ex.Origin, name, ex.FullDafnyName, ExportId(ex.FullDafnyName));
 
-    info.HtmlSummary = Row($"{Keyword("export")} {Code(ex.EnclosingModuleDefinition.Name)}`{Link(info.Id, Code(Bold(ex.Name)))}",
+    info.HtmlSummary = Row($"{Keyword("export")} {Code(ex.EnclosingModule.Name)}`{Link(info.Id, Code(Bold(ex.Name)))}",
      DashShortDocstring(ex));
 
     var details = new StringBuilder();

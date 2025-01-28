@@ -23,7 +23,7 @@ public partial class BoogieGenerator {
 
       generator.proofDependencies.SetCurrentDefinition(MethodVerboseName(f.FullDafnyName,
         MethodTranslationKind.SpecWellformedness), f);
-      generator.currentModule = f.EnclosingClass.EnclosingModuleDefinition;
+      generator.currentModule = f.EnclosingClass.EnclosingModule;
       generator.codeContext = f;
 
       ExpressionTranslator ordinaryEtran = new ExpressionTranslator(generator, generator.Predef, f.Origin, f);
@@ -167,7 +167,7 @@ public partial class BoogieGenerator {
         }
       }
 
-      Contract.Assert(generator.currentModule == f.EnclosingClass.EnclosingModuleDefinition);
+      Contract.Assert(generator.currentModule == f.EnclosingClass.EnclosingModule);
       Contract.Assert(generator.codeContext == f);
       generator.Reset();
     }

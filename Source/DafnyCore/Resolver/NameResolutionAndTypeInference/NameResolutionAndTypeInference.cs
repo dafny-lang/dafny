@@ -155,7 +155,7 @@ namespace Microsoft.Dafny {
           scope.PushMarker();
           scope.AllowInstance = false;
           ctor.Formals.ForEach(p => scope.Push(p.Name, p));
-          ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false), true);
+          ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModule), false), true);
           ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
           scope.PopMarker();
         }
@@ -172,7 +172,7 @@ namespace Microsoft.Dafny {
       if (topd is IteratorDecl iter) {
         iter.Ins.ForEach(p => scope.Push(p.Name, p));
       }
-      ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false), true);
+      ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModule), false), true);
       scope.PopMarker();
     }
 
@@ -2786,7 +2786,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (member is Field) {
-          var resolutionContext = new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false);
+          var resolutionContext = new ResolutionContext(new NoContext(currentClass.EnclosingModule), false);
           scope.PushMarker();
           if (member.IsStatic) {
             scope.AllowInstance = false;
@@ -2857,7 +2857,7 @@ namespace Microsoft.Dafny {
           coDependencies.AddVertex(codt);
           foreach (var p in ctor.Formals) {
             var co = p.Type.AsCoDatatype;
-            if (co != null && codt.EnclosingModuleDefinition == co.EnclosingModuleDefinition) {
+            if (co != null && codt.EnclosingModule == co.EnclosingModule) {
               coDependencies.AddEdge(codt, co);
             }
           }
@@ -2881,7 +2881,7 @@ namespace Microsoft.Dafny {
 
       tp = tp.NormalizeExpand();
       var dependee = tp.AsIndDatatype;
-      if (dependee != null && dt.EnclosingModuleDefinition == dependee.EnclosingModuleDefinition) {
+      if (dependee != null && dt.EnclosingModule == dependee.EnclosingModule) {
         dependencies.AddEdge(dt, dependee);
         foreach (var ta in ((UserDefinedType)tp).TypeArgs) {
           AddDatatypeDependencyEdge(dt, ta, dependencies);
@@ -3857,7 +3857,7 @@ namespace Microsoft.Dafny {
               // if the called method is not in the same module as the ForallCall stmt
               // don't convert it to ForallExpression since the inlined called method's
               // ensure clause might not be resolved correctly(test\dafny3\GenericSort.dfy)
-              if (method.EnclosingClass.EnclosingModuleDefinition != resolutionContext.CodeContext.EnclosingModule) {
+              if (method.EnclosingClass.EnclosingModule != resolutionContext.CodeContext.EnclosingModule) {
                 s.CanConvert = false;
               }
               // Additional information (namely, the postcondition of the call) will be reported later. But it cannot be
@@ -5001,7 +5001,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(resolvedClass.TypeArgs.Count == t.TypeArgs.Count);
           if (lax) {
             // we have to be careful about uses of the type being defined
-            var cg = enclosingTypeDefinition.EnclosingModuleDefinition.CallGraph;
+            var cg = enclosingTypeDefinition.EnclosingModule.CallGraph;
             if (resolvedClass is ICallable t0 && enclosingTypeDefinition is ICallable t1 && cg.GetSCCRepresentative(t0) == cg.GetSCCRepresentative(t1)) {
               reporter.Error(MessageSource.Resolver, t.Origin, "using the type being defined ('{0}') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)", resolvedClass.Name);
             }

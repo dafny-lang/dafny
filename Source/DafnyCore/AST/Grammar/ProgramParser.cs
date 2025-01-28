@@ -195,13 +195,13 @@ public class ProgramParser {
 
   public static void MoveModuleContents(ModuleDefinition sourceModule, ModuleDefinition targetModule) {
     foreach (var declToMove in sourceModule.DefaultClasses.Concat(sourceModule.SourceDecls)) {
-      declToMove.EnclosingModuleDefinition = targetModule;
+      declToMove.EnclosingModule = targetModule;
       if (declToMove is LiteralModuleDecl literalModuleDecl) {
         literalModuleDecl.ModuleDef.EnclosingModule = targetModule;
       }
 
       if (declToMove is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl }) {
-        nonNullTypeDecl.EnclosingModuleDefinition = targetModule;
+        nonNullTypeDecl.EnclosingModule = targetModule;
       }
 
       if (declToMove is DefaultClassDecl defaultClassDecl) {

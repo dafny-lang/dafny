@@ -60,7 +60,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
       yield return a;
     }
 
-    if (Body is null && HasPostcondition && EnclosingClass.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
+    if (Body is null && HasPostcondition && EnclosingClass.EnclosingModule.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
       yield return new Assumption(this, Origin, AssumptionDescription.NoBody(IsGhost));
     }
 
@@ -292,7 +292,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     set { _inferredDecr = value; }
     get { return _inferredDecr; }
   }
-  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingClass.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingClass.EnclosingModule; } }
   bool ICodeContext.MustReverify { get { return false; } }
 
   [Pure]
@@ -516,7 +516,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
   public override SymbolKind? Kind => SymbolKind.Function;
   public bool ShouldVerify => true; // This could be made more accurate
-  public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
+  public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModule;
   public override string GetDescription(DafnyOptions options) {
     var formals = string.Join(", ", Ins.Select(f => f.AsText()));
     var resultType = ResultType.TypeName(options, null, false);
@@ -556,7 +556,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
     foreach (var func in rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
       var revealStmt =
-        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Origin, EnclosingClass.EnclosingModuleDefinition);
+        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Origin, EnclosingClass.EnclosingModule);
 
       if (revealStmt is not null) {
         addedReveals.Add(new AutoRevealFunctionDependencies.RevealStmtWithDepth(revealStmt, func.Depth));

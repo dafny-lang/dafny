@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using NJsonSchema.Annotations;
 
 namespace Microsoft.Dafny;
 
 public class Program : NodeWithComputedRange {
+  [JsonSchemaIgnore]
   public CompilationData Compilation { get; }
 
   [ContractInvariantMethod]
@@ -15,8 +17,11 @@ public class Program : NodeWithComputedRange {
     Contract.Invariant(DefaultModule != null);
   }
 
+  [JsonSchemaIgnore]
   public bool HasParseErrors { get; set; }
-  public readonly string FullName;
+
+  public string FullName { get; }
+
   /// <summary>
   /// If this is a placeholder module, code generation will look for a unique module that replaces this one,
   /// and use it to set this field. 
@@ -26,17 +31,24 @@ public class Program : NodeWithComputedRange {
   // Resolution essentially flattens the module hierarchy, for
   // purposes of translation and compilation.
   [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
-  [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] { SystemModuleManager.SystemModule }.Concat(Modules());
+  
+  [JsonSchemaIgnore]
+  [FilledInDuringResolution] 
+  public IEnumerable<ModuleDefinition> CompileModules => new[] { SystemModuleManager.SystemModule }.Concat(Modules());
   // Contains the definitions to be used for compilation.
 
   public Method MainMethod; // Method to be used as main if compiled
   public LiteralModuleDecl DefaultModule;
+  [JsonSchemaIgnore]
   public IList<FileModuleDefinition> Files { get; } = new List<FileModuleDefinition>();
   public DefaultModuleDefinition DefaultModuleDef => (DefaultModuleDefinition)DefaultModule.ModuleDef;
   public SystemModuleManager SystemModuleManager;
   public DafnyOptions Options => Reporter.Options;
+  
+  [JsonSchemaIgnore]
   public ErrorReporter Reporter { get; set; }
 
+  [JsonSchemaIgnore]
   public ProofDependencyManager ProofDependencyManager { get; set; } = new();
 
   /// <summary>
@@ -55,9 +67,10 @@ public class Program : NodeWithComputedRange {
   /// if having this state here hampers reuse in the future,
   /// especially parallel processing.
   /// </summary>
+  [JsonSchemaIgnore]
   public Program AfterParsingClone { get; set; }
 
-  public Program(string name, [Captured] LiteralModuleDecl module, [Captured] SystemModuleManager systemModuleManager, ErrorReporter reporter,
+  public Program(string name, LiteralModuleDecl module, SystemModuleManager systemModuleManager, ErrorReporter reporter,
     CompilationData compilation) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
@@ -71,7 +84,7 @@ public class Program : NodeWithComputedRange {
 
   public Program(Cloner cloner, Program original) {
     FullName = original.FullName;
-    DefaultModule = new LiteralModuleDecl(cloner, original.DefaultModule, original.DefaultModule.EnclosingModuleDefinition);
+    DefaultModule = new LiteralModuleDecl(cloner, original.DefaultModule, original.DefaultModule.EnclosingModule);
     Files = original.Files;
     SystemModuleManager = original.SystemModuleManager;
     Reporter = original.Reporter;

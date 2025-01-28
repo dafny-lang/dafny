@@ -962,7 +962,7 @@ namespace Microsoft.Dafny {
         scope.PushMarker();
         Contract.Assert(currentClass == null);
         scope.AllowInstance = false;
-        ResolveAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false), true);
+        ResolveAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModule), false), true);
         scope.PopMarker();
       }
 
@@ -980,7 +980,7 @@ namespace Microsoft.Dafny {
           scope.PushMarker();
           scope.AllowInstance = false;
           ctor.Formals.ForEach(p => ScopePushAndReport(p, "destructor", false));
-          ResolveAttributes(ctor, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false), true);
+          ResolveAttributes(ctor, new ResolutionContext(new NoContext(d.EnclosingModule), false), true);
           ResolveParameterDefaultValues(ctor.Formals, dt);
           scope.PopMarker();
         }
@@ -1169,12 +1169,12 @@ namespace Microsoft.Dafny {
         if (cfield.IsStatic) {
           scope.AllowInstance = false;
         }
-        ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false), true);
+        ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModule), false), true);
         scope.PopMarker();
         ResolveConstRHS(cfield, false);
 
       } else if (member is Field) {
-        ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false), true);
+        ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModule), false), true);
 
       } else if (member is Function f) {
         var ec = ErrorCount;

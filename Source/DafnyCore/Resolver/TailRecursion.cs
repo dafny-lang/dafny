@@ -27,7 +27,7 @@ class TailRecursion {
     } else if (hasTailRecursionPreference && tail && m.IsGhost) {
       reporter.Error(MessageSource.Resolver, m.Origin, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
     } else {
-      var module = m.EnclosingClass.EnclosingModuleDefinition;
+      var module = m.EnclosingClass.EnclosingModule;
       var sccSize = module.CallGraph.GetSCCSize(m);
       if (hasTailRecursionPreference && 2 <= sccSize) {
         reporter.Error(MessageSource.Resolver, m.Origin, "sorry, tail-call optimizations are not supported for mutually recursive methods");
@@ -366,7 +366,7 @@ class TailRecursion {
     } else if (hasTailRecursionPreference && tail && f.IsGhost) {
       reporter.Error(MessageSource.Resolver, f.Origin, "tail recursion can be specified only for functions that will be compiled, not for ghost functions");
     } else {
-      var module = f.EnclosingClass.EnclosingModuleDefinition;
+      var module = f.EnclosingClass.EnclosingModule;
       var sccSize = module.CallGraph.GetSCCSize(f);
       if (hasTailRecursionPreference && 2 <= sccSize) {
         reporter.Error(MessageSource.Resolver, f.Origin, "sorry, tail-call optimizations are not supported for mutually recursive functions");

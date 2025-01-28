@@ -30,7 +30,7 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
   public new bool IsGhost { get { return this.isGhost; } }
   public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
   public List<Formal> Ins { get { return new List<Formal>(); } }
-  public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
+  public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModule; } }
   public bool MustReverify { get { return false; } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
   CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;

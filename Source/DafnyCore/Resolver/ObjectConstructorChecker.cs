@@ -25,7 +25,7 @@ class ObjectConstructorChecker : ASTVisitor<IASTVisitorContext> {
       var cl = (ClassLikeDecl)udt.ResolvedClass;
       if (!cl.IsObjectTrait && !udt.IsArrayType) {
         var classHasConstructor = cl is ClassDecl { HasConstructor: true };
-        if (classHasConstructor || cl.EnclosingModuleDefinition != context.EnclosingModule) {
+        if (classHasConstructor || cl.EnclosingModule != context.EnclosingModule) {
           reporter.Error(MessageSource.Resolver, stmt,
             $"when allocating an object of {(classHasConstructor ? "" : "imported ")}type '{cl.Name}', one of its constructor methods must be called");
         }

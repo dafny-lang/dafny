@@ -817,7 +817,7 @@ SynonymTypeName<out Name name> = Name<out name> .
 // The following includes Opaque type definitions
 SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. Token bvId;
-     var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+     var characteristics = new TypeParameter.TypeParameterCharacteristics();
      var typeArgs = new List<TypeParameter>();
      td = null;
      Type ty = null;

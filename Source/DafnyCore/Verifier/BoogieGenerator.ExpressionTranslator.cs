@@ -673,7 +673,7 @@ namespace Microsoft.Dafny {
                 }
                 if (e.Function.IsFuelAware()) {
                   Statistics_CustomLayerFunctionCount++;
-                  ModuleDefinition module = e.Function.EnclosingClass.EnclosingModuleDefinition;
+                  ModuleDefinition module = e.Function.EnclosingClass.EnclosingModule;
                   if (etran.applyLimited_CurrentFunction != null &&
                       etran.layerIntraCluster != null &&
                       ModuleDefinition.InSameSCC(e.Function, applyLimited_CurrentFunction)) {

@@ -1,14 +1,17 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Newtonsoft.Json;
+using NJsonSchema.Converters;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISymbol {
+[JsonConverter(typeof(JsonInheritanceConverter<TopLevelDecl>), "discriminator")]
+public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   public abstract string WhatKind { get; }
   public string WhatKindAndName => $"{WhatKind} '{Name}'";
-  public ModuleDefinition EnclosingModuleDefinition;
+  public ModuleDefinition EnclosingModule;
   public readonly List<TypeParameter> TypeArgs;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -17,7 +20,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
 
   protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition parent) : base(cloner, original) {
     TypeArgs = original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
-    EnclosingModuleDefinition = parent;
+    EnclosingModule = parent;
   }
 
   protected TopLevelDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
@@ -25,7 +28,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
-    EnclosingModuleDefinition = enclosingModule;
+    EnclosingModule = enclosingModule;
     TypeArgs = typeArgs;
   }
 
@@ -36,35 +39,35 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
       }
 
       if (Name == "_default") {
-        return EnclosingModuleDefinition.FullDafnyName;
+        return EnclosingModule.FullDafnyName;
       }
 
-      string n = EnclosingModuleDefinition.FullDafnyName;
+      string n = EnclosingModule.FullDafnyName;
       return (n.Length == 0 ? n : (n + ".")) + Name;
     }
   }
   public virtual string FullName {
     get {
-      if (EnclosingModuleDefinition is null) {
+      if (EnclosingModule is null) {
         return Name;
       }
-      return EnclosingModuleDefinition.FullName + "." + Name;
+      return EnclosingModule.FullName + "." + Name;
     }
   }
   public string FullSanitizedName {
     get {
-      if (EnclosingModuleDefinition is null) {
+      if (EnclosingModule is null) {
         return SanitizedName;
       }
-      return EnclosingModuleDefinition.SanitizedName + "." + SanitizedName;
+      return EnclosingModule.SanitizedName + "." + SanitizedName;
     }
   }
 
   public string FullNameInContext(ModuleDefinition context) {
-    if (EnclosingModuleDefinition == context) {
+    if (EnclosingModule == context) {
       return Name;
     } else {
-      return EnclosingModuleDefinition.Name + "." + Name;
+      return EnclosingModule.Name + "." + Name;
     }
   }
 
@@ -76,8 +79,8 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
       }
     }
 
-    return options.Backend.GetCompileName(EnclosingModuleDefinition.TryToAvoidName,
-      EnclosingModuleDefinition.GetCompileName(options), GetCompileName(options));
+    return options.Backend.GetCompileName(EnclosingModule.TryToAvoidName,
+      EnclosingModule.GetCompileName(options), GetCompileName(options));
   }
 
   public TopLevelDecl ViewAsClass {

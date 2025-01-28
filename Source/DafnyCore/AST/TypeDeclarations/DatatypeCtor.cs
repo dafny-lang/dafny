@@ -61,7 +61,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     return $"{EnclosingDatatype.Name}.{Name}({formals})";
   }
 
-  public ModuleDefinition ContainingModule => EnclosingDatatype.EnclosingModuleDefinition;
+  public ModuleDefinition ContainingModule => EnclosingDatatype.EnclosingModule;
   public bool ShouldVerify => Formals.Any(f => f.DefaultValue != null);
   public string FullDafnyName => FullName;
 }

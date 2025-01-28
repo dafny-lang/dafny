@@ -12,7 +12,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(depth != null);
       extremePred = extremePredicate;
       unrollDepth = depth;
-      module = extremePredicate.EnclosingClass.EnclosingModuleDefinition;
+      module = extremePredicate.EnclosingClass.EnclosingModule;
     }
     public override Expression Substitute(Expression expr) {
       if (expr is FunctionCallExpr) {

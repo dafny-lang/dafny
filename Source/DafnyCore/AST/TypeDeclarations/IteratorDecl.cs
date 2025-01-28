@@ -145,7 +145,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     get { return _inferredDecr; }
   }
 
-  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingModule; } }
   bool ICodeContext.MustReverify { get { return false; } }
   public bool AllowsNontermination {
     get {
@@ -534,7 +534,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     return null;
   }
   public bool ShouldVerify => true; // This could be made more accurate
-  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public ModuleDefinition ContainingModule => EnclosingModule;
   public string Designator => WhatKind;
 
   [FilledInDuringResolution]

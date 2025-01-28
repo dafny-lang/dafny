@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual void VisitOneDeclaration(TopLevelDecl decl) {
-      VisitAttributes(decl, decl.EnclosingModuleDefinition);
+      VisitAttributes(decl, decl.EnclosingModule);
 
       if (decl is RedirectingTypeDecl dd) {
         var context = GetContext(dd, false);
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
 
       } else if (decl is DatatypeDecl datatypeDecl) {
         foreach (var ctor in datatypeDecl.Ctors) {
-          VisitAttributes(ctor, decl.EnclosingModuleDefinition);
+          VisitAttributes(ctor, decl.EnclosingModule);
         }
         foreach (var ctor in datatypeDecl.Ctors) {
           var context = GetContext(datatypeDecl, false);
@@ -64,13 +64,13 @@ namespace Microsoft.Dafny {
     private void VisitIterator(IteratorDecl iteratorDecl) {
       var context = GetContext(iteratorDecl, false);
 
-      VisitAttributes(iteratorDecl, iteratorDecl.EnclosingModuleDefinition);
+      VisitAttributes(iteratorDecl, iteratorDecl.EnclosingModule);
 
       VisitDefaultParameterValues(iteratorDecl.Ins, context);
 
       iteratorDecl.Requires.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
 
-      VisitAttributes(iteratorDecl.Modifies, iteratorDecl.EnclosingModuleDefinition);
+      VisitAttributes(iteratorDecl.Modifies, iteratorDecl.EnclosingModule);
       iteratorDecl.Modifies.Expressions.ForEach(frameExpr => VisitTopLevelFrameExpression(frameExpr, context));
 
       iteratorDecl.YieldRequires.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
 
       iteratorDecl.Ensures.ForEach(aexpr => VisitExpression(aexpr.E, context));
 
-      VisitAttributes(iteratorDecl.Decreases, iteratorDecl.EnclosingModuleDefinition);
+      VisitAttributes(iteratorDecl.Decreases, iteratorDecl.EnclosingModule);
       iteratorDecl.Decreases.Expressions.ForEach(expr => VisitExpression(expr, context));
 
       if (iteratorDecl.Body != null) {
@@ -120,7 +120,7 @@ namespace Microsoft.Dafny {
     }
 
     public virtual void VisitField(Field field) {
-      var enclosingModule = field.EnclosingClass.EnclosingModuleDefinition;
+      var enclosingModule = field.EnclosingClass.EnclosingModule;
       VisitAttributes(field, enclosingModule);
 
       var context = GetContext(field as IASTVisitorContext ?? new NoContext(enclosingModule), false);
@@ -134,7 +134,7 @@ namespace Microsoft.Dafny {
     public virtual void VisitFunction(Function function) {
       var context = GetContext(function, false);
 
-      VisitAttributes(function, function.EnclosingClass.EnclosingModuleDefinition);
+      VisitAttributes(function, function.EnclosingClass.EnclosingModule);
 
       foreach (var formal in function.Ins) {
         VisitUserProvidedType(formal.Type, context);
@@ -145,12 +145,12 @@ namespace Microsoft.Dafny {
 
       function.Req.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
 
-      VisitAttributes(function.Reads, function.EnclosingClass.EnclosingModuleDefinition);
+      VisitAttributes(function.Reads, function.EnclosingClass.EnclosingModule);
       function.Reads.Expressions.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
       function.Ens.ForEach(aexpr => VisitAttributedExpression(aexpr, GetContext(function, true)));
 
-      VisitAttributes(function.Decreases, function.EnclosingClass.EnclosingModuleDefinition);
+      VisitAttributes(function.Decreases, function.EnclosingClass.EnclosingModule);
       function.Decreases.Expressions.ForEach(expr => VisitExpression(expr, context));
 
       if (function.Body != null) {
@@ -161,7 +161,7 @@ namespace Microsoft.Dafny {
     public virtual void VisitMethod(Method method) {
       var context = GetContext(method, false);
 
-      VisitAttributes(method, method.EnclosingClass.EnclosingModuleDefinition);
+      VisitAttributes(method, method.EnclosingClass.EnclosingModule);
 
       foreach (var p in method.Ins) {
         VisitUserProvidedType(p.Type, context);
@@ -176,10 +176,10 @@ namespace Microsoft.Dafny {
 
       method.Reads.Expressions.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
-      VisitAttributes(method.Mod, method.EnclosingClass.EnclosingModuleDefinition);
+      VisitAttributes(method.Mod, method.EnclosingClass.EnclosingModule);
       method.Mod.Expressions.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
-      VisitAttributes(method.Decreases, method.EnclosingClass.EnclosingModuleDefinition);
+      VisitAttributes(method.Decreases, method.EnclosingClass.EnclosingModule);
       method.Decreases.Expressions.ForEach(expr => VisitExpression(expr, context));
 
       method.Ens.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
