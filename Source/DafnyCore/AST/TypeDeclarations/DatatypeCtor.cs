@@ -22,7 +22,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   // TODO: One could imagine having a precondition on datatype constructors
   [FilledInDuringResolution] public DatatypeDecl EnclosingDatatype;
   [FilledInDuringResolution] public SpecialField QueryField;
-  [FilledInDuringResolution] public List<DatatypeDestructor> Destructors = new List<DatatypeDestructor>();  // includes both implicit (not mentionable in source) and explicit destructors
+  [FilledInDuringResolution] public List<DatatypeDestructor> Destructors = [];  // includes both implicit (not mentionable in source) and explicit destructors
 
   public DatatypeCtor(IOrigin origin, Name name, bool isGhost, [Captured] List<Formal> formals, Attributes attributes)
     : base(origin, name, attributes, false) {

@@ -119,7 +119,7 @@ public class SymbolTable {
         SelectMany(node => NodeToReferences.GetOrDefault(node, () => (ISet<IOrigin>)new HashSet<IOrigin>())).
         Select(u => new Location { Uri = u.Filepath, Range = u.GetLspRange() }).Distinct();
     }
-    return Enumerable.Empty<Location>();
+    return [];
   }
 
   public Location? GetDeclaration(Uri uri, Position position) {

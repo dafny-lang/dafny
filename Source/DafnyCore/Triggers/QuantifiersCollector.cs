@@ -12,9 +12,9 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny.Triggers {
   internal class QuantifierCollector : TopDownVisitor<OldExpr/*?*/> {
     readonly ErrorReporter reporter;
-    private readonly HashSet<Expression> quantifiers = new HashSet<Expression>();
+    private readonly HashSet<Expression> quantifiers = [];
     internal readonly Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext = new Dictionary<Expression, HashSet<OldExpr>>();
-    internal readonly List<ComprehensionTriggerGenerator> quantifierCollections = new List<ComprehensionTriggerGenerator>();
+    internal readonly List<ComprehensionTriggerGenerator> quantifierCollections = [];
 
     public QuantifierCollector(ErrorReporter reporter) {
       Contract.Requires(reporter != null);

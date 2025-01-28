@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 
 public class OrderedDictionary<TKey, TValue> {
   private readonly Dictionary<TKey, TValue> keyToValue = new();
-  private readonly List<TKey> keyOrder = new();
+  private readonly List<TKey> keyOrder = [];
   private readonly Func<TValue, TKey> getKey;
 
   public OrderedDictionary(Func<TValue, TKey> getKey) {

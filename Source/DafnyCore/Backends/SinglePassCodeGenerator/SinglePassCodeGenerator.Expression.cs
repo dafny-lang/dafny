@@ -153,7 +153,7 @@ namespace Microsoft.Dafny.Compilers {
             if (e.Seq.Type.IsArrayType) {
               if (e.SelectOne) {
                 Contract.Assert(e.E0 != null && e.E1 == null);
-                var w = EmitArraySelect(new List<Expression>() { e.E0 }, e.Type, inLetExprBody, wr, wStmts);
+                var w = EmitArraySelect([e.E0], e.Type, inLetExprBody, wr, wStmts);
                 w = EmitCoercionIfNecessary(
                   e.Seq.Type,
                   e.Seq.Type.IsNonNullRefType || !e.Seq.Type.IsRefType
@@ -410,8 +410,8 @@ namespace Microsoft.Dafny.Compilers {
               wBody = EmitQuantifierExpr(collection, quantifierExpr is ForallExpr, collectionElementType, bv, wBody);
               var native = AsNativeType(e.BoundVars[i].Type);
               var tmpVarName = ProtectedFreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
-              ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { collectionElementType }, e.Origin,
-                new List<string> { tmpVarName }, Type.Bool, wBody, wStmts, untyped: true);
+              ConcreteSyntaxTree newWBody = CreateLambda([collectionElementType], e.Origin,
+                [tmpVarName], Type.Bool, wBody, wStmts, untyped: true);
               wStmts = newWBody.Fork();
               newWBody = MaybeInjectSubtypeConstraintWrtTraits(
                 tmpVarName, collectionElementType, bv.Type,
@@ -550,8 +550,8 @@ namespace Microsoft.Dafny.Compilers {
                 type = ty
               };
               var _this = new ThisExpr(thisContext);
-              wr = EmitBetaRedex(new List<string>() { IdName(receiver) }, new List<Expression>() { _this },
-                new List<Type>() { _this.Type }, lambdaExpr.Type, lambdaExpr.Origin, inLetExprBody, wr, ref wStmts);
+              wr = EmitBetaRedex([IdName(receiver)], [_this],
+                [_this.Type], lambdaExpr.Type, lambdaExpr.Origin, inLetExprBody, wr, ref wStmts);
             }
 
             wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr, ref wStmts);
@@ -697,7 +697,7 @@ namespace Microsoft.Dafny.Compilers {
 
       string source = ProtectedFreshId("_source");
       ConcreteSyntaxTree w;
-      w = CreateLambda(new List<Type>() { e.Source.Type }, e.Origin, new List<string>() { source }, e.Type, wLambda,
+      w = CreateLambda([e.Source.Type], e.Origin, [source], e.Type, wLambda,
         wStmts);
 
       if (e.Cases.Count == 0) {
@@ -738,7 +738,7 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree EmitAppliedLambda(ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts,
       IOrigin token, Type resultType) {
       EmitLambdaApply(output, out var lambdaApplyTarget, out _);
-      return CreateLambda(new List<Type>(), token, new List<string>(), resultType, lambdaApplyTarget, wStmts);
+      return CreateLambda([], token, [], resultType, lambdaApplyTarget, wStmts);
     }
   }
 }

@@ -174,7 +174,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     List<List<Expression>> ret = null;
     for (; attrs != null; attrs = attrs.Prev) {
       if (attrs.Name == nm) {
-        ret = ret ?? new List<List<Expression>>();   // Avoid allocating the list in the common case where we don't find nm
+        ret = ret ?? [];   // Avoid allocating the list in the common case where we don't find nm
         ret.Add(attrs.Args);
       }
     }
@@ -280,7 +280,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   // Helper to create a built-in @-attribute
   static BuiltInAtAttributeSyntax BuiltIn(string name) {
     return new BuiltInAtAttributeSyntax(
-      name, new List<BuiltInAtAttributeArgSyntax>(), _ => true);
+      name, [], _ => true);
   }
 
   // Helper to create an old-style attribute
@@ -330,7 +330,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     atAttribute.Arg.Type = Type.Int; // Dummy type to avoid crashes
     var intDecl = resolver.SystemModuleManager.valuetypeDecls.First(valueTypeDecl => valueTypeDecl.Name == PreType.TypeNameInt);
 
-    atAttribute.Arg.PreType = new DPreType(intDecl, new List<PreType>(), null);
+    atAttribute.Arg.PreType = new DPreType(intDecl, [], null);
 
     switch (name) {
       case "AssumeCrossModuleTermination": {
@@ -480,101 +480,143 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   // List of built-in @-attributes with their definitions.
   // This list could be obtained from parsing and resolving a .Dfy file
   // but for now it's good enough.
-  public static readonly List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = new() {
+  public static readonly List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = [
     BuiltIn("AssumeCrossModuleTermination")
       .Filter(attributeHost => attributeHost is ClassDecl or TraitDecl),
+
     BuiltIn("AutoContracts")
       .Filter(attributeHost => attributeHost is ClassDecl),
+
     BuiltIn("AutoRequires")
       .Filter(attributeHost => attributeHost is Function),
+
     BuiltIn("AutoRevealDependenciesAll").WithArg(TupleItem0Name, Type.Bool, DefaultBool(true))
       .Filter(attributeHost => attributeHost is MethodOrFunction),
+
     BuiltIn("AutoRevealDependencies").WithArg("level", Type.Int)
       .Filter(attributeHost => attributeHost is MethodOrFunction),
+
     BuiltIn("Axiom")
       .Filter(attributeHost => attributeHost is MethodOrFunction),
+
     BuiltIn("Compile")
       .WithArg(TupleItem0Name, Type.Bool, DefaultBool(true))
       .Filter(attributeHost =>
         attributeHost is TopLevelDecl and not TypeParameter or MemberDecl or ModuleDefinition),
+
     BuiltIn("Concurrent")
       .Filter(attributeHost =>
         attributeHost is MethodOrFunction),
+
     BuiltIn("DisableNonlinearArithmetic")
       .WithArg("disable", Type.Bool, DefaultBool(true))
       .Filter(attributeHost =>
         attributeHost is ModuleDefinition),
+
     BuiltIn("Fuel")
       .WithArg("low", Type.Int, DefaultInt(1))
       .WithArg("high", Type.Int, DefaultInt(2))
       .WithArg("functionName", Type.ResolvedString(), DefaultString(""))
       .Filter(attributeHost => attributeHost is MethodOrFunction or AssertStmt),
+
     BuiltIn("IsolateAssertions")
       .Filter(attributeHost => attributeHost is ICanVerify),
+
     BuiltIn("NativeUInt8")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeInt8")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeUInt16")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeInt16")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeUInt32")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeInt32")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeInt53")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeUInt64")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeInt64")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeUInt128")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeInt128")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeInt")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeNone")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("NativeIntOrReal")
       .Filter(attributeHost => attributeHost is NewtypeDecl),
+
     BuiltIn("Options")
       .WithArg(TupleItem0Name, Type.ResolvedString())
       .Filter(attributeHost => attributeHost is ModuleDecl or ModuleDefinition),
+
     BuiltIn("Print")
       .Filter(attributeHost => attributeHost is Method),
+
     BuiltIn("Priority").WithArg(TupleItem0Name, Type.Int)
       .Filter(attributeHost => attributeHost is ICanVerify),
+
     BuiltIn("ResourceLimit").WithArg(TupleItem0Name, Type.ResolvedString())
       .Filter(attributeHost => attributeHost is ICanVerify),
+
     BuiltIn("Synthesize")
       .Filter(attributeHost => attributeHost is Method),
+
     BuiltIn("TimeLimit").WithArg(TupleItem0Name, Type.Int)
       .Filter(attributeHost => attributeHost is ICanVerify),
+
     BuiltIn("TimeLimitMultiplier").WithArg(TupleItem0Name, Type.Int)
       .Filter(attributeHost => attributeHost is ICanVerify),
+
     BuiltIn("TailRecursion")
       .Filter(attributeHost => attributeHost is MethodOrFunction),
+
     BuiltIn("Test")
       .Filter(attributeHost => attributeHost is MethodOrFunction),
+
     BuiltIn("TestEntry")
       .Filter(attributeHost => attributeHost is MethodOrFunction),
+
     BuiltIn("TestInline").WithArg("level", Type.Int, DefaultInt(1))
       .Filter(attributeHost => attributeHost is MethodOrFunction),
+
     BuiltIn("Transparent")
       .Filter(attributeHost => attributeHost is Function),
+
     BuiltIn("VcsMaxCost").WithArg(TupleItem0Name, Type.Int)
       .Filter(attributeHost => attributeHost is ICanVerify),
+
     BuiltIn("VcsMaxKeepGoingSplits").WithArg(TupleItem0Name, Type.Int)
       .Filter(attributeHost => attributeHost is ICanVerify),
+
     BuiltIn("VcsMaxSplits").WithArg(TupleItem0Name, Type.Int)
       .Filter(attributeHost => attributeHost is ICanVerify),
+
     BuiltIn("Verify")
       .Filter(attributeHost => attributeHost is ICanVerify),
+
     BuiltIn("VerifyOnly")
-      .Filter(attributeHost => attributeHost is ICanVerify),
-  };
+      .Filter(attributeHost => attributeHost is ICanVerify)
+
+  ];
 
   ////// Helpers to create default values for the @-attribute definitions above //////
 
@@ -708,7 +750,7 @@ public class UserSuppliedAtAttribute : Attributes {
   public bool Builtin;  // set to true to indicate it was recognized as a builtin attribute
   // Otherwise it's a user-defined one and Arg needs to be fully resolved
   public UserSuppliedAtAttribute(IOrigin origin, Expression arg, Attributes prev)
-    : base(AtName, new List<Expression>() { arg }, prev) {
+    : base(AtName, [arg], prev) {
     Contract.Requires(origin != null);
     SetOrigin(origin);
     this.AtSign = origin;

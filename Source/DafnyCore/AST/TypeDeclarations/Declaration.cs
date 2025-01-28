@@ -142,7 +142,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
 
   // For Boogie
   internal VerificationIdGenerator IdGenerator = new();
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>(); // Attributes should be enumerated by the parent, as they could be placed in different places
+  public override IEnumerable<INode> Children => []; // Attributes should be enumerated by the parent, as they could be placed in different places
   public override IEnumerable<INode> PreResolveChildren => Children;
   public abstract SymbolKind? Kind { get; }
   public abstract string GetDescription(DafnyOptions options);
