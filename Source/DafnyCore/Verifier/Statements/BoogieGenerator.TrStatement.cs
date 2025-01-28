@@ -861,9 +861,9 @@ public partial class BoogieGenerator {
       kv = null;  // this is the default behavior of Boogie's assert
     } else {
       List<object> args = [
+        // {:subsumption 0}
         Bpl.Expr.Literal(0)
       ];
-      // {:subsumption 0}
       kv = new Bpl.QKeyValue(expr.Origin, "subsumption", args, null);
     }
     var options = new WFOptions(kv);
