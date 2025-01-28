@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class ProgramBuilder : ModuleContainer {
-    readonly List<Module> items = new();
+    readonly List<Module> items = [];
 
     public void AddModule(Module item) {
       items.Add(item);
@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Compilers {
     readonly ModuleContainer parent;
     readonly string name;
     readonly Sequence<Attribute> attributes;
-    readonly List<ModuleItem> body = new();
+    readonly List<ModuleItem> body = [];
     private readonly bool requiresExterns;
     private string docString;
 
@@ -125,8 +125,8 @@ namespace Microsoft.Dafny.Compilers {
     readonly string enclosingModule;
     readonly List<DAST.TypeArgDecl> typeParams;
     readonly List<DAST.Type> superClasses;
-    readonly List<DAST.Field> fields = new();
-    readonly List<DAST.Method> body = new();
+    readonly List<DAST.Field> fields = [];
+    readonly List<DAST.Method> body = [];
     readonly ISequence<_IAttribute> attributes;
     private string docString;
 
@@ -177,7 +177,7 @@ namespace Microsoft.Dafny.Compilers {
     readonly string name;
     readonly List<DAST.TypeArgDecl> typeParams;
     private readonly List<DAST.Type> parents;
-    readonly List<DAST.Method> body = new();
+    readonly List<DAST.Method> body = [];
     private ISequence<_IAttribute> attributes;
     private readonly string docString;
     private readonly _ITraitType traitType;
@@ -265,7 +265,7 @@ namespace Microsoft.Dafny.Compilers {
       this.attributes = attributes;
       this.docString = docString;
       this.equalitySupport = equalitySupport;
-      this.methods = new();
+      this.methods = [];
     }
 
     public void AddMethod(DAST.Method item) {
@@ -362,7 +362,7 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<DAST.TypeArgDecl> typeParams;
     readonly List<DAST.DatatypeCtor> ctors;
     readonly bool isCo;
-    readonly List<DAST.Method> body = new();
+    readonly List<DAST.Method> body = [];
     readonly ISequence<_IAttribute> attributes;
     readonly string docString;
     readonly List<DAST.Type> superTraitTypes;
@@ -439,7 +439,7 @@ namespace Microsoft.Dafny.Compilers {
     readonly Sequence<DAST.Formal> inheritedParams;
     readonly List<DAST.Type> outTypes;
     readonly List<ISequence<Rune>> outVars;
-    readonly List<object> body = new();
+    readonly List<object> body = [];
     private ISequence<_IAttribute> attributes;
     private ISequence<Rune> docString;
 
@@ -484,7 +484,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public DAST.Method Build() {
-      List<DAST.Statement> builtStatements = new();
+      List<DAST.Statement> builtStatements = [];
       StatementContainer.RecursivelyBuild(body, builtStatements);
       return (DAST.Method)DAST.Method.create(
         docString,
@@ -659,7 +659,7 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<Rune>.UnicodeFromString(name), type, Option<DAST._IExpression>.create_None());
       } else {
         var builtValue = new List<DAST.Expression>();
-        ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+        ExprContainer.RecursivelyBuild([value], builtValue);
         return (DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, Option<DAST._IExpression>.create_Some(builtValue[0]));
       }
     }
@@ -716,7 +716,7 @@ namespace Microsoft.Dafny.Compilers {
         rhs = ExprContainer.UnsupportedToExpr("<i>Cannot assign null value to variable</i>: " + lhs);
       } else {
         var builtValue = new List<DAST.Expression>();
-        ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+        ExprContainer.RecursivelyBuild([value], builtValue);
         rhs = builtValue[0];
       }
 
@@ -726,8 +726,8 @@ namespace Microsoft.Dafny.Compilers {
 
   class IfElseBuilder : ExprContainer, StatementContainer, BuildableStatement {
     object condition = null;
-    readonly List<object> ifBody = new();
-    readonly List<object> elseBody = new();
+    readonly List<object> ifBody = [];
+    readonly List<object> elseBody = [];
 
     public object Condition => condition;
 
@@ -782,15 +782,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public DAST.Statement Build() {
-      List<DAST.Expression> builtCondition = new();
-      ExprContainer.RecursivelyBuild(new List<object> {
-        condition ?? ExprContainer.UnsupportedToExpr("<i>condition to if expression</i>")
-      }, builtCondition);
+      List<DAST.Expression> builtCondition = [];
+      ExprContainer.RecursivelyBuild(
+        [condition ?? ExprContainer.UnsupportedToExpr("<i>condition to if expression</i>")], builtCondition);
 
-      List<DAST.Statement> builtIfStatements = new();
+      List<DAST.Statement> builtIfStatements = [];
       StatementContainer.RecursivelyBuild(ifBody, builtIfStatements);
 
-      List<DAST.Statement> builtElseStatements = new();
+      List<DAST.Statement> builtElseStatements = [];
       StatementContainer.RecursivelyBuild(elseBody, builtElseStatements);
 
       return (DAST.Statement)DAST.Statement.create_If(
@@ -831,7 +830,7 @@ namespace Microsoft.Dafny.Compilers {
 
   class WhileBuilder : ExprContainer, StatementContainer, BuildableStatement {
     object condition = null;
-    readonly List<object> body = new();
+    readonly List<object> body = [];
     public object Condition => condition;
 
     public void AddExpr(DAST.Expression value) {
@@ -865,10 +864,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public DAST.Statement Build() {
-      List<DAST.Expression> builtCondition = new();
-      ExprContainer.RecursivelyBuild(new List<object> { condition }, builtCondition);
+      List<DAST.Expression> builtCondition = [];
+      ExprContainer.RecursivelyBuild([condition], builtCondition);
 
-      List<DAST.Statement> builtStatements = new();
+      List<DAST.Statement> builtStatements = [];
       StatementContainer.RecursivelyBuild(body, builtStatements);
 
       return (DAST.Statement)DAST.Statement.create_While(
@@ -886,7 +885,7 @@ namespace Microsoft.Dafny.Compilers {
     readonly string boundName;
     readonly DAST.Type boundType;
     object over = null;
-    readonly List<object> body = new();
+    readonly List<object> body = [];
 
     public ForeachBuilder(string boundName, DAST.Type boundType) {
       this.boundName = boundName;
@@ -924,12 +923,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public DAST.Statement Build() {
-      List<DAST.Expression> builtOver = new();
-      ExprContainer.RecursivelyBuild(new List<object> {
-        over ?? ExprContainer.UnsupportedToExpr("<i>Foreach over is null</i>")
-      }, builtOver);
+      List<DAST.Expression> builtOver = [];
+      ExprContainer.RecursivelyBuild([over ?? ExprContainer.UnsupportedToExpr("<i>Foreach over is null</i>")], builtOver);
 
-      List<DAST.Statement> builtStatements = new();
+      List<DAST.Statement> builtStatements = [];
       StatementContainer.RecursivelyBuild(body, builtStatements);
 
       return (DAST.Statement)DAST.Statement.create_Foreach(
@@ -946,7 +943,7 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class TailRecursiveBuilder : StatementContainer, BuildableStatement {
-    readonly List<object> body = new();
+    readonly List<object> body = [];
 
     public TailRecursiveBuilder() { }
 
@@ -965,7 +962,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public DAST.Statement Build() {
-      List<DAST.Statement> builtStatements = new();
+      List<DAST.Statement> builtStatements = [];
       StatementContainer.RecursivelyBuild(body, builtStatements);
 
       return (DAST.Statement)DAST.Statement.create_TailRecursive(
@@ -982,7 +979,7 @@ namespace Microsoft.Dafny.Compilers {
     object on = null;
     DAST.CallName name = null;
     List<DAST.Type> typeArgs = null;
-    readonly List<object> args = new();
+    readonly List<object> args = [];
     List<ISequence<Rune>> outs = null;
     public readonly _ICallSignature Signature;
 
@@ -1031,10 +1028,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public DAST.Statement Build() {
-      List<DAST.Expression> builtOn = new();
-      ExprContainer.RecursivelyBuild(new List<object> { on }, builtOn);
+      List<DAST.Expression> builtOn = [];
+      ExprContainer.RecursivelyBuild([on], builtOn);
 
-      List<DAST.Expression> builtArgs = new();
+      List<DAST.Expression> builtArgs = [];
       ExprContainer.RecursivelyBuild(args, builtArgs);
 
       return (DAST.Statement)DAST.Statement.create_Call(
@@ -1077,7 +1074,7 @@ namespace Microsoft.Dafny.Compilers {
       if (value == null) {
         return (DAST.Statement)DAST.Statement.create_EarlyReturn();
       }
-      ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+      ExprContainer.RecursivelyBuild([value], builtValue);
 
       return (DAST.Statement)DAST.Statement.create_Return(builtValue[0]);
     }
@@ -1089,7 +1086,7 @@ namespace Microsoft.Dafny.Compilers {
 
   class LabeledBuilder : BuildableStatement, StatementContainer {
     readonly string label;
-    readonly List<object> statements = new();
+    readonly List<object> statements = [];
 
     public LabeledBuilder(string label) {
       this.label = label;
@@ -1114,7 +1111,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public DAST.Statement Build() {
-      List<DAST.Statement> builtStatements = new();
+      List<DAST.Statement> builtStatements = [];
       StatementContainer.RecursivelyBuild(statements, builtStatements);
 
       return (DAST.Statement)DAST.Statement.create_Labeled(
@@ -1147,7 +1144,7 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class StatementBuffer : StatementContainer {
-    readonly List<object> statements = new();
+    readonly List<object> statements = [];
 
     public void AddStatement(DAST.Statement item) {
       statements.Add(item);
@@ -1422,7 +1419,7 @@ namespace Microsoft.Dafny.Compilers {
         Console.WriteLine(stackTrace);
       }
       var builtArrayExpr = new List<DAST.Expression>();
-      ExprContainer.RecursivelyBuild(new List<object> { arrayExpr }, builtArrayExpr);
+      ExprContainer.RecursivelyBuild([arrayExpr], builtArrayExpr);
 
       return (DAST.AssignLhs)DAST.AssignLhs.create_Index(builtArrayExpr[0], Sequence<DAST.Expression>.FromArray(indices.ToArray()));
     }
@@ -1438,7 +1435,7 @@ namespace Microsoft.Dafny.Compilers {
 
   class BinOpBuilder : ExprContainer, BuildableExpr {
     private readonly Func<DAST.Expression, DAST.Expression, DAST.Expression> internalBuilder;
-    readonly List<object> operands = new();
+    readonly List<object> operands = [];
     private readonly string op;
 
     public BinOpBuilder(DAST.BinOp op, DAST.Type leftType, DAST.Type rightType, DAST.Type resType) {
@@ -1483,7 +1480,7 @@ namespace Microsoft.Dafny.Compilers {
     object on = null;
     DAST.CallName name = null;
     List<DAST.Type> typeArgs = null;
-    readonly List<object> args = new();
+    readonly List<object> args = [];
     List<ISequence<Rune>> outs = null;
 
     public _ICallSignature Signature { get; }
@@ -1534,7 +1531,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Build() {
       var builtOn = new List<DAST.Expression>();
-      ExprContainer.RecursivelyBuild(new List<object> { on }, builtOn);
+      ExprContainer.RecursivelyBuild([on], builtOn);
 
       var builtArgs = new List<DAST.Expression>();
       ExprContainer.RecursivelyBuild(args, builtArgs);
@@ -1542,7 +1539,7 @@ namespace Microsoft.Dafny.Compilers {
       return (DAST.Expression)DAST.Expression.create_Call(
         builtOn[0],
         name,
-        Sequence<DAST.Type>.FromArray((typeArgs ?? new()).ToArray()),
+        Sequence<DAST.Type>.FromArray((typeArgs ?? []).ToArray()),
         Sequence<DAST.Expression>.FromArray(builtArgs.ToArray())
       );
     }
@@ -1554,7 +1551,7 @@ namespace Microsoft.Dafny.Compilers {
 
   class ApplyExprBuilder : ExprContainer, BuildableExpr {
     object on = null;
-    readonly List<object> args = new();
+    readonly List<object> args = [];
 
     public ApplyExprBuilder() { }
 
@@ -1576,7 +1573,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Build() {
       var builtOn = new List<DAST.Expression>();
-      ExprContainer.RecursivelyBuild(new List<object> { on }, builtOn);
+      ExprContainer.RecursivelyBuild([on], builtOn);
 
       var builtArgs = new List<DAST.Expression>();
       ExprContainer.RecursivelyBuild(args, builtArgs);
@@ -1595,7 +1592,7 @@ namespace Microsoft.Dafny.Compilers {
   class LambdaExprBuilder : StatementContainer, BuildableExpr {
     readonly List<DAST.Formal> formals;
     readonly DAST.Type retType;
-    readonly List<object> body = new();
+    readonly List<object> body = [];
 
     public LambdaExprBuilder(List<DAST.Formal> formals, DAST.Type retType) {
       this.formals = formals;
@@ -1666,12 +1663,13 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Build() {
       var builtBody = new List<DAST.Expression>();
-      ExprContainer.RecursivelyBuild(new List<object> { body ?? ExprContainer.UnsupportedToExpr("IIFEExprBuilder with empty body") }, builtBody);
+      ExprContainer.RecursivelyBuild([body ?? ExprContainer.UnsupportedToExpr("IIFEExprBuilder with empty body")], builtBody);
 
       var builtValue = new List<DAST.Expression>();
-      ExprContainer.RecursivelyBuild(new List<object> { value
-       ?? ExprContainer.UnsupportedToExpr("IIFEExprBuilder with empty value")
-       }, builtValue);
+      ExprContainer.RecursivelyBuild([
+        value
+        ?? ExprContainer.UnsupportedToExpr("IIFEExprBuilder with empty value")
+      ], builtValue);
 
       return (DAST.Expression)DAST.Expression.create_IIFE(
         Sequence<Rune>.UnicodeFromString(name),
@@ -1734,7 +1732,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Build() {
       var builtBody = new List<DAST.Expression>();
-      ExprContainer.RecursivelyBuild(new List<object> { body }, builtBody);
+      ExprContainer.RecursivelyBuild([body], builtBody);
 
       return (DAST.Expression)DAST.Expression.create_BetaRedex(
         Sequence<_System.Tuple2<DAST.Formal, DAST.Expression>>.FromArray(bindings.ToArray()),
@@ -1780,7 +1778,7 @@ namespace Microsoft.Dafny.Compilers {
       if (value == null) {
         v = ExprContainer.UnsupportedToExpr($"Conversion from {fromType} to {toType} of something missing");
       } else {
-        ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+        ExprContainer.RecursivelyBuild([value], builtValue);
         v = builtValue[0];
       }
 
@@ -1824,7 +1822,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Build() {
       var builtValue = new List<DAST.Expression>();
-      ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+      ExprContainer.RecursivelyBuild([value], builtValue);
 
       return (DAST.Expression)DAST.Expression.create_Index(
         builtValue[0],
@@ -1884,7 +1882,7 @@ namespace Microsoft.Dafny.Compilers {
       if (bound == null) {
         endExpr = ExprContainer.UnsupportedToExpr($"NativeRangeBuilder has no upper bound");
       } else {
-        ExprContainer.RecursivelyBuild(new List<object> { bound }, builtValue);
+        ExprContainer.RecursivelyBuild([bound], builtValue);
         endExpr = builtValue[0];
       }
 
@@ -1941,7 +1939,7 @@ namespace Microsoft.Dafny.Compilers {
       if (array == null) {
         arrayExpr = ExprContainer.UnsupportedToExpr($"ArrayLengthBuilder has no array");
       } else {
-        ExprContainer.RecursivelyBuild(new List<object> { array }, builtValue);
+        ExprContainer.RecursivelyBuild([array], builtValue);
         arrayExpr = builtValue[0];
       }
 

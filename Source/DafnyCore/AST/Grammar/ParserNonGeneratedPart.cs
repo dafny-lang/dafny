@@ -18,7 +18,7 @@ public partial class Parser {
     dummyRhs = new ExprRhs(dummyExpr);
     dummyFrameExpr = new FrameExpression(dummyExpr.Origin, dummyExpr, null);
     dummyStmt = new ReturnStmt(Token.NoToken, null);
-    var dummyBlockStmt = new BlockStmt(Token.NoToken, new List<Statement>());
+    var dummyBlockStmt = new BlockStmt(Token.NoToken, []);
     dummyIfStmt = new IfStmt(Token.NoToken, false, null, dummyBlockStmt, null);
 
     theOptions = new DafnyOptions(options);
@@ -646,7 +646,7 @@ public partial class Parser {
   readonly Statement/*!*/ dummyStmt;
   readonly Statement/*!*/ dummyIfStmt;
   public readonly FileModuleDefinition theModule;
-  public readonly List<Action<SystemModuleManager>> SystemModuleModifiers = new();
+  public readonly List<Action<SystemModuleManager>> SystemModuleModifiers = [];
   DafnyOptions theOptions;
   int anonymousIds = 0;
 

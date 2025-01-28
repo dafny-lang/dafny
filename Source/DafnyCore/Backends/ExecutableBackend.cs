@@ -108,7 +108,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
     ModuleDefinition module = null;
     foreach (var outerModule in outerModules) {
-      var thisModule = new ModuleDefinition(SourceOrigin.NoToken, new Name(outerModule), new List<IOrigin>(),
+      var thisModule = new ModuleDefinition(SourceOrigin.NoToken, new Name(outerModule), [],
         ModuleKindEnum.Concrete, false,
         null, null, null) {
         EnclosingModule = module
@@ -155,7 +155,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
       CreateNoWindow = false, // https://github.com/dotnet/runtime/issues/68259
       RedirectStandardOutput = true,
     };
-    foreach (var arg in args ?? Enumerable.Empty<string>()) {
+    foreach (var arg in args ?? []) {
       psi.ArgumentList.Add(arg);
     }
     return psi;

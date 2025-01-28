@@ -8,7 +8,7 @@ public class NodeTests {
   class ConcreteNode : Node {
     public ConcreteNode(IOrigin origin, IEnumerable<INode>? children = null) {
       Origin = origin;
-      Children = children ?? Enumerable.Empty<INode>();
+      Children = children ?? [];
     }
 
     public override IOrigin Origin { get; }

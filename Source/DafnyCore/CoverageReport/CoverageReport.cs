@@ -65,18 +65,18 @@ public class CoverageReport {
 
   public void RegisterFile(Uri uri) {
     if (!labelsByFile.ContainsKey(uri)) {
-      labelsByFile[uri] = new List<CoverageSpan>();
+      labelsByFile[uri] = [];
     }
   }
 
   private void RegisterFiles(Node astNode) {
     if (astNode.StartToken.ActualFilename != null) {
-      labelsByFile.GetOrCreate(astNode.StartToken.Uri, () => new List<CoverageSpan>());
+      labelsByFile.GetOrCreate(astNode.StartToken.Uri, () => []);
     }
 
     if (astNode is LiteralModuleDecl moduleDecl) {
       if (astNode.StartToken.ActualFilename != null) {
-        modulesByFile.GetOrCreate(astNode.StartToken.Uri, () => new HashSet<ModuleDefinition>()).Add(moduleDecl.ModuleDef);
+        modulesByFile.GetOrCreate(astNode.StartToken.Uri, () => []).Add(moduleDecl.ModuleDef);
       }
 
       RegisterFiles(moduleDecl.ModuleDef);

@@ -196,7 +196,7 @@ public static class DafnyNewCli {
   private static object GetValueForOption(ParseResult result, Option option) {
     // Use Reflection to invoke GetValueForOption<T> for the correct T
     var generic = GetValueForOptionMethod.MakeGenericMethod(option.ValueType);
-    return generic.Invoke(result, new object[] { option })!;
+    return generic.Invoke(result, [option])!;
   }
 
   private static async Task<bool> ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {

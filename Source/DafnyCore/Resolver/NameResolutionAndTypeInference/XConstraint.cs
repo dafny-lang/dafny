@@ -569,7 +569,7 @@ public class XConstraintEquatableArg : XConstraint {
   public bool AllowSuperSub;
   public bool TreatTypeParamAsWild;
   public XConstraintEquatableArg(IOrigin tok, Type a, Type b, bool allowSuperSub, bool treatTypeParamAsWild, TypeConstraint.ErrorMsg errMsg)
-    : base(tok, "EquatableArg", new Type[] { a, b }, errMsg) {
+    : base(tok, "EquatableArg", [a, b], errMsg) {
     Contract.Requires(tok != null);
     Contract.Requires(a != null);
     Contract.Requires(b != null);

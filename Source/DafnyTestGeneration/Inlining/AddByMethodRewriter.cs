@@ -69,10 +69,10 @@ public class AddByMethodRewriter : IRewriter {
     }
 
     var returnStatement = new ReturnStmt(func.Body.Origin,
-      new List<AssignmentRhs> { new ExprRhs(new Cloner().CloneExpr(func.Body)) });
+      [new ExprRhs(new Cloner().CloneExpr(func.Body))]);
     func.ByMethodBody = new BlockStmt(
       func.Body.Origin,
-      new List<Statement> { returnStatement });
+      [returnStatement]);
     func.ByMethodTok = func.Body.Origin;
   }
 }

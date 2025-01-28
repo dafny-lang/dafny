@@ -137,7 +137,9 @@ Path - Generate tests targeting path-coverage.");
     "Print the Boogie code used during test generation.") {
     ArgumentHelpName = "filename"
   };
-  public static readonly Option<string> ExpectedCoverageReport = new(new[] { "--expected-coverage-report", "--coverage-report" },
+  public static readonly Option<string> ExpectedCoverageReport = new(["--expected-coverage-report",
+    "--coverage-report"
+    ],
     "Emit expected test coverage report to a given directory.") {
     ArgumentHelpName = "directory"
   };

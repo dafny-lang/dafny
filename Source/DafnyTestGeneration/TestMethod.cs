@@ -22,8 +22,8 @@ namespace DafnyTestGeneration {
     // list of values to mock together with their types
     // maps a variable that is mocked to its unique id
     private readonly Dictionary<PartialValue, string> mockedVarId = new();
-    public readonly List<(string parentId, string fieldName, string childId)> Assignments = new();
-    public readonly List<(string id, Type type, string value)> ValueCreation = new();
+    public readonly List<(string parentId, string fieldName, string childId)> Assignments = [];
+    public readonly List<(string id, Type type, string value)> ValueCreation = [];
     // next id to assign to a variable with given name:
     private Dictionary<string, int> nameToNextId = new();
     private readonly int id = nextId++;
@@ -39,12 +39,12 @@ namespace DafnyTestGeneration {
     // the DafnyModel that describes the inputs to this test method
     private readonly DafnyModel dafnyModel;
     // is set to true whenever the tool encounters something it does not support
-    private readonly List<string> errorMessages = new();
+    private readonly List<string> errorMessages = [];
     // records parameters for GetDefaultValue call - this is used to to
     // terminate potential infinite recursion
-    private List<string> getDefaultValueParams = new();
+    private List<string> getDefaultValueParams = [];
     // similar to above but for objects
-    private readonly HashSet<string> getClassTypeInstanceParams = new();
+    private readonly HashSet<string> getClassTypeInstanceParams = [];
     private readonly Modifications cache;
 
     private readonly Dictionary<PartialValue, Expression> constraintContext;
@@ -103,7 +103,7 @@ namespace DafnyTestGeneration {
     public static string EmitSynthesizeMethods(DafnyInfo dafnyInfo, Modifications cache) {
       var result = "";
       // ensures that duplicate types in TypesToSynthesize are skipped:
-      HashSet<string> emittedTypes = new();
+      HashSet<string> emittedTypes = [];
       foreach (var typ in cache.TypesToSynthesize) {
         var typeString = typ.ToString();
         if (emittedTypes.Contains(typeString)) {
@@ -177,7 +177,7 @@ namespace DafnyTestGeneration {
           type = null;
         }
         if (printOutput[i] == "") {
-          getDefaultValueParams = new();
+          getDefaultValueParams = [];
           result.Add(GetDefaultValue(type, type));
           continue;
         }
@@ -254,7 +254,7 @@ namespace DafnyTestGeneration {
         return mockedVarId[variable];
       }
 
-      List<string> elements = new();
+      List<string> elements = [];
       var variableType = DafnyModelTypeUtils.GetInDafnyFormat(
         DafnyModelTypeUtils.ReplaceTypeVariables(variable.Type, defaultType));
       variableType = DafnyModelTypeUtils.ReplaceType(variableType,
@@ -283,7 +283,7 @@ namespace DafnyTestGeneration {
           for (var i = 0; i < variable?.Cardinality(); i++) {
             var element = variable?[i];
             if (element == null) {
-              getDefaultValueParams = new();
+              getDefaultValueParams = [];
               elements.Add(GetDefaultValue(seqType.Arg, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null)));
               continue;
             }
@@ -319,7 +319,7 @@ namespace DafnyTestGeneration {
           return AddValue(asType ?? variableType, $"{{{string.Join(", ", elements)}}}");
         case MapType:
           var asBasicMapType = GetBasicType(asType, type => type is MapType) as MapType;
-          List<string> mappingStrings = new();
+          List<string> mappingStrings = [];
           foreach (var mapping in variable?.Mappings()) {
             var asTypeTypeArgs =
               asBasicMapType?.TypeArgs?.Count == 2 ? asBasicMapType.TypeArgs : null;
@@ -354,7 +354,7 @@ namespace DafnyTestGeneration {
           }
 
           if (variable.DatatypeConstructorName() == "") {
-            getDefaultValueParams = new();
+            getDefaultValueParams = [];
             return GetDefaultValue(userDefinedType, asType);
           }
           var ctor = DafnyInfo.Datatypes[basicType.Name].Ctors.FirstOrDefault(ctor => ctor.Name == variable.DatatypeConstructorName(), null);
@@ -362,7 +362,7 @@ namespace DafnyTestGeneration {
             errorMessages.Add($"// Failed: Cannot find constructor {variable.DatatypeConstructorName()} for datatype {basicType}");
             return basicType.ToString();
           }
-          List<string> fields = new();
+          List<string> fields = [];
           for (int i = 0; i < ctor.Destructors.Count; i++) {
             var fieldName = ctor.Destructors[i].Name;
             if (!variable.Fields().ContainsKey(fieldName)) {
@@ -594,12 +594,12 @@ namespace DafnyTestGeneration {
         return result;
       }
 
-      return new List<string>();
+      return [];
     }
 
     /// <summary>  Return the test input as a list of lines of code </summary>
     public List<string> TestInputConstructionLines() {
-      List<string> lines = new();
+      List<string> lines = [];
 
       foreach (var line in ValueCreation) {
         lines.Add($"var {line.id} : {line.type} := {line.value};");
@@ -622,7 +622,7 @@ namespace DafnyTestGeneration {
     /// <summary>  Return the test method as a list of lines of code </summary>
     private List<string> TestMethodLines() {
 
-      List<string> lines = new();
+      List<string> lines = [];
 
       if (errorMessages.Count != 0) {
         if (DafnyInfo.Options.Verbose) {

@@ -45,7 +45,7 @@ public class Constructor : Method {
     Specification<Expression> decreases,
     DividedBlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(origin, name, false, isGhost, typeArgs, ins, [], req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
