@@ -14,12 +14,12 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
-  public enum ProgressLevel { None, Symbol, VerificationJobs }
+  public enum ProgressLevel { None, Symbol, Batch }
   public static readonly Option<ProgressLevel> ProgressOption =
     new("--progress", $"While verifying, output information that helps track progress. " +
                       $"Use '{ProgressLevel.Symbol}' to show progress across symbols such as methods and functions. " +
-                      $"Verification of a symbol is usually split across several jobs. " +
-                      $"Use {ProgressLevel.VerificationJobs} to additionally show progress across jobs.");
+                      $"Verification of a symbol may be split across several assertion batches. " +
+                      $"Use {ProgressLevel.Batch} to additionally show progress across batches.");
 
   public static readonly Option<string> LogLocation =
     new("--log-location", "Sets the directory where to store log files") {
