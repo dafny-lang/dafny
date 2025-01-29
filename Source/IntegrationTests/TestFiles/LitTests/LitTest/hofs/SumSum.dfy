@@ -45,12 +45,18 @@ lemma PrettyBasicBetaReduction(n: nat, g: (int,int) -> int, i: int)
   if n == 0 {
     calc {
       (x => Sum(n, y => g(x,y)))(i);
+        {
+          assert Sum (0, y => g (i, y)) == 0;
+        }
       0;
       Sum(n, y => g(i,y));
     }
   } else {
     calc {
       (x => Sum(n, y => g(x,y)))(i);
+        {
+          assert Sum (n, y => g (i, y)) == g (i, n - 1) + Sum(n - 1, y => g (i, y));
+        }
       g(i,n-1) + (x => Sum(n-1, y => g(x,y)))(i);
       { PrettyBasicBetaReduction(n-1, g, i); }
       g(i,n-1) + Sum(n-1, y => g(i,y));
