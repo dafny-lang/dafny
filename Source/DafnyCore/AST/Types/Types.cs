@@ -32,19 +32,19 @@ public abstract class Type : NodeWithComputedRange {
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
 
   private static ThreadLocal<List<VisibilityScope>> _scopes = new();
-  private static List<VisibilityScope> Scopes => _scopes.Value ??= new();
+  private static List<VisibilityScope> Scopes => _scopes.Value ??= [];
 
   [ThreadStatic]
   private static bool scopesEnabled = false;
 
-  public virtual IEnumerable<Node> Nodes => Enumerable.Empty<Node>();
+  public virtual IEnumerable<Node> Nodes => [];
 
   public static void PushScope(VisibilityScope scope) {
     Scopes.Add(scope);
   }
 
   public static void ResetScopes() {
-    _scopes.Value = new();
+    _scopes.Value = [];
     scopesEnabled = false;
   }
 
@@ -98,7 +98,7 @@ public abstract class Type : NodeWithComputedRange {
   }
 
   // Type arguments to the type
-  public List<Type> TypeArgs = new List<Type>();
+  public List<Type> TypeArgs = [];
 
   /// <summary>
   /// Add to "tps" the free type parameters in "this".
@@ -493,9 +493,9 @@ public abstract class Type : NodeWithComputedRange {
             // This requires more recursion and bookkeeping than we care to try out
             return AutoInitInfo.MaybeEmpty;
           }
-          coDatatypesBeingVisited = new List<UserDefinedType>(coDatatypesBeingVisited);
+          coDatatypesBeingVisited = [.. coDatatypesBeingVisited];
         } else {
-          coDatatypesBeingVisited = new List<UserDefinedType>();
+          coDatatypesBeingVisited = [];
         }
         coDatatypesBeingVisited.Add(udt);
       }
@@ -899,15 +899,15 @@ public abstract class Type : NodeWithComputedRange {
     Contract.Requires(type != null);
     if (type is BasicType || type is ArtificialType) {
       // there are no type parameters
-      return new List<TypeParameter.TPVariance>();
+      return [];
     } else if (type is MapType) {
-      return new List<TypeParameter.TPVariance> { TypeParameter.TPVariance.Co, TypeParameter.TPVariance.Co };
+      return [TypeParameter.TPVariance.Co, TypeParameter.TPVariance.Co];
     } else if (type is CollectionType) {
-      return new List<TypeParameter.TPVariance> { TypeParameter.TPVariance.Co };
+      return [TypeParameter.TPVariance.Co];
     } else {
       var udf = (UserDefinedType)type;
       if (udf.TypeArgs.Count == 0) {
-        return new List<TypeParameter.TPVariance>();
+        return [];
       }
       // look up the declaration of the formal type parameters
       var cl = udf.ResolvedClass;
@@ -1211,7 +1211,7 @@ public abstract class Type : NodeWithComputedRange {
       var parent = sst.RhsWithArgument(type.TypeArgs);
       tower = GetTowerOfSubsetTypes(parent, typeSynonymsAreSignificant);
     } else {
-      tower = new List<Type>();
+      tower = [];
     }
     tower.Add(type);
     return tower;
@@ -1677,7 +1677,7 @@ public abstract class Type : NodeWithComputedRange {
   }
 
   public virtual List<Type> ParentTypes(bool includeTypeBounds) {
-    return new List<Type>();
+    return [];
   }
 
   /// <summary>
@@ -2149,8 +2149,8 @@ public class SeqType : CollectionType {
 public abstract class TypeProxy : Type {
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   [FilledInDuringResolution] public Type T;
-  public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
-  public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
+  public readonly List<TypeConstraint> SupertypeConstraints = [];
+  public readonly List<TypeConstraint> SubtypeConstraints = [];
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     if (T == null) {

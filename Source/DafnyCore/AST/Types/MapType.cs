@@ -29,7 +29,7 @@ public class MapType : CollectionType {
     Finite = original.Finite;
     range = cloner.CloneType(original.Range);
     var arg = HasTypeArg() ? Arg : null;
-    TypeArgs = new List<Type>() { arg, range };
+    TypeArgs = [arg, range];
   }
 
   public Type Domain {

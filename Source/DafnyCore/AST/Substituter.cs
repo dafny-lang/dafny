@@ -304,7 +304,7 @@ namespace Microsoft.Dafny {
         var cases = new List<NestedMatchCaseExpr>();
         foreach (var mc in nestedMatchExpr.Cases) {
 
-          List<BoundVar> discoveredBvs = new();
+          List<BoundVar> discoveredBvs = [];
           ExtendedPattern SubstituteForPattern(ExtendedPattern pattern) {
             switch (pattern) {
               case DisjunctivePattern disjunctivePattern:
@@ -494,7 +494,7 @@ namespace Microsoft.Dafny {
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
         var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-        return new BoogieGenerator.SubstLetExpr(letExpr.Origin, newLHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
+        return new BoogieGenerator.SubstLetExpr(letExpr.Origin, newLHSs, [rhs], body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
       }
     }
 
@@ -683,7 +683,7 @@ namespace Microsoft.Dafny {
 
         Expression substE = Substitute(elist[i]);
         if (substE != elist[i] && newElist == null) {
-          newElist = new List<Expression>();
+          newElist = [];
           for (int j = 0; j < i; j++) {
             newElist.Add(elist[j]);
           }
@@ -781,7 +781,7 @@ namespace Microsoft.Dafny {
         }
         // r.TargetStmt will be filled in as later
         if (!BreaksToBeResolved.TryGetValue(s, out var breaks)) {
-          breaks = new List<BreakOrContinueStmt>();
+          breaks = [];
           BreaksToBeResolved.Add(s, breaks);
         }
         breaks.Add(rr);

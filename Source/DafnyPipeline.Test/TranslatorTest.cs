@@ -45,19 +45,19 @@ public class TranslatorTest {
     Expect(Bpl.Expr.Not(@true), isAlwaysTrue: no, isAlwaysFalse: yes);
     Expect(Bpl.Expr.Not(@false), isAlwaysTrue: yes, isAlwaysFalse: no);
 
-    var forallTrue = new Bpl.ForallExpr(nt, new List<Bpl.TypeVariable>(), new List<Bpl.Variable>(), @true);
-    var forallFalse = new Bpl.ForallExpr(nt, new List<Bpl.TypeVariable>(), new List<Bpl.Variable>(), @false);
+    var forallTrue = new Bpl.ForallExpr(nt, [], [], @true);
+    var forallFalse = new Bpl.ForallExpr(nt, [], [], @false);
 
     Expect(forallTrue, isAlwaysTrue: yes, isAlwaysFalse: no);
     Expect(forallFalse, isAlwaysTrue: no, isAlwaysFalse: no);
 
-    var existsTrue = new Bpl.ExistsExpr(nt, new List<Bpl.Variable>(), @true);
-    var existsFalse = new Bpl.ExistsExpr(nt, new List<Bpl.Variable>(), @false);
+    var existsTrue = new Bpl.ExistsExpr(nt, [], @true);
+    var existsFalse = new Bpl.ExistsExpr(nt, [], @false);
 
     Expect(existsFalse, isAlwaysTrue: no, isAlwaysFalse: yes);
     Expect(existsTrue, isAlwaysTrue: no, isAlwaysFalse: no);
 
-    var forallFalseImpliesSomething = new Bpl.ForallExpr(nt, new List<Bpl.TypeVariable>(), new List<Bpl.Variable>(), Bpl.Expr.Imp(@false, var));
+    var forallFalseImpliesSomething = new Bpl.ForallExpr(nt, [], [], Bpl.Expr.Imp(@false, var));
     Expect(forallFalseImpliesSomething, isAlwaysTrue: yes, isAlwaysFalse: no);
   }
 }

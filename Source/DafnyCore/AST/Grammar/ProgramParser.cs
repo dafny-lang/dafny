@@ -276,7 +276,7 @@ public class ProgramParser {
     Uri uri, CancellationToken cancellationToken) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
     using var reader = fileSnapshot.Reader;
-    var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
+    var text = SourcePreprocessor.ProcessDirectives(reader, []);
     return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
   }
 

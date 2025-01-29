@@ -95,7 +95,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     .Concat(
       options.Plugins.SelectMany(plugin =>
         plugin is ConfiguredPlugin { Configuration: PluginConfiguration configuration } ?
-            configuration.GetDafnyCodeActionProviders() : new DafnyCodeActionProvider[] { })).ToArray();
+            configuration.GetDafnyCodeActionProviders() : [])).ToArray();
   }
 
   public override Task<CodeAction> Handle(CodeAction request, CancellationToken cancellationToken) {

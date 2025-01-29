@@ -1,0 +1,1 @@
+Besides `--filter-position :<line>`, also support `--filter-position :<start>-<end>`, `--filter-position :<start>-` and `--filter-position :-<end>`
