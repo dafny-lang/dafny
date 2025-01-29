@@ -12,7 +12,7 @@ public class PluginsHandlerTest : PluginsTestBase {
     "PluginsHandlerTest";
 
   protected override string[] CommandLineArgument =>
-    new[] { $"{LibraryPath}" };
+    [$"{LibraryPath}"];
 
   [Fact]
   public async Task EnsureWithPluginHandlersWorks() {

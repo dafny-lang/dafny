@@ -250,7 +250,7 @@ public partial class BoogieGenerator {
     if (whr != null) { post = BplAnd(post, whr); }
 
     Bpl.Expr axBody = BplImp(ante, post);
-    Bpl.Expr ax = BplForall(f.Origin, new List<Bpl.TypeVariable>(), formals, null, tr, axBody);
+    Bpl.Expr ax = BplForall(f.Origin, [], formals, null, tr, axBody);
     if (RemoveLit(axBody) != Bpl.Expr.True) {
       AddOtherDefinition(boogieFunction, new Bpl.Axiom(f.Origin, ax, "consequence axiom for " + f.FullSanitizedName));
     }
@@ -267,7 +267,7 @@ public partial class BoogieGenerator {
         }
 
         axBody = BplImp(anteIsAlloc, whr);
-        ax = BplForall(f.Origin, new List<Bpl.TypeVariable>(), formals, null, BplTrigger(whr), axBody);
+        ax = BplForall(f.Origin, [], formals, null, BplTrigger(whr), axBody);
 
         if (RemoveLit(axBody) != Bpl.Expr.True) {
           var allocConsequenceAxiom = new Bpl.Axiom(f.Origin, ax, "alloc consequence axiom for " + f.FullSanitizedName);
@@ -342,7 +342,7 @@ public partial class BoogieGenerator {
     }
 
     // quantify over the type arguments, and add them first to the arguments
-    List<Bpl.Expr> args = new List<Bpl.Expr>();
+    List<Bpl.Expr> args = [];
     List<Bpl.Expr> tyargs = GetTypeArguments(f, null).ConvertAll(TypeToTy);
 
     var forallFormals = MkTyParamBinders(GetTypeParams(f), out _);
@@ -490,7 +490,7 @@ public partial class BoogieGenerator {
     // Add the precondition function and its axiom (which is equivalent to the anteReqAxiom)
     if (body == null || (RevealedInScope(f) && lits == null)) {
       var precondF = new Bpl.Function(f.Origin,
-        RequiresName(f), new List<Bpl.TypeVariable>(),
+        RequiresName(f), [],
         funcFormals.ConvertAll(v => (Bpl.Variable)BplFormalVar(null, v.TypedIdent.Type, true)),
         BplFormalVar(null, Bpl.Type.Bool, false));
       sink.AddTopLevelDeclaration(precondF);
@@ -503,7 +503,7 @@ public partial class BoogieGenerator {
         "#requires axiom for " + f.FullSanitizedName));
 
       AddOtherDefinition(precondF, new Bpl.Axiom(f.Origin,
-        BplForall(f.Origin, new List<Bpl.TypeVariable>(), forallFormals, null, trig, Bpl.Expr.Imp(appl, useViaCanCall)),
+        BplForall(f.Origin, [], forallFormals, null, trig, Bpl.Expr.Imp(appl, useViaCanCall)),
         "#requires ==> #canCall for " + f.FullSanitizedName));
     }
 
@@ -567,7 +567,7 @@ public partial class BoogieGenerator {
       kv = new QKeyValue(f.Origin, "weight", new List<object>() { Bpl.Expr.Literal(3) }, null);
     }
 
-    Bpl.Expr ax = BplForall(f.Origin, new List<Bpl.TypeVariable>(), forallFormals, kv, tr,
+    Bpl.Expr ax = BplForall(f.Origin, [], forallFormals, kv, tr,
       BplImp(ante, tastyVegetarianOption));
     string comment;
     comment = "definition axiom for " + f.FullSanitizedName;
@@ -854,7 +854,7 @@ public partial class BoogieGenerator {
     Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
     Bpl.Expr heapSucc = HeapSucc(h0, h1);
     Bpl.Expr r0 = InRWClause(f.Origin, o, field, f.Reads.Expressions, etran0, null, null);
-    Bpl.Expr q0 = new Bpl.ForallExpr(f.Origin, new List<TypeVariable> { }, new List<Variable> { oVar, fieldVar },
+    Bpl.Expr q0 = new Bpl.ForallExpr(f.Origin, [], [oVar, fieldVar],
       BplImp(BplAnd(oNotNullAlloced, r0), unchanged));
 
     List<Bpl.Expr> tyexprs;
@@ -935,7 +935,7 @@ public partial class BoogieGenerator {
     var eq = BplAnd(Bpl.Expr.Eq(F0, F1), Bpl.Expr.Eq(f0canCall, f1canCall));
     var tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { h0IsHeapAnchor, heapSucc, F1 });
 
-    var ax = new Bpl.ForallExpr(f.Origin, new List<Bpl.TypeVariable>(), bvars, null, tr,
+    var ax = new Bpl.ForallExpr(f.Origin, [], bvars, null, tr,
       BplImp(BplAnd(wellFormed, BplAnd(h0IsHeapAnchor, heapSucc)),
       BplImp(q0, eq)));
     sink.AddTopLevelDeclaration(new Bpl.Axiom(f.Origin, ax, comment));

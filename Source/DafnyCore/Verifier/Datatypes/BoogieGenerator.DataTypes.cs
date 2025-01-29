@@ -351,7 +351,7 @@ namespace Microsoft.Dafny {
       var cases_dBv = new Bpl.Formal(dt.Origin, new Bpl.TypedIdent(dt.Origin, Bpl.TypedIdent.NoName, Predef.DatatypeType), true);
       var cases_resType = new Bpl.Formal(dt.Origin, new Bpl.TypedIdent(dt.Origin, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
       var cases_fn = new Bpl.Function(dt.Origin, "$IsA#" + dt.FullSanitizedName,
-        new List<Variable> { cases_dBv },
+        [cases_dBv],
         cases_resType,
         "Depth-one case-split function");
 
@@ -376,7 +376,7 @@ namespace Microsoft.Dafny {
     private Bpl.Function AddDataTypeConstructor(DatatypeDecl dt, DatatypeCtor ctor, bool includeIsAllocAxiom) {
       // Add:  function #dt.ctor(tyVars, paramTypes) returns (DatatypeType);
 
-      List<Bpl.Variable> argTypes = new List<Bpl.Variable>();
+      List<Bpl.Variable> argTypes = [];
       foreach (Formal arg in ctor.Formals) {
         Bpl.Variable a = new Bpl.Formal(arg.Origin, new Bpl.TypedIdent(arg.Origin, Bpl.TypedIdent.NoName, TrType(arg.Type)),
           true);
@@ -827,9 +827,9 @@ namespace Microsoft.Dafny {
       var req = new List<Bpl.Requires>();
       var heapVar = new Bpl.IdentifierExpr(ctor.Origin, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
-      var proc = new Bpl.Procedure(ctor.Origin, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
-        inParams, new List<Variable>(),
-        false, req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
+      var proc = new Bpl.Procedure(ctor.Origin, "CheckWellformed" + NameSeparator + ctor.FullName, [],
+        inParams, [],
+        false, req, varlist, [], etran.TrAttributes(ctor.Attributes, null));
       AddVerboseNameAttribute(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
@@ -840,7 +840,7 @@ namespace Microsoft.Dafny {
       builder.AddCaptureState(ctor.Origin, false, "initial state");
       IsAllocContext = new IsAllocContext(options, true);
 
-      DefineFrame(ctor.Origin, etran.ReadsFrame(ctor.Origin), new List<FrameExpression>(), builder, locals, null);
+      DefineFrame(ctor.Origin, etran.ReadsFrame(ctor.Origin), [], builder, locals, null);
 
       // check well-formedness of each default-value expression
       foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
@@ -857,7 +857,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
         var implBody = builder.Collect(ctor.Origin);
         AddImplementationWithAttributes(GetToken(ctor), proc, implInParams,
-          new List<Variable>(), locals, implBody, kv);
+          [], locals, implBody, kv);
       }
 
       Contract.Assert(currentModule == ctor.EnclosingDatatype.EnclosingModuleDefinition);

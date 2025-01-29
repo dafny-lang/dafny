@@ -78,6 +78,7 @@ enabling necessary special handling.".TrimStart()) {
 
     DafnyOptions.RegisterLegacyBinding(SplitPrint, (options, f) => {
       options.PrintSplitFile = f;
+      options.PrintSplitDeclarations = true;
       options.ExpandFilename(options.PrintSplitFile, x => options.PrintSplitFile = x, options.LogPrefix,
         options.FileTimestamp);
     });

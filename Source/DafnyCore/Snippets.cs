@@ -52,7 +52,7 @@ public class Snippets {
         using var reader = file.GetContent().Reader;
         lines = Util.Lines(reader).ToList();
       } catch (Exception) {
-        lines = new List<string>();
+        lines = [];
       }
       return lines;
     });

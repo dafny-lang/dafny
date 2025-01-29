@@ -14,7 +14,7 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
     Diagnostic diagnostic, Range selection) {
     if (diagnostic.Code is not { IsString: true }) {
-      return Enumerable.Empty<DafnyCodeAction>();
+      return [];
     }
     var actionSigs = ErrorRegistry.GetAction(diagnostic.Code.Value.String);
     var actions = new List<DafnyCodeAction>();
