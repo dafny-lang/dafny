@@ -15,6 +15,8 @@ module RAST
   // Default Rust-like indentation
   const IND := "    "
 
+  const DocStringPrefix: string := "/// "
+
   datatype RASTTopDownVisitor<!T(!new)> =
     RASTTopDownVisitor(
       nameonly VisitTypeSingle: (T, Type) -> T,
@@ -351,9 +353,61 @@ module RAST
     else FoldLeft(f, f(init, xs[0]), xs[1..])
   }
 
+  function GatherSimpleQuotes(docstring: string, acc: string := ""): (r: string)
+    ensures |r| <= |acc| + |docstring|
+  {
+    if |docstring| == 0 || docstring[0] != '`' then acc else
+    GatherSimpleQuotes(docstring[1..], acc + "`")
+  }
+
+  // Converts Dafny docstring into Rust docstring that won't normally cause issue with `cargo doc`
+  // - Escape blocks ```...``` to ```dafny ...``` but keep ```rs...``` intact
+  // - Every line starting with 4 or more spaces gets its first space replaced by a `|`
+  function ConvertDocstring(dafnyDocstring: string, ind: string, newlineStarted: bool := true, codeMarker: Option<string> := None): string {
+    if |dafnyDocstring| == 0 then dafnyDocstring
+    else if dafnyDocstring[0] == '\n' then
+      "\n" + ind + DocStringPrefix + ConvertDocstring(dafnyDocstring[1..], ind, true, codeMarker)
+    else if dafnyDocstring[0] == ' ' then
+      if codeMarker.None? && newlineStarted && |dafnyDocstring| > 4 && dafnyDocstring[..4] == "    " then
+        "|   " + ConvertDocstring(dafnyDocstring[4..], ind, false, codeMarker)
+      else
+        " " + ConvertDocstring(dafnyDocstring[1..], ind, newlineStarted, codeMarker)
+    else if newlineStarted then
+      if && codeMarker.Some?
+         && |dafnyDocstring| >= |codeMarker.value| + 1
+         && dafnyDocstring[..|codeMarker.value| + 1] == codeMarker.value + "\n" then
+        // End of code delimiter
+        codeMarker.value + ConvertDocstring(dafnyDocstring[|codeMarker.value|..], ind, false, None)
+      else if codeMarker.None? && |dafnyDocstring| >= 3 then
+        var prefix := dafnyDocstring[..3];
+        if prefix == "```" then
+          var prefix := GatherSimpleQuotes(dafnyDocstring);
+          var remaining := dafnyDocstring[|prefix|..];
+          if |remaining| == 0 || remaining[0] == ' ' || remaining[0] == '\n' then
+            // ``` becomes ```dafny
+            // It's Dafny docstring, we want to ensure we add the Dafny identifier there
+            prefix + "dafny" + ConvertDocstring(dafnyDocstring[|prefix|..], ind, false, Some(prefix))
+          else if && |remaining| >= 3
+                  && remaining[..2] == "rs"
+                  && (remaining[2] == ' ' || remaining[2] == '\n') then
+            // ```rs becomes ```
+            prefix + ConvertDocstring(dafnyDocstring[|prefix|+2..], ind, false, Some(prefix))
+          else
+            prefix + ConvertDocstring(dafnyDocstring[|prefix|..], ind, false, Some(prefix))
+        else
+          dafnyDocstring[..1] + ConvertDocstring(dafnyDocstring[1..], ind, false, codeMarker)
+      else if && codeMarker.Some?
+              && |codeMarker.value| <= |dafnyDocstring|
+              && dafnyDocstring[..|codeMarker.value|] == codeMarker.value then
+        codeMarker.value + ConvertDocstring(dafnyDocstring[|codeMarker.value|..], ind, false, None)
+      else
+        dafnyDocstring[..1] + ConvertDocstring(dafnyDocstring[1..], ind, false, codeMarker)
+    else
+      dafnyDocstring[..1] + ConvertDocstring(dafnyDocstring[1..], ind, false, codeMarker)
+  }
   function ToDocstringPrefix(docString: string, ind: string): string {
     if docString == "" then "" else
-    "/// " + AddIndent(docString, ind + "/// ") + "\n" + ind
+    DocStringPrefix + ConvertDocstring(docString, ind) + "\n" + ind
   }
 
   datatype Mod =

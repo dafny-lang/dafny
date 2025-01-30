@@ -20,14 +20,142 @@ namespace RASTCoverage {
       if (!(x)) {
         throw new Dafny.HaltException("Backends/Rust/Dafny-compiler-rust-coverage.dfy(26,4): " + Dafny.Sequence<Dafny.Rune>.UnicodeFromString("expectation violation").ToVerbatimString(false));}
     }
+    public static void AssertEq<__T>(__T x, __T y)
+    {
+      if (!(object.Equals(x, y))) {
+        throw new Dafny.HaltException("Backends/Rust/Dafny-compiler-rust-coverage.dfy(30,4): " + Dafny.Sequence<Dafny.Rune>.UnicodeFromString("expectation violation").ToVerbatimString(false));}
+    }
     public static void TestExpr()
     {
       RASTCoverage.__default.TestOptimizeToString();
       RASTCoverage.__default.TestPrintingInfo();
       RASTCoverage.__default.TestNoExtraSemicolonAfter();
+      RASTCoverage.__default.TestDocstring();
+    }
+    public static Dafny.ISequence<Dafny.Rune> CanonicalNewlines(Dafny.ISequence<Dafny.Rune> s) {
+      Dafny.ISequence<Dafny.Rune> _0___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
+    TAIL_CALL_START: ;
+      if ((new BigInteger((s).Count)).Sign == 0) {
+        return Dafny.Sequence<Dafny.Rune>.Concat(_0___accumulator, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""));
+      } else if (((s).Select(BigInteger.Zero)) == (new Dafny.Rune('\r'))) {
+        if (((new BigInteger((s).Count)) > (BigInteger.One)) && (((s).Select(BigInteger.One)) == (new Dafny.Rune('\n')))) {
+          _0___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_0___accumulator, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"));
+          Dafny.ISequence<Dafny.Rune> _in0 = (s).Drop(new BigInteger(2));
+          s = _in0;
+          goto TAIL_CALL_START;
+        } else {
+          _0___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_0___accumulator, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"));
+          Dafny.ISequence<Dafny.Rune> _in1 = (s).Drop(BigInteger.One);
+          s = _in1;
+          goto TAIL_CALL_START;
+        }
+      } else {
+        _0___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_0___accumulator, (s).Take(BigInteger.One));
+        Dafny.ISequence<Dafny.Rune> _in2 = (s).Drop(BigInteger.One);
+        s = _in2;
+        goto TAIL_CALL_START;
+      }
+    }
+    public static void TestOneDocstring(Dafny.ISequence<Dafny.Rune> dafnyDocstring, Dafny.ISequence<Dafny.Rune> rustDocstring, Dafny.ISequence<Dafny.Rune> indent)
+    {
+      RASTCoverage.__default.AssertEq<Dafny.ISequence<Dafny.Rune>>(RAST.__default.ConvertDocstring(RASTCoverage.__default.CanonicalNewlines(dafnyDocstring), indent, true, Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None()), RASTCoverage.__default.CanonicalNewlines(rustDocstring));
+    }
+    public static void TestDocstring()
+    {
+      RASTCoverage.__default.TestOneDocstring(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+Hello
+World"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+  /// Hello
+  /// World"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("  "));
+      RASTCoverage.__default.TestOneDocstring(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+Title
+```rs
+let mut x = 1;
+```
+End comment"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+  /// Title
+  /// ```
+  /// let mut x = 1;
+  /// ```
+  /// End comment"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("  "));
+      RASTCoverage.__default.TestOneDocstring(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+Title
+`````rs
+let mut x = 1;
+`````
+End comment"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+  /// Title
+  /// `````
+  /// let mut x = 1;
+  /// `````
+  /// End comment"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("  "));
+      RASTCoverage.__default.TestOneDocstring(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+Title
+```
+var x := 1;
+```
+End comment"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+  /// Title
+  /// ```dafny
+  /// var x := 1;
+  /// ```
+  /// End comment"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("  "));
+      RASTCoverage.__default.TestOneDocstring(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+Title
+`````
+var x := 1;
+`````
+End comment"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+  /// Title
+  /// `````dafny
+  /// var x := 1;
+  /// `````
+  /// End comment"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("  "));
+      RASTCoverage.__default.TestOneDocstring(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+Title
+`````md
+# title
+```
+code
+```
+Outside of code
+`````
+```
+dafnycode
+```
+End comment"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+  /// Title
+  /// `````md
+  /// # title
+  /// ```
+  /// code
+  /// ```
+  /// Outside of code
+  /// `````
+  /// ```dafny
+  /// dafnycode
+  /// ```
+  /// End comment"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("  "));
+      RASTCoverage.__default.TestOneDocstring(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+Title
+    Indented code
+    More indented code
+Back to normal
+   Normal as well
+  Also normal
+    But this one indented"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@"
+  /// Title
+  /// |   Indented code
+  /// |   More indented code
+  /// Back to normal
+  ///    Normal as well
+  ///   Also normal
+  /// |   But this one indented"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("  "));
     }
     public static void TestNoOptimize(RAST._IExpr e)
     {
+      if (!(object.Equals((RASTCoverage.__default.ExprSimp).ReplaceExpr(e), e))) {
+        throw new Dafny.HaltException("Backends/Rust/Dafny-compiler-rust-coverage.dfy(157,4): " + Dafny.Sequence<Dafny.Rune>.UnicodeFromString("expectation violation").ToVerbatimString(false));}
     }
     public static RAST._IExpr ConversionNum(RAST._IType t, RAST._IExpr x)
     {
@@ -161,5 +289,8 @@ namespace RASTCoverage {
       RASTCoverage.__default.AssertCoverage((RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x"), Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_None())).NoExtraSemicolonAfter());
       RASTCoverage.__default.AssertCoverage(!((RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x"))).NoExtraSemicolonAfter()));
     }
+    public static RAST._IRASTBottomUpReplacer ExprSimp { get {
+      return ExpressionOptimization.__default.ExprSimplifier();
+    } }
   }
 } // end of namespace RASTCoverage
