@@ -49,7 +49,7 @@ public static class RunCommand {
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
 
-  public static Command Create(Func<DafnyOptions, int> continuation = null) {
+  public static Command Create() {
     var result = new Command("run", "Run the program.");
     result.AddArgument(DafnyCommands.FileArgument);
     result.AddArgument(UserProgramArguments);
@@ -63,9 +63,7 @@ public static class RunCommand {
       options.Compile = true;
       options.RunAfterCompile = true;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
-      if (continuation != null) {
-        return continuation(options);
-      }
+
       return await SynchronousCliCompilation.Run(options);
     });
     return result;

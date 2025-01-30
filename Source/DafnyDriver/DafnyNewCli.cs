@@ -172,10 +172,6 @@ public static class DafnyNewCli {
   }
 
   public static Task<int> Execute(IConsole console, IReadOnlyList<string> arguments) {
-    return ExecuteForParser(console, arguments, Parser);
-  }
-
-  public static Task<int> ExecuteForParser(IConsole console, IReadOnlyList<string> arguments, System.CommandLine.Parsing.Parser parser) {
     foreach (var symbol in AllSymbols) {
       if (symbol is Option option) {
         if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
@@ -184,7 +180,7 @@ public static class DafnyNewCli {
       }
     }
 
-    return parser.InvokeAsync(arguments.ToArray(), console);
+    return Parser.InvokeAsync(arguments.ToArray(), console);
   }
 
   private static readonly MethodInfo GetValueForOptionMethod;

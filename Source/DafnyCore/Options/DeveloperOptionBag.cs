@@ -21,7 +21,7 @@ Print passified Boogie program translated from Dafny
     IsHidden = true,
     ArgumentHelpName = "file",
   };
-  // This flag is the only one that can trigger /dafnyVerify in the new CLI and I think it's sufficient
+
   public static readonly Option<string> BoogiePrint = new("--bprint",
   @"
 Print Boogie program translated from Dafny
