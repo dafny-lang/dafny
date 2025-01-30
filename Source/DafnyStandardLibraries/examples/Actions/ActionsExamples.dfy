@@ -4,6 +4,9 @@ module ActionsExamples {
   import opened Std.Aggregators
   import opened Std.Wrappers
 
+  // Demonstration that actions can consume/produce reference values as well,
+  // despite the usual challenges of quantifying over such types.
+
   class Box {
     const i: nat
 
