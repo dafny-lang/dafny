@@ -25,16 +25,136 @@ module RASTCoverage {
   {
     expect x;
   }
+  method AssertEq<T(==)>(x: T, y: T)
+  {
+    expect x == y;
+  }
+
 
   method TestExpr() {
     TestOptimizeToString();
     TestPrintingInfo();
     TestNoExtraSemicolonAfter();
+    TestDocstring();
   }
 
+  function CanonicalNewlines(s: string): string {
+    if |s| == 0 then "" else
+    if s[0] == '\r' then
+      if |s| > 1 && s[1] == '\n' then
+        "\n" + CanonicalNewlines(s[2..])
+      else
+        "\n" + CanonicalNewlines(s[1..])
+    else
+      s[..1] + CanonicalNewlines(s[1..])
+  }
+
+  method TestOneDocstring(dafnyDocstring: string, rustDocstring: string, indent: string := "  ") {
+    AssertEq(
+      ConvertDocstring(
+        CanonicalNewlines(dafnyDocstring),
+        indent
+      ), CanonicalNewlines(rustDocstring));
+  }
+
+  method TestDocstring() {
+    TestOneDocstring(@"
+Hello
+World",
+                     @"
+  /// Hello
+  /// World");
+    TestOneDocstring(@"
+Title
+```rs
+let mut x = 1;
+```
+End comment", @"
+  /// Title
+  /// ```
+  /// let mut x = 1;
+  /// ```
+  /// End comment");
+    TestOneDocstring(@"
+Title
+`````rs
+let mut x = 1;
+`````
+End comment", @"
+  /// Title
+  /// `````
+  /// let mut x = 1;
+  /// `````
+  /// End comment");
+    TestOneDocstring(@"
+Title
+```
+var x := 1;
+```
+End comment", @"
+  /// Title
+  /// ```dafny
+  /// var x := 1;
+  /// ```
+  /// End comment");
+    TestOneDocstring(@"
+Title
+`````
+var x := 1;
+`````
+End comment", @"
+  /// Title
+  /// `````dafny
+  /// var x := 1;
+  /// `````
+  /// End comment");
+    TestOneDocstring(@"
+Title
+`````md
+# title
+```
+code
+```
+Outside of code
+`````
+```
+dafnycode
+```
+End comment", @"
+  /// Title
+  /// `````md
+  /// # title
+  /// ```
+  /// code
+  /// ```
+  /// Outside of code
+  /// `````
+  /// ```dafny
+  /// dafnycode
+  /// ```
+  /// End comment");
+    TestOneDocstring(@"
+Title
+    Indented code
+    More indented code
+Back to normal
+   Normal as well
+  Also normal
+    But this one indented", @"
+  /// Title
+  /// |   Indented code
+  /// |   More indented code
+  /// Back to normal
+  ///    Normal as well
+  ///   Also normal
+  /// |   But this one indented");
+  }
+
+  const ExprSimp := ExpressionOptimization.ExprSimplifier()
+
   method TestNoOptimize(e: Expr)
-    //requires e.Optimize() == e // Too expensive
   {
+    expect ExprSimp.ReplaceExpr(e) == e;
   }
 
   function ConversionNum(t: Type, x: Expr): Expr {
