@@ -4,7 +4,25 @@
 pub mod External {
   pub mod Class {
     pub mod Container {
+      use std::str::FromStr;
+
+      use dafny_runtime::DafnyChar;
+
       use crate::*;
+      pub struct StringWrapper(String);
+      impl StringWrapper {
+        pub(crate) fn from_char(c: &DafnyChar) -> StringWrapper {
+          StringWrapper(String::from(c.0))
+        }
+        
+        pub(crate) fn length_bytes(&self) -> u64 {
+          self.0.len() as u64
+        }
+        
+        pub(crate) fn concat(&self, a: &StringWrapper) -> StringWrapper {
+          StringWrapper(format!("{}{}", self.0, a.0))
+        }
+      }
 
       pub struct ExternalClass {}
       impl ExternalClass {
