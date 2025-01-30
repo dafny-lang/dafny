@@ -626,27 +626,27 @@ namespace DCOMP {
         RAST._IType _out5;
         _out5 = (this).GenType(_22_parentTyp, Defs.GenTypeContext.ForTraitParents());
         _23_parentTpe = _out5;
-        Std.Wrappers._IOption<RAST._IExpr> _24_parentTpeExprMaybe;
-        _24_parentTpeExprMaybe = (_23_parentTpe).ToExpr();
-        RAST._IExpr _25_parentTpeExpr = RAST.Expr.Default();
-        if ((_24_parentTpeExprMaybe).is_None) {
-          RAST._IExpr _out6;
-          _out6 = (this).Error(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Cannot convert "), (_23_parentTpe)._ToString(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" to an expression")), (this).InitEmptyExpr());
-          _25_parentTpeExpr = _out6;
-        } else {
-          _25_parentTpeExpr = (_24_parentTpeExprMaybe).dtor_value;
-        }
         _17_parents = Dafny.Sequence<RAST._IType>.Concat(_17_parents, Dafny.Sequence<RAST._IType>.FromElements(_23_parentTpe));
-        Dafny.ISequence<Dafny.Rune> _26_upcastTrait;
+        Dafny.ISequence<Dafny.Rune> _24_upcastTrait;
         if ((_22_parentTyp).IsGeneralTrait()) {
-          _26_upcastTrait = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("UpcastBox");
+          _24_upcastTrait = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("UpcastBox");
         } else {
-          _26_upcastTrait = (this).Upcast;
+          _24_upcastTrait = (this).Upcast;
         }
-        _17_parents = Dafny.Sequence<RAST._IType>.Concat(_17_parents, Dafny.Sequence<RAST._IType>.FromElements((((RAST.__default.dafny__runtime).MSel(_26_upcastTrait)).AsType()).Apply1(RAST.Type.create_DynType(_23_parentTpe))));
-        if (((_22_parentTyp).IsGeneralTrait()) && (((t).dtor_traitType).is_GeneralTrait)) {
+        _17_parents = Dafny.Sequence<RAST._IType>.Concat(_17_parents, Dafny.Sequence<RAST._IType>.FromElements((((RAST.__default.dafny__runtime).MSel(_24_upcastTrait)).AsType()).Apply1(RAST.Type.create_DynType(_23_parentTpe))));
+        if ((((_22_parentTyp).IsGeneralTrait()) && (((t).dtor_traitType).is_GeneralTrait)) && (!object.Equals(_23_parentTpe, (this).AnyTrait))) {
+          Std.Wrappers._IOption<RAST._IExpr> _25_parentTpeExprMaybe;
+          _25_parentTpeExprMaybe = (_23_parentTpe).ToExpr();
+          RAST._IExpr _26_parentTpeExpr = RAST.Expr.Default();
+          if ((_25_parentTpeExprMaybe).is_None) {
+            RAST._IExpr _out6;
+            _out6 = (this).Error(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Cannot convert "), (_23_parentTpe)._ToString(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" to an expression")), (this).InitEmptyExpr());
+            _26_parentTpeExpr = _out6;
+          } else {
+            _26_parentTpeExpr = (_25_parentTpeExprMaybe).dtor_value;
+          }
           RAST._IModDecl _27_upcastDynTrait;
-          _27_upcastDynTrait = Defs.__default.UpcastDynTraitFor(_1_rTypeParamsDecls, _19_instantiatedFullType, _23_parentTpe, _25_parentTpeExpr);
+          _27_upcastDynTrait = Defs.__default.UpcastDynTraitFor(_1_rTypeParamsDecls, _19_instantiatedFullType, _23_parentTpe, _26_parentTpeExpr);
           _18_upcastImplemented = Dafny.Sequence<RAST._IModDecl>.Concat(_18_upcastImplemented, Dafny.Sequence<RAST._IModDecl>.FromElements(_27_upcastDynTrait));
         }
       }

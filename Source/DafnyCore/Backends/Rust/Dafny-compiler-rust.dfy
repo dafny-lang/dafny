@@ -629,17 +629,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       for i := 0 to |t.parents| {
         var parentTyp := t.parents[i];
         var parentTpe := GenType(parentTyp, GenTypeContext.ForTraitParents());
-        var parentTpeExprMaybe := parentTpe.ToExpr();
-        var parentTpeExpr;
-        if parentTpeExprMaybe.None? {
-          parentTpeExpr := Error("Cannot convert " + parentTpe.ToString("") + " to an expression");
-        } else {
-          parentTpeExpr := parentTpeExprMaybe.value;
-        }
         parents := parents + [parentTpe];
         var upcastTrait := if parentTyp.IsGeneralTrait() then "UpcastBox" else Upcast;
         parents := parents + [R.dafny_runtime.MSel(upcastTrait).AsType().Apply1(R.DynType(parentTpe))];
-        if parentTyp.IsGeneralTrait() && t.traitType.GeneralTrait? {
+        if parentTyp.IsGeneralTrait() && t.traitType.GeneralTrait? && parentTpe != AnyTrait {
+          var parentTpeExprMaybe := parentTpe.ToExpr();
+          var parentTpeExpr;
+          if parentTpeExprMaybe.None? {
+            parentTpeExpr := Error("Cannot convert " + parentTpe.ToString("") + " to an expression");
+          } else {
+            parentTpeExpr := parentTpeExprMaybe.value;
+          }
           var upcastDynTrait := UpcastDynTraitFor(rTypeParamsDecls, instantiatedFullType, parentTpe, parentTpeExpr);
           upcastImplemented := upcastImplemented + [upcastDynTrait];
         }

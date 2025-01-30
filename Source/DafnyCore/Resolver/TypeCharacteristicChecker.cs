@@ -40,8 +40,7 @@ namespace Microsoft.Dafny {
           } else if (d is DatatypeDecl dt) {
             foreach (var tp in dt.TypeArgs) {
               if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                // here's our chance to infer the need for equality support
-                inferredSomething = dt.Ctors.Any(ctor =>
+                inferredSomething = inferredSomething || dt.Ctors.Any(ctor =>
                   ctor.Formals.Any(arg =>
                     InferAndSetEqualitySupport(tp, arg.Type, reporter)
                   )
