@@ -611,7 +611,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(args));
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
-      List<Bpl.Expr> aa = new List<Bpl.Expr>();
+      List<Bpl.Expr> aa = [];
       foreach (Bpl.Expr arg in args) {
         aa.Add(arg);
       }

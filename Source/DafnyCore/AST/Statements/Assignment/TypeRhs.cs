@@ -67,7 +67,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     if (original.ArrayDimensions != null) {
       if (original.InitDisplay != null) {
         Contract.Assert(original.ArrayDimensions.Count == 1);
-        ArrayDimensions = new List<Expression> { cloner.CloneExpr(original.ArrayDimensions[0]) };
+        ArrayDimensions = [cloner.CloneExpr(original.ArrayDimensions[0])];
         InitDisplay = original.InitDisplay.ConvertAll(cloner.CloneExpr);
       } else {
         ArrayDimensions = original.ArrayDimensions.Select(cloner.CloneExpr).ToList();
@@ -115,7 +115,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     Contract.Requires(dim != null);
     Contract.Requires(initDisplay != null);
     EType = type;
-    ArrayDimensions = new List<Expression> { dim };
+    ArrayDimensions = [dim];
     InitDisplay = initDisplay;
   }
   public TypeRhs(IOrigin origin, Type type)
@@ -205,5 +205,5 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
                     (Bindings != null ? Arguments : null) ??
                     Enumerable.Empty<Node>());
 
-  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
+  public override IEnumerable<Statement> PreResolveSubStatements => [];
 }

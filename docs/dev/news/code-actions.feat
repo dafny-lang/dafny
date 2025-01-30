@@ -1,0 +1,4 @@
+Support for code actions in the language server to:
+- Insert failing implicit assertions in a "by" clause by preference.
+- Insert forall statement for any forall expressions that could not be proved
+- Insert calc statement for any equality that cannot be proved.

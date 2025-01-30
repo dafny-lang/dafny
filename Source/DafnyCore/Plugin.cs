@@ -17,7 +17,7 @@ public interface Plugin {
 
 record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
   public IEnumerable<IExecutableBackend> GetCompilers(DafnyOptions options) {
-    return Enumerable.Empty<IExecutableBackend>();
+    return [];
   }
 
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
@@ -25,11 +25,11 @@ record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
   }
 
   public IEnumerable<DocstringRewriter> GetDocstringRewriters(DafnyOptions options) {
-    return Enumerable.Empty<DocstringRewriter>();
+    return [];
   }
 
   public IEnumerable<CompilerInstrumenter> GetCompilerInstrumenters(ErrorReporter reporter) {
-    return Enumerable.Empty<CompilerInstrumenter>();
+    return [];
   }
 
   class ErrorRewriter : IRewriter {

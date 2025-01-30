@@ -70,7 +70,7 @@ class ResolverIdentifierExpr : Expression, IHasReferences, ICloneable<ResolverId
     PreType = decl is ModuleDecl ? new PreTypePlaceholderModule() : new PreTypePlaceholderType();
   }
   public ResolverIdentifierExpr(IOrigin origin, TypeParameter tp)
-    : this(origin, tp, new List<Type>()) {
+    : this(origin, tp, []) {
     Contract.Requires(origin != null);
     Contract.Requires(tp != null);
   }

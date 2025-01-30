@@ -233,7 +233,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateClass(string moduleName, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
-      var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? new List<Type>();
+      var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? [];
       var baseClasses = realSuperClasses.Any()
         ? $"({realSuperClasses.Comma(trait => TypeName(trait, wr, tok))})"
         : "";
@@ -1265,12 +1265,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
 
-    private readonly HashSet<string> ReservedModuleNames = new() {
+    private readonly HashSet<string> ReservedModuleNames = [
       "itertools",
       "math",
       "typing",
       "sys"
-    };
+    ];
 
     private string PublicModuleIdProtect(string name) {
       if (ReservedModuleNames.Contains(name)) {

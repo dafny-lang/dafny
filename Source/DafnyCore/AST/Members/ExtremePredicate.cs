@@ -13,7 +13,7 @@ public abstract class ExtremePredicate : Function {
       return TypeOfK == KType.Nat;
     }
   }
-  [FilledInDuringResolution] public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // used by verifier
+  [FilledInDuringResolution] public readonly List<FunctionCallExpr> Uses = [];  // used by verifier
   [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixPredicate });
@@ -24,7 +24,7 @@ public abstract class ExtremePredicate : Function {
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IOrigin signatureEllipsis)
     : base(rangeOrigin, name, hasStaticKeyword, true, isOpaque, typeArgs, ins, result, Type.Bool,
-      req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, null, null, attributes, signatureEllipsis) {
+      req, reads, ens, new Specification<Expression>([], null), body, null, null, attributes, signatureEllipsis) {
     TypeOfK = typeOfK;
   }
 

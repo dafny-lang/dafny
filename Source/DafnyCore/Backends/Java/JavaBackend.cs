@@ -133,8 +133,8 @@ for backwards compatibility with Java code generated with Dafny versions earlier
   public async Task<bool> CreateJar(string/*?*/ entryPointName, string jarPath, string rootDirectory, List<string> files, TextWriter outputWriter) {
     Directory.CreateDirectory(Path.GetDirectoryName(jarPath));
     var args = entryPointName == null ? // If null, then no entry point is added
-        new List<string> { "cf", jarPath }
-        : new List<string> { "cfe", jarPath, entryPointName };
+      ["cf", jarPath]
+      : new List<string> { "cfe", jarPath, entryPointName };
     var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(files));
     jarCreationProcess.WorkingDirectory = rootDirectory;
     return 0 == await RunProcess(jarCreationProcess, outputWriter, outputWriter, "Error while creating jar file: " + jarPath);
