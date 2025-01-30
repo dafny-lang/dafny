@@ -1,3 +1,4 @@
+// NONUNIFORM: Only testing the translation to Boogie aspect of the pipeline depending on checks
 // RUN: %baredafny run  %args --log-level verbose "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%S/TranslationCasesTranslate.check"
 
