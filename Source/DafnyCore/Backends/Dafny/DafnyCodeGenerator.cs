@@ -219,6 +219,10 @@ namespace Microsoft.Dafny.Compilers {
         tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype);
     }
 
+    private ISequence<TypeParameterInfo> GenTypeParameterInfos(List<TypeParameter> typeParams) {
+      return Sequence<TypeParameterInfo>.FromArray(typeParams.Select(GenTypeParameterInfo).ToArray());
+    }
+
     private Variance GenTypeVariance(TypeParameter tp) {
       if (tp.Variance is TypeParameter.TPVariance.Co) {
         return (Variance)Variance.create_Covariant();
@@ -288,6 +292,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new InvalidOperationException();
       }
     }
+
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
       AddUnsupportedFeature(iter.Origin, Feature.Iterators);
       return wr;
@@ -1870,6 +1875,7 @@ namespace Microsoft.Dafny.Compilers {
       var seqTypeArgs = Sequence<DAST.Type>.FromArray(typeArgs.Select(m => GenType(m)).ToArray());
 
       DAST.ResolvedTypeBase resolvedTypeBase;
+      var attributes = topLevel.Attributes;
 
       if (topLevel is NewtypeDecl newType) {
         var range = NativeTypeToNewtypeRange(newType, false);
@@ -1885,23 +1891,21 @@ namespace Microsoft.Dafny.Compilers {
           : TraitType.create_GeneralTrait();
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait(traitType);
       } else if (topLevel is DatatypeDecl dd) {
-        var infos = Sequence<TypeParameterInfo>.FromArray(dd.TypeArgs.Select(GenTypeParameterInfo).ToArray());
+        var infos = GenTypeParameterInfos(dd.TypeArgs);
         var equalitySupport = GenEqualitySupport(dd);
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Datatype(
           equalitySupport, infos);
       } else if (topLevel is ClassDecl) {
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Class();
       } else if (topLevel is AbstractTypeDecl atd) {
-        var traitType = atd.ParentTraits.Any(s => s.IsRefType) ?
-          TraitType.create_ObjectTrait() :
-          TraitType.create_GeneralTrait();
-        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait(traitType);
+        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Datatype(GenEqualitySupport(topLevel), GenTypeParameterInfos(topLevel.TypeArgs));
+        attributes = new Attributes("rust_rc", [Expression.CreateBoolLiteral(Token.NoToken, false)], attributes);
       } else {
         // SubsetTypeDecl are covered by TypeSynonymDecl
         throw new InvalidOperationException(topLevel.GetType().ToString());
       }
       var resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_ResolvedType(
-        path, seqTypeArgs, resolvedTypeBase, ParseAttributes(topLevel.Attributes), seqProperMethods, seqExtendTraits);
+        path, seqTypeArgs, resolvedTypeBase, ParseAttributes(attributes), seqProperMethods, seqExtendTraits);
 
       DAST.Type baseType = (DAST.Type)DAST.Type.create_UserDefined(resolvedType);
 
@@ -1912,7 +1916,16 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(decl is IndDatatypeDecl or NewtypeDecl);
       IndDatatypeDecl.ES equalitySupport =
         decl is IndDatatypeDecl indDecl ? indDecl.EqualitySupport :
-        decl is NewtypeDecl nt ? nt.EqualitySupport : IndDatatypeDecl.ES.Never;
+        decl is NewtypeDecl nt ? nt.EqualitySupport :
+        decl is AbstractTypeDecl atd ?
+          atd.Characteristics.EqualitySupport switch {
+            TypeParameter.EqualitySupportValue.Required => IndDatatypeDecl.ES.ConsultTypeArguments,
+            TypeParameter.EqualitySupportValue.InferredRequired => IndDatatypeDecl.ES.ConsultTypeArguments,
+            TypeParameter.EqualitySupportValue.Unspecified => IndDatatypeDecl.ES.Never,
+            _ => throw new ArgumentOutOfRangeException()
+          }
+        :
+        IndDatatypeDecl.ES.Never;
 
       return equalitySupport switch {
         IndDatatypeDecl.ES.Never => EqualitySupport.create_Never(),
