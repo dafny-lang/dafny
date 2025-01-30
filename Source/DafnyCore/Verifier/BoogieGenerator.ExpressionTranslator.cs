@@ -2152,13 +2152,12 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
               r = BplAnd(r, correctConstructor);
             }
           } else if (e.Member is ConstantField { Rhs: { } rhs } && BoogieGenerator.RevealedInScope(e.Member)) {
-            r = CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null));
+            // JATIN_TODO: Why do we need this can call?
+            // r = CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null));
           }
           if (e.Type.IsArrowType && this.HeapExpr != null) {
             var alloced = BoogieGenerator.MkIsAlloc(TrExpr(e), e.Type, this.HeapExpr);
             r = BplAnd(r,  alloced);
-            // JATIN_TODO: Why does the following not work?
-            // r = BplAnd(r, this.IsAlloced(GetToken(e), TrExpr(e)));
           }
           return r;
         } else if (expr is SeqSelectExpr) {
