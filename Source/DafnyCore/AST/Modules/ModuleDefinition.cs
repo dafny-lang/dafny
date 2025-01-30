@@ -467,7 +467,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         if (!nestedModuleDecl.ModuleDef.SuccessfullyResolved) {
           if (!IsEssentiallyEmptyModuleBody()) {
             // say something only if this will cause any testing to be omitted
-            resolver.reporter.Error(MessageSource.Resolver, nestedModuleDecl,
+            resolver.reporter.Error(MessageSource.Resolver, nestedModuleDecl.NameNode,
               "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", Name,
               nestedModuleDecl.Name);
           }
