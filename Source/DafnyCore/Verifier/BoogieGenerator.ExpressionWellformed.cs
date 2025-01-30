@@ -1239,6 +1239,12 @@ namespace Microsoft.Dafny {
                   }
 
                   void AddResultCommands(BoogieStmtListBuilder returnBuilder, Expression result) {
+                    if (etran.UsesOldHeap) {
+                      // JATIN_TODO: what is the label here?
+                      var desc = new IsAllocated("function's output", "in the state in which the function is defined", result);
+                      var earg = MkIsAlloc(etran.TrExpr(result), result.Type, etran.HeapExpr);
+                      returnBuilder.Add(Assert(GetToken(result), earg, desc, builder.Context));
+                    }
                     if (rangeType != null) {
                       CheckSubsetType(etran, result, resultIe, rangeType, returnBuilder, "lambda expression");
                     }
