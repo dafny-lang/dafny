@@ -4067,12 +4067,12 @@ namespace Microsoft.Dafny {
     internal class BoogieWrapper : Expression {
       public readonly Bpl.Expr Expr;
 
-      public BoogieWrapper(Bpl.Expr expr, Type dafnyType)
+      public BoogieWrapper(Bpl.Expr expr, Type type)
         : base(ToDafnyToken(false, expr.tok)) {
         Contract.Requires(expr != null);
-        Contract.Requires(dafnyType != null);
+        Contract.Requires(type != null);
         Expr = expr;
-        Type = dafnyType;  // resolve immediately
+        Type = type;  // resolve immediately
       }
     }
 

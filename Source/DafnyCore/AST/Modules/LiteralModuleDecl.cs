@@ -44,11 +44,11 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     BodyStartTok = ModuleDef.BodyStartTok;
   }
   
-  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition module, [BackEdge]ModuleDefinition enclosingModule, Guid cloneId)
-    : base(options, module.Origin, module.NameNode, enclosingModule, false, false, cloneId) {
-    ModuleDef = module;
-    BodyStartTok = module.BodyStartTok;
-    module.EnclosingLiteralModuleDecl = this;
+  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition moduleDef, [BackEdge]ModuleDefinition enclosingModule, Guid cloneId)
+    : base(options, moduleDef.Origin, moduleDef.NameNode, enclosingModule, false, false, cloneId) {
+    ModuleDef = moduleDef;
+    BodyStartTok = moduleDef.BodyStartTok;
+    moduleDef.EnclosingLiteralModuleDecl = this;
   }
 
   public override object Dereference() { return ModuleDef; }

@@ -140,6 +140,10 @@ public class GenerateParsedAst {
         var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
                          (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
 
+        if (memberInfo == null) {
+          throw new Exception($"type {type}, parameter {parameter.Name}");
+        }
+        
         if (memberInfo != null && memberInfo.DeclaringType != type) {
           continue;
         }
