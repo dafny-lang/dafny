@@ -30,7 +30,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
   [FilledInDuringResolution] public Method Member_MoveNext;  // created during registration phase of resolution;
   public readonly LocalVariable YieldCountVariable;
 
-  public IteratorDecl(IOrigin origin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public IteratorDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
     List<Formal> ins, List<Formal> outs,
     Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
     List<AttributedExpression> requires,
@@ -38,10 +38,10 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     List<AttributedExpression> yieldRequires,
     List<AttributedExpression> yieldEnsures,
     BlockStmt body, Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, name, module, typeArgs, new List<MemberDecl>(), attributes, signatureEllipsis != null, null) {
+    : base(origin, name, enclosingModule, typeArgs, new List<MemberDecl>(), attributes, signatureEllipsis != null, null) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(ins != null);
     Contract.Requires(outs != null);

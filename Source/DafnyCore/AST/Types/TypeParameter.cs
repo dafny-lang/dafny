@@ -189,7 +189,7 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  [JsonConstructor]
+  [ParseConstructor]
   public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
     : base(origin, name, null, new List<TypeParameter>(), null, false) {

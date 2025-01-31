@@ -11,12 +11,12 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
 
-  public AbstractTypeDecl(IOrigin origin, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics,
+  public AbstractTypeDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule, TypeParameter.TypeParameterCharacteristics characteristics,
     List<TypeParameter> typeArgs, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
+    : base(origin, name, enclosingModule, typeArgs, members, attributes, isRefining, parentTraits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(typeArgs != null);
     Characteristics = characteristics;
     this.NewSelfSynonym();

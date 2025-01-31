@@ -252,7 +252,7 @@ namespace Microsoft.Dafny.Compilers {
         if (trait.IsReferenceTypeDecl) {
           parents.Add((DAST.Type)DAST.Type.create_Object());
         }
-        foreach (var pt in trait.ParentTraits) {
+        foreach (var pt in trait.Traits) {
           var genType = GenType(pt);
 
           parents.Add(genType);

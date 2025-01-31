@@ -18,12 +18,13 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     Contract.Invariant(cce.NonNullElements(TypeArgs));
   }
 
-  protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition parent) : base(cloner, original) {
+  protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition enclosingModule) : base(cloner, original) {
     TypeArgs = original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
-    EnclosingModule = parent;
+    EnclosingModule = enclosingModule;
   }
 
-  protected TopLevelDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
+  protected TopLevelDecl(IOrigin origin, Name name, [BackEdge]ModuleDefinition enclosingModule, 
+    List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
     : base(origin, name, attributes, isRefining) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);

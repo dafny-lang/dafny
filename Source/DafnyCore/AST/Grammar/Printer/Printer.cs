@@ -703,7 +703,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     private void PrintExtendsClause(TopLevelDeclWithMembers c) {
       string sep = " extends ";
-      foreach (var trait in c.ParentTraits) {
+      foreach (var trait in c.Traits) {
         wr.Write(sep);
         PrintType(trait);
         sep = ", ";

@@ -38,15 +38,16 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
 
   public readonly bool Opened; // TODO: Only true for Abstract and Alias module declarations. It seems like they need a common superclass since there's also code of the form 'd is AliasModuleDecl || d is AbstractModuleDecl'
 
-  protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
+  protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
     Options = original.Options;
     Opened = original.Opened;
     CloneId = original.CloneId;
   }
 
-  protected ModuleDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
-    : base(origin, name, parent, new List<TypeParameter>(), null, isRefining) {
+  protected ModuleDecl(DafnyOptions options, IOrigin origin, Name name, [BackEdge]ModuleDefinition enclosingModule, 
+    bool opened, bool isRefining, Guid cloneId)
+    : base(origin, name, enclosingModule, new List<TypeParameter>(), null, isRefining) {
     Options = options;
     Height = -1;
     Signature = null;

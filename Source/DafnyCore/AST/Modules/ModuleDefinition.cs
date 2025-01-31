@@ -159,9 +159,9 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  [JsonConstructor]
+  [ParseConstructor]
   public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
-    Implements implements, ModuleDefinition enclosingModule, Attributes attributes, [CanBeNull] List<TopLevelDecl> sourceDecls = null) : base(origin) {
+    Implements implements, [BackEdge]ModuleDefinition enclosingModule, Attributes attributes, [CanBeNull] List<TopLevelDecl> sourceDecls = null) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     this.NameNode = nameNode;
@@ -1046,7 +1046,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         traitsProgress[traitDecl] = false; // indicate that traitDecl is currently being visited
 
         var inheritsFromObject = traitDecl.IsObjectTrait;
-        foreach (var parent in traitDecl.ParentTraits) {
+        foreach (var parent in traitDecl.Traits) {
           if (parent is UserDefinedType udt) {
             if (ResolveNamePath(udt.NamePath) is TraitDecl parentTrait) {
               if (parentTrait.EnclosingModule == this) {

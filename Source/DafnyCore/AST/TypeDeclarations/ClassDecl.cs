@@ -12,15 +12,15 @@ public class ClassDecl : ClassLikeDecl {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Members));
-    Contract.Invariant(ParentTraits != null);
+    Contract.Invariant(Traits != null);
   }
 
-  public ClassDecl(IOrigin origin, Name name, ModuleDefinition module,
+  public ClassDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(origin, name, module, typeArgs, members, attributes, isRefining, traits) {
+    : base(origin, name, enclosingModule, typeArgs, members, attributes, isRefining, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     NonNullTypeDecl = new NonNullTypeDecl(this);

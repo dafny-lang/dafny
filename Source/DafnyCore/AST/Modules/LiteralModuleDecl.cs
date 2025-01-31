@@ -36,16 +36,16 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
   public override IEnumerable<INode> Children => new[] { ModuleDef };
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public LiteralModuleDecl(Cloner cloner, LiteralModuleDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
-    var newModuleDefinition = cloner.CloneLiteralModuleDefinition ? cloner.CloneModuleDefinition(original.ModuleDef, parent) : original.ModuleDef;
+  public LiteralModuleDecl(Cloner cloner, LiteralModuleDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
+    var newModuleDefinition = cloner.CloneLiteralModuleDefinition ? cloner.CloneModuleDefinition(original.ModuleDef, enclosingModule) : original.ModuleDef;
     ModuleDef = newModuleDefinition;
     DefaultExport = original.DefaultExport;
     BodyStartTok = ModuleDef.BodyStartTok;
   }
   
-  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition module, ModuleDefinition parent, Guid cloneId)
-    : base(options, module.Origin, module.NameNode, parent, false, false, cloneId) {
+  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition module, [BackEdge]ModuleDefinition enclosingModule, Guid cloneId)
+    : base(options, module.Origin, module.NameNode, enclosingModule, false, false, cloneId) {
     ModuleDef = module;
     BodyStartTok = module.BodyStartTok;
     module.EnclosingLiteralModuleDecl = this;

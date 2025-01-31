@@ -14,15 +14,15 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   public ModuleDecl CompileRoot;
   public ModuleSignature OriginalSignature;
 
-  public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
+  public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
     Exports = original.Exports;
     QId = new ModuleQualifiedId(cloner, original.QId);
   }
 
   public AbstractModuleDecl(DafnyOptions options, IOrigin origin, ModuleQualifiedId qid, Name name,
-    ModuleDefinition parent, bool opened, List<IOrigin> exports, Guid cloneId)
-    : base(options, origin, name, parent, opened, false, cloneId) {
+    ModuleDefinition enclosingModule, bool opened, List<IOrigin> exports, Guid cloneId)
+    : base(options, origin, name, enclosingModule, opened, false, cloneId) {
     Contract.Requires(qid != null && qid.Path.Count > 0);
     Contract.Requires(exports != null);
 

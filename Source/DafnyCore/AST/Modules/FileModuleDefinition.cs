@@ -14,6 +14,7 @@ public class FileModuleDefinition : ModuleDefinition {
   [JsonSchemaIgnore]
   public List<Include> Includes { get; } = new();
 
+  [ParseConstructor]
   public FileModuleDefinition(IOrigin token) :
     base(token, new Name("_module"), new List<IOrigin>(),
       ModuleKindEnum.Concrete, false, null, null, null) {

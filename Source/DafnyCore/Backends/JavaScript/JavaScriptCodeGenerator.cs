@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.Compilers {
       if (typeParameters != null && WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w) > 0) {
         sep = ", ";
       }
-      if (cls is NewtypeDecl { ParentTraits: { } parentTraits } && parentTraits.Count > 0) {
+      if (cls is NewtypeDecl { Traits: { } parentTraits } && parentTraits.Count > 0) {
         w.Write($"{sep}value");
       }
       var fieldWriter = w.NewBlock(")");
@@ -604,7 +604,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GenerateIsMethod(nt, cw.MethodWriter);
 
-      if (nt.ParentTraits.Count != 0) {
+      if (nt.Traits.Count != 0) {
         // in constructor:
         //   this._value = value;
         cw.FieldWriter.WriteLine("this._value = value;");

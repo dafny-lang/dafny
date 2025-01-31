@@ -12,6 +12,7 @@ using Type = System.Type;
 
 namespace IntegrationTests;
 
+
 public class GenerateParsedAst {
   private static HashSet<Type> excludedTypes = [typeof(DafnyOptions)];
   private static Dictionary<Type,Type> mappedTypes = new() {
@@ -120,7 +121,8 @@ public class GenerateParsedAst {
     }
 
     var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-    var constructor = constructors.Where(c => !c.IsPrivate).MaxBy(c => 
+    var constructor = constructors.Where(c => !c.IsPrivate && 
+      !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c => 
       c.GetCustomAttribute<ParseConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue);
     if (constructor != null) {
       var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
@@ -128,6 +130,10 @@ public class GenerateParsedAst {
       
       foreach (var parameter in constructor.GetParameters()) {
         if (excludedTypes.Contains(parameter.ParameterType)) {
+          continue;
+        }
+
+        if (parameter.GetCustomAttribute<BackEdge>() != null) {
           continue;
         }
 

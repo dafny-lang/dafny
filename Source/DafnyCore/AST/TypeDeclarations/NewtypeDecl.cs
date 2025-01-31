@@ -32,13 +32,13 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   [FilledInDuringResolution] public bool TargetTypeCoversAllBitPatterns; // "target complete" -- indicates that any bit pattern that can fill the target type is a value of the newtype
 
-  public NewtypeDecl(IOrigin origin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
+  public NewtypeDecl(IOrigin origin, Name name, List<TypeParameter> typeParameters, ModuleDefinition enclosingModule,
     Type baseType,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
+    : base(origin, name, enclosingModule, typeParameters, members, attributes, isRefining, parentTraits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(isRefining ^ (baseType != null));
     Contract.Requires((witnessKind == SubsetTypeDecl.WKind.Compiled || witnessKind == SubsetTypeDecl.WKind.Ghost) == (witness != null));
     Contract.Requires(members != null);
@@ -47,13 +47,13 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     WitnessKind = witnessKind;
     this.NewSelfSynonym();
   }
-  public NewtypeDecl(IOrigin origin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
+  public NewtypeDecl(IOrigin origin, Name name, List<TypeParameter> typeParameters, ModuleDefinition enclosingModule,
     BoundVar bv, Expression constraint,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
+    : base(origin, name, enclosingModule, typeParameters, members, attributes, isRefining, parentTraits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(bv != null && bv.Type != null);
     Contract.Requires((witnessKind == SubsetTypeDecl.WKind.Compiled || witnessKind == SubsetTypeDecl.WKind.Ghost) == (witness != null));
     Contract.Requires(members != null);

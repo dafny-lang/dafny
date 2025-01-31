@@ -29,7 +29,7 @@ public class Name : RangeNode {
     Value = original.Value;
   }
 
-  [JsonConstructor]
+  [ParseConstructor]
   public Name(IOrigin origin, string value) : base(origin) {
     this.Value = value;
   }

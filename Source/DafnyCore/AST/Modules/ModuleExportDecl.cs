@@ -23,8 +23,8 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
 
   public ModuleDefinition EffectiveModule = null;
 
-  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
+  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
     Exports = original.Exports.Select(s => new ExportSignature(cloner, s)).ToList();
     Extends = original.Extends.Select(cloner.Origin).ToList();
     ProvideAll = original.ProvideAll;
@@ -35,10 +35,10 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     SetupDefaultSignature();
   }
 
-  public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition parent,
+  public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition enclosingModule,
     List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(options, origin, name, parent, false, isRefining, cloneId) {
+    : base(options, origin, name, enclosingModule, false, isRefining, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;

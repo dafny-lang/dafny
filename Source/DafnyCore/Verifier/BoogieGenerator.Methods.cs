@@ -464,7 +464,7 @@ namespace Microsoft.Dafny {
       //this adds: axiom implements$J(class.C, typeInstantiations);
       var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
-      foreach (var parent in c.ParentTraits) {
+      foreach (var parent in c.Traits) {
         var trait = ((UserDefinedType)parent).AsParentTraitDecl();
         Contract.Assert(trait != null);
         var arg = ClassTyCon(c, tyexprs);
