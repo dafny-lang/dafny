@@ -24,8 +24,8 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   }
 
   protected TopLevelDecl(IOrigin origin, Name name, [BackEdge]ModuleDefinition enclosingModule, 
-    List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
-    : base(origin, name, attributes, isRefining) {
+    List<TypeParameter> typeArgs, Attributes attributes)
+    : base(origin, name, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

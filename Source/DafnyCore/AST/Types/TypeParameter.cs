@@ -192,7 +192,7 @@ public class TypeParameter : TopLevelDecl {
   [ParseConstructor]
   public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
-    : base(origin, name, null, new List<TypeParameter>(), null, false) {
+    : base(origin, name, null, new List<TypeParameter>(), null) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Characteristics = characteristics;

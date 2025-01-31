@@ -46,8 +46,8 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   }
 
   protected ModuleDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition enclosingModule, 
-    bool opened, bool isRefining, Guid cloneId)
-    : base(origin, name, enclosingModule, new List<TypeParameter>(), null, isRefining) {
+    bool opened, Guid cloneId)
+    : base(origin, name, enclosingModule, new List<TypeParameter>(), null) {
     Options = options;
     Height = -1;
     Signature = null;

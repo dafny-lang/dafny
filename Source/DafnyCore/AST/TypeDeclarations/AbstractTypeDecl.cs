@@ -13,14 +13,17 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
 
   public AbstractTypeDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule, TypeParameter.TypeParameterCharacteristics characteristics,
     List<TypeParameter> typeArgs, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, enclosingModule, typeArgs, members, attributes, isRefining, parentTraits) {
+    : base(origin, name, enclosingModule, typeArgs, members, attributes, parentTraits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(enclosingModule != null);
     Contract.Requires(typeArgs != null);
+    IsRefining = isRefining;
     Characteristics = characteristics;
     this.NewSelfSynonym();
   }
+
+  public override bool IsRefining { get; }
 
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }

@@ -17,13 +17,16 @@ public class ClassDecl : ClassLikeDecl {
 
   public ClassDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(origin, name, enclosingModule, typeArgs, members, attributes, isRefining, traits) {
+    : base(origin, name, enclosingModule, typeArgs, members, attributes, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(enclosingModule != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     NonNullTypeDecl = new NonNullTypeDecl(this);
+    IsRefining = isRefining;
     this.NewSelfSynonym();
   }
+
+  public override bool IsRefining { get; }
 }

@@ -21,7 +21,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   public virtual IOrigin NavigationToken => NameNode.Origin;
 
   public string Name => NameNode.Value;
-  public bool IsRefining;
+  public virtual bool IsRefining => false;
 
   private VisibilityScope opaqueScope = new();
   private VisibilityScope revealScope = new();
@@ -34,13 +34,13 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  protected Declaration(IOrigin origin, Name name, Attributes attributes, bool isRefining) : base(origin) {
+  protected Declaration(IOrigin origin, Name name, Attributes attributes) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     this.NameNode = name;
     this.Attributes = attributes;
-    this.IsRefining = isRefining;
   }
+  
 
   public bool HasAxiomAttribute =>
     Attributes.Contains(Attributes, Attributes.AxiomAttributeName);

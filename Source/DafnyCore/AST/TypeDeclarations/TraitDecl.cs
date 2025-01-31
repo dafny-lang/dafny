@@ -27,8 +27,11 @@ public class TraitDecl : ClassLikeDecl {
   /// </summary>
   public TraitDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type> /*?*/ traits)
-    : base(origin, name, enclosingModule, typeArgs, members, attributes, isRefining, traits) {
+    : base(origin, name, enclosingModule, typeArgs, members, attributes, traits) {
+    IsRefining = isRefining;
   }
+
+  public override bool IsRefining { get; }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     foreach (var assumption in base.Assumptions(this)) {

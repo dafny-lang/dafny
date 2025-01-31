@@ -25,8 +25,8 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
   protected ClassLikeDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule,
-    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(origin, name, enclosingModule, typeArgs, members, attributes, isRefining, traits) {
+    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits)
+    : base(origin, name, enclosingModule, typeArgs, members, attributes, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(enclosingModule != null);

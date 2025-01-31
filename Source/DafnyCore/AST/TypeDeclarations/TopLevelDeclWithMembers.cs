@@ -89,8 +89,8 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
 
   protected TopLevelDeclWithMembers(IOrigin origin, Name name, ModuleDefinition enclosingModule,
     List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
-    bool isRefining, List<Type>/*?*/ traits = null)
-    : base(origin, name, enclosingModule, typeArgs, attributes, isRefining) {
+    List<Type>/*?*/ traits = null)
+    : base(origin, name, enclosingModule, typeArgs, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

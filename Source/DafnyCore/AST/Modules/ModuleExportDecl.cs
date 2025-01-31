@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Security.AccessControl;
 
 namespace Microsoft.Dafny;
 
@@ -35,15 +34,18 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     SetupDefaultSignature();
   }
 
+  public override bool IsRefining { get; }
+
   public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition enclosingModule,
     List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(options, origin, name, enclosingModule, false, isRefining, cloneId) {
+    : base(options, origin, name, enclosingModule, false, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
     Extends = extends;
     ProvideAll = provideAll;
+    IsRefining = isRefining;
     RevealAll = revealAll;
     ThisScope = new VisibilityScope(this.FullSanitizedName);
     SetupDefaultSignature();

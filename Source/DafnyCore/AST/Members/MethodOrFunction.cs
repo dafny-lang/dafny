@@ -27,10 +27,11 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
     Specification<Expression> decreases)
-    : base(origin, name, hasStaticKeyword, isGhost, attributes, isRefining) {
+    : base(origin, name, hasStaticKeyword, isGhost, attributes) {
     TypeArgs = typeArgs;
     Req = req;
     Decreases = decreases;
+    IsRefining = isRefining;
     Ens = ens;
     Ins = ins;
   }
@@ -44,6 +45,8 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     if (cloner.CloneResolvedFields) {
       this.ContainsHide = original.ContainsHide;
     }
+
+    IsRefining = original.IsRefining;
   }
 
   protected abstract bool Bodyless { get; }
@@ -95,8 +98,12 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     // The following check is incomplete, which is a bug.
     || Ins.Any(f => f.Type.AsSubsetType is not null);
 
-  protected MethodOrFunction(SourceOrigin tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining) : base(tok, name, hasStaticKeyword, isGhost, attributes, isRefining) {
+  protected MethodOrFunction(SourceOrigin tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining) 
+    : base(tok, name, hasStaticKeyword, isGhost, attributes) {
+    IsRefining = isRefining;
   }
+
+  public override bool IsRefining { get; }
 
   public Specification<FrameExpression> Reads { get; set; }
 }
