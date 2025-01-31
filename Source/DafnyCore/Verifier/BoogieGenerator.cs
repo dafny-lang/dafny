@@ -701,7 +701,7 @@ namespace Microsoft.Dafny {
         return new Bpl.Program();
       }
 
-      if (Options.Get(CommonOptionBag.LogLevelOption).CompareTo(LogEventLevel.Verbose) <= 0) {
+      if (Options.GetOrOptionDefault(CommonOptionBag.LogLevelOption).CompareTo(LogEventLevel.Verbose) <= 0) {
         Options.OutputWriter.WriteLine("Starting translation to Boogie of module " + forModule.FullDafnyName);
       }
 
