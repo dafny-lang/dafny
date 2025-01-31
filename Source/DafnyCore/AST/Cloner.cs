@@ -1,3 +1,4 @@
+#nullable enable
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
@@ -292,10 +293,10 @@ namespace Microsoft.Dafny {
       return (LocalVariable)clones.GetOrCreate(local, () => isReference ? local : new LocalVariable(this, local));
     }
 
-    public virtual VT CloneIVariable<VT>(VT v, bool isReference)
-      where VT : class, IVariable {
+    public virtual VT? CloneIVariable<VT>(VT? v, bool isReference)
+      where VT : IVariable {
       if (v == null) {
-        return null;
+        return default;
       }
 
       var iv = (IVariable)v;
@@ -391,7 +392,7 @@ namespace Microsoft.Dafny {
     }
 
     public virtual CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat)
-      where VT : class, IVariable {
+      where VT : IVariable {
       Contract.Requires(pat != null);
       return new CasePattern<VT>(this, pat);
     }

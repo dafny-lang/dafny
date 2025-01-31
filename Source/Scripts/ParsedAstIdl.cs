@@ -74,6 +74,13 @@ public class GenerateParsedAst {
 
   private static BaseTypeDeclarationSyntax? GenerateClass(Type type, Stack<Type> toVisit, IDictionary<Type, ISet<Type>> inheritors)
   {
+    // if (type.IsInterface) {
+    //   string interfaceName = type.IsGenericType ? 
+    //     type.Name.Substring(0, type.Name.IndexOf('`')) : 
+    //     type.Name;
+    //   return (InterfaceDeclarationSyntax)ParseMemberDeclaration($"interface {interfaceName} {{}}")!;
+    // }
+    
     if (type.IsEnum) {
       var enumName = ToGenericTypeString(type);
       var enumm = EnumDeclaration(enumName);
@@ -88,10 +95,22 @@ public class GenerateParsedAst {
     var classDeclaration = ConvertTypeToSyntax(type);
     List<MemberDeclarationSyntax> newFields = new();
 
-    if (type.BaseType != null && type.BaseType != typeof(ValueType)) {
+    var baseList = new List<BaseTypeSyntax>();
+    if (type.BaseType != null && type.BaseType != typeof(ValueType) && type.BaseType != typeof(Object)) {
       toVisit.Push(type.BaseType);
-      classDeclaration = classDeclaration.WithBaseList(BaseList(SeparatedList(new List<BaseTypeSyntax> {
-        SimpleBaseType(ParseTypeName(ToGenericTypeString(type.BaseType))) })));
+      baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(type.BaseType))));
+    }
+
+    // foreach(var @interface in type.GetInterfaces().Except(type.BaseType == null ? [] : type.BaseType.GetInterfaces())) {
+    //   var genType = @interface.IsGenericType ? @interface.GetGenericTypeDefinition() : @interface;
+    //   if (genType == typeof(IComparable<>) || genType == typeof(object)) {
+    //     continue;
+    //   }
+    //   baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(@interface))));
+    // }
+
+    if (baseList.Any()) {
+      classDeclaration = classDeclaration.WithBaseList(BaseList(SeparatedList(baseList)));
     }
 
     if (inheritors.TryGetValue(type, out var children)) {
@@ -206,6 +225,9 @@ public class GenerateParsedAst {
                 // Add type constraints
                 foreach (var constraint in paramConstraints)
                 {
+                    if (constraint.IsInterface) {
+                      continue;
+                    }
                     constraints.Add(
                         TypeConstraint(ParseTypeName(constraint.Name)));
                 }
@@ -215,7 +237,7 @@ public class GenerateParsedAst {
                 {
                     constraints.Add(ConstructorConstraint());
                 }
-
+                
                 // If we have any constraints, create the constraint clause
                 if (constraints.Any())
                 {
