@@ -298,20 +298,20 @@ public class GenerateParsedAst {
       UsingDirective(ParseName("System.Numerics")));
     
     // Create a list of basic references that most code will need
-    var references = new List<MetadataReference>
+    var references = new List<string>
     {
-      MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-      MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
-      MetadataReference.CreateFromFile(typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location),
-      MetadataReference.CreateFromFile(typeof(List<>).Assembly.Location),
-      MetadataReference.CreateFromFile(typeof(BigInteger).Assembly.Location),
-      MetadataReference.CreateFromFile(typeof(System.ValueType).Assembly.Location)
-    };
+      typeof(object).Assembly.Location,
+      typeof(Console).Assembly.Location,
+      typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location,
+      typeof(List<>).Assembly.Location,
+      typeof(BigInteger).Assembly.Location,
+      typeof(ValueType).Assembly.Location
+    }.Distinct().ToList();
     var syntaxTree = CSharpSyntaxTree.Create(compilationUnit);
     var compilation = CSharpCompilation.Create(
       assemblyName: "DynamicAssembly",
       syntaxTrees: new[] { syntaxTree },
-      references: references,
+      references: references.Select(p => MetadataReference.CreateFromFile(p)),
       options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     var diagnostics = compilation.GetDiagnostics();
     var significantDiagnostics = diagnostics.Where(d => 
