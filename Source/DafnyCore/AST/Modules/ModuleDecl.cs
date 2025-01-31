@@ -44,6 +44,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
     CloneId = original.CloneId;
   }
   
+  [ParseConstructor]
   protected ModuleDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition enclosingModule, 
     Guid cloneId)
     : base(origin, name, enclosingModule, new List<TypeParameter>(), null) {

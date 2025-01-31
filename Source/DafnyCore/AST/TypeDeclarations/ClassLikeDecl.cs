@@ -24,6 +24,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
+  [ParseConstructor]
   protected ClassLikeDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits)
     : base(origin, name, enclosingModule, typeArgs, members, attributes, traits) {

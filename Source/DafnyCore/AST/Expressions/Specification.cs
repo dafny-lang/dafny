@@ -17,10 +17,10 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
     Attributes = null;
   }
 
-  public Specification(List<T> exprs, Attributes attrs) {
-    Contract.Requires(exprs == null || cce.NonNullElements<T>(exprs));
-    Expressions = exprs;
-    Attributes = attrs;
+  public Specification(List<T> expressions, Attributes attributes) {
+    Contract.Requires(expressions == null || cce.NonNullElements<T>(expressions));
+    Expressions = expressions;
+    Attributes = attributes;
   }
 
   public Attributes Attributes { get; set; }

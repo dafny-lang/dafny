@@ -22,8 +22,9 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public readonly Specification<Expression> Decreases;
   public readonly List<Formal> Ins;
 
+  [ParseConstructor]
   protected MethodOrFunction(IOrigin origin, Name name, bool hasStaticKeyword, bool isGhost,
-    Attributes attributes, bool isRefining, List<TypeParameter> typeArgs, List<Formal> ins,
+    Attributes attributes, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
     Specification<Expression> decreases)
@@ -31,7 +32,6 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     TypeArgs = typeArgs;
     Req = req;
     Decreases = decreases;
-    IsRefining = isRefining;
     Ens = ens;
     Ins = ins;
   }
@@ -45,8 +45,6 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     if (cloner.CloneResolvedFields) {
       this.ContainsHide = original.ContainsHide;
     }
-
-    IsRefining = original.IsRefining;
   }
 
   protected abstract bool Bodyless { get; }
@@ -98,12 +96,9 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     // The following check is incomplete, which is a bug.
     || Ins.Any(f => f.Type.AsSubsetType is not null);
 
-  protected MethodOrFunction(SourceOrigin tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining) 
+  protected MethodOrFunction(SourceOrigin tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes) 
     : base(tok, name, hasStaticKeyword, isGhost, attributes) {
-    IsRefining = isRefining;
   }
-
-  public override bool IsRefining { get; }
 
   public Specification<FrameExpression> Reads { get; set; }
 }

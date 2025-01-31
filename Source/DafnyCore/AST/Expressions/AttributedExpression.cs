@@ -36,14 +36,14 @@ public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDecl
     Contract.Requires(e != null);
   }
 
-  public AttributedExpression(Expression e, Attributes attrs) : this(e, null, attrs) {
+  public AttributedExpression(Expression e, Attributes attributes) : this(e, null, attributes) {
   }
 
-  public AttributedExpression(Expression e, AssertLabel/*?*/ label, Attributes attrs) : base(e.Origin) {
+  public AttributedExpression(Expression e, AssertLabel/*?*/ label, Attributes attributes) : base(e.Origin) {
     Contract.Requires(e != null);
     E = e;
     Label = label;
-    Attributes = attrs;
+    Attributes = attributes;
   }
 
   public void AddCustomizedErrorMessage(IOrigin tok, string s) {

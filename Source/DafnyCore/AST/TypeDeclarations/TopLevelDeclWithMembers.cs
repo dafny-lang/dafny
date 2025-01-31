@@ -87,6 +87,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
 
+  [ParseConstructor]
   protected TopLevelDeclWithMembers(IOrigin origin, Name name, ModuleDefinition enclosingModule,
     List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
     List<Type>/*?*/ traits = null)

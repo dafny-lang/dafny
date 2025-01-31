@@ -116,10 +116,12 @@ public class GenerateParsedAst {
 
     if (inheritors.TryGetValue(type, out var children)) {
       foreach (var child in children) {
-        var goodConstructor = child.GetConstructors().
+        var goodConstructor = child.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).
           FirstOrDefault(c => c.GetCustomAttribute<ParseConstructorAttribute>() != null);
         if (goodConstructor != null) {
           toVisit.Push(child);
+        } else {
+          var b = 3;
         }
       }
     }

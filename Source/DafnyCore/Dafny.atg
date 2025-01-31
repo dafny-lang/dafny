@@ -338,7 +338,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    | "replaces" ModuleQualifiedName<out idRefined> (. implementationKind = ImplementationKind.Replacement; .)
    | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
-   (. module = new ModuleDefinition(SourceOrigin.NoToken, name, prefixIds, GetModuleKind(dmod), false,
+   (. module = new ModuleDefinition(SourceOrigin.NoToken, name, prefixIds, GetModuleKind(dmod), 
                                         idRefined == null ? null : new Implements(implementationKind, new ModuleQualifiedId(idRefined)), parent, dmod.Attributes);
    .)
    SYNC
@@ -1081,7 +1081,7 @@ GenericParameters<.List<TypeParameter> typeParameters, bool allowVariance.>
 
 OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
 = (. var variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict; // assignment is to please compiler
-     var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+     var characteristics = new TypeParameter.TypeParameterCharacteristics();
      Name name;
      Type typeBound;
      var typeBounds = new List<Type>();

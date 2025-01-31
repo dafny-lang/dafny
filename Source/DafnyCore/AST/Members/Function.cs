@@ -227,12 +227,13 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     Contract.Invariant(Decreases != null);
   }
 
-  public Function(IOrigin range, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
+  [ParseConstructor]
+  public Function(IOrigin origin, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IOrigin/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IOrigin/*?*/ signatureEllipsis)
-    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null, typeArgs, ins, req, ens, decreases) {
+    : base(origin, name, hasStaticKeyword, isGhost, attributes, typeArgs, ins, req, ens, decreases) {
 
     Contract.Requires(Origin != null);
     Contract.Requires(name != null);
@@ -273,6 +274,8 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
       }
     }
   }
+
+  public override bool IsRefining => SignatureEllipsis != null;
 
   bool ICodeContext.IsGhost { get { return IsGhost; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }

@@ -131,6 +131,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.IsByMethod = original.IsByMethod;
   }
 
+  [ParseConstructor]
   public Method(IOrigin origin, Name name,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
@@ -143,7 +144,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] BlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis,
     bool isByMethod = false)
-    : base(origin, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
+    : base(origin, name, hasStaticKeyword, isGhost, attributes, 
       typeArgs, ins, req, ens, decreases) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
@@ -163,6 +164,8 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.IsByMethod = isByMethod;
     MustReverify = false;
   }
+
+  public override bool IsRefining => SignatureEllipsis != null;
 
   bool ICodeContext.IsGhost { get { return this.IsGhost; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
