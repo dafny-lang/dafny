@@ -39,7 +39,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition enclosingModule,
     List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(options, origin, name, enclosingModule, false, cloneId) {
+    : base(options, origin, name, enclosingModule, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
