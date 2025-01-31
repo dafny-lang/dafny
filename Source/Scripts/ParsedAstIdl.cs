@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Numerics;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -52,7 +53,7 @@ public class GenerateParsedAst {
           continue;
         }
 
-        if (current.Namespace != rootType.Namespace) {
+        if (current.Namespace != rootType.Namespace && current.Namespace != "Microsoft.Boogie") {
           continue;
         }
         var classDeclaration = GenerateClass(current, toVisit, inheritors);
@@ -71,42 +72,10 @@ public class GenerateParsedAst {
       return compilationUnit.ToFullString();
   }
 
-  private static bool CheckCorrectness(CompilationUnitSyntax compilationUnit) {
-    var namespaceDeclaration = NamespaceDeclaration(ParseName("Testing"));
-    namespaceDeclaration = namespaceDeclaration.WithMembers(compilationUnit.Members);
-    compilationUnit = CompilationUnit().AddMembers(namespaceDeclaration);
-    compilationUnit = compilationUnit.AddUsings(
-      UsingDirective(ParseName("System"))).AddUsings(
-      UsingDirective(ParseName("System.Collections.Generic")));
-    
-    // Create a list of basic references that most code will need
-    var references = new List<MetadataReference>
-    {
-      MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-      MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
-      MetadataReference.CreateFromFile(typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location),
-      MetadataReference.CreateFromFile(typeof(List<>).Assembly.Location)
-    };
-    var syntaxTree = CSharpSyntaxTree.Create(compilationUnit);
-    var compilation = CSharpCompilation.Create(
-      assemblyName: "DynamicAssembly",
-      syntaxTrees: new[] { syntaxTree },
-      references: references,
-      options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-    var diagnostics = compilation.GetDiagnostics();
-    var significantDiagnostics = diagnostics.Where(d => 
-      d.Severity == DiagnosticSeverity.Error).ToList();
-    var hasErrors = significantDiagnostics.Any();
-    foreach (var diagnostic in significantDiagnostics) {
-      Console.WriteLine(diagnostic.ToString());
-    }
-    return hasErrors;
-  }
-
   private static BaseTypeDeclarationSyntax? GenerateClass(Type type, Stack<Type> toVisit, IDictionary<Type, ISet<Type>> inheritors)
   {
     if (type.IsEnum) {
-      var enumName = type.ToGenericTypeString();
+      var enumName = ToGenericTypeString(type);
       var enumm = EnumDeclaration(enumName);
       foreach (var name in Enum.GetNames(type)) {
         enumm = enumm.AddMembers(EnumMemberDeclaration(name));
@@ -119,10 +88,10 @@ public class GenerateParsedAst {
     var classDeclaration = ConvertTypeToSyntax(type);
     List<MemberDeclarationSyntax> newFields = new();
 
-    if (type.BaseType != null) {
+    if (type.BaseType != null && type.BaseType != typeof(ValueType)) {
       toVisit.Push(type.BaseType);
       classDeclaration = classDeclaration.WithBaseList(BaseList(SeparatedList(new List<BaseTypeSyntax> {
-        SimpleBaseType(ParseTypeName(type.BaseType.ToGenericTypeString())) })));
+        SimpleBaseType(ParseTypeName(ToGenericTypeString(type.BaseType))) })));
     }
 
     if (inheritors.TryGetValue(type, out var children)) {
@@ -151,16 +120,19 @@ public class GenerateParsedAst {
         }
         
         var usedTyped = parameter.ParameterType;
-        if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
-          usedTyped = newType;
-        }
         
         newFields.Add(FieldDeclaration(VariableDeclaration(
             
-            ParseTypeName(usedTyped.ToGenericTypeString()),
+            ParseTypeName(ToGenericTypeString(usedTyped)),
           SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
         
+        if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
+          usedTyped = newType;
+        }
         toVisit.Push(usedTyped);
+        foreach (var argument in usedTyped.GenericTypeArguments) {
+          toVisit.Push(argument);
+        }
       }
     }
 
@@ -263,12 +235,17 @@ public class GenerateParsedAst {
 
         return classDecl;
     }
-}
   
-public static class TypeExtensions
-{
-  public static string ToGenericTypeString(this Type t)
+  public static string ToGenericTypeString(Type t)
   {
+    if (mappedTypes.TryGetValue(t, out var newType)) {
+      t = newType;
+    }
+    
+    if (t.IsGenericTypeParameter) {
+      return t.Name;
+    }
+    
     if (!t.IsGenericType) {
       var name = t.Name;
       if (t.IsNested) {
@@ -287,5 +264,40 @@ public static class TypeExtensions
       t.GetGenericArguments()
         .Select(ToGenericTypeString).ToArray());
     return genericTypeName + "<" + genericArgs + ">";
+  }
+
+  private static bool CheckCorrectness(CompilationUnitSyntax compilationUnit) {
+    var namespaceDeclaration = NamespaceDeclaration(ParseName("Testing"));
+    namespaceDeclaration = namespaceDeclaration.WithMembers(compilationUnit.Members);
+    compilationUnit = CompilationUnit().AddMembers(namespaceDeclaration);
+    compilationUnit = compilationUnit.AddUsings(
+      UsingDirective(ParseName("System"))).AddUsings(
+      UsingDirective(ParseName("System.Collections.Generic"))).AddUsings(
+      UsingDirective(ParseName("System.Numerics")));
+    
+    // Create a list of basic references that most code will need
+    var references = new List<MetadataReference>
+    {
+      MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+      MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
+      MetadataReference.CreateFromFile(typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location),
+      MetadataReference.CreateFromFile(typeof(List<>).Assembly.Location),
+      MetadataReference.CreateFromFile(typeof(BigInteger).Assembly.Location),
+      MetadataReference.CreateFromFile(typeof(System.ValueType).Assembly.Location)
+    };
+    var syntaxTree = CSharpSyntaxTree.Create(compilationUnit);
+    var compilation = CSharpCompilation.Create(
+      assemblyName: "DynamicAssembly",
+      syntaxTrees: new[] { syntaxTree },
+      references: references,
+      options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+    var diagnostics = compilation.GetDiagnostics();
+    var significantDiagnostics = diagnostics.Where(d => 
+      d.Severity == DiagnosticSeverity.Error).ToList();
+    var hasErrors = significantDiagnostics.Any();
+    foreach (var diagnostic in significantDiagnostics) {
+      Console.WriteLine(diagnostic.ToString());
+    }
+    return hasErrors;
   }
 }
