@@ -22,6 +22,7 @@ using DafnyCore.Verifier;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Triggers;
+using Serilog.Events;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
@@ -698,6 +699,10 @@ namespace Microsoft.Dafny {
     public Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
       if (sink == null) {
         return new Bpl.Program();
+      }
+
+      if (Options.GetOrOptionDefault(CommonOptionBag.LogLevelOption).CompareTo(LogEventLevel.Verbose) <= 0) {
+        Options.OutputWriter.WriteLine("Starting translation to Boogie of module " + forModule.FullDafnyName);
       }
 
       foreach (var plugin in p.Options.Plugins) {

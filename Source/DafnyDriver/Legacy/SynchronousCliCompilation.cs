@@ -287,25 +287,34 @@ namespace Microsoft.Dafny {
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
         options.Printer.ErrorWriteLine(options.OutputWriter, err);
-      } else if (dafnyProgram != null && !options.NoResolve && !options.NoTypecheck
-          && options.DafnyVerify) {
+      } else if (dafnyProgram != null && !options.NoResolve && !options.NoTypecheck) {
 
+        bool verified;
+        PipelineOutcome outcome;
+        IDictionary<string, PipelineStatistics> moduleStats;
         dafnyProgram.ProofDependencyManager = depManager;
-        var boogiePrograms =
-          await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
+        if (!options.DafnyVerify) {
+          verified = false;
+          outcome = PipelineOutcome.Done;
+          moduleStats = new Dictionary<string, PipelineStatistics>();
+        } else {
+          var boogiePrograms =
+            await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
 
-        string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
-        var (verified, outcome, moduleStats) =
-          await BoogieAsync(dafnyProgram.Reporter, options, baseName, boogiePrograms, programId);
+          string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
+          (verified, outcome, moduleStats) =
+            await BoogieAsync(dafnyProgram.Reporter, options, baseName, boogiePrograms, programId);
 
-        if (options.TrackVerificationCoverage) {
-          ProofDependencyWarnings.WarnAboutSuspiciousDependenciesUsingStoredPartialResults(options, dafnyProgram.Reporter, depManager);
-          var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
-          if (coverageReportDir != null) {
-            await new CoverageReporter(options).SerializeVerificationCoverageReport(
-              depManager, dafnyProgram,
-              boogiePrograms.SelectMany(tp => tp.Item2.AllCoveredElements),
-              coverageReportDir);
+          if (options.TrackVerificationCoverage) {
+            ProofDependencyWarnings.WarnAboutSuspiciousDependenciesUsingStoredPartialResults(options,
+              dafnyProgram.Reporter, depManager);
+            var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
+            if (coverageReportDir != null) {
+              await new CoverageReporter(options).SerializeVerificationCoverageReport(
+                depManager, dafnyProgram,
+                boogiePrograms.SelectMany(tp => tp.Item2.AllCoveredElements),
+                coverageReportDir);
+            }
           }
         }
 
@@ -329,7 +338,7 @@ namespace Microsoft.Dafny {
         }
 
         var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilationMessage;
-        if (!verified) {
+        if (!verified && options.DafnyVerify) {
           exitValue = ExitValue.VERIFICATION_ERROR;
         } else if (!compiled) {
           exitValue = ExitValue.COMPILE_ERROR;

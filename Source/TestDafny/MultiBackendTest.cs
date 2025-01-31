@@ -507,7 +507,7 @@ public class MultiBackendTest {
     }
     await output.WriteLineAsync("Execution failed, for reasons other than known unsupported features. Output:");
     await output.WriteLineAsync(outputString);
-    await output.WriteLineAsync("Error:");
+    await output.WriteLineAsync($"Error (code={exitCode}):");
     await output.WriteLineAsync(error);
     return exitCode;
   }
