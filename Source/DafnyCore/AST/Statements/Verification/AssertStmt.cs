@@ -25,6 +25,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     return assertFalse;
   }
 
+  [ParseConstructor]
   public AssertStmt(IOrigin origin, Expression expr, AssertLabel/*?*/ label, Attributes attributes)
     : base(origin, expr, attributes) {
     Contract.Requires(origin != null);
