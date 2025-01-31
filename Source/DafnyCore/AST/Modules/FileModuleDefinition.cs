@@ -15,8 +15,8 @@ public class FileModuleDefinition : ModuleDefinition {
   public List<Include> Includes { get; } = new();
 
   [ParseConstructor]
-  public FileModuleDefinition(IOrigin token) :
-    base(token, new Name("_module"), new List<IOrigin>(),
+  public FileModuleDefinition(IOrigin origin) :
+    base(origin, new Name("_module"), new List<IOrigin>(),
       ModuleKindEnum.Concrete, false, null, null, null) {
     {
     }

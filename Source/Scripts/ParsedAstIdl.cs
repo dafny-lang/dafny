@@ -116,7 +116,11 @@ public class GenerateParsedAst {
 
     if (inheritors.TryGetValue(type, out var children)) {
       foreach (var child in children) {
-        toVisit.Push(child);
+        var goodConstructor = child.GetConstructors().
+          FirstOrDefault(c => c.GetCustomAttribute<ParseConstructorAttribute>() != null);
+        if (goodConstructor != null) {
+          toVisit.Push(child);
+        }
       }
     }
 
@@ -124,44 +128,46 @@ public class GenerateParsedAst {
     var constructor = constructors.Where(c => !c.IsPrivate && 
       !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c => 
       c.GetCustomAttribute<ParseConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue);
-    if (constructor != null) {
-      var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
-      var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
-      
-      foreach (var parameter in constructor.GetParameters()) {
-        if (excludedTypes.Contains(parameter.ParameterType)) {
-          continue;
-        }
+    if (constructor == null) {
+      return null;
+    }
 
-        if (parameter.GetCustomAttribute<BackEdge>() != null) {
-          continue;
-        }
+    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
+    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
 
-        var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
-                         (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
+    foreach (var parameter in constructor.GetParameters()) {
+      if (excludedTypes.Contains(parameter.ParameterType)) {
+        continue;
+      }
 
-        if (memberInfo == null) {
-          throw new Exception($"type {type}, parameter {parameter.Name}");
-        }
-        
-        if (memberInfo != null && memberInfo.DeclaringType != type) {
-          continue;
-        }
-        
-        var usedTyped = parameter.ParameterType;
-        
-        newFields.Add(FieldDeclaration(VariableDeclaration(
-            
-            ParseTypeName(ToGenericTypeString(usedTyped)),
-          SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
-        
-        if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
-          usedTyped = newType;
-        }
-        toVisit.Push(usedTyped);
-        foreach (var argument in usedTyped.GenericTypeArguments) {
-          toVisit.Push(argument);
-        }
+      if (parameter.GetCustomAttribute<BackEdge>() != null) {
+        continue;
+      }
+
+      var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
+                       (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
+
+      if (memberInfo == null) {
+        throw new Exception($"type {type}, parameter {parameter.Name}");
+      }
+
+      if (memberInfo != null && memberInfo.DeclaringType != type) {
+        continue;
+      }
+
+      var usedTyped = parameter.ParameterType;
+
+      newFields.Add(FieldDeclaration(VariableDeclaration(
+        ParseTypeName(ToGenericTypeString(usedTyped)),
+        SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
+
+      if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
+        usedTyped = newType;
+      }
+
+      toVisit.Push(usedTyped);
+      foreach (var argument in usedTyped.GenericTypeArguments) {
+        toVisit.Push(argument);
       }
     }
 
