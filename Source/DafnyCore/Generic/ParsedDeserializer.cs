@@ -61,72 +61,27 @@ public class ParsedDeserializer(string input) {
     return DeserializeObject(actualType);
   }
 
+
   private object DeserializeObject(Type type) {
     if (type == typeof(IOrigin)) {
       return DeserializeObject(typeof(SourceOrigin));
     }
-
+    
     var constructorParams = new List<object>();
     var constructor = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
       .Where(c => !c.IsPrivate && !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner))))
       .MaxBy(c =>
         c.GetCustomAttribute<ParseConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue);
     var parameters = constructor.GetParameters();
-
-
-    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
-    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
-    var schemaToConstructorPosition = new Dictionary<int, int>();
-    for (var constructorIndex = 0; constructorIndex < parameters.Length; constructorIndex++) {
-
-      var parameter = parameters[constructorIndex];
-      if (excludedTypes.Contains(parameter.ParameterType)) {
-        continue;
-      }
-
-      if (parameter.GetCustomAttribute<BackEdge>() != null) {
-        continue;
-      }
-
-      var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
-                       (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
-
-      if (memberInfo == null) {
-        throw new Exception($"type {type}, parameter {parameter.Name}");
-      }
-
-      if (memberInfo != null && memberInfo.DeclaringType != type) {
-        var constructorPosition = schemaToConstructorPositions[memberInfo.DeclaringType][parameter.Name];
-        schemaToConstructorPosition[parameter.Name] = constructorPosition;
-        continue;
-      }
-
-      var usedTyped = parameter.ParameterType;
-
-      newFields.Add(FieldDeclaration(VariableDeclaration(
-        ParseTypeName(ToGenericTypeString(usedTyped)),
-        SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
-      schemaToConstructorPosition[parameter.Name] = firstPosition + index;
-
-      if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
-        usedTyped = newType;
-      }
-
-      toVisit.Push(usedTyped);
-      foreach (var argument in usedTyped.GenericTypeArguments) {
-        toVisit.Push(argument);
-      }
-    }
-
-    for (var index = 0; index < schemaToConstructorPosition.Count; index++) {
-      var constructorPosition = schemaToConstructorPosition[index];
-      var param = parameters[constructorPosition];
+    
+    foreach (var parameter in parameters)
+    {     
       if (position < input.Length && input[position] == ',') {
         position++;
       }
-      constructorParams[constructorPosition] = DeserializeValue(param.ParameterType);
+      constructorParams.Add(DeserializeValue(parameter.ParameterType));
     }
-
+    
     return constructor.Invoke(constructorParams.ToArray());
   }
 
