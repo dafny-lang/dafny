@@ -27,10 +27,12 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     Attributes attributes, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
+    [Captured] Specification<FrameExpression> reads,
     Specification<Expression> decreases)
     : base(origin, name, hasStaticKeyword, isGhost, attributes) {
     TypeArgs = typeArgs;
     Req = req;
+    this.Reads = reads;
     Decreases = decreases;
     Ens = ens;
     Ins = ins;
