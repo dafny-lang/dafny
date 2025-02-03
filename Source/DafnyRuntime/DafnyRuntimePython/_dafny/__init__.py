@@ -157,6 +157,10 @@ class Slice:
                 self._step * step,
             )
         # Access the corresponding element in the source list
+        if index < 0:
+            index += len(self)
+        if index < 0 or index >= len(self):
+            raise IndexError("Slice index out of range")
         return self._source[self._start + index * self._step]
 
     def __len__(self):
