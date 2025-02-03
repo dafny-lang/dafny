@@ -30,11 +30,6 @@ public class ParsedDeserializer(string input) {
 
     // Check for type override
     Type actualType = expectedType;
-    if (TryMatch("+")) {
-      string typeName = ReadUntil(':');
-      actualType = Type.GetType("Microsoft.Dafny." + typeName) ?? throw new Exception($"Type not found: {typeName}");
-      position++; // skip ':'
-    }
 
     if (TryMatch("\"")) {
       return ReadString();
@@ -45,17 +40,34 @@ public class ParsedDeserializer(string input) {
       return Enum.ToObject(actualType, ordinal);
     }
 
-    if (IsSimpleType(actualType)) {
-      return ConvertSimpleType(ReadToken(), actualType);
-    }
-
     if (actualType.IsArray) {
       return ReadArray(actualType.GetElementType());
     }
 
-    if (actualType.IsAssignableTo(typeof(IEnumerable))) {
-      return ReadArray(actualType.GetGenericArguments()[0]);
+    if (actualType.IsAssignableTo(typeof(IList))) {
+      var elementType = actualType.GetGenericArguments()[0];
+      var value = ReadArray(elementType);
+      var constructionType = typeof(List<>).MakeGenericType(elementType);
+      return constructionType.
+        GetConstructor(BindingFlags.Public | BindingFlags.Instance, [value.GetType()])!.Invoke([value]);
     }
+    
+    if (TryMatch("+")) {
+      string typeName = ReadUntil(':');
+      actualType = Type.GetType("Microsoft.Dafny." + typeName) ??
+                   Type.GetType("System." + typeName) ?? throw new Exception($"Type not found: {typeName}");
+      position++; // skip ':'
+    }
+
+    if (IsSimpleType(actualType)) {
+      return ConvertSimpleType(ReadToken(), actualType);
+    }
+    
+    // if (actualType.IsAssignableTo(typeof(IEnumerable))) {
+    //   var constructor = actualType.GetConstructor(BindingFlags.Public | BindingFlags.Instance, typeof());
+    //   var value = ReadArray(actualType.GetGenericArguments()[0]);
+    //   return constructor.Invoke([value]);
+    // }
 
     // Custom type - use constructor
     return DeserializeObject(actualType);
@@ -74,8 +86,9 @@ public class ParsedDeserializer(string input) {
         c.GetCustomAttribute<ParseConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue);
     var parameters = constructor.GetParameters();
     
-    foreach (var parameter in parameters)
-    {     
+    var ss1 = input.Substring(position);
+    foreach (var parameter in parameters) {
+      var ss = input.Substring(position);
       if (position < input.Length && input[position] == ',') {
         position++;
       }
@@ -91,6 +104,7 @@ public class ParsedDeserializer(string input) {
     var elements = new List<object>();
 
     while (position < input.Length && input[position] != ']') {
+      var ss = input.Substring(position);
       if (elements.Count > 0) {
         if (input[position] != ',') {
           throw new Exception("Expected ',' in array");
