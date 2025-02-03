@@ -144,7 +144,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] BlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis,
     bool isByMethod = false)
-    : base(origin, name, hasStaticKeyword, isGhost, attributes, 
+    : base(origin, name, hasStaticKeyword, isGhost, attributes,
       typeArgs, ins, req, ens, decreases) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);

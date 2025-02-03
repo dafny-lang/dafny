@@ -11,15 +11,20 @@ namespace Microsoft.Dafny;
 /// https://github.com/dafny-lang/dafny/issues/3027
 /// </summary>
 public class FileModuleDefinition : ModuleDefinition {
-  [JsonSchemaIgnore]
   public List<Include> Includes { get; } = new();
 
-  [ParseConstructor]
   public FileModuleDefinition(IOrigin origin) :
     base(origin, new Name("_module"), new List<IOrigin>(),
       ModuleKindEnum.Concrete, false, null, null, null) {
     {
     }
+  }
+
+  [ParseConstructor]
+  public FileModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind,
+    Implements implements, ModuleDefinition enclosingModule, Attributes attributes, [JetBrains.Annotations.CanBeNull]
+    List<TopLevelDecl> sourceDecls = null) :
+    base(origin, nameNode, prefixIds, moduleKind, implements, enclosingModule, attributes, sourceDecls) {
   }
 
   public FileModuleDefinition(Cloner cloner, FileModuleDefinition original)

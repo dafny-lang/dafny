@@ -30,7 +30,7 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
     Exports = exports;
     Opened = opened;
   }
-  
+
   public override bool Opened { get; }
 
   public override object Dereference() { return this; }

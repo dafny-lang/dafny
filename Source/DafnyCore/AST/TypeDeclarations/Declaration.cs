@@ -40,7 +40,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     this.NameNode = name;
     this.Attributes = attributes;
   }
-  
+
 
   public bool HasAxiomAttribute =>
     Attributes.Contains(Attributes, Attributes.AxiomAttributeName);

@@ -60,7 +60,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
     : base(origin) {
     this.Value = value;
   }
-  
+
   public LiteralExpr(IOrigin origin, BigInteger value)
     : base(origin) {
     Contract.Requires(origin != null);

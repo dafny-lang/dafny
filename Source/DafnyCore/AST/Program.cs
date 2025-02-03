@@ -31,9 +31,9 @@ public class Program : NodeWithComputedRange {
   // Resolution essentially flattens the module hierarchy, for
   // purposes of translation and compilation.
   [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
-  
+
   [JsonSchemaIgnore]
-  [FilledInDuringResolution] 
+  [FilledInDuringResolution]
   public IEnumerable<ModuleDefinition> CompileModules => new[] { SystemModuleManager.SystemModule }.Concat(Modules());
   // Contains the definitions to be used for compilation.
 
@@ -44,7 +44,7 @@ public class Program : NodeWithComputedRange {
   public DefaultModuleDefinition DefaultModuleDef => (DefaultModuleDefinition)DefaultModule.ModuleDef;
   public SystemModuleManager SystemModuleManager;
   public DafnyOptions Options => Reporter.Options;
-  
+
   [JsonSchemaIgnore]
   public ErrorReporter Reporter { get; set; }
 

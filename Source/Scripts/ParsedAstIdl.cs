@@ -15,12 +15,13 @@ namespace IntegrationTests;
 
 public class GenerateParsedAst {
   private static HashSet<Type> excludedTypes = [typeof(DafnyOptions)];
-  private static Dictionary<Type,Type> mappedTypes = new() {
+  private static Dictionary<Type, Dictionary<string, int>> schemaToConstructorPositions = new();
+  private static Dictionary<Type, Type> mappedTypes = new() {
     { typeof(Guid), typeof(string) },
     { typeof(IOrigin), typeof(SourceOrigin) },
     { typeof(Uri), typeof(string) }
   };
-  
+
   public static Command GetCommand() {
     var result = new Command("generate-parsed-ast", "");
     var fileArgument = new Argument<FileInfo>();
@@ -30,58 +31,55 @@ public class GenerateParsedAst {
   }
 
   public static async Task Handle(string file) {
-    var program = typeof(LiteralModuleDecl);
+    var program = typeof(FileModuleDefinition);
     await File.WriteAllTextAsync(file, GenerateAll(program));
   }
-  
+
   public static string GenerateAll(Type rootType) {
     var assembly = rootType.Assembly;
     var inheritors = assembly.GetTypes().Where(t => t.BaseType != null).GroupBy(t => t.BaseType!).ToDictionary(
-      g => g.Key, 
+      g => g.Key,
       g => (ISet<Type>)g.ToHashSet());
-    
-      var compilationUnit = CompilationUnit();
 
-      var toVisit = new Stack<Type>();
-      toVisit.Push(rootType);
-      var visited = new HashSet<Type>();
-      while (toVisit.Any()) {
-        var current = toVisit.Pop();
-        if (current.IsGenericType) {
-          current = current.GetGenericTypeDefinition();
-        }
-        if (!visited.Add(current)) {
-          continue;
-        }
+    var compilationUnit = CompilationUnit();
 
-        if (current.Namespace != rootType.Namespace && current.Namespace != "Microsoft.Boogie") {
-          continue;
-        }
-        var classDeclaration = GenerateClass(current, toVisit, inheritors);
-        if (classDeclaration != null) {
-          compilationUnit = compilationUnit.AddMembers(classDeclaration);
-        }
+    var toVisit = new Stack<Type>();
+    toVisit.Push(rootType);
+    var visited = new HashSet<Type>();
+    while (toVisit.Any()) {
+      var current = toVisit.Pop();
+
+      if (current.IsGenericType) {
+        current = current.GetGenericTypeDefinition();
+      }
+      if (!visited.Add(current)) {
+        continue;
       }
 
-      compilationUnit = compilationUnit.NormalizeWhitespace();
-      
-      
-      var hasErrors = CheckCorrectness(compilationUnit);
-      // if (hasErrors) {
-      //   throw new Exception("Exception");
-      // }
-      return compilationUnit.ToFullString();
+      if (current.Namespace != rootType.Namespace && current.Namespace != "Microsoft.Boogie") {
+        continue;
+      }
+      var classDeclaration = GenerateClass(current, toVisit, visited, inheritors);
+      if (classDeclaration != null) {
+        compilationUnit = compilationUnit.AddMembers(classDeclaration);
+      }
+    }
+
+    compilationUnit = compilationUnit.NormalizeWhitespace();
+
+
+    var hasErrors = CheckCorrectness(compilationUnit);
+    // if (hasErrors) {
+    //   throw new Exception("Exception");
+    // }
+    return compilationUnit.ToFullString();
   }
 
-  private static BaseTypeDeclarationSyntax? GenerateClass(Type type, Stack<Type> toVisit, IDictionary<Type, ISet<Type>> inheritors)
-  {
-    // if (type.IsInterface) {
-    //   string interfaceName = type.IsGenericType ? 
-    //     type.Name.Substring(0, type.Name.IndexOf('`')) : 
-    //     type.Name;
-    //   return (InterfaceDeclarationSyntax)ParseMemberDeclaration($"interface {interfaceName} {{}}")!;
-    // }
-    
+  private static BaseTypeDeclarationSyntax? GenerateClass(Type type,
+    Stack<Type> toVisit,
+    ISet<Type> visited,
+    IDictionary<Type, ISet<Type>> inheritors) {
+
     if (type.IsEnum) {
       var enumName = ToGenericTypeString(type);
       var enumm = EnumDeclaration(enumName);
@@ -91,24 +89,23 @@ public class GenerateParsedAst {
 
       return enumm;
     }
-    
+
     // Create a class
     var classDeclaration = ConvertTypeToSyntax(type);
     List<MemberDeclarationSyntax> newFields = new();
 
+    var firstPosition = 0;
     var baseList = new List<BaseTypeSyntax>();
     if (type.BaseType != null && type.BaseType != typeof(ValueType) && type.BaseType != typeof(Object)) {
-      toVisit.Push(type.BaseType);
+      if (!visited.Contains(type.BaseType)) {
+        toVisit.Push(type);
+        toVisit.Push(type.BaseType);
+        visited.Remove(type);
+        return null;
+      }
       baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(type.BaseType))));
+      firstPosition = schemaToConstructorPositions[type.BaseType].Count;
     }
-
-    // foreach(var @interface in type.GetInterfaces().Except(type.BaseType == null ? [] : type.BaseType.GetInterfaces())) {
-    //   var genType = @interface.IsGenericType ? @interface.GetGenericTypeDefinition() : @interface;
-    //   if (genType == typeof(IComparable<>) || genType == typeof(object)) {
-    //     continue;
-    //   }
-    //   baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(@interface))));
-    // }
 
     if (baseList.Any()) {
       classDeclaration = classDeclaration.WithBaseList(BaseList(SeparatedList(baseList)));
@@ -120,15 +117,13 @@ public class GenerateParsedAst {
           FirstOrDefault(c => c.GetCustomAttribute<ParseConstructorAttribute>() != null);
         if (goodConstructor != null) {
           toVisit.Push(child);
-        } else {
-          var b = 3;
         }
       }
     }
 
     var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-    var constructor = constructors.Where(c => !c.IsPrivate && 
-      !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c => 
+    var constructor = constructors.Where(c => !c.IsPrivate &&
+      !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c =>
       c.GetCustomAttribute<ParseConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue);
     if (constructor == null) {
       return null;
@@ -137,7 +132,9 @@ public class GenerateParsedAst {
     var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
     var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
 
-    foreach (var parameter in constructor.GetParameters()) {
+    var schemaToConstructorPosition = new Dictionary<string, int>();
+    for (var index = 0; index < constructor.GetParameters().Length; index++) {
+      var parameter = constructor.GetParameters()[index];
       if (excludedTypes.Contains(parameter.ParameterType)) {
         continue;
       }
@@ -154,6 +151,8 @@ public class GenerateParsedAst {
       }
 
       if (memberInfo != null && memberInfo.DeclaringType != type) {
+        var constructorPosition = schemaToConstructorPositions[memberInfo.DeclaringType][parameter.Name];
+        schemaToConstructorPosition[parameter.Name] = constructorPosition;
         continue;
       }
 
@@ -162,6 +161,7 @@ public class GenerateParsedAst {
       newFields.Add(FieldDeclaration(VariableDeclaration(
         ParseTypeName(ToGenericTypeString(usedTyped)),
         SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
+      schemaToConstructorPosition[parameter.Name] = firstPosition + index;
 
       if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
         usedTyped = newType;
@@ -178,114 +178,94 @@ public class GenerateParsedAst {
     return classDeclaration;
   }
 
-  private static string GetTypeName(Type type)
-  {
-    var enumName = type.Name;
+  public static ClassDeclarationSyntax ConvertTypeToSyntax(Type type) {
+    // Get the base class name without generic parameters
+    string className = type.IsGenericType ?
+        type.Name.Substring(0, type.Name.IndexOf('`')) :
+        type.Name;
+
     if (type.IsNested) {
-      enumName = type.DeclaringType.Name + enumName;
+      className = type.DeclaringType.Name + className;
     }
 
-    return enumName;
+    // Create the class declaration with public modifier
+    var classDecl = ClassDeclaration(className);
+
+    // If the type is generic, add type parameters
+    if (type.IsGenericType) {
+      // Get generic type parameters
+      var typeParameters = type.GetGenericArguments();
+
+      // Create type parameter list
+      var typeParamList = TypeParameterList(
+          SeparatedList(
+              typeParameters.Select(tp =>
+                  TypeParameter(tp.Name))));
+
+      // Add type parameter list to class declaration
+      classDecl = classDecl.WithTypeParameterList(typeParamList);
+
+      // Add constraints if any
+      var constraintClauses = new List<TypeParameterConstraintClauseSyntax>();
+
+      foreach (var typeParam in typeParameters) {
+        var constraints = new List<TypeParameterConstraintSyntax>();
+
+        // Get generic parameter constraints
+        var paramConstraints = type.GetGenericArguments()
+            .First(t => t.Name == typeParam.Name)
+            .GetGenericParameterConstraints();
+
+        // Add class/struct constraint if applicable
+        var attributes = typeParam.GenericParameterAttributes;
+        if ((attributes & GenericParameterAttributes.ReferenceTypeConstraint) != 0) {
+          constraints.Add(ClassOrStructConstraint(SyntaxKind.ClassConstraint));
+        }
+        if ((attributes & GenericParameterAttributes.NotNullableValueTypeConstraint) != 0) {
+          constraints.Add(ClassOrStructConstraint(SyntaxKind.StructConstraint));
+        }
+
+        // Add type constraints
+        foreach (var constraint in paramConstraints) {
+          if (constraint.IsInterface) {
+            continue;
+          }
+          constraints.Add(
+              TypeConstraint(ParseTypeName(constraint.Name)));
+        }
+
+        // Add constructor constraint if applicable
+        if ((attributes & GenericParameterAttributes.DefaultConstructorConstraint) != 0) {
+          constraints.Add(ConstructorConstraint());
+        }
+
+        // If we have any constraints, create the constraint clause
+        if (constraints.Any()) {
+          var constraintClause = TypeParameterConstraintClause(
+              IdentifierName(typeParam.Name),
+              SeparatedList(constraints));
+
+          constraintClauses.Add(constraintClause);
+        }
+      }
+
+      if (constraintClauses.Any()) {
+        classDecl = classDecl.WithConstraintClauses(List(constraintClauses));
+      }
+    }
+
+    return classDecl;
   }
 
-  public static ClassDeclarationSyntax ConvertTypeToSyntax(Type type)
-    {
-        // Get the base class name without generic parameters
-        string className = type.IsGenericType ? 
-            type.Name.Substring(0, type.Name.IndexOf('`')) : 
-            type.Name;
-
-        if (type.IsNested) {
-          className = type.DeclaringType.Name + className;
-        }
-
-        // Create the class declaration with public modifier
-        var classDecl = ClassDeclaration(className);
-
-        // If the type is generic, add type parameters
-        if (type.IsGenericType)
-        {
-            // Get generic type parameters
-            var typeParameters = type.GetGenericArguments();
-            
-            // Create type parameter list
-            var typeParamList = TypeParameterList(
-                SeparatedList(
-                    typeParameters.Select(tp => 
-                        TypeParameter(tp.Name))));
-
-            // Add type parameter list to class declaration
-            classDecl = classDecl.WithTypeParameterList(typeParamList);
-
-            // Add constraints if any
-            var constraintClauses = new List<TypeParameterConstraintClauseSyntax>();
-            
-            foreach (var typeParam in typeParameters)
-            {
-                var constraints = new List<TypeParameterConstraintSyntax>();
-
-                // Get generic parameter constraints
-                var paramConstraints = type.GetGenericArguments()
-                    .First(t => t.Name == typeParam.Name)
-                    .GetGenericParameterConstraints();
-
-                // Add class/struct constraint if applicable
-                var attributes = typeParam.GenericParameterAttributes;
-                if ((attributes & GenericParameterAttributes.ReferenceTypeConstraint) != 0)
-                {
-                    constraints.Add(ClassOrStructConstraint(SyntaxKind.ClassConstraint));
-                }
-                if ((attributes & GenericParameterAttributes.NotNullableValueTypeConstraint) != 0)
-                {
-                    constraints.Add(ClassOrStructConstraint(SyntaxKind.StructConstraint));
-                }
-
-                // Add type constraints
-                foreach (var constraint in paramConstraints)
-                {
-                    if (constraint.IsInterface) {
-                      continue;
-                    }
-                    constraints.Add(
-                        TypeConstraint(ParseTypeName(constraint.Name)));
-                }
-
-                // Add constructor constraint if applicable
-                if ((attributes & GenericParameterAttributes.DefaultConstructorConstraint) != 0)
-                {
-                    constraints.Add(ConstructorConstraint());
-                }
-                
-                // If we have any constraints, create the constraint clause
-                if (constraints.Any())
-                {
-                    var constraintClause = TypeParameterConstraintClause(
-                        IdentifierName(typeParam.Name),
-                        SeparatedList(constraints));
-                    
-                    constraintClauses.Add(constraintClause);
-                }
-            }
-
-            if (constraintClauses.Any())
-            {
-                classDecl = classDecl.WithConstraintClauses(List(constraintClauses));
-            }
-        }
-
-        return classDecl;
-    }
-  
-  public static string ToGenericTypeString(Type t)
-  {
+  public static string ToGenericTypeString(Type t) {
     if (mappedTypes.TryGetValue(t, out var newType)) {
       t = newType;
     }
-    
+
     if (t.IsGenericTypeParameter) {
       return t.Name;
     }
-    
+
     if (!t.IsGenericType) {
       var name = t.Name;
       if (t.IsNested) {
@@ -314,7 +294,7 @@ public class GenerateParsedAst {
       UsingDirective(ParseName("System"))).AddUsings(
       UsingDirective(ParseName("System.Collections.Generic"))).AddUsings(
       UsingDirective(ParseName("System.Numerics")));
-    
+
     // Create a list of basic references that most code will need
     var references = new List<string>
     {
@@ -332,7 +312,7 @@ public class GenerateParsedAst {
       references: references.Select(p => MetadataReference.CreateFromFile(p)),
       options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     var diagnostics = compilation.GetDiagnostics();
-    var significantDiagnostics = diagnostics.Where(d => 
+    var significantDiagnostics = diagnostics.Where(d =>
       d.Severity == DiagnosticSeverity.Error).ToList();
     var hasErrors = significantDiagnostics.Any();
     foreach (var diagnostic in significantDiagnostics) {

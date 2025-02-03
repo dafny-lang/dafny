@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using IntegrationTests;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -25,9 +26,6 @@ public record DfyParseFileResult(
 public class ProgramParser {
   protected readonly ILogger<ProgramParser> logger;
   private readonly IFileSystem fileSystem;
-
-  public ProgramParser() : this(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance) {
-  }
 
   public ProgramParser(ILogger<ProgramParser> logger, IFileSystem fileSystem) {
     this.logger = logger;
@@ -276,8 +274,18 @@ public class ProgramParser {
     Uri uri, CancellationToken cancellationToken) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
     using var reader = fileSnapshot.Reader;
-    var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
-    return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
+    if (uri.LocalPath.EndsWith(".dfy")) {
+      var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
+      return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
+    }
+
+    if (uri.LocalPath.EndsWith(".java")) {
+      var moduleDefinition = new ParsedDeserializer(reader.ReadToEnd()).Deserialize<FileModuleDefinition>();
+      // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
+      return new DfyParseFileResult(null, uri, new BatchErrorReporter(options), moduleDefinition, []);
+    }
+
+    throw new ArgumentException();
   }
 
   ///<summary>
@@ -312,10 +320,11 @@ public class ProgramParser {
     return new Parser(errorReporter.Options, scanner, errors, cancellationToken);
   }
 
-  public async Task<ProgramParseResult> Parse(string source, Uri uri, ErrorReporter reporter) {
+  public static async Task<ProgramParseResult> Parse(string source, Uri uri, ErrorReporter reporter) {
     var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
+    var parser = new ProgramParser(NullLogger<ProgramParser>.Instance, fs);
     var file = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
     var files = new[] { file };
-    return await ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
+    return await parser.ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 }

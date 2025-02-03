@@ -35,9 +35,9 @@ public class JsonSchemaCommand {
 
     var schema2 = JsonSchema.FromType<CProgram>();
     var p = new Caddition(3, new Citeral(1, 3), new Citeral(2, 2));
-    
+
     await File.WriteAllTextAsync(file + ".C.real.json", JsonSerializer.Serialize<Cexpression>(p, new JsonSerializerOptions() {
-      
+
     }));
     await File.WriteAllTextAsync(file + ".C.example.json", schema2.ToSampleJson().ToString());
     await File.WriteAllTextAsync(file + ".C.jschema", schema2.ToJson());
@@ -81,89 +81,76 @@ public class JsonSchemaCommand {
       }
 
       throw new Exception();
-      foreach (var accessorInfo in contextualType.Properties.OfType<ContextualAccessorInfo>().Concat(contextualType.Fields))
-      {
-          if (accessorInfo.MemberInfo.DeclaringType != contextualType.Type ||
-              (accessorInfo.MemberInfo is FieldInfo fieldInfo && (fieldInfo.IsPrivate || fieldInfo.IsStatic || !fieldInfo.IsDefined(typeof(DataMemberAttribute)))))
-          {
-              continue;
+      foreach (var accessorInfo in contextualType.Properties.OfType<ContextualAccessorInfo>().Concat(contextualType.Fields)) {
+        if (accessorInfo.MemberInfo.DeclaringType != contextualType.Type ||
+            (accessorInfo.MemberInfo is FieldInfo fieldInfo && (fieldInfo.IsPrivate || fieldInfo.IsStatic || !fieldInfo.IsDefined(typeof(DataMemberAttribute))))) {
+          continue;
+        }
+
+        if (accessorInfo.MemberInfo is PropertyInfo propertyInfo &&
+            (propertyInfo.GetMethod == null || propertyInfo.GetMethod.IsPrivate == true || propertyInfo.GetMethod.IsStatic == true) &&
+            (propertyInfo.SetMethod == null || propertyInfo.SetMethod.IsPrivate == true || propertyInfo.SetMethod.IsStatic == true) &&
+            !propertyInfo.IsDefined(typeof(DataMemberAttribute))) {
+          continue;
+        }
+
+        if (accessorInfo.Name == "EqualityContract" &&
+            accessorInfo.IsAttributeDefined<CompilerGeneratedAttribute>(true)) {
+          continue;
+        }
+
+        if (accessorInfo.MemberInfo is PropertyInfo propInfo &&
+            propInfo.GetIndexParameters().Length > 0) {
+          continue;
+        }
+
+        var propertyIgnored = false;
+        var jsonIgnoreAttribute = accessorInfo
+            .GetAttributes(true)
+            .FirstAssignableToTypeNameOrDefault("System.Text.Json.Serialization.JsonIgnoreAttribute", TypeNameStyle.FullName);
+
+        if (jsonIgnoreAttribute != null) {
+          var condition = jsonIgnoreAttribute.TryGetPropertyValue<object>("Condition");
+          if (condition is null || condition.ToString() == "Always") {
+            propertyIgnored = true;
+          }
+        }
+
+        var ignored = propertyIgnored
+            || schemaGenerator.IsPropertyIgnoredBySettings(accessorInfo)
+            || accessorInfo.GetAttributes(true)
+                .FirstAssignableToTypeNameOrDefault("System.Text.Json.Serialization.JsonExtensionDataAttribute", TypeNameStyle.FullName) != null
+            || settings.ExcludedTypeNames.Contains(accessorInfo.AccessorType.Type.FullName);
+
+        if (!ignored) {
+          var propertyTypeDescription = GetDescription(accessorInfo.AccessorType, settings.DefaultReferenceTypeNullHandling, settings);
+          var propertyName = GetPropertyName(accessorInfo, settings);
+
+          var propertyAlreadyExists = schema.Properties.ContainsKey(propertyName);
+          if (propertyAlreadyExists) {
+            if (settings.GetActualFlattenInheritanceHierarchy(contextualType.Type)) {
+              schema.Properties.Remove(propertyName);
+            } else {
+              throw new InvalidOperationException($"The JSON property '{propertyName}' is defined multiple times on type '{contextualType.Type.FullName}'.");
+            }
           }
 
-          if (accessorInfo.MemberInfo is PropertyInfo propertyInfo &&
-              (propertyInfo.GetMethod == null || propertyInfo.GetMethod.IsPrivate == true || propertyInfo.GetMethod.IsStatic == true) &&
-              (propertyInfo.SetMethod == null || propertyInfo.SetMethod.IsPrivate == true || propertyInfo.SetMethod.IsStatic == true) &&
-              !propertyInfo.IsDefined(typeof(DataMemberAttribute)))
-          {
-              continue;
-          }
-
-          if (accessorInfo.Name == "EqualityContract" &&
-              accessorInfo.IsAttributeDefined<CompilerGeneratedAttribute>(true))
-          {
-              continue;
-          }
-
-          if (accessorInfo.MemberInfo is PropertyInfo propInfo &&
-              propInfo.GetIndexParameters().Length > 0)
-          {
-              continue;
-          }
-
-          var propertyIgnored = false;
-          var jsonIgnoreAttribute = accessorInfo
+          var requiredAttribute = accessorInfo
               .GetAttributes(true)
-              .FirstAssignableToTypeNameOrDefault("System.Text.Json.Serialization.JsonIgnoreAttribute", TypeNameStyle.FullName);
+              .FirstAssignableToTypeNameOrDefault("System.ComponentModel.DataAnnotations.RequiredAttribute");
 
-          if (jsonIgnoreAttribute != null)
-          {
-              var condition = jsonIgnoreAttribute.TryGetPropertyValue<object>("Condition");
-              if (condition is null || condition.ToString() == "Always")
-              {
-                  propertyIgnored = true;
-              }
+          var isDataContractMemberRequired = schemaGenerator.GetDataMemberAttribute(accessorInfo, contextualType.Type)?.IsRequired == true;
+
+          var hasRequiredAttribute = requiredAttribute != null;
+          if (hasRequiredAttribute || isDataContractMemberRequired) {
+            schema.RequiredProperties.Add(propertyName);
           }
 
-          var ignored = propertyIgnored
-              || schemaGenerator.IsPropertyIgnoredBySettings(accessorInfo)
-              || accessorInfo.GetAttributes(true)
-                  .FirstAssignableToTypeNameOrDefault("System.Text.Json.Serialization.JsonExtensionDataAttribute", TypeNameStyle.FullName) != null
-              || settings.ExcludedTypeNames.Contains(accessorInfo.AccessorType.Type.FullName);
+          var isNullable = propertyTypeDescription.IsNullable && hasRequiredAttribute == false;
 
-          if (!ignored)
-          {
-              var propertyTypeDescription = GetDescription(accessorInfo.AccessorType, settings.DefaultReferenceTypeNullHandling, settings);
-              var propertyName = GetPropertyName(accessorInfo, settings);
-
-              var propertyAlreadyExists = schema.Properties.ContainsKey(propertyName);
-              if (propertyAlreadyExists)
-              {
-                  if (settings.GetActualFlattenInheritanceHierarchy(contextualType.Type))
-                  {
-                      schema.Properties.Remove(propertyName);
-                  }
-                  else
-                  {
-                      throw new InvalidOperationException($"The JSON property '{propertyName}' is defined multiple times on type '{contextualType.Type.FullName}'.");
-                  }
-              }
-
-              var requiredAttribute = accessorInfo
-                  .GetAttributes(true)
-                  .FirstAssignableToTypeNameOrDefault("System.ComponentModel.DataAnnotations.RequiredAttribute");
-
-              var isDataContractMemberRequired = schemaGenerator.GetDataMemberAttribute(accessorInfo, contextualType.Type)?.IsRequired == true;
-
-              var hasRequiredAttribute = requiredAttribute != null;
-              if (hasRequiredAttribute || isDataContractMemberRequired)
-              {
-                  schema.RequiredProperties.Add(propertyName);
-              }
-
-              var isNullable = propertyTypeDescription.IsNullable && hasRequiredAttribute == false;
-
-              // TODO: Add default value
-              schemaGenerator.AddProperty(schema, accessorInfo, propertyTypeDescription, propertyName, requiredAttribute, hasRequiredAttribute, isNullable, null, schemaResolver);
-          }
+          // TODO: Add default value
+          schemaGenerator.AddProperty(schema, accessorInfo, propertyTypeDescription, propertyName, requiredAttribute, hasRequiredAttribute, isNullable, null, schemaResolver);
+        }
       }
     }
   }

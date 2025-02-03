@@ -41,7 +41,7 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
     Opened = opened;
     Exports = exports;
   }
-  
+
   public override bool Opened { get; }
 
   public override ModuleDefinition Dereference() { return Signature.ModuleDef; }

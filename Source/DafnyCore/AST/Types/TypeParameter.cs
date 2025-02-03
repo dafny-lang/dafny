@@ -133,7 +133,7 @@ public class TypeParameter : TopLevelDecl {
     public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
     public bool IsNonempty => AutoInit != Type.AutoInitInfo.MaybeEmpty;
     public bool ContainsNoReferenceTypes;
-    
+
     [ParseConstructor]
     public TypeParameterCharacteristics() {
       EqualitySupport = EqualitySupportValue.Unspecified;

@@ -96,7 +96,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     // The following check is incomplete, which is a bug.
     || Ins.Any(f => f.Type.AsSubsetType is not null);
 
-  protected MethodOrFunction(SourceOrigin tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes) 
+  protected MethodOrFunction(SourceOrigin tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes)
     : base(tok, name, hasStaticKeyword, isGhost, attributes) {
   }
 

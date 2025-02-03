@@ -43,9 +43,9 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
     Options = original.Options;
     CloneId = original.CloneId;
   }
-  
+
   [ParseConstructor]
-  protected ModuleDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition enclosingModule, 
+  protected ModuleDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition enclosingModule,
     Guid cloneId)
     : base(origin, name, enclosingModule, new List<TypeParameter>(), null) {
     Options = options;
@@ -53,7 +53,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
     Signature = null;
     CloneId = cloneId;
   }
-  
+
   public abstract object Dereference();
 
   public override bool IsEssentiallyEmpty() {

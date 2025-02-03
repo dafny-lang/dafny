@@ -37,7 +37,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   }
 
   public override bool IsRefining { get; }
-  
+
   public bool HasFinitePossibleValues {
     get {
       // Note, to determine finiteness, it doesn't matter if the constructors are ghost or non-ghost.

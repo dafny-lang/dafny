@@ -73,7 +73,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
     this.hasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
   }
-  
+
   /// <summary>
   /// Returns className+"."+memberName.  Available only after resolution.
   /// </summary>

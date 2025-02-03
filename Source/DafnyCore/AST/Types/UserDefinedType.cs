@@ -41,7 +41,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   }
 
   [FilledInDuringResolution] public TopLevelDecl ResolvedClass;  // if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
-  
+
   public UserDefinedType(IOrigin origin, string name, List<Type> optTypeArgs)
     : this(origin, new NameSegment(origin, name, optTypeArgs)) {
     Contract.Requires(origin != null);

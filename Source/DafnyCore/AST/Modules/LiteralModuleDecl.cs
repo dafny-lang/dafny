@@ -43,8 +43,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     DefaultExport = original.DefaultExport;
     BodyStartTok = ModuleDef.BodyStartTok;
   }
-  
-  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition moduleDef, [BackEdge]ModuleDefinition enclosingModule, Guid cloneId)
+
+  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition moduleDef, [BackEdge] ModuleDefinition enclosingModule, Guid cloneId)
     : base(options, moduleDef.Origin, moduleDef.NameNode, enclosingModule, cloneId) {
     ModuleDef = moduleDef;
     BodyStartTok = moduleDef.BodyStartTok;

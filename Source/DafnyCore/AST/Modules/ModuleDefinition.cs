@@ -163,11 +163,11 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind,
     Implements implements, [BackEdge] ModuleDefinition enclosingModule, Attributes attributes,
     [CanBeNull] List<TopLevelDecl> sourceDecls = null)
-    : this(origin, nameNode, prefixIds, moduleKind, false, implements, enclosingModule, attributes, sourceDecls){
+    : this(origin, nameNode, prefixIds, moduleKind, false, implements, enclosingModule, attributes, sourceDecls) {
   }
 
   public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
-    Implements implements, [BackEdge]ModuleDefinition enclosingModule, Attributes attributes, [CanBeNull] List<TopLevelDecl> sourceDecls = null) : base(origin) {
+    Implements implements, [BackEdge] ModuleDefinition enclosingModule, Attributes attributes, [CanBeNull] List<TopLevelDecl> sourceDecls = null) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     this.NameNode = nameNode;
