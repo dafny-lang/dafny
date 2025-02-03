@@ -16,7 +16,7 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
   /// but not the declaration of the Lhs, we must also include the Lhs.
   /// </summary>
   public override IEnumerable<INode> Children => ResolvedExpression == null
-    ? new[] { Lhs }
+    ? [Lhs]
     : new[] { Lhs, ResolvedExpression };
 
   [ContractInvariantMethod]

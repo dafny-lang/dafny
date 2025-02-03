@@ -80,7 +80,7 @@ public class CoverageReporter {
   }
 
   public async Task Merge(List<string> coverageReportsToMerge, string coverageReportOutDir) {
-    List<CoverageReport> reports = new();
+    List<CoverageReport> reports = [];
     var mergedReport = new CoverageReport("Combined Coverage Report", "Locations", "_combined", null);
     foreach (var reportDir in coverageReportsToMerge) {
       if (!Directory.Exists(reportDir)) {
@@ -161,7 +161,7 @@ public class CoverageReporter {
 
   /// <summary> Serialize a single coverage report to disk </summary>
   public Task SerializeCoverageReports(CoverageReport report, string directory) {
-    return SerializeCoverageReports(new List<CoverageReport> { report }, directory);
+    return SerializeCoverageReports([report], directory);
   }
 
   /// <summary>
@@ -175,7 +175,7 @@ public class CoverageReporter {
       sessionDirectory = Path.Combine(reportsDirectory, sessionName);
     }
     Directory.CreateDirectory(sessionDirectory);
-    HashSet<Uri> allUris = new();
+    HashSet<Uri> allUris = [];
     reports.ForEach(report => allUris.UnionWith(report.AllFiles()));
     if (allUris.Count == 0) {
       reporter.Warning(MessageSource.Documentation, ErrorRegistry.NoneId, Token.NoToken,
@@ -234,22 +234,23 @@ public class CoverageReporter {
       return;
     }
     var coverageLabels = Enum.GetValues(typeof(CoverageLabel)).Cast<CoverageLabel>().ToList();
-    List<object> header = new() { "File", "Module" };
+    List<object> header = ["File", "Module"];
     header.AddRange(coverageLabels
       .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
       .Select(label => $"{report.Units} {CoverageLabelExtension.ToString(label)}"));
 
-    List<List<object>> body = new();
+    List<List<object>> body = [];
     foreach (var sourceFile in sourceFileToCoverageReportFile.Keys) {
       var desiredPath = sourceFileToCoverageReportFile[sourceFile] + $"{report.Suffix}.html";
       var relativePath = Path.GetRelativePath(baseDirectory, GetPath(report, desiredPath));
       var linkName = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
 
-      body.Add(new() {
+      body.Add([
         $"<a href = \"{relativePath}\"" +
         $"class = \"el_package\">{linkName}</a>",
+
         "All modules"
-      });
+      ]);
 
       body.Last().AddRange(coverageLabels
         .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
@@ -257,10 +258,10 @@ public class CoverageReporter {
                                .Count(span => span.Label == label)).OfType<object>());
 
       foreach (var module in report.ModulesInFile(sourceFile).OrderBy(m => m.FullName)) {
-        body.Add(new() {
+        body.Add([
           "",
           module.FullName
-        });
+        ]);
 
         var moduleRange = module.Origin.ToDafnyRange();
         body.Last().AddRange(coverageLabels
@@ -274,7 +275,7 @@ public class CoverageReporter {
       }
     }
 
-    List<object> footer = new() { "Total", "" };
+    List<object> footer = ["Total", ""];
     footer.AddRange(coverageLabels
       .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
       .Select(label => report.AllFiles().Select(sourceFile =>
@@ -339,7 +340,7 @@ public class CoverageReporter {
         new ConsoleErrorReporter(options), options, uri, Token.Cli).ToListAsync();
     var dafnyFile = files[0];
     var source = await dafnyFile.GetContent().Reader.ReadToEndAsync();
-    var lines = source.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+    var lines = source.Split([Environment.NewLine], StringSplitOptions.None);
     var characterLabels = new CoverageLabel[lines.Length][];
     for (int i = 0; i < lines.Length; i++) {
       characterLabels[i] = new CoverageLabel[lines[i].Length];

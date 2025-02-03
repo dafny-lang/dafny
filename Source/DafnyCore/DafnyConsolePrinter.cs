@@ -60,7 +60,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  public ConcurrentBag<ConsoleLogEntry> VerificationResults { get; } = new();
+  public ConcurrentBag<ConsoleLogEntry> VerificationResults { get; } = [];
 
   public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
     if (output == Console.Out) {

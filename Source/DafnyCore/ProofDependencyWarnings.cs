@@ -230,7 +230,7 @@ public class ProofDependencyWarnings {
           continue;
         }
 
-        assertionsProvenUsingFact.TryAdd(factDependency, new HashSet<AssertCmdPartialCopy>());
+        assertionsProvenUsingFact.TryAdd(factDependency, []);
 
         bool IsNotSelfReferential(AssertCmdPartialCopy assert) =>
            !manager.ProofDependenciesById.TryGetValue(assert.Id, out var assertDependency)

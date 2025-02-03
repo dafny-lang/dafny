@@ -238,7 +238,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
 
     var receiverType = obj.Type.NormalizeExpand();
     this.TypeApplicationAtEnclosingClass = receiverType.TypeArgs;
-    this.TypeApplicationJustMember = new List<Type>();
+    this.TypeApplicationJustMember = [];
 
     var typeMap = new Dictionary<TypeParameter, Type>();
     if (receiverType is UserDefinedType udt) {

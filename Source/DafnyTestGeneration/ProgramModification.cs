@@ -16,10 +16,10 @@ using Program = Microsoft.Boogie.Program;
 namespace DafnyTestGeneration {
   public class Modifications {
     private readonly DafnyOptions options;
-    internal HashSet<int> preprocessedPrograms = new();
+    internal HashSet<int> preprocessedPrograms = [];
     // List of all types for which a {:synthesize} - annotated method is needed
     // These methods are used to get fresh instances of the corresponding types
-    internal readonly List<UserDefinedType> TypesToSynthesize = new();
+    internal readonly List<UserDefinedType> TypesToSynthesize = [];
     public Modifications(DafnyOptions options) {
       this.options = options;
     }

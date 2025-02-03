@@ -29,7 +29,7 @@ namespace Microsoft.Dafny {
       builder = new StmtListBuilder();
       this.tran = tran;
       Options = options;
-      Commands = new();
+      Commands = [];
       Context = context;
     }
 

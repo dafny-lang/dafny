@@ -145,7 +145,7 @@ public class InferDecreasesClause {
     Contract.Requires(fexprs != null);
     Contract.Ensures(Contract.Result<Expression>() != null);
 
-    List<Expression> sets = new List<Expression>();
+    List<Expression> sets = [];
     List<Expression> singletons = null;
     var idGen = new VerificationIdGenerator();
     // drop wildcards altogether in the following iterations
@@ -157,7 +157,7 @@ public class InferDecreasesClause {
       if (eType.IsRefType) {
         // e represents a singleton set
         if (singletons == null) {
-          singletons = new List<Expression>();
+          singletons = [];
         }
         singletons.Add(e);
 
@@ -177,10 +177,10 @@ public class InferDecreasesClause {
           ResolvedOp = resolvedOpcode,
           Type = Type.Bool
         };
-        var s = new SetComprehension(e.Origin, true, new List<BoundVar>() { bvDecl }, bvInE, bv,
-          new Attributes("trigger", new List<Expression> { bvInE }, null)) {
+        var s = new SetComprehension(e.Origin, true, [bvDecl], bvInE, bv,
+          new Attributes("trigger", [bvInE], null)) {
           Type = resolver.SystemModuleManager.ObjectSetType(),
-          Bounds = new List<BoundedPool>() { boundedPool }
+          Bounds = [boundedPool]
         };
         sets.Add(s);
 
@@ -199,7 +199,7 @@ public class InferDecreasesClause {
     }
 
     if (sets.Count == 0) {
-      var emptySet = new SetDisplayExpr(Token.NoToken, true, new List<Expression>()) {
+      var emptySet = new SetDisplayExpr(Token.NoToken, true, []) {
         Type = resolver.SystemModuleManager.ObjectSetType()
       };
       return emptySet;
