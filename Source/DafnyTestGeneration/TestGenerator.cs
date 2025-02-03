@@ -33,8 +33,8 @@ namespace DafnyTestGeneration {
 
       program.Reporter.Options.PrintMode = PrintModes.Everything;
 
-      HashSet<string> allStates = new();
-      HashSet<string> allDeadStates = new();
+      HashSet<string> allStates = [];
+      HashSet<string> allDeadStates = [];
 
       // Generate tests based on counterexamples produced from modifications
       foreach (var modification in GetModifications(cache, program, out _)) {
@@ -126,7 +126,7 @@ namespace DafnyTestGeneration {
       }
 
       var lineRegex = new Regex("^(.*)\\(([0-9]+),[0-9]+\\)");
-      HashSet<string> coveredStates = new(); // set of program states that are expected to be covered by tests
+      HashSet<string> coveredStates = []; // set of program states that are expected to be covered by tests
       foreach (var modification in cache.Values) {
         foreach (var preciseState in modification.CapturedStates) {
           if (modification.CounterexampleStatus == ProgramModification.Status.Success) {

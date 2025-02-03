@@ -26,7 +26,7 @@ internal class TriggersCollector {
   }
 
   private List<TriggerTerm> CollectExportedCandidates(Expression expr) {
-    return ReduceAnnotatedSubExpressions(expr, new List<TriggerTerm>(), a => a.ExportedTerms, TriggerUtils.MergeAlterFirst);
+    return ReduceAnnotatedSubExpressions(expr, [], a => a.ExportedTerms, TriggerUtils.MergeAlterFirst);
   }
 
   private ISet<IVariable> CollectVariables(Expression expr) {

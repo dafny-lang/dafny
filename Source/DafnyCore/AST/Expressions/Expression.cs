@@ -125,7 +125,7 @@ public abstract class Expression : NodeWithComputedRange {
   public IEnumerable<Expression> DescendantsAndSelf {
     get {
       Stack<Expression> todo = new();
-      List<Expression> result = new();
+      List<Expression> result = [];
       todo.Push(this);
       while (todo.Any()) {
         var current = todo.Pop();

@@ -70,11 +70,11 @@ namespace DafnyTestGeneration {
         replacements[from[i]] = to[i];
       }
       replacements["_System.string"] =
-        new UserDefinedType(new Token(), "string", new List<Type>());
+        new UserDefinedType(new Token(), "string", []);
       replacements["_System.nat"] =
-        new UserDefinedType(new Token(), "nat", new List<Type>());
+        new UserDefinedType(new Token(), "nat", []);
       replacements["_System.object"] =
-        new UserDefinedType(new Token(), "object", new List<Type>());
+        new UserDefinedType(new Token(), "object", []);
       return DafnyModelTypeUtils.ReplaceType(type, _ => true,
         typ => replacements.TryGetValue(typ.Name, out var replacement) ?
           replacement :
@@ -182,7 +182,7 @@ namespace DafnyTestGeneration {
     }
 
     public static IEnumerable<MemberDecl> AllMemberDeclarationsWithAttribute(TopLevelDecl decl, string attribute) {
-      HashSet<MemberDecl> allInlinedDeclarations = new();
+      HashSet<MemberDecl> allInlinedDeclarations = [];
       if (decl is LiteralModuleDecl moduleDecl) {
         foreach (var child in moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>()) {
           allInlinedDeclarations.UnionWith(AllMemberDeclarationsWithAttribute(child, attribute));

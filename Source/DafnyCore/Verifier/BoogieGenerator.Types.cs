@@ -35,13 +35,13 @@ public partial class BoogieGenerator {
     // [Heap, Box, ..., Box]
     var map_args = Cons(Predef.HeapType, Map(Enumerable.Range(0, arity), i => Predef.BoxType));
     // [Heap, Box, ..., Box] Box
-    var apply_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, Predef.BoxType);
+    var apply_ty = new Bpl.MapType(tok, [], map_args, Predef.BoxType);
     // [Heap, Box, ..., Box] Bool
-    var requires_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, Bpl.Type.Bool);
+    var requires_ty = new Bpl.MapType(tok, [], map_args, Bpl.Type.Bool);
     // Set Box
     var objset_ty = TrType(program.SystemModuleManager.ObjectSetType());
     // [Heap, Box, ..., Box] (Set Box)
-    var reads_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, objset_ty);
+    var reads_ty = new Bpl.MapType(tok, [], map_args, objset_ty);
 
     {
       // function HandleN([Heap, Box, ..., Box] Box, [Heap, Box, ..., Box] Bool) : HandleType
@@ -141,7 +141,7 @@ public partial class BoogieGenerator {
         MapM(Enumerable.Range(0, arity), i => rhsargs.Add(BplFormalVar("bx" + i, Predef.BoxType, true, formals)));
 
         sink.AddTopLevelDeclaration(
-          new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", new List<TypeVariable>(), formals,
+          new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", [], formals,
             BplFormalVar(null, Bpl.Type.Bool, false), null,
             InlineAttribute(f.Origin)) {
             Body = Bpl.Expr.True
@@ -204,7 +204,7 @@ public partial class BoogieGenerator {
           var o = BplBoundVar("o", Predef.RefType, ivars);
           var fld = BplBoundVar("fld", Predef.FieldName(tok), ivars);
 
-          var inner_forall = new Bpl.ForallExpr(tok, new List<TypeVariable>(), ivars, BplImp(
+          var inner_forall = new Bpl.ForallExpr(tok, [], ivars, BplImp(
             BplAnd(
               Bpl.Expr.Neq(o, Predef.Null),
               // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
@@ -576,7 +576,7 @@ public partial class BoogieGenerator {
     var dafnyType = new BitvectorType(options, w);
     var boogieType = BplBvType(w);
     var typeTerm = TypeToTy(dafnyType);
-    AddBoxUnboxAxiom(tok, printableName, typeTerm, boogieType, new List<Variable>());
+    AddBoxUnboxAxiom(tok, printableName, typeTerm, boogieType, []);
 
     // axiom (forall v: bv3 :: { $Is(v, TBitvector(3)) } $Is(v, TBitvector(3)));
     var vVar = BplBoundVar("v", boogieType, out var v);
@@ -588,7 +588,7 @@ public partial class BoogieGenerator {
     // axiom (forall v: bv3, heap: Heap :: { $IsAlloc(v, TBitvector(3), h) } $IsAlloc(v, TBitvector(3), heap));
     vVar = BplBoundVar("v", boogieType, out v);
     var heapVar = BplBoundVar("heap", Predef.HeapType, out var heap);
-    bvs = new List<Variable>() { vVar, heapVar };
+    bvs = [vVar, heapVar];
     var isAllocBv = MkIsAlloc(v, typeTerm, heap);
     tr = BplTrigger(isAllocBv);
     sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isAllocBv)));
@@ -753,7 +753,7 @@ public partial class BoogieGenerator {
   List<(List<(BoundVar, Expression)>, Expression)> GeneratePartialGuesses(List<BoundVar> bvars, Expression expression) {
     if (bvars.Count == 0) {
       var tup = (new List<(BoundVar, Expression)>(), expression);
-      return new() { tup };
+      return [tup];
     }
 
     var result = new List<(List<(BoundVar, Expression)>, Expression)>();
@@ -782,7 +782,7 @@ public partial class BoogieGenerator {
       // other possibilities involve guessing a value for x
       foreach (var guess in GuessWitnesses(x, tup.Item2)) {
         var g = Substitute(tup.Item2, x, guess);
-        vs = new List<(BoundVar, Expression)>() { (x, guess) };
+        vs = [(x, guess)];
         AddRangeSubst(vs, tup.Item1, x, guess);
         result.Add((vs, g));
       }
@@ -943,13 +943,13 @@ public partial class BoogieGenerator {
     } else if (typ.IsDatatype) {
       return null;  // this can be improved
     } else if (typ is SetType setType) {
-      return new SetDisplayExpr(tok, setType.Finite, new List<Expression>()) { Type = typ };
+      return new SetDisplayExpr(tok, setType.Finite, []) { Type = typ };
     } else if (typ is MultiSetType) {
-      return new MultiSetDisplayExpr(tok, new List<Expression>()) { Type = typ };
+      return new MultiSetDisplayExpr(tok, []) { Type = typ };
     } else if (typ is SeqType) {
-      return new SeqDisplayExpr(tok, new List<Expression>()) { Type = typ };
+      return new SeqDisplayExpr(tok, []) { Type = typ };
     } else if (typ is MapType mapType) {
-      return new MapDisplayExpr(tok, mapType.Finite, new List<ExpressionPair>()) { Type = typ };
+      return new MapDisplayExpr(tok, mapType.Finite, []) { Type = typ };
     } else if (typ is ArrowType) {
       // TODO: do better than just returning null
       return null;
@@ -1585,9 +1585,9 @@ public partial class BoogieGenerator {
         etran.HeapCastToIdentifierExpr,
       };
     var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
-    var proc = new Bpl.Procedure(decl.Tok, name, new List<Bpl.TypeVariable>(),
-      inParams, new List<Variable>(),
-      false, req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+    var proc = new Bpl.Procedure(decl.Tok, name, [],
+      inParams, [],
+      false, req, mod, [], etran.TrAttributes(decl.Attributes, null));
     AddVerboseNameAttribute(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
     sink.AddTopLevelDeclaration(proc);
 
@@ -1604,7 +1604,7 @@ public partial class BoogieGenerator {
     builder.AddCaptureState(decl.Tok, false, "initial state");
     IsAllocContext = new IsAllocContext(options, true);
 
-    DefineFrame(decl.Tok, etran.ReadsFrame(decl.Tok), new List<FrameExpression>(), builder, locals, null);
+    DefineFrame(decl.Tok, etran.ReadsFrame(decl.Tok), [], builder, locals, null);
 
     // some initialization stuff;  // This is collected in builderInitializationArea
     // define frame;
@@ -1678,7 +1678,7 @@ public partial class BoogieGenerator {
       // emit the impl only when there are proof obligations.
       QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
 
-      AddImplementationWithAttributes(GetToken(decl), proc, implInParams, new List<Variable>(), locals, implBody, kv);
+      AddImplementationWithAttributes(GetToken(decl), proc, implInParams, [], locals, implBody, kv);
     }
 
     // TODO: Should a checksum be inserted here?

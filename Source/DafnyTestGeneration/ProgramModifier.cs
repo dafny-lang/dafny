@@ -170,7 +170,7 @@ namespace DafnyTestGeneration {
         node.Blocks[0].Cmds.Insert(0, GetAssumePrintCmd(data));
 
         // record parameter values:
-        data = new List<object> { "Impl", node.VerboseName.Split(" ")[0] };
+        data = ["Impl", node.VerboseName.Split(" ")[0]];
         data.AddRange(node.InParams.Select(var => new IdentifierExpr(new Token(), var)));
         node.Blocks[0].Cmds.Insert(0, GetAssumePrintCmd(data));
         if (Utils.DeclarationHasAttribute(node, TestGenerationOptions.TestEntryAttribute) || Utils.DeclarationHasAttribute(node, TestGenerationOptions.TestInlineAttribute)) {
@@ -207,7 +207,7 @@ namespace DafnyTestGeneration {
       }
 
       public override Procedure VisitProcedure(Procedure node) {
-        List<Ensures> newEnsures = new();
+        List<Ensures> newEnsures = [];
         foreach (var e in node.Ensures) {
           newEnsures.Add(new Ensures(
             new Token(),

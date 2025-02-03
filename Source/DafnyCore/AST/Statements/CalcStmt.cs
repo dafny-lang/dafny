@@ -207,7 +207,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
 
   public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
 
-  public override IEnumerable<INode> Children => Steps.Concat(Result != null ? new Node[] { Result } : new Node[] { }).Concat(Hints);
+  public override IEnumerable<INode> Children => Steps.Concat(Result != null ? [Result] : new Node[] { }).Concat(Hints);
   public override IEnumerable<INode> PreResolveChildren => Lines.Take(Lines.Count > 0 ? Lines.Count - 1 : 0).Concat<Node>(Hints.Where(hintBatch => hintBatch.Body.Count() != 0));
 
   [ContractInvariantMethod]
@@ -236,7 +236,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     UserSuppliedOp = userSuppliedOp;
     Lines = lines;
     Hints = hints;
-    Steps = new List<Expression>();
+    Steps = [];
     StepOps = stepOps;
     Result = null;
     Attributes = attrs;
@@ -264,7 +264,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
       Result = cloner.CloneExpr(original.Result);
       Op = original.Op;
     } else {
-      Steps = new List<Expression>();
+      Steps = [];
     }
   }
 

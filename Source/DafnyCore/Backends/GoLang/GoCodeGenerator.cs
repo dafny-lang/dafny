@@ -60,17 +60,16 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private readonly Dictionary<ModuleDefinition, Import> ModuleImports = new();
-    private readonly List<Import> ImportsNotFromDafnyModules = new(StandardImports);
+    private readonly List<Import> ImportsNotFromDafnyModules = [.. StandardImports];
     private string ModuleName;
     private ModuleDefinition CurrentModule;
     private ConcreteSyntaxTree RootImportWriter;
     private ConcreteSyntaxTree RootImportDummyWriter;
 
     private string MainModuleName;
-    private static List<Import> StandardImports =
-      new List<Import> {
-        new Import { Name = "os", Path = "os" },
-      };
+    private static List<Import> StandardImports = [
+      new Import { Name = "os", Path = "os" }
+    ];
     private static string DummyTypeName = "Dummy__";
 
     private static string ImportPrefix = "m_";
@@ -1294,7 +1293,7 @@ namespace Microsoft.Dafny.Compilers {
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         var tok = field.Origin;
         var lvalue = CodeGenerator.EmitMemberSelect(w => w.Write("_this"), UserDefinedType.FromTopLevelDecl(tok, enclosingClass), field,
-        new List<TypeArgumentInstantiation>(), enclosingClass.ParentFormalTypeParametersToActuals, instantiatedFieldType);
+          [], enclosingClass.ParentFormalTypeParametersToActuals, instantiatedFieldType);
         var wRHS = lvalue.EmitWrite(FieldInitWriter(false));
         CodeGenerator.EmitCoercionIfNecessary(instantiatedFieldType, field.Type, tok, wRHS);
         wRHS.Write(CodeGenerator.PlaceboValue(instantiatedFieldType, ErrorWriter(), tok));
@@ -1322,8 +1321,8 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree abstractWriter, ConcreteSyntaxTree concreteWriter, bool forBodyInheritance, bool lookasideBody) {
 
       var fnOverridden = (member as Function)?.OverriddenFunction?.Original;
-      return CreateSubroutine(name, typeArgs, formals, new List<Formal>(), resultType,
-        fnOverridden?.Ins, fnOverridden == null ? null : new List<Formal>(), fnOverridden?.ResultType,
+      return CreateSubroutine(name, typeArgs, formals, [], resultType,
+        fnOverridden?.Ins, fnOverridden == null ? null : [], fnOverridden?.ResultType,
         tok, isStatic, createBody, ownerContext, ownerName, member, abstractWriter, concreteWriter, forBodyInheritance, lookasideBody);
     }
 
@@ -1558,7 +1557,7 @@ namespace Microsoft.Dafny.Compilers {
     protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, Type resultType, IOrigin tok, bool isStatic, bool createBody,
       MemberDecl/*?*/ member, TopLevelDecl ownerContext, string ownerName,
       ConcreteSyntaxTree abstractWriter, ConcreteSyntaxTree concreteWriter, bool forBodyInheritance) {
-      return CreateFunction(name, new List<TypeArgumentInstantiation>(), new List<Formal>(), resultType,
+      return CreateFunction(name, [], [], resultType,
         tok, isStatic, createBody, member, ownerContext, ownerName, abstractWriter, concreteWriter, forBodyInheritance, false);
     }
 
@@ -1569,8 +1568,8 @@ namespace Microsoft.Dafny.Compilers {
       var getterWriter = CreateGetter(name, resultType, tok, false, createBody, member, ownerContext, ownerName, abstractWriter, concreteWriter, forBodyInheritance);
 
       var valueParam = new Formal(tok, "value", resultType, true, false, null);
-      setterWriter = CreateSubroutine(name + "_set_", new List<TypeArgumentInstantiation>(), new List<Formal>() { valueParam }, new List<Formal>(), null,
-        new List<Formal>() { valueParam }, new List<Formal>(), null,
+      setterWriter = CreateSubroutine(name + "_set_", [], [valueParam], [], null,
+        [valueParam], [], null,
         tok, false, createBody, ownerContext, ownerName, member,
         abstractWriter, concreteWriter, forBodyInheritance, false);
       return getterWriter;
@@ -2624,7 +2623,7 @@ namespace Microsoft.Dafny.Compilers {
         return res;
     }).join(""))
      */
-    public readonly HashSet<string> ReservedModuleNames = new() {
+    public readonly HashSet<string> ReservedModuleNames = [
       "c",
       "archive",
       "bufio",
@@ -2672,7 +2671,7 @@ namespace Microsoft.Dafny.Compilers {
       "time",
       "unicode",
       "unsafe"
-    };
+    ];
 
     public string PublicModuleIdProtect(string name) {
       if (ReservedModuleNames.Contains(name.ToLower())) {
@@ -3259,7 +3258,7 @@ namespace Microsoft.Dafny.Compilers {
       var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
       var atd = (ArrowTypeDecl)fromType.ResolvedClass;
       var tParam = new UserDefinedType(expr.Origin, new TypeParameter(expr.Origin, new Name("X"), TypeParameter.TPVarianceSyntax.NonVariant_Strict));
-      var toType = new ArrowType(expr.Origin, atd, new List<Type>() { Type.Int }, tParam);
+      var toType = new ArrowType(expr.Origin, atd, [Type.Int], tParam);
       var initWr = EmitCoercionIfNecessary(fromType, toType, expr.Origin, wr);
       initWr.Append(Expr(expr.Initializer, inLetExprBody, wStmts));
       wr.Write(")");

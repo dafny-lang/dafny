@@ -827,7 +827,7 @@ where
             } => {
                 #[cfg(feature = "sync")]
                 {
-                    let mut guard = cache.as_ref().lock().unwrap();
+                    let guard = cache.as_ref().lock().unwrap();
                     let cache_borrow: Option<&Rc<Vec<T>>> = guard.as_ref();
                     if let Some(cache) = cache_borrow {
                         return Rc::clone(cache);
@@ -929,8 +929,7 @@ where
             }
         }
     }
-    /// Returns the cardinality of this [`Sequence<T>`].
-    // The cardinality returns the length of the sequence
+    /// Returns the cardinality or length of this [`Sequence<T>`].
     pub fn cardinality_usize(&self) -> SizeT {
         match self {
             Sequence::ArraySequence { values, .. } =>

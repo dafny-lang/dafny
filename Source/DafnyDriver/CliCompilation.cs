@@ -186,7 +186,7 @@ public class CliCompilation {
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
         var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
 
-        if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.VerificationJobs) {
+        if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.Batch) {
           var partOrigin = boogieUpdate.VerificationTask.Split.Token;
 
           var wellFormedness = boogieUpdate.VerificationTask.Split.Implementation.Name.Contains("CheckWellFormed$");
@@ -346,7 +346,7 @@ public class CliCompilation {
     if (result.Length != filterPosition.Length || !result.Success) {
       Compilation.Reporter.Error(MessageSource.Project, Token.Cli, "Could not parse value passed to --filter-position");
       range = new LineRange(start, end);
-      return new List<ICanVerify>();
+      return [];
     }
     var filePart = result.Groups[1].Value;
     string? lineStart = result.Groups[2].Value;

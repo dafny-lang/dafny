@@ -161,7 +161,7 @@ namespace Microsoft.Dafny {
           Type = Type.Bool
         };
 
-        var attributes = new Attributes("_reads", new List<Expression>(), null);
+        var attributes = new Attributes("_reads", [], null);
         return new SetComprehension(e.Origin, true, boundVarDecls, inCollection, objUse, attributes) {
           Type = new SetType(true, elementType)
         };
@@ -325,8 +325,8 @@ namespace Microsoft.Dafny {
     public static List<BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr,
       out bool constraintConsistsSolelyOfRangeConstraints) where VT : IVariable {
       expr = Expression.CreateAnd(GetImpliedTypeConstraint(v, v.Type), expr);
-      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true,
-        new List<BoundedPool>() { null }, out constraintConsistsSolelyOfRangeConstraints);
+      return DiscoverAllBounds_Aux_SingleVar([v], 0, expr, true,
+        [null], out constraintConsistsSolelyOfRangeConstraints);
     }
 
     /// <summary>

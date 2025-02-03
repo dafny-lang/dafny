@@ -28,8 +28,8 @@ class SplitPartTriggerWriter {
 
   internal SplitPartTriggerWriter(ComprehensionExpr comprehension) {
     this.Comprehension = comprehension;
-    this.RejectedCandidates = new List<TriggerCandidate>();
-    this.NamedExpressions = new();
+    this.RejectedCandidates = [];
+    this.NamedExpressions = [];
   }
 
   internal void TrimInvalidTriggers() {

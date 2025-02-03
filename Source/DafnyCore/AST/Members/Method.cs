@@ -78,7 +78,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
 
     foreach (var c in this.Descendants()) {
-      foreach (var a in (c as Node)?.Assumptions(this) ?? Enumerable.Empty<Assumption>()) {
+      foreach (var a in (c as Node)?.Assumptions(this) ?? []) {
         yield return a;
       }
     }
@@ -467,7 +467,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
 
     var currentClass = EnclosingClass;
-    List<AutoRevealFunctionDependencies.RevealStmtWithDepth> addedReveals = new();
+    List<AutoRevealFunctionDependencies.RevealStmtWithDepth> addedReveals = [];
 
     foreach (var func in Rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
       var revealStmt =

@@ -111,7 +111,7 @@ public class Migrator : IMigrator {
   // Requires changeEndOffset.change.Range to be not null
   private IEnumerable<Position> MigratePosition(TextDocumentContentChangeEvent change, Position position) {
     if (change.Range!.Contains(position)) {
-      return Enumerable.Empty<Position>();
+      return [];
     }
 
     return new List<Position> { MigratePosition(position, change) };

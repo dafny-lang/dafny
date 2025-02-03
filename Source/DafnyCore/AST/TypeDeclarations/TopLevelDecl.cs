@@ -104,7 +104,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
   public virtual List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
     Contract.Requires(typeArgs != null);
     Contract.Requires(this.TypeArgs.Count == typeArgs.Count);
-    return new List<Type>();
+    return [];
   }
 
   public bool AllowsAllocation => true;
