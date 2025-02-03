@@ -15,6 +15,14 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
     Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
   }
 
+  [ParseConstructor]
+  public BlockStmt(IOrigin origin, Attributes attributes, [Captured] List<Statement> body)
+    : base(origin, attributes) {
+    Contract.Requires(origin != null);
+    Contract.Requires(cce.NonNullElements(body));
+    Body = body;
+  }
+  
   public BlockStmt(IOrigin origin, [Captured] List<Statement> body)
     : base(origin) {
     Contract.Requires(origin != null);

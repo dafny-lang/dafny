@@ -104,7 +104,7 @@ public class GenerateParsedAst {
         return null;
       }
       baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(type.BaseType))));
-      firstPosition = schemaToConstructorPositions[type.BaseType].Count;
+      // firstPosition = schemaToConstructorPositions[type.BaseType].Count;
     }
 
     if (baseList.Any()) {
@@ -132,7 +132,7 @@ public class GenerateParsedAst {
     var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
     var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
 
-    var schemaToConstructorPosition = new Dictionary<string, int>();
+    // var schemaToConstructorPosition = new Dictionary<string, int>();
     for (var index = 0; index < constructor.GetParameters().Length; index++) {
       var parameter = constructor.GetParameters()[index];
       if (excludedTypes.Contains(parameter.ParameterType)) {
@@ -151,8 +151,8 @@ public class GenerateParsedAst {
       }
 
       if (memberInfo != null && memberInfo.DeclaringType != type) {
-        var constructorPosition = schemaToConstructorPositions[memberInfo.DeclaringType][parameter.Name];
-        schemaToConstructorPosition[parameter.Name] = constructorPosition;
+        // var constructorPosition = schemaToConstructorPositions[memberInfo.DeclaringType!][parameter.Name];
+        // schemaToConstructorPosition[parameter.Name] = constructorPosition;
         continue;
       }
 
@@ -161,7 +161,7 @@ public class GenerateParsedAst {
       newFields.Add(FieldDeclaration(VariableDeclaration(
         ParseTypeName(ToGenericTypeString(usedTyped)),
         SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
-      schemaToConstructorPosition[parameter.Name] = firstPosition + index;
+      // schemaToConstructorPosition[parameter.Name] = firstPosition + index;
 
       if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
         usedTyped = newType;

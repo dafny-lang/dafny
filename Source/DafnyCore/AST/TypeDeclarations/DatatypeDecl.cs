@@ -23,7 +23,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
   public DatatypeDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, enclosingModule, typeArgs, members, attributes, parentTraits) {
+    : base(origin, name, attributes, typeArgs, enclosingModule, members, parentTraits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(enclosingModule != null);

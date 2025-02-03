@@ -13,7 +13,7 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
 
   public AbstractTypeDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule, TypeParameter.TypeParameterCharacteristics characteristics,
     List<TypeParameter> typeArgs, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, enclosingModule, typeArgs, members, attributes, parentTraits) {
+    : base(origin, name, attributes, typeArgs, enclosingModule, members, parentTraits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(enclosingModule != null);

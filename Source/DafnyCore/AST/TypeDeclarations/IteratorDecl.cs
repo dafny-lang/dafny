@@ -38,7 +38,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     List<AttributedExpression> yieldRequires,
     List<AttributedExpression> yieldEnsures,
     BlockStmt body, Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, name, enclosingModule, typeArgs, new List<MemberDecl>(), attributes, signatureEllipsis != null, null) {
+    : base(origin, name, attributes, typeArgs, enclosingModule, new List<MemberDecl>(), null, signatureEllipsis != null) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(enclosingModule != null);
@@ -454,15 +454,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       new Specification<Expression>(new List<Expression>(), null),
       null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes method MoveNext
-    var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"), false, false,
-      new List<TypeParameter>(),
-      new List<Formal>(), new List<Formal>() { new Formal(Origin, "more", Type.Bool, false, false, null) },
-      new List<AttributedExpression>(),
-      new Specification<FrameExpression>(),
-      new Specification<FrameExpression>(new List<FrameExpression>(), null),
-      new List<AttributedExpression>(),
-      new Specification<Expression>(new List<Expression>(), null),
-      null, SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), null);
+    var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"), SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), false, false, new List<TypeParameter>(), new List<Formal>(), new List<AttributedExpression>(), new List<AttributedExpression>(), new Specification<FrameExpression>(), new Specification<Expression>(new List<Expression>(), null), new List<Formal>() { new Formal(Origin, "more", Type.Bool, false, false, null) }, new Specification<FrameExpression>(new List<FrameExpression>(), null), null, null);
     // add these implicit members to the class
     init.EnclosingClass = this;
     init.InheritVisibility(this);

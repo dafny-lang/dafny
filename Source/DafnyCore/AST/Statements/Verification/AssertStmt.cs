@@ -20,14 +20,14 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     errorMessage.Type = new SeqType(Type.Char);
     var attr = new Attributes("error", new List<Expression> { errorMessage }, null);
     guard ??= Expression.CreateBoolLiteral(node.Origin, false);
-    var assertFalse = new AssertStmt(node.Origin, guard, null, attr);
+    var assertFalse = new AssertStmt(node.Origin, attr, guard, null);
     assertFalse.IsGhost = true;
     return assertFalse;
   }
 
   [ParseConstructor]
-  public AssertStmt(IOrigin origin, Expression expr, AssertLabel/*?*/ label, Attributes attributes)
-    : base(origin, expr, attributes) {
+  public AssertStmt(IOrigin origin, Attributes attributes, Expression expr, AssertLabel label /*?*/)
+    : base(origin, attributes, expr) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     Label = label;

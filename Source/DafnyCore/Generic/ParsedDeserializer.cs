@@ -9,7 +9,7 @@ using Type = System.Type;
 
 namespace IntegrationTests;
 
-public class ParsedDeserializer(string input) {
+public partial class ParsedDeserializer(string input) {
   private int position;
 
   public T Deserialize<T>() {

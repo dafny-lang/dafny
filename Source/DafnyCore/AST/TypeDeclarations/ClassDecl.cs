@@ -16,9 +16,10 @@ public class ClassDecl : ClassLikeDecl {
   }
 
   [ParseConstructor]
-  public ClassDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule,
-    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(origin, name, enclosingModule, typeArgs, members, attributes, traits) {
+  public ClassDecl(IOrigin origin, Name name, Attributes attributes,
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModule,
+    [Captured] List<MemberDecl> members, List<Type> traits /*?*/, bool isRefining)
+    : base(origin, name, attributes, typeArgs, enclosingModule, members, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(enclosingModule != null);

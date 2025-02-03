@@ -558,9 +558,7 @@ namespace Microsoft.Dafny {
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else {
-        return new Method(origin, newName, previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
-          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null, previousMethod.IsByMethod);
+        return new Method(origin, newName, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins, req, ens, reads, decreases, previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)), mod, body, null, previousMethod.IsByMethod);
       }
     }
 
@@ -1054,7 +1052,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new NestedOrigin(skel.Origin, e.Origin), e, skel.Label, attrs));
+                body.Add(new AssertStmt(new NestedOrigin(skel.Origin, e.Origin), attrs, e, skel.Label));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
@@ -1200,7 +1198,7 @@ namespace Microsoft.Dafny {
               i++; j++;
               if (addedAssert != null) {
                 var tok = new BoogieGenerator.ForceCheckOrigin(addedAssert.Origin);
-                body.Add(new AssertStmt(tok, addedAssert, null, null));
+                body.Add(new AssertStmt(tok, null, addedAssert, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1257,7 +1255,7 @@ namespace Microsoft.Dafny {
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
                 var tok = new SourceOrigin(addedAssert.Origin.StartToken, addedAssert.Origin.EndToken);
-                stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null));
+                stmtGenerated.Add(new AssertStmt(tok, null, addedAssert, null));
               }
             }
             if (doMerge) {

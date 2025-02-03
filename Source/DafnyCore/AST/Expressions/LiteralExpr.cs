@@ -56,7 +56,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   }
 
   [ParseConstructor]
-  protected LiteralExpr(IOrigin origin, object value)
+  public LiteralExpr(IOrigin origin, object value)
     : base(origin) {
     this.Value = value;
   }

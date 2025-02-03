@@ -233,7 +233,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IOrigin/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IOrigin/*?*/ signatureEllipsis)
-    : base(origin, name, hasStaticKeyword, isGhost, attributes, typeArgs, ins, req, ens, reads, decreases) {
+    : base(origin, name, attributes, hasStaticKeyword, isGhost, typeArgs, ins, req, ens, reads, decreases) {
 
     Contract.Requires(Origin != null);
     Contract.Requires(name != null);

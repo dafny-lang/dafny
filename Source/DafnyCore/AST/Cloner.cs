@@ -151,8 +151,8 @@ namespace Microsoft.Dafny {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
-        return new ClassDecl(Origin(dd.Origin), dd.NameNode.Clone(this), newParent, tps, mm,
-          CloneAttributes(dd.Attributes), dd.IsRefining, dd.Traits.ConvertAll(CloneType));
+        return new ClassDecl(Origin(dd.Origin), dd.NameNode.Clone(this),
+          CloneAttributes(dd.Attributes), tps, newParent, mm, dd.Traits.ConvertAll(CloneType), dd.IsRefining);
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl moduleDecl) {
           return new LiteralModuleDecl(this, moduleDecl, newParent);

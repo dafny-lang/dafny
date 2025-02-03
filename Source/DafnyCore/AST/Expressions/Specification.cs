@@ -17,6 +17,14 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
     Attributes = null;
   }
 
+  [ParseConstructor]
+  public Specification(IOrigin origin, List<T> expressions, Attributes attributes) : base(origin) {
+    Contract.Requires(expressions == null || cce.NonNullElements<T>(expressions));
+    Expressions = expressions;
+    Attributes = attributes;
+  }
+
+  
   public Specification(List<T> expressions, Attributes attributes) {
     Contract.Requires(expressions == null || cce.NonNullElements<T>(expressions));
     Expressions = expressions;

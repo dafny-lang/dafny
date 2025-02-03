@@ -47,7 +47,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   [ParseConstructor]
   protected ModuleDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition enclosingModule,
     Guid cloneId)
-    : base(origin, name, enclosingModule, new List<TypeParameter>(), null) {
+    : base(origin, name, null, new List<TypeParameter>(), enclosingModule) {
     Options = options;
     Height = -1;
     Signature = null;

@@ -88,10 +88,12 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   [ParseConstructor]
-  protected TopLevelDeclWithMembers(IOrigin origin, Name name, ModuleDefinition enclosingModule,
-    List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
-    List<Type>/*?*/ traits = null)
-    : base(origin, name, enclosingModule, typeArgs, attributes) {
+  protected TopLevelDeclWithMembers(IOrigin origin, Name name, Attributes attributes,
+    List<TypeParameter> typeArgs,
+    ModuleDefinition enclosingModule,
+    List<MemberDecl> members,
+    List<Type> traits = null /*?*/)
+    : base(origin, name, attributes, typeArgs, enclosingModule) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

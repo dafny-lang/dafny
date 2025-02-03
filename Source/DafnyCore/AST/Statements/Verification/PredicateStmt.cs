@@ -14,7 +14,7 @@ public abstract class PredicateStmt : Statement, ICanResolveNewAndOld {
   }
 
   [ParseConstructor]
-  protected PredicateStmt(IOrigin origin, Expression expr, Attributes attributes)
+  protected PredicateStmt(IOrigin origin, Attributes attributes, Expression expr)
     : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
@@ -22,7 +22,7 @@ public abstract class PredicateStmt : Statement, ICanResolveNewAndOld {
   }
 
   protected PredicateStmt(IOrigin origin, Expression expr)
-    : this(origin, expr, null) {
+    : this(origin, null, expr) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     this.Expr = expr;

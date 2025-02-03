@@ -1007,7 +1007,7 @@ namespace Microsoft.Dafny {
         } else if (s.KeywordToken.Token.val == "assume") {
           ss = new AssumeStmt(new SourceOrigin(keyword.StartToken, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
         } else if (s.KeywordToken.Token.val == "assert") {
-          ss = new AssertStmt(new SourceOrigin(keyword.StartToken, s.EndToken), notFailureExpr, null, s.KeywordToken.Attrs);
+          ss = new AssertStmt(new SourceOrigin(keyword.StartToken, s.EndToken), s.KeywordToken.Attrs, notFailureExpr, null);
         } else {
           Contract.Assert(false, $"Invalid token in :- statement: {keyword.val}");
         }

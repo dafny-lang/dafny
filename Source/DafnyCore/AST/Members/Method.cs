@@ -133,19 +133,21 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
   [ParseConstructor]
   public Method(IOrigin origin, Name name,
+    Attributes attributes,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
-    [Captured] List<Formal> ins, [Captured] List<Formal> outs,
+    [Captured] List<Formal> ins,
     [Captured] List<AttributedExpression> req,
-    [Captured] Specification<FrameExpression> reads,
-    [Captured] Specification<FrameExpression> mod,
     [Captured] List<AttributedExpression> ens,
+    [Captured] Specification<FrameExpression> reads,
     [Captured] Specification<Expression> decreases,
+    [Captured] List<Formal> outs,
+    [Captured] Specification<FrameExpression> mod,
     [Captured] BlockStmt body,
-    Attributes attributes, IOrigin signatureEllipsis,
+    IOrigin signatureEllipsis,
     bool isByMethod = false)
-    : base(origin, name, hasStaticKeyword, isGhost, attributes,
-      typeArgs, ins, req, ens, reads, decreases) {
+    : base(origin, name, attributes,
+      hasStaticKeyword, isGhost, typeArgs, ins, req, ens, reads, decreases) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
