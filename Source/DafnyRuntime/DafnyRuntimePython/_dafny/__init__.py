@@ -245,6 +245,9 @@ class Seq:
             start, stop, step = key.indices(len(self))
             elements = self.elems if isinstance(self.elems, Slice) else self.Elements
             return Seq(Slice(elements, start=start, stop=stop, step=step), isStr=self.isStr)
+        elif isinstance(self.elems, Slice):
+            # The .Elements call takes linear time, but a single element can be retrieved from a Slice in constant time.
+            return self.elems[key]
         return self.Elements.__getitem__(key)
 
     def set(self, key, value):
