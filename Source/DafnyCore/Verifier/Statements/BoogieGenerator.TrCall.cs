@@ -212,7 +212,10 @@ public partial class BoogieGenerator {
         } else {
           actual = Args[i];
         }
-        if (!(actual is DefaultValueExpression)) {
+
+        if (actual is DefaultValueExpression) {
+          builder.Add(TrAssumeCmd(actual.Origin, etran.CanCallAssumption(actual)));
+        } else {
           TrStmt_CheckWellformed(actual, builder, locals, etran, true);
         }
         builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));
