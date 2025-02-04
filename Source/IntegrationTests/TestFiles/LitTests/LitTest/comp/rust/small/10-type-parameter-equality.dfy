@@ -38,7 +38,11 @@ datatype {:rust_rc false} DoubleWithGhostWrapper = DoubleWithGhostWrapper(
 
 datatype Wrapper1<T> = Wrapper1(w1: T)
 datatype Wrapper2<T> = Wrapper2(w2: T)
-datatype Wrapper3<S> = Wrapper3(w21: Wrapper2<Wrapper1<S>>)
+datatype Wrapper3<S> = Wrapper3(w21: Wrapper2<Wrapper1<S>>) {
+  function ReturnThis(f: Wrapper3<S> -> Wrapper3<S>): Wrapper3<S> {
+    f(this)
+  }
+}
 
 method Test<T(==)>() {
 }
