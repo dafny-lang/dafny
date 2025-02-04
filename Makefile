@@ -110,6 +110,8 @@ update-rs-module:
 
 update-go-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-system-module)
+	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
+  
 
 update-runtime-dafny:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
