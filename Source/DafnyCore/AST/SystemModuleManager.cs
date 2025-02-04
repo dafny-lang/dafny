@@ -93,7 +93,7 @@ public class SystemModuleManager {
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
     var str = new TypeSynonymDecl(SourceOrigin.NoToken, new Name("string"),
-      new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
+      new TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
     SystemModule.SourceDecls.Add(str);
     // create subset type 'nat'
@@ -101,7 +101,7 @@ public class SystemModuleManager {
     var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
     var ax = AxiomAttribute();
     NatDecl = new SubsetTypeDecl(SourceOrigin.NoToken, new Name("nat"),
-      new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
+      new TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
     ((RedirectingTypeDecl)NatDecl).ConstraintIsCompilable = true;
     SystemModule.SourceDecls.Add(NatDecl);
@@ -332,7 +332,7 @@ public class SystemModuleManager {
     tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
     var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
     var partialArrow = new SubsetTypeDecl(SourceOrigin.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
-      new TypeParameter.TypeParameterCharacteristics(), tps, SystemModule,
+      new TypeParameterCharacteristics(), tps, SystemModule,
       id, ArrowSubtypeConstraint(tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)partialArrow).ConstraintIsCompilable = false;
     PartialArrowTypeDecls.Add(arity, partialArrow);
@@ -347,7 +347,7 @@ public class SystemModuleManager {
     tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
     id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
     var totalArrow = new SubsetTypeDecl(SourceOrigin.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
-      new TypeParameter.TypeParameterCharacteristics(), tps, SystemModule,
+      new TypeParameterCharacteristics(), tps, SystemModule,
       id, ArrowSubtypeConstraint(tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)totalArrow).ConstraintIsCompilable = false;
     TotalArrowTypeDecls.Add(arity, totalArrow);

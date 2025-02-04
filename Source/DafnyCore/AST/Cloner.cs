@@ -175,8 +175,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public TypeParameter.TypeParameterCharacteristics CloneTPChar(
-      TypeParameter.TypeParameterCharacteristics characteristics) {
+    public TypeParameterCharacteristics CloneTPChar(
+      TypeParameterCharacteristics characteristics) {
       TypeParameter.EqualitySupportValue eqSupport;
       if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired) {
         eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
@@ -184,7 +184,7 @@ namespace Microsoft.Dafny {
         eqSupport = characteristics.EqualitySupport;
       }
 
-      return new TypeParameter.TypeParameterCharacteristics(eqSupport, characteristics.AutoInit,
+      return new TypeParameterCharacteristics(eqSupport, characteristics.AutoInit,
         characteristics.ContainsNoReferenceTypes);
     }
 
@@ -195,7 +195,7 @@ namespace Microsoft.Dafny {
 
     public TypeParameter CloneTypeParam(TypeParameter tp) {
       return (TypeParameter)typeParameterClones.GetOrCreate(tp,
-        () => new TypeParameter(Origin(tp.Origin), tp.NameNode.Clone(this), tp.VarianceSyntax,
+        () => new TypeParameter(Origin(tp.Origin), tp.NameNode.Clone(this), tp.Attributes, tp.VarianceSyntax,
           CloneTPChar(tp.Characteristics), tp.TypeBounds.ConvertAll(CloneType)));
     }
 
