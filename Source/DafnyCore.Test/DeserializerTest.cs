@@ -13,6 +13,8 @@ public class DeserializerTest {
     var options = DafnyOptions.Default;
     var reporter = new BatchErrorReporter(options);
     var output = await ProgramParser.Parse(input, new Uri("file://test.java"), reporter);
-    var b = 3;
+    Assert.True(output.Program.DefaultModuleDef.TopLevelDecls.OfType<ClassDecl>().First().Members.OfType<Method>()
+      .First().Body.Body
+      .First() is AssertStmt);
   }
 }

@@ -267,7 +267,7 @@ private {type.Name} Deserialize{type.Name}() {{
   private Specification<T> DeserializeSpecification<T>() where T : Node {
     var parameter0 = DeserializeGeneric<SourceOrigin>();
     var parameter1 = DeserializeList<T>();
-    var parameter2 = DeserializeAttributes();
+    var parameter2 = DeserializeGeneric<Attributes>();
     return new Specification<T>(parameter0, parameter1, parameter2);
   }")!;
       deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(method));
