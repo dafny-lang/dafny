@@ -14,6 +14,9 @@ namespace IntegrationTests;
 
 
 public class GenerateParsedAst {
+  private static Dictionary<Type, Type> overrideBaseType = new() {
+    { typeof(TypeParameter), typeof(Declaration) },
+  };
   private static HashSet<Type> excludedTypes = [typeof(DafnyOptions)];
   private static Dictionary<Type, Dictionary<string, int>> parameterToSchemaPositions = new();
   private static Dictionary<Type, Type> mappedTypes = new() {
@@ -108,18 +111,20 @@ public class GenerateParsedAst {
 
     var ownedFieldPosition = 0;
     var baseList = new List<BaseTypeSyntax>();
-    if (type.BaseType != null && type.BaseType != typeof(ValueType) && type.BaseType != typeof(object)) {
-      if (!visited.Contains(type.BaseType)) {
+    var baseType = overrideBaseType.GetOrDefault(type, () => type.BaseType);
+    
+    if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
+      if (!visited.Contains(baseType)) {
         toVisit.Push(type);
-        toVisit.Push(type.BaseType);
+        toVisit.Push(baseType);
         visited.Remove(type);
         return null;
       }
-      baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(type.BaseType))));
-      ownedFieldPosition = parameterToSchemaPositions[type.BaseType].Count;
+      baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(baseType))));
+      ownedFieldPosition = parameterToSchemaPositions[baseType].Count;
 
       var myParseConstructor = GetParseConstructor(type);
-      var baseParseConstructor = GetParseConstructor(type.BaseType);
+      var baseParseConstructor = GetParseConstructor(baseType);
       var missingParameters =
         baseParseConstructor.GetParameters().Select(p => p.Name)
           .Except(myParseConstructor.GetParameters().Select(p => p.Name));
