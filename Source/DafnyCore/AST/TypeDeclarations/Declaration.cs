@@ -34,10 +34,10 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  protected Declaration(IOrigin origin, Name name, Attributes attributes) : base(origin) {
+  protected Declaration(IOrigin origin, Name nameNode, Attributes attributes) : base(origin) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    this.NameNode = name;
+    Contract.Requires(nameNode != null);
+    this.NameNode = nameNode;
     this.Attributes = attributes;
   }
 

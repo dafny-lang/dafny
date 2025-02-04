@@ -205,7 +205,7 @@ public partial class ParsedDeserializer(string input) {
     return type.IsPrimitive || type == typeof(string) || type == typeof(decimal)
         || type == typeof(DateTime) || Nullable.GetUnderlyingType(type) != null;
   }
-
+  
   private object ConvertSimpleType(string value, Type type) {
     if (type == typeof(bool)) {
       return bool.Parse(value);

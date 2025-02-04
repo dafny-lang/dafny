@@ -148,5 +148,5 @@ public class FilledInDuringResolutionAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Constructor)]
 public class ParseConstructorAttribute : Attribute { }
 
-[AttributeUsage(AttributeTargets.Parameter)]
+[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field)]
 public class BackEdge : Attribute { }

@@ -31,9 +31,9 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
     Exports = original.Exports;
   }
 
-  public AliasModuleDecl(DafnyOptions options, SourceOrigin origin, ModuleQualifiedId path, Name name,
+  public AliasModuleDecl(DafnyOptions options, SourceOrigin origin, ModuleQualifiedId path, Name name, Attributes attributes,
     ModuleDefinition enclosingModule, bool opened, List<IOrigin> exports, Guid cloneId)
-    : base(options, origin, name, enclosingModule, cloneId) {
+    : base(options, origin, name, attributes, enclosingModule, cloneId) {
     Contract.Requires(path != null && path.Path.Count > 0);
     Contract.Requires(exports != null);
     Contract.Requires(exports.Count == 0 || path.Path.Count == 1);

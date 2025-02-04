@@ -36,10 +36,10 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
 
   public override bool IsRefining { get; }
 
-  public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition enclosingModule,
+  public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, Attributes attributes, ModuleDefinition enclosingModule,
     List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(options, origin, name, enclosingModule, cloneId) {
+    : base(options, origin, name, attributes, enclosingModule, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;

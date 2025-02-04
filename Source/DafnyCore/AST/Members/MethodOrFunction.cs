@@ -23,14 +23,14 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public readonly List<Formal> Ins;
 
   [ParseConstructor]
-  protected MethodOrFunction(IOrigin origin, Name name,
+  protected MethodOrFunction(IOrigin origin, Name nameNode,
     Attributes attributes, bool hasStaticKeyword, bool isGhost,
     List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
     [Captured] Specification<FrameExpression> reads,
     Specification<Expression> decreases)
-    : base(origin, name, attributes, hasStaticKeyword, isGhost) {
+    : base(origin, nameNode, attributes, hasStaticKeyword, isGhost) {
     TypeArgs = typeArgs;
     Req = req;
     this.Reads = reads;
@@ -99,8 +99,8 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     // The following check is incomplete, which is a bug.
     || Ins.Any(f => f.Type.AsSubsetType is not null);
 
-  protected MethodOrFunction(SourceOrigin tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes)
-    : base(tok, name, attributes, hasStaticKeyword, isGhost) {
+  protected MethodOrFunction(SourceOrigin tok, Name nameNode, bool hasStaticKeyword, bool isGhost, Attributes attributes)
+    : base(tok, nameNode, attributes, hasStaticKeyword, isGhost) {
   }
 
   public Specification<FrameExpression> Reads { get; set; }

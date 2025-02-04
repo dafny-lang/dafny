@@ -6,7 +6,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using Type = System.Type;
 
@@ -16,6 +15,8 @@ namespace IntegrationTests;
 public class GenerateParsedAst {
   private static Dictionary<Type, Type> overrideBaseType = new() {
     { typeof(TypeParameter), typeof(Declaration) },
+    { typeof(ModuleDecl), typeof(Declaration) },
+    { typeof(AttributedExpression), null }
   };
   private static HashSet<Type> excludedTypes = [typeof(DafnyOptions)];
   private static Dictionary<Type, Dictionary<string, int>> parameterToSchemaPositions = new();
@@ -26,6 +27,7 @@ public class GenerateParsedAst {
   };
 
   private ClassDeclarationSyntax deserializeClass = (ClassDeclarationSyntax)ParseMemberDeclaration(@"partial class Deserializer {}")!;
+  private List<StatementSyntax> deserializeObjectCases = new();
 
   public static Command GetCommand() {
     var result = new Command("generate-parsed-ast", "");
@@ -33,7 +35,7 @@ public class GenerateParsedAst {
     result.AddArgument(fileArgument);
     var fileArgument2 = new Argument<FileInfo>();
     result.AddArgument(fileArgument2);
-    result.SetHandler((file1, file2) => Handle(file1.Name, file2.Name), fileArgument, fileArgument2);
+    result.SetHandler((file1, file2) => Handle(file1.FullName, file2.FullName), fileArgument, fileArgument2);
     return result;
   }
 
@@ -41,9 +43,24 @@ public class GenerateParsedAst {
     var program = typeof(FileModuleDefinition);
     var generateParsedAst = new GenerateParsedAst();
     await File.WriteAllTextAsync(file, generateParsedAst.GenerateAll(program));
-    var deserializeUnit = CompilationUnit();
-    deserializeUnit = deserializeUnit.AddMembers(generateParsedAst.deserializeClass);
-    await File.WriteAllTextAsync(file2, deserializeUnit.ToFullString());
+    var deserializeUnit = ParseCompilationUnit(@"
+using System;
+using System.Collections.Generic;
+");
+    var ns = NamespaceDeclaration(ParseName("Microsoft.Dafny"));
+    var deserializeObjectSyntax = (MethodDeclarationSyntax)ParseMemberDeclaration($@"
+private object DeserializeObject(System.Type actualType) {{
+  throw new Exception();
+}}")!;
+    generateParsedAst.deserializeObjectCases.Add(ParseStatement("throw new Exception();"));
+    deserializeObjectSyntax = deserializeObjectSyntax.WithBody(
+      deserializeObjectSyntax.Body!.WithStatements(List(generateParsedAst.deserializeObjectCases)));
+    generateParsedAst.deserializeClass = generateParsedAst.deserializeClass.WithMembers(
+      generateParsedAst.deserializeClass.Members.Add(deserializeObjectSyntax));
+    ns = ns.AddMembers(generateParsedAst.deserializeClass);
+
+    deserializeUnit = deserializeUnit.WithMembers(deserializeUnit.Members.Add(ns));
+    await File.WriteAllTextAsync(file2, deserializeUnit.NormalizeWhitespace().ToFullString());
   }
 
   public string GenerateAll(Type rootType) {
@@ -90,15 +107,9 @@ public class GenerateParsedAst {
     Stack<Type> toVisit,
     ISet<Type> visited,
     IDictionary<Type, ISet<Type>> inheritors) {
-
+    var typeString = ToGenericTypeString(type);
     if (type.IsEnum) {
-      var enumName = ToGenericTypeString(type);
-      var enumm = EnumDeclaration(enumName);
-      foreach (var name in Enum.GetNames(type)) {
-        enumm = enumm.AddMembers(EnumMemberDeclaration(name));
-      }
-
-      return enumm;
+      return GenerateEnum(type, typeString);
     }
 
     if (type.IsGenericTypeParameter) {
@@ -133,7 +144,7 @@ public class GenerateParsedAst {
       }
     }
 
-    if (baseList.Any()) {
+    if (baseList.Any()) { 
       classDeclaration = classDeclaration.WithBaseList(BaseList(SeparatedList(baseList)));
     }
 
@@ -160,70 +171,140 @@ public class GenerateParsedAst {
     var parameters = constructor.GetParameters();
     parameterToSchemaPositions[type] = parameterToSchemaPosition;
     var statements = new StringBuilder();
-    for (var index = 0; index < parameters.Length; index++) {
-      var parameter = constructor.GetParameters()[index];
-      if (excludedTypes.Contains(parameter.ParameterType)) {
-        // TODO fix.
-        statements.AppendLine($"{parameter.ParameterType} parameter{index} = null;");
-        continue;
-      }
-
-      if (parameter.GetCustomAttribute<BackEdge>() != null) {
-        statements.AppendLine($"var parameter{index} = parent;");
-        continue;
-      }
-
-      var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
-                       (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
-
-      if (memberInfo == null) {
-        throw new Exception($"type {type}, parameter {parameter.Name}");
-      }
-
-      if (memberInfo.DeclaringType != type) {
-        if (parameterToSchemaPositions[memberInfo.DeclaringType!].TryGetValue(memberInfo.Name, out var schemaPosition)) {
-          schemaToConstructorPosition[schemaPosition] = index;
-        }
-        continue;
-      }
-
-      var usedTyped = parameter.ParameterType;
-
-      
-      newFields.Add(FieldDeclaration(VariableDeclaration(
-        ParseTypeName(ToGenericTypeString(usedTyped)),
-        SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
-      var schemaPosition2 = ownedFieldPosition++;
-      parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
-      schemaToConstructorPosition[schemaPosition2] = index;
-
-      if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
-        usedTyped = newType;
-      }
-
-      toVisit.Push(usedTyped);
-      foreach (var argument in usedTyped.GenericTypeArguments) {
-        toVisit.Push(argument);
-      }
-    }
-
-    for (var schemaIndex = 0; schemaIndex < schemaToConstructorPosition.Count; schemaIndex++) {
-      var constructorIndex = schemaToConstructorPosition[schemaIndex];
-      var parameter = parameters[constructorIndex];
-      statements.AppendLine($"var parameter{constructorIndex} = Deserialize{parameter.ParameterType.Name}()");
-    }
-
-    var parametersString = string.Join(", ", Enumerable.Range(0, parameters.Length).Select(index => 
-      $"parameter{index}"));
-    var typedDeserialize = ParseMemberDeclaration(@$"
- private {type.Name} Deserialize{type.Name}() {{
-  {statements}
-  return new {type.Name}({parametersString})")!;
-    deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(typedDeserialize)); 
-
+    ProcessParameters();
     // Combine everything
     classDeclaration = classDeclaration.AddMembers(newFields.ToArray());
+
+    GenerateDeserializerMethod(type, constructor, schemaToConstructorPosition, parameters, statements, typeString);
+
     return classDeclaration;
+
+    void ProcessParameters()
+    {
+      for (var index = 0; index < parameters.Length; index++) {
+        var parameter = constructor.GetParameters()[index];
+        if (excludedTypes.Contains(parameter.ParameterType)) {
+          // TODO fix.
+          statements.AppendLine($"{parameter.ParameterType} parameter{index} = null;");
+          continue;
+        }
+
+        if (parameter.GetCustomAttribute<BackEdge>() != null) {
+          statements.AppendLine($"{parameter.ParameterType} parameter{index} = null;");
+          continue;
+        }
+
+        var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
+                         (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
+        memberInfo.GetCustomAttribute<BackEdge>();
+
+        if (memberInfo == null) {
+          throw new Exception($"type {type}, parameter {parameter.Name}");
+        }
+        if (memberInfo.GetCustomAttribute<BackEdge>() != null) {
+          statements.AppendLine($"{parameter.ParameterType} parameter{index} = null;");
+          continue;
+        }
+
+        if (memberInfo.DeclaringType != type) {
+          if (parameterToSchemaPositions[memberInfo.DeclaringType!].TryGetValue(memberInfo.Name, out var schemaPosition)) {
+            schemaToConstructorPosition[schemaPosition] = index;
+            parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
+          }
+          continue;
+        }
+
+        var usedTyped = parameter.ParameterType;
+
+      
+        newFields.Add(FieldDeclaration(VariableDeclaration(
+          ParseTypeName(ToGenericTypeString(usedTyped)),
+          SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
+        var schemaPosition2 = ownedFieldPosition++;
+        parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
+        schemaToConstructorPosition[schemaPosition2] = index;
+
+        if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
+          usedTyped = newType;
+        }
+
+        toVisit.Push(usedTyped);
+        foreach (var argument in usedTyped.GenericTypeArguments) {
+          toVisit.Push(argument);
+        }
+      }
+    }
+  }
+
+  private BaseTypeDeclarationSyntax? GenerateEnum(Type type, string typeString)
+  {
+    var enumName = typeString;
+    var enumm = EnumDeclaration(enumName);
+    foreach (var name in Enum.GetNames(type)) {
+      enumm = enumm.AddMembers(EnumMemberDeclaration(name));
+    }
+
+    var deserializer = ParseMemberDeclaration($@"
+private {type.Name} Deserialize{type.Name}() {{
+  int ordinal = DeserializeInt32();
+  return ({type.Name})ordinal;
+}}")!;
+    deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(deserializer));
+
+    return enumm;
+  }
+
+  private void GenerateDeserializerMethod(Type type, ConstructorInfo constructor, Dictionary<int, int> schemaToConstructorPosition,
+    ParameterInfo[] parameters, StringBuilder statements, string typeString) {
+    if (type.IsAbstract || !constructor.IsPublic) {
+      return;
+    }
+
+    var deserializeMethodName = $"Deserialize{typeString}";
+    var isSpecification = type.Name.StartsWith("Specification");
+    if (isSpecification) {
+      var method = SyntaxFactory.ParseMemberDeclaration(@"
+  private Specification<T> DeserializeSpecification<T>() where T : Node {
+    var parameter0 = DeserializeGeneric<SourceOrigin>();
+    var parameter1 = DeserializeList<T>();
+    var parameter2 = DeserializeAttributes();
+    return new Specification<T>(parameter0, parameter1, parameter2);
+  }")!;
+      deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(method));
+    } else {
+      for (var schemaIndex = 0; schemaIndex < schemaToConstructorPosition.Count; schemaIndex++) {
+        var constructorIndex = schemaToConstructorPosition[schemaIndex];
+        var parameter = parameters[constructorIndex];
+        bool callObjectInstead = parameter.ParameterType.IsAbstract 
+                                 || (parameter.ParameterType.WithoutGenericArguments() != typeof(Specification<>)
+                                     && !parameter.ParameterType.IsEnum && !parameter.ParameterType.IsAssignableTo(typeof(IEnumerable<object>)));
+        if (callObjectInstead) {
+          statements.AppendLine(
+            $"var parameter{constructorIndex} = DeserializeGeneric<{ToGenericTypeString(parameter.ParameterType, true, false)}>();");
+          
+        } else {
+          statements.AppendLine(
+            $"var parameter{constructorIndex} = Deserialize{ToGenericTypeString(parameter.ParameterType, true, false)}();");
+        }
+      }
+
+      var parametersString = string.Join(", ", Enumerable.Range(0, parameters.Length).Select(index =>
+        $"parameter{index}"));
+      var typedDeserialize = ParseMemberDeclaration(@$"
+ public {typeString} {deserializeMethodName}() {{
+  {statements}
+  return new {typeString}({parametersString});
+}}")!;
+      deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(typedDeserialize));
+    }
+
+    if (!isSpecification) {
+      deserializeObjectCases.Add(ParseStatement($@"
+if (actualType == typeof({typeString})) {{
+  return {deserializeMethodName}();
+}}
+"));  
+    }
   }
 
   private static ConstructorInfo GetParseConstructor(Type type)
@@ -313,8 +394,8 @@ public class GenerateParsedAst {
     return classDecl;
   }
 
-  public static string ToGenericTypeString(Type t) {
-    if (mappedTypes.TryGetValue(t, out var newType)) {
+  public static string ToGenericTypeString(Type t, bool useTypeMapping = true, bool mapNestedTypes = true) {
+    if (useTypeMapping && mappedTypes.TryGetValue(t, out var newType)) {
       t = newType;
     }
 
@@ -338,7 +419,7 @@ public class GenerateParsedAst {
       genericTypeName.IndexOf('`'));
     string genericArgs = string.Join(",",
       t.GetGenericArguments()
-        .Select(ToGenericTypeString).ToArray());
+        .Select(t => ToGenericTypeString(t, mapNestedTypes, mapNestedTypes)).ToArray());
     return genericTypeName + "<" + genericArgs + ">";
   }
 
@@ -375,5 +456,12 @@ public class GenerateParsedAst {
       Console.WriteLine(diagnostic.ToString());
     }
     return hasErrors;
+  }
+}
+
+static class TypeExtensions {
+
+  public static Type WithoutGenericArguments(this Type type) {
+    return type.IsGenericType ? type.GetGenericTypeDefinition() : type;
   }
 }

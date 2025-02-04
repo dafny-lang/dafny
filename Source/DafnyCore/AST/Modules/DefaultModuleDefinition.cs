@@ -12,7 +12,6 @@ public class DefaultModuleDefinition : ModuleDefinition, ICloneable<DefaultModul
   public DefaultModuleDefinition(Cloner cloner, DefaultModuleDefinition original) : base(cloner, original, original.NameNode) {
   }
 
-  [ParseConstructor]
   public DefaultModuleDefinition()
     : base(SourceOrigin.NoToken, new Name("_module"), new List<IOrigin>(), ModuleKindEnum.Concrete, false,
       null, null, null) {

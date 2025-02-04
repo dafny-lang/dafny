@@ -280,7 +280,7 @@ public class ProgramParser {
     }
 
     if (uri.LocalPath.EndsWith(".java")) {
-      var moduleDefinition = new ParsedDeserializer(reader.ReadToEnd()).Deserialize<FileModuleDefinition>();
+      var moduleDefinition = new Deserializer(reader.ReadToEnd()).DeserializeFileModuleDefinition();
       // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
       return new DfyParseFileResult(null, uri, new BatchErrorReporter(options), moduleDefinition, []);
     }

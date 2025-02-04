@@ -132,7 +132,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   [ParseConstructor]
-  public Method(IOrigin origin, Name name,
+  public Method(IOrigin origin, Name nameNode,
     Attributes attributes,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
@@ -146,10 +146,10 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] BlockStmt body,
     IOrigin signatureEllipsis,
     bool isByMethod = false)
-    : base(origin, name, attributes,
+    : base(origin, nameNode, attributes,
       hasStaticKeyword, isGhost, typeArgs, ins, req, ens, reads, decreases) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
     Contract.Requires(cce.NonNullElements(outs));

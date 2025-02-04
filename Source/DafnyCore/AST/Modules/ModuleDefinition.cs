@@ -70,7 +70,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
   public readonly List<IOrigin> PrefixIds; // The qualified module name, except the last segment when a
-                                           // nested module declaration is outside its enclosing module
+                          
+  [BackEdge]// nested module declaration is outside its enclosing module
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public Attributes Attributes { get; set; }
   public string WhatKind => "module definition";

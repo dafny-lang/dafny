@@ -43,14 +43,6 @@ public class TypeParameter : TopLevelDecl {
 
   public override string GetCompileName(DafnyOptions options) => SanitizedName;
 
-  /// <summary>
-  /// NonVariant_Strict     (default) - non-variant, no uses left of an arrow
-  /// NonVariant_Permissive    !      - non-variant
-  /// Covariant_Strict         +      - co-variant, no uses left of an arrow
-  /// Covariant_Permissive     *      - co-variant
-  /// Contravariant            -      - contra-variant
-  /// </summary>
-  public enum TPVarianceSyntax { NonVariant_Strict, NonVariant_Permissive, Covariant_Strict, Covariant_Permissive, Contravariance }
   public static string VarianceString(TPVarianceSyntax varianceSyntax) {
     switch (varianceSyntax) {
       case TPVarianceSyntax.NonVariant_Strict: return "";
@@ -152,11 +144,11 @@ public class TypeParameter : TopLevelDecl {
   }
 
   [ParseConstructor]
-  public TypeParameter(IOrigin origin, Name name, Attributes attributes, TPVarianceSyntax varianceSyntax, TypeParameterCharacteristics characteristics,
+  public TypeParameter(IOrigin origin, Name nameNode, Attributes attributes, TPVarianceSyntax varianceSyntax, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
-    : base(origin, name, attributes, new List<TypeParameter>(), null) {
+    : base(origin, nameNode, attributes, new List<TypeParameter>(), null) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Characteristics = characteristics;
     VarianceSyntax = varianceSyntax;
     TypeBounds = typeBounds;
@@ -229,3 +221,12 @@ public class TypeParameter : TopLevelDecl {
     return includeTypeBounds ? TypeBounds : new List<Type>();
   }
 }
+
+/// <summary>
+/// NonVariant_Strict     (default) - non-variant, no uses left of an arrow
+/// NonVariant_Permissive    !      - non-variant
+/// Covariant_Strict         +      - co-variant, no uses left of an arrow
+/// Covariant_Permissive     *      - co-variant
+/// Contravariant            -      - contra-variant
+/// </summary>
+public enum TPVarianceSyntax { NonVariant_Strict, NonVariant_Permissive, Covariant_Strict, Covariant_Permissive, Contravariance }

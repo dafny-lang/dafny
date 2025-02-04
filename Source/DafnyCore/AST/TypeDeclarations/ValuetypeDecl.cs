@@ -24,7 +24,7 @@ public class ValuetypeDecl : TopLevelDeclWithMembers {
     this.typeCreator = typeCreator;
   }
 
-  public ValuetypeDecl(string name, ModuleDefinition enclosingModule, List<TypeParameter.TPVarianceSyntax> typeParameterVariance,
+  public ValuetypeDecl(string name, ModuleDefinition enclosingModule, List<TPVarianceSyntax> typeParameterVariance,
     Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
     : this(name, enclosingModule, typeTester, typeCreator) {
     Contract.Requires(name != null);

@@ -25,12 +25,12 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
   [ParseConstructor]
-  protected ClassLikeDecl(IOrigin origin, Name name, Attributes attributes,
+  protected ClassLikeDecl(IOrigin origin, Name nameNode, Attributes attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModule,
     [Captured] List<MemberDecl> members, List<Type> traits /*?*/)
-    : base(origin, name, attributes, typeArgs, enclosingModule, members, traits) {
+    : base(origin, nameNode, attributes, typeArgs, enclosingModule, members, traits) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(enclosingModule != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));

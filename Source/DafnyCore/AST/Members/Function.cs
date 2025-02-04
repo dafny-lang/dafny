@@ -228,15 +228,15 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   }
 
   [ParseConstructor]
-  public Function(IOrigin origin, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
+  public Function(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IOrigin/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IOrigin/*?*/ signatureEllipsis)
-    : base(origin, name, attributes, hasStaticKeyword, isGhost, typeArgs, ins, req, ens, reads, decreases) {
+    : base(origin, nameNode, attributes, hasStaticKeyword, isGhost, typeArgs, ins, req, ens, reads, decreases) {
 
     Contract.Requires(Origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
     Contract.Requires(resultType != null);

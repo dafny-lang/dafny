@@ -11,6 +11,7 @@ namespace Microsoft.Dafny;
 public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   public abstract string WhatKind { get; }
   public string WhatKindAndName => $"{WhatKind} '{Name}'";
+  [BackEdge]
   public ModuleDefinition EnclosingModule;
   public readonly List<TypeParameter> TypeArgs;
   [ContractInvariantMethod]
@@ -23,11 +24,11 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     EnclosingModule = enclosingModule;
   }
 
-  protected TopLevelDecl(IOrigin origin, Name name, Attributes attributes,
+  protected TopLevelDecl(IOrigin origin, Name nameNode, Attributes attributes,
     List<TypeParameter> typeArgs, [BackEdge] ModuleDefinition enclosingModule)
-    : base(origin, name, attributes) {
+    : base(origin, nameNode, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     EnclosingModule = enclosingModule;
     TypeArgs = typeArgs;

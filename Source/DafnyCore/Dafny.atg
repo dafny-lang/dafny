@@ -369,17 +369,17 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
       ":"
       QualifiedModuleExport<out var namePath, out idExports>
           (. submodule = new AbstractModuleDecl(theOptions, new SourceOrigin(startToken, t, name.Center), new ModuleQualifiedId(namePath),
-                                               name, parent, opened, idExports, Guid.NewGuid()); .)
+                                               name, null, parent, opened, idExports, Guid.NewGuid()); .)
     | IF(lookAhead == _singleeq)
       ModuleName<out var name>
       "="
       QualifiedModuleExport<out var namePath, out idExports>
           (. submodule = new AliasModuleDecl(theOptions, new SourceOrigin(startToken, t, name.Center), new ModuleQualifiedId(namePath),
-                                               name, parent, opened, idExports, Guid.NewGuid()); .)
+                                               name, null, parent, opened, idExports, Guid.NewGuid()); .)
     |
       QualifiedModuleExport<out var namePath, out idExports>
           (. submodule = new AliasModuleDecl(theOptions, new SourceOrigin(startToken, t), new ModuleQualifiedId(namePath),
-                                         new Name(SourceOrigin.NoToken, namePath[^1].Value), parent, opened, idExports, Guid.NewGuid());
+                                         new Name(SourceOrigin.NoToken, namePath[^1].Value), null, parent, opened, idExports, Guid.NewGuid());
           .)
     )
     .
@@ -454,7 +454,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
      } else {
        name = new Name(exportId);
      }
-     submodule = new ModuleExportDecl(theOptions, new SourceOrigin(startToken, t, name.Center), name, parent, exports, extends, provideAll, revealAll, isDefault, isRefining, Guid.NewGuid());
+     submodule = new ModuleExportDecl(theOptions, new SourceOrigin(startToken, t, name.Center), name, null, parent, exports, extends, provideAll, revealAll, isDefault, isRefining, Guid.NewGuid());
   .)
   // LL Warning: 'least' and 'greatest' are not keywords. They can be the identifier that is the last ExportId of the ModuleExport.
   // Those words can also be the first word of a declaration (e.g. least predicate) that follows the MOduleExport.

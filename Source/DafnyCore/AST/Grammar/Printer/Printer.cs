@@ -799,15 +799,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public static string TypeParamVariance(TypeParameter tp) {
       switch (tp.VarianceSyntax) {
-        case TypeParameter.TPVarianceSyntax.Covariant_Permissive:
+        case TPVarianceSyntax.Covariant_Permissive:
           return "*";
-        case TypeParameter.TPVarianceSyntax.Covariant_Strict:
+        case TPVarianceSyntax.Covariant_Strict:
           return "+";
-        case TypeParameter.TPVarianceSyntax.NonVariant_Permissive:
+        case TPVarianceSyntax.NonVariant_Permissive:
           return "!";
-        case TypeParameter.TPVarianceSyntax.NonVariant_Strict:
+        case TPVarianceSyntax.NonVariant_Strict:
           return "";
-        case TypeParameter.TPVarianceSyntax.Contravariance:
+        case TPVarianceSyntax.Contravariance:
           return "-";
         default:
           Contract.Assert(false);  // unexpected VarianceSyntax

@@ -25,9 +25,9 @@ public class TraitDecl : ClassLikeDecl {
   /// This constructor creates a TraitDecl object. However, before the object really functions as a TraitDecl, it is necessary
   /// to call SetUpAsReferenceType, which sets .NonNullTypeDecl (if necessary) and calls NewSelfSynonym().
   /// </summary>
-  public TraitDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule,
+  public TraitDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type> /*?*/ traits)
-    : base(origin, name, attributes, typeArgs, enclosingModule, members, traits) {
+    : base(origin, nameNode, attributes, typeArgs, enclosingModule, members, traits) {
     IsRefining = isRefining;
   }
 

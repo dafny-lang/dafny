@@ -58,7 +58,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
     Contract.Requires(0 <= dims);
     var ts = new List<TypeParameter>();
     for (int i = 0; i < dims; i++) {
-      var tp = new TypeParameter(SourceOrigin.NoToken, new Name("T" + i), TypeParameter.TPVarianceSyntax.Covariant_Strict);
+      var tp = new TypeParameter(SourceOrigin.NoToken, new Name("T" + i), TPVarianceSyntax.Covariant_Strict);
       tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
       ts.Add(tp);
     }
