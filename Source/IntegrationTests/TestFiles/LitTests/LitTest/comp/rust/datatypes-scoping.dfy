@@ -4,6 +4,18 @@
 
 datatype Loop = Loop(loop: Loop) | Point() {
   function hash(): string {
-    "uh-oh!"
+    "This is Dafny Hash"
   }
+}
+
+datatype Loop2 = Loop2(loop: Loop) {
+  method hash() {
+    print "\nThis is Dafny hash 2";
+  }
+}
+
+method Main() {
+  var t := Loop(Point());
+  print t.hash();
+  Loop2(t).hash();
 }

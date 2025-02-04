@@ -2991,11 +2991,7 @@ namespace Microsoft.Dafny {
             var i = 0;
             foreach (var otherTp in otherDt.TypeArgs) {
               if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
-                var tp = otherUdt.TypeArgs[i].AsTypeParameter;
-                if (tp != null) {
-                  tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
-                  thingsChanged = true;
-                }
+                DetermineEqualitySupportType(otherUdt.TypeArgs[i], ref thingsChanged);
               }
 
               i++;

@@ -27,7 +27,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   // Method names that would automatically resolve to trait methods instead of inherent methods
   // Hence, full name is always required for these methods
   const builtin_trait_preferred_methods := {
-    "le", "eq", "lt", "ge", "gt"
+    "le", "eq", "lt", "ge", "gt", "hash"
   }
 
 

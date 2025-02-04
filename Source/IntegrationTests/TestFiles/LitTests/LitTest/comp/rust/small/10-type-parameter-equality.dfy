@@ -36,6 +36,10 @@ datatype {:rust_rc false} DoubleWithGhostWrapper = DoubleWithGhostWrapper(
     dwg:DoubleWithGhost
 )
 
+datatype Wrapper1<T> = Wrapper1(w1: T)
+datatype Wrapper2<T> = Wrapper2(w2: T)
+datatype Wrapper3<S> = Wrapper3(w21: Wrapper2<Wrapper1<S>>)
+
 method Test<T(==)>() {
 }
 

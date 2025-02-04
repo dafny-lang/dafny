@@ -803,7 +803,7 @@ namespace Defs {
       return RAST.__default.IND;
     } }
     public static Dafny.ISet<Dafny.ISequence<Dafny.Rune>> builtin__trait__preferred__methods { get {
-      return Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("le"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("eq"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("lt"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ge"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("gt"));
+      return Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("le"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("eq"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("lt"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ge"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("gt"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("hash"));
     } }
     public static DAST._IAttribute AttributeOwned { get {
       return DAST.Attribute.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("owned"), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements());
