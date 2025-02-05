@@ -7,11 +7,20 @@ using System.Text;
 
 namespace Microsoft.Dafny;
 
-partial class Deserializer(string input) {
+partial class Deserializer(Uri uri, string input) {
   private int position;
 
   private List<T> DeserializeList<T>() {
     return DeserializeArray<T>().ToList();
+  }
+
+  public Token DeserializeToken()
+  {
+    var parameter0 = DeserializeGeneric<Int32>();
+    var parameter1 = DeserializeGeneric<Int32>();
+    return new Token(parameter0, parameter1) {
+      Uri = uri
+    };
   }
 
   private T[] DeserializeArray<T>() {
@@ -42,47 +51,6 @@ partial class Deserializer(string input) {
 
   private T Value<T>() {
     return DeserializeGeneric<T>();
-    // SkipWhitespace();
-    //
-    // // Check for type override
-    // Type actualType = expectedType;
-    //
-    // if (TryMatch("\"")) {
-    //   return ReadString();
-    // }
-    //
-    // if (actualType.IsEnum) {
-    //   int ordinal = ReadNumber();
-    //   return Enum.ToObject(actualType, ordinal);
-    // }
-    //
-    // if (actualType.IsArray) {
-    //   return ReadArray(actualType.GetElementType());
-    // }
-    //
-    // if (actualType.IsAssignableTo(typeof(IList))) {
-    //   var elementType = actualType.GetGenericArguments()[0];
-    //   var value = ReadArray(elementType);
-    //   var constructionType = typeof(List<>).MakeGenericType(elementType);
-    //   return constructionType.
-    //     GetConstructor(BindingFlags.Public | BindingFlags.Instance, [value.GetType()])!.Invoke([value]);
-    // }
-    //
-    // if (TryMatch("+")) {
-    //   string typeName = ReadUntil(':');
-    //   actualType = Type.GetType("Microsoft.Dafny." + typeName) ??
-    //                Type.GetType("System." + typeName) ?? throw new Exception($"Type not found: {typeName}");
-    //   position++; // skip ':'
-    // }
-    //
-    // // if (actualType.IsAssignableTo(typeof(IEnumerable))) {
-    // //   var constructor = actualType.GetConstructor(BindingFlags.Public | BindingFlags.Instance, typeof());
-    // //   var value = ReadArray(actualType.GetGenericArguments()[0]);
-    // //   return constructor.Invoke([value]);
-    // // }
-    //
-    // // Custom type - use constructor
-    // return DeserializeObject(actualType);
   }
 
   private string DeserializeString() {

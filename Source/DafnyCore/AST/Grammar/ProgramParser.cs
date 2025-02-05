@@ -274,13 +274,11 @@ public class ProgramParser {
     Uri uri, CancellationToken cancellationToken) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
     using var reader = fileSnapshot.Reader;
-    if (uri.LocalPath.EndsWith(".dfy")) {
+    if (options.Get(CommonOptionBag.InputType) == CommonOptionBag.InputTypeEnum.Source) {
       var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
       return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
-    }
-
-    if (uri.LocalPath.EndsWith(".java")) {
-      var moduleDefinition = new Deserializer(reader.ReadToEnd()).DeserializeFileModuleDefinition();
+    } else {
+      var moduleDefinition = new Deserializer(uri, reader.ReadToEnd()).DeserializeFileModuleDefinition();
       // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
       return new DfyParseFileResult(null, uri, new BatchErrorReporter(options), moduleDefinition, []);
     }

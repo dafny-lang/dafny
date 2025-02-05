@@ -271,7 +271,9 @@ private {type.Name} Deserialize{type.Name}() {{
     return new Specification<T>(parameter0, parameter1, parameter2);
   }")!;
       deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(method));
-    } else {
+    } else if (type.Name == "Token") {
+    } 
+    else {
       for (var schemaIndex = 0; schemaIndex < schemaToConstructorPosition.Count; schemaIndex++) {
         var constructorIndex = schemaToConstructorPosition[schemaIndex];
         var parameter = parameters[constructorIndex];

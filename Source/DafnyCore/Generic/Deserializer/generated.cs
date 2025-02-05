@@ -13,13 +13,6 @@ namespace Microsoft.Dafny
             return new SourceOrigin(parameter0, parameter1, parameter2);
         }
 
-        public Token DeserializeToken()
-        {
-            var parameter0 = DeserializeGeneric<Int32>();
-            var parameter1 = DeserializeGeneric<Int32>();
-            return new Token(parameter0, parameter1);
-        }
-
         public Name DeserializeName()
         {
             var parameter0 = DeserializeGeneric<SourceOrigin>();

@@ -135,6 +135,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     Attributes = original.Attributes;
     ModuleKind = original.ModuleKind;
     Implements = original.Implements == null ? null : original.Implements with { Target = new ModuleQualifiedId(cloner, original.Implements.Target) };
+    SourceDecls = new();
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
     }

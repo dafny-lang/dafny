@@ -74,7 +74,7 @@ public class DafnyFile {
       extension = DafnyFileExtension;
     }
 
-    if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi") {
+    if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi" || extension == ".dbin") {
       var file = HandleDafnyFile(fileSystem, reporter, options, uri, uriOrigin, asLibrary);
       if (file != null) {
         yield return file;
