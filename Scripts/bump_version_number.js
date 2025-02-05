@@ -104,6 +104,10 @@ async function synchronizeRepositoryWithNewVersionNumber() {
 // Fetch the content of Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries/manifest.toml
 // Verify that dafny_version = "Major.Minor.Patch.0" corresponds ot the version that is provided
 async function sanityCheckStandardLibraries(version) {
+  if(testMode) {
+    console.log("Would have run a sanity check");
+    return;
+  }
   console.log("Sanity-checking standard libraries");
   try {
     await execute("unzip -o Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo -d Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries");
