@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
+using System.CommandLine.Binding;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -73,6 +74,17 @@ namespace Microsoft.Dafny {
 
     public T Get<T>(Option<T> option) {
       return (T)Options.OptionArguments.GetOrDefault(option, () => (object)default(T));
+    }
+
+
+    public T GetOrOptionDefault<T>(Option<T> option) {
+      return (T)Options.OptionArguments.GetOrDefault(option, () =>
+       ((IValueDescriptor<T>)option) is {
+         HasDefaultValue: true
+       } valueDescriptor
+          ? valueDescriptor.GetDefaultValue()
+          : (object)default(T)
+      );
     }
 
     public object Get(Option option) {
