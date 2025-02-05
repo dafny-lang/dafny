@@ -31,7 +31,7 @@ public class ApplyExpr : Expression, ICloneable<ApplyExpr> {
     Function = fn;
     Args = args;
     CloseParen = closeParen;
-    FormatTokens = closeParen != null ? new[] { closeParen } : null;
+    FormatTokens = closeParen != null ? [closeParen] : null;
   }
 
   public ApplyExpr Clone(Cloner cloner) {

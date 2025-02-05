@@ -120,7 +120,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     var traces = new List<LineVerificationStatus[]>();
     var maximumNumberOfTraces = 5000;
     var attachedTraces = previousTraces.GetOrCreate(verificationStatusGutterReceiver,
-      () => new List<LineVerificationStatus[]>());
+      () => []);
     var previousPerLineDiagnostics = !attachedTraces.Any() ? null : attachedTraces[^1].ToList();
     for (; maximumNumberOfTraces > 0; maximumNumberOfTraces--) {
       var verificationStatusGutter = await verificationStatusGutterReceiver.AwaitNextNotificationAsync(CancellationToken);

@@ -36,7 +36,7 @@ public class SeqSelectExpr : Expression, ICloneable<SeqSelectExpr> {
     E1 = e1;
     CloseParen = closeParen;
     if (closeParen != null) {
-      FormatTokens = new[] { closeParen };
+      FormatTokens = [closeParen];
     }
   }
 

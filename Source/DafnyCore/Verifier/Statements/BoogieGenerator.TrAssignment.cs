@@ -203,8 +203,8 @@ public partial class BoogieGenerator {
     rhsCanAffectPreviouslyKnownExpressions = rhsCanAffectPreviouslyKnownExpressions || lhss.Count != 1;
 
     // for each Dafny LHS, build a protected Boogie LHS for the eventual assignment
-    lhsBuilders = new List<AssignToLhs>();
-    bLhss = new List<Bpl.IdentifierExpr>();
+    lhsBuilders = [];
+    bLhss = [];
     prevObj = new Bpl.Expr[lhss.Count];
     prevIndex = new Bpl.Expr[lhss.Count];
     prevNames = new string[lhss.Count];
@@ -447,7 +447,7 @@ public partial class BoogieGenerator {
       }
 
     } else if (rhs is HavocRhs) {
-      builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { bLhs }));
+      builder.Add(new Bpl.HavocCmd(tok, [bLhs]));
       return CondApplyBox(tok, bLhs, rhsTypeConstraint, lhsType);
     } else {
       // x := new Something
@@ -511,7 +511,7 @@ public partial class BoogieGenerator {
               // assert EE_ii satisfies any subset-type constraints;
               CheckSubrange(v.Origin, EE_ii, v.Type, tRhs.EType, v, builder);
               // assume nw[ii] == EE_ii;
-              var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }));
+              var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, [Bpl.Expr.Literal(ii)]));
               builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxUnlessInherentlyBoxed(ai, tRhs.EType), AdaptBoxing(tok, EE_ii, v.Type, tRhs.EType))));
               ii++;
             }

@@ -26,7 +26,7 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, IC
     return new NameSegment(cloner, this);
   }
 
-  public override IEnumerable<INode> PreResolveChildren => OptTypeArguments ?? new List<Type>();
+  public override IEnumerable<INode> PreResolveChildren => OptTypeArguments ?? [];
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetTypeLikeIndentation(indentBefore, OwnedTokens);
     foreach (var subType in PreResolveChildren.OfType<Type>()) {

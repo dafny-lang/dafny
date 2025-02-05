@@ -106,7 +106,7 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
     this.CloseParen = closeParen;
     this.AtLabel = atLabel;
     this.Bindings = bindings;
-    this.FormatTokens = closeParen != null ? new[] { closeParen } : null;
+    this.FormatTokens = closeParen != null ? [closeParen] : null;
   }
 
   /// <summary>

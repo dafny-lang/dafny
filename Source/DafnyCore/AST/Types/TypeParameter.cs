@@ -188,7 +188,7 @@ public class TypeParameter : TopLevelDecl {
 
   public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
-    : base(origin, name, null, new List<TypeParameter>(), null, false) {
+    : base(origin, name, null, [], null, false) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Characteristics = characteristics;
@@ -197,7 +197,7 @@ public class TypeParameter : TopLevelDecl {
   }
 
   public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceS)
-    : this(origin, name, varianceS, new TypeParameterCharacteristics(false), new List<Type>()) {
+    : this(origin, name, varianceS, new TypeParameterCharacteristics(false), []) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
   }
@@ -260,6 +260,6 @@ public class TypeParameter : TopLevelDecl {
   }
 
   public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
-    return includeTypeBounds ? TypeBounds : new List<Type>();
+    return includeTypeBounds ? TypeBounds : [];
   }
 }

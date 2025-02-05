@@ -238,7 +238,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         // whatever was inferred during pre-type inference.
         PreType2TypeUtil.Combine(tRhs.EType, arrayPreType.Arguments[0], false);
         var arrayTypeDecl = systemModuleManager.arrayTypeDecls[tRhs.ArrayDimensions.Count];
-        var rhsMaybeNullType = new UserDefinedType(stmt.Origin, arrayTypeDecl.Name, arrayTypeDecl, new List<Type>() { tRhs.EType });
+        var rhsMaybeNullType = new UserDefinedType(stmt.Origin, arrayTypeDecl.Name, arrayTypeDecl, [tRhs.EType]);
         rhsType = UserDefinedType.CreateNonNullType(rhsMaybeNullType);
       } else {
         // Fill in any missing type arguments in the user-supplied tRhs.EType.

@@ -81,7 +81,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
 
   bool ICodeContext.IsGhost => throw new NotSupportedException(); // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
   List<TypeParameter> ICodeContext.TypeArgs => TypeArgs;
-  List<Formal> ICodeContext.Ins => new();
+  List<Formal> ICodeContext.Ins => [];
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }

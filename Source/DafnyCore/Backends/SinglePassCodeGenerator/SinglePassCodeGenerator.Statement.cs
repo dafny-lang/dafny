@@ -172,7 +172,7 @@ namespace Microsoft.Dafny.Compilers {
               // Wrap this UpdateStmt with a VarDecl containing this Local that we haven't emitted yet.
               stmts[innerExtractIndex] =
                 new VarDeclStmt(enclosingVarDecl.Origin,
-                  new List<LocalVariable>() { locals[0] },
+                  [locals[0]],
                   (AssignStatement)stmts[innerExtractIndex]);
             }
             TrStmtList(stmts, wr);
@@ -271,7 +271,7 @@ namespace Microsoft.Dafny.Compilers {
                 Coverage.Instrument(s.Origin, "implicit else branch", wr);
                 thenWriter = EmitIf(out guardWriter, false, thenWriter);
                 EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
-                TrStmtList(new List<Statement>(), thenWriter);
+                TrStmtList([], thenWriter);
               } else {
                 // let's compile the "then" branch
                 wr = EmitIf(out guardWriter, false, wr);
@@ -441,13 +441,13 @@ namespace Microsoft.Dafny.Compilers {
                 var lhs = (MemberSelectExpr)s0.Lhs;
                 L = 2;
                 tupleTypeArgs = TypeArgumentName(lhs.Obj.Type, wr, lhs.Origin);
-                tupleTypeArgsList = new List<Type> { lhs.Obj.Type };
+                tupleTypeArgsList = [lhs.Obj.Type];
               } else if (s0.Lhs is SeqSelectExpr) {
                 var lhs = (SeqSelectExpr)s0.Lhs;
                 L = 3;
                 // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
                 tupleTypeArgs = TypeArgumentName(lhs.Seq.Type, wr, lhs.Origin) + IntSelect;
-                tupleTypeArgsList = new List<Type> { lhs.Seq.Type, null };
+                tupleTypeArgsList = [lhs.Seq.Type, null];
               } else {
                 var lhs = (MultiSelectExpr)s0.Lhs;
                 L = 2 + lhs.Indices.Count;
@@ -456,7 +456,7 @@ namespace Microsoft.Dafny.Compilers {
                   return;
                 }
                 tupleTypeArgs = TypeArgumentName(lhs.Array.Type, wr, lhs.Origin);
-                tupleTypeArgsList = new List<Type> { lhs.Array.Type };
+                tupleTypeArgsList = [lhs.Array.Type];
                 for (int i = 0; i < lhs.Indices.Count; i++) {
                   // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
                   tupleTypeArgs += IntSelect;

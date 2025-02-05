@@ -194,7 +194,7 @@ namespace DafnyPipeline.Test {
 
     private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IOrigin firstToken,
       out Dictionary<int, List<INode>> posToOwnerNode) {
-      HashSet<int> tokensWithoutOwner = new HashSet<int>();
+      HashSet<int> tokensWithoutOwner = [];
       var posToOwnerNodeInner = new Dictionary<int, List<INode>>();
 
       var t = firstToken;
@@ -210,7 +210,7 @@ namespace DafnyPipeline.Test {
         var ownedTokens = node.OwnedTokens;
         foreach (var token in ownedTokens) {
           tokensWithoutOwner.Remove(token.pos);
-          posToOwnerNodeInner.GetOrCreate(token.pos, () => new List<INode>()).Add(node);
+          posToOwnerNodeInner.GetOrCreate(token.pos, () => []).Add(node);
         }
       }
 

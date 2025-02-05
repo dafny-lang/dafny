@@ -12,16 +12,16 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
   public string KindVerb => Mode == HideRevealCmd.Modes.Hide ? "hidden" : "revealed";
   public readonly List<Expression> Exprs;
   [FilledInDuringResolution]
-  public readonly List<AssertLabel> LabeledAsserts = new();  // to indicate that "Expr" denotes a labeled assertion
+  public readonly List<AssertLabel> LabeledAsserts = [];  // to indicate that "Expr" denotes a labeled assertion
   [FilledInDuringResolution]
-  public readonly List<Statement> ResolvedStatements = new();
-  [FilledInDuringResolution] public List<MemberDecl> OffsetMembers = new();
+  public readonly List<Statement> ResolvedStatements = [];
+  [FilledInDuringResolution] public List<MemberDecl> OffsetMembers = [];
   public HideRevealCmd.Modes Mode { get; private set; }
   public bool Wildcard { get; private set; }
 
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
 
-  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
+  public override IEnumerable<Statement> PreResolveSubStatements => [];
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -121,9 +121,9 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
 
               var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);
               if (revealCallee != null) {
-                var call = new CallStmt(Origin, new List<Expression>(),
+                var call = new CallStmt(Origin, [],
                   revealCallee,
-                  new List<ActualBinding>(), effectiveExpr.Center);
+                  [], effectiveExpr.Center);
                 ResolvedStatements.Add(call);
               }
             } else {

@@ -20,7 +20,7 @@ public static class OpaqueBlockVerifier {
     var assignedVariables = block.DescendantsAndSelf.
       SelectMany(s => s.GetAssignedLocals()).Select(ie => ie.Var)
       .ToHashSet();
-    List<AttributedExpression> totalEnsures = new();
+    List<AttributedExpression> totalEnsures = [];
 
     var variablesUsedInEnsures = block.Ensures.SelectMany(ae => ae.E.DescendantsAndSelf).
       OfType<DafnyIdentifierExpr>().DistinctBy(ie => ie.Var);

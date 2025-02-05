@@ -1,0 +1,1 @@
+The options --iterations from the command `measure-complexity`, has been renamed to `--mutations`. The option `--progress VerificationJob` has been renamed to `--progress Batch`.

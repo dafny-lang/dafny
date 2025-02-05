@@ -236,6 +236,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   datatype PointerType = Raw | RcMut
   datatype CharType = UTF16 | UTF32
   datatype RootType = RootCrate | RootPath(moduleName: string)
+  datatype SyncType = NoSync | Sync
 
   datatype GenTypeContext =
     GenTypeContext(forTraitParents: bool)
@@ -594,6 +595,8 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   }
 
   function CoerceImpl(
+    rc: R.Type -> R.Type,
+    rcNew: R.Expr -> R.Expr,
     rTypeParamsDecls: seq<R.TypeParamDecl>,
     datatypeName: string,
     datatypeType: R.Type,
@@ -614,15 +617,15 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
              "coerce", rCoerceTypeParams,
              coerceArguments,
              Some(
-               R.Rc(
+               rc(
                  R.ImplType(
                    R.FnType(
                      [datatypeType],
                      R.TypeApp(R.TIdentifier(datatypeName), coerceTypes))))),
              Some(
-               R.RcNew(R.Lambda([R.Formal("this", R.SelfOwned)],
-                                Some(R.TypeApp(R.TIdentifier(datatypeName), coerceTypes)),
-                                coerceImplBody)))))]
+               rcNew(R.Lambda([R.Formal("this", R.SelfOwned)],
+                              Some(R.TypeApp(R.TIdentifier(datatypeName), coerceTypes)),
+                              coerceImplBody)))))]
       ))
   }
 
