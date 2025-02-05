@@ -48,6 +48,9 @@ public class RustBackend : DafnyExecutableBackend {
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-rust/src";
 
   protected override DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler() {
+    if (Options.Get(CommonOptionBag.RelaxDefiniteAssignment)) {
+      throw new UnsupportedInvalidOperationException("The Rust compiler does not support `--relax-definite-assignment`");
+    }
     return new RustCodeGenerator(Options);
   }
 

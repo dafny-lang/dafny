@@ -190,12 +190,22 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     {
       Environment(names + [name], types[name := tpe], assignmentStatusKnown - {name})
     }
-    function merge(other: Environment): Environment
+    // Merges a current environment with a new one
+    function Merge(other: Environment): Environment
     {
       Environment(
         names + other.names,
         types + other.types,
         assignmentStatusKnown + other.assignmentStatusKnown
+      )
+    }
+    // When exiting If-then-else, we can remove variables that were unassigned in both branches
+    function Join(thenBranch: Environment, elseBranch: Environment): Environment {
+      var removed := types.Keys - (thenBranch.types.Keys + elseBranch.types.Keys);
+      Environment(
+        Std.Collections.Seq.Filter(name => name !in removed, names),
+        types - removed,
+        assignmentStatusKnown - removed
       )
     }
     // Used to removed from the environment the "_is_assigned" vars used to initialize fields
@@ -519,13 +529,18 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     ensures BecomesLeftCallsRight(op) ==> !BecomesRightCallsLeft(op)
   {}
 
-  function UnreachablePanicIfVerified(pointerType: PointerType, optText: string := ""): R.Expr {
-    if pointerType.Raw? then
-      R.Unsafe(R.Block(R.std.MSel("hint").AsExpr().FSel("unreachable_unchecked").Apply0()))
-    else if optText == "" then
+  function Panic(optText: string := ""): R.Expr {
+    if optText == "" then
       R.Identifier("panic!").Apply0()
     else
       R.Identifier("panic!").Apply1(R.LiteralString(optText, binary := false, verbatim := false))
+  }
+
+  function UnreachablePanicIfVerified(pointerType: PointerType, optText: string := ""): R.Expr {
+    if pointerType.Raw? then
+      R.Unsafe(R.Block(R.std.MSel("hint").AsExpr().FSel("unreachable_unchecked").Apply0()))
+    else
+      Panic(optText)
   }
 
   function DefaultDatatypeImpl(

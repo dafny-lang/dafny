@@ -2229,9 +2229,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             var fieldName := escapeVar(field.formal.name);
             var fieldTyp := GenType(field.formal.typ, GenTypeContext.default());
             var isAssignedVar := AddAssignedPrefix(fieldName);
-            if isAssignedVar in newEnv.names {
-              assume {:axiom} InitializationValue(field.formal.typ) < stmt; // Needed for termination
-              var rhs, _, _ := GenExpr(InitializationValue(field.formal.typ), selfIdent, env, OwnershipOwned);
+            if isAssignedVar in newEnv.names { // We can't determine statically if the field was assigned
+              var panicked := "Field "+ fieldName +" is not initialized";
+              var rhs := UnreachablePanicIfVerified(pointerType, panicked);
               readIdents := readIdents + {isAssignedVar};
               var update_if_uninit :=
                 if field.isConstant then update_field_if_uninit_macro else update_field_mut_if_uninit_macro;
@@ -2307,7 +2307,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := readIdents + thnIdents;
           var els, elsIdents, elsEnv := GenStmts(elsDafny, selfIdent, env, isLast, earlyReturn);
           readIdents := readIdents + elsIdents;
-          newEnv := env;
+          
+          // All variables that both thnEnv and elsEnv remove can be removed from the environment
+          newEnv := env.Join(thnEnv, elsEnv);
           generated := R.IfExpr(cond, thn, els);
         }
         case Labeled(lbl, body) => {
@@ -4162,7 +4164,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             paramNames := paramNames + [name];
             paramTypesMap := paramTypesMap[name := params[i].tpe];
           }
-          var subEnv := env.ToOwned().merge(Environment(paramNames, paramTypesMap, {}));
+          var subEnv := env.ToOwned().Merge(Environment(paramNames, paramTypesMap, {}));
 
           var recursiveGen, recIdents, _ := GenStmts(body, if selfIdent != NoSelf then ThisTyped("_this", selfIdent.dafnyType) else NoSelf, subEnv, true, None);
           readIdents := {};

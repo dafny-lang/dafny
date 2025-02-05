@@ -491,14 +491,19 @@ namespace Defs {
         return false;
       }
     }
+    public static RAST._IExpr Panic(Dafny.ISequence<Dafny.Rune> optText) {
+      if ((optText).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
+        return (RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("panic!"))).Apply0();
+      } else {
+        return (RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("panic!"))).Apply1(RAST.Expr.create_LiteralString(optText, false, false));
+      }
+    }
     public static RAST._IExpr UnreachablePanicIfVerified(Defs._IPointerType pointerType, Dafny.ISequence<Dafny.Rune> optText)
     {
       if ((pointerType).is_Raw) {
         return RAST.__default.Unsafe(RAST.Expr.create_Block(((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("hint"))).AsExpr()).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("unreachable_unchecked"))).Apply0()));
-      } else if ((optText).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
-        return (RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("panic!"))).Apply0();
       } else {
-        return (RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("panic!"))).Apply1(RAST.Expr.create_LiteralString(optText, false, false));
+        return Defs.__default.Panic(optText);
       }
     }
     public static RAST._IModDecl DefaultDatatypeImpl(Dafny.ISequence<RAST._ITypeParamDecl> rTypeParamsDecls, RAST._IType datatypeType, RAST._IExpr datatypeName, Dafny.ISequence<RAST._IAssignIdentifier> structAssignments)
@@ -970,7 +975,8 @@ namespace Defs {
     bool NeedsAsRefForBorrow(Dafny.ISequence<Dafny.Rune> name);
     bool IsMaybePlacebo(Dafny.ISequence<Dafny.Rune> name);
     Defs._IEnvironment AddAssigned(Dafny.ISequence<Dafny.Rune> name, RAST._IType tpe);
-    Defs._IEnvironment merge(Defs._IEnvironment other);
+    Defs._IEnvironment Merge(Defs._IEnvironment other);
+    Defs._IEnvironment Join(Defs._IEnvironment thenBranch, Defs._IEnvironment elseBranch);
     Defs._IEnvironment RemoveAssigned(Dafny.ISequence<Dafny.Rune> name);
     Defs._IEnvironment AddAssignmentStatus(Dafny.ISequence<Dafny.Rune> name, Defs._IAssignmentStatus assignmentStatus);
     bool IsAssignmentStatusKnown(Dafny.ISequence<Dafny.Rune> name);
@@ -1090,8 +1096,15 @@ namespace Defs {
     {
       return Defs.Environment.create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat((this).dtor_names, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(name)), Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IType>.Update((this).dtor_types, name, tpe), Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference((this).dtor_assignmentStatusKnown, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(name)));
     }
-    public Defs._IEnvironment merge(Defs._IEnvironment other) {
+    public Defs._IEnvironment Merge(Defs._IEnvironment other) {
       return Defs.Environment.create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat((this).dtor_names, (other).dtor_names), Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IType>.Merge((this).dtor_types, (other).dtor_types), Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union((this).dtor_assignmentStatusKnown, (other).dtor_assignmentStatusKnown));
+    }
+    public Defs._IEnvironment Join(Defs._IEnvironment thenBranch, Defs._IEnvironment elseBranch)
+    {
+      Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _0_removed = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(((this).dtor_types).Keys, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(((thenBranch).dtor_types).Keys, ((elseBranch).dtor_types).Keys));
+      return Defs.Environment.create(Std.Collections.Seq.__default.Filter<Dafny.ISequence<Dafny.Rune>>(Dafny.Helpers.Id<Func<Dafny.ISet<Dafny.ISequence<Dafny.Rune>>, Func<Dafny.ISequence<Dafny.Rune>, bool>>>((_1_removed) => ((System.Func<Dafny.ISequence<Dafny.Rune>, bool>)((_2_name) => {
+  return !(_1_removed).Contains(_2_name);
+})))(_0_removed), (this).dtor_names), Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IType>.Subtract((this).dtor_types, _0_removed), Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference((this).dtor_assignmentStatusKnown, _0_removed));
     }
     public Defs._IEnvironment RemoveAssigned(Dafny.ISequence<Dafny.Rune> name) {
       BigInteger _0_indexInEnv = Std.Collections.Seq.__default.IndexOf<Dafny.ISequence<Dafny.Rune>>((this).dtor_names, name);
