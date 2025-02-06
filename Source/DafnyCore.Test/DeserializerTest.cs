@@ -17,4 +17,16 @@ public class DeserializerTest {
     Assert.True(output.Program.DefaultModuleDef.TopLevelDecls.OfType<ClassDecl>().First().Members.OfType<Method>()
       .First().Body.Body.OfType<AssertStmt>().First().Expr is LiteralExpr literalExpr && (bool)literalExpr.Value == false);
   }
+  
+  [Fact]
+  public async Task Deserialize2() {
+    var input =
+      "0,1,0,1,0,1,0,1,0,1,0,1,\"unnamed\",],0,null,null,+ClassDecl:4,2,6,3,4,2,4,2,4,2,4,2,\"JSpec\",null,],],],false,+ClassDecl:8,2,12,3,8,2,8,2,8,2,8,2,\"Main\",null,],+Method:9,4,11,5,9,16,9,16,9,16,9,16,\"Foo\",null,true,false,],],],],9,4,11,5,9,16,],null,9,4,11,5,9,16,],null,],9,4,11,5,9,16,],null,9,4,11,5,9,16,null,+AssertStmt:10,6,10,26,10,19,null,+LiteralExpr:10,20,10,25,10,20,+Boolean:false,null],null,false],],false]";
+    var options = new DafnyOptions(DafnyOptions.Default);
+    options.Set(CommonOptionBag.InputType, CommonOptionBag.InputTypeEnum.Binary);
+    var reporter = new BatchErrorReporter(options);
+    var output = await ProgramParser.Parse(input, new Uri("file://test.java"), reporter);
+    Assert.True(output.Program.DefaultModuleDef.TopLevelDecls.OfType<ClassDecl>().ElementAt(1).Members.OfType<Method>()
+      .First().Body.Body.OfType<AssertStmt>().First().Expr is LiteralExpr literalExpr && (bool)literalExpr.Value == false);
+  }
 }

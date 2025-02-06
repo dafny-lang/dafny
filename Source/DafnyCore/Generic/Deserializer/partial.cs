@@ -27,14 +27,6 @@ partial class Deserializer(Uri uri, string input) {
     var elements = new List<object>();
 
     while (position < input.Length && input[position] != ']') {
-      var ss = input.Substring(position);
-      if (elements.Count > 0) {
-        if (input[position] != ',') {
-          throw new Exception("Expected ',' in array");
-        }
-
-        position++;
-      }
 
       elements.Add(Value<T>());
     }
