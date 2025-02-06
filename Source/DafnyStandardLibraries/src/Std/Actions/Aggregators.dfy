@@ -133,7 +133,7 @@ module Std.Aggregators {
     {}
   }
 
-  class Folder<T, R> extends Accumulator<T> {
+  class FoldingAccumulator<T, R> extends Accumulator<T> {
 
     ghost const init: R
     const f: (R, T) -> R
@@ -216,7 +216,7 @@ module Std.Aggregators {
     {}
   }
 
-  // TODO: This is also a Folder([], (x, y) => x + [y])
+  // TODO: This is also a FoldingAccumulator([], (x, y) => x + [y])
   class Collector<T> extends Accumulator<T> {
 
     var values: seq<T>
