@@ -76,6 +76,7 @@ module All {
     const d: int := 2
     constructor(c: int) {
       this.c := c;
+      this.z := 3;
     }
     method AddZ()
       modifies this

@@ -2132,7 +2132,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         onExpr
     }
 
-    method GenOwnedCallPart(ghost e: Expression, on: Expression, selfIdent: SelfInfo, name: CallName, typeArgs: seq<Type>, args: seq<Expression>, env: Environment) returns (r: R.Expr, readIdents: set<string>)
+    method GenCall(ghost e: Expression, on: Expression, selfIdent: SelfInfo, name: CallName, typeArgs: seq<Type>, args: seq<Expression>, env: Environment) returns (r: R.Expr, readIdents: set<string>)
       requires forall a <- args :: a < e
       requires on < e
       modifies this
@@ -2402,7 +2402,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         case Call(on, name, typeArgs, args, maybeOutVars) => {
           assume {:axiom} Expression.Call(on, name, typeArgs, args) < stmt;
-          generated, readIdents := GenOwnedCallPart(Expression.Call(on, name, typeArgs, args), on, selfIdent, name, typeArgs, args, env);
+          generated, readIdents := GenCall(Expression.Call(on, name, typeArgs, args), on, selfIdent, name, typeArgs, args, env);
           newEnv := env;
           if maybeOutVars.Some? && |maybeOutVars.value| == 1 {
             var outVar := escapeVar(maybeOutVars.value[0]);
@@ -3358,6 +3358,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         resultingOwnership := OwnershipOwned;
       } else if currentlyBorrowed {
         assert expectedOwnership == OwnershipBorrowed;
+        var needsRcWrapping := isSelf && selfIdent.IsRcWrappedDatatype();
+        if needsRcWrapping {
+          r := rcNew(r.Clone());
+        }
         resultingOwnership := OwnershipBorrowed;
       } else {
         assert expectedOwnership == OwnershipBorrowed;
@@ -3810,6 +3814,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           match selfIdent {
             case ThisTyped(id, dafnyType) => {
               r, resultingOwnership, readIdents := GenIdent(id, selfIdent, env, expectedOwnership);
+              return;
             }
             case None => {
               r := Error("this outside of a method");
@@ -4151,7 +4156,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         case Call(on, name, typeArgs, args) => {
-          r, readIdents := GenOwnedCallPart(e, on, selfIdent, name, typeArgs, args, env);
+          r, readIdents := GenCall(e, on, selfIdent, name, typeArgs, args, env);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }

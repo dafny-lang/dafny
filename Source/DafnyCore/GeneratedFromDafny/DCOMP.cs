@@ -2458,7 +2458,7 @@ namespace DCOMP {
         return onExpr;
       }
     }
-    public void GenOwnedCallPart(DAST._IExpression @on, Defs._ISelfInfo selfIdent, DAST._ICallName name, Dafny.ISequence<DAST._IType> typeArgs, Dafny.ISequence<DAST._IExpression> args, Defs._IEnvironment env, out RAST._IExpr r, out Dafny.ISet<Dafny.ISequence<Dafny.Rune>> readIdents)
+    public void GenCall(DAST._IExpression @on, Defs._ISelfInfo selfIdent, DAST._ICallName name, Dafny.ISequence<DAST._IType> typeArgs, Dafny.ISequence<DAST._IExpression> args, Defs._IEnvironment env, out RAST._IExpr r, out Dafny.ISet<Dafny.ISequence<Dafny.Rune>> readIdents)
     {
       r = RAST.Expr.Default();
       readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Empty;
@@ -3050,7 +3050,7 @@ namespace DCOMP {
           {
             RAST._IExpr _out50;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out51;
-            (this).GenOwnedCallPart(_89_on, selfIdent, _90_name, _91_typeArgs, _92_args, env, out _out50, out _out51);
+            (this).GenCall(_89_on, selfIdent, _90_name, _91_typeArgs, _92_args, env, out _out50, out _out51);
             generated = _out50;
             readIdents = _out51;
             newEnv = env;
@@ -4615,17 +4615,22 @@ namespace DCOMP {
         }
         resultingOwnership = Defs.Ownership.create_OwnershipOwned();
       } else if (_2_currentlyBorrowed) {
+        bool _10_needsRcWrapping;
+        _10_needsRcWrapping = (_4_isSelf) && ((selfIdent).IsRcWrappedDatatype());
+        if (_10_needsRcWrapping) {
+          r = Dafny.Helpers.Id<Func<RAST._IExpr, RAST._IExpr>>((this).rcNew)((r).Clone());
+        }
         resultingOwnership = Defs.Ownership.create_OwnershipBorrowed();
       } else {
-        bool _10_selfIsGeneralTrait;
-        _10_selfIsGeneralTrait = (_4_isSelf) && (((System.Func<bool>)(() => {
+        bool _11_selfIsGeneralTrait;
+        _11_selfIsGeneralTrait = (_4_isSelf) && (((System.Func<bool>)(() => {
           DAST._IType _source0 = (selfIdent).dtor_dafnyType;
           {
             if (_source0.is_UserDefined) {
               DAST._IResolvedType resolved0 = _source0.dtor_resolved;
-              DAST._IResolvedTypeBase _11_base = resolved0.dtor_kind;
-              Dafny.ISequence<DAST._IAttribute> _12_attributes = resolved0.dtor_attributes;
-              return ((_11_base).is_Trait) && (((_11_base).dtor_traitType).is_GeneralTrait);
+              DAST._IResolvedTypeBase _12_base = resolved0.dtor_kind;
+              Dafny.ISequence<DAST._IAttribute> _13_attributes = resolved0.dtor_attributes;
+              return ((_12_base).is_Trait) && (((_12_base).dtor_traitType).is_GeneralTrait);
             }
           }
           {
@@ -5563,6 +5568,7 @@ namespace DCOMP {
                   r = _out122;
                   resultingOwnership = _out123;
                   readIdents = _out124;
+                  return ;
                 }
                 goto after_match1;
               }
@@ -6379,7 +6385,7 @@ namespace DCOMP {
           {
             RAST._IExpr _out237;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out238;
-            (this).GenOwnedCallPart(_285_on, selfIdent, _286_name, _287_typeArgs, _288_args, env, out _out237, out _out238);
+            (this).GenCall(_285_on, selfIdent, _286_name, _287_typeArgs, _288_args, env, out _out237, out _out238);
             r = _out237;
             readIdents = _out238;
             RAST._IExpr _out239;

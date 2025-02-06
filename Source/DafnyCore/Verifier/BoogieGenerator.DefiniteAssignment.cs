@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
                  (options.DefiniteAssignmentLevel == 4 && isField && !options.ForbidNondeterminism)) {
         if (isGhost && type.IsNonempty) {
           return false;
-        } else if (!isGhost && type.HasCompilableValue) {
+        } else if (!isGhost && type.HasCompilableValue && options.DefiniteAssignmentLevel == 1) {
           return false;
         }
       }
