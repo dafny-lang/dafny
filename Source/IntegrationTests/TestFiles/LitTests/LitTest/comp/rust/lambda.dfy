@@ -1,4 +1,6 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
+// NONUNIFORM: Rust-specific tests
+// RUN: %baredafny run --target=rs --enforce-determinism --input "%S/externalclasses.rs" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 newtype uint8 = x: int | 0 <= x < 256 
 

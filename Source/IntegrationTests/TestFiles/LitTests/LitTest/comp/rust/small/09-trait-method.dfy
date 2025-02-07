@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs --emit-uncompilable-code "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism --emit-uncompilable-code "%s" > "%t"
 
 datatype Super<K, V> = Super
 

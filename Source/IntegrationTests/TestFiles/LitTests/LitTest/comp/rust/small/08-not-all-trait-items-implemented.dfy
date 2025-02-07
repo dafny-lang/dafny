@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs --emit-uncompilable-code --type-system-refresh --general-traits=full "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism --type-system-refresh --general-traits=full "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 trait Reversible {

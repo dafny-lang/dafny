@@ -1,7 +1,7 @@
 // NONUNIFORM: Rust does not support relaxed definite assignment
-// RUN: %exits-with 3 %baredafny run --target=rs --relax-definite-assignment "%s" > "%t"
+// RUN: %exits-with 3 %baredafny run --target=rs "%s" > "%t"
 // RUN: %diff "%s.wrong.expect" "%t"
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype D = D(value: int)

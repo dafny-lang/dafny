@@ -1,4 +1,4 @@
-// RUN: %baredafny build -t:rs "%s"
+// RUN: %baredafny build -t:rs --enforce-determinism "%s"
 // RUN: "%S/avoid_soundness_mut-rust/cargo" run --release > "%t"
 // RUN: %diff "%s.expect" "%t"
 // RUN: %baredafny build -t:rs --raw-pointers "%s"

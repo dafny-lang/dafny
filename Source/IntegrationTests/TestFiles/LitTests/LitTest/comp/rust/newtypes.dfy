@@ -1,6 +1,6 @@
 // NONUNIFORM: Test of Rust's ability to support newtypes
-// RUN: %baredafny run -t:rs "%s"
-// RUN: %baredafny run -t:rs --unicode-char=false "%s"
+// RUN: %baredafny run -t:rs --enforce-determinism "%s"
+// RUN: %baredafny run -t:rs --unicode-char=false --enforce-determinism "%s"
 /// %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 newtype int2 = x: int | -2 <= x < 2

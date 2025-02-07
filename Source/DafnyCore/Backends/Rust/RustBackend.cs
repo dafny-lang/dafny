@@ -48,8 +48,18 @@ public class RustBackend : DafnyExecutableBackend {
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-rust/src";
 
   protected override DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler() {
-    if (Options.Get(CommonOptionBag.RelaxDefiniteAssignment)) {
-      throw new UnsupportedInvalidOperationException("The Rust compiler does not support `--relax-definite-assignment`");
+    if (!Options.Get(CommonOptionBag.EnforceDeterminism)) {
+      // DEV: This requirement could be lifted in the future if
+      // BoogieGenerator.DefiniteAssignment.cs:
+      // the line
+      //   if (!isGhost && type.HasCompilableValue) {
+      // could become
+      //   if (!isGhost && type.HasCompilableValue && options.DefiniteAssignmentLevel == 1) {
+      // Meaning that the default behavior for fields and array initialization is the same as for local variables:
+      // Auto-init is not supported, fields have to be initialized.
+      
+      throw new UnsupportedInvalidOperationException(
+        "The Rust compiler requires `--enforce-determinism`. This requirement can");
     }
     return new RustCodeGenerator(Options);
   }

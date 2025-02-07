@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs --type-system-refresh --general-traits=datatype "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism --type-system-refresh --general-traits=datatype "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 trait SuperTrait {
   function GetBool(): bool

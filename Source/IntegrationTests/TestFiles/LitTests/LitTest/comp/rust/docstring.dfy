@@ -1,5 +1,5 @@
 // NONUNIFORM: Test that the Rust generated code contains docstrings
-// RUN: %baredafny build --target:rs "%s" > "%t"
+// RUN: %baredafny build --target:rs --enforce-determinism "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%S/docstring-rust/src/docstring.rs" "%S/docstring.check"
 // RUN: "%S/docstring-rust/cargo" test --doc
 

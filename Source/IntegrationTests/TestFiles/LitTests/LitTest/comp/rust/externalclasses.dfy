@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests. Extern abstract types only compile with the Rust compiler for now.
-// RUN: %baredafny run --target=rs --input "%S/externalclasses.rs" "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism --input "%S/externalclasses.rs" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "External.Class.Container"} ExternalClassContainer {
