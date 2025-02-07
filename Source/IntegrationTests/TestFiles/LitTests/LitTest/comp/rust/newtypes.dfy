@@ -141,7 +141,7 @@ method Main(){
   print [0, 1, 2][Zero], "\n";
   print [0, 1, 2][Zero..INT2_MAX], "\n";
   var f: CodeUnit -> byte := c => c as byte;
-  var arr := new bool[INT2_MAX];
+  var arr := new bool[INT2_MAX](i => true);
   print arr.Length, "\n";
   print DChar as uint32, "\n";
 

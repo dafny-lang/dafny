@@ -2118,11 +2118,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
+    const rcDatatypeThis := rcNew(R.self.Clone())
+    const borrowedRcDatatypeThis := R.Borrow(rcDatatypeThis)
+
     // General borrow include &Box<dyn Type>, but for dynamic dispatch we need &dyn Type
     function FromGeneralBorrowToSelfBorrow(onExpr: R.Expr, onExprOwnership: Ownership, env: Environment): R.Expr {
       if onExpr.Identifier? && env.NeedsAsRefForBorrow(onExpr.name) then
         onExpr.Sel("as_ref").Apply0() // It's not necessarily the trait, it's usually Box::as_ref or Rc::as_ref
-      else if onExprOwnership.OwnershipBorrowed? && onExpr != R.self then
+      else if onExpr == R.self || onExpr == rcDatatypeThis || onExpr == borrowedRcDatatypeThis then
+        R.self
+      else if onExprOwnership.OwnershipBorrowed? then
         // If the resulting expression is a borrow, e.g. &something() or datatype.field(), it means the trait was owned.
         // In our case we want dynamic dispatch, so we need to get the bare reference.
         // Because "on" is a general trait, we need to call as_ref() instead to get the bare expression

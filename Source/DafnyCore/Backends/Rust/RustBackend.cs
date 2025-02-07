@@ -59,7 +59,7 @@ public class RustBackend : DafnyExecutableBackend {
       // Auto-init is not supported, fields have to be initialized.
       
       throw new UnsupportedInvalidOperationException(
-        "The Rust compiler requires `--enforce-determinism`. This requirement can");
+        "The Rust compiler requires `--enforce-determinism`");
     }
     return new RustCodeGenerator(Options);
   }

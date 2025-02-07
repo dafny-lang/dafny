@@ -2452,7 +2452,9 @@ namespace DCOMP {
     {
       if (((onExpr).is_Identifier) && ((env).NeedsAsRefForBorrow((onExpr).dtor_name))) {
         return ((onExpr).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_ref"))).Apply0();
-      } else if (((onExprOwnership).is_OwnershipBorrowed) && (!object.Equals(onExpr, RAST.__default.self))) {
+      } else if (((object.Equals(onExpr, RAST.__default.self)) || (object.Equals(onExpr, (this).rcDatatypeThis))) || (object.Equals(onExpr, (this).borrowedRcDatatypeThis))) {
+        return RAST.__default.self;
+      } else if ((onExprOwnership).is_OwnershipBorrowed) {
         return (((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("convert"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("AsRef"))).AsExpr()).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_ref"))).Apply1(onExpr);
       } else {
         return onExpr;
@@ -7406,6 +7408,12 @@ namespace DCOMP {
       } else {
         return RAST.Type.create_IntersectionType(((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Any"))).AsType(), (this).SyncSendType);
       }
+    } }
+    public RAST._IExpr rcDatatypeThis { get {
+      return Dafny.Helpers.Id<Func<RAST._IExpr, RAST._IExpr>>((this).rcNew)((RAST.__default.self).Clone());
+    } }
+    public RAST._IExpr borrowedRcDatatypeThis { get {
+      return RAST.__default.Borrow((this).rcDatatypeThis);
     } }
     public RAST._IExpr read__mutable__field__macro { get {
       return ((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("read_field!"))).AsExpr();
