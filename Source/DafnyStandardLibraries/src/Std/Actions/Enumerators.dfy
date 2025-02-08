@@ -6,6 +6,10 @@ module Std.Enumerators {
   import opened Wrappers
   import opened Math
 
+  // Actions that consume nothing and produce an Option<T>, 
+  // where None indicate there are no more values to produce.
+  //
+  // TODO: a bit more than that at least.
   @AssumeCrossModuleTermination
   trait Enumerator<T> extends Action<(), Option<T>>, ProducesTerminatedProof<(), Option<T>> {
     ghost function Action(): Action<(), Option<T>> {
