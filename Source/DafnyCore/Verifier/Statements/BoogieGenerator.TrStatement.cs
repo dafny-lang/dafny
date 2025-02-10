@@ -28,377 +28,432 @@ public partial class BoogieGenerator {
 
     stmtContext = StmtType.NONE;
     adjustFuelForExists = true;  // fuel for exists might need to be adjusted based on whether it's in an assert or assume stmt.
-    if (stmt is PredicateStmt predicateStmt) {
-      TrPredicateStmt(predicateStmt, builder, locals, etran);
-
-    } else if (stmt is PrintStmt) {
-      AddComment(builder, stmt, "print statement");
-      PrintStmt s = (PrintStmt)stmt;
-      foreach (var arg in s.Args) {
-        TrStmt_CheckWellformed(arg, builder, locals, etran, false);
-      }
-      if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-        builder.AddCaptureState(s);
-      }
-
-    } else if (stmt is HideRevealStmt revealStmt) {
-      TranslateRevealStmt(this, builder, locals, etran, revealStmt);
-    } else if (stmt is BreakOrContinueStmt breakStmt) {
-      TrBreakStmt(builder, etran, breakStmt);
-    } else if (stmt is ReturnStmt returnStmt) {
-      AddComment(builder, returnStmt, "return statement");
-      if (returnStmt.ReverifyPost) {
-        // $_reverifyPost := true;
-        builder.Add(Bpl.Cmd.SimpleAssign(returnStmt.Origin, new Bpl.IdentifierExpr(returnStmt.Origin, "$_reverifyPost", Bpl.Type.Bool), Bpl.Expr.True));
-      }
-      if (returnStmt.HiddenUpdate != null) {
-        TrStmt(returnStmt.HiddenUpdate, builder, locals, etran);
-      }
-      if (codeContext is IMethodCodeContext) {
-        var method = (IMethodCodeContext)codeContext;
-        method.Outs.ForEach(p => CheckDefiniteAssignmentReturn(stmt.Origin, p, builder));
-      }
-
-      if (codeContext is Method { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
-        AssumeCanCallForByMethodDecl(method2, builder);
-      }
-
-      foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth)) {
-        builder.Add(new ChangeScope(returnStmt.Origin, ChangeScope.Modes.Pop));
-      }
-      builder.Add(new ReturnCmd(returnStmt.Origin) {
-        Attributes = etran.TrAttributes(returnStmt.Attributes)
-      });
-    } else if (stmt is YieldStmt) {
-      var s = (YieldStmt)stmt;
-      AddComment(builder, s, "yield statement");
-      Contract.Assert(codeContext is IteratorDecl);
-      var iter = (IteratorDecl)codeContext;
-      // if the yield statement has arguments, do them first
-      if (s.HiddenUpdate != null) {
-        TrStmt(s.HiddenUpdate, builder, locals, etran);
-      }
-      // this.ys := this.ys + [this.y];
-      var th = new ThisExpr(iter);
-      var dafnyOutExprs = new List<Expression>();
-      Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
-      for (int i = 0; i < iter.OutsFields.Count; i++) {
-        var y = iter.OutsFields[i];
-        var dafnyY = new MemberSelectExpr(s.Origin, th, y);
-        dafnyOutExprs.Add(dafnyY);
-        var ys = iter.OutsHistoryFields[i];
-        var dafnyYs = new MemberSelectExpr(s.Origin, th, ys);
-        var dafnySingletonY = new SeqDisplayExpr(s.Origin, [dafnyY]);
-        dafnySingletonY.Type = ys.Type;  // resolve here
-        var rhs = new BinaryExpr(s.Origin, BinaryExpr.Opcode.Add, dafnyYs, dafnySingletonY);
-        rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;
-        rhs.Type = ys.Type;  // resolve here
-        var cmd = Bpl.Cmd.SimpleAssign(s.Origin, etran.HeapCastToIdentifierExpr,
-          UpdateHeap(s.Origin, etran.HeapExpr, etran.TrExpr(th), new Bpl.IdentifierExpr(s.Origin, GetField(ys)), etran.TrExpr(rhs)));
-        builder.Add(cmd);
-      }
-      // yieldCount := yieldCount + 1;  assume yieldCount == |ys|;
-      var yc = new Bpl.IdentifierExpr(s.Origin, yieldCountVariable);
-      var incYieldCount = Bpl.Cmd.SimpleAssign(s.Origin, yc, Bpl.Expr.Binary(s.Origin, Bpl.BinaryOperator.Opcode.Add, yc, Bpl.Expr.Literal(1)));
-      builder.Add(incYieldCount);
-      builder.Add(TrAssumeCmd(s.Origin, YieldCountAssumption(iter, etran)));
-      // assume $IsGoodHeap($Heap);
-      builder.Add(AssumeGoodHeap(s.Origin, etran));
-      // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
-      var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Origin, "$_OldIterHeap", Predef.HeapType), iter);
-
-      var rhss = s.Rhss == null
-        ? dafnyOutExprs
-        : s.Rhss.Select(rhs => rhs is ExprRhs e ? e.Expr : null).ToList();
-      var fieldSubstMap = iter.OutsFields.Zip(rhss)
-        .Where(outRhs => outRhs.Second != null)
-        .ToDictionary(
-          outRhs => outRhs.First.Name,
-          outRhs => outRhs.Second
-        );
-      var fieldSub = new SpecialFieldSubstituter(fieldSubstMap);
-
-      foreach (var p in iter.YieldEnsures) {
-        var ss = TrSplitExpr(builder.Context, p.E, yeEtran, true, out var splitHappened);
-        foreach (var split in ss) {
-          if (split.Tok.IsInherited(currentModule)) {
-            // this postcondition was inherited into this module, so just ignore it
-          } else if (split.IsChecked) {
-            var yieldToken = new NestedOrigin(s.Origin, split.Tok);
-            var desc = new YieldEnsures(fieldSub.Substitute(p.E));
-            builder.Add(AssertAndForget(builder.Context, yieldToken, split.E, desc, stmt.Origin, null));
+    switch (stmt) {
+      case PredicateStmt predicateStmt:
+        TrPredicateStmt(predicateStmt, builder, locals, etran);
+        break;
+      case PrintStmt printStmt: {
+          AddComment(builder, printStmt, "print statement");
+          PrintStmt s = printStmt;
+          foreach (var arg in s.Args) {
+            TrStmt_CheckWellformed(arg, builder, locals, etran, false);
           }
+
+          if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+            builder.AddCaptureState(s);
+          }
+
+          break;
         }
-        builder.Add(TrAssumeCmdWithDependencies(yeEtran, stmt.Origin, p.E, "yield ensures clause"));
-      }
-      YieldHavoc(iter.Origin, iter, builder, etran);
-      builder.AddCaptureState(s);
+      case HideRevealStmt revealStmt:
+        TranslateRevealStmt(this, builder, locals, etran, revealStmt);
+        break;
+      case BreakOrContinueStmt breakStmt:
+        TrBreakStmt(builder, etran, breakStmt);
+        break;
+      case ReturnStmt returnStmt1: {
+          AddComment(builder, returnStmt1, "return statement");
+          if (returnStmt1.ReverifyPost) {
+            // $_reverifyPost := true;
+            builder.Add(Bpl.Cmd.SimpleAssign(returnStmt1.Origin,
+              new Bpl.IdentifierExpr(returnStmt1.Origin, "$_reverifyPost", Bpl.Type.Bool), Bpl.Expr.True));
+          }
 
-    } else if (stmt is AssignSuchThatStmt) {
-      var s = (AssignSuchThatStmt)stmt;
-      AddComment(builder, s, "assign-such-that statement");
-      // Essentially, treat like an assert (that values for the LHS exist), a havoc (of the LHS), and an
-      // assume (of the RHS).  However, we also need to check the well-formedness of the LHS and RHS.
-      // The well-formedness of the LHS is done by the havoc. The well-formedness of the RHS is most
-      // easily done after that havoc, but we need to be careful about two things:
-      //   - We should not generate any errors for uses of LHSs. This is not an issue for fields or
-      //     array elements, because they already have values before reaching the assign-such-that statement.
-      //     (Note, "this.f" is not allowed as a LHS in the first division of a constructor.)
-      //     For any local variable or out-parameter x that's a LHS, we create a new variable x' and
-      //     substitute x' for x in the RHS before doing the well-formedness check.
-      //   - The well-formedness checks need to be able to assume that each x' has a value of its
-      //     type. However, this assumption must not carry over to the existence assertion, because
-      //     then everything will be provable if x' is of a known-empty type. Instead, the well-formedness
-      //     check is wrapped inside an "if" whose guard is the type antecedent. After the existence
-      //     check, the type antecedent is assumed of the original x, the RHS is assumed, and x is
-      //     marked off has having been definitely assigned.
-      //
-      // So, the Dafny statement
-      //     E.f, x :| RHS(x);
-      // is translated into the following Boogie code:
-      //     var x';
-      //     Tr[[ E.f := *; ]]  // this havoc is translated like a Dafny assignment statement, which means
-      //                        // the well-formedness of E is checked here
-      //     if (typeAntecedent(x')) {
-      //       check well-formedness of RHS(x');
-      //     }
-      //     assert (exists x'' :: RHS(x''));  // for ":| assume", omit this line; for ":|", LHS is only allowed to contain simple variables
-      //     defass#x := true;
-      //     havoc x;
-      //     assume RHS(x);
+          if (returnStmt1.HiddenUpdate != null) {
+            TrStmt(returnStmt1.HiddenUpdate, builder, locals, etran);
+          }
 
-      var simpleLHSs = new List<IdentifierExpr>();
-      Bpl.Expr typeAntecedent = Bpl.Expr.True;
-      var havocLHSs = new List<Expression>();
-      var havocRHSs = new List<AssignmentRhs>();
-      var substMap = new Dictionary<IVariable, Expression>();
-      foreach (var lhs in s.Lhss) {
-        var lvalue = lhs.Resolved;
-        if (lvalue is IdentifierExpr ide) {
-          simpleLHSs.Add(ide);
-          var wh = SetupVariableAsLocal(ide.Var, substMap, builder, locals, etran);
-          typeAntecedent = BplAnd(typeAntecedent, wh);
-        } else {
-          havocLHSs.Add(lvalue);
-          havocRHSs.Add(new HavocRhs(lhs.Origin));  // note, a HavocRhs is constructed as already resolved
+          if (codeContext is IMethodCodeContext) {
+            var method = (IMethodCodeContext)codeContext;
+            method.Outs.ForEach(p => CheckDefiniteAssignmentReturn(stmt.Origin, p, builder));
+          }
+
+          if (codeContext is Method { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
+            AssumeCanCallForByMethodDecl(method2, builder);
+          }
+
+          foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth)) {
+            builder.Add(new ChangeScope(returnStmt1.Origin, ChangeScope.Modes.Pop));
+          }
+
+          builder.Add(new ReturnCmd(returnStmt1.Origin) {
+            Attributes = etran.TrAttributes(returnStmt1.Attributes)
+          });
+          break;
         }
-      }
-      ProcessLhss(havocLHSs, false, true, builder, locals, etran, stmt, out var lhsBuilder, out var bLhss, out _, out _, out _);
-      ProcessRhss(lhsBuilder, bLhss, havocLHSs, havocRHSs, builder, locals, etran, stmt);
+      case YieldStmt yieldStmt: {
+          var s = yieldStmt;
+          AddComment(builder, s, "yield statement");
+          Contract.Assert(codeContext is IteratorDecl);
+          var iter = (IteratorDecl)codeContext;
+          // if the yield statement has arguments, do them first
+          if (s.HiddenUpdate != null) {
+            TrStmt(s.HiddenUpdate, builder, locals, etran);
+          }
 
-      // Here comes the well-formedness check
-      var wellFormednessBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
-      var rhs = Substitute(s.Expr, null, substMap);
-      TrStmt_CheckWellformed(rhs, wellFormednessBuilder, locals, etran, false);
-      var ifCmd = new Bpl.IfCmd(s.Origin, typeAntecedent, wellFormednessBuilder.Collect(s.Origin), null, null);
-      builder.Add(ifCmd);
+          // this.ys := this.ys + [this.y];
+          var th = new ThisExpr(iter);
+          var dafnyOutExprs = new List<Expression>();
+          Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
+          for (int i = 0; i < iter.OutsFields.Count; i++) {
+            var y = iter.OutsFields[i];
+            var dafnyY = new MemberSelectExpr(s.Origin, th, y);
+            dafnyOutExprs.Add(dafnyY);
+            var ys = iter.OutsHistoryFields[i];
+            var dafnyYs = new MemberSelectExpr(s.Origin, th, ys);
+            var dafnySingletonY = new SeqDisplayExpr(s.Origin, [dafnyY]);
+            dafnySingletonY.Type = ys.Type;  // resolve here
+            var rhs = new BinaryExpr(s.Origin, BinaryExpr.Opcode.Add, dafnyYs, dafnySingletonY);
+            rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;
+            rhs.Type = ys.Type; // resolve here
+            var cmd = Bpl.Cmd.SimpleAssign(s.Origin, etran.HeapCastToIdentifierExpr,
+              UpdateHeap(s.Origin, etran.HeapExpr, etran.TrExpr(th), new Bpl.IdentifierExpr(s.Origin, GetField(ys)),
+                etran.TrExpr(rhs)));
+            builder.Add(cmd);
+          }
 
-      // Here comes the assert part
-      if (s.AssumeToken == null) {
-        substMap = new Dictionary<IVariable, Expression>();
-        var bvars = new List<BoundVar>();
-        foreach (var lhs in s.Lhss) {
-          var l = lhs.Resolved;
-          if (l is IdentifierExpr x) {
-            CloneVariableAsBoundVar(x.Origin, x.Var, "$as#" + x.Name, out var bv, out var ie);
-            bvars.Add(bv);
-            substMap.Add(x.Var, ie);
+          // yieldCount := yieldCount + 1;  assume yieldCount == |ys|;
+          var yc = new Bpl.IdentifierExpr(s.Origin, yieldCountVariable);
+          var incYieldCount = Bpl.Cmd.SimpleAssign(s.Origin, yc,
+            Bpl.Expr.Binary(s.Origin, Bpl.BinaryOperator.Opcode.Add, yc, Bpl.Expr.Literal(1)));
+          builder.Add(incYieldCount);
+          builder.Add(TrAssumeCmd(s.Origin, YieldCountAssumption(iter, etran)));
+          // assume $IsGoodHeap($Heap);
+          builder.Add(AssumeGoodHeap(s.Origin, etran));
+          // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
+          var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr,
+            new Bpl.IdentifierExpr(s.Origin, "$_OldIterHeap", Predef.HeapType), iter);
+
+          var rhss = s.Rhss == null
+            ? dafnyOutExprs
+            : s.Rhss.Select(rhs => rhs is ExprRhs e ? e.Expr : null).ToList();
+          var fieldSubstMap = iter.OutsFields.Zip(rhss)
+            .Where(outRhs => outRhs.Second != null)
+            .ToDictionary(
+              outRhs => outRhs.First.Name,
+              outRhs => outRhs.Second
+            );
+          var fieldSub = new SpecialFieldSubstituter(fieldSubstMap);
+
+          foreach (var p in iter.YieldEnsures) {
+            var ss = TrSplitExpr(builder.Context, p.E, yeEtran, true, out var splitHappened);
+            foreach (var split in ss) {
+              if (split.Tok.IsInherited(currentModule)) {
+                // this postcondition was inherited into this module, so just ignore it
+              } else if (split.IsChecked) {
+                var yieldToken = new NestedOrigin(s.Origin, split.Tok);
+                var desc = new YieldEnsures(fieldSub.Substitute(p.E));
+                builder.Add(AssertAndForget(builder.Context, yieldToken, split.E, desc, yieldStmt.Origin, null));
+              }
+            }
+
+            builder.Add(TrAssumeCmdWithDependencies(yeEtran, yieldStmt.Origin, p.E, "yield ensures clause"));
+          }
+
+          YieldHavoc(iter.Origin, iter, builder, etran);
+          builder.AddCaptureState(s);
+          break;
+        }
+      case AssignSuchThatStmt thatStmt: {
+          var s = thatStmt;
+          AddComment(builder, s, "assign-such-that statement");
+
+          // Essentially, treat like an assert (that values for the LHS exist), a havoc (of the LHS), and an
+          // assume (of the RHS).  However, we also need to check the well-formedness of the LHS and RHS.
+          // The well-formedness of the LHS is done by the havoc. The well-formedness of the RHS is most
+          // easily done after that havoc, but we need to be careful about two things:
+          //   - We should not generate any errors for uses of LHSs. This is not an issue for fields or
+          //     array elements, because they already have values before reaching the assign-such-that statement.
+          //     (Note, "this.f" is not allowed as a LHS in the first division of a constructor.)
+          //     For any local variable or out-parameter x that's a LHS, we create a new variable x' and
+          //     substitute x' for x in the RHS before doing the well-formedness check.
+          //   - The well-formedness checks need to be able to assume that each x' has a value of its
+          //     type. However, this assumption must not carry over to the existence assertion, because
+          //     then everything will be provable if x' is of a known-empty type. Instead, the well-formedness
+          //     check is wrapped inside an "if" whose guard is the type antecedent. After the existence
+          //     check, the type antecedent is assumed of the original x, the RHS is assumed, and x is
+          //     marked off has having been definitely assigned.
+          //
+          // So, the Dafny statement
+          //     E.f, x :| RHS(x);
+          // is translated into the following Boogie code:
+          //     var x';
+          //     Tr[[ E.f := *; ]]  // this havoc is translated like a Dafny assignment statement, which means
+          //                        // the well-formedness of E is checked here
+          //     if (typeAntecedent(x')) {
+          //       check well-formedness of RHS(x');
+          //     }
+          //     assert (exists x'' :: RHS(x''));  // for ":| assume", omit this line; for ":|", LHS is only allowed to contain simple variables
+          //     defass#x := true;
+          //     havoc x;
+          //     assume RHS(x);
+          var simpleLHSs = new List<IdentifierExpr>();
+          Bpl.Expr typeAntecedent = Bpl.Expr.True;
+          var havocLHSs = new List<Expression>();
+          var havocRHSs = new List<AssignmentRhs>();
+          var substMap = new Dictionary<IVariable, Expression>();
+          foreach (var lhs in s.Lhss) {
+            var lvalue = lhs.Resolved;
+            if (lvalue is IdentifierExpr ide) {
+              simpleLHSs.Add(ide);
+              var wh = SetupVariableAsLocal(ide.Var, substMap, builder, locals, etran);
+              typeAntecedent = BplAnd(typeAntecedent, wh);
+            } else {
+              havocLHSs.Add(lvalue);
+              havocRHSs.Add(new HavocRhs(lhs.Origin)); // note, a HavocRhs is constructed as already resolved
+            }
+          }
+
+          ProcessLhss(havocLHSs, false, true, builder, locals, etran, thatStmt, out var lhsBuilder, out var bLhss, out _,
+            out _, out _);
+          ProcessRhss(lhsBuilder, bLhss, havocLHSs, havocRHSs, builder, locals, etran, thatStmt);
+
+          // Here comes the well-formedness check
+          var wellFormednessBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
+          var rhs = Substitute(s.Expr, null, substMap);
+          TrStmt_CheckWellformed(rhs, wellFormednessBuilder, locals, etran, false);
+          var ifCmd = new Bpl.IfCmd(s.Origin, typeAntecedent, wellFormednessBuilder.Collect(s.Origin), null, null);
+          builder.Add(ifCmd);
+
+          // Here comes the assert part
+          if (s.AssumeToken == null) {
+            substMap = new Dictionary<IVariable, Expression>();
+            var bvars = new List<BoundVar>();
+            foreach (var lhs in s.Lhss) {
+              var l = lhs.Resolved;
+              if (l is IdentifierExpr x) {
+                CloneVariableAsBoundVar(x.Origin, x.Var, "$as#" + x.Name, out var bv, out var ie);
+                bvars.Add(bv);
+                substMap.Add(x.Var, ie);
+              } else {
+                // other forms of LHSs have been ruled out by the resolver (it would be possible to
+                // handle them, but it would involve heap-update expressions--the translation would take
+                // effort, and it's not certain that the existential would be successful in verification).
+                Contract.Assume(false); // unexpected case
+              }
+            }
+
+            GenerateAndCheckGuesses(s.Origin, bvars, s.Bounds, Substitute(s.Expr, null, substMap), SubstituteAttributes(s.Attributes, substMap),
+              Attributes.Contains(s.Attributes, "_noAutoTriggerFound"), builder, etran);
+          }
+
+          // Mark off the simple variables as having definitely been assigned AND THEN havoc their values. By doing them
+          // in this order, the type antecedents will in effect be assumed.
+          var bHavocLHSs = new List<Bpl.IdentifierExpr>();
+          foreach (var lhs in simpleLHSs) {
+            MarkDefiniteAssignmentTracker(lhs, builder);
+            bHavocLHSs.Add((Bpl.IdentifierExpr)etran.TrExpr(lhs));
+          }
+
+          builder.Add(new Bpl.HavocCmd(s.Origin, bHavocLHSs));
+
+          // End by doing the assume
+          builder.Add(TrAssumeCmdWithDependencies(etran, s.Origin, s.Expr, "assign-such-that constraint"));
+          builder.AddCaptureState(s); // just do one capture state--here, at the very end (that is, don't do one before the assume)
+          break;
+        }
+      case AssignStatement statement:
+        TrUpdateStmt(builder, locals, etran, statement);
+        break;
+      case AssignOrReturnStmt returnStmt2: {
+          AddComment(builder, returnStmt2, "assign-or-return statement (:-)");
+          AssignOrReturnStmt s = returnStmt2;
+          TrStmtList(s.ResolvedStatements, builder, locals, etran);
+          break;
+        }
+      case SingleAssignStmt assignStmt: {
+          AddComment(builder, assignStmt, "assignment statement");
+          SingleAssignStmt s = assignStmt;
+          TrAssignment(assignStmt, s.Lhs.Resolved, s.Rhs, builder, locals, etran);
+          break;
+        }
+      case CallStmt callStmt:
+        AddComment(builder, callStmt, "call statement");
+        TrCallStmt(callStmt, builder, locals, etran, null);
+        break;
+      case DividedBlockStmt blockStmt1: {
+          var s = blockStmt1;
+          AddComment(builder, blockStmt1, "divided block before new;");
+          var previousTrackers = DefiniteAssignmentTrackers;
+          var tok = s.SeparatorTok ?? s.Origin;
+          // a DividedBlockStmt occurs only inside a Constructor body of a class
+          var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
+          var fields = Concat(cl.InheritedMembers, cl.Members).ConvertAll(member =>
+            member is Field && !member.IsStatic && !member.IsInstanceIndependentConstant ? (Field)member : null);
+          fields.RemoveAll(f => f == null);
+          var localSurrogates = fields.ConvertAll(f =>
+            new Bpl.LocalVariable(f.Origin, new TypedIdent(f.Origin, SurrogateName(f), TrType(f.Type))));
+          locals.AddRange(localSurrogates);
+          var beforeTrackers = DefiniteAssignmentTrackers;
+          fields.ForEach(f =>
+            AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
+
+          Contract.Assert(!inBodyInitContext);
+          inBodyInitContext = true;
+          TrStmtList(s.BodyInit, builder, locals, etran);
+          Contract.Assert(inBodyInitContext);
+          inBodyInitContext = false;
+
+          // The "new;" translates into an allocation of "this"
+          AddComment(builder, blockStmt1, "new;");
+          fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.Origin.EndToken, f, true, builder));
+          DefiniteAssignmentTrackers = beforeTrackers;
+          var th = new ThisExpr(cl);
+          var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
+          SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);
+          for (int i = 0; i < fields.Count; i++) {
+            // assume $Heap[this, f] == this.f;
+            var mse = new MemberSelectExpr(tok, th, fields[i]);
+            Bpl.Expr surr = new Bpl.IdentifierExpr(tok, localSurrogates[i]);
+            surr = CondApplyUnbox(tok, surr, fields[i].Type, mse.Type);
+            builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(etran.TrExpr(mse), surr)));
+          }
+
+          CommitAllocatedObject(tok, bplThis, null, builder, etran);
+
+          AddComment(builder, blockStmt1, "divided block after new;");
+          TrStmtList(s.BodyProper, builder, locals, etran);
+          DefiniteAssignmentTrackers = previousTrackers;
+          break;
+        }
+      case OpaqueBlock opaqueBlock:
+        OpaqueBlockVerifier.EmitBoogie(this, opaqueBlock, builder, locals, etran, (IMethodCodeContext)codeContext);
+        break;
+      case BlockByProofStmt blockByProof:
+        BlockByProofStmtVerifier.EmitBoogie(this, blockByProof, builder, locals, etran, codeContext);
+        break;
+      case BlockStmt blockStmt2: {
+          var previousTrackers = DefiniteAssignmentTrackers;
+          TrStmtList(blockStmt2.Body, builder, locals, etran, blockStmt2.Origin);
+          DefiniteAssignmentTrackers = previousTrackers;
+          break;
+        }
+      case IfStmt ifStmt:
+        IfStatementVerifier.EmitBoogie(this, ifStmt, builder, locals, etran);
+        break;
+      case AlternativeStmt alternativeStmt: {
+          AddComment(builder, alternativeStmt, "alternative statement");
+          var s = alternativeStmt;
+          var elseCase = Assert(s.Origin, Bpl.Expr.False, new AlternativeIsComplete(), builder.Context);
+          TrAlternatives(s.Alternatives, s.Origin, b => b.Add(elseCase), builder, locals, etran, alternativeStmt.IsGhost);
+          break;
+        }
+      case WhileStmt whileStmt:
+        TrWhileStmt(whileStmt, builder, locals, etran);
+        break;
+      case AlternativeLoopStmt alternativeLoopStmt:
+        TrAlternativeLoopStmt(alternativeLoopStmt, builder, locals, etran);
+        break;
+      case ForLoopStmt forLoopStmt:
+        TrForLoop(forLoopStmt, builder, locals, etran);
+        break;
+      case ModifyStmt modifyStmt: {
+          AddComment(builder, modifyStmt, "modify statement");
+          var s = modifyStmt;
+          // check well-formedness of the modifies clauses
+          var wfOptions = new WFOptions();
+          CheckFrameWellFormed(wfOptions, s.Mod.Expressions, locals, builder, etran);
+          // check that the modifies is a subset
+          var desc = new ModifyFrameSubset("modify statement", s.Mod.Expressions, GetContextModifiesFrames());
+          CheckFrameSubset(s.Origin, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Origin), builder, desc,
+            null);
+          // cause the change of the heap according to the given frame
+          var suffix = CurrentIdGenerator.FreshId("modify#");
+          string modifyFrameName = FrameVariablePrefix + suffix;
+          var preModifyHeapVar = locals.GetOrAdd(new Bpl.LocalVariable(s.Origin,
+            new Bpl.TypedIdent(s.Origin, "$PreModifyHeap$" + suffix, Predef.HeapType)));
+          DefineFrame(s.Origin, etran.ModifiesFrame(s.Origin), s.Mod.Expressions, builder, locals, modifyFrameName);
+          if (s.Body == null) {
+            var preModifyHeap = new Bpl.IdentifierExpr(s.Origin, preModifyHeapVar);
+            // preModifyHeap := $Heap;
+            builder.Add(Bpl.Cmd.SimpleAssign(s.Origin, preModifyHeap, etran.HeapExpr));
+            // havoc $Heap;
+            builder.Add(new Bpl.HavocCmd(s.Origin, [etran.HeapCastToIdentifierExpr]));
+            // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
+            builder.Add(TrAssumeCmd(s.Origin, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
+            // assume nothing outside the frame was changed
+            var etranPreLoop = new ExpressionTranslator(this, Predef, preModifyHeap,
+              this.CurrentDeclaration is IFrameScope fs ? fs : null);
+            var updatedFrameEtran = etran.WithModifiesFrame(modifyFrameName);
+            builder.Add(TrAssumeCmd(s.Origin,
+              FrameConditionUsingDefinedFrame(s.Origin, etranPreLoop, etran, updatedFrameEtran,
+                updatedFrameEtran.ModifiesFrame(s.Origin))));
           } else {
-            // other forms of LHSs have been ruled out by the resolver (it would be possible to
-            // handle them, but it would involve heap-update expressions--the translation would take
-            // effort, and it's not certain that the existential would be successful in verification).
-            Contract.Assume(false);  // unexpected case
+            // do the body, but with preModifyHeapVar as the governing frame
+            var updatedFrameEtran = etran.WithModifiesFrame(modifyFrameName);
+            CurrentIdGenerator.Push();
+            TrStmt(s.Body, builder, locals, updatedFrameEtran);
+            CurrentIdGenerator.Pop();
           }
+
+          builder.AddCaptureState(modifyStmt);
+          break;
         }
-
-        GenerateAndCheckGuesses(s.Origin, bvars, s.Bounds, Substitute(s.Expr, null, substMap), SubstituteAttributes(s.Attributes, substMap),
-          Attributes.Contains(s.Attributes, "_noAutoTriggerFound"), builder, etran);
-      }
-
-      // Mark off the simple variables as having definitely been assigned AND THEN havoc their values. By doing them
-      // in this order, the type antecedents will in effect be assumed.
-      var bHavocLHSs = new List<Bpl.IdentifierExpr>();
-      foreach (var lhs in simpleLHSs) {
-        MarkDefiniteAssignmentTracker(lhs, builder);
-        bHavocLHSs.Add((Bpl.IdentifierExpr)etran.TrExpr(lhs));
-      }
-      builder.Add(new Bpl.HavocCmd(s.Origin, bHavocLHSs));
-
-      // End by doing the assume
-      builder.Add(TrAssumeCmdWithDependencies(etran, s.Origin, s.Expr, "assign-such-that constraint"));
-      builder.AddCaptureState(s);  // just do one capture state--here, at the very end (that is, don't do one before the assume)
-
-    } else if (stmt is AssignStatement statement) {
-      TrUpdateStmt(builder, locals, etran, statement);
-    } else if (stmt is AssignOrReturnStmt) {
-      AddComment(builder, stmt, "assign-or-return statement (:-)");
-      AssignOrReturnStmt s = (AssignOrReturnStmt)stmt;
-      TrStmtList(s.ResolvedStatements, builder, locals, etran);
-
-    } else if (stmt is SingleAssignStmt) {
-      AddComment(builder, stmt, "assignment statement");
-      SingleAssignStmt s = (SingleAssignStmt)stmt;
-      TrAssignment(stmt, s.Lhs.Resolved, s.Rhs, builder, locals, etran);
-
-    } else if (stmt is CallStmt) {
-      AddComment(builder, stmt, "call statement");
-      TrCallStmt((CallStmt)stmt, builder, locals, etran, null);
-
-    } else if (stmt is DividedBlockStmt) {
-      var s = (DividedBlockStmt)stmt;
-      AddComment(builder, stmt, "divided block before new;");
-      var previousTrackers = DefiniteAssignmentTrackers;
-      var tok = s.SeparatorTok ?? s.Origin;
-      // a DividedBlockStmt occurs only inside a Constructor body of a class
-      var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
-      var fields = Concat(cl.InheritedMembers, cl.Members).ConvertAll(member =>
-        member is Field && !member.IsStatic && !member.IsInstanceIndependentConstant ? (Field)member : null);
-      fields.RemoveAll(f => f == null);
-      var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.Origin, new TypedIdent(f.Origin, SurrogateName(f), TrType(f.Type))));
-      locals.AddRange(localSurrogates);
-      var beforeTrackers = DefiniteAssignmentTrackers;
-      fields.ForEach(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
-
-      Contract.Assert(!inBodyInitContext);
-      inBodyInitContext = true;
-      TrStmtList(s.BodyInit, builder, locals, etran);
-      Contract.Assert(inBodyInitContext);
-      inBodyInitContext = false;
-
-      // The "new;" translates into an allocation of "this"
-      AddComment(builder, stmt, "new;");
-      fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.Origin.EndToken, f, true, builder));
-      DefiniteAssignmentTrackers = beforeTrackers;
-      var th = new ThisExpr(cl);
-      var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
-      SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);
-      for (int i = 0; i < fields.Count; i++) {
-        // assume $Heap[this, f] == this.f;
-        var mse = new MemberSelectExpr(tok, th, fields[i]);
-        Bpl.Expr surr = new Bpl.IdentifierExpr(tok, localSurrogates[i]);
-        surr = CondApplyUnbox(tok, surr, fields[i].Type, mse.Type);
-        builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(etran.TrExpr(mse), surr)));
-      }
-      CommitAllocatedObject(tok, bplThis, null, builder, etran);
-
-      AddComment(builder, stmt, "divided block after new;");
-      TrStmtList(s.BodyProper, builder, locals, etran);
-      DefiniteAssignmentTrackers = previousTrackers;
-
-    } else if (stmt is OpaqueBlock opaqueBlock) {
-      OpaqueBlockVerifier.EmitBoogie(this, opaqueBlock, builder, locals, etran, (IMethodCodeContext)codeContext);
-    } else if (stmt is BlockByProofStmt blockByProof) {
-      BlockByProofStmtVerifier.EmitBoogie(this, blockByProof, builder, locals, etran, codeContext);
-    } else if (stmt is BlockStmt blockStmt) {
-      var previousTrackers = DefiniteAssignmentTrackers;
-      TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.Origin);
-      DefiniteAssignmentTrackers = previousTrackers;
-    } else if (stmt is IfStmt ifStmt) {
-      IfStatementVerifier.EmitBoogie(this, ifStmt, builder, locals, etran);
-    } else if (stmt is AlternativeStmt) {
-      AddComment(builder, stmt, "alternative statement");
-      var s = (AlternativeStmt)stmt;
-      var elseCase = Assert(s.Origin, Bpl.Expr.False, new AlternativeIsComplete(), builder.Context);
-      TrAlternatives(s.Alternatives, s.Origin, b => b.Add(elseCase), builder, locals, etran, stmt.IsGhost);
-
-    } else if (stmt is WhileStmt whileStmt) {
-      TrWhileStmt(whileStmt, builder, locals, etran);
-
-    } else if (stmt is AlternativeLoopStmt alternativeLoopStmt) {
-      TrAlternativeLoopStmt(alternativeLoopStmt, builder, locals, etran);
-    } else if (stmt is ForLoopStmt forLoopStmt) {
-      TrForLoop(forLoopStmt, builder, locals, etran);
-
-    } else if (stmt is ModifyStmt) {
-      AddComment(builder, stmt, "modify statement");
-      var s = (ModifyStmt)stmt;
-      // check well-formedness of the modifies clauses
-      var wfOptions = new WFOptions();
-      CheckFrameWellFormed(wfOptions, s.Mod.Expressions, locals, builder, etran);
-      // check that the modifies is a subset
-      var desc = new ModifyFrameSubset("modify statement", s.Mod.Expressions, GetContextModifiesFrames());
-      CheckFrameSubset(s.Origin, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Origin), builder, desc, null);
-      // cause the change of the heap according to the given frame
-      var suffix = CurrentIdGenerator.FreshId("modify#");
-      string modifyFrameName = FrameVariablePrefix + suffix;
-      var preModifyHeapVar = locals.GetOrAdd(new Bpl.LocalVariable(s.Origin, new Bpl.TypedIdent(s.Origin, "$PreModifyHeap$" + suffix, Predef.HeapType)));
-      DefineFrame(s.Origin, etran.ModifiesFrame(s.Origin), s.Mod.Expressions, builder, locals, modifyFrameName);
-      if (s.Body == null) {
-        var preModifyHeap = new Bpl.IdentifierExpr(s.Origin, preModifyHeapVar);
-        // preModifyHeap := $Heap;
-        builder.Add(Bpl.Cmd.SimpleAssign(s.Origin, preModifyHeap, etran.HeapExpr));
-        // havoc $Heap;
-        builder.Add(new Bpl.HavocCmd(s.Origin, [etran.HeapCastToIdentifierExpr]));
-        // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
-        builder.Add(TrAssumeCmd(s.Origin, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
-        // assume nothing outside the frame was changed
-        var etranPreLoop = new ExpressionTranslator(this, Predef, preModifyHeap, this.CurrentDeclaration is IFrameScope fs ? fs : null);
-        var updatedFrameEtran = etran.WithModifiesFrame(modifyFrameName);
-        builder.Add(TrAssumeCmd(s.Origin, FrameConditionUsingDefinedFrame(s.Origin, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ModifiesFrame(s.Origin))));
-      } else {
-        // do the body, but with preModifyHeapVar as the governing frame
-        var updatedFrameEtran = etran.WithModifiesFrame(modifyFrameName);
-        CurrentIdGenerator.Push();
-        TrStmt(s.Body, builder, locals, updatedFrameEtran);
-        CurrentIdGenerator.Pop();
-      }
-      builder.AddCaptureState(stmt);
-
-    } else if (stmt is ForallStmt forallStmt) {
-      TrForallStmt(builder, locals, etran, forallStmt);
-    } else if (stmt is CalcStmt calcStmt) {
-      TrCalcStmt(calcStmt, builder, locals, etran);
-    } else if (stmt is NestedMatchStmt nestedMatchStmt) {
-      TrStmt(nestedMatchStmt.Flattened, builder, locals, etran);
-    } else if (stmt is MatchStmt matchStmt) {
-      MatchStmtVerifier.TrMatchStmt(this, matchStmt, builder, locals, etran);
-    } else if (stmt is VarDeclStmt) {
-      var s = (VarDeclStmt)stmt;
-      TrVarDeclStmt(s, builder, locals, etran);
-    } else if (stmt is VarDeclPattern varDeclPattern) {
-      foreach (var dafnyLocal in varDeclPattern.LocalVars) {
-        var boogieLocal = locals.GetOrAdd(new Bpl.LocalVariable(dafnyLocal.Origin,
-          new Bpl.TypedIdent(dafnyLocal.Origin, dafnyLocal.AssignUniqueName(CurrentDeclaration.IdGenerator),
-            TrType(dafnyLocal.Type))));
-        var variableReference = new Bpl.IdentifierExpr(boogieLocal.tok, boogieLocal);
-        builder.Add(new Bpl.HavocCmd(dafnyLocal.Origin, [variableReference]));
-        var wh = GetWhereClause(dafnyLocal.Origin, variableReference, dafnyLocal.Type, etran,
-          IsAllocContext.Var(varDeclPattern.IsGhost, dafnyLocal));
-        if (wh != null) {
-          builder.Add(TrAssumeCmd(dafnyLocal.Origin, wh));
+      case ForallStmt forallStmt:
+        TrForallStmt(builder, locals, etran, forallStmt);
+        break;
+      case CalcStmt calcStmt:
+        TrCalcStmt(calcStmt, builder, locals, etran);
+        break;
+      case NestedMatchStmt nestedMatchStmt:
+        TrStmt(nestedMatchStmt.Flattened, builder, locals, etran);
+        break;
+      case MatchStmt matchStmt:
+        MatchStmtVerifier.TrMatchStmt(this, matchStmt, builder, locals, etran);
+        break;
+      case VarDeclStmt declStmt: {
+          var s = declStmt;
+          TrVarDeclStmt(s, builder, locals, etran);
+          break;
         }
-      }
+      case VarDeclPattern varDeclPattern: {
+          foreach (var dafnyLocal in varDeclPattern.LocalVars) {
+            var boogieLocal = locals.GetOrAdd(new Bpl.LocalVariable(dafnyLocal.Origin,
+              new Bpl.TypedIdent(dafnyLocal.Origin, dafnyLocal.AssignUniqueName(CurrentDeclaration.IdGenerator),
+                TrType(dafnyLocal.Type))));
+            var variableReference = new Bpl.IdentifierExpr(boogieLocal.tok, boogieLocal);
+            builder.Add(new Bpl.HavocCmd(dafnyLocal.Origin, [variableReference]));
+            var wh = GetWhereClause(dafnyLocal.Origin, variableReference, dafnyLocal.Type, etran,
+              IsAllocContext.Var(varDeclPattern.IsGhost, dafnyLocal));
+            if (wh != null) {
+              builder.Add(TrAssumeCmd(dafnyLocal.Origin, wh));
+            }
+          }
 
-      var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
-      var pat = varDeclPattern.LHS;
-      var rhs = varDeclPattern.RHS;
-      var nm = varNameGen.FreshId("#0#");
-      var boogieTupleLocal = locals.GetOrAdd(new Bpl.LocalVariable(pat.Origin, new TypedIdent(pat.Origin, nm, TrType(rhs.Type))));
-      var boogieTupleReference = new Bpl.IdentifierExpr(rhs.Origin, boogieTupleLocal);
+          var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
+          var pat = varDeclPattern.LHS;
+          var rhs = varDeclPattern.RHS;
+          var nm = varNameGen.FreshId("#0#");
+          var boogieTupleLocal =
+            locals.GetOrAdd(new Bpl.LocalVariable(pat.Origin, new TypedIdent(pat.Origin, nm, TrType(rhs.Type))));
+          var boogieTupleReference = new Bpl.IdentifierExpr(rhs.Origin, boogieTupleLocal);
 
-      void AddResultCommands(BoogieStmtListBuilder returnBuilder, Expression result) {
-        Contract.Assert(pat.Expr.Type != null);
-        var bResult = etran.TrExpr(result);
-        CheckSubrange(result.Origin, bResult, rhs.Type, pat.Expr.Type, rhs, returnBuilder);
-        returnBuilder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, rhs.Origin, rhs,
-          e => Bpl.Expr.Eq(boogieTupleReference, AdaptBoxing(rhs.Origin, e, rhs.Type, pat.Expr.Type))));
-      }
+          void AddResultCommands(BoogieStmtListBuilder returnBuilder, Expression result) {
+            Contract.Assert(pat.Expr.Type != null);
+            var bResult = etran.TrExpr(result);
+            CheckSubrange(result.Origin, bResult, rhs.Type, pat.Expr.Type, rhs, returnBuilder);
+            returnBuilder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, rhs.Origin, rhs,
+              e => Bpl.Expr.Eq(boogieTupleReference, AdaptBoxing(rhs.Origin, e, rhs.Type, pat.Expr.Type))));
+          }
 
-      TrStmt_CheckWellformed(rhs, builder, locals, etran, false, false, AddResultCommands);
-      builder.Add(TrAssumeCmd(rhs.Origin, etran.CanCallAssumption(rhs)));
-      builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
-      builder.Add(TrAssumeCmd(rhs.Origin, MkIs(boogieTupleReference, pat.Expr.Type)));
+          TrStmt_CheckWellformed(rhs, builder, locals, etran, false, false, AddResultCommands);
+          builder.Add(TrAssumeCmd(rhs.Origin, etran.CanCallAssumption(rhs)));
+          builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
+          builder.Add(TrAssumeCmd(rhs.Origin, MkIs(boogieTupleReference, pat.Expr.Type)));
 
-      CheckCasePatternShape(pat, rhs, boogieTupleReference, rhs.Origin, pat.Expr.Type, builder);
-      builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, varDeclPattern.Origin, pat.Expr,
-        e => Expr.Eq(e, boogieTupleReference), "variable declaration"));
-    } else if (stmt is TryRecoverStatement haltRecoveryStatement) {
-      // try/recover statements are currently internal-only AST nodes that cannot be
-      // directly used in user Dafny code. They are only generated by rewriters, and verifying
-      // their use is low value.
-      throw new NotSupportedException("Verification of try/recover statements is not supported");
-    } else {
-      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+          CheckCasePatternShape(pat, rhs, boogieTupleReference, rhs.Origin, pat.Expr.Type, builder);
+          builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, varDeclPattern.Origin, pat.Expr,
+            e => Expr.Eq(e, boogieTupleReference), "variable declaration"));
+          break;
+        }
+      case TryRecoverStatement haltRecoveryStatement:
+        // try/recover statements are currently internal-only AST nodes that cannot be
+        // directly used in user Dafny code. They are only generated by rewriters, and verifying
+        // their use is low value.
+        throw new NotSupportedException("Verification of try/recover statements is not supported");
+      default:
+        Contract.Assert(false);
+        throw new cce.UnreachableException(); // unexpected statement
     }
   }
 
