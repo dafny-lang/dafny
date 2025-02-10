@@ -9,8 +9,10 @@ opaqueBlock.dfy(93,2): Error: opaque block might violate context's modifies clau
 opaqueBlock.dfy(106,4): Error: opaque block might violate context's modifies clause
 opaqueBlock.dfy(127,12): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
 opaqueBlock.dfy(130,17): Error: variable 'z', which is subject to definite-assignment rules, might be uninitialized here
-opaqueBlock.dfy(142,12): Error: ensures might not hold
-opaqueBlock.dfy(206,6): Error: assignment might update an object not in the enclosing context's modifies clause
-opaqueBlock.dfy(218,2): Error: assertion might not hold
+opaqueBlock.dfy(140,12): Error: variable 'q', which is subject to definite-assignment rules, might be uninitialized here
+opaqueBlock.dfy(140,14): Error: ensures might not hold
+opaqueBlock.dfy(148,12): Error: ensures might not hold
+opaqueBlock.dfy(212,6): Error: assignment might update an object not in the enclosing context's modifies clause
+opaqueBlock.dfy(224,2): Error: assertion might not hold
 
-Dafny program verifier finished with 3 verified, 14 errors
+Dafny program verifier finished with 3 verified, 16 errors
