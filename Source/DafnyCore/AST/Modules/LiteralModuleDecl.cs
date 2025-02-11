@@ -46,14 +46,14 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
   }
 
   [ParseConstructor]
-  public LiteralModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes? attributes, [BackEdge] ModuleDefinition enclosingModule, string cloneId, ModuleDefinition moduleDef)
+  public LiteralModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes? attributes, ModuleDefinition enclosingModule, string cloneId, ModuleDefinition moduleDef)
     : base(options, origin, nameNode, attributes, enclosingModule, cloneId) {
     ModuleDef = moduleDef;
     BodyStartTok = moduleDef.BodyStartTok;
     moduleDef.EnclosingLiteralModuleDecl = this;
   }
   
-  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition moduleDef, [BackEdge] ModuleDefinition enclosingModule, Guid cloneId)
+  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition moduleDef, ModuleDefinition enclosingModule, Guid cloneId)
     : base(options, moduleDef.Origin, moduleDef.NameNode, null, enclosingModule, cloneId) {
     ModuleDef = moduleDef;
     BodyStartTok = moduleDef.BodyStartTok;

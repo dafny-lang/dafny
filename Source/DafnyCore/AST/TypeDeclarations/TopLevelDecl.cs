@@ -25,7 +25,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   }
 
   protected TopLevelDecl(IOrigin origin, Name nameNode, Attributes attributes,
-    List<TypeParameter> typeArgs, [BackEdge] ModuleDefinition enclosingModule)
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModule)
     : base(origin, nameNode, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
