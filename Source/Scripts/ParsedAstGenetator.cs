@@ -1,4 +1,3 @@
-using System.Collections;
 using System.CommandLine;
 using System.Numerics;
 using System.Reflection;
@@ -12,9 +11,8 @@ using Type = System.Type;
 
 namespace IntegrationTests;
 
-
 public class ParsedAstGenerator : PostParseAstVisitor {
-  private CompilationUnitSyntax compilationUnit;
+  private CompilationUnitSyntax compilationUnit = CompilationUnit();
 
   public static Command GetCommand() {
     var result = new Command("generate-parsed-ast", "");
@@ -25,14 +23,13 @@ public class ParsedAstGenerator : PostParseAstVisitor {
   }
 
   public static async Task Handle(string outputFile) {
-    var program = typeof(FileModuleDefinition);
-    var generateParsedAst = new DeserializerGenerator();
-    await File.WriteAllTextAsync(outputFile, generateParsedAst.GenerateAll(program));
+    var generator = new ParsedAstGenerator();
+    await File.WriteAllTextAsync(outputFile, generator.GenerateAll());
   }
 
-  public string GenerateAll(Type rootType) {
+  public string GenerateAll() {
 
-    compilationUnit = CompilationUnit();
+    var rootType = typeof(FileModuleDefinition);
     VisitTypesFromRoot(rootType);
     compilationUnit = compilationUnit.NormalizeWhitespace();
     
@@ -56,12 +53,12 @@ public class ParsedAstGenerator : PostParseAstVisitor {
     Stack<Type> toVisit,
     ISet<Type> visited,
     IDictionary<Type, ISet<Type>> inheritors) {
-    var typeString = ToGenericTypeString(type);
     if (type.IsEnum) {
-      return GenerateEnum(type, typeString);
+      return GenerateEnum(type);
+    } else {
+      return GenerateClass(type, toVisit, visited, inheritors);
     }
 
-    return GenerateClass(type, toVisit, visited, inheritors);
   }
 
   private static BaseTypeDeclarationSyntax? GenerateClass(Type type, Stack<Type> toVisit, ISet<Type> visited, IDictionary<Type, ISet<Type>> inheritors)
@@ -69,7 +66,6 @@ public class ParsedAstGenerator : PostParseAstVisitor {
     var classDeclaration = GenerateClassHeader(type);
     List<MemberDeclarationSyntax> newFields = new();
 
-    var ownedFieldPosition = 0;
     var baseList = new List<BaseTypeSyntax>();
     var baseType = overrideBaseType.GetOrDefault(type, () => type.BaseType);
     
@@ -81,7 +77,6 @@ public class ParsedAstGenerator : PostParseAstVisitor {
         return null;
       }
       baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(baseType))));
-      ownedFieldPosition = parameterToSchemaPositions[baseType].Count;
 
       var myParseConstructor = GetParseConstructor(type);
       var baseParseConstructor = GetParseConstructor(baseType);
@@ -108,17 +103,11 @@ public class ParsedAstGenerator : PostParseAstVisitor {
     }
 
     var constructor = GetParseConstructor(type);
-    if (constructor == null) {
-      return null;
-    }
 
     var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
     var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
 
-    var parameterToSchemaPosition = new Dictionary<string, int>();
-    var schemaToConstructorPosition = new Dictionary<int, int>();
     var parameters = constructor.GetParameters();
-    parameterToSchemaPositions[type] = parameterToSchemaPosition;
     var statements = new StringBuilder();
     ProcessParameters();
     classDeclaration = classDeclaration.AddMembers(newFields.ToArray());
@@ -151,10 +140,6 @@ public class ParsedAstGenerator : PostParseAstVisitor {
         }
 
         if (memberInfo.DeclaringType != type) {
-          if (parameterToSchemaPositions[memberInfo.DeclaringType!].TryGetValue(memberInfo.Name, out var schemaPosition)) {
-            schemaToConstructorPosition[schemaPosition] = index;
-            parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
-          }
           continue;
         }
 
@@ -167,10 +152,6 @@ public class ParsedAstGenerator : PostParseAstVisitor {
         newFields.Add(FieldDeclaration(VariableDeclaration(
           ParseTypeName(ToGenericTypeString(usedTyped) + nullableSuffix),
           SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
-        var schemaPosition2 = ownedFieldPosition++;
-        parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
-        schemaToConstructorPosition[schemaPosition2] = index;
-
         if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
           usedTyped = newType;
         }
@@ -183,9 +164,9 @@ public class ParsedAstGenerator : PostParseAstVisitor {
     }
   }
 
-  private BaseTypeDeclarationSyntax GenerateEnum(Type type, string typeString)
+  private BaseTypeDeclarationSyntax GenerateEnum(Type type)
   {
-    var enumName = typeString;
+    var enumName = ToGenericTypeString(type);
     var enumm = EnumDeclaration(enumName);
     foreach (var name in Enum.GetNames(type)) {
       enumm = enumm.AddMembers(EnumMemberDeclaration(name));

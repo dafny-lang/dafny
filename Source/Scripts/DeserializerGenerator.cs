@@ -17,6 +17,7 @@ public class DeserializerGenerator : PostParseAstVisitor {
   
   private ClassDeclarationSyntax deserializeClass = (ClassDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(@"partial class Deserializer {}")!;
   private List<StatementSyntax> deserializeObjectCases = new();
+  protected static Dictionary<Type, Dictionary<string, int>> parameterToSchemaPositions = new();
 
   public static Command GetCommand() {
     var result = new Command("generate-deserializer", "");

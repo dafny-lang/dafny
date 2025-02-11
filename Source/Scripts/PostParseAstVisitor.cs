@@ -23,7 +23,6 @@ public abstract class PostParseAstVisitor {
   };
 
   protected static HashSet<Type> excludedTypes = [typeof(DafnyOptions)];
-  protected static Dictionary<Type, Dictionary<string, int>> parameterToSchemaPositions = new();
 
   protected static Dictionary<Type, Type> mappedTypes = new() {
     { typeof(Guid), typeof(string) },
