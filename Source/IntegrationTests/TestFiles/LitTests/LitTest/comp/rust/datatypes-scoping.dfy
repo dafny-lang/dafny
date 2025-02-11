@@ -12,6 +12,10 @@ datatype Loop2 = Loop2(loop: Loop) {
   method hash() {
     print "\nThis is Dafny hash 2";
   }
+
+  method doHash() {
+    hash();
+  }
 }
 
 method Main() {

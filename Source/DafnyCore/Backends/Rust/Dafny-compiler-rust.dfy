@@ -2183,6 +2183,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           } else {
             // The self type of any other type is borrowed
             onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
+            onExpr := FromGeneralBorrowToSelfBorrow(onExpr, recOwnership, env);
             readIdents := readIdents + recIdents;
           }
           r := fullPath.ApplyType(onTypeExprs).FSel(escapeName(name.name)).ApplyType(typeExprs).Apply([onExpr] + argExprs);
