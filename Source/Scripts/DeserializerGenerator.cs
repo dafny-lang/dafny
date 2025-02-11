@@ -52,119 +52,47 @@ private object DeserializeObject(System.Type actualType) {{
     await File.WriteAllTextAsync(outputFile, deserializeUnit.NormalizeWhitespace().ToFullString());
   }
 
-  protected override void HandleType(Type current, Stack<Type> toVisit, HashSet<Type> visited, Dictionary<Type, ISet<Type>> inheritors) {
-    if (current.IsEnum) {
-      HandleEnum(current);
-    } else {
-      HandleClass(current, toVisit, visited, inheritors);
-    }
-  }
-
-  private void HandleClass(Type type,
-    Stack<Type> toVisit,
-    ISet<Type> visited,
-    IDictionary<Type, ISet<Type>> inheritors) {
-    var typeString = ToGenericTypeString(type);
-
+  protected override void HandleClass(Type type) {
     var ownedFieldPosition = 0;
     var baseType = overrideBaseType.GetOrDefault(type, () => type.BaseType);
-    
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
-      if (!visited.Contains(baseType)) {
-        toVisit.Push(type);
-        toVisit.Push(baseType);
-        visited.Remove(type);
-        return;
-      }
+
       ownedFieldPosition = parameterToSchemaPositions[baseType].Count;
-
-      var myParseConstructor = GetParseConstructor(type);
-      var baseParseConstructor = GetParseConstructor(baseType);
-      var missingParameters =
-        baseParseConstructor.GetParameters().Select(p => p.Name)
-          .Except(myParseConstructor.GetParameters().Select(p => p.Name));
-      if (missingParameters.Any()) {
-        throw new Exception("");
-      }
     }
-
-
-    if (inheritors.TryGetValue(type, out var children)) {
-      foreach (var child in children) {
-        var goodConstructor = child.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).
-          FirstOrDefault(c => c.GetCustomAttribute<ParseConstructorAttribute>() != null);
-        if (goodConstructor != null) {
-          toVisit.Push(child);
-        }
-      }
-    }
-
-    var constructor = GetParseConstructor(type);
-
-    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
-    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
-
     var parameterToSchemaPosition = new Dictionary<string, int>();
     var schemaToConstructorPosition = new Dictionary<int, int>();
-    var parameters = constructor.GetParameters();
     parameterToSchemaPositions[type] = parameterToSchemaPosition;
     var statements = new StringBuilder();
-    ProcessParameters();
 
-    GenerateDeserializerMethod(type, constructor, schemaToConstructorPosition, parameters, statements, typeString);
-
-    void ProcessParameters()
-    {
-      for (var index = 0; index < parameters.Length; index++) {
-        var parameter = constructor.GetParameters()[index];
-        if (excludedTypes.Contains(parameter.ParameterType)) {
-          statements.AppendLine($"{parameter.ParameterType} parameter{index} = null;");
-          continue;
-        }
-
-        if (parameter.GetCustomAttribute<BackEdge>() != null) {
-          statements.AppendLine($"{parameter.ParameterType} parameter{index} = null;");
-          continue;
-        }
-
-        var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
-                         (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
-
-        if (memberInfo == null) {
-          throw new Exception($"type {type}, parameter {parameter.Name}");
-        }
-        if (memberInfo.GetCustomAttribute<BackEdge>() != null) {
-          statements.AppendLine($"{parameter.ParameterType} parameter{index} = null;");
-          continue;
-        }
-
-        if (memberInfo.DeclaringType != type) {
-          if (parameterToSchemaPositions[memberInfo.DeclaringType!].TryGetValue(memberInfo.Name, out var schemaPosition)) {
-            schemaToConstructorPosition[schemaPosition] = index;
-            parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
-          }
-          continue;
-        }
-
-        var usedTyped = parameter.ParameterType;
-      
-        var schemaPosition2 = ownedFieldPosition++;
-        parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
-        schemaToConstructorPosition[schemaPosition2] = index;
-
-        if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
-          usedTyped = newType;
-        }
-
-        toVisit.Push(usedTyped);
-        foreach (var argument in usedTyped.GenericTypeArguments) {
-          toVisit.Push(argument);
-        }
+    var parameters = new List<ParameterInfo>();
+    VisitParameters(type, (index, parameter, memberInfo) => {
+      var parameterType = parameter.ParameterType;
+      if (excludedTypes.Contains(parameterType)) {
+        statements.AppendLine($"{parameterType} parameter{index} = null;");
+        return;
       }
-    }
-  }
 
-  private void HandleEnum(Type type)
+      if (memberInfo.GetCustomAttribute<BackEdge>() != null) {
+        statements.AppendLine($"{parameterType} parameter{index} = null;");
+        return;
+      }
+
+      if (memberInfo.DeclaringType != type) {
+        if (parameterToSchemaPositions[memberInfo.DeclaringType!].TryGetValue(memberInfo.Name, out var schemaPosition)) {
+          schemaToConstructorPosition[schemaPosition] = index;
+          parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
+        }
+        return;
+      }
+      
+      var schemaPosition2 = ownedFieldPosition++;
+      parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
+      schemaToConstructorPosition[schemaPosition2] = index;
+    });
+    GenerateDeserializerMethod(type, schemaToConstructorPosition, statements);
+  }
+  
+  protected override void HandleEnum(Type type)
   {
     var deserializer = SyntaxFactory.ParseMemberDeclaration($@"
 private {type.Name} Deserialize{type.Name}() {{
@@ -173,12 +101,15 @@ private {type.Name} Deserialize{type.Name}() {{
 }}")!;
     deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(deserializer));
   }
-
-  private void GenerateDeserializerMethod(Type type, ConstructorInfo constructor, Dictionary<int, int> schemaToConstructorPosition,
-    ParameterInfo[] parameters, StringBuilder statements, string typeString) {
-    if (type.IsAbstract || !constructor.IsPublic) {
+  private void GenerateDeserializerMethod(Type type, Dictionary<int, int> schemaToConstructorPosition,
+    StringBuilder statements) {
+    if (type.IsAbstract) {
       return;
     }
+
+    var typeString = ToGenericTypeString(type);
+    var constructor = GetParseConstructor(type);
+    var parameters = constructor.GetParameters();
 
     var deserializeMethodName = $"Deserialize{typeString}";
     if (typesWithHardcodedDeserializer.Contains(type.WithoutGenericArguments())) {

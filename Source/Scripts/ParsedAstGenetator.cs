@@ -1,7 +1,6 @@
 using System.CommandLine;
 using System.Numerics;
 using System.Reflection;
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -40,138 +39,42 @@ public class ParsedAstGenerator : PostParseAstVisitor {
     return compilationUnit.ToFullString();
   }
 
-  protected override void HandleType(Type current, Stack<Type> toVisit, HashSet<Type> visited,
-    Dictionary<Type, ISet<Type>> inheritors) {
-    
-    var classDeclaration = GenerateType(current, toVisit, visited, inheritors);
-    if (classDeclaration != null) {
-      compilationUnit = compilationUnit.AddMembers(classDeclaration);
-    }
-  }
-
-  private BaseTypeDeclarationSyntax? GenerateType(Type type,
-    Stack<Type> toVisit,
-    ISet<Type> visited,
-    IDictionary<Type, ISet<Type>> inheritors) {
-    if (type.IsEnum) {
-      return GenerateEnum(type);
-    } else {
-      return GenerateClass(type, toVisit, visited, inheritors);
-    }
-
-  }
-
-  private static BaseTypeDeclarationSyntax? GenerateClass(Type type, Stack<Type> toVisit, ISet<Type> visited, IDictionary<Type, ISet<Type>> inheritors)
-  {
-    var classDeclaration = GenerateClassHeader(type);
-    List<MemberDeclarationSyntax> newFields = new();
-
-    var baseList = new List<BaseTypeSyntax>();
-    var baseType = overrideBaseType.GetOrDefault(type, () => type.BaseType);
-    
-    if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
-      if (!visited.Contains(baseType)) {
-        toVisit.Push(type);
-        toVisit.Push(baseType);
-        visited.Remove(type);
-        return null;
-      }
-      baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(baseType))));
-
-      var myParseConstructor = GetParseConstructor(type);
-      var baseParseConstructor = GetParseConstructor(baseType);
-      var missingParameters =
-        baseParseConstructor.GetParameters().Select(p => p.Name)
-          .Except(myParseConstructor.GetParameters().Select(p => p.Name));
-      if (missingParameters.Any()) {
-        throw new Exception("");
-      }
-    }
-
-    if (baseList.Any()) { 
-      classDeclaration = classDeclaration.WithBaseList(BaseList(SeparatedList(baseList)));
-    }
-
-    if (inheritors.TryGetValue(type, out var children)) {
-      foreach (var child in children) {
-        var goodConstructor = child.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).
-          FirstOrDefault(c => c.GetCustomAttribute<ParseConstructorAttribute>() != null);
-        if (goodConstructor != null) {
-          toVisit.Push(child);
-        }
-      }
-    }
-
-    var constructor = GetParseConstructor(type);
-
-    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
-    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
-
-    var parameters = constructor.GetParameters();
-    var statements = new StringBuilder();
-    ProcessParameters();
-    classDeclaration = classDeclaration.AddMembers(newFields.ToArray());
-
-    return classDeclaration;
-
-    void ProcessParameters()
-    {
-      for (var index = 0; index < parameters.Length; index++) {
-        var parameter = constructor.GetParameters()[index];
-        if (excludedTypes.Contains(parameter.ParameterType)) {
-          statements.AppendLine($"{parameter.ParameterType} parameter{index} = null;");
-          continue;
-        }
-
-        if (parameter.GetCustomAttribute<BackEdge>() != null) {
-          statements.AppendLine($"{parameter.ParameterType} parameter{index} = null;");
-          continue;
-        }
-
-        var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
-                         (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
-
-        if (memberInfo == null) {
-          throw new Exception($"type {type}, parameter {parameter.Name}");
-        }
-        if (memberInfo.GetCustomAttribute<BackEdge>() != null) {
-          statements.AppendLine($"{parameter.ParameterType} parameter{index} = null;");
-          continue;
-        }
-
-        if (memberInfo.DeclaringType != type) {
-          continue;
-        }
-
-        var usedTyped = parameter.ParameterType;
-        var nullabilityContext = new NullabilityInfoContext();
-        var nullabilityInfo = nullabilityContext.Create(parameter);
-        bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
-        var nullableSuffix = isNullable ? "?" : "";
-      
-        newFields.Add(FieldDeclaration(VariableDeclaration(
-          ParseTypeName(ToGenericTypeString(usedTyped) + nullableSuffix),
-          SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
-        if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
-          usedTyped = newType;
-        }
-
-        toVisit.Push(usedTyped);
-        foreach (var argument in usedTyped.GenericTypeArguments) {
-          toVisit.Push(argument);
-        }
-      }
-    }
-  }
-
-  private BaseTypeDeclarationSyntax GenerateEnum(Type type)
-  {
+  protected override void HandleEnum(Type type) {
     var enumName = ToGenericTypeString(type);
     var enumm = EnumDeclaration(enumName);
     foreach (var name in Enum.GetNames(type)) {
       enumm = enumm.AddMembers(EnumMemberDeclaration(name));
     }
-    return enumm;
+    compilationUnit = compilationUnit.AddMembers(enumm);
+  }
+
+  protected override void HandleClass(Type type) {
+    var classDeclaration = GenerateClassHeader(type);
+    List<MemberDeclarationSyntax> newFields = [];
+    
+    VisitParameters(type, (_, parameter, memberInfo) => {
+      var nullabilityContext = new NullabilityInfoContext();
+      var nullabilityInfo = nullabilityContext.Create(parameter);
+      bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
+      var nullableSuffix = isNullable ? "?" : "";
+    
+      newFields.Add(FieldDeclaration(VariableDeclaration(
+        ParseTypeName(ToGenericTypeString(parameter.ParameterType) + nullableSuffix),
+        SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
+    });
+    
+    var baseList = new List<BaseTypeSyntax>();
+    var baseType = overrideBaseType.GetOrDefault(type, () => type.BaseType);
+    if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
+      baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(baseType))));
+    }
+
+    if (baseList.Any()) { 
+      classDeclaration = classDeclaration.WithBaseList(BaseList(SeparatedList(baseList)));
+    }
+    
+    classDeclaration = classDeclaration.AddMembers(newFields.ToArray());
+    compilationUnit = compilationUnit.AddMembers(classDeclaration);
   }
 
   public static ClassDeclarationSyntax GenerateClassHeader(Type type) {

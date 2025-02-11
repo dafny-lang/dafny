@@ -1,18 +1,8 @@
-using System.Collections;
-using System.CommandLine;
-using System.Numerics;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using Type = System.Type;
 
 namespace IntegrationTests;
-
 
 public abstract class PostParseAstVisitor {
 
@@ -29,15 +19,12 @@ public abstract class PostParseAstVisitor {
     { typeof(IOrigin), typeof(SourceOrigin) },
     { typeof(Uri), typeof(string) }
   };
-
-
+  
   public void VisitTypesFromRoot(Type rootType) {
     var assembly = rootType.Assembly;
     var inheritors = assembly.GetTypes().Where(t => t.BaseType != null).GroupBy(t => t.BaseType!).ToDictionary(
       g => g.Key,
       g => (ISet<Type>)g.ToHashSet());
-
-    var compilationUnit = CompilationUnit();
 
     var toVisit = new Stack<Type>();
     toVisit.Push(rootType);
@@ -59,13 +46,103 @@ public abstract class PostParseAstVisitor {
       if (current.IsGenericTypeParameter) {
         continue;
       }
-      
-      HandleType(current, toVisit, visited, inheritors);
+
+      if (current.IsEnum) {
+        HandleEnum(current);
+      } else {
+        VisitClass(current, toVisit, inheritors);
+      }
     }
   }
 
-  protected abstract void HandleType(Type current, Stack<Type> toVisit, HashSet<Type> visited,
-    Dictionary<Type, ISet<Type>> inheritors);
+  protected abstract void HandleEnum(Type current);
+
+  protected void VisitParameters(Type type, Action<int, ParameterInfo, MemberInfo> handle) {
+    var constructor = GetParseConstructor(type);
+    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
+    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
+
+    var parameters = constructor.GetParameters();
+    for (var index = 0; index < parameters.Length; index++) {
+      var parameter = constructor.GetParameters()[index];
+      
+      var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
+                       (MemberInfo)properties.GetValueOrDefault(parameter.Name.ToLower())!;
+
+      handle(index, parameter, memberInfo);
+    }
+  }
+  
+  private void VisitClass(Type type, Stack<Type> toVisit, IDictionary<Type, ISet<Type>> inheritors) {
+    HandleClass(type);
+    var baseType = overrideBaseType.GetOrDefault(type, () => type.BaseType);
+    if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
+      var myParseConstructor = GetParseConstructor(type);
+      var baseParseConstructor = GetParseConstructor(baseType);
+      var missingParameters =
+        baseParseConstructor.GetParameters().Select(p => p.Name)
+          .Except(myParseConstructor.GetParameters().Select(p => p.Name));
+      if (missingParameters.Any()) {
+        throw new Exception("");
+      }
+    }
+
+    if (inheritors.TryGetValue(type, out var children)) {
+      foreach (var child in children) {
+        var goodConstructor = child.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).
+          FirstOrDefault(c => c.GetCustomAttribute<ParseConstructorAttribute>() != null);
+        if (goodConstructor != null) {
+          VisitType(child, toVisit);
+        }
+      }
+    }
+
+    var constructor = GetParseConstructor(type);
+    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
+    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
+
+    var parameters = constructor.GetParameters();
+    for (var index = 0; index < parameters.Length; index++) {
+      var parameter = constructor.GetParameters()[index];
+      
+      if (excludedTypes.Contains(parameter.ParameterType)) {
+        continue;
+      }
+
+      var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
+                       (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
+      if (memberInfo == null) {
+        throw new Exception($"type {type}, parameter {parameter.Name}");
+      }
+      if (memberInfo.GetCustomAttribute<BackEdge>() != null) {
+        continue;
+      }
+        
+      if (memberInfo.DeclaringType != type) {
+        continue;
+      }
+
+      var usedTyped = parameter.ParameterType;
+      if (mappedTypes.TryGetValue(usedTyped, out var newType)) {
+        usedTyped = newType;
+      }
+
+      VisitType(usedTyped, toVisit);
+      foreach (var argument in usedTyped.GenericTypeArguments) {
+        VisitType(argument, toVisit);
+      }
+    }
+  }
+
+  protected abstract void HandleClass(Type type);
+
+  protected static void VisitType(Type type, Stack<Type> toVisit) {
+    toVisit.Push(type);
+    var baseType = overrideBaseType.GetOrDefault(type, () => type.BaseType);
+    if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
+      toVisit.Push(baseType);
+    }
+  }
 
   protected static ConstructorInfo GetParseConstructor(Type type)
   {
