@@ -1,6 +1,5 @@
 using System.Collections;
 using System.CommandLine;
-using System.Numerics;
 using System.Reflection;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -64,7 +63,6 @@ private object DeserializeObject(System.Type actualType) {{
     parameterToSchemaPositions[type] = parameterToSchemaPosition;
     var statements = new StringBuilder();
 
-    var parameters = new List<ParameterInfo>();
     VisitParameters(type, (index, parameter, memberInfo) => {
       var parameterType = parameter.ParameterType;
       if (excludedTypes.Contains(parameterType)) {

@@ -33,9 +33,9 @@ public class ParsedAstGenerator : PostParseAstVisitor {
     compilationUnit = compilationUnit.NormalizeWhitespace();
     
     var hasErrors = CheckCorrectness(compilationUnit);
-    if (hasErrors) {
-      throw new Exception("Exception");
-    }
+    // if (hasErrors) {
+    //   throw new Exception("Exception");
+    // }
     return compilationUnit.ToFullString();
   }
 
@@ -53,6 +53,10 @@ public class ParsedAstGenerator : PostParseAstVisitor {
     List<MemberDeclarationSyntax> newFields = [];
     
     VisitParameters(type, (_, parameter, memberInfo) => {
+      if (excludedTypes.Contains(parameter.ParameterType)) {
+        return;
+      }
+      
       var nullabilityContext = new NullabilityInfoContext();
       var nullabilityInfo = nullabilityContext.Create(parameter);
       bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;

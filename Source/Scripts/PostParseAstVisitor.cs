@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Dafny;
+using Microsoft.Extensions.FileSystemGlobbing.Internal.PatternContexts;
 using Type = System.Type;
 
 namespace IntegrationTests;
@@ -34,6 +35,14 @@ public abstract class PostParseAstVisitor {
 
       if (current.IsGenericType) {
         current = current.GetGenericTypeDefinition();
+      }
+      var baseType = overrideBaseType.GetOrDefault(current, () => current.BaseType);
+      if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
+        if (!visited.Contains(baseType)) {
+          toVisit.Push(current);
+          toVisit.Push(baseType);
+          continue;
+        }
       }
       if (!visited.Add(current)) {
         continue;
@@ -97,29 +106,12 @@ public abstract class PostParseAstVisitor {
       }
     }
 
-    var constructor = GetParseConstructor(type);
-    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
-    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
-
-    var parameters = constructor.GetParameters();
-    for (var index = 0; index < parameters.Length; index++) {
-      var parameter = constructor.GetParameters()[index];
-      
+    VisitParameters(type, (_, parameter, field) => {
       if (excludedTypes.Contains(parameter.ParameterType)) {
-        continue;
+        return;
       }
-
-      var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
-                       (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
-      if (memberInfo == null) {
-        throw new Exception($"type {type}, parameter {parameter.Name}");
-      }
-      if (memberInfo.GetCustomAttribute<BackEdge>() != null) {
-        continue;
-      }
-        
-      if (memberInfo.DeclaringType != type) {
-        continue;
+      if (field.GetCustomAttribute<BackEdge>() != null) {
+        return;
       }
 
       var usedTyped = parameter.ParameterType;
@@ -131,17 +123,16 @@ public abstract class PostParseAstVisitor {
       foreach (var argument in usedTyped.GenericTypeArguments) {
         VisitType(argument, toVisit);
       }
-    }
+    });
   }
 
   protected abstract void HandleClass(Type type);
 
   protected static void VisitType(Type type, Stack<Type> toVisit) {
-    toVisit.Push(type);
-    var baseType = overrideBaseType.GetOrDefault(type, () => type.BaseType);
-    if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
-      toVisit.Push(baseType);
+    if (mappedTypes.TryGetValue(type, out var newType)) {
+      type = newType;
     }
+    toVisit.Push(type);
   }
 
   protected static ConstructorInfo GetParseConstructor(Type type)
