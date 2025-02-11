@@ -278,7 +278,7 @@ public class ProgramParser {
       var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
       return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
     } else {
-      var moduleDefinition = new Deserializer(uri, new TextDecoder(reader.ReadToEnd())).DeserializeFileModuleDefinition();
+      var moduleDefinition = new Deserializer(uri, new TextDecoder(reader.ReadToEnd())).ReadFileModuleDefinition();
       // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
       return new DfyParseFileResult(null, uri, new BatchErrorReporter(options), moduleDefinition, []);
     }

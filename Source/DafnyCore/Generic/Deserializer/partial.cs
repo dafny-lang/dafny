@@ -2,47 +2,44 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Dafny;
 
 public partial class Deserializer(Uri uri, IDecoder decoder) {
 
-  private Specification<T> DeserializeSpecification<T>() where T : Node {
+  private Specification<T> ReadSpecification<T>() where T : Node {
     var parameter0 = DeserializeGeneric<SourceOrigin>();
     if (typeof(T) == typeof(FrameExpression)) {
-      var parameter1 = DeserializeList<T>(() => (T)(object)DeserializeFrameExpression());
-      var parameter2 = DeserializeAttributesOption();
+      var parameter1 = ReadList<T>(() => (T)(object)ReadFrameExpression());
+      var parameter2 = ReadAttributesOption();
       return new Specification<T>(parameter0, parameter1, parameter2);
     } else {
-      var parameter1 = DeserializeList<T>(() => (T)(object)DeserializeAbstract<Expression>());
-      var parameter2 = DeserializeAttributesOption();
+      var parameter1 = ReadList<T>(() => (T)(object)DeserializeAbstract<Expression>());
+      var parameter2 = ReadAttributesOption();
       return new Specification<T>(parameter0, parameter1, parameter2);
     }
   }
 
   
-  private List<T> DeserializeList<T>(Func<T> readElement) {
-    return DeserializeArray<T>(readElement).ToList();
+  private List<T> ReadList<T>(Func<T> readElement) {
+    return ReadArray<T>(readElement).ToList();
   }
 
-  public Token DeserializeTokenOption() {
-    return DeserializeToken();
+  public Token ReadTokenOption() {
+    return ReadToken();
   }
   
-  public Token DeserializeToken()
+  public Token ReadToken()
   {
-    var parameter0 = DeserializeInt32();
-    var parameter1 = DeserializeInt32();
+    var parameter0 = ReadInt32();
+    var parameter1 = ReadInt32();
     return new Token(parameter0, parameter1) {
       Uri = uri
     };
   }
 
-  private T[] DeserializeArray<T>(Func<T> readElement) {
+  private T[] ReadArray<T>(Func<T> readElement) {
     var length = decoder.ReadInt32();
     var array = new T[length];
     for (int i = 0; i < length; i++) {
@@ -55,17 +52,17 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     return DeserializeGeneric<T>();
   }
 
-  public T DeserializeAbstractOption<T>() {
+  public T ReadAbstractOption<T>() {
 
     var isNull = decoder.ReadBool();
     if (isNull) {
       return default;
     }
     
-    return DeserializeAbstract<T>();
+    return ReadAbstract<T>();
   }
   
-  public T DeserializeAbstract<T>() {
+  public T ReadAbstract<T>() {
     var actualType = typeof(T);
     var typeName = decoder.ReadQualifiedName();
     actualType = System.Type.GetType("Microsoft.Dafny." + typeName) ??
@@ -77,15 +74,11 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     return decoder.ReadBool();
   }
 
-  public bool DeserializeBoolean() {
+  public bool ReadBoolean() {
     return decoder.ReadBool();
   }
   
-  public bool DeserializeBool() {
-    return decoder.ReadBool();
-  }
-  
-  public string DeserializeStringOption() {
+  public string ReadStringOption() {
     var isNull = decoder.ReadBool();
     if (isNull) {
       return default;
@@ -93,7 +86,7 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     return decoder.ReadString();
   }
   
-  public string DeserializeString() {
+  public string ReadString() {
     return decoder.ReadString();
   }
 
@@ -116,20 +109,13 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     }
 
     if (actualType == typeof(IOrigin) || actualType == typeof(SourceOrigin)) {
-      return (T)(object)DeserializeSourceOrigin();
+      return (T)(object)ReadSourceOrigin();
     }
-
-    // if (Nullable.GetUnderlyingType(actualType) != null) {
-    //   var isNull = decoder.ReadBool();
-    //   if (isNull) {
-    //     return default;
-    //   }
-    // }
     
-    return (T)DeserializeObject(actualType);
+    return (T)ReadObject(actualType);
   }
 
-  private int DeserializeInt32() {
+  private int ReadInt32() {
     return decoder.ReadInt32();
   }
 }

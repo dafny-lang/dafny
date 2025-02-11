@@ -37,7 +37,7 @@ using System.Collections.Generic;
 ");
     var ns = SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName("Microsoft.Dafny"));
     var deserializeObjectSyntax = (MethodDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration($@"
-private object DeserializeObject(System.Type actualType) {{
+private object ReadObject(System.Type actualType) {{
   throw new Exception();
 }}")!;
     generateParsedAst.deserializeObjectCases.Add(SyntaxFactory.ParseStatement("throw new Exception();"));
@@ -87,20 +87,20 @@ private object DeserializeObject(System.Type actualType) {{
       parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
       schemaToConstructorPosition[schemaPosition2] = index;
     });
-    GenerateDeserializerMethod(type, schemaToConstructorPosition, statements);
+    GenerateReadMethod(type, schemaToConstructorPosition, statements);
   }
   
   protected override void HandleEnum(Type type)
   {
     var deserializer = SyntaxFactory.ParseMemberDeclaration($@"
-private {type.Name} Deserialize{type.Name}() {{
-  int ordinal = DeserializeInt32();
+private {type.Name} Read{type.Name}() {{
+  int ordinal = ReadInt32();
   return ({type.Name})ordinal;
 }}")!;
     deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(deserializer));
   }
   
-  private void GenerateDeserializerMethod(Type type, Dictionary<int, int> schemaToConstructorPosition,
+  private void GenerateReadMethod(Type type, Dictionary<int, int> schemaToConstructorPosition,
     StringBuilder statements) {
     if (type.IsAbstract) {
       return;
@@ -110,7 +110,7 @@ private {type.Name} Deserialize{type.Name}() {{
     var constructor = GetParseConstructor(type);
     var parameters = constructor.GetParameters();
 
-    var deserializeMethodName = $"Deserialize{typeString}";
+    var deserializeMethodName = $"Read{typeString}";
     if (typesWithHardcodedDeserializer.Contains(type.WithoutGenericArguments())) {
       return;
     }
@@ -145,22 +145,22 @@ if (actualType == typeof({typeString})) {{
       var elementType = newType.GetGenericArguments()[0];
       var elementRead = GetReadTypeCall(elementType, false);
       var elementTypeString = ToGenericTypeString(elementType, false, false);
-      return $"DeserializeArray<{elementTypeString}>(() => {elementRead})";
+      return $"ReadArray<{elementTypeString}>(() => {elementRead})";
     }
     
     if (newType.IsGenericType && newType.IsAssignableTo(typeof(IEnumerable))) {
       var elementType = newType.GetGenericArguments()[0];
       var elementRead = GetReadTypeCall(elementType, false);
       var elementTypeString = ToGenericTypeString(elementType, false, false);
-      return $"DeserializeList<{elementTypeString}>(() => {elementRead})";
+      return $"ReadList<{elementTypeString}>(() => {elementRead})";
     }
 
     var optionString = nullable ? "Option" : "";
     var genericTypeString = ToGenericTypeString(parameterType, true, false);
     if (newType.IsAbstract || newType == typeof(object)) {
-      parameterTypeReadCall = $"DeserializeAbstract{optionString}<{genericTypeString}>()";
+      parameterTypeReadCall = $"ReadAbstract{optionString}<{genericTypeString}>()";
     } else {
-      parameterTypeReadCall = $"Deserialize{genericTypeString}{optionString}()";
+      parameterTypeReadCall = $"Read{genericTypeString}{optionString}()";
     }
 
     return parameterTypeReadCall;
