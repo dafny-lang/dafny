@@ -53,7 +53,7 @@ private object DeserializeObject(System.Type actualType) {{
 
   protected override void HandleClass(Type type) {
     var ownedFieldPosition = 0;
-    var baseType = overrideBaseType.GetOrDefault(type, () => type.BaseType);
+    var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
 
       ownedFieldPosition = parameterToSchemaPositions[baseType].Count;
@@ -65,7 +65,7 @@ private object DeserializeObject(System.Type actualType) {{
 
     VisitParameters(type, (index, parameter, memberInfo) => {
       var parameterType = parameter.ParameterType;
-      if (excludedTypes.Contains(parameterType)) {
+      if (ExcludedTypes.Contains(parameterType)) {
         statements.AppendLine($"{parameterType} parameter{index} = null;");
         return;
       }
@@ -99,6 +99,7 @@ private {type.Name} Deserialize{type.Name}() {{
 }}")!;
     deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(deserializer));
   }
+  
   private void GenerateDeserializerMethod(Type type, Dictionary<int, int> schemaToConstructorPosition,
     StringBuilder statements) {
     if (type.IsAbstract) {
@@ -139,7 +140,7 @@ if (actualType == typeof({typeString})) {{
   private string GetReadTypeCall(Type parameterType, bool nullable)
   {
     string parameterTypeReadCall;
-    var newType = mappedTypes.GetValueOrDefault(parameterType, parameterType);
+    var newType = MappedTypes.GetValueOrDefault(parameterType, parameterType);
     if (newType.IsArray) {
       var elementType = newType.GetGenericArguments()[0];
       var elementRead = GetReadTypeCall(elementType, false);

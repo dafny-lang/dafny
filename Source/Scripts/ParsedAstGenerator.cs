@@ -53,7 +53,7 @@ public class ParsedAstGenerator : PostParseAstVisitor {
     List<MemberDeclarationSyntax> newFields = [];
     
     VisitParameters(type, (_, parameter, memberInfo) => {
-      if (excludedTypes.Contains(parameter.ParameterType)) {
+      if (ExcludedTypes.Contains(parameter.ParameterType)) {
         return;
       }
       
@@ -68,7 +68,7 @@ public class ParsedAstGenerator : PostParseAstVisitor {
     });
     
     var baseList = new List<BaseTypeSyntax>();
-    var baseType = overrideBaseType.GetOrDefault(type, () => type.BaseType);
+    var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(baseType))));
     }
