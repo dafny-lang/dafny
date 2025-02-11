@@ -100,9 +100,9 @@ private object DeserializeObject(System.Type actualType) {{
 
 
     var hasErrors = CheckCorrectness(compilationUnit);
-    // if (hasErrors) {
-    //   throw new Exception("Exception");
-    // }
+    if (hasErrors) {
+      throw new Exception("Exception");
+    }
     return compilationUnit.ToFullString();
   }
 
@@ -175,7 +175,6 @@ private object DeserializeObject(System.Type actualType) {{
     parameterToSchemaPositions[type] = parameterToSchemaPosition;
     var statements = new StringBuilder();
     ProcessParameters();
-    // Combine everything
     classDeclaration = classDeclaration.AddMembers(newFields.ToArray());
 
     GenerateDeserializerMethod(type, constructor, schemaToConstructorPosition, parameters, statements, typeString);
@@ -187,7 +186,6 @@ private object DeserializeObject(System.Type actualType) {{
       for (var index = 0; index < parameters.Length; index++) {
         var parameter = constructor.GetParameters()[index];
         if (excludedTypes.Contains(parameter.ParameterType)) {
-          // TODO fix.
           statements.AppendLine($"{parameter.ParameterType} parameter{index} = null;");
           continue;
         }
@@ -199,7 +197,6 @@ private object DeserializeObject(System.Type actualType) {{
 
         var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
                          (MemberInfo?)properties.GetValueOrDefault(parameter.Name.ToLower());
-        memberInfo.GetCustomAttribute<BackEdge>();
 
         if (memberInfo == null) {
           throw new Exception($"type {type}, parameter {parameter.Name}");
@@ -218,10 +215,13 @@ private object DeserializeObject(System.Type actualType) {{
         }
 
         var usedTyped = parameter.ParameterType;
-
+        var nullabilityContext = new NullabilityInfoContext();
+        var nullabilityInfo = nullabilityContext.Create(parameter);
+        bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
+        var nullableSuffix = isNullable ? "?" : "";
       
         newFields.Add(FieldDeclaration(VariableDeclaration(
-          ParseTypeName(ToGenericTypeString(usedTyped)),
+          ParseTypeName(ToGenericTypeString(usedTyped) + nullableSuffix),
           SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
         var schemaPosition2 = ownedFieldPosition++;
         parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
@@ -272,8 +272,10 @@ private {type.Name} Deserialize{type.Name}() {{
       var constructorIndex = schemaToConstructorPosition[schemaIndex];
       var parameter = parameters[constructorIndex];
 
-      var nullable = parameter.GetCustomAttribute<NullableAttribute>() != null;
-      var parameterTypeReadCall = GetReadTypeCall(parameter.ParameterType, nullable);
+      var nullabilityContext = new NullabilityInfoContext();
+      var nullabilityInfo = nullabilityContext.Create(parameter);
+      bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
+      var parameterTypeReadCall = GetReadTypeCall(parameter.ParameterType, isNullable);
       statements.AppendLine(
         $"var parameter{constructorIndex} = {parameterTypeReadCall};");
     }
@@ -306,14 +308,7 @@ if (actualType == typeof({typeString})) {{
       return $"DeserializeList<{elementTypeString}>(() => {elementRead})";
     }
 
-    bool callObjectInstead = parameterType.IsAssignableTo(typeof(IEnumerable<object>));
-    var checkOption = nullable;
-            
-    // Use once we use nullable annotation for the AST.
-    var checkOption2 = parameterType.IsAssignableTo(typeof(object)) &&
-                       parameterType.IsGenericType && parameterType.GetGenericTypeDefinition() == typeof(Nullable<>);
-    var optionString = checkOption ? "Option" : "";
-    
+    var optionString = nullable ? "Option" : "";
     var genericTypeString = ToGenericTypeString(parameterType, true, false);
     if (newType.IsAbstract || newType == typeof(object)) {
       parameterTypeReadCall = $"DeserializeAbstract{optionString}<{genericTypeString}>()";
@@ -358,7 +353,6 @@ if (actualType == typeof({typeString})) {{
   }
 
   public static ClassDeclarationSyntax ConvertTypeToSyntax(Type type) {
-    // Get the base class name without generic parameters
     string className = type.IsGenericType ?
         type.Name.Substring(0, type.Name.IndexOf('`')) :
         type.Name;
@@ -367,35 +361,27 @@ if (actualType == typeof({typeString})) {{
       className = type.DeclaringType.Name + className;
     }
 
-    // Create the class declaration with public modifier
     var classDecl = ClassDeclaration(className);
 
-    // If the type is generic, add type parameters
     if (type.IsGenericType) {
-      // Get generic type parameters
       var typeParameters = type.GetGenericArguments();
 
-      // Create type parameter list
       var typeParamList = TypeParameterList(
           SeparatedList(
               typeParameters.Select(tp =>
                   TypeParameter(tp.Name))));
 
-      // Add type parameter list to class declaration
       classDecl = classDecl.WithTypeParameterList(typeParamList);
 
-      // Add constraints if any
       var constraintClauses = new List<TypeParameterConstraintClauseSyntax>();
 
       foreach (var typeParam in typeParameters) {
         var constraints = new List<TypeParameterConstraintSyntax>();
 
-        // Get generic parameter constraints
         var paramConstraints = type.GetGenericArguments()
             .First(t => t.Name == typeParam.Name)
             .GetGenericParameterConstraints();
 
-        // Add class/struct constraint if applicable
         var attributes = typeParam.GenericParameterAttributes;
         if ((attributes & GenericParameterAttributes.ReferenceTypeConstraint) != 0) {
           constraints.Add(ClassOrStructConstraint(SyntaxKind.ClassConstraint));
@@ -404,7 +390,6 @@ if (actualType == typeof({typeString})) {{
           constraints.Add(ClassOrStructConstraint(SyntaxKind.StructConstraint));
         }
 
-        // Add type constraints
         foreach (var constraint in paramConstraints) {
           if (constraint.IsInterface) {
             continue;
@@ -413,12 +398,10 @@ if (actualType == typeof({typeString})) {{
               TypeConstraint(ParseTypeName(constraint.Name)));
         }
 
-        // Add constructor constraint if applicable
         if ((attributes & GenericParameterAttributes.DefaultConstructorConstraint) != 0) {
           constraints.Add(ConstructorConstraint());
         }
 
-        // If we have any constraints, create the constraint clause
         if (constraints.Any()) {
           var constraintClause = TypeParameterConstraintClause(
               IdentifierName(typeParam.Name),

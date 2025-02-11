@@ -7,9 +7,9 @@ namespace Microsoft.Dafny
     {
         public SourceOrigin DeserializeSourceOrigin()
         {
-            var parameter0 = DeserializeTokenOption();
-            var parameter1 = DeserializeToken();
-            var parameter2 = DeserializeToken();
+            var parameter0 = DeserializeToken();
+            var parameter1 = DeserializeTokenOption();
+            var parameter2 = DeserializeTokenOption();
             return new SourceOrigin(parameter0, parameter1, parameter2);
         }
 
