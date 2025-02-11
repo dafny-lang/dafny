@@ -33,7 +33,7 @@ public abstract class PostParseAstVisitor {
     { typeof(IOrigin), typeof(SourceOrigin) },
     { typeof(Uri), typeof(string) }
   };
-  
+
   public void VisitTypesFromRoot(Type rootType) {
     var assembly = rootType.Assembly;
     var inheritors = assembly.GetTypes().Where(t => t.BaseType != null).GroupBy(t => t.BaseType!).ToDictionary(
@@ -78,7 +78,7 @@ public abstract class PostParseAstVisitor {
   }
 
   protected abstract void HandleEnum(Type current);
-  
+
   private void VisitClass(Type type, Stack<Type> toVisit, IDictionary<Type, ISet<Type>> inheritors) {
     HandleClass(type);
     var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
@@ -127,7 +127,7 @@ public abstract class PostParseAstVisitor {
     var parameters = constructor.GetParameters();
     for (var index = 0; index < parameters.Length; index++) {
       var parameter = constructor.GetParameters()[index];
-      
+
       var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
                        (MemberInfo)properties.GetValueOrDefault(parameter.Name.ToLower())!;
 
@@ -144,8 +144,7 @@ public abstract class PostParseAstVisitor {
     toVisit.Push(type);
   }
 
-  protected static ConstructorInfo GetParseConstructor(Type type)
-  {
+  protected static ConstructorInfo GetParseConstructor(Type type) {
     var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
     return constructors.Where(c => !c.IsPrivate &&
                                    !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c =>

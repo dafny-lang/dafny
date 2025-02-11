@@ -13,7 +13,7 @@ namespace IntegrationTests;
 public class DeserializerGenerator : PostParseAstVisitor {
 
   private HashSet<Type> typesWithHardcodedDeserializer = [typeof(Token), typeof(Specification<>)];
-  
+
   private ClassDeclarationSyntax deserializeClass = (ClassDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(@"partial class Deserializer {}")!;
   private List<StatementSyntax> deserializeObjectCases = new();
   protected static Dictionary<Type, Dictionary<string, int>> parameterToSchemaPositions = new();
@@ -30,7 +30,7 @@ public class DeserializerGenerator : PostParseAstVisitor {
     var program = typeof(FileModuleDefinition);
     var generateParsedAst = new DeserializerGenerator();
     generateParsedAst.VisitTypesFromRoot(program);
-    
+
     var deserializeUnit = SyntaxFactory.ParseCompilationUnit(@"
 using System;
 using System.Collections.Generic;
@@ -82,16 +82,15 @@ private object ReadObject(System.Type actualType) {{
         }
         return;
       }
-      
+
       var schemaPosition2 = ownedFieldPosition++;
       parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
       schemaToConstructorPosition[schemaPosition2] = index;
     });
     GenerateReadMethod(type, schemaToConstructorPosition, statements);
   }
-  
-  protected override void HandleEnum(Type type)
-  {
+
+  protected override void HandleEnum(Type type) {
     var deserializer = SyntaxFactory.ParseMemberDeclaration($@"
 private {type.Name} Read{type.Name}() {{
   int ordinal = ReadInt32();
@@ -99,7 +98,7 @@ private {type.Name} Read{type.Name}() {{
 }}")!;
     deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(deserializer));
   }
-  
+
   private void GenerateReadMethod(Type type, Dictionary<int, int> schemaToConstructorPosition,
     StringBuilder statements) {
     if (type.IsAbstract) {
@@ -137,8 +136,7 @@ if (actualType == typeof({typeString})) {{
 
   }
 
-  private string GetReadTypeCall(Type parameterType, bool nullable)
-  {
+  private string GetReadTypeCall(Type parameterType, bool nullable) {
     string parameterTypeReadCall;
     var newType = MappedTypes.GetValueOrDefault(parameterType, parameterType);
     if (newType.IsArray) {
@@ -147,7 +145,7 @@ if (actualType == typeof({typeString})) {{
       var elementTypeString = ToGenericTypeString(elementType, false, false);
       return $"ReadArray<{elementTypeString}>(() => {elementRead})";
     }
-    
+
     if (newType.IsGenericType && newType.IsAssignableTo(typeof(IEnumerable))) {
       var elementType = newType.GetGenericArguments()[0];
       var elementRead = GetReadTypeCall(elementType, false);
@@ -166,8 +164,7 @@ if (actualType == typeof({typeString})) {{
     return parameterTypeReadCall;
   }
 
-  private void AddReadOptionMethodForType(string typeString, string deserializeMethodName)
-  {
+  private void AddReadOptionMethodForType(string typeString, string deserializeMethodName) {
     var typedDeserialize = SyntaxFactory.ParseMemberDeclaration(@$"
  public {typeString} {deserializeMethodName}Option() {{
   if (ReadBool()) {{
@@ -179,8 +176,7 @@ if (actualType == typeof({typeString})) {{
   }
 
   private void AddReadMethodForType(ParameterInfo[] parameters, StringBuilder statements, string typeString,
-    string deserializeMethodName)
-  {
+    string deserializeMethodName) {
     var parametersString = string.Join(", ", Enumerable.Range(0, parameters.Length).Select(index =>
       $"parameter{index}"));
     var typedDeserialize = SyntaxFactory.ParseMemberDeclaration(@$"

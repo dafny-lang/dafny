@@ -454,14 +454,14 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       new Specification<Expression>([], null),
       null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes method MoveNext
-    var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"), 
-      SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), false, 
+    var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"),
+      SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), false,
       false,
-      [], [], [], [], new Specification<FrameExpression>(), 
+      [], [], [], [], new Specification<FrameExpression>(),
       new Specification<Expression>([], null),
-      [new Formal(Origin, "more", Type.Bool, false, false, null)], 
+      [new Formal(Origin, "more", Type.Bool, false, false, null)],
       new Specification<FrameExpression>([], null), null, null);
-    
+
     // add these implicit members to the class
     init.EnclosingClass = this;
     init.InheritVisibility(this);

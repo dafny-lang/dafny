@@ -23,7 +23,7 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
     Contract.Requires(cce.NonNullElements(body));
     Body = body;
   }
-  
+
   public BlockStmt(IOrigin origin, [Captured] List<Statement> body)
     : base(origin) {
     Contract.Requires(origin != null);

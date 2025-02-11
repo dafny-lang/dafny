@@ -21,7 +21,7 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     }
   }
 
-  
+
   private List<T> ReadList<T>(Func<T> readElement) {
     return ReadArray<T>(readElement).ToList();
   }
@@ -29,9 +29,8 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
   public Token ReadTokenOption() {
     return ReadToken();
   }
-  
-  public Token ReadToken()
-  {
+
+  public Token ReadToken() {
     var parameter0 = ReadInt32();
     var parameter1 = ReadInt32();
     return new Token(parameter0, parameter1) {
@@ -58,10 +57,10 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     if (isNull) {
       return default!;
     }
-    
+
     return ReadAbstract<T>();
   }
-  
+
   public T ReadAbstract<T>() {
     var typeName = decoder.ReadQualifiedName();
     var actualType = System.Type.GetType("Microsoft.Dafny." + typeName) ??
@@ -76,7 +75,7 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
   public bool ReadBoolean() {
     return decoder.ReadBool();
   }
-  
+
   public string? ReadStringOption() {
     var isNull = decoder.ReadBool();
     if (isNull) {
@@ -84,7 +83,7 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     }
     return decoder.ReadString();
   }
-  
+
   public string ReadString() {
     return decoder.ReadString();
   }
@@ -98,7 +97,7 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     if (actualType == typeof(string)) {
       return (T)(object)decoder.ReadString();
     }
-    
+
     if (actualType == typeof(bool)) {
       return (T)(object)decoder.ReadBool();
     }
@@ -110,7 +109,7 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     if (actualType == typeof(IOrigin) || actualType == typeof(SourceOrigin)) {
       return (T)(object)ReadSourceOrigin();
     }
-    
+
     return (T)ReadObject(actualType);
   }
 

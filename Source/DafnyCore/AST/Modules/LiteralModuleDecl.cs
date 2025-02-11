@@ -52,7 +52,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     BodyStartTok = moduleDef.BodyStartTok;
     moduleDef.EnclosingLiteralModuleDecl = this;
   }
-  
+
   public LiteralModuleDecl(DafnyOptions options, ModuleDefinition moduleDef, ModuleDefinition? enclosingModule, Guid cloneId)
     : base(options, moduleDef.Origin, moduleDef.NameNode, null, enclosingModule, cloneId) {
     ModuleDef = moduleDef;

@@ -64,7 +64,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   public readonly List<Expression> Args;
 
   public readonly Attributes Prev;
-  
+
   [ParseConstructor]
   public Attributes(IOrigin origin, string name, [Captured] List<Expression> args, Attributes prev) : base(origin) {
     Contract.Requires(name != null);
@@ -74,7 +74,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     Args = args;
     Prev = prev;
   }
-  
+
   public Attributes(string name, [Captured] List<Expression> args, Attributes prev) : base(Token.NoToken) {
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(args));

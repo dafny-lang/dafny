@@ -53,7 +53,7 @@ public class TextDecoder(string input) : IDecoder {
   }
 
   public string Remainder => input.Substring(position);
-  
+
   public string ReadString() {
     var sb = new StringBuilder();
     bool escaped = false;
@@ -63,7 +63,7 @@ public class TextDecoder(string input) : IDecoder {
     }
 
     position++;
-    
+
     while (position < input.Length) {
       char c = input[position++];
 

@@ -180,8 +180,8 @@ public class ExpectContracts : IRewriter {
       var emptySet = new SetDisplayExpr(tok, true, []);
       reads.Expressions.Add(new FrameExpression(tok, emptySet, null));
     }
-    var method = new Method(f.Origin, f.NameNode, f.Attributes, f.HasStaticKeyword, false, f.TypeArgs, 
-        f.Ins, f.Req, [post], reads, f.Decreases, [resultVar], 
+    var method = new Method(f.Origin, f.NameNode, f.Attributes, f.HasStaticKeyword, false, f.TypeArgs,
+        f.Ins, f.Req, [post], reads, f.Decreases, [resultVar],
         new Specification<FrameExpression>([], null), f.ByMethodBody, null, true);
     Contract.Assert(f.ByMethodDecl == null);
     method.InheritVisibility(f);

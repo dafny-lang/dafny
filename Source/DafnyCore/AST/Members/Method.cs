@@ -28,7 +28,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public override IEnumerable<INode> Children => Util.IgnoreNulls<Node>(Body!, Decreases).
     Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions);
-  
+
   public override IEnumerable<INode> PreResolveChildren => Children;
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }

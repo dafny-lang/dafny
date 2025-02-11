@@ -24,7 +24,7 @@ public class DeserializerTest {
     Assert.Null(result);
     return Task.CompletedTask;
   }
-  
+
   [Fact]
   public Task DeserializeNonNull() {
     var d = new Deserializer(new Uri("file://bla.bla"), new TextDecoder("false 0; 0; 0; 0; 0; 0; Int32 23254; "));
@@ -32,7 +32,7 @@ public class DeserializerTest {
     Assert.Equal(23254, result.Value);
     return Task.CompletedTask;
   }
-  
+
   [Fact]
   public async Task Deserialize() {
     var input =

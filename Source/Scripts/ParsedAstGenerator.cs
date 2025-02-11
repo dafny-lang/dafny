@@ -31,7 +31,7 @@ public class ParsedAstGenerator : PostParseAstVisitor {
     var rootType = typeof(FileModuleDefinition);
     VisitTypesFromRoot(rootType);
     compilationUnit = compilationUnit.NormalizeWhitespace();
-    
+
     var hasErrors = CheckCorrectness(compilationUnit);
     // if (hasErrors) {
     //   throw new Exception("Exception");
@@ -51,32 +51,32 @@ public class ParsedAstGenerator : PostParseAstVisitor {
   protected override void HandleClass(Type type) {
     var classDeclaration = GenerateClassHeader(type);
     List<MemberDeclarationSyntax> newFields = [];
-    
+
     VisitParameters(type, (_, parameter, memberInfo) => {
       if (ExcludedTypes.Contains(parameter.ParameterType)) {
         return;
       }
-      
+
       var nullabilityContext = new NullabilityInfoContext();
       var nullabilityInfo = nullabilityContext.Create(parameter);
       bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
       var nullableSuffix = isNullable ? "?" : "";
-    
+
       newFields.Add(FieldDeclaration(VariableDeclaration(
         ParseTypeName(ToGenericTypeString(parameter.ParameterType) + nullableSuffix),
         SeparatedList([VariableDeclarator(Identifier(parameter.Name!))]))));
     });
-    
+
     var baseList = new List<BaseTypeSyntax>();
     var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(baseType))));
     }
 
-    if (baseList.Any()) { 
+    if (baseList.Any()) {
       classDeclaration = classDeclaration.WithBaseList(BaseList(SeparatedList(baseList)));
     }
-    
+
     classDeclaration = classDeclaration.AddMembers(newFields.ToArray());
     compilationUnit = compilationUnit.AddMembers(classDeclaration);
   }
