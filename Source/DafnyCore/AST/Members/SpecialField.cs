@@ -71,8 +71,8 @@ public class DatatypeDiscriminator : SpecialField {
 }
 
 public class DatatypeDestructor : SpecialField {
-  public readonly List<DatatypeCtor> EnclosingCtors = new List<DatatypeCtor>();  // is always a nonempty list
-  public readonly List<Formal> CorrespondingFormals = new List<Formal>();  // is always a nonempty list
+  public readonly List<DatatypeCtor> EnclosingCtors = [];  // is always a nonempty list
+  public readonly List<Formal> CorrespondingFormals = [];  // is always a nonempty list
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(EnclosingCtors != null);

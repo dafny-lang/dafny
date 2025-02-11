@@ -6,9 +6,9 @@ namespace Microsoft.Dafny;
 public class Scope<Thing> where Thing : class {
   private DafnyOptions options;
   [Rep]
-  readonly List<string> names = new();  // a null means a marker
+  readonly List<string> names = [];  // a null means a marker
   [Rep]
-  readonly List<Thing> things = new();
+  readonly List<Thing> things = [];
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(names != null);

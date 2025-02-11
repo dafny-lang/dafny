@@ -13,7 +13,7 @@ using Program = Microsoft.Dafny.Program;
 namespace DafnyServer {
   public class SuperLegacySymbolTable {
     private readonly Program _dafnyProgram;
-    private readonly List<SymbolInformation> _information = new();
+    private readonly List<SymbolInformation> _information = [];
 
     public SuperLegacySymbolTable(Program dafnyProgram) {
       _dafnyProgram = dafnyProgram;

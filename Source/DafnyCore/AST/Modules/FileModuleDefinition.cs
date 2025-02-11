@@ -12,10 +12,10 @@ namespace Microsoft.Dafny;
 /// https://github.com/dafny-lang/dafny/issues/3027
 /// </summary>
 public class FileModuleDefinition : ModuleDefinition {
-  public List<Include> Includes { get; } = new();
+  public List<Include> Includes { get; } = [];
 
   public FileModuleDefinition(IOrigin origin) :
-    base(origin, new Name("_module"), new List<IOrigin>(),
+    base(origin, new Name("_module"), [],
       ModuleKindEnum.Concrete, false, null, null!, null) {
     {
     }

@@ -27,7 +27,7 @@ namespace IntegrationTests {
 
     private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net8.0/
 
-    private static readonly string[] DefaultBoogieArguments = new[] {
+    private static readonly string[] DefaultBoogieArguments = [
       "/infer:j",
       "/proverOpt:O:auto_config=false",
       "/proverOpt:O:type_check=true",
@@ -36,7 +36,7 @@ namespace IntegrationTests {
       "/proverOpt:O:smt.delay_units=true",
       "/proverOpt:O:smt.arith.solver=2",
       "/proverOpt:PROVER_PATH:" + RepositoryRoot + $"../unzippedRelease/dafny/z3/bin/z3-{DafnyOptions.DefaultZ3Version}"
-    };
+    ];
 
     private static readonly LitTestConfiguration Config;
 
@@ -60,11 +60,41 @@ namespace IntegrationTests {
       // These explicit defaults are here, and should remain here independent of the user-facing defaults.
       // The metatests/StdLibsOffByDefaultInTests.dfy test directly enforces this.
 
-      string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false" };
-      string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
-      string[] defaultTranslateArgs = new[] { "--use-basename-for-filename", "--cores:2", "--standard-libraries:false", "--verification-time-limit:300", "--resource-limit:50e6" };
-      string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
-      string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
+      string[] defaultResolveArgs = ["resolve",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false"
+      ];
+      string[] defaultVerifyArgs = ["verify",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false",
+        "--cores:2",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
+      ];
+      string[] defaultTranslateArgs = ["--use-basename-for-filename",
+        "--cores:2",
+        "--standard-libraries:false",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
+      ];
+      string[] defaultBuildArgs = ["build",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false",
+        "--cores:2",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
+      ];
+      string[] defaultRunArgs = ["run",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false",
+        "--cores:2",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
+      ];
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
@@ -148,9 +178,9 @@ namespace IntegrationTests {
 
       string[] features;
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-        features = new[] { "ubuntu", "posix" };
+        features = ["ubuntu", "posix"];
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-        features = new[] { "windows" };
+        features = ["windows"];
         string path = System.Reflection.Assembly.GetExecutingAssembly().Location;
         var directory = System.IO.Path.GetDirectoryName(path);
         Environment.SetEnvironmentVariable("DOTNET_CLI_HOME", directory);
@@ -161,7 +191,7 @@ namespace IntegrationTests {
         Environment.SetEnvironmentVariable("HOME",
           Environment.GetEnvironmentVariable("HOMEDRIVE") + Environment.GetEnvironmentVariable("HOMEPATH"));
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-        features = new[] { "macosx", "posix" };
+        features = ["macosx", "posix"];
       } else {
         throw new Exception($"Unsupported OS: {RuntimeInformation.OSDescription}");
       }
@@ -230,9 +260,12 @@ namespace IntegrationTests {
     }
 
     [FileTheory]
-    [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
-              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
-              })]
+    [FileData(Includes = ["**/*.dfy", "**/*.transcript"],
+              Excludes = [
+                "**/Inputs/**/*",
+                "**/Output/**/*",
+                "libraries/**/*"
+              ])]
     public void LitTest(string path) {
       var testPath = path.Replace("TestFiles/LitTests/LitTest", "");
       var mode = Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_MODE");

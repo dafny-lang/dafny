@@ -53,7 +53,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
 
   protected ModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes attributes, ModuleDefinition enclosingModule,
     Guid cloneId)
-    : base(origin, nameNode, attributes, new List<TypeParameter>(), enclosingModule) {
+    : base(origin, nameNode, attributes, [], enclosingModule) {
     Options = options;
     Height = -1;
     Signature = null;
@@ -73,7 +73,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
     }
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
-      PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : Enumerable.Empty<IOrigin>();
+      PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : [];
     foreach (var token in tokens) {
       if (token.val == "{") {
         if ((token.Prev.TrailingTrivia + token.LeadingTrivia).Trim() is { } tentativeTrivia and not "") {

@@ -67,7 +67,7 @@ public partial class BoogieGenerator {
       }
 
       var proc = new Procedure(f.Origin, "CheckWellformed" + NameSeparator + f.FullSanitizedName,
-        new List<TypeVariable>(),
+        [],
         Concat(Concat(typeInParams, heapParameters), procedureParameters), outParams,
         false, requires, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
@@ -334,8 +334,8 @@ public partial class BoogieGenerator {
     private ExpressionTranslator GetExpressionTranslator(Function f, ExpressionTranslator ordinaryEtran,
       out List<Bpl.Requires> additionalRequires, out List<Variable> inParams_Heap) {
       ExpressionTranslator etran;
-      additionalRequires = new();
-      inParams_Heap = new List<Variable>();
+      additionalRequires = [];
+      inParams_Heap = [];
       if (f is TwoStateFunction) {
         var prevHeapVar = new Bpl.Formal(f.Origin, new TypedIdent(f.Origin, "previous$Heap", generator.Predef.HeapType), true);
         var currHeapVar = new Bpl.Formal(f.Origin, new TypedIdent(f.Origin, "current$Heap", generator.Predef.HeapType), true);

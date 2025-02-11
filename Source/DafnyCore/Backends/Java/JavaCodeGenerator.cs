@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private string ModuleName;
     private string ModulePath;
-    private readonly List<GenericCompilationInstrumenter> Instrumenters = new();
+    private readonly List<GenericCompilationInstrumenter> Instrumenters = [];
 
     public void AddInstrumenter(GenericCompilationInstrumenter compilationInstrumenter) {
       Instrumenters.Add(compilationInstrumenter);
@@ -708,7 +708,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         // When accessing a static member, leave off the type arguments
         if (member != null) {
-          return TypeName_UDT(s, new List<TypeParameter.TPVariance>(), new List<Type>(), wr, udt.Origin, erased);
+          return TypeName_UDT(s, [], [], wr, udt.Origin, erased);
         } else {
           return TypeName_UDT(s, udt, wr, udt.Origin, erased);
         }
@@ -1536,7 +1536,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private ConcreteSyntaxTree EmitArraySelect(int dimCount, out List<ConcreteSyntaxTree> wIndices, Type elmtType, ConcreteSyntaxTree wr) {
       elmtType = DatatypeWrapperEraser.SimplifyType(Options, elmtType);
-      wIndices = new List<ConcreteSyntaxTree>();
+      wIndices = [];
       ConcreteSyntaxTree w;
       if (dimCount == 1) {
         if (elmtType.IsTypeParameter) {
@@ -2600,7 +2600,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (cl is DatatypeDecl dt) {
           relevantTypeArgs = udt.TypeArgs;
         } else {
-          relevantTypeArgs = new List<Type>();
+          relevantTypeArgs = [];
           for (int i = 0; i < cl.TypeArgs.Count; i++) {
             if (NeedsTypeDescriptor(cl.TypeArgs[i])) {
               relevantTypeArgs.Add(udt.TypeArgs[i]);
@@ -2652,7 +2652,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void OrganizeModules(Program program, out List<ModuleDefinition> modules) {
-      modules = new List<ModuleDefinition>();
+      modules = [];
       foreach (var m in program.CompileModules) {
         if (!m.IsDefaultModule && !m.Name.Equals("_System")) {
           modules.Add(m);

@@ -11,7 +11,7 @@ public class ArrowTypeDecl : ValuetypeDecl {
 
   public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition enclosingModule, Attributes attributes)
     : base(ArrowType.ArrowTypeName(tps.Count - 1), enclosingModule, tps,
-      new List<MemberDecl> { req, reads }, attributes,
+      [req, reads], attributes,
       ty =>
         ty.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: ArrowTypeDecl arrowTypeDecl } && arrowTypeDecl.Arity == tps.Count - 1,
       null) {

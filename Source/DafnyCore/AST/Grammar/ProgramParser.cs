@@ -274,7 +274,7 @@ public class ProgramParser {
     Contract.Requires(uri != null);
     using var reader = fileSnapshot.Reader;
     if (options.Get(CommonOptionBag.InputType) == CommonOptionBag.InputTypeEnum.Source) {
-      var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
+      var text = SourcePreprocessor.ProcessDirectives(reader, []);
       return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
     } else {
       var moduleDefinition = new Deserializer(uri, new TextDecoder(reader.ReadToEnd())).ReadFileModuleDefinition();

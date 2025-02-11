@@ -272,7 +272,7 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
 
-        Boogie.Type ty = new Boogie.MapType(tok, new List<TypeVariable> { }, new List<Boogie.Type> { Predef.RefType, Predef.FieldName(tok) }, Boogie.Type.Bool);
+        Boogie.Type ty = new Boogie.MapType(tok, [], [Predef.RefType, Predef.FieldName(tok)], Boogie.Type.Bool);
         return new Boogie.IdentifierExpr(tok, frameName, ty);
       }
 
@@ -711,7 +711,7 @@ namespace Microsoft.Dafny {
           case DatatypeValue value: {
               DatatypeValue dtv = value;
               Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
-              List<Boogie.Expr> args = new List<Boogie.Expr>();
+              List<Boogie.Expr> args = [];
 
               bool argsAreLit = true;
               for (int i = 0; i < dtv.Arguments.Count; i++) {
@@ -802,9 +802,9 @@ namespace Microsoft.Dafny {
                     Boogie.Expr notNullBody = BplImp(oInSet, oNotNull);
                     Boogie.Expr freshBody = BplImp(oInSet, oIsFresh);
                     var notNullTrigger = BplTrigger(oNotNull);
-                    var notNullPred = new Boogie.ForallExpr(GetToken(opExpr), new List<Variable> { oVar }, notNullTrigger, notNullBody);
+                    var notNullPred = new Boogie.ForallExpr(GetToken(opExpr), [oVar], notNullTrigger, notNullBody);
                     var freshTrigger = BplTrigger(performedInSetRewrite ? oNotFresh : oInSet);
-                    var freshPred = new Boogie.ForallExpr(GetToken(opExpr), new List<Variable> { oVar }, freshTrigger, freshBody);
+                    var freshPred = new Boogie.ForallExpr(GetToken(opExpr), [oVar], freshTrigger, freshBody);
                     return BplAnd(notNullPred, freshPred);
                   } else if (eeType is SeqType) {
                     // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) ==> Unbox(Seq#Index(X,$i)) != null && !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
@@ -820,7 +820,7 @@ namespace Microsoft.Dafny {
                     //TRIGGERS: Does this make sense? dafny0\SmallTests
                     // BROKEN // NEW_TRIGGER
                     //TRIG (forall $i: int :: 0 <= $i && $i < Seq#Length(Q#0) && $Unbox(Seq#Index(Q#0, $i)): ref != null ==> !read(old($Heap), $Unbox(Seq#Index(Q#0, $i)): ref, alloc))
-                    return new Boogie.ForallExpr(GetToken(opExpr), new List<Variable> { iVar }, body);
+                    return new Boogie.ForallExpr(GetToken(opExpr), [iVar], body);
                   } else {
                     // generate:  x != null && !old($Heap)[x]
                     Boogie.Expr oNull = Boogie.Expr.Neq(TrExpr(e.E), Predef.Null);
@@ -1302,7 +1302,7 @@ namespace Microsoft.Dafny {
               if (e.SplitQuantifier != null) {
                 return TrExpr(e.SplitQuantifierExpression);
               } else {
-                List<Variable> bvars = new List<Variable>();
+                List<Variable> bvars = [];
                 var bodyEtran = this;
                 if (e is ExistsExpr && BoogieGenerator.stmtContext == StmtType.ASSERT && BoogieGenerator.adjustFuelForExists) {
                   // assert exists need decrease fuel by 1
@@ -1330,10 +1330,10 @@ namespace Microsoft.Dafny {
                 Boogie.Expr body = bodyEtran.TrExpr(e.Term);
 
                 if (e is ForallExpr) {
-                  return new Boogie.ForallExpr(GetToken(quantifierExpr), new List<TypeVariable>(), bvars, kv, tr, BplImp(antecedent, body));
+                  return new Boogie.ForallExpr(GetToken(quantifierExpr), [], bvars, kv, tr, BplImp(antecedent, body));
                 } else {
                   Contract.Assert(e is ExistsExpr);
-                  return new Boogie.ExistsExpr(GetToken(quantifierExpr), new List<TypeVariable>(), bvars, kv, tr, BplAnd(antecedent, body));
+                  return new Boogie.ExistsExpr(GetToken(quantifierExpr), [], bvars, kv, tr, BplAnd(antecedent, body));
                 }
               }
             }
@@ -1364,7 +1364,7 @@ namespace Microsoft.Dafny {
                 lbody = BplAnd(typeAntecedent, TrExpr(range));
               } else {
                 // lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
-                List<Variable> bvars = new List<Variable>();
+                List<Variable> bvars = [];
                 Boogie.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
 
                 var eq = Boogie.Expr.Eq(y, BoxIfNecessary(GetToken(comprehension), TrExpr(e.Term), e.Term.Type));
@@ -1373,7 +1373,7 @@ namespace Microsoft.Dafny {
                 lbody = new Boogie.ExistsExpr(GetToken(comprehension), bvars, triggers, ebody);
               }
               Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
-              var lambda = new Boogie.LambdaExpr(GetToken(comprehension), new List<TypeVariable>(), new List<Variable> { yVar }, kv, lbody);
+              var lambda = new Boogie.LambdaExpr(GetToken(comprehension), [], [yVar], kv, lbody);
               return comprehension.Type.NormalizeToAncestorType().AsSetType.Finite
                 ? FunctionCall(GetToken(comprehension), "Set#FromBoogieMap", Predef.SetType, lambda)
                 : lambda;
@@ -1394,7 +1394,7 @@ namespace Microsoft.Dafny {
               // Map#Glue(lambda w: BoxType :: R(unbox(w)),
               //          lambda w: BoxType :: G(unbox(w)),
               //          type)".
-              List<Variable> bvars = new List<Variable>();
+              List<Variable> bvars = [];
               List<bool> freeOfAlloc = BoundedPool.HasBounds(e.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
 
               Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
@@ -1415,9 +1415,9 @@ namespace Microsoft.Dafny {
                 subst.Add(bv, new BoogieWrapper(unboxw, bv.Type));
 
                 var ebody = BplAnd(typeAntecedent, TrExpr(BoogieGenerator.Substitute(e.Range, null, subst)));
-                keys = new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);
+                keys = new Boogie.LambdaExpr(GetToken(e), [], [wVar], kv, ebody);
                 ebody = TrExpr(BoogieGenerator.Substitute(e.Term, null, subst));
-                values = new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), new List<Variable> { wVar }, kv, BoxIfNecessary(GetToken(comprehension), ebody, e.Term.Type));
+                values = new Boogie.LambdaExpr(GetToken(e), [], [wVar], kv, BoxIfNecessary(GetToken(comprehension), ebody, e.Term.Type));
               } else {
                 var t = e.TermLeft;
                 var w = new Boogie.IdentifierExpr(GetToken(comprehension), wVar);
@@ -1438,7 +1438,7 @@ namespace Microsoft.Dafny {
                 var ff = TrExpr(BoogieGenerator.Substitute(t, null, subst));
                 var exst_body = BplAnd(rr, Boogie.Expr.Eq(unboxw, ff));
                 var ebody = BplAnd(typeAntecedent, new Boogie.ExistsExpr(GetToken(e), bvs, exst_body));
-                keys = new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);
+                keys = new Boogie.LambdaExpr(GetToken(e), [], [wVar], kv, ebody);
 
                 BoogieGenerator.CreateMapComprehensionProjectionFunctions(e);
                 Contract.Assert(e.ProjectionFunctions != null && e.ProjectionFunctions.Count == e.BoundVars.Count);
@@ -1449,7 +1449,7 @@ namespace Microsoft.Dafny {
                   subst.Add(e.BoundVars[i], prj);
                 }
                 ebody = TrExpr(BoogieGenerator.Substitute(e.Term, null, subst));
-                values = new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), new List<Variable> { wVar }, kv, BoxIfNecessary(GetToken(comprehension), ebody, e.Term.Type));
+                values = new Boogie.LambdaExpr(GetToken(e), [], [wVar], kv, BoxIfNecessary(GetToken(comprehension), ebody, e.Term.Type));
               }
 
               return BoogieGenerator.FunctionCall(GetToken(e),
@@ -1495,10 +1495,10 @@ namespace Microsoft.Dafny {
           case DecreasesToExpr decreasesToExpr:
             var oldArray = decreasesToExpr.OldExpressions.ToArray();
             var newArray = decreasesToExpr.NewExpressions.ToArray();
-            List<Expr> newExprs = new();
-            List<Expr> oldExprs = new();
-            List<Expression> newExprsDafny = new();
-            List<Expression> oldExprsDafny = new();
+            List<Expr> newExprs = [];
+            List<Expr> oldExprs = [];
+            List<Expression> newExprsDafny = [];
+            List<Expression> oldExprsDafny = [];
             int N = Math.Min(oldArray.Length, newArray.Length);
             for (int i = 0; i < N; i++) {
               if (!CompatibleDecreasesTypes(oldArray[i].Type, newArray[i].Type)) {
@@ -1587,17 +1587,17 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
         var rdvars = new List<Boogie.Variable>();
         var o = BplBoundVar(varNameGen.FreshId("#o#"), Predef.RefType, rdvars);
-        Boogie.Expr rdbody = new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), rdvars, null,
+        Boogie.Expr rdbody = new Boogie.LambdaExpr(GetToken(e), [], rdvars, null,
           BoogieGenerator.InRWClause(GetToken(e), o, null, e.Reads.Expressions.ConvertAll(su.SubstFrameExpr), et, null, null));
         rdbody = FunctionCall(GetToken(e), "SetRef_to_SetBox", Predef.SetType, rdbody);
 
         return MaybeLit(
           BoogieGenerator.FunctionCall(GetToken(e), BuiltinFunction.AtLayer, Predef.HandleType,
-            new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), lvars, null,
+            new Boogie.LambdaExpr(GetToken(e), [], lvars, null,
               FunctionCall(GetToken(e), BoogieGenerator.Handle(e.BoundVars.Count), Predef.BoxType,
-                new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), bvars, null, ebody),
-                new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), bvars, null, reqbody),
-                new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), bvars, null, rdbody))),
+                new Boogie.LambdaExpr(GetToken(e), [], bvars, null, ebody),
+                new Boogie.LambdaExpr(GetToken(e), [], bvars, null, reqbody),
+                new Boogie.LambdaExpr(GetToken(e), [], bvars, null, rdbody))),
             layerIntraCluster != null ? layerIntraCluster.ToExpr() : layerInterCluster.ToExpr()),
           Predef.HandleType);
       }
@@ -1961,38 +1961,46 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
       private static readonly Dictionary<string, string> NullaryAttributesToTranslate;
 
-      private static readonly HashSet<string> NullaryAttributesToCopy = new(new[] {
-        "focus",
-        "isolate",
-        "ignore",
-        "selective_checking",
-        "split",
-        "split_here",
-        "start_checking_here",
-        "testEntry",
-        "testInline",
-        "vcs_split_on_every_assert",
-      });
+      private static readonly HashSet<string> NullaryAttributesToCopy = [
+        .. new[] {
+          "focus",
+          "isolate",
+          "ignore",
+          "selective_checking",
+          "split",
+          "split_here",
+          "start_checking_here",
+          "testEntry",
+          "testInline",
+          "vcs_split_on_every_assert",
+        }
+      ];
 
-      private static readonly HashSet<string> BooleanAttributesToCopy = new(new[] {
-        "verify"
-      });
+      private static readonly HashSet<string> BooleanAttributesToCopy = [
+        .. new[] {
+          "verify"
+        }
+      ];
 
-      private static readonly HashSet<string> IntegerAttributesToCopy = new(new[] {
-        "subsumption",
-        "testInline",
-        "timeLimit",
-        "vcs_max_cost",
-        "vcs_max_keep_going_splits",
-        "vcs_max_splits",
-        "weight"
-      });
+      private static readonly HashSet<string> IntegerAttributesToCopy = [
+        .. new[] {
+          "subsumption",
+          "testInline",
+          "timeLimit",
+          "vcs_max_cost",
+          "vcs_max_keep_going_splits",
+          "vcs_max_splits",
+          "weight"
+        }
+      ];
 
-      private static readonly HashSet<string> StringAttributesToCopy = new(new[] {
-        "captureState",
-        "isolate",
-        "error"
-      });
+      private static readonly HashSet<string> StringAttributesToCopy = [
+        .. new[] {
+          "captureState",
+          "isolate",
+          "error"
+        }
+      ];
 
       static ExpressionTranslator() {
         NullaryAttributesToTranslate = new() {
@@ -2135,7 +2143,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           return CanCallAssumption(e.Elements, cco);
         } else if (expr is MapDisplayExpr) {
           MapDisplayExpr e = (MapDisplayExpr)expr;
-          List<Expression> l = new List<Expression>();
+          List<Expression> l = [];
           foreach (ExpressionPair p in e.Elements) {
             l.Add(p.A); l.Add(p.B);
           }
@@ -2239,23 +2247,23 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           var initF = new Bpl.IdentifierExpr(e.Origin, initFVar);
 
           var dafnyInitApplication = new ApplyExpr(e.Origin, e.Initializer,
-            new List<Expression>() { new BoogieWrapper(index, Type.Int) },
+            [new BoogieWrapper(index, Type.Int)],
             Token.NoToken) {
             Type = e.Initializer.Type.AsArrowType.Result
           };
           var canCall = CanCallAssumption(dafnyInitApplication);
 
           dafnyInitApplication = new ApplyExpr(e.Origin, new BoogieWrapper(initF, e.Initializer.Type),
-            new List<Expression>() { new BoogieWrapper(index, Type.Int) },
+            [new BoogieWrapper(index, Type.Int)],
             Token.NoToken) {
             Type = e.Initializer.Type.AsArrowType.Result
           };
           var apply = TrExpr(dafnyInitApplication);
 
           var tr = new Bpl.Trigger(e.Origin, true, new List<Bpl.Expr> { apply });
-          var ccaInit = new Bpl.ForallExpr(e.Origin, new List<Bpl.Variable>() { indexVar }, tr, BplImp(indexRange, canCall));
-          var rhsAppliedToIndex = new Bpl.LetExpr(e.Origin, new List<Variable>() { initFVar },
-            new List<Expr>() { TrExpr(e.Initializer) }, null, ccaInit);
+          var ccaInit = new Bpl.ForallExpr(e.Origin, [indexVar], tr, BplImp(indexRange, canCall));
+          var rhsAppliedToIndex = new Bpl.LetExpr(e.Origin, [initFVar],
+            [TrExpr(e.Initializer)], null, ccaInit);
 
           return BplAnd(BplAnd(CanCallAssumption(e.N, cco), CanCallAssumption(e.Initializer, cco)), rhsAppliedToIndex);
 

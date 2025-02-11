@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
+using System.CommandLine.Binding;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -73,6 +74,17 @@ namespace Microsoft.Dafny {
 
     public T Get<T>(Option<T> option) {
       return (T)Options.OptionArguments.GetOrDefault(option, () => (object)default(T));
+    }
+
+
+    public T GetOrOptionDefault<T>(Option<T> option) {
+      return (T)Options.OptionArguments.GetOrDefault(option, () =>
+       ((IValueDescriptor<T>)option) is {
+         HasDefaultValue: true
+       } valueDescriptor
+          ? valueDescriptor.GetDefaultValue()
+          : (object)default(T)
+      );
     }
 
     public object Get(Option option) {
@@ -153,7 +165,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static readonly List<LegacyUiForOption> LegacyUis = new();
+    private static readonly List<LegacyUiForOption> LegacyUis = [];
 
     public static void RegisterLegacyUi<T>(Option<T> option,
       Action<Option<T>, Bpl.CommandLineParseState, DafnyOptions> parse,
@@ -309,7 +321,7 @@ namespace Microsoft.Dafny {
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
     public bool AllowSourceFolders = false;
-    public List<string> SourceFolders { get; } = new(); // list of folders, for those commands that permit processing all source files in folders
+    public List<string> SourceFolders { get; } = []; // list of folders, for those commands that permit processing all source files in folders
 
     public enum ContractTestingMode {
       None,
@@ -320,9 +332,9 @@ namespace Microsoft.Dafny {
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
-    public List<string> DafnyPrintExportedViews = new List<string>();
+    public List<string> DafnyPrintExportedViews = [];
     public bool Compile = true;
-    public List<string> MainArgs = new List<string>();
+    public List<string> MainArgs = [];
     public bool FormatCheck = false;
 
     public string CompilerName;
@@ -355,7 +367,7 @@ namespace Microsoft.Dafny {
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version4;
 
     public int DefiniteAssignmentLevel { get; set; } = 1;
-    public HashSet<string> LibraryFiles { get; set; } = new();
+    public HashSet<string> LibraryFiles { get; set; } = [];
     public ContractTestingMode TestContracts = ContractTestingMode.None;
 
     public bool ForbidNondeterminism { get; set; }
@@ -394,7 +406,7 @@ namespace Microsoft.Dafny {
       new(new[] { SinglePassCodeGenerator.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
     private IList<Plugin> cliPluginCache;
     public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins(AdditionalPlugins, AdditionalPluginArguments);
-    public List<Plugin> AdditionalPlugins = new();
+    public List<Plugin> AdditionalPlugins = [];
     public IList<string> AdditionalPluginArguments = new List<string>();
 
     public static IList<Plugin> ComputePlugins(List<Plugin> additionalPlugins, IList<string> allArguments) {
@@ -443,7 +455,7 @@ namespace Microsoft.Dafny {
       src.Input, src.OutputWriter, src.ErrorWriter) {
       src.CopyTo(this, useNullWriters);
       CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
-      ProverOptions = new List<string>(src.ProverOptions);
+      ProverOptions = [.. src.ProverOptions];
       Options = new Options(
         src.Options.OptionArguments.ToDictionary(kv => kv.Key, kv => kv.Value),
         src.Options.Arguments.ToDictionary(kv => kv.Key, kv => kv.Value));
@@ -1583,10 +1595,10 @@ class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
 /// Used by the parser to parse <c>:options</c> strings.
 /// </summary>
 class DafnyAttributeOptions : DafnyOptions {
-  public static readonly HashSet<string> KnownOptions = new() {
+  public static readonly HashSet<string> KnownOptions = [
     "functionSyntax",
     "quantifierSyntax"
-  };
+  ];
 
   private readonly Errors errors;
   public IOrigin Token { get; set; }

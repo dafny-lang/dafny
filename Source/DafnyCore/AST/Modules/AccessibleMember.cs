@@ -19,7 +19,7 @@ public class AccessibleMember {
   }
 
   public AccessibleMember(bool isRevealed = true) {
-    AccessPath = new List<NameSegment>();
+    AccessPath = [];
     IsRevealed = isRevealed;
   }
 

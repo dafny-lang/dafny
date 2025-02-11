@@ -112,7 +112,7 @@ class DafnyDoc {
   public ErrorReporter Reporter;
   public DafnyOptions Options;
   public string Outputdir;
-  List<Info> AllInfo = new List<Info>();
+  List<Info> AllInfo = [];
   public StringBuilder sidebar = new StringBuilder();
   public StringBuilder script = new StringBuilder().Append(ScriptStart());
 
@@ -206,7 +206,7 @@ class DafnyDoc {
     var defaultClass = moduleDef.TopLevelDecls.First(d => d is DefaultClassDecl cd) as DefaultClassDecl;
 
     var info = new Info(register, this, "module", module == null ? null : module.Origin, moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
-    info.Contents = new List<Info>();
+    info.Contents = [];
 
     if (moduleDef.IsDefaultModule) {
       if (dafnyFiles == null) {
@@ -672,7 +672,7 @@ class DafnyDoc {
     }
 
     if (t is TopLevelDeclWithMembers tm) {
-      info.Contents = tm.Members.Count == 0 ? null : new List<Info>();
+      info.Contents = tm.Members.Count == 0 ? null : [];
 
       if (tm is ClassDecl) {
         AddConstructorSummaries(tm, details, info.Contents, register);

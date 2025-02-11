@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
       if (IsArrayName(name, out var dims)) {
         // make sure the array class has been created
         SystemModuleManager.ArrayType(Token.NoToken, dims,
-          new List<Type> { new InferredTypeProxy() }, true).ModifyBuiltins(resolver.SystemModuleManager);
+          [new InferredTypeProxy()], true).ModifyBuiltins(resolver.SystemModuleManager);
         decl = resolver.SystemModuleManager.arrayTypeDecls[dims];
       } else if (IsBitvectorName(name, out var width)) {
         var bvDecl = (ValuetypeDecl)resolver.SystemModuleManager.SystemModule.SourceDecls.Find(topLevelDecl => topLevelDecl.Name == name);
@@ -143,12 +143,12 @@ namespace Microsoft.Dafny {
     DPreType BuiltInArrayType(int dims, PreType elementPreType) {
       Contract.Requires(1 <= dims);
       var arrayName = dims == 1 ? PreType.TypeNameArray : $"{PreType.TypeNameArray}{dims}";
-      return new DPreType(BuiltInTypeDecl(arrayName), new List<PreType>() { elementPreType });
+      return new DPreType(BuiltInTypeDecl(arrayName), [elementPreType]);
     }
 
     private int typeProxyCount = 0; // used to give each PreTypeProxy a unique ID
 
-    public readonly List<(PreTypeProxy, string)> allPreTypeProxies = new();
+    public readonly List<(PreTypeProxy, string)> allPreTypeProxies = [];
 
     public PreType CreatePreTypeProxy(string description = null) {
       var proxy = new PreTypeProxy(typeProxyCount++);

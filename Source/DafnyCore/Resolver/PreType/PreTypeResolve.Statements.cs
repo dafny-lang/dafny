@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
       set => loopStack = value;
     }
 
-    private List<Statement> loopStack = new();  // the enclosing loops (from which it is possible to break out)
+    private List<Statement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
 
     public void ResolveBlockStatement(BlockStmt blockStmt, ResolutionContext resolutionContext) {
@@ -165,7 +165,7 @@ namespace Microsoft.Dafny {
           } else {
             Contract.Assert(s.Rhss.Count > 0);
             // Create a hidden update statement using the out-parameter formals, resolve the RHS, and check that the RHS is good.
-            List<Expression> formals = new List<Expression>();
+            List<Expression> formals = [];
             foreach (Formal f in cmc.Outs) {
               Expression produceLhs;
               if (stmt is ReturnStmt) {
@@ -306,7 +306,7 @@ namespace Microsoft.Dafny {
           var prevLblStmts = EnclosingStatementLabels;
           var prevLoopStack = loopStack;
           EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-          loopStack = new List<Statement>();
+          loopStack = [];
           ResolveStatement(s.Body, resolutionContext);
           EnclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
@@ -500,7 +500,7 @@ namespace Microsoft.Dafny {
         var prevLblStmts = EnclosingStatementLabels;
         var prevLoopStack = loopStack;
         EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-        loopStack = new List<Statement>();
+        loopStack = [];
         foreach (var h in s.Hints) {
           foreach (var oneHint in h.Body) {
             DominatingStatementLabels.PushMarker();
@@ -619,7 +619,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
       IOrigin firstEffectfulRhs = null;
       MethodCallInformation methodCallInfo = null;
-      update.ResolvedStatements = new();
+      update.ResolvedStatements = [];
       foreach (var rhs in update.Rhss) {
         bool isEffectful;
         if (rhs is TypeRhs tr) {
@@ -978,7 +978,7 @@ namespace Microsoft.Dafny {
       for (int k = (expectExtract ? 1 : 0); k < s.Lhss.Count; ++k) {
         lhss2.Add(s.Lhss[k]);
       }
-      List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() { s.Rhs };
+      List<AssignmentRhs> rhss2 = [s.Rhs];
       rhss2.AddRange(s.Rhss);
       if (s.Rhss.Count > 0) {
         if (lhss2.Count != rhss2.Count) {
@@ -1025,13 +1025,15 @@ namespace Microsoft.Dafny {
           // "if temp.IsFailure()"
           new IfStmt(s.Origin, false, resolver.VarDotMethod(s.Origin, temp, "IsFailure"),
             // THEN: { out := temp.PropagateFailure(); return; }
-            new BlockStmt(s.Origin, new List<Statement>() {
+            new BlockStmt(s.Origin, [
               new AssignStatement(s.Origin,
-                new List<Expression>() { ident },
-                new List<AssignmentRhs>() {new ExprRhs(resolver.VarDotMethod(s.Origin, temp, "PropagateFailure"))}
+                [ident],
+                [new ExprRhs(resolver.VarDotMethod(s.Origin, temp, "PropagateFailure"))]
               ),
-              new ReturnStmt(s.Origin, null),
-            }),
+
+              new ReturnStmt(s.Origin, null)
+
+            ]),
             // ELSE: no else block
             null
           ));
@@ -1042,8 +1044,8 @@ namespace Microsoft.Dafny {
         var lhs = s.Lhss[0];
         s.ResolvedStatements.Add(
           new AssignStatement(s.Origin,
-            new List<Expression>() { lhsExtract },
-            new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(s.Origin, temp, "Extract")) }
+            [lhsExtract],
+            [new ExprRhs(resolver.VarDotMethod(s.Origin, temp, "Extract"))]
           ));
       }
 
@@ -1199,7 +1201,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
               var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
               if (methodSel.Member is Method) {
-                rr.InitCall = new CallStmt(stmt.Origin, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok.Center);
+                rr.InitCall = new CallStmt(stmt.Origin, [], methodSel, rr.Bindings.ArgumentBindings, initCallTok.Center);
                 ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
               } else {
                 ReportError(initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);

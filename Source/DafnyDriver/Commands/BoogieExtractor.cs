@@ -74,10 +74,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private readonly string SourceModuleName;
-    private List<Boogie.Declaration> declarations = new(); // for the current module
-    private List<Boogie.Declaration> allDeclarations = new(); // these are the declarations for all modules selected for extraction 
+    private List<Boogie.Declaration> declarations = []; // for the current module
+    private List<Boogie.Declaration> allDeclarations = []; // these are the declarations for all modules selected for extraction 
     private readonly Dictionary<Function, Boogie.Function> functionExtractions = new();
-    private readonly List<(IToken, Boogie.Axiom, Function)> axiomUsedBy = new();
+    private readonly List<(IToken, Boogie.Axiom, Function)> axiomUsedBy = [];
 
     private BoogieExtractor(string sourceModuleName) {
       SourceModuleName = sourceModuleName;
@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.Compilers {
 
     void VisitModule(ModuleDecl module) {
       var previousDeclarations = declarations;
-      declarations = new();
+      declarations = [];
 
       VisitDeclarations(module.Signature.TopLevels.Values.ToList());
 
@@ -167,7 +167,7 @@ namespace Microsoft.Dafny.Compilers {
         axiomBody = body;
       } else {
         var kv = GetKeyValues(tok, lemma.Attributes);
-        axiomBody = new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
+        axiomBody = new Boogie.ForallExpr(tok, [], boundVars, kv, triggers, body);
       }
       var axiom = new Boogie.Axiom(tok, axiomBody);
       declarations.Add(axiom);
@@ -361,10 +361,10 @@ namespace Microsoft.Dafny.Compilers {
             var kv = GetKeyValues(tok, quantifierExpr.Attributes);
             var body = ExtractExpr(quantifierExpr.LogicalBody());
             if (quantifierExpr is ExistsExpr) {
-              return new Boogie.ExistsExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
+              return new Boogie.ExistsExpr(tok, [], boundVars, kv, triggers, body);
             } else {
               Contract.Assert(quantifierExpr is ForallExpr);
-              return new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
+              return new Boogie.ForallExpr(tok, [], boundVars, kv, triggers, body);
             }
           }
 

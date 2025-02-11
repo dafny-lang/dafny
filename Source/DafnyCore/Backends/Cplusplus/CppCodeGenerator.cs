@@ -60,8 +60,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.RuntimeCoverageReport
     };
 
-    private List<DatatypeDecl> datatypeDecls = new();
-    private List<string> classDefaults = new();
+    private List<DatatypeDecl> datatypeDecls = [];
+    private List<string> classDefaults = [];
 
     /*
      * Unlike other Dafny and Dafny's other backends, C++ cares about
@@ -641,7 +641,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GetNativeInfo(nt.NativeType.Sel, out var nt_name, out var literalSuffice, out var needsCastAfterArithmetic);
       var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt_name));
-      var udt = new UserDefinedType(nt.Origin, nt.Name, nt, new List<Type>());
+      var udt = new UserDefinedType(nt.Origin, nt.Name, nt, []);
       var d = TypeInitializationValue(udt, wr, nt.Origin, false, false);
       wDefault.WriteLine("return {0};", d);
 

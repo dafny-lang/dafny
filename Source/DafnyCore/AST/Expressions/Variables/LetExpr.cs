@@ -57,7 +57,7 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     type ??= new InferredTypeProxy();
     var boundVar = new BoundVar(tok, "x", type);
     var casePatterns = new List<CasePattern<BoundVar>>() { new(tok, boundVar) };
-    return new LetExpr(tok, casePatterns, new List<Expression>() { CreateBoolLiteral(tok, true) },
+    return new LetExpr(tok, casePatterns, [CreateBoolLiteral(tok, true)],
       new IdentifierExpr(tok, boundVar), false) {
       Type = type
     };

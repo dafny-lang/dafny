@@ -137,7 +137,7 @@ public class TypeParameter : TopLevelDecl {
   [ParseConstructor]
   public TypeParameter(IOrigin origin, Name nameNode, Attributes? attributes, TPVarianceSyntax varianceSyntax, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
-    : base(origin, nameNode, attributes, new List<TypeParameter>(), null) {
+    : base(origin, nameNode, attributes, [], null) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Characteristics = characteristics;
@@ -146,7 +146,7 @@ public class TypeParameter : TopLevelDecl {
   }
 
   public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax)
-    : this(origin, name, null, varianceSyntax, new TypeParameterCharacteristics(), new List<Type>()) {
+    : this(origin, name, null, varianceSyntax, new TypeParameterCharacteristics(), []) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
   }
@@ -206,7 +206,7 @@ public class TypeParameter : TopLevelDecl {
   }
 
   public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
-    return includeTypeBounds ? TypeBounds : new List<Type>();
+    return includeTypeBounds ? TypeBounds : [];
   }
 }
 

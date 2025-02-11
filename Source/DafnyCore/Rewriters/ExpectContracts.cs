@@ -177,10 +177,12 @@ public class ExpectContracts : IRewriter {
     var reads = f.Reads;
     if (!reads.Expressions.Any()) {
       reads = new Specification<FrameExpression>();
-      var emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
+      var emptySet = new SetDisplayExpr(tok, true, []);
       reads.Expressions.Add(new FrameExpression(tok, emptySet, null));
     }
-    var method = new Method(f.Origin, f.NameNode, f.Attributes, f.HasStaticKeyword, false, f.TypeArgs, f.Ins, f.Req, new List<AttributedExpression>() { post }, reads, f.Decreases, new List<Formal>() { resultVar }, new Specification<FrameExpression>(new List<FrameExpression>(), null), f.ByMethodBody, null, true);
+    var method = new Method(f.Origin, f.NameNode, f.Attributes, f.HasStaticKeyword, false, f.TypeArgs, 
+        f.Ins, f.Req, [post], reads, f.Decreases, [resultVar], 
+        new Specification<FrameExpression>([], null), f.ByMethodBody, null, true);
     Contract.Assert(f.ByMethodDecl == null);
     method.InheritVisibility(f);
     method.FunctionFromWhichThisIsByMethodDecl = f;
@@ -204,7 +206,7 @@ public class ExpectContracts : IRewriter {
     foreach (var moduleDefinition in program.Modules()) {
 
       // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
-      List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
+      List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = [];
 
       moduleDefinition.CallRedirector = new(Reporter);
 
@@ -267,7 +269,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
   public Dictionary<MemberDecl, MemberDecl> NewRedirections { get; set; } = new();
   private readonly Dictionary<MemberDecl, string> newFullNames = new();
   private readonly ErrorReporter reporter;
-  public HashSet<MemberDecl> CalledWrappers { get; } = new();
+  public HashSet<MemberDecl> CalledWrappers { get; } = [];
 
   public CallRedirector(ErrorReporter reporter) {
     this.reporter = reporter;

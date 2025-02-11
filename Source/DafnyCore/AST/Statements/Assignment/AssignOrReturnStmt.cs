@@ -12,12 +12,12 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
   public readonly ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
   public readonly List<AssignmentRhs> Rhss;
   public readonly AttributedToken KeywordToken;
-  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new();
+  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = [];
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
 
   public override IEnumerable<INode> Children => ResolvedStatements;
 
-  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
+  public override IEnumerable<Statement> PreResolveSubStatements => [];
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -263,7 +263,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     for (int k = (expectExtract ? 1 : 0); k < Lhss.Count; ++k) {
       lhss2.Add(Lhss[k]);
     }
-    List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() { Rhs };
+    List<AssignmentRhs> rhss2 = [Rhs];
     if (Rhss != null) {
       Rhss.ForEach(e => rhss2.Add(e));
     }
@@ -312,13 +312,15 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
         // "if temp.IsFailure()"
         new IfStmt(Origin, false, resolver.VarDotMethod(Origin, temp, "IsFailure"),
           // THEN: { out := temp.PropagateFailure(); return; }
-          new BlockStmt(Origin, new List<Statement>() {
+          new BlockStmt(Origin, [
             new AssignStatement(Origin,
-              new List<Expression>() { ident },
-              new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Origin, temp, "PropagateFailure")) }
+              [ident],
+              [new ExprRhs(resolver.VarDotMethod(Origin, temp, "PropagateFailure"))]
             ),
-            new ReturnStmt(Origin, null),
-          }),
+
+            new ReturnStmt(Origin, null)
+
+          ]),
           // ELSE: no else block
           null
         ));
@@ -329,8 +331,8 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       var lhs = Lhss[0];
       ResolvedStatements.Add(
         new AssignStatement(Origin,
-          new List<Expression>() { lhsExtract },
-          new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Origin, temp, "Extract")) }
+          [lhsExtract],
+          [new ExprRhs(resolver.VarDotMethod(Origin, temp, "Extract"))]
         ));
       // The following check is not necessary, because the ghost mismatch is caught later.
       // However the error message here is much clearer.

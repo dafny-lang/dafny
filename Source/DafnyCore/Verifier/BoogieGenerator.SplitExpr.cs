@@ -97,7 +97,7 @@ namespace Microsoft.Dafny {
               // split into a number of UnchangeExpr's, one for each FrameExpression
               foreach (var fe in e.Frame) {
                 var tok = new NestedOrigin(GetToken(e), fe.Origin);
-                Expression ee = new UnchangedExpr(tok, new List<FrameExpression> { fe }, e.At) { AtLabel = e.AtLabel };
+                Expression ee = new UnchangedExpr(tok, [fe], e.At) { AtLabel = e.AtLabel };
                 ee.Type = Type.Bool;  // resolve here
                 TrSplitExpr(context, ee, splits, position, heightLimit, applyInduction, etran);
               }
@@ -323,7 +323,7 @@ namespace Microsoft.Dafny {
                 }
                 ihBody = BplAnd(etran.CanCallAssumption(bodyK), ihBody);
                 ihBody = BplImp(less, ihBody);
-                List<Variable> bvars = new List<Variable>();
+                List<Variable> bvars = [];
                 Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
                 Bpl.Expr ih;
                 var tr = TrTrigger(etran, e.Attributes, expr.Origin, substMap);
@@ -353,7 +353,7 @@ namespace Microsoft.Dafny {
                   i++;
                 }
                 List<bool> freeOfAlloc = BoundedPool.HasBounds(e.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-                bvars = new List<Variable>();
+                bvars = [];
                 typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
                 foreach (var kase in caseProduct) {
                   var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);

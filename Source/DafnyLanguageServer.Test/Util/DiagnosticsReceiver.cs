@@ -33,7 +33,7 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
 
   public Diagnostic[] GetLatestAndClearQueue(TextDocumentIdentifier document, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
     var last = GetLatestAndClearQueue(d => d.Uri == document.Uri);
-    return last?.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray() ?? Array.Empty<Diagnostic>();
+    return last?.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray() ?? [];
   }
 
   public async Task<Diagnostic[]> AwaitNextDiagnosticsAsync(CancellationToken cancellationToken,

@@ -250,7 +250,7 @@ public class InductionRewriter : IRewriter {
     if (Attributes.Contains(attributes, "inductionTrigger")) {
       // Empty triggers are not valid at the Boogie level, but they indicate that we don't want automatic selection
       Triggers.SplitPartTriggerWriter.DisableEmptyTriggers(attributes, "inductionTrigger");
-      return Attributes.FindAllExpressions(attributes, "inductionTrigger") ?? new List<List<Expression>>(); // Never null
+      return Attributes.FindAllExpressions(attributes, "inductionTrigger") ?? []; // Never null
     }
 
     // Construct a quantifier, because that's what the trigger-generating machinery expects.

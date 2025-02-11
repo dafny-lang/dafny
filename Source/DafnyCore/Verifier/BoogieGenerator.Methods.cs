@@ -387,8 +387,9 @@ namespace Microsoft.Dafny {
         ante = BplAnd(ante, isalloc_o);
 
         // compute a different trigger
-        t_es = new List<Bpl.Expr>();
-        t_es.Add(oDotF);
+        t_es = [
+          oDotF
+        ];
         if (!is_array && !f.IsMutable) {
           // since "h" is not part of oDotF, we add a separate term that mentions "h"
           t_es.Add(isalloc_o);
@@ -655,7 +656,7 @@ namespace Microsoft.Dafny {
 
       // also play havoc with the out parameters
       if (outParams.Count != 0) {  // don't create an empty havoc statement
-        List<Boogie.IdentifierExpr> outH = new List<Boogie.IdentifierExpr>();
+        List<Boogie.IdentifierExpr> outH = [];
         foreach (Boogie.Variable b in outParams) {
           Contract.Assert(b != null);
           outH.Add(new Boogie.IdentifierExpr(b.tok, b));
@@ -690,7 +691,7 @@ namespace Microsoft.Dafny {
     public void ApplyModifiesEffect(INode node, ExpressionTranslator etran, BoogieStmtListBuilder builder,
       Specification<FrameExpression> modifies, bool allowsAllocation, bool isGhostContext) {
       // play havoc with the heap according to the modifies clause
-      builder.Add(new Boogie.HavocCmd(node.Origin, new List<Boogie.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+      builder.Add(new Boogie.HavocCmd(node.Origin, [etran.HeapCastToIdentifierExpr]));
       // assume the usual two-state boilerplate information
       foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(node.Origin, modifies.Expressions, isGhostContext, allowsAllocation, etran.Old, etran, etran.Old)) {
         if (tri.IsFree) {
@@ -755,7 +756,7 @@ namespace Microsoft.Dafny {
           TypeApplicationJustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.Origin, tp)),
           Type = new InferredTypeProxy()
         };
-        var recursiveCall = new CallStmt(m.Origin, new List<Expression>(), methodSel, recursiveCallArgs) {
+        var recursiveCall = new CallStmt(m.Origin, [], methodSel, recursiveCallArgs) {
           IsGhost = m.IsGhost
         };
 
@@ -916,7 +917,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(m.EnclosingClass != null && m.EnclosingClass is ClassLikeDecl);
 
       // play havoc with the heap according to the modifies clause
-      builder.Add(new Bpl.HavocCmd(m.Origin, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+      builder.Add(new Bpl.HavocCmd(m.Origin, [etran.HeapCastToIdentifierExpr]));
       // assume the usual two-state boilerplate information
       foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.Origin, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, etran.Old, etran, etran.Old)) {
         if (tri.IsFree) {
@@ -1013,7 +1014,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(f, MethodTranslationKind.OverrideCheck);
       var implicitParameters = Util.Concat(typeInParams, inParams_Heap);
-      var proc = new Boogie.Procedure(f.Origin, name, new List<Boogie.TypeVariable>(),
+      var proc = new Boogie.Procedure(f.Origin, name, [],
         Util.Concat(implicitParameters, inParams), outParams,
         false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
@@ -1182,7 +1183,7 @@ namespace Microsoft.Dafny {
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
-      List<FrameExpression> traitFrameExps = new List<FrameExpression>();
+      List<FrameExpression> traitFrameExps = [];
       FunctionCallSubstituter sub = null;
       foreach (var e in func.OverriddenFunction.Reads.Expressions) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)func.EnclosingClass);
@@ -1206,7 +1207,7 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
       Bpl.Expr ante = BplAnd(Bpl.Expr.Neq(o, Predef.Null), etran.IsAlloced(tok, o));
       Bpl.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar }, null,
+      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, [], [oVar, fVar], null,
                                            BplImp(ante, consequent));
 
       //to initialize $_ReadsFrame variable to Frame'
@@ -1215,7 +1216,7 @@ namespace Microsoft.Dafny {
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_ReadsFrame[o,f]);
       Bpl.Expr oInCallee = InRWClause(tok, o, f, func.Reads.Expressions, etran, null, null);
       Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
+      Bpl.Expr q = new Bpl.ForallExpr(tok, [], [oVar, fVar],
                                       BplImp(BplAnd(ante, oInCallee), consequent2));
       var description = new TraitFrame(func.WhatKind, false, func.Reads.Expressions, traitFrameExps);
       builder.Add(Assert(tok, q, description, builder.Context, kv));
@@ -1439,7 +1440,7 @@ namespace Microsoft.Dafny {
       var canCallImp = BplImp(canCallFunc, canCallOverridingFunc);
 
       // The axiom
-      Boogie.Expr ax = BplForall(f.Origin, new List<Boogie.TypeVariable>(), forallFormals, null, tr,
+      Boogie.Expr ax = BplForall(f.Origin, [], forallFormals, null, tr,
         BplImp(ante, BplAnd(canCallImp, synonyms)));
       var comment = $"override axiom for {f.FullSanitizedName} in {overridingFunction.EnclosingClass.WhatKind} {overridingFunction.EnclosingClass.FullSanitizedName}";
       return new Boogie.Axiom(f.Origin, ax, comment);
@@ -1635,10 +1636,10 @@ namespace Microsoft.Dafny {
       List<FrameExpression> classFrameExps;
       List<FrameExpression> originalTraitFrameExps;
       if (isModifies) {
-        classFrameExps = m.Mod != null ? m.Mod.Expressions : new List<FrameExpression>();
+        classFrameExps = m.Mod != null ? m.Mod.Expressions : [];
         originalTraitFrameExps = m.OverriddenMethod.Mod?.Expressions;
       } else {
-        classFrameExps = m.Reads != null ? m.Reads.Expressions : new List<FrameExpression>();
+        classFrameExps = m.Reads != null ? m.Reads.Expressions : [];
         originalTraitFrameExps = m.OverriddenMethod.Reads?.Expressions;
       }
 
@@ -1672,7 +1673,7 @@ namespace Microsoft.Dafny {
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
       var oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
       var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      var q = new Boogie.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
+      var q = new Boogie.ForallExpr(tok, [], [oVar, fVar],
         BplImp(BplAnd(ante, oInCallee), consequent2));
       var description = new TraitFrame(m.WhatKind, isModifies, classFrameExps, traitFrameExps);
       builder.Add(Assert(m.Origin, q, description, builder.Context, kv));
@@ -1680,7 +1681,7 @@ namespace Microsoft.Dafny {
 
     // Return a way to know if an assertion should be converted to an assumption
     private void SetAssertionOnlyFilter(Node m) {
-      List<IOrigin> rangesOnly = new List<IOrigin>();
+      List<IOrigin> rangesOnly = [];
       m.Visit(node => {
         if (node is AssertStmt assertStmt &&
             assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {
@@ -1761,7 +1762,7 @@ namespace Microsoft.Dafny {
       var req = GetRequires();
       var mod = new List<Bpl.IdentifierExpr> { ordinaryEtran.HeapCastToIdentifierExpr };
       var ens = GetEnsures();
-      var proc = new Bpl.Procedure(m.Origin, name, new List<Bpl.TypeVariable>(),
+      var proc = new Bpl.Procedure(m.Origin, name, [],
         inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
       AddVerboseNameAttribute(proc, m.FullDafnyName, kind);
 
@@ -1932,7 +1933,7 @@ namespace Microsoft.Dafny {
 
     internal IEnumerable<Bpl.Expr> TypeBoundAxioms(IOrigin tok, List<TypeParameter> typeParameters) {
       foreach (var typeParameter in typeParameters.Where(typeParameter => typeParameter.TypeBounds.Any())) {
-        TypeBoundAxiomExpressions(tok, new List<Variable>(), new UserDefinedType(typeParameter), typeParameter.TypeBounds,
+        TypeBoundAxiomExpressions(tok, [], new UserDefinedType(typeParameter), typeParameter.TypeBounds,
           out var isBoxExpr, out var isAllocBoxExpr);
         yield return isBoxExpr;
         yield return isAllocBoxExpr;

@@ -143,7 +143,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             throw new InvalidOperationException($"received a type symbol of type {typeSymbol.GetType()}, but expected a ClassSymbol");
           }
         } else {
-          members = Enumerable.Empty<ILegacySymbol>();
+          members = [];
         }
         return CreateCompletionListFromSymbols(members);
       }
