@@ -2,18 +2,35 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Dafny;
 
-partial class Deserializer(Uri uri, string input) {
-  private int position;
+public partial class Deserializer(Uri uri, IDecoder decoder) {
 
-  private List<T> DeserializeList<T>() {
-    return DeserializeArray<T>().ToList();
+  private Specification<T> DeserializeSpecification<T>() where T : Node {
+    var parameter0 = DeserializeGeneric<SourceOrigin>();
+    var parameter1 = DeserializeList<T>();
+    var parameter2 = DeserializeGeneric<Attributes>();
+    return new Specification<T>(parameter0, parameter1, parameter2);
   }
 
+  private List<T> DeserializeList<T>() {
+    throw new NotImplementedException();
+  }
+
+  
+  private List<T> DeserializeList<T>(Func<T> readElement) {
+    return DeserializeArray<T>(readElement).ToList();
+  }
+
+  public Token DeserializeTokenOption() {
+    return DeserializeToken();
+  }
+  
   public Token DeserializeToken()
   {
     var parameter0 = DeserializeGeneric<Int32>();
@@ -23,20 +40,11 @@ partial class Deserializer(Uri uri, string input) {
     };
   }
 
-  private T[] DeserializeArray<T>() {
-    var elements = new List<object>();
-
-    while (position < input.Length && input[position] != ']') {
-
-      elements.Add(Value<T>());
-    }
-
-    position++; // skip ']'
-    SkipComma();
-
-    var array = new T[elements.Count];
-    for (int i = 0; i < elements.Count; i++) {
-      array.SetValue(elements[i], i);
+  private T[] DeserializeArray<T>(Func<T> readElement) {
+    var length = decoder.ReadInt32();
+    var array = new T[length];
+    for (int i = 0; i < length; i++) {
+      array.SetValue(readElement(), i);
     }
     return array;
   }
@@ -45,169 +53,61 @@ partial class Deserializer(Uri uri, string input) {
     return DeserializeGeneric<T>();
   }
 
-  private string DeserializeString() {
-    if (!TryMatch("\"")) {
-      throw new Exception();
-    }
-    
-    var sb = new StringBuilder();
-    bool escaped = false;
-
-    while (position < input.Length) {
-      char c = input[position++];
-
-      if (escaped) {
-        switch (c) {
-          case 'n': sb.Append('\n'); break;
-          case 'r': sb.Append('\r'); break;
-          case 't': sb.Append('\t'); break;
-          default: sb.Append(c); break;
-        }
-        escaped = false;
-      } else if (c == '\\') {
-        escaped = true;
-      } else if (c == '"') {
-        break;
-      } else {
-        sb.Append(c);
-      }
-    }
-
-    SkipComma();
-    return sb.ToString();
+  public T DeserializeAbstract<T>() {
+    var actualType = typeof(T);
+    var typeName = decoder.ReadQualifiedName();
+    actualType = System.Type.GetType("Microsoft.Dafny." + typeName) ??
+                 System.Type.GetType("System." + typeName) ?? throw new Exception($"Type not found: {typeName}");
+    return DeserializeGeneric<T>(actualType);
   }
 
-  private void SkipComma()
-  {
-    if (position < input.Length && input[position] == ',') {
-      position++;
-    }
+  public bool ReadBool() {
+    return decoder.ReadBool();
   }
 
-  public string Remainder => input.Substring(position);
+  public bool DeserializeBoolean() {
+    return decoder.ReadBool();
+  }
   
-  private int DeserializeInt32() {
-    string token = ReadToken();
-    return int.Parse(token);
+  public bool DeserializeBool() {
+    return decoder.ReadBool();
   }
-
-  private object DeserializeObject() {
-    return DeserializeGeneric<object>();
+  
+  public string DeserializeString() {
+    return decoder.ReadString();
   }
 
   public T DeserializeGeneric<T>() {
-    if (TryMatch("null")) {
-      SkipComma();
-      return default;
-    }
-    
-    var actualType = typeof(T);
-    if (TryMatch("+")) {
-      string typeName = ReadUntil(':');
-      actualType = System.Type.GetType("Microsoft.Dafny." + typeName) ??
-                   System.Type.GetType("System." + typeName) ?? throw new Exception($"Type not found: {typeName}");
-      position++; // skip ':'
-    }
+    return DeserializeGeneric<T>(typeof(T));
+  }
+
+  public T DeserializeGeneric<T>(System.Type actualType) {
 
     if (actualType == typeof(string)) {
-      return (T)(object)DeserializeString();
+      return (T)(object)decoder.ReadString();
     }
     
-    if (IsSimpleType(actualType)) {
-      return (T)ConvertSimpleType(ReadToken(), actualType);
+    if (actualType == typeof(bool)) {
+      return (T)(object)decoder.ReadBool();
     }
 
-    if (actualType == typeof(IOrigin)) {
+    if (actualType == typeof(int)) {
+      return (T)(object)decoder.ReadInt32();
+    }
+
+    if (actualType == typeof(IOrigin) || actualType == typeof(SourceOrigin)) {
       return (T)(object)DeserializeSourceOrigin();
     }
 
+    var isNull = decoder.ReadBool();
+    if (isNull) {
+      return default;
+    }
+    
     return (T)DeserializeObject(actualType);
   }
 
-  private string ReadToken() {
-    var sb = new StringBuilder();
-    while (position < input.Length && IsTokenChar(input[position])) {
-      sb.Append(input[position++]);
-    }
-    SkipComma();
-    return sb.ToString();
-  }
-
-  private string ReadUntil(char delimiter) {
-    var sb = new StringBuilder();
-    while (position < input.Length && input[position] != delimiter) {
-      sb.Append(input[position++]);
-    }
-    return sb.ToString();
-  }
-
-  private bool TryMatch(string pattern) {
-    if (position + pattern.Length > input.Length) {
-      return false;
-    }
-
-    for (int i = 0; i < pattern.Length; i++) {
-      if (input[position + i] != pattern[i]) {
-        return false;
-      }
-    }
-
-    if (pattern.Length > 0) {
-      position += pattern.Length;
-    }
-
-    return true;
-  }
-
-  private void SkipWhitespace() {
-    while (position < input.Length && char.IsWhiteSpace(input[position])) {
-      position++;
-    }
-  }
-
-  private bool IsTokenChar(char c) {
-    return !char.IsWhiteSpace(c) && c != ',' && c != ']';
-  }
-
-  private bool IsSimpleType(System.Type type) {
-    return type.IsPrimitive || type == typeof(string) || type == typeof(decimal)
-           || type == typeof(DateTime) || Nullable.GetUnderlyingType(type) != null;
-  }
-
-  private object ConvertSimpleType(string value, System.Type type) {
-    if (type == typeof(bool)) {
-      return bool.Parse(value);
-    }
-
-    if (type == typeof(int)) {
-      return int.Parse(value);
-    }
-
-    if (type == typeof(long)) {
-      return long.Parse(value);
-    }
-
-    if (type == typeof(float)) {
-      return float.Parse(value);
-    }
-
-    if (type == typeof(double)) {
-      return double.Parse(value);
-    }
-
-    if (type == typeof(decimal)) {
-      return decimal.Parse(value);
-    }
-
-    if (type == typeof(DateTime)) {
-      return DateTime.Parse(value);
-    }
-
-    throw new Exception($"Unsupported simple type: {type}");
-  }
-  
-  private bool DeserializeBoolean() {
-    var token = ReadToken();
-    return bool.Parse(token);
+  private int DeserializeInt32() {
+    return decoder.ReadInt32();
   }
 }

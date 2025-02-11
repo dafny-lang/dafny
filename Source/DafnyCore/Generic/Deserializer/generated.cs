@@ -7,78 +7,149 @@ namespace Microsoft.Dafny
     {
         public SourceOrigin DeserializeSourceOrigin()
         {
-            var parameter0 = DeserializeGeneric<Token>();
-            var parameter1 = DeserializeGeneric<Token>();
-            var parameter2 = DeserializeGeneric<Token>();
+            var parameter0 = DeserializeToken();
+            var parameter1 = DeserializeToken();
+            var parameter2 = DeserializeToken();
             return new SourceOrigin(parameter0, parameter1, parameter2);
+        }
+
+        public SourceOrigin DeserializeSourceOriginOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeSourceOrigin();
         }
 
         public Name DeserializeName()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<String>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeString();
             return new Name(parameter0, parameter1);
+        }
+
+        public Name DeserializeNameOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeName();
         }
 
         public ModuleDefinition DeserializeModuleDefinition()
         {
             Microsoft.Dafny.ModuleDefinition parameter5 = null;
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Name>();
-            var parameter2 = DeserializeList<IOrigin>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeName();
+            var parameter2 = DeserializeList<IOrigin>(() => DeserializeSourceOrigin());
             var parameter3 = DeserializeModuleKindEnum();
-            var parameter4 = DeserializeGeneric<Implements>();
-            var parameter6 = DeserializeGeneric<Attributes>();
-            var parameter7 = DeserializeList<TopLevelDecl>();
+            var parameter4 = DeserializeImplementsOption();
+            var parameter6 = DeserializeAttributesOption();
+            var parameter7 = DeserializeList<TopLevelDecl>(() => DeserializeAbstract<TopLevelDecl>());
             return new ModuleDefinition(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
+        }
+
+        public ModuleDefinition DeserializeModuleDefinitionOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeModuleDefinition();
         }
 
         public UserDefinedType DeserializeUserDefinedType()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Expression>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeAbstract<Expression>();
             return new UserDefinedType(parameter0, parameter1);
+        }
+
+        public UserDefinedType DeserializeUserDefinedTypeOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeUserDefinedType();
         }
 
         public LiteralExpr DeserializeLiteralExpr()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Object>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeAbstract<Object>();
             return new LiteralExpr(parameter0, parameter1);
         }
 
-        private Specification<T> DeserializeSpecification<T>()
-            where T : Node
+        public LiteralExpr DeserializeLiteralExprOption()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeList<T>();
-            var parameter2 = DeserializeGeneric<Attributes>();
-            return new Specification<T>(parameter0, parameter1, parameter2);
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeLiteralExpr();
         }
 
         public Attributes DeserializeAttributes()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<String>();
-            var parameter2 = DeserializeList<Expression>();
-            var parameter3 = DeserializeGeneric<Attributes>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeString();
+            var parameter2 = DeserializeList<Expression>(() => DeserializeAbstract<Expression>());
+            var parameter3 = DeserializeAttributesOption();
             return new Attributes(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public Attributes DeserializeAttributesOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeAttributes();
         }
 
         public TypeParameter DeserializeTypeParameter()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Name>();
-            var parameter2 = DeserializeGeneric<Attributes>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeName();
+            var parameter2 = DeserializeAttributesOption();
             var parameter3 = DeserializeTPVarianceSyntax();
-            var parameter4 = DeserializeGeneric<TypeParameterCharacteristics>();
-            var parameter5 = DeserializeList<Type>();
+            var parameter4 = DeserializeTypeParameterCharacteristicsOption();
+            var parameter5 = DeserializeList<Type>(() => DeserializeAbstract<Type>());
             return new TypeParameter(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
+        }
+
+        public TypeParameter DeserializeTypeParameterOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeTypeParameter();
         }
 
         public TypeParameterCharacteristics DeserializeTypeParameterCharacteristics()
         {
             return new TypeParameterCharacteristics();
+        }
+
+        public TypeParameterCharacteristics DeserializeTypeParameterCharacteristicsOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeTypeParameterCharacteristics();
         }
 
         private TPVarianceSyntax DeserializeTPVarianceSyntax()
@@ -89,147 +160,277 @@ namespace Microsoft.Dafny
 
         public FrameExpression DeserializeFrameExpression()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Expression>();
-            var parameter2 = DeserializeGeneric<String>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeAbstract<Expression>();
+            var parameter2 = DeserializeString();
             return new FrameExpression(parameter0, parameter1, parameter2);
+        }
+
+        public FrameExpression DeserializeFrameExpressionOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeFrameExpression();
         }
 
         public AttributedExpression DeserializeAttributedExpression()
         {
-            var parameter0 = DeserializeGeneric<Expression>();
-            var parameter1 = DeserializeGeneric<AssertLabel>();
-            var parameter2 = DeserializeGeneric<Attributes>();
+            var parameter0 = DeserializeAbstract<Expression>();
+            var parameter1 = DeserializeAssertLabelOption();
+            var parameter2 = DeserializeAttributesOption();
             return new AttributedExpression(parameter0, parameter1, parameter2);
+        }
+
+        public AttributedExpression DeserializeAttributedExpressionOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeAttributedExpression();
         }
 
         public Label DeserializeLabel()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<String>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeString();
             return new Label(parameter0, parameter1);
+        }
+
+        public Label DeserializeLabelOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeLabel();
         }
 
         public AssertLabel DeserializeAssertLabel()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<String>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeString();
             return new AssertLabel(parameter0, parameter1);
+        }
+
+        public AssertLabel DeserializeAssertLabelOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeAssertLabel();
         }
 
         public Formal DeserializeFormal()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Name>();
-            var parameter2 = DeserializeGeneric<Type>();
-            var parameter4 = DeserializeGeneric<Boolean>();
-            var parameter3 = DeserializeGeneric<Boolean>();
-            var parameter5 = DeserializeGeneric<Expression>();
-            var parameter6 = DeserializeGeneric<Attributes>();
-            var parameter7 = DeserializeGeneric<Boolean>();
-            var parameter8 = DeserializeGeneric<Boolean>();
-            var parameter9 = DeserializeGeneric<Boolean>();
-            var parameter10 = DeserializeGeneric<String>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeName();
+            var parameter2 = DeserializeAbstract<Type>();
+            var parameter4 = DeserializeBoolean();
+            var parameter3 = DeserializeBoolean();
+            var parameter5 = DeserializeAbstract<Expression>();
+            var parameter6 = DeserializeAttributesOption();
+            var parameter7 = DeserializeBoolean();
+            var parameter8 = DeserializeBoolean();
+            var parameter9 = DeserializeBoolean();
+            var parameter10 = DeserializeString();
             return new Formal(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10);
+        }
+
+        public Formal DeserializeFormalOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeFormal();
         }
 
         public Method DeserializeMethod()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Name>();
-            var parameter2 = DeserializeGeneric<Attributes>();
-            var parameter3 = DeserializeGeneric<Boolean>();
-            var parameter4 = DeserializeGeneric<Boolean>();
-            var parameter5 = DeserializeList<TypeParameter>();
-            var parameter6 = DeserializeList<Formal>();
-            var parameter7 = DeserializeList<AttributedExpression>();
-            var parameter8 = DeserializeList<AttributedExpression>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeName();
+            var parameter2 = DeserializeAttributesOption();
+            var parameter3 = DeserializeBoolean();
+            var parameter4 = DeserializeBoolean();
+            var parameter5 = DeserializeList<TypeParameter>(() => DeserializeTypeParameterOption());
+            var parameter6 = DeserializeList<Formal>(() => DeserializeFormalOption());
+            var parameter7 = DeserializeList<AttributedExpression>(() => DeserializeAttributedExpressionOption());
+            var parameter8 = DeserializeList<AttributedExpression>(() => DeserializeAttributedExpressionOption());
             var parameter9 = DeserializeSpecification<FrameExpression>();
             var parameter10 = DeserializeSpecification<Expression>();
-            var parameter11 = DeserializeList<Formal>();
+            var parameter11 = DeserializeList<Formal>(() => DeserializeFormalOption());
             var parameter12 = DeserializeSpecification<FrameExpression>();
-            var parameter13 = DeserializeGeneric<BlockStmt>();
-            var parameter14 = DeserializeGeneric<SourceOrigin>();
-            var parameter15 = DeserializeGeneric<Boolean>();
+            var parameter13 = DeserializeBlockStmtOption();
+            var parameter14 = DeserializeSourceOrigin();
+            var parameter15 = DeserializeBoolean();
             return new Method(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15);
+        }
+
+        public Method DeserializeMethodOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeMethod();
         }
 
         public AssertStmt DeserializeAssertStmt()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Attributes>();
-            var parameter2 = DeserializeGeneric<Expression>();
-            var parameter3 = DeserializeGeneric<AssertLabel>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeAttributesOption();
+            var parameter2 = DeserializeAbstract<Expression>();
+            var parameter3 = DeserializeAssertLabelOption();
             return new AssertStmt(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public AssertStmt DeserializeAssertStmtOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeAssertStmt();
         }
 
         public BlockStmt DeserializeBlockStmt()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Attributes>();
-            var parameter2 = DeserializeList<Statement>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeAttributesOption();
+            var parameter2 = DeserializeList<Statement>(() => DeserializeAbstract<Statement>());
             return new BlockStmt(parameter0, parameter1, parameter2);
+        }
+
+        public BlockStmt DeserializeBlockStmtOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeBlockStmt();
         }
 
         public Function DeserializeFunction()
         {
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Name>();
-            var parameter16 = DeserializeGeneric<Attributes>();
-            var parameter2 = DeserializeGeneric<Boolean>();
-            var parameter3 = DeserializeGeneric<Boolean>();
-            var parameter5 = DeserializeList<TypeParameter>();
-            var parameter6 = DeserializeList<Formal>();
-            var parameter9 = DeserializeList<AttributedExpression>();
-            var parameter11 = DeserializeList<AttributedExpression>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeName();
+            var parameter16 = DeserializeAttributesOption();
+            var parameter2 = DeserializeBoolean();
+            var parameter3 = DeserializeBoolean();
+            var parameter5 = DeserializeList<TypeParameter>(() => DeserializeTypeParameterOption());
+            var parameter6 = DeserializeList<Formal>(() => DeserializeFormalOption());
+            var parameter9 = DeserializeList<AttributedExpression>(() => DeserializeAttributedExpressionOption());
+            var parameter11 = DeserializeList<AttributedExpression>(() => DeserializeAttributedExpressionOption());
             var parameter10 = DeserializeSpecification<FrameExpression>();
             var parameter12 = DeserializeSpecification<Expression>();
-            var parameter4 = DeserializeGeneric<Boolean>();
-            var parameter7 = DeserializeGeneric<Formal>();
-            var parameter8 = DeserializeGeneric<Type>();
-            var parameter13 = DeserializeGeneric<Expression>();
-            var parameter14 = DeserializeGeneric<SourceOrigin>();
-            var parameter15 = DeserializeGeneric<BlockStmt>();
-            var parameter17 = DeserializeGeneric<SourceOrigin>();
+            var parameter4 = DeserializeBoolean();
+            var parameter7 = DeserializeFormalOption();
+            var parameter8 = DeserializeAbstract<Type>();
+            var parameter13 = DeserializeAbstract<Expression>();
+            var parameter14 = DeserializeSourceOrigin();
+            var parameter15 = DeserializeBlockStmtOption();
+            var parameter17 = DeserializeSourceOrigin();
             return new Function(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15, parameter16, parameter17);
+        }
+
+        public Function DeserializeFunctionOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeFunction();
         }
 
         public ClassDecl DeserializeClassDecl()
         {
             Microsoft.Dafny.ModuleDefinition parameter4 = null;
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Name>();
-            var parameter2 = DeserializeGeneric<Attributes>();
-            var parameter3 = DeserializeList<TypeParameter>();
-            var parameter5 = DeserializeList<MemberDecl>();
-            var parameter6 = DeserializeList<Type>();
-            var parameter7 = DeserializeGeneric<Boolean>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeName();
+            var parameter2 = DeserializeAttributesOption();
+            var parameter3 = DeserializeList<TypeParameter>(() => DeserializeTypeParameterOption());
+            var parameter5 = DeserializeList<MemberDecl>(() => DeserializeAbstract<MemberDecl>());
+            var parameter6 = DeserializeList<Type>(() => DeserializeAbstract<Type>());
+            var parameter7 = DeserializeBoolean();
             return new ClassDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
+        }
+
+        public ClassDecl DeserializeClassDeclOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeClassDecl();
         }
 
         public LiteralModuleDecl DeserializeLiteralModuleDecl()
         {
             Microsoft.Dafny.DafnyOptions parameter0 = null;
             Microsoft.Dafny.ModuleDefinition parameter4 = null;
-            var parameter1 = DeserializeGeneric<SourceOrigin>();
-            var parameter2 = DeserializeGeneric<Name>();
-            var parameter3 = DeserializeGeneric<Attributes>();
-            var parameter5 = DeserializeGeneric<String>();
-            var parameter6 = DeserializeGeneric<ModuleDefinition>();
+            var parameter1 = DeserializeSourceOrigin();
+            var parameter2 = DeserializeName();
+            var parameter3 = DeserializeAttributesOption();
+            var parameter5 = DeserializeString();
+            var parameter6 = DeserializeModuleDefinitionOption();
             return new LiteralModuleDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6);
+        }
+
+        public LiteralModuleDecl DeserializeLiteralModuleDeclOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeLiteralModuleDecl();
         }
 
         public Implements DeserializeImplements()
         {
             var parameter0 = DeserializeImplementationKind();
-            var parameter1 = DeserializeGeneric<ModuleQualifiedId>();
+            var parameter1 = DeserializeModuleQualifiedIdOption();
             return new Implements(parameter0, parameter1);
+        }
+
+        public Implements DeserializeImplementsOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeImplements();
         }
 
         public ModuleQualifiedId DeserializeModuleQualifiedId()
         {
-            var parameter0 = DeserializeList<Name>();
+            var parameter0 = DeserializeList<Name>(() => DeserializeName());
             return new ModuleQualifiedId(parameter0);
+        }
+
+        public ModuleQualifiedId DeserializeModuleQualifiedIdOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeModuleQualifiedId();
         }
 
         private ImplementationKind DeserializeImplementationKind()
@@ -247,14 +448,24 @@ namespace Microsoft.Dafny
         public FileModuleDefinition DeserializeFileModuleDefinition()
         {
             Microsoft.Dafny.ModuleDefinition parameter5 = null;
-            var parameter0 = DeserializeGeneric<SourceOrigin>();
-            var parameter1 = DeserializeGeneric<Name>();
-            var parameter2 = DeserializeList<IOrigin>();
+            var parameter0 = DeserializeSourceOrigin();
+            var parameter1 = DeserializeName();
+            var parameter2 = DeserializeList<IOrigin>(() => DeserializeSourceOrigin());
             var parameter3 = DeserializeModuleKindEnum();
-            var parameter4 = DeserializeGeneric<Implements>();
-            var parameter6 = DeserializeGeneric<Attributes>();
-            var parameter7 = DeserializeList<TopLevelDecl>();
+            var parameter4 = DeserializeImplementsOption();
+            var parameter6 = DeserializeAttributesOption();
+            var parameter7 = DeserializeList<TopLevelDecl>(() => DeserializeAbstract<TopLevelDecl>());
             return new FileModuleDefinition(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
+        }
+
+        public FileModuleDefinition DeserializeFileModuleDefinitionOption()
+        {
+            if (ReadBool())
+            {
+                return default;
+            }
+
+            return DeserializeFileModuleDefinition();
         }
 
         private object DeserializeObject(System.Type actualType)
@@ -262,11 +473,6 @@ namespace Microsoft.Dafny
             if (actualType == typeof(SourceOrigin))
             {
                 return DeserializeSourceOrigin();
-            }
-
-            if (actualType == typeof(Token))
-            {
-                return DeserializeToken();
             }
 
             if (actualType == typeof(Name))

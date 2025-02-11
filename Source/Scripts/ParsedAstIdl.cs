@@ -1,3 +1,4 @@
+using System.Collections;
 using System.CommandLine;
 using System.Numerics;
 using System.Reflection;
@@ -13,6 +14,8 @@ namespace IntegrationTests;
 
 
 public class GenerateParsedAst {
+  private HashSet<Type> typesWithHardcodedDeserializer = [typeof(Token), typeof(Specification<>)];
+  private HashSet<Type> nonNullTypes = [typeof(SourceOrigin), typeof(Token), typeof(Name)];
   private static Dictionary<Type, Type> overrideBaseType = new() {
     { typeof(TypeParameter), typeof(Declaration) },
     { typeof(ModuleDecl), typeof(Declaration) },
@@ -261,52 +264,99 @@ private {type.Name} Deserialize{type.Name}() {{
     }
 
     var deserializeMethodName = $"Deserialize{typeString}";
-    var isSpecification = type.Name.StartsWith("Specification");
-    if (isSpecification) {
-      var method = SyntaxFactory.ParseMemberDeclaration(@"
-  private Specification<T> DeserializeSpecification<T>() where T : Node {
-    var parameter0 = DeserializeGeneric<SourceOrigin>();
-    var parameter1 = DeserializeList<T>();
-    var parameter2 = DeserializeGeneric<Attributes>();
-    return new Specification<T>(parameter0, parameter1, parameter2);
-  }")!;
-      deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(method));
-    } else if (type.Name == "Token") {
-    } 
-    else {
-      for (var schemaIndex = 0; schemaIndex < schemaToConstructorPosition.Count; schemaIndex++) {
-        var constructorIndex = schemaToConstructorPosition[schemaIndex];
-        var parameter = parameters[constructorIndex];
-        bool callObjectInstead = parameter.ParameterType.IsAbstract 
-                                 || (parameter.ParameterType.WithoutGenericArguments() != typeof(Specification<>)
-                                     && !parameter.ParameterType.IsEnum && !parameter.ParameterType.IsAssignableTo(typeof(IEnumerable<object>)));
-        if (callObjectInstead) {
-          statements.AppendLine(
-            $"var parameter{constructorIndex} = DeserializeGeneric<{ToGenericTypeString(parameter.ParameterType, true, false)}>();");
-          
+    if (typesWithHardcodedDeserializer.Contains(type.WithoutGenericArguments())) {
+      return;
+    }
+
+    for (var schemaIndex = 0; schemaIndex < schemaToConstructorPosition.Count; schemaIndex++) {
+      var constructorIndex = schemaToConstructorPosition[schemaIndex];
+      var parameter = parameters[constructorIndex];
+
+      var parameterTypeReadCall = GetReadTypeCall(parameter.ParameterType);
+      statements.AppendLine(
+        $"var parameter{constructorIndex} = {parameterTypeReadCall};");
+    }
+
+    AddReadMethodForType(parameters, statements, typeString, deserializeMethodName);
+    AddReadOptionMethodForType(typeString, deserializeMethodName);
+    deserializeObjectCases.Add(ParseStatement($@"
+if (actualType == typeof({typeString})) {{
+  return {deserializeMethodName}();
+}}
+"));
+
+  }
+
+  private string GetReadTypeCall(Type parameterType)
+  {
+    string parameterTypeReadCall;
+    var newType = mappedTypes.GetValueOrDefault(parameterType, parameterType);
+    if (newType.IsArray) {
+      var elementType = newType.GetGenericArguments()[0];
+      var elementRead = GetReadTypeCall(elementType);
+      var elementTypeString = ToGenericTypeString(elementType, false, false);
+      return $"DeserializeArray<{elementTypeString}>(() => {elementRead})";
+    }
+    
+    if (newType.IsGenericType && newType.IsAssignableTo(typeof(IEnumerable))) {
+      var elementType = newType.GetGenericArguments()[0];
+      var elementRead = GetReadTypeCall(elementType);
+      var elementTypeString = ToGenericTypeString(elementType, false, false);
+      return $"DeserializeList<{elementTypeString}>(() => {elementRead})";
+    }
+
+    var genericTypeString = ToGenericTypeString(parameterType, true, false);
+    if (newType.IsAbstract || newType == typeof(object)) {
+      parameterTypeReadCall = $"DeserializeAbstract<{genericTypeString}>()";
+    } else {
+      bool callObjectInstead = parameterType.IsAssignableTo(typeof(IEnumerable<object>));
+      if (false) {
+        parameterTypeReadCall = $"DeserializeGeneric<{genericTypeString}>()";
+      } else {
+        var checkOption = parameterType.IsAssignableTo(typeof(object)) &&
+                          !parameterType.IsEnum && !parameterType.IsPrimitive &&
+                          parameterType != typeof(string) &&
+                          parameterType.WithoutGenericArguments() != typeof(Specification<>) &&
+                          !nonNullTypes.Contains(newType) && !callObjectInstead;
+            
+        // Use once we use nullable annotation for the AST.
+        var checkOption2 = parameterType.IsAssignableTo(typeof(object)) &&
+                           parameterType.IsGenericType && parameterType.GetGenericTypeDefinition() == typeof(Nullable<>);
+            
+        if (checkOption) {
+          parameterTypeReadCall = $"Deserialize{genericTypeString}Option()";
         } else {
-          statements.AppendLine(
-            $"var parameter{constructorIndex} = Deserialize{ToGenericTypeString(parameter.ParameterType, true, false)}();");
+          parameterTypeReadCall = $"Deserialize{genericTypeString}()";
         }
       }
+    }
 
-      var parametersString = string.Join(", ", Enumerable.Range(0, parameters.Length).Select(index =>
-        $"parameter{index}"));
-      var typedDeserialize = ParseMemberDeclaration(@$"
+    return parameterTypeReadCall;
+  }
+
+  private void AddReadOptionMethodForType(string typeString, string deserializeMethodName)
+  {
+    var typedDeserialize = ParseMemberDeclaration(@$"
+ public {typeString} {deserializeMethodName}Option() {{
+  if (ReadBool()) {{
+     return default;
+  }}
+  return {deserializeMethodName}();
+}}")!;
+    deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(typedDeserialize));
+  }
+
+  private void AddReadMethodForType(ParameterInfo[] parameters, StringBuilder statements, string typeString,
+    string deserializeMethodName)
+  {
+    var parametersString = string.Join(", ", Enumerable.Range(0, parameters.Length).Select(index =>
+      $"parameter{index}"));
+    var typedDeserialize = ParseMemberDeclaration(@$"
  public {typeString} {deserializeMethodName}() {{
   {statements}
   return new {typeString}({parametersString});
 }}")!;
-      deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(typedDeserialize));
-    }
-
-    if (!isSpecification) {
-      deserializeObjectCases.Add(ParseStatement($@"
-if (actualType == typeof({typeString})) {{
-  return {deserializeMethodName}();
-}}
-"));  
-    }
+    deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(typedDeserialize));
   }
 
   private static ConstructorInfo GetParseConstructor(Type type)
