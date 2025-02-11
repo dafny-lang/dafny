@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -163,8 +164,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   [ParseConstructor]
   public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind,
-    Implements implements, [BackEdge] ModuleDefinition enclosingModule, Attributes attributes,
-    [CanBeNull] List<TopLevelDecl> sourceDecls = null)
+    Implements? implements, [BackEdge] ModuleDefinition enclosingModule, Attributes? attributes,
+    List<TopLevelDecl> sourceDecls)
     : this(origin, nameNode, prefixIds, moduleKind, false, implements, enclosingModule, attributes, sourceDecls) {
   }
 

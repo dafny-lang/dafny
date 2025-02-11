@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -45,7 +46,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
   }
 
   [ParseConstructor]
-  public LiteralModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes attributes, [BackEdge] ModuleDefinition enclosingModule, string cloneId, ModuleDefinition moduleDef)
+  public LiteralModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes? attributes, [BackEdge] ModuleDefinition enclosingModule, string cloneId, ModuleDefinition moduleDef)
     : base(options, origin, nameNode, attributes, enclosingModule, cloneId) {
     ModuleDef = moduleDef;
     BodyStartTok = moduleDef.BodyStartTok;

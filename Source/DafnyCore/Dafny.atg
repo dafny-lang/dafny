@@ -339,7 +339,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(SourceOrigin.NoToken, name, prefixIds, GetModuleKind(dmod), 
-                                        idRefined == null ? null : new Implements(implementationKind, new ModuleQualifiedId(idRefined)), parent, dmod.Attributes);
+                                        idRefined == null ? null : new Implements(implementationKind, new ModuleQualifiedId(idRefined)), parent, dmod.Attributes, []);
    .)
    SYNC
    "{"                                 (. module.BodyStartTok = t; .)
@@ -1080,7 +1080,7 @@ GenericParameters<.List<TypeParameter> typeParameters, bool allowVariance.>
   .
 
 OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
-= (. var variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict; // assignment is to please compiler
+= (. var variance = TPVarianceSyntax.NonVariant_Strict; // assignment is to please compiler
      var characteristics = new TypeParameterCharacteristics();
      Name name;
      Type typeBound;
@@ -1103,13 +1103,13 @@ OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
   .
 
 /*------------------------------------------------------------------------*/
-Variance<out TypeParameter.TPVarianceSyntax variance>
-= (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // never used; here just to please the C# compiler
+Variance<out TPVarianceSyntax variance>
+= (. variance = TPVarianceSyntax.NonVariant_Strict;  // never used; here just to please the C# compiler
   .)
-  ( "*"  (. variance = TypeParameter.TPVarianceSyntax.Covariant_Permissive; .)
-  | "+"  (. variance = TypeParameter.TPVarianceSyntax.Covariant_Strict; .)
-  | "!"  (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Permissive; .)
-  | "-"  (. variance = TypeParameter.TPVarianceSyntax.Contravariance; .)
+  ( "*"  (. variance = TPVarianceSyntax.Covariant_Permissive; .)
+  | "+"  (. variance = TPVarianceSyntax.Covariant_Strict; .)
+  | "!"  (. variance = TPVarianceSyntax.NonVariant_Permissive; .)
+  | "-"  (. variance = TPVarianceSyntax.Contravariance; .)
   )
   .
 

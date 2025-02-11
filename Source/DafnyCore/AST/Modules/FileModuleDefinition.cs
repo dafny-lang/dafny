@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NJsonSchema.Annotations;
@@ -22,8 +23,7 @@ public class FileModuleDefinition : ModuleDefinition {
 
   [ParseConstructor]
   public FileModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind,
-    Implements implements, ModuleDefinition enclosingModule, Attributes attributes, [JetBrains.Annotations.CanBeNull]
-    List<TopLevelDecl> sourceDecls = null) :
+    Implements? implements, ModuleDefinition enclosingModule, Attributes? attributes, List<TopLevelDecl> sourceDecls) :
     base(origin, nameNode, prefixIds, moduleKind, implements, enclosingModule, attributes, sourceDecls) {
   }
 

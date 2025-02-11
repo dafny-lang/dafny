@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -16,7 +17,7 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
   }
 
   [ParseConstructor]
-  public BlockStmt(IOrigin origin, Attributes attributes, [Captured] List<Statement> body)
+  public BlockStmt(IOrigin origin, Attributes? attributes, [Captured] List<Statement> body)
     : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(body));

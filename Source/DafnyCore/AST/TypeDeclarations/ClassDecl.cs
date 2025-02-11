@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -16,9 +17,9 @@ public class ClassDecl : ClassLikeDecl {
   }
 
   [ParseConstructor]
-  public ClassDecl(IOrigin origin, Name nameNode, Attributes attributes,
+  public ClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModule,
-    [Captured] List<MemberDecl> members, List<Type> traits /*?*/, bool isRefining)
+    [Captured] List<MemberDecl> members, List<Type> traits, bool isRefining)
     : base(origin, nameNode, attributes, typeArgs, enclosingModule, members, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);

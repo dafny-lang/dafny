@@ -57,11 +57,9 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
 
   public T DeserializeAbstractOption<T>() {
 
-    if (Nullable.GetUnderlyingType(typeof(T)) != null) {
-      var isNull = decoder.ReadBool();
-      if (isNull) {
-        return default;
-      }
+    var isNull = decoder.ReadBool();
+    if (isNull) {
+      return default;
     }
     
     return DeserializeAbstract<T>();
@@ -85,6 +83,14 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
   
   public bool DeserializeBool() {
     return decoder.ReadBool();
+  }
+  
+  public string DeserializeStringOption() {
+    var isNull = decoder.ReadBool();
+    if (isNull) {
+      return default;
+    }
+    return decoder.ReadString();
   }
   
   public string DeserializeString() {

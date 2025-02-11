@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.Dafny.Auditor;
@@ -26,7 +27,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   [ParseConstructor]
-  public AssertStmt(IOrigin origin, Attributes attributes, Expression expr, AssertLabel label /*?*/)
+  public AssertStmt(IOrigin origin, Attributes? attributes, Expression expr, AssertLabel? label /*?*/)
     : base(origin, attributes, expr) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);

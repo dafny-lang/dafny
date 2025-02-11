@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
@@ -231,8 +232,8 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public Function(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-    Expression/*?*/ body, IOrigin/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
-    Attributes attributes, IOrigin/*?*/ signatureEllipsis)
+    Expression? body, IOrigin? byMethodTok, BlockStmt? byMethodBody,
+    Attributes attributes, IOrigin? signatureEllipsis)
     : base(origin, nameNode, attributes, hasStaticKeyword, isGhost, typeArgs, ins, req, ens, reads, decreases) {
 
     Contract.Requires(Origin != null);

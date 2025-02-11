@@ -2,6 +2,7 @@ using System.Collections;
 using System.CommandLine;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -15,12 +16,6 @@ namespace IntegrationTests;
 
 public class GenerateParsedAst {
   private HashSet<Type> typesWithHardcodedDeserializer = [typeof(Token), typeof(Specification<>)];
-  private HashSet<Type> nonNullTypes = [typeof(SourceOrigin), 
-    typeof(Token), 
-    typeof(Name), 
-    typeof(Statement),
-    typeof(BlockStmt)
-  ];
   private static Dictionary<Type, Type> overrideBaseType = new() {
     { typeof(TypeParameter), typeof(Declaration) },
     { typeof(ModuleDecl), typeof(Declaration) },
@@ -277,7 +272,8 @@ private {type.Name} Deserialize{type.Name}() {{
       var constructorIndex = schemaToConstructorPosition[schemaIndex];
       var parameter = parameters[constructorIndex];
 
-      var parameterTypeReadCall = GetReadTypeCall(parameter.ParameterType);
+      var nullable = parameter.GetCustomAttribute<NullableAttribute>() != null;
+      var parameterTypeReadCall = GetReadTypeCall(parameter.ParameterType, nullable);
       statements.AppendLine(
         $"var parameter{constructorIndex} = {parameterTypeReadCall};");
     }
@@ -292,30 +288,26 @@ if (actualType == typeof({typeString})) {{
 
   }
 
-  private string GetReadTypeCall(Type parameterType)
+  private string GetReadTypeCall(Type parameterType, bool nullable)
   {
     string parameterTypeReadCall;
     var newType = mappedTypes.GetValueOrDefault(parameterType, parameterType);
     if (newType.IsArray) {
       var elementType = newType.GetGenericArguments()[0];
-      var elementRead = GetReadTypeCall(elementType);
+      var elementRead = GetReadTypeCall(elementType, false);
       var elementTypeString = ToGenericTypeString(elementType, false, false);
       return $"DeserializeArray<{elementTypeString}>(() => {elementRead})";
     }
     
     if (newType.IsGenericType && newType.IsAssignableTo(typeof(IEnumerable))) {
       var elementType = newType.GetGenericArguments()[0];
-      var elementRead = GetReadTypeCall(elementType);
+      var elementRead = GetReadTypeCall(elementType, false);
       var elementTypeString = ToGenericTypeString(elementType, false, false);
       return $"DeserializeList<{elementTypeString}>(() => {elementRead})";
     }
 
     bool callObjectInstead = parameterType.IsAssignableTo(typeof(IEnumerable<object>));
-    var checkOption = parameterType.IsAssignableTo(typeof(object)) &&
-                      !parameterType.IsEnum && !parameterType.IsPrimitive &&
-                      parameterType != typeof(string) &&
-                      parameterType.WithoutGenericArguments() != typeof(Specification<>) &&
-                      !nonNullTypes.Contains(newType) && !callObjectInstead;
+    var checkOption = nullable;
             
     // Use once we use nullable annotation for the AST.
     var checkOption2 = parameterType.IsAssignableTo(typeof(object)) &&

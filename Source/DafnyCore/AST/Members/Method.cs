@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
@@ -133,7 +134,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
   [ParseConstructor]
   public Method(IOrigin origin, Name nameNode,
-    Attributes attributes,
+    Attributes? attributes,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins,
@@ -144,7 +145,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] List<Formal> outs,
     [Captured] Specification<FrameExpression> mod,
     [Captured] BlockStmt body,
-    IOrigin signatureEllipsis,
+    IOrigin? signatureEllipsis,
     bool isByMethod = false)
     : base(origin, nameNode, attributes,
       hasStaticKeyword, isGhost, typeArgs, ins, req, ens, reads, decreases) {

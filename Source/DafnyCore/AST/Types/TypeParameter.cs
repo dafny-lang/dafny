@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Newtonsoft.Json;
@@ -144,7 +145,7 @@ public class TypeParameter : TopLevelDecl {
   }
 
   [ParseConstructor]
-  public TypeParameter(IOrigin origin, Name nameNode, Attributes attributes, TPVarianceSyntax varianceSyntax, TypeParameterCharacteristics characteristics,
+  public TypeParameter(IOrigin origin, Name nameNode, Attributes? attributes, TPVarianceSyntax varianceSyntax, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
     : base(origin, nameNode, attributes, new List<TypeParameter>(), null) {
     Contract.Requires(origin != null);

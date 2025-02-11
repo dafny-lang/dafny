@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -24,8 +25,8 @@ public class Formal : NonglobalVariable {
 
   [ParseConstructor]
   public Formal(IOrigin origin, Name nameNode, Type type, bool inParam, bool isGhost, Expression defaultValue,
-    Attributes attributes = null,
-    bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
+    Attributes? attributes = null,
+    bool isOld = false, bool isNameOnly = false, bool isOlder = false, string? nameForCompilation = null)
     : base(origin, nameNode, type, isGhost) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
