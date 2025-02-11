@@ -87,7 +87,7 @@ public class ParsedAstGenerator : PostParseAstVisitor {
         type.Name;
 
     if (type.IsNested) {
-      className = type.DeclaringType.Name + className;
+      className = type.DeclaringType!.Name + className;
     }
 
     var classDecl = ClassDeclaration(className);

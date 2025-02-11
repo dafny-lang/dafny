@@ -42,6 +42,6 @@ public class DeserializerTest {
     var reporter = new BatchErrorReporter(options);
     var output = await ProgramParser.Parse(input, new Uri("file://test.java"), reporter);
     Assert.True(output.Program.DefaultModuleDef.TopLevelDecls.OfType<ClassDecl>().First().Members.OfType<Method>()
-      .First().Body.Body.OfType<AssertStmt>().First().Expr is LiteralExpr literalExpr && (bool)literalExpr.Value == false);
+      .First().Body!.Body.OfType<AssertStmt>().First().Expr is LiteralExpr literalExpr && (bool)literalExpr.Value == false);
   }
 }

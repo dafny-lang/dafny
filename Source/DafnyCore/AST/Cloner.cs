@@ -1,4 +1,4 @@
-#nullable enable
+
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
@@ -293,7 +293,7 @@ namespace Microsoft.Dafny {
       return (LocalVariable)clones.GetOrCreate(local, () => isReference ? local : new LocalVariable(this, local));
     }
 
-    public virtual VT? CloneIVariable<VT>(VT? v, bool isReference)
+    public virtual VT CloneIVariable<VT>(VT v, bool isReference)
       where VT : IVariable {
       if (v == null) {
         return default;

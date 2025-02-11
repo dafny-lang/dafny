@@ -16,7 +16,7 @@ public class FileModuleDefinition : ModuleDefinition {
 
   public FileModuleDefinition(IOrigin origin) :
     base(origin, new Name("_module"), new List<IOrigin>(),
-      ModuleKindEnum.Concrete, false, null, null, null) {
+      ModuleKindEnum.Concrete, false, null, null!, null) {
     {
     }
   }

@@ -16,23 +16,13 @@ public class TypeParameter : TopLevelDecl {
 
   public bool IsAutoCompleted => Name.StartsWith("_");
 
-  ParentType parent;
-  public ParentType Parent {
-    get {
-      return parent;
-    }
-    set {
-      Contract.Requires(Parent == null);  // set it only once
-      Contract.Requires(value != null);
-      parent = value;
-    }
-  }
+  public ParentType? Parent { get; set; }
 
   public override string SanitizedName {
     get {
       if (sanitizedName == null) {
         var name = Name;
-        if (parent is MemberDecl && !name.StartsWith("_")) {
+        if (Parent is MemberDecl && !name.StartsWith("_")) {
           // prepend "_" to type parameters of functions and methods, to ensure they don't clash with type parameters of the enclosing type
           name = "_" + name;
         }
@@ -128,7 +118,7 @@ public class TypeParameter : TopLevelDecl {
   public bool NecessaryForEqualitySupportOfSurroundingInductiveDatatype = false;  // computed during resolution; relevant only when Parent denotes an IndDatatypeDecl
 
   public bool IsToplevelScope { // true if this type parameter is on a toplevel (ie. class C<T>), and false if it is on a member (ie. method m<T>(...))
-    get { return parent is TopLevelDecl; }
+    get { return Parent is TopLevelDecl; }
   }
   public int PositionalIndex; // which type parameter this is (ie. in C<S, T, U>, S is 0, T is 1 and U is 2).
 
@@ -187,7 +177,7 @@ public class TypeParameter : TopLevelDecl {
 
   public override SymbolKind? Kind => SymbolKind.TypeParameter;
   public override string GetDescription(DafnyOptions options) {
-    return null; // TODO test the effect of this
+    return null!; // TODO test the effect of this
   }
 
   public static TypeParameterCharacteristics GetExplicitCharacteristics(TopLevelDecl d) {
@@ -208,9 +198,6 @@ public class TypeParameter : TopLevelDecl {
   }
 
   public static Dictionary<TypeParameter, Type> SubstitutionMap(List<TypeParameter> formals, List<Type> actuals) {
-    Contract.Requires(formals != null);
-    Contract.Requires(actuals != null);
-    Contract.Requires(formals.Count == actuals.Count);
     var subst = new Dictionary<TypeParameter, Type>();
     for (int i = 0; i < formals.Count; i++) {
       subst.Add(formals[i], actuals[i]);

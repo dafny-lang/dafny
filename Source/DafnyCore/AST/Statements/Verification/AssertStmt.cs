@@ -6,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
-  public readonly AssertLabel Label;
+  public readonly AssertLabel? Label;
 
   public AssertStmt Clone(Cloner cloner) {
     return new AssertStmt(cloner, this);
@@ -16,7 +16,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     Label = original.Label == null ? null : new AssertLabel(cloner.Origin(original.Label.Tok), original.Label.Name);
   }
 
-  public static AssertStmt CreateErrorAssert(INode node, string message, Expression guard = null) {
+  public static AssertStmt CreateErrorAssert(INode node, string message, Expression? guard = null) {
     var errorMessage = new StringLiteralExpr(node.Origin, message, true);
     errorMessage.Type = new SeqType(Type.Char);
     var attr = new Attributes("error", new List<Expression> { errorMessage }, null);
@@ -27,7 +27,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   [ParseConstructor]
-  public AssertStmt(IOrigin origin, Attributes? attributes, Expression expr, AssertLabel? label /*?*/)
+  public AssertStmt(IOrigin origin, Attributes? attributes, Expression expr, AssertLabel? label)
     : base(origin, attributes, expr) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);

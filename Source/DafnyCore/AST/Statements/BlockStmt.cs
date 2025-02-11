@@ -34,7 +34,6 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
   public override IEnumerable<Statement> SubStatements => Body;
 
   public virtual void AppendStmt(Statement s) {
-    Contract.Requires(s != null);
     Body.Add(s);
   }
 

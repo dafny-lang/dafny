@@ -14,7 +14,7 @@ public abstract class PostParseAstVisitor {
   /// use all the fields of the base-type. In those cases, we can override the bas type,
   /// so we do not need to refactor the Dafny AST
   /// </summary>
-  protected static Dictionary<Type, Type> OverrideBaseType = new() {
+  protected static Dictionary<Type, Type?> OverrideBaseType = new() {
     { typeof(TypeParameter), typeof(Declaration) },
     { typeof(ModuleDecl), typeof(Declaration) },
     { typeof(AttributedExpression), null }

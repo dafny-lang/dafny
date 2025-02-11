@@ -94,8 +94,8 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
   public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != TailStatus.TailRecursive;
   [FilledInDuringResolution] public bool IsFueled; // if anyone tries to adjust this function's fuel
-  public readonly Formal Result;
-  public PreType ResultPreType;
+  public readonly Formal? Result;
+  public PreType? ResultPreType;
   public readonly Type ResultType;
   public Type OriginalResultTypeWithRenamings() {
     if (OverriddenFunction == null) {
@@ -110,13 +110,13 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     return OverriddenFunction.ResultType.Subst(renamings);
 
   }
-  public Expression Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
-  public IOrigin /*?*/ ByMethodTok; // null iff ByMethodBody is null
-  public BlockStmt /*?*/ ByMethodBody;
-  [FilledInDuringResolution] public Method /*?*/ ByMethodDecl; // if ByMethodBody is non-null
+  public Expression? Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+  public IOrigin? ByMethodTok; // null iff ByMethodBody is null
+  public BlockStmt? ByMethodBody;
+  [FilledInDuringResolution] public Method? ByMethodDecl; // if ByMethodBody is non-null
   public bool SignatureIsOmitted => SignatureEllipsis != null; // is "false" for all Function objects that survive into resolution
-  public readonly IOrigin SignatureEllipsis;
-  public Function OverriddenFunction;
+  public readonly IOrigin? SignatureEllipsis;
+  public Function? OverriddenFunction;
   public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
   public bool AllowsAllocation => true;
@@ -143,7 +143,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     AccumulateRight_Concat,
   }
 
-  public override IEnumerable<INode> Children => new[] { ByMethodBody }.Where(x => x != null).
+  public override IEnumerable<INode> Children => Util.IgnoreNulls(ByMethodBody!).
     Concat<Node>(TypeArgs).
     Concat<Node>(Reads.Expressions).
     Concat<Node>(Req).
@@ -151,7 +151,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     Concat(Decreases.Expressions).
     Concat(Ins).
     Concat(Result != null ? new List<Node>() { Result } : new List<Node>()).
-    Concat(ResultType != null ? new List<Node>() { ResultType } : new List<Node>()).
+    Concat(new List<Node>() { ResultType }).
     Concat(Body == null ? Enumerable.Empty<Node>() : new[] { Body });
 
   public override IEnumerable<INode> PreResolveChildren =>
@@ -167,7 +167,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public override IEnumerable<Expression> SubExpressions {
     get {
       foreach (var formal in Ins.Where(f => f.DefaultValue != null)) {
-        yield return formal.DefaultValue;
+        yield return formal.DefaultValue!;
       }
       foreach (var e in Req) {
         yield return e.E;
@@ -188,7 +188,6 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   }
 
   public Type GetMemberType(ArrowTypeDecl atd) {
-    Contract.Requires(atd != null);
     Contract.Requires(atd.Arity == Ins.Count);
 
     // Note, the following returned type can contain type parameters from the function and its enclosing class
@@ -230,17 +229,15 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
 
   [ParseConstructor]
   public Function(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, bool isOpaque,
-    List<TypeParameter> typeArgs, List<Formal> ins, Formal result, Type resultType,
+    List<TypeParameter> typeArgs, List<Formal> ins, Formal? result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression? body, IOrigin? byMethodTok, BlockStmt? byMethodBody,
-    Attributes attributes, IOrigin? signatureEllipsis)
+    Attributes? attributes, IOrigin? signatureEllipsis)
     : base(origin, nameNode, attributes, hasStaticKeyword, isGhost, typeArgs, ins, req, ens, reads, decreases) {
 
-    Contract.Requires(Origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
-    Contract.Requires(resultType != null);
     Contract.Requires(cce.NonNullElements(req));
     Contract.Requires(reads != null);
     Contract.Requires(cce.NonNullElements(ens));
@@ -255,22 +252,22 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     this.SignatureEllipsis = signatureEllipsis;
     this.IsOpaque = isOpaque || Attributes.Contains(attributes, "opaque");
 
-    if (attributes != null) {
-      List<Expression> args = Attributes.FindExpressions(attributes, "fuel");
-      if (args != null) {
-        if (args.Count == 1) {
-          LiteralExpr literal = args[0] as LiteralExpr;
-          if (literal != null && literal.Value is BigInteger) {
-            IsFueled = true;
-          }
-        } else if (args.Count == 2) {
-          LiteralExpr literalLow = args[0] as LiteralExpr;
-          LiteralExpr literalHigh = args[1] as LiteralExpr;
+    if (attributes == null) {
+      return;
+    }
 
-          if (literalLow != null && literalLow.Value is BigInteger && literalHigh != null && literalHigh.Value is BigInteger) {
-            IsFueled = true;
-          }
-        }
+    var args = Attributes.FindExpressions(attributes, "fuel");
+    if (args == null) {
+      return;
+    }
+
+    if (args.Count == 1) {
+      if (args[0] is LiteralExpr { Value: BigInteger }) {
+        IsFueled = true;
+      }
+    } else if (args.Count == 2) {
+      if (args[0] is LiteralExpr { Value: BigInteger } && args[1] is LiteralExpr { Value: BigInteger }) {
+        IsFueled = true;
       }
     }
   }
@@ -485,7 +482,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
   }
 
-  public string GetTriviaContainingDocstring() {
+  public string? GetTriviaContainingDocstring() {
     if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }
@@ -536,7 +533,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       ByMethodDecl.AutoRevealDependencies(rewriter, options, reporter);
     }
 
-    object autoRevealDepsVal = null;
+    object? autoRevealDepsVal = null;
     bool autoRevealDeps = Attributes.ContainsMatchingValue(Attributes, "autoRevealDependencies",
       ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
         Attributes.MatchingValueOption.Bool,

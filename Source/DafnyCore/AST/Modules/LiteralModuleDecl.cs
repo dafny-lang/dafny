@@ -12,9 +12,9 @@ namespace Microsoft.Dafny;
 public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
   public readonly ModuleDefinition ModuleDef;
 
-  [FilledInDuringResolution] public ModuleSignature DefaultExport;  // the default export set of the module.
+  [FilledInDuringResolution] public ModuleSignature? DefaultExport;  // the default export set of the module.
 
-  private ModuleSignature emptySignature;
+  private ModuleSignature? emptySignature;
   public override ModuleSignature AccessibleSignature(bool ignoreExports) {
     if (ignoreExports) {
       return Signature;
@@ -53,7 +53,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     moduleDef.EnclosingLiteralModuleDecl = this;
   }
   
-  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition moduleDef, ModuleDefinition enclosingModule, Guid cloneId)
+  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition moduleDef, ModuleDefinition? enclosingModule, Guid cloneId)
     : base(options, moduleDef.Origin, moduleDef.NameNode, null, enclosingModule, cloneId) {
     ModuleDef = moduleDef;
     BodyStartTok = moduleDef.BodyStartTok;
@@ -188,7 +188,6 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
 
   public void BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
     Contract.Requires(this != null);
-    Contract.Requires(parentBindings != null);
 
     var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
     if (!parentBindings.BindName(Name, this, bindings)) {
