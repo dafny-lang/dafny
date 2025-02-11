@@ -49,7 +49,7 @@ namespace Microsoft.Dafny
             var parameter3 = DeserializeModuleKindEnum();
             var parameter4 = DeserializeImplementsOption();
             var parameter6 = DeserializeAttributesOption();
-            var parameter7 = DeserializeList<TopLevelDecl>(() => DeserializeAbstract<TopLevelDecl>());
+            var parameter7 = DeserializeList<TopLevelDecl>(() => DeserializeAbstractOption<TopLevelDecl>());
             return new ModuleDefinition(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
         }
 
@@ -66,7 +66,7 @@ namespace Microsoft.Dafny
         public UserDefinedType DeserializeUserDefinedType()
         {
             var parameter0 = DeserializeSourceOrigin();
-            var parameter1 = DeserializeAbstract<Expression>();
+            var parameter1 = DeserializeAbstractOption<Expression>();
             return new UserDefinedType(parameter0, parameter1);
         }
 
@@ -83,7 +83,7 @@ namespace Microsoft.Dafny
         public LiteralExpr DeserializeLiteralExpr()
         {
             var parameter0 = DeserializeSourceOrigin();
-            var parameter1 = DeserializeAbstract<Object>();
+            var parameter1 = DeserializeAbstractOption<Object>();
             return new LiteralExpr(parameter0, parameter1);
         }
 
@@ -101,7 +101,7 @@ namespace Microsoft.Dafny
         {
             var parameter0 = DeserializeSourceOrigin();
             var parameter1 = DeserializeString();
-            var parameter2 = DeserializeList<Expression>(() => DeserializeAbstract<Expression>());
+            var parameter2 = DeserializeList<Expression>(() => DeserializeAbstractOption<Expression>());
             var parameter3 = DeserializeAttributesOption();
             return new Attributes(parameter0, parameter1, parameter2, parameter3);
         }
@@ -123,7 +123,7 @@ namespace Microsoft.Dafny
             var parameter2 = DeserializeAttributesOption();
             var parameter3 = DeserializeTPVarianceSyntax();
             var parameter4 = DeserializeTypeParameterCharacteristicsOption();
-            var parameter5 = DeserializeList<Type>(() => DeserializeAbstract<Type>());
+            var parameter5 = DeserializeList<Type>(() => DeserializeAbstractOption<Type>());
             return new TypeParameter(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
         }
 
@@ -161,7 +161,7 @@ namespace Microsoft.Dafny
         public FrameExpression DeserializeFrameExpression()
         {
             var parameter0 = DeserializeSourceOrigin();
-            var parameter1 = DeserializeAbstract<Expression>();
+            var parameter1 = DeserializeAbstractOption<Expression>();
             var parameter2 = DeserializeString();
             return new FrameExpression(parameter0, parameter1, parameter2);
         }
@@ -178,7 +178,7 @@ namespace Microsoft.Dafny
 
         public AttributedExpression DeserializeAttributedExpression()
         {
-            var parameter0 = DeserializeAbstract<Expression>();
+            var parameter0 = DeserializeAbstractOption<Expression>();
             var parameter1 = DeserializeAssertLabelOption();
             var parameter2 = DeserializeAttributesOption();
             return new AttributedExpression(parameter0, parameter1, parameter2);
@@ -232,10 +232,10 @@ namespace Microsoft.Dafny
         {
             var parameter0 = DeserializeSourceOrigin();
             var parameter1 = DeserializeName();
-            var parameter2 = DeserializeAbstract<Type>();
+            var parameter2 = DeserializeAbstractOption<Type>();
             var parameter4 = DeserializeBoolean();
             var parameter3 = DeserializeBoolean();
-            var parameter5 = DeserializeAbstract<Expression>();
+            var parameter5 = DeserializeAbstractOption<Expression>();
             var parameter6 = DeserializeAttributesOption();
             var parameter7 = DeserializeBoolean();
             var parameter8 = DeserializeBoolean();
@@ -269,7 +269,7 @@ namespace Microsoft.Dafny
             var parameter10 = DeserializeSpecification<Expression>();
             var parameter11 = DeserializeList<Formal>(() => DeserializeFormalOption());
             var parameter12 = DeserializeSpecification<FrameExpression>();
-            var parameter13 = DeserializeBlockStmtOption();
+            var parameter13 = DeserializeBlockStmt();
             var parameter14 = DeserializeSourceOrigin();
             var parameter15 = DeserializeBoolean();
             return new Method(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15);
@@ -289,7 +289,7 @@ namespace Microsoft.Dafny
         {
             var parameter0 = DeserializeSourceOrigin();
             var parameter1 = DeserializeAttributesOption();
-            var parameter2 = DeserializeAbstract<Expression>();
+            var parameter2 = DeserializeAbstractOption<Expression>();
             var parameter3 = DeserializeAssertLabelOption();
             return new AssertStmt(parameter0, parameter1, parameter2, parameter3);
         }
@@ -337,10 +337,10 @@ namespace Microsoft.Dafny
             var parameter12 = DeserializeSpecification<Expression>();
             var parameter4 = DeserializeBoolean();
             var parameter7 = DeserializeFormalOption();
-            var parameter8 = DeserializeAbstract<Type>();
-            var parameter13 = DeserializeAbstract<Expression>();
+            var parameter8 = DeserializeAbstractOption<Type>();
+            var parameter13 = DeserializeAbstractOption<Expression>();
             var parameter14 = DeserializeSourceOrigin();
-            var parameter15 = DeserializeBlockStmtOption();
+            var parameter15 = DeserializeBlockStmt();
             var parameter17 = DeserializeSourceOrigin();
             return new Function(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15, parameter16, parameter17);
         }
@@ -362,8 +362,8 @@ namespace Microsoft.Dafny
             var parameter1 = DeserializeName();
             var parameter2 = DeserializeAttributesOption();
             var parameter3 = DeserializeList<TypeParameter>(() => DeserializeTypeParameterOption());
-            var parameter5 = DeserializeList<MemberDecl>(() => DeserializeAbstract<MemberDecl>());
-            var parameter6 = DeserializeList<Type>(() => DeserializeAbstract<Type>());
+            var parameter5 = DeserializeList<MemberDecl>(() => DeserializeAbstractOption<MemberDecl>());
+            var parameter6 = DeserializeList<Type>(() => DeserializeAbstractOption<Type>());
             var parameter7 = DeserializeBoolean();
             return new ClassDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
         }
@@ -454,7 +454,7 @@ namespace Microsoft.Dafny
             var parameter3 = DeserializeModuleKindEnum();
             var parameter4 = DeserializeImplementsOption();
             var parameter6 = DeserializeAttributesOption();
-            var parameter7 = DeserializeList<TopLevelDecl>(() => DeserializeAbstract<TopLevelDecl>());
+            var parameter7 = DeserializeList<TopLevelDecl>(() => DeserializeAbstractOption<TopLevelDecl>());
             return new FileModuleDefinition(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
         }
 

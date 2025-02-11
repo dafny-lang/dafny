@@ -13,13 +13,15 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
 
   private Specification<T> DeserializeSpecification<T>() where T : Node {
     var parameter0 = DeserializeGeneric<SourceOrigin>();
-    var parameter1 = DeserializeList<T>();
-    var parameter2 = DeserializeGeneric<Attributes>();
-    return new Specification<T>(parameter0, parameter1, parameter2);
-  }
-
-  private List<T> DeserializeList<T>() {
-    throw new NotImplementedException();
+    if (typeof(T) == typeof(FrameExpression)) {
+      var parameter1 = DeserializeList<T>(() => (T)(object)DeserializeFrameExpression());
+      var parameter2 = DeserializeAttributesOption();
+      return new Specification<T>(parameter0, parameter1, parameter2);
+    } else {
+      var parameter1 = DeserializeList<T>(() => (T)(object)DeserializeAbstract<Expression>());
+      var parameter2 = DeserializeAttributesOption();
+      return new Specification<T>(parameter0, parameter1, parameter2);
+    }
   }
 
   
@@ -33,8 +35,8 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
   
   public Token DeserializeToken()
   {
-    var parameter0 = DeserializeGeneric<Int32>();
-    var parameter1 = DeserializeGeneric<Int32>();
+    var parameter0 = DeserializeInt32();
+    var parameter1 = DeserializeInt32();
     return new Token(parameter0, parameter1) {
       Uri = uri
     };
@@ -53,6 +55,18 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     return DeserializeGeneric<T>();
   }
 
+  public T DeserializeAbstractOption<T>() {
+
+    if (Nullable.GetUnderlyingType(typeof(T)) != null) {
+      var isNull = decoder.ReadBool();
+      if (isNull) {
+        return default;
+      }
+    }
+    
+    return DeserializeAbstract<T>();
+  }
+  
   public T DeserializeAbstract<T>() {
     var actualType = typeof(T);
     var typeName = decoder.ReadQualifiedName();
@@ -99,10 +113,12 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
       return (T)(object)DeserializeSourceOrigin();
     }
 
-    var isNull = decoder.ReadBool();
-    if (isNull) {
-      return default;
-    }
+    // if (Nullable.GetUnderlyingType(actualType) != null) {
+    //   var isNull = decoder.ReadBool();
+    //   if (isNull) {
+    //     return default;
+    //   }
+    // }
     
     return (T)DeserializeObject(actualType);
   }

@@ -15,7 +15,12 @@ namespace IntegrationTests;
 
 public class GenerateParsedAst {
   private HashSet<Type> typesWithHardcodedDeserializer = [typeof(Token), typeof(Specification<>)];
-  private HashSet<Type> nonNullTypes = [typeof(SourceOrigin), typeof(Token), typeof(Name)];
+  private HashSet<Type> nonNullTypes = [typeof(SourceOrigin), 
+    typeof(Token), 
+    typeof(Name), 
+    typeof(Statement),
+    typeof(BlockStmt)
+  ];
   private static Dictionary<Type, Type> overrideBaseType = new() {
     { typeof(TypeParameter), typeof(Declaration) },
     { typeof(ModuleDecl), typeof(Declaration) },
@@ -305,30 +310,23 @@ if (actualType == typeof({typeString})) {{
       return $"DeserializeList<{elementTypeString}>(() => {elementRead})";
     }
 
+    bool callObjectInstead = parameterType.IsAssignableTo(typeof(IEnumerable<object>));
+    var checkOption = parameterType.IsAssignableTo(typeof(object)) &&
+                      !parameterType.IsEnum && !parameterType.IsPrimitive &&
+                      parameterType != typeof(string) &&
+                      parameterType.WithoutGenericArguments() != typeof(Specification<>) &&
+                      !nonNullTypes.Contains(newType) && !callObjectInstead;
+            
+    // Use once we use nullable annotation for the AST.
+    var checkOption2 = parameterType.IsAssignableTo(typeof(object)) &&
+                       parameterType.IsGenericType && parameterType.GetGenericTypeDefinition() == typeof(Nullable<>);
+    var optionString = checkOption ? "Option" : "";
+    
     var genericTypeString = ToGenericTypeString(parameterType, true, false);
     if (newType.IsAbstract || newType == typeof(object)) {
-      parameterTypeReadCall = $"DeserializeAbstract<{genericTypeString}>()";
+      parameterTypeReadCall = $"DeserializeAbstract{optionString}<{genericTypeString}>()";
     } else {
-      bool callObjectInstead = parameterType.IsAssignableTo(typeof(IEnumerable<object>));
-      if (false) {
-        parameterTypeReadCall = $"DeserializeGeneric<{genericTypeString}>()";
-      } else {
-        var checkOption = parameterType.IsAssignableTo(typeof(object)) &&
-                          !parameterType.IsEnum && !parameterType.IsPrimitive &&
-                          parameterType != typeof(string) &&
-                          parameterType.WithoutGenericArguments() != typeof(Specification<>) &&
-                          !nonNullTypes.Contains(newType) && !callObjectInstead;
-            
-        // Use once we use nullable annotation for the AST.
-        var checkOption2 = parameterType.IsAssignableTo(typeof(object)) &&
-                           parameterType.IsGenericType && parameterType.GetGenericTypeDefinition() == typeof(Nullable<>);
-            
-        if (checkOption) {
-          parameterTypeReadCall = $"Deserialize{genericTypeString}Option()";
-        } else {
-          parameterTypeReadCall = $"Deserialize{genericTypeString}()";
-        }
-      }
+      parameterTypeReadCall = $"Deserialize{genericTypeString}{optionString}()";
     }
 
     return parameterTypeReadCall;
