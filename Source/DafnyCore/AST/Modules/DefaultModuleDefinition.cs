@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NJsonSchema.Annotations;
 
 namespace Microsoft.Dafny;
 
 public class DefaultModuleDefinition : ModuleDefinition, ICloneable<DefaultModuleDefinition> {
-  [JsonSchemaIgnore]
   public List<Include> Includes { get; } = new();
 
   public DefaultModuleDefinition(Cloner cloner, DefaultModuleDefinition original) : base(cloner, original, original.NameNode) {

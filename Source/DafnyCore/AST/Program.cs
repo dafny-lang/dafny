@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
-using NJsonSchema.Annotations;
 
 namespace Microsoft.Dafny;
 
 public class Program : NodeWithComputedRange {
-  [JsonSchemaIgnore]
   public CompilationData Compilation { get; }
 
   [ContractInvariantMethod]
@@ -17,7 +15,6 @@ public class Program : NodeWithComputedRange {
     Contract.Invariant(DefaultModule != null);
   }
 
-  [JsonSchemaIgnore]
   public bool HasParseErrors { get; set; }
 
   public string FullName { get; }
@@ -32,23 +29,19 @@ public class Program : NodeWithComputedRange {
   // purposes of translation and compilation.
   [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
 
-  [JsonSchemaIgnore]
   [FilledInDuringResolution]
   public IEnumerable<ModuleDefinition> CompileModules => new[] { SystemModuleManager.SystemModule }.Concat(Modules());
   // Contains the definitions to be used for compilation.
 
   public Method MainMethod; // Method to be used as main if compiled
   public LiteralModuleDecl DefaultModule;
-  [JsonSchemaIgnore]
   public IList<FileModuleDefinition> Files { get; } = new List<FileModuleDefinition>();
   public DefaultModuleDefinition DefaultModuleDef => (DefaultModuleDefinition)DefaultModule.ModuleDef;
   public SystemModuleManager SystemModuleManager;
   public DafnyOptions Options => Reporter.Options;
 
-  [JsonSchemaIgnore]
   public ErrorReporter Reporter { get; set; }
 
-  [JsonSchemaIgnore]
   public ProofDependencyManager ProofDependencyManager { get; set; } = new();
 
   /// <summary>
@@ -67,7 +60,6 @@ public class Program : NodeWithComputedRange {
   /// if having this state here hampers reuse in the future,
   /// especially parallel processing.
   /// </summary>
-  [JsonSchemaIgnore]
   public Program AfterParsingClone { get; set; }
 
   public Program(string name, LiteralModuleDecl module, SystemModuleManager systemModuleManager, ErrorReporter reporter,
