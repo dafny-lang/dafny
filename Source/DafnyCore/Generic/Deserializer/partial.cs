@@ -15,7 +15,7 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
       var parameter2 = ReadAttributesOption();
       return new Specification<T>(parameter0, parameter1, parameter2);
     } else {
-      var parameter1 = ReadList<T>(() => (T)(object)DeserializeAbstract<Expression>());
+      var parameter1 = ReadList<T>(() => (T)(object)ReadAbstract<Expression>());
       var parameter2 = ReadAttributesOption();
       return new Specification<T>(parameter0, parameter1, parameter2);
     }
