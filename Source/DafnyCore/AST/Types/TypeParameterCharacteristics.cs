@@ -16,8 +16,9 @@ public struct TypeParameterCharacteristics {
     };
   }
 
-  public TypeParameterCharacteristics(TypeParameter.EqualitySupportValue eqSupport, Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
-    EqualitySupport = eqSupport;
+  public TypeParameterCharacteristics(TypeParameter.EqualitySupportValue equalitySupport,
+    Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
+    EqualitySupport = equalitySupport;
     AutoInit = autoInit;
     ContainsNoReferenceTypes = containsNoReferenceTypes;
   }

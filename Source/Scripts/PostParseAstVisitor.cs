@@ -111,6 +111,10 @@ public abstract class PostParseAstVisitor {
         return;
       }
 
+      if (field.DeclaringType != type) {
+        return;
+      }
+
       var usedTyped = parameter.ParameterType;
       VisitType(usedTyped, toVisit);
       foreach (var argument in usedTyped.GenericTypeArguments) {

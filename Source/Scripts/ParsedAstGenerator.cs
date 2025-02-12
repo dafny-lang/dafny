@@ -57,6 +57,14 @@ public class ParsedAstGenerator : PostParseAstVisitor {
         return;
       }
 
+      if (memberInfo.GetCustomAttribute<BackEdge>() != null) {
+        return;
+      }
+
+      if (memberInfo.DeclaringType != type) {
+        return;
+      }
+
       var nullabilityContext = new NullabilityInfoContext();
       var nullabilityInfo = nullabilityContext.Create(parameter);
       bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
