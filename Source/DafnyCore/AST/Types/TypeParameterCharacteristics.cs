@@ -8,12 +8,14 @@ public struct TypeParameterCharacteristics {
   public bool IsNonempty => AutoInit != Type.AutoInitInfo.MaybeEmpty;
   public bool ContainsNoReferenceTypes;
 
-  [ParseConstructor]
-  public TypeParameterCharacteristics() {
-    EqualitySupport = TypeParameter.EqualitySupportValue.Unspecified;
-    AutoInit = Type.AutoInitInfo.MaybeEmpty;
-    ContainsNoReferenceTypes = false;
+  public static TypeParameterCharacteristics Default() {
+    return new TypeParameterCharacteristics {
+      EqualitySupport = TypeParameter.EqualitySupportValue.Unspecified,
+      AutoInit = Type.AutoInitInfo.MaybeEmpty,
+      ContainsNoReferenceTypes = false,
+    };
   }
+
   public TypeParameterCharacteristics(TypeParameter.EqualitySupportValue eqSupport, Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
     EqualitySupport = eqSupport;
     AutoInit = autoInit;

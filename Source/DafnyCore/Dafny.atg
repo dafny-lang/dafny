@@ -817,7 +817,7 @@ SynonymTypeName<out Name name> = Name<out name> .
 // The following includes Opaque type definitions
 SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. Token bvId;
-     var characteristics = new TypeParameterCharacteristics();
+     var characteristics = Microsoft.Dafny.TypeParameterCharacteristics.Default();
      var typeArgs = new List<TypeParameter>();
      td = null;
      Type ty = null;
@@ -1081,7 +1081,7 @@ GenericParameters<.List<TypeParameter> typeParameters, bool allowVariance.>
 
 OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
 = (. var variance = TPVarianceSyntax.NonVariant_Strict; // assignment is to please compiler
-     var characteristics = new TypeParameterCharacteristics();
+     var characteristics = Microsoft.Dafny.TypeParameterCharacteristics.Default();
      Name name;
      Type typeBound;
      var typeBounds = new List<Type>();

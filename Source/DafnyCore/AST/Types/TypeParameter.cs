@@ -146,7 +146,7 @@ public class TypeParameter : TopLevelDecl {
   }
 
   public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax)
-    : this(origin, name, null, varianceSyntax, new TypeParameterCharacteristics(), []) {
+    : this(origin, name, null, varianceSyntax, TypeParameterCharacteristics.Default(), []) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
   }
@@ -182,7 +182,7 @@ public class TypeParameter : TopLevelDecl {
 
   public static TypeParameterCharacteristics GetExplicitCharacteristics(TopLevelDecl d) {
     Contract.Requires(d != null);
-    TypeParameterCharacteristics characteristics = new TypeParameterCharacteristics();
+    TypeParameterCharacteristics characteristics = TypeParameterCharacteristics.Default();
     if (d is AbstractTypeDecl) {
       var dd = (AbstractTypeDecl)d;
       characteristics = dd.Characteristics;
