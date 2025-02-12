@@ -18,6 +18,7 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
     : base(cloner, original, enclosingModule) {
     Exports = original.Exports;
     QId = new ModuleQualifiedId(cloner, original.QId);
+    Opened = original.Opened;
   }
 
   public AbstractModuleDecl(DafnyOptions options, IOrigin origin, ModuleQualifiedId qid, Name name, Attributes attributes,

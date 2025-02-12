@@ -17,6 +17,7 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
 
   public AliasModuleDecl(Cloner cloner, AliasModuleDecl original, ModuleDefinition enclosingModule)
     : base(cloner, original, enclosingModule) {
+    Opened = original.Opened;
     if (original.TargetQId != null) { // TODO is this null check necessary?
       TargetQId = new ModuleQualifiedId(cloner, original.TargetQId);
 
