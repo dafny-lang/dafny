@@ -3366,7 +3366,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         assert expectedOwnership == OwnershipBorrowed;
         var needsRcWrapping := isSelf && selfIdent.IsRcWrappedDatatype();
         if needsRcWrapping {
-          r := rcNew(r.Clone());
+          r := R.Borrow(rcNew(r.Clone()));
         }
         resultingOwnership := OwnershipBorrowed;
       } else {

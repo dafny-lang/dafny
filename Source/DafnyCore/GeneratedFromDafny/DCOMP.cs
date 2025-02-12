@@ -4621,7 +4621,7 @@ namespace DCOMP {
         bool _10_needsRcWrapping;
         _10_needsRcWrapping = (_4_isSelf) && ((selfIdent).IsRcWrappedDatatype());
         if (_10_needsRcWrapping) {
-          r = Dafny.Helpers.Id<Func<RAST._IExpr, RAST._IExpr>>((this).rcNew)((r).Clone());
+          r = RAST.__default.Borrow(Dafny.Helpers.Id<Func<RAST._IExpr, RAST._IExpr>>((this).rcNew)((r).Clone()));
         }
         resultingOwnership = Defs.Ownership.create_OwnershipBorrowed();
       } else {
