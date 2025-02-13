@@ -1,11 +1,19 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
 public class ActualBindings : NodeWithComputedRange {
   public readonly List<ActualBinding> ArgumentBindings;
+
+  [ParseConstructor]
+  public ActualBindings(IOrigin origin, List<ActualBinding> argumentBindings) : base(origin)
+  {
+    ArgumentBindings = argumentBindings;
+  }
 
   public ActualBindings(List<ActualBinding> argumentBindings) {
     Contract.Requires(argumentBindings != null);
@@ -44,7 +52,7 @@ public class ActualBindings : NodeWithComputedRange {
 }
 
 public class ActualBinding : NodeWithComputedRange {
-  public readonly IOrigin /*?*/ FormalParameterName;
+  public readonly IOrigin? FormalParameterName;
   public readonly Expression Actual;
   public readonly bool IsGhost;
 
@@ -52,8 +60,14 @@ public class ActualBinding : NodeWithComputedRange {
 
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public ActualBinding(IOrigin /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
-    Contract.Requires(actual != null);
+  [ParseConstructor]
+  public ActualBinding(IOrigin origin, IOrigin? formalParameterName, Expression actual, bool isGhost = false) : base(origin) {
+    FormalParameterName = formalParameterName;
+    Actual = actual;
+    IsGhost = isGhost;
+  }
+
+  public ActualBinding(IOrigin? formalParameterName, Expression actual, bool isGhost = false) {
     FormalParameterName = formalParameterName;
     Actual = actual;
     IsGhost = isGhost;

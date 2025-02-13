@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -8,8 +9,8 @@ namespace Microsoft.Dafny;
 /// An ApplySuffix desugars into either an ApplyExpr or a FunctionCallExpr
 /// </summary>
 public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
-  public readonly IOrigin/*?*/ AtTok;
-  public readonly Token CloseParen;
+  public readonly IOrigin? AtTok;
+  public readonly Token? CloseParen;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   [FilledInDuringResolution] public MethodCallInformation MethodCallInfo = null; // resolution will set to a non-null value if ApplySuffix makes a method call
@@ -35,17 +36,20 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
     Bindings = new ActualBindings(cloner, original.Bindings);
   }
 
-  public ApplySuffix(IOrigin origin, IOrigin/*?*/ atLabel, Expression lhs, List<ActualBinding> args, Token closeParen)
+
+  [ParseConstructor]
+  public ApplySuffix(IOrigin origin, IOrigin? atTok, Expression lhs, ActualBindings bindings, Token? closeParen)
     : base(origin, lhs) {
-    Contract.Requires(origin != null);
-    Contract.Requires(lhs != null);
-    Contract.Requires(cce.NonNullElements(args));
-    AtTok = atLabel;
+    AtTok = atTok;
     CloseParen = closeParen;
-    Bindings = new ActualBindings(args);
+    Bindings = bindings;
     if (closeParen != null) {
       FormatTokens = [closeParen];
     }
+  }
+
+  public ApplySuffix(IOrigin origin, IOrigin? atTok, Expression lhs, List<ActualBinding> args, Token? closeParen)
+    : this(origin, atTok, lhs, new ActualBindings(args), closeParen) {
   }
 
   public override IEnumerable<Expression> PreResolveSubExpressions {

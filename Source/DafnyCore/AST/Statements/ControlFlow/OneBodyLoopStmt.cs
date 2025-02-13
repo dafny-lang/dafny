@@ -21,6 +21,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     }
   }
 
+  [ParseConstructor]
   protected OneBodyLoopStmt(IOrigin origin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt /*?*/ body, Attributes/*?*/ attributes)

@@ -49,13 +49,15 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
     Rhss = rhss;
     CanMutateKnownState = false;
   }
-  public AssignStatement(IOrigin origin, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
-    : base(origin, lhss) {
+  
+  [ParseConstructor]
+  public AssignStatement(IOrigin origin, List<Expression> lhss, List<AssignmentRhs> rhss, bool canMutateKnownState, Attributes attributes = null)
+    : base(origin, lhss, attributes) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
-    CanMutateKnownState = mutate;
+    CanMutateKnownState = canMutateKnownState;
   }
 
   public override IEnumerable<Expression> PreResolveSubExpressions {

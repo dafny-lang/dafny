@@ -20,8 +20,8 @@ public abstract class AssignmentRhs : NodeWithComputedRange, IAttributeBearingDe
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  internal AssignmentRhs(IOrigin origin, Attributes attrs = null) : base(origin) {
-    Attributes = attrs;
+  internal AssignmentRhs(IOrigin origin, Attributes attributes = null) : base(origin) {
+    Attributes = attributes;
   }
 
   public abstract bool CanAffectPreviouslyKnownExpressions { get; }

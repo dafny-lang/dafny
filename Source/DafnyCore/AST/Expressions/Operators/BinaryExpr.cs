@@ -325,6 +325,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
     }
   }
 
+  [ParseConstructor]
   public BinaryExpr(IOrigin origin, Opcode op, Expression e0, Expression e1)
     :
     base(origin) {

@@ -89,7 +89,7 @@ public abstract class PostParseAstVisitor {
         baseParseConstructor.GetParameters().Select(p => p.Name)
           .Except(myParseConstructor.GetParameters().Select(p => p.Name));
       if (missingParameters.Any()) {
-        throw new Exception("");
+        throw new Exception($"in type {type}, missing parameters: {string.Join(",", missingParameters)}");
       }
     }
 
@@ -135,6 +135,9 @@ public abstract class PostParseAstVisitor {
       var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
                        (MemberInfo)properties.GetValueOrDefault(parameter.Name.ToLower())!;
 
+      if (memberInfo == null) {
+        throw new Exception($"Could not find parameter {parameter.Name} in {type.Name}");
+      }
       handle(index, parameter, memberInfo);
     }
   }
