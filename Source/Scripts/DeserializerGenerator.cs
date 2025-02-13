@@ -167,7 +167,7 @@ if (actualType == typeof({typeString})) {{
   private void AddReadOptionMethodForType(string typeString, string deserializeMethodName) {
     var typedDeserialize = SyntaxFactory.ParseMemberDeclaration(@$"
  public {typeString} {deserializeMethodName}Option() {{
-  if (ReadBool()) {{
+  if (ReadIsNull()) {{
      return default;
   }}
   return {deserializeMethodName}();

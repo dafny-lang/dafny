@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -34,7 +35,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  protected Declaration(IOrigin origin, Name nameNode, Attributes attributes) : base(origin) {
+  protected Declaration(IOrigin origin, Name nameNode, Attributes? attributes) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     this.NameNode = nameNode;
@@ -124,11 +125,13 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     return compileName;
   }
 
-  public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
+  public Attributes? Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
+  
   Attributes IAttributeBearingDeclaration.Attributes {
     get => Attributes;
     set => Attributes = value;
   }
+  
   string IAttributeBearingDeclaration.WhatKind =>
     this is TopLevelDecl topLevelDecl
       ? topLevelDecl.WhatKind

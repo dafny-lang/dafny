@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -18,20 +19,20 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
   }
 
   [ParseConstructor]
-  public Specification(IOrigin origin, List<T> expressions, Attributes attributes) : base(origin) {
+  public Specification(IOrigin origin, List<T> expressions, Attributes? attributes) : base(origin) {
     Contract.Requires(expressions == null || cce.NonNullElements<T>(expressions));
     Expressions = expressions;
     Attributes = attributes;
   }
 
 
-  public Specification(List<T> expressions, Attributes attributes) {
+  public Specification(List<T> expressions, Attributes? attributes) {
     Contract.Requires(expressions == null || cce.NonNullElements<T>(expressions));
     Expressions = expressions;
     Attributes = attributes;
   }
 
-  public Attributes Attributes { get; set; }
+  public Attributes? Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "specification clause";
 
   public bool HasAttributes() {

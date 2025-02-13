@@ -36,7 +36,7 @@ public class DeserializerTest {
   [Fact]
   public async Task Deserialize() {
     var input =
-      "0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; \"foo\" 0; 0; true true 1; ClassDecl 0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; \"foo\" true 0; 1; Method 0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; \"foo\" true true false 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; true 0; 0; 0; 0; 0; 0; 0; true 0; 0; 0; 0; 0; 0; 0; 0; true 0; 0; 0; 0; 0; 0; true 1; AssertStmt 0; 0; 0; 0; 0; 0; true LiteralExpr 0; 0; 0; 0; 0; 0; Boolean false true true true 0; false 0; 0; 0; false 0; ";
+      "0; 1; 0; 1; 0; 1; 0; 1; 0; 1; 0; 1; \"unnamed\" 0; 0; null null 1; ClassDecl 3; 2; 7; 3; 3; 2; 3; 2; 3; 2; 3; 2; \"Main\" null 0; 1; Method 4; 4; 6; 5; 4; 16; 4; 16; 4; 16; 4; 16; \"Foo\" null true false 0; 0; 0; 0; 4; 4; 6; 5; 4; 16; 0; null 4; 4; 6; 5; 4; 16; 0; null 0; 4; 4; 6; 5; 4; 16; 0; null  4; 4; 6; 5; 4; 16; null 1; AssertStmt 5; 6; 5; 19; 5; 6; null LiteralExpr 5; 13; 5; 18; 5; 13; Boolean false null null false 0; false ";
     var options = new DafnyOptions(DafnyOptions.Default);
     options.Set(CommonOptionBag.InputType, CommonOptionBag.InputTypeEnum.Binary);
     var reporter = new BatchErrorReporter(options);

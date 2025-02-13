@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -11,7 +12,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public int ScopeDepth { get; set; }
   public LList<Label> Labels;  // mutable during resolution
 
-  public Attributes Attributes { get; set; }
+  public Attributes? Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "statement";
 
   [ContractInvariantMethod]
@@ -35,7 +36,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     }
   }
 
-  protected Statement(IOrigin origin, Attributes attributes) : base(origin) {
+  protected Statement(IOrigin origin, Attributes? attributes) : base(origin) {
     this.Attributes = attributes;
   }
 

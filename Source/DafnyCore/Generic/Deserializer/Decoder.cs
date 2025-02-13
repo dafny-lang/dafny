@@ -7,6 +7,7 @@ namespace Microsoft.Dafny;
 public interface IDecoder {
   int ReadInt32();
   bool ReadBool();
+  bool ReadIsNull();
   string ReadString();
   string ReadQualifiedName();
 }
@@ -38,18 +39,28 @@ public class TextDecoder(string input) : IDecoder {
   }
 
   public bool ReadBool() {
-    if (input.Substring(position, 4) == "true") {
-      position += 4;
-      ReadSeparator();
+    if (CheckAndAdvance("true")) {
       return true;
     }
-    if (input.Substring(position, 5) == "false") {
-      position += 5;
-      ReadSeparator();
+    if (CheckAndAdvance("false")) {
       return false;
     }
 
     throw new Exception();
+  }
+
+  public bool ReadIsNull() {
+    return CheckAndAdvance("null");
+  }
+
+  private bool CheckAndAdvance(string keyword) {
+    if (input.Substring(position, keyword.Length) == keyword) {
+      position += keyword.Length;
+      ReadSeparator();
+      return true;
+    }
+
+    return false;
   }
 
   public string Remainder => input.Substring(position);
