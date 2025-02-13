@@ -44,6 +44,10 @@ module SubModule {
   class TestClass {
     /** Docstring for const */
     const testConst: bool
+    /** Docstring for class constructor */
+    constructor() {
+      testConst := true;
+    }
     predicate SingleLineFunction() { true } // Docstring for predicate
   }
 }
