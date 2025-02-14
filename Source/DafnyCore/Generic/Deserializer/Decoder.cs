@@ -5,6 +5,7 @@ using System.Text;
 namespace Microsoft.Dafny;
 
 public interface IDecoder {
+  string Position { get; }
   int ReadInt32();
   bool ReadBool();
   bool ReadIsNull();
@@ -15,6 +16,8 @@ public interface IDecoder {
 public class TextDecoder(string input) : IDecoder {
   private const int IntStopCharacter = ';';
   private int position;
+
+  public string Position => position.ToString();
 
   public int ReadInt32() {
     var start = position;

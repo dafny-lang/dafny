@@ -64,7 +64,8 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
   public T ReadAbstract<T>() {
     var typeName = decoder.ReadQualifiedName();
     var actualType = System.Type.GetType("Microsoft.Dafny." + typeName) ??
-                 System.Type.GetType("System." + typeName) ?? throw new Exception($"Type not found: {typeName}");
+                 System.Type.GetType("System." + typeName) ?? 
+                 throw new Exception($"Type not found: {typeName}, expected type {typeof(T).Name}, position {decoder.Position}");
     return DeserializeGeneric<T>(actualType);
   }
 
@@ -81,7 +82,7 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
   }
 
   public string? ReadStringOption() {
-    var isNull = decoder.ReadBool();
+    var isNull = decoder.ReadIsNull();
     if (isNull) {
       return default;
     }

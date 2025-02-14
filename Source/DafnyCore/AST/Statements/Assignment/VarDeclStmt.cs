@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -23,7 +24,7 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   }
 
   [ParseConstructor]
-  public VarDeclStmt(IOrigin origin, List<LocalVariable> locals, ConcreteAssignStatement assign, Attributes attributes = null)
+  public VarDeclStmt(IOrigin origin, List<LocalVariable> locals, ConcreteAssignStatement assign, Attributes? attributes = null)
     : base(origin, attributes) {
     Contract.Requires(locals != null);
     Contract.Requires(locals.Count != 0);

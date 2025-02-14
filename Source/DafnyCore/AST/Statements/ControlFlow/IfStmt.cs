@@ -39,7 +39,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
   }
   
   [ParseConstructor]
-  public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attributes)
+  public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement? els, Attributes? attributes)
     : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));

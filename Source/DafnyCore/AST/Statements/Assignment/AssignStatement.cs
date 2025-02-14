@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -51,7 +52,8 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   }
   
   [ParseConstructor]
-  public AssignStatement(IOrigin origin, List<Expression> lhss, List<AssignmentRhs> rhss, bool canMutateKnownState, Attributes attributes = null)
+  public AssignStatement(IOrigin origin, List<Expression> lhss, List<AssignmentRhs> rhss, bool canMutateKnownState, 
+    Attributes? attributes = null)
     : base(origin, lhss, attributes) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));

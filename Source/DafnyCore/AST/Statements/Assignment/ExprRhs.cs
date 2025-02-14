@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -18,7 +19,7 @@ public class ExprRhs : AssignmentRhs, ICloneable<ExprRhs> {
   }
 
   [ParseConstructor]
-  public ExprRhs(IOrigin origin, Expression expr, Attributes attributes = null)
+  public ExprRhs(IOrigin origin, Expression expr, Attributes? attributes = null)
     : base(origin, attributes) {
     Contract.Requires(expr != null);
     Expr = expr;
