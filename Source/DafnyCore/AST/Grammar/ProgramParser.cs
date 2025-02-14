@@ -273,16 +273,22 @@ public class ProgramParser {
     Uri uri, CancellationToken cancellationToken) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
     using var reader = fileSnapshot.Reader;
-    if (options.Get(CommonOptionBag.InputType) == CommonOptionBag.InputTypeEnum.Source) {
+    CommonOptionBag.InputTypeEnum inputType;
+    if (uri == DafnyFile.StdInUri) {
+      inputType = options.Get(CommonOptionBag.InputType);
+    } else {
+      inputType = uri.LocalPath.EndsWith(DafnyFile.DafnyFileExtension)
+        ? CommonOptionBag.InputTypeEnum.Source
+        : CommonOptionBag.InputTypeEnum.Binary;
+    }
+    if (inputType == CommonOptionBag.InputTypeEnum.Source) {
       var text = SourcePreprocessor.ProcessDirectives(reader, []);
       return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
-    } else {
-      var moduleDefinition = new Deserializer(uri, new TextDecoder(reader.ReadToEnd())).ReadFileModuleDefinition();
-      // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
-      return new DfyParseFileResult(null, uri, new BatchErrorReporter(options), moduleDefinition, []);
     }
 
-    throw new ArgumentException();
+    var moduleDefinition = new Deserializer(uri, new TextDecoder(reader.ReadToEnd())).ReadFileModuleDefinition();
+    // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
+    return new DfyParseFileResult(null, uri, new BatchErrorReporter(options), moduleDefinition, []);
   }
 
   ///<summary>

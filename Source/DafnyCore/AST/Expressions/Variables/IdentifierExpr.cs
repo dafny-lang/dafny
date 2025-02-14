@@ -15,6 +15,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
 
   public string DafnyName => Origin.line > 0 ? Origin.PrintOriginal() : Name;
 
+  [ParseConstructor]
   public IdentifierExpr(IOrigin origin, string name)
     : base(origin) {
     Contract.Requires(origin != null);

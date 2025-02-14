@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -7,7 +8,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly BlockStmt Thn;
-  public readonly Statement Els;
+  public readonly Statement? Els;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
@@ -30,7 +31,6 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
-    Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
     IsBindingGuard = isBindingGuard;
     Guard = guard;

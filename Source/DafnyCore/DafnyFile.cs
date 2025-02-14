@@ -112,6 +112,8 @@ public class DafnyFile {
   public static readonly Option<bool> DoNotVerifyDependencies = new("--dont-verify-dependencies",
     "Allows Dafny to accept dependencies that may not have been previously verified, which can be useful during development.");
 
+  public static readonly Uri StdInUri = new Uri("stdin:///");
+
   public static DafnyFile? HandleDafnyFile(IFileSystem fileSystem,
     ErrorReporter reporter,
     DafnyOptions options,
@@ -157,7 +159,7 @@ public class DafnyFile {
 
   public static DafnyFile HandleStandardInput(DafnyOptions options, IOrigin origin) {
     return new DafnyFile(DafnyFileExtension, "<stdin>", "<stdin>",
-      () => new FileSnapshot(options.Input, null), new Uri("stdin:///"), origin, options) {
+      () => new FileSnapshot(options.Input, null), StdInUri, origin, options) {
       ShouldNotCompile = false,
       ShouldNotVerify = false,
     };
