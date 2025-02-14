@@ -3629,10 +3629,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             var typeExpr := GenType(typeArgs[i], GenTypeContext.default());
             genTypeArgs := genTypeArgs + [typeExpr];
           }
+          r := r.FSel(escapeName(variant));
           if |typeArgs| > 0 {
             r := r.ApplyType(genTypeArgs);
           }
-          r := r.FSel(escapeName(variant));
           readIdents := {};
 
           var assignments: seq<R.AssignIdentifier> := [];
