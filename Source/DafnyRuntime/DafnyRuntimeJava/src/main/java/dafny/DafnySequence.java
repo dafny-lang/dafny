@@ -460,14 +460,18 @@ public abstract class DafnySequence<T> implements Iterable<T> {
      * That's usually just the sequence itself, but not if the
      * sequence is lazily computed.
      *
+     * This is mostly invoked internally, but is also triggered directly
+     * by s[..] in Dafny source code.
+     *
      * @see ConcatDafnySequence
+     * @see SlicedDafnySequence
      */
-    protected abstract NonLazyDafnySequence<T> force();
+    public abstract NonLazyDafnySequence<T> force();
 }
 
 abstract class NonLazyDafnySequence<T> extends DafnySequence<T> {
     @Override
-    protected final NonLazyDafnySequence<T> force() {
+    public final NonLazyDafnySequence<T> force() {
         return this;
     }
 }
@@ -850,7 +854,7 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
     }
 
     @Override
-    protected NonLazyDafnySequence<T> force() {
+    public NonLazyDafnySequence<T> force() {
         if (ans == null) {
             ans = computeElements();
             // Allow left and right to be garbage-collected
@@ -947,7 +951,7 @@ final class SlicedDafnySequence<T> extends LazyDafnySequence<T> {
     }
 
     @Override
-    protected NonLazyDafnySequence<T> force() {
+    public NonLazyDafnySequence<T> force() {
         if (ans == null) {
             ans = computeElements();
             // Allow original to be garbage-collected

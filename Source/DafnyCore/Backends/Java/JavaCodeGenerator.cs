@@ -1660,6 +1660,8 @@ namespace Microsoft.Dafny.Compilers {
         } else if (hi != null) {
           wr.Write(".take");
           TrParenExpr(hi, wr, inLetExprBody, wStmts);
+        } else {
+          wr.Write(".force()");
         }
       }
     }
