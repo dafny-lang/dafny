@@ -971,7 +971,12 @@ final class SlicedDafnySequence<T> extends LazyDafnySequence<T> {
 
     public T select(int i) {
         assert 0 <= i && i < upper - lower: "Precondition Violation";
-        return original.select(lower + i);
+        DafnySequence<T> originalBuffer = original;
+        if (originalBuffer == null) {
+            return ans.select(i);
+        }
+
+        return originalBuffer.select(lower + i);
     }
 
     @Override
@@ -982,7 +987,12 @@ final class SlicedDafnySequence<T> extends LazyDafnySequence<T> {
     public DafnySequence<T> subsequence(int lo, int hi) {
         assert lo >= 0 && hi >= 0 && hi >= lo : "Precondition Violation";
 
-        return new SlicedDafnySequence<>(original, lower + lo, lower + hi);
+        DafnySequence<T> originalBuffer = original;
+        if (originalBuffer == null) {
+            return ans.subsequence(lo, hi);
+        }
+
+        return new SlicedDafnySequence<>(originalBuffer, lower + lo, lower + hi);
     }
 }
 
