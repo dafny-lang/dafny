@@ -86,6 +86,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       this.optimizations := [
         ExpressionOptimization.apply,
         FactorPathsOptimization.apply(thisFile)];
+      var thisAsSelf := rcNew(R.self.Clone());
+      this.rcDatatypeThis := thisAsSelf;
+      this.borrowedRcDatatypeThis := R.Borrow(thisAsSelf);
       new;
     }
 
@@ -2118,8 +2121,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    const rcDatatypeThis := rcNew(R.self.Clone())
-    const borrowedRcDatatypeThis := R.Borrow(rcDatatypeThis)
+    const rcDatatypeThis: R.Expr
+    const borrowedRcDatatypeThis: R.Expr
 
     // General borrow include &Box<dyn Type>, but for dynamic dispatch we need &dyn Type
     function FromGeneralBorrowToSelfBorrow(onExpr: R.Expr, onExprOwnership: Ownership, env: Environment): R.Expr {

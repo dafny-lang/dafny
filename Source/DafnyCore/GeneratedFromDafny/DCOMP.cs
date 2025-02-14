@@ -23,6 +23,8 @@ namespace DCOMP {
       this._charType = Defs.CharType.Default();
       this._pointerType = Defs.PointerType.Default();
       this._syncType = Defs.SyncType.Default();
+      this._rcDatatypeThis = RAST.Expr.Default();
+      this._borrowedRcDatatypeThis = RAST.Expr.Default();
     }
     public RAST._IType Object(RAST._IType underlying) {
       if (((this).pointerType).is_Raw) {
@@ -41,6 +43,10 @@ namespace DCOMP {
       (this)._syncType = syncType;
       (this).error = Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None();
       (this).optimizations = Dafny.Sequence<Func<RAST._IMod, RAST._IMod>>.FromElements(ExpressionOptimization.__default.apply, FactorPathsOptimization.__default.apply((this).thisFile));
+      RAST._IExpr _0_thisAsSelf;
+      _0_thisAsSelf = Dafny.Helpers.Id<Func<RAST._IExpr, RAST._IExpr>>((this).rcNew)((RAST.__default.self).Clone());
+      (this)._rcDatatypeThis = _0_thisAsSelf;
+      (this)._borrowedRcDatatypeThis = RAST.__default.Borrow(_0_thisAsSelf);
     }
     public bool HasAttribute(Dafny.ISequence<DAST._IAttribute> attributes, Dafny.ISequence<Dafny.Rune> name)
     {
@@ -7410,11 +7416,13 @@ namespace DCOMP {
         return RAST.Type.create_IntersectionType(((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Any"))).AsType(), (this).SyncSendType);
       }
     } }
+    public RAST._IExpr _rcDatatypeThis {get; set;}
     public RAST._IExpr rcDatatypeThis { get {
-      return Dafny.Helpers.Id<Func<RAST._IExpr, RAST._IExpr>>((this).rcNew)((RAST.__default.self).Clone());
+      return this._rcDatatypeThis;
     } }
+    public RAST._IExpr _borrowedRcDatatypeThis {get; set;}
     public RAST._IExpr borrowedRcDatatypeThis { get {
-      return RAST.__default.Borrow((this).rcDatatypeThis);
+      return this._borrowedRcDatatypeThis;
     } }
     public RAST._IExpr read__mutable__field__macro { get {
       return ((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("read_field!"))).AsExpr();
