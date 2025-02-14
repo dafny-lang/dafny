@@ -118,6 +118,10 @@ public class DafnyFile {
     ErrorReporter reporter,
     DafnyOptions options,
     Uri uri, IOrigin origin, bool asLibrary = false, bool warnLibrary = true) {
+    if (uri == StdInUri) {
+      return HandleStandardInput(options, origin);
+    }
+    
     string canonicalPath;
     string baseName;
     if (uri.IsFile) {

@@ -237,7 +237,7 @@ namespace Microsoft.Dafny
         {
             var parameter0 = ReadSourceOrigin();
             var parameter1 = ReadString();
-            var parameter2 = ReadList<Type>(() => ReadAbstract<Type>());
+            var parameter2 = ReadListOption<Type>(() => ReadAbstract<Type>());
             return new NameSegment(parameter0, parameter1, parameter2);
         }
 

@@ -21,7 +21,15 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     }
   }
 
-
+  private List<T>? ReadListOption<T>(Func<T> readElement) {
+    var isNull = decoder.ReadIsNull();
+    if (isNull) {
+      return null;
+    }
+    
+    return ReadArray<T>(readElement).ToList();
+  }
+  
   private List<T> ReadList<T>(Func<T> readElement) {
     return ReadArray<T>(readElement).ToList();
   }

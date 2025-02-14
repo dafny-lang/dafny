@@ -58,7 +58,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   [ParseConstructor]
   public LiteralExpr(IOrigin origin, object value)
     : base(origin) {
-    this.Value = value;
+    Value = value is int n ? new BigInteger(n) : value;
   }
 
   public LiteralExpr(IOrigin origin, BigInteger value)
