@@ -111,15 +111,40 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   protected string sanitizedName;
   public virtual string SanitizedName => sanitizedName ??= NonglobalVariable.SanitizeName(Name);
 
+  protected string enclosingModuleName; // Computed at the same time as compileName
+
   protected string compileName;
 
   public virtual string GetCompileName(DafnyOptions options) {
     if (compileName == null) {
-      this.IsExtern(options, out _, out compileName);
+      this.IsExtern(options, out var possibleEnclosingModuleName, out compileName);
+      if (!IsCompiled) {
+        enclosingModuleName = possibleEnclosingModuleName;
+      }
+      if (this is TopLevelDecl topDecl) {
+        enclosingModuleName ??= topDecl.EnclosingModuleDefinition.GetCompileName(options);
+      }
+
       compileName ??= SanitizedName;
     }
 
     return compileName;
+  }
+
+  public bool IsCompiled {
+    get {
+      var compile = true;
+      return !Attributes.ContainsBool(Attributes, "compile", ref compile) || compile;
+    }
+  }
+
+  public string GetQualificationName(DafnyOptions options) {
+    if (compileName == null) {
+      GetCompileName(options); // Sets the enclosing module name if defined by externs.
+      return enclosingModuleName;
+    }
+
+    return enclosingModuleName;
   }
 
   public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict

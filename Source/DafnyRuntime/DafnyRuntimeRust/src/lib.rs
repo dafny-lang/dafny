@@ -2088,7 +2088,7 @@ macro_rules! dafny_print_function {
 // Convert the DafnyPrint above into a macro so that we can create it for functions of any input arity
 macro_rules! dafny_print_function {
     ($($n:tt)*) => {
-        impl <B, $($n),*> $crate::DafnyPrint for $crate::Rc<dyn ::std::ops::Fn($($n),*) -> B> {
+        impl <B, $($n),*> $crate::DafnyPrint for $crate::Rc<dyn ::std::ops::Fn($(&$n),*) -> B> {
             fn fmt_print(&self, f: &mut ::std::fmt::Formatter<'_>, _in_seq: bool) -> ::std::fmt::Result {
                 write!(f, "<function>")
             }
@@ -3988,10 +3988,9 @@ where
     Rc::new(|x: A| UpcastBox::upcast(&x))
 }
 pub fn upcast_box_box<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Box<A>) -> Box<B>>
-where
-    Box<A>: UpcastBox<B>,
+    where A: UpcastBox<B>,
 {
-    Rc::new(|x: Box<A>| UpcastBox::upcast(&x))
+    Rc::new(|x: Box<A>| UpcastBox::upcast(x.as_ref()))
 }
 
 pub fn upcast_id<A>() -> Rc<impl Fn(A) -> A> {
@@ -4037,6 +4036,24 @@ impl<T: ?Sized> UpcastObject<T> for T {
 // For general traits
 pub trait UpcastBox<T: ?Sized> {
     fn upcast(&self) -> Box<T>;
+}
+
+impl <T: ?Sized, U> UpcastBox<T> for Rc<U>
+  where U: UpcastBox<T>
+{
+    fn upcast(&self) -> Box<T> {
+        UpcastBox::upcast(AsRef::as_ref(self))
+    }
+}
+
+pub trait AnyRef {
+    fn as_any_ref(&self) -> &dyn Any;
+}
+
+impl <T: 'static> AnyRef for T {
+    fn as_any_ref(&self) -> &dyn Any {
+        self
+    }
 }
 
 #[macro_export]

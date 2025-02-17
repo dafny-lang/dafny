@@ -1,6 +1,6 @@
 // NONUNIFORM: Test of Rust's ability to support newtypes
-// RUN: %baredafny run -t:rs "%s"
-// RUN: %baredafny run -t:rs --unicode-char=false "%s"
+// RUN: %baredafny run -t:rs --enforce-determinism "%s"
+// RUN: %baredafny run -t:rs --unicode-char=false --enforce-determinism "%s"
 /// %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 newtype int2 = x: int | -2 <= x < 2
@@ -141,7 +141,7 @@ method Main(){
   print [0, 1, 2][Zero], "\n";
   print [0, 1, 2][Zero..INT2_MAX], "\n";
   var f: CodeUnit -> byte := c => c as byte;
-  var arr := new bool[INT2_MAX];
+  var arr := new bool[INT2_MAX](i => true);
   print arr.Length, "\n";
   print DChar as uint32, "\n";
 

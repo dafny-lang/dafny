@@ -217,7 +217,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool IncludeExternallyImportedMembers { get => false; }
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
-    protected virtual bool InstanceMethodsAllowedToCallTraitMethods => true;
+    protected virtual bool InstanceMethodsCanOnlyCallOverridenTraitMethods => false;
     protected IClassWriter CreateClass(string moduleName, TopLevelDecl cls, ConcreteSyntaxTree wr) {
       return CreateClass(moduleName, false, null, cls.TypeArgs,
         cls, (cls as TopLevelDeclWithMembers)?.ParentTypeInformation.UniqueParentTraits(), null, wr);
@@ -1439,6 +1439,14 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract void EmitTypeTest(string localName, Type fromType, Type toType, IOrigin tok, ConcreteSyntaxTree wr);
 
+
+    protected virtual void EmitTypeTestExpr(Expression expr, Type fromType, Type toType, IOrigin tok,
+      bool inLetExprBody, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
+      var name = $"_is_{GetUniqueAstNumber(expr)}";
+      wr = CreateIIFE_ExprBody(name, fromType, tok, expr, inLetExprBody, Type.Bool, expr.Origin, wr, ref wStmts);
+      EmitTypeTest(name, fromType, toType, tok, wr);
+    }
+
     /// <summary>
     /// Emit a conjunct that tests if the Dafny real number "source" is an integer, like:
     ///    "TestIsInteger(source) && "
@@ -1618,14 +1626,13 @@ namespace Microsoft.Dafny.Compilers {
           bool externP = Attributes.Contains(at.Attributes, "extern");
           if (externP) {
             var exprs = Attributes.FindExpressions(at.Attributes, "extern");
-            Contract.Assert(exprs != null); // because externP is true
-            if (exprs.Count == 1) {
-              DeclareExternType(at, exprs[0], wr);
-            } else {
-              Error(ErrorId.c_abstract_type_needs_hint, d.Origin,
-                "Abstract type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}",
-                wr, at.FullName);
+            if (exprs == null || exprs.Count == 0) {
+              exprs = new List<Expression>() {
+                Expression.CreateStringLiteral(Token.NoToken, at.Name)
+              };
             }
+            Contract.Assert(exprs != null); // because externP is true
+            DeclareExternType(at, exprs[0], wr);
 
             v.Visit(exprs);
           } else {
@@ -2075,7 +2082,7 @@ namespace Microsoft.Dafny.Compilers {
       return true;
     }
 
-    void OrderedBySCC(List<MemberDecl> decls, TopLevelDeclWithMembers c) {
+    protected void OrderedBySCC(List<MemberDecl> decls, TopLevelDeclWithMembers c) {
       List<ConstantField> consts = [];
       foreach (var decl in decls) {
         if (decl is ConstantField) {
@@ -2159,9 +2166,9 @@ namespace Microsoft.Dafny.Compilers {
 
       if (c is not TraitDecl || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
-        var canRedeclareMemberDefinedInTrait = c is not ClassLikeDecl and not DatatypeDecl and not NewtypeDecl ||
-                                                InstanceMethodsAllowedToCallTraitMethods;
         foreach (var member in inheritedMembers.Select(memberx => (memberx as Function)?.ByMethodDecl ?? memberx)) {
+          var canRedeclareMemberDefinedInTrait = c is not ClassLikeDecl and not DatatypeDecl and not NewtypeDecl ||
+                                                 !InstanceMethodsCanOnlyCallOverridenTraitMethods || member.IsOverrideThatAddsBody;
           enclosingDeclaration = member;
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
@@ -2169,25 +2176,29 @@ namespace Microsoft.Dafny.Compilers {
           } else if (c is TraitDecl) {
             RedeclareInheritedMember(member, classWriter);
           } else if (member is ConstantField) {
-            var cf = (ConstantField)member;
-            var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
-            if (cf.Rhs == null && c is ClassLikeDecl) {
-              // create a backing field, since this constant field may be assigned in constructors
-              Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
-              classWriter.DeclareField(InternalFieldPrefix + cf.GetCompileName(Options), c, false, false, cfType, cf.Origin, PlaceboValue(cfType, errorWr, cf.Origin, true), cf);
-            }
-            var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
-            Contract.Assert(w != null);  // since the previous line asked for a body
-            if (cf.Rhs != null) {
-              EmitCallToInheritedConstRHS(cf, w);
-            } else if (!cf.IsStatic && c is ClassLikeDecl) {
-              var sw = EmitReturnExpr(w);
-              sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.Origin, sw);
-              // get { return this._{0}; }
-              EmitThis(sw);
-              sw.Write(".{0}{1}", InternalFieldPrefix, cf.GetCompileName(Options));
-            } else {
-              EmitReturnExpr(PlaceboValue(cfType, errorWr, cf.Origin, true), w);
+            if (canRedeclareMemberDefinedInTrait) {
+              var cf = (ConstantField)member;
+              var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
+              if (cf.Rhs == null && c is ClassLikeDecl) {
+                // create a backing field, since this constant field may be assigned in constructors
+                Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
+                classWriter.DeclareField(InternalFieldPrefix + cf.GetCompileName(Options), c, false, false, cfType,
+                  cf.Origin, PlaceboValue(cfType, errorWr, cf.Origin, true), cf);
+              }
+
+              var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
+              Contract.Assert(w != null); // since the previous line asked for a body
+              if (cf.Rhs != null) {
+                EmitCallToInheritedConstRHS(cf, w);
+              } else if (!cf.IsStatic && c is ClassLikeDecl) {
+                var sw = EmitReturnExpr(w);
+                sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.Origin, sw);
+                // get { return this._{0}; }
+                EmitThis(sw);
+                sw.Write(".{0}{1}", InternalFieldPrefix, cf.GetCompileName(Options));
+              } else {
+                EmitReturnExpr(PlaceboValue(cfType, errorWr, cf.Origin, true), w);
+              }
             }
           } else if (member is Field f) {
             var fType = f.Type.Subst(c.ParentFormalTypeParametersToActuals);
@@ -2212,7 +2223,10 @@ namespace Microsoft.Dafny.Compilers {
           } else if (member is Function fn) {
             if (!IsExternallyImported(fn) && canRedeclareMemberDefinedInTrait) {
               Contract.Assert(fn.Body != null);
-              var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.Origin, fn.IsStatic, true, fn, true, false);
+              var typeArguments = InstanceMethodsCanOnlyCallOverridenTraitMethods ?
+                  new List<TypeArgumentInstantiation>()
+                : CombineAllTypeArguments(fn);
+              var w = classWriter.CreateFunction(IdName(fn), typeArguments, fn.Ins, fn.ResultType, fn.Origin, fn.IsStatic, true, fn, true, false);
               w = EmitReturnExpr(w);
               EmitCallToInheritedFunction(fn, null, w);
             }
@@ -2220,7 +2234,10 @@ namespace Microsoft.Dafny.Compilers {
             if (!IsExternallyImported(method)
                 && canRedeclareMemberDefinedInTrait) {
               Contract.Assert(method.Body != null);
-              var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
+              var typeArguments = InstanceMethodsCanOnlyCallOverridenTraitMethods ?
+                new List<TypeArgumentInstantiation>()
+                : CombineAllTypeArguments(member);
+              var w = classWriter.CreateMethod(method, typeArguments, true, true, false);
               var wBefore = w.Fork();
               var wCall = w.Fork();
               var wAfter = w;
@@ -2273,7 +2290,7 @@ namespace Microsoft.Dafny.Compilers {
                 // that takes a parameter, because trait-equivalents in target languages don't allow implementations.
                 wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), [], cf.Type, cf.Origin, InstanceConstAreStatic(), true, cf, false, true);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
-                if (c is TraitDecl) {
+                if (c is TraitDecl && !InstanceMethodsCanOnlyCallOverridenTraitMethods) {
                   // also declare a function for the field in the interface
                   var wBodyInterface = CreateFunctionOrGetter(cf, IdName(cf), c, false, false, false, classWriter);
                   Contract.Assert(wBodyInterface == null);  // since the previous line said not to create a body
@@ -2459,6 +2476,10 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
+    protected virtual ConcreteSyntaxTree StartCall(Function f, ConcreteSyntaxTree wr) {
+      return wr;
+    }
+
     /// <summary>
     /// "heir" is the type declaration that inherits the function. Or, it can be "null" to indicate that the function is declared in
     /// the type itself, in which case the "call to inherited" is actually a call from the dynamically dispatched function to its implementation.
@@ -2483,6 +2504,8 @@ namespace Microsoft.Dafny.Compilers {
       // In a target language that requires type coercions, the function declared in "thisContext" has
       // the same signature as in "f.Original.EnclosingClass".
       wr = EmitCoercionIfNecessary(f.ResultType, f.Original.ResultType, f.Origin, wr);
+
+      wr = StartCall(f, wr);
 
       var companionName = CompanionMemberIdName(f);
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.Origin, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
@@ -4845,9 +4868,7 @@ namespace Microsoft.Dafny.Compilers {
       //      Notes:
       //        - The constraint of a non-null reference type can be omitted in some cases, see note (c) above.
       if (fromType.IsTraitType || fromType.IsRefType) {
-        var name = $"_is_{GetUniqueAstNumber(expr)}";
-        wr = CreateIIFE_ExprBody(name, fromType, expr.Origin, expr.E, inLetExprBody, Type.Bool, expr.Origin, wr, ref wStmts);
-        EmitTypeTest(name, fromType, expr.ToType, expr.Origin, wr);
+        EmitTypeTestExpr(expr.E, fromType, expr.ToType, expr.Origin, inLetExprBody, wr, ref wStmts);
         return;
       }
 

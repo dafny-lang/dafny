@@ -1,8 +1,8 @@
 // NONUNIFORM: Test of the output of the Rust translation
-// RUN: %baredafny run --target=rs --unicode-char=true "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism --unicode-char=true "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // RUN: %OutputCheck --file-to-check "%S/strings-rust/src/strings.rs" "%S/strings-unicode.check"
-// RUN: %baredafny run --target=rs --unicode-char=false "%s"
+// RUN: %baredafny run --target=rs --enforce-determinism --unicode-char=false "%s"
 // RUN: %diff "%s.expect" "%t"
 // RUN: %OutputCheck --file-to-check "%S/strings-rust/src/strings.rs" "%S/strings-utf16.check"
 

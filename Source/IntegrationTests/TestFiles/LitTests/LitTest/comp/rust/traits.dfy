@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module InterfaceHolder {
@@ -76,6 +76,7 @@ module All {
     const d: int := 2
     constructor(c: int) {
       this.c := c;
+      this.z := 3;
     }
     method AddZ()
       modifies this

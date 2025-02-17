@@ -13,5 +13,6 @@
 // CHECK: .*/// Docstring for module.*
 // CHECK: .*/// Docstring for classes 2.*
 // CHECK: .*/// Allocates an UNINITIALIZED instance. Only the Dafny compiler should use that.*
+// CHECK: .*/// Docstring for class constructor.*
 // CHECK: .*/// Docstring for predicate.*
 // CHECK: .*/// Docstring for const.*

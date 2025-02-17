@@ -1,5 +1,2 @@
-Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 
-Dafny program verifier did not attempt verification
-Wrote textual form of target program to git-issue-5644-rust/src/git_issue_5644.rs
-Additional output written to git-issue-5644-rust/src/git-issue-5644-rs.dtr
+Dafny program verifier finished with 4 verified, 0 errors
