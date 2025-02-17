@@ -338,8 +338,8 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    | "replaces" ModuleQualifiedName<out idRefined> (. implementationKind = ImplementationKind.Replacement; .)
    | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
-   (. module = new ModuleDefinition(SourceOrigin.NoToken, name, prefixIds, GetModuleKind(dmod), false,
-                                        idRefined == null ? null : new Implements(implementationKind, new ModuleQualifiedId(idRefined)), parent, dmod.Attributes);
+   (. module = new ModuleDefinition(SourceOrigin.NoToken, name, prefixIds, GetModuleKind(dmod), 
+                                        idRefined == null ? null : new Implements(implementationKind, new ModuleQualifiedId(idRefined)), parent, dmod.Attributes, []);
    .)
    SYNC
    "{"                                 (. module.BodyStartTok = t; .)
@@ -369,17 +369,17 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
       ":"
       QualifiedModuleExport<out var namePath, out idExports>
           (. submodule = new AbstractModuleDecl(theOptions, new SourceOrigin(startToken, t, name.Center), new ModuleQualifiedId(namePath),
-                                               name, parent, opened, idExports, Guid.NewGuid()); .)
+                                               name, null, parent, opened, idExports, Guid.NewGuid()); .)
     | IF(lookAhead == _singleeq)
       ModuleName<out var name>
       "="
       QualifiedModuleExport<out var namePath, out idExports>
           (. submodule = new AliasModuleDecl(theOptions, new SourceOrigin(startToken, t, name.Center), new ModuleQualifiedId(namePath),
-                                               name, parent, opened, idExports, Guid.NewGuid()); .)
+                                               name, null, parent, opened, idExports, Guid.NewGuid()); .)
     |
       QualifiedModuleExport<out var namePath, out idExports>
           (. submodule = new AliasModuleDecl(theOptions, new SourceOrigin(startToken, t), new ModuleQualifiedId(namePath),
-                                         new Name(SourceOrigin.NoToken, namePath[^1].Value), parent, opened, idExports, Guid.NewGuid());
+                                         new Name(SourceOrigin.NoToken, namePath[^1].Value), null, parent, opened, idExports, Guid.NewGuid());
           .)
     )
     .
@@ -454,7 +454,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
      } else {
        name = new Name(exportId);
      }
-     submodule = new ModuleExportDecl(theOptions, new SourceOrigin(startToken, t, name.Center), name, parent, exports, extends, provideAll, revealAll, isDefault, isRefining, Guid.NewGuid());
+     submodule = new ModuleExportDecl(theOptions, new SourceOrigin(startToken, t, name.Center), name, null, parent, exports, extends, provideAll, revealAll, isDefault, isRefining, Guid.NewGuid());
   .)
   // LL Warning: 'least' and 'greatest' are not keywords. They can be the identifier that is the last ExportId of the ModuleExport.
   // Those words can also be the first word of a declaration (e.g. least predicate) that follows the MOduleExport.
@@ -542,7 +542,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
       ClassMemberDecl<dmod, members, true, false>
     }
   "}"
-  (. c = new ClassDecl(new SourceOrigin(dmodClass.FirstToken, t, name.Center), name, module, typeArgs, members, dmodClass.Attributes, isRefining, parentTraits);
+  (. c = new ClassDecl(new SourceOrigin(dmodClass.FirstToken, t, name.Center), name, dmodClass.Attributes, typeArgs, module, members, parentTraits, isRefining);
      c.BodyStartTok = bodyStart;
   .)
   .
@@ -817,7 +817,7 @@ SynonymTypeName<out Name name> = Name<out name> .
 // The following includes Opaque type definitions
 SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. Token bvId;
-     var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+     var characteristics = Microsoft.Dafny.TypeParameterCharacteristics.Default();
      var typeArgs = new List<TypeParameter>();
      td = null;
      Type ty = null;
@@ -1080,8 +1080,8 @@ GenericParameters<.List<TypeParameter> typeParameters, bool allowVariance.>
   .
 
 OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
-= (. var variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict; // assignment is to please compiler
-     var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+= (. var variance = TPVarianceSyntax.NonVariant_Strict; // assignment is to please compiler
+     var characteristics = Microsoft.Dafny.TypeParameterCharacteristics.Default();
      Name name;
      Type typeBound;
      var typeBounds = new List<Type>();
@@ -1099,22 +1099,22 @@ OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
     Type<out typeBound>
     (. typeBounds.Add(typeBound); .)
   }
-  (. typeParameters.Add(new TypeParameter(new SourceOrigin(startToken, t, name.Center), name, variance, characteristics, typeBounds)); .)
+  (. typeParameters.Add(new TypeParameter(new SourceOrigin(startToken, t, name.Center), name, null, variance, characteristics, typeBounds)); .)
   .
 
 /*------------------------------------------------------------------------*/
-Variance<out TypeParameter.TPVarianceSyntax variance>
-= (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // never used; here just to please the C# compiler
+Variance<out TPVarianceSyntax variance>
+= (. variance = TPVarianceSyntax.NonVariant_Strict;  // never used; here just to please the C# compiler
   .)
-  ( "*"  (. variance = TypeParameter.TPVarianceSyntax.Covariant_Permissive; .)
-  | "+"  (. variance = TypeParameter.TPVarianceSyntax.Covariant_Strict; .)
-  | "!"  (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Permissive; .)
-  | "-"  (. variance = TypeParameter.TPVarianceSyntax.Contravariance; .)
+  ( "*"  (. variance = TPVarianceSyntax.Covariant_Permissive; .)
+  | "+"  (. variance = TPVarianceSyntax.Covariant_Strict; .)
+  | "!"  (. variance = TPVarianceSyntax.NonVariant_Permissive; .)
+  | "-"  (. variance = TPVarianceSyntax.Contravariance; .)
   )
   .
 
 /*------------------------------------------------------------------------*/
-TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics characteristics>
+TypeParameterCharacteristics<ref TypeParameterCharacteristics characteristics>
 = "(" (. var startToken = t; .)
   TPCharOption<ref characteristics>
   { ","
@@ -1123,7 +1123,7 @@ TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics char
   ")" (. characteristics.SourceOrigin = new SourceOrigin(startToken, t); .)
   .
 
-TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
+TPCharOption<ref TypeParameterCharacteristics characteristics>
 = ( "=="       (. characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.Required; .)
   | digits     (. if (t.val == "0") {
                     characteristics.AutoInit = Microsoft.Dafny.Type.AutoInitInfo.CompilableValue;
@@ -1269,10 +1269,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                              req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs),
                              ens, new Specification<Expression>(dec, decAttrs), body, dmod.Attributes, signatureEllipsis);
      } else {
-       m = new Method(range, name, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
-                      req, new Specification<FrameExpression>(reads, readsAttrs), 
-                      new Specification<FrameExpression>(mod, modAttrs), ens, 
-                      new Specification<Expression>(dec, decAttrs), body, dmod.Attributes, signatureEllipsis);
+       m = new Method(range, name, dmod.Attributes, dmod.IsStatic, dmod.IsGhost, typeArgs, ins,
+                      req, ens, new Specification<FrameExpression>(reads, readsAttrs), 
+                      new Specification<Expression>(dec, decAttrs), outs, 
+                      new Specification<FrameExpression>(mod, modAttrs), body, signatureEllipsis);
      }
      m.BodyStartTok = bodyStart;
  .)
@@ -2984,10 +2984,10 @@ AssertStmt<out Statement/*!*/ s>
     ";"
   )
   (. if (dotdotdot != null) {
-       s = new AssertStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), null, attrs);
+       s = new AssertStmt(new SourceOrigin(startToken, t), attrs, new LiteralExpr(x, true), null);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssertStmt(new SourceOrigin(startToken, t), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+       s = new AssertStmt(new SourceOrigin(startToken, t), attrs, e, lbl == null ? null : new AssertLabel(lbl, lbl.val));
        if (proof != null) {
          s = new BlockByProofStmt(s.Origin, proof, s);
        }

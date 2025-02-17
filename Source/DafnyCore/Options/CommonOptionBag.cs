@@ -270,6 +270,15 @@ true - Print debug information for the new type system.".TrimStart()) {
     IsHidden = true
   };
 
+  public enum InputTypeEnum {
+    Source,
+    Binary
+  }
+
+  public static readonly Option<InputTypeEnum> InputType = new("--input-format", () => InputTypeEnum.Source) {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> AllowWarnings = new("--allow-warnings",
     "Allow compilation to continue and succeed when warnings occur. Errors will still halt and fail compilation.");
 
@@ -660,6 +669,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(ExecutionCoverageReport, OptionScope.Cli);
     OptionRegistry.RegisterOption(ExtractCounterexample, OptionScope.Cli);
     OptionRegistry.RegisterOption(ShowProofObligationExpressions, OptionScope.Cli);
+    OptionRegistry.RegisterOption(InputType, OptionScope.Cli);
   }
 }
 

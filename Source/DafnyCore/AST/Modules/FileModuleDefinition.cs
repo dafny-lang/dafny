@@ -1,5 +1,7 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
+using NJsonSchema.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -12,11 +14,17 @@ namespace Microsoft.Dafny;
 public class FileModuleDefinition : ModuleDefinition {
   public List<Include> Includes { get; } = [];
 
-  public FileModuleDefinition(IOrigin token) :
-    base(token, new Name("_module"), [],
-      ModuleKindEnum.Concrete, false, null, null, null) {
+  public FileModuleDefinition(IOrigin origin) :
+    base(origin, new Name("_module"), [],
+      ModuleKindEnum.Concrete, false, null, null!, null) {
     {
     }
+  }
+
+  [ParseConstructor]
+  public FileModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind,
+    Implements? implements, ModuleDefinition enclosingModule, Attributes? attributes, List<TopLevelDecl> sourceDecls) :
+    base(origin, nameNode, prefixIds, moduleKind, implements, enclosingModule, attributes, sourceDecls) {
   }
 
   public FileModuleDefinition(Cloner cloner, FileModuleDefinition original)

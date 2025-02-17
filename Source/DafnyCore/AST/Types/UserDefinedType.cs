@@ -22,8 +22,8 @@ public class UserDefinedType : NonProxyType, IHasReferences {
 
   public string FullName {
     get {
-      if (ResolvedClass?.EnclosingModuleDefinition?.TryToAvoidName == false) {
-        return ResolvedClass.EnclosingModuleDefinition.Name + "." + Name;
+      if (ResolvedClass?.EnclosingModule?.TryToAvoidName == false) {
+        return ResolvedClass.EnclosingModule.Name + "." + Name;
       } else {
         return Name;
       }
@@ -35,7 +35,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
 
   public string GetFullCompanionCompileName(DafnyOptions options) {
     Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
-    var m = ResolvedClass.EnclosingModuleDefinition;
+    var m = ResolvedClass.EnclosingModule;
     var s = m.TryToAvoidName ? "" : m.GetCompileName(options) + ".";
     return s + "_Companion_" + ResolvedClass.GetCompileName(options);
   }
@@ -49,6 +49,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // this is what it means to be syntactically optional
   }
 
+  [ParseConstructor]
   public UserDefinedType(IOrigin origin, Expression namePath) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(namePath is NameSegment || namePath is ExprDotName);
@@ -146,26 +147,26 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   /// the FromTopLevelDecl method to create the UserDefinedType; that makes sure the right class
   /// and right name is used.
   /// </summary>
-  public UserDefinedType(IOrigin origin, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null)
+  public UserDefinedType(IOrigin origin, string name, TopLevelDecl resolvedClass, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null)
    : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
-    Contract.Requires(cd != null);
+    Contract.Requires(resolvedClass != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cd.TypeArgs.Count == typeArgs.Count);
+    Contract.Requires(resolvedClass.TypeArgs.Count == typeArgs.Count);
     Contract.Requires(namePath == null || namePath is NameSegment || namePath is ExprDotName);
     // The following is almost a precondition. In a few places, the source program names a class, not a type,
     // and in then name==cd.Name for a ClassDecl.
     //Contract.Requires(!(cd is ClassDecl) || name == cd.Name + "?");
-    Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
-    Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
-    Contract.Assert(cd is not ArrowTypeDecl || this is ArrowType);
+    Contract.Requires(!(resolvedClass is ArrowTypeDecl) || name == resolvedClass.Name);
+    Contract.Requires(!(resolvedClass is DefaultClassDecl) || name == resolvedClass.Name);
+    Contract.Assert(resolvedClass is not ArrowTypeDecl || this is ArrowType);
     this.Name = name;
-    this.ResolvedClass = cd;
+    this.ResolvedClass = resolvedClass;
     this.TypeArgs = typeArgs;
     if (namePath == null) {
       var ns = new NameSegment(origin, name, typeArgs.Count == 0 ? null : typeArgs);
-      var r = new ResolverIdentifierExpr(origin, cd, typeArgs);
+      var r = new ResolverIdentifierExpr(origin, resolvedClass, typeArgs);
       ns.ResolvedExpression = r;
       ns.Type = r.Type;
       this.NamePath = ns;

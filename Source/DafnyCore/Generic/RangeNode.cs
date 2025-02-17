@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace Microsoft.Dafny;
 
 public abstract class RangeNode : Node {
@@ -9,6 +11,7 @@ public abstract class RangeNode : Node {
     origin = cloner.Origin(original.Origin);
   }
 
+  [ParseConstructor]
   protected RangeNode(IOrigin origin) {
     this.origin = origin;
   }

@@ -109,10 +109,10 @@ namespace Microsoft.Dafny {
         }
         if (decl == null) {
           if (name is PreType.TypeNameSet or PreType.TypeNameSeq or PreType.TypeNameMultiset) {
-            var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict };
+            var variances = new List<TPVarianceSyntax>() { TPVarianceSyntax.Covariant_Strict };
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
           } else if (name == PreType.TypeNameIset) {
-            var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive };
+            var variances = new List<TPVarianceSyntax>() { TPVarianceSyntax.Covariant_Permissive };
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
           } else if (name == PreType.TypeNameObjectQ) {
             decl = resolver.SystemModuleManager.ObjectDecl;
@@ -321,7 +321,7 @@ namespace Microsoft.Dafny {
        *         return dp.Decl is TopLevelDeclWithMembers md && md.ParentTraits.Count != 0;
        * For now, every reference type except "object" has trait supertypes.
        */
-      if (dp.Decl is TopLevelDeclWithMembers md && md.ParentTraits.Count != 0) {
+      if (dp.Decl is TopLevelDeclWithMembers md && md.Traits.Count != 0) {
         // this type has explicitly declared parent traits
         return true;
       }
@@ -962,7 +962,7 @@ namespace Microsoft.Dafny {
         scope.PushMarker();
         Contract.Assert(currentClass == null);
         scope.AllowInstance = false;
-        ResolveAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false), true);
+        ResolveAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModule), false), true);
         scope.PopMarker();
       }
 
@@ -980,7 +980,7 @@ namespace Microsoft.Dafny {
           scope.PushMarker();
           scope.AllowInstance = false;
           ctor.Formals.ForEach(p => ScopePushAndReport(p, "destructor", false));
-          ResolveAttributes(ctor, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false), true);
+          ResolveAttributes(ctor, new ResolutionContext(new NoContext(d.EnclosingModule), false), true);
           ResolveParameterDefaultValues(ctor.Formals, dt);
           scope.PopMarker();
         }
@@ -1169,12 +1169,12 @@ namespace Microsoft.Dafny {
         if (cfield.IsStatic) {
           scope.AllowInstance = false;
         }
-        ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false), true);
+        ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModule), false), true);
         scope.PopMarker();
         ResolveConstRHS(cfield, false);
 
       } else if (member is Field) {
-        ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false), true);
+        ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModule), false), true);
 
       } else if (member is Function f) {
         var ec = ErrorCount;

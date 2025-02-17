@@ -6,21 +6,24 @@ namespace Microsoft.Dafny;
 public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
   public override string WhatKind { get { return "abstract type"; } }
   public override bool CanBeRevealed() { return true; }
-  public readonly TypeParameter.TypeParameterCharacteristics Characteristics;
+  public readonly TypeParameterCharacteristics Characteristics;
   public bool SupportsEquality {
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
 
-  public AbstractTypeDecl(IOrigin origin, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics,
+  public AbstractTypeDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule, TypeParameterCharacteristics characteristics,
     List<TypeParameter> typeArgs, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
+    : base(origin, nameNode, attributes, typeArgs, enclosingModule, members, parentTraits) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(typeArgs != null);
+    IsRefining = isRefining;
     Characteristics = characteristics;
     this.NewSelfSynonym();
   }
+
+  public override bool IsRefining { get; }
 
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }

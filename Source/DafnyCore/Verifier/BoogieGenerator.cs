@@ -190,7 +190,7 @@ namespace Microsoft.Dafny {
 
       if (d.IsVisibleInScope(verificationScope)) {
         Contract.Assert(d.IsRevealedInScope(verificationScope));
-        if (d is MemberDecl m && m.EnclosingClass.EnclosingModuleDefinition is { IsFacade: true }) {
+        if (d is MemberDecl m && m.EnclosingClass.EnclosingModule is { IsFacade: true }) {
           return false;
         }
 
@@ -1087,7 +1087,7 @@ namespace Microsoft.Dafny {
     private void AddTraitParentAxioms() {
       foreach (ModuleDefinition m in program.RawModules()) {
         foreach (var c in m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().Where(RevealedInScope)) {
-          foreach (var parentTypeInExtendsClause in c.ParentTraits) {
+          foreach (var parentTypeInExtendsClause in c.Traits) {
             var childType = UserDefinedType.FromTopLevelDecl(c.Origin, c);
             var parentType = (UserDefinedType)parentTypeInExtendsClause;
             if (parentType.IsRefType) {
@@ -2648,7 +2648,7 @@ namespace Microsoft.Dafny {
         if (cl is ClassLikeDecl { NonNullTypeDecl: { } }) {
           name = name + "?";  // TODO: this doesn't seem like the best place to do this name transformation
         }
-        cc = new Bpl.Constant(cl.Origin, new Bpl.TypedIdent(cl.Origin, "class." + name, Predef.ClassNameType), !cl.EnclosingModuleDefinition.IsFacade);
+        cc = new Bpl.Constant(cl.Origin, new Bpl.TypedIdent(cl.Origin, "class." + name, Predef.ClassNameType), !cl.EnclosingModule.IsFacade);
         classes.Add(cl, cc);
       }
       return cc;
@@ -4073,12 +4073,12 @@ namespace Microsoft.Dafny {
     internal class BoogieWrapper : Expression {
       public readonly Bpl.Expr Expr;
 
-      public BoogieWrapper(Bpl.Expr expr, Type dafnyType)
+      public BoogieWrapper(Bpl.Expr expr, Type type)
         : base(ToDafnyToken(false, expr.tok)) {
         Contract.Requires(expr != null);
-        Contract.Requires(dafnyType != null);
+        Contract.Requires(type != null);
         Expr = expr;
-        Type = dafnyType;  // resolve immediately
+        Type = type;  // resolve immediately
       }
     }
 
@@ -4363,7 +4363,7 @@ namespace Microsoft.Dafny {
       private static void AddFuelContext(FuelContext context, TopLevelDecl decl) {
         FindFuelAttributes(decl.Attributes, context);
 
-        var module = decl.EnclosingModuleDefinition;
+        var module = decl.EnclosingModule;
         while (module != null) {
           FindFuelAttributes(module.Attributes, context);
           module = module.EnclosingModule;
@@ -4829,7 +4829,7 @@ namespace Microsoft.Dafny {
       return vars;
     }
 
-    public Bpl.Expr/*?*/ GetTyWhereClause(Bpl.Expr expr, TypeParameter.TypeParameterCharacteristics characteristics) {
+    public Bpl.Expr/*?*/ GetTyWhereClause(Bpl.Expr expr, TypeParameterCharacteristics characteristics) {
       Contract.Requires(expr != null);
       if (characteristics.ContainsNoReferenceTypes) {
         return FunctionCall(expr.tok, "$AlwaysAllocated", Bpl.Type.Bool, expr);

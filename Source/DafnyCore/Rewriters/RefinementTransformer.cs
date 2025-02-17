@@ -339,7 +339,7 @@ namespace Microsoft.Dafny {
             if (!CheckTypeCharacteristicsVisitor.CheckCharacteristics(od.Characteristics, newType, false, out var whatIsNeeded, out var hint, out var errorId)) {
               var typeCharacteristicsSyntax = od.Characteristics.ToString();
               Error(errorId, nw.Origin,
-                $"to be a refinement of {od.WhatKind} '{od.EnclosingModuleDefinition.Name}.{od.Name}' declared with {typeCharacteristicsSyntax}, " +
+                $"to be a refinement of {od.WhatKind} '{od.EnclosingModule.Name}.{od.Name}' declared with {typeCharacteristicsSyntax}, " +
                 $"{nw.WhatKind} '{m.Name}.{nw.Name}' must {whatIsNeeded}{hint}");
             }
           });
@@ -558,9 +558,7 @@ namespace Microsoft.Dafny {
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else {
-        return new Method(origin, newName, previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
-          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null, previousMethod.IsByMethod);
+        return new Method(origin, newName, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins, req, ens, reads, decreases, previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)), mod, body, null, previousMethod.IsByMethod);
       }
     }
 
@@ -632,7 +630,7 @@ namespace Microsoft.Dafny {
     TopLevelDeclWithMembers MergeClass(TopLevelDeclWithMembers nw, TopLevelDeclWithMembers prev) {
       CheckAgreement_TypeParameters(nw.Origin, prev.TypeArgs, nw.TypeArgs, nw.Name, nw.WhatKind);
 
-      prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(refinementCloner.CloneType(item)));
+      prev.Traits.ForEach(item => nw.Traits.Add(refinementCloner.CloneType(item)));
       nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);
 
       // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.
@@ -1054,7 +1052,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new NestedOrigin(skel.Origin, e.Origin), e, skel.Label, attrs));
+                body.Add(new AssertStmt(new NestedOrigin(skel.Origin, e.Origin), attrs, e, skel.Label));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
@@ -1200,7 +1198,7 @@ namespace Microsoft.Dafny {
               i++; j++;
               if (addedAssert != null) {
                 var tok = new BoogieGenerator.ForceCheckOrigin(addedAssert.Origin);
-                body.Add(new AssertStmt(tok, addedAssert, null, null));
+                body.Add(new AssertStmt(tok, null, addedAssert, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1257,7 +1255,7 @@ namespace Microsoft.Dafny {
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
                 var tok = new SourceOrigin(addedAssert.Origin.StartToken, addedAssert.Origin.EndToken);
-                stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null));
+                stmtGenerated.Add(new AssertStmt(tok, null, addedAssert, null));
               }
             }
             if (doMerge) {
@@ -1575,7 +1573,7 @@ namespace Microsoft.Dafny {
 
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        if (e.Function.EnclosingClass.EnclosingModuleDefinition == m) {
+        if (e.Function.EnclosingClass.EnclosingModule == m) {
           var p = e.Function as Predicate;
           if (p != null && p.BodyOrigin == Predicate.BodyOriginKind.Extension) {
             return true;
@@ -1635,7 +1633,7 @@ namespace Microsoft.Dafny {
         // refining module, retain its name but not be default, unless the refining module has the same name
         ModuleExportDecl dex = d as ModuleExportDecl;
         if (dex.IsDefault && d.Name != newParent.Name) {
-          ddex = new ModuleExportDecl(ddex.Options, dex.Origin, d.NameNode, newParent, dex.Exports, dex.Extends,
+          ddex = new ModuleExportDecl(ddex.Options, dex.Origin, d.NameNode, d.Attributes, newParent, dex.Exports, dex.Extends,
             dex.ProvideAll, dex.RevealAll, false, true, Guid.NewGuid());
         }
         ddex.SetupDefaultSignature();

@@ -11,8 +11,8 @@ public class ClonerTest {
     public DummyDecl(Cloner cloner, Declaration original) : base(cloner, original) {
     }
 
-    public DummyDecl(IOrigin origin, Name name, Attributes attributes, bool isRefining) : base(origin, name,
-      attributes, isRefining) {
+    public DummyDecl(IOrigin origin, Name name, Attributes attributes) : base(origin, name,
+      attributes) {
     }
 
     public override SymbolKind? Kind => null;
@@ -32,12 +32,11 @@ public class ClonerTest {
     var formal2 = new Formal(new SourceOrigin(tokenBodyStart, tokenBodyStart), "b", Microsoft.Dafny.Type.Bool, true, false, null) {
       IsTypeExplicit = false
     };
-    var dummyDecl = new Method(rangeToken, new Name(rangeToken, "hello"),
-      false, false, [], [formal1, formal2],
-      [], [],
-      new Specification<FrameExpression>(), new Specification<FrameExpression>([], null),
-      [], new Specification<Expression>([], null),
-      new BlockStmt(rangeToken, []), null, Token.NoToken, false);
+    var dummyDecl = new Method(rangeToken, new Name(rangeToken, "hello"), null, false,
+      false, [], [formal1, formal2], [], [], new Specification<FrameExpression>(),
+      new Specification<Expression>([], null),
+      [], new Specification<FrameExpression>([], null), new BlockStmt(rangeToken, []),
+      Token.NoToken);
 
     dummyDecl.BodyStartTok = tokenBodyStart;
     var cloner = new Cloner();

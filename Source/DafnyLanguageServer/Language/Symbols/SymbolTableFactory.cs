@@ -112,7 +112,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private void VisitTopLevelDeclarationWithMembers(TopLevelDeclWithMembers declaration, System.Action visit) {
         cancellationToken.ThrowIfCancellationRequested();
-        foreach (var parentTrait in declaration.ParentTraits) {
+        foreach (var parentTrait in declaration.Traits) {
           RegisterTypeDesignator(currentScope, parentTrait);
         }
         ProcessNestedScope(declaration, declaration.Origin, visit);

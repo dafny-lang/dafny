@@ -319,7 +319,7 @@ class DafnyDoc {
     var docstring = Docstring(ex);
     var info = new Info(register, this, "export", ex.Origin, name, ex.FullDafnyName, ExportId(ex.FullDafnyName));
 
-    info.HtmlSummary = Row($"{Keyword("export")} {Code(ex.EnclosingModuleDefinition.Name)}`{Link(info.Id, Code(Bold(ex.Name)))}",
+    info.HtmlSummary = Row($"{Keyword("export")} {Code(ex.EnclosingModule.Name)}`{Link(info.Id, Code(Bold(ex.Name)))}",
      DashShortDocstring(ex));
 
     var details = new StringBuilder();
@@ -610,8 +610,8 @@ class DafnyDoc {
     decl.Append(typeparams);
 
     if (t is ClassLikeDecl cd) { // Class, Trait, Iterator
-      if (cd.ParentTraits.Count > 0) {
-        var extends = String.Join(", ", cd.ParentTraits.Select(t => TypeLink(t)));
+      if (cd.Traits.Count > 0) {
+        var extends = String.Join(", ", cd.Traits.Select(t => TypeLink(t)));
         if (!String.IsNullOrEmpty(extends)) {
           decl.Append(" ").Append("extends").Append(" ").Append(extends);
         }

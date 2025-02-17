@@ -116,7 +116,7 @@ namespace Microsoft.Dafny.Compilers {
         return;
       }
 
-      if (decl.EnclosingModuleDefinition.Name != SourceModuleName) {
+      if (decl.EnclosingModule.Name != SourceModuleName) {
         // ignore this declaration
         return;
       }

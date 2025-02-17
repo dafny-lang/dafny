@@ -25,7 +25,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   [FilledInDuringResolution] public List<DatatypeDestructor> Destructors = [];  // includes both implicit (not mentionable in source) and explicit destructors
 
   public DatatypeCtor(IOrigin origin, Name name, bool isGhost, [Captured] List<Formal> formals, Attributes attributes)
-    : base(origin, name, attributes, false) {
+    : base(origin, name, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(formals));
@@ -61,7 +61,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     return $"{EnclosingDatatype.Name}.{Name}({formals})";
   }
 
-  public ModuleDefinition ContainingModule => EnclosingDatatype.EnclosingModuleDefinition;
+  public ModuleDefinition ContainingModule => EnclosingDatatype.EnclosingModule;
   public bool ShouldVerify => Formals.Any(f => f.DefaultValue != null);
   public string FullDafnyName => FullName;
 }

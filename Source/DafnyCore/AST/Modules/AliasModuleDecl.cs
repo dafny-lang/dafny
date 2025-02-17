@@ -15,8 +15,9 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
   public readonly List<IOrigin> Exports; // list of exports sets
   [FilledInDuringResolution] public bool ShadowsLiteralModule;  // initialized early during Resolution (and used not long after that); true for "import opened A = A" where "A" is a literal module in the same scope
 
-  public AliasModuleDecl(Cloner cloner, AliasModuleDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
+  public AliasModuleDecl(Cloner cloner, AliasModuleDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
+    Opened = original.Opened;
     if (original.TargetQId != null) { // TODO is this null check necessary?
       TargetQId = new ModuleQualifiedId(cloner, original.TargetQId);
 
@@ -31,15 +32,18 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
     Exports = original.Exports;
   }
 
-  public AliasModuleDecl(DafnyOptions options, SourceOrigin origin, ModuleQualifiedId path, Name name,
-    ModuleDefinition parent, bool opened, List<IOrigin> exports, Guid cloneId)
-    : base(options, origin, name, parent, opened, false, cloneId) {
+  public AliasModuleDecl(DafnyOptions options, SourceOrigin origin, ModuleQualifiedId path, Name name, Attributes attributes,
+    ModuleDefinition enclosingModule, bool opened, List<IOrigin> exports, Guid cloneId)
+    : base(options, origin, name, attributes, enclosingModule, cloneId) {
     Contract.Requires(path != null && path.Path.Count > 0);
     Contract.Requires(exports != null);
     Contract.Requires(exports.Count == 0 || path.Path.Count == 1);
     TargetQId = path;
+    Opened = opened;
     Exports = exports;
   }
+
+  public override bool Opened { get; }
 
   public override ModuleDefinition Dereference() { return Signature.ModuleDef; }
 

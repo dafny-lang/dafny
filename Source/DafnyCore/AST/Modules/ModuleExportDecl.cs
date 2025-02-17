@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Security.AccessControl;
 
 namespace Microsoft.Dafny;
 
@@ -23,8 +22,8 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
 
   public ModuleDefinition EffectiveModule = null;
 
-  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
+  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
     Exports = original.Exports.Select(s => new ExportSignature(cloner, s)).ToList();
     Extends = original.Extends.Select(cloner.Origin).ToList();
     ProvideAll = original.ProvideAll;
@@ -35,15 +34,18 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     SetupDefaultSignature();
   }
 
-  public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition parent,
+  public override bool IsRefining { get; }
+
+  public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, Attributes attributes, ModuleDefinition enclosingModule,
     List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(options, origin, name, parent, false, isRefining, cloneId) {
+    : base(options, origin, name, attributes, enclosingModule, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
     Extends = extends;
     ProvideAll = provideAll;
+    IsRefining = isRefining;
     RevealAll = revealAll;
     ThisScope = new VisibilityScope(this.FullSanitizedName);
     SetupDefaultSignature();
@@ -52,8 +54,8 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public void SetupDefaultSignature() {
     Contract.Requires(this.Signature == null);
     var sig = new ModuleSignature();
-    sig.ModuleDef = this.EnclosingModuleDefinition;
-    sig.IsAbstract = this.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Abstract;
+    sig.ModuleDef = this.EnclosingModule;
+    sig.IsAbstract = this.EnclosingModule.ModuleKind == ModuleKindEnum.Abstract;
     sig.VisibilityScope = new VisibilityScope();
     sig.VisibilityScope.Augment(ThisScope);
     this.Signature = sig;

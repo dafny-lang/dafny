@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using Newtonsoft.Json;
+using NJsonSchema.Converters;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
@@ -19,7 +21,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   public virtual IOrigin NavigationToken => NameNode.Origin;
 
   public string Name => NameNode.Value;
-  public bool IsRefining;
+  public virtual bool IsRefining => false;
 
   private VisibilityScope opaqueScope = new();
   private VisibilityScope revealScope = new();
@@ -32,13 +34,13 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  protected Declaration(IOrigin origin, Name name, Attributes attributes, bool isRefining) : base(origin) {
+  protected Declaration(IOrigin origin, Name nameNode, Attributes attributes) : base(origin) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    this.NameNode = name;
+    Contract.Requires(nameNode != null);
+    this.NameNode = nameNode;
     this.Attributes = attributes;
-    this.IsRefining = isRefining;
   }
+
 
   public bool HasAxiomAttribute =>
     Attributes.Contains(Attributes, Attributes.AxiomAttributeName);

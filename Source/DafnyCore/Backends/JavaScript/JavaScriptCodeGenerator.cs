@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.Compilers {
       if (typeParameters != null && WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w) > 0) {
         sep = ", ";
       }
-      if (cls is NewtypeDecl { ParentTraits: { } parentTraits } && parentTraits.Count > 0) {
+      if (cls is NewtypeDecl { Traits: { } parentTraits } && parentTraits.Count > 0) {
         w.Write($"{sep}value");
       }
       var fieldWriter = w.NewBlock(")");
@@ -161,7 +161,7 @@ namespace Microsoft.Dafny.Compilers {
       //     }
       //   }
 
-      var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), iter, wr) as JavaScriptCodeGenerator.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.EnclosingModule.GetCompileName(Options)), iter, wr) as JavaScriptCodeGenerator.ClassWriter;
       var w = cw.MethodWriter;
       var instanceFieldsWriter = cw.FieldWriter;
       // here come the fields
@@ -449,13 +449,13 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          var nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+          var nm = (dt.EnclosingModule.TryToAvoidName ? "" : dt.EnclosingModule.Name + ".") +
                    dt.Name + "." + ctor.Name;
           thn.WriteLine("return \"{0}\";", nm);
           i++;
         }
         var els = w.NewBlock("");
-        els.WriteLine("return \"{0}.{1}.unexpected\";", dt.EnclosingModuleDefinition.GetCompileName(Options), DtT);
+        els.WriteLine("return \"{0}.{1}.unexpected\";", dt.EnclosingModule.GetCompileName(Options), DtT);
 
       } else if (dt is IndDatatypeDecl) {
         // toString method
@@ -463,7 +463,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          var nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+          var nm = (dt.EnclosingModule.TryToAvoidName ? "" : dt.EnclosingModule.Name + ".") +
                    dt.Name + "." + ctor.Name;
           cw.Write("return \"{0}\"", nm);
           var sep = " + \"(\" + ";
@@ -576,7 +576,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModule.GetCompileName(Options)), nt, wr);
       var w = cw.MethodWriter;
       if (nt.NativeType != null) {
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
@@ -604,7 +604,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GenerateIsMethod(nt, cw.MethodWriter);
 
-      if (nt.ParentTraits.Count != 0) {
+      if (nt.Traits.Count != 0) {
         // in constructor:
         //   this._value = value;
         cw.FieldWriter.WriteLine("this._value = value;");
@@ -639,7 +639,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModule.GetCompileName(Options)), sst, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(sst.Origin, sst);
       string d;
@@ -1588,13 +1588,13 @@ namespace Microsoft.Dafny.Compilers {
       var cl = udt.ResolvedClass;
       if (cl is TypeParameter) {
         return IdProtect(udt.GetCompileName(Options));
-      } else if (cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
+      } else if (cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModule.Attributes, "extern") &&
                  member != null && Attributes.Contains(member.Attributes, "extern")) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
-        Contract.Assert(!cl.EnclosingModuleDefinition.TryToAvoidName); // default module is not marked ":extern"
-        return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
+        Contract.Assert(!cl.EnclosingModule.TryToAvoidName); // default module is not marked ":extern"
+        return IdProtect(cl.EnclosingModule.GetCompileName(Options));
       } else {
-        return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
+        return IdProtect(cl.EnclosingModule.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
       }
     }
 

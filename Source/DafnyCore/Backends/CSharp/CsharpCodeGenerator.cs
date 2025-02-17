@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Compilers {
         // anything different from the common case (the "else" branch below), then the code emitted will not
         // compile (see github issue #1151). So, to do something a wee bit better, we emit a placebo value. This
         // will only work when the abstract type is in the same module and has no type parameters.
-        return $"default({tp.EnclosingModuleDefinition.GetCompileName(Options) + "." + tp.GetCompileName(Options)})";
+        return $"default({tp.EnclosingModule.GetCompileName(Options) + "." + tp.GetCompileName(Options)})";
       } else {
         // this is the common case
         return $"_default_{tp.GetCompileName(Options)}";
@@ -270,7 +270,7 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     private string protectedTypeName(TopLevelDecl dt) {
       var protectedName = IdName(dt);
-      if (dt.EnclosingModuleDefinition.GetCompileName(Options) == protectedName) {
+      if (dt.EnclosingModule.GetCompileName(Options) == protectedName) {
         return $"_{protectedName}";
       }
       return protectedName;
@@ -455,7 +455,7 @@ namespace Microsoft.Dafny.Compilers {
       //     }
       //   }
 
-      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), iter, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModule.GetCompileName(Options)), iter, wr);
       var w = cw.InstanceMemberWriter;
       // here come the fields
 
@@ -1147,7 +1147,7 @@ namespace Microsoft.Dafny.Compilers {
         if (dt is TupleTypeDecl) {
           nm = "";
         } else {
-          nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
+          nm = (dt.EnclosingModule.TryToAvoidName ? "" : dt.EnclosingModule.Name + ".") + dt.Name + "." + ctor.Name;
         }
 
         switch (dt) {
@@ -1231,8 +1231,8 @@ namespace Microsoft.Dafny.Compilers {
 
       var dt = ctor.EnclosingDatatype;
       var dtName = protectedTypeName(dt);
-      if (!dt.EnclosingModuleDefinition.TryToAvoidName) {
-        dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + dtName;
+      if (!dt.EnclosingModule.TryToAvoidName) {
+        dtName = IdProtectModule(dt.EnclosingModule.GetCompileName(Options)) + "." + dtName;
       }
 
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.GetCompileName(Options);
@@ -1248,7 +1248,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModule.GetCompileName(Options)), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var wEnum = w.NewBlock($"public static System.Collections.Generic.IEnumerable<{GetNativeTypeName(nt.NativeType)}> IntegerRange(BigInteger lo, BigInteger hi)");
@@ -1269,7 +1269,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitTypeDescriptorMethod(nt, w);
       GenerateIsMethod(nt, cw.StaticMemberWriter);
 
-      if (nt.ParentTraits.Count != 0) {
+      if (nt.Traits.Count != 0) {
         DeclareBoxedNewtype(nt, cw.InstanceMemberWriter);
       }
 
@@ -1317,7 +1317,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModule.GetCompileName(Options)), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
@@ -2518,26 +2518,26 @@ namespace Microsoft.Dafny.Compilers {
       if ((cl is DatatypeDecl)
           && !ignoreInterface
           && (member is null || !NeedsCustomReceiver(member))) {
-        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
+        return (cl.EnclosingModule.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModule.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
       }
 
       if (cl is DatatypeDecl) {
-        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + protectedTypeName(cl as DatatypeDecl);
+        return (cl.EnclosingModule.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModule.GetCompileName(Options)) + ".") + protectedTypeName(cl as DatatypeDecl);
       }
 
-      if (cl.EnclosingModuleDefinition.TryToAvoidName) {
+      if (cl.EnclosingModule.TryToAvoidName) {
         return IdProtect(cl.GetCompileName(Options));
       }
 
       if (cl.IsExtern(Options, out _, out _)) {
-        return cl.EnclosingModuleDefinition.GetCompileName(Options) + "." + cl.GetCompileName(Options);
+        return cl.EnclosingModule.GetCompileName(Options) + "." + cl.GetCompileName(Options);
       }
 
       if (cl is ClassDecl) {
-        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + protectedTypeName(cl as ClassDecl);
+        return (cl.EnclosingModule.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModule.GetCompileName(Options)) + ".") + protectedTypeName(cl as ClassDecl);
       }
 
-      return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
+      return IdProtectModule(cl.EnclosingModule.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
@@ -2551,7 +2551,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      var dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + protectedTypeName(dt);
+      var dtName = IdProtectModule(dt.EnclosingModule.GetCompileName(Options)) + "." + protectedTypeName(dt);
 
       var nonGhostInferredTypeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
       var typeParams = nonGhostInferredTypeArgs.Count == 0 ? "" : $"<{TypeNames(nonGhostInferredTypeArgs, wr, dtv.Origin)}>";
@@ -3511,7 +3511,7 @@ namespace Microsoft.Dafny.Compilers {
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.Origin, mainMethod);
       var wClass = wr.NewNamedBlock("class __CallToMain");
       var wBody = wClass.NewNamedBlock("public static void Main(string[] args)");
-      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.TryToAvoidName ? "_module." : "";
+      var modName = mainMethod.EnclosingClass.EnclosingModule.TryToAvoidName ? "_module." : "";
       companion = modName + companion;
 
       var idName = IssueCreateStaticMain(mainMethod) ? "_StaticMain" : IdName(mainMethod);

@@ -342,7 +342,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.Origin, mainMethod);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
-      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options) == "_module" ? "_System." : "";
+      var modName = mainMethod.EnclosingClass.EnclosingModule.GetCompileName(Options) == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
       wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main({DafnyHelpersClass}.{CharMethodQualifier}FromMainArguments(args)); }} );");
@@ -373,7 +373,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModule.GetCompileName(Options)), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
@@ -795,10 +795,10 @@ namespace Microsoft.Dafny.Compilers {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       } else if (cl is TraitDecl && useCompanionName) {
         return IdProtect(udt.GetFullCompanionCompileName(Options));
-      } else if (cl.EnclosingModuleDefinition.GetCompileName(Options) == ModuleName || cl.EnclosingModuleDefinition.TryToAvoidName) {
+      } else if (cl.EnclosingModule.GetCompileName(Options) == ModuleName || cl.EnclosingModule.TryToAvoidName) {
         return IdProtect(cl.GetCompileName(Options));
       } else {
-        return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
+        return IdProtectModule(cl.EnclosingModule.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
       }
     }
 
@@ -2195,7 +2195,7 @@ namespace Microsoft.Dafny.Compilers {
         if (dt is TupleTypeDecl) {
           nm = "";
         } else {
-          nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
+          nm = (dt.EnclosingModule.TryToAvoidName ? "" : dt.EnclosingModule.Name + ".") + dt.Name + "." + ctor.Name;
         }
         if (dt is TupleTypeDecl && ctor.Formals.Count == 0) {
           // here we want parentheses and no name
@@ -2267,7 +2267,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dt is TupleTypeDecl tupleDecl) {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       }
-      var dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdName(dt);
+      var dtName = IdProtectModule(dt.EnclosingModule.GetCompileName(Options)) + "." + IdName(dt);
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.GetCompileName(Options);
     }
     string DtCreateName(DatatypeCtor ctor) {
@@ -2680,7 +2680,7 @@ namespace Microsoft.Dafny.Compilers {
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type> typeArgs, bool isCoCall,
       string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
-      var modname = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options));
+      var modname = IdProtectModule(dt.EnclosingModule.GetCompileName(Options));
       modname = (modname == ModuleName ? "" : modname + ".");
       var dtName = dt is TupleTypeDecl tupleDecl
         ? DafnyTupleClass(tupleDecl.NonGhostDims)
@@ -3073,7 +3073,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       var typeParams = new List<TypeParameter>();
       for (var j = 0; j < i; j++) {
-        typeParams.Add(new TypeParameter(SourceOrigin.NoToken, new Name($"T{j}"), TypeParameter.TPVarianceSyntax.Covariant_Permissive));
+        typeParams.Add(new TypeParameter(SourceOrigin.NoToken, new Name($"T{j}"), TPVarianceSyntax.Covariant_Permissive));
       }
       var typeParamString = TypeParameters(typeParams);
       var initializer = string.Format("Default({0})", Util.Comma(i, j => $"_td_T{j}.defaultValue()"));
@@ -3603,7 +3603,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModule.GetCompileName(Options)), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);
@@ -3630,7 +3630,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GenerateIsMethod(nt, cw.StaticMemberWriter);
 
-      if (nt.ParentTraits.Count != 0) {
+      if (nt.Traits.Count != 0) {
         DeclareBoxedNewtype(nt, cw.InstanceMemberWriter);
       }
 

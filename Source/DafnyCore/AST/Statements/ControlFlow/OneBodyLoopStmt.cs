@@ -23,8 +23,8 @@ public abstract class OneBodyLoopStmt : LoopStmt {
 
   protected OneBodyLoopStmt(IOrigin origin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    BlockStmt /*?*/ body, Attributes/*?*/ attrs)
-    : base(origin, invariants, decreases, mod, attrs) {
+    BlockStmt /*?*/ body, Attributes/*?*/ attributes)
+    : base(origin, invariants, decreases, mod, attributes) {
     Body = body;
   }
 

@@ -30,7 +30,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
   [FilledInDuringResolution] public Method Member_MoveNext;  // created during registration phase of resolution;
   public readonly LocalVariable YieldCountVariable;
 
-  public IteratorDecl(IOrigin origin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public IteratorDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
     List<Formal> ins, List<Formal> outs,
     Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
     List<AttributedExpression> requires,
@@ -38,10 +38,10 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     List<AttributedExpression> yieldRequires,
     List<AttributedExpression> yieldEnsures,
     BlockStmt body, Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, name, module, typeArgs, [], attributes, signatureEllipsis != null, null) {
+    : base(origin, nameNode, attributes, typeArgs, enclosingModule, [], null, signatureEllipsis != null) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(ins != null);
     Contract.Requires(outs != null);
@@ -145,7 +145,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     get { return _inferredDecr; }
   }
 
-  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingModule; } }
   bool ICodeContext.MustReverify { get { return false; } }
   public bool AllowsNontermination {
     get {
@@ -454,15 +454,14 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       new Specification<Expression>([], null),
       null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes method MoveNext
-    var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"), false, false,
-      [],
-      [], [new Formal(Origin, "more", Type.Bool, false, false, null)],
-      [],
-      new Specification<FrameExpression>(),
-      new Specification<FrameExpression>([], null),
-      [],
+    var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"),
+      SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), false,
+      false,
+      [], [], [], [], new Specification<FrameExpression>(),
       new Specification<Expression>([], null),
-      null, SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), null);
+      [new Formal(Origin, "more", Type.Bool, false, false, null)],
+      new Specification<FrameExpression>([], null), null, null);
+
     // add these implicit members to the class
     init.EnclosingClass = this;
     init.InheritVisibility(this);
@@ -534,7 +533,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     return null;
   }
   public bool ShouldVerify => true; // This could be made more accurate
-  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public ModuleDefinition ContainingModule => EnclosingModule;
   public string Designator => WhatKind;
 
   [FilledInDuringResolution]

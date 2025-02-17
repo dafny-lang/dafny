@@ -36,23 +36,30 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   }
   public int Height;
 
-  public readonly bool Opened; // TODO: Only true for Abstract and Alias module declarations. It seems like they need a common superclass since there's also code of the form 'd is AliasModuleDecl || d is AbstractModuleDecl'
+  public virtual bool Opened => false; // TODO: Only true for Abstract and Alias module declarations. It seems like they need a common superclass since there's also code of the form 'd is AliasModuleDecl || d is AbstractModuleDecl'
 
-  protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
+  protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
     Options = original.Options;
-    Opened = original.Opened;
     CloneId = original.CloneId;
   }
 
-  protected ModuleDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
-    : base(origin, name, parent, [], null, isRefining) {
+  [ParseConstructor]
+  protected ModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes attributes,
+    ModuleDefinition enclosingModule,
+    string cloneId)
+    : this(options, origin, nameNode, attributes, enclosingModule, Guid.Parse(cloneId)) {
+  }
+
+  protected ModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes attributes, ModuleDefinition enclosingModule,
+    Guid cloneId)
+    : base(origin, nameNode, attributes, [], enclosingModule) {
     Options = options;
     Height = -1;
     Signature = null;
-    Opened = opened;
     CloneId = cloneId;
   }
+
   public abstract object Dereference();
 
   public override bool IsEssentiallyEmpty() {

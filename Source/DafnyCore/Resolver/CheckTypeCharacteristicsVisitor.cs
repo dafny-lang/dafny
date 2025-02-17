@@ -361,7 +361,7 @@ class CheckTypeCharacteristicsVisitor : ResolverTopDownVisitor<bool> {
   ///     * [type X must] support auto-initialization
   ///     * [type X must] be nonempty
   /// </summary>
-  public static bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, bool inGhostContext,
+  public static bool CheckCharacteristics(TypeParameterCharacteristics formal, Type actual, bool inGhostContext,
     out string whatIsNeeded, out string hint, out RefinementErrors.ErrorId errorId) {
     Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsNeeded) != null && Contract.ValueAtReturn(out hint) != null));
     if (!inGhostContext && formal.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {

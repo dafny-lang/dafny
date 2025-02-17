@@ -82,7 +82,7 @@ public class OpaqueMemberRewriter : IRewriter {
         // Nothing to do
       } else if (member is Function { Body: null }) {
         // Nothing to do
-      } else if (!member.Origin.IsInherited(c.EnclosingModuleDefinition)) {
+      } else if (!member.Origin.IsInherited(c.EnclosingModule)) {
         GenerateRevealLemma(member, newDecls);
       }
     }

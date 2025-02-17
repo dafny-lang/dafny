@@ -93,7 +93,7 @@ public class SystemModuleManager {
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
     var str = new TypeSynonymDecl(SourceOrigin.NoToken, new Name("string"),
-      new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
+      new TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       [], SystemModule, new SeqType(new CharType()), null);
     SystemModule.SourceDecls.Add(str);
     // create subset type 'nat'
@@ -101,7 +101,7 @@ public class SystemModuleManager {
     var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
     var ax = AxiomAttribute();
     NatDecl = new SubsetTypeDecl(SourceOrigin.NoToken, new Name("nat"),
-      new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
+      new TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       [], SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
     ((RedirectingTypeDecl)NatDecl).ConstraintIsCompilable = true;
     SystemModule.SourceDecls.Add(NatDecl);
@@ -130,22 +130,22 @@ public class SystemModuleManager {
       new ValuetypeDecl("_bv", SystemModule, t => t.IsBitVectorType && !Options.Get(CommonOptionBag.TypeSystemRefresh),
         null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied (it's used only in the legacy resolver)
       new ValuetypeDecl("set", SystemModule,
-        [TypeParameter.TPVarianceSyntax.Covariant_Strict],
+        [TPVarianceSyntax.Covariant_Strict],
         t => t.AsSetType is { Finite: true }, typeArgs => new SetType(true, typeArgs[0])),
       new ValuetypeDecl("iset", SystemModule,
-        [TypeParameter.TPVarianceSyntax.Covariant_Permissive],
+        [TPVarianceSyntax.Covariant_Permissive],
         t => t.IsISetType, typeArgs => new SetType(false, typeArgs[0])),
       new ValuetypeDecl("seq", SystemModule,
-        [TypeParameter.TPVarianceSyntax.Covariant_Strict],
+        [TPVarianceSyntax.Covariant_Strict],
         t => t.AsSeqType != null, typeArgs => new SeqType(typeArgs[0])),
       new ValuetypeDecl("multiset", SystemModule,
-        [TypeParameter.TPVarianceSyntax.Covariant_Strict],
+        [TPVarianceSyntax.Covariant_Strict],
         t => t.AsMultiSetType != null, typeArgs => new MultiSetType(typeArgs[0])),
       new ValuetypeDecl("map", SystemModule,
-        [TypeParameter.TPVarianceSyntax.Covariant_Strict, TypeParameter.TPVarianceSyntax.Covariant_Strict],
+        [TPVarianceSyntax.Covariant_Strict, TPVarianceSyntax.Covariant_Strict],
         t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
       new ValuetypeDecl("imap", SystemModule,
-        [TypeParameter.TPVarianceSyntax.Covariant_Permissive, TypeParameter.TPVarianceSyntax.Covariant_Strict],
+        [TPVarianceSyntax.Covariant_Permissive, TPVarianceSyntax.Covariant_Strict],
         t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
     ];
     SystemModule.SourceDecls.AddRange(valuetypeDecls);
@@ -292,8 +292,8 @@ public class SystemModuleManager {
     IOrigin tok = Token.NoToken;
     var tps = Util.Map(Enumerable.Range(0, arity + 1),
       x => x < arity
-        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
-        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TPVarianceSyntax.Contravariance)
+        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TPVarianceSyntax.Covariant_Strict));
     var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
 
     Function CreateMember(string name, Type resultType, Function readsFunction = null) {
@@ -325,12 +325,12 @@ public class SystemModuleManager {
     // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
     tps = Util.Map(Enumerable.Range(0, arity + 1),
       x => x < arity
-        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
-        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TPVarianceSyntax.Contravariance)
+        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TPVarianceSyntax.Covariant_Strict));
     tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
     var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
     var partialArrow = new SubsetTypeDecl(SourceOrigin.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
-      new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
+      TypeParameterCharacteristics.Default(), tps, SystemModule,
       id, ArrowSubtypeConstraint(tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)partialArrow).ConstraintIsCompilable = false;
     PartialArrowTypeDecls.Add(arity, partialArrow);
@@ -340,12 +340,12 @@ public class SystemModuleManager {
 
     tps = Util.Map(Enumerable.Range(0, arity + 1),
       x => x < arity
-        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
-        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TPVarianceSyntax.Contravariance)
+        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TPVarianceSyntax.Covariant_Strict));
     tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
     id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
     var totalArrow = new SubsetTypeDecl(SourceOrigin.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
-      new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
+      TypeParameterCharacteristics.Default(), tps, SystemModule,
       id, ArrowSubtypeConstraint(tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)totalArrow).ConstraintIsCompilable = false;
     TotalArrowTypeDecls.Add(arity, totalArrow);

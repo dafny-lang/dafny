@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -5,29 +6,29 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class Formal : NonglobalVariable {
-  public Attributes Attributes { get; set; }
+  public Attributes? Attributes { get; set; }
 
   public readonly bool InParam;  // true to in-parameter, false for out-parameter
   public override bool IsMutable => !InParam;
   public readonly bool IsOld;
-  public Expression DefaultValue;
+  public Expression? DefaultValue;
   public readonly bool IsNameOnly;
   public readonly bool IsOlder;
   public readonly string NameForCompilation;
 
-  public Formal(IOrigin origin, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
-    Attributes attributes = null,
-    bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
+  public Formal(IOrigin origin, string name, Type type, bool inParam, bool isGhost, Expression? defaultValue,
+    Attributes? attributes = null,
+    bool isOld = false, bool isNameOnly = false, bool isOlder = false, string? nameForCompilation = null)
     : this(origin, new Name(origin.StartToken, name), type, inParam, isGhost, defaultValue, attributes,
       isOld, isNameOnly, isOlder, nameForCompilation) {
   }
 
-  public Formal(IOrigin origin, Name nameNode, Type type, bool inParam, bool isGhost, Expression defaultValue,
-    Attributes attributes = null,
-    bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
+  [ParseConstructor]
+  public Formal(IOrigin origin, Name nameNode, Type type, bool inParam, bool isGhost, Expression? defaultValue,
+    Attributes? attributes = null,
+    bool isOld = false, bool isNameOnly = false, bool isOlder = false, string? nameForCompilation = null)
     : base(origin, nameNode, type, isGhost) {
     Contract.Requires(origin != null);
-    Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
     Contract.Requires(inParam || defaultValue == null);
     Contract.Requires(!isNameOnly || (inParam && !nameNode.Value.StartsWith("#")));

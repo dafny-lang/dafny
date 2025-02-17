@@ -14,21 +14,25 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   public ModuleDecl CompileRoot;
   public ModuleSignature OriginalSignature;
 
-  public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
+  public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
     Exports = original.Exports;
     QId = new ModuleQualifiedId(cloner, original.QId);
+    Opened = original.Opened;
   }
 
-  public AbstractModuleDecl(DafnyOptions options, IOrigin origin, ModuleQualifiedId qid, Name name,
-    ModuleDefinition parent, bool opened, List<IOrigin> exports, Guid cloneId)
-    : base(options, origin, name, parent, opened, false, cloneId) {
+  public AbstractModuleDecl(DafnyOptions options, IOrigin origin, ModuleQualifiedId qid, Name name, Attributes attributes,
+    ModuleDefinition enclosingModule, bool opened, List<IOrigin> exports, Guid cloneId)
+    : base(options, origin, name, attributes, enclosingModule, cloneId) {
     Contract.Requires(qid != null && qid.Path.Count > 0);
     Contract.Requires(exports != null);
 
     QId = qid;
     Exports = exports;
+    Opened = opened;
   }
+
+  public override bool Opened { get; }
 
   public override object Dereference() { return this; }
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

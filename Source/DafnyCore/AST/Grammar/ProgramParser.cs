@@ -26,9 +26,6 @@ public class ProgramParser {
   protected readonly ILogger<ProgramParser> logger;
   private readonly IFileSystem fileSystem;
 
-  public ProgramParser() : this(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance) {
-  }
-
   public ProgramParser(ILogger<ProgramParser> logger, IFileSystem fileSystem) {
     this.logger = logger;
     this.fileSystem = fileSystem;
@@ -195,13 +192,13 @@ public class ProgramParser {
 
   public static void MoveModuleContents(ModuleDefinition sourceModule, ModuleDefinition targetModule) {
     foreach (var declToMove in sourceModule.DefaultClasses.Concat(sourceModule.SourceDecls)) {
-      declToMove.EnclosingModuleDefinition = targetModule;
+      declToMove.EnclosingModule = targetModule;
       if (declToMove is LiteralModuleDecl literalModuleDecl) {
         literalModuleDecl.ModuleDef.EnclosingModule = targetModule;
       }
 
       if (declToMove is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl }) {
-        nonNullTypeDecl.EnclosingModuleDefinition = targetModule;
+        nonNullTypeDecl.EnclosingModule = targetModule;
       }
 
       if (declToMove is DefaultClassDecl defaultClassDecl) {
@@ -276,8 +273,16 @@ public class ProgramParser {
     Uri uri, CancellationToken cancellationToken) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
     using var reader = fileSnapshot.Reader;
-    var text = SourcePreprocessor.ProcessDirectives(reader, []);
-    return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
+    if (options.Get(CommonOptionBag.InputType) == CommonOptionBag.InputTypeEnum.Source) {
+      var text = SourcePreprocessor.ProcessDirectives(reader, []);
+      return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
+    } else {
+      var moduleDefinition = new Deserializer(uri, new TextDecoder(reader.ReadToEnd())).ReadFileModuleDefinition();
+      // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
+      return new DfyParseFileResult(null, uri, new BatchErrorReporter(options), moduleDefinition, []);
+    }
+
+    throw new ArgumentException();
   }
 
   ///<summary>
@@ -312,10 +317,11 @@ public class ProgramParser {
     return new Parser(errorReporter.Options, scanner, errors, cancellationToken);
   }
 
-  public async Task<ProgramParseResult> Parse(string source, Uri uri, ErrorReporter reporter) {
+  public static async Task<ProgramParseResult> Parse(string source, Uri uri, ErrorReporter reporter) {
     var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
+    var parser = new ProgramParser(NullLogger<ProgramParser>.Instance, fs);
     var file = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
     var files = new[] { file };
-    return await ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
+    return await parser.ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 }

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.Dafny.Auditor;
@@ -5,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
-  public readonly AssertLabel Label;
+  public readonly AssertLabel? Label;
 
   public AssertStmt Clone(Cloner cloner) {
     return new AssertStmt(cloner, this);
@@ -15,18 +16,19 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     Label = original.Label == null ? null : new AssertLabel(cloner.Origin(original.Label.Tok), original.Label.Name);
   }
 
-  public static AssertStmt CreateErrorAssert(INode node, string message, Expression guard = null) {
+  public static AssertStmt CreateErrorAssert(INode node, string message, Expression? guard = null) {
     var errorMessage = new StringLiteralExpr(node.Origin, message, true);
     errorMessage.Type = new SeqType(Type.Char);
     var attr = new Attributes("error", [errorMessage], null);
     guard ??= Expression.CreateBoolLiteral(node.Origin, false);
-    var assertFalse = new AssertStmt(node.Origin, guard, null, attr);
+    var assertFalse = new AssertStmt(node.Origin, attr, guard, null);
     assertFalse.IsGhost = true;
     return assertFalse;
   }
 
-  public AssertStmt(IOrigin origin, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
-    : base(origin, expr, attrs) {
+  [ParseConstructor]
+  public AssertStmt(IOrigin origin, Attributes? attributes, Expression expr, AssertLabel? label)
+    : base(origin, attributes, expr) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     Label = label;

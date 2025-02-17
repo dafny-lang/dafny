@@ -12,8 +12,8 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
   public AssumeStmt(Cloner cloner, AssumeStmt original) : base(cloner, original) {
   }
 
-  public AssumeStmt(IOrigin origin, Expression expr, Attributes attrs)
-    : base(origin, expr, attrs) {
+  public AssumeStmt(IOrigin origin, Expression expr, Attributes attributes)
+    : base(origin, attributes, expr) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
   }

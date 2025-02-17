@@ -37,13 +37,13 @@ class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used
   ISet<MemberDecl> IAmbiguousThing<MemberDecl>.Pool => pool;
 
   private AmbiguousMemberDecl(ModuleDefinition m, string name, ISet<MemberDecl> pool)
-    : base(pool.First().Origin, new Name(pool.First().Origin, name), true, pool.First().IsGhost, null, false) {
+    : base(pool.First().Origin, new Name(pool.First().Origin, name), null, true, pool.First().IsGhost) {
     Contract.Requires(name != null);
     Contract.Requires(pool != null && 2 <= pool.Count);
     this.pool = pool;
   }
 
   public string ModuleNames() {
-    return AmbiguousThingHelper<MemberDecl>.ModuleNames(this, d => d.EnclosingClass.EnclosingModuleDefinition.Name);
+    return AmbiguousThingHelper<MemberDecl>.ModuleNames(this, d => d.EnclosingClass.EnclosingModule.Name);
   }
 }

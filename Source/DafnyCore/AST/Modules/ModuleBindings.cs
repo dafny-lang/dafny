@@ -57,7 +57,7 @@ public class ModuleBindings {
     IOrigin root = qid.Path[0].StartToken;
     result = null;
     bool res = TryLookupFilter(root.val, out result,
-      m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
+      m => context != m && ((context.EnclosingModule == m.EnclosingModule && context.Exports.Count == 0) || m is LiteralModuleDecl));
     return res;
   }
 
@@ -73,7 +73,7 @@ public class ModuleBindings {
     IOrigin root = qid.Path[0].StartToken;
     result = null;
     bool res = TryLookupFilter(root.val, out result,
-      m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
+      m => context != m && ((context.EnclosingModule == m.EnclosingModule && context.Exports.Count == 0) || m is LiteralModuleDecl));
     return res;
   }
 
@@ -82,7 +82,7 @@ public class ModuleBindings {
     Contract.Assert(qid != null);
     IOrigin root = qid.Path[0].StartToken;
     result = null;
-    bool res = TryLookupFilter(root.val, out result, m => m.EnclosingModuleDefinition != context);
+    bool res = TryLookupFilter(root.val, out result, m => m.EnclosingModule != context);
     return res;
   }
 }

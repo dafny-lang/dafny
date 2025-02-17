@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      var moduleName = IdProtect(mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options));
+      var moduleName = IdProtect(mainMethod.EnclosingClass.EnclosingModule.GetCompileName(Options));
       if (moduleName != DafnyDefaultModule) {
         wr.WriteLine($"import {moduleName}");
       }
@@ -243,7 +243,7 @@ namespace Microsoft.Dafny.Compilers {
       var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor).ToList();
       var args = relevantTypeParameters.Comma(tp => tp.GetCompileName(Options));
       if (!string.IsNullOrEmpty(args)) { args = $", {args}"; }
-      var isNewtypeWithTraits = cls is NewtypeDecl { ParentTraits: { Count: > 0 } };
+      var isNewtypeWithTraits = cls is NewtypeDecl { Traits: { Count: > 0 } };
       if (isNewtypeWithTraits) {
         args += ", value";
       }
@@ -277,7 +277,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(PublicModuleIdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), false,
+      var cw = (ClassWriter)CreateClass(PublicModuleIdProtect(iter.EnclosingModule.GetCompileName(Options)), false,
         iter.FullName, iter.TypeArgs, iter, null, iter.Origin, wr);
       var constructorWriter = cw.ConstructorWriter;
       var w = cw.MethodWriter;
@@ -417,7 +417,7 @@ namespace Microsoft.Dafny.Compilers {
       var dt = ctor.EnclosingDatatype;
 
       // Dt.Ctor
-      var fString = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+      var fString = (dt.EnclosingModule.TryToAvoidName ? "" : dt.EnclosingModule.Name + ".") +
                 dt.Name + "." + ctor.Name;
 
       // {self.Dtor0}, {self.Dtor1}, ..., {self.DtorN}
@@ -459,7 +459,7 @@ namespace Microsoft.Dafny.Compilers {
     protected IClassWriter DeclareType(TopLevelDecl d, SubsetTypeDecl.WKind witnessKind, Expression witness, ConcreteSyntaxTree wr) {
       Contract.Requires(d is SubsetTypeDecl or NewtypeDecl);
 
-      var cw = (ClassWriter)CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), d, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(d.EnclosingModule.GetCompileName(Options)), d, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(d.Origin, d);
       w.WriteLine("@staticmethod");
@@ -475,7 +475,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GenerateIsMethod((RedirectingTypeDecl)d, w);
 
-      if (d is NewtypeDecl newtypeDecl && newtypeDecl.ParentTraits.Count != 0) {
+      if (d is NewtypeDecl newtypeDecl && newtypeDecl.Traits.Count != 0) {
         // in constructor:
         //   self._value = value
         cw.ConstructorWriter.WriteLine("self._value = value");
@@ -794,8 +794,8 @@ namespace Microsoft.Dafny.Compilers {
 
     private string FullName(TopLevelDecl decl) {
       var segments = new List<string> { IdProtect(decl.GetCompileName(Options)) };
-      if (decl.EnclosingModuleDefinition != enclosingModule) {
-        segments = decl.EnclosingModuleDefinition.GetCompileName(Options).Split('.').Select(PublicModuleIdProtect).Concat(segments).ToList();
+      if (decl.EnclosingModule != enclosingModule) {
+        segments = decl.EnclosingModule.GetCompileName(Options).Split('.').Select(PublicModuleIdProtect).Concat(segments).ToList();
       }
       return string.Join('.', segments);
     }
@@ -1316,7 +1316,7 @@ namespace Microsoft.Dafny.Compilers {
         wr = end;
       }
       if (dt is not TupleTypeDecl) {
-        wr.Write($"{DtCtorDeclarationName(ctor, dt.EnclosingModuleDefinition != enclosingModule)}");
+        wr.Write($"{DtCtorDeclarationName(ctor, dt.EnclosingModule != enclosingModule)}");
       } else if (ctor.Destructors.Count(d => !d.IsGhost) == 1) {
         // 1-tuples need this this for disambiguation
         arguments += ",";

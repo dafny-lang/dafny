@@ -295,7 +295,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       } else if (keyword.val == "assume") {
         ss = new AssumeStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
       } else if (keyword.val == "assert") {
-        ss = new AssertStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, null, KeywordToken.Attrs);
+        ss = new AssertStmt(new SourceOrigin(keyword.StartToken, EndToken), KeywordToken.Attrs, notFailureExpr, null);
       } else {
         Contract.Assert(false, $"Invalid token in :- statement: {keyword.val}");
       }

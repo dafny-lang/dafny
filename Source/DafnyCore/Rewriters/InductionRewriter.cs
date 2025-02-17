@@ -168,7 +168,7 @@ public class InductionRewriter : IRewriter {
       // The argument list was legal, so let's use it for the _induction attribute.
       // Next, look for matching patterns for the induction hypothesis.
       if (lemma != null) {
-        var triggers = ComputeInductionTriggers(goodArguments, body, lemma.EnclosingClass.EnclosingModuleDefinition, tok, ref attributes);
+        var triggers = ComputeInductionTriggers(goodArguments, body, lemma.EnclosingClass.EnclosingModule, tok, ref attributes);
         ReportInductionTriggers(lemma.Origin, lemma, attributes);
       }
 
@@ -197,7 +197,7 @@ public class InductionRewriter : IRewriter {
         // Compute the induction triggers, but don't report their patterns into attributes yet. Instead,
         // call ReportInductionTriggers only after the "_induction" attribute has been added. This will cause the
         // tooltips to appear in a logical order (showing the induction variables first, followed by the matching patterns).
-        var triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition,
+        var triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModule,
           args != null ? tok : null, ref attributes);
         if (triggers == null && args == null) {
           // The user didn't ask for induction. But since there were candidate induction variables, report an informational message.

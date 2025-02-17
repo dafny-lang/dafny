@@ -14,6 +14,7 @@ public abstract class Type : NodeWithComputedRange {
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
 
+  [ParseConstructor]
   protected Type(IOrigin origin = null) : base(origin) {
   }
 
@@ -361,7 +362,7 @@ public abstract class Type : NodeWithComputedRange {
   /// Returns true if the type has two representations at run time, the ordinary representation and a
   /// "fat pointer" representation (which is a boxing of the ordinary representation, plus a vtable pointer).
   /// </summary>
-  public bool HasFatPointer => NormalizeExpand() is UserDefinedType { ResolvedClass: NewtypeDecl { ParentTraits: { Count: > 0 } } };
+  public bool HasFatPointer => NormalizeExpand() is UserDefinedType { ResolvedClass: NewtypeDecl { Traits: { Count: > 0 } } };
 
   /// <summary>
   /// This property returns true if the type is known to be nonempty.
@@ -401,7 +402,7 @@ public abstract class Type : NodeWithComputedRange {
     var t = NormalizeExpandKeepConstraints();
     Contract.Assume(t is NonProxyType); // precondition
 
-    AutoInitInfo CharacteristicToAutoInitInfo(TypeParameter.TypeParameterCharacteristics c) {
+    AutoInitInfo CharacteristicToAutoInitInfo(TypeParameterCharacteristics c) {
       if (c.HasCompiledValue) {
         return AutoInitInfo.CompilableValue;
       } else if (c.IsNonempty) {
@@ -1781,6 +1782,7 @@ public class RealVarietiesSupertype : ArtificialType {
 /// A NonProxy type is a fully constrained type.  It may contain members.
 /// </summary>
 public abstract class NonProxyType : Type {
+  [ParseConstructor]
   protected NonProxyType(IOrigin origin = null) : base(origin) {
   }
 
@@ -1910,7 +1912,7 @@ public class SelfType : NonProxyType {
   public TypeParameter TypeArg;
   public Type ResolvedType;
   public SelfType() : base() {
-    TypeArg = new TypeParameter(SourceOrigin.NoToken, new Name("selfType"), TypeParameter.TPVarianceSyntax.NonVariant_Strict);
+    TypeArg = new TypeParameter(SourceOrigin.NoToken, new Name("selfType"), TPVarianceSyntax.NonVariant_Strict);
   }
 
   [System.Diagnostics.Contracts.Pure]

@@ -21,17 +21,17 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override IEnumerable<INode> Children =>
     (Type?.Nodes ?? Enumerable.Empty<INode>()).Concat(this.Attributes.AsEnumerable());
 
-  public Field(IOrigin origin, Name name, bool isGhost, Type type, Attributes attributes)
-    : this(origin, name, false, isGhost, true, true, type, attributes) {
+  public Field(IOrigin origin, Name nameNode, bool isGhost, Type type, Attributes attributes)
+    : this(origin, nameNode, false, isGhost, true, true, type, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
   }
 
-  public Field(IOrigin origin, Name name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(origin, name, hasStaticKeyword, isGhost, attributes, false) {
+  public Field(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+    : base(origin, nameNode, attributes, hasStaticKeyword, isGhost) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
     Contract.Requires(!isUserMutable || isMutable);
     IsMutable = isMutable;

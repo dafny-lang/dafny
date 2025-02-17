@@ -79,7 +79,8 @@ public static class DafnyCommands {
     DeveloperOptionBag.BoogiePrint,
     Printer.PrintMode,
     CommonOptionBag.AllowWarnings,
-    CommonOptionBag.WarnAsErrors
+    CommonOptionBag.WarnAsErrors,
+    CommonOptionBag.InputType
   });
 
   public static readonly IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {

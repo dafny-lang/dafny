@@ -64,6 +64,17 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   public readonly List<Expression> Args;
 
   public readonly Attributes Prev;
+
+  [ParseConstructor]
+  public Attributes(IOrigin origin, string name, [Captured] List<Expression> args, Attributes prev) : base(origin) {
+    Contract.Requires(name != null);
+    Contract.Requires(cce.NonNullElements(args));
+    Contract.Requires(name != UserSuppliedAtAttribute.AtName || this is UserSuppliedAtAttribute);
+    Name = name;
+    Args = args;
+    Prev = prev;
+  }
+
   public Attributes(string name, [Captured] List<Expression> args, Attributes prev) : base(Token.NoToken) {
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(args));
@@ -140,7 +151,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     }
 
     // Check the entire stack of modules
-    var mod = decl.EnclosingClass.EnclosingModuleDefinition;
+    var mod = decl.EnclosingClass.EnclosingModule;
     while (mod != null) {
       if (Attributes.ContainsBool(mod.Attributes, attribName, ref setting)) {
         return setting;

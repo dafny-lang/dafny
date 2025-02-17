@@ -11,9 +11,9 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
-    : base(SourceOrigin.NoToken, new Name("_default"), module, [], members, null, false, null) {
-    Contract.Requires(module != null);
+  public DefaultClassDecl(ModuleDefinition enclosingModule, [Captured] List<MemberDecl> members)
+    : base(SourceOrigin.NoToken, new Name("_default"), null, [], enclosingModule, members) {
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(cce.NonNullElements(members));
     this.NewSelfSynonym();
   }

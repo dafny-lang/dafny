@@ -22,14 +22,18 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public readonly Specification<Expression> Decreases;
   public readonly List<Formal> Ins;
 
-  protected MethodOrFunction(IOrigin origin, Name name, bool hasStaticKeyword, bool isGhost,
-    Attributes attributes, bool isRefining, List<TypeParameter> typeArgs, List<Formal> ins,
+  [ParseConstructor]
+  protected MethodOrFunction(IOrigin origin, Name nameNode,
+    Attributes attributes, bool hasStaticKeyword, bool isGhost,
+    List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
+    [Captured] Specification<FrameExpression> reads,
     Specification<Expression> decreases)
-    : base(origin, name, hasStaticKeyword, isGhost, attributes, isRefining) {
+    : base(origin, nameNode, attributes, hasStaticKeyword, isGhost) {
     TypeArgs = typeArgs;
     Req = req;
+    this.Reads = reads;
     Decreases = decreases;
     Ens = ens;
     Ins = ins;
@@ -50,7 +54,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   protected abstract string TypeName { get; }
 
   public bool IsVirtual => EnclosingClass is TraitDecl && !IsStatic;
-  public bool IsAbstract => EnclosingClass.EnclosingModuleDefinition.ModuleKind != ModuleKindEnum.Concrete;
+  public bool IsAbstract => EnclosingClass.EnclosingModule.ModuleKind != ModuleKindEnum.Concrete;
 
   public virtual void Resolve(ModuleResolver resolver) {
     ResolveMethodOrFunction(resolver);
@@ -95,7 +99,8 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     // The following check is incomplete, which is a bug.
     || Ins.Any(f => f.Type.AsSubsetType is not null);
 
-  protected MethodOrFunction(SourceOrigin tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining) : base(tok, name, hasStaticKeyword, isGhost, attributes, isRefining) {
+  protected MethodOrFunction(SourceOrigin tok, Name nameNode, bool hasStaticKeyword, bool isGhost, Attributes attributes)
+    : base(tok, nameNode, attributes, hasStaticKeyword, isGhost) {
   }
 
   public Specification<FrameExpression> Reads { get; set; }

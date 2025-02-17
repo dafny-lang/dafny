@@ -21,19 +21,23 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
   public override IEnumerable<INode> PreResolveChildren => Ctors.Concat(base.PreResolveChildren);
 
-  public DatatypeDecl(IOrigin origin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public DatatypeDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
+    : base(origin, nameNode, attributes, typeArgs, enclosingModule, members, parentTraits) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ctors));
     Contract.Requires(cce.NonNullElements(members));
     Contract.Requires((isRefining && ctors.Count == 0) || (!isRefining && 1 <= ctors.Count));
     Ctors = ctors;
     this.NewSelfSynonym();
+    IsRefining = isRefining;
   }
+
+  public override bool IsRefining { get; }
+
   public bool HasFinitePossibleValues {
     get {
       // Note, to determine finiteness, it doesn't matter if the constructors are ghost or non-ghost.
@@ -58,7 +62,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return []; } }
-  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModule; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
@@ -201,7 +205,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
           continue;
         }
 
-        var addedReveals = Rewriter.ExprToFunctionalDependencies(formal.DefaultValue, EnclosingModuleDefinition);
+        var addedReveals = Rewriter.ExprToFunctionalDependencies(formal.DefaultValue, EnclosingModule);
         formal.DefaultValue = Rewriter.AddRevealStmtsToExpression(formal.DefaultValue, addedReveals);
 
         if (addedReveals.Any()) {

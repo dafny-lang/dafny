@@ -15,20 +15,20 @@ public class ValuetypeDecl : TopLevelDeclWithMembers {
 
   public override bool AcceptThis => true;
 
-  public ValuetypeDecl(string name, ModuleDefinition module, Func<Type, bool> typeTester, Func<List<Type>, Type> typeCreator /*?*/)
-    : base(SourceOrigin.NoToken, new Name(name), module, [], [], null, false, null) {
+  public ValuetypeDecl(string name, ModuleDefinition enclosingModule, Func<Type, bool> typeTester, Func<List<Type>, Type> typeCreator /*?*/)
+    : base(SourceOrigin.NoToken, new Name(name), null, [], enclosingModule, []) {
     Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(typeTester != null);
     this.typeTester = typeTester;
     this.typeCreator = typeCreator;
   }
 
-  public ValuetypeDecl(string name, ModuleDefinition module, List<TypeParameter.TPVarianceSyntax> typeParameterVariance,
+  public ValuetypeDecl(string name, ModuleDefinition enclosingModule, List<TPVarianceSyntax> typeParameterVariance,
     Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
-    : this(name, module, typeTester, typeCreator) {
+    : this(name, enclosingModule, typeTester, typeCreator) {
     Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(typeTester != null);
     // fill in the type parameters
     if (typeParameterVariance != null) {
@@ -43,9 +43,9 @@ public class ValuetypeDecl : TopLevelDeclWithMembers {
     }
   }
 
-  public ValuetypeDecl(string name, ModuleDefinition module, List<TypeParameter> typeParameters,
+  public ValuetypeDecl(string name, ModuleDefinition enclosingModule, List<TypeParameter> typeParameters,
     List<MemberDecl> members, Attributes attributes, Func<Type, bool> typeTester, Func<List<Type>, Type> /*?*/ typeCreator)
-    : base(SourceOrigin.NoToken, new Name(name), module, typeParameters, members, attributes, false) {
+    : base(SourceOrigin.NoToken, new Name(name), attributes, typeParameters, enclosingModule, members) {
     this.typeTester = typeTester;
     this.typeCreator = typeCreator;
   }

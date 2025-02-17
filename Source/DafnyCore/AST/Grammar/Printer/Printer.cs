@@ -711,7 +711,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     private void PrintExtendsClause(TopLevelDeclWithMembers c) {
       string sep = " extends ";
-      foreach (var trait in c.ParentTraits) {
+      foreach (var trait in c.Traits) {
         wr.Write(sep);
         PrintType(trait);
         sep = ", ";
@@ -807,15 +807,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public static string TypeParamVariance(TypeParameter tp) {
       switch (tp.VarianceSyntax) {
-        case TypeParameter.TPVarianceSyntax.Covariant_Permissive:
+        case TPVarianceSyntax.Covariant_Permissive:
           return "*";
-        case TypeParameter.TPVarianceSyntax.Covariant_Strict:
+        case TPVarianceSyntax.Covariant_Strict:
           return "+";
-        case TypeParameter.TPVarianceSyntax.NonVariant_Permissive:
+        case TPVarianceSyntax.NonVariant_Permissive:
           return "!";
-        case TypeParameter.TPVarianceSyntax.NonVariant_Strict:
+        case TPVarianceSyntax.NonVariant_Strict:
           return "";
-        case TypeParameter.TPVarianceSyntax.Contravariance:
+        case TPVarianceSyntax.Contravariance:
           return "-";
         default:
           Contract.Assert(false);  // unexpected VarianceSyntax
@@ -1233,11 +1233,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics) {
+    public string TPCharacteristicsSuffix(TypeParameterCharacteristics characteristics) {
       return TPCharacteristicsSuffix(characteristics, options.DafnyPrintResolvedFile != null);
     }
 
-    public static string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics, bool printInferredTypeCharacteristics) {
+    public static string TPCharacteristicsSuffix(TypeParameterCharacteristics characteristics, bool printInferredTypeCharacteristics) {
       string s = null;
       if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Required ||
           (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && printInferredTypeCharacteristics)) {

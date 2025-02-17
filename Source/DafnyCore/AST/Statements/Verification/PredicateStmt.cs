@@ -13,15 +13,16 @@ public abstract class PredicateStmt : Statement, ICanResolveNewAndOld {
     Expr = cloner.CloneExpr(original.Expr);
   }
 
-  protected PredicateStmt(IOrigin origin, Expression expr, Attributes attrs)
-    : base(origin, attrs) {
+  [ParseConstructor]
+  protected PredicateStmt(IOrigin origin, Attributes attributes, Expression expr)
+    : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     this.Expr = expr;
   }
 
   protected PredicateStmt(IOrigin origin, Expression expr)
-    : this(origin, expr, null) {
+    : this(origin, null, expr) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     this.Expr = expr;

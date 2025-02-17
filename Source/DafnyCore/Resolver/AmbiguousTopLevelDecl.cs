@@ -42,13 +42,13 @@ public class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl>
   ISet<TopLevelDecl> IAmbiguousThing<TopLevelDecl>.Pool => pool;
 
   private AmbiguousTopLevelDecl(ModuleDefinition m, string name, ISet<TopLevelDecl> pool)
-    : base(pool.First().Origin, new Name(pool.First().Origin, name), m, [], null, false) {
+    : base(pool.First().Origin, new Name(pool.First().Origin, name), null, [], m) {
     Contract.Requires(name != null);
     Contract.Requires(pool != null && 2 <= pool.Count);
     this.pool = pool;
   }
 
   public string ModuleNames() {
-    return AmbiguousThingHelper<TopLevelDecl>.ModuleNames(this, d => d.EnclosingModuleDefinition.Name);
+    return AmbiguousThingHelper<TopLevelDecl>.ModuleNames(this, d => d.EnclosingModule.Name);
   }
 }

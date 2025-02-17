@@ -1,6 +1,5 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -26,6 +25,16 @@ namespace Microsoft.Dafny {
 
   public static class Util {
 
+    public static IEnumerable<T> IgnoreNulls<T>(params T[] values) {
+      var result = new List<T>();
+      foreach (var value in values) {
+        if (value != null) {
+          result.Add(value);
+        }
+      }
+
+      return result;
+    }
     public static Task WaitForComplete<T>(this IObservable<T> observable) {
       var result = new TaskCompletionSource();
       observable.Subscribe(_ => { }, e => result.SetException(e), () => result.SetResult());
@@ -523,7 +532,7 @@ namespace Microsoft.Dafny {
 
       foreach (var vertex in functionCallGraph.GetVertices()) {
         var func = vertex.N;
-        program.Options.OutputWriter.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
+        program.Options.OutputWriter.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModule.SanitizedName);
         foreach (var callee in vertex.Successors) {
           program.Options.OutputWriter.Write("{0} ", callee.N.SanitizedName);
         }

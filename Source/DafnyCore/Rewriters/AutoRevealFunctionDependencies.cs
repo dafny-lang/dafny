@@ -138,8 +138,8 @@ public class AutoRevealFunctionDependencies : IRewriter {
   public record FunctionWithDepth(Function Function, int Depth);
 
   public IEnumerable<FunctionWithDepth> GetEnumerator(ICallable m, TopLevelDecl currentClass, IEnumerable<Expression> subexpressions, ModuleDefinition rootModule = null) {
-    var origVertex = currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(m);
-    var interModuleVertex = currentClass.EnclosingModuleDefinition.InterModuleCallGraph.FindVertex(m);
+    var origVertex = currentClass.EnclosingModule.CallGraph.FindVertex(m);
+    var interModuleVertex = currentClass.EnclosingModule.InterModuleCallGraph.FindVertex(m);
 
     if (origVertex is null) {
       yield break;
@@ -148,7 +148,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     var visited = new HashSet<GraphTraversalVertex>();
     var queue = new Queue<GraphTraversalVertex>();
 
-    var defaultRootModule = rootModule is null ? currentClass.EnclosingModuleDefinition : rootModule;
+    var defaultRootModule = rootModule is null ? currentClass.EnclosingModule : rootModule;
 
     // The rootModule parameter is used in the case when GetEnumerator is called, not on a function from a class, but on subset type expressions.
     // Here this function may be called with a callable that is in a different module than the original one.
@@ -170,7 +170,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
             var func = funcExpr.Function;
 
             if (IsRevealable(defaultRootModule.AccessibleMembers, func)) {
-              var newVertex = func.EnclosingClass.EnclosingModuleDefinition.CallGraph.FindVertex(func);
+              var newVertex = func.EnclosingClass.EnclosingModule.CallGraph.FindVertex(func);
 
               if (newVertex is not null) {
                 queue.Enqueue(new GraphTraversalVertex(newVertex, false, 1));
@@ -317,9 +317,9 @@ public class AutoRevealFunctionDependencies : IRewriter {
     var callableName = HideRevealStmt.RevealLemmaPrefix + func.Name;
     var member = callableClass.Members.Find(decl => decl.Name == callableName);
 
-    Type.PushScope(callableClass.EnclosingModuleDefinition.VisibilityScope);
+    Type.PushScope(callableClass.EnclosingModule.VisibilityScope);
     var receiver = new StaticReceiverExpr(tok, new UserDefinedType(tok, callableName, callableClass, callableClass.TypeArgs.ConvertAll(obj => (Type)Type.Int)), callableClass, true);
-    Type.PopScope(callableClass.EnclosingModuleDefinition.VisibilityScope);
+    Type.PopScope(callableClass.EnclosingModule.VisibilityScope);
 
     if (member is null) {
       return null;

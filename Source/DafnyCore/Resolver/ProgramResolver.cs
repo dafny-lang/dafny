@@ -270,7 +270,7 @@ public class ProgramResolver {
       if (pointer.Get() is ModuleDecl moduleDecl) {
         declarationPointers.Add(moduleDecl, v => {
           pointer.Set(v);
-          v.EnclosingModuleDefinition = module;
+          v.EnclosingModule = module;
           if (v is LiteralModuleDecl literalModuleDecl) {
             literalModuleDecl.ModuleDef.EnclosingModule = module;
           }

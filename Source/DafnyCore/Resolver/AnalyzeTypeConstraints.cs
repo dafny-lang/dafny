@@ -52,8 +52,8 @@ class AnalyzeTypeConstraints {
     if (declarations.Count == 0) {
       return declarations;
     }
-    var enclosingModule = declarations[0].EnclosingModuleDefinition;
-    Contract.Assert(declarations.TrueForAll(decl => decl.EnclosingModuleDefinition == enclosingModule));
+    var enclosingModule = declarations[0].EnclosingModule;
+    Contract.Assert(declarations.TrueForAll(decl => decl.EnclosingModule == enclosingModule));
 
     // From the module declaration, we get the components sorted according to how they depend on each other.
     var sortedComponents = enclosingModule.CallGraph.TopologicallySortedComponents();

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
@@ -24,13 +25,14 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     OptionRegistry.RegisterGlobalOption(ReadsClausesOnMethods, OptionCompatibility.CheckOptionLocalImpliesLibrary);
   }
 
-  public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.Where(x => x != null).
+  public override IEnumerable<INode> Children => Util.IgnoreNulls<Node>(Body!, Decreases).
     Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions);
+
   public override IEnumerable<INode> PreResolveChildren => Children;
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
-  public readonly IOrigin SignatureEllipsis;
+  public readonly IOrigin? SignatureEllipsis;
   public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
@@ -38,9 +40,9 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public readonly Specification<FrameExpression> Mod;
   [FilledInDuringResolution] public bool IsRecursive;
   [FilledInDuringResolution] public bool IsTailRecursive;
-  [FilledInDuringResolution] public Function FunctionFromWhichThisIsByMethodDecl;
+  [FilledInDuringResolution] public Function? FunctionFromWhichThisIsByMethodDecl;
   public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
-  public Method OverriddenMethod;
+  public Method? OverriddenMethod;
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
 
@@ -54,7 +56,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       yield return a;
     }
 
-    if (Body is null && HasPostcondition && EnclosingClass.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
+    if (Body is null && HasPostcondition && EnclosingClass.EnclosingModule.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
       yield return new Assumption(this, Origin, AssumptionDescription.NoBody(IsGhost));
     }
 
@@ -87,7 +89,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public override IEnumerable<Expression> SubExpressions {
     get {
       foreach (var formal in Ins.Where(f => f.DefaultValue != null)) {
-        yield return formal.DefaultValue;
+        yield return formal.DefaultValue!;
       }
       foreach (var e in Req) {
         yield return e.E;
@@ -120,9 +122,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   public Method(Cloner cloner, Method original) : base(cloner, original) {
-    if (original.Outs != null) {
-      this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
-    }
+    this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
 
     this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
@@ -131,38 +131,41 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.IsByMethod = original.IsByMethod;
   }
 
-  public Method(IOrigin origin, Name name,
+  [ParseConstructor]
+  public Method(IOrigin origin, Name nameNode,
+    Attributes? attributes,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
-    [Captured] List<Formal> ins, [Captured] List<Formal> outs,
+    [Captured] List<Formal> ins,
     [Captured] List<AttributedExpression> req,
-    [Captured] Specification<FrameExpression> reads,
-    [Captured] Specification<FrameExpression> mod,
     [Captured] List<AttributedExpression> ens,
+    [Captured] Specification<FrameExpression> reads,
     [Captured] Specification<Expression> decreases,
+    [Captured] List<Formal> outs,
+    [Captured] Specification<FrameExpression> mod,
     [Captured] BlockStmt body,
-    Attributes attributes, IOrigin signatureEllipsis,
+    IOrigin? signatureEllipsis,
     bool isByMethod = false)
-    : base(origin, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
-      typeArgs, ins, req, ens, decreases) {
+    : base(origin, nameNode, attributes,
+      hasStaticKeyword, isGhost, typeArgs, ins, req, ens, reads, decreases) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
     Contract.Requires(cce.NonNullElements(outs));
     Contract.Requires(cce.NonNullElements(req));
     Contract.Requires(reads != null);
-    Contract.Requires(mod != null);
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
     this.Outs = outs;
-    this.Reads = reads;
     this.Mod = mod;
     Body = body;
     this.SignatureEllipsis = signatureEllipsis;
     this.IsByMethod = isByMethod;
     MustReverify = false;
   }
+
+  public override bool IsRefining => SignatureEllipsis != null;
 
   bool ICodeContext.IsGhost { get { return this.IsGhost; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
@@ -190,7 +193,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   ModuleDefinition IASTVisitorContext.EnclosingModule {
     get {
       Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
-      return this.EnclosingClass.EnclosingModuleDefinition;
+      return this.EnclosingClass.EnclosingModule;
     }
   }
   bool ICodeContext.MustReverify { get { return this.MustReverify; } }
@@ -213,7 +216,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     return nm;
   }
 
-  public BlockStmt Body { get; set; }
+  public BlockStmt? Body { get; set; }
 
   public bool IsLemmaLike => this is Lemma || this is TwoStateLemma || this is ExtremeLemma || this is PrefixLemma;
 
@@ -385,12 +388,12 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
   }
 
-  public string GetTriviaContainingDocstring() {
+  public string? GetTriviaContainingDocstring() {
     if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }
 
-    IOrigin lastClosingParenthesis = null;
+    IOrigin? lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
         lastClosingParenthesis = token;
@@ -440,20 +443,20 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   public bool ShouldVerify => true; // This could be made more accurate
-  public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
+  public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModule;
 
   public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options,
-    ErrorReporter Reporter) {
+    ErrorReporter reporter) {
     if (Body is null) {
       return;
     }
 
-    object autoRevealDepsVal = null;
+    object? autoRevealDepsVal = null;
     bool autoRevealDeps = Attributes.ContainsMatchingValue(Attributes, "autoRevealDependencies",
       ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
         Attributes.MatchingValueOption.Bool,
         Attributes.MatchingValueOption.Int
-      }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Origin, s));
+      }, s => reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Origin, s));
 
     // Default behavior is reveal all dependencies
     int autoRevealDepth = int.MaxValue;
@@ -471,7 +474,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
     foreach (var func in Rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
       var revealStmt =
-        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Origin, EnclosingClass.EnclosingModuleDefinition);
+        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Origin, EnclosingClass.EnclosingModule);
 
       if (revealStmt is not null) {
         addedReveals.Add(new AutoRevealFunctionDependencies.RevealStmtWithDepth(revealStmt, func.Depth));
@@ -503,7 +506,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
 
     if (addedReveals.Any()) {
-      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Origin,
+      reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Origin,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }

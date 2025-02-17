@@ -1,14 +1,11 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using DafnyCore;
-using DafnyCore.Options;
 using Microsoft.Dafny.Auditor;
-using Microsoft.Dafny.Compilers;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -42,7 +39,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   public IOrigin BodyStartTok = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
-  public Name NameNode; // (Last segment of the) module name
+  public Name NameNode { get; set; }
 
   public override bool SingleFileToken => !ResolvedPrefixNamedModules.Any();
 
@@ -67,17 +64,18 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
   public readonly List<IOrigin> PrefixIds; // The qualified module name, except the last segment when a
-                                           // nested module declaration is outside its enclosing module
-  public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
-  public Attributes Attributes { get; set; }
+
+  [BackEdge]// nested module declaration is outside its enclosing module
+  public ModuleDefinition? EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
+  public Attributes? Attributes { get; set; }
   public string WhatKind => "module definition";
-  public readonly Implements Implements; // null if no refinement base
+  public readonly Implements? Implements; // null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public readonly ModuleKindEnum ModuleKind;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private bool IsBuiltinName => Name is "_System" or "_module"; // true if this is something like _System that shouldn't have it's name mangled.
 
-  public DefaultClassDecl DefaultClass { get; set; }
+  public DefaultClassDecl? DefaultClass { get; set; }
 
   public readonly List<TopLevelDecl> SourceDecls = [];
   [FilledInDuringResolution]
@@ -85,7 +83,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   [FilledInDuringResolution]
   public readonly List<PrefixNameModule> PrefixNamedModules = [];  // filled in by the parser; emptied by the resolver
 
-  public CallRedirector CallRedirector { get; set; }
+  [FilledInDuringResolution]
+  public CallRedirector? CallRedirector { get; set; }
 
   public IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
         Concat(SourceDecls).
@@ -156,24 +155,30 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  public ModuleDefinition(IOrigin tok, Name name, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
-    Implements implements, ModuleDefinition parent, Attributes attributes) : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    this.NameNode = name;
+  [ParseConstructor]
+  public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind,
+    Implements? implements, ModuleDefinition enclosingModule, Attributes? attributes,
+    List<TopLevelDecl> sourceDecls)
+    : this(origin, nameNode, prefixIds, moduleKind, false, implements, enclosingModule, attributes, sourceDecls) {
+  }
+
+  public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
+    Implements? implements, ModuleDefinition enclosingModule, Attributes? attributes, List<TopLevelDecl>? sourceDecls = null) : base(origin) {
+    this.NameNode = nameNode;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;
-    this.EnclosingModule = parent;
+    this.EnclosingModule = enclosingModule;
     this.Implements = implements;
     this.ModuleKind = moduleKind;
     this.IsFacade = isFacade;
+    this.SourceDecls = sourceDecls ?? new();
 
     if (Name != "_System") {
       DefaultClass = new DefaultClassDecl(this, []);
     }
   }
 
-  private VisibilityScope visibilityScope;
+  private VisibilityScope? visibilityScope;
   public VisibilityScope VisibilityScope =>
     visibilityScope ??= new VisibilityScope(this.SanitizedName);
 
@@ -181,7 +186,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   public virtual bool TryToAvoidName => false;
 
-  private string sanitizedName = null;
+  private string? sanitizedName = null;
 
   public void ClearNameCache() {
     sanitizedName = null;
@@ -207,9 +212,9 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  string compileName;
+  string? compileName;
 
-  public ModuleDefinition GetImplementedModule() {
+  public ModuleDefinition? GetImplementedModule() {
     return Implements is { Kind: ImplementationKind.Replacement } ? Implements.Target.Def : null;
   }
 
@@ -259,8 +264,6 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   /// Assumes that CallGraph has already been filled in for the modules containing "a" and "b".
   /// </summary>
   public static bool InSameSCC(ICallable a, ICallable b) {
-    Contract.Requires(a != null);
-    Contract.Requires(b != null);
     if (a is SpecialFunction || b is SpecialFunction) { return false; }
     var module = a.EnclosingModule;
     return module == b.EnclosingModule && module.CallGraph.GetSCCRepresentative(a) == module.CallGraph.GetSCCRepresentative(b);
@@ -276,7 +279,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     foreach (var d in declarations) {
       var cl = d as TopLevelDeclWithMembers;
       if (cl != null) {
-        var module = cl.EnclosingModuleDefinition;
+        var module = cl.EnclosingModule;
         foreach (var member in cl.Members) {
           var fn = member as Function;
           if (fn != null) {
@@ -415,8 +418,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     Concat(PrefixNamedModules.Any() ? PrefixNamedModules.Select(m => m.Module) : ResolvedPrefixNamedModules).
     Concat(Implements == null ? Enumerable.Empty<Node>() : new Node[] { Implements.Target });
 
-  private IEnumerable<Node> preResolveTopLevelDecls;
-  private IEnumerable<Node> preResolvePrefixNamedModules;
+  private IEnumerable<Node>? preResolveTopLevelDecls;
+  private IEnumerable<Node>? preResolvePrefixNamedModules;
 
   public override IEnumerable<INode> PreResolveChildren {
     get {
@@ -446,7 +449,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   /// resolved, a caller has to check for both a change in error count and a "false"
   /// return value.
   /// </summary>
-  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, string exportSetName = null) {
+  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, string? exportSetName = null) {
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
@@ -524,7 +527,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         var exportSet = exports.Any() ? exports.First().val : null;
 
         foreach (var (decl, accMember) in origMod.AccessibleMembers) {
-          if (isDeclExported(origMod, exportSet, decl, out var isDeclRevealed)) {
+          if (IsDeclExported(origMod, exportSet, decl, out var isDeclRevealed)) {
             var newAccMember = accMember.Clone();
 
             newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Origin));
@@ -540,7 +543,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         var nested = (LiteralModuleDecl)d;
 
         foreach (var (decl, accMember) in nested.ModuleDef.AccessibleMembers) {
-          if (isDeclExported(nested.ModuleDef, null, decl, out var isDeclRevealed)) {
+          if (IsDeclExported(nested.ModuleDef, null, decl, out var isDeclRevealed)) {
             var newAccMember = accMember.Clone();
 
             newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Origin));
@@ -577,18 +580,18 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     return new NameSegment(tok, decl.Name, typeArgs);
   }
 
-  private bool isDeclExported(ModuleDefinition moduleDefinition, string exportSetName, Declaration decl, out bool isItRevealed) {
+  private bool IsDeclExported(ModuleDefinition moduleDefinition, string? exportSetName, Declaration decl, out bool isItRevealed) {
     isItRevealed = true;
 
     exportSetName ??= moduleDefinition.Name;
 
-    var moduleExports = moduleDefinition.TopLevelDecls.Where(decl => decl is ModuleExportDecl && decl.Name == exportSetName);
+    var moduleExports = moduleDefinition.TopLevelDecls.Where(decl => decl is ModuleExportDecl && decl.Name == exportSetName).ToList();
 
     if (!moduleExports.Any()) {
       return true;
     }
 
-    var exportSignatures = ((ModuleExportDecl)moduleExports.First()).Exports.Where(export => export.Decl == decl);
+    var exportSignatures = ((ModuleExportDecl)moduleExports.First()).Exports.Where(export => export.Decl == decl).ToList();
 
     if (!exportSignatures.Any()) {
       return false;
@@ -620,8 +623,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     // First, register all literal modules, and transferring their prefix-named modules downwards
     foreach (var subDecl in TopLevelDecls.OfType<LiteralModuleDecl>()) {
       // Transfer prefix-named modules downwards into the sub-module
-      if (prefixModulesByFirstPart.TryGetValue(subDecl.Name, out var prefixModules)) {
-        prefixModulesByFirstPart.Remove(subDecl.Name);
+      if (prefixModulesByFirstPart.Remove(subDecl.Name, out var prefixModules)) {
         prefixModules = prefixModules.ConvertAll(ShortenPrefix);
       }
 
@@ -645,7 +647,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  private static void ProcessPrefixNamedModules(List<PrefixNameModule> prefixModules, LiteralModuleDecl subDecl) {
+  private static void ProcessPrefixNamedModules(List<PrefixNameModule>? prefixModules, LiteralModuleDecl subDecl) {
     // Transfer prefix-named modules downwards into the sub-module
     if (prefixModules != null) {
       foreach (var prefixModule in prefixModules) {
@@ -738,13 +740,11 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
       }
 
       // register the class/datatype/module name
-      TopLevelDecl registerThisDecl = null;
-      string registerUnderThisName = null;
+      TopLevelDecl? registerThisDecl = null;
+      string? registerUnderThisName = null;
       if (d is ModuleExportDecl export) {
-        if (sig.ExportSets.ContainsKey(d.Name)) {
+        if (!sig.ExportSets.TryAdd(d.Name, export)) {
           resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
-        } else {
-          sig.ExportSets[d.Name] = export;
         }
       } else if (d is AliasModuleDecl importDecl && importDecl.ShadowsLiteralModule) {
         // add under an anonymous name
@@ -766,8 +766,8 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
       }
 
       if (registerThisDecl != null) {
-        toplevels[registerUnderThisName] = d;
-        sig.TopLevels[registerUnderThisName] = registerThisDecl;
+        toplevels[registerUnderThisName!] = d;
+        sig.TopLevels[registerUnderThisName!] = registerThisDecl;
       }
 
       if (d is ModuleDecl) {
@@ -850,8 +850,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
             ctor.QueryField = query;
 
             // also register the constructor name globally
-            Tuple<DatatypeCtor, bool> pair;
-            if (sig.Ctors.TryGetValue(ctor.Name, out pair)) {
+            if (sig.Ctors.TryGetValue(ctor.Name, out var pair)) {
               // mark it as a duplicate
               sig.Ctors[ctor.Name] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
             } else {
@@ -866,7 +865,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
           var formalsUsedInThisCtor = new HashSet<string>();
           var duplicates = new HashSet<Formal>();
           foreach (var formal in ctor.Formals) {
-            MemberDecl previousMember = null;
+            MemberDecl? previousMember = null;
             var localDuplicate = false;
             if (formal.HasName) {
               if (members.TryGetValue(formal.Name, out previousMember)) {
@@ -970,7 +969,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     foreach (var decl in TopLevelDecls.Where(d => d is TraitDecl)) {
       // Resolve a "path" to a top-level declaration, if possible. On error, return null.
       // The path is expected to consist of NameSegment or ExprDotName nodes.
-      TopLevelDecl ResolveNamePath(Expression path) {
+      TopLevelDecl? ResolveNamePath(Expression path) {
         // A single NameSegment is a little different, because it may refer to built-in type (of interest here: "object").
         if (path is NameSegment nameSegment) {
           if (sig.TopLevels.TryGetValue(nameSegment.Name, out var topLevelDecl)) {
@@ -1039,10 +1038,10 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         traitsProgress[traitDecl] = false; // indicate that traitDecl is currently being visited
 
         var inheritsFromObject = traitDecl.IsObjectTrait;
-        foreach (var parent in traitDecl.ParentTraits) {
+        foreach (var parent in traitDecl.Traits) {
           if (parent is UserDefinedType udt) {
             if (ResolveNamePath(udt.NamePath) is TraitDecl parentTrait) {
-              if (parentTrait.EnclosingModuleDefinition == this) {
+              if (parentTrait.EnclosingModule == this) {
                 inheritsFromObject = InheritsFromObject(parentTrait) || inheritsFromObject;
               } else {
                 inheritsFromObject = parentTrait.IsReferenceTypeDecl || inheritsFromObject;
@@ -1061,7 +1060,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   }
 
-  public LiteralModuleDecl EnclosingLiteralModuleDecl { get; set; }
+  public LiteralModuleDecl? EnclosingLiteralModuleDecl { get; set; }
 
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
