@@ -222,13 +222,76 @@ internal class TriggersCollector {
 
       if (!childrenContainKillers) {
         // Add only if the children are not killers; the head has been cleaned up into non-killer form
-        collectedTerms.Add(newTerm);
+        collectedTerms.AddRange(CollectInSetOperations(newExpression, expr));
       }
     }
     Contract.Assert(newTerm != null);  // this checks our assumption that "new_exprs" contains at least one value.
 
     // This new node is a killer if its children were killers, or if it's non-cleaned-up head is a killer
     return new TriggerAnnotation(childrenContainKillers || exprIsKiller, newTerm.Variables, collectedTerms);
+  }
+
+  private IEnumerable<TriggerTerm> CollectInSetOperations(
+      Expression newExpr, Expression originalExpr, int boundVariables = -1
+    ) {
+    var term = new TriggerTerm { Expr = newExpr, OriginalExpr = originalExpr, Variables = CollectVariables(newExpr) };
+    var newBoundVariables = term.BoundVars.Count();
+    if (newBoundVariables < boundVariables && boundVariables >= 0) {
+      yield break;
+    }
+    yield return term;
+    if (newExpr is SeqSelectExpr {
+      Seq: BinaryExpr {
+        ResolvedOp:
+          BinaryExpr.ResolvedOpcode.MultiSetUnion or
+          BinaryExpr.ResolvedOpcode.MultiSetIntersection or
+          BinaryExpr.ResolvedOpcode.MultiSetDifference,
+        E0: var seq0,
+        E1: var seq1
+      },
+      E0: var seqArg
+    } newSeqSelectExpr) {
+      // Multiset triggers are of the form expression[index]
+      var newTriggerTerm1 = new SeqSelectExpr(newExpr.tok, true, seq0, seqArg, null, newSeqSelectExpr.CloseParen) {
+        Type = seq0.Type.AsMultiSetType.Arg
+      };
+      foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm1, originalExpr, newBoundVariables)) {
+        yield return triggerTerm;
+      }
+      var newTriggerTerm2 = new SeqSelectExpr(newExpr.tok, true, seq1, seqArg, null, newSeqSelectExpr.CloseParen) {
+        Type = seq1.Type.AsMultiSetType.Arg
+      };
+      foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm2, originalExpr, newBoundVariables)) {
+        yield return triggerTerm;
+      }
+    } else if (newExpr is BinaryExpr {
+      ResolvedOp: BinaryExpr.ResolvedOpcode.InSet or
+                    BinaryExpr.ResolvedOpcode.InMultiSet,
+      E0: var e0, E1: BinaryExpr {
+        ResolvedOp: BinaryExpr.ResolvedOpcode.SetDifference or
+                        BinaryExpr.ResolvedOpcode.Union or
+                        BinaryExpr.ResolvedOpcode.Intersection or
+                      BinaryExpr.ResolvedOpcode.MultiSetUnion or
+                      BinaryExpr.ResolvedOpcode.MultiSetIntersection,
+        E0: var e10,
+        E1: var e11
+      }
+    } newBinaryExpr) {
+      var newTriggerTerm1 = new BinaryExpr(newExpr.tok, BinaryExpr.Opcode.In, e0, e10) {
+        ResolvedOp = newBinaryExpr.ResolvedOp,
+        Type = Type.Bool
+      };
+      foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm1, originalExpr, newBoundVariables)) {
+        yield return triggerTerm;
+      }
+      var newTriggerTerm2 = new BinaryExpr(newExpr.tok, BinaryExpr.Opcode.In, e0, e11) {
+        ResolvedOp = newBinaryExpr.ResolvedOp,
+        Type = Type.Bool
+      };
+      foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm2, originalExpr, newBoundVariables)) {
+        yield return triggerTerm;
+      }
+    }
   }
 
   private TriggerAnnotation AnnotateApplySuffix(ApplySuffix expr) {
