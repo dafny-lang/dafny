@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -17,6 +18,7 @@ namespace Microsoft.Dafny;
 public record DfyParseFileResult(
   int? Version,
   Uri Uri,
+  IReadOnlyList<Uri> NewRootUris,
   BatchErrorReporter ErrorReporter,
   FileModuleDefinition Module,
   IReadOnlyList<Action<SystemModuleManager>> ModifyBuiltins
@@ -121,7 +123,7 @@ public class ProgramParser {
       var reporter = new BatchErrorReporter(options);
       reporter.Error(MessageSource.Parser, origin,
         $"Unable to open the file {uri} because {e.Message}.");
-      return new DfyParseFileResult(fileSnapshot.Version, uri, reporter, new FileModuleDefinition(Token.NoToken),
+      return new DfyParseFileResult(fileSnapshot.Version, uri, [], reporter, new FileModuleDefinition(Token.NoToken),
         new Action<SystemModuleManager>[] { });
     } catch (OperationCanceledException) {
       throw;
@@ -137,7 +139,7 @@ public class ProgramParser {
       var reporter = new BatchErrorReporter(options);
       reporter.Error(MessageSource.Parser, ErrorId.p_internal_exception, internalErrorDummyToken,
         "[internal error] Parser exception: " + e.Message + "\n" + e.StackTrace);
-      return new DfyParseFileResult(fileSnapshot.Version, uri, reporter, new FileModuleDefinition(Token.NoToken),
+      return new DfyParseFileResult(fileSnapshot.Version, uri, [], reporter, new FileModuleDefinition(Token.NoToken),
         new Action<SystemModuleManager>[] { });
     }
   }
@@ -160,6 +162,8 @@ public class ProgramParser {
 
   private static void AddParseResultToProgram(DfyParseFileResult parseFileResult, Program program,
     Dictionary<Uri, int> versionedFiles) {
+    program.Compilation.RootSourceUris.AddRange(parseFileResult.NewRootUris);
+    
     if (parseFileResult.Version != null) {
       versionedFiles.Add(parseFileResult.Uri, parseFileResult.Version.Value);
     }
@@ -286,9 +290,14 @@ public class ProgramParser {
       return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
     }
 
-    var moduleDefinition = new Deserializer(uri, new TextDecoder(reader.ReadToEnd())).ReadFileModuleDefinition();
+    var filesContainer = new Deserializer(new TextDecoder(reader.ReadToEnd())).ReadFilesContainer();
+    var filesModule = new FileModuleDefinition(new SourceOrigin(Token.NoToken, Token.NoToken),
+      new Name("ignore"), new List<IOrigin>(), ModuleKindEnum.Concrete, null, null, null,
+      filesContainer.Files.SelectMany(f => f.TopLevelDecls).ToList());
     // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
-    return new DfyParseFileResult(null, uri, new BatchErrorReporter(options), moduleDefinition, []);
+    return new DfyParseFileResult(null, uri, 
+      filesContainer.Files.Select(f => new Uri(f.Uri)).ToList(),
+      new BatchErrorReporter(options), filesModule, []);
   }
 
   ///<summary>
@@ -302,7 +311,7 @@ public class ProgramParser {
     Parser parser = SetupParser(content, uri, batchErrorReporter, cancellationToken);
     parser.Parse();
 
-    return new DfyParseFileResult(version, uri, batchErrorReporter, parser.theModule, parser.SystemModuleModifiers);
+    return new DfyParseFileResult(version, uri, [], batchErrorReporter, parser.theModule, parser.SystemModuleModifiers);
   }
 
   private static Parser SetupParser(string s /*!*/, Uri uri /*!*/,

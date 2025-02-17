@@ -6,8 +6,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public partial class Deserializer(Uri uri, IDecoder decoder) {
-
+public partial class Deserializer(IDecoder decoder) {
+  private Uri uri;
+  
   private Specification<T> ReadSpecification<T>() where T : Node {
     var parameter0 = DeserializeGeneric<SourceOrigin>();
     if (typeof(T) == typeof(FrameExpression)) {
@@ -38,6 +39,19 @@ public partial class Deserializer(Uri uri, IDecoder decoder) {
     return ReadToken();
   }
 
+
+  public FilesContainer ReadFilesContainer() {
+    var files = ReadList<FileStart>(() => ReadFileStart());
+    return new FilesContainer(files);
+  }
+  
+  public FileStart ReadFileStart() {
+    var uri = ReadString();
+    this.uri = new Uri(uri);
+    var topLevelDecls = ReadList<TopLevelDecl>(() => ReadAbstract<TopLevelDecl>());
+    return new FileStart(uri, topLevelDecls);
+  }
+  
   public Token ReadToken() {
     var parameter0 = ReadInt32();
     var parameter1 = ReadInt32();

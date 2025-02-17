@@ -1,9 +1,24 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NJsonSchema.Annotations;
 
 namespace Microsoft.Dafny;
+
+public class FilesContainer(List<FileStart> files) {
+  public List<FileStart> Files { get; } = files;
+}
+
+public class FileStart {
+  public string Uri { get; }
+  public List<TopLevelDecl> TopLevelDecls { get; }
+
+  public FileStart(string uri, List<TopLevelDecl> topLevelDecls) {
+    Uri = uri;
+    TopLevelDecls = topLevelDecls;
+  }
+}
 
 /// <summary>
 /// This is a temporary container of everything declared at the top level of a file, including include directives.

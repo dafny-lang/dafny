@@ -28,7 +28,7 @@ public class ParsedAstGenerator : PostParseAstVisitor {
 
   public string GenerateAll() {
 
-    var rootType = typeof(FileModuleDefinition);
+    var rootType = typeof(FilesContainer);
     VisitTypesFromRoot(rootType);
     compilationUnit = compilationUnit.NormalizeWhitespace();
 

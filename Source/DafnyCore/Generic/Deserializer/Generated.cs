@@ -766,7 +766,7 @@ namespace Microsoft.Dafny
             int ordinal = ReadInt32();
             return (ModuleKindEnum)ordinal;
         }
-
+        
         public FileModuleDefinition ReadFileModuleDefinition()
         {
             Microsoft.Dafny.ModuleDefinition parameter5 = null;

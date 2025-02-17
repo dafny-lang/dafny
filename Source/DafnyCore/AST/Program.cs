@@ -140,5 +140,11 @@ public class FilledInDuringResolutionAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Constructor)]
 public class ParseConstructorAttribute : Attribute { }
 
-[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field)]
+/// <summary>
+/// Used by the command '--generate-parsed-ast'. This attribute will cause the field to be ignored.
+/// Some constructors used during parsing also have a parameter whose value that points to the container of the object that is
+/// to be constructed. This parameters should not end up in the generated 'parsed AST', so their related fields
+/// are annotated with this attribute.
+/// </summary>
+[AttributeUsage(AttributeTargets.Field)]
 public class BackEdge : Attribute { }
