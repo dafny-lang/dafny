@@ -2243,7 +2243,7 @@ namespace Microsoft.Dafny.Compilers {
             // For such values we construct the Rune value directly from the unescaped codepoint.
             wr.Write($"new Dafny.Rune(0x{codePoint:x})");
           } else {
-            wr.Write($"new Dafny.Rune('{Util.ExpandUnicodeEscapes(v, false)}')");
+            wr.Write($"new Dafny.Rune('{Util.ExpandUnicodeEscapes(v, false, false)}')");
           }
         } else {
           wr.Write($"'{v}'");
@@ -2297,7 +2297,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
-      wr.Write($"{(isVerbatim ? "@" : "")}\"{Util.ExpandUnicodeEscapes(str, false)}\"");
+      wr.Write($"{(isVerbatim ? "@" : "")}\"{Util.ExpandUnicodeEscapes(str, isVerbatim, false)}\"");
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
