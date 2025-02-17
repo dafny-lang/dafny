@@ -2726,6 +2726,11 @@ namespace Microsoft.Dafny {
       {
         var formals = new List<Variable>();
         formals.AddRange(MkTyParamFormals(GetTypeParams(f), false));
+
+        if (f.IsFuelAware()) {
+          formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType), true));
+        }
+
         if (f is TwoStateFunction) {
           formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType), true));
         }

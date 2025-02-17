@@ -222,7 +222,7 @@ public partial class BoogieGenerator {
     }
     // useViaCanCall: f#canCall(args)
     var canCallFuncID = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-    var useViaCanCall = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
+    var useViaCanCall = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(canCallFuncID), GetCanCallArgs(tyargs, args, layer, f));
 
     // ante := useViaCanCall
     ante = useViaCanCall;
@@ -275,6 +275,20 @@ public partial class BoogieGenerator {
         }
       }
     }
+  }
+
+
+  private List<Bpl.Expr> GetCanCallArgs(List<Bpl.Expr> tyargs, List<Bpl.Expr> args, Bpl.BoundVariable layer, Function f)
+  {
+    var canCallArgs = new List<Bpl.Expr>();
+    canCallArgs.AddRange(tyargs);
+
+    if (layer != null) {
+      canCallArgs.Add(new Bpl.IdentifierExpr(f.Origin, layer));
+    }
+
+    canCallArgs.AddRange(args);
+    return canCallArgs;
   }
 
   /// <summary>
@@ -485,7 +499,7 @@ public partial class BoogieGenerator {
     }
 
     var canCallFuncID = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-    var useViaCanCall = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
+    var useViaCanCall = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(canCallFuncID), GetCanCallArgs(tyargs, args, layer, f));
 
     // Add the precondition function and its axiom (which is equivalent to the anteReqAxiom)
     if (body == null || (RevealedInScope(f) && lits == null)) {
@@ -511,7 +525,20 @@ public partial class BoogieGenerator {
       return null;
     }
 
-    // useViaCanCall: f#canCall(args)
+
+    // create fuel-boosted can call for the antecedent.
+    {
+      var canCallArgs = new List<Bpl.Expr>();
+      canCallArgs.AddRange(tyargs);
+
+      if (layer != null) {
+        canCallArgs.Add(LayerSucc(new Bpl.IdentifierExpr(f.Origin, layer)));
+      }
+      canCallArgs.AddRange(args);
+      canCallFuncID = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+      useViaCanCall = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(canCallFuncID), canCallArgs);
+    }
+
     ante = useViaCanCall;
 
     Bpl.Expr funcAppl;
@@ -867,6 +894,7 @@ public partial class BoogieGenerator {
       Bpl.Expr s; var sV = BplBoundVar("$ly", Predef.LayerType, out s);
       bvars.Add(sV);
       f0args.Add(s); f1args.Add(s);  // but don't add to f0argsCanCall or f1argsCanCall
+      f0argsCanCall.Add(s); f1argsCanCall.Add(s);
     }
 
     if (reveal != null) {
