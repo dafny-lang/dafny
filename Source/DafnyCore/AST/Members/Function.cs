@@ -531,7 +531,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
     object autoRevealDepsVal = null;
     bool autoRevealDeps = Attributes.ContainsMatchingValue(Attributes, "autoRevealDependencies",
-      ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
+      ref autoRevealDepsVal, new HashSet<Attributes.MatchingValueOption> {
         Attributes.MatchingValueOption.Bool,
         Attributes.MatchingValueOption.Int
       }, s => reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Origin, s));

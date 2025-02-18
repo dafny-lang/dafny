@@ -52,6 +52,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
     this.SignatureEllipsis = original.SignatureEllipsis;
+    this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
     if (cloner.CloneResolvedFields) {
       this.ContainsHide = original.ContainsHide;

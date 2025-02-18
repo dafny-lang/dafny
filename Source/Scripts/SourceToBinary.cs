@@ -235,12 +235,13 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
 
   private static IEnumerable<FieldInfo> GetSerializableFields(Type type) {
     var fields = new List<FieldInfo>();
-    while (type != null && type != typeof(object)) {
-      fields.InsertRange(0, type.GetFields(BindingFlags.DeclaredOnly |
-                                           BindingFlags.Instance |
-                                           BindingFlags.Public |
-                                           BindingFlags.NonPublic));
-      type = type.BaseType;
+    Type? currentType = type;
+    while (currentType != null && currentType != typeof(object)) {
+      fields.InsertRange(0, currentType.GetFields(BindingFlags.DeclaredOnly |
+                                                  BindingFlags.Instance |
+                                                  BindingFlags.Public |
+                                                  BindingFlags.NonPublic));
+      currentType = currentType.BaseType;
     }
     return fields;
   }

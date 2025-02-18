@@ -108,10 +108,10 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     return IsRevealedInScope(scope) || opaqueScope.VisibleInScope(scope);
   }
 
-  protected string sanitizedName;
+  protected string? sanitizedName;
   public virtual string SanitizedName => sanitizedName ??= NonglobalVariable.SanitizeName(Name);
 
-  protected string compileName;
+  protected string? compileName;
 
   public virtual string GetCompileName(DafnyOptions options) {
     if (compileName == null) {
@@ -123,7 +123,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   }
 
   public Attributes? Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
-  Attributes IAttributeBearingDeclaration.Attributes {
+  Attributes? IAttributeBearingDeclaration.Attributes {
     get => Attributes;
     set => Attributes = value;
   }

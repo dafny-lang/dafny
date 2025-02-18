@@ -7,7 +7,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public partial class Deserializer(IDecoder decoder) {
-  private Uri uri;
+  private Uri? uri;
 
   private Specification<T> ReadSpecification<T>() where T : Node {
     var parameter0 = ReadAbstract<IOrigin>();

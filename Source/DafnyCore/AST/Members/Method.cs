@@ -122,7 +122,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
     }
 
-    this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
     this.Body = cloner.CloneMethodBody(original);
     this.IsByMethod = original.IsByMethod;
@@ -445,7 +444,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
     object autoRevealDepsVal = null;
     bool autoRevealDeps = Attributes.ContainsMatchingValue(Attributes, "autoRevealDependencies",
-      ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
+      ref autoRevealDepsVal, new HashSet<Attributes.MatchingValueOption> {
         Attributes.MatchingValueOption.Bool,
         Attributes.MatchingValueOption.Int
       }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Origin, s));

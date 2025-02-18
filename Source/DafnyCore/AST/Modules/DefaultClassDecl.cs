@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -9,12 +10,12 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   public override bool AcceptThis => false;
 
   public TopLevelDecl AsTopLevelDecl => this;
-  public TypeDeclSynonymInfo SynonymInfo { get; set; }
+  public TypeDeclSynonymInfo? SynonymInfo { get; set; }
 
   [ParseConstructor]
   public DefaultClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
-    List<MemberDecl> members, List<Type> traits = null)
+    List<MemberDecl> members, List<Type>? traits = null)
     : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
   }
 

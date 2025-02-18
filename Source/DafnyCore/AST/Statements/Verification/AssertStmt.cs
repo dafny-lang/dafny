@@ -16,7 +16,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     Label = original.Label == null ? null : new AssertLabel(cloner.Origin(original.Label.Tok), original.Label.Name);
   }
 
-  public static AssertStmt CreateErrorAssert(INode node, string message, Expression guard = null) {
+  public static AssertStmt CreateErrorAssert(INode node, string message, Expression? guard = null) {
     var errorMessage = new StringLiteralExpr(node.Origin, message, true);
     errorMessage.Type = new SeqType(Type.Char);
     var attr = new Attributes("error", [errorMessage], null);
@@ -27,7 +27,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   [ParseConstructor]
-  public AssertStmt(IOrigin origin, Expression expr, AssertLabel/*?*/ label, Attributes attributes)
+  public AssertStmt(IOrigin origin, Expression expr, AssertLabel? label, Attributes attributes)
     : base(origin, expr, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
@@ -69,7 +69,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     }
 
     if (this.HasUserAttribute("only", out var attribute)) {
-      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.Origin,
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute!.Origin,
         "Assertion with {:only} temporarily transforms other assertions into assumptions");
       if (attribute.Args.Count >= 1
           && attribute.Args[0] is LiteralExpr { Value: string value }
@@ -88,7 +88,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
       return false;
     }
 
-    if (attribute.Args.Count != 1 || attribute.Args[0] is not LiteralExpr { Value: var value }) {
+    if (attribute!.Args.Count != 1 || attribute.Args[0] is not LiteralExpr { Value: var value }) {
       return true;
     }
 

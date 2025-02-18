@@ -88,7 +88,7 @@ public abstract class PostParseAstVisitor {
       var baseParseConstructor = GetParseConstructor(baseType);
       var missingParameters =
         baseParseConstructor.GetParameters().Select(p => p.Name)
-          .Except(myParseConstructor.GetParameters().Select(p => p.Name));
+          .Except(myParseConstructor.GetParameters().Select(p => p.Name)).ToList();
       if (missingParameters.Any()) {
         throw new Exception($"in type {type}, missing parameters: {string.Join(",", missingParameters)}");
       }
@@ -156,7 +156,7 @@ public abstract class PostParseAstVisitor {
     toVisit.Push(type);
   }
 
-  protected static ConstructorInfo? GetParseConstructor(Type type) {
+  protected static ConstructorInfo GetParseConstructor(Type type) {
     var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
     return constructors.Where(c => !c.IsPrivate &&
                                    !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c =>

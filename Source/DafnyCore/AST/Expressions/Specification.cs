@@ -10,7 +10,6 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
 
   [ContractInvariantMethod]
   private void ObjectInvariant() {
-    Contract.Invariant(Expressions == null || cce.NonNullElements<T>(Expressions));
   }
 
   public Specification() {
@@ -20,13 +19,11 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
 
   [ParseConstructor]
   public Specification(IOrigin origin, List<T> expressions, Attributes attributes) : base(origin) {
-    Contract.Requires(expressions == null || cce.NonNullElements<T>(expressions));
     Expressions = expressions;
     Attributes = attributes;
   }
 
-  public Specification(List<T> expressions, Attributes attributes) {
-    Contract.Requires(expressions == null || cce.NonNullElements<T>(expressions));
+  public Specification(List<T> expressions, Attributes? attributes) {
     Expressions = expressions;
     Attributes = attributes;
   }
