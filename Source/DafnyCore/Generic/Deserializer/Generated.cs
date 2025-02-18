@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
 {
@@ -118,7 +117,7 @@ namespace Microsoft.Dafny
         public BinaryExpr ReadBinaryExpr()
         {
             var parameter0 = ReadSourceOrigin();
-            var parameter1 = ReadOpcode();
+            var parameter1 = ReadBinaryExprOpcode();
             var parameter2 = ReadAbstract<Expression>();
             var parameter3 = ReadAbstract<Expression>();
             return new BinaryExpr(parameter0, parameter1, parameter2, parameter3);
@@ -134,10 +133,10 @@ namespace Microsoft.Dafny
             return ReadBinaryExpr();
         }
 
-        private BinaryExpr.Opcode ReadOpcode()
+        private Opcode ReadOpcode()
         {
             int ordinal = ReadInt32();
-            return (BinaryExpr.Opcode)ordinal;
+            return (Opcode)ordinal;
         }
 
         public LiteralExpr ReadLiteralExpr()
@@ -237,7 +236,7 @@ namespace Microsoft.Dafny
         {
             var parameter0 = ReadSourceOrigin();
             var parameter1 = ReadString();
-            var parameter2 = ReadListOption<Type>(() => ReadAbstract<Type>());
+            var parameter2 = ReadList<Type>(() => ReadAbstract<Type>());
             return new NameSegment(parameter0, parameter1, parameter2);
         }
 
@@ -327,8 +326,8 @@ namespace Microsoft.Dafny
 
         public TypeParameterCharacteristics ReadTypeParameterCharacteristics()
         {
-            var parameter0 = ReadEqualitySupportValue();
-            var parameter1 = ReadAutoInitInfo();
+            var parameter0 = ReadTypeParameterEqualitySupportValue();
+            var parameter1 = ReadTypeAutoInitInfo();
             var parameter2 = ReadBoolean();
             return new TypeParameterCharacteristics(parameter0, parameter1, parameter2);
         }
@@ -343,16 +342,16 @@ namespace Microsoft.Dafny
             return ReadTypeParameterCharacteristics();
         }
 
-        private Type.AutoInitInfo ReadAutoInitInfo()
+        private AutoInitInfo ReadAutoInitInfo()
         {
             int ordinal = ReadInt32();
-            return (Type.AutoInitInfo)ordinal;
+            return (AutoInitInfo)ordinal;
         }
 
-        private TypeParameter.EqualitySupportValue ReadEqualitySupportValue()
+        private EqualitySupportValue ReadEqualitySupportValue()
         {
             int ordinal = ReadInt32();
-            return (TypeParameter.EqualitySupportValue)ordinal;
+            return (EqualitySupportValue)ordinal;
         }
 
         private TPVarianceSyntax ReadTPVarianceSyntax()
@@ -700,6 +699,28 @@ namespace Microsoft.Dafny
             return ReadClassDecl();
         }
 
+        public DefaultClassDecl ReadDefaultClassDecl()
+        {
+            Microsoft.Dafny.ModuleDefinition parameter4 = null;
+            var parameter0 = ReadSourceOrigin();
+            var parameter1 = ReadName();
+            var parameter2 = ReadAttributes();
+            var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
+            var parameter5 = ReadList<MemberDecl>(() => ReadAbstract<MemberDecl>());
+            var parameter6 = ReadList<Type>(() => ReadAbstract<Type>());
+            return new DefaultClassDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6);
+        }
+
+        public DefaultClassDecl ReadDefaultClassDeclOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadDefaultClassDecl();
+        }
+
         public LiteralModuleDecl ReadLiteralModuleDecl()
         {
             Microsoft.Dafny.DafnyOptions parameter0 = null;
@@ -766,7 +787,7 @@ namespace Microsoft.Dafny
             int ordinal = ReadInt32();
             return (ModuleKindEnum)ordinal;
         }
-        
+
         public FileModuleDefinition ReadFileModuleDefinition()
         {
             Microsoft.Dafny.ModuleDefinition parameter5 = null;
@@ -960,6 +981,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(ClassDecl))
             {
                 return ReadClassDecl();
+            }
+
+            if (actualType == typeof(DefaultClassDecl))
+            {
+                return ReadDefaultClassDecl();
             }
 
             if (actualType == typeof(LiteralModuleDecl))

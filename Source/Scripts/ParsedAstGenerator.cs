@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny;
+using Scripts;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using Type = System.Type;
 
@@ -33,9 +34,9 @@ public class ParsedAstGenerator : PostParseAstVisitor {
     compilationUnit = compilationUnit.NormalizeWhitespace();
 
     var hasErrors = CheckCorrectness(compilationUnit);
-    // if (hasErrors) {
-    //   throw new Exception("Exception");
-    // }
+    if (hasErrors) {
+      throw new Exception("Exception");
+    }
     return compilationUnit.ToFullString();
   }
 

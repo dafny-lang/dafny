@@ -2,7 +2,7 @@ using System.Reflection;
 using Microsoft.Dafny;
 using Type = System.Type;
 
-namespace IntegrationTests;
+namespace Scripts;
 
 /// <summary>
 /// Visits the classes and fields of the Dafny AST that are used by the parser

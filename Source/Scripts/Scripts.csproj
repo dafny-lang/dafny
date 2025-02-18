@@ -17,4 +17,11 @@
       <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="ParsedAst" />
+      <EmbeddedResource Include="ParsedAst">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </EmbeddedResource>
+    </ItemGroup>
+
 </Project>
