@@ -9,9 +9,7 @@ public class CompilationData(
   List<Include> includes,
   IList<Uri> rootSourceUris,
   ISet<Uri> alreadyVerifiedRoots,
-  ISet<Uri> alreadyCompiledRoots) 
-
-{
+  ISet<Uri> alreadyCompiledRoots) {
   public DafnyOptions Options => ErrorReporter.Options;
   public ErrorReporter ErrorReporter { get; } = errorReporter;
   public IList<Uri> RootSourceUris { get; } = rootSourceUris;

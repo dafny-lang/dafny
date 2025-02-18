@@ -21,8 +21,8 @@ public class SourceToBinary {
     result.AddArgument(inputArgument);
     var outputArgument = new Argument<FileInfo>("output", "File to write binary output to");
     result.AddArgument(outputArgument);
-    result.SetHandler((file1, file2) => Handle(file1.FullName, 
-      new StreamWriter(file2.FullName)), 
+    result.SetHandler((file1, file2) => Handle(file1.FullName,
+      new StreamWriter(file2.FullName)),
       inputArgument, outputArgument);
     return result;
   }
@@ -31,8 +31,8 @@ public class SourceToBinary {
     var options = DafnyOptions.Default;
     var errorReporter = new BatchErrorReporter(options);
     var input = await File.ReadAllTextAsync(inputFile);
-    var parseResult = await ProgramParser.Parse(input, new Uri("file:///memory.dfy"), errorReporter);
-    
+    var parseResult = await ProgramParser.Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
+
     var parsedAstSource = ResourceLoader.GetResourceAsString("ParsedAst");
     var output = new StringBuilder();
     var textEncoder = new TextEncoder(output);
@@ -49,7 +49,7 @@ public class SourceToBinary {
       references,
       new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     var semanticModel = compilation.GetSemanticModel(syntaxTree);
-        
+
     var root = syntaxTree.GetCompilationUnitRoot();
 
     var typeDeclarations = root.DescendantNodes().OfType<TypeDeclarationSyntax>();
@@ -65,85 +65,72 @@ public class SourceToBinary {
 
 
 public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsedAstTypes) {
-  private readonly Dictionary<string, HashSet<string>> fieldsPerType = 
-    parsedAstTypes.ToDictionary(t => t.Name, t => 
-      GetAllMembers(t).OfType<IFieldSymbol>().Select(f => f.Name.ToLower()).ToHashSet());
+  private readonly Dictionary<string, List<string>> fieldsPerType =
+    parsedAstTypes.ToDictionary(t => t.Name, t =>
+      GetAllMembers(t).OfType<IFieldSymbol>().Select(f => f.Name.ToLower()).ToList());
 
-  private static IEnumerable<ISymbol> GetAllMembers(INamedTypeSymbol type)
-  {
+  private static IEnumerable<ISymbol> GetAllMembers(INamedTypeSymbol type) {
     var baseType = type.BaseType;
     if (baseType == null || baseType.SpecialType == SpecialType.System_Object) {
       return type.GetMembers();
     }
 
-    return type.GetMembers()
-      .Concat(GetAllMembers(baseType));
+    return GetAllMembers(baseType).Concat(type.GetMembers());
   }
-  
+
   private static readonly Dictionary<string, string> SimpleTypeNameMapping = new()
   {
     { "Int32", "Int32" }
   };
 
-  public void Serialize(object obj)
-  {
+  public void Serialize(object obj) {
     SerializeObject(obj);
   }
 
   public void SerializeValue(object? value, Type expectedType, bool isNullable) {
-    if (isNullable)
-    {
+    if (isNullable) {
       encoder.WriteNullable(value == null);
-      if (value == null)
-      {
+      if (value == null) {
         return;
       }
     }
-            
-    if (value == null)
-    {
+
+    if (value == null) {
       throw new InvalidOperationException("Unexpected null value for non-nullable type");
     }
 
-    if (expectedType.IsGenericType && expectedType.GetGenericTypeDefinition() == typeof(Nullable<>))
-    {
+    if (expectedType.IsGenericType && expectedType.GetGenericTypeDefinition() == typeof(Nullable<>)) {
       expectedType = Nullable.GetUnderlyingType(expectedType)!;
     }
 
-    if (expectedType.IsEnum)
-    {
+    if (expectedType.IsEnum) {
       encoder.WriteInt((int)value);
       return;
     }
 
-    if (expectedType.IsArray)
-    {
+    if (expectedType.IsArray) {
       SerializeArray((Array)value, expectedType.GetElementType()!);
       return;
     }
-            
-    if (value is IList list)
-    {
+
+    if (value is IList list) {
       SerializeList(list, expectedType.GetGenericArguments()[0]);
       return;
     }
 
-    bool isAbstract = expectedType == typeof(object) || 
-                      (expectedType.IsClass && expectedType.IsAbstract);
-            
-    if (isAbstract)
-    {
+    bool isAbstract = expectedType == typeof(object) ||
+                      expectedType is { IsClass: true, IsAbstract: true } || expectedType.IsInterface;
+
+    if (isAbstract) {
       var actualType = value.GetType();
       string simpleName = actualType.Name;
-      if (SimpleTypeNameMapping.TryGetValue(simpleName, out var mappedName))
-      {
+      if (SimpleTypeNameMapping.TryGetValue(simpleName, out var mappedName)) {
         simpleName = mappedName;
       }
       encoder.WriteQualifiedName(simpleName);
     }
 
-    switch (value)
-    {
+    switch (value) {
       case string s:
         encoder.WriteString(s);
         break;
@@ -162,106 +149,96 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
     }
   }
 
-  private void SerializeList(IList list, Type elementType)
-  {
+  private void SerializeList(IList list, Type elementType) {
     int length = list.Count;
     encoder.WriteInt(length);
-            
-    for (int i = 0; i < length; i++)
-    {
+
+    for (int i = 0; i < length; i++) {
       // In C#, we'll need to determine nullability differently
-      bool isNullable = elementType.IsClass || 
-                        (elementType.IsGenericType && 
+      bool isNullable = elementType.IsClass ||
+                        (elementType.IsGenericType &&
                          elementType.GetGenericTypeDefinition() == typeof(Nullable<>));
       SerializeValue(list[i], elementType, isNullable);
     }
   }
 
-  private void SerializeArray(Array array, Type elementType)
-  {
+  private void SerializeArray(Array array, Type elementType) {
     int length = array.Length;
     encoder.WriteInt(length);
-            
-    for (int i = 0; i < length; i++)
-    {
-      bool isNullable = elementType.IsClass || 
-                        (elementType.IsGenericType && 
+
+    for (int i = 0; i < length; i++) {
+      bool isNullable = elementType.IsClass ||
+                        (elementType.IsGenericType &&
                          elementType.GetGenericTypeDefinition() == typeof(Nullable<>));
       SerializeValue(array.GetValue(i), elementType, isNullable);
     }
   }
 
-  private void SerializeMap(IDictionary map, Type mapType)
-  {
+  private void SerializeMap(IDictionary map, Type mapType) {
     encoder.WriteInt(map.Count);
-            
+
     Type[] genericArgs = mapType.GetGenericArguments();
     Type keyType = genericArgs[0];
     Type valueType = genericArgs[1];
 
-    foreach (DictionaryEntry entry in map)
-    {
-      bool keyNullable = keyType.IsClass || 
-                         (keyType.IsGenericType && 
+    foreach (DictionaryEntry entry in map) {
+      bool keyNullable = keyType.IsClass ||
+                         (keyType.IsGenericType &&
                           keyType.GetGenericTypeDefinition() == typeof(Nullable<>));
-      bool valueNullable = valueType.IsClass || 
-                           (valueType.IsGenericType && 
+      bool valueNullable = valueType.IsClass ||
+                           (valueType.IsGenericType &&
                             valueType.GetGenericTypeDefinition() == typeof(Nullable<>));
-                
+
       SerializeValue(entry.Key, keyType, keyNullable);
       SerializeValue(entry.Value, valueType, valueNullable);
     }
   }
 
-  private void SerializeObject(object obj)
-  {
+  private void SerializeObject(object obj) {
     var instanceType = obj.GetType();
     Type? foundType = instanceType;
-    while (foundType != null && !fieldsPerType.ContainsKey(foundType.Name)) {
+    while (foundType != null && !fieldsPerType.ContainsKey(
+             PostParseAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name))) {
       foundType = foundType.BaseType;
     }
 
     if (foundType == null) {
       throw new Exception();
     }
-    
-    var fieldNames = fieldsPerType[foundType.Name];
-    IEnumerable<FieldInfo> fields = GetSerializableFields(foundType);
 
-    foreach (FieldInfo field in fields) {
-      var fieldName = field.Name;
-      if (fieldName.StartsWith("<") && fieldName.EndsWith("k__BackingField"))
-      {
+    var fieldNames = fieldsPerType[PostParseAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name)];
+    var fieldsPerName = GetSerializableFields(foundType).ToDictionary(f => {
+
+      var fieldName = f.Name;
+      if (fieldName.StartsWith("<") && fieldName.EndsWith("k__BackingField")) {
         fieldName = fieldName.Substring(1, fieldName.IndexOf(">", StringComparison.Ordinal) - 1);
       }
-      if (!fieldNames.Contains(fieldName.ToLower())) {
-        continue;
-      }
-      
-      try
-      {
+
+      return fieldName.ToLower();
+    }, f => f);
+
+    foreach (var fieldName in fieldNames) {
+      var field = fieldsPerName[fieldName];
+
+      try {
         object? value = field.GetValue(obj);
-        
+
         var nullabilityContext = new NullabilityInfoContext();
         var nullabilityInfo = nullabilityContext.Create(field);
         bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
         SerializeValue(value, field.FieldType, isNullable);
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         throw new InvalidOperationException($"Failed to serialize field: {field.Name}", e);
       }
     }
   }
 
-  private static IEnumerable<FieldInfo> GetSerializableFields(Type type)
-  {
+  private static IEnumerable<FieldInfo> GetSerializableFields(Type type) {
     var fields = new List<FieldInfo>();
-    while (type != null && type != typeof(object))
-    {
-      fields.InsertRange(0, type.GetFields(BindingFlags.DeclaredOnly | 
-                                           BindingFlags.Instance | 
-                                           BindingFlags.Public | 
+    while (type != null && type != typeof(object)) {
+      fields.InsertRange(0, type.GetFields(BindingFlags.DeclaredOnly |
+                                           BindingFlags.Instance |
+                                           BindingFlags.Public |
                                            BindingFlags.NonPublic));
       type = type.BaseType;
     }

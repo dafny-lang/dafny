@@ -10,8 +10,7 @@ public class ActualBindings : NodeWithComputedRange {
   public readonly List<ActualBinding> ArgumentBindings;
 
   [ParseConstructor]
-  public ActualBindings(IOrigin origin, List<ActualBinding> argumentBindings) : base(origin)
-  {
+  public ActualBindings(IOrigin origin, List<ActualBinding> argumentBindings) : base(origin) {
     ArgumentBindings = argumentBindings;
   }
 

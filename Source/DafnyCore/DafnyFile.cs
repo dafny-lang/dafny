@@ -121,7 +121,7 @@ public class DafnyFile {
     if (uri == StdInUri) {
       return HandleStandardInput(options, origin);
     }
-    
+
     string canonicalPath;
     string baseName;
     if (uri.IsFile) {

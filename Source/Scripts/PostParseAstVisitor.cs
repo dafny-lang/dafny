@@ -131,7 +131,7 @@ public abstract class PostParseAstVisitor {
     if (constructor == null) {
       return;
     }
-    
+
     var parameters = constructor.GetParameters();
     for (var index = 0; index < parameters.Length; index++) {
       var parameter = constructor.GetParameters()[index];
@@ -175,7 +175,7 @@ public abstract class PostParseAstVisitor {
     if (!t.IsGenericType) {
       var name = t.Name;
       if (t.IsNested) {
-        name = t.DeclaringType!.Name + (nestedDot ? "." : "") +name;
+        name = t.DeclaringType!.Name + (nestedDot ? "." : "") + name;
       }
       return name;
     }
@@ -184,14 +184,17 @@ public abstract class PostParseAstVisitor {
     if (t.IsNested) {
       genericTypeName = t.DeclaringType!.Name + genericTypeName;
     }
-    genericTypeName = genericTypeName.Substring(0,
-      genericTypeName.IndexOf('`'));
+    genericTypeName = CutOffGenericSuffixPartOfName(genericTypeName);
     string genericArgs = string.Join(",",
       t.GetGenericArguments()
         .Select(argumentType => ToGenericTypeString(argumentType, mapNestedTypes, mapNestedTypes)).ToArray());
     return genericTypeName + "<" + genericArgs + ">";
   }
 
+  public static string CutOffGenericSuffixPartOfName(string genericTypeName) {
+    var tildeLocation = genericTypeName.IndexOf('`');
+    return tildeLocation >= 0 ? genericTypeName.Substring(0, tildeLocation) : genericTypeName;
+  }
 }
 
 static class TypeExtensions {

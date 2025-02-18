@@ -163,7 +163,7 @@ public class ProgramParser {
   private static void AddParseResultToProgram(DfyParseFileResult parseFileResult, Program program,
     Dictionary<Uri, int> versionedFiles) {
     program.Compilation.RootSourceUris.AddRange(parseFileResult.NewRootUris);
-    
+
     if (parseFileResult.Version != null) {
       versionedFiles.Add(parseFileResult.Uri, parseFileResult.Version.Value);
     }
@@ -295,7 +295,7 @@ public class ProgramParser {
       new Name("ignore"), new List<IOrigin>(), ModuleKindEnum.Concrete, null, null, null,
       filesContainer.Files.SelectMany(f => f.TopLevelDecls).ToList());
     // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
-    return new DfyParseFileResult(null, uri, 
+    return new DfyParseFileResult(null, uri,
       filesContainer.Files.Select(f => new Uri(f.Uri)).ToList(),
       new BatchErrorReporter(options), filesModule, []);
   }

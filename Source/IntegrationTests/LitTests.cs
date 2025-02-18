@@ -108,12 +108,12 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%tobinary", (args, config) =>
-            new MainWithWritersCommand("source-to-binary", args, 
+            new MainWithWritersCommand("source-to-binary", args,
               async (output, error, input, finalArgs) => {
                 await SourceToBinary.Handle(finalArgs.ElementAt(0), output);
                 return 0;
               })
-        }, 
+        },
         {
           "%baredafny", (args, config) =>
             DafnyCommand(args, config, InvokeMainMethodsDirectly)

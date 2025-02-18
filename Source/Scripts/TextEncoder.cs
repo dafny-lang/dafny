@@ -4,47 +4,38 @@ using IntegrationTests;
 namespace Scripts;
 
 class TextEncoder(StringBuilder writer) : IEncoder {
-  public void WriteNullable(bool isNull)
-  {
-    if (isNull)
-    {
+  public void WriteNullable(bool isNull) {
+    if (isNull) {
       writer.Append("null");
       writer.Append(' ');
     }
   }
 
-  public void WriteBool(bool value)
-  {
+  public void WriteBool(bool value) {
     writer.Append(value ? "true" : "false");
     writer.Append(' ');
   }
 
-  public void WriteInt(int value)
-  {
+  public void WriteInt(int value) {
     writer.Append(value);
     writer.Append(";");
     writer.Append(' ');
   }
 
-  public void WriteQualifiedName(string name)
-  {
+  public void WriteQualifiedName(string name) {
     writer.Append(name);
     writer.Append(' ');
   }
 
-  public void WriteString(string value)
-  {
+  public void WriteString(string value) {
     writer.Append(EscapeString(value));
     writer.Append(' ');
   }
 
-  private static string EscapeString(string str)
-  {
+  private static string EscapeString(string str) {
     var sb = new StringBuilder("\"");
-    foreach (char c in str)
-    {
-      switch (c)
-      {
+    foreach (char c in str) {
+      switch (c) {
         case '"':
           sb.Append("\\\"");
           break;

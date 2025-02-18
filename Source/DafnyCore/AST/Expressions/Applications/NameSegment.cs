@@ -9,7 +9,7 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, IC
   public readonly string Name;
   public Name NameNode => new Name(Origin, Name);
   public readonly List<Type>? OptTypeArguments;
-  
+
   [ParseConstructor]
   public NameSegment(IOrigin origin, string name, List<Type>? optTypeArguments)
     : base(origin) {

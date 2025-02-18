@@ -50,9 +50,9 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
     Rhss = rhss;
     CanMutateKnownState = false;
   }
-  
+
   [ParseConstructor]
-  public AssignStatement(IOrigin origin, List<Expression> lhss, List<AssignmentRhs> rhss, bool canMutateKnownState, 
+  public AssignStatement(IOrigin origin, List<Expression> lhss, List<AssignmentRhs> rhss, bool canMutateKnownState,
     Attributes? attributes = null)
     : base(origin, lhss, attributes) {
     Contract.Requires(cce.NonNullElements(lhss));

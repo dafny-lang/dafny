@@ -8,9 +8,9 @@ namespace Microsoft.Dafny;
 
 public partial class Deserializer(IDecoder decoder) {
   private Uri uri;
-  
+
   private Specification<T> ReadSpecification<T>() where T : Node {
-    var parameter0 = DeserializeGeneric<SourceOrigin>();
+    var parameter0 = ReadAbstract<IOrigin>();
     if (typeof(T) == typeof(FrameExpression)) {
       var parameter1 = ReadList<T>(() => (T)(object)ReadFrameExpression());
       var parameter2 = ReadAttributesOption();
@@ -27,10 +27,10 @@ public partial class Deserializer(IDecoder decoder) {
     if (isNull) {
       return null;
     }
-    
+
     return ReadArray<T>(readElement).ToList();
   }
-  
+
   private List<T> ReadList<T>(Func<T> readElement) {
     return ReadArray<T>(readElement).ToList();
   }
@@ -43,14 +43,14 @@ public partial class Deserializer(IDecoder decoder) {
     var files = ReadList<FileStart>(() => ReadFileStart());
     return new FilesContainer(files);
   }
-  
+
   public FileStart ReadFileStart() {
     var uri = ReadString();
     this.uri = new Uri(uri);
     var topLevelDecls = ReadList<TopLevelDecl>(() => ReadAbstract<TopLevelDecl>());
     return new FileStart(uri, topLevelDecls);
   }
-  
+
   public Token ReadToken() {
     var parameter0 = ReadInt32();
     var parameter1 = ReadInt32();
@@ -85,7 +85,7 @@ public partial class Deserializer(IDecoder decoder) {
   public T ReadAbstract<T>() {
     var typeName = decoder.ReadQualifiedName();
     var actualType = System.Type.GetType("Microsoft.Dafny." + typeName) ??
-                 System.Type.GetType("System." + typeName) ?? 
+                 System.Type.GetType("System." + typeName) ??
                  throw new Exception($"Type not found: {typeName}, expected type {typeof(T).Name}, position {decoder.Position}");
     return DeserializeGeneric<T>(actualType);
   }
@@ -93,7 +93,7 @@ public partial class Deserializer(IDecoder decoder) {
   public bool ReadIsNull() {
     return decoder.ReadIsNull();
   }
-  
+
   public bool ReadBool() {
     return decoder.ReadBool();
   }
@@ -135,15 +135,15 @@ public partial class Deserializer(IDecoder decoder) {
     if (actualType == typeof(SourceOrigin)) {
       return (T)(object)ReadSourceOrigin();
     }
-    
+
     if (actualType == typeof(Token)) {
       return (T)(object)ReadToken();
     }
 
     return (T)ReadObject(actualType);
   }
-  
-  
+
+
   public SourceOrigin ReadSourceOrigin() {
     var start = ReadToken();
     var end = ReadToken();

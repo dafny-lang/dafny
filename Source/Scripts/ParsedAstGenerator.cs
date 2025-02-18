@@ -67,7 +67,7 @@ public class ParsedAstGenerator : PostParseAstVisitor {
       }
 
       var nullabilityContext = new NullabilityInfoContext();
-      var nullabilityInfo = memberInfo is PropertyInfo propertyInfo ? nullabilityContext.Create(propertyInfo) : nullabilityContext.Create((FieldInfo) memberInfo);
+      var nullabilityInfo = memberInfo is PropertyInfo propertyInfo ? nullabilityContext.Create(propertyInfo) : nullabilityContext.Create((FieldInfo)memberInfo);
       bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
       var nullableSuffix = isNullable ? "?" : "";
 

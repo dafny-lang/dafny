@@ -1791,18 +1791,15 @@ public abstract class NonProxyType : Type {
 }
 
 public abstract class BasicType : NonProxyType {
-  
-  protected BasicType() : base(null)
-  {
-  }
-  
-  [ParseConstructor]
-  protected BasicType(IOrigin origin) : base(origin)
-  {
+
+  protected BasicType() : base(null) {
   }
 
-  protected BasicType(Cloner cloner, NonProxyType original) : base(cloner, original)
-  {
+  [ParseConstructor]
+  protected BasicType(IOrigin origin) : base(origin) {
+  }
+
+  protected BasicType(Cloner cloner, NonProxyType original) : base(cloner, original) {
   }
 
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
@@ -1842,14 +1839,12 @@ public class CharType : BasicType {
 }
 
 public class IntType : BasicType {
-  
+
   [ParseConstructor]
-  public IntType(IOrigin origin) : base(origin)
-  {
+  public IntType(IOrigin origin) : base(origin) {
   }
 
-  public IntType()
-  {
+  public IntType() {
   }
 
   [Pure]
