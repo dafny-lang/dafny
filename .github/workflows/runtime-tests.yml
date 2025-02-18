@@ -49,6 +49,9 @@ jobs:
         run: dotnet build Source/Dafny.sln
       - name: Get Z3
         run: make z3-ubuntu
+      - name: Test using outer Makefile
+        run: |
+          make test-integration
       - name: Test DafnyCore
         run: |
           cd ./Source/DafnyCore
