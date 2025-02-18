@@ -8,6 +8,9 @@ using Action = System.Action;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// Used to indicate to the serialization code generator, which constructor should be used.
+/// </summary>
 [AttributeUsage(AttributeTargets.Constructor)]
 public class ParseConstructorAttribute : Attribute { }
 

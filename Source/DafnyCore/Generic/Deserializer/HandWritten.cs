@@ -154,3 +154,12 @@ public partial class Deserializer(IDecoder decoder) {
     return decoder.ReadInt32();
   }
 }
+
+public class FilesContainer(List<FileStart> files) {
+  public List<FileStart> Files { get; } = files;
+}
+
+public class FileStart(string uri, List<TopLevelDecl> topLevelDecls) {
+  public string Uri { get; } = uri;
+  public List<TopLevelDecl> TopLevelDecls { get; } = topLevelDecls;
+}

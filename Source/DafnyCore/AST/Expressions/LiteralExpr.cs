@@ -50,7 +50,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
 
   [ParseConstructor]
   public LiteralExpr(IOrigin origin, object value)
-    : base(origin) {  // represents the Dafny literal "null"
+    : base(origin) {
     this.Value = value is int n ? new BigInteger(n) : value;
   }
 

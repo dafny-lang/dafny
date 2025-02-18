@@ -291,7 +291,6 @@ public class ProgramParser {
     filesModule.SourceDecls.AddRange(
       filesContainer.Files.SelectMany(f => f.TopLevelDecls));
 
-    // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
     return new DfyParseFileResult(null, uri,
       filesContainer.Files.Select(f => new Uri(f.Uri)).ToList(),
       new BatchErrorReporter(options), filesModule, []);
