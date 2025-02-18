@@ -166,7 +166,7 @@ public class ProgramParser {
   private static void AddParseResultToProgram(DfyParseFileResult parseFileResult, Program program,
     Dictionary<Uri, int> versionedFiles) {
     program.Compilation.RootSourceUris.AddRange(parseFileResult.NewRootUris);
-    
+
     if (parseFileResult.Version != null) {
       versionedFiles.Add(parseFileResult.Uri, parseFileResult.Version.Value);
     }
@@ -280,7 +280,7 @@ public class ProgramParser {
     Uri uri, CancellationToken cancellationToken) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
     using var reader = fileSnapshot.Reader;
-    
+
     if (options.Get(CommonOptionBag.InputType) == CommonOptionBag.InputTypeEnum.Source) {
       var text = SourcePreprocessor.ProcessDirectives(reader, []);
       return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
@@ -290,7 +290,7 @@ public class ProgramParser {
     var filesModule = new FileModuleDefinition(SourceOrigin.NoToken);
     filesModule.SourceDecls.AddRange(
       filesContainer.Files.SelectMany(f => f.TopLevelDecls));
-      
+
     // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
     return new DfyParseFileResult(null, uri,
       filesContainer.Files.Select(f => new Uri(f.Uri)).ToList(),

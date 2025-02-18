@@ -68,8 +68,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   public readonly Attributes? Prev;
 
   [ParseConstructor]
-  public Attributes(IOrigin origin, string name, List<Expression> args, Attributes? prev) : base(origin)
-  {
+  public Attributes(IOrigin origin, string name, List<Expression> args, Attributes? prev) : base(origin) {
     Name = name;
     Args = args;
     Prev = prev;

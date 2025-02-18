@@ -53,7 +53,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
     : base(origin) {  // represents the Dafny literal "null"
     this.Value = value is int n ? new BigInteger(n) : value;
   }
-  
+
   public LiteralExpr(IOrigin origin)
     : base(origin) {  // represents the Dafny literal "null"
     Contract.Requires(origin != null);

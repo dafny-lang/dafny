@@ -108,7 +108,7 @@ public partial class Deserializer(IDecoder decoder) {
     var center = ReadToken();
     return new SourceOrigin(start, end, center);
   }
-  
+
   public string? ReadStringOption() {
     var isNull = decoder.ReadIsNull();
     if (isNull) {

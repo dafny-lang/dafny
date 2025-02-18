@@ -66,7 +66,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     this.NewSelfSynonym();
   }
   public override bool IsRefining { get; }
-  
+
   public Type ConcreteBaseType(List<Type> typeArguments) {
     Contract.Requires(TypeArgs.Count == typeArguments.Count);
     if (typeArguments.Count == 0) {

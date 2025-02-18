@@ -20,7 +20,7 @@ public class CommonOptionBag {
   public static readonly Option<InputTypeEnum> InputType = new("--input-format", () => InputTypeEnum.Source) {
     IsHidden = true
   };
-  
+
   public static void EnsureStaticConstructorHasRun() { }
 
   public enum ProgressLevel { None, Symbol, Batch }
