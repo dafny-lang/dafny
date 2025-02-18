@@ -34,12 +34,14 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     Attributes attributes, IOrigin signatureEllipsis, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
+    Specification<FrameExpression> reads,
     Specification<Expression> decreases)
     : base(origin, name, hasStaticKeyword, isGhost, attributes) {
     TypeArgs = typeArgs;
     this.SignatureEllipsis = signatureEllipsis;
     Req = req;
     Decreases = decreases;
+    Reads = reads;
     Ens = ens;
     Ins = ins;
   }

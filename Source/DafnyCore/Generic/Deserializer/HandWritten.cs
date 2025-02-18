@@ -9,18 +9,18 @@ namespace Microsoft.Dafny;
 public partial class Deserializer(IDecoder decoder) {
   private Uri uri;
 
-  // private Specification<T> ReadSpecification<T>() where T : Node {
-  //   var parameter0 = ReadAbstract<IOrigin>();
-  //   if (typeof(T) == typeof(FrameExpression)) {
-  //     var parameter1 = ReadList<T>(() => (T)(object)ReadFrameExpression());
-  //     var parameter2 = ReadAttributesOption();
-  //     return new Specification<T>(parameter0, parameter1, parameter2);
-  //   } else {
-  //     var parameter1 = ReadList<T>(() => (T)(object)ReadAbstract<Expression>());
-  //     var parameter2 = ReadAttributesOption();
-  //     return new Specification<T>(parameter0, parameter1, parameter2);
-  //   }
-  // }
+  private Specification<T> ReadSpecification<T>() where T : Node {
+    var parameter0 = ReadAbstract<IOrigin>();
+    if (typeof(T) == typeof(FrameExpression)) {
+      var parameter1 = ReadList<T>(() => (T)(object)ReadFrameExpression());
+      var parameter2 = ReadAttributesOption();
+      return new Specification<T>(parameter0, parameter1, parameter2);
+    } else {
+      var parameter1 = ReadList<T>(() => (T)(object)ReadAbstract<Expression>());
+      var parameter2 = ReadAttributesOption();
+      return new Specification<T>(parameter0, parameter1, parameter2);
+    }
+  }
 
   private List<T>? ReadListOption<T>(Func<T> readElement) {
     var isNull = decoder.ReadIsNull();
@@ -140,16 +140,7 @@ public partial class Deserializer(IDecoder decoder) {
       return (T)(object)ReadToken();
     }
 
-    throw new NotImplementedException();
-    // return (T)ReadObject(actualType);
-  }
-
-
-  public SourceOrigin ReadSourceOrigin() {
-    var start = ReadToken();
-    var end = ReadToken();
-    var center = ReadToken();
-    return new SourceOrigin(start, end, center);
+    return (T)ReadObject(actualType);
   }
 
   private int ReadInt32() {

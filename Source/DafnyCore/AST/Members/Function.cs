@@ -231,7 +231,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IOrigin/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IOrigin/*?*/ signatureEllipsis)
-    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, decreases) {
+    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
 
     Contract.Requires(Origin != null);
     Contract.Requires(name != null);
@@ -246,7 +246,6 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
     this.Result = result;
     this.ResultType = result != null ? result.Type : resultType;
-    this.Reads = reads;
     this.Body = body;
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;

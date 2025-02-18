@@ -1233,11 +1233,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics) {
+    public string TPCharacteristicsSuffix(TypeParameterCharacteristics characteristics) {
       return TPCharacteristicsSuffix(characteristics, options.DafnyPrintResolvedFile != null);
     }
 
-    public static string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics, bool printInferredTypeCharacteristics) {
+    public static string TPCharacteristicsSuffix(TypeParameterCharacteristics characteristics, bool printInferredTypeCharacteristics) {
       string s = null;
       if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Required ||
           (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && printInferredTypeCharacteristics)) {

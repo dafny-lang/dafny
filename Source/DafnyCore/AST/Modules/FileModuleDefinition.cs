@@ -22,8 +22,8 @@ public class FileStart(string uri, List<TopLevelDecl> topLevelDecls) {
 public class FileModuleDefinition : ModuleDefinition {
   public List<Include> Includes { get; } = [];
 
-  public FileModuleDefinition(IOrigin token) :
-    base(token, new Name("_module"), [],
+  public FileModuleDefinition(IOrigin origin) :
+    base(origin, new Name("_module"), [],
       ModuleKindEnum.Concrete, false, null, null, null) {
     {
     }

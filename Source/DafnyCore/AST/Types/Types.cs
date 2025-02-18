@@ -401,7 +401,7 @@ public abstract class Type : NodeWithComputedRange {
     var t = NormalizeExpandKeepConstraints();
     Contract.Assume(t is NonProxyType); // precondition
 
-    AutoInitInfo CharacteristicToAutoInitInfo(TypeParameter.TypeParameterCharacteristics c) {
+    AutoInitInfo CharacteristicToAutoInitInfo(TypeParameterCharacteristics c) {
       if (c.HasCompiledValue) {
         return AutoInitInfo.CompilableValue;
       } else if (c.IsNonempty) {

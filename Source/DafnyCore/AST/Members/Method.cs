@@ -142,7 +142,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     Attributes attributes, IOrigin signatureEllipsis,
     bool isByMethod = false)
     : base(origin, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis,
-      typeArgs, ins, req, ens, decreases) {
+      typeArgs, ins, req, ens, reads, decreases) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -154,7 +154,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
     this.Outs = outs;
-    this.Reads = reads;
     this.Mod = mod;
     Body = body;
     this.IsByMethod = isByMethod;

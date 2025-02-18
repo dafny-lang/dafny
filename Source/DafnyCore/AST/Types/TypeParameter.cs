@@ -125,43 +125,7 @@ public class TypeParameter : TopLevelDecl {
   }
 
   public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
-  public struct TypeParameterCharacteristics {
-    public SourceOrigin SourceOrigin = null;
-    public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
-    public Type.AutoInitInfo AutoInit;
-    public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
-    public bool IsNonempty => AutoInit != Type.AutoInitInfo.MaybeEmpty;
-    public bool ContainsNoReferenceTypes;
-    public TypeParameterCharacteristics(bool dummy) {
-      EqualitySupport = EqualitySupportValue.Unspecified;
-      AutoInit = Type.AutoInitInfo.MaybeEmpty;
-      ContainsNoReferenceTypes = false;
-    }
-    public TypeParameterCharacteristics(EqualitySupportValue equalitySupport, Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
-      EqualitySupport = equalitySupport;
-      AutoInit = autoInit;
-      ContainsNoReferenceTypes = containsNoReferenceTypes;
-    }
-    public override string ToString() {
-      string result = "";
-      if (EqualitySupport == EqualitySupportValue.Required) {
-        result += ",==";
-      }
-      if (HasCompiledValue) {
-        result += ",0";
-      }
-      if (AutoInit == Type.AutoInitInfo.Nonempty) {
-        result += ",00";
-      }
-      if (ContainsNoReferenceTypes) {
-        result += ",!new";
-      }
-      if (result.Length != 0) {
-        result = "(" + result.Substring(1) + ")";
-      }
-      return result;
-    }
-  }
+
   public TypeParameterCharacteristics Characteristics;
   public bool SupportsEquality {
     get { return Characteristics.EqualitySupport != EqualitySupportValue.Unspecified; }
