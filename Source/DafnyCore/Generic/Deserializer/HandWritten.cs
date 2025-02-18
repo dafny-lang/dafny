@@ -132,11 +132,23 @@ public partial class Deserializer(IDecoder decoder) {
       return (T)(object)decoder.ReadInt32();
     }
 
-    if (actualType == typeof(IOrigin) || actualType == typeof(SourceOrigin)) {
+    if (actualType == typeof(SourceOrigin)) {
       return (T)(object)ReadSourceOrigin();
+    }
+    
+    if (actualType == typeof(Token)) {
+      return (T)(object)ReadToken();
     }
 
     return (T)ReadObject(actualType);
+  }
+  
+  
+  public SourceOrigin ReadSourceOrigin() {
+    var start = ReadToken();
+    var end = ReadToken();
+    var center = ReadToken();
+    return new SourceOrigin(start, end, center);
   }
 
   private int ReadInt32() {

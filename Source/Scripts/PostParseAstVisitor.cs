@@ -128,6 +128,10 @@ public abstract class PostParseAstVisitor {
     var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
     var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
 
+    if (constructor == null) {
+      return;
+    }
+    
     var parameters = constructor.GetParameters();
     for (var index = 0; index < parameters.Length; index++) {
       var parameter = constructor.GetParameters()[index];
