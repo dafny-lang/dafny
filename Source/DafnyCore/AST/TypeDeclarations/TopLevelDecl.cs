@@ -8,6 +8,7 @@ namespace Microsoft.Dafny;
 public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISymbol {
   public abstract string WhatKind { get; }
   public string WhatKindAndName => $"{WhatKind} '{Name}'";
+  [BackEdge]
   public ModuleDefinition EnclosingModuleDefinition;
   public readonly List<TypeParameter> TypeArgs;
   [ContractInvariantMethod]
@@ -20,12 +21,13 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
     EnclosingModuleDefinition = parent;
   }
 
-  protected TopLevelDecl(IOrigin origin, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
-    : base(origin, name, attributes, isRefining) {
+  [ParseConstructor]
+  protected TopLevelDecl(IOrigin origin, Name name, ModuleDefinition enclosingModuleDefinition, List<TypeParameter> typeArgs, Attributes attributes)
+    : base(origin, name, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
-    EnclosingModuleDefinition = enclosingModule;
+    EnclosingModuleDefinition = enclosingModuleDefinition;
     TypeArgs = typeArgs;
   }
 

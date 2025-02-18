@@ -10,6 +10,7 @@ namespace Microsoft.Dafny;
 /// Represents the exports of a module.
 /// </summary>
 public class ModuleExportDecl : ModuleDecl, ICanFormat {
+  public override bool IsRefining { get; }
   public readonly bool IsDefault;
   public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
   public List<IOrigin> Extends; // list of exports that are extended
@@ -29,7 +30,6 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     Extends = original.Extends.Select(cloner.Origin).ToList();
     ProvideAll = original.ProvideAll;
     RevealAll = original.RevealAll;
-    IsRefining = original.IsRefining;
     IsDefault = original.IsDefault;
     ThisScope = new VisibilityScope(FullSanitizedName);
     SetupDefaultSignature();
@@ -38,8 +38,9 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(options, origin, name, parent, false, isRefining, cloneId) {
+    : base(options, origin, name, parent, false, cloneId) {
     Contract.Requires(exports != null);
+    IsRefining = isRefining;
     IsDefault = isDefault;
     Exports = exports;
     Extends = extends;

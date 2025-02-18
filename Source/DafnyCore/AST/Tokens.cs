@@ -18,9 +18,9 @@ public class Token : IOrigin {
 
   public Token() : this(0, 0) { }
 
-  public Token(int linenum, int colnum) {
-    this.line = linenum;
-    this.col = colnum;
+  public Token(int line, int col) {
+    this.line = line;
+    this.col = col;
     this.val = "";
   }
 

@@ -22,13 +22,21 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public readonly Specification<Expression> Decreases;
   public readonly List<Formal> Ins;
 
+  public bool SignatureIsOmitted { // is "false" for all Function objects that survive into resolution
+    get { return SignatureEllipsis != null; }
+  }
+
+  public readonly IOrigin SignatureEllipsis;
+  public override bool IsRefining => SignatureIsOmitted;
+
   protected MethodOrFunction(IOrigin origin, Name name, bool hasStaticKeyword, bool isGhost,
-    Attributes attributes, bool isRefining, List<TypeParameter> typeArgs, List<Formal> ins,
+    Attributes attributes, IOrigin signatureEllipsis, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
     Specification<Expression> decreases)
-    : base(origin, name, hasStaticKeyword, isGhost, attributes, isRefining) {
+    : base(origin, name, hasStaticKeyword, isGhost, attributes) {
     TypeArgs = typeArgs;
+    this.SignatureEllipsis = signatureEllipsis;
     Req = req;
     Decreases = decreases;
     Ens = ens;
@@ -40,6 +48,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
+    this.SignatureEllipsis = original.SignatureEllipsis;
     this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
     if (cloner.CloneResolvedFields) {
       this.ContainsHide = original.ContainsHide;
@@ -94,9 +103,6 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     Req.Count > 0
     // The following check is incomplete, which is a bug.
     || Ins.Any(f => f.Type.AsSubsetType is not null);
-
-  protected MethodOrFunction(SourceOrigin tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining) : base(tok, name, hasStaticKeyword, isGhost, attributes, isRefining) {
-  }
 
   public Specification<FrameExpression> Reads { get; set; }
 }

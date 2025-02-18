@@ -8,6 +8,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren {
+  public override bool IsRefining { get; }
   public readonly List<MemberDecl> Members;
 
   // TODO remove this and instead clone the AST after parsing.
@@ -87,12 +88,13 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
 
-  protected TopLevelDeclWithMembers(IOrigin origin, Name name, ModuleDefinition module,
+  protected TopLevelDeclWithMembers(IOrigin origin, Name name, ModuleDefinition moduleDefinition,
     List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
     bool isRefining, List<Type>/*?*/ traits = null)
-    : base(origin, name, module, typeArgs, attributes, isRefining) {
+    : base(origin, name, moduleDefinition, typeArgs, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
+    IsRefining = isRefining;
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     Members = members;

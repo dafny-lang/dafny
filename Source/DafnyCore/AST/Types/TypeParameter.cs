@@ -137,8 +137,8 @@ public class TypeParameter : TopLevelDecl {
       AutoInit = Type.AutoInitInfo.MaybeEmpty;
       ContainsNoReferenceTypes = false;
     }
-    public TypeParameterCharacteristics(EqualitySupportValue eqSupport, Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
-      EqualitySupport = eqSupport;
+    public TypeParameterCharacteristics(EqualitySupportValue equalitySupport, Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
+      EqualitySupport = equalitySupport;
       AutoInit = autoInit;
       ContainsNoReferenceTypes = containsNoReferenceTypes;
     }
@@ -186,18 +186,20 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
-    List<Type> typeBounds)
-    : base(origin, name, null, [], null, false) {
+  [ParseConstructor]
+  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax, 
+    TypeParameterCharacteristics characteristics,
+    List<Type> typeBounds, Attributes attributes = null)
+    : base(origin, name, null, [], attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Characteristics = characteristics;
-    VarianceSyntax = varianceS;
+    VarianceSyntax = varianceSyntax;
     TypeBounds = typeBounds;
   }
 
-  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceS)
-    : this(origin, name, varianceS, new TypeParameterCharacteristics(false), []) {
+  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax)
+    : this(origin, name, varianceSyntax, new TypeParameterCharacteristics(false), []) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
   }

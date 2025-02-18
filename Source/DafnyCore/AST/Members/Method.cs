@@ -29,8 +29,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions);
   public override IEnumerable<INode> PreResolveChildren => Children;
   public override string WhatKind => "method";
-  public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
-  public readonly IOrigin SignatureEllipsis;
   public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
@@ -127,7 +125,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
     this.Body = cloner.CloneMethodBody(original);
-    this.SignatureEllipsis = original.SignatureEllipsis;
     this.IsByMethod = original.IsByMethod;
   }
 
@@ -143,7 +140,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] BlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis,
     bool isByMethod = false)
-    : base(origin, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
+    : base(origin, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis,
       typeArgs, ins, req, ens, decreases) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
@@ -159,7 +156,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.Reads = reads;
     this.Mod = mod;
     Body = body;
-    this.SignatureEllipsis = signatureEllipsis;
     this.IsByMethod = isByMethod;
     MustReverify = false;
   }

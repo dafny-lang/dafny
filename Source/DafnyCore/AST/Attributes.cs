@@ -1,8 +1,10 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -63,7 +65,16 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /*Frozen*/
   public readonly List<Expression> Args;
 
-  public readonly Attributes Prev;
+  public readonly Attributes? Prev;
+
+  [ParseConstructor]
+  public Attributes(IOrigin origin, string name, List<Expression> args, Attributes? prev) : base(origin)
+  {
+    Name = name;
+    Args = args;
+    Prev = prev;
+  }
+
   public Attributes(string name, [Captured] List<Expression> args, Attributes prev) : base(Token.NoToken) {
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(args));
@@ -96,7 +107,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// Returns first occurrence of an attribute named <c>nm</c>, or <c>null</c> if there is no such
   /// attribute.
   /// </summary>
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public static Attributes/*?*/ Find(Attributes attrs, string nm) {
     Contract.Requires(nm != null);
     return attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
@@ -110,7 +121,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// This method does NOT use type information of the attribute arguments, so it can safely
   /// be called very early during resolution before types are available and names have been resolved.
   /// </summary>
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
     Contract.Requires(nm != null);
     var attr = attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
