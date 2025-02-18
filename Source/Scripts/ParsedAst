@@ -33,7 +33,7 @@ class Token
 
 abstract class Declaration : RangeNode
 {
-    Name name;
+    Name nameNode;
     Attributes attributes;
 }
 
@@ -94,7 +94,7 @@ abstract class TopLevelDecl : Declaration
 class TypeParameter : Declaration
 {
     TypeParameterTPVarianceSyntax varianceSyntax;
-    TypeParameterTypeParameterCharacteristics characteristics;
+    TypeParameterCharacteristics characteristics;
     List<Type> typeBounds;
 }
 
@@ -102,7 +102,7 @@ abstract class Type : NodeWithComputedRange
 {
 }
 
-class TypeParameterTypeParameterCharacteristics
+class TypeParameterCharacteristics
 {
     TypeParameterEqualitySupportValue equalitySupport;
     TypeAutoInitInfo autoInit;
@@ -145,7 +145,14 @@ abstract class MethodOrFunction : MemberDecl
     List<Formal> ins;
     List<AttributedExpression> req;
     List<AttributedExpression> ens;
+    Specification<FrameExpression> reads;
     Specification<Expression> decreases;
+}
+
+class FrameExpression : NodeWithComputedRange
+{
+    Expression e;
+    String fieldName;
 }
 
 abstract class NonglobalVariable : NodeWithComputedRange
@@ -192,10 +199,4 @@ class AssertStmt : PredicateStmt
 class BlockStmt : Statement
 {
     List<Statement> body;
-}
-
-class FrameExpression : NodeWithComputedRange
-{
-    Expression e;
-    String fieldName;
 }

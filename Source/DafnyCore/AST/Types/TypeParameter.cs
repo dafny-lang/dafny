@@ -151,12 +151,11 @@ public class TypeParameter : TopLevelDecl {
   }
 
   [ParseConstructor]
-  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax, 
+  public TypeParameter(IOrigin origin, Name nameNode, TPVarianceSyntax varianceSyntax, 
     TypeParameterCharacteristics characteristics,
     List<Type> typeBounds, Attributes attributes = null)
-    : base(origin, name, null, [], attributes) {
+    : base(origin, nameNode, null, [], attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     Characteristics = characteristics;
     VarianceSyntax = varianceSyntax;
     TypeBounds = typeBounds;

@@ -88,12 +88,11 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
 
-  protected TopLevelDeclWithMembers(IOrigin origin, Name name, ModuleDefinition moduleDefinition,
+  protected TopLevelDeclWithMembers(IOrigin origin, Name nameNode, ModuleDefinition moduleDefinition,
     List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
     bool isRefining, List<Type>/*?*/ traits = null)
-    : base(origin, name, moduleDefinition, typeArgs, attributes) {
+    : base(origin, nameNode, moduleDefinition, typeArgs, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     IsRefining = isRefining;
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
