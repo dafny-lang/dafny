@@ -35,13 +35,13 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public NewtypeDecl(IOrigin origin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
     Type baseType,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
+    : base(origin, name, module, typeParameters, members, attributes, parentTraits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
-    Contract.Requires(isRefining ^ (baseType != null));
     Contract.Requires((witnessKind == SubsetTypeDecl.WKind.Compiled || witnessKind == SubsetTypeDecl.WKind.Ghost) == (witness != null));
     Contract.Requires(members != null);
+    IsRefining = isRefining;
     BaseType = baseType;
     Witness = witness;
     WitnessKind = witnessKind;
@@ -50,7 +50,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public NewtypeDecl(IOrigin origin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
     BoundVar bv, Expression constraint,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
+    : base(origin, name, module, typeParameters, members, attributes, parentTraits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
@@ -58,13 +58,15 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     Contract.Requires((witnessKind == SubsetTypeDecl.WKind.Compiled || witnessKind == SubsetTypeDecl.WKind.Ghost) == (witness != null));
     Contract.Requires(members != null);
     BaseType = bv.Type;
+    IsRefining = isRefining;
     Var = bv;
     Constraint = constraint;
     Witness = witness;
     WitnessKind = witnessKind;
     this.NewSelfSynonym();
   }
-
+  public override bool IsRefining { get; }
+  
   public Type ConcreteBaseType(List<Type> typeArguments) {
     Contract.Requires(TypeArgs.Count == typeArguments.Count);
     if (typeArguments.Count == 0) {

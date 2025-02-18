@@ -132,3 +132,11 @@ pr: exe dfy-to-cs-exe pr-nogeneration
 
 # Same as `make pr` but useful when resolving conflicts, to take the last compiled version of Dafny first
 pr-conflict: dfy-to-cs-exe dfy-to-cs-exe pr-nogeneration
+
+gen-integration: gen-schema gen-deserializer
+
+gen-schema:
+	./script.sh generate-parsed-ast /Users/rwillems/SourceCode/dafny/Source/Scripts/ParsedAst
+  
+gen-deserializer:
+	./script.sh generate-deserializer /Users/rwillems/SourceCode/dafny/Source/DafnyCore/Generic/Deserializer/generated.cs

@@ -16,7 +16,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
 
   // The following fields keep track of parent traits
   public readonly List<MemberDecl> InheritedMembers = [];  // these are instance members declared in parent traits
-  public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
+  public readonly List<Type> Traits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
   public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
   /// <summary>
@@ -88,16 +88,16 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
 
-  protected TopLevelDeclWithMembers(IOrigin origin, Name nameNode, ModuleDefinition moduleDefinition,
+  [ParseConstructor]
+  protected TopLevelDeclWithMembers(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition,
     List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
-    bool isRefining, List<Type>/*?*/ traits = null)
-    : base(origin, nameNode, moduleDefinition, typeArgs, attributes) {
+    List<Type>/*?*/ traits = null)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, attributes) {
     Contract.Requires(origin != null);
-    IsRefining = isRefining;
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     Members = members;
-    ParentTraits = traits ?? [];
+    Traits = traits ?? [];
     SetMembersBeforeResolution();
   }
 
@@ -112,7 +112,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
     var isReferenceType = this is ClassLikeDecl { IsReferenceTypeDecl: true };
     var results = new List<Type>();
-    foreach (var traitType in ParentTraits) {
+    foreach (var traitType in Traits) {
       var ty = (UserDefinedType)traitType.Subst(subst);
       Contract.Assert(isReferenceType || !ty.IsRefType);
       results.Add(UserDefinedType.CreateNullableTypeIfReferenceType(ty));
@@ -139,9 +139,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     return types;
   }
 
-  public override IEnumerable<INode> Children => ParentTraits.Concat<Node>(Members);
+  public override IEnumerable<INode> Children => Traits.Concat<Node>(Members);
 
-  public override IEnumerable<INode> PreResolveChildren => ParentTraits.Concat<Node>(MembersBeforeResolution);
+  public override IEnumerable<INode> PreResolveChildren => Traits.Concat<Node>(MembersBeforeResolution);
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).
@@ -158,7 +158,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   /// </summary>
   private void AddTraitAncestors(ISet<TraitDecl> s) {
     Contract.Requires(s != null);
-    foreach (var parent in ParentTraits) {
+    foreach (var parent in Traits) {
       var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .ParentTraits to be a UserDefinedType
       TraitDecl tr;
       if (udt.ResolvedClass is NonNullTypeDecl nntd) {
@@ -176,7 +176,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   public abstract bool AcceptThis { get; }
 
   public override bool IsEssentiallyEmpty() {
-    if (Members.Count != 0 || ParentTraits.Count != 0) {
+    if (Members.Count != 0 || Traits.Count != 0) {
       return false;
     }
     return base.IsEssentiallyEmpty();

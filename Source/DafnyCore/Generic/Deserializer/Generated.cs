@@ -5,27 +5,9 @@ namespace Microsoft.Dafny
 {
     partial class Deserializer
     {
-        public SourceOrigin ReadSourceOrigin()
-        {
-            var parameter0 = ReadToken();
-            var parameter1 = ReadTokenOption();
-            var parameter2 = ReadTokenOption();
-            return new SourceOrigin(parameter0, parameter1, parameter2);
-        }
-
-        public SourceOrigin ReadSourceOriginOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadSourceOrigin();
-        }
-
         public Attributes ReadAttributes()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
             var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
             var parameter3 = ReadAttributesOption();
@@ -44,7 +26,7 @@ namespace Microsoft.Dafny
 
         public LiteralExpr ReadLiteralExpr()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadAbstract<Object>();
             return new LiteralExpr(parameter0, parameter1);
         }
@@ -79,7 +61,7 @@ namespace Microsoft.Dafny
 
         public Label ReadLabel()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
             return new Label(parameter0, parameter1);
         }
@@ -96,7 +78,7 @@ namespace Microsoft.Dafny
 
         public AssertLabel ReadAssertLabel()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
             return new AssertLabel(parameter0, parameter1);
         }
@@ -113,7 +95,7 @@ namespace Microsoft.Dafny
 
         public Name ReadName()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
             return new Name(parameter0, parameter1);
         }
@@ -130,7 +112,7 @@ namespace Microsoft.Dafny
 
         public TypeParameter ReadTypeParameter()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter5 = ReadAttributes();
             var parameter2 = ReadTypeParameterTPVarianceSyntax();
@@ -187,7 +169,7 @@ namespace Microsoft.Dafny
 
         public FrameExpression ReadFrameExpression()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadAbstract<Expression>();
             var parameter2 = ReadString();
             return new FrameExpression(parameter0, parameter1, parameter2);
@@ -205,7 +187,7 @@ namespace Microsoft.Dafny
 
         public Formal ReadFormal()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter2 = ReadAbstract<Type>();
             var parameter4 = ReadBoolean();
@@ -231,12 +213,12 @@ namespace Microsoft.Dafny
 
         public Method ReadMethod()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter13 = ReadAttributes();
             var parameter2 = ReadBoolean();
             var parameter3 = ReadBoolean();
-            var parameter14 = ReadSourceOrigin();
+            var parameter14 = ReadAbstract<IOrigin>();
             var parameter4 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter5 = ReadList<Formal>(() => ReadFormal());
             var parameter7 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
@@ -262,7 +244,7 @@ namespace Microsoft.Dafny
 
         public AssertStmt ReadAssertStmt()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter3 = ReadAttributes();
             var parameter1 = ReadAbstract<Expression>();
             var parameter2 = ReadAssertLabel();
@@ -281,7 +263,7 @@ namespace Microsoft.Dafny
 
         public BlockStmt ReadBlockStmt()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadAttributes();
             var parameter2 = ReadList<Statement>(() => ReadAbstract<Statement>());
             return new BlockStmt(parameter0, parameter1, parameter2);
@@ -297,13 +279,30 @@ namespace Microsoft.Dafny
             return ReadBlockStmt();
         }
 
-        private object ReadObject(System.Type actualType)
+        public DefaultClassDecl ReadDefaultClassDecl()
         {
-            if (actualType == typeof(SourceOrigin))
+            Microsoft.Dafny.ModuleDefinition parameter4 = null;
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter2 = ReadAttributesOption();
+            var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
+            var parameter5 = ReadList<MemberDecl>(() => ReadAbstract<MemberDecl>());
+            var parameter6 = ReadList<Type>(() => ReadAbstract<Type>());
+            return new DefaultClassDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6);
+        }
+
+        public DefaultClassDecl ReadDefaultClassDeclOption()
+        {
+            if (ReadIsNull())
             {
-                return ReadSourceOrigin();
+                return default;
             }
 
+            return ReadDefaultClassDecl();
+        }
+
+        private object ReadObject(System.Type actualType)
+        {
             if (actualType == typeof(Attributes))
             {
                 return ReadAttributes();
@@ -367,6 +366,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(BlockStmt))
             {
                 return ReadBlockStmt();
+            }
+
+            if (actualType == typeof(DefaultClassDecl))
+            {
+                return ReadDefaultClassDecl();
             }
 
             throw new Exception();

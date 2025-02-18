@@ -30,7 +30,7 @@ public class DeserializerGenerator : PostParseAstVisitor {
   public static async Task Handle(string outputFile) {
     var program = typeof(TopLevelDecl);
     var generateParsedAst = new DeserializerGenerator();
-    generateParsedAst.VisitTypesFromRoot(program);
+    generateParsedAst.VisitTypesFromRoots([program]);
 
     var deserializeUnit = SyntaxFactory.ParseCompilationUnit(@"
 using System;

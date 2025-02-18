@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.Dafny.Auditor;
@@ -5,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
-  public readonly AssertLabel Label;
+  public readonly AssertLabel? Label;
 
   public AssertStmt Clone(Cloner cloner) {
     return new AssertStmt(cloner, this);

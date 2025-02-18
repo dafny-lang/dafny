@@ -30,7 +30,7 @@ public class ParsedAstGenerator : PostParseAstVisitor {
   public string GenerateAll() {
 
     var rootType = typeof(FilesContainer);
-    VisitTypesFromRoot(rootType);
+    VisitTypesFromRoots([rootType, typeof(Token), typeof(SourceOrigin)]);
     compilationUnit = compilationUnit.NormalizeWhitespace();
 
     var hasErrors = CheckCorrectness(compilationUnit);

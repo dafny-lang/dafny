@@ -113,7 +113,6 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public IOrigin /*?*/ ByMethodTok; // null iff ByMethodBody is null
   public BlockStmt /*?*/ ByMethodBody;
   [FilledInDuringResolution] public Method /*?*/ ByMethodDecl; // if ByMethodBody is non-null
-  public readonly IOrigin SignatureEllipsis;
   public Function OverriddenFunction;
   public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;

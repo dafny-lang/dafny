@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -30,7 +31,7 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
     Attributes = attributes;
   }
 
-  public Attributes Attributes { get; set; }
+  public Attributes? Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "specification clause";
 
   public bool HasAttributes() {

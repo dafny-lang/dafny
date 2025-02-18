@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
@@ -22,11 +23,10 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public readonly Specification<Expression> Decreases;
   public readonly List<Formal> Ins;
 
-  public bool SignatureIsOmitted { // is "false" for all Function objects that survive into resolution
-    get { return SignatureEllipsis != null; }
-  }
+  public bool SignatureIsOmitted => // is "false" for all Function objects that survive into resolution
+    SignatureEllipsis != null;
 
-  public readonly IOrigin SignatureEllipsis;
+  public readonly IOrigin? SignatureEllipsis;
   public override bool IsRefining => SignatureIsOmitted;
 
   [ParseConstructor]

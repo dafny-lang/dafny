@@ -1040,7 +1040,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         traitsProgress[traitDecl] = false; // indicate that traitDecl is currently being visited
 
         var inheritsFromObject = traitDecl.IsObjectTrait;
-        foreach (var parent in traitDecl.ParentTraits) {
+        foreach (var parent in traitDecl.Traits) {
           if (parent is UserDefinedType udt) {
             if (ResolveNamePath(udt.NamePath) is TraitDecl parentTrait) {
               if (parentTrait.EnclosingModuleDefinition == this) {

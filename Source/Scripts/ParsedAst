@@ -1,3 +1,16 @@
+class SourceOrigin
+{
+    Token startToken;
+    Token endToken;
+    Token center;
+}
+
+class Token
+{
+    Int32 line;
+    Int32 col;
+}
+
 class FilesContainer
 {
     List<FileStart> files;
@@ -15,37 +28,28 @@ abstract class Node
 
 abstract class RangeNode : Node
 {
-    SourceOrigin origin;
+    IOrigin origin;
 }
 
-class SourceOrigin
+abstract class IOrigin
 {
-    Token startToken;
-    Token endToken;
-    Token center;
-}
-
-class Token
-{
-    Int32 line;
-    Int32 col;
 }
 
 abstract class Declaration : RangeNode
 {
     Name nameNode;
-    Attributes attributes;
+    Attributes? attributes;
 }
 
 abstract class NodeWithComputedRange : Node
 {
-    SourceOrigin origin;
+    IOrigin origin;
 }
 
 class Specification<T> : NodeWithComputedRange where T : Node
 {
     List<T> expressions;
-    Attributes attributes;
+    Attributes? attributes;
 }
 
 class Attributes : NodeWithComputedRange
@@ -73,7 +77,7 @@ class AttributedExpression
 
 class Label
 {
-    SourceOrigin tok;
+    IOrigin tok;
     String name;
 }
 
@@ -132,6 +136,12 @@ enum TypeParameterTPVarianceSyntax
     Contravariance
 }
 
+abstract class TopLevelDeclWithMembers : TopLevelDecl
+{
+    List<MemberDecl> members;
+    List<Type> traits;
+}
+
 abstract class MemberDecl : Declaration
 {
     Boolean hasStaticKeyword;
@@ -140,7 +150,7 @@ abstract class MemberDecl : Declaration
 
 abstract class MethodOrFunction : MemberDecl
 {
-    SourceOrigin signatureEllipsis;
+    IOrigin? signatureEllipsis;
     List<TypeParameter> typeArgs;
     List<Formal> ins;
     List<AttributedExpression> req;
@@ -183,7 +193,7 @@ class Method : MethodOrFunction
 
 abstract class Statement : RangeNode
 {
-    Attributes attributes;
+    Attributes? attributes;
 }
 
 abstract class PredicateStmt : Statement
@@ -193,10 +203,14 @@ abstract class PredicateStmt : Statement
 
 class AssertStmt : PredicateStmt
 {
-    AssertLabel label;
+    AssertLabel? label;
 }
 
 class BlockStmt : Statement
 {
     List<Statement> body;
+}
+
+class DefaultClassDecl : TopLevelDeclWithMembers
+{
 }

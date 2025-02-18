@@ -30,18 +30,19 @@ public abstract class PostParseAstVisitor {
   /// </summary>
   protected static Dictionary<Type, Type> MappedTypes = new() {
     { typeof(Guid), typeof(string) },
-    { typeof(IOrigin), typeof(SourceOrigin) },
     { typeof(Uri), typeof(string) }
   };
 
-  public void VisitTypesFromRoot(Type rootType) {
-    var assembly = rootType.Assembly;
+  public void VisitTypesFromRoots(IReadOnlyList<Type> roots) {
+    var assembly = roots.First().Assembly;
     var inheritors = assembly.GetTypes().Where(t => t.BaseType != null).GroupBy(t => t.BaseType!).ToDictionary(
       g => g.Key,
       g => (ISet<Type>)g.ToHashSet());
 
     var toVisit = new Stack<Type>();
-    toVisit.Push(rootType);
+    foreach (var root in roots) {
+      toVisit.Push(root);
+    }
     var visited = new HashSet<Type>();
     while (toVisit.Any()) {
       var current = toVisit.Pop();
@@ -61,7 +62,7 @@ public abstract class PostParseAstVisitor {
         continue;
       }
 
-      if (current.Namespace != rootType.Namespace && current.Namespace != "Microsoft.Boogie") {
+      if (current.Namespace != roots.First().Namespace && current.Namespace != "Microsoft.Boogie") {
         continue;
       }
 

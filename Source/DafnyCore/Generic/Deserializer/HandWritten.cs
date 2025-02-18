@@ -102,6 +102,13 @@ public partial class Deserializer(IDecoder decoder) {
     return decoder.ReadBool();
   }
 
+  public SourceOrigin ReadSourceOrigin() {
+    var start = ReadToken();
+    var end = ReadToken();
+    var center = ReadToken();
+    return new SourceOrigin(start, end, center);
+  }
+  
   public string? ReadStringOption() {
     var isNull = decoder.ReadIsNull();
     if (isNull) {

@@ -361,7 +361,7 @@ public abstract class Type : NodeWithComputedRange {
   /// Returns true if the type has two representations at run time, the ordinary representation and a
   /// "fat pointer" representation (which is a boxing of the ordinary representation, plus a vtable pointer).
   /// </summary>
-  public bool HasFatPointer => NormalizeExpand() is UserDefinedType { ResolvedClass: NewtypeDecl { ParentTraits: { Count: > 0 } } };
+  public bool HasFatPointer => NormalizeExpand() is UserDefinedType { ResolvedClass: NewtypeDecl { Traits: { Count: > 0 } } };
 
   /// <summary>
   /// This property returns true if the type is known to be nonempty.
