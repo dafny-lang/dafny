@@ -1326,6 +1326,7 @@ namespace Microsoft.Dafny {
         forallFormals.Add(fuel);
         layer = new Boogie.IdentifierExpr(f.Origin, fuel);
         argsJF.Add(layer);
+        argsJFCanCall.Add(layer);
       } else if (overridingFunction.IsFuelAware()) {
         // We can't use a bound variable $fuel, because then one of the triggers won't be mentioning this $fuel.
         // Instead, we do the next best thing: use the literal $LZ.
@@ -1384,6 +1385,7 @@ namespace Microsoft.Dafny {
 
       if (layer != null) {
         argsCF.Add(layer);
+        argsCFCanCall.Add(layer);
       }
 
       if (reveal != null) {
@@ -1860,7 +1862,7 @@ namespace Microsoft.Dafny {
         var comment = "user-defined postconditions";
         foreach (var p in ConjunctsOf(m.Ens)) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-           var etranBoost = etran.LayerOffset(1);
+          var etranBoost = etran.LayerOffset(1);
           AddEnsures(ens, FreeEnsures(p.E.Origin, etranBoost.CanCallAssumption(p.E), comment, true));
           comment = null;
           foreach (var split in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
