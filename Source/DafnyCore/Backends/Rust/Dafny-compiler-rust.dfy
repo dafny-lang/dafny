@@ -2316,7 +2316,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := readIdents + thnIdents;
           var els, elsIdents, elsEnv := GenStmts(elsDafny, selfIdent, env, isLast, earlyReturn);
           readIdents := readIdents + elsIdents;
-          
+
           // All variables that both thnEnv and elsEnv remove can be removed from the environment
           newEnv := env.Join(thnEnv, elsEnv);
           generated := R.IfExpr(cond, thn, els);
