@@ -39,7 +39,6 @@ public partial class Deserializer(IDecoder decoder) {
     return ReadToken();
   }
 
-
   public FilesContainer ReadFilesContainer() {
     var files = ReadList<FileStart>(() => ReadFileStart());
     return new FilesContainer(files);

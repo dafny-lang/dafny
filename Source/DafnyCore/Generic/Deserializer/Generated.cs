@@ -117,7 +117,7 @@ namespace Microsoft.Dafny
         public BinaryExpr ReadBinaryExpr()
         {
             var parameter0 = ReadSourceOrigin();
-            var parameter1 = ReadBinaryExprOpcode();
+            var parameter1 = ReadOpcode();
             var parameter2 = ReadAbstract<Expression>();
             var parameter3 = ReadAbstract<Expression>();
             return new BinaryExpr(parameter0, parameter1, parameter2, parameter3);
@@ -133,10 +133,10 @@ namespace Microsoft.Dafny
             return ReadBinaryExpr();
         }
 
-        private Opcode ReadOpcode()
+        private BinaryExpr.Opcode ReadOpcode()
         {
             int ordinal = ReadInt32();
-            return (Opcode)ordinal;
+            return (BinaryExpr.Opcode)ordinal;
         }
 
         public LiteralExpr ReadLiteralExpr()
@@ -326,8 +326,8 @@ namespace Microsoft.Dafny
 
         public TypeParameterCharacteristics ReadTypeParameterCharacteristics()
         {
-            var parameter0 = ReadTypeParameterEqualitySupportValue();
-            var parameter1 = ReadTypeAutoInitInfo();
+            var parameter0 = ReadEqualitySupportValue();
+            var parameter1 = ReadAutoInitInfo();
             var parameter2 = ReadBoolean();
             return new TypeParameterCharacteristics(parameter0, parameter1, parameter2);
         }
@@ -342,16 +342,16 @@ namespace Microsoft.Dafny
             return ReadTypeParameterCharacteristics();
         }
 
-        private AutoInitInfo ReadAutoInitInfo()
+        private Type.AutoInitInfo ReadAutoInitInfo()
         {
             int ordinal = ReadInt32();
-            return (AutoInitInfo)ordinal;
+            return (Type.AutoInitInfo)ordinal;
         }
 
-        private EqualitySupportValue ReadEqualitySupportValue()
+        private TypeParameter.EqualitySupportValue ReadEqualitySupportValue()
         {
             int ordinal = ReadInt32();
-            return (EqualitySupportValue)ordinal;
+            return (TypeParameter.EqualitySupportValue)ordinal;
         }
 
         private TPVarianceSyntax ReadTPVarianceSyntax()
@@ -704,7 +704,7 @@ namespace Microsoft.Dafny
             Microsoft.Dafny.ModuleDefinition parameter4 = null;
             var parameter0 = ReadSourceOrigin();
             var parameter1 = ReadName();
-            var parameter2 = ReadAttributes();
+            var parameter2 = ReadAttributesOption();
             var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter5 = ReadList<MemberDecl>(() => ReadAbstract<MemberDecl>());
             var parameter6 = ReadList<Type>(() => ReadAbstract<Type>());

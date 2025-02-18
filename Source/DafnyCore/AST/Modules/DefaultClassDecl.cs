@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -13,7 +14,7 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
 
 
   [ParseConstructor]
-  public DefaultClassDecl(IOrigin origin, Name nameNode, Attributes attributes, 
+  public DefaultClassDecl(IOrigin origin, Name nameNode, Attributes? attributes, 
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModule, 
     List<MemberDecl> members, List<Type> traits = null) 
     : base(origin, nameNode, attributes, typeArgs, enclosingModule, members, traits)

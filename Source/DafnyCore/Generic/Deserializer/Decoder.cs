@@ -18,6 +18,7 @@ public class TextDecoder(string input) : IDecoder {
   private int position;
 
   public string Position => position.ToString();
+  public string Input => input;
 
   public int ReadInt32() {
     var start = position;
