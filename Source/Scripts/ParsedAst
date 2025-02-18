@@ -42,6 +42,12 @@ abstract class NodeWithComputedRange : Node
     SourceOrigin origin;
 }
 
+class Specification<T> : NodeWithComputedRange where T : Node
+{
+    List<T> expressions;
+    Attributes attributes;
+}
+
 class Attributes : NodeWithComputedRange
 {
     String name;
@@ -50,6 +56,28 @@ class Attributes : NodeWithComputedRange
 }
 
 abstract class Expression : NodeWithComputedRange
+{
+}
+
+class LiteralExpr : Expression
+{
+    Object value;
+}
+
+class AttributedExpression
+{
+    Expression e;
+    AssertLabel label;
+    Attributes attributes;
+}
+
+class Label
+{
+    SourceOrigin tok;
+    String name;
+}
+
+class AssertLabel : Label
 {
 }
 
@@ -102,4 +130,72 @@ enum TypeParameterTPVarianceSyntax
     Covariant_Strict,
     Covariant_Permissive,
     Contravariance
+}
+
+abstract class MemberDecl : Declaration
+{
+    Boolean hasStaticKeyword;
+    Boolean isGhost;
+}
+
+abstract class MethodOrFunction : MemberDecl
+{
+    SourceOrigin signatureEllipsis;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    List<AttributedExpression> req;
+    List<AttributedExpression> ens;
+    Specification<Expression> decreases;
+}
+
+abstract class NonglobalVariable : NodeWithComputedRange
+{
+    Name nameNode;
+    Type type;
+    Boolean isGhost;
+}
+
+class Formal : NonglobalVariable
+{
+    Boolean inParam;
+    Expression defaultValue;
+    Attributes attributes;
+    Boolean isOld;
+    Boolean isNameOnly;
+    Boolean isOlder;
+    String nameForCompilation;
+}
+
+class Method : MethodOrFunction
+{
+    List<Formal> outs;
+    Specification<FrameExpression> mod;
+    BlockStmt body;
+    Boolean isByMethod;
+}
+
+abstract class Statement : RangeNode
+{
+    Attributes attributes;
+}
+
+abstract class PredicateStmt : Statement
+{
+    Expression expr;
+}
+
+class AssertStmt : PredicateStmt
+{
+    AssertLabel label;
+}
+
+class BlockStmt : Statement
+{
+    List<Statement> body;
+}
+
+class FrameExpression : NodeWithComputedRange
+{
+    Expression e;
+    String fieldName;
 }

@@ -29,6 +29,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public readonly IOrigin SignatureEllipsis;
   public override bool IsRefining => SignatureIsOmitted;
 
+  [ParseConstructor]
   protected MethodOrFunction(IOrigin origin, Name name, bool hasStaticKeyword, bool isGhost,
     Attributes attributes, IOrigin signatureEllipsis, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,

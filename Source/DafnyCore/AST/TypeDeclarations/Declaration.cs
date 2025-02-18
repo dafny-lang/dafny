@@ -32,6 +32,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
+  [ParseConstructor]
   protected Declaration(IOrigin origin, Name name, Attributes attributes) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
