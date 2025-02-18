@@ -3,6 +3,16 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+public class FilesContainer(List<FileStart> files) {
+  public List<FileStart> Files { get; } = files;
+}
+
+public class FileStart(string uri, List<TopLevelDecl> topLevelDecls) {
+  public string Uri { get; } = uri;
+  public List<TopLevelDecl> TopLevelDecls { get; } = topLevelDecls;
+}
+
+
 /// <summary>
 /// This is a temporary container of everything declared at the top level of a file, including include directives.
 /// After parsing, the contents of this 'module' are moved into the default module.

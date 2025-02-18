@@ -31,7 +31,7 @@ public class SourceToBinary {
     var options = DafnyOptions.Default;
     var errorReporter = new BatchErrorReporter(options);
     var input = await File.ReadAllTextAsync(inputFile);
-    var parseResult = await ProgramParser.Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
+    var parseResult = await new ProgramParser().Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
 
     var parsedAstSource = ResourceLoader.GetResourceAsString("ParsedAst");
     var output = new StringBuilder();

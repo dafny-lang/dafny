@@ -8,6 +8,12 @@ using Action = System.Action;
 
 namespace Microsoft.Dafny;
 
+[AttributeUsage(AttributeTargets.Constructor)]
+public class ParseConstructorAttribute : Attribute { }
+
+[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field)]
+public class BackEdge : Attribute { }
+
 public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
