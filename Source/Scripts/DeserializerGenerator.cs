@@ -92,10 +92,12 @@ private object ReadObject(System.Type actualType) {{
   }
 
   protected override void HandleEnum(Type type) {
+    var typeString = ToGenericTypeString(type, nestedDot: true);
+    var typeString2 = ToGenericTypeString(type, nestedDot: false);
     var deserializer = SyntaxFactory.ParseMemberDeclaration($@"
-private {type.Name} Read{type.Name}() {{
+private {typeString} Read{typeString2}() {{
   int ordinal = ReadInt32();
-  return ({type.Name})ordinal;
+  return ({typeString})ordinal;
 }}")!;
     deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(deserializer));
   }

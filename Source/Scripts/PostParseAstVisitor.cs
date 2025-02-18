@@ -151,14 +151,15 @@ public abstract class PostParseAstVisitor {
     toVisit.Push(type);
   }
 
-  protected static ConstructorInfo GetParseConstructor(Type type) {
+  protected static ConstructorInfo? GetParseConstructor(Type type) {
     var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
     return constructors.Where(c => !c.IsPrivate &&
                                    !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c =>
       c.GetCustomAttribute<ParseConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue)!;
   }
 
-  public static string ToGenericTypeString(Type t, bool useTypeMapping = true, bool mapNestedTypes = true) {
+  public static string ToGenericTypeString(Type t, bool useTypeMapping = true, bool mapNestedTypes = true,
+    bool nestedDot = false) {
     if (useTypeMapping && MappedTypes.TryGetValue(t, out var newType)) {
       t = newType;
     }
@@ -170,7 +171,7 @@ public abstract class PostParseAstVisitor {
     if (!t.IsGenericType) {
       var name = t.Name;
       if (t.IsNested) {
-        name = t.DeclaringType!.Name + name;
+        name = t.DeclaringType!.Name + (nestedDot ? "." : "") +name;
       }
       return name;
     }
