@@ -24,6 +24,7 @@
         <ProjectReference Include="..\DafnyBenchmarkingPlugin\DafnyBenchmarkingPlugin.csproj" />
         <ProjectReference Include="..\Dafny\Dafny.csproj" />
         <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
+        <ProjectReference Include="..\Scripts\Scripts.csproj" />
         <ProjectReference Include="..\TestDafny\TestDafny.csproj" />
         <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
         <!-- 

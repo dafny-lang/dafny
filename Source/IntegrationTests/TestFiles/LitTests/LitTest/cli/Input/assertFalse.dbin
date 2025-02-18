@@ -1,0 +1,3 @@
+method Foo() {
+  assert false;
+}
