@@ -49,7 +49,49 @@ module Std.Actions {
   // or wrapping up multiple values into a tuple.
   //
   // TODO: Better type parameter names for T and R?
-  // 
+  //
+  // === Errors ===
+  //
+  // Because the Action trait is so general,
+  // there are many error producing and handling patterns that
+  // can be expressed, even within the same type signature:
+  //
+  // 1. An Action<T, Option<R>> can produce None to indicate there is no value,
+  //    but the action could still be called again. Similarly a Result<R, E>
+  //    output could indicate a failure that is only related to that invocation.
+  // 2. An Action<T, Option<R>> could also produce None to indicate the action
+  //    is "exhausted" and cannot produce any more values.
+  //    This is the basis for the Enumerator specialization.
+  //    Similarly a Result<R, E> could indicate the action is broken
+  //    for abnormal reasons and can't be called again.
+  // 3. An Action<T, Option<Result<R, E>> can indicate both cases independently:
+  //    a Some(Success(R)) provides another value, 
+  //    a None indicate no more values,
+  //    and a Some(Failure(E)) indicates an error.
+  //    The error could be fatal or recoverable depending on the protocol.
+  // 4. For even better readability, it is often better to declare a more specialized datatype,
+  //    such as
+  //    
+  //    datatype DataStreamEvent = 
+  //      | NoData 
+  //      | Done 
+  //      | Data(values: bytes)
+  //      | BadData(error: string)
+  //      | FatalError(error: string)
+  //
+  //    along with rules for what sequences of these values are valid
+  //    (e.g. once Done appears no other constructors can appear,
+  //    and perhaps if you get a FatalError the CanConsume constraints
+  //    don't even let you invoke the action again)
+  //
+  // The key point in distinguishing these semantics 
+  // is how CanConsume and CanProduce are constrained, 
+  // defining the protocol for using the action across time,
+  // depending on what inputs and outputs occur.
+  // All of the above cases are useful for precisely modeling behavior over time,
+  // and so this library provides explicity specializations for some common patterns
+  // (see Aggregators and Enumerators in particular)
+  // but allows for basically any well-founded approach.
   @AssumeCrossModuleTermination
   trait Action<T, R> extends GenericAction<T, R>, Validatable {
 
