@@ -9,7 +9,7 @@ public abstract class RangeNode : Node {
     origin = cloner.Origin(original.Origin);
   }
 
-  [ParseConstructor]
+  [ParsedConstructor]
   protected RangeNode(IOrigin origin) {
     this.origin = origin;
   }

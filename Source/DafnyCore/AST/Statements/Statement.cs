@@ -36,7 +36,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     }
   }
 
-  [ParseConstructor]
+  [ParsedConstructor]
   protected Statement(IOrigin origin, Attributes? attributes) : base(origin) {
     this.Attributes = attributes;
   }

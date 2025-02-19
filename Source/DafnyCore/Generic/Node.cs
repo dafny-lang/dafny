@@ -12,7 +12,7 @@ namespace Microsoft.Dafny;
 /// Used to indicate to the serialization code generator, which constructor should be used.
 /// </summary>
 [AttributeUsage(AttributeTargets.Constructor)]
-public class ParseConstructorAttribute : Attribute { }
+public class ParsedConstructorAttribute : Attribute { }
 
 /// <summary>
 /// Used by the command '--generate-parsed-ast'. This attribute will cause the field to be ignored.

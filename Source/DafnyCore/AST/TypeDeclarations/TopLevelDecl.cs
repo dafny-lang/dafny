@@ -21,7 +21,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
     EnclosingModuleDefinition = parent;
   }
 
-  [ParseConstructor]
+  [ParsedConstructor]
   protected TopLevelDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition, List<TypeParameter> typeArgs, Attributes attributes)
     : base(origin, nameNode, attributes) {
     Contract.Requires(origin != null);

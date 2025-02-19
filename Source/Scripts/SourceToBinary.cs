@@ -59,6 +59,7 @@ public class SourceToBinary {
       new FileStart(f.Origin.Uri.LocalPath, f.TopLevelDecls.ToList())).ToList());
     new Serializer(textEncoder, types).Serialize(filesContainer);
     await outputFile.WriteAsync(output);
+    await outputFile.FlushAsync();
   }
 }
 

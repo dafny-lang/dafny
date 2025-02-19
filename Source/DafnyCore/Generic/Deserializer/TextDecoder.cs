@@ -1,18 +1,12 @@
 using System;
-using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace Microsoft.Dafny;
 
-public interface IDecoder {
-  string Position { get; }
-  int ReadInt32();
-  bool ReadBool();
-  bool ReadIsNull();
-  string ReadString();
-  string ReadQualifiedName();
-}
-
+/// <summary>
+/// A textual serialization format can be used to make it easier to debug serialization issues
+/// </summary>
 public class TextDecoder(string input) : IDecoder {
   private const int IntStopCharacter = ';';
   private int position;
@@ -36,10 +30,14 @@ public class TextDecoder(string input) : IDecoder {
 
   private void ReadSeparator() {
     if (input[position] != ' ') {
-      throw new Exception();
+      throw Error("a space");
     }
 
     position++;
+  }
+
+  private Exception Error(string expectation) {
+    throw new Exception($"Expected {expectation} at {position} but found {Remainder.Take(5)}");
   }
 
   public bool ReadBool() {
@@ -50,7 +48,7 @@ public class TextDecoder(string input) : IDecoder {
       return false;
     }
 
-    throw new Exception();
+    throw Error("true or false");
   }
 
   public bool ReadIsNull() {
@@ -74,7 +72,7 @@ public class TextDecoder(string input) : IDecoder {
     bool escaped = false;
 
     if (input[position] != '"') {
-      throw new Exception();
+      throw Error("a quotation mark");
     }
 
     position++;
