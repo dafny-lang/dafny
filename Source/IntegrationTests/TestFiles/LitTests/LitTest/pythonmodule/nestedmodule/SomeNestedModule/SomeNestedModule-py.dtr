@@ -1,4 +1,4 @@
 file_format_version = "1.0"
-dafny_version = "4.9.2.0"
+dafny_version = "4.10.1.0"
 [options_by_module."Some.Nested.Module"]
 python-module-name = "SomeNestedModule"

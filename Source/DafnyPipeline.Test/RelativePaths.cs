@@ -18,7 +18,7 @@ namespace DafnyPipeline.Test {
     [Fact]
     public async Task Test() {
       Assert.Equal(0, await DafnyBackwardsCompatibleCli.MainWithWriters(output, output,
-        TextReader.Null, new[] { "/spillTargetCode:3", "testFile2.dfy" }));
+        TextReader.Null, ["/spillTargetCode:3", "testFile2.dfy"]));
     }
 
     [Fact]

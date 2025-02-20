@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static void Parse(string input, out string output, out List<int> positions,
       out IReadOnlyList<AnnotatedSpan> spans) {
-      positions = new List<int>();
+      positions = [];
       var tempSpans = new List<AnnotatedSpan>();
 
       var outputBuilder = new StringBuilder();
@@ -150,7 +150,7 @@ namespace Microsoft.Dafny.LanguageServer {
       GetPositionsAndAnnotatedRanges(input, out output, out positions, out var annotatedRanges);
       namedRanges = new Dictionary<string, List<Range>>();
       foreach (var annotatedRange in annotatedRanges) {
-        var ranges = namedRanges.GetOrCreate(annotatedRange.Annotation, () => new());
+        var ranges = namedRanges.GetOrCreate(annotatedRange.Annotation, () => []);
         ranges.Add(annotatedRange.Range);
       }
     }
@@ -168,8 +168,7 @@ namespace Microsoft.Dafny.LanguageServer {
       GetIndexAndSpans(input, out output, out var positionIndices, out var spans);
       var buffer = new TextBuffer(output);
       positions = positionIndices.Select(index => buffer.FromIndex(index)).ToList();
-      ranges = spans.Select(span => new Range(buffer.FromIndex(span.Span.Start), buffer.FromIndex(span.Span.End)))
-        .ToImmutableArray();
+      ranges = [.. spans.Select(span => new Range(buffer.FromIndex(span.Span.Start), buffer.FromIndex(span.Span.End)))];
     }
 
     public static void GetPositionAndRanges(string input, out string output, out Position cursorPosition, out ImmutableArray<Range> ranges) {

@@ -87,8 +87,8 @@ public class AutoContractsRewriter : IRewriter {
     // Add:  predicate Valid()
     // ...unless an instance function with that name is already present
     if (!cl.Members.Exists(member => member is Function && member.Name == "Valid" && !member.IsStatic)) {
-      var valid = new Predicate(range, new Name(cl.NameNode.Origin, "Valid"), false, true, false, new List<TypeParameter>(), new List<Formal>(), null,
-        new List<AttributedExpression>(), new Specification<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
+      var valid = new Predicate(range, new Name(cl.NameNode.Origin, "Valid"), false, true, false, [], [], null,
+        [], new Specification<FrameExpression>(), [], new Specification<Expression>([], null),
         null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
       cl.Members.Add(valid);
       // It will be added to hover text later
@@ -282,7 +282,7 @@ public class AutoContractsRewriter : IRewriter {
           var n = sbs.Body.Count;
           if (ctor.RefinementBase == null) {
             // Repr := {this};
-            var e = new SetDisplayExpr(tok, true, new List<Expression>() { self });
+            var e = new SetDisplayExpr(tok, true, [self]);
             e.Type = systemModuleManager.ObjectSetType();
             Statement s = new SingleAssignStmt(member.Origin, Repr, new ExprRhs(e));
             s.IsGhost = true;
@@ -354,7 +354,7 @@ public class AutoContractsRewriter : IRewriter {
 
     foreach (var ff in subobjects) {
       var F = CreateResolvedFieldSelect(tok, implicitSelf, ff.Item1);  // create a resolved MemberSelectExpr
-      Expression e = new SetDisplayExpr(tok, true, new List<Expression>() { F }) {
+      Expression e = new SetDisplayExpr(tok, true, [F]) {
         Type = systemModuleManager.ObjectSetType()
       };
       var rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, Repr, e) {
@@ -379,7 +379,7 @@ public class AutoContractsRewriter : IRewriter {
       s.IsGhost = true;
       // wrap if statement around s
       e = Expression.CreateAnd(IsNotNull(tok, F), Expression.CreateNot(tok, nguard));
-      var thn = new BlockStmt(tok, new List<Statement>() { s });
+      var thn = new BlockStmt(tok, [s]);
       thn.IsGhost = true;
       s = new IfStmt(tok, false, e, thn, null);
       s.IsGhost = true;
@@ -464,7 +464,7 @@ public class AutoContractsRewriter : IRewriter {
   public static Expression CreateUnresolvedValidCall(IOrigin tok) {
     return new ApplySuffix(tok, null,
       new ExprDotName(tok, new ImplicitThisExpr(tok), new Name("Valid"), null),
-      new List<ActualBinding>(), Token.NoToken);
+      [], Token.NoToken);
   }
 
   /// <summary>
@@ -479,7 +479,7 @@ public class AutoContractsRewriter : IRewriter {
     Contract.Requires(receiver.Type.NormalizeExpand().TypeArgs.Count == Valid.EnclosingClass.TypeArgs.Count);
 
     callingContext.EnclosingModule.CallGraph.AddEdge((ICallable)CodeContextWrapper.Unwrap(callingContext), Valid);
-    return Expression.CreateResolvedCall(tok, receiver, Valid, new List<Expression>(), new List<Type>(), systemModuleManager);
+    return Expression.CreateResolvedCall(tok, receiver, Valid, [], [], systemModuleManager);
   }
 
   public static Expression CreateResolvedFieldSelect(IOrigin tok, Expression receiver, Field field) {

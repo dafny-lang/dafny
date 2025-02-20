@@ -215,7 +215,7 @@ internal class TypeDecl : PrettyPrintable {
     syntax.BaseList?.Types
       .Where(bt => !IsSkippedBaseType(bt))
       .Select(bt => new Type(bt.Type, model))
-    ?? Enumerable.Empty<Type>();
+    ?? [];
 
   public override void Pp(TextWriter wr, string indent) {
     var baseTypes = BaseTypes.ToList();
@@ -388,8 +388,8 @@ internal class Variable : PrettyPrintable {
 internal class Name {
   private const string EscapePrefix = "CSharp_";
 
-  private static readonly List<string> DisallowedNameWords = new List<string>
-    {"type", "ORDINAL", "Keys", "Values", "Items", "IsLimit", "IsSucc", "Offset", "IsNat"};
+  private static readonly List<string> DisallowedNameWords =
+    ["type", "ORDINAL", "Keys", "Values", "Items", "IsLimit", "IsSucc", "Offset", "IsNat"];
   private static readonly Regex DisallowedNameRe =
     new Regex($"^(_|({String.Join("|", DisallowedNameWords)})$)");
 

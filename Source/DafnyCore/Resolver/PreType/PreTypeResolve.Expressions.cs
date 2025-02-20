@@ -369,7 +369,7 @@ namespace Microsoft.Dafny {
             ConstrainToIntFamily(e.N.PreType, e.N.Origin, "sequence construction must use an integer-based expression for the sequence size (got {0})");
             ResolveExpression(e.Initializer, resolutionContext);
             var intPreType = Type2PreType(resolver.SystemModuleManager.Nat());
-            var arrowPreType = new DPreType(BuiltInArrowTypeDecl(1), new List<PreType>() { intPreType, elementPreType });
+            var arrowPreType = new DPreType(BuiltInArrowTypeDecl(1), [intPreType, elementPreType]);
             Constraints.AddSubtypeConstraint(arrowPreType, e.Initializer.PreType, e.Initializer.Origin,
               () => {
                 var strFormat = "sequence-construction initializer expression expected to have type '{0}' (instead got '{1}')";
@@ -707,8 +707,8 @@ namespace Microsoft.Dafny {
             break;
           }
         case WildcardExpr: {
-            var obj = new DPreType(BuiltInTypeDecl(PreType.TypeNameObjectQ), new List<PreType>() { });
-            expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), new List<PreType>() { obj });
+            var obj = new DPreType(BuiltInTypeDecl(PreType.TypeNameObjectQ), []);
+            expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), [obj]);
             break;
           }
         case StmtExpr stmtExpr: {
@@ -785,9 +785,9 @@ namespace Microsoft.Dafny {
     private void SetupCollectionProducingExpr(string typeName, bool isStringType, string exprKind, Expression expr, PreType elementPreType, PreType valuePreType = null) {
       expr.PreType = CreatePreTypeProxy(exprKind);
 
-      var arguments = valuePreType == null ? new List<PreType>() { elementPreType } : new List<PreType>() { elementPreType, valuePreType };
+      var arguments = valuePreType == null ? [elementPreType] : new List<PreType>() { elementPreType, valuePreType };
       var defaultType = new DPreType(BuiltInTypeDecl(typeName), arguments,
-        isStringType ? new DPreType(BuiltInTypeDecl(PreType.TypeNameString), new List<PreType>()) : null);
+        isStringType ? new DPreType(BuiltInTypeDecl(PreType.TypeNameString), []) : null);
       Constraints.AddDefaultAdvice(expr.PreType, defaultType);
 
       Constraints.AddGuardedConstraint(() => {
@@ -933,7 +933,7 @@ namespace Microsoft.Dafny {
             if (familyDeclNameLeft is PreType.TypeNameMap or PreType.TypeNameImap) {
               var left = (DPreType)a0.UrAncestor(this);
               Contract.Assert(left.Arguments.Count == 2);
-              var st = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), new List<PreType>() { left.Arguments[0] });
+              var st = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), [left.Arguments[0]]);
               Constraints.DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {st} :> {a1}");
               Constraints.AddDefaultAdvice(a1, st);
 
@@ -1429,7 +1429,7 @@ namespace Microsoft.Dafny {
 
       ResolveDeclarationSignature(datatypeDecl);
 
-      var rr = new DatatypeValue(expr.Origin, datatypeDecl.Name, name, args ?? new List<ActualBinding>());
+      var rr = new DatatypeValue(expr.Origin, datatypeDecl.Name, name, args ?? []);
       var ok = ResolveDatatypeValue(resolutionContext, rr, datatypeDecl, null, complain);
       if (!ok) {
         expr.ResolvedExpression = null;
@@ -1509,7 +1509,7 @@ namespace Microsoft.Dafny {
             if (expr.OptTypeArguments != null) {
               ReportError(expr.Origin, $"datatype constructor does not take any type parameters ('{name}')");
             }
-            var rr = new DatatypeValue(expr.Origin, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<ActualBinding>());
+            var rr = new DatatypeValue(expr.Origin, pair.Item1.EnclosingDatatype.Name, name, args ?? []);
             ResolveDatatypeValue(resolutionContext, rr, pair.Item1.EnclosingDatatype, null);
 
             if (args == null) {
@@ -1566,7 +1566,7 @@ namespace Microsoft.Dafny {
               ReportError(expr.Origin, $"datatype constructor does not take any type parameters ('{name}')");
             }
 
-            var rr = new DatatypeValue(expr.Origin, ctor.EnclosingDatatype.Name, name, args ?? new List<ActualBinding>());
+            var rr = new DatatypeValue(expr.Origin, ctor.EnclosingDatatype.Name, name, args ?? []);
             if (ri.TypeArgs.Count != 0) {
               rr.InferredTypeArgs = ri.TypeArgs;
             }
@@ -1652,8 +1652,8 @@ namespace Microsoft.Dafny {
       // Now, fill in rr.PreType.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
       // parameters used in this NameSegment/ExprDotName.
       // Add to "subst" the type parameters given to the member's class/datatype
-      rr.PreTypeApplicationAtEnclosingClass = new List<PreType>();
-      rr.PreTypeApplicationJustMember = new List<PreType>();
+      rr.PreTypeApplicationAtEnclosingClass = [];
+      rr.PreTypeApplicationJustMember = [];
       var rType = receiverPreTypeBound;
       var subst = PreType.PreTypeSubstMap(rType.Decl.TypeArgs, rType.Arguments);
       Contract.Assert(member.EnclosingClass != null);
@@ -1885,7 +1885,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
 
       legalSourceConstructors = null;
-      members = new List<MemberDecl>();
+      members = [];
       Contract.Assert(rootPreType.Decl == dt);
       Contract.Assert(rootPreType.Arguments.Count == dt.TypeArgs.Count);
 
@@ -2021,11 +2021,11 @@ namespace Microsoft.Dafny {
       foreach (var entry in rhsBindings) {
         if (entry.Value.Item1 != null) {
           var lhs = new CasePattern<BoundVar>(tok, entry.Value.Item1);
-          rewrite = new LetExpr(tok, new List<CasePattern<BoundVar>>() { lhs }, new List<Expression>() { entry.Value.Item3 }, rewrite, true);
+          rewrite = new LetExpr(tok, [lhs], [entry.Value.Item3], rewrite, true);
         }
       }
       var dVarPat = new CasePattern<BoundVar>(tok, dVar);
-      rewrite = new LetExpr(tok, new List<CasePattern<BoundVar>>() { dVarPat }, new List<Expression>() { root }, rewrite, true);
+      rewrite = new LetExpr(tok, [dVarPat], [root], rewrite, true);
       Contract.Assert(rewrite != null);
       ResolveExpression(rewrite, resolutionContext);
       return rewrite;

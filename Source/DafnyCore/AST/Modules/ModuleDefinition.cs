@@ -79,11 +79,11 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   public DefaultClassDecl DefaultClass { get; set; }
 
-  public readonly List<TopLevelDecl> SourceDecls = new();
+  public readonly List<TopLevelDecl> SourceDecls = [];
   [FilledInDuringResolution]
-  public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
+  public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = [];
   [FilledInDuringResolution]
-  public readonly List<PrefixNameModule> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
+  public readonly List<PrefixNameModule> PrefixNamedModules = [];  // filled in by the parser; emptied by the resolver
 
   public CallRedirector CallRedirector { get; set; }
 
@@ -169,7 +169,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     this.IsFacade = isFacade;
 
     if (Name != "_System") {
-      DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
+      DefaultClass = new DefaultClassDecl(this, []);
     }
   }
 
@@ -475,7 +475,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         if (!nestedModuleDecl.ModuleDef.SuccessfullyResolved) {
           if (!IsEssentiallyEmptyModuleBody()) {
             // say something only if this will cause any testing to be omitted
-            resolver.reporter.Error(MessageSource.Resolver, nestedModuleDecl,
+            resolver.reporter.Error(MessageSource.Resolver, nestedModuleDecl.NameNode,
               "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", Name,
               nestedModuleDecl.Name);
           }
@@ -640,7 +640,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
       var prefixNameModule = prefixNamedModules.First();
       var firstPartToken = prefixNameModule.Parts[0];
-      var modDef = new ModuleDefinition(SourceOrigin.NoToken, new Name(firstPartToken, name), new List<IOrigin>(), ModuleKindEnum.Concrete,
+      var modDef = new ModuleDefinition(SourceOrigin.NoToken, new Name(firstPartToken, name), [], ModuleKindEnum.Concrete,
         false, null, this, null);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 
@@ -713,9 +713,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   }
 
   private static readonly List<(string, string)> incompatibleAttributePairs =
-    new() {
-      ("rlimit", "resource_limit")
-    };
+    [("rlimit", "resource_limit")];
 
   private void CheckIncompatibleAttributes(ModuleResolver resolver, Attributes attrs) {
     foreach (var pair in incompatibleAttributePairs) {

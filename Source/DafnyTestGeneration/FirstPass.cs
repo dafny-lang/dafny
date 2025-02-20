@@ -33,7 +33,7 @@ public class FirstPass {
   public const string SmallTimeLimitWarning = "SmallTumeLimitWarning";
 
   // List of all types that have been checked for being supported. Used to prevent infinite recursion
-  private HashSet<Type> typesConsidered = new();
+  private HashSet<Type> typesConsidered = [];
 
   public FirstPass(DafnyOptions options) {
     this.options = options;
@@ -47,12 +47,12 @@ public class FirstPass {
   public async Task<bool> IsOk(string source, Uri uri) {
     var errorReporter = new ConsoleErrorReporter(options);
     var program = await Utils.Parse(errorReporter, source, true, uri);
-    diagnostics = new();
+    diagnostics = [];
     if (errorReporter.FailCompilation) {
       NonZeroExitCode = true;
       return false;
     }
-    typesConsidered = new();
+    typesConsidered = [];
     CheckIsWrappedInAModule(program);
     CheckHasTestEntry(program);
     CheckInlinedDeclarationsAreReachable(program);
@@ -146,7 +146,7 @@ public class FirstPass {
       var next = toVisit[0];
       toVisit.Remove(next);
       callGraphBuilderCLoner.VisitCallable(next);
-      foreach (var callee in callGraphBuilderCLoner.Edges.GetValueOrDefault(next, new HashSet<ICallable>())) {
+      foreach (var callee in callGraphBuilderCLoner.Edges.GetValueOrDefault(next, [])) {
         if (!reachable.Contains(callee) &&
             callee is MemberDecl memberDecl &&
             memberDecl.HasUserAttribute(TestGenerationOptions.TestInlineAttribute, out var _)) {
@@ -351,7 +351,7 @@ public class FirstPass {
     public override Expression CloneExpr(Expression expr) {
       if (expr is FunctionCallExpr functionCallExpr) {
         if (!Edges.ContainsKey(currentlyVisited)) {
-          Edges[currentlyVisited] = new();
+          Edges[currentlyVisited] = [];
         }
         Edges[currentlyVisited].Add(functionCallExpr.Function);
       }
@@ -361,7 +361,7 @@ public class FirstPass {
     public override Statement CloneStmt(Statement stmt, bool isReference) {
       if (stmt is CallStmt callStmt) {
         if (!Edges.ContainsKey(currentlyVisited)) {
-          Edges[currentlyVisited] = new();
+          Edges[currentlyVisited] = [];
         }
         Edges[currentlyVisited].Add(callStmt.Method);
       }

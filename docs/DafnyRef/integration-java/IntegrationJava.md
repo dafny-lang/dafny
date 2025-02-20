@@ -218,3 +218,6 @@ Often this requires defining a Dafny class that corresponds to the Java class.
 the Dafny-generated (Java) types and the types used in the desired method.
 The wrapper will do appropriate conversions and call the desired method.
 
+## Performance notes
+
+If you have the choice, given a `m: map<K, V>`, prefer iterating over the map itself like `forall k <- m` rather than over the keys `forall k <- m.Keys`. The latter currently results in `O(N²)` steps, whereas the first one remains linear.

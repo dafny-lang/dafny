@@ -118,7 +118,7 @@ public abstract class Node : INode {
   // containing this node, or null if it is not contained in any.
   // </summary>
   public virtual IEnumerable<Assumption> Assumptions(Declaration decl) {
-    return Enumerable.Empty<Assumption>();
+    return [];
   }
 
   public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {

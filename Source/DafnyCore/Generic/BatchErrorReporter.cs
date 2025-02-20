@@ -5,7 +5,7 @@ namespace Microsoft.Dafny;
 
 public class BatchErrorReporter : ErrorReporter {
   public Dictionary<ErrorLevel, List<DafnyDiagnostic>> AllMessagesByLevel;
-  public readonly List<DafnyDiagnostic> AllMessages = new();
+  public readonly List<DafnyDiagnostic> AllMessages = [];
 
   public void CopyDiagnostics(ErrorReporter intoReporter) {
     foreach (var diagnostic in AllMessages) {
@@ -16,9 +16,9 @@ public class BatchErrorReporter : ErrorReporter {
   public BatchErrorReporter(DafnyOptions options) : base(options) {
     ErrorsOnly = false;
     AllMessagesByLevel = new Dictionary<ErrorLevel, List<DafnyDiagnostic>> {
-      [ErrorLevel.Error] = new(),
-      [ErrorLevel.Warning] = new(),
-      [ErrorLevel.Info] = new()
+      [ErrorLevel.Error] = [],
+      [ErrorLevel.Warning] = [],
+      [ErrorLevel.Info] = []
     };
   }
 

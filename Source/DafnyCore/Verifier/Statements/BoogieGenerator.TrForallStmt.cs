@@ -116,7 +116,7 @@ public partial class BoogieGenerator {
         // here (rather than a TrBoundVariables).  However, there is currently no way to apply
         // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
         List<bool> freeOfAlloc = BoundedPool.HasBounds(bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-        List<Variable> bvars = new List<Variable>();
+        List<Variable> bvars = [];
         var ante = etran.TrBoundVariables(boundVars, bvars, true, freeOfAlloc);
         locals.AddRange(bvars);
         var havocIds = new List<Bpl.IdentifierExpr>();
@@ -148,9 +148,9 @@ public partial class BoogieGenerator {
       exporter.Add(Bpl.Cmd.SimpleAssign(tok, initHeap, etran.HeapExpr));
       var heapIdExpr = etran.HeapCastToIdentifierExpr;
       // advance $Heap;
-      exporter.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { heapIdExpr }));
+      exporter.Add(new Bpl.HavocCmd(tok, [heapIdExpr]));
       Contract.Assert(s0.Method.Mod.Expressions.Count == 0);  // checked by the resolver
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), s0.IsGhost, s0.Method.AllowsAllocation, initEtran, etran, initEtran)) {
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, [], s0.IsGhost, s0.Method.AllowsAllocation, initEtran, etran, initEtran)) {
         if (tri.IsFree) {
           exporter.Add(TrAssumeCmd(tok, tri.Expr));
         }
@@ -390,7 +390,7 @@ public partial class BoogieGenerator {
     Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(s.Origin, locals);
     var prevEtran = new ExpressionTranslator(this, Predef, prevHeap, etran.scope);
     updater.Add(Bpl.Cmd.SimpleAssign(s.Origin, prevHeap, etran.HeapExpr));
-    updater.Add(new Bpl.HavocCmd(s.Origin, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+    updater.Add(new Bpl.HavocCmd(s.Origin, [etran.HeapCastToIdentifierExpr]));
     updater.Add(TrAssumeCmd(s.Origin, HeapSucc(prevHeap, etran.HeapExpr)));
 
     // Here comes:
@@ -406,7 +406,7 @@ public partial class BoogieGenerator {
     Bpl.Expr heapOF = ReadHeap(s.Origin, etran.HeapExpr, o, f);
     Bpl.Expr oldHeapOF = ReadHeap(s.Origin, prevHeap, o, f);
     List<bool> freeOfAlloc = BoundedPool.HasBounds(s.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-    List<Variable> xBvars = new List<Variable>();
+    List<Variable> xBvars = [];
     var xBody = etran.TrBoundVariables(s.BoundVars, xBvars, false, freeOfAlloc);
     xBody = BplAnd(xBody, prevEtran.TrExpr(s.Range));
     GetObjFieldDetails(s0.Lhs.Resolved, prevEtran, out var xObj, out var xField);
@@ -416,7 +416,7 @@ public partial class BoogieGenerator {
     Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Origin, xBvars, xBody);  // LL_TRIGGER
     Bpl.Expr body = BplOr(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
     var tr = new Trigger(s.Origin, true, new List<Expr>() { heapOF });
-    Bpl.Expr qq = new Bpl.ForallExpr(s.Origin, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null, tr, body);
+    Bpl.Expr qq = new Bpl.ForallExpr(s.Origin, [], [oVar, fVar], null, tr, body);
     updater.Add(TrAssumeCmd(s.Origin, qq));
 
     if (s.EffectiveEnsuresClauses != null) {
@@ -467,7 +467,7 @@ public partial class BoogieGenerator {
     var argsEtran = etran.WithNoLits();
     foreach (var aa in attributes.AsEnumerable()) {
       if (aa.Name == "trigger") {
-        List<Bpl.Expr> tt = new List<Bpl.Expr>();
+        List<Bpl.Expr> tt = [];
         foreach (var arg in aa.Args) {
           if (arg == lhs) {
             tt.Add(xHeapOF);

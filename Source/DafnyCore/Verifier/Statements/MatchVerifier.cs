@@ -33,7 +33,7 @@ public class MatchStmtVerifier {
       locals.AddRange(newLocals.Values);
 
       if (newLocals.Count != 0) {
-        List<IdentifierExpr> havocIds = new List<IdentifierExpr>();
+        List<IdentifierExpr> havocIds = [];
         foreach (Variable local in newLocals.Values) {
           havocIds.Add(new IdentifierExpr(local.tok, local));
         }
@@ -59,7 +59,7 @@ public class MatchStmtVerifier {
       locals.AddRange(newLocals.Values);
 
       if (newLocals.Count != 0) {
-        List<IdentifierExpr> havocIds = new List<IdentifierExpr>();
+        List<IdentifierExpr> havocIds = [];
         foreach (Variable local in newLocals.Values) {
           havocIds.Add(new IdentifierExpr(local.tok, local));
         }
@@ -141,7 +141,7 @@ public class MatchStmtVerifier {
       subst.Add(mc.Ctor.EnclosingDatatype.TypeArgs[i], sourceType.TypeArgs[i]);
     }
 
-    List<Expr> args = new List<Expr>();
+    List<Expr> args = [];
     for (int i = 0; i < mc.Arguments.Count; i++) {
       BoundVar p = mc.Arguments[i];
       var nm = p.AssignUniqueName(generator.CurrentDeclaration.IdGenerator);
@@ -184,7 +184,7 @@ public class MatchStmtVerifier {
       locals.AddRange(newLocals.Values);
 
       if (newLocals.Count != 0) {
-        List<IdentifierExpr> havocIds = new List<IdentifierExpr>();
+        List<IdentifierExpr> havocIds = [];
         foreach (Variable local in newLocals.Values) {
           havocIds.Add(new IdentifierExpr(local.tok, local));
         }
