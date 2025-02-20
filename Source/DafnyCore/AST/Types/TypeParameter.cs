@@ -125,43 +125,7 @@ public class TypeParameter : TopLevelDecl {
   }
 
   public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
-  public struct TypeParameterCharacteristics {
-    public SourceOrigin SourceOrigin = null;
-    public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
-    public Type.AutoInitInfo AutoInit;
-    public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
-    public bool IsNonempty => AutoInit != Type.AutoInitInfo.MaybeEmpty;
-    public bool ContainsNoReferenceTypes;
-    public TypeParameterCharacteristics(bool dummy) {
-      EqualitySupport = EqualitySupportValue.Unspecified;
-      AutoInit = Type.AutoInitInfo.MaybeEmpty;
-      ContainsNoReferenceTypes = false;
-    }
-    public TypeParameterCharacteristics(EqualitySupportValue eqSupport, Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
-      EqualitySupport = eqSupport;
-      AutoInit = autoInit;
-      ContainsNoReferenceTypes = containsNoReferenceTypes;
-    }
-    public override string ToString() {
-      string result = "";
-      if (EqualitySupport == EqualitySupportValue.Required) {
-        result += ",==";
-      }
-      if (HasCompiledValue) {
-        result += ",0";
-      }
-      if (AutoInit == Type.AutoInitInfo.Nonempty) {
-        result += ",00";
-      }
-      if (ContainsNoReferenceTypes) {
-        result += ",!new";
-      }
-      if (result.Length != 0) {
-        result = "(" + result.Substring(1) + ")";
-      }
-      return result;
-    }
-  }
+
   public TypeParameterCharacteristics Characteristics;
   public bool SupportsEquality {
     get { return Characteristics.EqualitySupport != EqualitySupportValue.Unspecified; }
@@ -186,18 +150,19 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
-    List<Type> typeBounds)
-    : base(origin, name, null, [], null, false) {
+  [SyntaxConstructor]
+  public TypeParameter(IOrigin origin, Name nameNode, TPVarianceSyntax varianceSyntax,
+    TypeParameterCharacteristics characteristics,
+    List<Type> typeBounds, Attributes attributes = null)
+    : base(origin, nameNode, null, [], attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     Characteristics = characteristics;
-    VarianceSyntax = varianceS;
+    VarianceSyntax = varianceSyntax;
     TypeBounds = typeBounds;
   }
 
-  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceS)
-    : this(origin, name, varianceS, new TypeParameterCharacteristics(false), []) {
+  public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax)
+    : this(origin, name, varianceSyntax, new TypeParameterCharacteristics(false), []) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
   }

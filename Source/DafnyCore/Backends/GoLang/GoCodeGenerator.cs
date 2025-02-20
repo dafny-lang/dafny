@@ -390,7 +390,7 @@ namespace Microsoft.Dafny.Compilers {
       w.WriteLine();
       CreateInitializer(classContext, name, w, out var instanceFieldInitWriter, out var traitInitWriter, out var rtdParamWriter);
 
-      var isNewtypeWithTraits = classContext is NewtypeDecl { ParentTraits: { Count: > 0 } };
+      var isNewtypeWithTraits = classContext is NewtypeDecl { Traits: { Count: > 0 } };
 
       var rtdCount = 0;
       if (typeParameters != null) {
@@ -528,7 +528,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("func {0}(", FormatInitializerName(name));
       rtdParamWriter = wr.Fork();
       var w = wr.NewNamedBlock(") *{0}", name);
-      var parameters = classContext is NewtypeDecl { ParentTraits: { Count: > 0 } } ? "value" : "";
+      var parameters = classContext is NewtypeDecl { Traits: { Count: > 0 } } ? "value" : "";
       w.WriteLine($"_this := {name}{{{parameters}}}");
 
       w.WriteLine();
@@ -1076,7 +1076,7 @@ namespace Microsoft.Dafny.Compilers {
         wDefault.WriteLine($"return {TypeName_Companion(dt, wr, dt.Origin)}.Default({typeDescriptorUses}{sep}{arguments});");
       }
 
-      EmitParentTraits(dt.Origin, name, false, dt.ParentTraits, wr);
+      EmitParentTraits(dt.Origin, name, false, dt.Traits, wr);
 
       return new ClassWriter(this, dt, false, name, dt.IsExtern(Options, out _, out _), null,
         wr, wr, wr, wr, staticFieldWriter, staticFieldInitWriter);
@@ -1121,7 +1121,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GenerateIsMethod(nt, wr);
 
-      if (nt.ParentTraits.Count != 0) {
+      if (nt.Traits.Count != 0) {
         cw.InstanceFieldWriter.WriteLine($"_value {TypeName(udt, cw.InstanceFieldWriter, nt.Origin)}");
       }
 

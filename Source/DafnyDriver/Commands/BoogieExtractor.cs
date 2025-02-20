@@ -258,7 +258,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private string? GetExtractName(Attributes attributes) {
+    private string? GetExtractName(Attributes? attributes) {
       if (Attributes.Find(attributes, NameAttribute) is { } extractNameAttribute) {
         if (extractNameAttribute.Args.Count == 1 && extractNameAttribute.Args[0] is StringLiteralExpr { Value: string extractName }) {
           return extractName;

@@ -67,10 +67,10 @@ public abstract class MemberDecl : Declaration, ISymbol {
     this.isGhost = original.isGhost;
   }
 
-  protected MemberDecl(IOrigin origin, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
-    : base(origin, name, attributes, isRefining) {
+  [SyntaxConstructor]
+  protected MemberDecl(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, Attributes attributes)
+    : base(origin, nameNode, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     this.hasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
   }

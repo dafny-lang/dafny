@@ -3,6 +3,8 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+
+
 /// <summary>
 /// This is a temporary container of everything declared at the top level of a file, including include directives.
 /// After parsing, the contents of this 'module' are moved into the default module.
@@ -12,8 +14,8 @@ namespace Microsoft.Dafny;
 public class FileModuleDefinition : ModuleDefinition {
   public List<Include> Includes { get; } = [];
 
-  public FileModuleDefinition(IOrigin token) :
-    base(token, new Name("_module"), [],
+  public FileModuleDefinition(IOrigin origin) :
+    base(origin, new Name("_module"), [],
       ModuleKindEnum.Concrete, false, null, null, null) {
     {
     }
