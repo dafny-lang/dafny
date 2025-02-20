@@ -5,7 +5,7 @@
 // To speed up the verification: /vcsLoad:0.5 /proverOpt:O:smt.qi.eager_threshold=30
 
 // A universe of objects playing under LCI rules
-trait Universe {
+trait Universe extends object {
   // The set of objects in the universe
   ghost var content: set<Object>
 
@@ -291,7 +291,7 @@ method InterferenceWithFraming(ghost universe: Universe, ghost preempting: Threa
 datatype ObjectClassKind = Thread | OwnedObject | Lifetime
 
 // A generic object trait
-trait Object {
+trait Object extends object {
   // Universe of which the Object is a member.
   // This should really be a constant, but I don't know how to do that while factoring out join below,
   // because traits can't have constructors.
@@ -761,7 +761,7 @@ class Mutex extends OwnedObject {
 
   ghost predicate volatileOwns() { true }
   ghost function objectUserFields(): set<Object> reads this {
-    var r: set<object> := guards + { data }; r
+    guards + { data }
   }
 
   twostate predicate unchangedNonvolatileUserFields() reads this { true }

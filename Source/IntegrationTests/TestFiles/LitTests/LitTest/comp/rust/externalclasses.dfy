@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs --input "%S/externalclasses.rs" "%s" > "%t"
+// RUN: %baredafny run --target=rs --general-traits=legacy --input "%S/externalclasses.rs" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "External.Class.Container"} ExternalClassContainer {

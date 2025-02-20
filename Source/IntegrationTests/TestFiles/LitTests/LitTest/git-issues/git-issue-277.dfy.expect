@@ -1,6 +1,3 @@
-Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
-git-issue-277.dfy(5,12): Error: wrong number of indices for multi-selection
-git-issue-277.dfy(5,25): Error: wrong number of indices for multi-selection
-git-issue-277.dfy(5,12): Error: incorrect type for selection into array<int> (got bool)
-git-issue-277.dfy(5,25): Error: incorrect type for selection into array<int> (got bool)
-4 resolution/type errors detected in git-issue-277.dfy
+git-issue-277.dfy(5,12): Error: multi-element selection expression must have an integer or bitvector type (got bool)
+git-issue-277.dfy(5,23): Error: multi-element selection expression must have an integer or bitvector type (got bool)
+2 resolution/type errors detected in git-issue-277.dfy

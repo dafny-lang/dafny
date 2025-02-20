@@ -1,4 +1,4 @@
-// RUN: %verify "%s" > "%t"
+// RUN: %verify --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function f(x: int): int { 10 - x * x }

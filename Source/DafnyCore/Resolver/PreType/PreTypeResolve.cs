@@ -50,6 +50,10 @@ namespace Microsoft.Dafny {
       resolver.Reporter.Error(MessageSource.Resolver, tok, msg, args);
     }
 
+    public void ReportError(ResolutionErrors.ErrorId errorId, IOrigin tok, string msg, params object[] args) {
+      resolver.Reporter.Error(MessageSource.Resolver, errorId, tok, msg, args);
+    }
+
     public void ReportWarning(IOrigin tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
@@ -116,6 +120,8 @@ namespace Microsoft.Dafny {
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
           } else if (name == PreType.TypeNameObjectQ) {
             decl = resolver.SystemModuleManager.ObjectDecl;
+          } else if (name == PreType.TypeNameString) {
+            decl = resolver.SystemModuleManager.StringDecl;
           } else {
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, _ => false, null);
           }
@@ -520,15 +526,20 @@ namespace Microsoft.Dafny {
       Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(a, b, tok, allowBaseTypeCast,
         "(Duplicate error message) " + errorMessage(), false));
       if (!allowBaseTypeCast) {
-        // The "comparable types" constraint may be useful as a bound if nothing else is known about a proxy. 
-        if (a.Normalize() is PreTypeProxy aPreTypeProxy) {
-          Constraints.AddCompatibleBounds(aPreTypeProxy, b);
-        }
-        if (b.Normalize() is PreTypeProxy bPreTypeProxy) {
-          Constraints.AddCompatibleBounds(bPreTypeProxy, a);
-        }
+        AddComparableTypesDefault(a, b);
       }
       Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, allowBaseTypeCast), errorMessage);
+    }
+
+    private void AddComparableTypesDefault(PreType a, PreType b) {
+      // The "comparable types" constraint may be useful as a bound if nothing else is known about a proxy. 
+      if (a.Normalize() is PreTypeProxy aPreTypeProxy) {
+        Constraints.AddCompatibleBounds(aPreTypeProxy, b);
+      }
+
+      if (b.Normalize() is PreTypeProxy bPreTypeProxy) {
+        Constraints.AddCompatibleBounds(bPreTypeProxy, a);
+      }
     }
 
     /// <summary>
@@ -674,6 +685,7 @@ namespace Microsoft.Dafny {
             Constraints.AddEqualityConstraint(aa, bb, tok, msgFormat, null, reportErrors);
           } else {
             Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(aa, bb, tok, false, msgFormat, reportErrors));
+            AddComparableTypesDefault(aa, bb);
           }
         }
 
@@ -800,8 +812,8 @@ namespace Microsoft.Dafny {
       }
 
       if (preTypeInferenceModuleState.InFirstPhase.Contains(d)) {
-        var cycle = Util.Comma(" -> ", preTypeInferenceModuleState.InFirstPhase, d => d.ToString());
-        ReportError(d, $"Cyclic dependency among declarations: {d} -> {cycle}");
+        var cycle = Util.Comma(" -> ", preTypeInferenceModuleState.InFirstPhase, d => d.GetNameRelativeToModule());
+        ReportError(d, $"Cyclic dependency among declarations: {d.GetNameRelativeToModule()} -> {cycle}");
       } else {
         preTypeInferenceModuleState.InFirstPhase.Push(d);
         FillInPreTypesInSignature(d);
@@ -1018,11 +1030,6 @@ namespace Microsoft.Dafny {
         if (attr is UserSuppliedAtAttribute { Builtin: true } usaa) {
           Contract.Assert(usaa.Arg.Type != null); // Already resolved
           continue;
-        }
-        if (attributeHost != null && attr is UserSuppliedAttributes usa) {
-#if TODO          
-          usa.Recognized = resolver.IsRecognizedAttribute(usa, attributeHost); // TODO: this could be done in a later resolution pass
-#endif
         }
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
@@ -1391,9 +1398,16 @@ namespace Microsoft.Dafny {
       scope.PopMarker();
 
       if (f.ByMethodBody != null) {
+        Contract.Assert(f.Body != null && !f.IsGhost); // assured by the parser and other callers of the Function constructor
         var method = f.ByMethodDecl;
-        Contract.Assert(method != null); // this should have been filled in by now
-        ResolveMethod(method);
+        if (method != null) {
+          ResolveMethod(method);
+        } else {
+          // method should have been filled in by now,
+          // unless there was a function by method and a method of the same name
+          // but then this error must have been reported.
+          Contract.Assert(resolver.Reporter.HasErrors);
+        }
       }
 
       resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value

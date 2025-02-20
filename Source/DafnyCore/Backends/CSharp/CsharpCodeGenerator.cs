@@ -3366,7 +3366,8 @@ namespace Microsoft.Dafny.Compilers {
       } else if (fromType.Equals(toType) || fromType.AsNewtype != null || toType.AsNewtype != null) {
         wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
       } else {
-        Contract.Assert(false, $"not implemented for C#: {fromType} -> {toType}");
+        wr = EmitDowncast(fromType, toType, fromExpr.Origin, wr);
+        EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
       }
     }
 

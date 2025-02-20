@@ -114,7 +114,7 @@ method Test4(process: Process, m: map<Process, State>, log: seq<Event>)
     var last :- Find(process, log);
     Some(100);
 
-  var c := x == z;  // ERROR: this should give a type error
+  var c := x == z;  // ERROR: this (or the literal 100 above) should give a type error
 }
 
 method Test5(s: State)
@@ -126,6 +126,6 @@ method Test5(s: State)
     var n :- Gimmie();
     Some(100.0);
 
-  var c := x == z;  // ERROR: this should give a type error
+  var c := x == z;  // ERROR: this (or the literal 100.0 above) should give a type error
 }
 

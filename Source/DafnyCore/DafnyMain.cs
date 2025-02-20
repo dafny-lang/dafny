@@ -87,10 +87,6 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      if (program.Options.Get(CommonOptionBag.GeneralNewtypes) && !program.Options.Get(CommonOptionBag.TypeSystemRefresh)) {
-        return "use of --general-newtypes requires --type-system-refresh";
-      }
-
       var programResolver = new ProgramResolver(program);
 #pragma warning disable VSTHRD002
       LargeStackFactory.StartNew(() => programResolver.Resolve(CancellationToken.None)).Wait();
