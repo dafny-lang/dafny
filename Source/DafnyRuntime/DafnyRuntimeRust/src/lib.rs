@@ -2077,7 +2077,7 @@ impl<A: DafnyPrint> DafnyPrint for LazyFieldWrapper<A> {
 // Convert the DafnyPrint above into a macro so that we can create it for functions of any input arity
 macro_rules! dafny_print_function {
     ($($n:tt)*) => {
-        impl <B, $($n),*> $crate::DafnyPrint for $crate::Rc<dyn ::std::ops::Fn($($n),*) -> B + Send + Sync> {
+        impl <B, $($n),*> $crate::DafnyPrint for $crate::Rc<dyn ::std::ops::Fn($(&$n),*) -> B + Send + Sync> {
             fn fmt_print(&self, f: &mut ::std::fmt::Formatter<'_>, _in_seq: bool) -> ::std::fmt::Result {
                 write!(f, "<function>")
             }
