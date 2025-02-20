@@ -33,10 +33,10 @@ public class SourceToBinary {
     var input = await File.ReadAllTextAsync(inputFile);
     var parseResult = await new ProgramParser().Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
 
-    var parsedAstSource = ResourceLoader.GetResourceAsString("ParsedAst");
+    var syntaxSchema = ResourceLoader.GetResourceAsString("Syntax.cs-schema");
     var output = new StringBuilder();
     var textEncoder = new TextEncoder(output);
-    SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(parsedAstSource);
+    SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(syntaxSchema);
     var references = new MetadataReference[]
     {
       MetadataReference.CreateFromFile(typeof(object).Assembly.Location),

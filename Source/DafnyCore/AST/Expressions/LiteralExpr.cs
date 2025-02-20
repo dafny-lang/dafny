@@ -48,7 +48,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
     return StripParens(e) is SeqDisplayExpr display && display.Elements.Count == 0;
   }
 
-  [ParsedConstructor]
+  [SyntaxConstructor]
   public LiteralExpr(IOrigin origin, object value)
     : base(origin) {
     this.Value = value is int n ? new BigInteger(n) : value;

@@ -18,7 +18,7 @@ public class Token : IOrigin {
 
   public Token() : this(0, 0) { }
 
-  [ParsedConstructor]
+  [SyntaxConstructor]
   public Token(int line, int col) {
     this.line = line;
     this.col = col;

@@ -12,7 +12,7 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo? SynonymInfo { get; set; }
 
-  [ParsedConstructor]
+  [SyntaxConstructor]
   public DefaultClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
     List<MemberDecl> members, List<Type>? traits = null)

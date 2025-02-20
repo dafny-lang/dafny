@@ -135,13 +135,13 @@ pr-conflict: dfy-to-cs-exe dfy-to-cs-exe pr-nogeneration
 
 gen-integration: gen-schema gen-deserializer
 
-PARSED_AST_FILE=Source/Scripts/ParsedAst
+PARSED_AST_FILE=Source/Scripts/Syntax.cs-schema
 gen-schema:
 	./script.sh generate-parsed-ast $(PARSED_AST_FILE)
   
-GENERATED_DESERIALIZER_FILE=Source/DafnyCore/Generic/Deserializer/generated.cs
+GENERATED_DESERIALIZER_FILE=Source/DafnyCore/AST/SyntaxDeserializer/generated.cs
 gen-deserializer:
-	./script.sh generate-deserializer ${GENERATED_DESERIALIZER_FILE}
+	./script.sh generate-syntax-deserializer ${GENERATED_DESERIALIZER_FILE}
 
 test-integration: gen-integration
 	(git status --porcelain || (echo 'Consider running `make gen-integration`'; exit 1; ))

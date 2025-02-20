@@ -39,7 +39,7 @@ public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDecl
   public AttributedExpression(Expression e, Attributes attrs) : this(e, null, attrs) {
   }
 
-  [ParsedConstructor]
+  [SyntaxConstructor]
   public AttributedExpression(Expression e, AssertLabel/*?*/ label, Attributes attributes) : base(e.Origin) {
     Contract.Requires(e != null);
     E = e;

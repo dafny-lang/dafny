@@ -17,7 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Include="ParsedAst">
+      <EmbeddedResource Include="Syntax.cs-schema">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </EmbeddedResource>
     </ItemGroup>

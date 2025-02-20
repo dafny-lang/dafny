@@ -97,7 +97,7 @@ public abstract class PostParseAstVisitor {
     if (inheritors.TryGetValue(type, out var children)) {
       foreach (var child in children) {
         var goodConstructor = child.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).
-          FirstOrDefault(c => c.GetCustomAttribute<ParsedConstructorAttribute>() != null);
+          FirstOrDefault(c => c.GetCustomAttribute<SyntaxConstructorAttribute>() != null);
         if (goodConstructor != null) {
           VisitType(child, toVisit);
         }
@@ -160,7 +160,7 @@ public abstract class PostParseAstVisitor {
     var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
     return constructors.Where(c => !c.IsPrivate &&
                                    !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c =>
-      c.GetCustomAttribute<ParsedConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue)!;
+      c.GetCustomAttribute<SyntaxConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue)!;
   }
 
   public static string ToGenericTypeString(Type t, bool useTypeMapping = true, bool mapNestedTypes = true,

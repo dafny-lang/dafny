@@ -127,7 +127,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.IsByMethod = original.IsByMethod;
   }
 
-  [ParsedConstructor]
+  [SyntaxConstructor]
   public Method(IOrigin origin, Name nameNode,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,

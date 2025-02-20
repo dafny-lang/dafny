@@ -16,7 +16,7 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public bool InclusiveEnd => endToken != null;
   public bool IncludesRange => true;
 
-  [ParsedConstructor]
+  [SyntaxConstructor]
   public SourceOrigin(Token startToken, Token? endToken, Token? center = null) {
     this.endToken = endToken;
     StartToken = startToken;

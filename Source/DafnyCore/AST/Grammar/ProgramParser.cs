@@ -286,7 +286,7 @@ public class ProgramParser {
       return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
     }
 
-    var filesContainer = new Deserializer(new TextDecoder(reader.ReadToEnd())).ReadFilesContainer();
+    var filesContainer = new SyntaxDeserializer(new TextDecoder(reader.ReadToEnd())).ReadFilesContainer();
     var filesModule = new FileModuleDefinition(SourceOrigin.NoToken);
     filesModule.SourceDecls.AddRange(
       filesContainer.Files.SelectMany(f => f.TopLevelDecls));

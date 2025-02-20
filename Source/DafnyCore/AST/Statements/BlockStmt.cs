@@ -15,7 +15,7 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
     Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
   }
 
-  [ParsedConstructor]
+  [SyntaxConstructor]
   public BlockStmt(IOrigin origin, Attributes attributes, List<Statement> body) : base(origin, attributes) {
     Body = body;
   }

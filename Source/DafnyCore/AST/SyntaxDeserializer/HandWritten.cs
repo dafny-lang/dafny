@@ -13,7 +13,7 @@ namespace Microsoft.Dafny;
 /// To enable this workflow for programs not written in C#,
 /// Dafny supports consuming parsed programs from a serialized format.
 /// 
-/// This class allows reading Dafny programs that are encoded based on the schema defined in Source/Scripts/ParsedAst
+/// This class allows reading Dafny programs that are encoded based on the schema defined in Source/Scripts/Syntax.cs.schema
 ///
 /// The exact encoding can be varied using the instance of IDecoder, but it must adhere to these constraints:
 /// - Instances of classes must contain the fields from the schema, in the order from the schema
@@ -22,7 +22,7 @@ namespace Microsoft.Dafny;
 ///   the concrete type of the field value must be specified before encoding its own fields.
 /// 
 /// </summary>
-public partial class Deserializer(IDecoder decoder) {
+public partial class SyntaxDeserializer(IDecoder decoder) {
   private Uri? uri;
 
   private Specification<T> ReadSpecification<T>() where T : Node {

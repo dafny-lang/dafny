@@ -9,10 +9,15 @@ using Action = System.Action;
 namespace Microsoft.Dafny;
 
 /// <summary>
-/// Used to indicate to the serialization code generator, which constructor should be used.
+/// Indicates that this constructor is used to define an AST type corresponding to the syntax of Dafny
+///
+/// These constructors are invoked by the Dafny parser defined in Dafny.atg
+/// and by the Dafny deserializer.
+///
+/// The attribute is used by DeserializerGenerator.
 /// </summary>
 [AttributeUsage(AttributeTargets.Constructor)]
-public class ParsedConstructorAttribute : Attribute { }
+public class SyntaxConstructorAttribute : Attribute { }
 
 /// <summary>
 /// Used by the command '--generate-parsed-ast'. This attribute will cause the field to be ignored.

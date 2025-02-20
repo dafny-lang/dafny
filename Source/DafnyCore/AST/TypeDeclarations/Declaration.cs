@@ -33,7 +33,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  [ParsedConstructor]
+  [SyntaxConstructor]
   protected Declaration(IOrigin origin, Name nameNode, Attributes attributes) : base(origin) {
     Contract.Requires(origin != null);
     this.NameNode = nameNode;

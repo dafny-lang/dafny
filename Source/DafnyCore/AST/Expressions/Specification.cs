@@ -17,7 +17,7 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
     Attributes = null;
   }
 
-  [ParsedConstructor]
+  [SyntaxConstructor]
   public Specification(IOrigin origin, List<T> expressions, Attributes attributes) : base(origin) {
     Expressions = expressions;
     Attributes = attributes;

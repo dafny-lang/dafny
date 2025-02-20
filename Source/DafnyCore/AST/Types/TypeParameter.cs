@@ -150,7 +150,7 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  [ParsedConstructor]
+  [SyntaxConstructor]
   public TypeParameter(IOrigin origin, Name nameNode, TPVarianceSyntax varianceSyntax,
     TypeParameterCharacteristics characteristics,
     List<Type> typeBounds, Attributes attributes = null)
