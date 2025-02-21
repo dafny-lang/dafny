@@ -7,7 +7,7 @@ public class Lemma : Method {
   public override string WhatKind => "lemma";
   public override string WhatKindMentionGhost => WhatKind;
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public Lemma(IOrigin origin, Name nameNode,
     bool hasStaticKeyword,
     [Captured] List<TypeParameter> typeArgs,

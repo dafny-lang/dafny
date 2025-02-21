@@ -31,8 +31,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
   public override IEnumerable<INode> PreResolveChildren => Children;
   public override string WhatKind => "method";
-  public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
-  public readonly IOrigin? SignatureEllipsis;
   public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
@@ -127,11 +125,10 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
     this.Body = cloner.CloneMethodBody(original);
-    this.SignatureEllipsis = original.SignatureEllipsis;
     this.IsByMethod = original.IsByMethod;
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public Method(IOrigin origin, Name nameNode,
     Attributes? attributes,
     bool hasStaticKeyword, bool isGhost,
@@ -146,8 +143,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] BlockStmt body,
     IOrigin? signatureEllipsis,
     bool isByMethod = false)
-    : base(origin, nameNode, attributes,
-      hasStaticKeyword, isGhost, typeArgs, ins, req, ens, reads, decreases) {
+    : base(origin, nameNode, hasStaticKeyword,  isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -160,7 +156,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     this.Outs = outs;
     this.Mod = mod;
     Body = body;
-    this.SignatureEllipsis = signatureEllipsis;
     this.IsByMethod = isByMethod;
     MustReverify = false;
   }

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
@@ -22,17 +23,23 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public readonly Specification<Expression> Decreases;
   public readonly List<Formal> Ins;
 
-  [ParseConstructor]
-  protected MethodOrFunction(IOrigin origin, Name nameNode,
-    Attributes attributes, bool hasStaticKeyword, bool isGhost,
-    List<TypeParameter> typeArgs, List<Formal> ins,
+  public bool SignatureIsOmitted => // is "false" for all Function objects that survive into resolution
+    SignatureEllipsis != null;
+
+  public readonly IOrigin? SignatureEllipsis;
+  public override bool IsRefining => SignatureIsOmitted;
+
+  [SyntaxConstructor]
+  protected MethodOrFunction(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost,
+    Attributes? attributes, IOrigin? signatureEllipsis, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
     [Captured] Specification<FrameExpression> reads,
     Specification<Expression> decreases)
-    : base(origin, nameNode, attributes, hasStaticKeyword, isGhost) {
+    : base(origin, nameNode, hasStaticKeyword, isGhost, attributes) {
     TypeArgs = typeArgs;
     Req = req;
+    this.SignatureEllipsis = signatureEllipsis;
     this.Reads = reads;
     Decreases = decreases;
     Ens = ens;
@@ -45,6 +52,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
     this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
+    this.SignatureEllipsis = original.SignatureEllipsis;
     if (cloner.CloneResolvedFields) {
       this.ContainsHide = original.ContainsHide;
     }
@@ -98,10 +106,6 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     Req.Count > 0
     // The following check is incomplete, which is a bug.
     || Ins.Any(f => f.Type.AsSubsetType is not null);
-
-  protected MethodOrFunction(SourceOrigin tok, Name nameNode, bool hasStaticKeyword, bool isGhost, Attributes attributes)
-    : base(tok, nameNode, attributes, hasStaticKeyword, isGhost) {
-  }
 
   public Specification<FrameExpression> Reads { get; set; }
 }

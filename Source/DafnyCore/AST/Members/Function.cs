@@ -114,8 +114,6 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public IOrigin? ByMethodTok; // null iff ByMethodBody is null
   public BlockStmt? ByMethodBody;
   [FilledInDuringResolution] public Method? ByMethodDecl; // if ByMethodBody is non-null
-  public bool SignatureIsOmitted => SignatureEllipsis != null; // is "false" for all Function objects that survive into resolution
-  public readonly IOrigin? SignatureEllipsis;
   public Function? OverriddenFunction;
   public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
@@ -227,13 +225,13 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     Contract.Invariant(Decreases != null);
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public Function(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal? result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression? body, IOrigin? byMethodTok, BlockStmt? byMethodBody,
     Attributes? attributes, IOrigin? signatureEllipsis)
-    : base(origin, nameNode, attributes, hasStaticKeyword, isGhost, typeArgs, ins, req, ens, reads, decreases) {
+    : base(origin, nameNode, hasStaticKeyword, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
 
     Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -249,7 +247,6 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     this.Body = body;
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
-    this.SignatureEllipsis = signatureEllipsis;
     this.IsOpaque = isOpaque || Attributes.Contains(attributes, "opaque");
 
     if (attributes == null) {

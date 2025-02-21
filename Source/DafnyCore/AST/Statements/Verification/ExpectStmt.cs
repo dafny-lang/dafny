@@ -15,7 +15,7 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
   }
 
   public ExpectStmt(IOrigin origin, Expression expr, Expression message, Attributes attributes)
-    : base(origin, attributes, expr) {
+    : base(origin, expr, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     this.Message = message;

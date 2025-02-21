@@ -290,11 +290,11 @@ public class ProgramParser {
       return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
     }
 
-    var filesContainer = new Deserializer(new TextDecoder(reader.ReadToEnd())).ReadFilesContainer();
-    var filesModule = new FileModuleDefinition(new SourceOrigin(Token.NoToken, Token.NoToken),
-      new Name("ignore"), new List<IOrigin>(), ModuleKindEnum.Concrete, null, null, null,
-      filesContainer.Files.SelectMany(f => f.TopLevelDecls).ToList());
-    // TODO correctly modify built-ins by traversing parsed AST, or even do that during deserializing
+    var filesContainer = new SyntaxDeserializer(new TextDecoder(reader.ReadToEnd())).ReadFilesContainer();
+    var filesModule = new FileModuleDefinition(SourceOrigin.NoToken);
+    filesModule.SourceDecls.AddRange(
+      filesContainer.Files.SelectMany(f => f.TopLevelDecls));
+
     return new DfyParseFileResult(null, uri,
       filesContainer.Files.Select(f => new Uri(f.Uri)).ToList(),
       new BatchErrorReporter(options), filesModule, []);

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -20,7 +21,7 @@ static class AttributeBearingDeclaration {
 public record BuiltInAtAttributeArgSyntax(
   string ArgName,
   Type ArgType, // If null, it means it's not resolved (@Induction and @Trigger)
-  Expression DefaultValue) {
+  Expression? DefaultValue) {
   public Formal ToFormal() {
     Contract.Assert(ArgType != null);
     return new Formal(Token.NoToken, ArgName, ArgType, true, false,
@@ -34,7 +35,7 @@ public record BuiltInAtAttributeSyntax(
   string Name,
   List<BuiltInAtAttributeArgSyntax> Args,
   Func<IAttributeBearingDeclaration, bool> CanBeApplied) {
-  public BuiltInAtAttributeSyntax WithArg(String argName, Type argType, Expression defaultValue = null) {
+  public BuiltInAtAttributeSyntax WithArg(String argName, Type argType, Expression? defaultValue = null) {
     var c = new List<BuiltInAtAttributeArgSyntax>(Args) {
       new(argName, argType, defaultValue) };
     return this with { Args = c };
@@ -63,22 +64,16 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /*Frozen*/
   public readonly List<Expression> Args;
 
-  public readonly Attributes Prev;
+  public readonly Attributes? Prev;
 
-  [ParseConstructor]
-  public Attributes(IOrigin origin, string name, [Captured] List<Expression> args, Attributes prev) : base(origin) {
-    Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(args));
-    Contract.Requires(name != UserSuppliedAtAttribute.AtName || this is UserSuppliedAtAttribute);
+  [SyntaxConstructor]
+  public Attributes(IOrigin origin, string name, List<Expression> args, Attributes? prev) : base(origin) {
     Name = name;
     Args = args;
     Prev = prev;
   }
 
   public Attributes(string name, [Captured] List<Expression> args, Attributes prev) : base(Token.NoToken) {
-    Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(args));
-    Contract.Requires(name != UserSuppliedAtAttribute.AtName || this is UserSuppliedAtAttribute);
     Name = name;
     Args = args;
     Prev = prev;
@@ -98,7 +93,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     return attrs.AsEnumerable().SelectMany(aa => aa.Args);
   }
 
-  public static bool Contains(Attributes attrs, string nm) {
+  public static bool Contains(Attributes? attrs, string nm) {
     Contract.Requires(nm != null);
     return attrs.AsEnumerable().Any(aa => aa.Name == nm);
   }
@@ -108,7 +103,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// attribute.
   /// </summary>
   [Pure]
-  public static Attributes/*?*/ Find(Attributes attrs, string nm) {
+  public static Attributes? Find(Attributes? attrs, string nm) {
     Contract.Requires(nm != null);
     return attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
   }
@@ -122,7 +117,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// be called very early during resolution before types are available and names have been resolved.
   /// </summary>
   [Pure]
-  public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
+  public static bool ContainsBool(Attributes? attrs, string nm, ref bool value) {
     Contract.Requires(nm != null);
     var attr = attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
     if (attr == null) {
@@ -729,7 +724,7 @@ public static class AttributesExtensions {
   /// <summary>
   /// By making this an extension method, it can also be invoked for a null receiver.
   /// </summary>
-  public static IEnumerable<Attributes> AsEnumerable(this Attributes attr) {
+  public static IEnumerable<Attributes> AsEnumerable(this Attributes? attr) {
     while (attr != null) {
       yield return attr;
       attr = attr.Prev;
@@ -829,7 +824,7 @@ public class UserSuppliedAtAttribute : Attributes {
 /// A class implementing this interface is one that can carry attributes.
 /// </summary>
 public interface IAttributeBearingDeclaration {
-  Attributes Attributes { get; internal set; }
+  Attributes? Attributes { get; internal set; }
   string WhatKind { get; }
 }
 

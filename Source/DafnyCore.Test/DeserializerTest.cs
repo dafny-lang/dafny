@@ -18,22 +18,6 @@ public class DeserializerTest {
   }
 
   [Fact]
-  public Task DeserializeNull() {
-    var d = new Deserializer(new TextDecoder("true "));
-    var result = d.ReadLiteralExprOption();
-    Assert.Null(result);
-    return Task.CompletedTask;
-  }
-
-  [Fact]
-  public Task DeserializeNonNull() {
-    var d = new Deserializer(new TextDecoder("false 0; 0; 0; 0; 0; 0; Int32 23254; "));
-    var result = d.ReadLiteralExprOption();
-    Assert.Equal(23254, result.Value);
-    return Task.CompletedTask;
-  }
-
-  [Fact]
   public async Task AssertFalseBinary() {
     var input =
       "0; 1; 0; 1; 0; 1; 0; 1; 0; 1; 0; 1; \"unnamed\" 0; 0; null null 1; ClassDecl 3; 2; 7; 3; 3; 2; 3; 2; 3; 2; 3; 2; \"Main\" null 0; 1; Method 4; 4; 6; 5; 4; 16; 4; 16; 4; 16; 4; 16; \"Foo\" null true false 0; 0; 0; 0; 4; 4; 6; 5; 4; 16; 0; null 4; 4; 6; 5; 4; 16; 0; null 0; 4; 4; 6; 5; 4; 16; 0; null  4; 4; 6; 5; 4; 16; null 1; AssertStmt 5; 6; 5; 19; 5; 6; null LiteralExpr 5; 13; 5; 18; 5; 13; Boolean false null null false 0; false ";

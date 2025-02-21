@@ -15,7 +15,7 @@ public class ReturnStmt : ProduceStmt, ICloneable<ReturnStmt> {
     ReverifyPost = original.ReverifyPost;
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public ReturnStmt(IOrigin origin, List<AssignmentRhs> rhss, Attributes? attributes = null)
     : base(origin, rhss, attributes) {
     Contract.Requires(origin != null);

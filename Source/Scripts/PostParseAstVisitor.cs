@@ -34,14 +34,16 @@ public abstract class PostParseAstVisitor {
     { typeof(Uri), typeof(string) }
   };
 
-  public void VisitTypesFromRoot(Type rootType) {
-    var assembly = rootType.Assembly;
+  public void VisitTypesFromRoots(IReadOnlyList<Type> roots) {
+    var assembly = roots.First().Assembly;
     var inheritors = assembly.GetTypes().Where(t => t.BaseType != null).GroupBy(t => t.BaseType!).ToDictionary(
       g => g.Key,
       g => (ISet<Type>)g.ToHashSet());
 
     var toVisit = new Stack<Type>();
-    toVisit.Push(rootType);
+    foreach (var root in roots) {
+      toVisit.Push(root);
+    }
     var visited = new HashSet<Type>();
     while (toVisit.Any()) {
       var current = toVisit.Pop();
@@ -61,7 +63,7 @@ public abstract class PostParseAstVisitor {
         continue;
       }
 
-      if (current.Namespace != rootType.Namespace && current.Namespace != "Microsoft.Boogie") {
+      if (current.Namespace != roots.First().Namespace && current.Namespace != "Microsoft.Boogie") {
         continue;
       }
 
@@ -87,7 +89,7 @@ public abstract class PostParseAstVisitor {
       var baseParseConstructor = GetParseConstructor(baseType);
       var missingParameters =
         baseParseConstructor.GetParameters().Select(p => p.Name)
-          .Except(myParseConstructor.GetParameters().Select(p => p.Name));
+          .Except(myParseConstructor.GetParameters().Select(p => p.Name)).ToList();
       if (missingParameters.Any()) {
         throw new Exception($"in type {type}, missing parameters: {string.Join(",", missingParameters)}");
       }
@@ -96,7 +98,7 @@ public abstract class PostParseAstVisitor {
     if (inheritors.TryGetValue(type, out var children)) {
       foreach (var child in children) {
         var goodConstructor = child.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).
-          FirstOrDefault(c => c.GetCustomAttribute<ParseConstructorAttribute>() != null);
+          FirstOrDefault(c => c.GetCustomAttribute<SyntaxConstructorAttribute>() != null);
         if (goodConstructor != null) {
           VisitType(child, toVisit);
         }
@@ -155,11 +157,11 @@ public abstract class PostParseAstVisitor {
     toVisit.Push(type);
   }
 
-  protected static ConstructorInfo? GetParseConstructor(Type type) {
+  protected static ConstructorInfo GetParseConstructor(Type type) {
     var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
     return constructors.Where(c => !c.IsPrivate &&
                                    !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c =>
-      c.GetCustomAttribute<ParseConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue)!;
+      c.GetCustomAttribute<SyntaxConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue)!;
   }
 
   public static string ToGenericTypeString(Type t, bool useTypeMapping = true, bool mapNestedTypes = true,

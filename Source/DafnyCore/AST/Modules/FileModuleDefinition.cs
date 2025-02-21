@@ -36,7 +36,7 @@ public class FileModuleDefinition : ModuleDefinition {
     }
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public FileModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind,
     Implements? implements, ModuleDefinition enclosingModule, Attributes? attributes, List<TopLevelDecl> sourceDecls) :
     base(origin, nameNode, prefixIds, moduleKind, implements, enclosingModule, attributes, sourceDecls) {

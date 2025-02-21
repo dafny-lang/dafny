@@ -11,11 +11,11 @@ using Type = System.Type;
 
 namespace IntegrationTests;
 
-public class ParsedAstGenerator : PostParseAstVisitor {
+public class SyntaxSchemaGenerator : PostParseAstVisitor {
   private CompilationUnitSyntax compilationUnit = CompilationUnit();
 
   public static Command GetCommand() {
-    var result = new Command("generate-parsed-ast", "");
+    var result = new Command("generate-syntax-schema", "");
     var fileArgument = new Argument<FileInfo>();
     result.AddArgument(fileArgument);
     result.SetHandler((file1) => Handle(file1.FullName), fileArgument);
@@ -23,14 +23,14 @@ public class ParsedAstGenerator : PostParseAstVisitor {
   }
 
   public static async Task Handle(string outputFile) {
-    var generator = new ParsedAstGenerator();
+    var generator = new SyntaxSchemaGenerator();
     await File.WriteAllTextAsync(outputFile, generator.GenerateAll());
   }
 
   public string GenerateAll() {
 
     var rootType = typeof(FilesContainer);
-    VisitTypesFromRoot(rootType);
+    VisitTypesFromRoots([rootType]);
     compilationUnit = compilationUnit.NormalizeWhitespace();
 
     var hasErrors = CheckCorrectness(compilationUnit);

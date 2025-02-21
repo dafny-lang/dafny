@@ -1052,7 +1052,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new NestedOrigin(skel.Origin, e.Origin), attrs, e, skel.Label));
+                body.Add(new AssertStmt(new NestedOrigin(skel.Origin, e.Origin), e, skel.Label, attrs));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
@@ -1198,7 +1198,7 @@ namespace Microsoft.Dafny {
               i++; j++;
               if (addedAssert != null) {
                 var tok = new BoogieGenerator.ForceCheckOrigin(addedAssert.Origin);
-                body.Add(new AssertStmt(tok, null, addedAssert, null));
+                body.Add(new AssertStmt(tok, addedAssert, null, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1255,7 +1255,7 @@ namespace Microsoft.Dafny {
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
                 var tok = new SourceOrigin(addedAssert.Origin.StartToken, addedAssert.Origin.EndToken);
-                stmtGenerated.Add(new AssertStmt(tok, null, addedAssert, null));
+                stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null));
               }
             }
             if (doMerge) {

@@ -66,7 +66,8 @@ public abstract class MemberDecl : Declaration, ISymbol {
     this.isGhost = original.isGhost;
   }
 
-  protected MemberDecl(IOrigin origin, Name nameNode, Attributes attributes, bool hasStaticKeyword, bool isGhost)
+  [SyntaxConstructor]
+  protected MemberDecl(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, Attributes attributes)
     : base(origin, nameNode, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);

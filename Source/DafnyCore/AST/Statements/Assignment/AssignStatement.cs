@@ -51,7 +51,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
     CanMutateKnownState = false;
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public AssignStatement(IOrigin origin, List<Expression> lhss, List<AssignmentRhs> rhss, bool canMutateKnownState,
     Attributes? attributes = null)
     : base(origin, lhss, attributes) {

@@ -6,8 +6,24 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public partial class Deserializer(IDecoder decoder) {
-  private Uri uri;
+/// <summary>
+/// When using Dafny as a downstream tool, it can be useful to pass already parsed Dafny programs to Dafny,
+/// since that allows filling the AST with source locations from other sources.
+///
+/// To enable this workflow for programs not written in C#,
+/// Dafny supports consuming parsed programs from a serialized format.
+/// 
+/// This class allows reading Dafny programs that are encoded based on the schema defined in Source/Scripts/Syntax.cs.schema
+///
+/// The exact encoding can be varied using the instance of IDecoder, but it must adhere to these constraints:
+/// - Instances of classes must contain the fields from the schema, in the order from the schema
+/// - Arrays must specify their length first
+/// - When encoding a field of an abstract class,
+///   the concrete type of the field value must be specified before encoding its own fields.
+/// 
+/// </summary>
+public partial class SyntaxDeserializer(IDecoder decoder) {
+  private Uri? uri;
 
   private Specification<T> ReadSpecification<T>() where T : Node {
     var parameter0 = ReadAbstract<IOrigin>();

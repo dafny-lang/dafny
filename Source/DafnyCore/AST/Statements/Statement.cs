@@ -7,10 +7,10 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
-  public Token PostLabelToken { get; set; }
+  public Token? PostLabelToken { get; set; }
 
   public int ScopeDepth { get; set; }
-  public LList<Label> Labels;  // mutable during resolution
+  public LList<Label>? Labels;  // mutable during resolution
 
   public Attributes? Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "statement";
@@ -36,6 +36,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     }
   }
 
+  [SyntaxConstructor]
   protected Statement(IOrigin origin, Attributes? attributes) : base(origin) {
     this.Attributes = attributes;
   }

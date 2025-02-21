@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Dafny {
-  partial class Deserializer {
+  partial class SyntaxDeserializer {
     public Name ReadName() {
       var parameter0 = ReadAbstract<IOrigin>();
       var parameter1 = ReadString();
@@ -238,13 +238,14 @@ namespace Microsoft.Dafny {
     }
 
     public TypeParameter ReadTypeParameter() {
-      var parameter0 = ReadAbstract<IOrigin>();
-      var parameter1 = ReadName();
-      var parameter2 = ReadAttributesOption();
-      var parameter3 = ReadTPVarianceSyntax();
-      var parameter4 = ReadTypeParameterCharacteristics();
-      var parameter5 = ReadList<Type>(() => ReadAbstract<Type>());
-      return new TypeParameter(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
+      throw new Exception();
+      // var parameter0 = ReadAbstract<IOrigin>();
+      // var parameter1 = ReadName();
+      // var parameter2 = ReadAttributesOption();
+      // var parameter3 = ReadTPVarianceSyntax();
+      // var parameter4 = ReadTypeParameterCharacteristics();
+      // var parameter5 = ReadList<Type>(() => ReadAbstract<Type>());
+      // return new TypeParameter(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
     }
 
     public TypeParameter ReadTypeParameterOption() {
@@ -395,11 +396,12 @@ namespace Microsoft.Dafny {
     }
 
     public AssertStmt ReadAssertStmt() {
-      var parameter0 = ReadAbstract<IOrigin>();
-      var parameter1 = ReadAttributesOption();
-      var parameter2 = ReadAbstract<Expression>();
-      var parameter3 = ReadAssertLabelOption();
-      return new AssertStmt(parameter0, parameter1, parameter2, parameter3);
+      throw new Exception();
+      // var parameter0 = ReadAbstract<IOrigin>();
+      // var parameter1 = ReadAttributesOption();
+      // var parameter2 = ReadAbstract<Expression>();
+      // var parameter3 = ReadAssertLabelOption();
+      // return new AssertStmt(parameter0, parameter1, parameter2, parameter3);
     }
 
     public AssertStmt ReadAssertStmtOption() {

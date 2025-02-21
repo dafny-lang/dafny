@@ -23,7 +23,7 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
     Assign = (ConcreteAssignStatement)cloner.CloneStmt(original.Assign, false);
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public VarDeclStmt(IOrigin origin, List<LocalVariable> locals, ConcreteAssignStatement assign, Attributes? attributes = null)
     : base(origin, attributes) {
     Contract.Requires(locals != null);

@@ -14,7 +14,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   public readonly Type Rhs;
 
   protected TypeSynonymDeclBase(IOrigin origin, Name name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(origin, name, attributes, typeArgs, module) {
+    : base(origin, name, module, typeArgs, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);

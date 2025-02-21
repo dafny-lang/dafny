@@ -134,19 +134,18 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  [ParseConstructor]
-  public TypeParameter(IOrigin origin, Name nameNode, Attributes? attributes, TPVarianceSyntax varianceSyntax, TypeParameterCharacteristics characteristics,
-    List<Type> typeBounds)
-    : base(origin, nameNode, attributes, [], null) {
-    Contract.Requires(origin != null);
-    Contract.Requires(nameNode != null);
+  [SyntaxConstructor]
+  public TypeParameter(IOrigin origin, Name nameNode, TPVarianceSyntax varianceSyntax,
+    TypeParameterCharacteristics characteristics,
+    List<Type> typeBounds, Attributes? attributes = null)
+    : base(origin, nameNode, null, [], attributes) {
     Characteristics = characteristics;
     VarianceSyntax = varianceSyntax;
     TypeBounds = typeBounds;
   }
 
   public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax)
-    : this(origin, name, null, varianceSyntax, TypeParameterCharacteristics.Default(), []) {
+    : this(origin, name, varianceSyntax, TypeParameterCharacteristics.Default(), [], null) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
   }
@@ -164,7 +163,7 @@ public class TypeParameter : TopLevelDecl {
     var cloner = new Cloner();
     return typeParameters.ConvertAll(tp => {
       var typeBounds = tp.TypeBounds.ConvertAll(cloner.CloneType);
-      return new TypeParameter(tp.Origin, tp.NameNode, tp.Attributes, tp.VarianceSyntax, tp.Characteristics, typeBounds);
+      return new TypeParameter(tp.Origin, tp.NameNode, tp.VarianceSyntax, tp.Characteristics, typeBounds, tp.Attributes);
     });
   }
 

@@ -37,7 +37,7 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
   }
 
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public ApplySuffix(IOrigin origin, IOrigin? atTok, Expression lhs, ActualBindings bindings, Token? closeParen)
     : base(origin, lhs) {
     AtTok = atTok;

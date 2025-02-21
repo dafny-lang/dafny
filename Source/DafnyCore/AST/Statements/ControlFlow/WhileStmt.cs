@@ -31,7 +31,7 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     Guard = guard;
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public WhileStmt(IOrigin origin, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body, Attributes? attributes)

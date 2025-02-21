@@ -14,7 +14,7 @@ public abstract class Type : NodeWithComputedRange {
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   protected Type(IOrigin origin = null) : base(origin) {
   }
 
@@ -1782,7 +1782,7 @@ public class RealVarietiesSupertype : ArtificialType {
 /// A NonProxy type is a fully constrained type.  It may contain members.
 /// </summary>
 public abstract class NonProxyType : Type {
-  [ParseConstructor]
+  [SyntaxConstructor]
   protected NonProxyType(IOrigin origin = null) : base(origin) {
   }
 
@@ -1795,7 +1795,7 @@ public abstract class BasicType : NonProxyType {
   protected BasicType() : base(null) {
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   protected BasicType(IOrigin origin) : base(origin) {
   }
 
@@ -1840,7 +1840,7 @@ public class CharType : BasicType {
 
 public class IntType : BasicType {
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public IntType(IOrigin origin) : base(origin) {
   }
 

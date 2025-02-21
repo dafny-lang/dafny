@@ -49,7 +49,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // this is what it means to be syntactically optional
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public UserDefinedType(IOrigin origin, Expression namePath) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(namePath is NameSegment || namePath is ExprDotName);

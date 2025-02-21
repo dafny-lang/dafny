@@ -42,7 +42,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
     Lhs = cloner.CloneExpr(original.Lhs);
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   protected SuffixExpr(IOrigin origin, Expression lhs)
     : base(origin) {
     Contract.Requires(origin != null);

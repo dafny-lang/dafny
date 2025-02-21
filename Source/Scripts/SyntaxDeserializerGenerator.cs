@@ -11,16 +11,17 @@ using Type = System.Type;
 
 namespace IntegrationTests;
 
-public class DeserializerGenerator : PostParseAstVisitor {
+public class SyntaxDeserializerGenerator : PostParseAstVisitor {
 
-  private HashSet<Type> typesWithHardcodedDeserializer = [typeof(Token), typeof(Specification<>)];
+  private readonly HashSet<Type> typesWithHardcodedDeserializer = [typeof(Token), typeof(Specification<>)];
 
-  private ClassDeclarationSyntax deserializeClass = (ClassDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(@"partial class Deserializer {}")!;
-  private List<StatementSyntax> deserializeObjectCases = new();
-  protected static Dictionary<Type, Dictionary<string, int>> parameterToSchemaPositions = new();
+  private ClassDeclarationSyntax deserializeClass = (ClassDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(@"
+partial class SyntaxDeserializer {}")!;
+  private readonly List<StatementSyntax> deserializeObjectCases = new();
+  protected static Dictionary<Type, Dictionary<string, int>> ParameterToSchemaPositions = new();
 
   public static Command GetCommand() {
-    var result = new Command("generate-deserializer", "");
+    var result = new Command("generate-syntax-deserializer", "");
     var fileArgument = new Argument<FileInfo>();
     result.AddArgument(fileArgument);
     result.SetHandler((outputFile) => Handle(outputFile.FullName), fileArgument);
@@ -28,11 +29,12 @@ public class DeserializerGenerator : PostParseAstVisitor {
   }
 
   public static async Task Handle(string outputFile) {
-    var program = typeof(FileModuleDefinition);
-    var generateParsedAst = new DeserializerGenerator();
-    generateParsedAst.VisitTypesFromRoot(program);
+    var program = typeof(TopLevelDecl);
+    var generator = new SyntaxDeserializerGenerator();
+    generator.VisitTypesFromRoots([program]);
 
-    var deserializeUnit = SyntaxFactory.ParseCompilationUnit(@"
+    var deserializerUnit = SyntaxFactory.ParseCompilationUnit(@"
+// Generated file
 using System;
 using System.Collections.Generic;
 ");
@@ -41,15 +43,15 @@ using System.Collections.Generic;
 private object ReadObject(System.Type actualType) {{
   throw new Exception();
 }}")!;
-    generateParsedAst.deserializeObjectCases.Add(SyntaxFactory.ParseStatement("throw new Exception();"));
+    generator.deserializeObjectCases.Add(SyntaxFactory.ParseStatement("throw new Exception();"));
     deserializeObjectSyntax = deserializeObjectSyntax.WithBody(
-      deserializeObjectSyntax.Body!.WithStatements(SyntaxFactory.List(generateParsedAst.deserializeObjectCases)));
-    generateParsedAst.deserializeClass = generateParsedAst.deserializeClass.WithMembers(
-      generateParsedAst.deserializeClass.Members.Add(deserializeObjectSyntax));
-    ns = ns.AddMembers(generateParsedAst.deserializeClass);
+      deserializeObjectSyntax.Body!.WithStatements(SyntaxFactory.List(generator.deserializeObjectCases)));
+    generator.deserializeClass = generator.deserializeClass.WithMembers(
+      generator.deserializeClass.Members.Add(deserializeObjectSyntax));
+    ns = ns.AddMembers(generator.deserializeClass);
 
-    deserializeUnit = deserializeUnit.WithMembers(deserializeUnit.Members.Add(ns));
-    await File.WriteAllTextAsync(outputFile, deserializeUnit.NormalizeWhitespace().ToFullString());
+    deserializerUnit = deserializerUnit.WithMembers(deserializerUnit.Members.Add(ns));
+    await File.WriteAllTextAsync(outputFile, deserializerUnit.NormalizeWhitespace().ToFullString());
   }
 
   protected override void HandleClass(Type type) {
@@ -57,11 +59,11 @@ private object ReadObject(System.Type actualType) {{
     var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
 
-      ownedFieldPosition = parameterToSchemaPositions[baseType].Count;
+      ownedFieldPosition = ParameterToSchemaPositions[baseType].Count;
     }
     var parameterToSchemaPosition = new Dictionary<string, int>();
     var schemaToConstructorPosition = new Dictionary<int, int>();
-    parameterToSchemaPositions[type] = parameterToSchemaPosition;
+    ParameterToSchemaPositions[type] = parameterToSchemaPosition;
     var statements = new StringBuilder();
 
     VisitParameters(type, (index, parameter, memberInfo) => {
@@ -77,7 +79,7 @@ private object ReadObject(System.Type actualType) {{
       }
 
       if (memberInfo.DeclaringType != type) {
-        if (parameterToSchemaPositions[memberInfo.DeclaringType!].TryGetValue(memberInfo.Name, out var schemaPosition)) {
+        if (ParameterToSchemaPositions[memberInfo.DeclaringType!].TryGetValue(memberInfo.Name, out var schemaPosition)) {
           schemaToConstructorPosition[schemaPosition] = index;
           parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
         }

@@ -14,7 +14,7 @@ public abstract class DisplayExpression : Expression {
     Elements = original.Elements.ConvertAll(cloner.CloneExpr);
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public DisplayExpression(IOrigin origin, List<Expression> elements)
     : base(origin) {
     Contract.Requires(cce.NonNullElements(elements));

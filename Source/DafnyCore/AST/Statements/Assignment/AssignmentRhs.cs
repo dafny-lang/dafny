@@ -17,8 +17,8 @@ public abstract class AssignmentRhs : NodeWithComputedRange, IAttributeBearingDe
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  [ParseConstructor]
-  internal AssignmentRhs(IOrigin origin, Attributes attributes = null) : base(origin) {
+  [SyntaxConstructor]
+  internal AssignmentRhs(IOrigin origin, Attributes? attributes = null) : base(origin) {
     Attributes = attributes;
   }
 

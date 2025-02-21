@@ -35,7 +35,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public NewtypeDecl(IOrigin origin, Name nameNode, List<TypeParameter> typeParameters, ModuleDefinition enclosingModule,
     Type baseType,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, nameNode, attributes, typeParameters, enclosingModule, members, parentTraits) {
+    : base(origin, nameNode, enclosingModule, typeParameters, members, attributes, parentTraits) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(enclosingModule != null);
@@ -50,7 +50,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public NewtypeDecl(IOrigin origin, Name nameNode, List<TypeParameter> typeParameters, ModuleDefinition enclosingModule,
     BoundVar bv, Expression constraint,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, nameNode, attributes, typeParameters, enclosingModule, members, parentTraits) {
+    : base(origin, nameNode, enclosingModule, typeParameters, members, attributes, parentTraits) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(enclosingModule != null);

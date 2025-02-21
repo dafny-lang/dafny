@@ -10,7 +10,7 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, IC
   public Name NameNode => new Name(Origin, Name);
   public readonly List<Type>? OptTypeArguments;
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public NameSegment(IOrigin origin, string name, List<Type>? optTypeArguments)
     : base(origin) {
     Contract.Requires(optTypeArguments == null || optTypeArguments.Count > 0);

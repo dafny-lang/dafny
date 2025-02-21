@@ -13,7 +13,7 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
   }
 
   public AssumeStmt(IOrigin origin, Expression expr, Attributes attributes)
-    : base(origin, attributes, expr) {
+    : base(origin, expr, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
   }

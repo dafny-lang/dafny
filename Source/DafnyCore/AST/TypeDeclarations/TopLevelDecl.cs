@@ -24,12 +24,9 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     EnclosingModule = enclosingModule;
   }
 
-  protected TopLevelDecl(IOrigin origin, Name nameNode, Attributes attributes,
-    List<TypeParameter> typeArgs, ModuleDefinition enclosingModule)
+  [SyntaxConstructor]
+  protected TopLevelDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes)
     : base(origin, nameNode, attributes) {
-    Contract.Requires(origin != null);
-    Contract.Requires(nameNode != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
     EnclosingModule = enclosingModule;
     TypeArgs = typeArgs;
   }

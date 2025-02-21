@@ -38,7 +38,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Els = els;
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement? els, Attributes? attributes)
     : base(origin, attributes) {
     Contract.Requires(origin != null);

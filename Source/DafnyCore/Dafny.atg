@@ -1099,7 +1099,7 @@ OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
     Type<out typeBound>
     (. typeBounds.Add(typeBound); .)
   }
-  (. typeParameters.Add(new TypeParameter(new SourceOrigin(startToken, t, name.Center), name, null, variance, characteristics, typeBounds)); .)
+  (. typeParameters.Add(new TypeParameter(new SourceOrigin(startToken, t, name.Center), name, variance, characteristics, typeBounds, null)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2984,10 +2984,10 @@ AssertStmt<out Statement/*!*/ s>
     ";"
   )
   (. if (dotdotdot != null) {
-       s = new AssertStmt(new SourceOrigin(startToken, t), attrs, new LiteralExpr(x, true), null);
+       s = new AssertStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), null, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssertStmt(new SourceOrigin(startToken, t), attrs, e, lbl == null ? null : new AssertLabel(lbl, lbl.val));
+       s = new AssertStmt(new SourceOrigin(startToken, t), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
        if (proof != null) {
          s = new BlockByProofStmt(s.Origin, proof, s);
        }

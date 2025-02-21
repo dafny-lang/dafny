@@ -45,7 +45,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     BodyStartTok = ModuleDef.BodyStartTok;
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public LiteralModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes? attributes, ModuleDefinition enclosingModule, string cloneId, ModuleDefinition moduleDef)
     : base(options, origin, nameNode, attributes, enclosingModule, cloneId) {
     ModuleDef = moduleDef;

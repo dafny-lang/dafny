@@ -16,7 +16,7 @@ public class ClassDecl : ClassLikeDecl {
     Contract.Invariant(Traits != null);
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public ClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModule,
     [Captured] List<MemberDecl> members, List<Type> traits, bool isRefining)

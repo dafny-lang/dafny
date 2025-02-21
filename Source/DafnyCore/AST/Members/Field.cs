@@ -29,7 +29,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   }
 
   public Field(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(origin, nameNode, attributes, hasStaticKeyword, isGhost) {
+    : base(origin, nameNode, hasStaticKeyword, isGhost, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(type != null);

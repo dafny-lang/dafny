@@ -38,7 +38,7 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
     this.Mod = mod;
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   protected LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attributes)
     : base(origin, attributes) {
     Contract.Requires(origin != null);

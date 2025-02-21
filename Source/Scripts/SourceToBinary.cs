@@ -33,10 +33,10 @@ public class SourceToBinary {
     var input = await File.ReadAllTextAsync(inputFile);
     var parseResult = await ProgramParser.Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
 
-    var parsedAstSource = ResourceLoader.GetResourceAsString("ParsedAst");
+    var syntaxSchema = ResourceLoader.GetResourceAsString("Syntax.cs-schema");
     var output = new StringBuilder();
     var textEncoder = new TextEncoder(output);
-    SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(parsedAstSource);
+    SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(syntaxSchema);
     var references = new MetadataReference[]
     {
       MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
@@ -59,6 +59,7 @@ public class SourceToBinary {
       new FileStart(f.Origin.Uri.LocalPath, f.TopLevelDecls.ToList())).ToList());
     new Serializer(textEncoder, types).Serialize(filesContainer);
     await outputFile.WriteAsync(output);
+    await outputFile.FlushAsync();
   }
 }
 
@@ -235,12 +236,13 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
 
   private static IEnumerable<FieldInfo> GetSerializableFields(Type type) {
     var fields = new List<FieldInfo>();
-    while (type != null && type != typeof(object)) {
-      fields.InsertRange(0, type.GetFields(BindingFlags.DeclaredOnly |
-                                           BindingFlags.Instance |
-                                           BindingFlags.Public |
-                                           BindingFlags.NonPublic));
-      type = type.BaseType;
+    Type? result = type;
+    while (result != null && result != typeof(object)) {
+      fields.InsertRange(0, result.GetFields(BindingFlags.DeclaredOnly |
+                                             BindingFlags.Instance |
+                                             BindingFlags.Public |
+                                             BindingFlags.NonPublic));
+      result = type.BaseType;
     }
     return fields;
   }

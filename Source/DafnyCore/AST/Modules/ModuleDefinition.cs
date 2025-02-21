@@ -155,7 +155,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind,
     Implements? implements, ModuleDefinition enclosingModule, Attributes? attributes,
     List<TopLevelDecl> sourceDecls)
@@ -709,7 +709,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   private static readonly List<(string, string)> incompatibleAttributePairs =
     [("rlimit", "resource_limit")];
 
-  private void CheckIncompatibleAttributes(ModuleResolver resolver, Attributes attrs) {
+  private void CheckIncompatibleAttributes(ModuleResolver resolver, Attributes? attrs) {
     foreach (var pair in incompatibleAttributePairs) {
       var attr1 = Attributes.Find(attrs, pair.Item1);
       var attr2 = Attributes.Find(attrs, pair.Item2);

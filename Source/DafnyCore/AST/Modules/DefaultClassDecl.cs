@@ -10,18 +10,18 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   public override bool AcceptThis => false;
 
   public TopLevelDecl AsTopLevelDecl => this;
-  public TypeDeclSynonymInfo SynonymInfo { get; set; }
+  public TypeDeclSynonymInfo? SynonymInfo { get; set; }
 
 
-  [ParseConstructor]
+  [SyntaxConstructor]
   public DefaultClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModule,
-    List<MemberDecl> members, List<Type> traits = null)
-    : base(origin, nameNode, attributes, typeArgs, enclosingModule, members, traits) {
+    List<MemberDecl> members, List<Type>? traits = null)
+    : base(origin, nameNode, enclosingModule, typeArgs, members, attributes, traits) {
   }
 
   public DefaultClassDecl(ModuleDefinition enclosingModule, [Captured] List<MemberDecl> members)
-    : base(SourceOrigin.NoToken, new Name("_default"), null, [], enclosingModule, members) {
+    : base(SourceOrigin.NoToken, new Name("_default"), enclosingModule, [], members, null) {
     Contract.Requires(enclosingModule != null);
     Contract.Requires(cce.NonNullElements(members));
     this.NewSelfSynonym();
