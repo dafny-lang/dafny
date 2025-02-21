@@ -29,10 +29,10 @@ TriggersForSuchThat.dfy(125,2): Error: a postcondition could not be proved on th
 TriggersForSuchThat.dfy(124,32): Related location: this is the postcondition that could not be proved
 TriggersForSuchThat.dfy(134,2): Error: a postcondition could not be proved on this return path
 TriggersForSuchThat.dfy(133,32): Related location: this is the postcondition that could not be proved
-TriggersForSuchThat.dfy(157,4): Error: alternative cases fail to cover all possibilities
-TriggersForSuchThat.dfy(163,4): Error: alternative cases fail to cover all possibilities
-TriggersForSuchThat.dfy(183,4): Error: alternative cases fail to cover all possibilities
-TriggersForSuchThat.dfy(194,4): Error: alternative cases fail to cover all possibilities
+TriggersForSuchThat.dfy(157,4): Error: alternative cases may not cover all possibilities
+TriggersForSuchThat.dfy(163,4): Error: alternative cases may not cover all possibilities
+TriggersForSuchThat.dfy(183,4): Error: alternative cases may not cover all possibilities
+TriggersForSuchThat.dfy(194,4): Error: alternative cases may not cover all possibilities
 TriggersForSuchThat.dfy(210,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 TriggersForSuchThat.dfy(214,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 TriggersForSuchThat.dfy(229,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.

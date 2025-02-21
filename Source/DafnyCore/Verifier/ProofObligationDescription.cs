@@ -1137,7 +1137,7 @@ public class AlternativeIsComplete : ProofObligationDescription {
     $"alternative cases cover all possibilities";
 
   public override string FailureDescription =>
-    $"alternative cases fail to cover all possibilities";
+    $"alternative cases may not cover all possibilities";
 
   public override string ShortDescription => "alternative complete";
 
