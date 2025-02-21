@@ -276,7 +276,7 @@ namespace Microsoft.Dafny.Compilers {
         if (trait.IsReferenceTypeDecl) {
           parents.Add((DAST.Type)DAST.Type.create_Object());
         }
-        foreach (var pt in trait.ParentTraits) {
+        foreach (var pt in trait.Traits) {
           var genType = GenType(pt);
 
           parents.Add(genType);
@@ -2067,7 +2067,7 @@ namespace Microsoft.Dafny.Compilers {
       var defaultName = formal.CompileName;
       object externVal = null;
       bool hasExternVal = Attributes.ContainsMatchingValue(formal.Attributes, "extern",
-        ref externVal, new List<Attributes.MatchingValueOption> {
+        ref externVal, new HashSet<Attributes.MatchingValueOption> {
           Attributes.MatchingValueOption.String
         }, s => throw new UnsupportedInvalidOperationException("Non-string externs for destructors"));
       var destructorName = externVal as string ?? defaultName;

@@ -11,8 +11,7 @@ public class ClonerTest {
     public DummyDecl(Cloner cloner, Declaration original) : base(cloner, original) {
     }
 
-    public DummyDecl(IOrigin origin, Name name, Attributes attributes, bool isRefining) : base(origin, name,
-      attributes, isRefining) {
+    public DummyDecl(IOrigin origin, Name name, Attributes attributes) : base(origin, name, attributes) {
     }
 
     public override SymbolKind? Kind => null;
