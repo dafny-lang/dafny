@@ -82,6 +82,14 @@ jobs:
       # Omit Rust in the nightly build (or rather simulating it here) because Rust is known to have random issues
       compilers: ${{ (contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.push.labels.*.name, 'run-deep-tests')) && 'cs,java,go,js,cpp,dfy,py' || '' }}
 
+  upload-msbuild-logs:
+     uses: actions/upload-artifact@v4
+     if: always()
+     with:
+       name: msbuildTempRunner
+       path: /tmp/MSBuildTemprunner/
+       retention-days: 90
+
   test-coverage-analysis:
     runs-on: ubuntu-20.04
     # Don't include in run-deep-tests, because those tests run on
