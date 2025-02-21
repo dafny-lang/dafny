@@ -35,7 +35,11 @@ public partial class Deserializer(IDecoder decoder) {
     return ReadArray<T>(readElement).ToList();
   }
 
-  public Token ReadTokenOption() {
+  public Token? ReadTokenOption() {
+    var isNull = decoder.ReadIsNull();
+    if (isNull) {
+      return null;
+    }
     return ReadToken();
   }
 

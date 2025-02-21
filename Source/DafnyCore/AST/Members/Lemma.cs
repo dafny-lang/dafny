@@ -6,6 +6,8 @@ namespace Microsoft.Dafny;
 public class Lemma : Method {
   public override string WhatKind => "lemma";
   public override string WhatKindMentionGhost => WhatKind;
+
+  [ParseConstructor]
   public Lemma(IOrigin origin, Name nameNode,
     bool hasStaticKeyword,
     [Captured] List<TypeParameter> typeArgs,
