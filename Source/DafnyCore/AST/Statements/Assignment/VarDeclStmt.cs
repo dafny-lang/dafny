@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -6,7 +7,7 @@ namespace Microsoft.Dafny;
 
 public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   public readonly List<LocalVariable> Locals;
-  public readonly ConcreteAssignStatement Assign;
+  public readonly ConcreteAssignStatement? Assign;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Locals));
@@ -22,9 +23,9 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
     Assign = (ConcreteAssignStatement)cloner.CloneStmt(original.Assign, false);
   }
 
-  public VarDeclStmt(IOrigin origin, List<LocalVariable> locals, ConcreteAssignStatement assign)
-    : base(origin) {
-    Contract.Requires(locals != null);
+  [SyntaxConstructor]
+  public VarDeclStmt(IOrigin origin, List<LocalVariable> locals, ConcreteAssignStatement? assign, Attributes? attributes = null)
+    : base(origin, attributes) {
     Contract.Requires(locals.Count != 0);
 
     Locals = locals;

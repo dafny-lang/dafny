@@ -30,6 +30,7 @@ public abstract class PostParseAstVisitor {
   /// </summary>
   protected static Dictionary<Type, Type> MappedTypes = new() {
     { typeof(Guid), typeof(string) },
+    { typeof(IOrigin), typeof(SourceOrigin) },
     { typeof(Uri), typeof(string) }
   };
 

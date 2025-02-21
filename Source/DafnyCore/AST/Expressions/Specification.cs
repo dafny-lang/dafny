@@ -10,6 +10,7 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
 
   [ContractInvariantMethod]
   private void ObjectInvariant() {
+    Contract.Invariant(Expressions == null || cce.NonNullElements<T>(Expressions));
   }
 
   public Specification() {

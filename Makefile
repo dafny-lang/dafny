@@ -145,4 +145,3 @@ gen-deserializer:
 
 test-integration: gen-integration
 	(git status --porcelain || (echo 'Consider running `make gen-integration`'; exit 1; ))
-	

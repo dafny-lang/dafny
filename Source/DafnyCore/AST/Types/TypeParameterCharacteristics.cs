@@ -7,12 +7,17 @@ public struct TypeParameterCharacteristics {
   public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
   public bool IsNonempty => AutoInit != Type.AutoInitInfo.MaybeEmpty;
   public bool ContainsNoReferenceTypes;
-  public TypeParameterCharacteristics(bool dummy) {
-    EqualitySupport = TypeParameter.EqualitySupportValue.Unspecified;
-    AutoInit = Type.AutoInitInfo.MaybeEmpty;
-    ContainsNoReferenceTypes = false;
+
+  public static TypeParameterCharacteristics Default() {
+    return new TypeParameterCharacteristics {
+      EqualitySupport = TypeParameter.EqualitySupportValue.Unspecified,
+      AutoInit = Type.AutoInitInfo.MaybeEmpty,
+      ContainsNoReferenceTypes = false,
+    };
   }
-  public TypeParameterCharacteristics(TypeParameter.EqualitySupportValue equalitySupport, Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
+
+  public TypeParameterCharacteristics(TypeParameter.EqualitySupportValue equalitySupport,
+    Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
     EqualitySupport = equalitySupport;
     AutoInit = autoInit;
     ContainsNoReferenceTypes = containsNoReferenceTypes;

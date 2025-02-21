@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace Microsoft.Dafny;
 
@@ -28,6 +29,7 @@ public class Name : RangeNode {
     Value = original.Value;
   }
 
+  [SyntaxConstructor]
   public Name(IOrigin origin, string value) : base(origin) {
     this.Value = value;
   }

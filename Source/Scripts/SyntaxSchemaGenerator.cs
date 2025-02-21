@@ -30,7 +30,7 @@ public class SyntaxSchemaGenerator : PostParseAstVisitor {
   public string GenerateAll() {
 
     var rootType = typeof(FilesContainer);
-    VisitTypesFromRoots([rootType, typeof(Token), typeof(SourceOrigin)]);
+    VisitTypesFromRoots([rootType]);
     compilationUnit = compilationUnit.NormalizeWhitespace();
 
     var hasErrors = CheckCorrectness(compilationUnit);

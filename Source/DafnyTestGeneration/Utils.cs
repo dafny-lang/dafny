@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Microsoft.Extensions.Logging.Abstractions;
 using Declaration = Microsoft.Boogie.Declaration;
 using Program = Microsoft.Dafny.Program;
 using Token = Microsoft.Dafny.Token;
@@ -89,7 +90,7 @@ namespace DafnyTestGeneration {
 
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
       var dafnyFile = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
-      var parseResult = await new ProgramParser().ParseFiles(uri.LocalPath,
+      var parseResult = await new ProgramParser(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance).ParseFiles(uri.LocalPath,
         new[] { dafnyFile }, reporter, cancellationToken);
 
       if (!resolve) {

@@ -79,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       var emptyProgram = new Program(
                            uri.ToString(),
-        new LiteralModuleDecl(options, outerModule, null, Guid.NewGuid()),
+        new LiteralModuleDecl(options, outerModule, null!, Guid.NewGuid()),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
         manager,
         errorReporter, compilation

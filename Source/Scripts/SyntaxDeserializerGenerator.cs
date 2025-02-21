@@ -7,7 +7,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny;
 using Scripts;
-using NullabilityInfo = System.Reflection.NullabilityInfo;
 using Type = System.Type;
 
 namespace IntegrationTests;
@@ -111,7 +110,6 @@ private {typeString} Read{typeString2}() {{
       return;
     }
 
-
     var typeString = ToGenericTypeString(type);
     var constructor = GetParseConstructor(type);
     var parameters = constructor.GetParameters();
@@ -121,22 +119,12 @@ private {typeString} Read{typeString2}() {{
       return;
     }
 
-    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
-    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
     for (var schemaIndex = 0; schemaIndex < schemaToConstructorPosition.Count; schemaIndex++) {
       var constructorIndex = schemaToConstructorPosition[schemaIndex];
       var parameter = parameters[constructorIndex];
 
-      var lower = parameter.Name!.ToLower();
       var nullabilityContext = new NullabilityInfoContext();
-      NullabilityInfo nullabilityInfo;
-      if (fields.TryGetValue(lower, out var fieldInfo)) {
-        nullabilityInfo = nullabilityContext.Create(fieldInfo);
-      } else if (properties.TryGetValue(lower, out var propertyInfo)) {
-        nullabilityInfo = nullabilityContext.Create(propertyInfo);
-      } else {
-        throw new Exception();
-      }
+      var nullabilityInfo = nullabilityContext.Create(parameter);
       bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
       var parameterTypeReadCall = GetReadTypeCall(parameter.ParameterType, isNullable);
       statements.AppendLine(

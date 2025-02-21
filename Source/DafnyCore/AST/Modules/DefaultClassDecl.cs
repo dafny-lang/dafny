@@ -12,16 +12,17 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo? SynonymInfo { get; set; }
 
+
   [SyntaxConstructor]
   public DefaultClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
-    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModule,
     List<MemberDecl> members, List<Type>? traits = null)
-    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
+    : base(origin, nameNode, enclosingModule, typeArgs, members, attributes, traits) {
   }
 
-  public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
-    : base(SourceOrigin.NoToken, new Name("_default"), module, [], members, null, null) {
-    Contract.Requires(module != null);
+  public DefaultClassDecl(ModuleDefinition enclosingModule, [Captured] List<MemberDecl> members)
+    : base(SourceOrigin.NoToken, new Name("_default"), enclosingModule, [], members, null) {
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(cce.NonNullElements(members));
     this.NewSelfSynonym();
   }

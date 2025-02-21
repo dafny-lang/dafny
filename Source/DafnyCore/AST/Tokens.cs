@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics.Contracts;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace Microsoft.Dafny;
 

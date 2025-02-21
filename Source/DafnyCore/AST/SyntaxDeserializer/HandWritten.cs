@@ -51,7 +51,11 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     return ReadArray<T>(readElement).ToList();
   }
 
-  public Token ReadTokenOption() {
+  public Token? ReadTokenOption() {
+    var isNull = decoder.ReadIsNull();
+    if (isNull) {
+      return null;
+    }
     return ReadToken();
   }
 
@@ -118,13 +122,6 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     return decoder.ReadBool();
   }
 
-  public SourceOrigin ReadSourceOrigin() {
-    var start = ReadToken();
-    var end = ReadToken();
-    var center = ReadToken();
-    return new SourceOrigin(start, end, center);
-  }
-
   public string? ReadStringOption() {
     var isNull = decoder.ReadIsNull();
     if (isNull) {
@@ -166,16 +163,15 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     return (T)ReadObject(actualType);
   }
 
+
+  public SourceOrigin ReadSourceOrigin() {
+    var start = ReadToken();
+    var end = ReadToken();
+    var center = ReadToken();
+    return new SourceOrigin(start, end, center);
+  }
+
   private int ReadInt32() {
     return decoder.ReadInt32();
   }
-}
-
-public class FilesContainer(List<FileStart> files) {
-  public List<FileStart> Files { get; } = files;
-}
-
-public class FileStart(string uri, List<TopLevelDecl> topLevelDecls) {
-  public string Uri { get; } = uri;
-  public List<TopLevelDecl> TopLevelDecls { get; } = topLevelDecls;
 }

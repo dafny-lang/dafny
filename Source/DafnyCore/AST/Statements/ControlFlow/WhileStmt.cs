@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 
 namespace Microsoft.Dafny;
@@ -30,10 +31,11 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     Guard = guard;
   }
 
+  [SyntaxConstructor]
   public WhileStmt(IOrigin origin, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    BlockStmt body, Attributes attrs)
-    : base(origin, invariants, decreases, mod, body, attrs) {
+    BlockStmt body, Attributes? attributes)
+    : base(origin, invariants, decreases, mod, body, attributes) {
     Guard = guard;
   }
 

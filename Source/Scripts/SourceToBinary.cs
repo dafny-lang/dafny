@@ -31,7 +31,7 @@ public class SourceToBinary {
     var options = DafnyOptions.Default;
     var errorReporter = new BatchErrorReporter(options);
     var input = await File.ReadAllTextAsync(inputFile);
-    var parseResult = await new ProgramParser().Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
+    var parseResult = await ProgramParser.Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
 
     var syntaxSchema = ResourceLoader.GetResourceAsString("Syntax.cs-schema");
     var output = new StringBuilder();
@@ -236,13 +236,13 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
 
   private static IEnumerable<FieldInfo> GetSerializableFields(Type type) {
     var fields = new List<FieldInfo>();
-    Type? currentType = type;
-    while (currentType != null && currentType != typeof(object)) {
-      fields.InsertRange(0, currentType.GetFields(BindingFlags.DeclaredOnly |
-                                                  BindingFlags.Instance |
-                                                  BindingFlags.Public |
-                                                  BindingFlags.NonPublic));
-      currentType = currentType.BaseType;
+    Type? result = type;
+    while (result != null && result != typeof(object)) {
+      fields.InsertRange(0, result.GetFields(BindingFlags.DeclaredOnly |
+                                             BindingFlags.Instance |
+                                             BindingFlags.Public |
+                                             BindingFlags.NonPublic));
+      result = type.BaseType;
     }
     return fields;
   }
