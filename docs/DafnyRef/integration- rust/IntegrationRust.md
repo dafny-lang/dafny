@@ -125,7 +125,50 @@ pub struct Ptr<T: ?Sized>(pub Option<NonNull<UnsafeCell<T>>>);
 
 # Externs
 
-You can provide additional `*.rs` files to `dafny translate`, `dafny build` and even `dafny run` (via the `--input` option)
+You can provide additional `*.rs` files to `dafny translate`, `dafny build` and even `dafny run` (via the `--input` option). We recommend giving each extern file a suffix `_extern.rs` to avoid name collisions. To understand how to fill these extern files, consider the corresponding section.
+
+## Partial extern modules
+
+If a module is defined in Dafny, but has types defined as externs, make sure you mark your module with `{:extern <name>}` where `<name>` is typically the module name.
+Then, in a file `<name>_extern.rs` that you include with the build, put the following code:
+
+```
+pub mod <name> {
+}
+```
+
+and you've just got started with a skeleton to fill implementations for Dafny axioms.
+
+## Externally implemented traits and classes
+
+You can define an extern Dafny trait in your extern rust files. Consider the following Dafny general trait declaration:
+
+```
+trait {:extern} ForeignTrait {}
+```
+
+To implement this in your extern file, use the following template:
+```
+  pub trait ForeignTrait {
+    fn _clone(&self) -> Box<dyn ForeignTrait>;
+  }
+
+  impl Clone for Box<dyn ForeignTrait> {
+    fn clone(&self) -> Self {
+      self._clone()
+    }
+  }
+
+  impl ::dafny_runtime::DafnyPrint for Box<dyn ForeignTrait> {
+    fn fmt_print(&self, f: &mut std::fmt::Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+        write!(f, "object")
+    }
+  }
+```
+
+For classes, make sure all your mutable fields are wrapped in a `::dafny_runtime::Field` so that it's always possible to share the reference.
+
+## Other externs
 
 The best way to see what you have to implement as an extern Rust file is to compile your code with extern attributes and adding an external Rust file. For extra methods or static methods, you would then define an additional implementation in the extern Rust file. For other class or struct types, you just need to define them without any `mod` wrapper, or using the module structure as defined in the `{:extern}` attribute.
 

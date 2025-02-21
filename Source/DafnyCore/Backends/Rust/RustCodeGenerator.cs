@@ -39,6 +39,20 @@ namespace Microsoft.Dafny.Compilers {
       if (!Options.Get(CommonOptionBag.EmitUncompilableCode) && c.error.is_Some) {
         throw new UnsupportedInvalidOperationException(c.error.dtor_value.ToVerbatimString(false));
       }
+      // We do this check afterwards for better code coverage
+      if (!Options.Get(CommonOptionBag.EnforceDeterminism)) {
+        // DEV: This requirement could be lifted in the future if
+        // BoogieGenerator.DefiniteAssignment.cs:
+        // the line
+        //   if (!isGhost && type.HasCompilableValue) {
+        // could become
+        //   if (!isGhost && type.HasCompilableValue && options.DefiniteAssignmentLevel == 1) {
+        // Meaning that the default behavior for fields and array initialization is the same as for local variables:
+        // Auto-init is not supported, fields have to be initialized.
+
+        throw new UnsupportedInvalidOperationException(
+          "The Rust compiler requires `--enforce-determinism`");
+      }
       w.Write(s.ToVerbatimString(false));
     }
 

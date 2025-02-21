@@ -45,15 +45,6 @@ so the program will need to be revised to avoid this feature;
 The latter is an omission in the in-tool documentation. Please report this error message and the part of the
 program provoking it to the Dafny team's [issue tracker](https://github.com/dafny-lang/dafny/issues).
 
-## **Error: Abstract type ('_type_') with extern attribute requires a compile hint. Expected {:extern _hint_}** {#c_abstract_type_needs_hint}
-
-<!-- %check-run -->
-```dafny
-type {:extern } T
-```
-
-The type needs a name given to know which type in the target language it is associated with.
-
 ## **Error: Abstract type (_name_) cannot be compiled; perhaps make it a type synonym or use :extern.** {#c_abstract_type_cannot_be_compiled}
 
 <!-- %check-run -->

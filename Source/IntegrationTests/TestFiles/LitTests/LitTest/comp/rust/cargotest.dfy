@@ -1,5 +1,5 @@
 // NONUNIFORM: Test of cargo test to support Dafny tests
-// RUN: %baredafny build --target=rs "%s" > "%t"
+// RUN: %baredafny build --target=rs "%s" --enforce-determinism > "%t"
 // RUN: %exits-with 101 "%S/cargotest-rust/cargo" test >> "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%S/cargotest1.check"
 // RUN: %OutputCheck --file-to-check "%t" "%S/cargotest2.check"

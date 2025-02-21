@@ -1,4 +1,4 @@
-// RUN: %baredafny translate rs --rust-module-name additional_module "%S/more_dafny_extern.rs" "%s"
+// RUN: %baredafny translate rs --enforce-determinism --rust-module-name additional_module "%S/more_dafny_extern.rs" "%s"
 // RUN: %exits-with -any %rm -f "%S/project_depending_on_dafny/src/additional_module.rs"
 // RUN: %exits-with -any %rm -f "%S/project_depending_on_dafny/src/more_dafny_extern.rs"
 // RUN: %mv "%S/more_dafny-rust/src/more_dafny.rs" "%S/project_depending_on_dafny/src/additional_module.rs"
