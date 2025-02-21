@@ -253,7 +253,7 @@ transcript(33,0): Warning: module-level methods are always non-instance, so the 
 transcript(10,9): Info: Selected triggers: {x' * x'}
 transcript(20,9): Info: Selected triggers: {x' * x'}
 transcript(29,9): Info: Selected triggers: {x' * x'}
-transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 Retrieving cached verification result for implementation M' (correctness)...
   [1 proof obligation]  verified
 Retrieving cached verification result for implementation M0 (correctness)...
@@ -280,7 +280,7 @@ transcript(33,0): Warning: module-level methods are always non-instance, so the 
 transcript(10,9): Info: Selected triggers: {x' * x'}
 transcript(20,9): Info: Selected triggers: {x' * x'}
 transcript(29,9): Info: Selected triggers: {x' * x'}
-transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 Retrieving cached verification result for implementation M' (correctness)...
   [1 proof obligation]  verified
 Retrieving cached verification result for implementation M0 (correctness)...
@@ -300,7 +300,7 @@ transcript(33,0): Warning: module-level methods are always non-instance, so the 
 transcript(10,9): Info: Selected triggers: {x' * x'}
 transcript(20,9): Info: Selected triggers: {x' * x'}
 transcript(29,9): Info: Selected triggers: {x' * x'}
-transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 Retrieving cached verification result for implementation M' (correctness)...
   [1 proof obligation]  verified
 Retrieving cached verification result for implementation M0 (correctness)...
@@ -319,7 +319,7 @@ transcript(33,0): Warning: module-level methods are always non-instance, so the 
 transcript(10,9): Info: Selected triggers: {x' * x'}
 transcript(20,9): Info: Selected triggers: {x' * x'}
 transcript(29,9): Info: Selected triggers: {x' * x'}
-transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 Retrieving cached verification result for implementation M' (correctness)...
   [1 proof obligation]  verified
 Retrieving cached verification result for implementation M0 (correctness)...
@@ -358,7 +358,7 @@ transcript(33,0): Warning: module-level methods are always non-instance, so the 
 transcript(10,9): Info: Selected triggers: {x' * x'}
 transcript(20,9): Info: Selected triggers: {x' * x'}
 transcript(29,9): Info: Selected triggers: {x' * x'}
-transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 Retrieving cached verification result for implementation M' (correctness)...
   [1 proof obligation]  verified
 Retrieving cached verification result for implementation M0 (correctness)...
@@ -398,7 +398,7 @@ transcript(33,0): Warning: module-level methods are always non-instance, so the 
 transcript(10,9): Info: Selected triggers: {x' * x'}
 transcript(20,9): Info: Selected triggers: {x' * x'}
 transcript(29,9): Info: Selected triggers: {x' * x'}
-transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 Retrieving cached verification result for implementation M' (correctness)...
   [1 proof obligation]  verified
 Retrieving cached verification result for implementation M0 (correctness)...
@@ -417,7 +417,7 @@ transcript(33,0): Warning: module-level methods are always non-instance, so the 
 transcript(10,9): Info: Selected triggers: {x' * x'}
 transcript(20,9): Info: Selected triggers: {x' * x'}
 transcript(29,9): Info: Selected triggers: {x' * x'}
-transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+transcript(38,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 Retrieving cached verification result for implementation M' (correctness)...
   [1 proof obligation]  verified
 Retrieving cached verification result for implementation M0 (correctness)...

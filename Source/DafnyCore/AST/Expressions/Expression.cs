@@ -248,10 +248,10 @@ public abstract class Expression : NodeWithComputedRange {
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var s = new BinaryExpr(e0.Origin, BinaryExpr.Opcode.Add, e0, e1);
-    s.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;  // resolve here
-    s.Type = e0.Type.NormalizeExpand();  // resolve here
-    return s;
+    return new BinaryExpr(e0.Origin, BinaryExpr.Opcode.Add, e0, e1) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.Add,
+      Type = e0.Type.NormalizeExpand()
+    };
   }
 
   /// <summary>
@@ -264,10 +264,10 @@ public abstract class Expression : NodeWithComputedRange {
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var s = new BinaryExpr(e0.Origin, BinaryExpr.Opcode.Mul, e0, e1);
-    s.ResolvedOp = BinaryExpr.ResolvedOpcode.Mul;  // resolve here
-    s.Type = e0.Type.NormalizeExpand();  // resolve here
-    return s;
+    return new BinaryExpr(e0.Origin, BinaryExpr.Opcode.Mul, e0, e1) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.Mul,
+      Type = e0.Type.NormalizeExpand()
+    };
   }
 
   /// <summary>
@@ -300,9 +300,9 @@ public abstract class Expression : NodeWithComputedRange {
 
   private static Expression CastIfNeeded(Expression expr, Type toType) {
     if (!expr.Type.Equals(toType)) {
-      var cast = new ConversionExpr(expr.Origin, expr, toType);
-      cast.Type = toType;
-      return cast;
+      return new ConversionExpr(expr.Origin, expr, toType) {
+        Type = toType
+      };
     } else {
       return expr;
     }
@@ -321,10 +321,10 @@ public abstract class Expression : NodeWithComputedRange {
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
       (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var s = new BinaryExpr(e0.Origin, BinaryExpr.Opcode.Sub, e0, e1);
-    s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
-    s.Type = e0.Type.NormalizeExpand();  // resolve here (and it's important to remove any constraints)
-    return s;
+    return new BinaryExpr(e0.Origin, BinaryExpr.Opcode.Sub, e0, e1) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.Sub,
+      Type = e0.Type.NormalizeExpand()
+    };
   }
 
   /// <summary>
@@ -341,11 +341,10 @@ public abstract class Expression : NodeWithComputedRange {
     if (LiteralExpr.IsEmptySet(e0) || LiteralExpr.IsEmptySet(e1)) {
       return e0;
     }
-    var s = new BinaryExpr(e0.Origin, BinaryExpr.Opcode.Sub, e0, e1) {
+    return new BinaryExpr(e0.Origin, BinaryExpr.Opcode.Sub, e0, e1) {
       ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference,
       Type = e0.Type.NormalizeExpand() // important to remove any constraints
     };
-    return s;
   }
 
   /// <summary>
@@ -362,11 +361,10 @@ public abstract class Expression : NodeWithComputedRange {
     if (LiteralExpr.IsEmptyMultiset(e0) || LiteralExpr.IsEmptyMultiset(e1)) {
       return e0;
     }
-    var s = new BinaryExpr(e0.Origin, BinaryExpr.Opcode.Sub, e0, e1) {
+    return new BinaryExpr(e0.Origin, BinaryExpr.Opcode.Sub, e0, e1) {
       ResolvedOp = BinaryExpr.ResolvedOpcode.MultiSetDifference,
       Type = e0.Type.NormalizeExpand() // important to remove any constraints
     };
-    return s;
   }
 
   /// <summary>
@@ -377,10 +375,9 @@ public abstract class Expression : NodeWithComputedRange {
     Contract.Requires(e.Type != null);
     Contract.Requires(e.Type.AsSetType != null || e.Type.AsMultiSetType != null || e.Type.AsSeqType != null);
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var s = new UnaryOpExpr(e.Origin, UnaryOpExpr.Opcode.Cardinality, e) {
+    return new UnaryOpExpr(e.Origin, UnaryOpExpr.Opcode.Cardinality, e) {
       Type = systemModuleManager.Nat()
     };
-    return s;
   }
 
   /// <summary>
@@ -420,9 +417,9 @@ public abstract class Expression : NodeWithComputedRange {
   public static LiteralExpr CreateIntLiteralNonnegative(IOrigin tok, int n, Type ty = null) {
     Contract.Requires(tok != null);
     Contract.Requires(0 <= n);
-    var nn = new LiteralExpr(tok, n);
-    nn.Type = ty ?? Type.Int;
-    return nn;
+    return new LiteralExpr(tok, n) {
+      Type = ty ?? Type.Int
+    };
   }
 
   /// <summary>
@@ -443,9 +440,9 @@ public abstract class Expression : NodeWithComputedRange {
   /// </summary>
   public static Expression CreateRealLiteral(IOrigin tok, BaseTypes.BigDec x) {
     Contract.Requires(tok != null);
-    var nn = new LiteralExpr(tok, x);
-    nn.Type = Type.Real;
-    return nn;
+    return new LiteralExpr(tok, x) {
+      Type = Type.Real
+    };
   }
 
   /// <summary>
@@ -455,9 +452,9 @@ public abstract class Expression : NodeWithComputedRange {
     Contract.Requires(tok != null);
     Contract.Requires(0 <= n);
     Contract.Requires(ty.IsNumericBased(Type.NumericPersuasion.Int) || ty is BigOrdinalType);
-    var nn = new LiteralExpr(tok, n);
-    nn.Type = ty;
-    return nn;
+    return new LiteralExpr(tok, n) {
+      Type = ty
+    };
   }
 
   /// <summary>
@@ -465,10 +462,9 @@ public abstract class Expression : NodeWithComputedRange {
   /// </summary>
   public static LiteralExpr CreateBoolLiteral(IOrigin tok, bool b) {
     Contract.Requires(tok != null);
-    var lit = new LiteralExpr(tok, b) {
+    return new LiteralExpr(tok, b) {
       Type = Type.Bool
     };
-    return lit;
   }
 
   /// <summary>
@@ -477,10 +473,9 @@ public abstract class Expression : NodeWithComputedRange {
   public static LiteralExpr CreateStringLiteral(IOrigin tok, string s) {
     Contract.Requires(tok != null);
     Contract.Requires(s != null);
-    var lit = new StringLiteralExpr(tok, s, true) {
+    return new StringLiteralExpr(tok, s, true) {
       Type = new SeqType(new CharType())
     };
-    return lit;
   }
 
   /// <summary>
@@ -698,16 +693,19 @@ public abstract class Expression : NodeWithComputedRange {
     Contract.Requires(b != null);
     Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
     Contract.Ensures(Contract.Result<Expression>() != null);
-    if (allowSimplification && LiteralExpr.IsTrue(a)) {
-      return b;
-    } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
-      return a;
-    } else {
-      var and = new BinaryExpr(a.Origin, BinaryExpr.Opcode.And, a, b);
-      and.ResolvedOp = BinaryExpr.ResolvedOpcode.And;  // resolve here
-      and.Type = Type.Bool;  // resolve here
-      return and;
+    if (allowSimplification) {
+      if (LiteralExpr.IsTrue(a)) {
+        return b;
+      } else if (LiteralExpr.IsFalse(a) || LiteralExpr.IsTrue(b)) {
+        return a;
+      }
+      // Note, to respect evaluation order, we don't simplify "X && false" to "false".
     }
+
+    return new BinaryExpr(a.Origin, BinaryExpr.Opcode.And, a, b) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.And,
+      Type = Type.Bool
+    };
   }
 
   /// <summary>
@@ -718,14 +716,19 @@ public abstract class Expression : NodeWithComputedRange {
     Contract.Requires(b != null);
     Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
     Contract.Ensures(Contract.Result<Expression>() != null);
-    if (allowSimplification && (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b))) {
-      return b;
-    } else {
-      var imp = new BinaryExpr(a.Origin, BinaryExpr.Opcode.Imp, a, b);
-      imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  // resolve here
-      imp.Type = Type.Bool;  // resolve here
-      return imp;
+    if (allowSimplification) {
+      if (LiteralExpr.IsTrue(a)) {
+        return b;
+      } else if (LiteralExpr.IsFalse(a)) {
+        return CreateBoolLiteral(a.Origin, true);
+      }
+      // Note, to respect evaluation order, we don't simplify "X ==> true" to "true".
     }
+
+    return new BinaryExpr(a.Origin, BinaryExpr.Opcode.Imp, a, b) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.Imp,
+      Type = Type.Bool
+    };
   }
 
   /// <summary>
@@ -736,16 +739,19 @@ public abstract class Expression : NodeWithComputedRange {
     Contract.Requires(b != null);
     Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
     Contract.Ensures(Contract.Result<Expression>() != null);
-    if (allowSimplification && LiteralExpr.IsTrue(a)) {
-      return a;
-    } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
-      return b;
-    } else {
-      var or = new BinaryExpr(a.Origin, BinaryExpr.Opcode.Or, a, b);
-      or.ResolvedOp = BinaryExpr.ResolvedOpcode.Or;  // resolve here
-      or.Type = Type.Bool;  // resolve here
-      return or;
+    if (allowSimplification) {
+      if (LiteralExpr.IsFalse(a)) {
+        return b;
+      } else if (LiteralExpr.IsTrue(a) || LiteralExpr.IsFalse(b)) {
+        return a;
+      }
+      // Note, to respect evaluation order, we don't simplify "X || true" to "true".
     }
+
+    return new BinaryExpr(a.Origin, BinaryExpr.Opcode.Or, a, b) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.Or,
+      Type = Type.Bool
+    };
   }
 
   /// <summary>
@@ -757,9 +763,9 @@ public abstract class Expression : NodeWithComputedRange {
     Contract.Requires(e1 != null);
     Contract.Requires(test.Type.IsBoolType && e0.Type.Equals(e1.Type));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var ite = new ITEExpr(test.Origin, false, test, e0, e1);
-    ite.Type = e0.type;  // resolve here
-    return ite;
+    return new ITEExpr(test.Origin, false, test, e0, e1) {
+      Type = e0.Type
+    };
   }
 
   /// <summary>
