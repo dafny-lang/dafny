@@ -18,12 +18,12 @@ public class ClassDecl : ClassLikeDecl {
 
   [SyntaxConstructor]
   public ClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
-    List<TypeParameter> typeArgs, ModuleDefinition enclosingModule,
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
     [Captured] List<MemberDecl> members, List<Type> traits, bool isRefining)
-    : base(origin, nameNode, attributes, typeArgs, enclosingModule, members, traits) {
+    : base(origin, nameNode, attributes, typeArgs, enclosingModuleDefinition, members, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
-    Contract.Requires(enclosingModule != null);
+    Contract.Requires(enclosingModuleDefinition != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     NonNullTypeDecl = new NonNullTypeDecl(this);

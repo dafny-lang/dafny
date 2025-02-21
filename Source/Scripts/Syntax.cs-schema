@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 class FilesContainer
 {
     List<FileStart> files;
@@ -37,16 +34,6 @@ class Token
 class Name : RangeNode
 {
     String value;
-}
-
-class ModuleDefinition : RangeNode
-{
-    Name nameNode;
-    List<SourceOrigin> prefixIds;
-    ModuleKindEnum moduleKind;
-    Implements? implements;
-    Attributes? attributes;
-    List<TopLevelDecl> sourceDecls;
 }
 
 abstract class Declaration : RangeNode
@@ -190,7 +177,7 @@ class Attributes : NodeWithComputedRange
 {
     String name;
     List<Expression> args;
-    Attributes prev;
+    Attributes? prev;
 }
 
 class ExprRhs : AssignmentRhs
@@ -202,6 +189,23 @@ class Specification<T> : NodeWithComputedRange where T : Node
 {
     List<T> expressions;
     Attributes? attributes;
+}
+
+class AttributedExpression
+{
+    Expression e;
+    AssertLabel? label;
+    Attributes? attributes;
+}
+
+class Label
+{
+    SourceOrigin tok;
+    String name;
+}
+
+class AssertLabel : Label
+{
 }
 
 abstract class TopLevelDecl : Declaration
@@ -260,6 +264,7 @@ abstract class MemberDecl : Declaration
 
 abstract class MethodOrFunction : MemberDecl
 {
+    SourceOrigin? signatureEllipsis;
     List<TypeParameter> typeArgs;
     List<Formal> ins;
     List<AttributedExpression> req;
@@ -272,23 +277,6 @@ class FrameExpression : NodeWithComputedRange
 {
     Expression e;
     String fieldName;
-}
-
-class AttributedExpression
-{
-    Expression e;
-    AssertLabel? label;
-    Attributes? attributes;
-}
-
-class Label
-{
-    SourceOrigin tok;
-    String name;
-}
-
-class AssertLabel : Label
-{
 }
 
 abstract class NonglobalVariable : NodeWithComputedRange
@@ -314,7 +302,6 @@ class Method : MethodOrFunction
     List<Formal> outs;
     Specification<FrameExpression> mod;
     BlockStmt? body;
-    SourceOrigin? signatureEllipsis;
     Boolean isByMethod;
 }
 
@@ -367,7 +354,7 @@ class WhileStmt : OneBodyLoopStmt
 class IfStmt : Statement
 {
     Boolean isBindingGuard;
-    Expression guard;
+    Expression? guard;
     BlockStmt thn;
     Statement? els;
 }
@@ -375,7 +362,7 @@ class IfStmt : Statement
 class VarDeclStmt : Statement
 {
     List<LocalVariable> locals;
-    ConcreteAssignStatement assign;
+    ConcreteAssignStatement? assign;
 }
 
 abstract class ConcreteAssignStatement : Statement
@@ -404,7 +391,6 @@ class Function : MethodOrFunction
     Expression? body;
     SourceOrigin? byMethodTok;
     BlockStmt? byMethodBody;
-    SourceOrigin? signatureEllipsis;
 }
 
 abstract class ClassLikeDecl : TopLevelDeclWithMembers
@@ -416,6 +402,10 @@ class ClassDecl : ClassLikeDecl
     Boolean isRefining;
 }
 
+class DefaultClassDecl : TopLevelDeclWithMembers
+{
+}
+
 abstract class ModuleDecl : Declaration
 {
     String cloneId;
@@ -424,6 +414,16 @@ abstract class ModuleDecl : Declaration
 class LiteralModuleDecl : ModuleDecl
 {
     ModuleDefinition moduleDef;
+}
+
+class ModuleDefinition : RangeNode
+{
+    Name nameNode;
+    List<SourceOrigin> prefixIds;
+    ModuleKindEnum moduleKind;
+    Implements? implements;
+    Attributes? attributes;
+    List<TopLevelDecl> sourceDecls;
 }
 
 class Implements
@@ -448,8 +448,4 @@ enum ModuleKindEnum
     Concrete,
     Abstract,
     Replaceable
-}
-
-class FileModuleDefinition : ModuleDefinition
-{
 }

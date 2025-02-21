@@ -46,9 +46,9 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
 
   [SyntaxConstructor]
   protected ModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes attributes,
-    ModuleDefinition enclosingModule,
+    ModuleDefinition enclosingModuleDefinition,
     string cloneId)
-    : this(options, origin, nameNode, attributes, enclosingModule, Guid.Parse(cloneId)) {
+    : this(options, origin, nameNode, attributes, enclosingModuleDefinition, Guid.Parse(cloneId)) {
   }
 
   protected ModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes attributes, ModuleDefinition enclosingModule,

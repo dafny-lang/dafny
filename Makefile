@@ -137,7 +137,7 @@ gen-integration: gen-schema gen-deserializer
 
 PARSED_AST_FILE=Source/Scripts/Syntax.cs-schema
 gen-schema:
-	./script.sh generate-parsed-ast $(PARSED_AST_FILE)
+	./script.sh generate-syntax-schema $(PARSED_AST_FILE)
   
 GENERATED_DESERIALIZER_FILE=Source/DafnyCore/AST/SyntaxDeserializer/generated.cs
 gen-deserializer:

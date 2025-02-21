@@ -7,7 +7,6 @@ public class Lemma : Method {
   public override string WhatKind => "lemma";
   public override string WhatKindMentionGhost => WhatKind;
 
-  [SyntaxConstructor]
   public Lemma(IOrigin origin, Name nameNode,
     bool hasStaticKeyword,
     [Captured] List<TypeParameter> typeArgs,
@@ -19,7 +18,8 @@ public class Lemma : Method {
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, nameNode, attributes, hasStaticKeyword, true, typeArgs, ins, req, ens, reads, decreases, outs, mod, body, signatureEllipsis) {
+    : base(origin, nameNode, attributes, hasStaticKeyword, true, 
+      typeArgs, ins, req, ens, reads, decreases, outs, mod, body, signatureEllipsis) {
   }
 
   public Lemma(Cloner cloner, Lemma lemma) : base(cloner, lemma) {

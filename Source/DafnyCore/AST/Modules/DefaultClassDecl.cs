@@ -15,9 +15,9 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
 
   [SyntaxConstructor]
   public DefaultClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
-    List<TypeParameter> typeArgs, ModuleDefinition enclosingModule,
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
     List<MemberDecl> members, List<Type>? traits = null)
-    : base(origin, nameNode, enclosingModule, typeArgs, members, attributes, traits) {
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
   }
 
   public DefaultClassDecl(ModuleDefinition enclosingModule, [Captured] List<MemberDecl> members)
