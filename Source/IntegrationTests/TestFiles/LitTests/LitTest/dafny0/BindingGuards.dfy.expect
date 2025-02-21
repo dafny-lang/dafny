@@ -165,6 +165,12 @@ ghost function f(s: set<int>): int
     0
 }
 
+ghost function f'(s: set<int>): int
+{
+  var r := if x :| x in s then x else 0;
+  r
+}
+
 predicate AltSyntaxP(x: int)
 {
   true
@@ -307,7 +313,7 @@ BindingGuards.dfy(134,10): Error: assertion might not hold
 BindingGuards.dfy(6,8): Related location: this proposition could not be proved
 BindingGuards.dfy(139,2): Error: alternative cases may not cover all possibilities
 BindingGuards.dfy(147,2): Error: alternative cases may not cover all possibilities
-BindingGuards.dfy(272,2): Error: missing case in match statement: Blue
-BindingGuards.dfy(272,2): Error: missing case in match statement: Green
+BindingGuards.dfy(278,2): Error: missing case in match statement: Blue
+BindingGuards.dfy(278,2): Error: missing case in match statement: Green
 
 Dafny program verifier finished with 10 verified, 6 errors
