@@ -74,7 +74,7 @@ class MyClass {
       assert m == y;
     case true =>
       // To prove the existence of a "p" like in the next line, there must, first off, be a term
-      // of the form "_.R(this)" to trigger the quantiifer. There is no such term hanging around,
+      // of the form "_.R(this)" to trigger the quantifier. There is no such term hanging around,
       // so this proof obligation fails.
       ghost var m := var p: MyClass :| p.R(this) == p; p.y; // error: cannot find witness
     case true =>
