@@ -12,7 +12,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   public abstract string WhatKind { get; }
   public string WhatKindAndName => $"{WhatKind} '{Name}'";
   [BackEdge]
-  public ModuleDefinition EnclosingModule;
+  public ModuleDefinition EnclosingModuleDefinition;
   public readonly List<TypeParameter> TypeArgs;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -21,13 +21,13 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
 
   protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition enclosingModule) : base(cloner, original) {
     TypeArgs = original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
-    EnclosingModule = enclosingModule;
+    EnclosingModuleDefinition = enclosingModule;
   }
 
   [SyntaxConstructor]
   protected TopLevelDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes)
     : base(origin, nameNode, attributes) {
-    EnclosingModule = enclosingModule;
+    EnclosingModuleDefinition = enclosingModule;
     TypeArgs = typeArgs;
   }
 
@@ -38,35 +38,35 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
       }
 
       if (Name == "_default") {
-        return EnclosingModule.FullDafnyName;
+        return EnclosingModuleDefinition.FullDafnyName;
       }
 
-      string n = EnclosingModule.FullDafnyName;
+      string n = EnclosingModuleDefinition.FullDafnyName;
       return (n.Length == 0 ? n : (n + ".")) + Name;
     }
   }
   public virtual string FullName {
     get {
-      if (EnclosingModule is null) {
+      if (EnclosingModuleDefinition is null) {
         return Name;
       }
-      return EnclosingModule.FullName + "." + Name;
+      return EnclosingModuleDefinition.FullName + "." + Name;
     }
   }
   public string FullSanitizedName {
     get {
-      if (EnclosingModule is null) {
+      if (EnclosingModuleDefinition is null) {
         return SanitizedName;
       }
-      return EnclosingModule.SanitizedName + "." + SanitizedName;
+      return EnclosingModuleDefinition.SanitizedName + "." + SanitizedName;
     }
   }
 
   public string FullNameInContext(ModuleDefinition context) {
-    if (EnclosingModule == context) {
+    if (EnclosingModuleDefinition == context) {
       return Name;
     } else {
-      return EnclosingModule.Name + "." + Name;
+      return EnclosingModuleDefinition.Name + "." + Name;
     }
   }
 
@@ -78,8 +78,8 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
       }
     }
 
-    return options.Backend.GetCompileName(EnclosingModule.TryToAvoidName,
-      EnclosingModule.GetCompileName(options), GetCompileName(options));
+    return options.Backend.GetCompileName(EnclosingModuleDefinition.TryToAvoidName,
+      EnclosingModuleDefinition.GetCompileName(options), GetCompileName(options));
   }
 
   public TopLevelDecl ViewAsClass {

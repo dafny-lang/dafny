@@ -25,7 +25,6 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
   }
 
   public Specification(List<T> expressions, Attributes? attributes) {
-    Contract.Requires(expressions == null || cce.NonNullElements<T>(expressions));
     Expressions = expressions;
     Attributes = attributes;
   }

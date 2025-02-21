@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 
 public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
   public readonly bool IsBindingGuard;
-  public readonly Expression Guard;
+  public readonly Expression? Guard;
   public readonly BlockStmt Thn;
   public readonly Statement? Els;
   [ContractInvariantMethod]
@@ -43,7 +43,6 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
-    Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
     IsBindingGuard = isBindingGuard;
     Guard = guard;
@@ -104,7 +103,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
 
     resolver.Scope.PushMarker();
     if (IsBindingGuard) {
-      var exists = (ExistsExpr)Guard;
+      var exists = (ExistsExpr)Guard!;
       foreach (var v in exists.BoundVars) {
         resolver.ScopePushAndReport(resolver.Scope, v.Name, v, v.Origin, "bound-variable");
       }

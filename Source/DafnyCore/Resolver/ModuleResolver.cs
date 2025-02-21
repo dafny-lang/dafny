@@ -184,13 +184,13 @@ namespace Microsoft.Dafny {
         var signature = literalModuleDecl.Resolve(this, compilation);
         signatures[literalModuleDecl.ModuleDef] = signature;
       } else if (decl is AliasModuleDecl alias) {
-        if (ResolveExport(alias, alias.EnclosingModule, alias.TargetQId, alias.Exports, out var p, reporter)) {
+        if (ResolveExport(alias, alias.EnclosingModuleDefinition, alias.TargetQId, alias.Exports, out var p, reporter)) {
           alias.Signature ??= p;
         } else {
           alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
       } else if (decl is AbstractModuleDecl abs) {
-        if (ResolveExport(abs, abs.EnclosingModule, abs.QId, abs.Exports, out var originalSignature, reporter)) {
+        if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out var originalSignature, reporter)) {
           abs.OriginalSignature = originalSignature;
           abs.Signature = MakeAbstractSignature(originalSignature, abs.FullSanitizedName, abs.Height, signatures);
         } else {
@@ -706,9 +706,9 @@ namespace Microsoft.Dafny {
 
         if (!importerSignature.TopLevels.TryGetValue(kv.Key, out var sameNameSymbolInImporter)) {
           importerSignature.TopLevels.Add(kv.Key, kv.Value);
-        } else if (sameNameSymbolInImporter.EnclosingModule == importer) {
+        } else if (sameNameSymbolInImporter.EnclosingModuleDefinition == importer) {
           // declarations in the importing module take priority over opened-import declarations
-          if (kv.Value.EnclosingModule.DafnyName == kv.Key) {
+          if (kv.Value.EnclosingModuleDefinition.DafnyName == kv.Key) {
             // As an exception to the rule, for an "import opened M" that contains a top-level symbol "M", unambiguously map the
             // name "M" to that top-level symbol in "sig". To achieve the "unambiguously" part, return the desired mapping to
             // the caller, and let the caller remap the symbol after all opened imports have been processed.
@@ -1050,7 +1050,7 @@ namespace Microsoft.Dafny {
     private void ResolveAllTypeParameterBounds(List<TopLevelDecl> declarations) {
       foreach (var decl in declarations) {
         allTypeParameters.PushMarker();
-        ResolveTypeParameterBounds(decl.Origin, decl.TypeArgs, decl as ICodeContext ?? new NoContext(decl.EnclosingModule));
+        ResolveTypeParameterBounds(decl.Origin, decl.TypeArgs, decl as ICodeContext ?? new NoContext(decl.EnclosingModuleDefinition));
         if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           foreach (var member in topLevelDeclWithMembers.Members) {
             if (member is Function function) {
@@ -1517,7 +1517,7 @@ namespace Microsoft.Dafny {
           }
 
           if (cl is not ClassLikeDecl) {
-            if (!isAnExport && cl.EnclosingModule.ModuleKind == ModuleKindEnum.Concrete) {
+            if (!isAnExport && cl.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete) {
               // non-reference, non-trait types (datatype, newtype, opaque) don't have constructors that can initialize fields
               foreach (var member in cl.Members) {
                 if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
@@ -1528,7 +1528,7 @@ namespace Microsoft.Dafny {
             continue;
           }
           if (cl is TraitDecl traitDecl) {
-            if (!isAnExport && cl.EnclosingModule.ModuleKind == ModuleKindEnum.Concrete) {
+            if (!isAnExport && cl.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete) {
               // check for static consts, and check for instance fields in non-reference traits
               foreach (var member in cl.Members) {
                 if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
@@ -1554,7 +1554,7 @@ namespace Microsoft.Dafny {
               }
             } else if (member is ConstantField && member.IsStatic) {
               var f = (ConstantField)member;
-              if (!isAnExport && cl.EnclosingModule.ModuleKind == ModuleKindEnum.Concrete && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
+              if (!isAnExport && cl.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
                 CheckIsOkayWithoutRHS(f, false);
               }
             } else if (member is Field && fieldWithoutKnownInitializer == null) {
@@ -1715,7 +1715,7 @@ namespace Microsoft.Dafny {
                 focalPredicates.Add(predicate);
                 // For every focal predicate P in S, add to S all greatest predicates in the same strongly connected
                 // component (in the call graph) as P
-                foreach (var node in predicate.EnclosingClass.EnclosingModule.CallGraph.GetSCC(predicate)) {
+                foreach (var node in predicate.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(predicate)) {
                   if (node is GreatestPredicate greatestPredicate) {
                     focalPredicates.Add(greatestPredicate);
                   }
@@ -1742,7 +1742,7 @@ namespace Microsoft.Dafny {
               focalPredicates.Add(predicate);
               // For every focal predicate P in S, add to S all least predicates in the same strongly connected
               // component (in the call graph) as P
-              foreach (var node in predicate.EnclosingClass.EnclosingModule.CallGraph.GetSCC(predicate)) {
+              foreach (var node in predicate.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(predicate)) {
                 if (node is LeastPredicate leastPredicate) {
                   focalPredicates.Add(leastPredicate);
                 }
@@ -2105,7 +2105,7 @@ namespace Microsoft.Dafny {
       ResolveTypeParameters(cl.TypeArgs, false, cl);
       foreach (var parentTrait in cl.Traits) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
-        ResolveType(cl.Origin, parentTrait, new NoContext(cl.EnclosingModule), ResolveTypeOptionEnum.DontInfer, null);
+        ResolveType(cl.Origin, parentTrait, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
         if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
           var parentTypeToken = parentTrait is UserDefinedType parentTraitUdt ? parentTraitUdt.Origin : cl.Origin;
 
@@ -2113,7 +2113,7 @@ namespace Microsoft.Dafny {
           if (trait != null) {
             // disallowing inheritance in multi module case
             bool termination = true;
-            if (cl.EnclosingModule == trait.EnclosingModule ||
+            if (cl.EnclosingModuleDefinition == trait.EnclosingModuleDefinition ||
                 trait.IsObjectTrait ||
                 (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination) ||
                 Attributes.Contains(cl.Attributes, "AssumeCrossModuleTermination")) {
@@ -2350,7 +2350,7 @@ namespace Microsoft.Dafny {
             // In the following, we pass in a NoContext, because any cycle formed by a redirecting-type constraints would have to
             // dereference the heap, and such constraints are not allowed to dereference the heap so an error will be produced
             // even if we don't detect this cycle.
-            ResolveType(member.Origin, ((Field)member).Type, new NoContext(cl.EnclosingModule), ResolveTypeOptionEnum.DontInfer, null);
+            ResolveType(member.Origin, ((Field)member).Type, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
           }
         } else if (member is Function) {
           var f = (Function)member;

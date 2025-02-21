@@ -22,8 +22,8 @@ public class UserDefinedType : NonProxyType, IHasReferences {
 
   public string FullName {
     get {
-      if (ResolvedClass?.EnclosingModule?.TryToAvoidName == false) {
-        return ResolvedClass.EnclosingModule.Name + "." + Name;
+      if (ResolvedClass?.EnclosingModuleDefinition?.TryToAvoidName == false) {
+        return ResolvedClass.EnclosingModuleDefinition.Name + "." + Name;
       } else {
         return Name;
       }
@@ -35,7 +35,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
 
   public string GetFullCompanionCompileName(DafnyOptions options) {
     Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
-    var m = ResolvedClass.EnclosingModule;
+    var m = ResolvedClass.EnclosingModuleDefinition;
     var s = m.TryToAvoidName ? "" : m.GetCompileName(options) + ".";
     return s + "_Companion_" + ResolvedClass.GetCompileName(options);
   }

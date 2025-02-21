@@ -76,7 +76,7 @@ public class Program : NodeWithComputedRange {
 
   public Program(Cloner cloner, Program original) {
     FullName = original.FullName;
-    DefaultModule = new LiteralModuleDecl(cloner, original.DefaultModule, original.DefaultModule.EnclosingModule);
+    DefaultModule = new LiteralModuleDecl(cloner, original.DefaultModule, original.DefaultModule.EnclosingModuleDefinition);
     Files = original.Files;
     SystemModuleManager = original.SystemModuleManager;
     Reporter = original.Reporter;

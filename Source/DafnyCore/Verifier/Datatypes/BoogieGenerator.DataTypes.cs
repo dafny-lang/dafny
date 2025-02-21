@@ -810,7 +810,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      currentModule = ctor.EnclosingDatatype.EnclosingModule;
+      currentModule = ctor.EnclosingDatatype.EnclosingModuleDefinition;
       codeContext = ctor.EnclosingDatatype;
       fuelContext = FuelSetting.NewFuelContext(ctor.EnclosingDatatype);
       var etran = new ExpressionTranslator(this, Predef, ctor.Origin, null);
@@ -860,7 +860,7 @@ namespace Microsoft.Dafny {
           [], locals, implBody, kv);
       }
 
-      Contract.Assert(currentModule == ctor.EnclosingDatatype.EnclosingModule);
+      Contract.Assert(currentModule == ctor.EnclosingDatatype.EnclosingModuleDefinition);
       Contract.Assert(codeContext == ctor.EnclosingDatatype);
       IsAllocContext = null;
       fuelContext = null;

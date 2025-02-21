@@ -190,7 +190,7 @@ namespace Microsoft.Dafny {
 
       if (d.IsVisibleInScope(verificationScope)) {
         Contract.Assert(d.IsRevealedInScope(verificationScope));
-        if (d is MemberDecl m && m.EnclosingClass.EnclosingModule is { IsFacade: true }) {
+        if (d is MemberDecl m && m.EnclosingClass.EnclosingModuleDefinition is { IsFacade: true }) {
           return false;
         }
 
@@ -2648,7 +2648,7 @@ namespace Microsoft.Dafny {
         if (cl is ClassLikeDecl { NonNullTypeDecl: { } }) {
           name = name + "?";  // TODO: this doesn't seem like the best place to do this name transformation
         }
-        cc = new Bpl.Constant(cl.Origin, new Bpl.TypedIdent(cl.Origin, "class." + name, Predef.ClassNameType), !cl.EnclosingModule.IsFacade);
+        cc = new Bpl.Constant(cl.Origin, new Bpl.TypedIdent(cl.Origin, "class." + name, Predef.ClassNameType), !cl.EnclosingModuleDefinition.IsFacade);
         classes.Add(cl, cc);
       }
       return cc;
@@ -4363,7 +4363,7 @@ namespace Microsoft.Dafny {
       private static void AddFuelContext(FuelContext context, TopLevelDecl decl) {
         FindFuelAttributes(decl.Attributes, context);
 
-        var module = decl.EnclosingModule;
+        var module = decl.EnclosingModuleDefinition;
         while (module != null) {
           FindFuelAttributes(module.Attributes, context);
           module = module.EnclosingModule;

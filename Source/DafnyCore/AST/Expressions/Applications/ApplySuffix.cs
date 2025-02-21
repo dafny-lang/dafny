@@ -12,8 +12,8 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
   public readonly IOrigin? AtTok;
   public readonly Token? CloseParen;
   public readonly ActualBindings Bindings;
-  public List<Expression> Args => Bindings.Arguments;
-  [FilledInDuringResolution] public MethodCallInformation MethodCallInfo = null; // resolution will set to a non-null value if ApplySuffix makes a method call
+  public List<Expression>? Args => Bindings.Arguments;
+  [FilledInDuringResolution] public MethodCallInformation? MethodCallInfo = null; // resolution will set to a non-null value if ApplySuffix makes a method call
 
   public override IEnumerable<INode> Children => ResolvedExpression == null
     ? base.Children.Concat(Bindings == null ? new List<Node>() : Args ?? Enumerable.Empty<Node>()) : new[] { ResolvedExpression };

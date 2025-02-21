@@ -120,7 +120,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   string RedirectingTypeDecl.Name { get { return Name; } }
   IOrigin RedirectingTypeDecl.Tok { get { return Origin; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
-  ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModule; } }
+  ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
   Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
   SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
@@ -137,7 +137,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
   List<TypeParameter> ICodeContext.TypeArgs => TypeArgs;
   List<Formal> ICodeContext.Ins => [];
-  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModule; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
@@ -181,7 +181,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     return null;
   }
 
-  public ModuleDefinition ContainingModule => EnclosingModule;
+  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
   public bool ShouldVerify => true; // This could be made more accurate
   public string Designator => WhatKind;
 }

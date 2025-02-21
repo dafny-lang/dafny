@@ -116,7 +116,7 @@ namespace Microsoft.Dafny.Compilers {
         return;
       }
 
-      if (decl.EnclosingModule.Name != SourceModuleName) {
+      if (decl.EnclosingModuleDefinition.Name != SourceModuleName) {
         // ignore this declaration
         return;
       }
@@ -258,7 +258,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private string? GetExtractName(Attributes attributes) {
+    private string? GetExtractName(Attributes? attributes) {
       if (Attributes.Find(attributes, NameAttribute) is { } extractNameAttribute) {
         if (extractNameAttribute.Args.Count == 1 && extractNameAttribute.Args[0] is StringLiteralExpr { Value: string extractName }) {
           return extractName;

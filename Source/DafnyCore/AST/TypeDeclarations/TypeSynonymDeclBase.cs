@@ -62,7 +62,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   string RedirectingTypeDecl.Name { get { return Name; } }
   IOrigin RedirectingTypeDecl.Tok { get { return Origin; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
-  ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModule; } }
+  ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }
   PreType RedirectingTypeDecl.BasePreType { get { return null; } }
   Type RedirectingTypeDecl.BaseType { get { return null; } }
@@ -82,7 +82,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   bool ICodeContext.IsGhost => throw new NotSupportedException(); // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
   List<TypeParameter> ICodeContext.TypeArgs => TypeArgs;
   List<Formal> ICodeContext.Ins => [];
-  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModule; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;

@@ -54,8 +54,8 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public void SetupDefaultSignature() {
     Contract.Requires(this.Signature == null);
     var sig = new ModuleSignature();
-    sig.ModuleDef = this.EnclosingModule;
-    sig.IsAbstract = this.EnclosingModule.ModuleKind == ModuleKindEnum.Abstract;
+    sig.ModuleDef = this.EnclosingModuleDefinition;
+    sig.IsAbstract = this.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Abstract;
     sig.VisibilityScope = new VisibilityScope();
     sig.VisibilityScope.Augment(ThisScope);
     this.Signature = sig;

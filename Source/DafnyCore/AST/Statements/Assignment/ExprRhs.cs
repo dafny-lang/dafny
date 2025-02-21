@@ -21,7 +21,6 @@ public class ExprRhs : AssignmentRhs, ICloneable<ExprRhs> {
   [SyntaxConstructor]
   public ExprRhs(IOrigin origin, Expression expr, Attributes? attributes = null)
     : base(origin, attributes) {
-    Contract.Requires(expr != null);
     Expr = expr;
   }
 

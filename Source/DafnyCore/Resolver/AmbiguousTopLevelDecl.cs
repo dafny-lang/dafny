@@ -49,6 +49,6 @@ public class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl>
   }
 
   public string ModuleNames() {
-    return AmbiguousThingHelper<TopLevelDecl>.ModuleNames(this, d => d.EnclosingModule.Name);
+    return AmbiguousThingHelper<TopLevelDecl>.ModuleNames(this, d => d.EnclosingModuleDefinition.Name);
   }
 }

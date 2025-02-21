@@ -33,7 +33,7 @@ public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDecl
   }
 
   [SyntaxConstructor]
-  public AttributedExpression(Expression e, AssertLabel? label, Attributes attributes) : base(e.Origin) {
+  public AttributedExpression(Expression e, AssertLabel? label, Attributes? attributes) : base(e.Origin) {
     E = e;
     Label = label;
     Attributes = attributes;

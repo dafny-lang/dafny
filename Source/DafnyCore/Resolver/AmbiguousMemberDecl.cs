@@ -44,6 +44,6 @@ class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used
   }
 
   public string ModuleNames() {
-    return AmbiguousThingHelper<MemberDecl>.ModuleNames(this, d => d.EnclosingClass.EnclosingModule.Name);
+    return AmbiguousThingHelper<MemberDecl>.ModuleNames(this, d => d.EnclosingClass.EnclosingModuleDefinition.Name);
   }
 }

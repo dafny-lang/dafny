@@ -313,7 +313,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new ClassWriter(this, typeParams.Count > 0, builder.Datatype(
           dt.GetCompileName(Options),
-          dt.EnclosingModule.GetCompileName(Options),
+          dt.EnclosingModuleDefinition.GetCompileName(Options),
           typeParams,
           ctors.ToList(),
           dt is CoDatatypeDecl,
@@ -1681,7 +1681,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private ISequence<ISequence<Rune>> PathFromTopLevel(TopLevelDecl topLevel) {
       List<ISequence<Rune>> path = [
-        Sequence<Rune>.UnicodeFromString(topLevel.EnclosingModule.GetCompileName(Options)),
+        Sequence<Rune>.UnicodeFromString(topLevel.EnclosingModuleDefinition.GetCompileName(Options)),
         Sequence<Rune>.UnicodeFromString(topLevel.GetCompileName(Options))
       ];
       return Sequence<ISequence<Rune>>.FromArray(path.ToArray());
@@ -1942,7 +1942,7 @@ namespace Microsoft.Dafny.Compilers {
       var defaultName = formal.CompileName;
       object externVal = null;
       bool hasExternVal = Attributes.ContainsMatchingValue(formal.Attributes, "extern",
-        ref externVal, new List<Attributes.MatchingValueOption> {
+        ref externVal, new HashSet<Attributes.MatchingValueOption> {
           Attributes.MatchingValueOption.String
         }, s => throw new UnsupportedInvalidOperationException("Non-string externs for destructors"));
       var destructorName = externVal as string ?? defaultName;

@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 
 public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   public readonly List<LocalVariable> Locals;
-  public readonly ConcreteAssignStatement Assign;
+  public readonly ConcreteAssignStatement? Assign;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Locals));
@@ -24,9 +24,8 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   }
 
   [SyntaxConstructor]
-  public VarDeclStmt(IOrigin origin, List<LocalVariable> locals, ConcreteAssignStatement assign, Attributes? attributes = null)
+  public VarDeclStmt(IOrigin origin, List<LocalVariable> locals, ConcreteAssignStatement? assign, Attributes? attributes = null)
     : base(origin, attributes) {
-    Contract.Requires(locals != null);
     Contract.Requires(locals.Count != 0);
 
     Locals = locals;

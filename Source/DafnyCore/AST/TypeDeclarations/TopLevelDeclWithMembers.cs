@@ -25,7 +25,6 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   public readonly List<TraitDecl> ParentTraitHeads = [];
 
   internal bool HeadDerivesFrom(TopLevelDecl b) {
-    Contract.Requires(b != null);
     return this == b || this.ParentTraitHeads.Exists(tr => tr.HeadDerivesFrom(b));
   }
 
@@ -97,8 +96,6 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   public List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
-    Contract.Requires(typeArgs != null);
-    Contract.Requires(typeArgs.Count == TypeArgs.Count);
     // Instantiate with the actual type arguments
     var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
     var isReferenceType = this is ClassLikeDecl { IsReferenceTypeDecl: true };
@@ -146,7 +143,6 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   /// This method assumes the .ParentTraits fields have been checked for various cycle restrictions.
   /// </summary>
   private void AddTraitAncestors(ISet<TraitDecl> s) {
-    Contract.Requires(s != null);
     foreach (var parent in Traits) {
       var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .ParentTraits to be a UserDefinedType
       TraitDecl tr;

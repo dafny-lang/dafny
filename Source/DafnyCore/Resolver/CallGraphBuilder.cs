@@ -158,7 +158,7 @@ namespace Microsoft.Dafny {
 
         if (expr is DatatypeValue dtv) {
           var dt = dtv.Type.AsDatatype;
-          if (context.CodeContext is ICallable caller && caller.EnclosingModule == dt.EnclosingModule) {
+          if (context.CodeContext is ICallable caller && caller.EnclosingModule == dt.EnclosingModuleDefinition) {
             caller.EnclosingModule.CallGraph.AddEdge(caller, dt);
           }
 

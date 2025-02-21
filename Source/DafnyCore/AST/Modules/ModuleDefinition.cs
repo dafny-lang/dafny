@@ -279,7 +279,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     foreach (var d in declarations) {
       var cl = d as TopLevelDeclWithMembers;
       if (cl != null) {
-        var module = cl.EnclosingModule;
+        var module = cl.EnclosingModuleDefinition;
         foreach (var member in cl.Members) {
           var fn = member as Function;
           if (fn != null) {
@@ -1041,7 +1041,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         foreach (var parent in traitDecl.Traits) {
           if (parent is UserDefinedType udt) {
             if (ResolveNamePath(udt.NamePath) is TraitDecl parentTrait) {
-              if (parentTrait.EnclosingModule == this) {
+              if (parentTrait.EnclosingModuleDefinition == this) {
                 inheritsFromObject = InheritsFromObject(parentTrait) || inheritsFromObject;
               } else {
                 inheritsFromObject = parentTrait.IsReferenceTypeDecl || inheritsFromObject;

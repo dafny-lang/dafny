@@ -62,7 +62,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return []; } }
-  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModule; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
@@ -205,7 +205,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
           continue;
         }
 
-        var addedReveals = Rewriter.ExprToFunctionalDependencies(formal.DefaultValue, EnclosingModule);
+        var addedReveals = Rewriter.ExprToFunctionalDependencies(formal.DefaultValue, EnclosingModuleDefinition);
         formal.DefaultValue = Rewriter.AddRevealStmtsToExpression(formal.DefaultValue, addedReveals);
 
         if (addedReveals.Any()) {

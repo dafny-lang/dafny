@@ -140,9 +140,6 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// Create a resolved statement for an uninitialized local variable.
   /// </summary>
   public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Type type) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);
     var variable = new LocalVariable(tok, name, type, false);
     variable.type = type;
     return new VarDeclStmt(tok, Util.Singleton(variable), null);
@@ -152,9 +149,6 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// Create a resolved statement for a local variable with an initial value.
   /// </summary>
   public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Expression value) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(value != null);
     var variable = new LocalVariable(tok, name, value.Type, false);
     variable.type = value.Type;
     Expression variableExpr = new IdentifierExpr(tok, variable);
@@ -223,5 +217,5 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// </summary>
   public abstract void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,
-    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase);
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase);
 }

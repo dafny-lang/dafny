@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
 
       proofDependencies.SetCurrentDefinition(MethodVerboseName(iter.FullDafnyName, kind), iter);
-      currentModule = iter.EnclosingModule;
+      currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
       var etran = new ExpressionTranslator(this, Predef, iter.Origin, iter);
@@ -139,7 +139,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentModule == null && codeContext == null);
 
       proofDependencies.SetCurrentDefinition(proc.VerboseName, iter);
-      currentModule = iter.EnclosingModule;
+      currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
       List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
@@ -272,7 +272,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
 
       proofDependencies.SetCurrentDefinition(proc.VerboseName, iter);
-      currentModule = iter.EnclosingModule;
+      currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
       List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);

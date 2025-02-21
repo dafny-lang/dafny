@@ -58,7 +58,7 @@ namespace Microsoft.Dafny {
           if (f is ConstantField) {
             // The following call has the side effect of idempotently creating and adding the function to the sink's top-level declarations
             Contract.Assert(currentModule == null);
-            currentModule = f.EnclosingClass.EnclosingModule;
+            currentModule = f.EnclosingClass.EnclosingModuleDefinition;
             var oldFuelContext = fuelContext;
             fuelContext = FuelSetting.NewFuelContext(f);
             fieldDeclaration = GetReadonlyField(f);
@@ -483,7 +483,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
 
-      currentModule = f.EnclosingClass.EnclosingModule;
+      currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       codeContext = f;
 
       // declare function
@@ -529,7 +529,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && IsAllocContext == null);
 
       proofDependencies.SetCurrentDefinition(proc.VerboseName, m);
-      currentModule = m.EnclosingClass.EnclosingModule;
+      currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       IsAllocContext = new IsAllocContext(options, m.IsGhost);
 
@@ -838,7 +838,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && IsAllocContext == null);
 
       proofDependencies.SetCurrentDefinition(proc.VerboseName, m);
-      currentModule = m.EnclosingClass.EnclosingModule;
+      currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       IsAllocContext = new IsAllocContext(options, m.IsGhost);
 
@@ -939,7 +939,7 @@ namespace Microsoft.Dafny {
       #region first procedure, no impl yet
       //Function nf = new Function(f.Tok, "OverrideCheck_" + f.Name, f.IsStatic, f.IsGhost, f.TypeArgs, f.OpenParen, f.Formals, f.ResultType, f.Req, f.Reads, f.Ens, f.Decreases, f.Body, f.Attributes, f.SignatureEllipsis);
       //AddFunction(f);
-      currentModule = f.EnclosingClass.EnclosingModule;
+      currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       codeContext = f;
 
       Boogie.Expr prevHeap = null;
@@ -1734,7 +1734,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(VisibleInScope(m));
 
       proofDependencies.SetCurrentDefinition(MethodVerboseName(m.FullDafnyName, kind), m);
-      currentModule = m.EnclosingClass.EnclosingModule;
+      currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       IsAllocContext = new IsAllocContext(options, m.IsGhost);
       Boogie.Expr prevHeap = null;

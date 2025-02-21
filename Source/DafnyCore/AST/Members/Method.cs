@@ -54,7 +54,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       yield return a;
     }
 
-    if (Body is null && HasPostcondition && EnclosingClass.EnclosingModule.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
+    if (Body is null && HasPostcondition && EnclosingClass.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
       yield return new Assumption(this, Origin, AssumptionDescription.NoBody(IsGhost));
     }
 
@@ -188,7 +188,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   ModuleDefinition IASTVisitorContext.EnclosingModule {
     get {
       Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
-      return this.EnclosingClass.EnclosingModule;
+      return this.EnclosingClass.EnclosingModuleDefinition;
     }
   }
   bool ICodeContext.MustReverify { get { return this.MustReverify; } }
@@ -438,7 +438,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   public bool ShouldVerify => true; // This could be made more accurate
-  public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModule;
+  public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
 
   public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options,
     ErrorReporter reporter) {
@@ -448,7 +448,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
     object? autoRevealDepsVal = null;
     bool autoRevealDeps = Attributes.ContainsMatchingValue(Attributes, "autoRevealDependencies",
-      ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
+      ref autoRevealDepsVal, new HashSet<Attributes.MatchingValueOption> {
         Attributes.MatchingValueOption.Bool,
         Attributes.MatchingValueOption.Int
       }, s => reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Origin, s));
@@ -469,7 +469,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
     foreach (var func in Rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
       var revealStmt =
-        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Origin, EnclosingClass.EnclosingModule);
+        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Origin, EnclosingClass.EnclosingModuleDefinition);
 
       if (revealStmt is not null) {
         addedReveals.Add(new AutoRevealFunctionDependencies.RevealStmtWithDepth(revealStmt, func.Depth));

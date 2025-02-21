@@ -90,7 +90,7 @@ namespace DafnyPipeline.Test {
         dafnyProgram.Visit((INode n) => {
           if (n is TopLevelDeclWithMembers nWithMembers) {
             var newMembers = new List<MemberDecl>();
-            foreach (var member in nWithMembers.MembersBeforeResolution) {
+            foreach (var member in nWithMembers.MembersBeforeResolution!) {
               newMembers.Add(clone.CloneMember(member, false));
             }
 

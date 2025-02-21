@@ -11,9 +11,9 @@ namespace Microsoft.Dafny;
 public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStatement>, ICanResolve {
   public readonly List<AssignmentRhs> Rhss;
   public readonly bool CanMutateKnownState;
-  public Expression OriginalInitialLhs = null;
+  public Expression? OriginalInitialLhs = null;
 
-  [FilledInDuringResolution] public List<Statement> ResolvedStatements;
+  [FilledInDuringResolution] public List<Statement>? ResolvedStatements;
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions =>
@@ -38,7 +38,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
     Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
     CanMutateKnownState = original.CanMutateKnownState;
     if (cloner.CloneResolvedFields) {
-      ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
+      ResolvedStatements = original.ResolvedStatements?.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
@@ -88,8 +88,8 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
 
     base.Resolve(resolver, resolutionContext);
 
-    IOrigin firstEffectfulRhs = null;
-    MethodCallInformation methodCallInfo = null;
+    IOrigin? firstEffectfulRhs = null;
+    MethodCallInformation? methodCallInfo = null;
     ResolvedStatements = [];
     foreach (var rhs in Rhss) {
       bool isEffectful;

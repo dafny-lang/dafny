@@ -31,7 +31,7 @@ public class AuditReport {
         UseDecl(memberDecl.EnclosingClass);
         break;
       case TopLevelDeclWithMembers topDecl:
-        modulesWithEntries.Add(topDecl.EnclosingModule);
+        modulesWithEntries.Add(topDecl.EnclosingModuleDefinition);
         break;
     }
   }
