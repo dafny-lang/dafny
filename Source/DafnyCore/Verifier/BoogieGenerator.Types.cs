@@ -793,21 +793,29 @@ public partial class BoogieGenerator {
   /// <summary>
   /// Return a pair of expressions (a, b) such that the disjunction "a || b" is equivalent to "expression"
   /// and expression "a" does not mention any variable in "vars".
-  /// Expression "a" is always returns as "false" unless all variables in "vars" are known to have a value.
+  /// Expression "a" is always returned as "false" unless the types of all variables in "vars" are known to have a value.
   /// </summary>
   (Expression, Expression) SeparateDisjunctsAccordingToVariableUsage(List<BoundVar> vars, Expression expression) {
     Expression a = Expression.CreateBoolLiteral(expression.Origin, false);
 
-    if (vars.Exists(x => !x.Type.KnownToHaveToAValue(x.IsGhost))) {
+    if (vars.Any(x => !x.Type.KnownToHaveToAValue(x.IsGhost))) {
       return (a, expression);
     }
 
     // Place the left-most var-independent disjuncts into "a" and the rest into "b". 
+    // The loop below has the effect of:
+    //         var d: List<Expression> := Expression.Disjuncts(expression);
+    //         var (prefix, rest) :|
+    //             "prefix" is the longest prefix of "d" where no Expression mentions a variable in "vars" and
+    //             "rest" is the remaining Expression's of "d";
+    //         return (Or(prefix), Or(rest));
+    // But the loop optimizes the case where "prefix" is empty, returning "(false, expression)" in the event
+    // that the first element of "d" contains some variable in "vars".
     Expression b = Expression.CreateBoolLiteral(expression.Origin, false);
     var seenDisjunctsWithoutVariables = false;
     var seenDisjunctsWithVariables = false;
     foreach (var disjunct in Expression.Disjuncts(expression)) {
-      if (!seenDisjunctsWithVariables && vars.All(x => !FreeVariablesUtil.ContainsFreeVariable(disjunct, false, x))) {
+      if (!seenDisjunctsWithVariables && !vars.Any(x => FreeVariablesUtil.ContainsFreeVariable(disjunct, false, x))) {
         a = Expression.CreateOr(a, disjunct);
         seenDisjunctsWithoutVariables = true;
       } else if (!seenDisjunctsWithoutVariables) {
