@@ -139,12 +139,10 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// This method can be called before resolution.
   /// </summary>
   public static Statement StripByBlocks(Statement stmt) {
-    while (true) {
-      if (stmt is not BlockByProofStmt blockByProofStmt) {
-        return stmt;
-      }
-      stmt = blockByProofStmt.Body;
+    while (stmt is BlockByProofStmt blockByProofStmt) {
+      stmt = blockByProofStmt;
     }
+    return stmt;
   }
 
   /// <summary>
