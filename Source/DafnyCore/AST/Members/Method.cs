@@ -143,7 +143,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] BlockStmt body,
     IOrigin? signatureEllipsis,
     bool isByMethod = false)
-    : base(origin, nameNode, hasStaticKeyword,  isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
+    : base(origin, nameNode, hasStaticKeyword, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

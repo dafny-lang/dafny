@@ -31,7 +31,7 @@ public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDecl
 
   public AttributedExpression(Expression e, Attributes? attributes) : this(e, null, attributes) {
   }
-  
+
   [SyntaxConstructor]
   public AttributedExpression(Expression e, AssertLabel? label, Attributes attributes) : base(e.Origin) {
     E = e;
