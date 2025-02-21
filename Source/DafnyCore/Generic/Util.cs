@@ -289,14 +289,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string ReplaceTokensWithEscapes(string s, Regex pattern, MatchEvaluator evaluator) {
+    public static string ReplaceTokensWithEscapes(string s, bool isVerbatim, Regex pattern, MatchEvaluator evaluator) {
       return string.Join("",
-        TokensWithEscapes(s, false)
+        TokensWithEscapes(s, isVerbatim)
           .Select(token => pattern.Replace(token, evaluator)));
     }
 
-    public static string ExpandUnicodeEscapes(string s, bool lowerCaseU) {
-      return ReplaceTokensWithEscapes(s, UnicodeEscape, match => {
+    public static string ExpandUnicodeEscapes(string s, bool isVerbatim, bool lowerCaseU) {
+      return ReplaceTokensWithEscapes(s, isVerbatim, UnicodeEscape, match => {
         var hexDigits = RemoveUnderscores(match.Groups[1].Value);
         var padChars = 8 - hexDigits.Length;
         return (lowerCaseU ? "\\u" : "\\U") + new string('0', padChars) + hexDigits;
@@ -304,12 +304,12 @@ namespace Microsoft.Dafny {
     }
 
     public static string UnicodeEscapesToLowercase(string s) {
-      return ReplaceTokensWithEscapes(s, UnicodeEscape, match =>
+      return ReplaceTokensWithEscapes(s, false, UnicodeEscape, match =>
         $"\\u{{{RemoveUnderscores(match.Groups[1].Value)}}}");
     }
 
     public static string UnicodeEscapesToUtf16Escapes(string s) {
-      return ReplaceTokensWithEscapes(s, UnicodeEscape, match => {
+      return ReplaceTokensWithEscapes(s, false, UnicodeEscape, match => {
         var utf16CodeUnits = new char[2];
         var hexDigits = RemoveUnderscores(match.Groups[1].Value);
         var codePoint = new Rune(Convert.ToInt32(hexDigits, 16));
@@ -323,7 +323,7 @@ namespace Microsoft.Dafny {
     }
 
     public static string ReplaceNullEscapesWithCharacterEscapes(string s) {
-      return ReplaceTokensWithEscapes(s, NullEscape, match => "\\u0000");
+      return ReplaceTokensWithEscapes(s, false, NullEscape, match => "\\u0000");
     }
 
     public static IEnumerable<int> UnescapedCharacters(DafnyOptions options, string p, bool isVerbatimString) {
