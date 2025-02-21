@@ -378,24 +378,24 @@ public partial class BoogieGenerator {
         sink.AddTopLevelDeclaration(new Axiom(tok,
           BplForall(bvarsOuter, new Bpl.Trigger(tok, true, new[] { IsT, IsU }), body)));
       }
-      /*  This is the definition of $IsAlloc function the arrow type:
-        axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
-          { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
-          $IsGoodHeap(h)
-          ==>
-          (
-            $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h)
-              <==>
-              (forall bx0: Box ::
-                { Apply1(t0, t1, f, h, bx0) } { Reads1(t0, t1, f, h, bx0) }
-                $IsBox(bx0, t0) && $IsAllocBox(bx0, t0, h)
-                && precondition of f(bx0) holds in h
-                ==>
-                  (everything in reads set of f(bx0) is allocated in h)
-          ));
-        However, for /allocated:0 and /allocated:1, IsAlloc for arrow types is trivially true
-        and implies nothing about the reads set.
-      */
+      // /*  This is the definition of $IsAlloc function the arrow type:
+      //   axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
+      //     { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
+      //     $IsGoodHeap(h)
+      //     ==>
+      //     (
+      //       $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h)
+      //         ==>
+      //         (forall bx0: Box ::
+      //           { Apply1(t0, t1, f, h, bx0) } { Reads1(t0, t1, f, h, bx0) }
+      //           $IsBox(bx0, t0) && $IsAllocBox(bx0, t0, h)
+      //           && precondition of f(bx0) holds in h
+      //           ==>
+      //             (everything in reads set of f(bx0) is allocated in h)
+      //     ));
+      //   However, for /allocated:0 and /allocated:1, IsAlloc for arrow types is trivially true
+      //   and implies nothing about the reads set.
+      // */
       {
         var bvarsOuter = new List<Bpl.Variable>();
         var f = BplBoundVar("f", Predef.HandleType, bvarsOuter);
@@ -423,11 +423,12 @@ public partial class BoogieGenerator {
         sink.AddTopLevelDeclaration(new Axiom(tok,
           BplForall(bvarsOuter, BplTrigger(isAlloc),
             BplImp(goodHeap,
-              BplIff(isAlloc,
+              BplImp(isAlloc,
                 BplForall(bvarsInner,
                   new Bpl.Trigger(tok, true, new List<Bpl.Expr> { applied }, BplTrigger(reads)),
                   BplImp(BplAnd(isAllocBoxes, pre), isAllocReads)))))));
       }
+
       /*  This is the allocatedness consequence axiom of arrow types:
         axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
           { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
@@ -958,7 +959,7 @@ public partial class BoogieGenerator {
   /// <summary>
   /// Generate $Is (if "!generateIsAlloc") or $IsAlloc (if "generateIsAlloc") axioms for the newtype/subset-type "dd",
   /// whose printable name is "fullName".
-  /// 
+  ///
   /// Given that the type "dd" is
   ///
   ///     (new)type dd<X> = x: Base<Y> | constraint

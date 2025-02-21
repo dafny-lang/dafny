@@ -38,26 +38,10 @@ lemma Distribute(n: nat, f: int -> int, g: int -> int)
 {
 }
 
-lemma PrettyBasicBetaReduction(n: nat, g: (int,int) -> int, i: int)
+lemma {:induction false} PrettyBasicBetaReduction(n: nat, g: (int,int) -> int, i: int)
   ensures (x => Sum(n, y => g(x,y)))(i) == Sum(n, y => g(i,y))
 {
-  // NOTE: This proof is by induction on n
-  if n == 0 {
-    calc {
-      (x => Sum(n, y => g(x,y)))(i);
-      0;
-      Sum(n, y => g(i,y));
-    }
-  } else {
-    calc {
-      (x => Sum(n, y => g(x,y)))(i);
-      g(i,n-1) + (x => Sum(n-1, y => g(x,y)))(i);
-      { PrettyBasicBetaReduction(n-1, g, i); }
-      g(i,n-1) + Sum(n-1, y => g(i,y));
-      (y => g(i,y))(n-1) + Sum(n-1, y => g(i,y));
-      Sum(n, y => g(i,y));
-    }
-  }
+
 }
 
 lemma BetaReduction0(n: nat, g: (int,int) -> int, i: int)
