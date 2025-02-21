@@ -66,7 +66,7 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
   }
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
-    ICodeContext codeContext, string proofContext,
+    ICodeContext codeContext, string? proofContext,
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     if (proofContext != null && Mod.Expressions != null && Mod.Expressions.Count != 0) {
       reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_may_not_use_modifies, Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");

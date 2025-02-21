@@ -187,8 +187,8 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,
-    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
-    ResolvedStatements.ForEach(ss => ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext,
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    ResolvedStatements!.ForEach(ss => ss.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext,
       proofContext, allowAssumptionVariables, inConstructorInitializationPhase));
     IsGhost = ResolvedStatements.All(ss => ss.IsGhost);
   }

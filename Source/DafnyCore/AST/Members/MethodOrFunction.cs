@@ -51,6 +51,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
+    this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
     this.SignatureEllipsis = original.SignatureEllipsis;
     if (cloner.CloneResolvedFields) {

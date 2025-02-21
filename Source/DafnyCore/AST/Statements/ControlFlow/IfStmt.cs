@@ -121,7 +121,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
   }
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
-    ICodeContext codeContext, string proofContext,
+    ICodeContext codeContext, string? proofContext,
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = mustBeErasable || (Guard != null && ExpressionTester.UsesSpecFeatures(Guard));
     if (!mustBeErasable && IsGhost) {

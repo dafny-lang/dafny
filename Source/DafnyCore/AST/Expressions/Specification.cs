@@ -8,11 +8,6 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
   where T : Node {
   public readonly List<T> Expressions;
 
-  [ContractInvariantMethod]
-  private void ObjectInvariant() {
-    Contract.Invariant(Expressions == null || cce.NonNullElements<T>(Expressions));
-  }
-
   public Specification() {
     Expressions = [];
     Attributes = null;

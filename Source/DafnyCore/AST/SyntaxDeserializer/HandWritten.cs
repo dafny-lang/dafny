@@ -175,3 +175,17 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     return decoder.ReadInt32();
   }
 }
+
+public class FilesContainer(List<FileStart> files) {
+  public List<FileStart> Files { get; } = files;
+}
+
+public class FileStart {
+  public string Uri { get; }
+  public List<TopLevelDecl> TopLevelDecls { get; }
+
+  public FileStart(string uri, List<TopLevelDecl> topLevelDecls) {
+    Uri = uri;
+    TopLevelDecls = topLevelDecls;
+  }
+}

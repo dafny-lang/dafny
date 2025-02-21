@@ -653,26 +653,6 @@ namespace Microsoft.Dafny {
       return (ModuleKindEnum)ordinal;
     }
 
-    public FileModuleDefinition ReadFileModuleDefinition() {
-      Microsoft.Dafny.ModuleDefinition parameter5 = null;
-      var parameter0 = ReadAbstract<IOrigin>();
-      var parameter1 = ReadName();
-      var parameter2 = ReadList<IOrigin>(() => ReadAbstract<IOrigin>());
-      var parameter3 = ReadModuleKindEnum();
-      var parameter4 = ReadImplementsOption();
-      var parameter6 = ReadAttributesOption();
-      var parameter7 = ReadList<TopLevelDecl>(() => ReadAbstract<TopLevelDecl>());
-      return new FileModuleDefinition(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
-    }
-
-    public FileModuleDefinition ReadFileModuleDefinitionOption() {
-      if (ReadIsNull()) {
-        return default;
-      }
-
-      return ReadFileModuleDefinition();
-    }
-
     private object ReadObject(System.Type actualType) {
       if (actualType == typeof(Name)) {
         return ReadName();
@@ -820,10 +800,6 @@ namespace Microsoft.Dafny {
 
       if (actualType == typeof(ModuleQualifiedId)) {
         return ReadModuleQualifiedId();
-      }
-
-      if (actualType == typeof(FileModuleDefinition)) {
-        return ReadFileModuleDefinition();
       }
 
       throw new Exception();

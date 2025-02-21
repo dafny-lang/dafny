@@ -57,7 +57,7 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,
-    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     if (mustBeErasable) {
       foreach (var local in Locals) {
         // a local variable in a specification-only context might as well be ghost
