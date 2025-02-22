@@ -69,7 +69,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     DecreasesFields = [];
 
     YieldCountVariable = new LocalVariable(origin, "_yieldCount", new EverIncreasingType(), true);
-    YieldCountVariable.type = YieldCountVariable.SyntacticType;  // resolve YieldCountVariable here
+    YieldCountVariable.type = YieldCountVariable.SafeSyntacticType;  // resolve YieldCountVariable here
   }
 
   /// <summary>

@@ -27,7 +27,6 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     : base(cloner, original) {
     name = original.Name;
     SyntacticType = cloner.CloneType(original.SyntacticType);
-    IsTypeExplicit = original.IsTypeExplicit;
     IsGhost = original.IsGhost;
 
     if (cloner.CloneResolvedFields) {
@@ -40,11 +39,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     : base(origin) {
 
     this.name = name;
-    IsTypeExplicit = syntacticType != null;
-    SyntacticType = syntacticType; // ?? new InferredTypeProxy();
-    // if (syntacticType is InferredTypeProxy) {
-    //   ((InferredTypeProxy)syntacticType).KeepConstraints = true;
-    // }
+    SyntacticType = syntacticType;
     IsGhost = isGhost;
   }
 
@@ -83,9 +78,15 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
   }
 
-  // TODO rename and update comment? Or make it nullable?
-  public readonly Type? SyntacticType;  // this is the type mentioned in the declaration, if any
-  Type? IVariable.OptionalType => SyntacticType;
+  public readonly Type? SyntacticType;
+
+  public Type? safeSyntacticType; 
+  public Type SafeSyntacticType =>
+    safeSyntacticType ??= SyntacticType ?? new InferredTypeProxy {
+      KeepConstraints = true
+    };
+
+  Type? IVariable.OptionalType => SafeSyntacticType;
 
   [FilledInDuringResolution]
   internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
@@ -130,7 +131,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   }
 
   public IOrigin NavigationToken => Origin.StartToken;
-  public bool IsTypeExplicit { get; }
+  public bool IsTypeExplicit => SyntacticType != null;
   public override IEnumerable<INode> Children =>
     Attributes.AsEnumerable().
       Concat<Node>(

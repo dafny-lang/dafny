@@ -3606,9 +3606,9 @@ namespace Microsoft.Dafny {
         // Resolve the types of the locals
         foreach (var local in s.Locals) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveType(local.Origin, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(local.Origin, local.SafeSyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-            local.type = local.SyntacticType;
+            local.type = local.SafeSyntacticType;
           } else {
             local.type = new InferredTypeProxy();
           }
@@ -3643,9 +3643,9 @@ namespace Microsoft.Dafny {
         VarDeclPattern s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveType(local.Origin, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(local.Origin, local.SafeSyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-            local.type = local.SyntacticType;
+            local.type = local.SafeSyntacticType;
           } else {
             local.type = new InferredTypeProxy();
           }

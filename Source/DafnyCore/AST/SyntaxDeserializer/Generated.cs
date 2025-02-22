@@ -154,6 +154,40 @@ namespace Microsoft.Dafny
             return ReadITEExpr();
         }
 
+        public ParensExpression ReadParensExpression()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            return new ParensExpression(parameter0, parameter1);
+        }
+
+        public ParensExpression ReadParensExpressionOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadParensExpression();
+        }
+
+        public NegationExpression ReadNegationExpression()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            return new NegationExpression(parameter0, parameter1);
+        }
+
+        public NegationExpression ReadNegationExpressionOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadNegationExpression();
+        }
+
         public ApplySuffix ReadApplySuffix()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -390,22 +424,35 @@ namespace Microsoft.Dafny
             return (TPVarianceSyntax)ordinal;
         }
 
-        public FrameExpression ReadFrameExpression()
+        public SubsetTypeDecl ReadSubsetTypeDecl()
         {
+            Microsoft.Dafny.ModuleDefinition parameter4 = null;
             var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadAbstract<Expression>();
-            var parameter2 = ReadString();
-            return new FrameExpression(parameter0, parameter1, parameter2);
+            var parameter1 = ReadName();
+            var parameter9 = ReadAttributesOption();
+            var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
+            var parameter2 = ReadTypeParameterCharacteristics();
+            var parameter5 = ReadBoundVar();
+            var parameter6 = ReadAbstract<Expression>();
+            var parameter7 = ReadSubsetTypeDeclWKind();
+            var parameter8 = ReadAbstractOption<Expression>();
+            return new SubsetTypeDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9);
         }
 
-        public FrameExpression ReadFrameExpressionOption()
+        public SubsetTypeDecl ReadSubsetTypeDeclOption()
         {
             if (ReadIsNull())
             {
                 return default;
             }
 
-            return ReadFrameExpression();
+            return ReadSubsetTypeDecl();
+        }
+
+        private SubsetTypeDecl.WKind ReadSubsetTypeDeclWKind()
+        {
+            int ordinal = ReadInt32();
+            return (SubsetTypeDecl.WKind)ordinal;
         }
 
         public Formal ReadFormal()
@@ -432,6 +479,43 @@ namespace Microsoft.Dafny
             }
 
             return ReadFormal();
+        }
+
+        public BoundVar ReadBoundVar()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter2 = ReadAbstract<Type>();
+            var parameter3 = ReadBoolean();
+            return new BoundVar(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public BoundVar ReadBoundVarOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadBoundVar();
+        }
+
+        public FrameExpression ReadFrameExpression()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadString();
+            return new FrameExpression(parameter0, parameter1, parameter2);
+        }
+
+        public FrameExpression ReadFrameExpressionOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadFrameExpression();
         }
 
         public Method ReadMethod()
@@ -831,6 +915,16 @@ namespace Microsoft.Dafny
                 return ReadITEExpr();
             }
 
+            if (actualType == typeof(ParensExpression))
+            {
+                return ReadParensExpression();
+            }
+
+            if (actualType == typeof(NegationExpression))
+            {
+                return ReadNegationExpression();
+            }
+
             if (actualType == typeof(ApplySuffix))
             {
                 return ReadApplySuffix();
@@ -891,14 +985,24 @@ namespace Microsoft.Dafny
                 return ReadTypeParameterCharacteristics();
             }
 
-            if (actualType == typeof(FrameExpression))
+            if (actualType == typeof(SubsetTypeDecl))
             {
-                return ReadFrameExpression();
+                return ReadSubsetTypeDecl();
             }
 
             if (actualType == typeof(Formal))
             {
                 return ReadFormal();
+            }
+
+            if (actualType == typeof(BoundVar))
+            {
+                return ReadBoundVar();
+            }
+
+            if (actualType == typeof(FrameExpression))
+            {
+                return ReadFrameExpression();
             }
 
             if (actualType == typeof(Method))

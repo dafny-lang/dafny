@@ -82,7 +82,7 @@ namespace Microsoft.Dafny {
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new TypeSynonymDecl(Origin(dd.Origin), dd.NameNode.Clone(this), CloneTPChar(dd.Characteristics), tps,
+        return new ConcreteTypeSynonymDecl(Origin(dd.Origin), dd.NameNode.Clone(this), CloneTPChar(dd.Characteristics), tps,
           newParent, CloneType(dd.Rhs), CloneAttributes(dd.Attributes));
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;

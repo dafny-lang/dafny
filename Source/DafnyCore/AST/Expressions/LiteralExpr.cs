@@ -155,6 +155,7 @@ public class NegationExpression : ConcreteSyntaxExpression, ICloneable<NegationE
     E = cloner.CloneExpr(original.E);
   }
 
+  [SyntaxConstructor]
   public NegationExpression(IOrigin origin, Expression e)
     : base(origin) {
     Contract.Requires(origin != null);

@@ -92,7 +92,7 @@ public class SystemModuleManager {
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
-    var str = new TypeSynonymDecl(SourceOrigin.NoToken, new Name("string"),
+    var str = new ConcreteTypeSynonymDecl(SourceOrigin.NoToken, new Name("string"),
       new TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       [], SystemModule, new SeqType(new CharType()), null);
     SystemModule.SourceDecls.Add(str);

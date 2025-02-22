@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -11,7 +12,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   public readonly Expression Constraint;
   public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
   public readonly WKind WitnessKind;
-  public Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
+  public Expression? Witness;  // non-null iff WitnessKind is Compiled or Ghost
 
   private bool? constraintIsCompilable = null;
   [FilledInDuringResolution]
@@ -29,18 +30,19 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   [SyntaxConstructor]
   public SubsetTypeDecl(IOrigin origin, Name nameNode, TypeParameterCharacteristics characteristics, 
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
-    BoundVar var, Expression constraint, WKind witnessKind, Expression witness,
-    Attributes attributes)
-    : base(origin, nameNode, characteristics, typeArgs, enclosingModuleDefinition, var.Type, attributes) {
+    BoundVar var, Expression constraint, WKind witnessKind, Expression? witness,
+    Attributes? attributes)
+    : base(origin, nameNode, characteristics, typeArgs, enclosingModuleDefinition, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(typeArgs != null);
-    Contract.Requires(constraint != null);
     Contract.Requires((witnessKind == WKind.Compiled || witnessKind == WKind.Ghost) == (witness != null));
     Var = var;
     Constraint = constraint;
     Witness = witness;
     WitnessKind = witnessKind;
   }
+
+  public override Type Rhs => Var.Type;
 
   public override IEnumerable<INode> Children =>
     base.Children.Concat(new[] { Constraint }).Concat(

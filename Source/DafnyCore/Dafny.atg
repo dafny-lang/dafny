@@ -846,7 +846,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
       .)
     |
       Type<out ty>
-      (. td = new TypeSynonymDecl(new SourceOrigin(dmod.FirstToken, t, name.Center), name, characteristics, typeArgs, module, ty, dmod.Attributes);
+      (. td = new ConcreteTypeSynonymDecl(new SourceOrigin(dmod.FirstToken, t, name.Center), name, characteristics, typeArgs, module, ty, dmod.Attributes);
          kind = "type synonym";
       .)
     )

@@ -6,7 +6,7 @@ type nat32 = x: int32
   | x >= 0
 
 type int32 = x: int
-  | -4294967296 < x && x < 4294967296
+  | -2147483647 < x && x < 2147483647
 
 class Fibonacci {
   static function Spec(n: nat): nat
