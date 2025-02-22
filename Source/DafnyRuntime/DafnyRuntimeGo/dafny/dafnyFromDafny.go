@@ -102,9 +102,9 @@ TAIL_CALL_START:
 			e = _in1
 			stack = _in2
 			goto TAIL_CALL_START
-			goto L0_0
+			goto L0
 		}
-	L0_0:
+	L0:
 	} else if func(_is_3 Sequence) bool {
 		return InstanceOf(_is_3, (*LazySequence)(nil))
 	}(e) {
@@ -152,9 +152,9 @@ TAIL_CALL_START:
 				e = _in7
 				stack = _in8
 				goto TAIL_CALL_START
-				goto L1_1_0_0_0
+				goto L1
 			}
-		L1_1_0_0_0:
+		L1:
 		}
 	} else {
 		if !(false) {

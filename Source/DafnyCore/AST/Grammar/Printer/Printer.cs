@@ -79,6 +79,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return wr.ToString();
     }
 
+    public static string ForallExprRangeToString(DafnyOptions options, ForallExpr expr,
+      [CanBeNull] PrintFlags printFlags = null) {
+      using var wr = new StringWriter();
+      var pr = new Printer(wr, options, printFlags: printFlags);
+      pr.PrintQuantifierDomain(expr.BoundVars, expr.Attributes, expr.Range);
+      return wr.ToString();
+    }
+
     public static string ExprListToString(DafnyOptions options, List<Expression> expressions, [CanBeNull] PrintFlags printFlags = null) {
       Contract.Requires(expressions != null);
       using var wr = new StringWriter();
@@ -562,7 +570,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (id.Decl is TopLevelDecl) {
               PrintTopLevelDecls(compilation, new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, null);
             } else if (id.Decl is MemberDecl) {
-              PrintMembers(new List<MemberDecl> { (MemberDecl)id.Decl }, indent + IndentAmount, project);
+              PrintMembers([(MemberDecl)id.Decl], indent + IndentAmount, project);
             }
           }
           Indent(indent);
@@ -703,7 +711,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     private void PrintExtendsClause(TopLevelDeclWithMembers c) {
       string sep = " extends ";
-      foreach (var trait in c.ParentTraits) {
+      foreach (var trait in c.Traits) {
         wr.Write(sep);
         PrintType(trait);
         sep = ", ";
@@ -846,7 +854,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       string sep = "";
       foreach (DatatypeCtor ctor in dt.Ctors) {
         wr.Write(sep);
-        PrintClassMethodHelper(ctor.IsGhost ? " ghost" : "", ctor.Attributes, ctor.Name, new List<TypeParameter>());
+        PrintClassMethodHelper(ctor.IsGhost ? " ghost" : "", ctor.Attributes, ctor.Name, []);
         if (ctor.Formals.Count != 0) {
           PrintFormals(ctor.Formals, null);
         }
@@ -1109,7 +1117,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.Write("[");
         PrintFormal(ff[0], false);
         wr.Write("]");
-        ff = new List<Formal>(ff.Skip(1));
+        ff = [.. ff.Skip(1)];
       }
       wr.Write("(");
       string sep = "";
@@ -1225,11 +1233,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics) {
+    public string TPCharacteristicsSuffix(TypeParameterCharacteristics characteristics) {
       return TPCharacteristicsSuffix(characteristics, options.DafnyPrintResolvedFile != null);
     }
 
-    public static string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics, bool printInferredTypeCharacteristics) {
+    public static string TPCharacteristicsSuffix(TypeParameterCharacteristics characteristics, bool printInferredTypeCharacteristics) {
       string s = null;
       if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Required ||
           (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && printInferredTypeCharacteristics)) {

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -19,7 +20,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   public virtual IOrigin NavigationToken => NameNode.Origin;
 
   public string Name => NameNode.Value;
-  public bool IsRefining;
+  public virtual bool IsRefining => false;
 
   private VisibilityScope opaqueScope = new();
   private VisibilityScope revealScope = new();
@@ -32,12 +33,11 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  protected Declaration(IOrigin origin, Name name, Attributes attributes, bool isRefining) : base(origin) {
+  [SyntaxConstructor]
+  protected Declaration(IOrigin origin, Name nameNode, Attributes attributes) : base(origin) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    this.NameNode = name;
+    this.NameNode = nameNode;
     this.Attributes = attributes;
-    this.IsRefining = isRefining;
   }
 
   public bool HasAxiomAttribute =>
@@ -108,10 +108,10 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     return IsRevealedInScope(scope) || opaqueScope.VisibleInScope(scope);
   }
 
-  protected string sanitizedName;
+  protected string? sanitizedName;
   public virtual string SanitizedName => sanitizedName ??= NonglobalVariable.SanitizeName(Name);
 
-  protected string compileName;
+  protected string? compileName;
 
   public virtual string GetCompileName(DafnyOptions options) {
     if (compileName == null) {
@@ -122,8 +122,8 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     return compileName;
   }
 
-  public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
-  Attributes IAttributeBearingDeclaration.Attributes {
+  public Attributes? Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
+  Attributes? IAttributeBearingDeclaration.Attributes {
     get => Attributes;
     set => Attributes = value;
   }
@@ -142,7 +142,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
 
   // For Boogie
   internal VerificationIdGenerator IdGenerator = new();
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>(); // Attributes should be enumerated by the parent, as they could be placed in different places
+  public override IEnumerable<INode> Children => []; // Attributes should be enumerated by the parent, as they could be placed in different places
   public override IEnumerable<INode> PreResolveChildren => Children;
   public abstract SymbolKind? Kind { get; }
   public abstract string GetDescription(DafnyOptions options);

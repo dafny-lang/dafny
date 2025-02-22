@@ -400,11 +400,11 @@ predicate p2(): (y: bool)
 predicate p3(): (y: bool)
   // Always true every time.
   ensures y == true
-", new List<(string nodeTokenValue, string? expectedDocstring)>(){
-          ("p1", "Always true. Every time."),
-          ("p2", "Always true."),
-          ("p3", "Always true every time."),
-      });
+", [
+        ("p1", "Always true. Every time."),
+        ("p2", "Always true."),
+        ("p3", "Always true every time.")
+      ]);
     }
     [Fact]
     public async Task DocstringWorksForFunctions() {
@@ -489,9 +489,10 @@ class X {
   static predicate Test2(i: int)
   { i == 2 }
 }
-", new List<(string nodeTokenValue, string? expectedDocstring)>() {
+", [
         ("Test1", "Test1 checks if an int\nis equal to 1"),
-        ("Test2", "Test2 checks if an int\nis equal to 2")});
+        ("Test2", "Test2 checks if an int\nis equal to 2")
+      ]);
     }
 
     [Fact]
@@ -516,12 +517,12 @@ method ComputeThing3(i: int) returns (j: int) /*
 method ComputeThing4(i: int)
   // ComputeThing4 prints something to the screen
   requires i == 2
-", new List<(string nodeTokenValue, string? expectedDocstring)> {
+", [
         ("ComputeThing", "ComputeThing prints something to the screen"),
         ("ComputeThing2", "ComputeThing2 prints something to the screen"),
         ("ComputeThing3", "ComputeThing3 prints something to the screen"),
         ("ComputeThing4", "ComputeThing4 prints something to the screen")
-      });
+      ]);
     }
     [Fact]
     public async Task DocstringWorksForConst() {
@@ -535,10 +536,11 @@ class X {
   // Unrelated todo 
   const x3 := 37 // The biggest prime number less than 40
 }
-", new List<(string nodeTokenValue, string? expectedDocstring)> {
+", [
         ("x1", "The biggest prime number less than 20"),
         ("x2", "The biggest prime number less than 30"),
-        ("x3", "The biggest prime number less than 40")});
+        ("x3", "The biggest prime number less than 40")
+      ]);
     }
 
     [Fact]
@@ -586,7 +588,7 @@ type AbstractType
 type AbstractType2
 {
 }
-", new List<(string nodeTokenValue, string? expectedDocstring)> {
+", [
         ("Odd", "Type of numbers that are not divisible by 2"),
         ("Even", "Type of numbers divisible by 2"),
         ("Weird", "Type of numbers whose remainder modulo 2 or 3 is the same"),
@@ -597,7 +599,7 @@ type AbstractType2
         ("ZeroOrMore2", "ZeroOrMore2 is the same as nat"),
         ("AbstractType", "AbstractType has opaque methods so you don't see them"),
         ("AbstractType2", "AbstractType2 has opaque methods so you don't see them")
-      });
+      ]);
     }
 
     [Fact]
@@ -619,7 +621,7 @@ datatype State2 =
     Finish(time: int)
   | // Not a docstring
     Idle(time: int)
-", new List<(string nodeTokenValue, string? expectedDocstring)> {
+", [
         ("State", "A typical log message from a process monitoring"),
         ("Begin", "The beginning of the process"),
         ("End", "The end of the process"),
@@ -627,7 +629,7 @@ datatype State2 =
         ("Start", "The start of the process"),
         ("Finish", "The finishing state of the process"),
         ("Idle", null)
-      });
+      ]);
     }
 
 
@@ -655,13 +657,13 @@ class A extends T
 /** Another typical example of a class extending a trait */
 class A2 extends T
 {}
-", new List<(string nodeTokenValue, string? expectedDocstring)> {
+", [
         ("X", "A typical base class"),
         ("T1", "A typical extending trait"),
         ("T2", "A typical extending trait with an even number"),
         ("A", "A typical example of a class extending a trait"),
         ("A2", "Another typical example of a class extending a trait")
-      });
+      ]);
     }
 
 
@@ -690,11 +692,11 @@ module Test {
     1
   }
 }
-", new List<(string nodeTokenValue, string? expectedDocstring)> {
+", [
         ("hidden", "You only get the signatures of f and g"),
         ("consistent", "You get the definition of g but not f"),
         ("full", "You get both the definition of f and g")
-      });
+      ]);
     }
 
     [Fact]
@@ -714,11 +716,11 @@ module B refines A
 /** Clearly, modules can be abstract as well */
 abstract module C
 {}
-", new List<(string nodeTokenValue, string? expectedDocstring)> {
+", [
         ("A", "A is the most interesting module"),
         ("B", "But it can be refined"),
         ("C", "Clearly, modules can be abstract as well")
-      });
+      ]);
     }
 
     [Fact]
@@ -736,10 +738,10 @@ iterator Iter2(x: int) yields (y: int)
   requires A: 0 <= x
 {
 }
-", new List<(string nodeTokenValue, string? expectedDocstring)> {
+", [
         ("Iter", "Iter is interesting"),
         ("Iter2", "Iter2 is interesting")
-      });
+      ]);
     }
 
     protected INode? FindNode(INode? node, Func<INode, bool> nodeFinder) {
@@ -760,9 +762,7 @@ iterator Iter2(x: int) yields (y: int)
     }
 
     protected Task DocstringWorksFor(string source, string nodeTokenValue, string? expectedDocstring) {
-      return DocstringWorksFor(source, new List<(string nodeTokenValue, string? expectedDocstring)>() {
-        (nodeTokenValue, expectedDocstring)
-      });
+      return DocstringWorksFor(source, [(nodeTokenValue, expectedDocstring)]);
     }
 
     protected async Task DocstringWorksFor(string source, List<(string nodeTokenValue, string? expectedDocstring)> tests) {

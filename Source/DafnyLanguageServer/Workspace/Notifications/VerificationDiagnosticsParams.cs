@@ -200,11 +200,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Resources allocated at the end of the computation.
     public long ResourceCount { get; set; } = 0;
 
-    public List<TrackedNodeComponent> CoveredIds { get; set; } = new();
+    public List<TrackedNodeComponent> CoveredIds { get; set; } = [];
 
     // Sub-diagnostics if any
-    public ConcurrentBag<VerificationTree> Children { get; set; } = new();
-    public ConcurrentBag<VerificationTree> NewChildren { get; set; } = new();
+    public ConcurrentBag<VerificationTree> Children { get; set; } = [];
+    public ConcurrentBag<VerificationTree> NewChildren { get; set; } = [];
 
     public void Visit(Action<VerificationTree> action) {
       action(this);
@@ -227,7 +227,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     public void ResetNewChildren() {
-      NewChildren = new();
+      NewChildren = [];
     }
 
     public VerificationTree SetObsolete() {
@@ -575,8 +575,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     // Ranges that should also display an error
     // TODO: Will need to compute this statically for the tests
-    public List<Range> ImmediatelyRelatedRanges { get; set; } = new();
-    public List<Range> DynamicallyRelatedRanges { get; set; } = new();
+    public List<Range> ImmediatelyRelatedRanges { get; set; } = [];
+    public List<Range> DynamicallyRelatedRanges { get; set; } = [];
 
     /// <summary>
     /// Which assertion batch this assertion was taken from in its implementation node
@@ -592,7 +592,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     private AssertionVerificationTree WithImmediatelyRelatedChanges() {
       if (assertion == null) {
-        ImmediatelyRelatedRanges = new();
+        ImmediatelyRelatedRanges = [];
         return this;
       }
 
@@ -619,7 +619,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     private AssertionVerificationTree WithDynamicallyRelatedChanges() {
       // Ranges that should highlight when stepping on one error.
       if (assertion == null) {
-        DynamicallyRelatedRanges = new();
+        DynamicallyRelatedRanges = [];
         return this;
       }
       var result = new List<Range>();

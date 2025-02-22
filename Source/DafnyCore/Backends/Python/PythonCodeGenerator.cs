@@ -233,7 +233,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateClass(string moduleName, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
-      var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? new List<Type>();
+      var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? [];
       var baseClasses = realSuperClasses.Any()
         ? $"({realSuperClasses.Comma(trait => TypeName(trait, wr, tok))})"
         : "";
@@ -243,7 +243,7 @@ namespace Microsoft.Dafny.Compilers {
       var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor).ToList();
       var args = relevantTypeParameters.Comma(tp => tp.GetCompileName(Options));
       if (!string.IsNullOrEmpty(args)) { args = $", {args}"; }
-      var isNewtypeWithTraits = cls is NewtypeDecl { ParentTraits: { Count: > 0 } };
+      var isNewtypeWithTraits = cls is NewtypeDecl { Traits: { Count: > 0 } };
       if (isNewtypeWithTraits) {
         args += ", value";
       }
@@ -475,7 +475,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GenerateIsMethod((RedirectingTypeDecl)d, w);
 
-      if (d is NewtypeDecl newtypeDecl && newtypeDecl.ParentTraits.Count != 0) {
+      if (d is NewtypeDecl newtypeDecl && newtypeDecl.Traits.Count != 0) {
         // in constructor:
         //   self._value = value
         cw.ConstructorWriter.WriteLine("self._value = value");
@@ -1265,12 +1265,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
 
-    private readonly HashSet<string> ReservedModuleNames = new() {
+    private readonly HashSet<string> ReservedModuleNames = [
       "itertools",
       "math",
       "typing",
       "sys"
-    };
+    ];
 
     private string PublicModuleIdProtect(string name) {
       if (ReservedModuleNames.Contains(name)) {

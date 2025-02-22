@@ -3,9 +3,9 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
+class FillInDefaultLoopDecreasesVisitor : ResolverBottomUpVisitor {
   readonly ICallable EnclosingMethod;
-  public FillInDefaultLoopDecreases_Visitor(ModuleResolver resolver, ICallable enclosingMethod)
+  public FillInDefaultLoopDecreasesVisitor(ModuleResolver resolver, ICallable enclosingMethod)
     : base(resolver) {
     Contract.Requires(resolver != null);
     Contract.Requires(enclosingMethod != null);
@@ -142,15 +142,15 @@ class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
               break;
           }
           if (bin.E0.Type.AsSetType != null) {
-            neutralValue = new SetDisplayExpr(bin.Origin, bin.E0.Type.AsSetType.Finite, new List<Expression>()) {
+            neutralValue = new SetDisplayExpr(bin.Origin, bin.E0.Type.AsSetType.Finite, []) {
               Type = bin.E0.Type.NormalizeExpand()
             };
           } else if (bin.E0.Type.AsMultiSetType != null) {
-            neutralValue = new MultiSetDisplayExpr(bin.Origin, new List<Expression>()) {
+            neutralValue = new MultiSetDisplayExpr(bin.Origin, []) {
               Type = bin.E0.Type.NormalizeExpand()
             };
           } else if (bin.E0.Type.AsSeqType != null) {
-            neutralValue = new SeqDisplayExpr(bin.Origin, new List<Expression>()) {
+            neutralValue = new SeqDisplayExpr(bin.Origin, []) {
               Type = bin.E0.Type.NormalizeExpand()
             };
           } else if (bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {

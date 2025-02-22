@@ -23,7 +23,7 @@ namespace Microsoft.Dafny {
     public readonly List<string> LoopGuards;
     private readonly DafnyOptions options;
     public readonly Model Model;
-    public readonly List<PartialState> States = new();
+    public readonly List<PartialState> States = [];
     public static readonly UserDefinedType UnknownType =
       new(new Token(), "?", null);
     private readonly ModelFuncWrapper fSelect, fSetMember, fSeqLength, fSeqIndex, fBox,
@@ -33,13 +33,13 @@ namespace Microsoft.Dafny {
       fSeqUpdate, fSeqCreate, fU2Real, fU2Bool, fU2Int,
       fMapDomain, fMapElements, fMapValues, fMapBuild, fMapEmpty, fIs, fIsBox, fUnbox, fLs, fLz;
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
-    private readonly List<Model.Func> bitvectorFunctions = new();
+    private readonly List<Model.Func> bitvectorFunctions = [];
 
     // the model will begin assigning characters starting from this utf value
     private static readonly Regex UnderscoreRemovalRegex = new("__");
 
     // This set is used by GetDafnyType to prevent infinite recursion
-    private HashSet<Model.Element> exploredElements = new();
+    private HashSet<Model.Element> exploredElements = [];
 
     private readonly Dictionary<Model.Element, LiteralExpr> concretizedValues = new();
 
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
         CoreOptions.TypeEncoding.Arguments => 1,
         _ => 0
       };
-      fSelect = ModelFuncWrapper.MergeFunctions(this, new List<string> { "MapType0Select", "MapType1Select" }, 2);
+      fSelect = ModelFuncWrapper.MergeFunctions(this, ["MapType0Select", "MapType1Select"], 2);
       fSetMember = new ModelFuncWrapper(this, "Set#IsMember", 2, 0);
       fSeqLength = new ModelFuncWrapper(this, "Seq#Length", 1, 0);
       fSeqBuild = new ModelFuncWrapper(this, "Seq#Build", 2, 0);
@@ -90,7 +90,7 @@ namespace Microsoft.Dafny {
       fLz = new ModelFuncWrapper(this, "$LZ", 0, 0);
       InitDataTypes();
       RegisterReservedBitVectors();
-      LoopGuards = new List<string>();
+      LoopGuards = [];
       foreach (var s in model.States) {
         var sn = new PartialState(this, s);
         States.Add(sn);
@@ -272,7 +272,7 @@ namespace Microsoft.Dafny {
 
     /// <summary> Get the Dafny type of an element </summary>
     internal Type GetFormattedDafnyType(Model.Element element) {
-      exploredElements = new HashSet<Model.Element>();
+      exploredElements = [];
       return DafnyModelTypeUtils.GetInDafnyFormat(GetDafnyType(element));
     }
 
@@ -317,7 +317,7 @@ namespace Microsoft.Dafny {
     /// Return all elements x that satisfy ($Is element x)
     /// </summary>
     private List<Model.Element> GetIsResults(Model.Element element) {
-      List<Model.Element> result = new();
+      List<Model.Element> result = [];
       foreach (var tuple in fIs.AppsWithArg(0, element)) {
         if (((Model.Boolean)tuple.Result).Value) {
           result.Add(tuple.Args[1]);
@@ -469,7 +469,7 @@ namespace Microsoft.Dafny {
       switch (value.Type) {
         case SeqType: {
             if (fSeqEmpty.AppWithResult(value.Element) != null) {
-              var _ = new LiteralExprConstraint(value, new SeqDisplayExpr(Token.NoToken, new List<Expression>()));
+              var _ = new LiteralExprConstraint(value, new SeqDisplayExpr(Token.NoToken, []));
               return;
             }
             var lenghtTuple = fSeqLength.AppWithArg(0, value.Element);
@@ -484,7 +484,7 @@ namespace Microsoft.Dafny {
             }
 
             // Sequences can be constructed with the build operator:
-            List<PartialValue> elements = new();
+            List<PartialValue> elements = [];
 
             Model.Element substring = value.Element;
             while (fSeqBuild.AppWithResult(substring) != null) {
@@ -535,7 +535,7 @@ namespace Microsoft.Dafny {
               }
             }
             if (fSetEmpty.AppWithResult(value.Element) != null) {
-              var _ = new LiteralExprConstraint(value, new SetDisplayExpr(Token.NoToken, true, new List<Expression>()));
+              var _ = new LiteralExprConstraint(value, new SetDisplayExpr(Token.NoToken, true, []));
               return;
             }
 
@@ -601,7 +601,7 @@ namespace Microsoft.Dafny {
 
 
             if (!result.Any() && fMapEmpty.AppWithResult(value.Element) != null) {
-              var _ = new LiteralExprConstraint(value, new MapDisplayExpr(Token.NoToken, true, new List<ExpressionPair>()));
+              var _ = new LiteralExprConstraint(value, new MapDisplayExpr(Token.NoToken, true, []));
             }
 
             return;
@@ -834,7 +834,7 @@ namespace Microsoft.Dafny {
         .Select(ReconstructType).OfType<UserDefinedType>()
         .Where(type => type.Name != UnknownType.Name);
       var types = possiblyNullableTypes.Select(DafnyModelTypeUtils.GetNonNullable).OfType<UserDefinedType>().ToList();
-      List<Model.Func> result = new();
+      List<Model.Func> result = [];
       var builtInDatatypeDestructor = new Regex("^.*[^_](__)*_q$");
       var canCallFunctions = new HashSet<string>();
       foreach (var app in element.References) {
@@ -866,8 +866,8 @@ namespace Microsoft.Dafny {
         .Select(ReconstructType).OfType<UserDefinedType>()
         .Where(type => type.Name != UnknownType.Name);
       var types = possiblyNullableTypes.Select(DafnyModelTypeUtils.GetNonNullable).OfType<UserDefinedType>().ToList();
-      List<Model.FuncTuple> applications = new();
-      List<Model.FuncTuple> wellFormed = new();
+      List<Model.FuncTuple> applications = [];
+      List<Model.FuncTuple> wellFormed = [];
       foreach (var app in element.References) {
         if (app.Args.Length == 0 || (!Equals(app.Args[0], element) && (heap == null || !Equals(app.Args[0], heap) || app.Args.Length == 1 || !Equals(app.Args[1], element))) ||
             !types.Any(type => app.Func.Name.StartsWith(type.Name + ".")) ||
@@ -899,7 +899,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     private List<string> GetFieldNames(Model.Element? elt) {
       if (elt == null) {
-        return new List<string>();
+        return [];
       }
       var dims = fDim.OptEval(elt)?.AsInt();
       if (dims is null or 0) { // meaning elt is not an array index
@@ -928,10 +928,10 @@ namespace Microsoft.Dafny {
           elt = dimTuple.Args[0];
         }
       }
-      return new List<string>() {
+      return [
         "[" + string.Join(",",
           indices.ToList().ConvertAll(element => element == null ? "null" : element.ToString())) + "]"
-      };
+      ];
     }
 
     /// <summary> Unboxes an element, if possible </summary>

@@ -8,20 +8,21 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren {
+  public override bool IsRefining { get; }
   public readonly List<MemberDecl> Members;
 
   // TODO remove this and instead clone the AST after parsing.
   public ImmutableList<MemberDecl> MembersBeforeResolution;
 
   // The following fields keep track of parent traits
-  public readonly List<MemberDecl> InheritedMembers = new();  // these are instance members declared in parent traits
-  public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
+  public readonly List<MemberDecl> InheritedMembers = [];  // these are instance members declared in parent traits
+  public readonly List<Type> Traits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
   public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
   /// <summary>
   /// TraitParentHeads contains the head of each distinct trait parent. It is initialized during resolution.
   /// </summary>
-  public readonly List<TraitDecl> ParentTraitHeads = new List<TraitDecl>();
+  public readonly List<TraitDecl> ParentTraitHeads = [];
 
   internal bool HeadDerivesFrom(TopLevelDecl b) {
     Contract.Requires(b != null);
@@ -53,10 +54,10 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
       Contract.Requires(parentType.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass == traitHead);
 
       if (!info.TryGetValue(traitHead, out var list)) {
-        list = new List<(Type, List<TraitDecl>)>();
+        list = [];
         info.Add(traitHead, list);
       }
-      list.Add((parentType, new List<TraitDecl>()));
+      list.Add((parentType, []));
     }
 
     public void Extend(TraitDecl parent, InheritanceInformationClass parentInfo, Dictionary<TypeParameter, Type> typeMap) {
@@ -67,7 +68,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
       foreach (var entry in parentInfo.info) {
         var traitHead = entry.Key;
         if (!info.TryGetValue(traitHead, out var list)) {
-          list = new List<(Type, List<TraitDecl>)>();
+          list = [];
           info.Add(traitHead, list);
         }
         foreach (var pair in entry.Value) {
@@ -87,16 +88,16 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
 
-  protected TopLevelDeclWithMembers(IOrigin origin, Name name, ModuleDefinition module,
+  [SyntaxConstructor]
+  protected TopLevelDeclWithMembers(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition,
     List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
-    bool isRefining, List<Type>/*?*/ traits = null)
-    : base(origin, name, module, typeArgs, attributes, isRefining) {
+    List<Type>/*?*/ traits = null)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     Members = members;
-    ParentTraits = traits ?? new List<Type>();
+    Traits = traits ?? [];
     SetMembersBeforeResolution();
   }
 
@@ -111,7 +112,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
     var isReferenceType = this is ClassLikeDecl { IsReferenceTypeDecl: true };
     var results = new List<Type>();
-    foreach (var traitType in ParentTraits) {
+    foreach (var traitType in Traits) {
       var ty = (UserDefinedType)traitType.Subst(subst);
       Contract.Assert(isReferenceType || !ty.IsRefType);
       results.Add(UserDefinedType.CreateNullableTypeIfReferenceType(ty));
@@ -138,9 +139,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     return types;
   }
 
-  public override IEnumerable<INode> Children => ParentTraits.Concat<Node>(Members);
+  public override IEnumerable<INode> Children => Traits.Concat<Node>(Members);
 
-  public override IEnumerable<INode> PreResolveChildren => ParentTraits.Concat<Node>(MembersBeforeResolution);
+  public override IEnumerable<INode> PreResolveChildren => Traits.Concat<Node>(MembersBeforeResolution);
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).
@@ -157,7 +158,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   /// </summary>
   private void AddTraitAncestors(ISet<TraitDecl> s) {
     Contract.Requires(s != null);
-    foreach (var parent in ParentTraits) {
+    foreach (var parent in Traits) {
       var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .ParentTraits to be a UserDefinedType
       TraitDecl tr;
       if (udt.ResolvedClass is NonNullTypeDecl nntd) {
@@ -175,7 +176,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   public abstract bool AcceptThis { get; }
 
   public override bool IsEssentiallyEmpty() {
-    if (Members.Count != 0 || ParentTraits.Count != 0) {
+    if (Members.Count != 0 || Traits.Count != 0) {
       return false;
     }
     return base.IsEssentiallyEmpty();
@@ -236,7 +237,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
               extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
               cloner.CloneSpecFrameExpr(extremePredicate.Reads),
               extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
-              new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.Origin, k.Name) }, null),
+              new Specification<Expression>([new IdentifierExpr(extremePredicate.Origin, k.Name)], null),
               cloner.CloneExpr(extremePredicate.Body),
               SystemModuleManager.AxiomAttribute(),
               extremePredicate);

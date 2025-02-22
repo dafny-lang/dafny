@@ -32,19 +32,19 @@ public abstract class Type : NodeWithComputedRange {
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
 
   private static ThreadLocal<List<VisibilityScope>> _scopes = new();
-  private static List<VisibilityScope> Scopes => _scopes.Value ??= new();
+  private static List<VisibilityScope> Scopes => _scopes.Value ??= [];
 
   [ThreadStatic]
   private static bool scopesEnabled = false;
 
-  public virtual IEnumerable<Node> Nodes => Enumerable.Empty<Node>();
+  public virtual IEnumerable<Node> Nodes => [];
 
   public static void PushScope(VisibilityScope scope) {
     Scopes.Add(scope);
   }
 
   public static void ResetScopes() {
-    _scopes.Value = new();
+    _scopes.Value = [];
     scopesEnabled = false;
   }
 
@@ -98,7 +98,7 @@ public abstract class Type : NodeWithComputedRange {
   }
 
   // Type arguments to the type
-  public List<Type> TypeArgs = new List<Type>();
+  public List<Type> TypeArgs = [];
 
   /// <summary>
   /// Add to "tps" the free type parameters in "this".
@@ -361,7 +361,7 @@ public abstract class Type : NodeWithComputedRange {
   /// Returns true if the type has two representations at run time, the ordinary representation and a
   /// "fat pointer" representation (which is a boxing of the ordinary representation, plus a vtable pointer).
   /// </summary>
-  public bool HasFatPointer => NormalizeExpand() is UserDefinedType { ResolvedClass: NewtypeDecl { ParentTraits: { Count: > 0 } } };
+  public bool HasFatPointer => NormalizeExpand() is UserDefinedType { ResolvedClass: NewtypeDecl { Traits: { Count: > 0 } } };
 
   /// <summary>
   /// This property returns true if the type is known to be nonempty.
@@ -401,7 +401,7 @@ public abstract class Type : NodeWithComputedRange {
     var t = NormalizeExpandKeepConstraints();
     Contract.Assume(t is NonProxyType); // precondition
 
-    AutoInitInfo CharacteristicToAutoInitInfo(TypeParameter.TypeParameterCharacteristics c) {
+    AutoInitInfo CharacteristicToAutoInitInfo(TypeParameterCharacteristics c) {
       if (c.HasCompiledValue) {
         return AutoInitInfo.CompilableValue;
       } else if (c.IsNonempty) {
@@ -493,9 +493,9 @@ public abstract class Type : NodeWithComputedRange {
             // This requires more recursion and bookkeeping than we care to try out
             return AutoInitInfo.MaybeEmpty;
           }
-          coDatatypesBeingVisited = new List<UserDefinedType>(coDatatypesBeingVisited);
+          coDatatypesBeingVisited = [.. coDatatypesBeingVisited];
         } else {
-          coDatatypesBeingVisited = new List<UserDefinedType>();
+          coDatatypesBeingVisited = [];
         }
         coDatatypesBeingVisited.Add(udt);
       }
@@ -899,15 +899,15 @@ public abstract class Type : NodeWithComputedRange {
     Contract.Requires(type != null);
     if (type is BasicType || type is ArtificialType) {
       // there are no type parameters
-      return new List<TypeParameter.TPVariance>();
+      return [];
     } else if (type is MapType) {
-      return new List<TypeParameter.TPVariance> { TypeParameter.TPVariance.Co, TypeParameter.TPVariance.Co };
+      return [TypeParameter.TPVariance.Co, TypeParameter.TPVariance.Co];
     } else if (type is CollectionType) {
-      return new List<TypeParameter.TPVariance> { TypeParameter.TPVariance.Co };
+      return [TypeParameter.TPVariance.Co];
     } else {
       var udf = (UserDefinedType)type;
       if (udf.TypeArgs.Count == 0) {
-        return new List<TypeParameter.TPVariance>();
+        return [];
       }
       // look up the declaration of the formal type parameters
       var cl = udf.ResolvedClass;
@@ -1145,10 +1145,10 @@ public abstract class Type : NodeWithComputedRange {
           return true;
         }
       }
-    } else if (a is Resolver_IdentifierExpr.ResolverType_Module) {
-      return b is Resolver_IdentifierExpr.ResolverType_Module;
-    } else if (a is Resolver_IdentifierExpr.ResolverType_Type) {
-      return b is Resolver_IdentifierExpr.ResolverType_Type;
+    } else if (a is ResolverIdentifierExpr.ResolverTypeModule) {
+      return b is ResolverIdentifierExpr.ResolverTypeModule;
+    } else if (a is ResolverIdentifierExpr.ResolverTypeType) {
+      return b is ResolverIdentifierExpr.ResolverTypeType;
     } else {
       // this is an unexpected type; however, it may be that we get here during the resolution of an erroneous
       // program, so we'll just return false
@@ -1211,7 +1211,7 @@ public abstract class Type : NodeWithComputedRange {
       var parent = sst.RhsWithArgument(type.TypeArgs);
       tower = GetTowerOfSubsetTypes(parent, typeSynonymsAreSignificant);
     } else {
-      tower = new List<Type>();
+      tower = [];
     }
     tower.Add(type);
     return tower;
@@ -1677,7 +1677,7 @@ public abstract class Type : NodeWithComputedRange {
   }
 
   public virtual List<Type> ParentTypes(bool includeTypeBounds) {
-    return new List<Type>();
+    return [];
   }
 
   /// <summary>
@@ -2149,8 +2149,8 @@ public class SeqType : CollectionType {
 public abstract class TypeProxy : Type {
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   [FilledInDuringResolution] public Type T;
-  public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
-  public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
+  public readonly List<TypeConstraint> SupertypeConstraints = [];
+  public readonly List<TypeConstraint> SubtypeConstraints = [];
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     if (T == null) {
@@ -2232,7 +2232,7 @@ public abstract class TypeProxy : Type {
   public enum Family { Unknown, Bool, Char, IntLike, RealLike, Ordinal, BitVector, ValueType, Ref, Opaque }
   public Family family = Family.Unknown;
   public static Family GetFamily(Type t) {
-    Contract.Ensures(Contract.Result<Family>() != Family.Unknown || t is TypeProxy || t is Resolver_IdentifierExpr.ResolverType);  // return Unknown ==> t is TypeProxy || t is ResolverType
+    Contract.Ensures(Contract.Result<Family>() != Family.Unknown || t is TypeProxy || t is ResolverIdentifierExpr.ResolverType);  // return Unknown ==> t is TypeProxy || t is ResolverType
     if (t.IsBoolType) {
       return Family.Bool;
     } else if (t.IsCharType) {

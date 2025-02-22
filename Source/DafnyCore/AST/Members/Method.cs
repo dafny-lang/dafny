@@ -29,8 +29,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions);
   public override IEnumerable<INode> PreResolveChildren => Children;
   public override string WhatKind => "method";
-  public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
-  public readonly IOrigin SignatureEllipsis;
   public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
@@ -78,7 +76,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
 
     foreach (var c in this.Descendants()) {
-      foreach (var a in (c as Node)?.Assumptions(this) ?? Enumerable.Empty<Assumption>()) {
+      foreach (var a in (c as Node)?.Assumptions(this) ?? []) {
         yield return a;
       }
     }
@@ -124,14 +122,13 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
     }
 
-    this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
     this.Body = cloner.CloneMethodBody(original);
-    this.SignatureEllipsis = original.SignatureEllipsis;
     this.IsByMethod = original.IsByMethod;
   }
 
-  public Method(IOrigin origin, Name name,
+  [SyntaxConstructor]
+  public Method(IOrigin origin, Name nameNode,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -143,10 +140,9 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] BlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis,
     bool isByMethod = false)
-    : base(origin, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
-      typeArgs, ins, req, ens, decreases) {
+    : base(origin, nameNode, hasStaticKeyword, isGhost, attributes, signatureEllipsis,
+      typeArgs, ins, req, ens, reads, decreases) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
     Contract.Requires(cce.NonNullElements(outs));
@@ -156,10 +152,8 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
     this.Outs = outs;
-    this.Reads = reads;
     this.Mod = mod;
     Body = body;
-    this.SignatureEllipsis = signatureEllipsis;
     this.IsByMethod = isByMethod;
     MustReverify = false;
   }
@@ -450,7 +444,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
     object autoRevealDepsVal = null;
     bool autoRevealDeps = Attributes.ContainsMatchingValue(Attributes, "autoRevealDependencies",
-      ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
+      ref autoRevealDepsVal, new HashSet<Attributes.MatchingValueOption> {
         Attributes.MatchingValueOption.Bool,
         Attributes.MatchingValueOption.Int
       }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Origin, s));
@@ -467,7 +461,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
 
     var currentClass = EnclosingClass;
-    List<AutoRevealFunctionDependencies.RevealStmtWithDepth> addedReveals = new();
+    List<AutoRevealFunctionDependencies.RevealStmtWithDepth> addedReveals = [];
 
     foreach (var func in Rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
       var revealStmt =

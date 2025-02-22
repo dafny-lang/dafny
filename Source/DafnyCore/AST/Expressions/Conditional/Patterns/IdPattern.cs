@@ -27,7 +27,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
   public const string WildcardString = "_";
 
   public void MakeAConstructor() {
-    this.Arguments = new List<ExtendedPattern>();
+    this.Arguments = [];
   }
 
   public IdPattern(Cloner cloner, IdPattern original) : base(cloner.Origin(original.Origin), original.IsGhost) {

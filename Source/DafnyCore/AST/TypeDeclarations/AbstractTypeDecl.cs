@@ -4,20 +4,22 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
+  public override bool IsRefining { get; }
   public override string WhatKind { get { return "abstract type"; } }
   public override bool CanBeRevealed() { return true; }
-  public readonly TypeParameter.TypeParameterCharacteristics Characteristics;
+  public readonly TypeParameterCharacteristics Characteristics;
   public bool SupportsEquality {
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
 
-  public AbstractTypeDecl(IOrigin origin, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics,
+  public AbstractTypeDecl(IOrigin origin, Name name, ModuleDefinition module, TypeParameterCharacteristics characteristics,
     List<TypeParameter> typeArgs, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
+    : base(origin, name, module, typeArgs, members, attributes, parentTraits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeArgs != null);
+    IsRefining = isRefining;
     Characteristics = characteristics;
     this.NewSelfSynonym();
   }

@@ -55,7 +55,7 @@ namespace Microsoft.Dafny {
       DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
       if (saveReadsChecks) {
         Locals = new Variables();
-        CreateAsserts = new();
+        CreateAsserts = [];
       }
     }
 
@@ -332,7 +332,6 @@ namespace Microsoft.Dafny {
           }
         case MemberSelectExpr selectExpr: {
             MemberSelectExpr e = selectExpr;
-            CheckFunctionSelectWF("naked function", builder, etran, e, " Possible solution: eta expansion.");
             CheckWellformed(e.Obj, wfOptions, locals, builder, etran);
             if (e.Obj.Type.IsRefType) {
               if (inBodyInitContext && Expression.AsThis(e.Obj) != null && !e.Member.IsInstanceIndependentConstant) {
@@ -455,7 +454,7 @@ namespace Microsoft.Dafny {
                 var fieldName = FunctionCall(e.Origin, BuiltinFunction.IndexField, null, i);
                 var allowedToRead = Bpl.Expr.SelectTok(e.Origin, etran.ReadsFrame(e.Origin), seq, fieldName);
                 var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
-                var qq = new Bpl.ForallExpr(e.Origin, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
+                var qq = new Bpl.ForallExpr(e.Origin, [iVar], trigger, BplImp(range, allowedToRead));
                 var requiredFrame = new FrameExpression(Token.NoToken, e.Seq, null);
                 var desc = new ReadFrameSubset("read the indicated range of array elements", requiredFrame, readFrames, e, etran.scope);
                 wfOptions.AssertSink(this, builder)(selectExpr.Origin, qq, desc, wfOptions.AssertKv);
@@ -646,7 +645,7 @@ namespace Microsoft.Dafny {
               var requiredFrame = new FrameExpression(Token.NoToken, readsCall, null);
               var desc = new ReadFrameSubset("invoke function", requiredFrame, readFrames);
 
-              CheckFrameSubset(applyExpr.Origin, new List<FrameExpression> { wrappedReads }, null, null,
+              CheckFrameSubset(applyExpr.Origin, [wrappedReads], null, null,
                 etran, etran.ReadsFrame(applyExpr.Origin), wfOptions.AssertSink(this, builder), (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), desc, wfOptions.AssertKv);
             }
 
@@ -681,8 +680,6 @@ namespace Microsoft.Dafny {
               CheckWellformed(e.Receiver, wfOptions, locals, builder, etran);
               if (!e.Function.IsStatic && !(e.Receiver is ThisExpr) && !e.Receiver.Type.IsArrowType) {
                 CheckNonNull(callExpr.Origin, e.Receiver, builder, etran, wfOptions.AssertKv);
-              } else if (e.Receiver.Type.IsArrowType) {
-                CheckFunctionSelectWF("function specification", builder, etran, e.Receiver, "");
               }
               if (!e.Function.IsStatic && !etran.UsesOldHeap) {
                 // the argument can't be assumed to be allocated for the old heap
@@ -807,11 +804,11 @@ namespace Microsoft.Dafny {
                         Token.NoToken
                       );
                       readsCall.Type = objset;
-                      requiredFrames = new() { new FrameExpression(Token.NoToken, readsCall, null) };
+                      requiredFrames = [new FrameExpression(Token.NoToken, readsCall, null)];
                       break;
                   }
                   var desc = new ReadFrameSubset("invoke function", requiredFrames, readFrames);
-                  CheckFrameSubset(expr.Origin, new List<FrameExpression> { reads }, null, null,
+                  CheckFrameSubset(expr.Origin, [reads], null, null,
                     etran, etran.ReadsFrame(expr.Origin), wfOptions.AssertSink(this, builder), (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), desc, wfOptions.AssertKv);
                 }
 
@@ -939,7 +936,7 @@ namespace Microsoft.Dafny {
 
             CheckWellformed(e.Initializer, wfOptions, locals, builder, etran);
             var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg;
-            CheckElementInit(e.Origin, false, new List<Expression>() { e.N }, eType, e.Initializer, null, builder, etran, wfOptions);
+            CheckElementInit(e.Origin, false, [e.N], eType, e.Initializer, null, builder, etran, wfOptions);
             break;
           }
         case MultiSetFormingExpr formingExpr: {
@@ -983,7 +980,7 @@ namespace Microsoft.Dafny {
               if (wfOptions.DoReadsChecks) {
                 var desc = new ReadFrameSubset($"read state of 'unchanged' {description}", fe, contextReadsFrames);
                 CheckFrameSubset(fe.E.Origin,
-                  new List<FrameExpression>() { fe },
+                  [fe],
                   null, new Dictionary<IVariable, Expression>(), etran, etran.ReadsFrame(fe.E.Origin), wfOptions.AssertSink(this, builder),
                   (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)),
                   desc, wfOptions.AssertKv);
@@ -1106,7 +1103,7 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.NeqCommon:
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
                 if (e.InCompiledContext) {
-                  if (CheckTypeCharacteristics_Visitor.CanCompareWith(e.E0) || CheckTypeCharacteristics_Visitor.CanCompareWith(e.E1)) {
+                  if (CheckTypeCharacteristicsVisitor.CanCompareWith(e.E0) || CheckTypeCharacteristicsVisitor.CanCompareWith(e.E1)) {
                     // everything's fine
                   } else {
                     Contract.Assert(!e.E0.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above
@@ -1456,7 +1453,7 @@ namespace Microsoft.Dafny {
 
     private void CheckNotGhostVariant(MemberSelectExpr expr, string whatKind, List<DatatypeCtor> candidateCtors,
       BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      CheckNotGhostVariant(expr.InCompiledContext, expr, expr.Obj, whatKind, new List<MemberDecl>() { expr.Member },
+      CheckNotGhostVariant(expr.InCompiledContext, expr, expr.Obj, whatKind, [expr.Member],
         candidateCtors, builder, etran);
     }
 
@@ -1672,7 +1669,7 @@ namespace Microsoft.Dafny {
           null
         );
         var readsDesc = new ReadFrameSubset("invoke the function passed as an argument to the sequence constructor", readsDescExpr);
-        CheckFrameSubset(tok, new List<FrameExpression> { reads }, null, null,
+        CheckFrameSubset(tok, [reads], null, null,
           etran, etran.ReadsFrame(tok), maker, (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), readsDesc, options.AssertKv);
       }
       // Check that the values coming out of the function satisfy any appropriate subset-type constraints

@@ -817,7 +817,7 @@ SynonymTypeName<out Name name> = Name<out name> .
 // The following includes Opaque type definitions
 SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. Token bvId;
-     var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+     var characteristics = new TypeParameterCharacteristics(false);
      var typeArgs = new List<TypeParameter>();
      td = null;
      Type ty = null;
@@ -1081,7 +1081,7 @@ GenericParameters<.List<TypeParameter> typeParameters, bool allowVariance.>
 
 OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
 = (. var variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict; // assignment is to please compiler
-     var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+     var characteristics = new TypeParameterCharacteristics(false);
      Name name;
      Type typeBound;
      var typeBounds = new List<Type>();
@@ -1114,7 +1114,7 @@ Variance<out TypeParameter.TPVarianceSyntax variance>
   .
 
 /*------------------------------------------------------------------------*/
-TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics characteristics>
+TypeParameterCharacteristics<ref TypeParameterCharacteristics characteristics>
 = "(" (. var startToken = t; .)
   TPCharOption<ref characteristics>
   { ","
@@ -1123,7 +1123,7 @@ TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics char
   ")" (. characteristics.SourceOrigin = new SourceOrigin(startToken, t); .)
   .
 
-TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
+TPCharOption<ref TypeParameterCharacteristics characteristics>
 = ( "=="       (. characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.Required; .)
   | digits     (. if (t.val == "0") {
                     characteristics.AutoInit = Microsoft.Dafny.Type.AutoInitInfo.CompilableValue;
@@ -2391,18 +2391,15 @@ AssignStatement<out Statement/*!*/ s>
        s = new AssignSuchThatStmt(rangeToken, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionRhs != null) {
        s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss);
-       if (proof != null) {
-         s = new BlockByProofStmt(rangeToken, proof, s);
-       }
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
        } else {
          s = new AssignStatement(rangeToken, lhss, rhss);
-         if (proof != null) {
-           s = new BlockByProofStmt(rangeToken, proof, s);
-         }
        }
+     }
+     if (proof != null) {
+       s = new BlockByProofStmt(rangeToken, proof, s);
      }
   .)
   .

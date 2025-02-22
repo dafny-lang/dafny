@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -9,21 +10,25 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
 
   [ContractInvariantMethod]
   private void ObjectInvariant() {
-    Contract.Invariant(Expressions == null || cce.NonNullElements<T>(Expressions));
   }
 
   public Specification() {
-    Expressions = new List<T>();
+    Expressions = [];
     Attributes = null;
   }
 
-  public Specification(List<T> exprs, Attributes attrs) {
-    Contract.Requires(exprs == null || cce.NonNullElements<T>(exprs));
-    Expressions = exprs;
-    Attributes = attrs;
+  [SyntaxConstructor]
+  public Specification(IOrigin origin, List<T> expressions, Attributes attributes) : base(origin) {
+    Expressions = expressions;
+    Attributes = attributes;
   }
 
-  public Attributes Attributes { get; set; }
+  public Specification(List<T> expressions, Attributes? attributes) {
+    Expressions = expressions;
+    Attributes = attributes;
+  }
+
+  public Attributes? Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "specification clause";
 
   public bool HasAttributes() {

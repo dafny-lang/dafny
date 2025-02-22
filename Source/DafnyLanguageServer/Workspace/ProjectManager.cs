@@ -77,7 +77,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private VerifyOnMode AutomaticVerificationMode => options.Get(Verification);
 
   private bool VerifyOnSave => options.Get(Verification) == VerifyOnMode.Save;
-  public List<Location> RecentChanges { get; set; } = new();
+  public List<Location> RecentChanges { get; set; } = [];
 
   private readonly DafnyOptions options;
   private readonly DafnyOptions serverOptions;
@@ -315,7 +315,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     int GetPriorityAttribute(ISymbol symbol) {
       if (symbol is IAttributeBearingDeclaration hasAttributes &&
           hasAttributes.HasUserAttribute("priority", out var attribute) &&
-          attribute.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
+          attribute!.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
         return (int)priority;
       }
       return 0;

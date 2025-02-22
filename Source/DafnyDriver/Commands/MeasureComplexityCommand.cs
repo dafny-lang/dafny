@@ -14,7 +14,7 @@ namespace Microsoft.Dafny;
 
 static class MeasureComplexityCommand {
   public static IEnumerable<Option> Options => new Option[] {
-    Iterations,
+    Mutations,
     RandomSeed,
     TopX,
     VerifyCommand.FilterSymbol,
@@ -24,10 +24,10 @@ static class MeasureComplexityCommand {
     Concat(DafnyCommands.ConsoleOutputOptions);
 
   static MeasureComplexityCommand() {
-    DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomizeVcIterations = (int)v);
+    DafnyOptions.RegisterLegacyBinding(Mutations, (o, v) => o.RandomizeVcIterations = (int)v);
     DafnyOptions.RegisterLegacyBinding(RandomSeed, (o, v) => o.RandomSeed = (int)v);
 
-    OptionRegistry.RegisterOption(Iterations, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Mutations, OptionScope.Cli);
     OptionRegistry.RegisterOption(RandomSeed, OptionScope.Cli);
     OptionRegistry.RegisterOption(TopX, OptionScope.Cli);
   }
@@ -38,7 +38,7 @@ static class MeasureComplexityCommand {
   private static readonly Option<uint> RandomSeed = new("--random-seed", () => 0U,
     $"Turn on randomization of the input that Dafny passes to the SMT solver and turn on randomization in the SMT solver itself. Certain Dafny proofs are complex in the sense that changes to the proof that preserve its meaning may cause its verification result to change. This option simulates meaning-preserving changes to the proofs without requiring the user to actually make those changes. The proof changes are renaming variables and reordering declarations in the SMT input passed to the solver, and setting solver options that have similar effects.");
 
-  private static readonly Option<uint> Iterations = new("--iterations", () => 1U,
+  private static readonly Option<uint> Mutations = new("--mutations", () => 1U,
     $"Attempt to verify each proof n times with n random seeds, each seed derived from the previous one. {RandomSeed.Name} can be used to specify the first seed, which will otherwise be 0.") {
     ArgumentHelpName = "n"
   };
@@ -121,10 +121,10 @@ static class MeasureComplexityCommand {
     IObserver<CanVerifyResult> verificationResultsObserver) {
     int iterationSeed = (int)options.Get(RandomSeed);
     var random = new Random(iterationSeed);
-    var iterations = (int)options.Get(Iterations);
-    foreach (var iteration in Enumerable.Range(0, iterations)) {
+    var iterations = (int)options.Get(Mutations);
+    foreach (var mutation in Enumerable.Range(0, iterations)) {
       await options.OutputWriter.WriteLineAsync(
-        $"Starting verification of iteration {iteration + 1}/{iterations} with seed {iterationSeed}");
+        $"Starting verification of mutation {mutation + 1}/{iterations} with seed {iterationSeed}");
       try {
         await foreach (var result in compilation.VerifyAllLazily(iterationSeed)) {
           verificationResultsObserver.OnNext(result);

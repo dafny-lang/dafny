@@ -26,7 +26,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
     }
   }
 
-  public SubsetTypeDecl(IOrigin origin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
+  public SubsetTypeDecl(IOrigin origin, Name name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
     BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
     Attributes attributes)
     : base(origin, name, characteristics, typeArgs, module, id.Type, attributes) {
@@ -57,7 +57,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   Expression RedirectingTypeDecl.Witness => Witness;
 
   public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
-    return new List<Type> { RhsWithArgument(typeArgs) };
+    return [RhsWithArgument(typeArgs)];
   }
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;

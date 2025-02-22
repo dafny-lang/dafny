@@ -144,7 +144,7 @@ namespace Microsoft.Dafny {
     }
 
     public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f) {
-      List<B> ys = new List<B>();
+      List<B> ys = [];
       foreach (A x in xs) {
         ys.Add(f(x));
       }
@@ -152,11 +152,11 @@ namespace Microsoft.Dafny {
     }
 
     public static List<A> Nil<A>() {
-      return new List<A>();
+      return [];
     }
 
     public static List<A> Singleton<A>(A x) {
-      return new List<A> { x };
+      return [x];
     }
 
     public static List<A> List<A>(params A[] xs) {
@@ -172,7 +172,7 @@ namespace Microsoft.Dafny {
     }
 
     public static List<A> Concat<A>(List<A> xs, List<A> ys) {
-      List<A> cpy = new List<A>(xs);
+      List<A> cpy = [.. xs];
       cpy.AddRange(ys);
       return cpy;
     }
@@ -495,7 +495,7 @@ namespace Microsoft.Dafny {
           if (decl is TopLevelDeclWithMembers c) {
             foreach (var member in c.Members) {
               if (member is Function f) {
-                List<Function> calls = new List<Function>();
+                List<Function> calls = [];
                 foreach (var e in f.Reads.Expressions) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
                 foreach (var e in f.Req) { if (e != null) { callFinder.Visit(e, calls); } }
                 foreach (var e in f.Ens) { if (e != null) { callFinder.Visit(e, calls); } }
@@ -673,7 +673,7 @@ namespace Microsoft.Dafny {
       if (found) {
         existingDependencies.Add(include.CanonicalPath);
       } else {
-        dependencies[key] = new SortedSet<string>() { include.CanonicalPath };
+        dependencies[key] = [include.CanonicalPath];
       }
     }
 
@@ -686,7 +686,7 @@ namespace Microsoft.Dafny {
     }
 
     public void PrintMap(DafnyOptions options) {
-      SortedSet<string> leaves = new SortedSet<string>(); // Files that don't themselves include any files
+      SortedSet<string> leaves = []; // Files that don't themselves include any files
       foreach (string target in dependencies.Keys) {
         options.OutputWriter.Write(target);
         foreach (string dependency in dependencies[target]) {

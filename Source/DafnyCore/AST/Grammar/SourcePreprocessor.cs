@@ -62,7 +62,7 @@ public static class SourcePreprocessor {
     Contract.Ensures(Contract.Result<string>() != null);
     string newline = null;
     StringBuilder sb = new StringBuilder();
-    List<IfDirectiveState> /*!*/ ifDirectiveStates = new List<IfDirectiveState>(); // readState.Count is the current nesting level of #if's
+    List<IfDirectiveState> /*!*/ ifDirectiveStates = []; // readState.Count is the current nesting level of #if's
     int ignoreCutoff = -1; // -1 means we're not ignoring; for 0<=n, n means we're ignoring because of something at nesting level n
     while (true)
     //invariant -1 <= ignoreCutoff && ignoreCutoff < readState.Count;
