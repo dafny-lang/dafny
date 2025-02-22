@@ -44,7 +44,7 @@ namespace Microsoft.Dafny {
                   ctor.Formals.Any(arg =>
                     InferAndSetEqualitySupport(tp, arg.Type, reporter)
                   )
-                ) || dt.ParentTraits.Any(parentType =>
+                ) || dt.Traits.Any(parentType =>
                   InferAndSetEqualitySupport(tp, parentType, reporter)
                 );
               }
