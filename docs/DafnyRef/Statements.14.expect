@@ -1,3 +1,3 @@
-text.dfy(13,5): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+text.dfy(13,20): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 
 Dafny program verifier did not attempt verification

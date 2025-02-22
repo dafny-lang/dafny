@@ -1,7 +1,7 @@
 Using legacy resolver and verifying...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
-+TestMissingVerifierExpect.dfy(6,5): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
++TestMissingVerifierExpect.dfy(6,7): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 +Compilation failed because warnings were found and --allow-warnings is false
 +
 

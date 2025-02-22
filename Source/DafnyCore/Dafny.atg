@@ -2846,18 +2846,18 @@ Guard<out Expression e>   /* null represents demonic-choice */
 BindingGuard<out Expression e, bool allowLambda>
 = (. var bvars = new List<BoundVar>();
      BoundVar bv;  
-     Token x;
+     Token start, suchThatOperator;
      Attributes attrs = null;
      Expression body;
   .)
-  IdentTypeOptional<out bv>                    (. bvars.Add(bv); x = bv.StartToken; .)
+  IdentTypeOptional<out bv>                    (. bvars.Add(bv); start = bv.StartToken; .)
   { ","
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }
   { Attribute<ref attrs> }
-  ":|"
+  ":|"                                         (. suchThatOperator = t; .)
   Expression<out body, true, allowLambda>
-  (. e = new ExistsExpr(new SourceOrigin(x, t), bvars, null, body, attrs); .)
+  (. e = new ExistsExpr(suchThatOperator, bvars, null, body, attrs); .)
   .
 
 

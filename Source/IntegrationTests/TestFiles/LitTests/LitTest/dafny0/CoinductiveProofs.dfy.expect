@@ -31,5 +31,5 @@ CoinductiveProofs.dfy(208,21): Related location: this is the postcondition that 
 CoinductiveProofs.dfy(4,23): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 23 verified, 12 errors
-Total resources used is 748143
+Total resources used is 749265
 Max resources used by VC is 59297

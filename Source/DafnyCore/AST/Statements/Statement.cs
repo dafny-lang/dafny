@@ -137,6 +137,17 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   }
 
   /// <summary>
+  /// Returns "stmt", but with all outer layers of by-blocks removed.
+  /// This method can be called before resolution.
+  /// </summary>
+  public static Statement StripByBlocks(Statement stmt) {
+    while (stmt is BlockByProofStmt blockByProofStmt) {
+      stmt = blockByProofStmt;
+    }
+    return stmt;
+  }
+
+  /// <summary>
   /// Create a resolved statement for an uninitialized local variable.
   /// </summary>
   public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Type type) {

@@ -282,7 +282,7 @@ namespace Microsoft.Dafny {
           return bv;
         }
 
-        var bvNew = new BoundVar(Origin(bv.Origin), new Name(this, bv.NameNode), CloneType(bv.SyntacticType));
+        var bvNew = new BoundVar(Origin(bv.Origin), new Name(this, bv.NameNode), CloneType(bv.SyntacticType), bv.IsGhost);
         bvNew.IsGhost = bv.IsGhost;
         return bvNew;
       });
