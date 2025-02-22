@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 public class TypeSynonymDecl : TypeSynonymDeclBase, RevealableTypeDecl {
   public override string WhatKind => "type synonym";
 
-  public TypeSynonymDecl(IOrigin origin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
+  public TypeSynonymDecl(IOrigin origin, Name name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
     : base(origin, name, characteristics, typeArgs, module, rhs, attributes) {
     this.NewSelfSynonym();
   }
@@ -20,7 +20,7 @@ public class TypeSynonymDecl : TypeSynonymDeclBase, RevealableTypeDecl {
 
 public class InternalTypeSynonymDecl : TypeSynonymDeclBase {
   public override string WhatKind { get { return "export-provided type"; } }
-  public InternalTypeSynonymDecl(IOrigin origin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
+  public InternalTypeSynonymDecl(IOrigin origin, Name name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
     : base(origin, name, characteristics, typeArgs, module, rhs, attributes) {
   }
 

@@ -53,6 +53,12 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
     return StripParens(e) is SeqDisplayExpr display && display.Elements.Count == 0;
   }
 
+  [SyntaxConstructor]
+  public LiteralExpr(IOrigin origin, object value)
+    : base(origin) {
+    this.Value = value is int n ? new BigInteger(n) : value;
+  }
+
   public LiteralExpr(IOrigin origin)
     : base(origin) {  // represents the Dafny literal "null"
     Contract.Requires(origin != null);

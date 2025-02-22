@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -6,12 +7,12 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
-  public Token PostLabelToken { get; set; }
+  public Token? PostLabelToken { get; set; }
 
   public int ScopeDepth { get; set; }
-  public LList<Label> Labels;  // mutable during resolution
+  public LList<Label>? Labels;  // mutable during resolution
 
-  public Attributes Attributes { get; set; }
+  public Attributes? Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "statement";
 
   [ContractInvariantMethod]
@@ -35,8 +36,9 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     }
   }
 
-  protected Statement(IOrigin origin, Attributes attrs) : base(origin) {
-    this.Attributes = attrs;
+  [SyntaxConstructor]
+  protected Statement(IOrigin origin, Attributes? attributes) : base(origin) {
+    this.Attributes = attributes;
   }
 
   protected Statement(IOrigin origin)
@@ -161,9 +163,6 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// Create a resolved statement for a local variable with an initial value.
   /// </summary>
   public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Expression value) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(value != null);
     var variable = new LocalVariable(tok, name, value.Type, false);
     variable.type = value.Type;
     Expression variableExpr = new IdentifierExpr(tok, variable);

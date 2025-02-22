@@ -3631,7 +3631,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GenerateIsMethod(nt, cw.StaticMemberWriter);
 
-      if (nt.ParentTraits.Count != 0) {
+      if (nt.Traits.Count != 0) {
         DeclareBoxedNewtype(nt, cw.InstanceMemberWriter);
       }
 

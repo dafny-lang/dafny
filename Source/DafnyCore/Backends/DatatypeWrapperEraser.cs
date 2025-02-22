@@ -168,7 +168,7 @@ namespace Microsoft.Dafny.Compilers {
       if (datatypeDecl is IndDatatypeDecl &&
           !datatypeDecl.IsExtern(options, out _, out _) &&
           !datatypeDecl.Members.Any(member => member is Field { IsGhost: false }) &&
-          datatypeDecl.ParentTraits.Count == 0) {
+          datatypeDecl.Traits.Count == 0) {
         var nonGhostConstructors = datatypeDecl.Ctors.Where(ctor => !ctor.IsGhost).ToList();
         if (nonGhostConstructors.Count == 1) {
           // there is exactly one non-ghost constructor

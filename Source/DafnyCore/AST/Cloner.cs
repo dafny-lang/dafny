@@ -68,7 +68,7 @@ namespace Microsoft.Dafny {
         var dd = (AbstractTypeDecl)d;
         return new AbstractTypeDecl(Origin(dd.Origin), dd.NameNode.Clone(this), newParent,
           CloneTPChar(dd.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam),
-          dd.ParentTraits.ConvertAll(CloneType),
+          dd.Traits.ConvertAll(CloneType),
           dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
       } else if (d is SubsetTypeDecl) {
         Contract.Assume(
@@ -88,12 +88,12 @@ namespace Microsoft.Dafny {
         if (dd.Var == null) {
           return new NewtypeDecl(Origin(dd.Origin), dd.NameNode.Clone(this), dd.TypeArgs.ConvertAll(CloneTypeParam), newParent,
             CloneType(dd.BaseType), dd.WitnessKind, CloneExpr(dd.Witness),
-            dd.ParentTraits.ConvertAll(CloneType),
+            dd.Traits.ConvertAll(CloneType),
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         } else {
           return new NewtypeDecl(Origin(dd.Origin), dd.NameNode.Clone(this), dd.TypeArgs.ConvertAll(CloneTypeParam), newParent,
             CloneBoundVar(dd.Var, false), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness),
-            dd.ParentTraits.ConvertAll(CloneType),
+            dd.Traits.ConvertAll(CloneType),
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         }
       } else if (d is TupleTypeDecl) {
@@ -105,7 +105,7 @@ namespace Microsoft.Dafny {
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
         var dt = new IndDatatypeDecl(Origin(dd.Origin), dd.NameNode.Clone(this), newParent, tps, ctors,
-          dd.ParentTraits.ConvertAll(CloneType),
+          dd.Traits.ConvertAll(CloneType),
           dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         return dt;
       } else if (d is CoDatatypeDecl) {
@@ -113,7 +113,7 @@ namespace Microsoft.Dafny {
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
         var dt = new CoDatatypeDecl(Origin(dd.Origin), dd.NameNode.Clone(this), newParent, tps, ctors,
-          dd.ParentTraits.ConvertAll(CloneType),
+          dd.Traits.ConvertAll(CloneType),
           dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         return dt;
       } else if (d is IteratorDecl) {
@@ -139,7 +139,7 @@ namespace Microsoft.Dafny {
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
         var cl = new TraitDecl(Origin(dd.Origin), dd.NameNode.Clone(this), newParent, tps, mm,
-          CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
+          CloneAttributes(dd.Attributes), dd.IsRefining, dd.Traits.ConvertAll(CloneType));
         return cl;
       } else if (d is DefaultClassDecl) {
         var dd = (DefaultClassDecl)d;
@@ -151,7 +151,7 @@ namespace Microsoft.Dafny {
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
         return new ClassDecl(Origin(dd.Origin), dd.NameNode.Clone(this), newParent, tps, mm,
-          CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
+          CloneAttributes(dd.Attributes), dd.IsRefining, dd.Traits.ConvertAll(CloneType));
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl moduleDecl) {
           return new LiteralModuleDecl(this, moduleDecl, newParent);
@@ -174,8 +174,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public TypeParameter.TypeParameterCharacteristics CloneTPChar(
-      TypeParameter.TypeParameterCharacteristics characteristics) {
+    public TypeParameterCharacteristics CloneTPChar(
+      TypeParameterCharacteristics characteristics) {
       TypeParameter.EqualitySupportValue eqSupport;
       if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired) {
         eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
@@ -183,7 +183,7 @@ namespace Microsoft.Dafny {
         eqSupport = characteristics.EqualitySupport;
       }
 
-      return new TypeParameter.TypeParameterCharacteristics(eqSupport, characteristics.AutoInit,
+      return new TypeParameterCharacteristics(eqSupport, characteristics.AutoInit,
         characteristics.ContainsNoReferenceTypes);
     }
 

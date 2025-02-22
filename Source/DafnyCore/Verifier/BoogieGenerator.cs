@@ -1087,7 +1087,7 @@ namespace Microsoft.Dafny {
     private void AddTraitParentAxioms() {
       foreach (ModuleDefinition m in program.RawModules()) {
         foreach (var c in m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().Where(RevealedInScope)) {
-          foreach (var parentTypeInExtendsClause in c.ParentTraits) {
+          foreach (var parentTypeInExtendsClause in c.Traits) {
             var childType = UserDefinedType.FromTopLevelDecl(c.Origin, c);
             var parentType = (UserDefinedType)parentTypeInExtendsClause;
             if (parentType.IsRefType) {
@@ -4839,7 +4839,7 @@ namespace Microsoft.Dafny {
       return vars;
     }
 
-    public Bpl.Expr/*?*/ GetTyWhereClause(Bpl.Expr expr, TypeParameter.TypeParameterCharacteristics characteristics) {
+    public Bpl.Expr/*?*/ GetTyWhereClause(Bpl.Expr expr, TypeParameterCharacteristics characteristics) {
       Contract.Requires(expr != null);
       if (characteristics.ContainsNoReferenceTypes) {
         return FunctionCall(expr.tok, "$AlwaysAllocated", Bpl.Type.Bool, expr);

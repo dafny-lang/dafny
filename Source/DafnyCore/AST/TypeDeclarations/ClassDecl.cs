@@ -12,7 +12,7 @@ public class ClassDecl : ClassLikeDecl {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Members));
-    Contract.Invariant(ParentTraits != null);
+    Contract.Invariant(Traits != null);
   }
 
   public ClassDecl(IOrigin origin, Name name, ModuleDefinition module,
