@@ -1,15 +1,12 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
 public abstract class AssignmentRhs : NodeWithComputedRange, IAttributeBearingDeclaration {
-  private Attributes attributes;
+  public Attributes? Attributes { get; set; }
 
-  public Attributes Attributes {
-    get { return attributes; }
-    set { attributes = value; }
-  }
   string IAttributeBearingDeclaration.WhatKind => "assignment right-hand-side";
 
   public bool HasAttributes() {
@@ -20,8 +17,9 @@ public abstract class AssignmentRhs : NodeWithComputedRange, IAttributeBearingDe
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  internal AssignmentRhs(IOrigin origin, Attributes attrs = null) : base(origin) {
-    Attributes = attrs;
+  [SyntaxConstructor]
+  internal AssignmentRhs(IOrigin origin, Attributes? attributes = null) : base(origin) {
+    Attributes = attributes;
   }
 
   public abstract bool CanAffectPreviouslyKnownExpressions { get; }

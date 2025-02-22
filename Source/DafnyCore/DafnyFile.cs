@@ -74,7 +74,7 @@ public class DafnyFile {
       extension = DafnyFileExtension;
     }
 
-    if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi") {
+    if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi" || extension == ".dbin") {
       var file = HandleDafnyFile(fileSystem, reporter, options, uri, uriOrigin, asLibrary);
       if (file != null) {
         yield return file;
@@ -112,10 +112,16 @@ public class DafnyFile {
   public static readonly Option<bool> DoNotVerifyDependencies = new("--dont-verify-dependencies",
     "Allows Dafny to accept dependencies that may not have been previously verified, which can be useful during development.");
 
+  public static readonly Uri StdInUri = new Uri("stdin:///");
+
   public static DafnyFile? HandleDafnyFile(IFileSystem fileSystem,
     ErrorReporter reporter,
     DafnyOptions options,
     Uri uri, IOrigin origin, bool asLibrary = false, bool warnLibrary = true) {
+    if (uri == StdInUri) {
+      return HandleStandardInput(options, origin);
+    }
+
     string canonicalPath;
     string baseName;
     if (uri.IsFile) {
@@ -157,7 +163,7 @@ public class DafnyFile {
 
   public static DafnyFile HandleStandardInput(DafnyOptions options, IOrigin origin) {
     return new DafnyFile(DafnyFileExtension, "<stdin>", "<stdin>",
-      () => new FileSnapshot(options.Input, null), new Uri("stdin:///"), origin, options) {
+      () => new FileSnapshot(options.Input, null), StdInUri, origin, options) {
       ShouldNotCompile = false,
       ShouldNotVerify = false,
     };

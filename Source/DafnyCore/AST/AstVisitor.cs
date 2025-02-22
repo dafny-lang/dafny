@@ -328,12 +328,12 @@ namespace Microsoft.Dafny {
         // Visit user-provided types
         if (stmt is VarDeclStmt varDeclStmt) {
           foreach (var local in varDeclStmt.Locals) {
-            VisitUserProvidedType(local.SyntacticType, context);
+            VisitUserProvidedType(local.SafeSyntacticType, context);
           }
 
         } else if (stmt is VarDeclPattern varDeclPattern) {
           foreach (var local in varDeclPattern.LocalVars) {
-            VisitUserProvidedType(local.SyntacticType, context);
+            VisitUserProvidedType(local.SafeSyntacticType, context);
           }
 
         } else if (stmt is SingleAssignStmt assignStmt) {
