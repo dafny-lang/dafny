@@ -12,6 +12,15 @@ namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
+  public enum InputTypeEnum {
+    Source,
+    Binary
+  }
+
+  public static readonly Option<InputTypeEnum> InputType = new("--input-format", () => InputTypeEnum.Source) {
+    IsHidden = true
+  };
+
   public static void EnsureStaticConstructorHasRun() { }
 
   public enum ProgressLevel { None, Symbol, Batch }
@@ -660,6 +669,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(ExecutionCoverageReport, OptionScope.Cli);
     OptionRegistry.RegisterOption(ExtractCounterexample, OptionScope.Cli);
     OptionRegistry.RegisterOption(ShowProofObligationExpressions, OptionScope.Cli);
+    OptionRegistry.RegisterOption(InputType, OptionScope.Cli);
   }
 }
 

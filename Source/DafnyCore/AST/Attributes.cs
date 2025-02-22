@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -20,7 +21,7 @@ static class AttributeBearingDeclaration {
 public record BuiltInAtAttributeArgSyntax(
   string ArgName,
   Type ArgType, // If null, it means it's not resolved (@Induction and @Trigger)
-  Expression DefaultValue) {
+  Expression? DefaultValue) {
   public Formal ToFormal() {
     Contract.Assert(ArgType != null);
     return new Formal(Token.NoToken, ArgName, ArgType, true, false,
@@ -34,7 +35,7 @@ public record BuiltInAtAttributeSyntax(
   string Name,
   List<BuiltInAtAttributeArgSyntax> Args,
   Func<IAttributeBearingDeclaration, bool> CanBeApplied) {
-  public BuiltInAtAttributeSyntax WithArg(String argName, Type argType, Expression defaultValue = null) {
+  public BuiltInAtAttributeSyntax WithArg(String argName, Type argType, Expression? defaultValue = null) {
     var c = new List<BuiltInAtAttributeArgSyntax>(Args) {
       new(argName, argType, defaultValue) };
     return this with { Args = c };
@@ -63,9 +64,16 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /*Frozen*/
   public readonly List<Expression> Args;
 
-  public readonly Attributes Prev;
-  public Attributes(string name, [Captured] List<Expression> args, Attributes prev) : base(Token.NoToken) {
-    Contract.Requires(name != null);
+  public readonly Attributes? Prev;
+
+  [SyntaxConstructor]
+  public Attributes(IOrigin origin, string name, List<Expression> args, Attributes? prev) : base(origin) {
+    Name = name;
+    Args = args;
+    Prev = prev;
+  }
+
+  public Attributes(string name, [Captured] List<Expression> args, Attributes? prev) : base(Token.NoToken) {
     Contract.Requires(cce.NonNullElements(args));
     Contract.Requires(name != UserSuppliedAtAttribute.AtName || this is UserSuppliedAtAttribute);
     Name = name;
@@ -83,11 +91,11 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     }
   }
 
-  public static IEnumerable<Expression> SubExpressions(Attributes attrs) {
+  public static IEnumerable<Expression> SubExpressions(Attributes? attrs) {
     return attrs.AsEnumerable().SelectMany(aa => aa.Args);
   }
 
-  public static bool Contains(Attributes attrs, string nm) {
+  public static bool Contains(Attributes? attrs, string nm) {
     Contract.Requires(nm != null);
     return attrs.AsEnumerable().Any(aa => aa.Name == nm);
   }
@@ -97,7 +105,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// attribute.
   /// </summary>
   [Pure]
-  public static Attributes/*?*/ Find(Attributes attrs, string nm) {
+  public static Attributes? Find(Attributes? attrs, string nm) {
     Contract.Requires(nm != null);
     return attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
   }
@@ -111,7 +119,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// be called very early during resolution before types are available and names have been resolved.
   /// </summary>
   [Pure]
-  public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
+  public static bool ContainsBool(Attributes? attrs, string nm, ref bool value) {
     Contract.Requires(nm != null);
     var attr = attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
     if (attr == null) {
@@ -156,7 +164,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// - if the attribute is {:nm e1,...,en}, then returns (e1,...,en)
   /// Otherwise, returns null.
   /// </summary>
-  public static List<Expression> FindExpressions(Attributes attrs, string nm) {
+  public static List<Expression>? FindExpressions(Attributes attrs, string nm) {
     Contract.Requires(nm != null);
     foreach (var attr in attrs.AsEnumerable()) {
       if (attr.Name == nm) {
@@ -169,9 +177,8 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// <summary>
   /// Same as FindExpressions, but returns all matches
   /// </summary>
-  public static List<List<Expression>> FindAllExpressions(Attributes attrs, string nm) {
-    Contract.Requires(nm != null);
-    List<List<Expression>> ret = null;
+  public static List<List<Expression>>? FindAllExpressions(Attributes? attrs, string nm) {
+    List<List<Expression>>? ret = null;
     for (; attrs != null; attrs = attrs.Prev) {
       if (attrs.Name == nm) {
         ret = ret ?? [];   // Avoid allocating the list in the common case where we don't find nm
@@ -192,11 +199,9 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// - return false, leave value unmodified, and call reporter with an error string.
   /// </summary>
   public enum MatchingValueOption { Empty, Bool, Int, String, Expression }
-  public static bool ContainsMatchingValue(Attributes attrs, string nm, ref object value, IEnumerable<MatchingValueOption> allowed, Action<string> reporter) {
-    Contract.Requires(nm != null);
-    Contract.Requires(allowed != null);
-    Contract.Requires(reporter != null);
-    List<Expression> args = FindExpressions(attrs, nm);
+  public static bool ContainsMatchingValue(Attributes attrs, string nm, ref object value,
+    ISet<MatchingValueOption> allowed, Action<string> reporter) {
+    var args = FindExpressions(attrs, nm);
     if (args == null) {
       return false;
     } else if (args.Count == 0) {
@@ -207,16 +212,15 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
         return false;
       }
     } else if (args.Count == 1) {
-      Expression arg = args[0];
-      StringLiteralExpr stringLiteral = arg as StringLiteralExpr;
-      LiteralExpr literal = arg as LiteralExpr;
-      if (literal != null && literal.Value is bool && allowed.Contains(MatchingValueOption.Bool)) {
+      var arg = args[0];
+      var literal = arg as LiteralExpr;
+      if (literal is { Value: bool } && allowed.Contains(MatchingValueOption.Bool)) {
         value = literal.Value;
         return true;
       } else if (literal != null && literal.Value is BigInteger && allowed.Contains(MatchingValueOption.Int)) {
         value = literal.Value;
         return true;
-      } else if (stringLiteral != null && stringLiteral.Value is string && allowed.Contains(MatchingValueOption.String)) {
+      } else if (arg is StringLiteralExpr stringLiteral && stringLiteral.Value is string && allowed.Contains(MatchingValueOption.String)) {
         value = stringLiteral.Value;
         return true;
       } else if (allowed.Contains(MatchingValueOption.Expression)) {
@@ -300,8 +304,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
 
   // Given a user-supplied @-attribute, expand it if recognized as builtin to an old-style attribute
   // or mark it as not built-in for later resolution
-  public static Attributes ExpandAtAttribute(Program program, UserSuppliedAtAttribute atAttribute, IAttributeBearingDeclaration attributeHost) {
-    var toMatch = atAttribute.Arg;
+  public static Attributes? ExpandAtAttribute(Program program, UserSuppliedAtAttribute atAttribute, IAttributeBearingDeclaration attributeHost) {
     var name = atAttribute.UserSuppliedName;
     var bindings = atAttribute.UserSuppliedPreResolveBindings;
 
@@ -364,7 +367,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
           if (Get(bindings, 0, out var lowFuel) && lowFuel != null) {
             if (Get(bindings, 1, out var highFuel) && highFuel != null) {
               if (Get(bindings, 2, out var functionName) && IsStringNotEmpty(functionName)) {
-                return A("fuel", functionName, lowFuel, highFuel);
+                return A("fuel", functionName!, lowFuel, highFuel);
               }
 
               return A("fuel", lowFuel, highFuel);
@@ -632,13 +635,13 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     return Expression.CreateIntLiteralNonnegative(Token.NoToken, value);
   }
 
-  private static bool IsStringNotEmpty(Expression value) {
+  private static bool IsStringNotEmpty(Expression? value) {
     return value is StringLiteralExpr { Value: string and not "" };
   }
 
   // Given resolved bindings, gets the i-th argument according to the
   // declaration formals order
-  private static bool Get(ActualBindings bindings, int i, out Expression expr) {
+  private static bool Get(ActualBindings bindings, int i, out Expression? expr) {
     if (bindings.Arguments.Count < i + 1) {
       expr = null;
       return false;
@@ -667,7 +670,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   }
 
   // Recovers a built-in @-Attribute if it exists
-  public static bool TryGetBuiltinAtAttribute(string name, out BuiltInAtAttributeSyntax builtinAtAttribute) {
+  public static bool TryGetBuiltinAtAttribute(string name, out BuiltInAtAttributeSyntax? builtinAtAttribute) {
     return BuiltInAtAttributeDictionary.TryGetValue(name, out builtinAtAttribute);
   }
 
@@ -681,27 +684,27 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     }, b => b);
 
   // Overridable method to clone the attribute as if the new attribute was placed after "prev" in the source code
-  public virtual Attributes CloneAfter(Attributes prev) {
+  public virtual Attributes CloneAfter(Attributes? prev) {
     return new Attributes(Name, Args, prev);
   }
 
   //////// Helpers for parsing attributes //////////////////
 
   // Returns the memory location's attributes content and set the memory location to null (no attributes)
-  public static Attributes Consume(ref Attributes tmpStack) {
+  public static Attributes? Consume(ref Attributes? tmpStack) {
     var result = tmpStack;
     tmpStack = null;
     return result;
   }
 
   // Empties the first attribute memory location while prepending its attributes to the second attribute memory location, in the same order
-  public static void MergeInto(ref Attributes tmpStack, ref Attributes attributesStack) {
+  public static void MergeInto(ref Attributes? tmpStack, ref Attributes? attributesStack) {
     MergeIntoReadonly(tmpStack, ref attributesStack);
     tmpStack = null;
   }
 
   // Prepends the attributes tmpStack before the attributes contained in the memory location attributesStack 
-  private static void MergeIntoReadonly(Attributes tmpStack, ref Attributes attributesStack) {
+  private static void MergeIntoReadonly(Attributes? tmpStack, ref Attributes? attributesStack) {
     if (tmpStack == null) {
       return;
     }
@@ -718,7 +721,7 @@ public static class AttributesExtensions {
   /// <summary>
   /// By making this an extension method, it can also be invoked for a null receiver.
   /// </summary>
-  public static IEnumerable<Attributes> AsEnumerable(this Attributes attr) {
+  public static IEnumerable<Attributes> AsEnumerable(this Attributes? attr) {
     while (attr != null) {
       yield return attr;
       attr = attr.Prev;
@@ -731,12 +734,8 @@ public class UserSuppliedAttributes : Attributes {
   public readonly IOrigin OpenBrace;
   public readonly IOrigin CloseBrace;
   public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
-  public UserSuppliedAttributes(IOrigin origin, IOrigin openBrace, IOrigin closeBrace, List<Expression> args, Attributes prev)
+  public UserSuppliedAttributes(IOrigin origin, IOrigin openBrace, IOrigin closeBrace, List<Expression> args, Attributes? prev)
     : base(origin.val, args, prev) {
-    Contract.Requires(origin != null);
-    Contract.Requires(openBrace != null);
-    Contract.Requires(closeBrace != null);
-    Contract.Requires(args != null);
     SetOrigin(origin);
     OpenBrace = openBrace;
     CloseBrace = closeBrace;
@@ -749,22 +748,20 @@ public class UserSuppliedAtAttribute : Attributes {
   public readonly IOrigin AtSign;
   public bool Builtin;  // set to true to indicate it was recognized as a builtin attribute
   // Otherwise it's a user-defined one and Arg needs to be fully resolved
-  public UserSuppliedAtAttribute(IOrigin origin, Expression arg, Attributes prev)
+  public UserSuppliedAtAttribute(IOrigin origin, Expression arg, Attributes? prev)
     : base(AtName, [arg], prev) {
-    Contract.Requires(origin != null);
     SetOrigin(origin);
     this.AtSign = origin;
   }
 
   public Expression Arg => Args[0];
 
-  public override Attributes CloneAfter(Attributes prev) {
+  public override Attributes CloneAfter(Attributes? prev) {
     return new UserSuppliedAtAttribute(AtSign, Args[0], prev);
   }
 
   // Name of this @-Attribute, which is the part right after the @
-  public string UserSuppliedName =>
-    GetName(this);
+  public string? UserSuppliedName => GetName(this);
 
   // Pre-resolved bindings of this @-Attribute
   public ActualBindings UserSuppliedPreResolveBindings =>
@@ -776,7 +773,7 @@ public class UserSuppliedAtAttribute : Attributes {
     GetPreResolveArguments(this);
 
   // Gets the name of an @-attribute. Attributes might be applied.
-  public static string GetName(Attributes a) {
+  public static string? GetName(Attributes a) {
     if (a is UserSuppliedAtAttribute { Arg: ApplySuffix { Lhs: NameSegment { Name: var name } } }) {
       return name;
     }
@@ -818,12 +815,12 @@ public class UserSuppliedAtAttribute : Attributes {
 /// A class implementing this interface is one that can carry attributes.
 /// </summary>
 public interface IAttributeBearingDeclaration {
-  Attributes Attributes { get; internal set; }
+  Attributes? Attributes { get; internal set; }
   string WhatKind { get; }
 }
 
 public static class AttributeBearingDeclarationExtensions {
-  public static bool HasUserAttribute(this IAttributeBearingDeclaration decl, string name, out Attributes attribute) {
+  public static bool HasUserAttribute(this IAttributeBearingDeclaration decl, string name, out Attributes? attribute) {
     if (Attributes.Find(decl.Attributes, name) is UserSuppliedAttributes attr) {
       attribute = attr;
       return true;

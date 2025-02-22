@@ -1,0 +1,216 @@
+class SourceOrigin
+{
+    Token startToken;
+    Token endToken;
+    Token center;
+}
+
+class Token
+{
+    Int32 line;
+    Int32 col;
+}
+
+class FilesContainer
+{
+    List<FileStart> files;
+}
+
+class FileStart
+{
+    String uri;
+    List<TopLevelDecl> topLevelDecls;
+}
+
+abstract class Node
+{
+}
+
+abstract class RangeNode : Node
+{
+    IOrigin origin;
+}
+
+abstract class IOrigin
+{
+}
+
+abstract class Declaration : RangeNode
+{
+    Name nameNode;
+    Attributes? attributes;
+}
+
+abstract class NodeWithComputedRange : Node
+{
+    IOrigin origin;
+}
+
+class Specification<T> : NodeWithComputedRange where T : Node
+{
+    List<T> expressions;
+    Attributes? attributes;
+}
+
+class Attributes : NodeWithComputedRange
+{
+    String name;
+    List<Expression> args;
+    Attributes? prev;
+}
+
+abstract class Expression : NodeWithComputedRange
+{
+}
+
+class LiteralExpr : Expression
+{
+    Object value;
+}
+
+class AttributedExpression
+{
+    Expression e;
+    AssertLabel label;
+    Attributes attributes;
+}
+
+class Label
+{
+    IOrigin tok;
+    String name;
+}
+
+class AssertLabel : Label
+{
+}
+
+class Name : RangeNode
+{
+    String value;
+}
+
+abstract class TopLevelDecl : Declaration
+{
+    List<TypeParameter> typeArgs;
+}
+
+class TypeParameter : Declaration
+{
+    TypeParameterTPVarianceSyntax varianceSyntax;
+    TypeParameterCharacteristics characteristics;
+    List<Type> typeBounds;
+}
+
+abstract class Type : NodeWithComputedRange
+{
+}
+
+class TypeParameterCharacteristics
+{
+    TypeParameterEqualitySupportValue equalitySupport;
+    TypeAutoInitInfo autoInit;
+    Boolean containsNoReferenceTypes;
+}
+
+enum TypeAutoInitInfo
+{
+    MaybeEmpty,
+    Nonempty,
+    CompilableValue
+}
+
+enum TypeParameterEqualitySupportValue
+{
+    Required,
+    InferredRequired,
+    Unspecified
+}
+
+enum TypeParameterTPVarianceSyntax
+{
+    NonVariant_Strict,
+    NonVariant_Permissive,
+    Covariant_Strict,
+    Covariant_Permissive,
+    Contravariance
+}
+
+abstract class TopLevelDeclWithMembers : TopLevelDecl
+{
+    List<MemberDecl> members;
+    List<Type> traits;
+}
+
+abstract class MemberDecl : Declaration
+{
+    Boolean hasStaticKeyword;
+    Boolean isGhost;
+}
+
+abstract class MethodOrFunction : MemberDecl
+{
+    IOrigin? signatureEllipsis;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    List<AttributedExpression> req;
+    List<AttributedExpression> ens;
+    Specification<FrameExpression> reads;
+    Specification<Expression> decreases;
+}
+
+class FrameExpression : NodeWithComputedRange
+{
+    Expression e;
+    String fieldName;
+}
+
+abstract class NonglobalVariable : NodeWithComputedRange
+{
+    Name nameNode;
+    Type type;
+    Boolean isGhost;
+}
+
+class Formal : NonglobalVariable
+{
+    Boolean inParam;
+    Expression defaultValue;
+    Attributes attributes;
+    Boolean isOld;
+    Boolean isNameOnly;
+    Boolean isOlder;
+    String nameForCompilation;
+}
+
+class Method : MethodOrFunction
+{
+    List<Formal> outs;
+    Specification<FrameExpression> mod;
+    BlockStmt body;
+    Boolean isByMethod;
+}
+
+abstract class Statement : RangeNode
+{
+    Attributes? attributes;
+}
+
+abstract class PredicateStmt : Statement
+{
+    Expression expr;
+}
+
+class AssertStmt : PredicateStmt
+{
+    AssertLabel? label;
+}
+
+class BlockStmt : Statement
+{
+    List<Statement> body;
+}
+
+class DefaultClassDecl : TopLevelDeclWithMembers
+{
+}

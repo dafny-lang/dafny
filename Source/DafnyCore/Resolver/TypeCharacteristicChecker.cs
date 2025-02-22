@@ -225,7 +225,7 @@ namespace Microsoft.Dafny {
             visitor.Visit(iter.Body, false);
           }
         } else if (d is ClassLikeDecl cl) {
-          foreach (var parentTrait in cl.ParentTraits) {
+          foreach (var parentTrait in cl.Traits) {
             visitor.VisitType(cl.Origin, parentTrait, false);
           }
         } else if (d is DatatypeDecl dt) {
