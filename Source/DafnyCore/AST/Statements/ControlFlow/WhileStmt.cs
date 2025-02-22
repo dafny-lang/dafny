@@ -54,7 +54,7 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
       formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
     }
 
-    foreach (var dec in Decreases.Expressions) {
+    foreach (var dec in Decreases.Expressions!) {
       formatter.SetDecreasesExpressionIndentation(dec, indentBefore + formatter.SpaceTab);
     }
 
@@ -76,7 +76,7 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     if (!mustBeErasable && IsGhost) {
       reporter.Info(MessageSource.Resolver, Origin, "ghost while");
     }
-    if (IsGhost && Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+    if (IsGhost && Decreases.Expressions!.Exists(e => e is WildcardExpr)) {
       reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_decreases_forbidden_on_ghost_loops, this, "'decreases *' is not allowed on ghost loops");
     }
     if (IsGhost && Mod.Expressions != null) {
@@ -85,7 +85,7 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     if (Body != null) {
       Body.ResolveGhostness(resolver, reporter, IsGhost, codeContext, proofContext, allowAssumptionVariables,
         inConstructorInitializationPhase);
-      if (Body.IsGhost && !Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+      if (Body.IsGhost && !Decreases.Expressions!.Exists(e => e is WildcardExpr)) {
         IsGhost = true;
       }
     }

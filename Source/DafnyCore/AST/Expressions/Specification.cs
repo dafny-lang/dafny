@@ -31,6 +31,6 @@ public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclarat
     return Attributes != null;
   }
 
-  public override IEnumerable<INode> Children => Expressions;
+  public override IEnumerable<INode> Children => Expressions!;
   public override IEnumerable<INode> PreResolveChildren => Children;
 }

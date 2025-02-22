@@ -27,7 +27,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
   public override IEnumerable<INode> Children => Util.IgnoreNulls<Node>(Body!, Decreases).
     Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
-    Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions);
+    Concat(Req).Concat(Ens).Concat(Reads.Expressions!).Concat(Mod.Expressions!);
 
   public override IEnumerable<INode> PreResolveChildren => Children;
   public override string WhatKind => "method";
@@ -92,16 +92,16 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       foreach (var e in Req) {
         yield return e.E;
       }
-      foreach (var e in Reads.Expressions) {
+      foreach (var e in Reads.Expressions!) {
         yield return e.E;
       }
-      foreach (var e in Mod.Expressions) {
+      foreach (var e in Mod.Expressions!) {
         yield return e.E;
       }
       foreach (var e in Ens) {
         yield return e.E;
       }
-      foreach (var e in Decreases.Expressions) {
+      foreach (var e in Decreases.Expressions!) {
         yield return e;
       }
     }
@@ -194,7 +194,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   bool ICodeContext.MustReverify { get { return this.MustReverify; } }
   public bool AllowsNontermination {
     get {
-      return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
+      return Contract.Exists(Decreases.Expressions!, e => e is WildcardExpr);
     }
   }
 
@@ -229,11 +229,11 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
     }
 
-    foreach (var read in Reads.Expressions) {
+    foreach (var read in Reads.Expressions!) {
       formatter.SetFrameExpressionIndentation(read, indentBefore + formatter.SpaceTab);
     }
 
-    foreach (var mod in Mod.Expressions) {
+    foreach (var mod in Mod.Expressions!) {
       formatter.SetFrameExpressionIndentation(mod, indentBefore + formatter.SpaceTab);
     }
 
@@ -241,7 +241,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
     }
 
-    foreach (var dec in Decreases.Expressions) {
+    foreach (var dec in Decreases.Expressions!) {
       formatter.SetDecreasesExpressionIndentation(dec, indentBefore + formatter.SpaceTab);
       formatter.SetExpressionIndentation(dec);
     }
@@ -298,17 +298,17 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
       var context = new ResolutionContext(this, false);
       resolver.ResolveAttributes(Reads, context);
-      foreach (FrameExpression fe in Reads.Expressions) {
+      foreach (FrameExpression fe in Reads.Expressions!) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
       }
 
       resolver.ResolveAttributes(Mod, context);
-      foreach (FrameExpression fe in Mod.Expressions) {
+      foreach (FrameExpression fe in Mod.Expressions!) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Modifies, this);
       }
 
       resolver.ResolveAttributes(Decreases, context);
-      foreach (Expression e in Decreases.Expressions) {
+      foreach (Expression e in Decreases.Expressions!) {
         resolver.ResolveExpression(e, resolutionContext);
         // any type is fine
       }

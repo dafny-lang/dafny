@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
   readonly string name;
   public string DafnyName => Name;
-  public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes {
+  public Attributes? Attributes;
+  Attributes? IAttributeBearingDeclaration.Attributes {
     get => Attributes;
     set => Attributes = value;
   }
@@ -50,29 +50,27 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
   public static bool HasWildcardName(IVariable v) {
-    Contract.Requires(v != null);
     return v.Name.StartsWith("_v");
   }
   public static string DisplayNameHelper(IVariable v) {
-    Contract.Requires(v != null);
     return HasWildcardName(v) ? $"_ /* {v.Name} */" : v.Name;
   }
   public string DisplayName {
     get { return DisplayNameHelper(this); }
   }
-  private string uniqueName;
-  public string UniqueName => uniqueName;
+  private string? uniqueName;
+  public string? UniqueName => uniqueName;
   public bool HasBeenAssignedUniqueName => uniqueName != null;
   public string AssignUniqueName(VerificationIdGenerator generator) {
     return uniqueName ??= generator.FreshId(Name + "#");
   }
 
-  private string sanitizedNameShadowable;
+  private string? sanitizedNameShadowable;
 
   public string CompileNameShadowable =>
     sanitizedNameShadowable ??= NonglobalVariable.SanitizeName(Name);
 
-  string compileName;
+  string? compileName;
 
   public string GetOrCreateCompileName(CodeGenIdGenerator generator) {
     return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
@@ -89,7 +87,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   Type? IVariable.OptionalType => SafeSyntacticType;
 
   [FilledInDuringResolution]
-  internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
+  internal Type? type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
   public Type Type {
     get {
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -111,7 +109,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
-  public PreType PreType { get; set; }
+  public PreType? PreType { get; set; }
 
   public bool IsMutable {
     get {
@@ -135,12 +133,12 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   public override IEnumerable<INode> Children =>
     Attributes.AsEnumerable().
       Concat<Node>(
-      IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
+      IsTypeExplicit ? new List<Node>() { type! } : Enumerable.Empty<Node>());
 
   public override IEnumerable<INode> PreResolveChildren =>
     Attributes.AsEnumerable().
       Concat<Node>(
-      IsTypeExplicit ? new List<Node>() { SyntacticType ?? type } : Enumerable.Empty<Node>());
+      IsTypeExplicit ? new List<Node>() { SyntacticType! } : Enumerable.Empty<Node>());
 
   public SymbolKind? Kind => SymbolKind.Variable;
   public string GetDescription(DafnyOptions options) {

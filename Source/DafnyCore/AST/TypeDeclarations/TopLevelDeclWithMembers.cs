@@ -231,7 +231,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
             // prepend _k to the given decreases clause
             var decr = new List<Expression>();
             decr.Add(new IdentifierExpr(extremeLemma.Origin, k.Name));
-            decr.AddRange(extremeLemma.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
+            decr.AddRange(extremeLemma.Decreases.Expressions!.ConvertAll(cloner.CloneExpr));
             // Create prefix lemma.  Note that the body is not cloned, but simply shared.
             // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
             // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
