@@ -52,7 +52,7 @@ public class TraitDecl : ClassLikeDecl {
     var downcastableTraits = new List<Type>();
     foreach (var subTrait in TraitDeclsCanBeDowncastedTo) {
       // Recovers which of the parent traits of the subTraits is the current trait declaration
-      var parentTrait = subTrait.ParentTraits.FirstOrDefault(t => t.AsTraitType == this);
+      var parentTrait = subTrait.Traits.FirstOrDefault(t => t.AsTraitType == this);
       Type downcastType = null;
       if (parentTrait is UserDefinedType { TypeArgs: var parentTypeArguments } &&
           CanDowncastIfMonomorphized(parentTypeArguments, subTrait, ref downcastType)) {
